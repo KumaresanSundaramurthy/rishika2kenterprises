@@ -1,13 +1,3 @@
-// ── Export ────────────────────────────────────────────────────────────────
-function vendExport(type) {
-    var url = '/vendors/exportVendors?Type=' + encodeURIComponent(type);
-    if (typeof Filter !== 'undefined' && !$.isEmptyObject(Filter)) {
-        url += '&Filter=' + encodeURIComponent(JSON.stringify(Filter));
-    }
-    if (type === 'Print') { printPreviewRecords(url, function () {}); }
-    else { window.location.href = url; }
-}
-
 // ── List page AJAX functions ──────────────────────────────────────────────
 
 function getVendorsDetails(PageNo, RowLimit, Filter) {

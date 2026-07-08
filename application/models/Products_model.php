@@ -536,6 +536,37 @@ class Products_model extends CI_Model {
 
     }
 
+    public function getProductsForExport(int $OrgUID): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select([
+                'Products.ItemName AS ItemName',
+                'Category.Name AS CategoryName',
+                'Products.HSNSACCode AS HSNSACCode',
+                'Products.PartNumber AS PartNumber',
+                'Products.SellingPrice AS SellingPrice',
+                'Products.TaxPercentage AS TaxPercentage',
+                'Products.PurchasePrice AS PurchasePrice',
+                'COALESCE(ProductStock.AvailableQty, 0) AS AvailableQuantity',
+                'Products.IsActive AS IsActive',
+                'Products.UpdatedOn AS UpdatedOn',
+                "CONCAT(User.FirstName, ' ', User.LastName) AS UpdatedBy",
+            ]);
+            $this->ReadDb->from('Products.ProductTbl as Products');
+            $this->ReadDb->join('Products.CategoryTbl as Category', 'Category.CategoryUID = Products.CategoryUID', 'left');
+            $this->ReadDb->join('Products.ProductStockTbl as ProductStock', 'ProductStock.ProductUID = Products.ProductUID', 'left');
+            $this->ReadDb->join('Users.UserTbl as User', 'User.UserUID = Products.UpdatedBy', 'left');
+            $this->ReadDb->where(['Products.IsDeleted' => 0, 'Products.OrgUID' => $OrgUID]);
+            $this->ReadDb->order_by('Products.ItemName', 'ASC');
+            $query = $this->ReadDb->get();
+            $error = $this->ReadDb->error();
+            if ($error['code']) throw new Exception($error['message']);
+            return $query->result();
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
+
     public function getCategoryListPaginated(int $OrgUID, int $limit, int $offset, string $searchQuery = '', array $sortArr = []): object {
 
         try {

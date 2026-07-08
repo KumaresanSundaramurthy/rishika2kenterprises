@@ -1035,10 +1035,6 @@ class Salesorders extends MY_Controller {
             $this->pageData['TransactionCharges'] = [];
             $this->pageData['IsEditMode']         = false;
 
-            $this->load->model('products_model');
-            $this->pageData['SizeInfo']        = $this->products_model->getSizeDetails([]) ?? [];
-            $this->pageData['BrandInfo']       = $this->products_model->getBrandDetails([]) ?? [];
-
             $this->pageData['fltStorageData'] = [];
             if (!empty($this->pageData['JwtData']->GenSettings->EnableStorage)) {
                 $this->load->model('storage_model');
@@ -1098,10 +1094,6 @@ class Salesorders extends MY_Controller {
             $this->pageData['TransactionCharges'] = $this->transactions_model->getTransactionCharges($transUID, (int)$orgUID);
             $this->pageData['TaxList']            = $this->_getTaxList();
             $this->pageData['IsEditMode']         = true;
-
-            $this->load->model('products_model');
-            $this->pageData['SizeInfo']        = $this->products_model->getSizeDetails([]) ?? [];
-            $this->pageData['BrandInfo']       = $this->products_model->getBrandDetails([]) ?? [];
 
             $this->pageData['fltStorageData'] = [];
             if (!empty($this->pageData['JwtData']->GenSettings->EnableStorage)) {

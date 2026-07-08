@@ -257,7 +257,7 @@ class Global_model extends CI_Model {
 
         $this->EndReturnData = new stdClass();
         try {
-            $cacheKey = $this->redisservice->orgKey('tax-per-detail');
+            $cacheKey = $this->redisservice->globalKey('tax-details');
             $cached   = $this->upstashservice->get($cacheKey);
             if ($cached !== null) {
                 $all = array_map(fn($r) => is_array($r) ? (object) $r : $r, (array)$cached);

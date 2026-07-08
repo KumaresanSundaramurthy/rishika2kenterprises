@@ -4,7 +4,7 @@
             title="Export">
         <i class="bx bx-export me-1"></i>Export
     </button>
-    <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:260px;font-size:.83rem;">
+    <ul class="dropdown-menu dropdown-menu-end r2k-export-menu" style="min-width:260px;font-size:.83rem;">
         <li>
             <a class="dropdown-item r2k-export-btn" href="javascript:void(0);" data-format="print">
                 <i class="bx bx-printer me-2 text-secondary"></i>Print Preview

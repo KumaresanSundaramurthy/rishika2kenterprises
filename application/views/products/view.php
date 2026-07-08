@@ -97,8 +97,8 @@
                                 $searchPlaceholderMap = ['item' => 'Search items...', 'group' => 'Search groups...', 'category' => 'Search categories...'];
                                 $searchPlaceholder = $searchPlaceholderMap[$ActiveTabData] ?? 'Search items...';
                                 ?>
-                                <input type="text" class="SearchDetails" id="SearchDetails" placeholder="<?php echo $searchPlaceholder; ?>">
-                                <i class="bx bx-x r2k-clear d-none" id="clearSearch"></i>
+                                <input type="text" class="SearchDetails" id="SearchDetails" placeholder="<?php echo $searchPlaceholder; ?>" value="<?php echo htmlspecialchars($InitSearch ?? ''); ?>">
+                                <i class="bx bx-x r2k-clear<?php echo !empty($InitSearch) ? '' : ' d-none'; ?>" id="clearSearch"></i>
                             </div>
                             <a href="javascript:void(0);" id="productTypeFilter" class="apex-filter-btn <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" title="Filter by Product Type"><i class="bx bx-box me-1"></i>Type</a>
                             <a href="javascript:void(0);" id="statusFilter" class="apex-filter-btn <?php echo ($ActiveTabData == 'item' || $ActiveTabData == 'group') ? '' : 'd-none'; ?>" title="Filter by Status"><i class="bx bx-transfer me-1"></i>Status</a>
@@ -121,19 +121,7 @@
                                     </li>
                                 </ul>
                             </div>
-                            <div class="dropdown">
-                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
-                                        data-bs-toggle="dropdown" data-bs-auto-close="true" aria-expanded="false" title="Export">
-                                    <i class="bx bx-export me-1"></i>Export
-                                </button>
-                                <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:260px;font-size:.83rem;">
-                                    <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportPrint"><i class="bx bx-printer me-2 text-secondary"></i>Print Preview<small class="text-muted ms-1">(Preview before printing)</small></a></li>
-                                    <li><hr class="dropdown-divider my-1"></li>
-                                    <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportCSV"><i class="bx bx-file me-2 text-success"></i>CSV<small class="text-muted ms-1">(Comma Separated, opens in any spreadsheet)</small></a></li>
-                                    <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportExcel"><i class="bx bxs-file-export me-2 text-success"></i>Excel<small class="text-muted ms-1">(Microsoft Excel .xlsx format)</small></a></li>
-                                    <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportPDF"><i class="bx bxs-file-pdf me-2 text-danger"></i>PDF<small class="text-muted ms-1">(Fixed layout, best for sharing)</small></a></li>
-                                </ul>
-                            </div>
+                            <?php $this->load->view('common/partials/export_btn'); ?>
                             <a href="javascript:void(0);" class="btn btn-primary btn-sm addItem <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" id="NewItem"><i class="bx bx-plus me-1"></i> Create Item</a>
                             <a href="javascript:void(0);" class="btn btn-primary btn-sm <?php echo $ActiveTabData == 'group' ? '' : 'd-none'; ?>" id="NewComboItem"><i class="bx bx-git-merge me-1"></i> Create Group</a>
                             <a href="javascript:void(0);" class="btn btn-primary btn-sm addCategory <?php echo $ActiveTabData == 'category' ? '' : 'd-none'; ?>" id="NewCategory"><i class="bx bx-plus me-1"></i> Create Category</a>
@@ -141,21 +129,21 @@
 
                         <!-- Tabs Row -->
                         <div class="apex-tabs-row">
-                            <ul class="nav trans-status-tabs" role="tablist">
+                            <ul class="nav trans-status-tabs" role="tablist" data-trans-path="/products">
                                 <li class="nav-item">
-                                    <a class="nav-link <?php echo $ActiveTabData == 'item' ? 'active' : ''; ?> TabPane" data-id="Item" role="tab" data-bs-toggle="tab" data-bs-target="#NavItemPage" href="javascript:void(0);">
+                                    <a class="nav-link <?php echo $ActiveTabData == 'item' ? 'active' : ''; ?> TabPane" data-id="Item" data-status="Item" data-url-tab="items" role="tab" data-bs-toggle="tab" data-bs-target="#NavItemPage" href="javascript:void(0);">
                                         <i class="bx bx-package me-1"></i> Items
                                         <span class="trans-tab-count<?php echo ($ActiveTabData != 'item' || $ProductTotalCount == 0) ? ' d-none' : ''; ?>" id="productTotalCount"><?php echo $ProductTotalCount > 0 ? $ProductTotalCount : ''; ?></span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link <?php echo $ActiveTabData == 'group' ? 'active' : ''; ?> TabPane" data-id="Groups" role="tab" data-bs-toggle="tab" data-bs-target="#NavGroupsPage" href="javascript:void(0);">
+                                    <a class="nav-link <?php echo $ActiveTabData == 'group' ? 'active' : ''; ?> TabPane" data-id="Groups" data-status="Groups" data-url-tab="groups" role="tab" data-bs-toggle="tab" data-bs-target="#NavGroupsPage" href="javascript:void(0);">
                                         <i class="bx bx-git-merge me-1"></i> Groups
                                         <span class="trans-tab-count<?php echo ($ActiveTabData != 'group' || $ModTotalCount == 0) ? ' d-none' : ''; ?>" id="groupTotalCount"><?php echo ($ActiveTabData == 'group' && $ModTotalCount > 0) ? $ModTotalCount : ''; ?></span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link <?php echo $ActiveTabData == 'category' ? 'active' : ''; ?> TabPane" data-id="Categories" role="tab" data-bs-toggle="tab" data-bs-target="#NavCategoriesPage" href="javascript:void(0);">
+                                    <a class="nav-link <?php echo $ActiveTabData == 'category' ? 'active' : ''; ?> TabPane" data-id="Categories" data-status="Categories" data-url-tab="categories" role="tab" data-bs-toggle="tab" data-bs-target="#NavCategoriesPage" href="javascript:void(0);">
                                         <i class="bx bx-layer me-1"></i> Categories
                                         <span class="trans-tab-count<?php echo ($ActiveTabData != 'category' || $ModTotalCount == 0) ? ' d-none' : ''; ?>" id="categoryTotalCount"><?php echo ($ActiveTabData == 'category' && $ModTotalCount > 0) ? $ModTotalCount : ''; ?></span>
                                     </a>
@@ -422,7 +410,7 @@ let ActiveTabModuleId = 4
 var EnableStorage = <?php echo $JwtData->GenSettings->EnableStorage; ?>;
 var CommonRowColumnDisp = 1;
 let imgData;
-var _prodTabUrlMap = { 'Item': 'item', 'Groups': 'group', 'Categories': 'category' };
+var _prodInitSearch = <?php echo json_encode($InitSearch ?? ''); ?>;
 let sortState = 0;
 let catgSortState = 0;
 var _catgListDirty = false;
@@ -445,8 +433,15 @@ $(function() {
         });
     })();
 
-    $('#SearchDetails').val('');
+    if (!_prodInitSearch) { $('#SearchDetails').val(''); }
     $(ProdHeader + ',' + ProdRow).prop('checked', false).trigger('change');
+
+    if (_prodInitSearch && _prodInitSearch.length >= 3) {
+        Filter['SearchAllData'] = _prodInitSearch;
+        $('#clearSearch').removeClass('d-none');
+        PageNo = 0;
+        showProductPageDetails();
+    }
 
     $('.TabPane').click(function(e) {
         e.preventDefault();
@@ -456,11 +451,7 @@ $(function() {
             ActiveTabId = TabValue;
             ActiveTabModuleId = $(this).data('moduleid');
             $('.trans-tab-count').addClass('d-none');
-            var _tabParam = _prodTabUrlMap[TabValue] || TabValue.toLowerCase();
-            var _tabUrl = '/products?tab=' + _tabParam;
-            if (window.location.pathname + window.location.search !== _tabUrl) {
-                history.pushState({ tab: _tabParam }, '', _tabUrl);
-            }
+            _pushTabUrl(TabValue, '');
             $('#ProductStatsRow').toggleClass('d-none', TabValue === 'Groups');
             $('#NewItem,#NewComboItem,#NewCategory,#CloneOption,#DeleteOption,#ItemCategory-Div').addClass('d-none');
             $('#ActionsDD-Div').addClass('d-none');
@@ -528,6 +519,7 @@ $(function() {
             }
             $('#SearchDetails').blur();
             showProductPageDetails();
+            _pushTabUrl(ActiveTabId, searchText);
         }
     }, 1500));
 
@@ -542,6 +534,7 @@ $(function() {
             delete Filter['SearchAllData'];
             $('#SearchDetails').blur();
             showProductPageDetails();
+            _pushTabUrl(ActiveTabId, '');
         }
     });
 
@@ -574,7 +567,7 @@ $(function() {
         }
     });
 
-    commonExportFunctions();
+    initExport({ moduleUID: 203, getFilters: function () { return Filter; } });
 
     $(document).on('change', '#selectAllCategories', function() {
         const isChecked = $(this).is(':checked');

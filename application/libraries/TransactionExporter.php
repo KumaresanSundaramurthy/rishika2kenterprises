@@ -14,12 +14,11 @@ class TransactionExporter {
 
     // ── Human-readable column headers ────────────────────────────────────────
     private $labels = [
+        // Transaction columns
         'UniqueNumber'      => '#',
         'TransDate'         => 'Date',
         'PartyName'         => 'Party Name',
         'PartyArea'         => 'Area / City',
-        'MobileNumber'      => 'Mobile',
-        'EmailAddress'      => 'Email',
         'SubTotal'          => 'Sub Total',
         'DiscountAmount'    => 'Discount',
         'CgstAmount'        => 'CGST',
@@ -36,9 +35,31 @@ class TransactionExporter {
         'Reference'         => 'Reference',
         'SupplierInvoiceNo' => 'Supplier Invoice #',
         'PlaceOfSupply'     => 'Place of Supply',
-        'UpdatedBy'         => 'Updated By',
         'CreatedBy'         => 'Created By',
+        // Shared columns
+        'MobileNumber'      => 'Mobile',
+        'EmailAddress'      => 'Email',
+        'UpdatedBy'         => 'Updated By',
         'UpdatedOn'         => 'Last Updated',
+        // Customer / Vendor columns
+        'CustName'          => 'Customer Name',
+        'VendName'          => 'Vendor Name',
+        'Area'              => 'Area',
+        'GSTIN'             => 'GSTIN',
+        'CompanyName'       => 'Company',
+        'CustomerTypeName'  => 'Customer Type',
+        'ClosingBalance'    => 'Balance',
+        'ClosingBalanceType'=> 'Balance Type',
+        'IsActiveLabel'     => 'Status',
+        // Product columns
+        'ItemName'          => 'Item Name',
+        'CategoryName'      => 'Category',
+        'HSNSACCode'        => 'HSN/SAC',
+        'PartNumber'        => 'Part No.',
+        'SellingPrice'      => 'Selling Price',
+        'TaxPercentage'     => 'Tax %',
+        'PurchasePrice'     => 'Purchase Price',
+        'AvailableQuantity' => 'Stock',
     ];
 
     // ── Per-type, per-format column config ───────────────────────────────────
@@ -153,10 +174,46 @@ class TransactionExporter {
             ],
         ],
 
+        // ── 201: Customers ───────────────────────────────────────────────────
+        201 => [
+            'title'  => 'Customers',
+            'party'  => '',
+            'formats' => [
+                'csv'   => ['columns' => ['CustName','Area','MobileNumber','EmailAddress','GSTIN','CustomerTypeName','ClosingBalance','ClosingBalanceType','IsActiveLabel','UpdatedOn','UpdatedBy']],
+                'excel' => ['columns' => ['CustName','Area','MobileNumber','EmailAddress','GSTIN','CompanyName','CustomerTypeName','ClosingBalance','ClosingBalanceType','IsActiveLabel','UpdatedOn','UpdatedBy']],
+                'pdf'   => ['columns' => ['CustName','Area','MobileNumber','GSTIN','ClosingBalance','ClosingBalanceType','IsActiveLabel']],
+                'print' => ['columns' => ['CustName','Area','MobileNumber','EmailAddress','GSTIN','CustomerTypeName','ClosingBalance','ClosingBalanceType','IsActiveLabel','UpdatedBy']],
+            ],
+        ],
+
+        // ── 202: Vendors ─────────────────────────────────────────────────────
+        202 => [
+            'title'  => 'Vendors',
+            'party'  => '',
+            'formats' => [
+                'csv'   => ['columns' => ['VendName','Area','MobileNumber','EmailAddress','GSTIN','ClosingBalance','ClosingBalanceType','IsActiveLabel','UpdatedOn','UpdatedBy']],
+                'excel' => ['columns' => ['VendName','Area','MobileNumber','EmailAddress','GSTIN','CompanyName','ClosingBalance','ClosingBalanceType','IsActiveLabel','UpdatedOn','UpdatedBy']],
+                'pdf'   => ['columns' => ['VendName','Area','MobileNumber','GSTIN','ClosingBalance','ClosingBalanceType','IsActiveLabel']],
+                'print' => ['columns' => ['VendName','Area','MobileNumber','EmailAddress','GSTIN','ClosingBalance','ClosingBalanceType','IsActiveLabel','UpdatedBy']],
+            ],
+        ],
+
+        // ── 203: Products ────────────────────────────────────────────────────
+        203 => [
+            'title'  => 'Products',
+            'party'  => '',
+            'formats' => [
+                'csv'   => ['columns' => ['ItemName','CategoryName','HSNSACCode','PartNumber','SellingPrice','TaxPercentage','PurchasePrice','AvailableQuantity','IsActiveLabel','UpdatedOn','UpdatedBy']],
+                'excel' => ['columns' => ['ItemName','CategoryName','HSNSACCode','PartNumber','SellingPrice','TaxPercentage','PurchasePrice','AvailableQuantity','IsActiveLabel','UpdatedOn','UpdatedBy']],
+                'pdf'   => ['columns' => ['ItemName','CategoryName','SellingPrice','TaxPercentage','PurchasePrice','AvailableQuantity','IsActiveLabel']],
+                'print' => ['columns' => ['ItemName','CategoryName','HSNSACCode','SellingPrice','TaxPercentage','PurchasePrice','AvailableQuantity','IsActiveLabel','UpdatedBy']],
+            ],
+        ],
+
     ];
 
     // ── Columns treated as money (right-aligned, formatted to 2dp) ───────────
-    private $moneyCols = ['SubTotal','DiscountAmount','CgstAmount','SgstAmount','IgstAmount','TaxAmount','RoundOff','NetAmount','PaidAmount','BalanceAmount'];
+    private $moneyCols = ['SubTotal','DiscountAmount','CgstAmount','SgstAmount','IgstAmount','TaxAmount','RoundOff','NetAmount','PaidAmount','BalanceAmount','ClosingBalance','SellingPrice','PurchasePrice'];
 
     // ── Date columns ─────────────────────────────────────────────────────────
     private $dateCols  = ['TransDate','ValidityDate','UpdatedOn'];
@@ -183,14 +240,18 @@ class TransactionExporter {
         $columns = $fmtCfg['columns'];
         $labels  = array_map(fn($c) => $this->labels[$c] ?? $c, $columns);
 
-        // Fetch data (no pagination — all matching rows)
-        $this->CI->load->model('transactions_model');
-        $rows = $this->CI->transactions_model->getTransactionExportData($moduleUID, $orgUID, $filters);
+        $rows = $this->_fetchRows((int)$moduleUID, (int)$orgUID, $filters);
 
-        // Computed columns
-        foreach ($rows as $row) {
-            $row->BalanceAmount = max(0, (float)($row->NetAmount ?? 0) - (float)($row->PaidAmount ?? 0));
-            $row->PlaceOfSupply = trim(($row->PlaceOfSupplyCode ?? '') . ' – ' . ($row->PlaceOfSupplyName ?? ''), ' –');
+        // Computed columns — differ by module family
+        if ((int)$moduleUID < 200) {
+            foreach ($rows as $row) {
+                $row->BalanceAmount = max(0, (float)($row->NetAmount ?? 0) - (float)($row->PaidAmount ?? 0));
+                $row->PlaceOfSupply = trim(($row->PlaceOfSupplyCode ?? '') . ' – ' . ($row->PlaceOfSupplyName ?? ''), ' –');
+            }
+        } else {
+            foreach ($rows as $row) {
+                $row->IsActiveLabel = ((int)($row->IsActive ?? 1)) === 1 ? 'Active' : 'Inactive';
+            }
         }
 
         switch ($format) {
@@ -200,6 +261,33 @@ class TransactionExporter {
             case 'print': return $this->_toPrint($rows, $columns, $labels, $config, $dateFmt);
         }
         return null;
+    }
+
+    // ── Private: dispatch row fetch to the right model ────────────────────────
+    private function _fetchRows(int $moduleUID, int $orgUID, array $filters): array {
+        if ($moduleUID < 200) {
+            $this->CI->load->model('transactions_model');
+            return $this->CI->transactions_model->getTransactionExportData($moduleUID, $orgUID, $filters);
+        }
+        switch ($moduleUID) {
+            case 201:
+                $this->CI->load->model('customers_model');
+                $result = $this->CI->customers_model->getCustomerListPaginated($orgUID, 0, 0, $filters);
+                $rows   = $result->rows ?? [];
+                foreach ($rows as $r) { $r->CustName = $r->Name ?? ''; }
+                return $rows;
+            case 202:
+                $this->CI->load->model('vendors_model');
+                $result = $this->CI->vendors_model->getVendorListPaginated($orgUID, 0, 0, $filters);
+                $rows   = $result->rows ?? [];
+                foreach ($rows as $r) { $r->VendName = $r->Name ?? ''; }
+                return $rows;
+            case 203:
+                $this->CI->load->model('products_model');
+                return $this->CI->products_model->getProductsForExport($orgUID);
+            default:
+                return [];
+        }
     }
 
     // ── Format a single cell value ───────────────────────────────────────────

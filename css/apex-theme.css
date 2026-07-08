@@ -743,6 +743,13 @@
 .apex-icon-btn i {
     font-size: 1.2rem;
 }
+/* Export dropdown — matches filter box blue/indigo border+shadow theme */
+.r2k-export-menu {
+    border: 1px solid #c4c6f8 !important;
+    border-radius: 10px !important;
+    box-shadow: 0 8px 24px rgba(105,108,255,0.18), 0 2px 8px rgba(0,0,0,0.08) !important;
+    padding: 6px 0 !important;
+}
 /* Date filter button adapts to apex style when inside filter row */
 .apex-filter-row .r2k-dd-btn {
     font-size: 0.8rem;

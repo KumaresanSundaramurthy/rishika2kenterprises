@@ -12,11 +12,11 @@ class Products extends MY_Controller {
 
     }
 
-    private function sanitizeTabInput($tab) {
+    private function sanitizeTabInput($tab): string {
 
         $tab = strtolower($tab ?: 'item');
-        $allowedTabs = ['item', 'group', 'category'];
-        return in_array($tab, $allowedTabs) ? $tab : 'item';
+        $map = ['item' => 'item', 'group' => 'group', 'category' => 'category', 'items' => 'item', 'groups' => 'group', 'categories' => 'category'];
+        return $map[$tab] ?? 'item';
 
     }
 
@@ -121,6 +121,7 @@ class Products extends MY_Controller {
         try {
 
             $activeTab = $this->sanitizeTabInput($this->input->get('tab', TRUE));
+            $initSearch = $this->input->get('search', TRUE) ?: '';
 
             $limit = (int) ($GeneralSettings->RowLimit ?? 10);
 
@@ -169,6 +170,7 @@ class Products extends MY_Controller {
             // Must match the data-id attribute values on the tab nav links in view.php
             $tabNameMap = ['item' => 'Item', 'group' => 'Groups', 'category' => 'Categories'];
             $this->pageData['ActiveTabName']  = $tabNameMap[$activeTab] ?? ucfirst($activeTab);
+            $this->pageData['InitSearch']     = $initSearch;
             $this->pageData['ActiveModuleId'] = 4;
 
             $this->pageData['ProductStats'] = $this->products_model->getProductStats($OrgUID);

@@ -71,9 +71,6 @@ class Proformainvoices extends MY_Controller {
 
             $this->_getDispatchAddresses($orgUID);
 
-            $this->load->model('products_model');
-            $this->pageData['SizeInfo']        = $this->products_model->getSizeDetails([]) ?? [];
-            $this->pageData['BrandInfo']       = $this->products_model->getBrandDetails([]) ?? [];
             $this->pageData['fltStorageData']  = [];
             if (!empty($this->pageData['JwtData']->GenSettings->EnableStorage)) {
                 $this->load->model('storage_model');
@@ -125,10 +122,7 @@ class Proformainvoices extends MY_Controller {
             $this->pageData['NextNumberMap'] = $nextNumberMap;
 
             $this->_getDispatchAddresses($orgUID);
-
-            $this->load->model('products_model');
-            $this->pageData['SizeInfo']        = $this->products_model->getSizeDetails([]) ?? [];
-            $this->pageData['BrandInfo']       = $this->products_model->getBrandDetails([]) ?? [];
+            
             $this->pageData['fltStorageData']  = [];
             if (!empty($this->pageData['JwtData']->GenSettings->EnableStorage)) {
                 $this->load->model('storage_model');

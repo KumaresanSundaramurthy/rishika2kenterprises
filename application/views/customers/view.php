@@ -128,17 +128,8 @@
                                     <li class="d-none" id="BulkEmailOption"><a class="dropdown-item" href="javascript:void(0);" id="btnBulkEmail"><i class="bx bx-envelope me-1 text-primary"></i> Send Email</a></li>
                                 </ul>
                             </div>
-                            <div class="dropdown cust-only-ctrl<?php echo $initIsGroups ? ' d-none' : ''; ?>">
-                                <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="bx bx-export me-1"></i>Export
-                                </button>
-                                <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:260px;font-size:.83rem;">
-                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="custExport('Print')"><i class="bx bx-printer me-2 text-secondary"></i>Print<small class="text-muted ms-1">(Preview before printing)</small></a></li>
-                                    <li><hr class="dropdown-divider my-1"></li>
-                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="custExport('CSV')"><i class="bx bx-file me-2 text-success"></i>CSV<small class="text-muted ms-1">(Comma Separated, opens in any spreadsheet)</small></a></li>
-                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="custExport('Excel')"><i class="bx bxs-file-export me-2 text-success"></i>Excel<small class="text-muted ms-1">(Microsoft Excel .xlsx format)</small></a></li>
-                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="custExport('Pdf')"><i class="bx bxs-file-pdf me-2 text-danger"></i>PDF<small class="text-muted ms-1">(Fixed layout, best for sharing)</small></a></li>
-                                </ul>
+                            <div class="cust-only-ctrl<?php echo $initIsGroups ? ' d-none' : ''; ?>">
+                                <?php $this->load->view('common/partials/export_btn'); ?>
                             </div>
                             <a href="javascript:void(0);" class="btn btn-primary cust-only-ctrl<?php echo $initIsGroups ? ' d-none' : ''; ?>" id="btnCreateCustomerHeader">
                                 <i class="bx bx-plus me-1"></i>New Customer
@@ -1033,6 +1024,8 @@ $(function () {
             _grpReload(1);
         }
     });
+
+    initExport({ moduleUID: 201, getFilters: function () { return Filter; } });
 
     // ── URL tab state init ───────────────────────────────────────────────────
     if (_custInitTab === 'Groups') {

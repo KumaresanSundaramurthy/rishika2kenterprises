@@ -85,30 +85,23 @@ class Global_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
             
-            $PUIKey  = $this->redisservice->orgKey('primary-unit');
-            $PUICached = $this->upstashservice->get($PUIKey);
-            if ($PUICached !== null) {
-                $this->EndReturnData->Data = array_map(fn($r) => is_array($r) ? (object) $r : $r, (array)$PUICached);
-            } else {
-                $this->ReadDb->db_debug = FALSE;
-                $this->ReadDb->select([
-                    'PrimaryUnit.PrimaryUnitUID AS PrimaryUnitUID',
-                    'PrimaryUnit.Name AS Name',
-                    'PrimaryUnit.ShortName AS ShortName',
-                    'PrimaryUnit.Description AS Description',
-                    'PrimaryUnit.UpdatedOn as UpdatedOn',
-                ]);
-                $this->ReadDb->from('Global.PrimaryUnitTbl as PrimaryUnit');
-                $this->ReadDb->where(['PrimaryUnit.IsDeleted' => 0, 'PrimaryUnit.IsActive' => 1]);
-                $this->ReadDb->order_by('PrimaryUnit.Sorting', 'ASC');
-                $query = $this->ReadDb->get();
-                if (!$query) {
-                    $error = $this->ReadDb->error();
-                    throw new Exception($error['message']);
-                }
-                $this->EndReturnData->Data = $query->result();
-                $this->upstashservice->set($PUIKey, $this->EndReturnData->Data, 0);
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select([
+                'PrimaryUnit.PrimaryUnitUID AS PrimaryUnitUID',
+                'PrimaryUnit.Name AS Name',
+                'PrimaryUnit.ShortName AS ShortName',
+                'PrimaryUnit.Description AS Description',
+                'PrimaryUnit.UpdatedOn as UpdatedOn',
+            ]);
+            $this->ReadDb->from('Global.PrimaryUnitTbl as PrimaryUnit');
+            $this->ReadDb->where(['PrimaryUnit.IsDeleted' => 0, 'PrimaryUnit.IsActive' => 1]);
+            $this->ReadDb->order_by('PrimaryUnit.Sorting', 'ASC');
+            $query = $this->ReadDb->get();
+            if (!$query) {
+                $error = $this->ReadDb->error();
+                throw new Exception($error['message']);
             }
+            $this->EndReturnData->Data = $query->result();
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Message = 'Data Retrieved Successfully';
@@ -127,30 +120,23 @@ class Global_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $DTIKey    = $this->redisservice->orgKey('disc-type');
-            $DTICached = $this->upstashservice->get($DTIKey);
-            if ($DTICached !== null) {
-                $this->EndReturnData->Data = array_map(fn($r) => is_array($r) ? (object) $r : $r, (array)$DTICached);
-            } else {
-                $this->ReadDb->db_debug = FALSE;
-                $this->ReadDb->select([
-                    'DiscType.DiscountTypeUID AS DiscountTypeUID',
-                    'DiscType.Name AS Name',
-                    'DiscType.DisplayName AS DisplayName',
-                    'DiscType.Symbol AS Symbol',
-                    'DiscType.UpdatedOn as UpdatedOn',
-                ]);
-                $this->ReadDb->from('Global.DiscountTypeTbl as DiscType');
-                $this->ReadDb->where(['DiscType.IsDeleted' => 0, 'DiscType.IsActive' => 1]);
-                $this->ReadDb->order_by('DiscType.Sorting', 'ASC');
-                $query = $this->ReadDb->get();
-                if (!$query) {
-                    $error = $this->ReadDb->error();
-                    throw new Exception($error['message']);
-                }
-                $this->EndReturnData->Data = $query->result();
-                $this->upstashservice->set($DTIKey, $this->EndReturnData->Data, 0);
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select([
+                'DiscType.DiscountTypeUID AS DiscountTypeUID',
+                'DiscType.Name AS Name',
+                'DiscType.DisplayName AS DisplayName',
+                'DiscType.Symbol AS Symbol',
+                'DiscType.UpdatedOn as UpdatedOn',
+            ]);
+            $this->ReadDb->from('Global.DiscountTypeTbl as DiscType');
+            $this->ReadDb->where(['DiscType.IsDeleted' => 0, 'DiscType.IsActive' => 1]);
+            $this->ReadDb->order_by('DiscType.Sorting', 'ASC');
+            $query = $this->ReadDb->get();
+            if (!$query) {
+                $error = $this->ReadDb->error();
+                throw new Exception($error['message']);
             }
+            $this->EndReturnData->Data = $query->result();
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Message = 'Data Retrieved Successfully';
@@ -169,28 +155,21 @@ class Global_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
             
-            $PTIKey    = $this->redisservice->orgKey('prod-type');
-            $PTICached = $this->upstashservice->get($PTIKey);
-            if ($PTICached !== null) {
-                $this->EndReturnData->Data = array_map(fn($r) => is_array($r) ? (object) $r : $r, (array)$PTICached);
-            } else {
-                $this->ReadDb->db_debug = FALSE;
-                $this->ReadDb->select([
-                    'ProdType.ProductTypeUID AS ProductTypeUID',
-                    'ProdType.Name AS Name',
-                    'ProdType.UpdatedOn as UpdatedOn'
-                ]);
-                $this->ReadDb->from('Global.ProductTypeTbl as ProdType');
-                $this->ReadDb->where(['ProdType.IsDeleted' => 0, 'ProdType.IsActive' => 1]);
-                $this->ReadDb->order_by('ProdType.Sorting', 'ASC');
-                $query = $this->ReadDb->get();
-                if (!$query) {
-                    $error = $this->ReadDb->error();
-                    throw new Exception($error['message']);
-                }
-                $this->EndReturnData->Data = $query->result();
-                $this->upstashservice->set($PTIKey, $this->EndReturnData->Data, 0);
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select([
+                'ProdType.ProductTypeUID AS ProductTypeUID',
+                'ProdType.Name AS Name',
+                'ProdType.UpdatedOn as UpdatedOn'
+            ]);
+            $this->ReadDb->from('Global.ProductTypeTbl as ProdType');
+            $this->ReadDb->where(['ProdType.IsDeleted' => 0, 'ProdType.IsActive' => 1]);
+            $this->ReadDb->order_by('ProdType.Sorting', 'ASC');
+            $query = $this->ReadDb->get();
+            if (!$query) {
+                $error = $this->ReadDb->error();
+                throw new Exception($error['message']);
             }
+            $this->EndReturnData->Data = $query->result();
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Message = 'Data Retrieved Successfully';
@@ -209,28 +188,21 @@ class Global_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $ProdTaxKey    = $this->redisservice->orgKey('prod-tax');
-            $ProdTaxCached = $this->upstashservice->get($ProdTaxKey);
-            if ($ProdTaxCached !== null) {
-                $this->EndReturnData->Data = array_map(fn($r) => is_array($r) ? (object) $r : $r, (array)$ProdTaxCached);
-            } else {
-                $this->ReadDb->db_debug = FALSE;
-                $this->ReadDb->select([
-                    'ProdTax.ProductTaxUID AS ProductTaxUID',
-                    'ProdTax.Name AS Name',
-                    'ProdTax.UpdatedOn as UpdatedOn',
-                ]);
-                $this->ReadDb->from('Global.ProductTaxTbl as ProdTax');
-                $this->ReadDb->where(['ProdTax.IsDeleted' => 0, 'ProdTax.IsActive' => 1]);
-                $this->ReadDb->order_by('ProdTax.Sorting', 'ASC');
-                $query = $this->ReadDb->get();
-                if (!$query) {
-                    $error = $this->ReadDb->error();
-                    throw new Exception($error['message']);
-                }
-                $this->EndReturnData->Data = $query->result();
-                $this->upstashservice->set($ProdTaxKey, $this->EndReturnData->Data, 0);
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select([
+                'ProdTax.ProductTaxUID AS ProductTaxUID',
+                'ProdTax.Name AS Name',
+                'ProdTax.UpdatedOn as UpdatedOn',
+            ]);
+            $this->ReadDb->from('Global.ProductTaxTbl as ProdTax');
+            $this->ReadDb->where(['ProdTax.IsDeleted' => 0, 'ProdTax.IsActive' => 1]);
+            $this->ReadDb->order_by('ProdTax.Sorting', 'ASC');
+            $query = $this->ReadDb->get();
+            if (!$query) {
+                $error = $this->ReadDb->error();
+                throw new Exception($error['message']);
             }
+            $this->EndReturnData->Data = $query->result();
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Message = 'Data Retrieved Successfully';
@@ -249,32 +221,25 @@ class Global_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
             
-            $TDIKey    = $this->redisservice->orgKey('tax-details');
-            $TDICached = $this->upstashservice->get($TDIKey);
-            if ($TDICached !== null) {
-                $this->EndReturnData->Data = array_map(fn($r) => is_array($r) ? (object) $r : $r, (array)$TDICached);
-            } else {
-                $this->ReadDb->db_debug = FALSE;
-                $this->ReadDb->select([
-                    'TaxDetail.TaxDetailsUID AS TaxDetailsUID',
-                    'TaxDetail.TaxName AS TaxName',
-                    'TaxDetail.Percentage AS Percentage',
-                    'TaxDetail.CGST AS CGST',
-                    'TaxDetail.SGST AS SGST',
-                    'TaxDetail.IGST AS IGST',
-                    'TaxDetail.UpdatedOn as UpdatedOn',
-                ]);
-                $this->ReadDb->from('Global.TaxDetailsTbl as TaxDetail');
-                $this->ReadDb->where(['TaxDetail.IsDeleted' => 0, 'TaxDetail.IsActive' => 1]);
-                $this->ReadDb->order_by('TaxDetail.Sorting', 'ASC');
-                $query = $this->ReadDb->get();
-                if (!$query) {
-                    $error = $this->ReadDb->error();
-                    throw new Exception($error['message']);
-                }
-                $this->EndReturnData->Data = $query->result();
-                $this->upstashservice->set($TDIKey, $this->EndReturnData->Data, 0);
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select([
+                'TaxDetail.TaxDetailsUID AS TaxDetailsUID',
+                'TaxDetail.TaxName AS TaxName',
+                'TaxDetail.Percentage AS Percentage',
+                'TaxDetail.CGST AS CGST',
+                'TaxDetail.SGST AS SGST',
+                'TaxDetail.IGST AS IGST',
+                'TaxDetail.UpdatedOn as UpdatedOn',
+            ]);
+            $this->ReadDb->from('Global.TaxDetailsTbl as TaxDetail');
+            $this->ReadDb->where(['TaxDetail.IsDeleted' => 0, 'TaxDetail.IsActive' => 1]);
+            $this->ReadDb->order_by('TaxDetail.Sorting', 'ASC');
+            $query = $this->ReadDb->get();
+            if (!$query) {
+                $error = $this->ReadDb->error();
+                throw new Exception($error['message']);
             }
+            $this->EndReturnData->Data = $query->result();
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Message = 'Data Retrieved Successfully';

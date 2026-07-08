@@ -212,7 +212,8 @@ class Vendors_model extends CI_Model {
             if (!$cntQuery) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
             $totalCount = (int) $cntQuery->row()->cnt;
 
-            // Data query
+            // Data query — balance via correlated subqueries to prevent row multiplication
+            // from multi-ledger ELM rows (ELM+COA JOINs caused N rows per vendor if >1 ledger)
             $this->ReadDb->select([
                 'Vendors.VendorUID AS TablePrimaryUID',
                 'Vendors.VendorUID AS VendorUID',
@@ -238,21 +239,14 @@ class Vendors_model extends CI_Model {
                 'Vendors.CreatedOn AS CreatedOn',
                 'Vendors.UpdatedOn AS UpdatedOn',
                 "CONCAT(User.FirstName, ' ', User.LastName) AS UpdatedBy",
-                'IFNULL(COA.CurrentBalance, 0.00) AS ClosingBalance',
-                "IFNULL(COA.CurrentBalanceType, 'Credit') AS ClosingBalanceType",
             ]);
+            $this->ReadDb->select(
+                "IFNULL((SELECT COA2.CurrentBalance FROM Accounting.EntityLedgerMap ELM2 JOIN Accounting.ChartOfAccounts COA2 ON COA2.LedgerUID = ELM2.LedgerUID AND COA2.IsDeleted = 0 WHERE ELM2.VendorUID = Vendors.VendorUID AND ELM2.EntityType = 'Vendor' AND ELM2.IsDeleted = 0 LIMIT 1), 0.00) AS ClosingBalance,
+                 IFNULL((SELECT COA2.CurrentBalanceType FROM Accounting.EntityLedgerMap ELM2 JOIN Accounting.ChartOfAccounts COA2 ON COA2.LedgerUID = ELM2.LedgerUID AND COA2.IsDeleted = 0 WHERE ELM2.VendorUID = Vendors.VendorUID AND ELM2.EntityType = 'Vendor' AND ELM2.IsDeleted = 0 LIMIT 1), 'Credit') AS ClosingBalanceType",
+                false
+            );
             $this->ReadDb->from('Vendors.VendorTbl as Vendors');
             $this->ReadDb->join('Users.UserTbl as User', 'User.UserUID = Vendors.UpdatedBy', 'left');
-            $this->ReadDb->join(
-                'Accounting.EntityLedgerMap as ELM',
-                "ELM.VendorUID = Vendors.VendorUID AND ELM.EntityType = 'Vendor' AND ELM.IsDeleted = 0",
-                'left'
-            );
-            $this->ReadDb->join(
-                'Accounting.ChartOfAccounts as COA',
-                'COA.LedgerUID = ELM.LedgerUID AND COA.IsDeleted = 0',
-                'left'
-            );
             $this->ReadDb->join(
                 'Global.SalutationTbl as Sal',
                 'Sal.SalutationUID = Vendors.SalutationUID AND Sal.IsDeleted = 0',
@@ -284,7 +278,7 @@ class Vendors_model extends CI_Model {
             } elseif (!empty($filter['AreaSorting'])) {
                 $this->ReadDb->order_by('Vendors.Area', (int)$filter['AreaSorting'] === 1 ? 'ASC' : 'DESC');
             } elseif (!empty($filter['BalanceSorting'])) {
-                $this->ReadDb->order_by('COA.CurrentBalance', (int)$filter['BalanceSorting'] === 1 ? 'ASC' : 'DESC');
+                $this->ReadDb->order_by('ClosingBalance', (int)$filter['BalanceSorting'] === 1 ? 'ASC' : 'DESC');
             } else {
                 $this->ReadDb->order_by('Vendors.VendorUID', 'DESC');
             }
@@ -794,18 +788,17 @@ class Vendors_model extends CI_Model {
             $countRow   = $this->ReadDb->get()->row();
             $totalCount = (int)($countRow->cnt ?? 0);
 
+            // ── Step 1: Paginated groups with member count + primary name (no VOB join) ──
             $this->ReadDb->select(
                 'VG.GroupUID, VG.GroupCode, VG.GroupName, VG.GroupType,
                  VG.ContactPerson, VG.Mobile, VG.Email, VG.IsActive, VG.CreatedAt,
                  COUNT(V.VendorUID) AS MemberCount,
-                 COALESCE(SUM(CASE WHEN VOB.PendingBalType = \'Debit\'  AND VOB.PendingBalance > 0 THEN VOB.PendingBalance ELSE 0 END), 0) AS TotalReceivable,
-                 COALESCE(SUM(CASE WHEN VOB.PendingBalType = \'Credit\' AND VOB.PendingBalance > 0 THEN VOB.PendingBalance ELSE 0 END), 0) AS TotalPayable,
-                 MAX(CASE WHEN V.IsGroupPrimary = 1 THEN V.Name ELSE NULL END) AS PrimaryName',
+                 MAX(CASE WHEN V.IsGroupPrimary = 1 THEN V.Name ELSE NULL END) AS PrimaryName,
+                 0 AS TotalReceivable, 0 AS TotalPayable',
                 false
             );
             $this->ReadDb->from('Vendors.VendorGroupTbl VG');
             $this->ReadDb->join('Vendors.VendorTbl V', 'V.GroupUID = VG.GroupUID AND V.IsDeleted = 0', 'left');
-            $this->ReadDb->join('Vendors.VendOpeningBalanceTbl VOB', 'VOB.VendorUID = V.VendorUID AND VOB.OrgUID = V.OrgUID AND VOB.IsDeleted = 0', 'left');
             $this->ReadDb->where(['VG.OrgUID' => (int)$orgUID, 'VG.IsDeleted' => 0]);
             if (!empty($filter['SearchAllData'])) {
                 $s = $filter['SearchAllData'];
@@ -826,9 +819,37 @@ class Vendors_model extends CI_Model {
             $this->ReadDb->order_by('VG.GroupName', 'ASC');
             $this->ReadDb->limit($limit, $offset);
             $query = $this->ReadDb->get();
+            $rows  = $query ? $query->result() : [];
+
+            // ── Step 2: Balance totals scoped only to this page's group UIDs ──
+            if (!empty($rows)) {
+                $groupUIDs    = [];
+                foreach ($rows as $row) { $groupUIDs[] = (int)$row->GroupUID; }
+                $placeholders = implode(',', array_fill(0, count($groupUIDs), '?'));
+                $balQuery = $this->ReadDb->query(
+                    "SELECT V.GroupUID,
+                            COALESCE(SUM(CASE WHEN VOB.PendingBalType = 'Debit'  AND VOB.PendingBalance > 0 THEN VOB.PendingBalance ELSE 0 END), 0) AS TotalReceivable,
+                            COALESCE(SUM(CASE WHEN VOB.PendingBalType = 'Credit' AND VOB.PendingBalance > 0 THEN VOB.PendingBalance ELSE 0 END), 0) AS TotalPayable
+                     FROM Vendors.VendorTbl V
+                     JOIN Vendors.VendOpeningBalanceTbl VOB
+                          ON VOB.VendorUID = V.VendorUID AND VOB.OrgUID = V.OrgUID AND VOB.IsDeleted = 0
+                     WHERE V.OrgUID = ? AND V.GroupUID IN ({$placeholders}) AND V.IsDeleted = 0
+                     GROUP BY V.GroupUID",
+                    array_merge([(int)$orgUID], $groupUIDs)
+                );
+                $balMap = [];
+                if ($balQuery) {
+                    foreach ($balQuery->result() as $b) { $balMap[(int)$b->GroupUID] = $b; }
+                }
+                foreach ($rows as $row) {
+                    $b = $balMap[(int)$row->GroupUID] ?? null;
+                    $row->TotalReceivable = $b ? $b->TotalReceivable : 0;
+                    $row->TotalPayable    = $b ? $b->TotalPayable    : 0;
+                }
+            }
 
             $result             = new stdClass();
-            $result->rows       = $query ? $query->result() : [];
+            $result->rows       = $rows;
             $result->totalCount = $totalCount;
             return $result;
         } catch (Exception $e) {

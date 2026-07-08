@@ -14,12 +14,14 @@
                     'pageTitle'       => $PageTitle       ?? 'Customers',
                     'pageDescription' => $PageDescription ?? '',
                 ]); ?>
+
                 <?php
                 $s   = $CustStats ?? null;
                 $cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
                 $dec = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
                 ?>
 
+                <?php if ($JwtData->TransSettings->ShowTransactionStats ?? 1): ?>
                 <!-- ── Stats Strip ───────────────────────────────────────────── -->
                 <div class="apex-stats-strip">
                     <a href="javascript:void(0);" class="apex-stat-item active" data-status="All" data-stat-filter="All" style="--stat-color:#db2777">
@@ -74,6 +76,7 @@
                         </div>
                     </div>
                 </div>
+                <?php endif; ?>
 
                 <div class="container-xxl flex-grow-1 py-3">
 
@@ -83,38 +86,37 @@
                     <div class="card">
 
                         <!-- Filter Row -->
+                        <?php $initIsGroups = ($InitTab ?? 'All') === 'Groups'; ?>
                         <div class="apex-filter-row">
                             <div class="r2k-search-wrap">
                                 <i class="bx bx-search r2k-si"></i>
-                                <input type="text" id="SearchDetails" placeholder="Name, mobile, GSTIN...">
-                                <i class="bx bx-x r2k-clear d-none" id="clearSearch"></i>
+                                <input type="text" id="SearchDetails" placeholder="<?php echo $initIsGroups ? 'Group name, code, type...' : 'Name, mobile, GSTIN...'; ?>" value="<?php echo htmlspecialchars($InitSearch ?? ''); ?>">
+                                <i class="bx bx-x r2k-clear<?php echo !empty($InitSearch) ? '' : ' d-none'; ?>" id="clearSearch"></i>
                             </div>
                             <?php if (!empty($Tags)): ?>
-                            <a href="javascript:void(0);" id="custTagFilterBtn" class="apex-filter-btn" title="Filter by Tag">
+                            <a href="javascript:void(0);" id="custTagFilterBtn" class="apex-filter-btn cust-only-ctrl<?php echo $initIsGroups ? ' d-none' : ''; ?>" title="Filter by Tag">
                                 <i class="bx bx-purchase-tag"></i>Tags
                             </a>
                             <?php endif; ?>
-                            <?php if (!empty($CustomerTypeList)): ?>
-                            <a href="javascript:void(0);" id="custTypeFilterBtn" class="apex-filter-btn" title="Filter by Customer Type">
+                            <a href="javascript:void(0);" id="custTypeFilterBtn" class="apex-filter-btn cust-only-ctrl<?php echo $initIsGroups ? ' d-none' : ''; ?>" title="Filter by Customer Type">
                                 <i class="bx bx-user-pin me-1"></i>Customer Type
                             </a>
-                            <?php endif; ?>
                             <?php if ($showUserBtn): ?>
-                            <a href="javascript:void(0);" id="custUserFilterBtn" class="apex-filter-btn cust-only-ctrl" title="Filter by User">
+                            <a href="javascript:void(0);" id="custUserFilterBtn" class="apex-filter-btn cust-only-ctrl<?php echo $initIsGroups ? ' d-none' : ''; ?>" title="Filter by User">
                                 <i class="bx bx-user"></i>Updated By
                             </a>
                             <?php endif; ?>
-                            <a href="javascript:void(0);" id="custStatusFilterBtn" class="apex-filter-btn cust-only-ctrl" title="Filter by Status">
+                            <a href="javascript:void(0);" id="custStatusFilterBtn" class="apex-filter-btn cust-only-ctrl<?php echo $initIsGroups ? ' d-none' : ''; ?>" title="Filter by Status">
                                 <i class="bx bx-toggle-left me-1"></i>Status
                             </a>
                             <!-- Group-only filter chip -->
-                            <a href="javascript:void(0);" id="grpTypeFilterBtn" class="apex-filter-btn grp-only-ctrl d-none" title="Filter by Group Type">
+                            <a href="javascript:void(0);" id="grpTypeFilterBtn" class="apex-filter-btn grp-only-ctrl<?php echo $initIsGroups ? '' : ' d-none'; ?>" title="Filter by Group Type">
                                 <i class="bx bx-category"></i> Group Type
                             </a>
                             <div class="apex-filter-spacer"></div>
                             <a href="javascript:void(0);" class="apex-icon-btn PageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
                             <!-- Customer-only controls -->
-                            <a href="javascript:void(0);" class="apex-icon-btn cust-only-ctrl" id="btnSyncCustomersCache" title="Sync Cache"><i class="bx bx-planet"></i></a>
+                            <a href="javascript:void(0);" class="apex-icon-btn cust-only-ctrl<?php echo $initIsGroups ? ' d-none' : ''; ?>" id="btnSyncCustomersCache" title="Sync Cache"><i class="bx bx-planet"></i></a>
                             <div class="btn-group d-none cust-only-ctrl" id="ActionsDD-Div">
                                 <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="actionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                                     <i class="bx bx-slider-alt"></i>
@@ -126,7 +128,7 @@
                                     <li class="d-none" id="BulkEmailOption"><a class="dropdown-item" href="javascript:void(0);" id="btnBulkEmail"><i class="bx bx-envelope me-1 text-primary"></i> Send Email</a></li>
                                 </ul>
                             </div>
-                            <div class="dropdown cust-only-ctrl">
+                            <div class="dropdown cust-only-ctrl<?php echo $initIsGroups ? ' d-none' : ''; ?>">
                                 <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
                                     <i class="bx bx-export me-1"></i>Export
                                 </button>
@@ -138,37 +140,42 @@
                                     <li><a class="dropdown-item" href="javascript:void(0);" onclick="custExport('Pdf')"><i class="bx bxs-file-pdf me-2 text-danger"></i>PDF<small class="text-muted ms-1">(Fixed layout, best for sharing)</small></a></li>
                                 </ul>
                             </div>
-                            <a href="javascript:void(0);" class="btn btn-primary cust-only-ctrl" id="btnCreateCustomerHeader">
+                            <a href="javascript:void(0);" class="btn btn-primary cust-only-ctrl<?php echo $initIsGroups ? ' d-none' : ''; ?>" id="btnCreateCustomerHeader">
                                 <i class="bx bx-plus me-1"></i>New Customer
                             </a>
                             <!-- Group-only button -->
-                            <button type="button" id="btnNewGroup" class="btn btn-primary grp-only-ctrl d-none">
+                            <button type="button" id="btnNewGroup" class="btn btn-primary grp-only-ctrl<?php echo $initIsGroups ? '' : ' d-none'; ?>">
                                 <i class="bx bx-plus me-1"></i>New Group
                             </button>
                         </div>
 
                         <!-- Tabs Row -->
                         <div class="apex-tabs-row">
-                            <ul class="nav trans-status-tabs" id="custStatusTabs" role="tablist">
-                                <li class="nav-item"><a class="nav-link active cust-tab" data-status="All" href="javascript:void(0);"><i class="bx bxs-group me-1" style="font-size:.85rem;"></i>All <span class="trans-tab-count"><?php echo $CustStats->TotalCount ?? 0; ?></span></a></li>
+                            <ul class="nav trans-status-tabs" id="custStatusTabs" role="tablist" data-trans-path="/customers">
+                                <li class="nav-item"><a class="nav-link<?php echo ($InitTab ?? 'All') === 'All' ? ' active' : ''; ?> cust-tab" data-status="All" data-url-tab="all" href="javascript:void(0);">All <span class="trans-tab-count<?php echo (!$initIsGroups && ($CustStats->TotalCount ?? 0) > 0) ? '' : ' d-none'; ?>"><?php echo ($CustStats->TotalCount ?? 0) > 0 ? $CustStats->TotalCount : ''; ?></span></a></li>
                                 <li class="nav-item">
-                                    <a class="nav-link grp-view-tab" href="javascript:void(0);" id="groupsViewTab">
-                                        <i class="bx bxs-layer me-1" style="font-size:.85rem;"></i>Groups
-                                        <span class="trans-tab-count d-none" id="grpTabCount"></span>
+                                    <?php $grpTotal = ($InitTab ?? 'All') === 'Groups' ? (int)($GrpTotal ?? 0) : 0; ?>
+                                    <a class="nav-link grp-view-tab<?php echo ($InitTab ?? 'All') === 'Groups' ? ' active' : ''; ?>" href="javascript:void(0);" id="groupsViewTab" data-status="Groups" data-url-tab="groups">
+                                        Groups <span class="trans-tab-count<?php echo $grpTotal > 0 ? '' : ' d-none'; ?>" id="grpTabCount"><?php echo $grpTotal > 0 ? $grpTotal : ''; ?></span>
                                     </a>
                                 </li>
-                                <!-- Group stats — visible only in groups mode -->
-                                <li id="grpTabStats" class="d-none align-items-center gap-3 ms-auto pe-2" style="font-size:.81rem;list-style:none;">
-                                    <span class="text-muted">Total: <strong class="cg-stat-total text-body">—</strong></span>
-                                    <span class="text-muted">Active: <strong class="cg-stat-active text-success">—</strong></span>
-                                    <span class="text-muted">Inactive: <strong class="cg-stat-inactive text-danger">—</strong></span>
-                                    <span class="text-muted">Members: <strong class="cg-stat-members text-body">—</strong></span>
+                                <?php
+                                $showStats    = (int)($JwtData->TransSettings->ShowTransactionStats ?? 1);
+                                $grpStatsVis  = ($InitTab ?? 'All') === 'Groups' && $showStats;
+                                $grpS         = $GrpStats ?? null;
+                                ?>
+                                <!-- Group stats — visible only in groups mode when stats are enabled -->
+                                <li id="grpTabStats" class="<?php echo $grpStatsVis ? 'd-flex' : 'd-none'; ?> align-items-center gap-3 ms-auto pe-2" style="font-size:.81rem;list-style:none;">
+                                    <span class="text-muted">Total: <strong class="cg-stat-total text-body"><?php echo $grpS ? (int)$grpS->TotalCount : '—'; ?></strong></span>
+                                    <span class="text-muted">Active: <strong class="cg-stat-active text-success"><?php echo $grpS ? (int)$grpS->ActiveCount : '—'; ?></strong></span>
+                                    <span class="text-muted">Inactive: <strong class="cg-stat-inactive text-danger"><?php echo $grpS ? (int)$grpS->InactiveCount : '—'; ?></strong></span>
+                                    <span class="text-muted">Members: <strong class="cg-stat-members text-body"><?php echo $grpS ? (int)$grpS->TotalMembers : '—'; ?></strong></span>
                                 </li>
                             </ul>
                         </div>
 
                         <!-- Customer table section -->
-                        <div id="custTableSection">
+                        <div id="custTableSection"<?php echo ($InitTab ?? 'All') === 'Groups' ? ' style="display:none;"' : ''; ?>>
                         <div class="table-responsive">
                             <table class="table trans-table MainviewTable mb-0" id="CustomersTable">
                                 <thead class="r2k-thead">
@@ -180,12 +187,12 @@
                                         </th>
                                         <th class="th-sno <?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>" style="width:44px">#</th>
                                         <th class="cust-name-sortable cursor-pointer" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">
-                                            <span class="sort-label">Customer <i class="bx bx-sort sort-icon ms-1"></i></span>
+                                            <span class="sort-label">Customer <i class="bx bx-sort-alt-2 sort-icon ms-1"></i></span>
                                         </th>
-                                        <th class="cust-area-sortable cursor-pointer" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">Area <i class="bx bx-sort sort-icon ms-1"></i></th>
+                                        <th class="cust-area-sortable cursor-pointer" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">Area <i class="bx bx-sort-alt-2 sort-icon ms-1"></i></th>
                                         <th>Mobile</th>
                                         <th>GSTIN / Company</th>
-                                        <th class="cust-bal-sortable cursor-pointer" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">Balance <i class="bx bx-sort sort-icon ms-1"></i></th>
+                                        <th class="cust-bal-sortable cursor-pointer" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">Balance <i class="bx bx-sort-alt-2 sort-icon ms-1"></i></th>
                                         <th>Customer Type</th>
                                         <th>Last Updated</th>
                                         <th class="th-act" style="width:80px">Actions</th>
@@ -204,8 +211,9 @@
                         </div>
                         </div><!-- /#custTableSection -->
 
-                        <!-- Groups table section (hidden by default) -->
-                        <div id="grpTableSection" style="display:none;">
+                        <!-- Groups table section -->
+                        <?php $isGroupsTab = ($InitTab ?? 'All') === 'Groups'; ?>
+                        <div id="grpTableSection"<?php echo $isGroupsTab ? '' : ' style="display:none;"'; ?>>
                             <div class="table-responsive">
                                 <table class="table trans-table MainviewTable mb-0" id="GroupsTable">
                                     <thead class="r2k-thead">
@@ -226,12 +234,18 @@
                                         </tr>
                                     </thead>
                                     <tbody id="GroupsTableBody">
-                                        <tr><td colspan="9" class="text-center py-4 text-muted">Loading groups…</td></tr>
+                                        <?php if ($isGroupsTab && !empty($GrpRowData)): ?>
+                                            <?php echo $GrpRowData; ?>
+                                        <?php elseif ($isGroupsTab): ?>
+                                            <tr><td colspan="9" class="text-center py-4 text-muted">No groups found.</td></tr>
+                                        <?php else: ?>
+                                            <tr><td colspan="9" class="text-center py-4 text-muted">Loading groups…</td></tr>
+                                        <?php endif; ?>
                                     </tbody>
                                 </table>
                             </div>
                             <hr class="my-0">
-                            <div class="row mx-3 my-2 justify-content-between align-items-center" id="GroupsPagination"></div>
+                            <div class="row mx-3 my-2 justify-content-between align-items-center" id="GroupsPagination"><?php echo $isGroupsTab ? ($GrpPagination ?? '') : ''; ?></div>
                         </div><!-- /#grpTableSection -->
 
                     </div>
@@ -272,7 +286,6 @@
     ],
 ]); ?>
 <?php endif; ?>
-<?php if (!empty($CustomerTypeList)): ?>
 <?php $this->load->view('common/filter_panels/checklist_filter', [
     'ChecklistFilterConfig' => [
         'id'                => 'custTypeFilterBox',
@@ -281,10 +294,9 @@
         'title'             => 'Customer Type',
         'icon'              => 'bx-user-pin',
         'searchPlaceholder' => 'Search types...',
-        'items'             => array_map(function ($t) { return ['value' => $t->CustomerTypeUID, 'label' => $t->TypeName]; }, $CustomerTypeList),
+        'items'             => [],
     ],
 ]); ?>
-<?php endif; ?>
 <?php if ($showUserBtn): ?>
 <?php $this->load->view('common/partials/col_user_filter_box', [
     'ColUserFilterConfig' => [
@@ -352,17 +364,21 @@ var StateInfo = [];
 var CityInfo  = [];
 var OrgCountryISO2 = <?php echo json_encode($JwtData->Org->OrgCISO2 ?? 'IN'); ?>;
 var CustShowUserFilter = <?php echo $showUserBtn ? 'true' : 'false'; ?>;
+var _custInitTab    = <?php echo json_encode($InitTab    ?? 'All'); ?>;
+var _custInitSearch = <?php echo json_encode($InitSearch ?? ''); ?>;
+var _custShowStats  = <?php echo (int)($JwtData->TransSettings->ShowTransactionStats ?? 1); ?>;
 
 $(function () {
     'use strict';
 
     // ── Groups mode state ──
-    var _inGroupsMode = false;
-    var _grpPageNo    = 1;
-    var _grpFilter    = {};
-    var _grpLoaded    = false;
+    var _inGroupsMode   = false;
+    var _grpPageNo      = 1;
+    var _grpFilter      = {};
+    var _grpLoaded      = false;
+    var _custDataLoaded = (_custInitTab !== 'Groups'); // false when page loaded with ?tab=groups (Option B)
 
-    $('#SearchDetails').val('');
+    if (!_custInitSearch) { $('#SearchDetails').val(''); }
     $(ModuleRow).prop('checked', false).trigger('change');
 
     // Auto-show/hide the Actions gear button based on whether any option is visible
@@ -469,19 +485,39 @@ $(function () {
         e.preventDefault();
 
         if (_inGroupsMode) {
-            // Switching Groups → All: restore UI, do NOT reload (data already in table)
+            // Switching Groups → All: restore UI
             _inGroupsMode = false;
+
+            // Reset group filters before leaving groups mode
+            GrpTypeFilter.reset();
+            delete _grpFilter['GroupType'];
+            delete _grpFilter['SearchAllData'];
+
             $('.cust-only-ctrl').removeClass('d-none');
             $('.grp-only-ctrl').addClass('d-none');
             $('#SearchDetails').attr('placeholder', 'Name, mobile, GSTIN...').val('');
-            delete _grpFilter['SearchAllData'];
             $('#clearSearch').addClass('d-none');
+            delete Filter['SearchAllData'];
+
             $('#custTableSection').show();
             $('#grpTableSection').hide();
             $('#grpTabStats').removeClass('d-flex').addClass('d-none');
             $('.grp-view-tab').removeClass('active');
             $('.cust-tab').removeClass('active');
             $(this).addClass('active');
+            $('#grpTabCount').text('').addClass('d-none');
+            var $allBadge = $('.cust-tab .trans-tab-count');
+            if ($allBadge.text().trim()) { $allBadge.removeClass('d-none'); }
+
+            _pushTabUrl('All', '');
+
+            // Option B: if page loaded directly on ?tab=groups, customer table was empty — reload now
+            if (!_custDataLoaded) {
+                _custDataLoaded = true;
+                PageNo = 0;
+                getCustomersDetails(PageNo, RowLimit, Filter);
+            }
+
             toggleStickyPagination();
             return;
         }
@@ -494,11 +530,18 @@ $(function () {
         delete Filter['IsActive'];
         delete Filter['BalanceType'];
         if (custStatusFilter) custStatusFilter.reset();
+        _pushTabUrl('All', $.trim($('#SearchDetails').val()));
         PageNo = 0;
         getCustomersDetails(PageNo, RowLimit, Filter);
     });
 
-    // ── Search ──
+    // ── Search — immediate URL update ──
+    $('#SearchDetails').on('input', function () {
+        var stat = $('.trans-status-tabs .nav-link.active').data('status') || 'All';
+        _pushTabUrl(stat, $.trim($(this).val()));
+    });
+
+    // ── Search — debounced AJAX ──
     $('#SearchDetails').on('input', inputDelay(function () {
         var val = $.trim($(this).val());
         $('#clearSearch').toggleClass('d-none', !val);
@@ -516,6 +559,8 @@ $(function () {
     $('#clearSearch').on('click', function () {
         $('#SearchDetails').val('');
         $(this).addClass('d-none');
+        var stat = $('.trans-status-tabs .nav-link.active').data('status') || 'All';
+        _pushTabUrl(stat, '');
         if (_inGroupsMode) {
             delete _grpFilter['SearchAllData'];
             _grpReload(1);
@@ -575,22 +620,22 @@ $(function () {
         if (nameSortState !== 0) {
             areaSortState = 0; balSortState = 0;
             delete Filter['AreaSorting']; delete Filter['BalanceSorting'];
-            $('.cust-area-sortable .sort-icon, .cust-bal-sortable .sort-icon').removeClass('bx-up-arrow-alt bx-down-arrow-alt text-primary').addClass('bx-sort');
+            $('.cust-area-sortable .sort-icon, .cust-bal-sortable .sort-icon').removeClass('bx-sort-up bx-sort-down text-primary').addClass('bx-sort-alt-2');
             $('.cust-area-sortable').attr('data-bs-title', 'Click for ascending order');
             $('.cust-bal-sortable').attr('data-bs-title', 'Click for ascending order');
         }
         var icon = $(this).find('.sort-icon');
-        icon.removeClass('bx-sort bx-up-arrow-alt bx-down-arrow-alt text-primary');
+        icon.removeClass('bx-sort-alt-2 bx-sort-up bx-sort-down text-primary');
         if (nameSortState === 1) {
-            icon.addClass('bx-up-arrow-alt text-primary');
+            icon.addClass('bx-sort-up text-primary');
             $(this).attr('data-bs-title', 'Click for descending order');
             Filter['NameSorting'] = 1;
         } else if (nameSortState === 2) {
-            icon.addClass('bx-down-arrow-alt text-primary');
+            icon.addClass('bx-sort-down text-primary');
             $(this).attr('data-bs-title', 'Click to remove sorting');
             Filter['NameSorting'] = 2;
         } else {
-            icon.addClass('bx-sort');
+            icon.addClass('bx-sort-alt-2');
             $(this).attr('data-bs-title', 'Click for ascending order');
             delete Filter['NameSorting'];
         }
@@ -606,22 +651,22 @@ $(function () {
         if (balSortState !== 0) {
             nameSortState = 0; areaSortState = 0;
             delete Filter['NameSorting']; delete Filter['AreaSorting'];
-            $('.cust-name-sortable .sort-icon, .cust-area-sortable .sort-icon').removeClass('bx-up-arrow-alt bx-down-arrow-alt text-primary').addClass('bx-sort');
+            $('.cust-name-sortable .sort-icon, .cust-area-sortable .sort-icon').removeClass('bx-sort-up bx-sort-down text-primary').addClass('bx-sort-alt-2');
             $('.cust-name-sortable').attr('data-bs-title', 'Click for ascending order');
             $('.cust-area-sortable').attr('data-bs-title', 'Click for ascending order');
         }
         var icon = $(this).find('.sort-icon');
-        icon.removeClass('bx-sort bx-up-arrow-alt bx-down-arrow-alt text-primary');
+        icon.removeClass('bx-sort-alt-2 bx-sort-up bx-sort-down text-primary');
         if (balSortState === 1) {
-            icon.addClass('bx-up-arrow-alt text-primary');
+            icon.addClass('bx-sort-up text-primary');
             $(this).attr('data-bs-title', 'Click for descending order');
             Filter['BalanceSorting'] = 1;
         } else if (balSortState === 2) {
-            icon.addClass('bx-down-arrow-alt text-primary');
+            icon.addClass('bx-sort-down text-primary');
             $(this).attr('data-bs-title', 'Click to remove sorting');
             Filter['BalanceSorting'] = 2;
         } else {
-            icon.addClass('bx-sort');
+            icon.addClass('bx-sort-alt-2');
             $(this).attr('data-bs-title', 'Click for ascending order');
             delete Filter['BalanceSorting'];
         }
@@ -637,22 +682,22 @@ $(function () {
         if (areaSortState !== 0) {
             nameSortState = 0; balSortState = 0;
             delete Filter['NameSorting']; delete Filter['BalanceSorting'];
-            $('.cust-name-sortable .sort-icon, .cust-bal-sortable .sort-icon').removeClass('bx-up-arrow-alt bx-down-arrow-alt text-primary').addClass('bx-sort');
+            $('.cust-name-sortable .sort-icon, .cust-bal-sortable .sort-icon').removeClass('bx-sort-up bx-sort-down text-primary').addClass('bx-sort-alt-2');
             $('.cust-name-sortable').attr('data-bs-title', 'Click for ascending order');
             $('.cust-bal-sortable').attr('data-bs-title', 'Click for ascending order');
         }
         var icon = $(this).find('.sort-icon');
-        icon.removeClass('bx-sort bx-up-arrow-alt bx-down-arrow-alt text-primary');
+        icon.removeClass('bx-sort-alt-2 bx-sort-up bx-sort-down text-primary');
         if (areaSortState === 1) {
-            icon.addClass('bx-up-arrow-alt text-primary');
+            icon.addClass('bx-sort-up text-primary');
             $(this).attr('data-bs-title', 'Click for descending order');
             Filter['AreaSorting'] = 1;
         } else if (areaSortState === 2) {
-            icon.addClass('bx-down-arrow-alt text-primary');
+            icon.addClass('bx-sort-down text-primary');
             $(this).attr('data-bs-title', 'Click to remove sorting');
             Filter['AreaSorting'] = 2;
         } else {
-            icon.addClass('bx-sort');
+            icon.addClass('bx-sort-alt-2');
             $(this).attr('data-bs-title', 'Click for ascending order');
             delete Filter['AreaSorting'];
         }
@@ -677,7 +722,6 @@ $(function () {
     <?php endif; ?>
 
     // ── Customer Type filter ──
-    <?php if (!empty($CustomerTypeList)): ?>
     var custTypeFilter = new TransColFilter({
         boxId       : 'custTypeFilterBox',
         triggerId   : 'custTypeFilterBtn',
@@ -690,7 +734,43 @@ $(function () {
             PageNo = 0; getCustomersDetails(PageNo, RowLimit, Filter);
         }
     });
-    <?php endif; ?>
+
+    // Lazy-load customer types into filter box on first click (Upstash → AJAX)
+    var _custTypeFilterLoaded = false;
+    $(document).on('click', '#custTypeFilterBtn', function () {
+        if (_custTypeFilterLoaded) return;
+        function _buildCustTypeFilter(types) {
+            if (!types || !types.length) return;
+            var $box = $('#custTypeFilterBox');
+            var itemsHtml = '';
+            $.each(types, function (_, t) {
+                itemsHtml += '<label class="catg-list-item">'
+                    + '<input class="form-check-input cust-type-chk" type="checkbox" value="' + parseInt(t.CustomerTypeUID) + '">'
+                    + '<span>' + $('<span>').text(t.TypeName || '').html() + '</span>'
+                    + '</label>';
+            });
+            $box.find('.catg-filter-header .d-flex').prepend('<span class="badge">' + types.length + '</span>');
+            $box.find('.d-flex.flex-column.align-items-center.justify-content-center').replaceWith(
+                '<div class="catg-filter-search-wrap"><div class="input-group input-group-sm">'
+                + '<span class="input-group-text"><i class="bx bx-search"></i></span>'
+                + '<input type="text" class="form-control tcf-search-input" placeholder="Search types..."></div></div>'
+                + '<div class="catg-select-all-wrap"><input type="checkbox" class="form-check-input tcf-select-all" id="custTypeFilterBoxSelectAll">'
+                + '<label class="small fw-semibold mb-0" for="custTypeFilterBoxSelectAll">Select All</label></div>'
+                + '<div class="catg-list" style="max-height:200px;overflow-y:auto;">' + itemsHtml + '</div>'
+            );
+            _custTypeFilterLoaded = true;
+        }
+        if (typeof UpstashService !== 'undefined' && UpstashService.isEnabled()) {
+            UpstashService.get(UpstashService.globalKey('customer-types')).then(function (data) {
+                if (data && Array.isArray(data) && data.length) { _buildCustTypeFilter(data); }
+                else { $.getJSON('/customers/getCustomerTypes', function (r) { if (!r.Error) _buildCustTypeFilter(r.Data); }); }
+            }).catch(function () {
+                $.getJSON('/customers/getCustomerTypes', function (r) { if (!r.Error) _buildCustTypeFilter(r.Data); });
+            });
+        } else {
+            $.getJSON('/customers/getCustomerTypes', function (r) { if (!r.Error) _buildCustTypeFilter(r.Data); });
+        }
+    });
 
     // ── Status toggle ──
     $(document).on('click', '.cust-status-toggle', function (e) {
@@ -752,15 +832,36 @@ $(function () {
         e.preventDefault();
         if (_inGroupsMode) return;
         _inGroupsMode = true;
+
+        // Reset all customer filters before entering groups mode
+        custTypeFilter.reset();
+        custStatusFilter.reset();
+        <?php if (!empty($Tags)): ?>if (typeof custTagFilter !== 'undefined') custTagFilter.reset();<?php endif; ?>
+        if (CustShowUserFilter && typeof custUserFilter !== 'undefined') custUserFilter.reset();
+        delete Filter['CustomerTypeUIDs'];
+        delete Filter['Tags'];
+        delete Filter['IsActive'];
+        delete Filter['BalanceType'];
+        delete Filter['UpdatedByUIDs'];
+
+        // Clear search
+        $('#SearchDetails').val('').attr('placeholder', 'Group name, code, type...');
+        $('#clearSearch').addClass('d-none');
+        delete Filter['SearchAllData'];
+        delete _grpFilter['SearchAllData'];
+
         toggleStickyPagination();
         $('.cust-tab').removeClass('active');
         $('.grp-view-tab').addClass('active');
         $('.cust-only-ctrl').addClass('d-none');
         $('.grp-only-ctrl').removeClass('d-none');
-        $('#SearchDetails').attr('placeholder', 'Group name, code, type...');
         $('#custTableSection').hide();
         $('#grpTableSection').show();
-        $('#grpTabStats').removeClass('d-none').addClass('d-flex');
+        if (_custShowStats) { $('#grpTabStats').removeClass('d-none').addClass('d-flex'); }
+        $('.cust-tab .trans-tab-count').addClass('d-none');
+
+        _pushTabUrl('Groups', '');
+
         if (!_grpLoaded) { _grpLoaded = true; _grpReload(1); }
     });
 
@@ -769,7 +870,7 @@ $(function () {
         _grpPageNo = 1;
         $('#GroupsTableBody').html(res.RecordHtmlData);
         $('#GroupsPagination').html(res.Pagination);
-        _updateGrpStats(res.Stats);
+        if (_custShowStats) { _updateGrpStats(res.Stats); }
         var cnt = res.TotalCount || 0;
         $('#grpTabCount').text(cnt > 0 ? cnt : '').toggleClass('d-none', cnt === 0);
 
@@ -803,7 +904,7 @@ $(function () {
                 if (res.Error) { showToastNotification(res.Message, 'error'); return; }
                 $('#GroupsTableBody').html(res.RecordHtmlData);
                 $('#GroupsPagination').html(res.Pagination);
-                _updateGrpStats(res.Stats);
+                if (_custShowStats) { _updateGrpStats(res.Stats); }
                 var cnt = res.TotalCount || 0;
                 $('#grpTabCount').text(cnt > 0 ? cnt : '').toggleClass('d-none', cnt === 0);
             },
@@ -866,7 +967,7 @@ $(function () {
                     showToastNotification(res.Message, 'success');
                     $('#GroupsTableBody').html(res.RecordHtmlData);
                     $('#GroupsPagination').html(res.Pagination);
-                    _updateGrpStats(res.Stats);
+                    if (_custShowStats) { _updateGrpStats(res.Stats); }
                 },
                 error: function () { showToastNotification('Failed to update status.', 'error'); }
             });
@@ -898,7 +999,7 @@ $(function () {
                     showToastNotification(res.Message, 'success');
                     $('#GroupsTableBody').html(res.RecordHtmlData);
                     $('#GroupsPagination').html(res.Pagination);
-                    _updateGrpStats(res.Stats);
+                    if (_custShowStats) { _updateGrpStats(res.Stats); }
                     var cnt = res.TotalCount || 0;
                     $('#grpTabCount').text(cnt > 0 ? cnt : '').toggleClass('d-none', cnt === 0);
                 },
@@ -932,6 +1033,22 @@ $(function () {
             _grpReload(1);
         }
     });
+
+    // ── URL tab state init ───────────────────────────────────────────────────
+    if (_custInitTab === 'Groups') {
+        // Groups data is server-rendered by PHP — just wire up JS state, no AJAX needed
+        _inGroupsMode = true;
+        _grpLoaded    = true;
+        toggleStickyPagination();
+        // PHP already rendered the correct d-none states for all filter/button elements
+        if (_custInitSearch && _custInitSearch.length >= 3) {
+            _grpFilter['SearchAllData'] = _custInitSearch;
+        }
+    } else if (_custInitSearch && _custInitSearch.length >= 3) {
+        Filter['SearchAllData'] = _custInitSearch;
+        PageNo = 0;
+        getCustomersDetails(PageNo, RowLimit, Filter);
+    }
 
 });
 </script>

@@ -311,6 +311,11 @@ class Purchases extends MY_Controller {
 
             $this->EndReturnData->Error    = FALSE;
             $this->EndReturnData->Message  = 'Purchase bill recorded successfully.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'ADD_PURCHASE', 'Purchase', (int) $transUID, (string) $uniqueNumber,
+                [], 'Created purchase ' . $uniqueNumber, 'Purchases', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
+            );
             $this->EndReturnData->TransUID = $transUID;
 
         } catch (Exception $e) {
@@ -634,6 +639,11 @@ class Purchases extends MY_Controller {
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Purchase bill updated successfully.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'UPDATE_PURCHASE', 'Purchase', (int) $activeTransUID, (string) ($uniqueNumber ?? $existing->UniqueNumber ?? ''),
+                [], 'Updated purchase ' . ($uniqueNumber ?? $existing->UniqueNumber ?? ''), 'Purchases', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
+            );
 
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -699,6 +709,11 @@ class Purchases extends MY_Controller {
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Purchase bill deleted successfully.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'DELETE_PURCHASE', 'Purchase', (int) $transUID, (string) ($existing->UniqueNumber ?? ''),
+                [], 'Deleted purchase #' . $transUID, 'Purchases', 'TRANSACTION'
+            );
 
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -848,6 +863,11 @@ class Purchases extends MY_Controller {
 
             $this->EndReturnData->Error    = FALSE;
             $this->EndReturnData->Message  = 'Purchase bill duplicated as ' . $uniqueNumber . '.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'DUPLICATE_PURCHASE', 'Purchase', (int) $newTransUID, (string) $uniqueNumber,
+                [], 'Duplicated purchase ' . $uniqueNumber, 'Purchases', 'TRANSACTION'
+            );
             $this->EndReturnData->TransUID = $newTransUID;
             $this->EndReturnData->EditURL  = '/purchases/edit/' . $newTransUID;
 
@@ -902,6 +922,11 @@ class Purchases extends MY_Controller {
 
             $this->EndReturnData->Error     = FALSE;
             $this->EndReturnData->Message   = 'Status updated.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'UPDATE_PURCHASE_STATUS', 'Purchase', (int) $transUID, (string) ($existing->UniqueNumber ?? ''),
+                ['NewStatus' => $newStatus], 'Updated purchase status #' . $transUID, 'Purchases', 'TRANSACTION'
+            );
             $this->EndReturnData->NewStatus = $newStatus;
 
         } catch (Exception $e) {
@@ -1362,6 +1387,11 @@ class Purchases extends MY_Controller {
 
             $this->EndReturnData->Error      = FALSE;
             $this->EndReturnData->Message    = 'Payment of ' . $amount . ' recorded successfully.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'RECORD_PURCHASE_PAYMENT', 'Purchase', (int) $transUID, (string) ($existing->UniqueNumber ?? ''),
+                ['Amount' => $amount], 'Recorded payment for purchase ' . ($existing->UniqueNumber ?? ''), 'Purchases', 'PAYMENT'
+            );
             $this->EndReturnData->IsFullyPaid = $isFullyPaid;
 
             // Refresh the purchase list

@@ -87,7 +87,7 @@ $this->load->view('common/transactions/header'); ?>
                                 <i class="bx bx-search r2k-si"></i>
                                 <input type="text" id="searchIncomeData" placeholder="Income # or category...">
                             </div>
-                            <a href="javascript:void(0);" id="incCatFilterBtn" class="apex-filter-btn" onclick="toggleIncCatFilter(); event.stopPropagation();" title="Filter by Category"><i class="bx bx-category me-1"></i>Category</a>
+                            <a href="javascript:void(0);" id="incCatFilterBtn" class="apex-filter-btn" title="Filter by Category"><i class="bx bx-category me-1"></i>Category</a>
                             <a href="javascript:void(0);" id="incStatusFilterBtn" class="apex-filter-btn" title="Filter by Status"><i class="bx bx-transfer me-1"></i>Status</a>
                             <a href="javascript:void(0);" id="incModeFilterBtn" class="apex-filter-btn" title="Filter by Mode"><i class="bx bx-credit-card me-1"></i>Mode</a>
                             <?php if (count($OrgUsers ?? []) > 1): ?>
@@ -121,8 +121,8 @@ $this->load->view('common/transactions/header'); ?>
                                     <tr>
                                         <th style="width:36px"><div class="form-check mb-0"><input class="form-check-input table-chkbox incHeaderCheck" type="checkbox"></div></th>
                                         <th class="<?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?> table-serialno" style="width:44px">S.No</th>
-                                        <th class="col-sortable cursor-pointer user-select-none" data-sort="Number">Income # <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Number"></i></th>
-                                        <th class="col-sortable cursor-pointer user-select-none" data-sort="Amount">Amount <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Amount"></i></th>
+                                        <th class="col-sortable cursor-pointer user-select-none" data-sort="Number" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">Income # <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Number"></i></th>
+                                        <th class="col-sortable cursor-pointer user-select-none" data-sort="Amount" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">Amount <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Amount"></i></th>
                                         <th>Category / Notes</th>
                                         <th>Status</th>
                                         <th>Mode</th>
@@ -475,36 +475,17 @@ $this->load->view('common/transactions/payment_modal');
 <?php endif; ?>
 
 <!-- ── Category Filter Box ──────────────────────────────────────────────── -->
-<div id="incCatFilterBox" class="card mp-filterbox" style="min-width:220px;z-index:9999;display:none;position:fixed;">
-    <div class="catg-filter-header">
-        <span class="catg-filter-title"><i class="bx bx-category me-1"></i> Category</span>
-        <div class="d-flex align-items-center gap-2">
-            <span class="badge bg-primary" id="incCatFilterCount" style="display:none;"></span>
-            <button type="button" class="catg-filter-close-btn" onclick="closeIncCatFilter()" title="Close">&times;</button>
-        </div>
-    </div>
-    <div class="catg-filter-search-wrap">
-        <input type="text" id="incCatFilterSearch" class="form-control form-control-sm" placeholder="Search..." oninput="_filterIncCatList(this.value)">
-    </div>
-    <div class="catg-select-all-wrap">
-        <input type="checkbox" class="form-check-input" id="incCatSelectAll" onchange="toggleAllIncCats(this)">
-        <label class="small fw-semibold mb-0" for="incCatSelectAll" id="incCatSelectAllLabel">Select All</label>
-    </div>
-    <div id="incCatFilterList" class="catg-list" style="max-height:200px;overflow-y:auto;">
-        <?php if (!empty($categories)): foreach ($categories as $cat): ?>
-        <label class="catg-list-item">
-            <input class="form-check-input inc-cf-chk" type="checkbox" value="<?php echo (int)$cat->CategoryUID; ?>" data-name="<?php echo htmlspecialchars($cat->CategoryName); ?>">
-            <span><?php echo htmlspecialchars($cat->CategoryName); ?></span>
-        </label>
-        <?php endforeach; else: ?>
-        <div class="text-muted text-center py-3" style="font-size:.8rem;">No categories found</div>
-        <?php endif; ?>
-    </div>
-    <div class="catg-filter-footer">
-        <button type="button" class="btn btn-primary btn-sm" onclick="applyIncCatFilter()"><i class="bx bx-check me-1"></i>Apply</button>
-        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetIncCatFilter()"><i class="bx bx-reset me-1"></i>Reset</button>
-    </div>
-</div>
+<?php $this->load->view('common/transactions/col_filter_box', ['ColFilterConfig' => [
+    'id'         => 'incCatFilterBox',
+    'triggerId'  => 'incCatFilterBtn',
+    'title'      => 'Category',
+    'icon'       => 'bx-category',
+    'filterKey'  => 'CategoryUIDs',
+    'checkClass' => 'inc-cf-chk',
+    'items'      => array_map(function($c) {
+        return ['value' => (string)(int)$c->CategoryUID, 'label' => $c->CategoryName];
+    }, $categories ?? []),
+]]); ?>
 
 <script src="/js/core/sticky_paginate.js"></script>
 <script src="/js/transactions/col_filter.js"></script>
@@ -638,82 +619,34 @@ $(function () {
         }
     });
 
-    // Close old-style category box when any TransColFilter box opens
-    $('#incStatusFilterBtn, #incModeFilterBtn, #incUserFilterBtn').on('click', function () {
-        $('#incCatFilterBox').hide();
+    // ── Income Category Filter (TransColFilter) ──────────────────────────────
+    var incCatColFilter = new TransColFilter({
+        boxId     : 'incCatFilterBox',
+        triggerId : 'incCatFilterBtn',
+        filterKey : 'CategoryUIDs',
+        onApply   : function () {
+            var s = incCatColFilter.getState();
+            if (s.CategoryUIDs && s.CategoryUIDs.length) Filter['CategoryUIDs'] = s.CategoryUIDs;
+            else delete Filter['CategoryUIDs'];
+            PageNo = 1; getIncomeDetails();
+        }
     });
 
-    // ── Income Category Filter ────────────────────────────────────────────────
-    window._filterIncCatList = function (term) {
-        var t = (term || '').toLowerCase();
-        $('#incCatFilterList .catg-list-item').each(function () {
-            var name = $(this).find('span').text().toLowerCase();
-            $(this).toggle(!t || name.indexOf(t) !== -1);
-        });
-    };
-
-    window.toggleIncCatFilter = function () {
-        var $box = $('#incCatFilterBox');
-        if ($box.is(':visible')) { $box.hide(); return; }
-        var rect = document.getElementById('incCatFilterBtn').getBoundingClientRect();
-        $box.css({ top: (rect.bottom + 4) + 'px', left: Math.max(4, rect.right - 220) + 'px' }).show();
-        $('#incCatFilterSearch').val('');
-        _filterIncCatList('');
-    };
-    window.closeIncCatFilter = function () { $('#incCatFilterBox').hide(); };
-    window.toggleAllIncCats  = function (el) {
-        var checked = $(el).is(':checked');
-        $('#incCatFilterList .catg-list-item:visible .inc-cf-chk').prop('checked', checked);
-        $('#incCatSelectAllLabel').text(checked ? 'Deselect All' : 'Select All');
-    };
-    window.applyIncCatFilter = function () {
-        var sel = $('.inc-cf-chk:checked').map(function () { return $(this).val(); }).get();
-        if (sel.length) { Filter['CategoryUIDs'] = sel; } else { delete Filter['CategoryUIDs']; }
-        $('#incCatFilterBox').hide();
-        var active = sel.length > 0;
-        $('#incCatFilterBtn').toggleClass('text-primary', active);
-        $('#incCatFilterCount').text(sel.length).toggle(active);
-        PageNo = 1; getIncomeDetails();
-    };
-    window.resetIncCatFilter = function () {
-        $('.inc-cf-chk').prop('checked', false);
-        $('#incCatSelectAll').prop('checked', false);
-        $('#incCatSelectAllLabel').text('Select All');
-        $('#incCatFilterSearch').val('');
-        _filterIncCatList('');
-        delete Filter['CategoryUIDs'];
-        $('#incCatFilterBox').hide();
-        $('#incCatFilterBtn').removeClass('text-primary');
-        $('#incCatFilterCount').hide().text('');
-        PageNo = 1; getIncomeDetails();
-    };
-    $(document).on('change', '.inc-cf-chk', function () {
-        var visible = $('#incCatFilterList .catg-list-item:visible .inc-cf-chk');
-        var chkd    = visible.filter(':checked').length;
-        $('#incCatSelectAll').prop('checked', visible.length > 0 && visible.length === chkd);
-        $('#incCatSelectAllLabel').text(visible.length > 0 && visible.length === chkd ? 'Deselect All' : 'Select All');
-    });
-    $(document).on('click', function (e) {
-        if (!$(e.target).closest('#incCatFilterBox, #incCatFilterBtn').length) $('#incCatFilterBox').hide();
-    });
-
-    // Rebuild the category filter list whenever _incCatData changes
     function _rebuildIncCatFilterList() {
         var selected = $('.inc-cf-chk:checked').map(function () { return $(this).val(); }).get();
         var html = '';
         if (_incCatData.length) {
             _incCatData.forEach(function (c) {
-                var isChk = selected.indexOf(String(c.uid)) !== -1 ? 'checked' : '';
+                var isChk = selected.indexOf(String(c.uid)) !== -1 ? ' checked' : '';
                 html += '<label class="catg-list-item">' +
-                    '<input class="form-check-input inc-cf-chk" type="checkbox" value="' + c.uid + '" data-name="' + $('<span>').text(c.name).html() + '" ' + isChk + '>' +
+                    '<input class="form-check-input inc-cf-chk" type="checkbox" value="' + c.uid + '"' + isChk + '>' +
                     '<span>' + $('<span>').text(c.name).html() + '</span>' +
                     '</label>';
             });
         } else {
             html = '<div class="text-muted text-center py-3" style="font-size:.8rem;">No categories found</div>';
         }
-        $('#incCatFilterList').html(html);
-        _filterIncCatList($('#incCatFilterSearch').val());
+        $('#incCatFilterBox .catg-list').html(html);
     }
     // ────────────────────────────────────────────────────────────────────────
 
@@ -771,11 +704,32 @@ $(function () {
 
     $(document).on('click', '.col-sortable', function () {
         var col = $(this).data('sort');
-        if (Filter.SortBy === col) Filter.SortDir = Filter.SortDir === 'ASC' ? 'DESC' : 'ASC';
-        else { Filter.SortBy = col; Filter.SortDir = 'DESC'; }
+        var $th = $(this);
+        if (Filter.SortBy !== col) {
+            Filter.SortBy  = col;
+            Filter.SortDir = 'ASC';
+        } else if (Filter.SortDir === 'ASC') {
+            Filter.SortDir = 'DESC';
+        } else {
+            delete Filter.SortBy;
+            delete Filter.SortDir;
+        }
+        $('.col-sortable').each(function () {
+            $(this).attr('data-bs-title', 'Click for ascending order');
+            var tt = bootstrap.Tooltip.getInstance(this);
+            if (tt) tt.setContent({ '.tooltip-inner': 'Click for ascending order' });
+        });
         $('.sort-icon').removeClass('bx-sort-up bx-sort-down').addClass('bx-sort-alt-2');
-        $('.sort-icon[data-col="' + col + '"]').removeClass('bx-sort-alt-2').addClass(Filter.SortDir === 'ASC' ? 'bx-sort-up' : 'bx-sort-down');
-        PageNo = 1; getIncomeDetails();
+        if (Filter.SortBy) {
+            var icon    = Filter.SortDir === 'ASC' ? 'bx-sort-up' : 'bx-sort-down';
+            var tipText = Filter.SortDir === 'ASC' ? 'Click for descending order' : 'Click to remove sorting';
+            $('.sort-icon[data-col="' + col + '"]').removeClass('bx-sort-alt-2').addClass(icon);
+            $th.attr('data-bs-title', tipText);
+            var tt = bootstrap.Tooltip.getInstance($th[0]);
+            if (tt) tt.setContent({ '.tooltip-inner': tipText });
+        }
+        PageNo = 1;
+        getIncomeDetails();
     });
 
     $(document).on('click', '.incPagination .page-link', function (e) {

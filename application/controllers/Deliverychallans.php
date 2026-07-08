@@ -371,6 +371,11 @@ class Deliverychallans extends MY_Controller {
 
             $this->EndReturnData->Error    = FALSE;
             $this->EndReturnData->Message  = 'Delivery challan created successfully.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'ADD_DELIVERY_CHALLAN', 'DeliveryChallan', (int) $transUID, (string) ($uniqueNumber ?? ''),
+                [], 'Created delivery challan ' . ($uniqueNumber ?? ''), 'DeliveryChallans', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
+            );
             $this->EndReturnData->TransUID = $transUID;
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -610,6 +615,11 @@ class Deliverychallans extends MY_Controller {
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Delivery challan updated successfully.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'UPDATE_DELIVERY_CHALLAN', 'DeliveryChallan', (int) (isset($newTransUID) ? $newTransUID : $transUID), (string) ($uniqueNumber ?? $existing->UniqueNumber ?? ''),
+                [], 'Updated delivery challan ' . ($uniqueNumber ?? $existing->UniqueNumber ?? ''), 'DeliveryChallans', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
+            );
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
@@ -669,6 +679,11 @@ class Deliverychallans extends MY_Controller {
 
             $this->EndReturnData->Error          = FALSE;
             $this->EndReturnData->Message        = 'Delivery challan deleted successfully.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'DELETE_DELIVERY_CHALLAN', 'DeliveryChallan', (int) $transUID, '',
+                [], 'Deleted delivery challan #' . $transUID, 'DeliveryChallans', 'TRANSACTION'
+            );
             $this->EndReturnData->RecordHtmlData = $this->load->view('transactions/deliverychallans/list', ['DataLists' => $allData, 'SerialNumber' => $offset, 'JwtData' => $this->pageData['JwtData']], true);
             $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml('/deliverychallan/getPageDetails', $allDataCount, $pageNo, $limit);
             $this->EndReturnData->TotalCount     = $allDataCount;
@@ -792,6 +807,11 @@ class Deliverychallans extends MY_Controller {
 
             $this->EndReturnData->Error    = FALSE;
             $this->EndReturnData->Message  = 'Delivery challan cloned as ' . $uniqueNumber . '.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'DUPLICATE_DELIVERY_CHALLAN', 'DeliveryChallan', (int) $newTransUID, (string) $uniqueNumber,
+                [], 'Duplicated delivery challan ' . $uniqueNumber, 'DeliveryChallans', 'TRANSACTION'
+            );
             $this->EndReturnData->TransUID = $newTransUID;
             $this->EndReturnData->EditURL  = '/deliverychallan/' . $newTransUID . '/edit';
         } catch (Exception $e) {
@@ -864,6 +884,11 @@ class Deliverychallans extends MY_Controller {
 
             $this->EndReturnData->Error          = FALSE;
             $this->EndReturnData->Message        = 'Status updated to ' . $newStatus . '.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'UPDATE_DC_STATUS', 'DeliveryChallan', (int) $transUID, (string) ($existing->UniqueNumber ?? ''),
+                ['NewStatus' => $newStatus], 'Updated delivery challan status #' . $transUID, 'DeliveryChallans', 'TRANSACTION'
+            );
             $this->EndReturnData->NewStatus      = $newStatus;
             $this->EndReturnData->RecordHtmlData = $this->load->view('transactions/deliverychallans/list', ['DataLists' => $allData, 'SerialNumber' => $offset, 'JwtData' => $this->pageData['JwtData']], true);
             $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml('/deliverychallan/getPageDetails', $allDataCount, $pageNo, $limit);
@@ -1097,6 +1122,11 @@ class Deliverychallans extends MY_Controller {
 
             $this->EndReturnData->Error       = FALSE;
             $this->EndReturnData->Message     = 'Challan marked as converted.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'CONVERT_DC_TO_INVOICE', 'DeliveryChallan', (int) $transUID, (string) ($existing->UniqueNumber ?? ''),
+                [], 'Converted delivery challan ' . ($existing->UniqueNumber ?? '') . ' to invoice', 'DeliveryChallans', 'TRANSACTION'
+            );
             $this->EndReturnData->RedirectURL = '/invoices/create?fromChallan=' . $transUID;
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();

@@ -99,14 +99,6 @@ $d       = $FormData; // shorthand, null for add
                 <label for="CM_CustomerTypeUID" class="form-label">Customer Type <span class="text-danger">*</span></label>
                 <select id="CM_CustomerTypeUID" name="CustomerTypeUID" class="form-select" required>
                     <option value="">-- Select Customer Type --</option>
-                    <?php foreach ($CustomerTypeList as $ct): ?>
-                        <option value="<?php echo $ct->CustomerTypeUID; ?>"
-                            <?php echo ($isEdit || $isClone)
-                                ? (isset($d->CustomerTypeUID) && $d->CustomerTypeUID == $ct->CustomerTypeUID ? 'selected' : '')
-                                : ($ct->IsDefault ? 'selected' : ''); ?>>
-                            <?php echo htmlspecialchars($ct->TypeName); ?>
-                        </option>
-                    <?php endforeach; ?>
                 </select>
             </div>
             <div class="mb-3 col-md-4">

@@ -297,8 +297,7 @@ class Invoices extends MY_Controller {
                 }
             }
 
-            try { $this->dbwrite_model->saveFormData($orgUID, $transUID, $this->pageModuleUID, $isDraft ? 'draft' : 'create', json_encode($PostData), $userUID); } catch (Exception $fdEx) { log_message('error', 'saveFormData failed: ' . $fdEx->getMessage()); }
-            try { $this->load->library('auditlog'); $this->auditlog->log($orgUID, $userUID, 'CREATE_INVOICE', 'Invoice', $transUID, $uniqueNumber ?? 'Draft', ['status' => $status, 'netAmount' => $netAmount, 'customerUID' => $customerUID]); } catch (Exception $auditEx) { log_message('error', 'Audit log failed: ' . $auditEx->getMessage()); }
+            try { $this->load->library('auditlog'); $this->auditlog->log($orgUID, $userUID, 'CREATE_INVOICE', 'Invoice', $transUID, $uniqueNumber ?? 'Draft', ['status' => $status, 'netAmount' => $netAmount, 'customerUID' => $customerUID], ($isDraft ? 'Saved draft invoice' : 'Created invoice') . ' ' . ($uniqueNumber ?? 'Draft'), 'Invoices', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData); } catch (Exception $auditEx) { log_message('error', 'Audit log failed: ' . $auditEx->getMessage()); }
 
             if (!$isDraft) {
                 try {
@@ -664,8 +663,7 @@ class Invoices extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            try { $this->dbwrite_model->saveFormData($orgUID, $activeTransUID, $this->pageModuleUID, $isDraft ? 'draft_update' : 'update', json_encode($PostData), $userUID); } catch (Exception $fdEx) { log_message('error', 'saveFormData failed: ' . $fdEx->getMessage()); }
-            try { $this->load->library('auditlog'); $this->auditlog->log($orgUID, $userUID, 'UPDATE_INVOICE', 'Invoice', $activeTransUID, $uniqueNumber ?? ($existing->UniqueNumber ?? 'Draft'), ['status' => $computedStatus, 'netAmount' => $netAmount, 'customerUID' => $customerUID]); } catch (Exception $auditEx) { log_message('error', 'Audit log failed: ' . $auditEx->getMessage()); }
+            try { $this->load->library('auditlog'); $this->auditlog->log($orgUID, $userUID, 'UPDATE_INVOICE', 'Invoice', $activeTransUID, $uniqueNumber ?? ($existing->UniqueNumber ?? 'Draft'), ['status' => $computedStatus, 'netAmount' => $netAmount, 'customerUID' => $customerUID], ($isDraft ? 'Updated draft invoice' : 'Updated invoice') . ' ' . ($uniqueNumber ?? ($existing->UniqueNumber ?? 'Draft')), 'Invoices', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData); } catch (Exception $auditEx) { log_message('error', 'Audit log failed: ' . $auditEx->getMessage()); }
 
             // Apply ledger entries after commit so each ReadDb read sees the prior committed write
             if (!$isDraft) {
@@ -833,6 +831,13 @@ class Invoices extends MY_Controller {
 
             $this->EndReturnData->Error      = FALSE;
             $this->EndReturnData->Message    = 'Payment of ' . $amount . ' recorded successfully.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'RECORD_INVOICE_PAYMENT', 'Invoice', (int) $transUID, (string) ($existing->UniqueNumber ?? ''),
+                ['amount' => $amount, 'paymentStatus' => $newStatus],
+                "Recorded payment ₹{$amount} for invoice " . ($existing->UniqueNumber ?? "#{$transUID}"), 'Invoices',
+                'PAYMENT'
+            );
             $this->EndReturnData->IsFullyPaid = $isFullyPaid;
             $this->_recalcCustomerBalance($orgUID, $existing->PartyUID, $userUID);
 
@@ -959,7 +964,7 @@ class Invoices extends MY_Controller {
             if ($existing->PartyType === 'C') {
                 $this->_recalcCustomerBalance($orgUID, $existing->PartyUID, $userUID);
             }
-            try { $this->load->library('auditlog'); $this->auditlog->log($orgUID, $userUID, 'DELETE_INVOICE', 'Invoice', $transUID, $existing->UniqueNumber ?? '', ['status' => $existing->DocStatus, 'netAmount' => $existing->NetAmount]); } catch (Exception $auditEx) { log_message('error', 'Audit log failed: ' . $auditEx->getMessage()); }
+            try { $this->load->library('auditlog'); $this->auditlog->log($orgUID, $userUID, 'DELETE_INVOICE', 'Invoice', $transUID, $existing->UniqueNumber ?? '', ['status' => $existing->DocStatus, 'netAmount' => $existing->NetAmount], 'Deleted invoice ' . ($existing->UniqueNumber ?? "#{$transUID}"), 'Invoices', 'TRANSACTION'); } catch (Exception $auditEx) { log_message('error', 'Audit log failed: ' . $auditEx->getMessage()); }
 
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -1188,7 +1193,7 @@ class Invoices extends MY_Controller {
             $this->EndReturnData->Message   = 'Invoice cancelled successfully.';
             $this->EndReturnData->NewStatus = $newStatus;
 
-            try { $this->load->library('auditlog'); $this->auditlog->log($orgUID, $userUID, strtoupper($newStatus) . '_INVOICE', 'Invoice', $transUID, $existing->UniqueNumber ?? '', ['fromStatus' => $current, 'toStatus' => $newStatus]); } catch (Exception $auditEx) { log_message('error', 'Audit log failed: ' . $auditEx->getMessage()); }
+            try { $this->load->library('auditlog'); $this->auditlog->log($orgUID, $userUID, strtoupper($newStatus) . '_INVOICE', 'Invoice', $transUID, $existing->UniqueNumber ?? '', ['fromStatus' => $current, 'toStatus' => $newStatus], ucfirst($newStatus) . ' invoice ' . ($existing->UniqueNumber ?? "#{$transUID}"), 'Invoices', 'TRANSACTION'); } catch (Exception $auditEx) { log_message('error', 'Audit log failed: ' . $auditEx->getMessage()); }
 
             if ($newStatus === 'Cancelled' && $existing->PartyType === 'C') {
                 $this->load->library('customerbalance');

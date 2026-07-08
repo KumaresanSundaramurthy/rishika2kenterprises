@@ -75,26 +75,8 @@ function loadTransactionList(config, pageNo, rowLimit, filter) {
     });
 }
 
-/**
- * Updates the browser URL bar to reflect the active tab and search without
- * creating a new history entry. Reads the URL slug from data-url-tab on the
- * tab element and the base path from data-trans-path on the .trans-status-tabs
- * container — no hardcoded values, works on any transaction list page.
- * @param {string} status - Internal status key (e.g. 'InvPending', 'Paid')
- * @param {string} search - Current search text
- * @returns {void}
- */
-function _updateTransTabUrl(status, search) {
-    var $container = $('.trans-status-tabs[data-trans-path]');
-    var $tab       = $container.find('[data-status="' + status + '"]');
-    var slug       = $tab.data('url-tab')          || 'all';
-    var basePath   = $container.data('trans-path') || window.location.pathname;
-    var params     = new URLSearchParams();
-    if (slug !== 'all') { params.set('tab', slug); }
-    if (search)         { params.set('search', search); }
-    var qs = params.toString();
-    history.replaceState(null, '', basePath + (qs ? '?' + qs : ''));
-}
+/** @deprecated Use _pushTabUrl (now in default.js). Kept as alias for transaction pages. */
+function _updateTransTabUrl(status, search) { _pushTabUrl(status, search); }
 
 /**
  * Shows/hides #transFilterNotice whenever a filter, search, or date selection

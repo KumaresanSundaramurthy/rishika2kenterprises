@@ -234,6 +234,11 @@ class Purchasereturns extends MY_Controller {
 
             $this->EndReturnData->Error    = FALSE;
             $this->EndReturnData->Message  = 'Purchase Return created successfully.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'ADD_PURCHASE_RETURN', 'PurchaseReturn', (int) $transUID, (string) ($uniqueNumber ?? ''),
+                [], 'Created purchase return ' . ($uniqueNumber ?? ''), 'PurchaseReturns', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
+            );
             $this->EndReturnData->TransUID = $transUID;
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -480,6 +485,11 @@ class Purchasereturns extends MY_Controller {
             $this->transactions_model->generateAndStorePdf(isset($newTransUID) ? $newTransUID : $transUID, $orgUID, $this->pageModuleUID);
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Purchase Return updated successfully.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'UPDATE_PURCHASE_RETURN', 'PurchaseReturn', (int) (isset($newTransUID) ? $newTransUID : $transUID), (string) ($uniqueNumber ?? $existing->UniqueNumber ?? ''),
+                [], 'Updated purchase return ' . ($uniqueNumber ?? $existing->UniqueNumber ?? ''), 'PurchaseReturns', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
+            );
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
@@ -527,6 +537,11 @@ class Purchasereturns extends MY_Controller {
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Purchase Return deleted successfully.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'DELETE_PURCHASE_RETURN', 'PurchaseReturn', (int) $transUID, '',
+                [], 'Deleted purchase return #' . $transUID, 'PurchaseReturns', 'TRANSACTION'
+            );
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
@@ -665,6 +680,11 @@ class Purchasereturns extends MY_Controller {
             $this->dbwrite_model->commitTransaction();
             $this->EndReturnData->Error    = FALSE;
             $this->EndReturnData->Message  = 'Purchase Return duplicated as ' . $uniqueNumber . '.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'DUPLICATE_PURCHASE_RETURN', 'PurchaseReturn', (int) $newTransUID, (string) $uniqueNumber,
+                [], 'Duplicated purchase return as ' . $uniqueNumber, 'PurchaseReturns', 'TRANSACTION'
+            );
             $this->EndReturnData->TransUID = $newTransUID;
             $this->EndReturnData->EditURL  = '/purchasereturns/edit/' . $newTransUID;
         } catch (Exception $e) {
@@ -794,6 +814,11 @@ class Purchasereturns extends MY_Controller {
 
             $this->EndReturnData->Error     = FALSE;
             $this->EndReturnData->Message   = 'Status updated.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'UPDATE_PR_STATUS', 'PurchaseReturn', (int) $transUID, (string) ($existing->UniqueNumber ?? ''),
+                ['NewStatus' => $newStatus], 'Updated purchase return status to ' . $newStatus, 'PurchaseReturns', 'TRANSACTION'
+            );
             $this->EndReturnData->NewStatus = $newStatus;
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -1081,6 +1106,11 @@ class Purchasereturns extends MY_Controller {
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Refund of ' . number_format($amount, 2) . ' recorded successfully.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'RECORD_PR_PAYMENT', 'PurchaseReturn', (int) $transUID, (string) ($existing->UniqueNumber ?? ''),
+                ['Amount' => $amount], 'Recorded refund of ' . $amount . ' for purchase return ' . ($existing->UniqueNumber ?? ''), 'PurchaseReturns', 'PAYMENT'
+            );
 
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();

@@ -197,6 +197,11 @@ class Payments extends MY_Controller {
 
             $this->EndReturnData->Error      = FALSE;
             $this->EndReturnData->Message    = 'Payment recorded successfully.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'ADD_PAYMENT', 'Payment', (int) $resp->ID, '',
+                ['TransUID' => $transUID, 'Amount' => $amount], 'Recorded payment for transaction #' . $transUID, 'Payments', 'PAYMENT', 'SUCCESS', '', 'WEB', [], [], $PostData
+            );
             $this->EndReturnData->PaymentUID = $resp->ID;
 
         } catch (Exception $e) {
@@ -418,6 +423,11 @@ class Payments extends MY_Controller {
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Payment cancelled.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'DELETE_PAYMENT', 'Payment', (int) $paymentUID, '',
+                ['TransUID' => $transUID], 'Cancelled payment #' . $paymentUID, 'Payments', 'PAYMENT'
+            );
 
         } catch (Exception $e) {
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
@@ -536,6 +546,11 @@ class Payments extends MY_Controller {
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = $accountUID > 0 ? 'Bank account updated.' : 'Bank account added.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'SAVE_BANK_ACCOUNT', 'BankAccount', $accountUID > 0 ? (int) $accountUID : (int) ($resp->ID ?? 0), (string) ($accountData['AccountName'] ?? ''),
+                ['IsUpdate' => $accountUID > 0], ($accountUID > 0 ? 'Updated' : 'Added') . ' bank account ' . ($accountData['AccountName'] ?? ''), 'Payments', 'SETTINGS'
+            );
 
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -652,6 +667,11 @@ class Payments extends MY_Controller {
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Bank account deleted.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'DELETE_BANK_ACCOUNT', 'BankAccount', (int) $bankAccountUID, '',
+                [], 'Deleted bank account #' . $bankAccountUID, 'Payments', 'SETTINGS'
+            );
 
         } catch (Exception $e) {
             $this->EndReturnData->Error   = TRUE;

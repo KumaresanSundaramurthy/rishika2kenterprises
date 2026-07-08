@@ -41,6 +41,7 @@
         this._$trigger  = this._triggerId ? $('#' + this._triggerId) : $();
         this._chkClass  = this._$box.data('chk-class') || 'col-filter-chk';
 
+        this._onBeforeShow = opts.onBeforeShow || null;
         this._state     = {};   // holds current applied selection
 
         if (!this._$box.length) {
@@ -188,6 +189,7 @@
             left = window.innerWidth - boxW - 16;
         }
 
+        if (typeof this._onBeforeShow === 'function') this._onBeforeShow();
         this._$box.css({ top: top + 'px', left: left + 'px' }).show();
     };
 

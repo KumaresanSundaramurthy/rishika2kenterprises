@@ -277,6 +277,11 @@ class Salesreturns extends MY_Controller {
 
             $this->EndReturnData->Error    = FALSE;
             $this->EndReturnData->Message  = 'Sales Return created successfully.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'ADD_SALES_RETURN', 'SalesReturn', (int) $transUID, (string) ($uniqueNumber ?? ''),
+                [], 'Created sales return ' . ($uniqueNumber ?? ''), 'SalesReturns', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
+            );
             $this->EndReturnData->TransUID = $transUID;
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -524,6 +529,11 @@ class Salesreturns extends MY_Controller {
             $this->transactions_model->generateAndStorePdf(isset($newTransUID) ? $newTransUID : $transUID, $orgUID, $this->pageModuleUID);
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Sales Return updated successfully.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'UPDATE_SALES_RETURN', 'SalesReturn', (int) (isset($newTransUID) ? $newTransUID : $transUID), (string) ($uniqueNumber ?? $existing->UniqueNumber ?? ''),
+                [], 'Updated sales return ' . ($uniqueNumber ?? $existing->UniqueNumber ?? ''), 'SalesReturns', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
+            );
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
@@ -622,6 +632,11 @@ class Salesreturns extends MY_Controller {
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Sales Return deleted successfully.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'DELETE_SALES_RETURN', 'SalesReturn', (int) $transUID, (string) ($existing->UniqueNumber ?? ''),
+                [], 'Deleted sales return ' . ($existing->UniqueNumber ?? ''), 'SalesReturns', 'TRANSACTION'
+            );
         } catch (Exception $e) {
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
@@ -761,6 +776,11 @@ class Salesreturns extends MY_Controller {
             $this->dbwrite_model->commitTransaction();
             $this->EndReturnData->Error    = FALSE;
             $this->EndReturnData->Message  = 'Sales Return duplicated as ' . $uniqueNumber . '.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'DUPLICATE_SALES_RETURN', 'SalesReturn', (int) $newTransUID, (string) $uniqueNumber,
+                [], 'Duplicated sales return as ' . $uniqueNumber, 'SalesReturns', 'TRANSACTION'
+            );
             $this->EndReturnData->TransUID = $newTransUID;
             $this->EndReturnData->EditURL  = '/salesreturns/edit/' . $newTransUID;
         } catch (Exception $e) {
@@ -917,6 +937,11 @@ class Salesreturns extends MY_Controller {
 
             $this->EndReturnData->Error     = FALSE;
             $this->EndReturnData->Message   = 'Status updated.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'UPDATE_SR_STATUS', 'SalesReturn', (int) $transUID, (string) ($existing->UniqueNumber ?? ''),
+                ['NewStatus' => $newStatus], 'Updated sales return status to ' . $newStatus, 'SalesReturns', 'TRANSACTION'
+            );
             $this->EndReturnData->NewStatus = $newStatus;
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -1320,6 +1345,11 @@ class Salesreturns extends MY_Controller {
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Payment of ' . $amount . ' recorded successfully.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'RECORD_SR_PAYMENT', 'SalesReturn', (int) $transUID, (string) ($existing->UniqueNumber ?? ''),
+                ['Amount' => $amount], 'Recorded payment of ' . $amount . ' for sales return ' . ($existing->UniqueNumber ?? ''), 'SalesReturns', 'PAYMENT'
+            );
 
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();

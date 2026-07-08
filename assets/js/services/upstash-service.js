@@ -52,6 +52,16 @@ const UpstashService = (() => {
         return _prefix ? `${_prefix}:${type}` : type;
     }
 
+    /**
+     * Build a global key — shared across all orgs/clients on the same server.
+     * Format: r2k-{type}
+     * NEVER write to global keys from code — read only. Manual update via portal.
+     * Mirrors PHP Redisservice::globalKey().
+     */
+    function globalKey(type) {
+        return `r2k-${type}`;
+    }
+
     // ── Public API ────────────────────────────────────────────────────────────
 
     /**
@@ -169,6 +179,6 @@ const UpstashService = (() => {
     /** True when Upstash URL + token are configured. */
     function isEnabled() { return _on; }
 
-    return { get, set, del, hgetall, hget, hset, hdel, pipeline, orgKey, isEnabled };
+    return { get, set, del, hgetall, hget, hset, hdel, pipeline, orgKey, globalKey, isEnabled };
 
 })();

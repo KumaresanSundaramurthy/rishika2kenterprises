@@ -192,6 +192,11 @@ class Purchaseorders extends MY_Controller {
 
             $this->EndReturnData->Error    = FALSE;
             $this->EndReturnData->Message  = 'Purchase order created successfully.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'ADD_PURCHASE_ORDER', 'PurchaseOrder', (int) $transUID, (string) ($uniqueNumber ?? ''),
+                [], 'Created purchase order ' . ($uniqueNumber ?? ''), 'PurchaseOrders', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
+            );
             $this->EndReturnData->TransUID = $transUID;
 
         } catch (Exception $e) {
@@ -456,6 +461,11 @@ class Purchaseorders extends MY_Controller {
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Purchase order updated successfully.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'UPDATE_PURCHASE_ORDER', 'PurchaseOrder', (int) (isset($newTransUID) ? $newTransUID : $transUID), (string) ($uniqueNumber ?? $existing->UniqueNumber ?? ''),
+                [], 'Updated purchase order ' . ($uniqueNumber ?? $existing->UniqueNumber ?? ''), 'PurchaseOrders', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
+            );
 
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -510,6 +520,11 @@ class Purchaseorders extends MY_Controller {
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Purchase order deleted successfully.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'DELETE_PURCHASE_ORDER', 'PurchaseOrder', (int) $transUID, '',
+                [], 'Deleted purchase order #' . $transUID, 'PurchaseOrders', 'TRANSACTION'
+            );
 
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -659,6 +674,11 @@ class Purchaseorders extends MY_Controller {
 
             $this->EndReturnData->Error    = FALSE;
             $this->EndReturnData->Message  = 'Purchase order duplicated as ' . $uniqueNumber . '.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'DUPLICATE_PURCHASE_ORDER', 'PurchaseOrder', (int) $newTransUID, (string) $uniqueNumber,
+                [], 'Duplicated purchase order ' . $uniqueNumber, 'PurchaseOrders', 'TRANSACTION'
+            );
             $this->EndReturnData->TransUID = $newTransUID;
             $this->EndReturnData->EditURL  = '/purchaseorders/edit/' . $newTransUID;
 
@@ -713,6 +733,11 @@ class Purchaseorders extends MY_Controller {
 
             $this->EndReturnData->Error     = FALSE;
             $this->EndReturnData->Message   = 'Status updated.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'UPDATE_PO_STATUS', 'PurchaseOrder', (int) $transUID, (string) ($existing->UniqueNumber ?? ''),
+                ['NewStatus' => $newStatus], 'Updated purchase order status #' . $transUID, 'PurchaseOrders', 'TRANSACTION'
+            );
             $this->EndReturnData->NewStatus = $newStatus;
 
         } catch (Exception $e) {

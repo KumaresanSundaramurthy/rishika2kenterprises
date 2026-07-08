@@ -55,6 +55,13 @@ class Products_model extends CI_Model {
                     $safeVals = array_map('intval', $Filter['StatusFilter']);
                     $SearchDirectQuery .= $ModuleInfoData->TableAliasName.'.IsActive IN ('.implode(',', $safeVals).')';
                 }
+                if (array_key_exists('Tax', $Filter)) {
+                    if ($SearchDirectQuery != '') {
+                        $SearchDirectQuery .= ' AND ';
+                    }
+                    $safeVals = array_map('intval', (array) $Filter['Tax']);
+                    $SearchDirectQuery .= $ModuleInfoData->TableAliasName . '.TaxDetailsUID IN (' . implode(',', $safeVals) . ')';
+                }
                 if (array_key_exists('NameSorting', $Filter)) {
                     $sortOperation[$ModuleInfoData->TableAliasName . '.ItemName'] = $Filter['NameSorting'] == 1 ? 'ASC' : 'DESC';
                 }
@@ -340,116 +347,6 @@ class Products_model extends CI_Model {
 
     }
 
-    public function sizeFilterFormation(object $ModuleInfoData, array $Filter): object {
-
-        $this->EndReturnData = new StdClass();
-        try {
-
-            $SearchDirectQuery = '';
-            $SearchFilter = [];
-            $sortOperation = [];
-            if(!empty($Filter)) {
-                if (array_key_exists('SearchAllData', $Filter)) {
-                    $SearchDirectQuery .= "((". $ModuleInfoData->TableAliasName.".Name LIKE '%".$Filter['SearchAllData']."%' ) OR (".$ModuleInfoData->TableAliasName.".Description LIKE '%".$Filter['SearchAllData']."%'))";
-                }
-                if (array_key_exists('NameSorting', $Filter)) {
-                    $sortOperation[$ModuleInfoData->TableAliasName . '.Name'] = $Filter['NameSorting'] == 1 ? 'ASC' : 'DESC';
-                }
-            }
-
-            $this->EndReturnData->Error = FALSE;
-            $this->EndReturnData->SearchDirectQuery = $SearchDirectQuery;
-            $this->EndReturnData->SearchFilter = $SearchFilter;
-            $this->EndReturnData->sortOperation = $sortOperation;
-
-        } catch (Exception $e) {
-            $this->EndReturnData->Error = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-            $this->EndReturnData->SearchDirectQuery = '';
-            $this->EndReturnData->SearchFilter = [];
-            $this->EndReturnData->sortOperation = [];
-        }
-
-        return $this->EndReturnData;
-
-    }
-
-    public function getSizeDetails(array $Filter): array {
-
-        $this->EndReturnData = new StdClass();
-        try {
-
-            $this->ReadDb->db_debug = FALSE;
-
-            $select_ary = array(
-                'Size.SizeUID AS SizeUID',
-                'Size.OrgUID AS OrgUID',
-                'Size.Name AS Name',
-                'Size.Description AS Description',
-                'Size.CreatedOn as CreatedOn',
-                'Size.UpdatedOn as UpdatedOn',
-            );
-            $WhereCondition = array(
-                'Size.IsDeleted' => 0,
-                'Size.IsActive' => 1,
-            );
-            $this->ReadDb->select($select_ary);
-            $this->ReadDb->from('Products.SizeTbl as Size');
-            $this->ReadDb->where($WhereCondition);
-            if (!empty($Filter)) {
-                $this->ReadDb->where($Filter);
-            }
-            $this->ReadDb->group_by('Size.SizeUID');
-
-            $query = $this->ReadDb->get();
-            $error = $this->ReadDb->error();
-            if ($error['code']) {
-                throw new Exception($error['message']);
-            } else {
-                $this->EndReturnData->Data = $query->result();
-            }
-            return $this->EndReturnData->Data;
-        } catch (Exception $e) {
-            $this->EndReturnData->Error = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-            throw new Exception($this->EndReturnData->Message);
-        }
-
-    }
-
-    public function brandFilterFormation(object $ModuleInfoData, array $Filter): object {
-
-        $this->EndReturnData = new StdClass();
-        try {
-
-            $SearchDirectQuery = '';
-            $SearchFilter = [];
-            $sortOperation = [];
-            if(!empty($Filter)) {
-                if (array_key_exists('SearchAllData', $Filter)) {
-                    $SearchDirectQuery .= "((". $ModuleInfoData->TableAliasName.".Name LIKE '%".$Filter['SearchAllData']."%' ) OR (".$ModuleInfoData->TableAliasName.".Description LIKE '%".$Filter['SearchAllData']."%'))";
-                }
-                if (array_key_exists('NameSorting', $Filter)) {
-                    $sortOperation[$ModuleInfoData->TableAliasName . '.Name'] = $Filter['NameSorting'] == 1 ? 'ASC' : 'DESC';
-                }
-            }
-
-            $this->EndReturnData->Error = FALSE;
-            $this->EndReturnData->SearchDirectQuery = $SearchDirectQuery;
-            $this->EndReturnData->SearchFilter = $SearchFilter;
-            $this->EndReturnData->sortOperation = $sortOperation;
-
-        } catch (Exception $e) {
-            $this->EndReturnData->Error = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-            $this->EndReturnData->SearchDirectQuery = '';
-            $this->EndReturnData->SearchFilter = [];
-            $this->EndReturnData->sortOperation = [];
-        }
-
-        return $this->EndReturnData;
-
-    }
 
     public function getProductBOM(int $ParentProductUID): array {
 
@@ -813,47 +710,6 @@ class Products_model extends CI_Model {
 
     }
 
-    public function getBrandDetails(array $FilterArray): array {
-
-        $this->EndReturnData = new StdClass();
-        try {
-
-            $this->ReadDb->db_debug = FALSE;
-            $select_ary = array(
-                'Brand.BrandUID AS BrandUID',
-                'Brand.OrgUID AS OrgUID',
-                'Brand.Name AS Name',
-                'Brand.Description AS Description',
-                'Brand.CreatedOn as CreatedOn',
-                'Brand.UpdatedOn as UpdatedOn',
-            );
-            $WhereCondition = array(
-                'Brand.IsDeleted' => 0,
-                'Brand.IsActive' => 1,
-            );
-            $this->ReadDb->select($select_ary);
-            $this->ReadDb->from('Products.BrandTbl as Brand');
-            $this->ReadDb->where($WhereCondition);
-            if (!empty($FilterArray)) {
-                $this->ReadDb->where($FilterArray);
-            }
-            $this->ReadDb->group_by('Brand.BrandUID');
-
-            $query = $this->ReadDb->get();
-            $error = $this->ReadDb->error();
-            if ($error['code']) {
-                throw new Exception($error['message']);
-            } else {
-                $this->EndReturnData->Data = $query->result();
-            }
-            return $this->EndReturnData->Data;
-        } catch (Exception $e) {
-            $this->EndReturnData->Error = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-            throw new Exception($this->EndReturnData->Message);
-        }
-
-    }
 
     // ── Cache helpers ─────────────────────────────────────────────────────────
 

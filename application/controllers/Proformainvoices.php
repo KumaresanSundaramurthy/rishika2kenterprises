@@ -279,6 +279,11 @@ class Proformainvoices extends MY_Controller {
 
             $this->EndReturnData->Error    = FALSE;
             $this->EndReturnData->Message  = 'Pro Forma Invoice created successfully.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'ADD_PROFORMA', 'ProformaInvoice', (int) $transUID, (string) ($uniqueNumber ?? ''),
+                [], 'Created proforma invoice ' . ($uniqueNumber ?? ''), 'ProformaInvoices', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
+            );
             $this->EndReturnData->TransUID = $transUID;
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -498,6 +503,11 @@ class Proformainvoices extends MY_Controller {
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Pro Forma Invoice updated successfully.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'UPDATE_PROFORMA', 'ProformaInvoice', (int) (isset($newTransUID) ? $newTransUID : $transUID), (string) ($uniqueNumber ?? $existing->UniqueNumber ?? ''),
+                [], 'Updated proforma invoice ' . ($uniqueNumber ?? $existing->UniqueNumber ?? ''), 'ProformaInvoices', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
+            );
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
@@ -548,6 +558,11 @@ class Proformainvoices extends MY_Controller {
 
             $this->EndReturnData->Error          = FALSE;
             $this->EndReturnData->Message        = 'Pro Forma Invoice deleted successfully.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'DELETE_PROFORMA', 'ProformaInvoice', (int) $transUID, '',
+                [], 'Deleted proforma invoice #' . $transUID, 'ProformaInvoices', 'TRANSACTION'
+            );
             $this->EndReturnData->RecordHtmlData = $this->load->view('transactions/proformainvoices/list', ['DataLists' => $allData, 'SerialNumber' => $offset, 'JwtData' => $this->pageData['JwtData']], true);
             $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml('/proforma/getPageDetails', $allDataCount, $pageNo, $limit);
             $this->EndReturnData->TotalCount     = $allDataCount;
@@ -670,6 +685,11 @@ class Proformainvoices extends MY_Controller {
 
             $this->EndReturnData->Error    = FALSE;
             $this->EndReturnData->Message  = 'Pro Forma duplicated as ' . $uniqueNumber . '.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'DUPLICATE_PROFORMA', 'ProformaInvoice', (int) $newTransUID, (string) $uniqueNumber,
+                [], 'Duplicated proforma invoice ' . $uniqueNumber, 'ProformaInvoices', 'TRANSACTION'
+            );
             $this->EndReturnData->TransUID = $newTransUID;
             $this->EndReturnData->EditURL  = '/proforma/' . $newTransUID . '/edit';
         } catch (Exception $e) {
@@ -728,6 +748,11 @@ class Proformainvoices extends MY_Controller {
 
             $this->EndReturnData->Error          = FALSE;
             $this->EndReturnData->Message        = 'Status updated to ' . $newStatus . '.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'UPDATE_PROFORMA_STATUS', 'ProformaInvoice', (int) $transUID, (string) ($existing->UniqueNumber ?? ''),
+                ['NewStatus' => $newStatus], 'Updated proforma status #' . $transUID, 'ProformaInvoices', 'TRANSACTION'
+            );
             $this->EndReturnData->RecordHtmlData = $this->load->view('transactions/proformainvoices/list', ['DataLists' => $allData, 'SerialNumber' => $offset, 'JwtData' => $this->pageData['JwtData']], true);
             $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml('/proforma/getPageDetails', $allDataCount, $pageNo, $limit);
             $this->EndReturnData->TotalCount     = $allDataCount;
@@ -766,6 +791,11 @@ class Proformainvoices extends MY_Controller {
 
             $this->EndReturnData->Error       = FALSE;
             $this->EndReturnData->Message     = 'Pro Forma marked as converted.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'CONVERT_PROFORMA_TO_INVOICE', 'ProformaInvoice', (int) $transUID, (string) ($existing->UniqueNumber ?? ''),
+                [], 'Converted proforma ' . ($existing->UniqueNumber ?? '') . ' to invoice', 'ProformaInvoices', 'TRANSACTION'
+            );
             $this->EndReturnData->RedirectURL = '/invoices/create?fromProForma=' . $transUID;
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();

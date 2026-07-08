@@ -107,7 +107,7 @@
     function _loadCountries(cb) {
         if (_countriesCache) { cb(_countriesCache); return; }
         if (!UpstashService.isEnabled()) { _fetchCountriesAjax(cb); return; }
-        UpstashService.get(UpstashService.orgKey('loc-countries')).then(function (data) {
+        UpstashService.get(UpstashService.globalKey('loc-countries')).then(function (data) {
             if (Array.isArray(data) && data.length) {
                 _countriesCache = data;
                 cb(_countriesCache);
@@ -132,7 +132,7 @@
     function _loadGroupTypes(cb) {
         if (_groupTypesCache) { cb(_groupTypesCache); return; }
         if (!UpstashService.isEnabled()) { _fetchGroupTypesAjax(cb); return; }
-        UpstashService.get(UpstashService.orgKey('customer-group-types')).then(function (data) {
+        UpstashService.get(UpstashService.globalKey('customer-group-types')).then(function (data) {
             if (Array.isArray(data) && data.length) {
                 _groupTypesCache = data; cb(data);
             } else {
@@ -147,9 +147,6 @@
             success: function (res) {
                 var types = res.Data || [];
                 _groupTypesCache = types;
-                if (UpstashService.isEnabled() && types.length) {
-                    UpstashService.set(UpstashService.orgKey('customer-group-types'), types, 86400);
-                }
                 cb(types);
             },
             error: function () { cb([]); }

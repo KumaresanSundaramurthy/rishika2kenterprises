@@ -24,6 +24,7 @@
                 $dec = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
                 ?>
 
+                <?php if ($JwtData->TransSettings->ShowTransactionStats ?? 1): ?>
                 <!-- ── Stats Strip ───────────────────────────────────────────── -->
                 <div class="apex-stats-strip<?php echo $ActiveTabData == 'group' ? ' d-none' : ''; ?>" id="ProductStatsRow">
                     <div class="apex-stat-item" style="--stat-color:#059669;cursor:default;pointer-events:none">
@@ -82,6 +83,7 @@
                         </div>
                     </div>
                 </div>
+                <?php endif; ?>
 
                 <div class="container-xxl flex-grow-1 py-3">
 
@@ -91,12 +93,17 @@
                         <div class="apex-filter-row">
                             <div class="r2k-search-wrap">
                                 <i class="bx bx-search r2k-si"></i>
-                                <input type="text" class="SearchDetails" id="SearchDetails" placeholder="Search items...">
+                                <?php
+                                $searchPlaceholderMap = ['item' => 'Search items...', 'group' => 'Search groups...', 'category' => 'Search categories...'];
+                                $searchPlaceholder = $searchPlaceholderMap[$ActiveTabData] ?? 'Search items...';
+                                ?>
+                                <input type="text" class="SearchDetails" id="SearchDetails" placeholder="<?php echo $searchPlaceholder; ?>">
                                 <i class="bx bx-x r2k-clear d-none" id="clearSearch"></i>
                             </div>
                             <a href="javascript:void(0);" id="productTypeFilter" class="apex-filter-btn <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" title="Filter by Product Type"><i class="bx bx-box me-1"></i>Type</a>
-                            <a href="javascript:void(0);" id="statusFilter" class="apex-filter-btn <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" title="Filter by Status"><i class="bx bx-transfer me-1"></i>Status</a>
-                            <a href="javascript:void(0);" id="categoryFilter" class="apex-filter-btn <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" onclick="toggleCategoryFilter(); event.stopPropagation();" title="Filter by Category"><i class="bx bx-layer me-1"></i>Category</a>
+                            <a href="javascript:void(0);" id="statusFilter" class="apex-filter-btn <?php echo ($ActiveTabData == 'item' || $ActiveTabData == 'group') ? '' : 'd-none'; ?>" title="Filter by Status"><i class="bx bx-transfer me-1"></i>Status</a>
+                            <a href="javascript:void(0);" id="taxFilter" class="apex-filter-btn <?php echo ($ActiveTabData == 'item' || $ActiveTabData == 'group') ? '' : 'd-none'; ?>" title="Filter by Tax"><i class="bx bx-receipt me-1"></i>Tax</a>
+                            <a href="javascript:void(0);" id="categoryFilter" class="apex-filter-btn <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" title="Filter by Category"><i class="bx bx-layer me-1"></i>Category</a>
                             <div class="apex-filter-spacer"></div>
                             <a href="javascript:void(0);" class="apex-icon-btn PageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
                             <a href="javascript:void(0);" class="apex-icon-btn <?php echo ($ActiveTabData == 'item' || $ActiveTabData == 'group') ? '' : 'd-none'; ?>" id="btnSyncProductsCache" title="Sync Items Cache"><i class="bx bx-planet"></i></a>
@@ -130,41 +137,27 @@
                             <a href="javascript:void(0);" class="btn btn-primary btn-sm addItem <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" id="NewItem"><i class="bx bx-plus me-1"></i> Create Item</a>
                             <a href="javascript:void(0);" class="btn btn-primary btn-sm <?php echo $ActiveTabData == 'group' ? '' : 'd-none'; ?>" id="NewComboItem"><i class="bx bx-git-merge me-1"></i> Create Group</a>
                             <a href="javascript:void(0);" class="btn btn-primary btn-sm addCategory <?php echo $ActiveTabData == 'category' ? '' : 'd-none'; ?>" id="NewCategory"><i class="bx bx-plus me-1"></i> Create Category</a>
-                            <a href="javascript:void(0);" class="btn btn-primary btn-sm addSizes <?php echo $ActiveTabData == 'size' ? '' : 'd-none'; ?>" id="NewSizes"><i class="bx bx-plus me-1"></i> Create Size</a>
-                            <a href="javascript:void(0);" class="btn btn-primary btn-sm addBrands <?php echo $ActiveTabData == 'brand' ? '' : 'd-none'; ?>" id="NewBrands"><i class="bx bx-plus me-1"></i> Create Brand</a>
                         </div>
 
                         <!-- Tabs Row -->
                         <div class="apex-tabs-row">
                             <ul class="nav trans-status-tabs" role="tablist">
                                 <li class="nav-item">
-                                    <a class="nav-link <?php echo $ActiveTabData == 'item' ? 'active' : ''; ?> TabPane disabled" data-id="Item" role="tab" data-bs-toggle="tab" data-bs-target="#NavItemPage" href="javascript:void(0);">
+                                    <a class="nav-link <?php echo $ActiveTabData == 'item' ? 'active' : ''; ?> TabPane" data-id="Item" role="tab" data-bs-toggle="tab" data-bs-target="#NavItemPage" href="javascript:void(0);">
                                         <i class="bx bx-package me-1"></i> Items
-                                        <span class="trans-tab-count<?php echo $ActiveTabData != 'item' ? ' d-none' : ''; ?>" id="productTotalCount"><?php echo $ProductTotalCount; ?></span>
+                                        <span class="trans-tab-count<?php echo ($ActiveTabData != 'item' || $ProductTotalCount == 0) ? ' d-none' : ''; ?>" id="productTotalCount"><?php echo $ProductTotalCount > 0 ? $ProductTotalCount : ''; ?></span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link <?php echo $ActiveTabData == 'group' ? 'active' : ''; ?> TabPane disabled" data-id="Groups" role="tab" data-bs-toggle="tab" data-bs-target="#NavGroupsPage" href="javascript:void(0);">
+                                    <a class="nav-link <?php echo $ActiveTabData == 'group' ? 'active' : ''; ?> TabPane" data-id="Groups" role="tab" data-bs-toggle="tab" data-bs-target="#NavGroupsPage" href="javascript:void(0);">
                                         <i class="bx bx-git-merge me-1"></i> Groups
-                                        <span class="trans-tab-count d-none" id="groupTotalCount"></span>
+                                        <span class="trans-tab-count<?php echo ($ActiveTabData != 'group' || $ModTotalCount == 0) ? ' d-none' : ''; ?>" id="groupTotalCount"><?php echo ($ActiveTabData == 'group' && $ModTotalCount > 0) ? $ModTotalCount : ''; ?></span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link <?php echo $ActiveTabData == 'category' ? 'active' : ''; ?> TabPane disabled" data-id="Categories" role="tab" data-bs-toggle="tab" data-bs-target="#NavCategoriesPage" href="javascript:void(0);">
+                                    <a class="nav-link <?php echo $ActiveTabData == 'category' ? 'active' : ''; ?> TabPane" data-id="Categories" role="tab" data-bs-toggle="tab" data-bs-target="#NavCategoriesPage" href="javascript:void(0);">
                                         <i class="bx bx-layer me-1"></i> Categories
-                                        <span class="trans-tab-count d-none" id="categoryTotalCount"></span>
-                                    </a>
-                                </li>
-                                <li class="nav-item d-none">
-                                    <a class="nav-link TabPane disabled" data-id="Sizes" role="tab" data-bs-toggle="tab" data-bs-target="#NavSizesPage" href="javascript:void(0);">
-                                        <i class="bx bx-ruler me-1"></i> Sizes
-                                        <span class="trans-tab-count d-none" id="sizeTotalCount"></span>
-                                    </a>
-                                </li>
-                                <li class="nav-item d-none">
-                                    <a class="nav-link TabPane disabled" data-id="Brands" role="tab" data-bs-toggle="tab" data-bs-target="#NavBrandsPage" href="javascript:void(0);">
-                                        <i class="bx bx-badge-check me-1"></i> Brands
-                                        <span class="trans-tab-count d-none" id="brandTotalCount"></span>
+                                        <span class="trans-tab-count<?php echo ($ActiveTabData != 'category' || $ModTotalCount == 0) ? ' d-none' : ''; ?>" id="categoryTotalCount"><?php echo ($ActiveTabData == 'category' && $ModTotalCount > 0) ? $ModTotalCount : ''; ?></span>
                                     </a>
                                 </li>
                             </ul>
@@ -185,18 +178,18 @@
                                                         </th>
                                                         <th class="table-serialno <?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>">S.No</th>
                                                         <th class="name-sortable position-relative" id="sortName" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">
-                                                            <span class="sort-label cursor-pointer">Item <i class="bx bx-sort sort-icon ms-1"></i></span>
+                                                            <span class="sort-label cursor-pointer">Item <i class="bx bx-sort-alt-2 sort-icon ms-1"></i></span>
                                                         </th>
                                                         <th class="col-sortable cursor-pointer position-relative" data-filterkey="StatusSorting" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">
-                                                            Status <i class="bx bx-sort sort-icon ms-1"></i>
+                                                            Status <i class="bx bx-sort-alt-2 sort-icon ms-1"></i>
                                                         </th>
                                                         <th class="col-sortable cursor-pointer position-relative" data-filterkey="CategorySorting" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">
-                                                            Category <i class="bx bx-sort sort-icon ms-1"></i>
+                                                            Category <i class="bx bx-sort-alt-2 sort-icon ms-1"></i>
                                                         </th>
-                                                        <th class="col-sortable cursor-pointer" data-filterkey="QtySorting" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">Qty <i class="bx bx-sort sort-icon ms-1"></i></th>
-                                                        <th class="col-sortable cursor-pointer" data-filterkey="MRPSorting" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">MRP <i class="bx bx-sort sort-icon ms-1"></i></th>
-                                                        <th class="col-sortable cursor-pointer" data-filterkey="SellingPriceSorting" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">Selling Price <i class="bx bx-sort sort-icon ms-1"></i></th>
-                                                        <th class="col-sortable cursor-pointer" data-filterkey="PurchasePriceSorting" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">Purchase Price <i class="bx bx-sort sort-icon ms-1"></i></th>
+                                                        <th class="col-sortable cursor-pointer" data-filterkey="QtySorting" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">Qty <i class="bx bx-sort-alt-2 sort-icon ms-1"></i></th>
+                                                        <th class="col-sortable cursor-pointer" data-filterkey="MRPSorting" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">MRP <i class="bx bx-sort-alt-2 sort-icon ms-1"></i></th>
+                                                        <th class="col-sortable cursor-pointer" data-filterkey="SellingPriceSorting" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">Selling Price <i class="bx bx-sort-alt-2 sort-icon ms-1"></i></th>
+                                                        <th class="col-sortable cursor-pointer" data-filterkey="PurchasePriceSorting" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">Purchase Price <i class="bx bx-sort-alt-2 sort-icon ms-1"></i></th>
                                                         <th>Last Updated</th>
                                                         <th class="text-center">Actions</th>
                                                     </tr>
@@ -232,11 +225,9 @@
                                                         <th class="table-serialno <?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>">S.No</th>
                                                         <th>Item</th>
                                                         <th>Status</th>
-                                                        <th>Category</th>
-                                                        <th>Qty</th>
+                                                        <th>Unit</th>
                                                         <th>MRP</th>
                                                         <th>Selling Price</th>
-                                                        <th>Purchase Price</th>
                                                         <th>Last Updated</th>
                                                         <th class="text-center">Actions</th>
                                                     </tr>
@@ -271,7 +262,7 @@
                                                         </th>
                                                         <th class="table-serialno <?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>">S.No</th>
                                                         <th class="name-sortable position-relative" id="sortCatgName" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">
-                                                            <span class="sort-label cursor-pointer">Name <i class="bx bx-sort sort-icon ms-1"></i></span>
+                                                            <span class="sort-label cursor-pointer">Name <i class="bx bx-sort-alt-2 sort-icon ms-1"></i></span>
                                                         </th>
                                                         <th>Products</th>
                                                         <th>Last Updated</th>
@@ -295,69 +286,6 @@
 
                                     </div>
 
-                                    <div class="tab-pane fade <?php echo $ActiveTabData == 'size' ? 'show active' : ''; ?>" id="NavSizesPage" role="tabpanel">
-
-                                        <div class="table-responsive text-nowrap h-100 tablecard">
-                                            <table class="table table-hover MainviewTable" id="SizesTable">
-                                                <thead class="bg-body-tertiary">
-                                                    <tr>
-                                                        <th class="table-checkbox">
-                                                            <div class="form-check form-check-inline">
-                                                                <input class="form-check-input table-chkbox sizeHeaderCheck" type="checkbox">
-                                                            </div>
-                                                        </th>
-                                                        <th class="table-serialno <?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>">S.No</th>
-                                                        <th class="text-center">Actions</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody class="table-border-bottom-0">
-                                                    <?php if ($ActiveTabData == 'size') {
-                                                        echo $ModRowData;
-                                                    } else {
-                                                        $PageData['DataLists'] = [];
-                                                        echo $this->load->view('products/sizes/list', $PageData, TRUE);
-                                                    } ?>
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                        <hr class="my-0" />
-                                        <div class="row mx-3 justify-content-between SizesPagination" id="SizesPagination">
-                                            <?php echo $ActiveTabData == 'size' ? $ModPagination : ''; ?>
-                                        </div>
-
-                                    </div>
-
-                                    <div class="tab-pane fade <?php echo $ActiveTabData == 'brand' ? 'show active' : ''; ?>" id="NavBrandsPage" role="tabpanel">
-
-                                        <div class="table-responsive text-nowrap h-100 tablecard">
-                                            <table class="table table-hover MainviewTable" id="BrandsTable">
-                                                <thead class="bg-body-tertiary">
-                                                    <tr>
-                                                        <th class="table-checkbox">
-                                                            <div class="form-check form-check-inline">
-                                                                <input class="form-check-input table-chkbox brandHeaderCheck" type="checkbox">
-                                                            </div>
-                                                        </th>
-                                                        <th class="table-serialno <?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>">S.No</th>
-                                                        <th class="text-center">Actions</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody class="table-border-bottom-0">
-                                                    <?php if ($ActiveTabData == 'brand') {
-                                                        echo $ModRowData;
-                                                    } else {
-                                                        $PageData['DataLists'] = [];
-                                                        echo $this->load->view('products/brands/list', $PageData, TRUE);
-                                                    } ?>
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                        <hr class="my-0" />
-                                        <div class="row mx-3 justify-content-between BrandsPagination" id="BrandsPagination">
-                                            <?php echo $ActiveTabData == 'brand' ? $ModPagination : ''; ?>
-                                        </div>
-
-                                    </div>
 
                         </div>
                     </div>
@@ -379,8 +307,6 @@
             <?php $this->load->view('common/modals/category_form'); ?>
             <?php $this->load->view('products/modals/combo'); ?>
             <?php $this->load->view('products/modals/category'); ?>
-            <?php $this->load->view('products/modals/sizes'); ?>
-            <?php $this->load->view('products/modals/brands'); ?>
             <?php $this->load->view('products/modals/barcodeprint'); ?>
 
             <!-- Category Products Modal -->
@@ -439,8 +365,24 @@
     ],
 ]); ?>
 
-<!-- Category filter box — must live at body level so position:fixed works correctly -->
-<div id="categoryFilterBox" class="mp-filterbox" style="display:none;position:fixed;z-index:9999;width:280px;"></div>
+<?php $this->load->view('common/transactions/col_filter_box', [
+    'ColFilterConfig' => [
+        'id'         => 'taxFilterBox',
+        'triggerId'  => 'taxFilter',
+        'title'      => 'Tax',
+        'icon'       => 'bx-receipt',
+        'filterKey'  => 'Tax',
+        'checkClass' => 'tax-checkbox',
+        'items'      => [],
+    ],
+]); ?>
+
+<!-- Category filter box — content built dynamically by CategoryAppend.filterBox() -->
+<div id="categoryFilterBox" class="card mp-filterbox trans-col-filterbox"
+     data-trigger-id="categoryFilter"
+     data-filter-key="Category"
+     data-chk-class="category-checkbox"
+     style="display:none;position:fixed;z-index:9999;width:280px;"></div>
 
 <?php $this->load->view('common/footer'); ?>
 
@@ -475,26 +417,14 @@ const CatgTable = '#CategoriesTable';
 const CatgPag = '.CategoriesPagination';
 const CatgHeader = '.categoryHeaderCheck';
 const CatgRow = '.categoryCheck';
-let SizeModuleId = 6;
-const SizeTable = '#SizesTable';
-const SizePag = '.SizesPagination';
-const SizeHeader = '.sizeHeaderCheck';
-const SizeRow = '.sizesCheck';
-let BrandModuleId = 7;
-const BrandTable = '#BrandsTable';
-const BrandPag = '.BrandsPagination';
-const BrandHeader = '.brandHeaderCheck';
-const BrandRow = '.brandsCheck';
 let ActiveTabId = '<?php echo $ActiveTabName; ?>';
 let ActiveTabModuleId = 4
 var EnableStorage = <?php echo $JwtData->GenSettings->EnableStorage; ?>;
 var CommonRowColumnDisp = 1;
 let imgData;
-var _prodTabUrlMap = { 'Item': 'item', 'Groups': 'group', 'Categories': 'category', 'Sizes': 'size', 'Brands': 'brand' };
+var _prodTabUrlMap = { 'Item': 'item', 'Groups': 'group', 'Categories': 'category' };
 let sortState = 0;
 let catgSortState = 0;
-let sizeSortState = 0;
-let brandSortState = 0;
 var _catgListDirty = false;
 let colSortStates = {};
 $(function() {
@@ -525,24 +455,27 @@ $(function() {
             SelectedUIDs = [];
             ActiveTabId = TabValue;
             ActiveTabModuleId = $(this).data('moduleid');
+            $('.trans-tab-count').addClass('d-none');
             var _tabParam = _prodTabUrlMap[TabValue] || TabValue.toLowerCase();
             var _tabUrl = '/products?tab=' + _tabParam;
             if (window.location.pathname + window.location.search !== _tabUrl) {
                 history.pushState({ tab: _tabParam }, '', _tabUrl);
             }
             $('#ProductStatsRow').toggleClass('d-none', TabValue === 'Groups');
-            $('#NewItem,#NewComboItem,#NewCategory,#NewSizes,#NewBrands,#CloneOption,#DeleteOption,#ItemCategory-Div').addClass('d-none');
+            $('#NewItem,#NewComboItem,#NewCategory,#CloneOption,#DeleteOption,#ItemCategory-Div').addClass('d-none');
             $('#ActionsDD-Div').addClass('d-none');
-            $('#categoryFilter,#productTypeFilter,#statusFilter').toggleClass('d-none', TabValue !== 'Item');
-            $('#SearchDetails').val('');
+            $('#productTypeFilter,#categoryFilter').toggleClass('d-none', TabValue !== 'Item');
+            $('#statusFilter,#taxFilter').toggleClass('d-none', TabValue !== 'Item' && TabValue !== 'Groups');
+            var _prodSearchPlaceholders = { Item: 'Search items...', Groups: 'Search groups...', Categories: 'Search categories...' };
+            $('#SearchDetails').val('').attr('placeholder', _prodSearchPlaceholders[TabValue] || 'Search...');
             PageNo = 0;
             Filter = {};
             // Reset all sort visual states
-            sortState = 0; catgSortState = 0; sizeSortState = 0; brandSortState = 0; colSortStates = {};
-            $('.name-sortable .sort-icon, .col-sortable .sort-icon').removeClass('bx-up-arrow-alt bx-down-arrow-alt text-primary').addClass('bx-sort');
+            sortState = 0; catgSortState = 0; colSortStates = {};
+            $('.name-sortable .sort-icon, .col-sortable .sort-icon').removeClass('bx-sort-up bx-sort-down text-primary').addClass('bx-sort-alt-2');
             $('.name-sortable, .col-sortable').removeClass('col-active').attr('data-bs-title', 'Click for ascending order');
             $('.mp-filterbox').hide();
-            $('#categoryFilter, #productTypeFilter, #statusFilter').removeClass('text-primary');
+            $('#categoryFilter, #productTypeFilter, #statusFilter, #taxFilter').removeClass('text-primary');
             $('#ProductCountWrap').addClass('d-none');
             $('#btnSyncProductsCache,#btnSyncCategoriesCache').addClass('d-none');
             if (ActiveTabId == 'Item') {
@@ -554,6 +487,7 @@ $(function() {
                 } else {
                     $(ProdHeader).prop('checked', false);
                     unSelectTableRecords(ProdTable, ProdRow);
+                    updateProductCount(parseInt($('#productTotalCount').text(), 10) || 0);
                 }
             } else if (ActiveTabId == 'Groups') {
                 $('#NewComboItem').removeClass('d-none');
@@ -564,6 +498,7 @@ $(function() {
                 } else {
                     $(GroupHeader).prop('checked', false);
                     unSelectTableRecords(GroupTable, ProdRow);
+                    updateGroupCount(parseInt($('#groupTotalCount').text(), 10) || 0);
                 }
             } else if (ActiveTabId == 'Categories') {
                 $('#NewCategory').removeClass('d-none');
@@ -575,24 +510,7 @@ $(function() {
                 } else {
                     $(CatgHeader).prop('checked', false);
                     unSelectTableRecords(CatgTable, CatgRow);
-                }
-            } else if (ActiveTabId == 'Sizes') {
-                $('#NewSizes').removeClass('d-none');
-                var sizLen = $(SizeTable + ' ' + SizeRow).length;
-                if (sizLen == 0) {
-                    getSizesDetails(PageNo, RowLimit, Filter);
-                } else {
-                    $(SizeHeader).prop('checked', false);
-                    unSelectTableRecords(SizeTable, SizeRow);
-                }
-            } else if (ActiveTabId == 'Brands') {
-                $('#NewBrands').removeClass('d-none');
-                var brndLen = $(BrandTable + ' ' + BrandRow).length;
-                if (brndLen == 0) {
-                    getBrandsDetails(PageNo, RowLimit, Filter);
-                } else {
-                    $(BrandHeader).prop('checked', false);
-                    unSelectTableRecords(BrandTable, BrandRow);
+                    updateCategoryCount(parseInt($('#categoryTotalCount').text(), 10) || 0);
                 }
             }
         }
@@ -635,10 +553,6 @@ $(function() {
                 DeleteContent = 'Do you want to delete all the selected product?';
             } else if (ActiveTabId == 'Categories') {
                 DeleteContent = 'Do you want to delete all the selected category?';
-            } else if (ActiveTabId == 'Sizes') {
-                DeleteContent = 'Do you want to delete all the selected size?';
-            } else if (ActiveTabId == 'Brands') {
-                DeleteContent = 'Do you want to delete all the selected brand?';
             }
             Swal.fire({
                 title: DeleteContent,
@@ -654,10 +568,6 @@ $(function() {
                         deleteMultipleProduct();
                     } else if (ActiveTabId == 'Categories') {
                         deleteMultipleCategory();
-                    } else if (ActiveTabId == 'Sizes') {
-                        deleteMultipleSize();
-                    } else if (ActiveTabId == 'Brands') {
-                        deleteMultipleBrand();
                     }
                 }
             });
@@ -721,27 +631,19 @@ $(function() {
             catgSortState = (catgSortState + 1) % 3;
             defSortState = catgSortState;
             defFieldName = '#sortCatgName';
-        } else if (ActiveTabId == 'Sizes') {
-            sizeSortState = (sizeSortState + 1) % 3;
-            defSortState = sizeSortState;
-            defFieldName = '#sortSizeName';
-        } else if (ActiveTabId == 'Brands') {
-            brandSortState = (brandSortState + 1) % 3;
-            defSortState = brandSortState;
-            defFieldName = '#sortBrandName';
         }
         const icon = $(this).find('.sort-icon');
-        icon.removeClass('bx-sort bx-sort-alt-2 bx-up-arrow-alt bx-down-arrow-alt text-primary');
+        icon.removeClass('bx-sort-alt-2 bx-sort-up bx-sort-down text-primary');
         if (defSortState == 1) {
-            icon.addClass('bx-up-arrow-alt text-primary');
+            icon.addClass('bx-sort-up text-primary');
             $(this).attr('data-bs-title', 'Click for descending order');
             Filter['NameSorting'] = 1;
         } else if (defSortState === 2) {
-            icon.addClass('bx-down-arrow-alt text-primary');
+            icon.addClass('bx-sort-down text-primary');
             $(this).attr('data-bs-title', 'Click to remove sorting');
             Filter['NameSorting'] = 2;
         } else {
-            icon.addClass('bx-sort');
+            icon.addClass('bx-sort-alt-2');
             $(this).attr('data-bs-title', 'Click for ascending order');
             delete Filter['NameSorting'];
         }
@@ -761,17 +663,17 @@ $(function() {
         colSortStates[filterKey] = ((colSortStates[filterKey] || 0) + 1) % 3;
         const state = colSortStates[filterKey];
         const icon = $(this).find('.sort-icon');
-        icon.removeClass('bx-sort bx-up-arrow-alt bx-down-arrow-alt text-primary');
+        icon.removeClass('bx-sort-alt-2 bx-sort-up bx-sort-down text-primary');
         if (state === 1) {
-            icon.addClass('bx-up-arrow-alt text-primary');
+            icon.addClass('bx-sort-up text-primary');
             $(this).attr('data-bs-title', 'Click for descending order');
             Filter[filterKey] = 1;
         } else if (state === 2) {
-            icon.addClass('bx-down-arrow-alt text-primary');
+            icon.addClass('bx-sort-down text-primary');
             $(this).attr('data-bs-title', 'Click to remove sorting');
             Filter[filterKey] = 2;
         } else {
-            icon.addClass('bx-sort');
+            icon.addClass('bx-sort-alt-2');
             $(this).attr('data-bs-title', 'Click for ascending order');
             delete Filter[filterKey];
         }
@@ -804,6 +706,9 @@ $(function() {
         const statusActive = (Filter.StatusFilter && Filter.StatusFilter.length > 0) || (colSortStates['StatusSorting'] || 0) > 0;
         $('#statusFilter').closest('th').toggleClass('col-active', statusActive);
         $('#statusFilter').toggleClass('text-primary', !!(Filter.StatusFilter && Filter.StatusFilter.length > 0));
+
+        // Tax filter active
+        $('#taxFilter').toggleClass('text-primary', !!(Filter.Tax && Filter.Tax.length > 0));
 
         // Each col-sortable (skip CategorySorting — already handled above)
         $('.col-sortable').each(function() {
@@ -841,36 +746,96 @@ $(function() {
         }
     });
 
-    // Close category filter box on outside click (categoryFilterBox is inside the table header)
-    $(document).on('click', function(e) {
-        if (!$(e.target).closest('#categoryFilterBox, #categoryFilter').length) {
-            $('#categoryFilterBox').hide();
+    var _taxFilterLoaded = false;
+    $(document).on('click', '#taxFilter', function (e) {
+        if (_taxFilterLoaded) return;
+        e.stopImmediatePropagation();
+
+        var triggerEl = this;
+        var $box = $('#taxFilterBox');
+        var rect = triggerEl.getBoundingClientRect();
+        var boxW = $box.outerWidth() || 220;
+        var left = rect.left;
+        var top  = rect.bottom + 4;
+        if (left + boxW + 16 > window.innerWidth) left = window.innerWidth - boxW - 16;
+        $box.find('.d-flex.flex-column').html(
+            '<i class="bx bx-loader-alt bx-spin fs-2 mb-2"></i>' +
+            '<span style="font-size:.8rem;">Loading...</span>'
+        );
+        $box.css({ top: top + 'px', left: left + 'px' }).show();
+
+        DropdownCache.ready().then(function (data) {
+            var items = data.taxDetails || [];
+            if (!items.length) {
+                $box.find('.d-flex.flex-column').html(
+                    '<i class="bx bx-error-circle fs-2 mb-2 text-danger"></i>' +
+                    '<span style="font-size:.8rem;">Failed to load</span>'
+                );
+                return;
+            }
+            var boxId    = 'taxFilterBox';
+            var chkClass = 'tax-checkbox';
+
+            var itemsHtml = items.map(function (t) {
+                var uid  = parseInt(t.TaxDetailsUID || 0, 10);
+                var name = $('<span>').text(t.TaxName || '').html();
+                return '<label class="catg-list-item">' +
+                           '<input class="form-check-input ' + chkClass + '" type="checkbox" value="' + uid + '">' +
+                           '<span>' + name + '</span>' +
+                       '</label>';
+            }).join('');
+
+            $box.html(
+                '<div class="catg-filter-header">' +
+                    '<span class="catg-filter-title"><i class="bx bx-receipt me-1"></i>Tax</span>' +
+                    '<div class="d-flex align-items-center gap-2">' +
+                        '<span class="badge">' + items.length + '</span>' +
+                        '<button type="button" class="catg-filter-close-btn tcf-close-btn" title="Close">&times;</button>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="catg-filter-search-wrap">' +
+                    '<div class="catg-search-inner">' +
+                        '<input type="text" class="form-control form-control-sm tcf-search-input" placeholder="Search tax...">' +
+                        '<button type="button" class="catg-search-clear" title="Clear" style="display:none;"><i class="bx bx-x"></i></button>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="catg-select-all-wrap">' +
+                    '<input type="checkbox" class="form-check-input tcf-select-all" id="' + boxId + 'SelectAll">' +
+                    '<label class="small fw-semibold mb-0" for="' + boxId + 'SelectAll">Select All</label>' +
+                '</div>' +
+                '<div class="catg-list" style="max-height:180px;">' + itemsHtml + '</div>' +
+                '<div class="catg-filter-footer">' +
+                    '<button type="button" class="btn btn-primary btn-sm tcf-apply-btn"><i class="bx bx-check me-1"></i>Apply</button>' +
+                    '<button type="button" class="btn btn-outline-secondary btn-sm tcf-reset-btn"><i class="bx bx-reset me-1"></i>Reset</button>' +
+                '</div>'
+            );
+            _taxFilterLoaded = true;
+        });
+    });
+
+    var prodTaxFilter = new TransColFilter({
+        boxId       : 'taxFilterBox',
+        triggerId   : 'taxFilter',
+        filterKey   : 'Tax',
+        activeClass : 'has-filter',
+        onApply     : function () {
+            var vals = prodTaxFilter.getState()['Tax'] || [];
+            if (vals.length) Filter['Tax'] = vals; else delete Filter['Tax'];
+            updateColumnHighlights();
+            PageNo = 0;
+            showProductPageDetails();
         }
     });
 
-    // Category list image click → read data-images from DOM → open gallery instantly (no AJAX)
-    $(document).on('click', '.catg-list-img', function(e) {
-        e.stopPropagation();
-        var raw = $(this).data('images');
-        try {
-            var imgs = typeof raw === 'string' ? JSON.parse(raw) : raw;
-            if (imgs && imgs.length) { openImageGallery(imgs, 0); return; }
-        } catch(err) {}
-        var src = this.src || $(this).attr('src');
-        if (src) openImageGallery([{ url: src, name: '' }], 0);
-    });
-
-    // Product list image click → read data-images from DOM → open gallery instantly (no AJAX)
-    $(document).on('click', '.prod-list-img', function(e) {
-        e.stopPropagation();
-        var raw = $(this).data('images');
-        try {
-            var imgs = typeof raw === 'string' ? JSON.parse(raw) : raw;
-            if (imgs && imgs.length) { openImageGallery(imgs, 0); return; }
-        } catch(err) {}
-        // Fallback: use the src already on the img tag
-        var src = this.src || $(this).attr('src');
-        if (src) openImageGallery([{ url: src, name: '' }], 0);
+    // ── Category filter (TransColFilter) ────────────────────────────────────
+    var categoryColFilter = new TransColFilter({
+        boxId        : 'categoryFilterBox',
+        triggerId    : 'categoryFilter',
+        filterKey    : 'Category',
+        activeClass  : 'text-primary',
+        onBeforeShow : function () {
+            CategoryAppend.filterBox('#categoryFilterBox', _cfbConfig, Filter.Category || []);
+        }
     });
 
     $(document).on('click', '.prod-status-toggle', function(e) {
@@ -904,6 +869,7 @@ $(function() {
     basePaginationFunc(ProdPag, getProductDetails);
     basePaginationFunc(GroupPag, getGroupDetails);
     baseRefreshPageFunc('.PageRefresh', showProductPageDetails);
+    
     basePageHeaderFunc(ProdHeader, ProdTable, ProdRow);
     basePageHeaderFunc(GroupHeader, GroupTable, ProdRow);
 
@@ -914,8 +880,6 @@ $(function() {
         if (ActiveTabId === 'Item')       return $('#ProductsPagination');
         if (ActiveTabId === 'Groups')     return $('#GroupsPagination');
         if (ActiveTabId === 'Categories') return $('#CategoriesPagination');
-        if (ActiveTabId === 'Sizes')      return $('#SizesPagination');
-        if (ActiveTabId === 'Brands')     return $('#BrandsPagination');
         return $('#ProductsPagination');
     }
     function _syncProdSticky() { $prodStickyInner.html(_getActiveProdPagEl().html()); }
@@ -1137,194 +1101,6 @@ $(function() {
         });
     });
 
-    // Sizes Page Coding Starts Here
-    $(document).on('click', '.addSizes', function(e) {
-        e.preventDefault();
-        formOpenCloseDefActions();
-        $('#sizesModal').modal('show');
-    });
-
-    $('#sizesModal').on('shown.bs.modal', function() {
-        $('#SizesName').trigger('focus');
-        $('.sizeFormAlert').addClass('d-none');
-    });
-
-    $('#sizesModal').on('hide.bs.modal', function() {
-        formOpenCloseDefActions();
-    });
-    
-    basePaginationFunc(SizePag, getSizesDetails);
-    basePageHeaderFunc(SizeHeader, SizeTable, SizeRow);
-
-    $(document).on('click', SizeRow, function() {
-        onClickOfCheckbox($(this), SizeTable, SizeHeader, SizeRow);
-        MultipleDeleteOption();
-    });
-
-    $('#SizesForm').submit(function(e) {
-        e.preventDefault();
-
-        var formData = new FormData($('#SizesForm')[0]);
-        formData.append('PageNo', PageNo);
-        formData.append('RowLimit', RowLimit);
-        formData.append('ModuleId', SizeModuleId);
-
-        if (Object.keys(Filter).length > 0) {
-            formData.append('Filter', JSON.stringify(Filter));
-        }
-
-        var getMode = $('#SizesForm').find('#HSizeUID').val();
-        if (getMode == 0) {
-            addSizeDetails(formData);
-        } else if (getMode > 0) {
-            editSizeDetails(formData);
-        }
-    });
-
-    $(document).on('click', '.editSize', function(e) {
-        e.preventDefault();
-        var getVal = $(this).data('uid');
-        if (getVal) {
-
-            var getName = $(this).data('name');
-            var getDesc = $(this).data('description');
-
-            $('#SizesForm').trigger('reset');
-            $('#SizeModalTitle').text('Edit Size');
-            $('#sizeButtonName').text('Update');
-            $('#sizesModal').modal('show');
-
-            $('#HSizeUID').val(getVal);
-            $('#SizesName').val(getName ? atob(getName) : '');
-            $('#SizesDescription').val(getDesc ? atob(getDesc) : '');
-
-            // retrieveSizeDetails(getVal);
-
-        }
-    });
-
-    $(document).on('click', '.DeleteSize', function(e) {
-        e.preventDefault();
-        var GetId = $(this).data('sizeuid');
-        if (GetId) {
-            var ProductUID = $(this).data('productuid');
-            if (ProductUID && ProductUID !== undefined && ProductUID !== null && ProductUID !== '') {
-                Swal.fire("Size is linked to Product.", "", "error");
-                return false;
-            } else {
-                Swal.fire({
-                    title: "Do you want to delete the size?",
-                    text: "You won't be able to revert this!",
-                    icon: "info",
-                    showCancelButton: true,
-                    confirmButtonColor: "#d33",
-                    confirmButtonText: "Yes, delete it!",
-                    cancelButtonColor: "#3085d6",
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        deleteSize(GetId);
-                    }
-                });
-            }
-        }
-    });
-
-    /** Brands Page Coding Starts Here */
-    $(document).on('click', '.addBrands', function(e) {
-        e.preventDefault();
-        formOpenCloseDefActions();
-        $('#brandsModal').modal('show');
-    });
-
-    $('#brandsModal').on('shown.bs.modal', function() {
-        $('#BrandsName').trigger('focus');
-        $('.brandFormAlert').addClass('d-none');
-    });
-
-    $('#brandsModal').on('hide.bs.modal', function() {
-        formOpenCloseDefActions();
-    });
-    
-    basePaginationFunc(BrandPag, getBrandsDetails);
-    basePageHeaderFunc(BrandHeader, BrandTable, BrandRow);
-
-    $(document).on('click', BrandRow, function() {
-        onClickOfCheckbox($(this), BrandTable, BrandHeader, BrandRow);
-        MultipleDeleteOption();
-    });
-
-    $('#BrandsForm').submit(function(e) {
-        e.preventDefault();
-
-        var formData = new FormData($('#BrandsForm')[0]);
-        formData.append('PageNo', PageNo);
-        formData.append('RowLimit', RowLimit);
-        formData.append('ModuleId', BrandModuleId);
-
-        if (Object.keys(Filter).length > 0) {
-            formData.append('Filter', JSON.stringify(Filter));
-        }
-
-        var getMode = $('#BrandsForm').find('#HBrandUID').val();
-        if (getMode == 0) {
-            addBrandDetails(formData);
-        } else if (getMode > 0) {
-            editBrandDetails(formData);
-        }
-
-    });
-
-    $(document).on('click', '.editBrand', function(e) {
-        e.preventDefault();
-        var getVal = $(this).data('uid');
-        if (getVal) {
-
-            var getName = $(this).data('name');
-            var getDesc = $(this).data('description');
-
-            $('#BrandsForm').trigger('reset');
-            $('#BrandsModalTitle').text('Edit Brand');
-            $('#brandButtonName').text('Update');
-            $('#brandsModal').modal('show');
-
-            $('#HBrandUID').val(getVal);
-            $('#BrandsName').val(getName ? atob(getName) : '');
-            $('#BrandsDescription').val(getDesc ? atob(getDesc) : '');
-
-            // retrieveBrandDetails(getVal);
-
-        }
-    });
-
-    $(document).on('click', '.DeleteBrand', function(e) {
-        e.preventDefault();
-        var GetId = $(this).data('branduid');
-        if (GetId) {
-            var ProductUID = $(this).data('productuid');
-            if (ProductUID && ProductUID !== undefined && ProductUID !== null && ProductUID !== '') {
-                Swal.fire("Brand is linked to Product.", "", "error");
-                return false;
-            } else {
-                Swal.fire({
-                    title: "Do you want to delete the brand?",
-                    text: "You won't be able to revert this!",
-                    icon: "info",
-                    showCancelButton: true,
-                    confirmButtonColor: "#d33",
-                    confirmButtonText: "Yes, delete it!",
-                    cancelButtonColor: "#3085d6",
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        deleteBrand(GetId);
-                    }
-                });
-            }
-        }
-    });
-
-});
-$(window).on('load', function() {
-    $('.nav-item .TabPane').removeClass('disabled');
 });
 
 // Category product count click
@@ -1453,7 +1229,7 @@ $(document).on('click', '.catg-prod-count-btn', function () {
 });
 
 // ── Client-side tab switching (menu interceptor + browser back/forward) ───────
-var _paramToTabId = { 'item': 'Item', 'group': 'Groups', 'category': 'Categories', 'size': 'Sizes', 'brand': 'Brands' };
+var _paramToTabId = { 'item': 'Item', 'group': 'Groups', 'category': 'Categories' };
 
 $(document).on('samePageTabSwitch', function (e, tabParam) {
     var tabId = _paramToTabId[(tabParam || '').toLowerCase()];

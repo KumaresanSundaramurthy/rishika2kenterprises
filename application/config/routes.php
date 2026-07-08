@@ -519,6 +519,12 @@ $route['settings/printthemes/getTemplateList']    = 'printthemes/getTemplateList
 $route['settings/printthemes/saveTemplate']       = 'printthemes/saveTemplate';
 $route['settings/printthemes/deleteTemplate']     = 'printthemes/deleteTemplate';
 
+// ── Activity Log ──────────────────────────────────────────────────────────────
+$route['activitylog']                           = 'activitylog/index';
+$route['activitylog/getPageDetails/(:num)']     = 'activitylog/getPageDetails/$1';
+$route['activitylog/getPageDetails']            = 'activitylog/getPageDetails';
+$route['activitylog/getEntityHistory']          = 'activitylog/getEntityHistory';
+
 // ── User Preferences ─────────────────────────────────────────────────────────
 $route['userpreferences/save']   = 'userpreferences/save';
 $route['userpreferences/getAll'] = 'userpreferences/getAll';

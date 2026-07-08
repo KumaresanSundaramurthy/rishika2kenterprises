@@ -176,7 +176,7 @@ $_paymentVars    = isset($transPaymentVars) ? $transPaymentVars : null;
             <div class="card-body px-3 pt-0 pb-3">
                 <div id="transAttachZone" class="prod-attach-zone" onclick="_attachZoneTrigger('Transaction', event)">
                     <div id="transAttachEmpty" class="prod-attach-empty">
-                        <i class="bx bx-upload" id="transAttachIcon" style="font-size:2rem;color:#9ca3af;display:block;margin-bottom:6px;"></i>
+                        <i class="bx bx-upload" id="transAttachIcon" style="font-size:1.4rem;color:#9ca3af;display:block;margin-bottom:3px;"></i>
                         <div id="transAttachLabel" style="font-size:.78rem;font-weight:600;color:#6b7280;">Drag &amp; drop files here</div>
                     </div>
                 </div>

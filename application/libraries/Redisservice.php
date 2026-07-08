@@ -130,6 +130,16 @@ class RedisService {
         return ($prefix !== '') ? "{$prefix}:{$type}" : $type;
     }
 
+    /**
+     * Build a global key — shared across all orgs/clients on the same server.
+     * Format: r2k-{type}
+     * NEVER write to global keys from code — read only. Manual update via portal.
+     * Mirrors JS UpstashService.globalKey().
+     */
+    public function globalKey(string $type): string {
+        return 'r2k-' . $type;
+    }
+
     // ─── Core cache methods ──────────────────────────────────────────────────
 
     public function setCache($key, $value, $ttl = 300) {
@@ -155,24 +165,44 @@ class RedisService {
     }
 
     public function getCache($key) {
+        // In-request memo: avoids duplicate Upstash HTTP calls for the same key
+        // within a single PHP request (e.g. menu_view + page_header both fetching 'menus').
+        // Stores ['value'=>..., 'ttl'=>..., 'miss'=>bool] so TTL is preserved for write-back callers.
+        static $memo = [];
+
         $result      = new stdClass();
         $resolvedKey = $this->resolveKey($key);
+
+        if (array_key_exists($resolvedKey, $memo)) {
+            $entry           = $memo[$resolvedKey];
+            $result->Error   = $entry['miss'];
+            $result->Message = $entry['miss'] ? 'Cache miss' : 'Cache hit';
+            $result->Key     = $resolvedKey;
+            $result->Value   = $entry['value'];
+            if (isset($entry['ttl'])) $result->TTL = $entry['ttl'];
+            return $result;
+        }
+
         try {
             if (!$this->connected) $this->connect();
             $raw = $this->client->get($resolvedKey);
             if ($raw === null) {
+                $memo[$resolvedKey] = ['miss' => true, 'value' => null];
                 $result->Error   = true;
                 $result->Message = 'Cache miss';
                 $result->Key     = $resolvedKey;
                 $result->Value   = null;
                 $this->log('MISS', "GET {$resolvedKey}");
             } else {
-                $decoded         = json_decode($raw);
+                $decoded = json_decode($raw);
+                $value   = (json_last_error() === JSON_ERROR_NONE) ? $decoded : $raw;
+                $ttl     = (int)$this->client->ttl($resolvedKey);
+                $memo[$resolvedKey] = ['miss' => false, 'value' => $value, 'ttl' => $ttl];
                 $result->Error   = false;
                 $result->Message = 'Cache hit';
                 $result->Key     = $resolvedKey;
-                $result->Value   = (json_last_error() === JSON_ERROR_NONE) ? $decoded : $raw;
-                $result->TTL     = (int)$this->client->ttl($resolvedKey);
+                $result->Value   = $value;
+                $result->TTL     = $ttl;
                 $this->log('HIT', "GET {$resolvedKey}");
             }
         } catch (Exception $e) {

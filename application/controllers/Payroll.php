@@ -225,6 +225,11 @@ class Payroll extends MY_Controller {
             $this->EndReturnData->Error      = FALSE;
             $this->EndReturnData->PayrollUID = $payrollUID;
             $this->EndReturnData->Message    = 'Payroll processed successfully.';
+            $this->auditlog->log(
+                (int) $this->_orgUID(), (int) $this->_userUID(),
+                'SAVE_PAYROLL', 'Payroll', (int) $payrollUID, '',
+                ['Month' => $month, 'Year' => $year], 'Processed payroll for ' . $month . '/' . $year, 'Payroll', 'TRANSACTION'
+            );
         } catch (Exception $e) { $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
@@ -268,6 +273,11 @@ class Payroll extends MY_Controller {
             }
 
             $this->EndReturnData->Error = FALSE; $this->EndReturnData->Message = 'Status updated to ' . $status . '.';
+            $this->auditlog->log(
+                (int) $this->_orgUID(), (int) $this->_userUID(),
+                'UPDATE_PAYROLL_STATUS', 'Payroll', (int) $uid, '',
+                ['NewStatus' => $status], 'Updated payroll status #' . $uid, 'Payroll', 'TRANSACTION'
+            );
         } catch (Exception $e) { $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
@@ -295,6 +305,11 @@ class Payroll extends MY_Controller {
             }
 
             $this->EndReturnData->Error = FALSE; $this->EndReturnData->Message = 'Deleted.';
+            $this->auditlog->log(
+                (int) $this->_orgUID(), (int) $this->_userUID(),
+                'DELETE_PAYROLL', 'Payroll', (int) $uid, '',
+                [], 'Deleted payroll #' . $uid, 'Payroll', 'TRANSACTION'
+            );
         } catch (Exception $e) { $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }

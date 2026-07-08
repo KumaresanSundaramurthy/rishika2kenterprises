@@ -7,6 +7,7 @@
 $cdnUrl     = getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN');
 $showSerial = isset($GenSettings->SerialNoDisplay) && $GenSettings->SerialNoDisplay == 1;
 $currency   = $JwtData->GenSettings->CurrenySymbol ?? '₹';
+$dec        = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 
 if (!empty($DataLists)):
     foreach ($DataLists as $list):

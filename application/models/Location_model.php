@@ -13,18 +13,10 @@ class Location_model extends CI_Model {
     // ── Countries ─────────────────────────────────────────────────────────────
     // Single key holds the full countries list — no sub-map needed.
 
+    // Global key — direct DB fetch, no Upstash check or write
     public function getCountriesFromDB(): object {
         $this->EndReturnData = new stdClass();
         try {
-            $key    = $this->redisservice->orgKey('loc-countries');
-            $cached = $this->upstashservice->get($key);
-            if ($cached !== null) {
-                $this->EndReturnData->Error   = FALSE;
-                $this->EndReturnData->Message = 'Data Retrieved Successfully';
-                $this->EndReturnData->Data    = $cached;
-                return $this->EndReturnData;
-            }
-
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select(['id', 'name', 'iso2', 'phonecode', 'emoji']);
             $this->ReadDb->from('Global.CountriesTbl');
@@ -35,13 +27,9 @@ class Location_model extends CI_Model {
                 $error = $this->ReadDb->error();
                 throw new Exception($error['message']);
             }
-
-            $data = $query->result_array();
-            $this->upstashservice->set($key, $data, 0);
-
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Data Retrieved Successfully';
-            $this->EndReturnData->Data    = $data;
+            $this->EndReturnData->Data    = $query->result_array();
         } catch (Exception $e) {
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();

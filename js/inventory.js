@@ -384,21 +384,6 @@ function invSmartQty(val) {
 }
 
 // ── Category filter box ───────────────────────────────────────────────────────
-function invToggleCategoryFilter() {
-    var $box = $('#invCategoryFilterBox');
-    if ($box.is(':visible')) { $box.hide(); return; }
-    $('#invStatusFilterBox, #invItemFilterBox').hide();
-    $('.trans-col-filterbox').hide();
-    var btn  = document.getElementById('invCategoryFilterBtn');
-    var rect = btn.getBoundingClientRect();
-    $box.css({
-        top:  (rect.bottom + window.scrollY + 4) + 'px',
-        left: Math.max(4, rect.left + window.scrollX - 60) + 'px',
-        display: 'flex',
-    });
-    CategoryAppend.filterBox('#invCategoryFilterBox', _invCfbConfig, _invFilter.CategoryUID || []);
-}
-
 function invApplyCategoryFilter() {
     var uids = [];
     $('#invCategoryFilterBox .inv-category-checkbox:checked').each(function () {
@@ -474,23 +459,6 @@ function invResetStatusFilter() {
 }
 
 // ── Item filter box ───────────────────────────────────────────────────────────
-function invToggleItemFilter() {
-    var $box = $('#invItemFilterBox');
-    if ($box.is(':visible')) { $box.hide(); return; }
-    $('#invCategoryFilterBox, #invStatusFilterBox').hide();
-    $('.trans-col-filterbox').hide();
-    var btn  = document.getElementById('invItemFilterBtn');
-    var rect = btn.getBoundingClientRect();
-    var boxW = 260;
-    var left = Math.min(rect.left + window.scrollX, window.innerWidth - boxW - 16);
-    $box.css({
-        top:     (rect.bottom + window.scrollY + 4) + 'px',
-        left:    Math.max(4, left) + 'px',
-        display: 'flex',
-    });
-    ItemFilter.filterBox('#invItemFilterBox', _invItemCfgConfig, _invFilter.ProductUID || []);
-}
-
 function invApplyItemFilter() {
     var uids = [];
     $('.inv-item-checkbox:checked').each(function () {
@@ -582,20 +550,6 @@ $(document).ready(function () {
         // Sync status filter box icon
         $('#invStatusFilterIcon').css('color', st ? '#0284c7' : '');
         invLoadPage(1);
-    });
-
-    // Close all custom filter boxes on outside click
-    $(document).on('click', function (e) {
-        var $t = $(e.target);
-        if (!$t.closest('#invCategoryFilterBox, #invCategoryFilterBtn').length) {
-            $('#invCategoryFilterBox').hide();
-        }
-        if (!$t.closest('#invStatusFilterBox, #invStatusFilterBtn').length) {
-            $('#invStatusFilterBox').hide();
-        }
-        if (!$t.closest('#invItemFilterBox, #invItemFilterBtn').length) {
-            $('#invItemFilterBox').hide();
-        }
     });
 
     // Description icon — open modal

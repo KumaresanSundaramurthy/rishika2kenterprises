@@ -219,6 +219,11 @@ class Salesorders extends MY_Controller {
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Sales order created successfully.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'ADD_SALES_ORDER', 'SalesOrder', (int) $transUID, (string) ($uniqueNumber ?? ''),
+                [], 'Created sales order ' . ($uniqueNumber ?? ''), 'SalesOrders', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
+            );
             $this->EndReturnData->TransUID = $transUID;
 
         } catch (Exception $e) {
@@ -486,6 +491,11 @@ class Salesorders extends MY_Controller {
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Sales order updated successfully.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'UPDATE_SALES_ORDER', 'SalesOrder', (int) (isset($newTransUID) ? $newTransUID : $transUID), (string) ($uniqueNumber ?? $existing->UniqueNumber ?? ''),
+                [], 'Updated sales order ' . ($uniqueNumber ?? $existing->UniqueNumber ?? ''), 'SalesOrders', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
+            );
 
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -548,6 +558,11 @@ class Salesorders extends MY_Controller {
 
             $this->EndReturnData->Error          = FALSE;
             $this->EndReturnData->Message        = 'Sales order deleted successfully.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'DELETE_SALES_ORDER', 'SalesOrder', (int) $transUID, '',
+                [], 'Deleted sales order #' . $transUID, 'SalesOrders', 'TRANSACTION'
+            );
             $this->EndReturnData->RecordHtmlData = $this->load->view('transactions/salesorders/list', ['DataLists' => $allData, 'SerialNumber' => $offset, 'JwtData' => $this->pageData['JwtData']], true);
             $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml('/salesorders/getSalesOrdersPageDetails', $allDataCount, $pageNo, $limit);
             $this->EndReturnData->TotalCount     = $allDataCount;
@@ -704,6 +719,11 @@ class Salesorders extends MY_Controller {
 
             $this->EndReturnData->Error    = FALSE;
             $this->EndReturnData->Message  = 'Sales order duplicated as ' . $uniqueNumber . '.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'DUPLICATE_SALES_ORDER', 'SalesOrder', (int) $newTransUID, (string) $uniqueNumber,
+                [], 'Duplicated sales order ' . $uniqueNumber, 'SalesOrders', 'TRANSACTION'
+            );
             $this->EndReturnData->TransUID = $newTransUID;
             $this->EndReturnData->EditURL  = '/salesorders/edit/' . $newTransUID;
 
@@ -746,6 +766,11 @@ class Salesorders extends MY_Controller {
 
             $this->EndReturnData->Error       = FALSE;
             $this->EndReturnData->Message     = 'Sales order marked as converted.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'CONVERT_SO_TO_INVOICE', 'SalesOrder', (int) $transUID, (string) ($existing->UniqueNumber ?? ''),
+                [], 'Converted sales order ' . ($existing->UniqueNumber ?? '') . ' to invoice', 'SalesOrders', 'TRANSACTION'
+            );
             $this->EndReturnData->RedirectURL = '/invoices/create?fromSalesOrder=' . $transUID;
 
         } catch (Exception $e) {
@@ -848,6 +873,11 @@ class Salesorders extends MY_Controller {
 
             $this->EndReturnData->Error           = FALSE;
             $this->EndReturnData->Message         = 'Status updated.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'UPDATE_SO_STATUS', 'SalesOrder', (int) $transUID, (string) ($existing->UniqueNumber ?? ''),
+                ['NewStatus' => $newStatus], 'Updated sales order status #' . $transUID, 'SalesOrders', 'TRANSACTION'
+            );
             $this->EndReturnData->NewStatus       = $newStatus;
             $this->EndReturnData->RecordHtmlData  = $this->load->view('transactions/salesorders/list', ['DataLists' => $allData, 'SerialNumber' => $offset, 'JwtData' => $this->pageData['JwtData']], true);
             $this->EndReturnData->Pagination      = $this->globalservice->buildPagePaginationHtml('/salesorders/getSalesOrdersPageDetails', $allDataCount, $pageNo, $limit);

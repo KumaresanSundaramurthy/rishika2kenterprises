@@ -135,6 +135,11 @@ class Indirectincome extends MY_Controller {
 
             $this->EndReturnData->Error        = FALSE;
             $this->EndReturnData->Message      = 'Income recorded successfully.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'ADD_INCOME', 'IndirectIncome', (int) $incomeUID, (string) $incomeNumber,
+                [], 'Created income ' . $incomeNumber, 'IndirectIncome', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
+            );
             $this->EndReturnData->IncomeUID    = $incomeUID;
             $this->EndReturnData->IncomeNumber = $incomeNumber;
 
@@ -198,6 +203,11 @@ class Indirectincome extends MY_Controller {
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Income updated successfully.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'UPDATE_INCOME', 'IndirectIncome', (int) $incomeUID, (string) ($existing->IncomeNumber ?? ''),
+                [], 'Updated income ' . ($existing->IncomeNumber ?? ''), 'IndirectIncome', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
+            );
 
         } catch (Throwable $e) {
             $this->EndReturnData->Error   = TRUE;
@@ -254,6 +264,11 @@ class Indirectincome extends MY_Controller {
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Income deleted.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'DELETE_INCOME', 'IndirectIncome', (int) $incomeUID, (string) ($existing->IncomeNumber ?? ''),
+                [], 'Deleted income ' . ($existing->IncomeNumber ?? ''), 'IndirectIncome', 'TRANSACTION'
+            );
 
         } catch (Throwable $e) {
             $this->EndReturnData->Error   = TRUE;
@@ -315,6 +330,11 @@ class Indirectincome extends MY_Controller {
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = $newNumber . ' created as a duplicate.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'DUPLICATE_INCOME', 'IndirectIncome', (int) $newUID, (string) $newNumber,
+                [], 'Duplicated income ' . $newNumber, 'IndirectIncome', 'TRANSACTION'
+            );
 
         } catch (Throwable $e) {
             $this->EndReturnData->Error   = TRUE;
@@ -456,6 +476,11 @@ class Indirectincome extends MY_Controller {
             $this->EndReturnData->Message = $isFullyReceived
                 ? 'Income marked as received.'
                 : 'Partial payment recorded. Balance remaining: ' . $balanceAmount . '.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'RECORD_INCOME_PAYMENT', 'IndirectIncome', (int) $incomeUID, (string) ($existing->IncomeNumber ?? ''),
+                ['Amount' => $paymentAmount], 'Recorded payment for income ' . ($existing->IncomeNumber ?? ''), 'IndirectIncome', 'PAYMENT'
+            );
 
         } catch (Throwable $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -598,6 +623,11 @@ class Indirectincome extends MY_Controller {
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Status updated to ' . $newStatus . '.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'UPDATE_INCOME_STATUS', 'IndirectIncome', (int) $incomeUID, (string) ($existing->IncomeNumber ?? ''),
+                ['NewStatus' => $newStatus], 'Updated income status ' . ($existing->IncomeNumber ?? ''), 'IndirectIncome', 'TRANSACTION'
+            );
 
         } catch (Throwable $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -677,6 +707,11 @@ class Indirectincome extends MY_Controller {
 
             $this->EndReturnData->Error        = FALSE;
             $this->EndReturnData->Message      = 'Category added.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'CREATE_INCOME_CATEGORY', 'IncomeCategory', (int) $resp->ID, (string) $categoryName,
+                [], 'Created income category ' . $categoryName, 'IndirectIncome', 'MASTER'
+            );
             $this->EndReturnData->CategoryUID  = $resp->ID;
             $this->EndReturnData->CategoryName = $categoryName;
 
@@ -710,6 +745,11 @@ class Indirectincome extends MY_Controller {
 
             $this->EndReturnData->Error        = FALSE;
             $this->EndReturnData->Message      = 'Category updated.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'UPDATE_INCOME_CATEGORY', 'IncomeCategory', (int) $categoryUID, (string) $name,
+                [], 'Updated income category ' . $name, 'IndirectIncome', 'MASTER'
+            );
             $this->EndReturnData->CategoryUID  = $categoryUID;
             $this->EndReturnData->CategoryName = $name;
         } catch (Throwable $e) {
@@ -744,6 +784,11 @@ class Indirectincome extends MY_Controller {
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Category deleted.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'DELETE_INCOME_CATEGORY', 'IncomeCategory', (int) $categoryUID, '',
+                [], 'Deleted income category #' . $categoryUID, 'IndirectIncome', 'MASTER'
+            );
         } catch (Throwable $e) {
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();

@@ -52,6 +52,26 @@ function _esc(v) {
     return $('<span>').text(String(v)).html();
 }
 
+/**
+ * Updates the browser URL bar to reflect the active tab and optional search
+ * without creating a new history entry. Works on any list page that has
+ * data-trans-path on .trans-status-tabs and data-url-tab on each tab anchor.
+ * @param {string} status - data-status value of the active tab (e.g. 'All', 'Groups')
+ * @param {string} search - Current search text (pass '' to omit from URL)
+ * @returns {void}
+ */
+function _pushTabUrl(status, search) {
+    var $container = $('.trans-status-tabs[data-trans-path]');
+    var $tab       = $container.find('[data-status="' + status + '"]');
+    var slug       = $tab.data('url-tab')          || 'all';
+    var basePath   = $container.data('trans-path') || window.location.pathname;
+    var params     = new URLSearchParams();
+    if (slug !== 'all') { params.set('tab', slug); }
+    if (search)         { params.set('search', search); }
+    var qs = params.toString();
+    history.replaceState(null, '', basePath + (qs ? '?' + qs : ''));
+}
+
 jQuery.fn.center = function () {
     this.css("position", "absolute");
     this.css("top", Math.max(0, (($(window).height() - $(this).outerHeight()) / 2) +
@@ -327,6 +347,18 @@ function imgGalleryNav(dir) {
     g.idx = next;
     _imgGalleryRender();
 }
+
+// ── Global list-image click → open gallery (products, categories, customers, vendors, …)
+$(document).on('click', 'img[data-images]', function(e) {
+    e.stopPropagation();
+    var raw = $(this).data('images');
+    try {
+        var imgs = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        if (imgs && imgs.length) { openImageGallery(imgs, 0); return; }
+    } catch(err) {}
+    var src = this.src || $(this).attr('src');
+    if (src) openImageGallery([{ url: src, name: '' }], 0);
+});
 
 function exportURLDynamic(Url) {
     console.log(Url)

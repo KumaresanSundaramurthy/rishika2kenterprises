@@ -58,32 +58,62 @@ class Vendors extends MY_Controller {
             return;
         }
         try {
-
             $this->_initModule();
             $limit = $this->pageData['Limit'];
 
-            $pageData = $this->_fetchTableData(1, $limit);
-            $this->pageData['ModRowData']    = $pageData->RecordHtmlData;
-            $this->pageData['ModPagination'] = $pageData->Pagination;
+            $tabSlugMap = ['all' => 'All', 'groups' => 'Groups'];
+            $tabSlug    = strtolower(trim($this->input->get('tab') ?: 'all'));
+            $initTab    = $tabSlugMap[$tabSlug] ?? 'All';
+            $initSearch = trim($this->input->get('search') ?: '');
+
+            // Default empty state for groups (filled only when landing on groups tab)
+            $this->pageData['GrpRowData']    = '';
+            $this->pageData['GrpPagination'] = '';
+            $this->pageData['GrpStats']      = null;
+            $this->pageData['GrpTotal']      = 0;
 
             $this->load->model('vendors_model');
             $orgUID = $this->pageData['JwtData']->Org->OrgUID;
+
+            if ($initTab !== 'Groups') {
+                $pageData = $this->_fetchTableData(1, $limit);
+                $this->pageData['ModRowData']    = $pageData->RecordHtmlData;
+                $this->pageData['ModPagination'] = $pageData->Pagination;
+            } else {
+                $this->pageData['ModRowData']    = '';
+                $this->pageData['ModPagination'] = '';
+                $grpFilter = strlen($initSearch) >= 3 ? ['SearchAllData' => $initSearch] : [];
+                $grpPage   = $this->_fetchVendorGroupsTableData(1, $limit, $grpFilter);
+                $this->pageData['GrpRowData']    = $grpPage->RecordHtmlData;
+                $this->pageData['GrpPagination'] = $grpPage->Pagination;
+                $_showStats = (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
+                $this->pageData['GrpStats']      = $_showStats ? $this->vendors_model->getVendorGroupStats($orgUID) : null;
+                $this->pageData['GrpTotal']      = $grpPage->TotalCount;
+            }
+
+            $this->pageData['InitTab']       = $initTab;
+            $this->pageData['InitSearch']    = $initSearch;
+            $this->pageData['VendShowStats'] = (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
+
             $this->pageData['VendStats'] = $this->vendors_model->getVendorStats($orgUID);
             $this->pageData['Tags']      = $this->vendors_model->getVendorTags($orgUID);
 
-            $this->load->model('users_model');
-            $cacheKey = $this->redisservice->orgKey('org_users');
-            $orgUsers = $this->redisservice->getCache($cacheKey)->Value;
-            if (!is_array($orgUsers)) {
-                $orgUsers = $this->users_model->getOrgUsersForCache($orgUID);
-                if (!empty($orgUsers)) { $this->redisservice->setCache($cacheKey, $orgUsers, 86400); }
-            }
+            $orgUsers = $this->_requireCache($this->redisservice->orgKey('org_users'));
+            if (!$orgUsers) return;
             $this->pageData['OrgUsers']      = $orgUsers;
-            $this->pageData['ShowUserFilter'] = is_array($orgUsers) && count($orgUsers) > 1;
+            $this->pageData['ShowUserFilter'] = count($orgUsers) > 1;
 
             $this->load->model('global_model');
-            $GetCountryInfo = $this->global_model->getCountryInfo();
-            $this->pageData['CountryInfo'] = $GetCountryInfo->Error === FALSE ? $GetCountryInfo->Data : [];
+            $ciKey      = $this->redisservice->orgKey('country-info');
+            $ciCached   = $this->redisservice->getCache($ciKey)->Value;
+            if (is_array($ciCached) && !empty($ciCached)) {
+                $this->pageData['CountryInfo'] = $ciCached;
+            } else {
+                $GetCountryInfo = $this->global_model->getCountryInfo();
+                $ciData = $GetCountryInfo->Error === FALSE ? $GetCountryInfo->Data : [];
+                $this->pageData['CountryInfo'] = $ciData;
+                if (!empty($ciData)) { $this->redisservice->setCache($ciKey, $ciData, 86400); }
+            }
 
             $orgCCode = $this->pageData['JwtData']->Org->OrgCCode  ?? '';
             $orgCISO2 = $this->pageData['JwtData']->Org->OrgCISO2  ?? '';
@@ -271,6 +301,14 @@ class Vendors extends MY_Controller {
             $pageData = $this->_fetchTableData(1, $this->pageData['Limit']);
             $this->EndReturnData->Error      = FALSE;
             $this->EndReturnData->Message    = 'Created Successfully';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'CREATE_VENDOR', 'Vendor', (int) $VendorUID, (string) getPostValue($PostData, 'Name'),
+                [], "Created vendor " . getPostValue($PostData, 'Name'), 'Vendors',
+                'MASTER', 'SUCCESS', '', 'WEB',
+                [],
+                $vendorFormData
+            );
             $this->EndReturnData->VendorUID  = $VendorUID;
             $this->EndReturnData->VendorName = getPostValue($PostData, 'Name');
             $this->EndReturnData->VendorArea = getPostValue($PostData, 'Area');
@@ -599,6 +637,14 @@ class Vendors extends MY_Controller {
             $pageData = $this->_fetchTableData($pageNo, $this->pageData['Limit']);
             $this->EndReturnData->Error      = FALSE;
             $this->EndReturnData->Message    = 'Updated Successfully';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'UPDATE_VENDOR', 'Vendor', (int) $VendorUID, (string) getPostValue($PostData, 'Name'),
+                [], "Updated vendor " . getPostValue($PostData, 'Name'), 'Vendors',
+                'MASTER', 'SUCCESS', '', 'WEB',
+                $oldDCRow ? (array) $oldDCRow : [],
+                $vendorFormData
+            );
             $this->EndReturnData->List       = $pageData->RecordHtmlData;
             $this->EndReturnData->Pagination = $pageData->Pagination;
             $this->EndReturnData->Stats      = $this->vendors_model->getVendorStats($this->pageData['JwtData']->Org->OrgUID);
@@ -739,6 +785,15 @@ class Vendors extends MY_Controller {
             $pageData = $this->_fetchTableData($pageNo, $this->pageData['Limit']);
             $this->EndReturnData->Error      = false;
             $this->EndReturnData->Message    = 'Status updated successfully.';
+            $this->auditlog->log(
+                (int) $this->pageData['JwtData']->Org->OrgUID,
+                (int) $this->pageData['JwtData']->User->UserUID,
+                'TOGGLE_VENDOR_STATUS', 'Vendor', (int) $VendorUID, '',
+                ['isActive' => $newStatus], ($newStatus ? 'Activated' : 'Deactivated') . " vendor #{$VendorUID}", 'Vendors',
+                'MASTER', 'SUCCESS', '', 'WEB',
+                ['IsActive' => 1 - $newStatus],
+                ['IsActive' => $newStatus]
+            );
             $this->EndReturnData->Stats      = $this->vendors_model->getVendorStats($this->pageData['JwtData']->Org->OrgUID);
             $this->EndReturnData->List       = $pageData->RecordHtmlData;
             $this->EndReturnData->Pagination = $pageData->Pagination;
@@ -788,6 +843,15 @@ class Vendors extends MY_Controller {
 
             $this->EndReturnData->Error      = FALSE;
             $this->EndReturnData->Message    = 'Deleted Successfully';
+            $this->auditlog->log(
+                (int) $this->pageData['JwtData']->Org->OrgUID,
+                (int) $this->pageData['JwtData']->User->UserUID,
+                'DELETE_VENDOR', 'Vendor', (int) $VendorUID, (string) ($vendor->Name ?? ''),
+                [], "Deleted vendor " . ($vendor->Name ?? $VendorUID), 'Vendors',
+                'MASTER', 'SUCCESS', '', 'WEB',
+                (array) $vendor,
+                []
+            );
             $this->EndReturnData->List       = $pageData->RecordHtmlData;
             $this->EndReturnData->Pagination = $pageData->Pagination;
             $this->EndReturnData->Stats      = $this->vendors_model->getVendorStats($this->pageData['JwtData']->Org->OrgUID);
@@ -847,6 +911,15 @@ class Vendors extends MY_Controller {
 
             $this->EndReturnData->Error      = FALSE;
             $this->EndReturnData->Message    = count($VendorUIDs) . ' vendor(s) deleted successfully';
+            $this->auditlog->log(
+                (int) $this->pageData['JwtData']->Org->OrgUID,
+                (int) $this->pageData['JwtData']->User->UserUID,
+                'BULK_DELETE_VENDORS', 'Vendor', 0, implode(',', $VendorUIDs),
+                ['count' => count($VendorUIDs)], 'Bulk deleted ' . count($VendorUIDs) . ' vendor(s)', 'Vendors',
+                'MASTER', 'SUCCESS', '', 'WEB',
+                ['deletedUIDs' => $VendorUIDs],
+                []
+            );
             $this->EndReturnData->List       = $pageData->RecordHtmlData;
             $this->EndReturnData->Pagination = $pageData->Pagination;
             $this->EndReturnData->Stats      = $this->vendors_model->getVendorStats($this->pageData['JwtData']->Org->OrgUID);
@@ -947,7 +1020,8 @@ class Vendors extends MY_Controller {
             $this->EndReturnData->RecordHtmlData = $pageData->RecordHtmlData;
             $this->EndReturnData->Pagination     = $pageData->Pagination;
             $this->EndReturnData->TotalCount     = $pageData->TotalCount;
-            $this->EndReturnData->Stats          = $this->vendors_model->getVendorGroupStats($this->pageData['JwtData']->Org->OrgUID);
+            $_showStats = (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
+            $this->EndReturnData->Stats = $_showStats ? $this->vendors_model->getVendorGroupStats($this->pageData['JwtData']->Org->OrgUID) : null;
         } catch (Exception $e) {
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
@@ -1020,6 +1094,14 @@ class Vendors extends MY_Controller {
             $this->dbwrite_model->commitTransaction();
             $this->EndReturnData->Error    = false;
             $this->EndReturnData->Message  = 'Vendor Group created successfully.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'CREATE_VENDOR_GROUP', 'VendorGroup', (int) $groupUID, (string) $groupName,
+                [], "Created vendor group {$groupName}", 'Vendors',
+                'MASTER', 'SUCCESS', '', 'WEB',
+                [],
+                $data
+            );
             $this->EndReturnData->GroupUID = $groupUID;
             $limit    = isset($this->pageData['Limit']) ? (int)$this->pageData['Limit'] : 25;
             $pageData = $this->_fetchVendorGroupsTableData(1, $limit);
@@ -1027,7 +1109,8 @@ class Vendors extends MY_Controller {
             $this->EndReturnData->RecordHtmlData = $pageData->RecordHtmlData;
             $this->EndReturnData->Pagination     = $pageData->Pagination;
             $this->EndReturnData->TotalCount     = $pageData->TotalCount;
-            $this->EndReturnData->Stats          = $this->vendors_model->getVendorGroupStats($orgUID);
+            $_showStats = (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
+            $this->EndReturnData->Stats = $_showStats ? $this->vendors_model->getVendorGroupStats($orgUID) : null;
         } catch (InvalidArgumentException $e) {
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = true;
@@ -1071,22 +1154,32 @@ class Vendors extends MY_Controller {
                 'Notes'             => trim($post['Notes']             ?? '') ?: null,
                 'UpdatedBy'         => $userUID,
             ];
+            $this->load->model('vendors_model');
+            $oldGroup = $this->vendors_model->getVendorGroupByUID($orgUID, $groupUID);
             $resp = $this->dbwrite_model->updateData('Vendors', 'VendorGroupTbl', $data, ['GroupUID' => $groupUID, 'OrgUID' => $orgUID]);
             if ($resp->Error) throw new Exception($resp->Message);
             $memberUIDs = array_values(array_filter(array_map('intval', (array)($post['MemberUIDs'] ?? []))));
             $primaryUID = (int)($post['PrimaryUID'] ?? 0);
-            $this->load->model('vendors_model');
             $this->vendors_model->syncVendorGroupMembers($orgUID, $groupUID, $memberUIDs, $primaryUID, $userUID);
             $this->dbwrite_model->commitTransaction();
             $this->EndReturnData->Error    = false;
             $this->EndReturnData->Message  = 'Vendor Group updated successfully.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'UPDATE_VENDOR_GROUP', 'VendorGroup', (int) $groupUID, (string) $groupName,
+                [], "Updated vendor group {$groupName}", 'Vendors',
+                'MASTER', 'SUCCESS', '', 'WEB',
+                $oldGroup ? (array) $oldGroup : [],
+                $data
+            );
             $this->EndReturnData->GroupUID = $groupUID;
             $limit    = isset($this->pageData['Limit']) ? (int)$this->pageData['Limit'] : 25;
             $pageData = $this->_fetchVendorGroupsTableData(1, $limit);
             $this->EndReturnData->RecordHtmlData = $pageData->RecordHtmlData;
             $this->EndReturnData->Pagination     = $pageData->Pagination;
             $this->EndReturnData->TotalCount     = $pageData->TotalCount;
-            $this->EndReturnData->Stats          = $this->vendors_model->getVendorGroupStats($orgUID);
+            $_showStats = (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
+            $this->EndReturnData->Stats = $_showStats ? $this->vendors_model->getVendorGroupStats($orgUID) : null;
         } catch (InvalidArgumentException $e) {
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = true;
@@ -1109,6 +1202,7 @@ class Vendors extends MY_Controller {
             if (!$groupUID) throw new Exception('Group ID is missing.');
             $this->load->model('dbwrite_model');
             $this->load->model('vendors_model');
+            $oldGroup = $this->vendors_model->getVendorGroupByUID($orgUID, $groupUID);
             $this->dbwrite_model->startTransaction();
             $this->vendors_model->unlinkAllVendorGroupMembers($orgUID, $groupUID, $userUID);
             $resp = $this->dbwrite_model->updateData('Vendors', 'VendorGroupTbl',
@@ -1121,9 +1215,18 @@ class Vendors extends MY_Controller {
             $pageData = $this->_fetchVendorGroupsTableData($pageNo, $this->pageData['Limit']);
             $this->EndReturnData->Error          = false;
             $this->EndReturnData->Message        = 'Group deleted successfully.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'DELETE_VENDOR_GROUP', 'VendorGroup', (int) $groupUID, (string) ($oldGroup->GroupName ?? ''),
+                [], "Deleted vendor group #{$groupUID}", 'Vendors',
+                'MASTER', 'SUCCESS', '', 'WEB',
+                $oldGroup ? (array) $oldGroup : [],
+                []
+            );
             $this->EndReturnData->RecordHtmlData = $pageData->RecordHtmlData;
             $this->EndReturnData->Pagination     = $pageData->Pagination;
-            $this->EndReturnData->Stats          = $this->vendors_model->getVendorGroupStats($orgUID);
+            $_showStats = (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
+            $this->EndReturnData->Stats = $_showStats ? $this->vendors_model->getVendorGroupStats($orgUID) : null;
         } catch (Exception $e) {
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = true;
@@ -1153,9 +1256,18 @@ class Vendors extends MY_Controller {
             $this->load->model('vendors_model');
             $this->EndReturnData->Error          = false;
             $this->EndReturnData->Message        = 'Status updated successfully.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'TOGGLE_VENDOR_GROUP_STATUS', 'VendorGroup', (int) $groupUID, '',
+                ['isActive' => $newStatus], ($newStatus ? 'Activated' : 'Deactivated') . " vendor group #{$groupUID}", 'Vendors',
+                'MASTER', 'SUCCESS', '', 'WEB',
+                ['IsActive' => 1 - $newStatus],
+                ['IsActive' => $newStatus]
+            );
             $this->EndReturnData->RecordHtmlData = $pageData->RecordHtmlData;
             $this->EndReturnData->Pagination     = $pageData->Pagination;
-            $this->EndReturnData->Stats          = $this->vendors_model->getVendorGroupStats($orgUID);
+            $_showStats = (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
+            $this->EndReturnData->Stats = $_showStats ? $this->vendors_model->getVendorGroupStats($orgUID) : null;
         } catch (Exception $e) {
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
@@ -1266,6 +1378,8 @@ class Vendors extends MY_Controller {
             }
 
             $this->load->model('vendors_model');
+            $oldBalRow = $this->vendors_model->getVendorOpeningBalance($orgUID, $vendorUID);
+            $oldBalData = $oldBalRow ? ['balance' => $oldBalRow->OpeningBalance, 'balanceType' => $oldBalRow->OpeningBalType] : [];
             $id = $this->vendors_model->saveVendorOpeningBalance(
                 $orgUID, $vendorUID, $balance, $balanceType, $notes, $userUID
             );
@@ -1277,6 +1391,15 @@ class Vendors extends MY_Controller {
 
             $this->EndReturnData->Error         = FALSE;
             $this->EndReturnData->Message       = 'Opening balance saved successfully.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'SET_VENDOR_OPENING_BALANCE', 'Vendor', (int) $vendorUID, '',
+                ['balance' => $balance, 'balanceType' => $balanceType, 'financialYear' => $financialYear],
+                "Set opening balance {$balanceType} {$balance} for vendor #{$vendorUID}", 'Vendors',
+                'MASTER', 'SUCCESS', '', 'WEB',
+                $oldBalData,
+                ['balance' => $balance, 'balanceType' => $balanceType, 'financialYear' => $financialYear]
+            );
             $this->EndReturnData->VendBalUID    = $id;
             $this->EndReturnData->FinancialYear = $financialYear;
 

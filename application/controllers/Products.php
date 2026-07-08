@@ -15,7 +15,7 @@ class Products extends MY_Controller {
     private function sanitizeTabInput($tab) {
 
         $tab = strtolower($tab ?: 'item');
-        $allowedTabs = ['item', 'group', 'category', 'size', 'brand'];
+        $allowedTabs = ['item', 'group', 'category'];
         return in_array($tab, $allowedTabs) ? $tab : 'item';
 
     }
@@ -58,6 +58,8 @@ class Products extends MY_Controller {
             'DataLists' => $result->rows,
             'StartFrom' => $offset,
             'JwtData'   => $this->pageData['JwtData'],
+            'HideType'  => (bool) $isComposite,
+            'ShowUnit'  => (bool) $isComposite,
         ], TRUE);
 
         $paginationUrl = $isComposite ? '/products/getGroupList' : '/products/getProductList';
@@ -125,6 +127,7 @@ class Products extends MY_Controller {
             // Use dedicated paginated functions for active-tab row data
             $OrgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
             $this->pageData['ProductTotalCount'] = 0;
+            $this->pageData['ModTotalCount']     = 0;
             if ($activeTab === 'item') {
                 $tableData = $this->products_model->getProductListPaginated($OrgUID, $limit, 0, 'Products.IsComposite = 0');
                 $this->pageData['ModRowData'] = $this->load->view('products/items/list', [
@@ -132,16 +135,20 @@ class Products extends MY_Controller {
                     'StartFrom' => 0,
                     'JwtData'   => $this->pageData['JwtData'],
                 ], TRUE);
-                $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/products/getProductList', $tableData->totalCount, 1, $limit);
+                $this->pageData['ModPagination']     = $this->globalservice->buildPagePaginationHtml('/products/getProductList', $tableData->totalCount, 1, $limit);
                 $this->pageData['ProductTotalCount'] = $tableData->totalCount;
+                $this->pageData['ModTotalCount']     = $tableData->totalCount;
             } elseif ($activeTab === 'group') {
                 $tableData = $this->products_model->getProductListPaginated($OrgUID, $limit, 0, 'Products.IsComposite = 1');
                 $this->pageData['ModRowData'] = $this->load->view('products/items/list', [
                     'DataLists' => $tableData->rows,
                     'StartFrom' => 0,
                     'JwtData'   => $this->pageData['JwtData'],
+                    'HideType'  => true,
+                    'ShowUnit'  => true,
                 ], TRUE);
                 $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/products/getGroupList', $tableData->totalCount, 1, $limit);
+                $this->pageData['ModTotalCount'] = $tableData->totalCount;
             } elseif ($activeTab === 'category') {
                 $tableData = $this->products_model->getCategoryListPaginated($OrgUID, $limit, 0);
                 $this->pageData['ModRowData'] = $this->load->view('products/categories/list', [
@@ -150,6 +157,7 @@ class Products extends MY_Controller {
                     'JwtData'   => $this->pageData['JwtData'],
                 ], TRUE);
                 $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/products/getCategoryList', $tableData->totalCount, 1, $limit);
+                $this->pageData['ModTotalCount'] = $tableData->totalCount;
             } else {
                 $this->pageData['ModRowData']    = '';
                 $this->pageData['ModPagination'] = '';
@@ -159,7 +167,7 @@ class Products extends MY_Controller {
             
             $this->pageData['ActiveTabData']  = $activeTab;
             // Must match the data-id attribute values on the tab nav links in view.php
-            $tabNameMap = ['item' => 'Item', 'group' => 'Groups', 'category' => 'Categories', 'sizes' => 'Sizes', 'brands' => 'Brands'];
+            $tabNameMap = ['item' => 'Item', 'group' => 'Groups', 'category' => 'Categories'];
             $this->pageData['ActiveTabName']  = $tabNameMap[$activeTab] ?? ucfirst($activeTab);
             $this->pageData['ActiveModuleId'] = 4;
 
@@ -439,6 +447,8 @@ class Products extends MY_Controller {
                 'DataLists' => $result->rows,
                 'StartFrom' => $offset,
                 'JwtData'   => $this->pageData['JwtData'],
+                'HideType'  => true,
+                'ShowUnit'  => true,
             ], TRUE);
 
             $this->EndReturnData->Error      = false;
@@ -507,6 +517,15 @@ class Products extends MY_Controller {
 
             $this->EndReturnData->Error      = FALSE;
             $this->EndReturnData->Message    = 'Created Successfully';
+            $this->auditlog->log(
+                (int) $this->pageData['JwtData']->Org->OrgUID,
+                (int) $this->pageData['JwtData']->User->UserUID,
+                'CREATE_PRODUCT', 'Product', (int) $ProductUID, (string) getPostValue($PostData, 'ItemName'),
+                [], "Created product " . getPostValue($PostData, 'ItemName'), 'Products',
+                'MASTER', 'SUCCESS', '', 'WEB',
+                [],
+                $prodFormData
+            );
             $this->EndReturnData->ProductUID = $ProductUID;
 
             // Build product data object from POST + TaxDetails — no extra DB query needed
@@ -699,6 +718,15 @@ class Products extends MY_Controller {
 
             $this->EndReturnData->Error      = FALSE;
             $this->EndReturnData->Message    = 'Updated Successfully';
+            $this->auditlog->log(
+                (int) $this->pageData['JwtData']->Org->OrgUID,
+                (int) $this->pageData['JwtData']->User->UserUID,
+                'UPDATE_PRODUCT', 'Product', (int) $ProductUID, (string) getPostValue($PostData, 'ItemName'),
+                [], "Updated product " . getPostValue($PostData, 'ItemName'), 'Products',
+                'MASTER', 'SUCCESS', '', 'WEB',
+                $currentProd ? (array) $currentProd : [],
+                $prodFormData
+            );
             $this->EndReturnData->ProductUID = $ProductUID;
             $this->EndReturnData->List       = $getResp->RecordHtmlData;
             $this->EndReturnData->Pagination = $getResp->Pagination;
@@ -737,6 +765,9 @@ class Products extends MY_Controller {
             //     throw new Exception('Product has existing transactions (Invoices/Purchase Orders)');
             // }
 
+            $this->load->model('products_model');
+            $oldProductRows = $this->products_model->getProductsDetails(['Products.ProductUID' => $ProductUID]);
+            $oldProductData = !empty($oldProductRows) ? (array) $oldProductRows[0] : [];
             $this->load->model('dbwrite_model');
             $UpdateResp = $this->dbwrite_model->updateData('Products', 'ProductTbl', $this->globalservice->baseDeleteArrayDetails(), array('ProductUID' => $ProductUID));
             if($UpdateResp->Error) {
@@ -746,11 +777,21 @@ class Products extends MY_Controller {
             // Remove deleted product from the Upstash bulk cache
             $this->cachehelper->removeProduct($ProductUID);
 
-            $pageNo  = (int) $this->input->post('PageNo') ?: 1;
-            $getResp = $this->fetchProductTableData($pageNo);
+            $pageNo      = (int) $this->input->post('PageNo') ?: 1;
+            $isComposite = (int) $this->input->post('IsComposite');
+            $getResp     = $this->fetchProductTableData($pageNo, 0, $isComposite);
 
             $this->EndReturnData->Error      = FALSE;
             $this->EndReturnData->Message    = 'Deleted Successfully';
+            $this->auditlog->log(
+                (int) $this->pageData['JwtData']->Org->OrgUID,
+                (int) $this->pageData['JwtData']->User->UserUID,
+                'DELETE_PRODUCT', 'Product', (int) $ProductUID, (string) ($oldProductData['ItemName'] ?? ''),
+                [], "Deleted product #{$ProductUID}", 'Products',
+                'MASTER', 'SUCCESS', '', 'WEB',
+                $oldProductData,
+                []
+            );
             $this->EndReturnData->List       = $getResp->RecordHtmlData;
             $this->EndReturnData->Pagination = $getResp->Pagination;
             $this->EndReturnData->Stats      = $this->fetchProductStats();
@@ -808,11 +849,21 @@ class Products extends MY_Controller {
             $keysToDelete[] = Upstashservice::keyProductsAll();
             $this->upstashservice->delMany($keysToDelete);
 
-            $pageNo  = (int) $this->input->post('PageNo') ?: 1;
-            $getResp = $this->fetchProductTableData($pageNo);
+            $pageNo      = (int) $this->input->post('PageNo') ?: 1;
+            $isComposite = (int) $this->input->post('IsComposite');
+            $getResp     = $this->fetchProductTableData($pageNo, 0, $isComposite);
 
             $this->EndReturnData->Error      = FALSE;
             $this->EndReturnData->Message    = count($ProductUIDs) . ' product(s) deleted successfully';
+            $this->auditlog->log(
+                (int) $this->pageData['JwtData']->Org->OrgUID,
+                (int) $this->pageData['JwtData']->User->UserUID,
+                'BULK_DELETE_PRODUCTS', 'Product', 0, implode(',', $ProductUIDs),
+                ['count' => count($ProductUIDs)], 'Bulk deleted ' . count($ProductUIDs) . ' product(s)', 'Products',
+                'MASTER', 'SUCCESS', '', 'WEB',
+                ['deletedUIDs' => $ProductUIDs],
+                []
+            );
             $this->EndReturnData->List       = $getResp->RecordHtmlData;
             $this->EndReturnData->Pagination = $getResp->Pagination;
             $this->EndReturnData->Stats      = $this->fetchProductStats();
@@ -825,11 +876,9 @@ class Products extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
 
     }
-
-    // ──────────────────────────────────────────────────────────
+    
     // COMBO / COMPOSITE PRODUCT METHODS
-    // ──────────────────────────────────────────────────────────
-
+    
     /** Return non-composite products for BOM component search (Select2 AJAX) */
     public function getItemsForBOM() {
 
@@ -928,6 +977,14 @@ class Products extends MY_Controller {
 
             $this->EndReturnData->Error   = false;
             $this->EndReturnData->Message = 'Combo item created successfully';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'CREATE_COMBO_ITEM', 'ComboItem', (int) $InsertResp->ID, (string) $comboName,
+                [], "Created combo item {$comboName}", 'Products',
+                'MASTER', 'SUCCESS', '', 'WEB',
+                [],
+                $comboData
+            );
 
             if (getPostValue($PostData, 'getTableDetails') == 1) {
                 $pageNo  = (int) $this->input->post('PageNo') ?: 1;
@@ -1001,6 +1058,9 @@ class Products extends MY_Controller {
                 'UpdatedBy'     => $userUID,
             ];
 
+            $this->load->model('products_model');
+            $oldComboRows = $this->products_model->getProductsDetails(['Products.ProductUID' => $comboUID, 'Products.IsComposite' => 1]);
+            $oldComboData = !empty($oldComboRows) ? (array) $oldComboRows[0] : [];
             $UpdateResp = $this->dbwrite_model->updateData('Products', 'ProductTbl', $comboData, ['ProductUID' => $comboUID]);
             if ($UpdateResp->Error) {
                 throw new Exception($UpdateResp->Message);
@@ -1021,6 +1081,15 @@ class Products extends MY_Controller {
 
             $this->EndReturnData->Error   = false;
             $this->EndReturnData->Message = 'Combo item updated successfully';
+            $this->auditlog->log(
+                (int) $this->pageData['JwtData']->Org->OrgUID,
+                (int) $userUID,
+                'UPDATE_COMBO_ITEM', 'ComboItem', (int) $comboUID, (string) $comboName,
+                [], "Updated combo item {$comboName}", 'Products',
+                'MASTER', 'SUCCESS', '', 'WEB',
+                $oldComboData,
+                $comboData
+            );
 
         } catch (\Throwable $e) {
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
@@ -1086,6 +1155,9 @@ class Products extends MY_Controller {
                 throw new Exception('Invalid combo item.');
             }
 
+            $this->load->model('products_model');
+            $oldComboRows = $this->products_model->getProductsDetails(['Products.ProductUID' => $comboUID, 'Products.IsComposite' => 1]);
+            $oldComboData = !empty($oldComboRows) ? (array) $oldComboRows[0] : [];
             $this->load->model('dbwrite_model');
             $this->dbwrite_model->startTransaction();
 
@@ -1109,6 +1181,15 @@ class Products extends MY_Controller {
 
             $this->EndReturnData->Error      = false;
             $this->EndReturnData->Message    = 'Combo item deleted successfully';
+            $this->auditlog->log(
+                (int) $this->pageData['JwtData']->Org->OrgUID,
+                (int) $this->pageData['JwtData']->User->UserUID,
+                'DELETE_COMBO_ITEM', 'ComboItem', (int) $comboUID, (string) ($oldComboData['ItemName'] ?? ''),
+                [], "Deleted combo item #{$comboUID}", 'Products',
+                'MASTER', 'SUCCESS', '', 'WEB',
+                $oldComboData,
+                []
+            );
             $this->EndReturnData->List       = $getResp->RecordHtmlData;
             $this->EndReturnData->Pagination = $getResp->Pagination;
             $this->EndReturnData->Stats      = $this->fetchProductStats();
@@ -1121,10 +1202,8 @@ class Products extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
 
     }
-
-    // ──────────────────────────────────────────────────────────
+    
     // END COMBO METHODS
-    // ──────────────────────────────────────────────────────────
 
     public function toggleProductStatus() {
 
@@ -1146,11 +1225,21 @@ class Products extends MY_Controller {
 
             $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
 
-            $pageNo  = (int) $this->input->post('PageNo') ?: 1;
-            $getResp = $this->fetchProductTableData($pageNo);
+            $pageNo      = (int) $this->input->post('PageNo') ?: 1;
+            $isComposite = (int) $this->input->post('IsComposite');
+            $getResp     = $this->fetchProductTableData($pageNo, 0, $isComposite);
 
             $this->EndReturnData->Error      = false;
             $this->EndReturnData->Message    = 'Status updated successfully';
+            $this->auditlog->log(
+                (int) $this->pageData['JwtData']->Org->OrgUID,
+                (int) $this->pageData['JwtData']->User->UserUID,
+                'TOGGLE_PRODUCT_STATUS', 'Product', (int) $ProductUID, '',
+                ['isActive' => $newStatus], ($newStatus ? 'Activated' : 'Deactivated') . " product #{$ProductUID}", 'Products',
+                'MASTER', 'SUCCESS', '', 'WEB',
+                ['IsActive' => 1 - $newStatus],
+                ['IsActive' => $newStatus]
+            );
             $this->EndReturnData->List       = $getResp->RecordHtmlData;
             $this->EndReturnData->Pagination = $getResp->Pagination;
             $this->EndReturnData->TotalCount = $getResp->TotalCount;
@@ -1191,6 +1280,7 @@ class Products extends MY_Controller {
             $this->EndReturnData->Error      = false;
             $this->EndReturnData->List       = $rowHtml;
             $this->EndReturnData->Pagination = $this->globalservice->buildPagePaginationHtml('/products/getCategoryList', $result->totalCount, $pageNo, $limit);
+            $this->EndReturnData->TotalCount = $result->totalCount;
             $this->EndReturnData->UIDs       = array_column($result->rows, 'CategoryUID');
 
         } catch (Exception $e) {
@@ -1245,15 +1335,21 @@ class Products extends MY_Controller {
 
         $this->EndReturnData = new stdClass();
         try {
-            // All known fields and their Upstash keys
-            $allKeyMap = [
-                'primaryUnit' => $this->redisservice->orgKey('primary-unit'),
-                'discType'    => $this->redisservice->orgKey('disc-type'),
-                'prodType'    => $this->redisservice->orgKey('prod-type'),
-                'prodTax'     => $this->redisservice->orgKey('prod-tax'),
-                'taxDetails'  => $this->redisservice->orgKey('tax-details'),
+            // Global keys — shared across all orgs/clients; literal key, never written from code
+            $globalKeyMap = [
+                'primaryUnit' => 'r2k-primary-units',
+                'discType'    => 'r2k-disc-type',
+                'prodType'    => 'r2k-prod-type',
+                'prodTax'     => 'r2k-prod-tax',
+                'taxDetails'  => 'r2k-tax-details',
+            ];
+
+            // Org keys — per-org, prefixed via orgKey(); writable from code
+            $orgKeyMap = [
                 'categories'  => $this->redisservice->orgKey('categories'),
             ];
+
+            $allKeyMap = array_merge($globalKeyMap, $orgKeyMap);
 
             // JS sends fields[] when only some keys were missing in the client-side
             // Upstash check — limit processing to only those fields.
@@ -1271,7 +1367,7 @@ class Products extends MY_Controller {
             $missingFields = $fieldNames; // assume all missing until pipeline says otherwise
 
             // Try Upstash pipeline for the requested fields
-            // 'categories' is a Redis hash → HGETALL; all others are strings → GET
+            // 'categories' is a Redis hash â†’ HGETALL; all others are strings â†’ GET
             if (!empty($fieldNames)) {
                 $cmds = array_map(function ($field, $key) {
                     return $field === 'categories' ? ['HGETALL', $key] : ['GET', $key];
@@ -1285,7 +1381,7 @@ class Products extends MY_Controller {
                         $raw   = $result['result'] ?? null;
 
                         if ($field === 'categories') {
-                            // HGETALL → flat [uid, jsonStr, uid, jsonStr, ...] array
+                            // HGETALL â†’ flat [uid, jsonStr, uid, jsonStr, ...] array
                             if (is_array($raw) && count($raw) >= 2) {
                                 $cats = [];
                                 for ($j = 0; $j + 1 < count($raw); $j += 2) {
@@ -1307,7 +1403,7 @@ class Products extends MY_Controller {
                         }
                     }
                 }
-                // If pipeResults is empty → Upstash disabled/error → missingFields = all requested
+                // If pipeResults is empty â†’ Upstash disabled/error â†’ missingFields = all requested
             }
 
             // DB fallback for every field not found in Upstash
@@ -1411,6 +1507,14 @@ class Products extends MY_Controller {
 
             $this->EndReturnData->Error        = FALSE;
             $this->EndReturnData->Message      = 'Created Successfully';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'CREATE_PRODUCT_CATEGORY', 'ProductCategory', (int) $CategoryUID, (string) getPostValue($PostData, 'CategoryName'),
+                [], "Created product category " . getPostValue($PostData, 'CategoryName'), 'Products',
+                'MASTER', 'SUCCESS', '', 'WEB',
+                [],
+                $catgFormData
+            );
             $this->EndReturnData->InsertId     = $CategoryUID;
             $this->EndReturnData->CategoryName = getPostValue($PostData, 'CategoryName');
 
@@ -1499,6 +1603,10 @@ class Products extends MY_Controller {
 
             $CategoryUID = (int) getPostValue($PostData, 'CategoryUID');
 
+            $this->load->model('products_model');
+            $oldCatgRows = $this->products_model->getCategoriesDetails(['Category.CategoryUID' => $CategoryUID]);
+            $oldCatgData = !empty($oldCatgRows) ? (array) $oldCatgRows[0] : [];
+
             $catgFormData = $this->buildCategoryFormData($PostData, false);
 
             $UpdateDataResp = $this->dbwrite_model->updateData('Products', 'CategoryTbl', $catgFormData, array('CategoryUID' => $CategoryUID));
@@ -1521,6 +1629,14 @@ class Products extends MY_Controller {
 
             $this->EndReturnData->Error      = FALSE;
             $this->EndReturnData->Message    = 'Updated Successfully';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'UPDATE_PRODUCT_CATEGORY', 'ProductCategory', (int) $CategoryUID, (string) getPostValue($PostData, 'CategoryName'),
+                [], "Updated product category " . getPostValue($PostData, 'CategoryName'), 'Products',
+                'MASTER', 'SUCCESS', '', 'WEB',
+                $oldCatgData,
+                $catgFormData
+            );
             $this->EndReturnData->List       = $getResp->RecordHtmlData;
             $this->EndReturnData->Pagination = $getResp->Pagination;
 
@@ -1558,7 +1674,9 @@ class Products extends MY_Controller {
             if (!empty($ExistsInProducts) && count($ExistsInProducts) > 0) {
                 throw new Exception('Category is linked to Product(s). Cannot delete.');
             }
-            
+            $oldCatgRows = $this->products_model->getCategoriesDetails(['Category.CategoryUID' => $CategoryUID]);
+            $oldCatgData = !empty($oldCatgRows) ? (array) $oldCatgRows[0] : [];
+
             $this->load->model('dbwrite_model');
             $UpdateResp = $this->dbwrite_model->updateData('Products', 'CategoryTbl', $this->globalservice->baseDeleteArrayDetails(), array('CategoryUID' => $CategoryUID));
             if($UpdateResp->Error) {
@@ -1573,6 +1691,15 @@ class Products extends MY_Controller {
 
             $this->EndReturnData->Error      = FALSE;
             $this->EndReturnData->Message    = 'Deleted Successfully';
+            $this->auditlog->log(
+                (int) $this->pageData['JwtData']->Org->OrgUID,
+                (int) $this->pageData['JwtData']->User->UserUID,
+                'DELETE_PRODUCT_CATEGORY', 'ProductCategory', (int) $CategoryUID, (string) ($oldCatgData['Name'] ?? ''),
+                [], "Deleted product category #{$CategoryUID}", 'Products',
+                'MASTER', 'SUCCESS', '', 'WEB',
+                $oldCatgData,
+                []
+            );
             $this->EndReturnData->List       = $getResp->RecordHtmlData;
             $this->EndReturnData->Pagination = $getResp->Pagination;
 
@@ -1631,6 +1758,15 @@ class Products extends MY_Controller {
 
             $this->EndReturnData->Error      = FALSE;
             $this->EndReturnData->Message    = 'Deleted Successfully';
+            $this->auditlog->log(
+                (int) $this->pageData['JwtData']->Org->OrgUID,
+                (int) $this->pageData['JwtData']->User->UserUID,
+                'BULK_DELETE_PRODUCT_CATEGORIES', 'ProductCategory', 0, implode(',', $CategoryUIDs),
+                ['count' => count($CategoryUIDs)], 'Bulk deleted ' . count($CategoryUIDs) . ' product categor' . (count($CategoryUIDs) === 1 ? 'y' : 'ies'), 'Products',
+                'MASTER', 'SUCCESS', '', 'WEB',
+                ['deletedUIDs' => $CategoryUIDs],
+                []
+            );
             $this->EndReturnData->List       = $getResp->RecordHtmlData;
             $this->EndReturnData->Pagination = $getResp->Pagination;
 
@@ -1639,556 +1775,6 @@ class Products extends MY_Controller {
             $this->EndReturnData->Message = $e->getMessage();
         }
 
-        $this->globalservice->sendJsonResponse($this->EndReturnData);
-
-    }
-
-    /** Sizes Details Starts Here */
-    private function buildSizeFormData($postData, $isCreate = false) {
-        $data = [
-            'Name'        => getPostValue($postData, 'SizesName'),
-            'OrgUID'      => (int) $this->pageData['JwtData']->Org->OrgUID,
-            'Description' => getPostValue($postData, 'SizesDescription'),
-            'UpdatedBy'   => (int) $this->pageData['JwtData']->User->UserUID,
-        ];
-        if ($isCreate) {
-            $data['CreatedBy'] = $this->pageData['JwtData']->User->UserUID;
-        }
-        return $data;
-    }
-
-    /** Size List (AJAX pagination) */
-    public function getSizeList() {
-
-        $this->EndReturnData = new stdClass();
-        try {
-
-            $result = $this->getModuleListData('Sizes');
-            if ($result->Error) {
-                throw new Exception($result->Message);
-            }
-
-            $this->EndReturnData->Error      = false;
-            $this->EndReturnData->List       = $result->RecordHtmlData;
-            $this->EndReturnData->Pagination = $result->Pagination;
-            $this->EndReturnData->UIDs       = $result->UIDs ?? [];
-
-        } catch (Exception $e) {
-            $this->EndReturnData->Error   = true;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-
-        $this->globalservice->sendJsonResponse($this->EndReturnData);
-
-    }
-
-    public function addSizeDetails() {
-
-        $this->EndReturnData = new stdClass();
-        $ErrorInForm = '';
-		try {
-
-            $this->load->model('dbwrite_model');
-            $this->dbwrite_model->startTransaction();
-
-            $PostData = $this->input->post();
-
-            $this->load->model('formvalidation_model');
-            $ErrorInForm = $this->formvalidation_model->sizesValidateForm($PostData);
-            if (!empty($ErrorInForm)) {
-                throw new InvalidArgumentException('VALIDATION_ERROR');
-            }
-
-            $insDataResp = $this->dbwrite_model->insertData('Products', 'SizeTbl', $this->buildSizeFormData($PostData, true));
-            if($insDataResp->Error) {
-                throw new Exception($insDataResp->Message);
-            }
-
-            $this->dbwrite_model->commitTransaction();
-
-            $pageNo = $this->input->post('PageNo');
-            $getResp = $this->globalservice->baseTableDataPaginationDetails($pageNo);
-
-            $this->EndReturnData->Error = FALSE;
-            $this->EndReturnData->Message = 'Created Successfully';
-            $this->EndReturnData->List = $getResp->RecordHtmlData;
-            $this->EndReturnData->Pagination = $getResp->Pagination;
-            $this->EndReturnData->InsertId = $insDataResp->ID;
-
-        } catch (InvalidArgumentException $e) {
-            $this->dbwrite_model->rollbackTransaction();
-            if ($e->getMessage() === 'VALIDATION_ERROR') {
-                $this->EndReturnData->Error = true;
-                $this->EndReturnData->Message = strip_tags($ErrorInForm);
-                $this->EndReturnData->Errors = 'Please correct the highlighted errors.';
-            } else {
-                throw $e;
-            }
-        } catch (Exception $e) {
-            $this->dbwrite_model->rollbackTransaction();
-            $this->EndReturnData->Error = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-        
-        $this->globalservice->sendJsonResponse($this->EndReturnData);
-
-    }
-
-    public function retrieveSizeDetails() {
-
-        $this->EndReturnData = new stdClass();
-		try {
-
-            $SizeUID = (int) $this->input->post('SizeUID');
-            if (!$SizeUID || $SizeUID <= 0) {
-                throw new Exception('Invalid Size ID');
-            }
-
-            $this->load->model('products_model');
-            $GetSizeData = $this->products_model->getSizeDetails(['Size.SizeUID' => $SizeUID]);
-            if(count($GetSizeData) != 1) {
-                throw new Exception('Size not found');
-            }
-            
-            $this->EndReturnData->Error = FALSE;
-            $this->EndReturnData->Message = 'Retrieved Successfully';
-            $this->EndReturnData->Data = $GetSizeData[0];
-
-        } catch (Exception $e) {
-            $this->EndReturnData->Error = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-        
-        $this->globalservice->sendJsonResponse($this->EndReturnData);
-
-	}
-
-    public function updateSizeDetails() {
-
-        $this->EndReturnData = new stdClass();
-        $ErrorInForm = '';
-		try {
-
-            $this->load->model('dbwrite_model');
-            $this->dbwrite_model->startTransaction();
-
-            $PostData = $this->input->post();
-
-            $this->load->model('formvalidation_model');
-            $ErrorInForm = $this->formvalidation_model->sizesValidateForm($PostData);
-            if (!empty($ErrorInForm)) {
-                throw new InvalidArgumentException('VALIDATION_ERROR');
-            }
-
-            $SizeUID = (int) getPostValue($PostData, 'SizeUID');
-
-            $UpdateDataResp = $this->dbwrite_model->updateData('Products', 'SizeTbl', $this->buildSizeFormData($PostData, false), array('SizeUID' => $SizeUID));
-            if($UpdateDataResp->Error) {
-                throw new Exception($UpdateDataResp->Message);
-            }
-
-            $this->dbwrite_model->commitTransaction();
-
-            $pageNo = (int) $this->input->post('PageNo');
-            $getResp = $this->globalservice->baseTableDataPaginationDetails($pageNo);
-
-            $this->EndReturnData->Error = FALSE;
-            $this->EndReturnData->Message = 'Updated Successfully';
-            $this->EndReturnData->List = $getResp->RecordHtmlData;
-            $this->EndReturnData->Pagination = $getResp->Pagination;
-
-            $this->load->model('products_model');
-            $this->EndReturnData->SizeList = $this->products_model->getSizeDetails([]);
-
-        } catch (InvalidArgumentException $e) {
-            $this->dbwrite_model->rollbackTransaction();
-            if ($e->getMessage() === 'VALIDATION_ERROR') {
-                $this->EndReturnData->Error = true;
-                $this->EndReturnData->Message = strip_tags($ErrorInForm);
-                $this->EndReturnData->Errors = 'Please correct the highlighted errors.';
-            } else {
-                throw $e;
-            }
-        } catch (Exception $e) {
-            $this->dbwrite_model->rollbackTransaction();
-            $this->EndReturnData->Error = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-        
-        $this->globalservice->sendJsonResponse($this->EndReturnData);
-
-    }
-
-    public function deleteSizeDetails() {
-
-        $this->EndReturnData = new stdClass();
-		try {
-
-            $SizeUID = (int) $this->input->post('SizeUID');
-            if(!$SizeUID) {
-                throw new Exception('Invalid Size ID');
-            }
-
-            $this->load->model('products_model');
-            $ExistsInProducts = $this->products_model->getProductsDetails([], '', ['Products.SizeUID' => $SizeUID]);
-            if (!empty($ExistsInProducts) && count($ExistsInProducts) > 0) {
-                throw new Exception('Size is linked to Product(s). Cannot delete.');
-            }
-
-            $this->load->model('dbwrite_model');
-            $UpdateResp = $this->dbwrite_model->updateData('Products', 'SizeTbl', $this->globalservice->baseDeleteArrayDetails(), array('SizeUID' => $SizeUID));
-            if($UpdateResp->Error) {
-                throw new Exception($UpdateResp->Message);
-            }
-
-            $pageNo = $this->input->post('PageNo');
-            $getResp = $this->globalservice->baseTableDataPaginationDetails($pageNo);
-
-            $this->EndReturnData->Error = FALSE;
-            $this->EndReturnData->Message = 'Deleted Successfully';
-            $this->EndReturnData->List = $getResp->RecordHtmlData;
-            $this->EndReturnData->Pagination = $getResp->Pagination;
-
-            $this->load->model('products_model');
-            $this->EndReturnData->SizeList = $this->products_model->getSizeDetails([]);
-
-        } catch (Exception $e) {
-            $this->EndReturnData->Error = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-        
-        $this->globalservice->sendJsonResponse($this->EndReturnData);
-
-    }
-
-    public function deleteBulkSize() {
-
-        $this->EndReturnData = new stdClass();
-		try {
-
-            $SizeUIDs = $this->input->post('SizeUIDs[]');
-            if (empty($SizeUIDs)) {
-                throw new Exception('No sizes selected for deletion');
-            }
-
-            // Validate and sanitize IDs
-            if (!is_array($SizeUIDs)) {
-                $SizeUIDs = [$SizeUIDs];
-            }
-            $SizeUIDs = array_map('intval', $SizeUIDs);
-            $SizeUIDs = array_filter($SizeUIDs, function($id) {
-                return $id > 0;
-            });
-
-            if (empty($SizeUIDs)) {
-                throw new Exception('Invalid size IDs provided');
-            }
-
-            /** Cross Check with Products */
-            $this->load->model('products_model');
-            $ExistsInProducts = $this->products_model->getProductsDetails([], '', ['Products.SizeUID' => $SizeUIDs]);
-            if (!empty($ExistsInProducts) && count($ExistsInProducts) > 0) {
-                throw new Exception('One or more sizes are linked to Product(s). Cannot delete.');
-            }
-
-            $this->load->model('dbwrite_model');
-            $UpdateResp = $this->dbwrite_model->updateData('Products', 'SizeTbl', $this->globalservice->baseDeleteArrayDetails(), [], ['SizeUID' => $SizeUIDs]);
-            if($UpdateResp->Error) {
-                throw new Exception($UpdateResp->Message);
-            }
-
-            $pageNo = (int) $this->input->post('PageNo');
-            $getResp = $this->globalservice->baseTableDataPaginationDetails($pageNo);
-
-            $this->EndReturnData->Error = FALSE;
-            $this->EndReturnData->Message = 'Deleted Successfully';
-            $this->EndReturnData->List = $getResp->RecordHtmlData;
-            $this->EndReturnData->Pagination = $getResp->Pagination;
-
-            $this->load->model('products_model');
-            $this->EndReturnData->SizeList = $this->products_model->getSizeDetails([]);
-
-        } catch (Exception $e) {
-            $this->EndReturnData->Error = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-        
-        $this->globalservice->sendJsonResponse($this->EndReturnData);
-
-    }
-
-    /** Brands Details Starts Here */
-    private function buildBrandFormData($postData, $isCreate = false) {
-        $data = [
-            'Name'        => getPostValue($postData, 'BrandsName'),
-            'OrgUID'      => (int) $this->pageData['JwtData']->Org->OrgUID,
-            'Description' => getPostValue($postData, 'BrandsDescription'),
-            'UpdatedBy'   => (int) $this->pageData['JwtData']->User->UserUID,
-        ];
-        if ($isCreate) {
-            $data['CreatedBy'] = (int) $this->pageData['JwtData']->User->UserUID;
-        }
-        return $data;
-    }
-
-    /** Brand List (AJAX pagination) */
-    public function getBrandList() {
-
-        $this->EndReturnData = new stdClass();
-        try {
-
-            $result = $this->getModuleListData('Brands');
-            if ($result->Error) {
-                throw new Exception($result->Message);
-            }
-
-            $this->EndReturnData->Error      = false;
-            $this->EndReturnData->List       = $result->RecordHtmlData;
-            $this->EndReturnData->Pagination = $result->Pagination;
-            $this->EndReturnData->UIDs       = $result->UIDs ?? [];
-
-        } catch (Exception $e) {
-            $this->EndReturnData->Error   = true;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-
-        $this->globalservice->sendJsonResponse($this->EndReturnData);
-
-    }
-
-    public function addBrandDetails() {
-
-        $this->EndReturnData = new stdClass();
-        $ErrorInForm = '';
-		try {
-
-            $this->load->model('dbwrite_model');
-            $this->dbwrite_model->startTransaction();
-
-            $PostData = $this->input->post();
-
-            $this->load->model('formvalidation_model');
-            $ErrorInForm = $this->formvalidation_model->brandsValidateForm($PostData);
-            if(!empty($ErrorInForm)) {
-                throw new InvalidArgumentException('VALIDATION_ERROR');
-            }
-
-            $brandFormData = $this->buildBrandFormData($PostData, true);
-
-            $insDataResp = $this->dbwrite_model->insertData('Products', 'BrandTbl', $brandFormData);
-            if($insDataResp->Error) {
-                throw new Exception($insDataResp->Message);
-            }
-
-            $this->dbwrite_model->commitTransaction();
-
-            $pageNo = $this->input->post('PageNo');
-            $getResp = $this->globalservice->baseTableDataPaginationDetails($pageNo);
-
-            $this->EndReturnData->Error = FALSE;
-            $this->EndReturnData->Message = 'Created Successfully';
-            $this->EndReturnData->List = $getResp->RecordHtmlData;
-            $this->EndReturnData->Pagination = $getResp->Pagination;
-            $this->EndReturnData->InsertId = $insDataResp->ID;
-
-        } catch (InvalidArgumentException $e) {
-            $this->dbwrite_model->rollbackTransaction();
-            if ($e->getMessage() === 'VALIDATION_ERROR') {
-                $this->EndReturnData->Error = true;
-                $this->EndReturnData->Message = strip_tags($ErrorInForm);
-                $this->EndReturnData->Errors = 'Please correct the highlighted errors.';
-            } else {
-                throw $e;
-            }
-        } catch (Exception $e) {
-            $this->dbwrite_model->rollbackTransaction();
-            $this->EndReturnData->Error = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-        
-        $this->globalservice->sendJsonResponse($this->EndReturnData);
-
-    }
-
-    public function retrieveBrandDetails() {
-
-        $this->EndReturnData = new stdClass();
-		try {
-
-            $BrandUID = (int) $this->input->post('BrandUID');
-            if (!$BrandUID || $BrandUID <= 0) {
-                throw new Exception('Invalid Brand ID');
-            }
-
-            $this->load->model('products_model');
-            $GetBrandData = $this->products_model->getBrandDetails(['Brand.BrandUID' => $BrandUID]);
-            if (count($GetBrandData) != 1) {
-                throw new Exception('Brand not found');
-            }
-
-            $this->EndReturnData->Error = FALSE;
-            $this->EndReturnData->Message = 'Retrieved Successfully';
-            $this->EndReturnData->Data = $GetBrandData[0];
-
-        } catch (Exception $e) {
-            $this->EndReturnData->Error = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-        
-        $this->globalservice->sendJsonResponse($this->EndReturnData);
-
-	}
-
-    public function updateBrandDetails() {
-
-        $this->EndReturnData = new stdClass();
-        $ErrorInForm = '';
-		try {
-
-            $this->load->model('dbwrite_model');
-            $this->dbwrite_model->startTransaction();
-
-            $PostData = $this->input->post();
-
-            $this->load->model('formvalidation_model');
-            $ErrorInForm = $this->formvalidation_model->brandsValidateForm($PostData);
-            if(!empty($ErrorInForm)) {
-                throw new InvalidArgumentException('VALIDATION_ERROR');
-            }
-
-            $BrandUID = (int) getPostValue($PostData, 'BrandUID');
-
-            $UpdateDataResp = $this->dbwrite_model->updateData('Products', 'BrandTbl', $this->buildBrandFormData($PostData, false), array('BrandUID' => $BrandUID));
-            if($UpdateDataResp->Error) {
-                throw new Exception($UpdateDataResp->Message);
-            }
-
-            $this->dbwrite_model->commitTransaction();
-
-            $pageNo = $this->input->post('PageNo');
-            $getResp = $this->globalservice->baseTableDataPaginationDetails($pageNo);
-
-            $this->EndReturnData->Error = FALSE;
-            $this->EndReturnData->Message = 'Updated Successfully';
-            $this->EndReturnData->List = $getResp->RecordHtmlData;
-            $this->EndReturnData->Pagination = $getResp->Pagination;
-
-            $this->load->model('products_model');
-            $this->EndReturnData->BrandList = $this->products_model->getBrandDetails([]);
-
-        } catch (InvalidArgumentException $e) {
-            $this->dbwrite_model->rollbackTransaction();
-            if ($e->getMessage() === 'VALIDATION_ERROR') {
-                $this->EndReturnData->Error = true;
-                $this->EndReturnData->Message = strip_tags($ErrorInForm);
-                $this->EndReturnData->Errors = 'Please correct the highlighted errors.';
-            } else {
-                throw $e;
-            }
-        } catch (Exception $e) {
-            $this->dbwrite_model->rollbackTransaction();
-            $this->EndReturnData->Error = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-        
-        $this->globalservice->sendJsonResponse($this->EndReturnData);
-
-    }
-
-    public function deleteBrandDetails() {
-
-        $this->EndReturnData = new stdClass();
-		try {
-
-            $BrandUID = (int) $this->input->post('BrandUID');
-            if (!$BrandUID || $BrandUID <= 0) {
-                throw new Exception('Invalid Brand ID');
-            }
-
-            // Check if brand is linked to products
-            $this->load->model('products_model');
-            $ExistsInProducts = $this->products_model->getProductsDetails([], '', ['Products.BrandUID' => $BrandUID]);
-            if (!empty($ExistsInProducts) && count($ExistsInProducts) > 0) {
-                throw new Exception('Brand is linked to Product(s). Cannot delete.');
-            }
-
-            $UpdateResp = $this->dbwrite_model->updateData('Products', 'BrandTbl', $this->globalservice->baseDeleteArrayDetails(), array('BrandUID' => $BrandUID));
-            if($UpdateResp->Error) {
-                throw new Exception($UpdateResp->Message);
-            }
-
-            $pageNo = (int) $this->input->post('PageNo');
-            $getResp = $this->globalservice->baseTableDataPaginationDetails($pageNo);
-
-            $this->EndReturnData->Error = FALSE;
-            $this->EndReturnData->Message = 'Deleted Successfully';
-            $this->EndReturnData->List = $getResp->RecordHtmlData;
-            $this->EndReturnData->Pagination = $getResp->Pagination;
-
-            $this->load->model('products_model');
-            $this->EndReturnData->BrandList = $this->products_model->getBrandDetails([]);
-
-        } catch (Exception $e) {
-            $this->EndReturnData->Error = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-        
-        $this->globalservice->sendJsonResponse($this->EndReturnData);
-
-    }
-
-    public function deleteBulkBrand() {
-
-        $this->EndReturnData = new stdClass();
-		try {
-
-            $BrandUIDs = $this->input->post('BrandUIDs[]');
-            if (empty($BrandUIDs)) {
-                throw new Exception('No brands selected for deletion');
-            }
-
-            // Validate and sanitize IDs
-            if (!is_array($BrandUIDs)) {
-                $BrandUIDs = [$BrandUIDs];
-            }
-            $BrandUIDs = array_map('intval', $BrandUIDs);
-            $BrandUIDs = array_filter($BrandUIDs, function($id) {
-                return $id > 0;
-            });
-
-            if (empty($BrandUIDs)) {
-                throw new Exception('Invalid brand IDs provided');
-            }
-
-            /** Cross Check with Products */
-            $this->load->model('products_model');
-            $ExistsInProducts = $this->products_model->getProductsDetails([], '', ['Products.BrandUID' => $BrandUIDs]);
-            if (!empty($ExistsInProducts) && count($ExistsInProducts) > 0) {
-                throw new Exception('One or more brands are linked to Product(s). Cannot delete.');
-            }
-
-            $this->load->model('dbwrite_model');
-            $UpdateResp = $this->dbwrite_model->updateData('Products', 'BrandTbl', $this->globalservice->baseDeleteArrayDetails(), [], array('BrandUID' => $BrandUIDs));
-            if($UpdateResp->Error) {
-                throw new Exception($UpdateResp->Message);
-            }
-
-            $pageNo = (int) $this->input->post('PageNo');
-            $getResp = $this->globalservice->baseTableDataPaginationDetails($pageNo);
-
-            $this->EndReturnData->Error = FALSE;
-            $this->EndReturnData->Message = 'Deleted Successfully';
-            $this->EndReturnData->List = $getResp->RecordHtmlData;
-            $this->EndReturnData->Pagination = $getResp->Pagination;
-
-            $this->load->model('products_model');
-            $this->EndReturnData->BrandList = $this->products_model->getBrandDetails([]);
-
-        } catch (Exception $e) {
-            $this->EndReturnData->Error = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-        
         $this->globalservice->sendJsonResponse($this->EndReturnData);
 
     }
@@ -2307,7 +1893,7 @@ class Products extends MY_Controller {
 
     }
 
-    // ── Product / Category Attachments ────────────────────────────────────────
+    // â”€â”€ Product / Category Attachments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /**
      * Handles new file uploads and pending deletes in one call.

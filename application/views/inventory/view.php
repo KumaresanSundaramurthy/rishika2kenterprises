@@ -113,10 +113,10 @@ $this->load->view('common/transactions/header'); ?>
                                 <i class="bx bx-search r2k-si"></i>
                                 <input type="text" id="invSearchInput" placeholder="Item name or part #...">
                             </div>
-                            <a href="javascript:void(0);" id="invItemFilterBtn" class="apex-filter-btn" onclick="invToggleItemFilter(); event.stopPropagation();" title="Filter by Item">
+                            <a href="javascript:void(0);" id="invItemFilterBtn" class="apex-filter-btn" title="Filter by Item">
                                 <i class="bx bx-package me-1" id="invItemFilterIcon"></i>Item
                             </a>
-                            <a href="javascript:void(0);" id="invCategoryFilterBtn" class="apex-filter-btn" onclick="invToggleCategoryFilter(); event.stopPropagation();" title="Filter by Category">
+                            <a href="javascript:void(0);" id="invCategoryFilterBtn" class="apex-filter-btn" title="Filter by Category">
                                 <i class="bx bx-category me-1" id="invCatFilterIcon"></i>Category
                             </a>
                             <a href="javascript:void(0);" id="invStatusFilterBtn" class="apex-filter-btn" title="Filter by Status">
@@ -184,10 +184,18 @@ $this->load->view('common/transactions/header'); ?>
 </div>
 
 <!-- ── Category Filter Box ────────────────────────────────────────────────── -->
-<div id="invCategoryFilterBox" class="mp-filterbox" style="display:none;position:fixed;z-index:9999;width:250px;max-height:340px;flex-direction:column;"></div>
+<div id="invCategoryFilterBox" class="card mp-filterbox trans-col-filterbox"
+     data-trigger-id="invCategoryFilterBtn"
+     data-filter-key="CategoryUID"
+     data-chk-class="inv-category-checkbox"
+     style="display:none;position:fixed;z-index:9999;width:250px;"></div>
 
 <!-- ── Item Filter Box ─────────────────────────────────────────────────────── -->
-<div id="invItemFilterBox" class="mp-filterbox" style="display:none;position:fixed;z-index:9999;width:260px;max-height:360px;flex-direction:column;"></div>
+<div id="invItemFilterBox" class="card mp-filterbox trans-col-filterbox"
+     data-trigger-id="invItemFilterBtn"
+     data-filter-key="ProductUID"
+     data-chk-class="inv-item-checkbox"
+     style="display:none;position:fixed;z-index:9999;width:260px;"></div>
 
 <!-- ── Status Filter Box ──────────────────────────────────────────────────── -->
 <?php $this->load->view('common/transactions/col_filter_box', [
@@ -272,17 +280,27 @@ var invStatusFilter = new TransColFilter({
     }
 });
 
-// Close old-style item/category boxes when status filter opens
-$('#invStatusFilterBtn').on('click', function () {
-    $('#invCategoryFilterBox, #invItemFilterBox').hide();
+// ── Category filter (TransColFilter) ────────────────────────────────────────
+var invCategoryColFilter = new TransColFilter({
+    boxId        : 'invCategoryFilterBox',
+    triggerId    : 'invCategoryFilterBtn',
+    filterKey    : 'CategoryUID',
+    onBeforeShow : function () {
+        CategoryAppend.filterBox('#invCategoryFilterBox', _invCfbConfig, _invFilter.CategoryUID || []);
+    }
+});
+
+// ── Item filter (TransColFilter) ──────────────────────────────────────────────
+var invItemColFilter = new TransColFilter({
+    boxId        : 'invItemFilterBox',
+    triggerId    : 'invItemFilterBtn',
+    filterKey    : 'ProductUID',
+    onBeforeShow : function () {
+        ItemFilter.filterBox('#invItemFilterBox', _invItemCfgConfig, _invFilter.ProductUID || []);
+    }
 });
 
 <?php if (!empty($ShowUserFilter)): ?>
-// Close custom boxes when Updated By filter opens (TransColFilter handles invStatusFilterBox automatically)
-$('#invUpdatedByFilterBtn').on('click', function () {
-    $('#invCategoryFilterBox, #invItemFilterBox').hide();
-});
-
 // ── Updated By filter (TransColFilter) ───────────────────────────────────────
 var invUpdatedByFilter = new TransColFilter({
     boxId    : 'invUpdatedByFilterBox',

@@ -15,9 +15,10 @@
     'use strict';
 
     // ── Internal state ────────────────────────────────────────────────────────
-    var _editUID       = 0;
-    var _onSaveSuccess = null;
-    var _bodyLoaded    = false;
+    var _editUID            = 0;
+    var _onSaveSuccess      = null;
+    var _bodyLoaded         = false;
+    var _customerTypesCache = null;
 
     // ── Public API ────────────────────────────────────────────────────────────
     window.CustomerForm = { open: openCustomerModal };
@@ -90,7 +91,7 @@
     function _ensureSalutations(callback) {
         if ($('#CM_SalutationUID option').length > 1) { callback(); return; }
         if (typeof UpstashService !== 'undefined' && UpstashService.isEnabled()) {
-            UpstashService.get(UpstashService.orgKey('salutation')).then(function (data) {
+            UpstashService.get(UpstashService.globalKey('salutation')).then(function (data) {
                 if (data && Array.isArray(data) && data.length > 0) {
                     _populateSalutationDropdown(data);
                     callback();
@@ -101,6 +102,63 @@
         } else {
             _fetchSalutationsFromServer(callback);
         }
+    }
+
+    // ── Customer type helpers ─────────────────────────────────────────────────
+
+    function _populateCustomerTypeSelect(types) {
+        var $sel = $('#CM_CustomerTypeUID');
+        if (!$sel.length || $sel.find('option[value!=""]').length) return;
+        var html = '<option value="">-- Select Customer Type --</option>';
+        $.each(types, function (_, t) {
+            html += '<option value="' + parseInt(t.CustomerTypeUID) + '">' + $('<span>').text(t.TypeName || '').html() + '</option>';
+        });
+        $sel.html(html);
+    }
+
+    function _applyDefaultCustomerType() {
+        if (!_customerTypesCache || !_customerTypesCache.length) return;
+        var $sel = $('#CM_CustomerTypeUID');
+        var defUID = null;
+        $.each(_customerTypesCache, function (_, t) {
+            if (t.IsDefault) { defUID = parseInt(t.CustomerTypeUID); return false; }
+        });
+        if (!defUID) defUID = parseInt(_customerTypesCache[0].CustomerTypeUID);
+        $sel.val(defUID);
+    }
+
+    function _ensureCustomerTypes(callback) {
+        if (_customerTypesCache !== null) {
+            _populateCustomerTypeSelect(_customerTypesCache);
+            callback();
+            return;
+        }
+        if (typeof UpstashService !== 'undefined' && UpstashService.isEnabled()) {
+            UpstashService.get(UpstashService.globalKey('customer-types')).then(function (data) {
+                if (data && Array.isArray(data) && data.length > 0) {
+                    _customerTypesCache = data;
+                    _populateCustomerTypeSelect(data);
+                    callback();
+                } else {
+                    _fetchCustomerTypesFromServer(callback);
+                }
+            }).catch(function () { _fetchCustomerTypesFromServer(callback); });
+        } else {
+            _fetchCustomerTypesFromServer(callback);
+        }
+    }
+
+    function _fetchCustomerTypesFromServer(callback) {
+        $.ajax({
+            url: '/customers/getCustomerTypes', method: 'GET', cache: false,
+            success: function (resp) {
+                var types = (!resp.Error && resp.Data) ? resp.Data : [];
+                _customerTypesCache = types;
+                _populateCustomerTypeSelect(types);
+                callback();
+            },
+            error: function () { callback(); }
+        });
     }
 
     // ── Open after body is ready ──────────────────────────────────────────────
@@ -115,8 +173,11 @@
                 else                   { $('#CM_Name').val(val); }
             }
             _ensureSalutations(function () {
-                _applyDefaultSalutation();
-                $('#CustomerFormModal').modal('show');
+                _ensureCustomerTypes(function () {
+                    _applyDefaultSalutation();
+                    _applyDefaultCustomerType();
+                    $('#CustomerFormModal').modal('show');
+                });
             });
             return;
         }
@@ -133,8 +194,10 @@
                     return;
                 }
                 _ensureSalutations(function () {
-                    _populateCustomerModal(type, response);
-                    $('#CustomerFormModal').modal('show');
+                    _ensureCustomerTypes(function () {
+                        _populateCustomerModal(type, response);
+                        $('#CustomerFormModal').modal('show');
+                    });
                 });
             },
             error: function () {

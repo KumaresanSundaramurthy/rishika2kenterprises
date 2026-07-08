@@ -58,7 +58,7 @@ class Inventory extends MY_Controller {
             $this->load->view('inventory/view', $this->pageData);
 
         } catch (Throwable $e) {
-            log_message('error', 'Inventory::index â€” ' . $e->getMessage());
+            log_message('error', 'Inventory::index — ' . $e->getMessage());
             redirect('dashboard', 'refresh');
         }
 

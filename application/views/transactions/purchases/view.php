@@ -112,10 +112,10 @@ $this->load->view('common/transactions/header'); ?>
                                             </div>
                                         </th>
                                         <th class="<?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?> table-serialno" style="width:44px">S.No</th>
-                                        <th class="col-sortable cursor-pointer user-select-none" data-sort="Number">
+                                        <th class="col-sortable cursor-pointer user-select-none" data-sort="Number" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">
                                             # Bill <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Number"></i>
                                         </th>
-                                        <th class="col-sortable cursor-pointer user-select-none" data-sort="Amount">
+                                        <th class="col-sortable cursor-pointer user-select-none" data-sort="Amount" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">
                                             Amount <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Amount"></i>
                                         </th>
                                         <th>Payment Status</th>
@@ -379,15 +379,30 @@ $(function () {
     // ── Column sort ─────────────────────────────────────────────
     $(document).on('click', '.col-sortable', function () {
         var col = $(this).data('sort');
-        if (Filter.SortBy === col) {
-            Filter.SortDir = (Filter.SortDir === 'ASC') ? 'DESC' : 'ASC';
-        } else {
+        var $th = $(this);
+        if (Filter.SortBy !== col) {
             Filter.SortBy  = col;
+            Filter.SortDir = 'ASC';
+        } else if (Filter.SortDir === 'ASC') {
             Filter.SortDir = 'DESC';
+        } else {
+            delete Filter.SortBy;
+            delete Filter.SortDir;
         }
+        $('.col-sortable').each(function () {
+            $(this).attr('data-bs-title', 'Click for ascending order');
+            var tt = bootstrap.Tooltip.getInstance(this);
+            if (tt) tt.setContent({ '.tooltip-inner': 'Click for ascending order' });
+        });
         $('.sort-icon').removeClass('bx-sort-up bx-sort-down').addClass('bx-sort-alt-2');
-        var icon = Filter.SortDir === 'ASC' ? 'bx-sort-up' : 'bx-sort-down';
-        $('.sort-icon[data-col="' + col + '"]').removeClass('bx-sort-alt-2').addClass(icon);
+        if (Filter.SortBy) {
+            var icon    = Filter.SortDir === 'ASC' ? 'bx-sort-up' : 'bx-sort-down';
+            var tipText = Filter.SortDir === 'ASC' ? 'Click for descending order' : 'Click to remove sorting';
+            $('.sort-icon[data-col="' + col + '"]').removeClass('bx-sort-alt-2').addClass(icon);
+            $th.attr('data-bs-title', tipText);
+            var tt = bootstrap.Tooltip.getInstance($th[0]);
+            if (tt) tt.setContent({ '.tooltip-inner': tipText });
+        }
         PageNo = 1;
         getPurchasesDetails();
     });

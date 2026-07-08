@@ -47,19 +47,45 @@ class Customers extends MY_Controller {
         try {
 
             $this->_initModule();
-            $limit = $this->pageData['Limit'];
-
-            $pageData = $this->_fetchTableData(1, $limit);
-            $this->pageData['ModRowData']    = $pageData->RecordHtmlData;
-            $this->pageData['ModPagination'] = $pageData->Pagination;
+            $limit  = $this->pageData['Limit'];
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
 
             $this->load->model('customers_model');
-            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
-            $this->pageData['CustStats']        = $this->customers_model->getCustomerStats($orgUID);
-            $this->pageData['CustomerTypeList'] = $this->customers_model->getCustomerTypeList($orgUID);
-            $this->pageData['CustomerGroupList']= $this->customers_model->getActiveGroupsForDropdown($orgUID);
-            $this->pageData['Tags']             = $this->customers_model->getCustomerTags($orgUID);
-            $this->pageData['GroupTypes']       = $this->_groupTypesList();
+
+            $tabSlugMap = ['all' => 'All', 'groups' => 'Groups'];
+            $tabSlug    = strtolower(trim($this->input->get('tab') ?: 'all'));
+            $initTab    = $tabSlugMap[$tabSlug] ?? 'All';
+            $initSearch = trim($this->input->get('search') ?: '');
+
+            // Default empty state for groups (filled only when landing on groups tab)
+            $this->pageData['GrpRowData']    = '';
+            $this->pageData['GrpPagination'] = '';
+            $this->pageData['GrpStats']      = null;
+            $this->pageData['GrpTotal']      = 0;
+
+            if ($initTab !== 'Groups') {
+                $pageData = $this->_fetchTableData(1, $limit);
+                $this->pageData['ModRowData']    = $pageData->RecordHtmlData;
+                $this->pageData['ModPagination'] = $pageData->Pagination;
+            } else {
+                $this->pageData['ModRowData']    = '';
+                $this->pageData['ModPagination'] = '';
+                $grpFilter = strlen($initSearch) >= 3 ? ['SearchAllData' => $initSearch] : [];
+                $grpPage   = $this->_fetchGroupsTableData(1, $limit, $grpFilter);
+                $this->pageData['GrpRowData']    = $grpPage->RecordHtmlData;
+                $this->pageData['GrpPagination'] = $grpPage->Pagination;
+                $_showStats = (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
+                $this->pageData['GrpStats']      = $_showStats ? $this->customers_model->getGroupStats($orgUID) : null;
+                $this->pageData['GrpTotal']      = $grpPage->TotalCount;
+            }
+
+            $this->pageData['InitTab']    = $initTab;
+            $this->pageData['InitSearch'] = $initSearch;
+
+            $this->pageData['CustStats']         = $this->customers_model->getCustomerStats($orgUID);
+            $this->pageData['CustomerGroupList'] = $this->customers_model->getActiveGroupsForDropdown($orgUID);
+            $this->pageData['Tags']              = $this->customers_model->getCustomerTags($orgUID);
+            $this->pageData['GroupTypes']        = $this->_groupTypesList();
 
             // Resolve org phone country code from JwtData (sourced from OrganisationTbl at login)
             $this->pageData['OrgCCode'] = $this->pageData['JwtData']->Org->OrgCCode  ?? '';
@@ -247,6 +273,15 @@ class Customers extends MY_Controller {
             // Success is confirmed — customer is saved
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Created Successfully';
+            $this->auditlog->log(
+                (int) $this->pageData['JwtData']->Org->OrgUID,
+                (int) $this->pageData['JwtData']->User->UserUID,
+                'CREATE_CUSTOMER', 'Customer', (int) $CustomerUID, (string) $custName,
+                [], "Created customer {$custName}", 'Customers',
+                'MASTER', 'SUCCESS', '', 'WEB',
+                [],
+                $customerFormData
+            );
 
             // List + stats are optional extras; failures here must NOT flip Error to true
             if ($this->input->post('returnList') == 1) {
@@ -287,8 +322,6 @@ class Customers extends MY_Controller {
 
             $orgUID = $this->pageData['JwtData']->Org->OrgUID;
             $this->load->model('customers_model');
-            $this->pageData['CustomerTypeList'] = $this->customers_model->getCustomerTypeList($orgUID);
-
             $this->pageData['CustomerGroupList'] = $this->customers_model->getActiveGroupsForDropdown($orgUID);
 
             $formData     = null;
@@ -315,7 +348,7 @@ class Customers extends MY_Controller {
                 'BankDetails'       => $bankDetails,
                 'BillingAddr'       => $billingAddr,
                 'ShippingAddr'      => $shippingAddr,
-                'CustomerTypeList'  => $this->pageData['CustomerTypeList'],
+                'CustomerTypeList'  => [],
                 'CustomerGroupList' => $this->pageData['CustomerGroupList'],
                 'OrgCCode'          => $this->pageData['JwtData']->Org->OrgCCode  ?? '',
                 'OrgCISO2'          => $this->pageData['JwtData']->Org->OrgCISO2  ?? '',
@@ -624,6 +657,14 @@ class Customers extends MY_Controller {
             $pageData = $this->_fetchTableData($pageNo, $this->pageData['Limit']);
             $this->EndReturnData->Error      = FALSE;
             $this->EndReturnData->Message    = 'Updated Successfully';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'UPDATE_CUSTOMER', 'Customer', (int) $CustomerUID, (string) $newName,
+                [], "Updated customer {$newName}", 'Customers',
+                'MASTER', 'SUCCESS', '', 'WEB',
+                $oldDCRow ? (array) $oldDCRow : [],
+                $customerFormData
+            );
             $this->EndReturnData->List       = $pageData->RecordHtmlData;
             $this->EndReturnData->Pagination = $pageData->Pagination;
             $this->EndReturnData->Stats      = $this->customers_model->getCustomerStats($this->pageData['JwtData']->Org->OrgUID);
@@ -680,6 +721,15 @@ class Customers extends MY_Controller {
 
             $this->EndReturnData->Error      = FALSE;
             $this->EndReturnData->Message    = 'Deleted Successfully';
+            $this->auditlog->log(
+                (int) $this->pageData['JwtData']->Org->OrgUID,
+                (int) $this->pageData['JwtData']->User->UserUID,
+                'DELETE_CUSTOMER', 'Customer', (int) $CustomerUID, (string) ($customer->Name ?? ''),
+                [], "Deleted customer " . ($customer->Name ?? $CustomerUID), 'Customers',
+                'MASTER', 'SUCCESS', '', 'WEB',
+                (array) $customer,
+                []
+            );
             $this->EndReturnData->List       = $pageData->RecordHtmlData;
             $this->EndReturnData->Pagination = $pageData->Pagination;
             $this->EndReturnData->Stats      = $this->customers_model->getCustomerStats($this->pageData['JwtData']->Org->OrgUID);
@@ -779,6 +829,15 @@ class Customers extends MY_Controller {
             $pageData = $this->_fetchTableData($pageNo, $this->pageData['Limit']);
             $this->EndReturnData->Error      = false;
             $this->EndReturnData->Message    = 'Status updated successfully';
+            $this->auditlog->log(
+                (int) $this->pageData['JwtData']->Org->OrgUID,
+                (int) $this->pageData['JwtData']->User->UserUID,
+                'TOGGLE_CUSTOMER_STATUS', 'Customer', (int) $CustomerUID, '',
+                ['isActive' => $newStatus], ($newStatus ? 'Activated' : 'Deactivated') . " customer #{$CustomerUID}", 'Customers',
+                'MASTER', 'SUCCESS', '', 'WEB',
+                ['IsActive' => 1 - $newStatus],
+                ['IsActive' => $newStatus]
+            );
             $this->EndReturnData->Stats      = $this->customers_model->getCustomerStats($this->pageData['JwtData']->Org->OrgUID);
             $this->EndReturnData->List       = $pageData->RecordHtmlData;
             $this->EndReturnData->Pagination = $pageData->Pagination;
@@ -848,6 +907,15 @@ class Customers extends MY_Controller {
 
             $this->EndReturnData->Error      = FALSE;
             $this->EndReturnData->Message    = count($CustomerUIDs) . ' customer(s) deleted successfully';
+            $this->auditlog->log(
+                (int) $this->pageData['JwtData']->Org->OrgUID,
+                (int) $this->pageData['JwtData']->User->UserUID,
+                'BULK_DELETE_CUSTOMERS', 'Customer', 0, implode(',', $CustomerUIDs),
+                ['count' => count($CustomerUIDs)], 'Bulk deleted ' . count($CustomerUIDs) . ' customer(s)', 'Customers',
+                'MASTER', 'SUCCESS', '', 'WEB',
+                ['deletedUIDs' => $CustomerUIDs],
+                []
+            );
             $this->EndReturnData->List       = $pageData->RecordHtmlData;
             $this->EndReturnData->Pagination = $pageData->Pagination;
             $this->EndReturnData->Stats      = $this->customers_model->getCustomerStats($this->pageData['JwtData']->Org->OrgUID);
@@ -948,6 +1016,8 @@ class Customers extends MY_Controller {
             }
 
             $this->load->model('customers_model');
+            $oldBalRow = $this->customers_model->getCustomerOpeningBalance($orgUID, $customerUID);
+            $oldBalData = $oldBalRow ? ['balance' => $oldBalRow->OpeningBalance, 'balanceType' => $oldBalRow->OpeningBalType] : [];
             $id = $this->customers_model->saveCustomerOpeningBalance(
                 $orgUID, $customerUID, $balance, $balanceType, $notes, $userUID
             );
@@ -959,6 +1029,15 @@ class Customers extends MY_Controller {
 
             $this->EndReturnData->Error          = FALSE;
             $this->EndReturnData->Message        = 'Opening balance saved successfully.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'SET_CUSTOMER_OPENING_BALANCE', 'Customer', (int) $customerUID, '',
+                ['balance' => $balance, 'balanceType' => $balanceType, 'financialYear' => $financialYear],
+                "Set opening balance {$balanceType} {$balance} for customer #{$customerUID}", 'Customers',
+                'MASTER', 'SUCCESS', '', 'WEB',
+                $oldBalData,
+                ['balance' => $balance, 'balanceType' => $balanceType, 'financialYear' => $financialYear]
+            );
             $this->EndReturnData->OpeningBalUID  = $id;
             $this->EndReturnData->FinancialYear  = $financialYear;
 
@@ -1295,6 +1374,21 @@ class Customers extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
+    // Global key — direct DB fetch, no Upstash check (JS already missed); no write back
+    public function getCustomerTypes(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $this->load->model('customers_model');
+            $this->EndReturnData->Error = false;
+            $this->EndReturnData->Data  = $this->customers_model->getCustomerTypesFromDB();
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+            $this->EndReturnData->Data    = [];
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
     private function _fetchGroupsTableData($pageNo, $limit, $filter = []) {
         $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
         $offset  = max(0, ($pageNo - 1) * $limit);
@@ -1325,7 +1419,8 @@ class Customers extends MY_Controller {
             $this->EndReturnData->RecordHtmlData = $pageData->RecordHtmlData;
             $this->EndReturnData->Pagination     = $pageData->Pagination;
             $this->EndReturnData->TotalCount     = $pageData->TotalCount;
-            $this->EndReturnData->Stats          = $this->customers_model->getGroupStats($this->pageData['JwtData']->Org->OrgUID);
+            $_showStats = (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
+            $this->EndReturnData->Stats = $_showStats ? $this->customers_model->getGroupStats($this->pageData['JwtData']->Org->OrgUID) : null;
         } catch (Exception $e) {
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
@@ -1407,6 +1502,14 @@ class Customers extends MY_Controller {
             $this->dbwrite_model->commitTransaction();
             $this->EndReturnData->Error     = false;
             $this->EndReturnData->Message   = 'Customer Group created successfully.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'CREATE_CUSTOMER_GROUP', 'CustomerGroup', (int) $groupUID, (string) $groupName,
+                [], "Created customer group {$groupName}", 'Customers',
+                'MASTER', 'SUCCESS', '', 'WEB',
+                [],
+                $data
+            );
             $this->EndReturnData->GroupUID  = $groupUID;
             $this->EndReturnData->GroupName = $groupName;
 
@@ -1423,7 +1526,8 @@ class Customers extends MY_Controller {
             $this->EndReturnData->RecordHtmlData = $pageData->RecordHtmlData;
             $this->EndReturnData->Pagination     = $pageData->Pagination;
             $this->EndReturnData->TotalCount     = $pageData->TotalCount;
-            $this->EndReturnData->Stats          = $this->customers_model->getGroupStats($orgUID);
+            $_showStats = (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
+            $this->EndReturnData->Stats = $_showStats ? $this->customers_model->getGroupStats($orgUID) : null;
         } catch (InvalidArgumentException $e) {
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = true;
@@ -1486,15 +1590,24 @@ class Customers extends MY_Controller {
                 'Notes'             => trim($post['Notes']             ?? '') ?: null,
                 'UpdatedBy'         => $userUID,
             ];
+            $this->load->model('customers_model');
+            $oldGroup = $this->customers_model->getGroupByUID($orgUID, $groupUID);
             $resp = $this->dbwrite_model->updateData('Customers', 'CustomerGroupTbl', $data, ['GroupUID' => $groupUID, 'OrgUID' => $orgUID]);
             if ($resp->Error) throw new Exception($resp->Message);
             $memberUIDs = array_values(array_filter(array_map('intval', (array)($post['MemberUIDs'] ?? []))));
             $primaryUID = (int)($post['PrimaryUID'] ?? 0);
-            $this->load->model('customers_model');
             $this->customers_model->syncGroupMembers($orgUID, $groupUID, $memberUIDs, $primaryUID, $userUID);
             $this->dbwrite_model->commitTransaction();
             $this->EndReturnData->Error     = false;
             $this->EndReturnData->Message   = 'Customer Group updated successfully.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'UPDATE_CUSTOMER_GROUP', 'CustomerGroup', (int) $groupUID, (string) $groupName,
+                [], "Updated customer group {$groupName}", 'Customers',
+                'MASTER', 'SUCCESS', '', 'WEB',
+                $oldGroup ? (array) $oldGroup : [],
+                $data
+            );
             $this->EndReturnData->GroupUID  = $groupUID;
             $this->EndReturnData->GroupName = $groupName;
 
@@ -1533,6 +1646,7 @@ class Customers extends MY_Controller {
             if (!$groupUID) throw new Exception('Group ID is missing.');
             $this->load->model('dbwrite_model');
             $this->load->model('customers_model');
+            $oldGroup = $this->customers_model->getGroupByUID($orgUID, $groupUID);
             $this->dbwrite_model->startTransaction();
             $this->customers_model->unlinkAllGroupMembers($orgUID, $groupUID, $userUID);
             $resp = $this->dbwrite_model->updateData('Customers', 'CustomerGroupTbl',
@@ -1545,9 +1659,18 @@ class Customers extends MY_Controller {
             $pageData = $this->_fetchGroupsTableData($pageNo, $this->pageData['Limit']);
             $this->EndReturnData->Error          = false;
             $this->EndReturnData->Message        = 'Group deleted successfully.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'DELETE_CUSTOMER_GROUP', 'CustomerGroup', (int) $groupUID, (string) ($oldGroup->GroupName ?? ''),
+                [], "Deleted customer group #{$groupUID}", 'Customers',
+                'MASTER', 'SUCCESS', '', 'WEB',
+                $oldGroup ? (array) $oldGroup : [],
+                []
+            );
             $this->EndReturnData->RecordHtmlData = $pageData->RecordHtmlData;
             $this->EndReturnData->Pagination     = $pageData->Pagination;
-            $this->EndReturnData->Stats          = $this->customers_model->getGroupStats($orgUID);
+            $_showStats = (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
+            $this->EndReturnData->Stats = $_showStats ? $this->customers_model->getGroupStats($orgUID) : null;
         } catch (Exception $e) {
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = true;
@@ -1577,9 +1700,18 @@ class Customers extends MY_Controller {
             $this->load->model('customers_model');
             $this->EndReturnData->Error          = false;
             $this->EndReturnData->Message        = 'Status updated successfully.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'TOGGLE_CUSTOMER_GROUP_STATUS', 'CustomerGroup', (int) $groupUID, '',
+                ['isActive' => $newStatus], ($newStatus ? 'Activated' : 'Deactivated') . " customer group #{$groupUID}", 'Customers',
+                'MASTER', 'SUCCESS', '', 'WEB',
+                ['IsActive' => 1 - $newStatus],
+                ['IsActive' => $newStatus]
+            );
             $this->EndReturnData->RecordHtmlData = $pageData->RecordHtmlData;
             $this->EndReturnData->Pagination     = $pageData->Pagination;
-            $this->EndReturnData->Stats          = $this->customers_model->getGroupStats($orgUID);
+            $_showStats = (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
+            $this->EndReturnData->Stats = $_showStats ? $this->customers_model->getGroupStats($orgUID) : null;
         } catch (Exception $e) {
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();

@@ -138,6 +138,11 @@ class Expenses extends MY_Controller {
 
             $this->EndReturnData->Error         = FALSE;
             $this->EndReturnData->Message       = 'Expense recorded successfully.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'ADD_EXPENSE', 'Expense', (int) $expenseUID, (string) $expenseNumber,
+                [], 'Created expense ' . $expenseNumber, 'Expenses', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
+            );
             $this->EndReturnData->ExpenseUID    = $expenseUID;
             $this->EndReturnData->ExpenseNumber = $expenseNumber;
 
@@ -201,6 +206,11 @@ class Expenses extends MY_Controller {
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Expense updated successfully.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'UPDATE_EXPENSE', 'Expense', (int) $expenseUID, (string) ($existing->ExpenseNumber ?? ''),
+                [], 'Updated expense ' . ($existing->ExpenseNumber ?? ''), 'Expenses', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
+            );
 
         } catch (Throwable $e) {
             $this->EndReturnData->Error   = TRUE;
@@ -257,6 +267,11 @@ class Expenses extends MY_Controller {
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Expense deleted.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'DELETE_EXPENSE', 'Expense', (int) $expenseUID, (string) ($existing->ExpenseNumber ?? ''),
+                [], 'Deleted expense ' . ($existing->ExpenseNumber ?? ''), 'Expenses', 'TRANSACTION'
+            );
 
         } catch (Throwable $e) {
             $this->EndReturnData->Error   = TRUE;
@@ -321,6 +336,11 @@ class Expenses extends MY_Controller {
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = $newNumber . ' created as a duplicate.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'DUPLICATE_EXPENSE', 'Expense', (int) $newUID, (string) $newNumber,
+                [], 'Duplicated expense ' . $newNumber, 'Expenses', 'TRANSACTION'
+            );
 
         } catch (Throwable $e) {
             $this->EndReturnData->Error   = TRUE;
@@ -462,6 +482,11 @@ class Expenses extends MY_Controller {
             $this->EndReturnData->Message = $isFullyPaid
                 ? 'Expense marked as paid.'
                 : 'Partial payment recorded. Balance remaining: ' . $balanceAmount . '.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'RECORD_EXPENSE_PAYMENT', 'Expense', (int) $expenseUID, (string) ($existing->ExpenseNumber ?? ''),
+                ['Amount' => $paymentAmount], 'Recorded payment for expense ' . ($existing->ExpenseNumber ?? ''), 'Expenses', 'PAYMENT'
+            );
 
         } catch (Throwable $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -607,6 +632,11 @@ class Expenses extends MY_Controller {
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Status updated to ' . $newStatus . '.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'UPDATE_EXPENSE_STATUS', 'Expense', (int) $expenseUID, (string) ($existing->ExpenseNumber ?? ''),
+                ['NewStatus' => $newStatus], 'Updated expense status ' . ($existing->ExpenseNumber ?? ''), 'Expenses', 'TRANSACTION'
+            );
 
         } catch (Throwable $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -686,6 +716,11 @@ class Expenses extends MY_Controller {
 
             $this->EndReturnData->Error        = FALSE;
             $this->EndReturnData->Message      = 'Category added.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'CREATE_EXPENSE_CATEGORY', 'ExpenseCategory', (int) $resp->ID, (string) $categoryName,
+                [], 'Created expense category ' . $categoryName, 'Expenses', 'MASTER'
+            );
             $this->EndReturnData->CategoryUID  = $resp->ID;
             $this->EndReturnData->CategoryName = $categoryName;
             $this->_appendCategoryListResponse($orgUID);
@@ -741,6 +776,11 @@ class Expenses extends MY_Controller {
 
             $this->EndReturnData->Error        = FALSE;
             $this->EndReturnData->Message      = 'Category updated.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'UPDATE_EXPENSE_CATEGORY', 'ExpenseCategory', (int) $categoryUID, (string) $name,
+                [], 'Updated expense category ' . $name, 'Expenses', 'MASTER'
+            );
             $this->EndReturnData->CategoryUID  = $categoryUID;
             $this->EndReturnData->CategoryName = $name;
             $this->_appendCategoryListResponse($orgUID);
@@ -775,6 +815,11 @@ class Expenses extends MY_Controller {
 
             $this->EndReturnData->Error       = FALSE;
             $this->EndReturnData->Message     = 'Category deleted.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'DELETE_EXPENSE_CATEGORY', 'ExpenseCategory', (int) $categoryUID, '',
+                [], 'Deleted expense category #' . $categoryUID, 'Expenses', 'MASTER'
+            );
             $this->EndReturnData->CategoryUID = $categoryUID;
             $this->_appendCategoryListResponse($orgUID);
         } catch (Throwable $e) {

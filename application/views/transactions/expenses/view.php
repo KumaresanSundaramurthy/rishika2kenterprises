@@ -89,7 +89,7 @@ $this->load->view('common/transactions/header'); ?>
                                 <i class="bx bx-search r2k-si"></i>
                                 <input type="text" id="searchExpenseData" placeholder="Expense # or category...">
                             </div>
-                            <a href="javascript:void(0);" id="expCatFilterBtn" class="apex-filter-btn" onclick="toggleExpCatFilter(); event.stopPropagation();" title="Filter by Category"><i class="bx bx-category me-1"></i>Category</a>
+                            <a href="javascript:void(0);" id="expCatFilterBtn" class="apex-filter-btn" title="Filter by Category"><i class="bx bx-category me-1"></i>Category</a>
                             <a href="javascript:void(0);" id="expStatusFilterBtn" class="apex-filter-btn" title="Filter by Status"><i class="bx bx-transfer me-1"></i>Status</a>
                             <a href="javascript:void(0);" id="expModeFilterBtn" class="apex-filter-btn" title="Filter by Mode"><i class="bx bx-credit-card me-1"></i> Payment Mode</a>
                             <?php if (count($OrgUsers ?? []) > 1): ?>
@@ -124,8 +124,8 @@ $this->load->view('common/transactions/header'); ?>
                                     <tr>
                                         <th style="width:36px"><div class="form-check mb-0"><input class="form-check-input table-chkbox expHeaderCheck" type="checkbox"></div></th>
                                         <th class="<?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?> table-serialno" style="width:44px">S.No</th>
-                                        <th class="col-sortable cursor-pointer user-select-none" data-sort="Number">Expense # <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Number"></i></th>
-                                        <th class="col-sortable cursor-pointer user-select-none" data-sort="Amount">Amount <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Amount"></i></th>
+                                        <th class="col-sortable cursor-pointer user-select-none" data-sort="Number" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">Expense # <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Number"></i></th>
+                                        <th class="col-sortable cursor-pointer user-select-none" data-sort="Amount" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">Amount <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Amount"></i></th>
                                         <th>Category / Notes</th>
                                         <th>Status</th>
                                         <th>Mode</th>
@@ -426,27 +426,17 @@ $this->load->view('common/transactions/payment_modal');
 
 <?php $this->load->view('common/transactions/footer'); ?>
 
-<div id="expCatFilterBox" class="card mp-filterbox" style="min-width:230px;z-index:9999;display:none;position:fixed;">
-    <div class="catg-filter-header">
-        <span class="catg-filter-title"><i class="bx bx-category me-1"></i> Category</span>
-        <div class="d-flex align-items-center gap-2">
-            <span class="badge bg-primary" id="expCatFilterCount" style="display:none;"></span>
-            <button type="button" class="catg-filter-close-btn" onclick="closeExpCatFilter()" title="Close">&times;</button>
-        </div>
-    </div>
-    <div class="catg-filter-search-wrap">
-        <input type="text" id="expCatFilterSearch" class="form-control form-control-sm" placeholder="Search categories...">
-    </div>
-    <div class="catg-select-all-wrap">
-        <input type="checkbox" class="form-check-input" id="expCatSelectAll" onchange="toggleAllExpCats(this)">
-        <label class="small fw-semibold mb-0" for="expCatSelectAll" id="expCatSelectAllLabel">Select All</label>
-    </div>
-    <div id="expCatList" class="catg-list" style="max-height:180px;overflow-y:auto;"></div>
-    <div class="catg-filter-footer">
-        <button type="button" class="btn btn-primary btn-sm" onclick="applyExpCatFilter()"><i class="bx bx-check me-1"></i>Apply</button>
-        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetExpCatFilter()"><i class="bx bx-reset me-1"></i>Reset</button>
-    </div>
-</div>
+<?php $this->load->view('common/transactions/col_filter_box', ['ColFilterConfig' => [
+    'id'         => 'expCatFilterBox',
+    'triggerId'  => 'expCatFilterBtn',
+    'title'      => 'Category',
+    'icon'       => 'bx-category',
+    'filterKey'  => 'CategoryUIDs',
+    'checkClass' => 'exp-cat-chk',
+    'items'      => array_map(function($c) {
+        return ['value' => (string)(int)$c->CategoryUID, 'label' => $c->CategoryName];
+    }, $categories ?? []),
+]]); ?>
 
 <!-- ── Status Filter Box ─────────────────────────────────────────────────── -->
 <?php $this->load->view('common/transactions/col_filter_box', [
@@ -510,80 +500,36 @@ $(function () {
 
     Filter['Status'] = 'All';
 
-    // ── Expense Category Filter ──────────────────────────────────────────────
+    // ── Expense Category Filter (TransColFilter) ─────────────────────────────
     var _expCatData = <?php echo json_encode(array_map(function($c) {
         return ['uid' => (int)$c->CategoryUID, 'name' => $c->CategoryName];
     }, $categories)); ?>;
 
-    function _buildExpCatList(cats) {
-        if (!cats.length) {
-            $('#expCatList').html('<div class="text-muted text-center py-3" style="font-size:.8rem;">No categories</div>');
-            return;
+    var expCatColFilter = new TransColFilter({
+        boxId     : 'expCatFilterBox',
+        triggerId : 'expCatFilterBtn',
+        filterKey : 'CategoryUIDs',
+        onApply   : function () {
+            var s = expCatColFilter.getState();
+            if (s.CategoryUIDs && s.CategoryUIDs.length) Filter['CategoryUIDs'] = s.CategoryUIDs;
+            else delete Filter['CategoryUIDs'];
+            PageNo = 1; getExpensesDetails();
         }
-        var html = '';
-        cats.forEach(function (c) {
-            html += '<label class="catg-list-item">' +
-                        '<input class="form-check-input exp-cat-chk" type="checkbox" value="' + c.uid + '">' +
-                        '<span>' + $('<span>').text(c.name).html() + '</span>' +
-                    '</label>';
-        });
-        $('#expCatList').html(html);
-    }
+    });
 
     function _rebuildExpCatFilter() {
-        var checked = $('.exp-cat-chk:checked').map(function () { return $(this).val(); }).get();
-        _buildExpCatList(_expCatData);
-        checked.forEach(function (v) { $('.exp-cat-chk[value="' + v + '"]').prop('checked', true); });
-        var total = $('.exp-cat-chk').length, chkd = $('.exp-cat-chk:checked').length;
-        $('#expCatSelectAll').prop('checked', total > 0 && total === chkd);
-        $('#expCatSelectAllLabel').text(total > 0 && total === chkd ? 'Deselect All' : 'Select All');
-    }
-
-    window.toggleExpCatFilter = function () {
-        var $box = $('#expCatFilterBox');
-        if ($box.is(':visible')) { $box.hide(); return; }
-        var rect = document.getElementById('expCatFilterBtn').getBoundingClientRect();
-        $box.css({ top: (rect.bottom + 4) + 'px', left: Math.max(4, rect.right - 230) + 'px' }).show();
-    };
-    window.closeExpCatFilter = function () { $('#expCatFilterBox').hide(); };
-    window.toggleAllExpCats  = function (el) {
-        var checked = $(el).is(':checked');
-        $('#expCatList .exp-cat-chk').prop('checked', checked);
-        $('#expCatSelectAllLabel').text(checked ? 'Deselect All' : 'Select All');
-    };
-    window.applyExpCatFilter = function () {
-        var sel = $('.exp-cat-chk:checked').map(function () { return $(this).val(); }).get();
-        if (sel.length) Filter['CategoryUIDs'] = sel; else delete Filter['CategoryUIDs'];
-        $('#expCatFilterBox').hide();
-        $('#expCatFilterBtn').toggleClass('text-primary', !!sel.length);
-        PageNo = 1; getExpensesDetails();
-    };
-    window.resetExpCatFilter = function () {
-        $('.exp-cat-chk').prop('checked', false);
-        $('#expCatSelectAll').prop('checked', false);
-        $('#expCatSelectAllLabel').text('Select All');
-        delete Filter['CategoryUIDs'];
-        $('#expCatFilterBox').hide();
-        $('#expCatFilterBtn').removeClass('text-primary');
-        PageNo = 1; getExpensesDetails();
-    };
-
-    $(document).on('input', '#expCatFilterSearch', function () {
-        var term = $(this).val().toLowerCase();
-        $('#expCatList .catg-list-item').each(function () {
-            $(this).toggle($(this).text().toLowerCase().includes(term));
+        var selected = $('.exp-cat-chk:checked').map(function () { return $(this).val(); }).get();
+        var html = '';
+        _expCatData.forEach(function (c) {
+            var isChk = selected.indexOf(String(c.uid)) !== -1 ? ' checked' : '';
+            html += '<label class="catg-list-item">' +
+                '<input class="form-check-input exp-cat-chk" type="checkbox" value="' + c.uid + '"' + isChk + '>' +
+                '<span>' + $('<span>').text(c.name).html() + '</span>' +
+                '</label>';
         });
-    });
-    $(document).on('change', '.exp-cat-chk', function () {
-        var total = $('.exp-cat-chk').length, chkd = $('.exp-cat-chk:checked').length;
-        $('#expCatSelectAll').prop('checked', total > 0 && total === chkd);
-        $('#expCatSelectAllLabel').text(total > 0 && total === chkd ? 'Deselect All' : 'Select All');
-    });
-    $(document).on('click', function (e) {
-        if (!$(e.target).closest('#expCatFilterBox, #expCatFilterBtn').length) $('#expCatFilterBox').hide();
-    });
-
-    _buildExpCatList(_expCatData);
+        if (!html) html = '<div class="text-muted text-center py-3" style="font-size:.8rem;">No categories</div>';
+        $('#expCatFilterBox .catg-list').html(html);
+    }
     // ────────────────────────────────────────────────────────────────────────
 
     // ── Status filter (TransColFilter) ───────────────────────────────────────
@@ -623,11 +569,6 @@ $(function () {
             if (vals.length) Filter['UpdatedByUIDs'] = vals; else delete Filter['UpdatedByUIDs'];
             PageNo = 1; getExpensesDetails();
         }
-    });
-
-    // Close old-style category box when any TransColFilter box opens
-    $('#expStatusFilterBtn, #expModeFilterBtn, #expUserFilterBtn').on('click', function () {
-        $('#expCatFilterBox').hide();
     });
 
     var expCurSymbol    = '<?php echo addslashes($cur); ?>';
@@ -761,11 +702,32 @@ $(function () {
 
     $(document).on('click', '.col-sortable', function () {
         var col = $(this).data('sort');
-        if (Filter.SortBy === col) Filter.SortDir = Filter.SortDir === 'ASC' ? 'DESC' : 'ASC';
-        else { Filter.SortBy = col; Filter.SortDir = 'DESC'; }
+        var $th = $(this);
+        if (Filter.SortBy !== col) {
+            Filter.SortBy  = col;
+            Filter.SortDir = 'ASC';
+        } else if (Filter.SortDir === 'ASC') {
+            Filter.SortDir = 'DESC';
+        } else {
+            delete Filter.SortBy;
+            delete Filter.SortDir;
+        }
+        $('.col-sortable').each(function () {
+            $(this).attr('data-bs-title', 'Click for ascending order');
+            var tt = bootstrap.Tooltip.getInstance(this);
+            if (tt) tt.setContent({ '.tooltip-inner': 'Click for ascending order' });
+        });
         $('.sort-icon').removeClass('bx-sort-up bx-sort-down').addClass('bx-sort-alt-2');
-        $('.sort-icon[data-col="' + col + '"]').removeClass('bx-sort-alt-2').addClass(Filter.SortDir === 'ASC' ? 'bx-sort-up' : 'bx-sort-down');
-        PageNo = 1; getExpensesDetails();
+        if (Filter.SortBy) {
+            var icon    = Filter.SortDir === 'ASC' ? 'bx-sort-up' : 'bx-sort-down';
+            var tipText = Filter.SortDir === 'ASC' ? 'Click for descending order' : 'Click to remove sorting';
+            $('.sort-icon[data-col="' + col + '"]').removeClass('bx-sort-alt-2').addClass(icon);
+            $th.attr('data-bs-title', tipText);
+            var tt = bootstrap.Tooltip.getInstance($th[0]);
+            if (tt) tt.setContent({ '.tooltip-inner': tipText });
+        }
+        PageNo = 1;
+        getExpensesDetails();
     });
 
     $(document).on('click', '.expPagination .page-link', function (e) {

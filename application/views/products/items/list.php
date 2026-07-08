@@ -1,6 +1,9 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php
+$hideType = $HideType ?? false;
+$showUnit = $ShowUnit ?? false;
+
 if (!empty($DataLists)) {
     foreach ($DataLists as $i => $row) {
 
@@ -12,7 +15,6 @@ if (!empty($DataLists)) {
         $_words   = preg_split('/\s+/', trim($row->ItemName));
         $_initials = strtoupper(substr($_words[0], 0, 1));
         if (isset($_words[1]) && $_words[1] !== '') $_initials .= strtoupper(substr($_words[1], 0, 1));
-
         $typeBadge = ($row->ProductType === 'Service')
             ? '<span class="badge bg-label-info">Service</span>'
             : '<span class="badge bg-label-primary">Product</span>';
@@ -101,7 +103,7 @@ if (!empty($DataLists)) {
                     <div>
                         <div class="text-dark fw-semibold"><?php echo htmlspecialchars($row->ItemName); ?><?php echo $comboBadge; ?></div>
                         <div class="d-flex align-items-center gap-2 mt-1" style="font-size:0.75rem;">
-                            <?php echo $typeBadge; ?>
+                            <?php if (!$hideType) echo $typeBadge; ?>
                             <?php if (!empty($row->HSNSACCode)): ?>
                                 <span class="text-muted"><?php echo htmlspecialchars($row->HSNSACCode); ?></span>
                             <?php endif; ?>
@@ -145,10 +147,18 @@ if (!empty($DataLists)) {
                 </div>
             </td>
 
-            <!-- Category -->
+            <!-- Category (items tab only) -->
+            <?php if (!$showUnit): ?>
             <td><?php echo htmlspecialchars($row->CategoryName ?? '—'); ?></td>
+            <?php endif; ?>
 
-            <!-- Qty -->
+            <!-- Unit (groups tab only) -->
+            <?php if ($showUnit): ?>
+            <td><?php echo htmlspecialchars($row->PUShortName ?? '—'); ?></td>
+            <?php endif; ?>
+
+            <!-- Qty (items tab only) -->
+            <?php if (!$showUnit): ?>
             <td>
                 <?php if ($row->IsComposite || $row->ProductType === 'Service'): ?>
                     <span class="text-muted">—</span>
@@ -165,6 +175,7 @@ if (!empty($DataLists)) {
                     }
                 endif; ?>
             </td>
+            <?php endif; ?>
 
             <!-- MRP -->
             <td>
@@ -181,7 +192,8 @@ if (!empty($DataLists)) {
                 <?php echo $sellingTaxStr; ?>
             </td>
 
-            <!-- Purchase Price -->
+            <!-- Purchase Price (items tab only) -->
+            <?php if (!$showUnit): ?>
             <td>
                 <?php if ($row->IsComposite): ?>
                     <span class="text-muted">—</span>
@@ -190,6 +202,7 @@ if (!empty($DataLists)) {
                     <?php echo $purchaseTaxStr; ?>
                 <?php endif; ?>
             </td>
+            <?php endif; ?>
 
             <!-- Last Updated -->
             <td>
@@ -212,7 +225,7 @@ if (!empty($DataLists)) {
 
             <!-- Actions: edit icon + 3-dot dropdown -->
             <td>
-                <div class="d-flex align-items-center justify-content-end gap-1">
+                <div class="d-flex align-items-center justify-content-center gap-1">
 
                     <a href="javascript:void(0);" class="btn btn-icon btn-sm text-warning EditProduct"
                        data-uid="<?php echo $uid; ?>"
@@ -268,7 +281,7 @@ if (!empty($DataLists)) {
 
         <?php if ($row->IsComposite): ?>
         <tr id="combo-bom-row-<?php echo $uid; ?>" class="d-none combo-bom-row">
-            <td colspan="11" class="p-0">
+            <td colspan="<?php echo $showUnit ? 9 : 11; ?>" class="p-0">
                 <div class="combo-bom-content px-3 py-0" style="border-left:4px solid #fd7e14;background:linear-gradient(to right,rgba(253,126,20,.06),transparent 60%);">
                     <div class="combo-bom-loading text-muted small py-2 ps-1">
                         <i class="bx bx-loader-alt bx-spin me-1"></i> Loading components...
@@ -282,7 +295,7 @@ if (!empty($DataLists)) {
 } else { ?>
 
     <tr>
-        <td colspan="11">
+        <td colspan="<?php echo $showUnit ? 9 : 11; ?>">
             <div class="d-flex justify-content-center align-items-center vh-50">
                 <div class="d-flex flex-column align-items-center w-100" style="max-width:500px;">
                     <div class="w-100 mb-3 d-flex justify-content-center align-items-center flex-grow-1">

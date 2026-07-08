@@ -1197,16 +1197,6 @@ tr:hover .apex-party-actions {
     font-weight: 600;
 }
 
-/* ── Groups tab: hide Category (5), Qty (6), Purchase Price (9) ────────── */
-/* Use > (direct child) to avoid hiding columns inside nested BOM sub-tables */
-#GroupsTable > thead > tr > th:nth-child(5),
-#GroupsTable > thead > tr > th:nth-child(6),
-#GroupsTable > thead > tr > th:nth-child(9),
-#GroupsTable > tbody > tr > td:nth-child(5),
-#GroupsTable > tbody > tr > td:nth-child(6),
-#GroupsTable > tbody > tr > td:nth-child(9) {
-    display: none !important;
-}
 
 /* ── Party hover card ───────────────────────────────────────────────────── */
 .chc-pop  { position:fixed; z-index:9990; pointer-events:none; display:none; }

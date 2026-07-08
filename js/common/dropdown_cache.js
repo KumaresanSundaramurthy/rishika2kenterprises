@@ -25,16 +25,22 @@ window.DropdownCache = (function ($) {
     var _data    = null;   // complete in-memory cache — null means cold
     var _promise = null;   // set once all data is complete; used by legacy ready()
 
-    // Upstash key map — mirrors PHP getDropdownCache()
-    var _keyMap = {
-        primaryUnit : 'primary-unit',
-        discType    : 'disc-type',
-        prodType    : 'prod-type',
-        prodTax     : 'prod-tax',
-        taxDetails  : 'tax-details',
+    // Global keys — shared across all orgs/clients; literal key, never written from code
+    var _globalKeyMap = {
+        primaryUnit : 'r2k-primary-units',
+        discType    : 'r2k-disc-type',
+        prodType    : 'r2k-prod-type',
+        prodTax     : 'r2k-prod-tax',
+        taxDetails  : 'r2k-tax-details',
+    };
+
+    // Org keys — per-org, prefixed via orgKey(); writable from code
+    var _orgKeyMap = {
         categories  : 'categories',   // Redis HASH — HGETALL
     };
-    var _fields = Object.keys(_keyMap);
+
+    var _allKeyMap = $.extend({}, _globalKeyMap, _orgKeyMap);
+    var _fields    = Object.keys(_allKeyMap);
 
     // ── Step 1: pipeline-check all 6 keys in one Upstash HTTP call ───────────
 
@@ -44,10 +50,14 @@ window.DropdownCache = (function ($) {
         }
 
         // 'categories' is a Redis hash → HGETALL; all others are strings → GET
+        // Global fields use literal key; org fields use orgKey() prefix
         var cmds = _fields.map(function (f) {
+            var key = _globalKeyMap.hasOwnProperty(f)
+                ? _globalKeyMap[f]
+                : UpstashService.orgKey(_orgKeyMap[f]);
             return f === 'categories'
-                ? ['HGETALL', UpstashService.orgKey(_keyMap[f])]
-                : ['GET',     UpstashService.orgKey(_keyMap[f])];
+                ? ['HGETALL', key]
+                : ['GET',     key];
         });
 
         return UpstashService.pipeline(cmds).then(function (results) {

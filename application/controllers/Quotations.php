@@ -264,6 +264,11 @@ class Quotations extends MY_Controller {
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Quotation created successfully.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'ADD_QUOTATION', 'Quotation', (int) $transUID, (string) ($uniqueNumber ?? ''),
+                [], 'Created quotation ' . ($uniqueNumber ?? ''), 'Quotations', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
+            );
             $this->EndReturnData->TransUID = $transUID;
 
         } catch (InvalidArgumentException $e) {
@@ -545,6 +550,11 @@ class Quotations extends MY_Controller {
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Quotation updated successfully.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'UPDATE_QUOTATION', 'Quotation', (int) $activeTransUID, (string) ($uniqueNumber ?? $existing->UniqueNumber ?? ''),
+                [], 'Updated quotation ' . ($uniqueNumber ?? $existing->UniqueNumber ?? ''), 'Quotations', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
+            );
 
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -601,6 +611,11 @@ class Quotations extends MY_Controller {
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Quotation deleted successfully.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'DELETE_QUOTATION', 'Quotation', (int) $transUID, '',
+                [], 'Deleted quotation #' . $transUID, 'Quotations', 'TRANSACTION'
+            );
 
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -686,6 +701,11 @@ class Quotations extends MY_Controller {
 
             $this->EndReturnData->Error     = FALSE;
             $this->EndReturnData->Message   = 'Status updated.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'UPDATE_QUOTATION_STATUS', 'Quotation', (int) $transUID, (string) ($existing->UniqueNumber ?? ''),
+                ['NewStatus' => $newStatus], 'Updated quotation status #' . $transUID, 'Quotations', 'TRANSACTION'
+            );
             $this->EndReturnData->NewStatus = $newStatus;
 
         } catch (Exception $e) {

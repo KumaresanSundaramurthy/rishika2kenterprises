@@ -272,23 +272,15 @@ class Settings extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    /** AJAX GET: return salutation list — cache in Upstash on first call */
+    /** AJAX GET: return salutation list — global key, direct DB fetch, no Upstash write */
     public function getSalutationList() {
         $this->EndReturnData = new stdClass();
         try {
-            $cacheKey = $this->redisservice->orgKey('salutation');
-            $cached   = $this->upstashservice->get($cacheKey);
-            if ($cached !== null) {
-                $list = array_map(fn($r) => is_array($r) ? (object)$r : $r, (array)$cached);
-            } else {
-                $this->load->model('global_model');
-                $result = $this->global_model->getSalutations();
-                if ($result->Error) throw new Exception($result->Message);
-                $list = $result->Data;
-                $this->upstashservice->set($cacheKey, $list, (int)getenv('ONEYEAR_EXPIRE_SECS'));
-            }
+            $this->load->model('global_model');
+            $result = $this->global_model->getSalutations();
+            if ($result->Error) throw new Exception($result->Message);
             $this->EndReturnData->Error = false;
-            $this->EndReturnData->Data  = $list;
+            $this->EndReturnData->Data  = $result->Data;
         } catch (Exception $e) {
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();

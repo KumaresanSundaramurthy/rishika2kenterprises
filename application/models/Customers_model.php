@@ -336,16 +336,6 @@ class Customers_model extends CI_Model {
             $this->ReadDb->from('Customers.CustomerTbl as Customers');
             $this->ReadDb->join('Users.UserTbl as User', 'User.UserUID = Customers.UpdatedBy', 'left');
             $this->ReadDb->join(
-                'Accounting.EntityLedgerMap as ELM',
-                "ELM.CustomerUID = Customers.CustomerUID AND ELM.EntityType = 'Customer' AND ELM.IsDeleted = 0",
-                'left'
-            );
-            $this->ReadDb->join(
-                'Accounting.ChartOfAccounts as COA',
-                'COA.LedgerUID = ELM.LedgerUID AND COA.IsDeleted = 0',
-                'left'
-            );
-            $this->ReadDb->join(
                 'Customers.CustomerTypeTbl as CT',
                 'CT.CustomerTypeUID = Customers.CustomerTypeUID AND CT.IsDeleted = 0',
                 'left'
@@ -409,47 +399,31 @@ class Customers_model extends CI_Model {
 
             $rows = $dataQuery->result();
 
-            // Batch-fetch first attachment per customer for thumbnail in list view
+            // Batch-fetch all attachments per customer in one query; build thumbnail + gallery maps together
             if (!empty($rows)) {
-                $custUIDs = array_column((array)$rows, 'CustomerUID');
-                $cdnUrl   = rtrim(getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN'), '/');
-                $ph       = implode(',', array_fill(0, count($custUIDs), '?'));
-                $attQ     = $this->ReadDb->query(
+                $custUIDs   = array_column((array)$rows, 'CustomerUID');
+                $cdnUrl     = rtrim(getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN'), '/');
+                $ph         = implode(',', array_fill(0, count($custUIDs), '?'));
+                $attQ       = $this->ReadDb->query(
                     "SELECT CustomerUID, FilePath, FileName FROM Customers.CustomerAttachmentsTbl
                       WHERE CustomerUID IN ({$ph}) AND IsDeleted = 0
                       ORDER BY CustomerUID, SortOrder ASC",
                     $custUIDs
                 );
-                $attMap = [];
-                if ($attQ) {
-                    foreach ($attQ->result() as $att) {
-                        $uid = (int)$att->CustomerUID;
-                        if (!isset($attMap[$uid])) {
-                            $attMap[$uid] = ['url' => $cdnUrl . '/' . ltrim($att->FilePath, '/'), 'name' => $att->FileName];
-                        }
-                    }
-                }
-                // Full gallery per customer for data-images attribute
+                $attMap     = [];
                 $galleryMap = [];
                 if ($attQ) {
-                    $this->ReadDb->query("SELECT 1"); // reset
-                    $attQ2 = $this->ReadDb->query(
-                        "SELECT CustomerUID, FilePath, FileName FROM Customers.CustomerAttachmentsTbl
-                          WHERE CustomerUID IN ({$ph}) AND IsDeleted = 0
-                          ORDER BY CustomerUID, SortOrder ASC",
-                        $custUIDs
-                    );
-                    if ($attQ2) {
-                        foreach ($attQ2->result() as $att) {
-                            $uid = (int)$att->CustomerUID;
-                            $galleryMap[$uid][] = ['url' => $cdnUrl . '/' . ltrim($att->FilePath, '/'), 'name' => $att->FileName];
-                        }
+                    foreach ($attQ->result() as $att) {
+                        $uid  = (int)$att->CustomerUID;
+                        $entry = ['url' => $cdnUrl . '/' . ltrim($att->FilePath, '/'), 'name' => $att->FileName];
+                        if (!isset($attMap[$uid])) { $attMap[$uid] = $entry; }
+                        $galleryMap[$uid][] = $entry;
                     }
                 }
                 foreach ($rows as $row) {
                     $uid = (int)$row->CustomerUID;
-                    $row->PrimaryImageUrl  = isset($attMap[$uid]) ? $attMap[$uid]['url'] : null;
-                    $row->AttachmentsJson  = json_encode($galleryMap[$uid] ?? [], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                    $row->PrimaryImageUrl = isset($attMap[$uid]) ? $attMap[$uid]['url'] : null;
+                    $row->AttachmentsJson = json_encode($galleryMap[$uid] ?? [], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
                 }
             }
 
@@ -488,6 +462,25 @@ class Customers_model extends CI_Model {
             throw new Exception($e->getMessage());
         }
 
+    }
+
+    // Pure DB fetch — no OrgUID filter (global data); used by AJAX endpoint
+    public function getCustomerTypesFromDB(): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select([
+                'CT.CustomerTypeUID AS CustomerTypeUID',
+                'CT.TypeName AS TypeName',
+                'CT.IsDefault AS IsDefault',
+            ]);
+            $this->ReadDb->from('Customers.CustomerTypeTbl as CT');
+            $this->ReadDb->where(['CT.IsDeleted' => 0, 'CT.IsActive' => 1]);
+            $this->ReadDb->order_by('CT.CustomerTypeUID', 'ASC');
+            $query = $this->ReadDb->get();
+            return $query ? $query->result() : [];
+        } catch (Exception $e) {
+            return [];
+        }
     }
 
     public function getCustomerTags(int $OrgUID): array {
@@ -933,19 +926,17 @@ class Customers_model extends CI_Model {
             $countRow   = $this->ReadDb->get()->row();
             $totalCount = (int)($countRow->cnt ?? 0);
 
-            // ── Data ──
+            // ── Step 1: Paginated groups with member count + primary name (no COB join) ──
             $this->ReadDb->select(
                 'CG.GroupUID, CG.GroupCode, CG.GroupName, CG.GroupType,
                  CG.ContactPerson, CG.Mobile, CG.Email, CG.IsActive, CG.CreatedOn,
                  COUNT(C.CustomerUID) AS MemberCount,
-                 COALESCE(SUM(CASE WHEN COB.PendingBalType = \'Debit\'  AND COB.PendingBalance > 0 THEN COB.PendingBalance ELSE 0 END), 0) AS TotalReceivable,
-                 COALESCE(SUM(CASE WHEN COB.PendingBalType = \'Credit\' AND COB.PendingBalance > 0 THEN COB.PendingBalance ELSE 0 END), 0) AS TotalPayable,
-                 MAX(CASE WHEN C.IsGroupPrimary = 1 THEN C.Name ELSE NULL END) AS PrimaryName',
+                 MAX(CASE WHEN C.IsGroupPrimary = 1 THEN C.Name ELSE NULL END) AS PrimaryName,
+                 0 AS TotalReceivable, 0 AS TotalPayable',
                 false
             );
             $this->ReadDb->from('Customers.CustomerGroupTbl CG');
             $this->ReadDb->join('Customers.CustomerTbl C', 'C.GroupUID = CG.GroupUID AND C.IsDeleted = 0', 'left');
-            $this->ReadDb->join('Customers.CustOpeningBalanceTbl COB', 'COB.CustomerUID = C.CustomerUID AND COB.OrgUID = C.OrgUID AND COB.IsDeleted = 0', 'left');
             $this->ReadDb->where(['CG.OrgUID' => (int)$orgUID, 'CG.IsDeleted' => 0]);
             if (!empty($filter['SearchAllData'])) {
                 $s = $filter['SearchAllData'];
@@ -965,10 +956,38 @@ class Customers_model extends CI_Model {
             $this->ReadDb->group_by('CG.GroupUID');
             $this->ReadDb->order_by('CG.GroupName', 'ASC');
             $this->ReadDb->limit($limit, $offset);
-            $query  = $this->ReadDb->get();
+            $query = $this->ReadDb->get();
+            $rows  = $query ? $query->result() : [];
+
+            // ── Step 2: Balance totals scoped only to this page's group UIDs ──
+            if (!empty($rows)) {
+                $groupUIDs = [];
+                foreach ($rows as $row) { $groupUIDs[] = (int)$row->GroupUID; }
+                $placeholders = implode(',', array_fill(0, count($groupUIDs), '?'));
+                $balQuery = $this->ReadDb->query(
+                    "SELECT C.GroupUID,
+                            COALESCE(SUM(CASE WHEN COB.PendingBalType = 'Debit'  AND COB.PendingBalance > 0 THEN COB.PendingBalance ELSE 0 END), 0) AS TotalReceivable,
+                            COALESCE(SUM(CASE WHEN COB.PendingBalType = 'Credit' AND COB.PendingBalance > 0 THEN COB.PendingBalance ELSE 0 END), 0) AS TotalPayable
+                     FROM Customers.CustomerTbl C
+                     JOIN Customers.CustOpeningBalanceTbl COB
+                          ON COB.CustomerUID = C.CustomerUID AND COB.OrgUID = C.OrgUID AND COB.IsDeleted = 0
+                     WHERE C.OrgUID = ? AND C.GroupUID IN ({$placeholders}) AND C.IsDeleted = 0
+                     GROUP BY C.GroupUID",
+                    array_merge([(int)$orgUID], $groupUIDs)
+                );
+                $balMap = [];
+                if ($balQuery) {
+                    foreach ($balQuery->result() as $b) { $balMap[(int)$b->GroupUID] = $b; }
+                }
+                foreach ($rows as $row) {
+                    $b = $balMap[(int)$row->GroupUID] ?? null;
+                    $row->TotalReceivable = $b ? $b->TotalReceivable : 0;
+                    $row->TotalPayable    = $b ? $b->TotalPayable    : 0;
+                }
+            }
 
             $result             = new stdClass();
-            $result->rows       = $query ? $query->result() : [];
+            $result->rows       = $rows;
             $result->totalCount = $totalCount;
             return $result;
         } catch (Exception $e) {

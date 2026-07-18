@@ -360,6 +360,7 @@ class Products_model extends CI_Model {
                 'Prod.MRP AS MRP',
                 'Prod.SellingPrice AS SellingPrice',
                 'Prod.PurchasePrice AS PurchasePrice',
+                'Prod.TaxPercentage AS TaxPercentage',
             ]);
             $this->ReadDb->from('Products.ProductBOMTbl as Comp');
             $this->ReadDb->join('Products.ProductTbl as Prod', 'Prod.ProductUID = Comp.ChildProductUID', 'left');
@@ -398,33 +399,6 @@ class Products_model extends CI_Model {
             }
             $this->ReadDb->order_by('Products.ItemName', 'ASC');
             $this->ReadDb->limit(50);
-            $query = $this->ReadDb->get();
-            $error = $this->ReadDb->error();
-            if ($error['code']) throw new Exception($error['message']);
-            return $query->result();
-        } catch (Exception $e) {
-            throw new Exception($e->getMessage());
-        }
-
-    }
-
-    public function getCustomerTypePricing(int $ProductUID): array {
-
-        try {
-            $this->ReadDb->db_debug = FALSE;
-            $this->ReadDb->select([
-                'PR.ProductRateUID AS RateUID',
-                'PR.CustomerTypeUID AS CustomerTypeUID',
-                'CT.TypeName AS TypeName',
-                'PR.SellingPrice AS SellingPrice',
-            ]);
-            $this->ReadDb->from('Products.ProductRateTbl as PR');
-            $this->ReadDb->join('Customers.CustomerTypeTbl as CT', 'CT.CustomerTypeUID = PR.CustomerTypeUID', 'left');
-            $this->ReadDb->where([
-                'PR.ProductUID' => (int) $ProductUID,
-                'PR.IsDeleted'  => 0,
-                'PR.IsActive'   => 1,
-            ]);
             $query = $this->ReadDb->get();
             $error = $this->ReadDb->error();
             if ($error['code']) throw new Exception($error['message']);
@@ -803,6 +777,98 @@ class Products_model extends CI_Model {
             throw new Exception($e->getMessage());
         }
 
+    }
+
+    /**
+     * Fetch every active BOM row for the org in one query.
+     * Used by syncProductsCache to embed items arrays into composite entries.
+     * Returns flat array of rows: ParentProductUID, ChildProductUID, Quantity.
+     */
+    public function getAllProductBOMsForSync(int $orgUID): array {
+
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select([
+                'Comp.ParentProductUID',
+                'Comp.ChildProductUID',
+                'Comp.Quantity',
+            ]);
+            $this->ReadDb->from('Products.ProductBOMTbl Comp');
+            $this->ReadDb->join('Products.ProductTbl p', 'p.ProductUID = Comp.ParentProductUID', 'inner');
+            $this->ReadDb->where([
+                'p.OrgUID'       => (int) $orgUID,
+                'p.IsDeleted'    => 0,
+                'p.IsActive'     => 1,
+                'Comp.IsDeleted' => 0,
+                'Comp.IsActive'  => 1,
+            ]);
+
+            $query = $this->ReadDb->get();
+            $error = $this->ReadDb->error();
+            if ($error['code']) throw new Exception($error['message']);
+            return $query->result();
+
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+
+    }
+
+    /**
+     * Returns true if the product appears in any active transaction line.
+     * Used to block delete when the item has transaction history.
+     */
+    public function productHasTransactions(int $productUID): bool {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('TransProdUID');
+            $this->ReadDb->from('Transaction.TransProductsTbl');
+            $this->ReadDb->where('ProductUID', $productUID);
+            $this->ReadDb->where('IsDeleted', 0);
+            $this->ReadDb->limit(1);
+            return $this->ReadDb->get()->row() !== null;
+        } catch (Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Returns true if the product is a BOM component of a combo that itself
+     * has active transaction lines — i.e. the item was used "hidden" through a combo.
+     */
+    public function productUsedInComboWithTransactions(int $productUID): bool {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('t.TransProdUID');
+            $this->ReadDb->from('Transaction.TransProductsTbl t');
+            $this->ReadDb->join('Products.ProductBOMTbl b', 'b.ParentProductUID = t.ProductUID', 'inner');
+            $this->ReadDb->where('b.ChildProductUID', $productUID);
+            $this->ReadDb->where('b.IsDeleted', 0);
+            $this->ReadDb->where('t.IsDeleted', 0);
+            $this->ReadDb->limit(1);
+            return $this->ReadDb->get()->row() !== null;
+        } catch (Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Returns true if the product is an active component in any combo (ProductBOMTbl).
+     * Used to block NotForSale / delete when the item is linked to a combo.
+     */
+    public function isProductLinkedToCombo(int $productUID): bool {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('ChildProductUID');
+            $this->ReadDb->from('Products.ProductBOMTbl');
+            $this->ReadDb->where('ChildProductUID', $productUID);
+            $this->ReadDb->where('IsDeleted', 0);
+            $this->ReadDb->where('IsActive', 1);
+            $this->ReadDb->limit(1);
+            return $this->ReadDb->get()->row() !== null;
+        } catch (Exception $e) {
+            return false;
+        }
     }
 
     /**

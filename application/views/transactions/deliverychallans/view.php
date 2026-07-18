@@ -123,7 +123,7 @@ $this->load->view('common/transactions/header'); ?>
                                             Expected Return <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Date"></i>
                                         </th>
                                         <th>Last Updated</th>
-                                        <th style="width:50px">Actions</th>
+                                        <th class="text-center" style="width:50px">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody class="r2k-tbody table-border-bottom-0">
@@ -133,8 +133,7 @@ $this->load->view('common/transactions/header'); ?>
                         </div>
 
                         <!-- Pagination -->
-                        <hr class="my-0">
-                        <div class="row mx-3 my-2 justify-content-between align-items-center dcPagination" id="dcPagination">
+                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center dcPagination apex-pag-sticky" id="dcPagination">
                             <?php echo $ModPagination ?: ''; ?>
                         </div>
 
@@ -191,12 +190,6 @@ $this->load->view('common/transactions/header'); ?>
                         </div>
                     </div>
 
-                    <!-- Sticky pagination -->
-                    <div class="card mb-0 cust-sticky-pag apex-sticky-pag" id="dcStickyPagination" data-static-pag="#dcPagination" style="display:none;">
-                        <div class="card-body p-0">
-                            <div class="row mx-3 my-2 justify-content-between align-items-center apex-sticky-pag-inner"></div>
-                        </div>
-                    </div>
 
                 </div>
             </div>
@@ -206,7 +199,7 @@ $this->load->view('common/transactions/header'); ?>
     </div>
 </div>
 
-<?php $this->load->view('common/transactions/col_party_filter_box', [
+<?php $this->load->view('common/filter_panels/col_party_filter_box', [
     'ColPartyFilterConfig' => [
         'id'    => 'dcPartyFilterBox',
         'title' => 'Filter by Customer',
@@ -216,7 +209,6 @@ $this->load->view('common/transactions/header'); ?>
 
 <?php $this->load->view('common/transactions/footer'); ?>
 
-<script src="/js/core/sticky_paginate.js"></script>
 <script src="/js/common/party_filter.js"></script>
 <script src="/js/common/communication.js"></script>
 <script src="<?php echo _assetV('/js/transactions/attachments.js'); ?>"></script>
@@ -237,10 +229,13 @@ var _dcInitSearch = <?php echo json_encode($InitSearch ?? ''); ?>;
 
 var _dcTabFilterMap = <?= json_encode($tabFilterMap); ?>;
 var _allDcFilterEls = <?= json_encode(array_values(array_unique(array_merge(...array_values($tabFilterMap))))); ?>;
+var _initPage       = <?php echo (int)($InitPage ?? 1); ?>;
 
 $(function () {
     'use strict';
 
+    _checkPendingToast('_dcPendingToast');
+    PageNo = _initPage;
     Filter['Status'] = _dcInitTab;
     if (_dcInitSearch) { Filter.Name = _dcInitSearch; }
     initExport({ moduleUID: 112, getFilters: function () { return Filter; } });
@@ -255,12 +250,28 @@ $(function () {
     });
 
     var _origGetDeliveryChallansDetails = getDeliveryChallansDetails;
-    getDeliveryChallansDetails = function (pageNo, rowLimit, filter) {
+    getDeliveryChallansDetails = function (pageNo, rowLimit, filter, afterLoad) {
         var f = $.extend({}, filter || Filter,
             dcPartyFilter ? dcPartyFilter.getState() : {}
         );
-        _origGetDeliveryChallansDetails(pageNo, rowLimit, f);
+        _origGetDeliveryChallansDetails(pageNo, rowLimit, f, afterLoad);
     };
+
+    // ── Create / Edit — inject returnTab + returnPage ──────────────────
+    $(document).on('click', 'a[href="/deliverychallan/create"]', function (e) {
+        e.preventDefault();
+        var params = new URLSearchParams();
+        params.set('returnTab', Filter.Status || 'All');
+        if (PageNo > 1) params.set('returnPage', PageNo);
+        window.location.href = '/deliverychallan/create?' + params.toString();
+    });
+    $(document).on('click', 'a[href*="/deliverychallan/"][href*="/edit"]', function (e) {
+        e.preventDefault();
+        var params = new URLSearchParams();
+        params.set('returnTab', Filter.Status || 'All');
+        if (PageNo > 1) params.set('returnPage', PageNo);
+        window.location.href = $(this).attr('href') + '?' + params.toString();
+    });
 
     // ── Stat card click ─────────────────────────────────────
     $(document).on('click', '[data-stat-filter]', function () {
@@ -331,7 +342,7 @@ $(function () {
         $('.col-sortable').each(function () {
             $(this).attr('data-bs-title', 'Click for ascending order');
             var tt = bootstrap.Tooltip.getInstance(this);
-            if (tt) tt.setContent({ '.tooltip-inner': 'Click for ascending order' });
+            if (tt) { tt.dispose(); new bootstrap.Tooltip(this); }
         });
         $('.sort-icon').removeClass('bx-sort-up bx-sort-down').addClass('bx-sort-alt-2');
         if (Filter.SortBy) {
@@ -340,7 +351,7 @@ $(function () {
             $('.sort-icon[data-col="' + col + '"]').removeClass('bx-sort-alt-2').addClass(icon);
             $th.attr('data-bs-title', tipText);
             var tt = bootstrap.Tooltip.getInstance($th[0]);
-            if (tt) tt.setContent({ '.tooltip-inner': tipText });
+            if (tt) { tt.dispose(); new bootstrap.Tooltip($th[0]); }
         }
         PageNo = 1;
         getDeliveryChallansDetails();
@@ -429,8 +440,13 @@ $(function () {
                 data  : _actionPostData({ TransUID: uid }),
                 success: function (resp) {
                     if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
-                    _renderListResponse(resp);
                     showToastNotification(resp.Message, 'success');
+                    if (PageNo > 1 && (resp.TotalCount || 0) <= (PageNo - 1) * RowLimit) {
+                        PageNo--;
+                        getDeliveryChallansDetails();
+                    } else {
+                        _renderListResponse(resp);
+                    }
                 }
             });
         });

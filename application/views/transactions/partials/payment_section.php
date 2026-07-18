@@ -73,8 +73,9 @@ $currSymbol       = $JwtData->GenSettings->CurrenySymbol ?? '₹';
         <table class="table table-sm mb-0" id="paymentRowsTable" style="background:transparent;">
             <thead>
                 <tr style="background:#dff0e2; border-bottom:1px solid #b8d4ba;">
-                    <th class="fw-semibold small text-secondary ps-3" style="width:47%;">Notes</th>
-                    <th class="fw-semibold small text-secondary" style="width:18%;">Amount</th>
+                    <th class="fw-semibold small text-secondary ps-3" style="width:34%;">Notes</th>
+                    <th class="fw-semibold small text-secondary" style="width:16%;">Date</th>
+                    <th class="fw-semibold small text-secondary" style="width:15%;">Amount</th>
                     <th class="fw-semibold small text-secondary" style="width:28%;">Payment Mode</th>
                     <th style="width:7%;"></th>
                 </tr>
@@ -217,10 +218,11 @@ $currSymbol       = $JwtData->GenSettings->CurrenySymbol ?? '₹';
 #paymentRowsTable { table-layout: fixed; }
 #paymentRowsTable td, #paymentRowsTable th { border: none; vertical-align: middle; padding: 8px 8px; }
 #paymentRowsTable tr + tr td { border-top: 1px solid #cfe5d0; }
-#paymentRowsTable td:nth-child(1) { width: 47%; }
-#paymentRowsTable td:nth-child(2) { width: 18%; }
-#paymentRowsTable td:nth-child(3) { width: 28%; }
-#paymentRowsTable td:nth-child(4) { width: 7%; text-align: center; }
+#paymentRowsTable td:nth-child(1) { width: 34%; }
+#paymentRowsTable td:nth-child(2) { width: 16%; }
+#paymentRowsTable td:nth-child(3) { width: 15%; }
+#paymentRowsTable td:nth-child(4) { width: 28%; }
+#paymentRowsTable td:nth-child(5) { width: 7%; text-align: center; }
 
 .pay-notes-inp {
     background-color: #fff;
@@ -256,6 +258,24 @@ $currSymbol       = $JwtData->GenSettings->CurrenySymbol ?? '₹';
     color: #333;
 }
 .pay-amount-inp:focus {
+    background: #fff;
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.18rem rgba(13,110,253,.15);
+    outline: none;
+}
+
+.pay-date-inp {
+    background: #fff;
+    border: 1px solid #b8d4ba;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    box-shadow: none;
+    width: 100%;
+    padding: 6px 10px;
+    color: #333;
+    cursor: pointer;
+}
+.pay-date-inp:focus {
     background: #fff;
     border-color: #86b7fe;
     box-shadow: 0 0 0 0.18rem rgba(13,110,253,.15);

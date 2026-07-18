@@ -87,16 +87,16 @@ $this->load->view('common/transactions/header'); ?>
                                 <thead class="r2k-thead">
                                     <tr>
                                         <th style="white-space:nowrap;">
-                                            <span class="tl-sortable" data-sort="ItemName" style="cursor:pointer;">Item <i class="bx bx-sort tl-sort-icon" style="font-size:.8rem;opacity:.5;"></i></span>
+                                            <span class="tl-sortable" data-sort="ItemName" style="cursor:pointer;">Item <i class="bx bx-sort-alt-2 tl-sort-icon" style="font-size:.8rem;opacity:.5;"></i></span>
                                         </th>
                                         <th style="text-align:right;white-space:nowrap;">Stock In</th>
                                         <th style="text-align:right;white-space:nowrap;">Stock Out</th>
                                         <th style="text-align:right;white-space:nowrap;">
-                                            <span class="tl-sortable" data-sort="Price" style="cursor:pointer;">Price <i class="bx bx-sort tl-sort-icon" style="font-size:.8rem;opacity:.5;"></i></span>
+                                            <span class="tl-sortable" data-sort="Price" style="cursor:pointer;">Price <i class="bx bx-sort-alt-2 tl-sort-icon" style="font-size:.8rem;opacity:.5;"></i></span>
                                         </th>
                                         <th style="white-space:nowrap;">Source</th>
                                         <th style="white-space:nowrap;">
-                                            <span class="tl-sortable" data-sort="Category" style="cursor:pointer;">Category <i class="bx bx-sort tl-sort-icon" style="font-size:.8rem;opacity:.5;"></i></span>
+                                            <span class="tl-sortable" data-sort="Category" style="cursor:pointer;">Category <i class="bx bx-sort-alt-2 tl-sort-icon" style="font-size:.8rem;opacity:.5;"></i></span>
                                         </th>
                                         <th style="min-width:140px;">Remarks</th>
                                         <th style="white-space:nowrap;">Date / Updated By</th>
@@ -162,7 +162,7 @@ $this->load->view('common/transactions/header'); ?>
 </div>
 
 <!-- ── Source Filter Box ──────────────────────────────────────────────────────── -->
-<?php $this->load->view('common/transactions/col_filter_box', [
+<?php $this->load->view('common/filter_panels/col_filter_box', [
     'ColFilterConfig' => [
         'id'         => 'tlSourceFilterBox',
         'triggerId'  => 'tlSourceFilterBtn',
@@ -182,7 +182,7 @@ $this->load->view('common/transactions/header'); ?>
 ]); ?>
 
 <!-- ── Category Filter Box ───────────────────────────────────────────────────── -->
-<?php $this->load->view('common/transactions/col_filter_box', [
+<?php $this->load->view('common/filter_panels/col_filter_box', [
     'ColFilterConfig' => [
         'id'         => 'tlCategoryFilterBox',
         'triggerId'  => 'tlCategoryFilterBtn',
@@ -198,7 +198,7 @@ $this->load->view('common/transactions/header'); ?>
 
 <!-- ── User Filter Box ────────────────────────────────────────────────────────── -->
 <?php if ($showUserBtn): ?>
-<?php $this->load->view('common/partials/col_user_filter_box', [
+<?php $this->load->view('common/filter_panels/col_user_filter_box', [
     'ColUserFilterConfig' => [
         'id'         => 'tlUserFilterBox',
         'triggerId'  => 'tlUserFilterBtn',

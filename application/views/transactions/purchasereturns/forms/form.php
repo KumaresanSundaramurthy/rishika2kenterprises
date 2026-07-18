@@ -5,6 +5,16 @@ $isDraftEdit = $isEdit && ($PRData->DocStatus === 'Draft');
 $transUID    = $isEdit ? (int)$PRData->TransUID : 0;
 $formId      = 'prForm';
 $formAction  = $isEdit ? 'purchasereturns/updatePurchaseReturn' : 'purchasereturns/addPurchaseReturn';
+$_posCode    = $isEdit ? ($PRData->PlaceOfSupplyCode  ?? '') : ($JwtData->Org->StateCode  ?? '');
+$_posName    = $isEdit ? ($PRData->PlaceOfSupplyName  ?? '') : ($JwtData->Org->StateName  ?? '');
+
+$_returnTab  = $this->input->get('returnTab')  ?: 'All';
+$_returnPage = (int)($this->input->get('returnPage') ?: 1);
+$_closeUrl   = '/purchasereturns';
+$_cParams    = [];
+if ($_returnTab) $_cParams[] = 'tab=' . urlencode($_returnTab);
+if ($_returnPage > 1) $_cParams[] = 'page=' . $_returnPage;
+if ($_cParams) $_closeUrl .= '?' . implode('&', $_cParams);
 $_prMethod   = $JwtData->TransSettings->PurchaseReturnItemMethod ?? 'Manual';
 
 $editPrefixConfig = null;
@@ -72,8 +82,7 @@ if ($isEdit) {
                 <?php if ($isEdit): ?>
                 <input type="hidden" name="TransUID" value="<?php echo $transUID; ?>" />
                 <?php endif; ?>
-                <input type="hidden" id="placeOfSupplyCode" name="placeOfSupplyCode" value="<?php echo !$isEdit ? htmlspecialchars($JwtData->Org->StateCode ?? '', ENT_QUOTES) : ''; ?>" />
-                <input type="hidden" id="placeOfSupplyName" name="placeOfSupplyName" value="<?php echo !$isEdit ? htmlspecialchars($JwtData->Org->StateName ?? '', ENT_QUOTES) : ''; ?>" />
+                <?php $this->load->view('transactions/partials/place_of_supply_inputs', ['_posCode' => $_posCode, '_posName' => $_posName]); ?>
 
                     <div class="card mb-3">
 
@@ -191,7 +200,7 @@ if ($isEdit) {
                                     <button type="submit" name="action" value="save" class="btn btn-sm btn-primary"><i class="bx bx-check me-1"></i>Save</button>
                                 <?php endif; ?>
                                 <?php $_hideNav = (int)($JwtData->TransSettings->HideNavOnTransForm ?? 0); ?>
-                                <a href="/purchasereturns" class="btn btn-sm btn-outline-danger px-3<?php echo $_hideNav ? ' d-none' : ''; ?>"><i class="bx bx-x me-1"></i>Close</a>
+                                <a href="<?php echo $_closeUrl; ?>" class="btn btn-sm btn-outline-danger px-3<?php echo $_hideNav ? ' d-none' : ''; ?>"><i class="bx bx-x me-1"></i>Close</a>
                             </div>
                         </div>
 
@@ -453,6 +462,8 @@ var _transUID = <?php echo $transUID; ?>;
 var _upstashUrl       = '<?php echo addslashes($UpstashReadUrl  ?? ''); ?>';
 var _upstashReadToken = '<?php echo addslashes($UpstashReadToken ?? ''); ?>';
 var _vendorCacheKey   = '<?php echo addslashes($VendorCacheKey  ?? ''); ?>';
+var _returnTab  = <?php echo json_encode($_returnTab); ?>;
+var _returnPage = <?php echo (int)$_returnPage; ?>;
 window._productPurchaseMode = true;
 var _prItemMethod = '<?php echo $_prMethod; ?>';
 
@@ -830,16 +841,8 @@ $(function() {
                         setFormLoading('#<?php echo $formId; ?>', false);
                         showFormError(response.Message);
                     } else {
-                        Swal.fire({
-                            icon             : 'success',
-                            title            : _isEdit ? 'Purchase Return Updated' : 'Purchase Return Saved',
-                            text             : response.Message || (_isEdit ? 'Updated successfully.' : 'Purchase return created successfully.'),
-                            confirmButtonText: 'OK',
-                            timer            : 3000,
-                            timerProgressBar : true,
-                        }).then(function() {
-                            window.location.href = '/purchasereturns';
-                        });
+                        _setPendingToast('_prPendingToast', response.Message, 'success');
+                        window.location.href = _buildReturnUrl('/purchasereturns');
                     }
                 },
                 error: function() {

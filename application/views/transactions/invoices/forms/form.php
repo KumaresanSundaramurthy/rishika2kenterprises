@@ -5,6 +5,16 @@ $isDraftEdit = $isEdit && ($InvData->DocStatus === 'Draft');
 $transUID    = $isEdit ? (int)$InvData->TransUID : 0;
 $formId      = 'invForm';
 $formAction  = $isEdit ? 'invoices/updateInvoice' : 'invoices/addInvoice';
+$_posCode    = $isEdit ? ($InvData->PlaceOfSupplyCode  ?? '') : ($JwtData->Org->StateCode  ?? '');
+$_posName    = $isEdit ? ($InvData->PlaceOfSupplyName  ?? '') : ($JwtData->Org->StateName  ?? '');
+
+$_returnTab  = $this->input->get('returnTab')  ?: 'All';
+$_returnPage = (int)($this->input->get('returnPage') ?: 1);
+$_closeUrl   = '/invoices';
+$_cParams    = [];
+if ($_returnTab) $_cParams[] = 'tab=' . urlencode($_returnTab);
+if ($_returnPage > 1) $_cParams[] = 'page=' . $_returnPage;
+if ($_cParams) $_closeUrl .= '?' . implode('&', $_cParams);
 
 if ($isEdit && !function_exists('buildInvPrefixSegment')) {
     function buildInvPrefixSegment($cfg) {
@@ -109,8 +119,7 @@ if ($isEdit) {
                     <input type="hidden" name="fromQuotationUID" id="fromQuotationUID" value="<?php echo (int)($FromQuotationUID ?? 0); ?>" />
                     <input type="hidden" name="fromChallanUID" id="fromChallanUID" value="<?php echo (int)($FromChallanUID ?? 0); ?>" />
                     <?php endif; ?>
-                    <input type="hidden" id="placeOfSupplyCode" name="placeOfSupplyCode" value="<?php echo !$isEdit ? htmlspecialchars($JwtData->Org->StateCode ?? '', ENT_QUOTES) : ''; ?>" />
-                    <input type="hidden" id="placeOfSupplyName" name="placeOfSupplyName" value="<?php echo !$isEdit ? htmlspecialchars($JwtData->Org->StateName ?? '', ENT_QUOTES) : ''; ?>" />
+                    <?php $this->load->view('transactions/partials/place_of_supply_inputs', ['_posCode' => $_posCode, '_posName' => $_posName]); ?>
 
                     <div class="card mb-3">
 
@@ -222,7 +231,7 @@ if ($isEdit) {
                                     <button type="submit" name="action" value="save" class="btn btn-sm btn-primary px-3"><i class="bx bx-check me-1"></i>Save</button>
                                 <?php endif; ?>
                                 <?php $_hideNav = (int)($JwtData->TransSettings->HideNavOnTransForm ?? 0); ?>
-                                <a href="/invoices" class="btn btn-sm btn-outline-danger px-3<?php echo $_hideNav ? ' d-none' : ''; ?>"><i class="bx bx-x me-1"></i>Close</a>
+                                <a href="<?php echo $_closeUrl; ?>" class="btn btn-sm btn-outline-danger px-3<?php echo $_hideNav ? ' d-none' : ''; ?>"><i class="bx bx-x me-1"></i>Close</a>
                             </div>
                         </div>
 
@@ -255,6 +264,7 @@ if ($isEdit) {
                                 <?php if (!$isEdit): ?>
                                 <div class="ms-auto d-flex align-items-center gap-2">
                                     <div id="custTypeIndicator" class="d-none"></div>
+                                    <div id="plChipWrap" class="d-none"></div>
                                     <!-- On Account indicator — shown when customer has unapplied credits -->
                                     <div id="onAccountIndicator" class="d-none d-flex align-items-center gap-1"
                                          style="font-size:.78rem;color:#856404;background:#fff8e1;border:1px solid #ffc107;padding:3px 12px;border-radius:20px;white-space:nowrap;">
@@ -324,8 +334,8 @@ if ($isEdit) {
                                     <label for="dueDate" class="trans-field-label">Due Date</label>
                                     <div class="input-group input-group-sm input-group-merge">
                                         <span class="input-group-text bg-white"><i class="icon-base bx bx-calendar"></i></span>
-                                        <input type="text" class="form-control form-control-sm bg-white" id="dueDate_disp" readonly="readonly" value="<?php echo ($isEdit && !empty($InvData->ValidityDate)) ? format_datedisplay($InvData->ValidityDate, $_fmt) : ''; ?>" />
-                                        <input type="hidden" id="dueDate" name="dueDate" value="<?php echo ($isEdit && !empty($InvData->ValidityDate)) ? htmlspecialchars(format_datedisplay($InvData->ValidityDate, 'Y-m-d')) : ''; ?>" />
+                                        <input type="text" class="form-control form-control-sm bg-white" id="dueDate_disp" readonly="readonly" value="<?php echo ($isEdit && !empty($InvData->ValidityDate)) ? format_datedisplay($InvData->ValidityDate, $_fmt) : format_datedisplay(date('Y-m-d'), $_fmt); ?>" />
+                                        <input type="hidden" id="dueDate" name="dueDate" value="<?php echo ($isEdit && !empty($InvData->ValidityDate)) ? htmlspecialchars(format_datedisplay($InvData->ValidityDate, 'Y-m-d')) : date('Y-m-d'); ?>" />
                                     </div>
                                 </div>
 
@@ -334,7 +344,7 @@ if ($isEdit) {
                                     <label for="referenceDetails" class="trans-field-label">Reference</label>
                                     <input type="text" id="referenceDetails" name="referenceDetails" class="form-control form-control-sm"
                                         placeholder="PO Number, Sales Person, Ref No..." maxlength="100"
-                                        value="<?php echo $isEdit ? htmlspecialchars($InvData->Reference ?? '') : (!empty($SalesOrderData->Reference) ? htmlspecialchars($SalesOrderData->Reference) : (!empty($QuotationData->Reference) ? htmlspecialchars($QuotationData->Reference) : '')); ?>" />
+                                        value="<?php echo $isEdit ? htmlspecialchars($InvData->Reference ?? '') : (!empty($SalesOrderData->Reference) ? htmlspecialchars($SalesOrderData->Reference) : (!empty($QuotationData->Reference) ? htmlspecialchars($QuotationData->Reference) : (!empty($ChallanData->UniqueNumber) ? htmlspecialchars($ChallanData->UniqueNumber) : ''))); ?>" />
                                 </div>
 
                             </div>
@@ -553,6 +563,7 @@ if ($isEdit) {
 <script src="/js/common/customer_form.js"></script>
 <script src="/js/transactions/invoices.js"></script>
 <script src="/js/transactions/transactions.js"></script>
+<script src="/js/transactions/pricelist_trans.js"></script>
 <script src="/js/transactions/transprefix.js"></script>
 <script src="/js/transactions/modaladdress.js"></script>
 <script src="/js/common/category_form.js"></script>
@@ -575,6 +586,8 @@ var _orgState  = '<?php echo addslashes($DispatchAddress->StateText ?? ''); ?>';
 var _upstashUrl       = '<?php echo addslashes($UpstashReadUrl   ?? ''); ?>';
 var _upstashReadToken = '<?php echo addslashes($UpstashReadToken ?? ''); ?>';
 var _custCacheKey     = '<?php echo addslashes($CustomerCacheKey ?? ''); ?>';
+var _returnTab  = <?php echo json_encode($_returnTab); ?>;
+var _returnPage = <?php echo (int)$_returnPage; ?>;
 let imgData;
 
 <?php if ($isEdit): ?>
@@ -760,13 +773,12 @@ $(function() {
     <?php if (!$isEdit || $isDraftEdit): ?>
     transDatePickr('#transDate_disp', '#transDate', false, false, true, true, '');
     <?php endif; ?>
-    transDatePickr('#dueDate_disp', '#dueDate', false, false, false, <?php echo $isEdit ? 'false' : 'true'; ?>, '<?php echo ($isEdit && !$isDraftEdit) ? '' : '#transDate'; ?>');
+    transDatePickr('#dueDate_disp', '#dueDate', false, false, false, false, '<?php echo ($isEdit && !$isDraftEdit) ? '' : '#transDate'; ?>');
 
     <?php if (!$isEdit): ?>
     var _dueDatePicker   = document.querySelector('#dueDate') ? document.querySelector('#dueDate')._flatpickr : null;
     var _transDatePicker = document.querySelector('#transDate') ? document.querySelector('#transDate')._flatpickr : null;
     if (_dueDatePicker && _transDatePicker) {
-        _dueDatePicker.setDate(_transDatePicker.selectedDates[0], true);
         document.querySelector('#transDate').addEventListener('change', function() {
             if (_transDatePicker.selectedDates[0]) {
                 _dueDatePicker.setDate(_transDatePicker.selectedDates[0], true);
@@ -809,12 +821,6 @@ $(function() {
             if (_sourceData.customerArea)   _invCustLabel += ', ' + _sourceData.customerArea;
             if (_sourceData.customerMobile) _invCustLabel += ' (' + _sourceData.customerMobile + ')';
             $('#customerSearch').append(new Option(_invCustLabel, _sourceData.customer, true, true)).trigger('change');
-        }
-        if (_fromChallan && _fromChallan.reference) {
-            var $refField = $('#referenceDetails');
-            if ($refField.length && !$refField.val()) {
-                $refField.val(_fromChallan.reference);
-            }
         }
         if (typeof billManager !== 'undefined' && typeof formationTableBillItems === 'function'
                 && Array.isArray(_sourceItems) && _sourceItems.length > 0) {
@@ -942,6 +948,7 @@ $(function() {
             fd.append('Items',                  JSON.stringify(items));
             fd.append('SignatureUID',           parseInt($('#transSignatureUID').val(), 10) || 0);
             fd.append('action',                 action);
+            if (typeof _plTransInjectFormData === 'function') _plTransInjectFormData(fd);
             $.each(charges, function(k, v) { fd.append(k, v); });
             collectTransAttachData(fd);
             if (!_isEdit) {
@@ -1147,15 +1154,7 @@ $(function() {
 }());
 
 function _showSavedAndGo(title, msg) {
-    Swal.fire({
-        icon             : 'success',
-        title            : title,
-        text             : msg,
-        confirmButtonText: 'OK',
-        timer            : 3000,
-        timerProgressBar : true,
-    }).then(function() {
-        window.location.href = '/invoices';
-    });
+    _setPendingToast('_invPendingToast', msg, 'success');
+    window.location.href = _buildReturnUrl('/invoices');
 }
 </script>

@@ -5,6 +5,16 @@ $isDraftEdit = $isEdit && ($SRData->DocStatus === 'Draft');
 $transUID    = $isEdit ? (int)$SRData->TransUID : 0;
 $formId      = 'srForm';
 $formAction  = $isEdit ? 'salesreturns/updateSalesReturn' : 'salesreturns/addSalesReturn';
+$_posCode    = $isEdit ? ($SRData->PlaceOfSupplyCode  ?? '') : ($JwtData->Org->StateCode  ?? '');
+$_posName    = $isEdit ? ($SRData->PlaceOfSupplyName  ?? '') : ($JwtData->Org->StateName  ?? '');
+
+$_returnTab  = $this->input->get('returnTab')  ?: 'All';
+$_returnPage = (int)($this->input->get('returnPage') ?: 1);
+$_closeUrl   = '/salesreturns';
+$_cParams    = [];
+if ($_returnTab) $_cParams[] = 'tab=' . urlencode($_returnTab);
+if ($_returnPage > 1) $_cParams[] = 'page=' . $_returnPage;
+if ($_cParams) $_closeUrl .= '?' . implode('&', $_cParams);
 $_srMethod   = $JwtData->TransSettings->SalesReturnItemMethod ?? 'Manual';
 
 if ($isEdit && !function_exists('buildSRPrefixSegment')) {
@@ -77,8 +87,7 @@ if ($isEdit) {
                     <?php if ($isEdit): ?>
                     <input type="hidden" name="TransUID" value="<?php echo $transUID; ?>" />
                     <?php endif; ?>
-                    <input type="hidden" id="placeOfSupplyCode" name="placeOfSupplyCode" value="<?php echo !$isEdit ? htmlspecialchars($JwtData->Org->StateCode ?? '', ENT_QUOTES) : ''; ?>" />
-                    <input type="hidden" id="placeOfSupplyName" name="placeOfSupplyName" value="<?php echo !$isEdit ? htmlspecialchars($JwtData->Org->StateName ?? '', ENT_QUOTES) : ''; ?>" />
+                    <?php $this->load->view('transactions/partials/place_of_supply_inputs', ['_posCode' => $_posCode, '_posName' => $_posName]); ?>
 
                     <div class="card mb-3">
 
@@ -178,7 +187,7 @@ if ($isEdit) {
                                     <button type="submit" name="action" value="save" class="btn btn-sm btn-primary px-3"><i class="bx bx-check me-1"></i>Save</button>
                                 <?php endif; ?>
                                 <?php $_hideNav = (int)($JwtData->TransSettings->HideNavOnTransForm ?? 0); ?>
-                                <a href="/salesreturns" class="btn btn-sm btn-outline-danger px-3<?php echo $_hideNav ? ' d-none' : ''; ?>"><i class="bx bx-x me-1"></i>Close</a>
+                                <a href="<?php echo $_closeUrl; ?>" class="btn btn-sm btn-outline-danger px-3<?php echo $_hideNav ? ' d-none' : ''; ?>"><i class="bx bx-x me-1"></i>Close</a>
                             </div>
                         </div>
 
@@ -206,6 +215,7 @@ if ($isEdit) {
                                 <?php endif; ?>
                                 <div class="ms-auto d-flex align-items-center gap-2">
                                     <div id="custTypeIndicator" class="d-none"></div>
+                                    <div id="plChipWrap" class="d-none"></div>
                                     <div id="srOnAccountBadge" class="d-none"
                                          style="font-size:.78rem;color:#856404;background:#fff8e1;border:1px solid #ffc107;padding:3px 12px;border-radius:20px;white-space:nowrap;">
                                         <i class="bx bx-wallet" style="font-size:.88rem;"></i>
@@ -428,6 +438,7 @@ if ($isEdit) {
 <script src="/js/common/customer_form.js"></script>
 <script src="/js/transactions/salesreturns.js"></script>
 <script src="/js/transactions/transactions.js"></script>
+<script src="/js/transactions/pricelist_trans.js"></script>
 <script>window.R2K_CUST_HIDE_CREATE = true;</script>
 <script src="/js/transactions/transprefix.js"></script>
 <script src="/js/transactions/modaladdress.js"></script>
@@ -452,6 +463,8 @@ var _orgDateFmt   = '<?php echo addslashes($JwtData->GenSettings->ListDateFormat
 var _upstashUrl       = '<?php echo addslashes($UpstashReadUrl   ?? ''); ?>';
 var _upstashReadToken = '<?php echo addslashes($UpstashReadToken ?? ''); ?>';
 var _custCacheKey     = '<?php echo addslashes($CustomerCacheKey ?? ''); ?>';
+var _returnTab  = <?php echo json_encode($_returnTab); ?>;
+var _returnPage = <?php echo (int)$_returnPage; ?>;
 var _srItemMethod     = '<?php echo $_srMethod; ?>';
 
 <?php if ($isEdit): ?>
@@ -880,6 +893,7 @@ $(function() {
                     getPaymentAttachmentFiles().forEach(function(f) { formData.append('PaymentFiles[]', f); });
                 }
             }
+            if (typeof _plTransInjectFormData === 'function') _plTransInjectFormData(formData);
 
             setFormLoading('#<?php echo $formId; ?>', true, action);
 
@@ -895,16 +909,8 @@ $(function() {
                         setFormLoading('#<?php echo $formId; ?>', false);
                         showFormError(response.Message);
                     } else {
-                        Swal.fire({
-                            icon             : 'success',
-                            title            : _isEdit ? 'Sales Return Updated' : 'Sales Return Saved',
-                            text             : response.Message || (_isEdit ? 'Sales return updated successfully.' : 'Sales return created successfully.'),
-                            confirmButtonText: 'OK',
-                            timer            : 3000,
-                            timerProgressBar : true,
-                        }).then(function() {
-                            window.location.href = '/salesreturns';
-                        });
+                        _setPendingToast('_srPendingToast', response.Message, 'success');
+                        window.location.href = _buildReturnUrl('/salesreturns');
                     }
                 },
                 error: function() {

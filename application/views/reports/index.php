@@ -1,6 +1,96 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
 $this->load->view('common/transactions/header'); ?>
 
+<style>
+/* ── Reports Hub Theme ─────────────────────────────────────── */
+.rpt-ph-icon {
+    width: 42px; height: 42px; border-radius: 10px;
+    background: #dbeafe; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+}
+.rpt-ph-icon i { font-size: 1.35rem; color: #3b82f6; }
+
+/* Search */
+.rpt-search-wrap {
+    position: relative; display: flex; align-items: center;
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;
+    padding: 0 10px; min-width: 260px;
+}
+.rpt-search-icon { color: #94a3b8; font-size: 1rem; margin-right: 6px; flex-shrink: 0; }
+.rpt-search-input {
+    border: none; outline: none; background: transparent;
+    font-size: .82rem; width: 100%; padding: 8px 0; color: #334155;
+}
+.rpt-search-input::placeholder { color: #94a3b8; }
+.rpt-search-clear { color: #94a3b8; cursor: pointer; font-size: 1rem; flex-shrink: 0; }
+.rpt-search-clear:hover { color: #64748b; }
+
+/* Left Nav */
+.rpt-nav-card {
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
+    overflow: hidden; position: sticky; top: 76px;
+}
+.rpt-nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 14px; cursor: pointer;
+    transition: background .15s;
+}
+.rpt-nav-item:hover { background: #f8fafc; }
+.rpt-nav-item.active { background: #f0f4ff; }
+.rpt-nav-icon-wrap {
+    width: 28px; height: 28px; border-radius: 6px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+}
+.rpt-nav-icon-wrap i { font-size: .88rem; }
+.rpt-nav-label { flex: 1; font-size: .82rem; color: #374151; font-weight: 500; }
+.rpt-nav-item.active .rpt-nav-label { color: #3b82f6; font-weight: 600; }
+.rpt-nav-badge {
+    font-size: .68rem; font-weight: 600; color: #64748b;
+    background: #f1f5f9; border-radius: 10px; padding: 1px 7px;
+    min-width: 22px; text-align: center;
+}
+.rpt-nav-item.active .rpt-nav-badge { background: #dbeafe; color: #3b82f6; }
+.rpt-nav-divider { height: 1px; background: #f1f5f9; margin: 2px 0; }
+
+/* Section Header */
+.rpt-section-header {
+    display: flex; align-items: center; gap: 10px;
+}
+.rpt-section-icon-wrap {
+    width: 30px; height: 30px; border-radius: 7px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+}
+.rpt-section-icon-wrap i { font-size: .95rem; }
+.rpt-section-title { font-size: .88rem; font-weight: 700; color: #1e293b; letter-spacing: .01em; }
+.rpt-section-count {
+    font-size: .7rem; color: #64748b; background: #f1f5f9;
+    border-radius: 10px; padding: 1px 8px; font-weight: 600;
+}
+
+/* Report Card */
+.rpt-card {
+    display: flex; align-items: center; gap: 12px;
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
+    padding: 13px 14px; text-decoration: none; color: inherit;
+    transition: box-shadow .15s, border-color .15s, transform .1s;
+    height: 100%;
+}
+.rpt-card:hover {
+    border-color: #cbd5e1; box-shadow: 0 4px 16px rgba(0,0,0,.07);
+    transform: translateY(-1px); color: inherit; text-decoration: none;
+}
+.rpt-card-icon-wrap {
+    width: 38px; height: 38px; border-radius: 9px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+}
+.rpt-card-icon-wrap i { font-size: 1.1rem; }
+.rpt-card-body { flex: 1; min-width: 0; }
+.rpt-card-name { font-size: .82rem; font-weight: 600; color: #1e293b; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rpt-card-desc { font-size: .72rem; color: #64748b; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.rpt-card-arrow { font-size: 1.1rem; color: #cbd5e1; flex-shrink: 0; transition: color .15s, transform .15s; }
+.rpt-card:hover .rpt-card-arrow { color: #3b82f6; transform: translateX(2px); }
+</style>
+
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
     <div class="layout-container">
 
@@ -226,96 +316,6 @@ $this->load->view('common/transactions/header'); ?>
         </div>
     </div>
 </div>
-
-<style>
-/* ── Reports Hub Theme ─────────────────────────────────────── */
-.rpt-ph-icon {
-    width: 42px; height: 42px; border-radius: 10px;
-    background: #dbeafe; display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-}
-.rpt-ph-icon i { font-size: 1.35rem; color: #3b82f6; }
-
-/* Search */
-.rpt-search-wrap {
-    position: relative; display: flex; align-items: center;
-    background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;
-    padding: 0 10px; min-width: 260px;
-}
-.rpt-search-icon { color: #94a3b8; font-size: 1rem; margin-right: 6px; flex-shrink: 0; }
-.rpt-search-input {
-    border: none; outline: none; background: transparent;
-    font-size: .82rem; width: 100%; padding: 8px 0; color: #334155;
-}
-.rpt-search-input::placeholder { color: #94a3b8; }
-.rpt-search-clear { color: #94a3b8; cursor: pointer; font-size: 1rem; flex-shrink: 0; }
-.rpt-search-clear:hover { color: #64748b; }
-
-/* Left Nav */
-.rpt-nav-card {
-    background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
-    overflow: hidden; position: sticky; top: 76px;
-}
-.rpt-nav-item {
-    display: flex; align-items: center; gap: 10px;
-    padding: 9px 14px; cursor: pointer;
-    transition: background .15s;
-}
-.rpt-nav-item:hover { background: #f8fafc; }
-.rpt-nav-item.active { background: #f0f4ff; }
-.rpt-nav-icon-wrap {
-    width: 28px; height: 28px; border-radius: 6px; flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center;
-}
-.rpt-nav-icon-wrap i { font-size: .88rem; }
-.rpt-nav-label { flex: 1; font-size: .82rem; color: #374151; font-weight: 500; }
-.rpt-nav-item.active .rpt-nav-label { color: #3b82f6; font-weight: 600; }
-.rpt-nav-badge {
-    font-size: .68rem; font-weight: 600; color: #64748b;
-    background: #f1f5f9; border-radius: 10px; padding: 1px 7px;
-    min-width: 22px; text-align: center;
-}
-.rpt-nav-item.active .rpt-nav-badge { background: #dbeafe; color: #3b82f6; }
-.rpt-nav-divider { height: 1px; background: #f1f5f9; margin: 2px 0; }
-
-/* Section Header */
-.rpt-section-header {
-    display: flex; align-items: center; gap: 10px;
-}
-.rpt-section-icon-wrap {
-    width: 30px; height: 30px; border-radius: 7px; flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center;
-}
-.rpt-section-icon-wrap i { font-size: .95rem; }
-.rpt-section-title { font-size: .88rem; font-weight: 700; color: #1e293b; letter-spacing: .01em; }
-.rpt-section-count {
-    font-size: .7rem; color: #64748b; background: #f1f5f9;
-    border-radius: 10px; padding: 1px 8px; font-weight: 600;
-}
-
-/* Report Card */
-.rpt-card {
-    display: flex; align-items: center; gap: 12px;
-    background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
-    padding: 13px 14px; text-decoration: none; color: inherit;
-    transition: box-shadow .15s, border-color .15s, transform .1s;
-    height: 100%;
-}
-.rpt-card:hover {
-    border-color: #cbd5e1; box-shadow: 0 4px 16px rgba(0,0,0,.07);
-    transform: translateY(-1px); color: inherit; text-decoration: none;
-}
-.rpt-card-icon-wrap {
-    width: 38px; height: 38px; border-radius: 9px; flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center;
-}
-.rpt-card-icon-wrap i { font-size: 1.1rem; }
-.rpt-card-body { flex: 1; min-width: 0; }
-.rpt-card-name { font-size: .82rem; font-weight: 600; color: #1e293b; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.rpt-card-desc { font-size: .72rem; color: #64748b; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.rpt-card-arrow { font-size: 1.1rem; color: #cbd5e1; flex-shrink: 0; transition: color .15s, transform .15s; }
-.rpt-card:hover .rpt-card-arrow { color: #3b82f6; transform: translateX(2px); }
-</style>
 
 <script>
 (function () {

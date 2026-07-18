@@ -153,6 +153,63 @@ function _pmtLoadPrintData(paymentUID, printType, cb) {
     });
 }
 
+// ── Programmatic open — called from form pages after Save & Print ─────────
+
+/**
+ * @param {number}   transUID
+ * @param {number}   moduleUID
+ * @param {Function} afterCloseCb called when the modal is closed
+ * @returns {void}
+ */
+function openThermalPrintByUID(transUID, moduleUID, afterCloseCb) {
+    var cfg = _thermalTypeConfig[moduleUID] || { icon: 'bx-receipt', color: '#696cff', bg: '#e8f0fe', label: 'Receipt' };
+    _thermalData    = null;
+    _thermalPmtData = null;
+
+    _thermalSetBanner(cfg.icon, cfg.color, cfg.bg, cfg.label + ' — Thermal Print', '<i class="bx bx-loader-alt bx-spin me-1"></i>Loading...', '');
+
+    $('#thermalPrintBtn').addClass('d-none').off('click.thermal').on('click.thermal', function () {
+        if (!_thermalData) return;
+        _openThermalPrintWindow(_buildThermalHtml(_thermalData, 1), _thermalData.ThermalConfig);
+    });
+    $('#thermalPrintBody').html('<div class="d-flex justify-content-center py-5"><div class="spinner-border text-primary"></div></div>');
+    new bootstrap.Modal(document.getElementById('thermalPrintModal')).show();
+    AjaxLoading = 0;
+    $.ajax({
+        url   : '/transactions/getTransactionDetail',
+        method: 'GET',
+        data  : { TransUID: transUID, ModuleUID: moduleUID, PrintType: 'thermal' },
+        success: function (resp) {
+            AjaxLoading = 1;
+            if (resp.Error) {
+                $('#thermalPrintBody').html('<div class="alert alert-danger m-2">' + _esc(resp.Message) + '</div>');
+                _thermalSetBanner(cfg.icon, cfg.color, cfg.bg, cfg.label + ' — Thermal Print', '<span class="text-danger">Failed to load</span>', '');
+                return;
+            }
+            _thermalData = resp;
+            var h = resp.Header || {};
+            var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            var meta = '';
+            if (h.UniqueNumber) meta += '<i class="bx bx-hash me-1"></i>' + _esc(h.UniqueNumber);
+            if (h.TransDate) {
+                var p = String(h.TransDate).split(/[-T ]/);
+                if (p.length >= 3) meta += (meta ? ' &nbsp;&middot;&nbsp; ' : '') + '<i class="bx bx-calendar me-1"></i>' + parseInt(p[2], 10) + ' ' + (months[parseInt(p[1], 10) - 1] || '') + ' ' + p[0];
+            }
+            _thermalSetBanner(cfg.icon, cfg.color, cfg.bg, cfg.label + ' — Thermal Print', meta, h.DocStatus || '');
+            $('#thermalPrintBody').html(_buildThermalHtml(resp, 0));
+            $('#thermalPrintBtn').removeClass('d-none');
+            if (typeof afterCloseCb === 'function') {
+                $('#thermalPrintModal').one('hide.bs.modal', afterCloseCb);
+            }
+        },
+        error: function () {
+            AjaxLoading = 1;
+            $('#thermalPrintBody').html('<div class="alert alert-danger m-2">Failed to load receipt.</div>');
+            _thermalSetBanner(cfg.icon, cfg.color, cfg.bg, cfg.label + ' — Thermal Print', '<span class="text-danger">Failed to load</span>', '');
+        }
+    });
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────
 function _esc(v) {
     if (v === null || v === undefined) return '';

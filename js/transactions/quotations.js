@@ -9,31 +9,23 @@ $(document).on('click', '.inv-wa-link', function (e) {
     if (url) window.open(url, '_blank');
 });
 
-// -- Auto-attach PDF when comm modal switches to Email tab -------------------
+// -- Register smart PDF attach alert when comm modal opens in Email tab -------
 // Priority: direct CDN fetch (if PdfPath in row data) → AJAX fallback
 $(document).on('comm:switchedToEmail', function (e, moduleUID, recordUID) {
-    if (moduleUID !== 101 || !recordUID || _commPdfAutoAttached) return;
-    _commPdfAutoAttached = true;
+    if (moduleUID !== 101 || !recordUID) return;
+    if (typeof _setupCommPdfAlert !== 'function') return;
 
-    setTimeout(function () {
-        _initCommDropzone();
+    var rowData   = (typeof _commRowData !== 'undefined') ? _commRowData : null;
+    var pdfPath   = rowData ? (rowData.pdfPath || '') : '';
+    var cdnBase   = (typeof _r2CdnBase    !== 'undefined') ? (_r2CdnBase   || '') : '';
+    var docNumber = rowData ? (rowData.docNumber || '') : '';
+    var filename  = (docNumber || 'quotation').replace(/[^A-Za-z0-9_.\-]/g, '_') + '.pdf';
 
-        var rowData   = (typeof _commRowData !== 'undefined') ? _commRowData : null;
-        var pdfPath   = rowData ? (rowData.pdfPath || '') : '';
-        var cdnBase   = (typeof _r2CdnBase   !== 'undefined') ? (_r2CdnBase   || '') : '';
-        var docNumber = rowData ? (rowData.docNumber || ('Doc_' + recordUID)) : ('Doc_' + recordUID);
-        var filename  = docNumber.replace(/[^A-Za-z0-9_\-]/g, '_') + '.pdf';
-
+    _setupCommPdfAlert(docNumber, function (onSuccess) {
         if (pdfPath && cdnBase) {
-            // R2 CDN direct fetch — bypasses PHP server entirely
-            // AbortController limits the wait to 3 seconds so a dead CDN fails fast
             var cdnUrl     = cdnBase.replace(/\/+$/, '') + '/' + pdfPath.replace(/^\/+/, '');
             var controller = new AbortController();
             var cdnTimeout = setTimeout(function () { controller.abort(); }, 3000);
-            var $loader    = $('<div id="CommPdfAttachLoader" class="text-center py-2" style="font-size:.78rem;color:#888;">' +
-                               '<span class="spinner-border spinner-border-sm me-1"></span>Attaching PDF...</div>');
-            $('#CommAttachDropzone').append($loader);
-
             fetch(cdnUrl, { signal: controller.signal })
                 .then(function (r) {
                     clearTimeout(cdnTimeout);
@@ -41,47 +33,36 @@ $(document).on('comm:switchedToEmail', function (e, moduleUID, recordUID) {
                     return r.blob();
                 })
                 .then(function (blob) {
-                    $('#CommPdfAttachLoader').remove();
-                    if (_commDropzone) {
-                        _commDropzone.addFile(new File([blob], filename, { type: 'application/pdf' }));
-                    }
+                    onSuccess(new File([blob], filename, { type: 'application/pdf' }));
                 })
                 .catch(function () {
                     clearTimeout(cdnTimeout);
-                    $('#CommPdfAttachLoader').remove();
-                    _commPdfAutoAttached = false;
-                    _quotFetchPdfAjax(moduleUID, recordUID);  // fallback
+                    _quotFetchPdfAjax(recordUID, moduleUID, filename, onSuccess);
                 });
         } else {
-            _quotFetchPdfAjax(moduleUID, recordUID);
+            _quotFetchPdfAjax(recordUID, moduleUID, filename, onSuccess);
         }
-    }, 150);
+    });
 });
 
-function _quotFetchPdfAjax(moduleUID, recordUID) {
-    _commPdfAutoAttached = true;
+function _quotFetchPdfAjax(recordUID, moduleUID, filename, onSuccess) {
     $.ajax({
         url   : '/transactions/getTransactionPdfBase64',
         method: 'POST',
         data  : { TransUID: recordUID, ModuleUID: moduleUID, PaperSize: 'A4', [CsrfName]: CsrfToken },
         success: function (resp) {
-            if (resp.Error || !resp.Base64) {
-                _commPdfAutoAttached = false;
-                if (resp.Message) Swal.fire({ icon: 'warning', title: 'PDF Attachment', text: resp.Message });
-                return;
-            }
-            if (!_commDropzone) { _commPdfAutoAttached = false; return; }
+            if (resp.Error || !resp.Base64) { if (onSuccess) onSuccess(null); return; }
             try {
                 var binary = atob(resp.Base64);
                 var bytes  = new Uint8Array(binary.length);
                 for (var i = 0; i < binary.length; i++) { bytes[i] = binary.charCodeAt(i); }
                 var blob = new Blob([bytes], { type: 'application/pdf' });
-                _commDropzone.addFile(new File([blob], resp.Filename || 'quotation.pdf', { type: 'application/pdf' }));
+                if (onSuccess) onSuccess(new File([blob], resp.Filename || filename, { type: 'application/pdf' }));
             } catch (ex) {
-                _commPdfAutoAttached = false;
+                if (onSuccess) onSuccess(null);
             }
         },
-        error: function () { _commPdfAutoAttached = false; }
+        error: function () { if (onSuccess) onSuccess(null); }
     });
 }
 
@@ -95,8 +76,18 @@ var _quotConfig = {
     }
 };
 
-function getQuotationsDetails(pageNo, rowLimit, filter) {
-    loadTransactionList(_quotConfig, pageNo, rowLimit, filter);
+function getQuotationsDetails(pageNo, rowLimit, filter, afterLoad) {
+    if (typeof afterLoad === 'function') {
+        var _cfg = $.extend({}, _quotConfig, {
+            onSuccess: function(resp) {
+                if (_quotConfig.onSuccess) _quotConfig.onSuccess(resp);
+                afterLoad(resp);
+            }
+        });
+        loadTransactionList(_cfg, pageNo, rowLimit, filter);
+    } else {
+        loadTransactionList(_quotConfig, pageNo, rowLimit, filter);
+    }
 }
 
 function updateQuotStatCards(stats) {

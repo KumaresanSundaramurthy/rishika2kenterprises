@@ -1,12 +1,13 @@
 // ── Delivery Challans list — module-specific JS ───────────────────────────────
 // Shared utilities (loadTransactionList, debounce, initTooltips) are in common.js
 
-function getDeliveryChallansDetails(pageNo, rowLimit, filter) {
+function getDeliveryChallansDetails(pageNo, rowLimit, filter, afterLoad) {
     loadTransactionList({
         url:            '/deliverychallan/getPageDetails/',
         tabCountClass:  '.dc-tab-count',
         statusTabClass: '.dc-status-tab',
         errorMessage:   'Failed to load delivery challans.',
+        onSuccess:      function(resp) { if (typeof afterLoad === 'function') afterLoad(resp); },
     }, pageNo, rowLimit, filter);
 }
 

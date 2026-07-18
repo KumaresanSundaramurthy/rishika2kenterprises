@@ -1,3 +1,7 @@
+// Keyed by product row id; updated each time a valid (≥ purchase price) selling price is blurred
+var _lastValidSellingPrices = {};
+var _lastValidUnitPrices    = {};
+
 class BillManager {
     
     constructor() {
@@ -249,16 +253,16 @@ class BillManager {
             discount_manually_changed: false,
             overrides_global_discount: false,
             discount_is_global: false,
-            discount: 0,
-            discountType: productData.discountType,
+            discount: parseFloat(productData.discount) || 0,
+            discountType: productData.discountType || 'Percentage',
             discount_amount: 0,
             // Totals
             line_total: 0,
             net_total: 0
         };
-        
-        // Apply global discount if exists
-        if (this.globalDiscountPercent > 0) {
+
+        // Apply global discount only if no item-level discount was pre-loaded
+        if (this.globalDiscountPercent > 0 && !item.discount) {
             item.discount = this.globalDiscountPercent;
             item.discount_is_global = true;
         }
@@ -1439,6 +1443,9 @@ $(document).ready(function () {
     // Signal additional_charges.js that BillingManager is ready
     $(document).trigger('billManagerReady');
 
+    // Pre-warm dropdown cache so #extDiscountType is populated immediately on load
+    if (typeof DropdownCache !== 'undefined') DropdownCache.init();
+
     // ── Cart controls visibility (called on every add / remove / clear) ───────
     function _syncCartControls() {
         var count = $('#billTableBody tr[data-id]').length;
@@ -1819,6 +1826,29 @@ $(document).ready(function () {
         setTimeout(() => input.select(), 0);
     });
 
+    // Capture last valid selling / unit price on focus — before user edits
+    $(document).on('focus', '.updateAllBillAmounts', function () {
+        if (window._productPurchaseMode) return;
+        var fieldName = $(this).attr('name') || '';
+        var isSelling = fieldName.indexOf('_sellingPrice') !== -1;
+        var isUnit    = fieldName.indexOf('_unitPrice')    !== -1;
+        if (!isSelling && !isUnit) return;
+        var $row  = $(this).closest('tr');
+        var rowId = parseInt($row.data('id'), 10);
+        if (isNaN(rowId)) return;
+        var item = billManager.getItemById(rowId);
+        if (!item || item.isComposite) return;
+        var pp      = parseFloat(item.purchasePrice) || 0;
+        if (pp <= 0) return;
+        var tax     = item.taxPercent || 0;
+        var taxIncl = item.purchasePriceTaxUID === 1;
+        var effPPInc = taxIncl ? pp : pp * (1 + tax / 100);
+        var effPPEx  = (taxIncl && tax > 0) ? pp / (1 + tax / 100) : pp;
+        var cur = parseFloat($(this).val()) || 0;
+        if (isSelling && cur >= effPPInc) _lastValidSellingPrices[rowId] = cur;
+        if (isUnit    && cur >= effPPEx)  _lastValidUnitPrices[rowId]    = cur;
+    });
+
     $(document).on('blur', '.updateAllBillAmounts', function () {
         let val = $(this).val();
 
@@ -1831,6 +1861,53 @@ $(document).ready(function () {
         if (val.endsWith('.')) val = val.slice(0, -1);
 
         $(this).val(val);
+    });
+
+    // Below-purchase-price check — fires after the cleanup handler above
+    // Covers both _sellingPrice (inclusive) and _unitPrice (ex-tax) fields.
+    // Excluded automatically on purchase pages via _productPurchaseMode.
+    $(document).on('blur', '.updateAllBillAmounts', function () {
+        if (window._productPurchaseMode) return;
+        var fieldName = $(this).attr('name') || '';
+        var isSelling = fieldName.indexOf('_sellingPrice') !== -1;
+        var isUnit    = fieldName.indexOf('_unitPrice')    !== -1;
+        if (!isSelling && !isUnit) return;
+
+        var $row  = $(this).closest('tr');
+        var rowId = parseInt($row.data('id'), 10);
+        if (isNaN(rowId)) return;
+
+        var item = billManager.getItemById(rowId);
+        if (!item || item.isComposite) return;
+
+        var pp      = parseFloat(item.purchasePrice) || 0;
+        if (pp <= 0) return;
+        var tax     = item.taxPercent || 0;
+        var taxIncl = item.purchasePriceTaxUID === 1;
+
+        // Normalise effective purchase price to match the field's tax basis
+        var effPP = isSelling
+            ? (taxIncl ? pp : pp * (1 + tax / 100))            // inclusive basis for selling price
+            : ((taxIncl && tax > 0) ? pp / (1 + tax / 100) : pp); // ex-tax basis for unit price
+
+        var entered = parseFloat($(this).val()) || 0;
+        var curr    = (genSettings && genSettings.CurrenySymbol) ? genSettings.CurrenySymbol : '₹';
+
+        if (entered < effPP) {
+            showBelowPurchaseToast(effPP, entered, curr);
+            if (window._belowPurchasePriceAction === 'strict') {
+                if (isSelling) {
+                    var lastS = (_lastValidSellingPrices[rowId] != null) ? _lastValidSellingPrices[rowId] : effPP;
+                    $(this).val(smartDecimal(lastS, genSettings.DecimalPoints)).trigger('input');
+                } else {
+                    var lastU = (_lastValidUnitPrices[rowId] != null) ? _lastValidUnitPrices[rowId] : effPP;
+                    $(this).val(smartDecimal(lastU, genSettings.DecimalPoints)).trigger('input');
+                }
+            }
+        } else {
+            if (isSelling) _lastValidSellingPrices[rowId] = entered;
+            else           _lastValidUnitPrices[rowId]    = entered;
+        }
     });
 
     // In $(document).ready, update the discount input handler:
@@ -1884,7 +1961,20 @@ $(document).ready(function () {
         }
 
         billManager.updateItem(getId, bmField, parsedValue);
-        
+
+        // Re-check price list tier when qty changes (Specific scope, qty-break pricing)
+        if (bmField === 'quantity' && typeof _plTransQtyChange === 'function') {
+            _plTransQtyChange(parseInt(getId, 10), parsedValue);
+        }
+
+        // Re-distribute BOM component prices when combo selling/unit price changes
+        if (bmField === 'unitPrice' || bmField === 'sellingPrice') {
+            var _updatedComboItem = billManager.getItemById(parseInt(getId, 10));
+            if (_updatedComboItem && _updatedComboItem.isComposite) {
+                _reapplyBOMDistribution(_updatedComboItem);
+            }
+        }
+
     });
 
     // Handle discount type change
@@ -2423,8 +2513,11 @@ function searchCustomers(key) {
                                 balanceType:       c.ClosingBalType              || 'Debit',
                                 onAccountBalance:  parseFloat(c.OnAccountBalance || 0),
                                 onAccountRecords:  c.OnAccountRecords            || [],
-                                lastTxAt:     c.LastTransactionAt || '',
-                                countryISO2:  c.CountryISO2 || 'IN',
+                                lastTxAt:        c.LastTransactionAt || '',
+                                countryISO2:     c.CountryISO2 || 'IN',
+                                customerTypeUID:  parseInt(c.CustomerTypeUID || 0, 10),
+                                groupUID:         c.GroupUID ? parseInt(c.GroupUID, 10) : null,
+                                discountPercent:  parseFloat(c.DiscountPercent || 0),
                             };
                             if (c.Address && c.Address.length) {
                                 var addr = c.Address[0];
@@ -2559,11 +2652,13 @@ function searchCustomers(key) {
             $("#customerAddressBox").addClass('d-none').find('span').text('');
         }
         _showCustTypeIndicator(data);
+        if (typeof _plTransResolve === 'function') _plTransResolve(data);
     }).on('select2:clear', function () {
         $("#customerAddressBox").addClass('d-none').find('span').text('');
         $("#custTypeIndicator").addClass('d-none').empty();
         if (typeof billManager !== 'undefined') billManager.setInterState(false);
         if (typeof _showOnAccountBanner === 'function') _showOnAccountBanner(0, [], 0);
+        if (typeof _plTransClear === 'function') _plTransClear();
     }).on('select2:close', function () {
         AjaxLoading = 1;
     });
@@ -2953,6 +3048,7 @@ function pushBillItems(productData, qty) {
         billManager.addItem(productData, qty);
         var item = billManager.getItemById(productData.id);
         formationTableBillItems(item);
+        if (typeof _plTransApplyToNewRow === 'function') _plTransApplyToNewRow(productData.id);
         if (item && item.isComposite) {
             _fetchAndAttachBOM(item);
         }
@@ -2960,19 +3056,43 @@ function pushBillItems(productData, qty) {
 }
 
 function _applyBOMComponents(item, components) {
-    var comboPrice = parseFloat(item.sellingPrice) || 0;
-    var origTotal  = components.reduce(function(s, c) {
+    var comboPrice   = parseFloat(item.sellingPrice) || 0;
+    var origTotal    = components.reduce(function(s, c) {
         return s + (parseFloat(c.SellingPrice) || 0) * (parseFloat(c.Quantity) || 1);
     }, 0);
-    var ratio = origTotal > 0 ? comboPrice / origTotal : 1;
+    var mode         = (typeof _comboPriceDist !== 'undefined' ? _comboPriceDist : 'ratio');
+    // Only redistribute when combo price differs from component sum (>0.00001 tolerance)
+    var redistribute = Math.abs(origTotal - comboPrice) > 0.00001;
+    var ratio        = origTotal > 0 ? comboPrice / origTotal : 1;
+    var extra        = comboPrice - origTotal;
+    var extraPerLine = components.length > 0 ? extra / components.length : 0;
+
+    item.distributionMode = mode;
     item.bomComponents = components.map(function(c) {
-        var origSp = parseFloat(c.SellingPrice) || 0;
+        var origSp  = parseFloat(c.SellingPrice)   || 0;  // tax-inclusive original SP
+        var origQty = parseFloat(c.Quantity)        || 1;
+        var taxPct  = parseFloat(c.TaxPercentage)   || 0;
+        var origUp  = taxPct > 0 ? origSp / (1 + taxPct / 100) : origSp; // tax-exclusive original
+        var newSp, newUp;
+        if (!redistribute) {
+            newSp = origSp;
+            newUp = origUp;
+        } else if (mode === 'average') {
+            newSp = origSp + (origQty > 0 ? extraPerLine / origQty : 0);
+            newUp = taxPct > 0 ? newSp / (1 + taxPct / 100) : newSp;
+        } else {
+            newSp = origSp * ratio;
+            newUp = taxPct > 0 ? newSp / (1 + taxPct / 100) : newSp;
+        }
         return {
-            childProductUID : parseInt(c.ChildProductUID, 10),
-            itemName        : c.ItemName,
-            quantity        : parseFloat(c.Quantity) || 1,
-            unitPrice       : Math.round(origSp * ratio * 100000) / 100000,
-            origUnitPrice   : origSp
+            childProductUID  : parseInt(c.ChildProductUID, 10),
+            itemName         : c.ItemName,
+            quantity         : origQty,
+            unitPrice        : Math.round(newUp * 100000) / 100000,
+            sellingPrice     : Math.round(newSp * 100000) / 100000,
+            origUnitPrice    : Math.round(origUp * 100000) / 100000,
+            origSellingPrice : origSp,
+            taxPercent       : taxPct,
         };
     });
     billManager.updateItemInStorage(parseInt(item.id, 10), item);
@@ -2987,7 +3107,68 @@ function _fetchBOMFromServer(item, callback) {
     });
 }
 
+/**
+ * Re-run BOM distribution after the combo selling price is changed by the user.
+ * Uses stored origSellingPrice per component as the baseline so redistribution
+ * always reflects original component prices, not previously distributed prices.
+ * @param {object} item
+ */
+function _reapplyBOMDistribution(item) {
+    if (!item.bomComponents || !item.bomComponents.length) return;
+    var components = item.bomComponents.map(function(c) {
+        return {
+            ChildProductUID : c.childProductUID,
+            ItemName        : c.itemName,
+            Quantity        : c.quantity,
+            SellingPrice    : c.origSellingPrice,
+            TaxPercentage   : c.taxPercent || 0,
+        };
+    });
+    _applyBOMComponents(item, components);
+}
+
+/**
+ * Resolve BOM from the in-memory HGETALL map (zero network).
+ * Returns true and calls _applyBOMComponents if all components are found;
+ * returns false if the map is incomplete so the caller can fall through.
+ * @param {object} item
+ * @param {object} rawMap
+ * @param {Function|undefined} callback
+ * @returns {boolean}
+ */
+function _resolveBOMFromMap(item, rawMap, callback) {
+    var comboRaw  = rawMap[String(item.id)];
+    var comboData = (comboRaw && typeof comboRaw === 'object') ? comboRaw : null;
+    if (!comboData || !Array.isArray(comboData.items) || !comboData.items.length) return false;
+
+    var bomItems   = comboData.items;
+    var components = [];
+    bomItems.forEach(function(bi) {
+        var raw = rawMap[String(bi.uid)];
+        var p   = (raw && typeof raw === 'object') ? raw : null;
+        if (!p) return;
+        components.push({
+            ChildProductUID : bi.uid,
+            ItemName        : p.ItemName || '',
+            Quantity        : bi.qty,
+            SellingPrice    : parseFloat(p.SellingPrice    || 0),
+            TaxPercentage   : parseFloat(p.TaxPercentage   || 0),
+        });
+    });
+
+    if (components.length !== bomItems.length) return false;
+
+    _applyBOMComponents(item, components);
+    if (typeof callback === 'function') callback();
+    return true;
+}
+
 function _fetchAndAttachBOM(item, callback) {
+    // Tier 0 — in-memory map (populated when ProductAppend.load() called HGETALL)
+    var rawMap = (typeof ProductAppend !== 'undefined' && typeof ProductAppend.getRawMap === 'function')
+                 ? ProductAppend.getRawMap() : null;
+    if (rawMap && _resolveBOMFromMap(item, rawMap, callback)) return;
+
     if (!UpstashService.isEnabled()) {
         _fetchBOMFromServer(item, callback);
         return;
@@ -3020,7 +3201,8 @@ function _fetchAndAttachBOM(item, callback) {
                     ChildProductUID : bi.uid,
                     ItemName        : p.ItemName || '',
                     Quantity        : bi.qty,
-                    SellingPrice    : parseFloat(p.SellingPrice || 0),
+                    SellingPrice    : parseFloat(p.SellingPrice  || 0),
+                    TaxPercentage   : parseFloat(p.TaxPercentage || 0),
                 });
             });
 
@@ -3125,14 +3307,14 @@ function formationTableBillItems(productRow) {
                     <span class="input-group-text">${genSettings.CurrenySymbol}</span>
                     <input type="text" inputmode="decimal" class="form-control form-control-sm updateAllBillAmounts" name="bm_${productRow.id}_unitPrice" id="bm_${productRow.id}_unitPrice" min="0" placeholder="Unit Price" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, ${genSettings.PriceMaxLength}, 8)" maxLength="${genSettings.PriceMaxLength + 9}" pattern="^\\d{1,${genSettings.PriceMaxLength}}(\\.\\d{0,8})?$" onpaste="handlePricePaste(event, ${genSettings.PriceMaxLength}, 8)" ondrop="handlePriceDrop(event, ${genSettings.PriceMaxLength}, 8)" value="${smartDecimal(productRow.orgunitprice, 8)}" />
                 </div>
-                <div class="transtext-small text-muted text-warning bm_efft_${productRow.id}_price ${discBfrPrice}">aft disc: <span id="bm_${productRow.id}_aftdisc_unitPrice">${smartDecimal(productRow.unitPrice, 8)}</span></div>
+                <div class="transtext-small text-muted text-warning bm_efft_${productRow.id}_price ${discBfrPrice}">aft disc: <span id="bm_${productRow.id}_aftdisc_unitPrice">${smartDecimal(productRow.effectiveUnitPrice || productRow.unitPrice, 8)}</span></div>
             </td>
             <td>
                 <div class="input-group input-group-merge">
                     <span class="input-group-text">${genSettings.CurrenySymbol}</span>
                     <input type="text" inputmode="decimal" class="form-control form-control-sm updateAllBillAmounts" name="bm_${productRow.id}_sellingPrice" id="bm_${productRow.id}_sellingPrice" min="0" placeholder="Tax Price" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, ${genSettings.PriceMaxLength}, ${genSettings.DecimalPoints})" maxLength="${genSettings.PriceMaxLength}" pattern="^\\d{1,${genSettings.PriceMaxLength}}(\\.\\d{0,${genSettings.DecimalPoints}})?$" onpaste="handlePricePaste(event, ${genSettings.PriceMaxLength}, ${genSettings.DecimalPoints})" ondrop="handlePriceDrop(event, ${genSettings.PriceMaxLength}, ${genSettings.DecimalPoints})" value="${smartDecimal(productRow.orgselngprice, genSettings.DecimalPoints)}" />
                 </div>
-                <div class="transtext-small text-muted text-warning bm_efft_${productRow.id}_price ${discBfrPrice}">aft disc: <span id="bm_${productRow.id}_aftdisc_sellingPrice">${smartDecimal(productRow.sellingPrice, genSettings.DecimalPoints)}</span></div>
+                <div class="transtext-small text-muted text-warning bm_efft_${productRow.id}_price ${discBfrPrice}">aft disc: <span id="bm_${productRow.id}_aftdisc_sellingPrice">${smartDecimal(productRow.effectiveSellingPrice || productRow.sellingPrice, genSettings.DecimalPoints)}</span></div>
             </td>
             <td>
                 <div class="input-group input-group-merge w-75">
@@ -3764,35 +3946,16 @@ function updateDescriptionInTable(itemId, newDescription) {
     }
 }
 
-// Toast notification helper
-function showToastNotification(message, type = 'success') {
-    const bgColor = type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#ffc107';
-    const icon = type === 'success' ? 'bx-check-circle' : type === 'error' ? 'bx-error-circle' : 'bx-info-circle';
-    
-    const toast = `
-        <div class="toast-notification" style="position:fixed;top:20px;right:20px;z-index:99999;background:${bgColor};color:white;padding:15px 20px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);display:flex;align-items:center;gap:10px;animation:slideInRight 0.3s ease;">
-            <i class="bx ${icon}" style="font-size:24px;"></i>
-            <span>${message}</span>
-        </div>
-        <style>
-            @keyframes slideInRight {
-                from { transform: translateX(400px); opacity: 0; }
-                to { transform: translateX(0); opacity: 1; }
-            }
-            @keyframes slideOutRight {
-                from { transform: translateX(0); opacity: 1; }
-                to { transform: translateX(400px); opacity: 0; }
-            }
-        </style>
-    `;
-    
-    const $toast = $(toast);
-    $('body').append($toast);
-
-    setTimeout(() => {
-        $toast.css('animation', 'slideOutRight 0.3s ease');
-        setTimeout(() => $toast.remove(), 300);
-    }, 3000);
+// Below-purchase-price warning — builds message HTML then hands off to showPersistentToast
+function showBelowPurchaseToast(purchasePrice, enteredPrice, currency) {
+    var dec = (genSettings && genSettings.DecimalPoints) ? genSettings.DecimalPoints : 2;
+    var msg = '<strong>Price below purchase cost</strong>'
+        + '<br><span style="font-size:.78rem;font-weight:400;opacity:.9;">'
+        + 'Purchase: <strong>' + currency + '&nbsp;' + smartDecimal(purchasePrice, dec) + '</strong>'
+        + '&nbsp;&nbsp;·&nbsp;&nbsp;'
+        + 'You entered: <strong>' + currency + '&nbsp;' + smartDecimal(enteredPrice, dec) + '</strong>'
+        + '</span>';
+    showPersistentToast(msg, 'error', true);
 }
 
 // ── Close all Select2 dropdowns on window blur (Alt+Tab / window switch) ─────
@@ -3827,22 +3990,31 @@ function _renderBOMModal(item) {
     var cur   = (typeof genSettings !== 'undefined' && genSettings.CurrenySymbol) ? genSettings.CurrenySymbol : '₹';
     var total = 0;
     var rows  = comps.map(function(c, i) {
-        var price = parseFloat(c.unitPrice) || 0;
-        var qty   = parseFloat(c.quantity) || 1;
-        var amt   = price * qty;
+        var price  = parseFloat(c.sellingPrice != null ? c.sellingPrice : c.unitPrice) || 0;
+        var up     = parseFloat(c.unitPrice) || 0;
+        var taxPct = parseFloat(c.taxPercent) || 0;
+        var qty    = parseFloat(c.quantity) || 1;
+        var amt    = price * qty;
         total += amt;
-        var rowBg = i % 2 === 0 ? '' : 'background:#fdfcff;';
+        var rowBg   = i % 2 === 0 ? '' : 'background:#fdfcff;';
+        var taxBadge = taxPct > 0
+            ? '<div style="font-size:.63rem;color:#7c3aed;margin-top:3px;padding-left:2px;">' + taxPct + '% GST incl.</div>'
+            : '<div style="font-size:.63rem;color:#94a3b8;margin-top:3px;padding-left:2px;">Tax exempt</div>';
         return '<tr style="' + rowBg + 'border-bottom:1px solid #f1eeff;">' +
             '<td class="ps-4 align-middle py-3" style="font-size:.85rem;color:#374151;font-weight:500;">' + _bomEscapeHtml(c.itemName) + '</td>' +
             '<td class="text-center align-middle py-3" style="font-size:.85rem;color:#64748b;font-weight:600;">' + smartDecimal(qty) + '</td>' +
+            '<td class="text-end align-middle py-3 pe-3" style="font-size:.85rem;color:#64748b;font-weight:500;">' +
+                cur + ' ' + smartDecimal(up, dp) +
+            '</td>' +
             '<td class="align-middle py-3 pe-2">' +
-                '<div class="input-group input-group-sm" style="max-width:150px;">' +
+                '<div class="input-group input-group-sm" style="max-width:160px;">' +
                     '<span class="input-group-text" style="background:#f0edff;border-color:#d9d0ff;color:#7c3aed;font-weight:600;font-size:.8rem;">' + _bomEscapeHtml(cur) + '</span>' +
                     '<input type="number" class="form-control text-end bom-comp-price" ' +
                         'data-idx="' + i + '" data-qty="' + qty + '" ' +
                         'value="' + smartDecimal(price, dp) + '" min="0" step="any" ' +
                         'style="border-color:#d9d0ff;font-size:.85rem;">' +
                 '</div>' +
+                taxBadge +
             '</td>' +
             '<td class="text-end pe-4 align-middle py-3 bom-comp-amt" style="font-size:.88rem;font-weight:600;color:#374151;">' +
                 cur + ' ' + smartDecimal(amt, dp) +
@@ -3896,7 +4068,9 @@ $(document).on('click', '#comboBOMSubmitBtn', function() {
         var qty   = parseFloat($(this).data('qty')) || 1;
         newTotal += price * qty;
         if (item.bomComponents && item.bomComponents[idx] !== undefined) {
-            item.bomComponents[idx].unitPrice = price;
+            var cTax = item.bomComponents[idx].taxPercent || 0;
+            item.bomComponents[idx].sellingPrice = price;
+            item.bomComponents[idx].unitPrice    = cTax > 0 ? price / (1 + cTax / 100) : price;
         }
     });
 
@@ -3985,3 +4159,99 @@ $(function () {
         _applyGstMode('Without_GST');
     }
 });
+
+// ── Save & Print support ──────────────────────────────────────────────────
+
+var _pendingPrintFormat = null;
+
+var _moduleListUrls = {
+    101: '/quotations',    102: '/salesorders',   103: '/invoices',
+    104: '/purchaseorders', 105: '/purchases',    106: '/salesreturns',
+    108: '/purchasereturns', 112: '/deliverychallans', 113: '/proformainvoices'
+};
+
+/**
+ * @param {string} action
+ * @returns {string}
+ */
+function _resolveFormAction(action) {
+    if (action && action.indexOf('save_') === 0) {
+        _pendingPrintFormat = action.replace('save_', ''); // 'a4', 'a5', 'thermal'
+        return 'save';
+    }
+    _pendingPrintFormat = null;
+    return action;
+}
+
+/**
+ * @param {number} moduleUID
+ * @returns {void}
+ */
+function clearTransactionForm(moduleUID) {
+    // Items table + totals
+    if (typeof billManager !== 'undefined') billManager.clearAllItems();
+
+    // Party field — vendor for purchase modules, customer for everything else
+    var vendorModules = [104, 105, 108];
+    if (vendorModules.indexOf(moduleUID) !== -1) {
+        if ($('#vendorSearch').length) $('#vendorSearch').val(null).trigger('change');
+    } else {
+        if ($('#customerSearch').length) $('#customerSearch').val(null).trigger('change');
+    }
+
+    // Common text fields
+    $('#referenceDetails, #transNotes, #transTermsCond').val('');
+    if ($('#extraDiscount').length) $('#extraDiscount').val('0');
+    if ($('#transSignatureUID').length) $('#transSignatureUID').val(0);
+
+    // Prefix + transaction number
+    if ($('#transPrefixSelect').length) $('#transPrefixSelect').val('').trigger('change');
+    if ($('#transNumber').length) $('#transNumber').val('');
+
+    // Source link hidden fields
+    $('#fromSalesOrderUID, #fromQuotationUID').val(0);
+
+    // Additional charge rows
+    $('#additionalChargesBody .ac-charge-row').remove();
+    if ($('#additionalChargesTable').length) $('#additionalChargesTable').addClass('d-none');
+
+    // Payment rows — invoice only
+    if (moduleUID === 103 && $('#paymentRowsBody').length) {
+        $('#paymentRowsBody tr').not(':first').remove();
+        $('#paymentRowsBody tr:first').find('input').val('');
+        if ($('#PaymentRowsJson').length) $('#PaymentRowsJson').val('');
+    }
+}
+
+/**
+ * @param {number} transUID
+ * @param {number} moduleUID
+ * @param {string} format  'a4' | 'a5' | 'thermal'
+ * @param {Function} afterCloseCb
+ * @returns {void}
+ */
+function _openTransactionPrint(transUID, moduleUID, format, afterCloseCb) {
+    if (format === 'thermal') {
+        if (typeof openThermalPrintByUID === 'function') {
+            openThermalPrintByUID(transUID, moduleUID, afterCloseCb);
+        }
+    } else {
+        if (typeof openA4PrintByUID === 'function') {
+            openA4PrintByUID(transUID, moduleUID, format, afterCloseCb);
+        }
+    }
+}
+
+/**
+ * Builds the return URL for form-page redirects, preserving returnTab and returnPage
+ * that were injected into the page from the list-page navigation.
+ * @param {string} baseUrl - Module base URL e.g. '/quotations'
+ * @returns {string}
+ */
+function _buildReturnUrl(baseUrl) {
+    var params = new URLSearchParams();
+    if (typeof _returnTab  !== 'undefined' && _returnTab)      params.set('tab',  _returnTab);
+    if (typeof _returnPage !== 'undefined' && _returnPage > 1) params.set('page', _returnPage);
+    var qs = params.toString();
+    return baseUrl + (qs ? '?' + qs : '');
+}

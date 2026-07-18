@@ -116,6 +116,20 @@ var _attachCfg = {
         iconId:      'incAttachIcon',
         deleteField: 'incAttachDeleteUIDs',
     },
+    CommAttach: {
+        maxFiles: 3, maxFileSizeMB: 3, maxTotalMB: 9,
+        acceptedTypes: 'all', enabled: true,
+        inputId:     'commAttachInput',
+        zoneId:      'commAttachZone',
+        listId:      'commAttachList',
+        emptyId:     'commAttachEmpty',
+        labelId:     'commAttachLabel',
+        hintId:      'commAttachHint',
+        iconId:      'commAttachIcon',
+        deleteField: null,        // comm modal has no DB-backed existing files
+        onAfterChange: null,      // set by communication.js at DOMready
+        onThumbClick: null,       // set by communication.js — routes image clicks to filePreviewModal
+    },
 };
 
 var _attachState    = {};   // { SlotKey: { newFiles:[], existing:[], toDelete:[] } }
@@ -163,7 +177,7 @@ function _attachResetState(entityType) {
     _attachState[entityType] = { newFiles: [], existing: [], toDelete: [] };
     var cfg = _attachCfg[entityType];
     if (!cfg) return;
-    var df = document.getElementById(cfg.deleteField);
+    var df = cfg.deleteField ? document.getElementById(cfg.deleteField) : null;
     if (df) df.value = '';
     var list  = document.getElementById(cfg.listId);
     var empty = document.getElementById(cfg.emptyId);
@@ -312,6 +326,7 @@ function _attachRender(entityType) {
         if (label) label.textContent = 'Drag & drop files here';
         if (hint)  hint.textContent  = _attachTypeHint(entityType) + ' · Max ' + cfg.maxFiles + ' · ' + cfg.maxTotalMB + ' MB total';
         list.style.display = 'none';
+        if (cfg.onAfterChange) cfg.onAfterChange(entityType);
         return;
     } else if (remaining > 0) {
         if (icon)  { icon.className = 'bx bx-plus'; icon.style.color = '#6366f1'; }
@@ -401,9 +416,12 @@ function _attachRender(entityType) {
             thumb.alt = file.name;
             thumb.title = 'Click to preview';
             thumb.src = blobUrls[idx];
-            (function (g, i) {
-                thumb.addEventListener('click', function (e) { e.stopPropagation(); openImageGallery(g, i); });
-            })(newGallery, idx);
+            (function (g, i, slotCfg) {
+                thumb.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    if (slotCfg && slotCfg.onThumbClick) { slotCfg.onThumbClick(i); } else { openImageGallery(g, i); }
+                });
+            })(newGallery, idx, cfg);
             item.appendChild(thumb);
         } else {
             var fileIcon = document.createElement('div');
@@ -434,6 +452,8 @@ function _attachRender(entityType) {
         item.appendChild(btn);
         list.appendChild(item);
     });
+
+    if (cfg.onAfterChange) cfg.onAfterChange(entityType);
 }
 
 // ── File icon for non-image files ─────────────────────────────────────────────
@@ -463,7 +483,7 @@ function _attachRemoveExisting(entityType, attachUID) {
         _attachRender(entityType);
         var cfg = _attachCfg[entityType];
         if (cfg) {
-            var df = document.getElementById(cfg.deleteField);
+            var df = cfg.deleteField ? document.getElementById(cfg.deleteField) : null;
             if (df) df.value = state.toDelete.join(',');
         }
     });
@@ -475,7 +495,7 @@ function _attachUndoDelete(entityType, attachUID) {
     _attachRender(entityType);
     var cfg = _attachCfg[entityType];
     if (cfg) {
-        var df = document.getElementById(cfg.deleteField);
+        var df = cfg.deleteField ? document.getElementById(cfg.deleteField) : null;
         if (df) df.value = state.toDelete.join(',');
     }
 }

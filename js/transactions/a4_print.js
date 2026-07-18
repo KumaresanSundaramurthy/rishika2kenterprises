@@ -361,3 +361,63 @@ $(document).on('click', '.downloadPdfQuotation', function () {
 $(document).on('click', '.downloadPdfTransaction', function () {
     _submitDownloadPdf($(this).data('uid'), $(this).data('module'));
 });
+
+// ── Programmatic open — called from form pages after Save & Print ─────────
+
+/**
+ * @param {number}   transUID
+ * @param {number}   moduleUID
+ * @param {string}   format       'a4' | 'a5'
+ * @param {Function} afterCloseCb called when the modal is closed
+ * @returns {void}
+ */
+function openA4PrintByUID(transUID, moduleUID, format, afterCloseCb) {
+    _a4Html              = null;
+    _a4Header            = null;
+    _a4DownloadUid       = transUID;
+    _a4DownloadModuleUID = moduleUID;
+
+    $('.a4-copy-check').prop('checked', false);
+    $('#copyCustomer').prop('checked', true);
+
+    if (format === 'a5') {
+        var $a5btn = $('input[name="a4PaperSize"][value="A5"]');
+        if ($a5btn.length) $a5btn.prop('checked', true).trigger('change');
+    } else {
+        var $a4btn = $('input[name="a4PaperSize"][value="A4"]');
+        if ($a4btn.length) $a4btn.prop('checked', true).trigger('change');
+    }
+
+    $('#a4PrintModal').modal('show');
+    _a4SetLoading(true);
+    AjaxLoading = 0;
+    $.ajax({
+        url    : '/transactions/getTransactionDetail',
+        method : 'GET',
+        data   : { TransUID: transUID, ModuleUID: moduleUID },
+        success: function (data) {
+            AjaxLoading = 1;
+            var resp = (typeof data === 'object' && data !== null) ? data : null;
+            if (!resp || resp.Error) {
+                _a4SetLoading(false);
+                $('#a4PreviewStage').html('<div class="alert alert-danger m-4">' + (resp && resp.Message ? _esc(resp.Message) : 'Error loading document.') + '</div>');
+                return;
+            }
+            _a4Html   = resp.PrintHtmlEncoded ? atob(resp.PrintHtmlEncoded) : (resp.PrintHtml || '');
+            _a4Header = resp.Header || null;
+            _a4Title  = (_a4Header && _a4Header.UniqueNumber) ? _a4Header.UniqueNumber : 'Document';
+            var transType = (_a4Header && _a4Header.TransType) ? _a4Header.TransType : 'Document';
+            $('#a4ModalTitle').text(transType + ' — ' + _a4Title);
+            _a4SetLoading(false);
+            _a4ShowPreview();
+            if (typeof afterCloseCb === 'function') {
+                $('#a4PrintModal').one('hide.bs.modal', afterCloseCb);
+            }
+        },
+        error: function (jqXHR, textStatus) {
+            AjaxLoading = 1;
+            _a4SetLoading(false);
+            $('#a4PreviewStage').html('<div class="alert alert-danger m-4">Failed to load document. (' + textStatus + ')</div>');
+        }
+    });
+}

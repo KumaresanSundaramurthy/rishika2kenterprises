@@ -5,6 +5,16 @@ $isDraftEdit = $isEdit && ($POData->DocStatus === 'Draft');
 $transUID    = $isEdit ? (int)$POData->TransUID : 0;
 $formId      = 'poForm';
 $formAction  = $isEdit ? 'purchaseorders/updatePurchaseOrder' : 'purchaseorders/addPurchaseOrder';
+$_posCode    = $isEdit ? ($POData->PlaceOfSupplyCode  ?? '') : ($JwtData->Org->StateCode  ?? '');
+$_posName    = $isEdit ? ($POData->PlaceOfSupplyName  ?? '') : ($JwtData->Org->StateName  ?? '');
+
+$_returnTab  = $this->input->get('returnTab')  ?: 'All';
+$_returnPage = (int)($this->input->get('returnPage') ?: 1);
+$_closeUrl   = '/purchaseorders';
+$_cParams    = [];
+if ($_returnTab) $_cParams[] = 'tab=' . urlencode($_returnTab);
+if ($_returnPage > 1) $_cParams[] = 'page=' . $_returnPage;
+if ($_cParams) $_closeUrl .= '?' . implode('&', $_cParams);
 
 $editPrefixConfig = null;
 if ($isEdit && !empty($PrefixData)) {
@@ -60,8 +70,7 @@ $editPrefixSeg = ($isEdit && $isDraftEdit) ? buildPOPrefixSegment($editPrefixCon
                 <?php if ($isEdit): ?>
                 <input type="hidden" name="TransUID" value="<?php echo $transUID; ?>" />
                 <?php endif; ?>
-                <input type="hidden" id="placeOfSupplyCode" name="placeOfSupplyCode" value="<?php echo !$isEdit ? htmlspecialchars($JwtData->Org->StateCode ?? '', ENT_QUOTES) : ''; ?>" />
-                <input type="hidden" id="placeOfSupplyName" name="placeOfSupplyName" value="<?php echo !$isEdit ? htmlspecialchars($JwtData->Org->StateName ?? '', ENT_QUOTES) : ''; ?>" />
+                <?php $this->load->view('transactions/partials/place_of_supply_inputs', ['_posCode' => $_posCode, '_posName' => $_posName]); ?>
 
                     <div class="card mb-3">
 
@@ -159,7 +168,7 @@ $editPrefixSeg = ($isEdit && $isDraftEdit) ? buildPOPrefixSegment($editPrefixCon
                                 <?php else: ?>
                                     <button type="submit" name="action" value="save" class="btn btn-sm btn-primary"><i class="bx bx-check me-1"></i>Save</button>
                                 <?php endif; ?>
-                                <a href="/purchaseorders" class="btn btn-sm btn-outline-danger px-3<?php echo $_hideNav ? ' d-none' : ''; ?>"><i class="bx bx-x me-1"></i>Close</a>
+                                <a href="<?php echo $_closeUrl; ?>" class="btn btn-sm btn-outline-danger px-3<?php echo $_hideNav ? ' d-none' : ''; ?>"><i class="bx bx-x me-1"></i>Close</a>
                             </div>
                         </div>
 
@@ -241,8 +250,8 @@ $editPrefixSeg = ($isEdit && $isDraftEdit) ? buildPOPrefixSegment($editPrefixCon
                                     <div class="input-group input-group-sm input-group-merge">
                                         <span class="input-group-text bg-white"><i class="icon-base bx bx-calendar"></i></span>
                                         <input type="text" class="form-control form-control-sm bg-white" id="expectedDate_disp" readonly="readonly"
-                                            value="<?php echo ($isEdit && !empty($POData->ValidityDate)) ? format_datedisplay($POData->ValidityDate, $_fmt) : ''; ?>" />
-                                        <input type="hidden" id="expectedDate" name="expectedDate" value="<?php echo ($isEdit && !empty($POData->ValidityDate)) ? htmlspecialchars(format_datedisplay($POData->ValidityDate, 'Y-m-d')) : ''; ?>" />
+                                            value="<?php echo ($isEdit && !empty($POData->ValidityDate)) ? format_datedisplay($POData->ValidityDate, $_fmt) : format_datedisplay(date('Y-m-d'), $_fmt); ?>" />
+                                        <input type="hidden" id="expectedDate" name="expectedDate" value="<?php echo ($isEdit && !empty($POData->ValidityDate)) ? htmlspecialchars(format_datedisplay($POData->ValidityDate, 'Y-m-d')) : date('Y-m-d'); ?>" />
                                     </div>
                                 </div>
 
@@ -383,6 +392,8 @@ var _vendorState    = '<?php echo $isEdit && isset($VendorAddr) ? addslashes($Ve
 var _upstashUrl       = '<?php echo addslashes($UpstashReadUrl  ?? ''); ?>';
 var _upstashReadToken = '<?php echo addslashes($UpstashReadToken ?? ''); ?>';
 var _vendorCacheKey   = '<?php echo addslashes($VendorCacheKey  ?? ''); ?>';
+var _returnTab  = <?php echo json_encode($_returnTab); ?>;
+var _returnPage = <?php echo (int)$_returnPage; ?>;
 window._productPurchaseMode = true;
 
 <?php if ($isEdit): ?>
@@ -432,7 +443,7 @@ $(function() {
     <?php endif; ?>
 
     transDatePickr('#transDate_disp',    '#transDate',    false, false, true,  true, '');
-    transDatePickr('#expectedDate_disp', '#expectedDate', false, false, false, true, '#transDate');
+    transDatePickr('#expectedDate_disp', '#expectedDate', false, false, false, false, '#transDate');
 
     <?php if ($isEdit): ?>
     if (typeof billManager !== 'undefined' && _orgState && _vendorState) {
@@ -550,16 +561,8 @@ $(function() {
                         setFormLoading('#<?php echo $formId; ?>', false);
                         showFormError(response.Message);
                     } else {
-                        Swal.fire({
-                            icon             : 'success',
-                            title            : _isEdit ? 'Purchase Order Updated' : 'Purchase Order Saved',
-                            text             : response.Message || (_isEdit ? 'Updated successfully.' : 'Purchase order created successfully.'),
-                            confirmButtonText: 'OK',
-                            timer            : 3000,
-                            timerProgressBar : true,
-                        }).then(function() {
-                            window.location.href = '/purchaseorders';
-                        });
+                        _setPendingToast('_poPendingToast', response.Message, 'success');
+                        window.location.href = _buildReturnUrl('/purchaseorders');
                     }
                 },
                 error: function() {

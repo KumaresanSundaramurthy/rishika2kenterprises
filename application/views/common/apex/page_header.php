@@ -8,6 +8,7 @@ $_iconBg  = !empty($pageIconBg)    ? $pageIconBg    : ($PageIconBg    ?? '#eef2f
 $_iconClr = !empty($pageIconColor) ? $pageIconColor : ($PageIconColor ?? '#696cff');
 $_title   = $pageTitle       ?? ($PageTitle       ?? 'Page');
 $_desc    = $pageDescription ?? ($PageDescription ?? '');
+$_backUrl = $pageBackUrl     ?? ($PageBackUrl     ?? '');
 
 // ── Quick Access palette data — built once at render, zero AJAX on open ──────
 $_qaMenus    = $this->redisservice->getUserCache('menus')    ?? [];
@@ -32,6 +33,11 @@ foreach ($_qaMenus as $_qaMM) {
 <script>window._APEX_QA_DATA=<?php echo json_encode($_qaData, JSON_UNESCAPED_UNICODE); ?>;</script>
 <div class="apex-page-header">
     <div class="apex-page-header-left">
+        <?php if (!empty($_backUrl)): ?>
+        <a href="<?php echo htmlspecialchars($_backUrl, ENT_QUOTES); ?>" class="apex-back-btn" title="Back">
+            <i class="bx bx-arrow-back"></i>
+        </a>
+        <?php endif; ?>
         <div class="apex-page-icon" style="background:<?php echo $_iconBg; ?>;">
             <i class="bx <?php echo $_icon; ?>" style="color:<?php echo $_iconClr; ?>;"></i>
         </div>

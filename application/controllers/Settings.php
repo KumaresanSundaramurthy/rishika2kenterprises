@@ -345,8 +345,20 @@ class Settings extends MY_Controller {
                 $quotValidityDays = 7;
             }
 
+            $validComboDist = ['ratio', 'average'];
+            $comboPriceDistribution = getPostValue($post, 'ComboPriceDistribution');
+            if (!in_array($comboPriceDistribution, $validComboDist)) {
+                $comboPriceDistribution = 'ratio';
+            }
+
+            $validBelowPurchaseActions = ['warn', 'strict'];
+            $belowPurchasePriceAction  = getPostValue($post, 'BelowPurchasePriceAction');
+            if (!in_array($belowPurchasePriceAction, $validBelowPurchaseActions)) {
+                $belowPurchasePriceAction = 'warn';
+            }
+
             $this->load->model('dbwrite_model');
-            $this->dbwrite_model->upsertTransactionSettings($orgUID, $invoiceCancelAction, $srCancelAction, $salesReturnItemMethod, $termsAndConditions, $hideNavOnTransForm, $purchaseShowSignature, $purchaseShowTerms, $prCancelAction, $purchaseReturnItemMethod, $showProductDescription, $userUID, $dcDefaultReturnDays, $quotValidityDays, $showTransactionStats);
+            $this->dbwrite_model->upsertTransactionSettings($orgUID, $invoiceCancelAction, $srCancelAction, $salesReturnItemMethod, $termsAndConditions, $hideNavOnTransForm, $purchaseShowSignature, $purchaseShowTerms, $prCancelAction, $purchaseReturnItemMethod, $showProductDescription, $userUID, $dcDefaultReturnDays, $quotValidityDays, $showTransactionStats, $comboPriceDistribution, $belowPurchasePriceAction);
 
             // Patch only TransSettings in JWT payload
             $this->load->model('login_model');

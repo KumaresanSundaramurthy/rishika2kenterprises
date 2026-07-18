@@ -42,8 +42,7 @@ class Quotations extends MY_Controller {
         }
     }
 
-    public function getQuotationsPageDetails(int $pageNo = 0): void
-    {
+    public function getQuotationsPageDetails(int $pageNo = 0): void {
         $this->EndReturnData = new stdClass();
         try {
             $orgUID    = (int)$this->pageData['JwtData']->Org->OrgUID;
@@ -63,56 +62,6 @@ class Quotations extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    /** Export quotations as CSV / Excel / PDF / Print */
-    public function exportQuotations() {
-        try {
-            $type     = $this->input->get('Type')   ?: 'CSV';
-            $filter   = $this->input->get('Filter') ?: '{}';
-            $filter   = json_decode($filter, true)  ?: [];
-
-            $orgUID   = (int)$this->pageData['JwtData']->Org->OrgUID;
-            $timezone = $this->pageData['JwtData']->User->Timezone ?? 'UTC';
-            $dtFmt    = $this->pageData['JwtData']->GenSettings->ListDateTimeFormat ?? 'd M Y';
-            $dateFmt  = $this->pageData['JwtData']->GenSettings->ListDateFormat     ?? 'd M Y';
-            $dec      = $this->pageData['JwtData']->GenSettings->DecimalPoints      ?? 2;
-
-            $this->load->model('organisation_model');
-            $orgResult = $this->organisation_model->getOrgInfoCached($orgUID);
-            $orgInfo   = ($orgResult->Error === FALSE) ? $orgResult->Data : null;
-
-            $this->load->model('transactions_model');
-            $data = $this->transactions_model->getTransactionPageList(0, 0, $this->pageModuleUID, $filter, 0);
-
-            $headers = [
-                '#', 'Quotation #', 'Customer', 'Mobile', 'Amount', 'Status',
-                'Quotation Date', 'Valid Until', 'Reference', 'Created By', 'Last Updated',
-            ];
-
-            $rows = [];
-            foreach ($data as $i => $row) {
-                $rows[] = [
-                    $i + 1,
-                    $row->UniqueNumber         ?? '',
-                    $row->PartyName            ?? '',
-                    $row->MobileNumber         ?? '',
-                    number_format((float)($row->NetAmount ?? 0), $dec),
-                    $row->Status               ?? '',
-                    !empty($row->TransDate)    ? format_datedisplay($row->TransDate, $dateFmt)    : '',
-                    !empty($row->ValidityDate) ? format_datedisplay($row->ValidityDate, $dateFmt) : '',
-                    $row->Reference            ?? '',
-                    $row->CreatedByName        ?? '',
-                    !empty($row->UpdatedOn)    ? date($dtFmt, strtotime($row->UpdatedOn))         : '',
-                ];
-            }
-
-            $colWidths = ['3%','11%','14%','10%','9%','9%','10%','9%','10%','8%','7%'];
-            $this->_sendExport($type, 'Quotation_Data', 'Quotations', 'Quotation Report', $headers, $rows, $orgInfo, $timezone, $colWidths);
-
-        } catch (Exception $e) {
-            echo json_encode(['Error' => true, 'Message' => $e->getMessage()]);
-        }
-    }
-
     public function addQuotation() {
 
         $this->EndReturnData = new stdClass();
@@ -126,137 +75,62 @@ class Quotations extends MY_Controller {
             $userUID  = $this->pageData['JwtData']->User->UserUID;
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
-            // --- Validation ---
-            $this->load->model('formvalidation_model');
-            $ErrorInForm = $this->formvalidation_model->transactionValidateForm($PostData);
-            if (!empty($ErrorInForm)) throw new Exception($ErrorInForm);
+            $itemsJson = $this->_validateTransForm($PostData);
+            $amounts   = $this->_extractTransAmounts($PostData, $itemsJson);
 
-            $itemsJson = getPostValue($PostData, 'Items');
-            $ErrorInForm = $this->formvalidation_model->validateQuotationItems($itemsJson);
-            if (!empty($ErrorInForm)) throw new Exception($ErrorInForm);
+            $customerUID  = (int) getPostValue($PostData, 'customerSearch');
+            $validityDate = getPostValue($PostData, 'validityDate');
+            $validityDays = (int) getPostValue($PostData, 'validityDays', 'Array', 0);
 
-            $customerUID            = (int)   getPostValue($PostData, 'customerSearch');
-            $prefixUID              = (int)   getPostValue($PostData, 'transPrefixSelect');
-            $transNumber            = (int)   getPostValue($PostData, 'transNumber');   // raw integer
-            $transDate              =         getPostValue($PostData, 'transDate');
-            $validityDate           =         getPostValue($PostData, 'validityDate');
-            $validityDays           = (int)   getPostValue($PostData, 'validityDays', 'Array', 0);
-            $items                  = json_decode($itemsJson, true);
-            $totalQty               = (float) array_sum(array_column($items, 'quantity'));
-            $netAmount              = (float) getPostValue($PostData, 'NetAmount',              'Array', 0);
-            $subTotal               = (float) getPostValue($PostData, 'SubTotal',               'Array', 0);
-            $discountAmount         = (float) getPostValue($PostData, 'DiscountAmount',         'Array', 0);
-            $taxAmount              = (float) getPostValue($PostData, 'TaxAmount',              'Array', 0);
-            $cgstAmount             = (float) getPostValue($PostData, 'CgstAmount',             'Array', 0);
-            $sgstAmount             = (float) getPostValue($PostData, 'SgstAmount',             'Array', 0);
-            $igstAmount             = (float) getPostValue($PostData, 'IgstAmount',             'Array', 0);
-            $additionalChargesTotal = (float) getPostValue($PostData, 'AdditionalChargesTotal', 'Array', 0);
-            $roundOff               = (float) getPostValue($PostData, 'RoundOff',               'Array', 0);
-            $globalDiscPercent      = (float) getPostValue($PostData, 'GlobalDiscPercent',      'Array', 0);
-            $extraDiscount          = (float) getPostValue($PostData, 'extraDiscount',          'Array', 0);
-            $isDraft   = getPostValue($PostData, 'action') === 'draft';
-            $status    = $isDraft ? 'Draft' : 'Pending';
-
-            // Auto-compute validityDate from settings if not provided
+            // Auto-compute validityDate from days if not submitted directly
             if (empty($validityDate) && $validityDays > 0) {
-                $validityDate = date('Y-m-d', strtotime($transDate . " +{$validityDays} days"));
+                $validityDate = date('Y-m-d', strtotime($amounts['transDate'] . " +{$validityDays} days"));
             }
+            $PostData['validityDate'] = $validityDate;
 
-            $financialYear = (int) date('Y', strtotime($transDate));
-            $this->load->model('transactions_model');
+            $resolved = $this->_resolveTransPrefix(
+                $amounts['isDraft'], $amounts['prefixUID'], $amounts['transNumber'],
+                $amounts['transDate'], $orgUID
+            );
 
-            // --- Draft: no number assigned yet ---
-            $prefix = NULL;
-            if ($isDraft) {
-                $uniqueNumber = NULL;
-                $transNumber  = NULL;
-                $prefixUID    = NULL;
-            } else {
-                if ($transNumber <= 0) throw new Exception('Transaction number must be greater than 0.');
-                if ($transNumber > 2147483647) throw new Exception('Transaction number exceeds the maximum allowed value of 2,147,483,647. Please use a smaller number or create a new prefix series.');
+            $amounts['moduleUID']    = $this->pageModuleUID;
+            $amounts['prefixUID']    = $resolved['prefixUID'];
+            $amounts['transNumber']  = $resolved['transNumber'];
+            $amounts['uniqueNumber'] = $resolved['uniqueNumber'];
 
-                // Resolve prefix & build UniqueNumber
-                $prefixData = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.PrefixUID' => $prefixUID, 'Prefix.OrgUID' => $orgUID]);
-                if (empty($prefixData->Data)) throw new Exception('Invalid prefix selected.');
-                $prefix = $prefixData->Data[0];
+            $headerData = $this->_buildTransHeader(
+                [
+                    'TransType'       => 'Quotation',
+                    'PartyType'       => 'C',
+                    'PartyUID'        => $customerUID,
+                    'DocTypePostKey'  => 'quotationType',
+                    'DispatchPostKey' => 'dispatchFrom',
+                    'InitialStatus'   => 'Pending',
+                ],
+                $amounts, $PostData, $orgUID, $userUID
+            );
 
-                list($uniqueNumber) = $this->buildUniqueNumber($prefix, $transNumber, $transDate);
-            }
-
-            // --- Insert header ---
-            $this->load->model('dbwrite_model');
-            $headerData = [
-                'OrgUID'                => $orgUID,
-                'ModuleUID'             => $this->pageModuleUID,
-                'PrefixUID'             => $prefixUID,
-                'UniqueNumber'          => $uniqueNumber,
-                'TransType'             => 'Quotation',
-                'TransNumber'           => $transNumber,
-                'PartyType'             => 'C',
-                'PartyUID'              => $customerUID,
-                'TransDate'             => $transDate,
-                'TransYear'             => $financialYear,
-                'DocType'         => getPostValue($PostData, 'quotationType') ?: NULL,
-                'DispatchFrom'          => getPostValue($PostData, 'dispatchFrom') ?: NULL,
-                'TotalQuantity'         => $totalQty,
-                'TotalItems'            => count($items),
-                'GrossAmount'           => $subTotal + $discountAmount,
-                'SubTotal'              => $subTotal,
-                'TaxableAmount'         => $subTotal,
-                'DiscountAmount'        => $discountAmount,
-                'AdditionalCharges'     => $additionalChargesTotal,
-                'TaxAmount'             => $taxAmount,
-                'CgstAmount'            => $cgstAmount,
-                'SgstAmount'            => $sgstAmount,
-                'IgstAmount'            => $igstAmount,
-                'RoundOff'              => $roundOff,
-                'GlobalDiscPercent'     => $globalDiscPercent,
-                'ExtraDiscApplied'      => $extraDiscount > 0 ? 1 : 0,
-                'ExtraDiscAmount'       => $extraDiscount,
-                'ExtraDiscType'         => getPostValue($PostData, 'extDiscountType') ?: NULL,
-                'NetAmount'             => $netAmount,
-                'DocStatus'             => $status,
-                'TransToken'            => generate_uuid4(),
-                'IsActive'              => 1,
-                'IsDeleted'             => 0,
-                'CreatedBy'             => $userUID,
-                'UpdatedBy'             => $userUID,
-            ];
-
-            $insertResp = $this->_insertTransactionWithRetry($headerData, $prefixUID, $orgUID, $prefix, $transDate);
+            $insertResp = $this->_insertTransactionWithRetry($headerData, $resolved['prefixUID'], $orgUID, $resolved['prefix'], $amounts['transDate']);
             if ($insertResp->Error) throw new Exception($insertResp->Message);
 
             $transUID     = $insertResp->ID;
             $transNumber  = $headerData['TransNumber'];
             $uniqueNumber = $headerData['UniqueNumber'];
 
-            // --- Insert detail row (TransDetailTbl - notes, terms, validity, charges) ---
-            $additionalChargesJson  = getPostValue($PostData, 'AdditionalCharges') ?: '[]';
-            $additionalChargesList  = json_decode($additionalChargesJson, true) ?: [];
-            if (!empty($additionalChargesList)) {
-                $this->transactions_model->saveTransactionCharges($transUID, (int)$orgUID, (int)$userUID, $additionalChargesList);
-            }
-            $isInterState          = $igstAmount > 0 ? 1 : ($cgstAmount > 0 || $sgstAmount > 0 ? 0 : NULL);
-            $_cc                   = $this->transactions_model->getCustomerCountryCode($customerUID);
-            $isForeignCustomer     = $_cc !== NULL ? ($_cc === 'IN' ? 0 : 1) : NULL;
-            $detailData = [
-                'FinancialYear'     => $financialYear,
-                'TransUID'          => $transUID,
-                'ValidityDays'      => $validityDays ?: NULL,
-                'ValidityDate'      => $validityDate ?: NULL,
-                'Reference'         => getPostValue($PostData, 'referenceDetails') ?: NULL,
-                'Notes'             => getPostValue($PostData, 'transNotes') ?: NULL,
-                'TermsConditions'   => getPostValue($PostData, 'transTermsCond') ?: NULL,
-                'SignatureUID'      => (int)getPostValue($PostData, 'SignatureUID') ?: NULL,
-                'PlaceOfSupplyCode' => getPostValue($PostData, 'placeOfSupplyCode') ?: NULL,
-                'PlaceOfSupplyName' => getPostValue($PostData, 'placeOfSupplyName') ?: NULL,
-                'IsInterState'      => $isInterState,
-                'IsForeignCustomer' => $isForeignCustomer,
-            ];
+            $this->_saveTransCharges($transUID, $orgUID, $userUID, $PostData);
+
+            $detailData = $this->_buildTransDetail(
+                [
+                    'PartyType'           => 'C',
+                    'PartyUID'            => $customerUID,
+                    'ValidityDatePostKey' => 'validityDate',
+                    'ValidityDaysPostKey' => 'validityDays',
+                ],
+                $amounts, $PostData, $transUID
+            );
             $this->dbwrite_model->insertData('Transaction', 'TransDetailTbl', $detailData);
 
-            // --- Insert line items + tax records ---
-            $this->saveQuotationItems($transUID, $financialYear, $orgUID, $userUID, $items);
+            $this->_insertTransItems($transUID, $amounts['financialYear'], $orgUID, $userUID, $amounts['items']);
             $this->_saveAttachments($transUID);
 
             $this->dbwrite_model->commitTransaction();
@@ -410,8 +284,12 @@ class Quotations extends MY_Controller {
                 'Notes'             => getPostValue($PostData, 'transNotes') ?: NULL,
                 'TermsConditions'   => getPostValue($PostData, 'transTermsCond') ?: NULL,
                 'SignatureUID'      => (int)getPostValue($PostData, 'SignatureUID') ?: NULL,
+                'PlaceOfSupplyCode' => getPostValue($PostData, 'placeOfSupplyCode') ?: NULL,
+                'PlaceOfSupplyName' => getPostValue($PostData, 'placeOfSupplyName') ?: NULL,
                 'IsInterState'      => $isInterState,
                 'IsForeignCustomer' => $isForeignCustomer,
+                'PriceListUID'      => (int)getPostValue($PostData, 'PriceListUID') ?: NULL,
+                'PriceListData'     => getPostValue($PostData, 'PriceListData') ?: NULL,
             ];
 
             // --- CLONE PATH: Draft being saved as Pending and newer records exist ---
@@ -446,7 +324,7 @@ class Quotations extends MY_Controller {
                     ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
                     ['TransUID' => $transUID, 'IsDeleted' => 0]
                 );
-                $this->saveQuotationItems($newTransUID, $financialYear, $orgUID, $userUID, $items);
+                $this->_insertTransItems($newTransUID, $financialYear, $orgUID, $userUID, $items);
 
                 // Hard-delete old draft header and its detail — only TransactionsTbl drives list order
                 $this->dbwrite_model->deleteInTransaction('Transaction', 'TransactionsTbl', ['TransUID' => $transUID]);
@@ -482,10 +360,19 @@ class Quotations extends MY_Controller {
                 foreach ($existingItems as $ei) { $existingByProduct[(int)$ei->ProductUID] = $ei; }
                 $submittedProductUIDs = [];
                 foreach ($items as $item) { $pid = isset($item['id']) ? (int)$item['id'] : 0; if ($pid > 0) $submittedProductUIDs[] = $pid; }
-                $removedProductUIDs = array_diff(array_keys($existingByProduct), $submittedProductUIDs);
+                $removedProductUIDs  = array_diff(array_keys($existingByProduct), $submittedProductUIDs);
                 if (!empty($removedProductUIDs)) {
                     $this->dbwrite_model->softDeleteTransactionItemsByProductUIDs($transUID, array_values($removedProductUIDs), $userUID);
                 }
+
+                // Pass 1: shift all items being updated to a safe temporary offset (+9000)
+                // so their current sequence slots are vacated before renumbering.
+                // This prevents unique key conflicts when items are reordered or removed.
+                $updatingProductUIDs = array_values(array_intersect(array_keys($existingByProduct), $submittedProductUIDs));
+                if (!empty($updatingProductUIDs)) {
+                    $this->dbwrite_model->shiftTransProductSequences($transUID, $updatingProductUIDs);
+                }
+
                 $newRows = [];
                 foreach ($items as $seq => $item) {
                     $productUID = isset($item['id']) ? (int)$item['id'] : 0;
@@ -512,6 +399,8 @@ class Quotations extends MY_Controller {
                         'UnitPrice'       => $unitPrice,
                         'SellingPrice'    => (float)($item['sellingPrice']    ?? $unitPrice),
                         'PurchasePrice'   => (float)($item['purchasePrice']   ?? 0),
+                        'MRP'             => (float)($item['mrp']             ?? 0),
+                        'DistributionMode'=> !empty($item['isComposite']) ? ($item['distributionMode'] ?? null) : null,
                         'TaxableAmount'   => (float)($item['line_total']      ?? 0),
                         'CgstAmount'      => (float)($item['cgstAmount']      ?? 0),
                         'SgstAmount'      => (float)($item['sgstAmount']      ?? 0),
@@ -617,6 +506,16 @@ class Quotations extends MY_Controller {
                 [], 'Deleted quotation #' . $transUID, 'Quotations', 'TRANSACTION'
             );
 
+            $pageNo  = max(1, (int) $this->input->post('PageNo'));
+            $limit   = (int) $this->input->post('RowLimit') ?: 10;
+            $filter  = $this->input->post('Filter') ?: [];
+            $offset  = ($pageNo - 1) * $limit;
+            $allData      = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, 0);
+            $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $filter);
+            $this->EndReturnData->RecordHtmlData = $this->load->view('transactions/quotations/list', ['DataLists' => $allData, 'SerialNumber' => $offset, 'JwtData' => $this->pageData['JwtData']], true);
+            $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml('/quotations/getQuotationsPageDetails', $allDataCount, $pageNo, $limit);
+            $this->EndReturnData->TotalCount     = $allDataCount;
+
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
@@ -699,8 +598,22 @@ class Quotations extends MY_Controller {
             if ($resp->Error) throw new Exception($resp->Message);
             $this->dbwrite_model->commitTransaction();
 
+            $docNum = $existing->UniqueNumber ?? '';
+            $prefix = $docNum ? "{$docNum} " : '';
+            if ($newStatus === 'Cancelled') {
+                $msg = "Quotation {$prefix}cancelled successfully.";
+            } elseif ($newStatus === 'Accepted') {
+                $msg = "Quotation {$prefix}marked as accepted.";
+            } elseif ($newStatus === 'Pending' && $current === 'Accepted') {
+                $msg = "Quotation {$prefix}reverted to open.";
+            } elseif ($newStatus === 'Pending') {
+                $msg = "Quotation {$prefix}sent successfully.";
+            } else {
+                $msg = 'Status updated.';
+            }
+
             $this->EndReturnData->Error     = FALSE;
-            $this->EndReturnData->Message   = 'Status updated.';
+            $this->EndReturnData->Message   = $msg;
             $this->auditlog->log(
                 (int) $orgUID, (int) $userUID,
                 'UPDATE_QUOTATION_STATUS', 'Quotation', (int) $transUID, (string) ($existing->UniqueNumber ?? ''),
@@ -764,6 +677,8 @@ class Quotations extends MY_Controller {
                 'UnitPrice'         => $unitPrice,
                 'SellingPrice'      => (float) ($item['sellingPrice']   ?? $unitPrice),
                 'PurchasePrice'     => (float) ($item['purchasePrice']  ?? 0),
+                'MRP'               => (float) ($item['mrp']            ?? 0),
+                'DistributionMode'  => !empty($item['isComposite']) ? ($item['distributionMode'] ?? null) : null,
                 'TaxableAmount'     => (float) ($item['line_total']     ?? 0),
                 'CgstAmount'        => (float) ($item['cgstAmount']     ?? 0),
                 'SgstAmount'        => (float) ($item['sgstAmount']     ?? 0),
@@ -916,6 +831,5 @@ class Quotations extends MY_Controller {
         }
 
     }
-
 
 }

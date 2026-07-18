@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Salesreturns extends MY_Controller {
 
@@ -59,35 +59,18 @@ class Salesreturns extends MY_Controller {
             $userUID  = $this->pageData['JwtData']->User->UserUID;
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
-            $this->load->model('formvalidation_model');
-            $ErrorInForm = $this->formvalidation_model->transactionValidateForm($PostData);
-            if (!empty($ErrorInForm)) throw new Exception($ErrorInForm);
-
-            $itemsJson   = getPostValue($PostData, 'Items');
-            $ErrorInForm = $this->formvalidation_model->validateQuotationItems($itemsJson);
-            if (!empty($ErrorInForm)) throw new Exception($ErrorInForm);
-
-            $customerUID            = (int)   getPostValue($PostData, 'customerSearch');
-            $prefixUID              = (int)   getPostValue($PostData, 'transPrefixSelect');
-            $transNumber            = (int)   getPostValue($PostData, 'transNumber');
-            $transDate              =         getPostValue($PostData, 'transDate');
-            $returnDate             =         getPostValue($PostData, 'returnDate');
-            $items                  = json_decode($itemsJson, true);
-            $totalQty               = (float) array_sum(array_column($items, 'quantity'));
-            $netAmount              = (float) getPostValue($PostData, 'NetAmount',              'Array', 0);
-            $subTotal               = (float) getPostValue($PostData, 'SubTotal',               'Array', 0);
-            $discountAmount         = (float) getPostValue($PostData, 'DiscountAmount',         'Array', 0);
-            $taxAmount              = (float) getPostValue($PostData, 'TaxAmount',              'Array', 0);
-            $cgstAmount             = (float) getPostValue($PostData, 'CgstAmount',             'Array', 0);
-            $sgstAmount             = (float) getPostValue($PostData, 'SgstAmount',             'Array', 0);
-            $igstAmount             = (float) getPostValue($PostData, 'IgstAmount',             'Array', 0);
-            $additionalChargesTotal = (float) getPostValue($PostData, 'AdditionalChargesTotal', 'Array', 0);
-            $roundOff               = (float) getPostValue($PostData, 'RoundOff',               'Array', 0);
-            $globalDiscPercent      = (float) getPostValue($PostData, 'GlobalDiscPercent',      'Array', 0);
-            $extraDiscount          = (float) getPostValue($PostData, 'extraDiscount',          'Array', 0);
-            $prefix = null;
-            $isDraft                = getPostValue($PostData, 'action') === 'draft';
-            $status                 = $isDraft ? 'Draft' : 'Approved';
+            $itemsJson     = $this->_validateTransForm($PostData);
+            $amounts       = $this->_extractTransAmounts($PostData, $itemsJson);
+            $isDraft       = $amounts['isDraft'];
+            $items         = $amounts['items'];
+            $netAmount     = $amounts['netAmount'];
+            $financialYear = $amounts['financialYear'];
+            $subTotal      = $amounts['subTotal'];
+            $cgstAmount    = $amounts['cgstAmount'];
+            $sgstAmount    = $amounts['sgstAmount'];
+            $igstAmount    = $amounts['igstAmount'];
+            $transDate     = $amounts['transDate'];
+            $customerUID   = (int) getPostValue($PostData, 'customerSearch');
 
             // Log customer balance before SR creation
             $this->load->model('customers_model');
@@ -97,94 +80,48 @@ class Salesreturns extends MY_Controller {
                 . ' PendingBalance=' . ($_preSR ? $_preSR->PendingBalance : 'NULL')
                 . ' PendingBalType=' . ($_preSR ? $_preSR->PendingBalType : 'NULL'));
 
-            $financialYear = (int) date('Y', strtotime($transDate));
-            $this->load->model('transactions_model');
+            $resolved = $this->_resolveTransPrefix(
+                $isDraft, $amounts['prefixUID'], $amounts['transNumber'], $transDate, $orgUID
+            );
 
-            if ($isDraft) {
-                $uniqueNumber = NULL;
-                $transNumber  = NULL;
-                $prefixUID    = NULL;
-            } else {
-                if ($transNumber <= 0) throw new Exception('Transaction number must be greater than 0.');
-                $prefixData = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.PrefixUID' => $prefixUID, 'Prefix.OrgUID' => $orgUID]);
-                if (empty($prefixData->Data)) throw new Exception('Invalid prefix selected.');
-                $prefix   = $prefixData->Data[0];
-                $dupCheck = $this->transactions_model->getTransactionByPrefixAndNumber($prefixUID, $transNumber, $orgUID, $this->pageModuleUID);
-                if ($dupCheck) {
-                    $nextSuggested = $this->transactions_model->getNextTransactionNumber($prefixUID, $orgUID, $this->pageModuleUID);
-                    throw new Exception("Transaction number {$transNumber} already exists. Next available: {$nextSuggested}.");
-                }
-                list($uniqueNumber) = $this->buildUniqueNumber($prefix, $transNumber, $transDate);
-            }
+            $amounts['moduleUID']    = $this->pageModuleUID;
+            $amounts['prefixUID']    = $resolved['prefixUID'];
+            $amounts['transNumber']  = $resolved['transNumber'];
+            $amounts['uniqueNumber'] = $resolved['uniqueNumber'];
 
-            $headerData = [
-                'OrgUID'            => $orgUID,
-                'ModuleUID'         => $this->pageModuleUID,
-                'PrefixUID'         => $prefixUID,
-                'UniqueNumber'      => $uniqueNumber,
-                'TransType'         => 'Sales Return',
-                'TransNumber'       => $transNumber,
-                'PartyType'         => 'C',
-                'PartyUID'          => $customerUID,
-                'TransDate'         => $transDate,
-                'TransYear'         => $financialYear,
-                'DocType'     => getPostValue($PostData, 'returnType') ?: NULL,
-                'DispatchFrom'      => getPostValue($PostData, 'dispatchFrom') ?: NULL,
-                'TotalQuantity'     => $totalQty,
-                'TotalItems'        => count($items),
-                'GrossAmount'       => $subTotal + $discountAmount,
-                'SubTotal'          => $subTotal,
-                'TaxableAmount'     => $subTotal,
-                'DiscountAmount'    => $discountAmount,
-                'AdditionalCharges' => $additionalChargesTotal,
-                'TaxAmount'         => $taxAmount,
-                'CgstAmount'        => $cgstAmount,
-                'SgstAmount'        => $sgstAmount,
-                'IgstAmount'        => $igstAmount,
-                'RoundOff'          => $roundOff,
-                'GlobalDiscPercent' => $globalDiscPercent,
-                'ExtraDiscApplied'  => $extraDiscount > 0 ? 1 : 0,
-                'ExtraDiscAmount'   => $extraDiscount,
-                'ExtraDiscType'     => getPostValue($PostData, 'extDiscountType') ?: NULL,
-                'NetAmount'         => $netAmount,
-                'BalanceAmount'     => NULL,
-                'DocStatus'         => $status,
-                'TransToken'        => generate_uuid4(),
-                'IsActive'          => 1,
-                'IsDeleted'         => 0,
-                'CreatedBy'         => $userUID,
-                'UpdatedBy'         => $userUID,
-            ];
-            $insertResp = $this->_insertTransactionWithRetry($headerData, $prefixUID, $orgUID, $prefix, $transDate);
+            $headerData = $this->_buildTransHeader(
+                [
+                    'TransType'        => 'Sales Return',
+                    'PartyType'        => 'C',
+                    'PartyUID'         => $customerUID,
+                    'DocTypePostKey'   => 'returnType',
+                    'DispatchPostKey'  => 'dispatchFrom',
+                    'InitialStatus'    => 'Approved',
+                    'hasPaidAmount'    => false,
+                    'hasBalanceAmount' => true,
+                ],
+                $amounts, $PostData, $orgUID, $userUID
+            );
+
+            $insertResp = $this->_insertTransactionWithRetry($headerData, $resolved['prefixUID'], $orgUID, $resolved['prefix'], $transDate);
             if ($insertResp->Error) throw new Exception($insertResp->Message);
             $transUID     = $insertResp->ID;
             $transNumber  = $headerData['TransNumber'];
             $uniqueNumber = $headerData['UniqueNumber'];
 
-            $additionalChargesJson  = getPostValue($PostData, 'AdditionalCharges') ?: '[]';
-            $additionalChargesList  = json_decode($additionalChargesJson, true) ?: [];
-            if (!empty($additionalChargesList)) {
-                $this->transactions_model->saveTransactionCharges($transUID, (int)$orgUID, (int)$userUID, $additionalChargesList);
-            }
-            $isInterState          = $igstAmount > 0 ? 1 : ($cgstAmount > 0 || $sgstAmount > 0 ? 0 : NULL);
-            $_cc                   = $this->transactions_model->getCustomerCountryCode($customerUID);
-            $isForeignCustomer     = $_cc !== NULL ? ($_cc === 'IN' ? 0 : 1) : NULL;
-            $detailData = [
-                'FinancialYear'     => $financialYear,
-                'TransUID'          => $transUID,
-                'ValidityDays'      => NULL,
-                'ValidityDate'      => $returnDate ?: NULL,
-                'Reference'         => getPostValue($PostData, 'referenceDetails') ?: NULL,
-                'Notes'             => getPostValue($PostData, 'transNotes') ?: NULL,
-                'TermsConditions'   => getPostValue($PostData, 'transTermsCond') ?: NULL,
-                'SignatureUID'      => (int)getPostValue($PostData, 'SignatureUID') ?: NULL,
-                'PlaceOfSupplyCode' => getPostValue($PostData, 'placeOfSupplyCode') ?: NULL,
-                'PlaceOfSupplyName' => getPostValue($PostData, 'placeOfSupplyName') ?: NULL,
-                'IsInterState'      => $isInterState,
-                'IsForeignCustomer' => $isForeignCustomer,
-            ];
+            $this->_saveTransCharges($transUID, $orgUID, $userUID, $PostData);
+
+            $detailData = $this->_buildTransDetail(
+                [
+                    'PartyType'          => 'C',
+                    'PartyUID'           => $customerUID,
+                    'ValidityDatePostKey' => 'returnDate',
+                ],
+                $amounts, $PostData, $transUID
+            );
             $this->dbwrite_model->insertData('Transaction', 'TransDetailTbl', $detailData);
-            $this->saveTransactionItems($transUID, $financialYear, $orgUID, $userUID, $items);
+
+            $this->_insertTransItems($transUID, $financialYear, $orgUID, $userUID, $items);
 
             if (!$isDraft) {
                 $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items);
@@ -209,7 +146,7 @@ class Salesreturns extends MY_Controller {
             $this->_saveAttachments($transUID);
             if ($isDraft) $this->cachehelper->touchCustomer($customerUID);
 
-            // ── Save payment if recorded on create ──────────────────
+            // â”€â”€ Save payment if recorded on create â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             $hasPayment = false;
             if (!$isDraft && (int) getPostValue($PostData, 'RecordPayment') === 1) {
                 $payResult = $this->_savePaymentRecord($transUID, $orgUID, $userUID, 'C', $customerUID, $netAmount, $PostData, $transDate);
@@ -235,10 +172,10 @@ class Salesreturns extends MY_Controller {
                     . ' orgUID=' . $orgUID
                     . ' RecordPayment_POST=' . (int)getPostValue($PostData, 'RecordPayment'));
 
-                // ── Create credit note for the outstanding balance ──────────────
-                // No payment  → CN for full NetAmount
-                // Partial pay → CN for remaining BalanceAmount
-                // Full pay    → no CN (balanceAmount = 0)
+                // â”€â”€ Create credit note for the outstanding balance â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                // No payment  â†’ CN for full NetAmount
+                // Partial pay â†’ CN for remaining BalanceAmount
+                // Full pay    â†’ no CN (balanceAmount = 0)
                 $cnAmount = $hasPayment ? ($balanceAmount ?? 0) : $netAmount;
                 log_message('debug', '[SR-CN-TRACE] Step2: cnAmount=' . $cnAmount
                     . ' hasPayment=' . ($hasPayment ? 'true' : 'false')
@@ -251,7 +188,7 @@ class Salesreturns extends MY_Controller {
                     $cnResult = $this->customerbalance->createSalesReturnCreditNote(
                         $orgUID, $customerUID, $transUID, $uniqueNumber, $cnAmount, $userUID, $transDate
                     );
-                    log_message('debug', '[SR-CN-TRACE] Step3: createSalesReturnCreditNote returned=' . ($cnResult ? json_encode($cnResult) : 'NULL — check error log for DB failure'));
+                    log_message('debug', '[SR-CN-TRACE] Step3: createSalesReturnCreditNote returned=' . ($cnResult ? json_encode($cnResult) : 'NULL â€” check error log for DB failure'));
                     if ($cnResult) {
                         $this->EndReturnData->CreditNoteUID    = $cnResult['creditNoteUID'];
                         $this->EndReturnData->CreditNoteNumber = $cnResult['creditNoteNumber'];
@@ -259,7 +196,7 @@ class Salesreturns extends MY_Controller {
                         log_message('error', '[SR-CN-TRACE] CN creation FAILED for SR=' . $uniqueNumber . ' Amount=' . $cnAmount);
                     }
                 } else {
-                    log_message('debug', '[SR-CN-TRACE] Step2: CN creation SKIPPED — fully paid (cnAmount=0)');
+                    log_message('debug', '[SR-CN-TRACE] Step2: CN creation SKIPPED â€” fully paid (cnAmount=0)');
                 }
 
                 $balResult = $this->_recalcCustomerBalance($orgUID, $customerUID, $userUID);
@@ -272,7 +209,7 @@ class Salesreturns extends MY_Controller {
                     log_message('error', '[SR-CN-TRACE] Step4-Balance: recalcAndSync returned null for CustomerUID=' . $customerUID);
                 }
             } else {
-                log_message('debug', '[SR-CN-TRACE] Step1: isDraft=true — whole CN+balance block skipped');
+                log_message('debug', '[SR-CN-TRACE] Step1: isDraft=true â€” whole CN+balance block skipped');
             }
 
             $this->EndReturnData->Error    = FALSE;
@@ -407,8 +344,12 @@ class Salesreturns extends MY_Controller {
                 'Notes'             => getPostValue($PostData, 'transNotes') ?: NULL,
                 'TermsConditions'   => getPostValue($PostData, 'transTermsCond') ?: NULL,
                 'SignatureUID'      => (int)getPostValue($PostData, 'SignatureUID') ?: NULL,
+                'PlaceOfSupplyCode' => getPostValue($PostData, 'placeOfSupplyCode') ?: NULL,
+                'PlaceOfSupplyName' => getPostValue($PostData, 'placeOfSupplyName') ?: NULL,
                 'IsInterState'      => $isInterState,
                 'IsForeignCustomer' => $isForeignCustomer,
+                'PriceListUID'      => (int)getPostValue($PostData, 'PriceListUID') ?: NULL,
+                'PriceListData'     => getPostValue($PostData, 'PriceListData') ?: NULL,
             ];
 
             $wasNonDraft = ($existing->DocStatus !== 'Draft');
@@ -434,7 +375,7 @@ class Salesreturns extends MY_Controller {
                 $newTransUID = $insertResp->ID;
                 $this->dbwrite_model->insertData('Transaction', 'TransDetailTbl', array_merge($commonDetail, ['FinancialYear' => $financialYear, 'TransUID' => $newTransUID]));
                 $this->dbwrite_model->updateData('Transaction', 'TransProductsTbl', ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID], ['TransUID' => $transUID, 'IsDeleted' => 0]);
-                $this->saveTransactionItems($newTransUID, $financialYear, $orgUID, $userUID, $items);
+                $this->_insertTransItems($newTransUID, $financialYear, $orgUID, $userUID, $items);
                 if (!$isDraft) {
                     $this->dbwrite_model->saveStockMovements($newTransUID, $this->pageModuleUID, $orgUID, $userUID, $items);
                     $this->_syncProductCacheFromItems($items);
@@ -463,6 +404,10 @@ class Salesreturns extends MY_Controller {
                 if (!empty($removedProductUIDs)) {
                     $this->dbwrite_model->softDeleteTransactionItemsByProductUIDs($transUID, array_values($removedProductUIDs), $userUID);
                 }
+                $updatingProductUIDs = array_values(array_intersect(array_keys($existingByProduct), $submittedProductUIDs));
+                if (!empty($updatingProductUIDs)) {
+                    $this->dbwrite_model->shiftTransProductSequences($transUID, $updatingProductUIDs);
+                }
                 $newRows = [];
                 foreach ($items as $seq => $item) {
                     $productUID = isset($item['id']) ? (int)$item['id'] : 0;
@@ -489,6 +434,8 @@ class Salesreturns extends MY_Controller {
                         'UnitPrice'       => $unitPrice,
                         'SellingPrice'    => (float)($item['sellingPrice']    ?? $unitPrice),
                         'PurchasePrice'   => (float)($item['purchasePrice']   ?? 0),
+                        'MRP'             => (float)($item['mrp']             ?? 0),
+                        'DistributionMode'=> !empty($item['isComposite']) ? ($item['distributionMode'] ?? null) : null,
                         'TaxableAmount'   => (float)($item['line_total']      ?? 0),
                         'CgstAmount'      => (float)($item['cgstAmount']      ?? 0),
                         'SgstAmount'      => (float)($item['sgstAmount']      ?? 0),
@@ -519,19 +466,20 @@ class Salesreturns extends MY_Controller {
                 }
             }
 
+            $activeTransUID = isset($newTransUID) ? $newTransUID : $transUID;
             if (!empty($additionalChargesList)) {
-                $this->transactions_model->saveTransactionCharges($transUID, (int)$orgUID, (int)$userUID, $additionalChargesList);
+                $this->transactions_model->saveTransactionCharges($activeTransUID, (int)$orgUID, (int)$userUID, $additionalChargesList);
             }
             $this->dbwrite_model->commitTransaction();
             $this->_saveAttachments($transUID);
             $this->_softDeleteAttachments($this->input->post('RemovedAttachIDs') ?? '');
             $this->cachehelper->touchCustomer($customerUID);
-            $this->transactions_model->generateAndStorePdf(isset($newTransUID) ? $newTransUID : $transUID, $orgUID, $this->pageModuleUID);
+            $this->transactions_model->generateAndStorePdf($activeTransUID, $orgUID, $this->pageModuleUID);
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Sales Return updated successfully.';
             $this->auditlog->log(
                 (int) $orgUID, (int) $userUID,
-                'UPDATE_SALES_RETURN', 'SalesReturn', (int) (isset($newTransUID) ? $newTransUID : $transUID), (string) ($uniqueNumber ?? $existing->UniqueNumber ?? ''),
+                'UPDATE_SALES_RETURN', 'SalesReturn', (int) $activeTransUID, (string) ($uniqueNumber ?? $existing->UniqueNumber ?? ''),
                 [], 'Updated sales return ' . ($uniqueNumber ?? $existing->UniqueNumber ?? ''), 'SalesReturns', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
             );
         } catch (Exception $e) {
@@ -559,7 +507,7 @@ class Salesreturns extends MY_Controller {
                 throw new Exception('Only Draft, Approved, Partial, or fully paid sales returns can be deleted.');
             }
 
-            // Check 1: block if credit was applied via applyCredit() — PaymentsTbl path
+            // Check 1: block if credit was applied via applyCredit() â€” PaymentsTbl path
             $creditApplied = $this->_getSRCreditApplied($existing->UniqueNumber, $orgUID);
             if ($creditApplied > 0) {
                 throw new Exception(
@@ -568,7 +516,7 @@ class Salesreturns extends MY_Controller {
                 );
             }
 
-            // Check 2: block if CN was applied via applyCreditNote() — CN Status path
+            // Check 2: block if CN was applied via applyCreditNote() â€” CN Status path
             $readDb = $this->load->database('ReadDB', TRUE);
             $readDb->db_debug = FALSE;
             $readDb->from('Transaction.TransCreditNoteTbl');
@@ -637,6 +585,16 @@ class Salesreturns extends MY_Controller {
                 'DELETE_SALES_RETURN', 'SalesReturn', (int) $transUID, (string) ($existing->UniqueNumber ?? ''),
                 [], 'Deleted sales return ' . ($existing->UniqueNumber ?? ''), 'SalesReturns', 'TRANSACTION'
             );
+
+            $pageNo  = max(1, (int) $this->input->post('PageNo'));
+            $limit   = (int) $this->input->post('RowLimit') ?: 10;
+            $filter  = $this->input->post('Filter') ?: [];
+            $offset  = ($pageNo - 1) * $limit;
+            $allData      = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, 0);
+            $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $filter);
+            $this->EndReturnData->RecordHtmlData = $this->load->view('transactions/salesreturns/list', ['DataLists' => $allData, 'SerialNumber' => $offset, 'JwtData' => $this->pageData['JwtData']], true);
+            $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml('/salesreturns/getSalesReturnsPageDetails', $allDataCount, $pageNo, $limit);
+            $this->EndReturnData->TotalCount     = $allDataCount;
         } catch (Exception $e) {
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
@@ -823,7 +781,7 @@ class Salesreturns extends MY_Controller {
 
             $this->dbwrite_model->startTransaction();
 
-            // ── Pre-cancel dependency checks (before any DB write) ───────────────
+            // â”€â”€ Pre-cancel dependency checks (before any DB write) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             $hasCashRefunds = false;
             $cancelAction   = '';
             $totalRefunded  = 0;
@@ -845,7 +803,7 @@ class Salesreturns extends MY_Controller {
                 if ($hasCashRefunds) {
                     $cancelAction = trim($this->input->post('CancelPaymentAction') ?? '');
                     if (!in_array($cancelAction, ['recover', 'writeoff'])) {
-                        // No valid action supplied — tell the frontend to show the action dialog.
+                        // No valid action supplied â€” tell the frontend to show the action dialog.
                         $this->dbwrite_model->rollbackTransaction();
                         $this->EndReturnData->Error          = FALSE;
                         $this->EndReturnData->RequiresAction = TRUE;
@@ -876,7 +834,7 @@ class Salesreturns extends MY_Controller {
                     $wdb = $this->dbwrite_model->getWriteDb();
                     $wdb->db_debug = FALSE;
                     if ($cancelAction === 'writeoff') {
-                        // Accept the refund as a business loss — mark payments written off
+                        // Accept the refund as a business loss â€” mark payments written off
                         $wdb->where(['TransUID' => $transUID, 'IsDeleted' => 0])
                             ->where('PaymentTypeUID !=', 0)
                             ->update('Transaction.PaymentsTbl', ['IsCancelled' => 1, 'UpdatedBy' => $userUID]);
@@ -935,8 +893,18 @@ class Salesreturns extends MY_Controller {
                 }
             }
 
+            $docNum = $existing->UniqueNumber ?? '';
+            $prefix = $docNum ? "{$docNum} " : '';
+            if ($newStatus === 'Cancelled') {
+                $msg = "Sales return {$prefix}cancelled successfully.";
+            } elseif ($newStatus === 'Approved') {
+                $msg = "Sales return {$prefix}approved.";
+            } else {
+                $msg = 'Status updated.';
+            }
+
             $this->EndReturnData->Error     = FALSE;
-            $this->EndReturnData->Message   = 'Status updated.';
+            $this->EndReturnData->Message   = $msg;
             $this->auditlog->log(
                 (int) $orgUID, (int) $userUID,
                 'UPDATE_SR_STATUS', 'SalesReturn', (int) $transUID, (string) ($existing->UniqueNumber ?? ''),
@@ -1154,6 +1122,8 @@ class Salesreturns extends MY_Controller {
                 'UnitPrice'         => $unitPrice,
                 'SellingPrice'      => (float) ($item['sellingPrice']    ?? $unitPrice),
                 'PurchasePrice'     => (float) ($item['purchasePrice']   ?? 0),
+                'MRP'               => (float) ($item['mrp']             ?? 0),
+                'DistributionMode'  => !empty($item['isComposite']) ? ($item['distributionMode'] ?? null) : null,
                 'TaxableAmount'     => (float) ($item['line_total']      ?? 0),
                 'CgstAmount'        => (float) ($item['cgstAmount']      ?? 0),
                 'SgstAmount'        => (float) ($item['sgstAmount']      ?? 0),
@@ -1307,7 +1277,7 @@ class Salesreturns extends MY_Controller {
             $this->dbwrite_model->updateTransIsFullyPaid($transUID, $isFullyPaid, $newTotalPaid, $balanceAmount, $userUID);
             $this->dbwrite_model->updateTransDocStatus($transUID, $orgUID, $newStatus, $userUID);
 
-            // ── Reduce linked Credit Note by the payment amount ──────────────
+            // â”€â”€ Reduce linked Credit Note by the payment amount â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             // Only acts when a Pending CN exists (partial SR scenario).
             // Full-payment SR never has a CN, so this block is a no-op there.
             $wdb = $this->dbwrite_model->getWriteDb();
@@ -1368,9 +1338,8 @@ class Salesreturns extends MY_Controller {
         $rows = json_decode($rowsJson, true);
         if (!is_array($rows) || empty($rows)) return ['totalPaid' => 0, 'firstPaymentUID' => null];
 
-        $paymentDate   = $transDate ?: date('Y-m-d');
-        $totalPaid     = array_sum(array_column($rows, 'amount'));
-        $payTransYear  = (int) date('Y', strtotime($paymentDate));
+        $defaultPaymentDate = $transDate ?: date('Y-m-d');
+        $totalPaid          = array_sum(array_column($rows, 'amount'));
         $payPrefixData = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.OrgUID' => $orgUID, 'Prefix.ModuleUID' => 111]);
         $payPrefix     = !empty($payPrefixData->Data) ? $payPrefixData->Data[0] : null;
         $payPrefixUID  = $payPrefix ? (int) $payPrefix->PrefixUID : null;
@@ -1382,6 +1351,9 @@ class Salesreturns extends MY_Controller {
             $bankAccountUID = !empty($row['bankAccountUID']) ? (int) $row['bankAccountUID'] : NULL;
             $referenceNo    = !empty($row['referenceNo'])    ? $row['referenceNo'] : NULL;
             $notes          = !empty($row['notes'])          ? $row['notes']       : NULL;
+            $rowDate        = !empty($row['paymentDate']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $row['paymentDate'])
+                                ? $row['paymentDate'] : $defaultPaymentDate;
+            $rowTransYear   = (int) date('Y', strtotime($rowDate));
             if ($paymentTypeUID <= 0 || $amount <= 0) continue;
 
             $rowExcess = 0;
@@ -1389,15 +1361,15 @@ class Salesreturns extends MY_Controller {
                 $rowExcess = round($totalPaid - $billTotal, 4);
             }
 
-            $paymentNumber = $payPrefixUID ? $this->transactions_model->getNextPaymentNumber($payPrefixUID, $orgUID, $payTransYear) : 0;
+            $paymentNumber = $payPrefixUID ? $this->transactions_model->getNextPaymentNumber($payPrefixUID, $orgUID, $rowTransYear) : 0;
             $payUniqueNum  = null;
             if ($payPrefix && $paymentNumber > 0) {
                 $sep   = $payPrefix->Separator ?? '-';
                 $parts = [strtoupper($payPrefix->Name)];
                 if (!empty($payPrefix->IncludeShortName) && !empty($payPrefix->ShortName)) $parts[] = strtoupper($payPrefix->ShortName);
                 if (!empty($payPrefix->IncludeFiscalYear)) {
-                    $m  = (int) date('m', strtotime($paymentDate));
-                    $yr = (int) date('Y', strtotime($paymentDate));
+                    $m  = (int) date('m', strtotime($rowDate));
+                    $yr = (int) date('Y', strtotime($rowDate));
                     $fy = $m >= 4 ? $yr : $yr - 1;
                     $parts[] = ($payPrefix->FiscalYearFormat ?? 'SHORT') === 'LONG'
                         ? $fy . '-' . ($fy + 1)
@@ -1411,13 +1383,13 @@ class Salesreturns extends MY_Controller {
 
             $paymentData = [
                 'OrgUID'           => $orgUID,
-                'PaymentDate'      => $paymentDate,
+                'PaymentDate'      => $rowDate,
                 'PaymentModuleUID' => 111,
                 'PrefixUID'        => $payPrefixUID,
                 'PaymentNumber'    => $paymentNumber,
                 'UniqueNumber'     => $payUniqueNum,
                 'ReceiptToken'     => $receiptToken,
-                'TransYear'        => $payTransYear,
+                'TransYear'        => $rowTransYear,
                 'TransUID'         => (int) $transUID,
                 'ModuleUID'        => $this->pageModuleUID,
                 'PartyType'        => $partyType,
@@ -1599,39 +1571,6 @@ class Salesreturns extends MY_Controller {
             $this->EndReturnData->Message = $e->getMessage();
         }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
-    }
-
-    private function _savePaymentAttachments($paymentUID) {
-        $files = $_FILES['PaymentFiles'] ?? null;
-        if (empty($files) || empty($files['name'][0])) return;
-        $userUID = $this->pageData['JwtData']->User->UserUID;
-        $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
-        $this->load->library('fileupload');
-        $this->load->model('dbwrite_model');
-        $allowed = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
-        $count   = min(count($files['name']), 3);
-        for ($i = 0; $i < $count; $i++) {
-            if ($files['error'][$i] !== UPLOAD_ERR_OK || empty($files['name'][$i])) continue;
-            if ($files['size'][$i] > 3 * 1024 * 1024) continue;
-            if (!in_array($files['type'][$i], $allowed)) continue;
-            $origName    = basename($files['name'][$i]);
-            $safeName    = time() . '_' . $i . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $origName);
-            $storagePath = 'payments/' . $paymentUID . '/' . $safeName;
-            $uploadResult = $this->fileupload->fileUpload('file', $storagePath, $files['tmp_name'][$i]);
-            if ($uploadResult->Error) continue;
-            $this->dbwrite_model->insertData('Transaction', 'PaymentAttachmentsTbl', [
-                'OrgUID'     => $orgUID,
-                'PaymentUID' => $paymentUID,
-                'FileName'   => $origName,
-                'FilePath'   => '/' . ltrim($uploadResult->Path, '/'),
-                'FileType'   => $files['type'][$i],
-                'FileSize'   => $files['size'][$i],
-                'SortOrder'  => $i,
-                'IsActive'   => 1,
-                'IsDeleted'  => 0,
-                'CreatedBy'  => $userUID,
-            ]);
-        }
     }
 
     private function _getSRCreditApplied($srUniqueNumber, $orgUID) {

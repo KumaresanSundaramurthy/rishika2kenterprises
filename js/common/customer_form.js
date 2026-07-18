@@ -15,13 +15,17 @@
     'use strict';
 
     // ── Internal state ────────────────────────────────────────────────────────
-    var _editUID            = 0;
-    var _onSaveSuccess      = null;
-    var _bodyLoaded         = false;
-    var _customerTypesCache = null;
+    var _editUID             = 0;
+    var _onSaveSuccess       = null;
+    var _bodyLoaded          = false;
+    var _customerTypesCache  = null;
+    var _customerGroupsCache = null;
 
     // ── Public API ────────────────────────────────────────────────────────────
-    window.CustomerForm = { open: openCustomerModal };
+    window.CustomerForm = {
+        open:            openCustomerModal,
+        clearGroupsCache: function () { _customerGroupsCache = null; },
+    };
 
     // ── On DOM ready: body is pre-rendered server-side — just init plugins ────
     $(function () {
@@ -161,6 +165,61 @@
         });
     }
 
+    // ── Customer group helpers ────────────────────────────────────────────────
+
+    function _populateCustomerGroupSelect(groups) {
+        var $sel = $('#CM_GroupUID');
+        $sel.find('option:not([value=""])').remove();
+        $.each(groups, function (_, g) {
+            $sel.append(new Option(g.GroupName, g.GroupUID));
+        });
+    }
+
+    /**
+     * @param {Function} callback
+     * @returns {void}
+     */
+    function _ensureCustomerGroups(callback) {
+        if (_customerGroupsCache !== null) {
+            _populateCustomerGroupSelect(_customerGroupsCache);
+            callback();
+            return;
+        }
+        if (typeof UpstashService !== 'undefined' && UpstashService.isEnabled()) {
+            UpstashService.hgetall(UpstashService.orgKey('customer-groups')).then(function (map) {
+                if (map && Object.keys(map).length > 0) {
+                    var groups = Object.values(map)
+                        .map(function (v) { return typeof v === 'string' ? JSON.parse(v) : v; })
+                        .sort(function (a, b) { return (a.GroupName || '').localeCompare(b.GroupName || ''); });
+                    _customerGroupsCache = groups;
+                    _populateCustomerGroupSelect(groups);
+                    callback();
+                } else {
+                    _fetchCustomerGroupsFromServer(callback);
+                }
+            }).catch(function () { _fetchCustomerGroupsFromServer(callback); });
+        } else {
+            _fetchCustomerGroupsFromServer(callback);
+        }
+    }
+
+    /**
+     * @param {Function} callback
+     * @returns {void}
+     */
+    function _fetchCustomerGroupsFromServer(callback) {
+        $.ajax({
+            url: '/customers/getGroupsForDropdown', method: 'GET', cache: false,
+            success: function (resp) {
+                var groups = (!resp.Error && resp.Groups) ? resp.Groups : [];
+                _customerGroupsCache = groups;
+                _populateCustomerGroupSelect(groups);
+                callback();
+            },
+            error: function () { callback(); }
+        });
+    }
+
     // ── Open after body is ready ──────────────────────────────────────────────
     function _doOpen(type, uid, opts) {
         $('#CustomerModalForm').data('mode', type);
@@ -174,9 +233,11 @@
             }
             _ensureSalutations(function () {
                 _ensureCustomerTypes(function () {
-                    _applyDefaultSalutation();
-                    _applyDefaultCustomerType();
-                    $('#CustomerFormModal').modal('show');
+                    _ensureCustomerGroups(function () {
+                        _applyDefaultSalutation();
+                        _applyDefaultCustomerType();
+                        $('#CustomerFormModal').modal('show');
+                    });
                 });
             });
             return;
@@ -195,8 +256,10 @@
                 }
                 _ensureSalutations(function () {
                     _ensureCustomerTypes(function () {
-                        _populateCustomerModal(type, response);
-                        $('#CustomerFormModal').modal('show');
+                        _ensureCustomerGroups(function () {
+                            _populateCustomerModal(type, response);
+                            $('#CustomerFormModal').modal('show');
+                        });
                     });
                 });
             },

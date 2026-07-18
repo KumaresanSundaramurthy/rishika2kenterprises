@@ -271,7 +271,6 @@ $route['quotations/create']                                    = 'quotations/cre
 $route['quotations/(:num)/edit']                               = 'quotations/edit/$1';
 $route['quotations/getQuotationsPageDetails/(:num)']           = 'quotations/getQuotationsPageDetails/$1';
 $route['quotations/getQuotationsPageDetails']                  = 'quotations/getQuotationsPageDetails';
-$route['quotations/exportQuotations']                          = 'quotations/exportQuotations';
 $route['quotations/addQuotation']                              = 'quotations/addQuotation';
 $route['quotations/updateQuotation']                           = 'quotations/updateQuotation';
 $route['quotations/deleteQuotation']                           = 'quotations/deleteQuotation';
@@ -444,7 +443,9 @@ $route['rental/cancelRental']                        = 'rental/cancelRental';
 $route['rental/searchRentableProducts']              = 'rental/searchRentableProducts';
 
 // Reports Hub
-$route['reports'] = 'reports/index';
+$route['reports']                  = 'reports/index';
+$route['reports/daybook']          = 'reports/daybook';
+$route['reports/getDayBookData']   = 'reports/getDayBookData';
 
 // Barcode & QR Code Config
 $route['settings/barcodeconfig'] = 'barcodeconfig/index';

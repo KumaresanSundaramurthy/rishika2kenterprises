@@ -1,13 +1,16 @@
 // Sales Returns module JS
 'use strict';
 
-function getSalesReturnsDetails(pageNo, rowLimit, filter) {
+function getSalesReturnsDetails(pageNo, rowLimit, filter, afterLoad) {
     loadTransactionList({
         url:            '/salesreturns/getSalesReturnsPageDetails/',
         tabCountClass:  '.trans-tab-count',
         statusTabClass: '.sr-status-tab',
         errorMessage:   'Failed to load sales returns.',
-        onSuccess:      function (resp) { if (typeof updateSummaryStats === 'function' && resp.SummaryStats) updateSummaryStats(resp.SummaryStats); },
+        onSuccess:      function (resp) {
+            if (typeof updateSummaryStats === 'function' && resp.SummaryStats) updateSummaryStats(resp.SummaryStats);
+            if (typeof afterLoad === 'function') afterLoad(resp);
+        },
     }, pageNo, rowLimit, filter);
 }
 

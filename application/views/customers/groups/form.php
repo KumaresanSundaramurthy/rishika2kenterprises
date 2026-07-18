@@ -234,7 +234,7 @@ $pageHead = $isEdit ? 'Edit Customer Group' : 'Create Customer Group';
             url     : '/customers/searchCustomers',
             dataType: 'json',
             delay   : 300,
-            data    : function (p) { return { term: p.term }; },
+            data    : function (p) { return { term: p.term, groupUID: <?php echo (int)($d->GroupUID ?? 0); ?> }; },
             processResults: function (d) {
                 return { results: (d.Lists || []).map(function (c) {
                     return { id: c.id, text: c.text, name: c.name || c.text, area: c.area || '', mobile: c.mobile || '' };
@@ -317,7 +317,7 @@ $pageHead = $isEdit ? 'Edit Customer Group' : 'Create Customer Group';
                 if (res.Error) { toastr.error(res.Message); return; }
                 toastr.success(res.Message);
                 setTimeout(function () {
-                    window.location.href = res.GroupUID ? '/customers/groupDetail/' + res.GroupUID : '/customers';
+                    window.location.href = '/customers?tab=groups';
                 }, 800);
             },
             error: function () { AjaxLoading = 1; toastr.error('Request failed. Please try again.'); }

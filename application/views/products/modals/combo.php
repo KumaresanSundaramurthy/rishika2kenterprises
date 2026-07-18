@@ -41,10 +41,19 @@
                             <input class="form-control" type="text" id="ComboName" name="ComboName" placeholder="Enter Combo Name" maxlength="150" required />
                         </div>
                         <div class="mb-3 col-md-6">
-                            <label for="ComboSellingPrice" class="form-label">Selling Price <span style="color:red">*</span></label>
+                            <label for="ComboSellingPrice" class="form-label">Selling Price <span style="color:red">*</span> (<span id="ComboSellingPriceTaxHelp" class="form-text text-danger">Inclusive of Taxes</span><span id="ComboSellingPriceWTaxHelp" class="form-text text-danger d-none">Exclusive of Taxes</span>)</label>
                             <div class="input-group input-group-merge">
                                 <span class="input-group-text"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
                                 <input type="text" class="form-control" name="ComboSellingPrice" id="ComboSellingPrice" min="0" placeholder="Enter Selling Price" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" maxLength="<?php echo $JwtData->GenSettings->PriceMaxLength; ?>" required />
+                                <select class="form-select tax-option-select" id="ComboSellingTaxOption" name="ComboSellingTaxOption"></select>
+                            </div>
+                        </div>
+                        <div class="mb-3 col-md-6">
+                            <label for="ComboPurchasePrice" class="form-label">Purchase Price <span style="color:red">*</span> (<span id="ComboPurchasePriceTaxHelp" class="form-text text-danger">Inclusive of Taxes</span><span id="ComboPurchasePriceWTaxHelp" class="form-text text-danger d-none">Exclusive of Taxes</span>)</label>
+                            <div class="input-group input-group-merge">
+                                <span class="input-group-text"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
+                                <input type="text" class="form-control" name="ComboPurchasePrice" id="ComboPurchasePrice" min="0" placeholder="Enter Purchase Price" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" maxLength="<?php echo $JwtData->GenSettings->PriceMaxLength; ?>" onpaste="handlePricePaste(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" ondrop="handlePriceDrop(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" required />
+                                <select class="form-select tax-option-select" id="ComboPurchaseTaxOption" name="ComboPurchaseTaxOption"></select>
                             </div>
                         </div>
                         <div class="mb-3 col-md-6">
@@ -66,7 +75,7 @@
                                 <option value=""></option>
                             </select>
                         </div>
-                        <div class="mb-3 col-md-6">
+                        <div class="mb-3 col-md-12">
                             <label for="ComboDescription" class="form-label">Description</label>
                             <textarea class="form-control" id="ComboDescription" name="ComboDescription" rows="2" placeholder="Enter combo description (optional)" maxlength="500"></textarea>
                         </div>

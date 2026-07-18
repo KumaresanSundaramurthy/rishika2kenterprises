@@ -9,37 +9,35 @@ $(document).on('click', '.inv-wa-link', function (e) {
     if (url) window.open(url, '_blank');
 });
 
-// -- Auto-attach invoice PDF when comm modal switches to Email tab -----------
-// Uses setTimeout so #CommEmailFields is visible before Dropzone initialises
+// -- Register smart PDF attach alert when comm modal opens in Email tab -------
 $(document).on('comm:switchedToEmail', function (e, moduleUID, recordUID) {
-    if (moduleUID !== 103 || !recordUID || _commPdfAutoAttached) return;
+    if (moduleUID !== 103 || !recordUID) return;
+    if (typeof _setupCommPdfAlert !== 'function') return;
 
-    _commPdfAutoAttached = true;
+    var rowData   = (typeof _commRowData !== 'undefined') ? _commRowData : null;
+    var docNumber = rowData ? (rowData.docNumber || '') : '';
+    var filename  = (docNumber || 'invoice').replace(/[^A-Za-z0-9_.\-]/g, '_') + '.pdf';
 
-    setTimeout(function () {
-        _initCommDropzone();
-
+    _setupCommPdfAlert(docNumber, function (onSuccess) {
         $.ajax({
             url   : '/invoices/getInvoicePdfBase64',
             method: 'POST',
             data  : { TransUID: recordUID, PaperSize: 'A4', [CsrfName]: CsrfToken },
             success: function (resp) {
-                if (resp.Error || !resp.Base64) { _commPdfAutoAttached = false; return; }
-                if (!_commDropzone) { _commPdfAutoAttached = false; return; }
+                if (resp.Error || !resp.Base64) { onSuccess(null); return; }
                 try {
                     var binary = atob(resp.Base64);
                     var bytes  = new Uint8Array(binary.length);
                     for (var i = 0; i < binary.length; i++) { bytes[i] = binary.charCodeAt(i); }
                     var blob = new Blob([bytes], { type: 'application/pdf' });
-                    var file = new File([blob], resp.Filename || 'invoice.pdf', { type: 'application/pdf' });
-                    _commDropzone.addFile(file);
+                    onSuccess(new File([blob], resp.Filename || filename, { type: 'application/pdf' }));
                 } catch (ex) {
-                    _commPdfAutoAttached = false;
+                    onSuccess(null);
                 }
             },
-            error: function () { _commPdfAutoAttached = false; }
+            error: function () { onSuccess(null); }
         });
-    }, 150);
+    });
 });
 
 function getInvoicesDetails(pageNo, rowLimit, filter, afterLoad) {
@@ -50,7 +48,7 @@ function getInvoicesDetails(pageNo, rowLimit, filter, afterLoad) {
         errorMessage:   'Failed to load invoices.',
         onSuccess:      function (resp) {
             if (typeof updateSummaryStats === 'function' && resp.SummaryStats) updateSummaryStats(resp.SummaryStats);
-            if (typeof afterLoad === 'function') afterLoad();
+            if (typeof afterLoad === 'function') afterLoad(resp);
         },
     }, pageNo, rowLimit, filter);
 }

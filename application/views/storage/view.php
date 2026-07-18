@@ -70,21 +70,13 @@
                                                 </tbody>
                                             </table>
                                         </div>
-                                        <hr class="my-0" />
-                                        <div class="row mx-3 justify-content-between StoragePagination" id="StoragePagination">
+                                        <div class="row mx-3 justify-content-between StoragePagination apex-pag-sticky" id="StoragePagination">
                                             <?php echo $ModPagination; ?>
                                         </div>
 
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-
-                    <!-- Sticky pagination -->
-                    <div class="card mb-0 cust-sticky-pag apex-sticky-pag" id="storageStickyPagination" data-static-pag="#StoragePagination" style="display:none;">
-                        <div class="card-body p-0">
-                            <div class="row mx-3 my-2 justify-content-between align-items-center apex-sticky-pag-inner"></div>
                         </div>
                     </div>
 
@@ -110,7 +102,6 @@
 
 <?php $this->load->view('common/footer'); ?>
 
-<script src="/js/core/sticky_paginate.js"></script>
 <script src="/js/storage.js"></script>
 <script src="/js/common/pagecheckbox.js"></script>
 
@@ -223,24 +214,24 @@ $(function() {
         e.preventDefault();
         sortState = (sortState + 1) % 3;
         const icon = $(this).find('i');
-        icon.removeClass('bx-sort-alt-2 bx-up-arrow-alt bx-down-arrow-alt text-primary');
+        icon.removeClass('bx-sort-alt-2 bx-sort-up bx-sort-down text-primary');
         $('#sortName').removeClass('text-primary');
         if (sortState == 1) {
-            icon.addClass('bx-up-arrow-alt text-primary');
+            icon.addClass('bx-sort-up text-primary');
             $('#sortName').addClass('text-primary');
-            $(this).attr('title', 'Click sorting descending');
+            $(this).attr('data-bs-title', 'Click for descending order');
             Filter['NameSorting'] = 1;
         } else if (sortState === 2) {
-            icon.addClass('bx-down-arrow-alt text-primary');
+            icon.addClass('bx-sort-down text-primary');
             $('#sortName').addClass('text-primary');
-            $(this).attr('title', 'Remove sorting');
+            $(this).attr('data-bs-title', 'Click to remove sorting');
             Filter['NameSorting'] = 2;
         } else {
             icon.addClass('bx-sort-alt-2');
-            $(this).attr('title', 'Click sorting ascending');
+            $(this).attr('data-bs-title', 'Click for ascending order');
             delete Filter['NameSorting'];
         }
-        $(this).tooltip('dispose').tooltip();
+        var _tt = bootstrap.Tooltip.getInstance(this); if (_tt) _tt.dispose(); new bootstrap.Tooltip(this);
         getStorageDetails(PageNo, RowLimit, Filter);
     });
 

@@ -125,16 +125,8 @@ $stats = $StaffStats ?? null;
                             </table>
                         </div>
 
-                        <hr class="my-0">
-                        <div class="row mx-3 my-2 justify-content-between align-items-center staffPagination" id="staffPagination">
+                        <div class="row mx-3 my-2 justify-content-between align-items-center staffPagination apex-pag-sticky" id="staffPagination">
                             <?php echo $ModPagination ?: ''; ?>
-                        </div>
-                    </div>
-
-                    <!-- Sticky pagination -->
-                    <div class="card mb-0 cust-sticky-pag apex-sticky-pag" id="staffStickyPagination" data-static-pag="#staffPagination" style="display:none;">
-                        <div class="card-body p-0">
-                            <div class="row mx-3 my-2 justify-content-between align-items-center apex-sticky-pag-inner"></div>
                         </div>
                     </div>
 
@@ -152,7 +144,6 @@ $stats = $StaffStats ?? null;
 
 <?php $this->load->view('common/footer'); ?>
 
-<script src="/js/core/sticky_paginate.js"></script>
 <script src="/js/common/address.js"></script>
 <script>
 var CsrfName        = '<?php echo $this->security->get_csrf_token_name(); ?>';

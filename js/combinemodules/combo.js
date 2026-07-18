@@ -1,31 +1,30 @@
 // ──────────────────────────────────────────────────
-// Combo item search — local Upstash cache
+// Combo item search — via ProductAppend (Upstash → AJAX fallback)
 // ──────────────────────────────────────────────────
 var _comboItemsCache = null; // null = not loaded yet
 
 function _loadComboItemsCache() {
     if (_comboItemsCache !== null) return Promise.resolve(_comboItemsCache);
-    if (!window.UpstashService || !UpstashService.isEnabled()) {
-        _comboItemsCache = [];
-        return Promise.resolve(_comboItemsCache);
-    }
-    return UpstashService.hgetall(UpstashService.orgKey('products')).then(function (map) {
-        var items = [];
-        if (map && typeof map === 'object') {
-            Object.keys(map).forEach(function (uid) {
-                var p = map[uid];
-                if (p && !parseInt(p.IsComposite)) {
-                    items.push({ id: parseInt(p.ProductUID), text: p.ItemName });
-                }
-            });
-            items.sort(function (a, b) { return (a.text || '').localeCompare(b.text || ''); });
-        }
-        _comboItemsCache = items;
-        return _comboItemsCache;
-    }).catch(function () {
-        _comboItemsCache = [];
-        return _comboItemsCache;
+    return new Promise(function (resolve) {
+        ProductAppend.load(
+            function (list) {
+                _comboItemsCache = list
+                    .filter(function (p) { return !p.isComposite; })
+                    .map(function (p) { return { id: p.id, text: p.text }; });
+                resolve(_comboItemsCache);
+            },
+            function () {
+                _comboItemsCache = [];
+                resolve(_comboItemsCache);
+            }
+        );
     });
+}
+
+function _getAddedComboUIDs() {
+    var map = {};
+    $('#ComboComponentsBody tr[data-uid]').each(function () { map[$(this).data('uid')] = true; });
+    return map;
 }
 
 function _reinitComboItemSearch() {
@@ -33,21 +32,23 @@ function _reinitComboItemSearch() {
     if ($el.hasClass('select2-hidden-accessible')) {
         $el.select2('destroy');
     }
+    var addedUIDs = _getAddedComboUIDs();
     if (_comboItemsCache && _comboItemsCache.length > 0) {
+        var available = _comboItemsCache.filter(function (item) { return !addedUIDs[item.id]; });
         $el.select2({
-            placeholder     : '-- Search & Select Item --',
-            allowClear      : true,
-            width           : '100%',
+            placeholder      : '-- Search & Select Item --',
+            allowClear       : true,
+            width            : '100%',
             minimumInputLength: 1,
-            dropdownParent  : $('#comboItemModal'),
-            data            : [{ id: '', text: '' }].concat(_comboItemsCache)
+            dropdownParent   : $('#comboItemModal'),
+            data             : [{ id: '', text: '' }].concat(available)
         });
     } else {
         $el.select2({
-            placeholder     : '-- Search & Select Item --',
-            allowClear      : true,
-            width           : '100%',
-            dropdownParent  : $('#comboItemModal'),
+            placeholder      : '-- Search & Select Item --',
+            allowClear       : true,
+            width            : '100%',
+            dropdownParent   : $('#comboItemModal'),
             minimumInputLength: 1,
             ajax: {
                 url         : '/products/getItemsForBOM',
@@ -59,13 +60,16 @@ function _reinitComboItemSearch() {
                 },
                 processResults: function (data) {
                     if (data.Error) return { results: [] };
+                    var added = _getAddedComboUIDs();
                     return {
-                        results: data.Items.map(function (item) {
+                        results: data.Items.filter(function (item) {
+                            return !added[item.ProductUID];
+                        }).map(function (item) {
                             return { id: item.ProductUID, text: item.ItemName };
                         })
                     };
                 },
-                cache: true
+                cache: false
             }
         });
     }
@@ -90,6 +94,10 @@ $(document).ready(function () {
         Promise.all([DropdownCache.ready(), _loadComboItemsCache()]).then(function (results) {
             DropdownCache.populateProductModal(results[0]);
             _reinitComboItemSearch();
+            var defTax       = (typeof _pfDefProdTaxUID   !== 'undefined' && _pfDefProdTaxUID)   ? _pfDefProdTaxUID   : null;
+            var defTaxDetail = (typeof _pfDefTaxDetailUID !== 'undefined' && _pfDefTaxDetailUID) ? _pfDefTaxDetailUID : null;
+            if (defTax)       { $('#ComboSellingTaxOption,#ComboPurchaseTaxOption').val(defTax).trigger('change'); }
+            if (defTaxDetail) { $('#ComboTaxPercentage').val(defTaxDetail).trigger('change'); }
             $('#comboItemModal').modal('show');
         });
     });
@@ -123,9 +131,10 @@ $(document).ready(function () {
         }
 
         addComboComponentRow(itemUID, itemName, qty);
+        updateComboComponentsData();
+        _reinitComboItemSearch();
         $('#ComboItemSearch').val(null).trigger('change');
         $('#ComboItemQty').val(1);
-        updateComboComponentsData();
     });
 
     // ──────────────────────────────────────────────
@@ -136,6 +145,7 @@ $(document).ready(function () {
         $(this).closest('tr').remove();
         renumberComboComponentRows();
         updateComboComponentsData();
+        _reinitComboItemSearch();
         if ($('#ComboComponentsBody tr[data-uid]').length === 0) {
             $('#ComboComponentEmptyRow').show();
         }
@@ -278,6 +288,23 @@ $(document).ready(function () {
     });
 
     // ──────────────────────────────────────────────
+    // Selling / Purchase tax option → dynamic label
+    // ──────────────────────────────────────────────
+    $(document).on('change', '#ComboSellingTaxOption', function () {
+        var txt = $(this).find('option:selected').text().toLowerCase();
+        $('#ComboSellingPriceTaxHelp,#ComboSellingPriceWTaxHelp').addClass('d-none');
+        if (txt.indexOf('with tax') !== -1)  { $('#ComboSellingPriceTaxHelp').removeClass('d-none'); }
+        else if (txt.indexOf('without') !== -1) { $('#ComboSellingPriceWTaxHelp').removeClass('d-none'); }
+    });
+
+    $(document).on('change', '#ComboPurchaseTaxOption', function () {
+        var txt = $(this).find('option:selected').text().toLowerCase();
+        $('#ComboPurchasePriceTaxHelp,#ComboPurchasePriceWTaxHelp').addClass('d-none');
+        if (txt.indexOf('with tax') !== -1)  { $('#ComboPurchasePriceTaxHelp').removeClass('d-none'); }
+        else if (txt.indexOf('without') !== -1) { $('#ComboPurchasePriceWTaxHelp').removeClass('d-none'); }
+    });
+
+    // ──────────────────────────────────────────────
     // Reset modal on close
     // ──────────────────────────────────────────────
     $('#comboItemModal').on('hidden.bs.modal', function () {
@@ -391,9 +418,9 @@ function loadComboForEdit(comboUID) {
             $('#HComboUID').val(d.ProductUID);
             $('#ComboName').val(d.ItemName);
             $('#ComboSellingPrice').val(smartDecimal(d.SellingPrice));
+            $('#ComboPurchasePrice').val(smartDecimal(d.PurchasePrice || 0));
             $('#ComboMRP').val(smartDecimal(d.MRP || 0));
             $('#ComboDescription').val(d.Description || '');
-
             // Load BOM components
             if (response.Components && response.Components.length > 0) {
                 $.each(response.Components, function (i, comp) {
@@ -408,8 +435,10 @@ function loadComboForEdit(comboUID) {
             Promise.all([DropdownCache.ready(), _loadComboItemsCache()]).then(function (results) {
                 DropdownCache.populateProductModal(results[0]);
                 _reinitComboItemSearch();
-                if (d.TaxDetailsUID) $('#ComboTaxPercentage').val(d.TaxDetailsUID).trigger('change');
-                if (d.PrimaryUnitUID) $('#ComboPrimaryUnit').val(d.PrimaryUnitUID).trigger('change');
+                if (d.SellingProductTaxUID)       { $('#ComboSellingTaxOption').val(d.SellingProductTaxUID).trigger('change'); }
+                if (d.PurchasePriceProductTaxUID) { $('#ComboPurchaseTaxOption').val(d.PurchasePriceProductTaxUID).trigger('change'); }
+                if (d.TaxDetailsUID)  { $('#ComboTaxPercentage').val(d.TaxDetailsUID).trigger('change'); }
+                if (d.PrimaryUnitUID) { $('#ComboPrimaryUnit').val(d.PrimaryUnitUID).trigger('change'); }
                 $('#comboItemModal').modal('show');
             });
         }

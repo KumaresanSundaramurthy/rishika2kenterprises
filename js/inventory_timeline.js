@@ -154,15 +154,20 @@ $(document).ready(function () {
     // Sortable column headers
     $(document).on('click', '.tl-sortable', function () {
         var col = $(this).data('sort');
-        if (_tlFilter['SortBy'] === col) {
-            _tlFilter['SortDir'] = (_tlFilter['SortDir'] === 'ASC') ? 'DESC' : 'ASC';
-        } else {
+        if (_tlFilter['SortBy'] !== col) {
             _tlFilter['SortBy']  = col;
             _tlFilter['SortDir'] = 'ASC';
+        } else if (_tlFilter['SortDir'] === 'ASC') {
+            _tlFilter['SortDir'] = 'DESC';
+        } else {
+            delete _tlFilter['SortBy'];
+            delete _tlFilter['SortDir'];
         }
-        $('.tl-sortable .tl-sort-icon').removeClass('bx-sort-up bx-sort-down').addClass('bx-sort').css('opacity', '.5');
-        var $icon = $(this).find('.tl-sort-icon');
-        $icon.removeClass('bx-sort').addClass(_tlFilter['SortDir'] === 'ASC' ? 'bx-sort-up' : 'bx-sort-down').css('opacity', '1');
+        $('.tl-sortable .tl-sort-icon').removeClass('bx-sort-up bx-sort-down text-primary').addClass('bx-sort-alt-2').css('opacity', '.5');
+        if (_tlFilter['SortBy']) {
+            var $icon = $(this).find('.tl-sort-icon');
+            $icon.removeClass('bx-sort-alt-2').addClass(_tlFilter['SortDir'] === 'ASC' ? 'bx-sort-up' : 'bx-sort-down').addClass('text-primary').css('opacity', '1');
+        }
         tlLoadPage(1);
     });
 

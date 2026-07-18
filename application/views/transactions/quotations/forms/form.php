@@ -5,6 +5,16 @@ $isDraftEdit = $isEdit && ($QuotData->DocStatus === 'Draft');
 $transUID    = $isEdit ? (int)$QuotData->TransUID : 0;
 $formId      = 'quotationForm';
 $formAction  = $isEdit ? 'quotations/updateQuotation' : 'quotations/addQuotation';
+$_posCode    = $isEdit ? ($QuotData->PlaceOfSupplyCode  ?? '') : ($JwtData->Org->StateCode  ?? '');
+$_posName    = $isEdit ? ($QuotData->PlaceOfSupplyName  ?? '') : ($JwtData->Org->StateName  ?? '');
+
+$_returnTab  = $this->input->get('returnTab')  ?: 'All';
+$_returnPage = (int)($this->input->get('returnPage') ?: 1);
+$_closeUrl   = '/quotations';
+$_cParams    = [];
+if ($_returnTab) $_cParams[] = 'tab=' . urlencode($_returnTab);
+if ($_returnPage > 1) $_cParams[] = 'page=' . $_returnPage;
+if ($_cParams) $_closeUrl .= '?' . implode('&', $_cParams);
 
 if ($isEdit && !function_exists('buildQuotPrefixSegment')) {
     function buildQuotPrefixSegment($cfg) {
@@ -100,8 +110,7 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                     <?php if ($isEdit): ?>
                     <input type="hidden" name="TransUID" value="<?php echo $transUID; ?>" />
                     <?php endif; ?>
-                    <input type="hidden" id="placeOfSupplyCode" name="placeOfSupplyCode" value="<?php echo !$isEdit ? htmlspecialchars($JwtData->Org->StateCode ?? '', ENT_QUOTES) : ''; ?>" />
-                    <input type="hidden" id="placeOfSupplyName" name="placeOfSupplyName" value="<?php echo !$isEdit ? htmlspecialchars($JwtData->Org->StateName ?? '', ENT_QUOTES) : ''; ?>" />
+                    <?php $this->load->view('transactions/partials/place_of_supply_inputs', ['_posCode' => $_posCode, '_posName' => $_posName]); ?>
 
                     <div class="card mb-3">
 
@@ -136,7 +145,7 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                                         <li><button type="submit" class="dropdown-item py-1" name="action" value="save_thermal"><i class="bx bx-receipt text-success me-2"></i>Save &amp; Print Thermal</button></li>
                                     </ul>
                                 </div>
-                                <a href="/quotations" class="btn btn-sm btn-outline-danger px-3<?php echo $_hideNav ? ' d-none' : ''; ?>"><i class="bx bx-x me-1"></i>Close</a>
+                                <a href="<?php echo $_closeUrl; ?>" class="btn btn-sm btn-outline-danger px-3<?php echo $_hideNav ? ' d-none' : ''; ?>"><i class="bx bx-x me-1"></i>Close</a>
                             </div>
                         </div>
                         <?php else: ?>
@@ -192,7 +201,7 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                                 <button type="submit" name="action" value="draft" class="btn btn-outline-secondary"><i class="bx bx-save me-1"></i>Save as Draft</button>
                                 <?php endif; ?>
                                 <button type="submit" name="action" value="save" class="btn btn-primary"><i class="bx bx-check me-1"></i>Save</button>
-                                <a href="/quotations" class="btn btn-label-danger<?php echo $_hideNav ? ' d-none' : ''; ?>">Close</a>
+                                <a href="<?php echo $_closeUrl; ?>" class="btn btn-label-danger<?php echo $_hideNav ? ' d-none' : ''; ?>">Close</a>
                             </div>
                         </div>
                         <?php endif; ?>
@@ -216,6 +225,7 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                                 <?php endif; ?>
                                 <div class="ms-auto d-flex align-items-center gap-2">
                                     <div id="custTypeIndicator" class="d-none"></div>
+                                    <div id="plChipWrap" class="d-none"></div>
                                     <!-- On Account indicator — info only, no payment action in quotation -->
                                     <div id="onAccountIndicator" class="d-none d-flex align-items-center gap-1"
                                          style="font-size:.78rem;color:#856404;background:#fff8e1;border:1px solid #ffc107;padding:3px 12px;border-radius:20px;white-space:nowrap;">
@@ -386,6 +396,7 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
 </div>
 
 <?php $this->load->view('transactions/partials/additional_charges_modal'); ?>
+<?php $this->load->view('common/transactions/print_modals'); ?>
 <?php $this->load->view('common/transactions/footer'); ?>
 
 <script src="/js/common/address.js"></script>
@@ -394,6 +405,7 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
 <script src="/js/common/customer_form.js"></script>
 <script src="/js/transactions/quotations.js"></script>
 <script src="/js/transactions/transactions.js"></script>
+<script src="/js/transactions/pricelist_trans.js"></script>
 <script src="/js/transactions/transprefix.js"></script>
 <script src="/js/transactions/modaladdress.js"></script>
 <script src="/js/common/category_form.js"></script>
@@ -405,18 +417,26 @@ var _transAdditionalTaxOpts  = <?php echo json_encode(array_values($TaxList     
 var _transTransactionCharges = <?php echo json_encode(array_values($TransactionCharges  ?? [])); ?>;
 </script>
 <script src="/js/transactions/additional_charges.js"></script>
+<script src="/js/transactions/a4_print.js"></script>
+<script src="/js/transactions/thermal_print.js"></script>
 
 <script>
 const EnableStorage = <?php echo $JwtData->GenSettings->EnableStorage; ?>;
+var _formModuleUID = <?php echo (int)($JwtData->ModuleUID ?? 0); ?>;
 var _isEdit    = <?php echo $isEdit ? 'true' : 'false'; ?>;
 var _orgState         = '<?php echo addslashes($DispatchAddress->StateText ?? ''); ?>';
 var _upstashUrl       = '<?php echo addslashes($UpstashReadUrl   ?? ''); ?>';
 var _upstashReadToken = '<?php echo addslashes($UpstashReadToken ?? ''); ?>';
 var _custCacheKey     = '<?php echo addslashes($CustomerCacheKey ?? ''); ?>';
+var _returnTab  = <?php echo json_encode($_returnTab); ?>;
+var _returnPage = <?php echo (int)$_returnPage; ?>;
 let imgData;
 
 <?php if ($isEdit): ?>
-var _custState = '<?php echo addslashes($CustAddr->StateText ?? ''); ?>';
+var _custState        = '<?php echo addslashes($CustAddr->StateText ?? ''); ?>';
+var _editCustUID      = <?php echo (int)($QuotData->PartyUID ?? 0); ?>;
+var _editPriceListUID = <?php echo (int)($QuotData->PriceListUID ?? 0); ?>;
+var _editPriceListData = <?php echo !empty($QuotData->PriceListData) ? json_encode($QuotData->PriceListData) : 'null'; ?>;
 var _editItems = <?php echo json_encode(array_map(function($item) {
     return [
         'id'               => (int)  $item->ProductUID,
@@ -546,6 +566,51 @@ $(function() {
         if (typeof updateItemTaxBreakdown === 'function') updateItemTaxBreakdown();
         billManager.updateSummary();
     }
+
+    // Re-trigger customer-dependent UI (On Account banner, State badge, Price List chip)
+    // because select2:select never fires when the customer is PHP-preselected on edit page.
+    if (typeof _editCustUID !== 'undefined' && _editCustUID > 0 &&
+            typeof UpstashService !== 'undefined' && UpstashService.isEnabled()) {
+        UpstashService.hgetall(UpstashService.orgKey('customers')).then(function(map) {
+            if (!map || typeof map !== 'object') return;
+            var c = map[String(_editCustUID)];
+            if (!c) {
+                c = Object.values(map).find(function(v) {
+                    return parseInt(v.CustomerUID, 10) === _editCustUID;
+                });
+            }
+            if (!c) return;
+            var custData = {
+                id:               parseInt(c.CustomerUID || _editCustUID, 10),
+                name:             c.Name             || '',
+                onAccountBalance: parseFloat(c.OnAccountBalance || 0),
+                onAccountRecords: c.OnAccountRecords || [],
+                customerTypeUID:  parseInt(c.CustomerTypeUID || 0, 10),
+                groupUID:         c.GroupUID ? parseInt(c.GroupUID, 10) : null,
+                countryISO2:      c.CountryISO2 || 'IN',
+            };
+            if (c.Address && c.Address.length) {
+                var addr = c.Address[0];
+                c.Address.forEach(function(a) { if (a.AddressType === 'Billing') addr = a; });
+                custData.address = {
+                    Line1:   addr.Line1     || '',
+                    Line2:   addr.Line2     || '',
+                    Pincode: addr.Pincode   || '',
+                    City:    addr.CityText  || '',
+                    State:   addr.StateText || '',
+                };
+            }
+            if (typeof _showOnAccountBanner === 'function') {
+                _showOnAccountBanner(custData.onAccountBalance);
+            }
+            if (typeof _showCustTypeIndicator === 'function') {
+                _showCustTypeIndicator(custData);
+            }
+            if (typeof _plTransEditRestore === 'function') {
+                _plTransEditRestore(custData);
+            }
+        }).catch(function() {});
+    }
     <?php else: ?>
     if (_cloneItems && _cloneItems.length > 0) {
         var _cloneAttempts = 0;
@@ -574,6 +639,7 @@ $(function() {
 
             var $btn     = $('button[type="submit"][name="action"]:focus, button[type="submit"][name="action"].active-submit', $form);
             var action   = $btn.val() || 'save';
+            action       = _resolveFormAction(action);
             var csrfName = $form.data('csrf');
             var csrfVal  = $form.data('csrf-value');
 
@@ -666,6 +732,7 @@ $(function() {
             var formData = new FormData();
             $.each(postData, function(k, v) { formData.append(k, v); });
             collectTransAttachData(formData);
+            if (typeof _plTransInjectFormData === 'function') _plTransInjectFormData(formData);
 
             setFormLoading('#<?php echo $formId; ?>', true, action);
 
@@ -680,17 +747,18 @@ $(function() {
                     if (response.Error) {
                         setFormLoading('#<?php echo $formId; ?>', false);
                         showFormError(response.Message);
-                    } else {
-                        Swal.fire({
-                            icon             : 'success',
-                            title            : _isEdit ? 'Quotation Updated' : 'Quotation Saved',
-                            text             : response.Message || (_isEdit ? 'Quotation updated successfully.' : 'Quotation created successfully.'),
-                            confirmButtonText: 'OK',
-                            timer            : 3000,
-                            timerProgressBar : true,
-                        }).then(function() {
-                            window.location.href = '/quotations';
+                    } else if (_pendingPrintFormat) {
+                        var fmt = _pendingPrintFormat;
+                        _pendingPrintFormat = null;
+                        clearTransactionForm(_formModuleUID);
+                        _setPendingToast('_quotPendingToast', response.Message, 'success');
+                        _openTransactionPrint(response.TransUID, _formModuleUID, fmt, function() {
+                            window.location.href = _buildReturnUrl(_moduleListUrls[_formModuleUID] || '/quotations');
                         });
+                    } else {
+                        $(document).one('ajaxStop', function() { showUIBlock(); });
+                        _setPendingToast('_quotPendingToast', response.Message, 'success');
+                        window.location.href = _buildReturnUrl('/quotations');
                     }
                 },
                 error: function() {

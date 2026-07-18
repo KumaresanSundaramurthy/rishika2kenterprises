@@ -75,11 +75,13 @@ function openTransAttachModal(uid, num, fetchUrl, accentColor, title, moduleUID)
 
     $modal.modal('show');
 
+    ajaxLoading(0);
     $.ajax({
         url   : fetchUrl,
         method: 'POST',
         data  : { TransUID: uid, ModuleUID: moduleUID, [CsrfName]: CsrfToken },
         success: function (resp) {
+            ajaxLoading(1);
             if (resp.Error || !resp.Attachments || !resp.Attachments.length) {
                 $gallery.html('<p class="text-muted text-center py-3">No attachments found.</p>');
                 return;
@@ -87,6 +89,7 @@ function openTransAttachModal(uid, num, fetchUrl, accentColor, title, moduleUID)
             $gallery.html(_buildAttachGalleryHtml(resp.Attachments));
         },
         error: function () {
+            ajaxLoading(1);
             $gallery.html('<p class="text-danger text-center py-3">Failed to load attachments.</p>');
         }
     });
@@ -103,7 +106,7 @@ $(document).on('click', '.transAttachBtn', function () {
 
 function _buildAttachGalleryHtml(attachments) {
     var cdnUrl = (typeof CDN_URL !== 'undefined' && CDN_URL) ? CDN_URL : '';
-    var html   = '<div class="row g-2 p-2">';
+    var html   = '<div class="row g-3 p-2">';
     attachments.forEach(function (a) {
         var url    = a.Url || (cdnUrl + (a.FilePath || ''));
         var name   = a.FileName || '';
@@ -114,7 +117,7 @@ function _buildAttachGalleryHtml(attachments) {
             html += '<div class="col-4 col-md-3"><img src="' + url + '" class="img-fluid rounded" style="cursor:pointer;object-fit:cover;height:90px;width:100%;" title="' + name + '" onclick="_openAttachPreview(\'' + encUrl + '\',\'img\',\'' + name + '\')" /></div>';
         } else {
             var icon = isPdf ? 'bxs-file-pdf text-danger' : 'bx-file text-secondary';
-            html += '<div class="col-4 col-md-3 d-flex flex-column align-items-center justify-content-center border rounded p-2" style="cursor:pointer;min-height:90px;" onclick="_openAttachPreview(\'' + encUrl + '\',\'' + (isPdf ? 'pdf' : 'file') + '\',\'' + name + '\')"><i class="bx ' + icon + '" style="font-size:2rem;"></i><span class="text-truncate w-100 text-center mt-1" style="font-size:.7rem;">' + name + '</span></div>';
+            html += '<div class="col-4 col-md-3"><div class="d-flex flex-column align-items-center justify-content-center border rounded p-2" style="cursor:pointer;min-height:90px;" onclick="_openAttachPreview(\'' + encUrl + '\',\'' + (isPdf ? 'pdf' : 'file') + '\',\'' + name + '\')"><i class="bx ' + icon + '" style="font-size:2rem;"></i><span class="text-truncate w-100 text-center mt-1" style="font-size:.7rem;">' + name + '</span></div></div>';
         }
     });
     html += '</div>';

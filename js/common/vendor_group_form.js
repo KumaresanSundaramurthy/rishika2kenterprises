@@ -391,7 +391,8 @@
 
     function _fetchVendorsAjax(q, cb) {
         $.ajax({
-            url: '/vendors/searchVendors', dataType: 'json', data: { term: q },
+            url: '/vendors/searchVendors', dataType: 'json',
+            data: { term: q, groupUID: _editGroupUID },
             success: function (res) {
                 cb((res.Lists || []).map(function (v) {
                     return { VendorUID: parseInt(v.id), Name: v.text || '', MobileNumber: v.mobile || '', Area: v.area || '' };
@@ -410,7 +411,10 @@
             var added    = _members.map(function (m) { return m.uid; });
             var filtered = list.filter(function (v) {
                 if (added.indexOf(v.VendorUID) >= 0) return false;
-                if (_vendAjaxMode) return true; // AJAX already filtered by term
+                // Upstash path: exclude vendors already in a different group
+                var vGroupUID = parseInt(v.GroupUID || 0);
+                if (vGroupUID > 0 && vGroupUID !== _editGroupUID) return false;
+                if (_vendAjaxMode) return true; // AJAX already filtered by term + groupUID
                 return (v.Name || '').toLowerCase().indexOf(q) >= 0
                     || (v.MobileNumber || '').indexOf(q) >= 0;
             }).slice(0, 20);

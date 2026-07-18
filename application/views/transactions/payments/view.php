@@ -136,7 +136,7 @@
                                         <th>Party</th>
                                         <th style="width:140px;">Linked Doc</th>
                                         <th style="width:170px;">Created By</th>
-                                        <th style="width:80px;" class="text-end pe-3">Actions</th>
+                                        <th style="width:80px;" class="text-center pe-3">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="allPaymentsTableBody">
@@ -146,7 +146,7 @@
                         </div>
 
                         <!-- Footer totals + pagination -->
-                        <div class="card-footer bg-white border-top d-flex flex-wrap justify-content-between align-items-center px-3 py-2 gap-3">
+                        <div class="card-footer bg-white border-top d-flex flex-wrap justify-content-between align-items-center px-3 py-2 gap-3 apex-pag-sticky">
                             <div class="d-flex align-items-center gap-3 flex-wrap">
                                 <span class="text-muted" style="font-size:.8rem;">
                                     In: &nbsp;<strong class="text-success" id="allPmtFooterIn">
@@ -174,6 +174,7 @@
 
                     </div><!-- /.card -->
 
+
                 </div>
                 <?php $this->load->view('common/footer_desc'); ?>
             </div>
@@ -195,7 +196,7 @@ $this->load->view('common/transactions/payment_modal');
 <?php $this->load->view('common/footer'); ?>
 
 <!-- ── Column filter boxes ──────────────────────────────────────────────── -->
-<?php $this->load->view('common/transactions/col_filter_box', [
+<?php $this->load->view('common/filter_panels/col_filter_box', [
     'ColFilterConfig' => [
         'id'         => 'allPmtModeFilterBox',
         'triggerId'  => 'allPmtModeFilter',
@@ -210,7 +211,7 @@ $this->load->view('common/transactions/payment_modal');
 ]); ?>
 
 <?php if (count($OrgUsers ?? []) > 1): ?>
-<?php $this->load->view('common/partials/col_user_filter_box', [
+<?php $this->load->view('common/filter_panels/col_user_filter_box', [
     'ColUserFilterConfig' => [
         'id'         => 'allPmtCreatedByFilterBox',
         'triggerId'  => 'allPmtCreatedByFilter',

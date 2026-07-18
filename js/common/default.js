@@ -18,10 +18,17 @@ function inputDelay(callback, ms) {
     };
 }
 
+// Modals in this list never show the processing overlay
+var _noOverlayModals = ['viewTransModal', 'transAttachModal'];
+
 function ajaxLoading(state) {
-    if(state) {
+    if (state) {
+        var modalOpen = _noOverlayModals.some(function (id) {
+            return $('#' + id).hasClass('show');
+        });
+        if (modalOpen) return;
         AjaxLoading = 1;
-    } else{
+    } else {
         AjaxLoading = 0;
     }
 }
@@ -66,8 +73,8 @@ function _pushTabUrl(status, search) {
     var slug       = $tab.data('url-tab')          || 'all';
     var basePath   = $container.data('trans-path') || window.location.pathname;
     var params     = new URLSearchParams();
-    if (slug !== 'all') { params.set('tab', slug); }
-    if (search)         { params.set('search', search); }
+    params.set('tab', slug);
+    if (search) { params.set('search', search); }
     var qs = params.toString();
     history.replaceState(null, '', basePath + (qs ? '?' + qs : ''));
 }
@@ -361,7 +368,6 @@ $(document).on('click', 'img[data-images]', function(e) {
 });
 
 function exportURLDynamic(Url) {
-    console.log(Url)
     if (Url.length > 7000) {
         Swal.fire({
             icon: "error",
@@ -412,13 +418,8 @@ function validateEmail(sEmail) {
 
 /*--------------- Date validation------------*/
 function testDate(dt) {
-    // alert(document.getElementById(dt).value);
-    // alert(document.getElementById(dt).value);
     var result = isDate(document.getElementById(dt).value);
     return result;
-    // console.log(document.getElementById('dateTest').value);
-    // console.log(result);
-    // $('#result').text(result );
 }
 
 //function isDate(txtDate) {
@@ -1476,6 +1477,29 @@ function showToastNotification(message, type) {
     }, 2500);
 }
 
+// Persistent variant — same design as showToastNotification but no auto-close.
+// Pass filled=true for a solid coloured background (e.g. below-purchase warning).
+// Close button is the only way to dismiss. Message supports HTML.
+function showPersistentToast(message, type, filled) {
+    var _id    = 'r2k-toast-' + Date.now();
+    var _color = type === 'success' ? '#198754' : (type === 'error' ? '#dc3545' : '#0d6efd');
+    var _icon  = type === 'success' ? 'bx-check-circle' : (type === 'error' ? 'bx-x-circle' : 'bx-info-circle');
+    var _cls   = 'r2k-toast-notify' + (filled ? ' r2k-toast-filled' : '');
+    var _style = filled ? 'background:' + _color + ';' : 'border-left-color:' + _color + ';';
+    var _iconStyle = filled ? '' : 'color:' + _color + ';';
+    var _html  =
+        '<div id="' + _id + '" class="' + _cls + '" style="' + _style + '">' +
+            '<i class="bx ' + _icon + ' r2k-toast-icon"' + (_iconStyle ? ' style="' + _iconStyle + '"' : '') + '></i>' +
+            '<span class="r2k-toast-msg">' + message + '</span>' +
+            '<button class="r2k-toast-close" onclick="$(this).closest(\'.r2k-toast-notify\').remove()">&times;</button>' +
+        '</div>';
+    if (!$('#r2k-toast-wrap').length) {
+        $('body').append('<div id="r2k-toast-wrap"></div>');
+    }
+    $('#r2k-toast-wrap').append(_html);
+    setTimeout(function() { $('#' + _id).addClass('r2k-toast-show'); }, 10);
+}
+
 // ── Copy Mobile Number ────────────────────────────────────────────────────
 // Usage: add class="copy-mobile" and data-mobile="number" to any element.
 // Tooltip text "Click to copy mobile number" is set via data-bs-title.
@@ -1815,3 +1839,33 @@ $(function () {
         $outer.slideUp(240, function () { $openBtn.show(); });
     });
 });
+
+function loadCachedFilterData(cacheKey, fallbackUrl, useOrgKey) {
+
+    function loadFromApi() {
+        return $.getJSON(fallbackUrl).then(function (response) {
+            if (response && !response.Error) {
+                return response.Data || [];
+            }
+
+            return [];
+        });
+    }
+
+    if (typeof UpstashService !== 'undefined' && UpstashService.isEnabled()) {
+        return UpstashService
+            .get(useOrgKey ? UpstashService.orgKey(cacheKey) : UpstashService.globalKey(cacheKey))
+            .then(function (data) {
+                if (Array.isArray(data) && data.length) {
+                    return data;
+                }
+
+                return loadFromApi();
+            })
+            .catch(function () {
+                return loadFromApi();
+            });
+    }
+
+    return loadFromApi();
+}

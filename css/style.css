@@ -1121,6 +1121,15 @@ div.selectdisp>ul {
     background: #fff;
     overflow: hidden;
 }
+.trans-col-filterbox {
+    display: flex;
+    flex-direction: column;
+    bottom: 10px;
+}
+.trans-col-filterbox .catg-list {
+    flex: 1;
+    min-height: 0;
+}
 .catg-filter-header {
     display: flex;
     align-items: center;

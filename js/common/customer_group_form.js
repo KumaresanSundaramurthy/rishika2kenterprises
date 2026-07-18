@@ -44,8 +44,10 @@
         $('#CGroupModalForm').data('context', opts.hideMembers ? 'customer_form' : 'groups_tab');
         if (opts.hideMembers) {
             $('#cgGroupMembersSection').hide();
+            $('#CustomerGroupFormModal .modal-dialog').addClass('modal-dialog-nested');
         } else {
             $('#cgGroupMembersSection').show();
+            $('#CustomerGroupFormModal .modal-dialog').removeClass('modal-dialog-nested');
         }
 
         if (type === 'add') {
@@ -399,7 +401,8 @@
 
     function _fetchCustomersAjax(q, cb) {
         $.ajax({
-            url: '/customers/searchCustomers', dataType: 'json', data: { term: q },
+            url: '/customers/searchCustomers', dataType: 'json',
+            data: { term: q, groupUID: _editGroupUID },
             success: function (res) {
                 cb((res.Lists || []).map(function (c) {
                     return { CustomerUID: parseInt(c.id), Name: c.text || '', MobileNumber: c.mobile || '', Area: c.area || '' };
@@ -418,7 +421,10 @@
             var added    = _members.map(function (m) { return m.uid; });
             var filtered = list.filter(function (c) {
                 if (added.indexOf(c.CustomerUID) >= 0) return false;
-                if (_custAjaxMode) return true; // AJAX already filtered by term
+                // Exclude customers already in a different group (Upstash cache path)
+                var cGroupUID = parseInt(c.GroupUID || 0);
+                if (cGroupUID > 0 && cGroupUID !== _editGroupUID) return false;
+                if (_custAjaxMode) return true; // AJAX already filtered server-side
                 return (c.Name || '').toLowerCase().indexOf(q) >= 0
                     || (c.MobileNumber || '').indexOf(q) >= 0;
             }).slice(0, 20);

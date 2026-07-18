@@ -130,7 +130,7 @@ $this->load->view('common/transactions/header'); ?>
                                         <th>Status</th>
                                         <th>Mode</th>
                                         <th>Last Updated</th>
-                                        <th style="width:50px"></th>
+                                        <th class="text-center" style="width:50px">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody class="r2k-tbody table-border-bottom-0">
@@ -139,17 +139,11 @@ $this->load->view('common/transactions/header'); ?>
                             </table>
                         </div>
 
-                        <hr class="my-0">
-                        <div class="row mx-3 my-2 justify-content-between align-items-center expPagination" id="expPagination">
+                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center expPagination apex-pag-sticky" id="expPagination">
                             <?php echo $ModPagination ?: ''; ?>
                         </div>
                     </div>
 
-                    <div class="card mb-0 cust-sticky-pag apex-sticky-pag" id="expStickyPagination" data-static-pag="#expPagination" style="display:none;">
-                        <div class="card-body p-0">
-                            <div class="row mx-3 my-2 justify-content-between align-items-center apex-sticky-pag-inner"></div>
-                        </div>
-                    </div>
 
                 </div>
             </div>
@@ -426,7 +420,7 @@ $this->load->view('common/transactions/payment_modal');
 
 <?php $this->load->view('common/transactions/footer'); ?>
 
-<?php $this->load->view('common/transactions/col_filter_box', ['ColFilterConfig' => [
+<?php $this->load->view('common/filter_panels/col_filter_box', ['ColFilterConfig' => [
     'id'         => 'expCatFilterBox',
     'triggerId'  => 'expCatFilterBtn',
     'title'      => 'Category',
@@ -439,7 +433,7 @@ $this->load->view('common/transactions/payment_modal');
 ]]); ?>
 
 <!-- ── Status Filter Box ─────────────────────────────────────────────────── -->
-<?php $this->load->view('common/transactions/col_filter_box', [
+<?php $this->load->view('common/filter_panels/col_filter_box', [
     'ColFilterConfig' => [
         'id'         => 'expStatusFilterBox',
         'triggerId'  => 'expStatusFilterBtn',
@@ -457,7 +451,7 @@ $this->load->view('common/transactions/payment_modal');
 ]); ?>
 
 <!-- ── Mode Filter Box ───────────────────────────────────────────────────── -->
-<?php $this->load->view('common/transactions/col_filter_box', [
+<?php $this->load->view('common/filter_panels/col_filter_box', [
     'ColFilterConfig' => [
         'id'         => 'expModeFilterBox',
         'triggerId'  => 'expModeFilterBtn',
@@ -473,7 +467,7 @@ $this->load->view('common/transactions/payment_modal');
 
 <!-- Filter panels (body-level to avoid overflow clipping) -->
 <?php if ($showUserBtn): ?>
-<?php $this->load->view('common/partials/col_user_filter_box', [
+<?php $this->load->view('common/filter_panels/col_user_filter_box', [
     'ColUserFilterConfig' => [
         'id'         => 'expUserFilterBox',
         'triggerId'  => 'expUserFilterBtn',
@@ -484,7 +478,6 @@ $this->load->view('common/transactions/payment_modal');
 ]); ?>
 <?php endif; ?>
 
-<script src="/js/core/sticky_paginate.js"></script>
 <script src="/js/transactions/col_filter.js"></script>
 <script src="/js/transactions/expenses.js"></script>
 
@@ -715,7 +708,7 @@ $(function () {
         $('.col-sortable').each(function () {
             $(this).attr('data-bs-title', 'Click for ascending order');
             var tt = bootstrap.Tooltip.getInstance(this);
-            if (tt) tt.setContent({ '.tooltip-inner': 'Click for ascending order' });
+            if (tt) { tt.dispose(); new bootstrap.Tooltip(this); }
         });
         $('.sort-icon').removeClass('bx-sort-up bx-sort-down').addClass('bx-sort-alt-2');
         if (Filter.SortBy) {
@@ -724,7 +717,7 @@ $(function () {
             $('.sort-icon[data-col="' + col + '"]').removeClass('bx-sort-alt-2').addClass(icon);
             $th.attr('data-bs-title', tipText);
             var tt = bootstrap.Tooltip.getInstance($th[0]);
-            if (tt) tt.setContent({ '.tooltip-inner': tipText });
+            if (tt) { tt.dispose(); new bootstrap.Tooltip($th[0]); }
         }
         PageNo = 1;
         getExpensesDetails();

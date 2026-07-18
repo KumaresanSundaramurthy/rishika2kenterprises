@@ -435,25 +435,6 @@ CREATE TABLE "ProductBatchTbl" (
   KEY "idx_batch_date" ("PurchaseDate")
 );
 
--- Products.ProductRateTbl definition
-
-CREATE TABLE "ProductRateTbl" (
-  "ProductRateUID" int unsigned NOT NULL AUTO_INCREMENT,
-  "OrgUID" int unsigned NOT NULL,
-  "ProductUID" int unsigned NOT NULL,
-  "CustomerTypeUID" tinyint unsigned NOT NULL,
-  "SellingPrice" decimal(10,3) NOT NULL DEFAULT '0.000',
-  "IsActive" bit(1) NOT NULL DEFAULT b'1',
-  "IsDeleted" bit(1) NOT NULL DEFAULT b'0',
-  "CreatedBy" int unsigned NOT NULL,
-  "UpdatedBy" int unsigned NOT NULL,
-  "CreatedOn" datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "UpdatedOn" datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY ("ProductRateUID"),
-  KEY "idx_prate_product" ("ProductUID"),
-  KEY "idx_prate_ctype" ("CustomerTypeUID")
-);
-
 -- Products.ProductSerialTbl definition
 
 CREATE TABLE "ProductSerialTbl" (

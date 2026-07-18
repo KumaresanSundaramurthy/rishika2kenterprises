@@ -2,11 +2,12 @@
 // Shared utilities (loadTransactionList, debounce, initTooltips) are in common.js
 // Date helpers (getDateRange, formatDate) are in /js/common/datefilter.js
 
-function getPurchaseOrdersDetails(pageNo, rowLimit, filter) {
+function getPurchaseOrdersDetails(pageNo, rowLimit, filter, afterLoad) {
     loadTransactionList({
         url:            '/purchaseorders/getPurchaseOrdersPageDetails/',
         tabCountClass:  '.po-tab-count',
         statusTabClass: '.po-status-tab',
         errorMessage:   'Failed to load purchase orders.',
+        onSuccess:      function(resp) { if (typeof afterLoad === 'function') afterLoad(resp); },
     }, pageNo, rowLimit, filter);
 }

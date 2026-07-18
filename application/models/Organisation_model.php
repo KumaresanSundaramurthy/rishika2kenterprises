@@ -44,9 +44,11 @@ class Organisation_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->ReadDb->select('Org.OrgUID as OrgUID, Org.Name as Name, Org.ShortDescription as ShortDescription, Org.BrandName as BrandName, Org.ShortCode as ShortCode, Org.Logo as Logo, Org.CountryCode as CountryCode, Org.CountryISO2 as CountryISO2, Org.MobileNumber as MobileNumber, Org.EmailAddress as EmailAddress, Org.GSTIN as GSTIN, Org.GSTINValidation as GSTINValidation, Org.OrgBussTypeUID as OrgBussTypeUID, Org.OrgIndTypeUID as OrgIndTypeUID, Org.OrgBusRegTypeUID as OrgBusRegTypeUID, Org.AlternateNumber as AlternateNumber, Org.Website as Website, Org.PANNumber as PANNumber, Org.TimezoneUID as TimezoneUID, Org.StateCode as StateCode, Org.StateName as StateName, Tz.Timezone as TimezoneText, Tz.GmtOffset as TimezoneGmtOffset, BusinessType.Name as OrgBusinessTypeName, Billing.OrgAddressUID as BAddressUID, Billing.Line1 as BLine1, Billing.Line2 as BLine2, Billing.Pincode as BPincode, Billing.City as BCity, Billing.CityText as BCityText, Billing.State as BState, Billing.StateText as BStateText');
+            $this->ReadDb->select('Org.OrgUID as OrgUID, Org.Name as Name, Org.ShortDescription as ShortDescription, Org.BrandName as BrandName, Org.ShortCode as ShortCode, Org.Logo as Logo, Org.CountryCode as CountryCode, Org.CountryISO2 as CountryISO2, Org.MobileNumber as MobileNumber, Org.EmailAddress as EmailAddress, Org.GSTIN as GSTIN, Org.GSTINValidation as GSTINValidation, Org.OrgBussTypeUID as OrgBussTypeUID, Org.OrgIndTypeUID as OrgIndTypeUID, Org.OrgBusRegTypeUID as OrgBusRegTypeUID, Org.AlternateNumber as AlternateNumber, Org.Website as Website, Org.PANNumber as PANNumber, Org.TimezoneUID as TimezoneUID, Org.StateCode as StateCode, Org.StateName as StateName, Tz.Timezone as TimezoneText, Tz.GmtOffset as TimezoneGmtOffset, BusinessType.Name as OrgBusinessTypeName, IndType.Name as OrgIndTypeName, BusRegType.Name as OrgBusRegTypeName, Billing.OrgAddressUID as BAddressUID, Billing.Line1 as BLine1, Billing.Line2 as BLine2, Billing.Pincode as BPincode, Billing.City as BCity, Billing.CityText as BCityText, Billing.State as BState, Billing.StateText as BStateText');
             $this->ReadDb->from('Organisation.OrganisationTbl as Org');
             $this->ReadDb->join('Organisation.OrgBusinessTypeTbl as BusinessType', 'BusinessType.OrgBussTypeUID = Org.OrgBussTypeUID', 'left');
+            $this->ReadDb->join('Organisation.OrgIndustryTypeTbl as IndType', 'IndType.OrgIndTypeUID = Org.OrgIndTypeUID', 'left');
+            $this->ReadDb->join('Organisation.OrgBusinessRegTypeTbl as BusRegType', 'BusRegType.OrgBusRegTypeUID = Org.OrgBusRegTypeUID', 'left');
             $this->ReadDb->join('Global.TimezoneTbl as Tz', 'Tz.TimezoneUID = Org.TimezoneUID', 'left');
             $this->ReadDb->join('Organisation.OrgAddressTbl as Billing', "Billing.OrgUID = Org.OrgUID AND Billing.AddressType = 'Billing' AND Billing.IsDeleted = 0 AND Billing.IsActive = 1", 'left');
             $this->ReadDb->where($FilterArray);
@@ -105,32 +107,23 @@ class Organisation_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $OBTKey    = $this->redisservice->orgKey('org-bus-type');
-            $OBTCached = $this->upstashservice->get($OBTKey);
-            if ($OBTCached !== null) {
-                $this->EndReturnData->Data = array_map(fn($r) => is_array($r) ? (object) $r : $r, (array)$OBTCached);
-            } else {
-                $this->ReadDb->select('BusinessType.OrgBussTypeUID as OrgBussTypeUID, BusinessType.Name as Name');
-                $this->ReadDb->from('Organisation.OrgBusinessTypeTbl as BusinessType');
-                $this->ReadDb->where('BusinessType.IsActive', 1);
-                $this->ReadDb->where('BusinessType.IsDeleted', 0);
-                $query = $this->ReadDb->get();
-                $error = $this->ReadDb->error();
-                if ($error['code']) {
-                    throw new Exception($error['message']);
-                }
-                $this->EndReturnData->Data = $query->result();
-                $this->upstashservice->set($OBTKey, $this->EndReturnData->Data, 0);
-            }
+            $this->ReadDb->select('OrgBussTypeUID, Name');
+            $this->ReadDb->from('Organisation.OrgBusinessTypeTbl');
+            $this->ReadDb->where('IsActive', 1);
+            $this->ReadDb->where('IsDeleted', 0);
+            $query = $this->ReadDb->get();
+            $error = $this->ReadDb->error();
+            if ($error['code']) throw new Exception($error['message']);
 
-            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Success';
+            $this->EndReturnData->Data    = $query->result();
 
             return $this->EndReturnData;
 
         } catch(Exception $e) {
 
-            $this->EndReturnData->Error = TRUE;
+            $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
 
@@ -143,32 +136,23 @@ class Organisation_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $OITKey    = $this->redisservice->orgKey('org-ind-type');
-            $OITCached = $this->upstashservice->get($OITKey);
-            if ($OITCached !== null) {
-                $this->EndReturnData->Data = array_map(fn($r) => is_array($r) ? (object) $r : $r, (array)$OITCached);
-            } else {
-                $this->ReadDb->select('IndustryType.OrgIndTypeUID as OrgIndTypeUID, IndustryType.Name as Name');
-                $this->ReadDb->from('Organisation.OrgIndustryTypeTbl as IndustryType');
-                $this->ReadDb->where('IndustryType.IsActive', 1);
-                $this->ReadDb->where('IndustryType.IsDeleted', 0);
-                $query = $this->ReadDb->get();
-                $error = $this->ReadDb->error();
-                if ($error['code']) {
-                    throw new Exception($error['message']);
-                }
-                $this->EndReturnData->Data = $query->result();
-                $this->upstashservice->set($OITKey, $this->EndReturnData->Data, 0);
-            }
+            $this->ReadDb->select('OrgIndTypeUID, Name');
+            $this->ReadDb->from('Organisation.OrgIndustryTypeTbl');
+            $this->ReadDb->where('IsActive', 1);
+            $this->ReadDb->where('IsDeleted', 0);
+            $query = $this->ReadDb->get();
+            $error = $this->ReadDb->error();
+            if ($error['code']) throw new Exception($error['message']);
 
-            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Success';
+            $this->EndReturnData->Data    = $query->result();
 
             return $this->EndReturnData;
 
         } catch(Exception $e) {
 
-            $this->EndReturnData->Error = TRUE;
+            $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
 
@@ -180,33 +164,24 @@ class Organisation_model extends CI_Model {
 
         $this->EndReturnData = new stdClass();
         try {
-            
-            $OBRTKey    = $this->redisservice->orgKey('org-bus-reg-type');
-            $OBRTCached = $this->upstashservice->get($OBRTKey);
-            if ($OBRTCached !== null) {
-                $this->EndReturnData->Data = array_map(fn($r) => is_array($r) ? (object) $r : $r, (array)$OBRTCached);
-            } else {
-                $this->ReadDb->select('BusRegType.OrgBusRegTypeUID as OrgBusRegTypeUID, BusRegType.Name as Name');
-                $this->ReadDb->from('Organisation.OrgBusinessRegTypeTbl as BusRegType');
-                $this->ReadDb->where('BusRegType.IsActive', 1);
-                $this->ReadDb->where('BusRegType.IsDeleted', 0);
-                $query = $this->ReadDb->get();
-                $error = $this->ReadDb->error();
-                if ($error['code']) {
-                    throw new Exception($error['message']);
-                }
-                $this->EndReturnData->Data = $query->result();
-                $this->upstashservice->set($OBRTKey, $this->EndReturnData->Data, 0);
-            }
 
-            $this->EndReturnData->Error = FALSE;
+            $this->ReadDb->select('OrgBusRegTypeUID, Name');
+            $this->ReadDb->from('Organisation.OrgBusinessRegTypeTbl');
+            $this->ReadDb->where('IsActive', 1);
+            $this->ReadDb->where('IsDeleted', 0);
+            $query = $this->ReadDb->get();
+            $error = $this->ReadDb->error();
+            if ($error['code']) throw new Exception($error['message']);
+
+            $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Success';
+            $this->EndReturnData->Data    = $query->result();
 
             return $this->EndReturnData;
 
         } catch(Exception $e) {
 
-            $this->EndReturnData->Error = TRUE;
+            $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
 

@@ -407,3 +407,52 @@
 #dcForm.so-linked-dc .prod-header-static,
 #dcForm.so-linked-dc .deleteBillItem,
 #dcForm.so-linked-dc #btnClearCart { display: none !important; }
+
+/* ── Price List transaction integration ─────────────────────────────────────── */
+/* Chip shown in the top-right indicator row when a price list is active */
+.pl-active-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: #e8f0fe;
+    border: 1px solid #4285f4;
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: .75rem;
+    font-weight: 500;
+    color: #1a73e8;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+}
+.pl-active-chip:hover { background: #d2e3fc; }
+.pl-active-chip .pl-chip-x {
+    font-size: .88rem;
+    opacity: .7;
+    margin-left: 2px;
+}
+.pl-active-chip .pl-chip-x:hover { opacity: 1; }
+
+/* Blue tint on the unit-price input cell when price is sourced from price list */
+.pl-price-tinted .form-control {
+    border-color: #4285f4 !important;
+    background: #eef2ff !important;
+    color: #1a3a8f !important;
+}
+.pl-row-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    margin-top: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #4285f4;
+    letter-spacing: .01em;
+}
+.pl-row-indicator i { font-size: 11px; line-height: 1; }
+@media (prefers-color-scheme: dark) {
+    .pl-active-chip         { background: #1a3a5c; border-color: #4285f4; color: #7ab4ff; }
+    .pl-active-chip:hover   { background: #1e4a7a; }
+    .pl-price-tinted .form-control { background: #0d1a2e !important; border-color: #4285f4 !important; color: #7ab4ff !important; }
+    .pl-row-indicator { color: #7ab4ff; }
+}

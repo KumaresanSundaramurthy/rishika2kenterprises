@@ -75,11 +75,11 @@ foreach ($DataLists as $row):
         <small class="text-muted">Prod: </small><?php echo (int)($row->ProductInfoFontSize ?? 12); ?>px
     </td>
     <td class="align-middle">
-        <div style="font-size:.78rem;"><?php echo $updatedOn ? changeTimeZonefromDateTime($updatedOn, $JwtData->User->Timezone, 2) : '—'; ?></div>
+        <div class="r2k-col-date"><?php echo $updatedOn ? changeTimeZonefromDateTime($updatedOn, $JwtData->User->Timezone, 2) : '—'; ?></div>
         <?php if ($agoText): ?>
-        <div style="font-size:.68rem;color:#0d6efd;font-weight:500;"><?php echo $agoText; ?></div>
+        <div class="r2k-col-date-ago"><?php echo $agoText; ?></div>
         <?php endif; ?>
-        <div class="text-muted" style="font-size:.7rem;">by <?php echo $updatedByName; ?></div>
+        <div class="text-muted r2k-col-date-by">by <?php echo $updatedByName; ?></div>
     </td>
     <td class="text-center align-middle">
         <div class="d-flex align-items-center justify-content-center gap-1">

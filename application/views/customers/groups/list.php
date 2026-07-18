@@ -36,7 +36,7 @@ if (!empty($DataLists)):
         </td>
         <td>
             <div class="fw-semibold">
-                <a href="/customers/groupDetail/<?php echo $uid; ?>" class="text-body" style="text-decoration:none;"><?php echo $name; ?></a>
+                <button type="button" class="btn btn-link p-0 text-body fw-semibold grp-view-btn" data-uid="<?php echo $uid; ?>" style="text-decoration:none;font-size:inherit;"><?php echo $name; ?></button>
             </div>
             <?php if ($list->PrimaryName): ?>
             <div class="text-muted" style="font-size:.74rem;">
@@ -91,9 +91,20 @@ if (!empty($DataLists)):
         </td>
         <td>
             <div class="d-flex align-items-center gap-1">
-                <a href="/customers/groupDetail/<?php echo $uid; ?>" class="btn btn-icon btn-sm text-info" title="View Detail"><i class="bx bx-show fs-5"></i></a>
+                <button type="button" class="btn btn-icon btn-sm text-info grp-view-btn" data-uid="<?php echo $uid; ?>" title="View Detail"><i class="bx bx-show fs-5"></i></button>
                 <button type="button" class="btn btn-icon btn-sm text-warning grp-edit-btn" data-uid="<?php echo $uid; ?>" title="Edit"><i class="bx bx-edit fs-5"></i></button>
-                <button type="button" class="btn btn-icon btn-sm text-danger grp-delete-btn" data-uid="<?php echo $uid; ?>" title="Delete"><i class="bx bx-trash fs-5"></i></button>
+                <div class="dropdown">
+                    <button type="button" class="btn btn-icon btn-sm text-secondary" data-bs-toggle="dropdown" aria-expanded="false" title="More options">
+                        <i class="bx bx-dots-vertical-rounded fs-5"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="min-width:140px;font-size:.82rem;">
+                        <li>
+                            <button class="dropdown-item text-danger grp-delete-btn" data-uid="<?php echo $uid; ?>">
+                                <i class="bx bx-trash me-2"></i>Delete
+                            </button>
+                        </li>
+                    </ul>
+                </div>
             </div>
         </td>
     </tr>

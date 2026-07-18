@@ -1,38 +1,37 @@
 /**
- * Sticky Pagination — auto-initialises for any container marked with
- * class `apex-sticky-pag` and attribute `data-static-pag` pointing to
- * the static pagination element.
+ * sticky_paginate.js
+ * Auto-initialises for every .apex-pag-sticky element on the page.
+ *
+ * Places a zero-height sentinel immediately after each element. An
+ * IntersectionObserver watches the sentinel — when it scrolls out of the
+ * viewport the pagination is in "stuck" mode, so .is-stuck is added (CSS
+ * then shows the background/border). When the sentinel re-enters the viewport
+ * the element is back in normal flow and .is-stuck is removed.
  *
  * HTML usage:
- *   <div class="apex-sticky-pag" data-static-pag="#myPagination" style="display:none;">
- *       <div class="apex-sticky-pag-inner"></div>
- *   </div>
+ *   <div class="... apex-pag-sticky" id="myPagination"> ... </div>
  *
- * To disable on a page: simply remove this <script> include.
+ * No data attributes or manual hooks needed — works automatically across
+ * tab switches, AJAX reloads, searches, filters, resizes, and empty states.
  */
-$(function () {
-    $('.apex-sticky-pag').each(function () {
-        var $sticky = $(this);
-        var $static = $($sticky.data('static-pag'));
-        var $inner  = $sticky.find('.apex-sticky-pag-inner');
+(function () {
+    'use strict';
 
-        function _sync() {
-            $inner.html($static.html());
-        }
+    /**
+     * Wires up the stuck-detection observer for one pagination element.
+     * @param {Element} el - The .apex-pag-sticky element to observe.
+     * @returns {void}
+     */
+    function initStickyPag(el) {
+        var sentinel = document.createElement('div');
+        el.parentNode.insertBefore(sentinel, el.nextSibling);
 
-        function _toggle() {
-            if (!$static.length) return;
-            var r       = $static[0].getBoundingClientRect();
-            var visible = r.top < $(window).height() && r.bottom > 0;
-            if (visible) {
-                $sticky.stop(true, true).fadeOut(150);
-            } else {
-                _sync();
-                $sticky.stop(true, true).fadeIn(150);
-            }
-        }
+        new IntersectionObserver(function (entries) {
+            el.classList.toggle('is-stuck', !entries[0].isIntersecting);
+        }).observe(sentinel);
+    }
 
-        $(window).on('scroll resize', _toggle);
-        _toggle();
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.apex-pag-sticky').forEach(initStickyPag);
     });
-});
+})();

@@ -132,12 +132,12 @@ $this->load->view('common/transactions/header'); ?>
                         </div>
 
                         <!-- Pagination -->
-                        <hr class="my-0">
-                        <div class="row mx-3 my-2 justify-content-between align-items-center srPagination" id="srPagination">
+                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center srPagination apex-pag-sticky" id="srPagination">
                             <?php echo $ModPagination ?: ''; ?>
                         </div>
 
                     </div>
+
 
                     <?php $this->load->view('common/transactions/print_modals'); ?>
 
@@ -248,7 +248,7 @@ $this->load->view('common/transactions/header'); ?>
     </div>
 </div>
 
-<?php $this->load->view('common/transactions/col_filter_box', [
+<?php $this->load->view('common/filter_panels/col_filter_box', [
     'ColFilterConfig' => [
         'id'         => 'srPayStatusFilterBox',
         'triggerId'  => 'srPayStatusFilter',
@@ -264,7 +264,7 @@ $this->load->view('common/transactions/header'); ?>
     ],
 ]); ?>
 
-<?php $this->load->view('common/transactions/col_filter_box', [
+<?php $this->load->view('common/filter_panels/col_filter_box', [
     'ColFilterConfig' => [
         'id'         => 'srPayModeFilterBox',
         'triggerId'  => 'srPayModeFilter',
@@ -279,7 +279,7 @@ $this->load->view('common/transactions/header'); ?>
 ]); ?>
 
 <?php if (count($OrgUsers ?? []) > 1): ?>
-<?php $this->load->view('common/partials/col_user_filter_box', [
+<?php $this->load->view('common/filter_panels/col_user_filter_box', [
     'ColUserFilterConfig' => [
         'id'         => 'srCreatedByFilterBox',
         'triggerId'  => 'srCreatedByFilter',
@@ -289,7 +289,7 @@ $this->load->view('common/transactions/header'); ?>
 ]); ?>
 <?php endif; ?>
 
-<?php $this->load->view('common/transactions/col_party_filter_box', [
+<?php $this->load->view('common/filter_panels/col_party_filter_box', [
     'ColPartyFilterConfig' => [
         'id'    => 'srPartyFilterBox',
         'title' => 'Filter by Customer',
@@ -298,7 +298,6 @@ $this->load->view('common/transactions/header'); ?>
 ]); ?>
 
 <?php $this->load->view('common/transactions/footer'); ?>
-
 
 <script src="/js/common/communication.js"></script>
 <script src="/js/common/party_filter.js"></script>
@@ -316,6 +315,7 @@ const ModuleTable  = '#srTable';
 
 var _srInitTab    = <?php echo json_encode($InitTab    ?? 'All'); ?>;
 var _srInitSearch = <?php echo json_encode($InitSearch ?? ''); ?>;
+var _initPage     = <?php echo (int)($InitPage ?? 1); ?>;
 
 function showProcessing(label) { showUIBlock(label); }
 function hideProcessing()       { hideUIBlock(); }
@@ -352,6 +352,8 @@ const ModuleRow    = '.srCheck';
 $(function () {
     'use strict';
 
+    _checkPendingToast('_srPendingToast');
+    PageNo = _initPage;
     Filter['Status'] = _srInitTab;
     if (_srInitSearch) { Filter.Name = _srInitSearch; }
     initExport({ moduleUID: 106, getFilters: function () { return Filter; } });
@@ -392,15 +394,31 @@ $(function () {
     });
 
     var _origGetSalesReturnsDetails = getSalesReturnsDetails;
-    getSalesReturnsDetails = function (pageNo, rowLimit, filter) {
+    getSalesReturnsDetails = function (pageNo, rowLimit, filter, afterLoad) {
         var f = $.extend({}, filter || Filter,
             payStatusFilter   ? payStatusFilter.getState()   : {},
             payModeFilter     ? payModeFilter.getState()     : {},
             srCreatedByFilter ? srCreatedByFilter.getState() : {},
             srPartyFilter     ? srPartyFilter.getState()     : {}
         );
-        _origGetSalesReturnsDetails(pageNo, rowLimit, f);
+        _origGetSalesReturnsDetails(pageNo, rowLimit, f, afterLoad);
     };
+
+    // ── Create / Edit — inject returnTab + returnPage ──────────────────
+    $(document).on('click', 'a[href="/salesreturns/create"]', function (e) {
+        e.preventDefault();
+        var params = new URLSearchParams();
+        params.set('returnTab', Filter.Status || 'All');
+        if (PageNo > 1) params.set('returnPage', PageNo);
+        window.location.href = '/salesreturns/create?' + params.toString();
+    });
+    $(document).on('click', 'a[href^="/salesreturns/edit/"]', function (e) {
+        e.preventDefault();
+        var params = new URLSearchParams();
+        params.set('returnTab', Filter.Status || 'All');
+        if (PageNo > 1) params.set('returnPage', PageNo);
+        window.location.href = $(this).attr('href') + '?' + params.toString();
+    });
 
     var _srTabFilterMap = <?= json_encode($tabFilterMap); ?>;
     var _allSrFilterEls = <?= json_encode(array_values(array_unique(array_merge(...array_values($tabFilterMap))))); ?>;
@@ -479,7 +497,7 @@ $(function () {
         $('.col-sortable').each(function () {
             $(this).attr('data-bs-title', 'Click for ascending order');
             var tt = bootstrap.Tooltip.getInstance(this);
-            if (tt) tt.setContent({ '.tooltip-inner': 'Click for ascending order' });
+            if (tt) { tt.dispose(); new bootstrap.Tooltip(this); }
         });
         $('.sort-icon').removeClass('bx-sort-up bx-sort-down').addClass('bx-sort-alt-2');
         if (Filter.SortBy) {
@@ -488,7 +506,7 @@ $(function () {
             $('.sort-icon[data-col="' + col + '"]').removeClass('bx-sort-alt-2').addClass(icon);
             $th.attr('data-bs-title', tipText);
             var tt = bootstrap.Tooltip.getInstance($th[0]);
-            if (tt) tt.setContent({ '.tooltip-inner': tipText });
+            if (tt) { tt.dispose(); new bootstrap.Tooltip($th[0]); }
         }
         PageNo = 1;
         getSalesReturnsDetails();
@@ -562,8 +580,11 @@ $(function () {
                 data: { TransUID: uid, Status: status, [CsrfName]: CsrfToken },
                 success: function (resp) {
                     hideProcessing();
-                    if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); }
-                    else { getSalesReturnsDetails(); }
+                    if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }
+                    var _msg = resp.Message || 'Status updated.';
+                    getSalesReturnsDetails(undefined, undefined, undefined, function () {
+                        showToastNotification(_msg, 'success');
+                    });
                 },
                 error: function () { hideProcessing(); Swal.fire({ icon: 'error', text: 'Request failed. Try again.' }); }
             });
@@ -678,6 +699,20 @@ $(function () {
         });
     }
 
+    function _actionPostData(extra) {
+        Filter.Status = $('.sr-status-tab.active').data('status') || 'All';
+        return $.extend({ RowLimit: RowLimit, PageNo: PageNo, Filter: Filter, [CsrfName]: CsrfToken }, extra);
+    }
+
+    function _renderListResponse(resp) {
+        $(ModuleTable + ' tbody').html(resp.RecordHtmlData);
+        $(ModulePag).html(resp.Pagination);
+        var count = resp.TotalCount || 0;
+        var $badge = $('.sr-status-tab.active .trans-tab-count');
+        if (count > 0) { $badge.text(count).removeClass('d-none'); } else { $badge.text('').addClass('d-none'); }
+        initTooltips();
+    }
+
     $(document).on('click', '.deleteSalesReturn', function () {
         var uid = $(this).data('uid'), num = $(this).data('num') || '';
         Swal.fire({ title: 'Delete Sales Return?', html: num ? 'Delete <strong>' + num + '</strong>? This cannot be undone.' : 'This cannot be undone.',
@@ -685,10 +720,17 @@ $(function () {
             .then(function (r) {
                 if (!r.isConfirmed) return;
                 showProcessing('Deleting Sales Return…');
-                $.ajax({ url: '/salesreturns/deleteSalesReturn', method: 'POST', data: { TransUID: uid, [CsrfName]: CsrfToken },
+                $.ajax({ url: '/salesreturns/deleteSalesReturn', method: 'POST', data: _actionPostData({ TransUID: uid }),
                     success: function (resp) {
                         hideProcessing();
-                        if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); } else { getSalesReturnsDetails(); Swal.fire({ icon: 'success', text: resp.Message, timer: 1500, showConfirmButton: false }); }
+                        if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }
+                        showToastNotification(resp.Message || 'Deleted.', 'success');
+                        if (PageNo > 1 && (resp.TotalCount || 0) <= (PageNo - 1) * RowLimit) {
+                            PageNo--;
+                            getSalesReturnsDetails();
+                        } else {
+                            _renderListResponse(resp);
+                        }
                     },
                     error: function () { hideProcessing(); Swal.fire({ icon: 'error', text: 'Request failed. Try again.' }); }
                 });

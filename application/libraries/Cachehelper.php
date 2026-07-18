@@ -89,6 +89,7 @@ class Cachehelper {
                 'PANNumber'       => $cust->PANNumber       ?? '',
                 'SalutationUID'   => (int)($cust->SalutationUID    ?? 0) ?: null,
                 'CustomerTypeUID' => (int)($cust->CustomerTypeUID  ?? 0),
+                'GroupUID'        => (int)($cust->GroupUID         ?? 0) ?: null,
                 'DiscountPercent' => (float)($cust->DiscountPercent ?? 0),
                 'CreditPeriod'    => (int)($cust->CreditPeriod     ?? 0),
                 'CreditLimit'     => (float)($cust->CreditLimit    ?? 0),
@@ -283,6 +284,12 @@ class Cachehelper {
             $prod = $CI->products_model->getProductForCache($orgUID, $uid);
             if (!$prod) return;
 
+            // NotForSale items must never live in the cache — remove if present
+            if ((int)($prod->NotForSale ?? 0) === 1) {
+                $this->removeProduct($uid);
+                return;
+            }
+
             $cacheKey = $CI->redisservice->orgKey('products');
             $entry = [
                 'ProductUID'                 => $uid,
@@ -365,6 +372,12 @@ class Cachehelper {
             $prod = $CI->products_model->getProductForCache($orgUID, $uid);
             if (!$prod) return;
 
+            // NotForSale items must never live in the cache — remove if present
+            if ((int)($prod->NotForSale ?? 0) === 1) {
+                $this->removeProduct($uid);
+                return;
+            }
+
             $rows  = $CI->products_model->getProductBOM($uid);
             $items = array_map(function ($r) {
                 return [
@@ -413,6 +426,46 @@ class Cachehelper {
                 ['DEL',  Upstashservice::keyProduct($uid)],
             ]);
 
+        } catch (Exception $e) {}
+    }
+
+    // ── Customer Group ────────────────────────────────────────────────────────
+
+    /**
+     * Add or refresh a single customer group entry in the org dropdown hash.
+     * Call after: create, update, status toggle to active.
+     */
+    public function upsertCustomerGroup($groupUID) {
+        try {
+            $CI     =& get_instance();
+            $orgUID = (int) $CI->pageData['JwtData']->Org->OrgUID;
+            $uid    = (int) $groupUID;
+            if ($uid <= 0) return;
+
+            $CI->load->model('customers_model');
+            $group = $CI->customers_model->getGroupDropdownDataByUID($orgUID, $uid);
+            if (!$group) return;
+
+            $cacheKey = $CI->redisservice->orgKey('customer-groups');
+            $CI->upstashservice->hset($cacheKey, (string) $uid, json_encode([
+                'GroupUID'  => $uid,
+                'GroupName' => $group->GroupName ?? '',
+                'GroupCode' => $group->GroupCode ?? '',
+                'GroupType' => $group->GroupType ?? '',
+            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        } catch (Exception $e) {}
+    }
+
+    /**
+     * Remove a customer group from the org dropdown hash.
+     * Call after: delete, status toggle to inactive.
+     */
+    public function removeCustomerGroup($groupUID) {
+        try {
+            $CI       =& get_instance();
+            $uid      = (int) $groupUID;
+            $cacheKey = $CI->redisservice->orgKey('customer-groups');
+            $CI->upstashservice->hdel($cacheKey, (string) $uid);
         } catch (Exception $e) {}
     }
 

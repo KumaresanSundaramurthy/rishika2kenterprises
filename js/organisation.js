@@ -154,6 +154,73 @@ $(document).on('change', '#ShipAddrState', function () {
     _loadOrgCities($('#ShipAddrCity'), iso2, null);
 });
 
+// ── Business Type ──────────────────────────────────────────────────────────────
+function _renderBusTypes($sel, data, selected) {
+    $sel.empty().append('<option value="">-- Select Business Type --</option>');
+    $.each(data, function (i, d) { $sel.append($('<option>').val(d.OrgBussTypeUID).text(d.Name)); });
+    if (selected) $sel.val(selected);
+}
+function _fetchBusTypes($sel, selected) {
+    UpstashService.get(UpstashService.globalKey('org-bus-type')).then(function (cached) {
+        if (cached && Array.isArray(cached) && cached.length > 0) {
+            _renderBusTypes($sel, cached, selected);
+        } else {
+            $.ajax({ url: '/organisation/getBusinessTypes', method: 'GET',
+                success: function (resp) { if (!resp.Error && resp.Data) _renderBusTypes($sel, resp.Data, selected); }
+            });
+        }
+    });
+}
+
+// ── Industry Type ──────────────────────────────────────────────────────────────
+function _renderIndTypes($sel, data, selected) {
+    $sel.empty().append('<option value="">-- Select Industry Type --</option>');
+    $.each(data, function (i, d) { $sel.append($('<option>').val(d.OrgIndTypeUID).text(d.Name)); });
+    if (selected) $sel.val(selected);
+}
+function _fetchIndTypes($sel, selected) {
+    UpstashService.get(UpstashService.globalKey('org-ind-type')).then(function (cached) {
+        if (cached && Array.isArray(cached) && cached.length > 0) {
+            _renderIndTypes($sel, cached, selected);
+        } else {
+            $.ajax({ url: '/organisation/getIndustryTypes', method: 'GET',
+                success: function (resp) { if (!resp.Error && resp.Data) _renderIndTypes($sel, resp.Data, selected); }
+            });
+        }
+    });
+}
+
+// ── Business Registration Type ─────────────────────────────────────────────────
+function _renderBusRegTypes($sel, data, selected) {
+    $sel.empty().append('<option value="">-- Select Business Registration Type --</option>');
+    $.each(data, function (i, d) { $sel.append($('<option>').val(d.OrgBusRegTypeUID).text(d.Name)); });
+    if (selected) $sel.val(selected);
+}
+function _fetchBusRegTypes($sel, selected) {
+    UpstashService.get(UpstashService.globalKey('org-bus-reg-type')).then(function (cached) {
+        if (cached && Array.isArray(cached) && cached.length > 0) {
+            _renderBusRegTypes($sel, cached, selected);
+        } else {
+            $.ajax({ url: '/organisation/getBusRegTypes', method: 'GET',
+                success: function (resp) { if (!resp.Error && resp.Data) _renderBusRegTypes($sel, resp.Data, selected); }
+            });
+        }
+    });
+}
+
+// ── Populate all 3 plain selects on page load ──────────────────────────────────
+$(function () {
+    var $bt = $('#OrgBussTypeUID');
+    if ($bt.length) _fetchBusTypes($bt, parseInt($bt.data('selected')) || 0);
+
+    var $it = $('#OrgIndusTypeUID');
+    if ($it.length) _fetchIndTypes($it, parseInt($it.data('selected')) || 0);
+
+    var $rt = $('#OrgBusRegTypeUID');
+    if ($rt.length) _fetchBusRegTypes($rt, parseInt($rt.data('selected')) || 0);
+});
+
+
 // ── Form submit ────────────────────────────────────────────────────────────────
 function updateOrgForm(formdata) {
     $('.OrgSubBtn').attr('disabled', 'disabled');

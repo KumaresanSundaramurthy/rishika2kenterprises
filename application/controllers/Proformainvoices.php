@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Proformainvoices extends MY_Controller {
 
@@ -12,7 +12,7 @@ class Proformainvoices extends MY_Controller {
         $this->load->helper('transaction');
     }
 
-    // ── List page ────────────────────────────────────────────────
+    // â”€â”€ List page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function index(): void {
         if (!$this->_loadPageTitle($this->pageModuleUID)) {
             $this->load->view('common/module_error', $this->pageData);
@@ -32,7 +32,7 @@ class Proformainvoices extends MY_Controller {
         }
     }
 
-    // ── Paginated list (AJAX) ────────────────────────────────────
+    // â”€â”€ Paginated list (AJAX) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getPageDetails(int $pageNo = 0): void
     {
         $this->EndReturnData = new stdClass();
@@ -49,7 +49,7 @@ class Proformainvoices extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Create form ──────────────────────────────────────────────
+    // â”€â”€ Create form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function create() {
         try {
 
@@ -83,7 +83,7 @@ class Proformainvoices extends MY_Controller {
         }
     }
 
-    // ── Edit form ────────────────────────────────────────────────
+    // â”€â”€ Edit form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function edit($transUID = 0) {
         try {
             $transUID = (int) $transUID;
@@ -135,7 +135,7 @@ class Proformainvoices extends MY_Controller {
         }
     }
 
-    // ── Save new Pro Forma ───────────────────────────────────────
+    // â”€â”€ Save new Pro Forma â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function addProFormaInvoice() {
         $this->EndReturnData = new stdClass();
         try {
@@ -146,127 +146,57 @@ class Proformainvoices extends MY_Controller {
             $userUID  = $this->pageData['JwtData']->User->UserUID;
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
-            $this->load->model('formvalidation_model');
-            $headerError = $this->formvalidation_model->transactionValidateForm($PostData);
-            if (!empty($headerError)) throw new Exception($headerError);
+            $itemsJson     = $this->_validateTransForm($PostData);
+            $amounts       = $this->_extractTransAmounts($PostData, $itemsJson);
+            $isDraft       = $amounts['isDraft'];
+            $items         = $amounts['items'];
+            $financialYear = $amounts['financialYear'];
+            $transDate     = $amounts['transDate'];
 
-            $itemsJson  = getPostValue($PostData, 'Items');
-            $itemsError = $this->formvalidation_model->validateQuotationItems($itemsJson);
-            if (!empty($itemsError)) throw new Exception($itemsError);
+            $customerUID = (int) getPostValue($PostData, 'customerSearch');
 
-            $customerUID            = (int)   getPostValue($PostData, 'customerSearch');
-            $prefixUID              = (int)   getPostValue($PostData, 'transPrefixSelect');
-            $transNumber            = (int)   getPostValue($PostData, 'transNumber');
-            $transDate              =         getPostValue($PostData, 'transDate');
-            $validityDate           =         getPostValue($PostData, 'validityDate');
-            $items                  = json_decode($itemsJson, true);
-            $totalQty               = (float) array_sum(array_column($items, 'quantity'));
-            $netAmount              = (float) getPostValue($PostData, 'NetAmount',              'Array', 0);
-            $subTotal               = (float) getPostValue($PostData, 'SubTotal',               'Array', 0);
-            $discountAmount         = (float) getPostValue($PostData, 'DiscountAmount',         'Array', 0);
-            $taxAmount              = (float) getPostValue($PostData, 'TaxAmount',              'Array', 0);
-            $cgstAmount             = (float) getPostValue($PostData, 'CgstAmount',             'Array', 0);
-            $sgstAmount             = (float) getPostValue($PostData, 'SgstAmount',             'Array', 0);
-            $igstAmount             = (float) getPostValue($PostData, 'IgstAmount',             'Array', 0);
-            $additionalChargesTotal = (float) getPostValue($PostData, 'AdditionalChargesTotal', 'Array', 0);
-            $roundOff               = (float) getPostValue($PostData, 'RoundOff',               'Array', 0);
-            $globalDiscPercent      = (float) getPostValue($PostData, 'GlobalDiscPercent',      'Array', 0);
-            $extraDiscount          = (float) getPostValue($PostData, 'extraDiscount',           'Array', 0);
-            $prefix = null;
-            $isDraft  = getPostValue($PostData, 'action') === 'draft';
-            $status   = $isDraft ? 'Draft' : 'Sent';
-
-            $financialYear = (int) date('Y', strtotime($transDate));
             $this->load->model('transactions_model');
 
-            if ($isDraft) {
-                $uniqueNumber = NULL;
-                $transNumber  = NULL;
-                $prefixUID    = NULL;
-            } else {
-                if ($transNumber <= 0) throw new Exception('Transaction number must be greater than 0.');
-                $prefixData = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.PrefixUID' => $prefixUID, 'Prefix.OrgUID' => $orgUID]);
-                if (empty($prefixData->Data)) throw new Exception('Invalid prefix selected.');
-                $prefix = $prefixData->Data[0];
+            $resolved = $this->_resolveTransPrefix($isDraft, $amounts['prefixUID'], $amounts['transNumber'], $transDate, $orgUID);
+            $amounts['moduleUID']    = $this->pageModuleUID;
+            $amounts['prefixUID']    = $resolved['prefixUID'];
+            $amounts['transNumber']  = $resolved['transNumber'];
+            $amounts['uniqueNumber'] = $resolved['uniqueNumber'];
 
-                $dupCheck = $this->transactions_model->getTransactionByPrefixAndNumber($prefixUID, $transNumber, $orgUID, $this->pageModuleUID);
-                if ($dupCheck) {
-                    $nextSuggested = $this->transactions_model->getNextTransactionNumber($prefixUID, $orgUID, $this->pageModuleUID);
-                    throw new Exception("Transaction number {$transNumber} already exists. Next available: {$nextSuggested}.");
-                }
+            $headerData = $this->_buildTransHeader(
+                [
+                    'TransType'       => 'ProFormaInvoice',
+                    'PartyType'       => 'C',
+                    'PartyUID'        => $customerUID,
+                    'DocTypePostKey'  => 'invoiceType',
+                    'DocTypeDefault'  => 'Regular',
+                    'DispatchPostKey' => 'dispatchFrom',
+                    'InitialStatus'   => 'Sent',
+                ],
+                $amounts, $PostData, $orgUID, $userUID
+            );
 
-                list($uniqueNumber) = $this->buildUniqueNumber($prefix, $transNumber, $transDate);
-            }
-
-            $additionalChargesJson  = getPostValue($PostData, 'AdditionalCharges') ?: '[]';
-            $additionalChargesList  = json_decode($additionalChargesJson, true) ?: [];
-            $isInterState          = $igstAmount > 0 ? 1 : ($cgstAmount > 0 || $sgstAmount > 0 ? 0 : NULL);
-            $_cc                   = $this->transactions_model->getCustomerCountryCode($customerUID);
-            $isForeignCustomer     = $_cc !== NULL ? ($_cc === 'IN' ? 0 : 1) : NULL;
-
-            $headerData = [
-                'OrgUID'            => $orgUID,
-                'ModuleUID'         => $this->pageModuleUID,
-                'PrefixUID'         => $prefixUID,
-                'UniqueNumber'      => $uniqueNumber,
-                'TransType'         => 'ProFormaInvoice',
-                'TransNumber'       => $transNumber,
-                'PartyType'         => 'C',
-                'PartyUID'          => $customerUID,
-                'TransDate'         => $transDate,
-                'TransYear'         => $financialYear,
-                'DocType'     => getPostValue($PostData, 'invoiceType') ?: 'Regular',
-                'DispatchFrom'      => getPostValue($PostData, 'dispatchFrom') ?: NULL,
-                'TotalQuantity'     => $totalQty,
-                'TotalItems'        => count($items),
-                'GrossAmount'       => $subTotal + $discountAmount,
-                'SubTotal'          => $subTotal,
-                'TaxableAmount'     => $subTotal,
-                'DiscountAmount'    => $discountAmount,
-                'AdditionalCharges' => $additionalChargesTotal,
-                'TaxAmount'         => $taxAmount,
-                'CgstAmount'        => $cgstAmount,
-                'SgstAmount'        => $sgstAmount,
-                'IgstAmount'        => $igstAmount,
-                'RoundOff'          => $roundOff,
-                'GlobalDiscPercent' => $globalDiscPercent,
-                'ExtraDiscApplied'  => $extraDiscount > 0 ? 1 : 0,
-                'ExtraDiscAmount'   => $extraDiscount,
-                'ExtraDiscType'     => getPostValue($PostData, 'extDiscountType') ?: NULL,
-                'NetAmount'         => $netAmount,
-                'DocStatus'         => $status,
-                'TransToken'        => generate_uuid4(),
-                'IsActive'          => 1,
-                'IsDeleted'         => 0,
-                'CreatedBy'         => $userUID,
-                'UpdatedBy'         => $userUID,
-            ];
-
-            $insertResp = $this->_insertTransactionWithRetry($headerData, $prefixUID, $orgUID, $prefix, $transDate);
+            $insertResp = $this->_insertTransactionWithRetry($headerData, $resolved['prefixUID'], $orgUID, $resolved['prefix'], $transDate);
             if ($insertResp->Error) throw new Exception($insertResp->Message);
+
             $transUID     = $insertResp->ID;
             $transNumber  = $headerData['TransNumber'];
             $uniqueNumber = $headerData['UniqueNumber'];
-            if (!empty($additionalChargesList)) {
-                $this->transactions_model->saveTransactionCharges($transUID, (int)$orgUID, (int)$userUID, $additionalChargesList);
-            }
 
-            $this->dbwrite_model->insertData('Transaction', 'TransDetailTbl', [
-                'FinancialYear'     => $financialYear,
-                'TransUID'          => $transUID,
-                'ValidityDays'      => NULL,
-                'ValidityDate'      => $validityDate ?: NULL,
-                'Reference'         => getPostValue($PostData, 'referenceDetails') ?: NULL,
-                'Notes'             => getPostValue($PostData, 'transNotes') ?: NULL,
-                'TermsConditions'   => getPostValue($PostData, 'transTermsCond') ?: NULL,
-                'SignatureUID'      => (int)getPostValue($PostData, 'SignatureUID') ?: NULL,
-                'PlaceOfSupplyCode' => getPostValue($PostData, 'placeOfSupplyCode') ?: NULL,
-                'PlaceOfSupplyName' => getPostValue($PostData, 'placeOfSupplyName') ?: NULL,
-                'IsInterState'      => $isInterState,
-                'IsForeignCustomer' => $isForeignCustomer,
-            ]);
+            $this->_saveTransCharges($transUID, $orgUID, $userUID, $PostData);
 
-            $this->saveProFormaItems($transUID, $financialYear, $orgUID, $userUID, $items);
+            $detailData = $this->_buildTransDetail(
+                [
+                    'PartyType'          => 'C',
+                    'PartyUID'           => $customerUID,
+                    'ValidityDatePostKey' => 'validityDate',
+                ],
+                $amounts, $PostData, $transUID
+            );
+            $detailResp = $this->dbwrite_model->insertData('Transaction', 'TransDetailTbl', $detailData);
+            if ($detailResp->Error) throw new Exception($detailResp->Message);
+
+            $this->_insertTransItems($transUID, $financialYear, $orgUID, $userUID, $items);
 
             $this->dbwrite_model->commitTransaction();
             $this->cachehelper->touchCustomer($customerUID);
@@ -287,7 +217,7 @@ class Proformainvoices extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Update existing Pro Forma ────────────────────────────────
+    // â”€â”€ Update existing Pro Forma â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function updateProFormaInvoice() {
         $this->EndReturnData = new stdClass();
         try {
@@ -407,8 +337,12 @@ class Proformainvoices extends MY_Controller {
                 'Notes'             => getPostValue($PostData, 'transNotes') ?: NULL,
                 'TermsConditions'   => getPostValue($PostData, 'transTermsCond') ?: NULL,
                 'SignatureUID'      => (int)getPostValue($PostData, 'SignatureUID') ?: NULL,
+                'PlaceOfSupplyCode' => getPostValue($PostData, 'placeOfSupplyCode') ?: NULL,
+                'PlaceOfSupplyName' => getPostValue($PostData, 'placeOfSupplyName') ?: NULL,
                 'IsInterState'      => $isInterState,
                 'IsForeignCustomer' => $isForeignCustomer,
+                'PriceListUID'      => (int)getPostValue($PostData, 'PriceListUID') ?: NULL,
+                'PriceListData'     => getPostValue($PostData, 'PriceListData') ?: NULL,
             ];
 
             $numberFields = [];
@@ -464,6 +398,8 @@ class Proformainvoices extends MY_Controller {
                     'UnitPrice'       => $unitPrice,
                     'SellingPrice'    => (float)($item['sellingPrice']   ?? $unitPrice),
                     'PurchasePrice'   => (float)($item['purchasePrice']  ?? 0),
+                    'MRP'             => (float)($item['mrp']            ?? 0),
+                    'DistributionMode'=> !empty($item['isComposite']) ? ($item['distributionMode'] ?? null) : null,
                     'TaxableAmount'   => (float)($item['line_total']     ?? 0),
                     'CgstAmount'      => (float)($item['cgstAmount']     ?? 0),
                     'SgstAmount'      => (float)($item['sgstAmount']     ?? 0),
@@ -510,7 +446,7 @@ class Proformainvoices extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Delete Pro Forma ─────────────────────────────────────────
+    // â”€â”€ Delete Pro Forma â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function deleteProFormaInvoice() {
         $this->EndReturnData = new stdClass();
         try {
@@ -568,7 +504,7 @@ class Proformainvoices extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Duplicate Pro Forma ──────────────────────────────────────
+    // â”€â”€ Duplicate Pro Forma â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function duplicateProFormaInvoice() {
         $this->EndReturnData = new stdClass();
         try {
@@ -694,7 +630,7 @@ class Proformainvoices extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Status update ────────────────────────────────────────────
+    // â”€â”€ Status update â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function updateProFormaStatus() {
         $this->EndReturnData = new stdClass();
         try {
@@ -758,7 +694,7 @@ class Proformainvoices extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Convert to Invoice ───────────────────────────────────────
+    // â”€â”€ Convert to Invoice â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function convertProFormaToInvoice() {
         $this->EndReturnData = new stdClass();
         try {
@@ -799,7 +735,7 @@ class Proformainvoices extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Detail (for print/view modal) ────────────────────────────
+    // â”€â”€ Detail (for print/view modal) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getProFormaDetail() {
         $this->EndReturnData = new stdClass();
         try {
@@ -830,7 +766,7 @@ class Proformainvoices extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Private helpers ──────────────────────────────────────────
+    // â”€â”€ Private helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private function saveProFormaItems($transUID, $financialYear, $orgUID, $userUID, array $items) {
         $this->load->model('dbwrite_model');
         $rows = [];
@@ -863,6 +799,8 @@ class Proformainvoices extends MY_Controller {
                 'UnitPrice'         => $unitPrice,
                 'SellingPrice'      => (float) ($item['sellingPrice']   ?? $unitPrice),
                 'PurchasePrice'     => (float) ($item['purchasePrice']  ?? 0),
+                'MRP'               => (float) ($item['mrp']            ?? 0),
+                'DistributionMode'  => !empty($item['isComposite']) ? ($item['distributionMode'] ?? null) : null,
                 'TaxableAmount'     => (float) ($item['line_total']     ?? 0),
                 'CgstAmount'        => (float) ($item['cgstAmount']     ?? 0),
                 'SgstAmount'        => (float) ($item['sgstAmount']     ?? 0),

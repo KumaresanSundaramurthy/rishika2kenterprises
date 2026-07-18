@@ -57,6 +57,168 @@
      * =================================================================== */
 
     /**
+     * Replaces the filter items dynamically.
+     *
+     * @param {Array} items
+     */
+    TransColFilter.prototype.setItems = function (items) {
+
+        items = Array.isArray(items) ? items : [];
+
+        var $box  = this._$box;
+        var $list = $box.find('.catg-list');
+
+        // Create dynamic structure only once
+        if (!$list.length && items.length) {
+            $list = this._createFilterContent();
+        }
+
+        // Build items
+        $list.empty();
+
+        this._renderItems($list, items);
+        this._updateItemCount(items.length);
+        this._syncSelectAll();
+
+        return this;
+    };
+
+    TransColFilter.prototype._createFilterContent = function () {
+
+        var $box = this._$box;
+        var selectAllId = $box.attr('id') + 'SelectAll';
+
+        // Search
+        var $searchWrap = $('<div>', {
+            class: 'catg-filter-search-wrap'
+        }).append(
+            $('<div>', {
+                class: 'catg-search-inner'
+            }).append(
+                $('<input>', {
+                    type: 'text',
+                    class: 'form-control form-control-sm tcf-search-input',
+                    placeholder: 'Search...'
+                }),
+                $('<button>', {
+                    type: 'button',
+                    class: 'catg-search-clear',
+                    title: 'Clear'
+                }).hide().append(
+                    $('<i>', {
+                        class: 'bx bx-x'
+                    })
+                )
+            )
+        );
+
+
+        // Select All
+        var $selectAllWrap = $('<div>', {
+            class: 'catg-select-all-wrap'
+        }).append(
+            $('<input>', {
+                type: 'checkbox',
+                class: 'form-check-input tcf-select-all',
+                id: selectAllId
+            }),
+            $('<label>', {
+                class: 'small fw-semibold mb-0',
+                for: selectAllId,
+                text: 'Select All'
+            })
+        );
+
+
+        // Items
+        var $list = $('<div>', {
+            class: 'catg-list'
+        }).css('max-height', '180px');
+
+
+        // Footer
+        var $footer = $('<div>', {
+            class: 'catg-filter-footer'
+        }).append(
+            $('<button>', {
+                type: 'button',
+                class: 'btn btn-primary btn-sm tcf-apply-btn'
+            }).append(
+                $('<i>', {
+                    class: 'bx bx-check me-1'
+                }),
+                'Apply'
+            ),
+
+            $('<button>', {
+                type: 'button',
+                class: 'btn btn-outline-secondary btn-sm tcf-reset-btn'
+            }).append(
+                $('<i>', {
+                    class: 'bx bx-reset me-1'
+                }),
+                'Reset'
+            )
+        );
+
+
+        // Replace empty state
+        $box
+            .find('.d-flex.flex-column.align-items-center.justify-content-center')
+            .replaceWith(
+                $searchWrap,
+                $selectAllWrap,
+                $list,
+                $footer
+            );
+
+
+        return $list;
+    };
+
+    TransColFilter.prototype._renderItems = function ($list, items) {
+
+        var self = this;
+
+        $.each(items, function (_, item) {
+
+            $('<label>', {
+                class: 'catg-list-item'
+            }).append(
+                $('<input>', {
+                    type: 'checkbox',
+                    class: 'form-check-input ' + self._chkClass,
+                    value: item.value
+                }),
+
+                $('<span>').text(
+                    item.label || ''
+                )
+            ).appendTo($list);
+
+        });
+    };
+
+    TransColFilter.prototype._updateItemCount = function (count) {
+
+        var $box   = this._$box;
+        var $badge = $box.find('.catg-filter-header .badge');
+
+        if (!$badge.length && count > 0) {
+
+            $badge = $('<span>', {
+                class: 'badge'
+            });
+
+            $box
+                .find('.catg-filter-header .d-flex')
+                .prepend($badge);
+        }
+
+        $badge.text(count);
+    };
+
+    /**
      * Returns the current filter state as a plain object.
      * Empty object when no filter is active.
      */

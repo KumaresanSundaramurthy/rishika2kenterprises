@@ -376,6 +376,7 @@ class Transactions_model extends MY_Model {
             'Td.Notes', 'Td.TermsConditions',
             'Td.PlaceOfSupplyCode', 'Td.PlaceOfSupplyName', 'Td.SignatureUID',
             'Td.ExpectedDeliveryDate', 'Td.DeliveryByDate',
+            'Td.PriceListUID', 'Td.PriceListData',
         ]);
         $this->ReadDb->from('Transaction.TransactionsTbl AS Ts');
         $this->ReadDb->join('Customers.CustomerTbl AS Cust', 'Cust.CustomerUID = Ts.PartyUID AND Ts.PartyType = \'C\'', 'LEFT');
@@ -902,7 +903,7 @@ class Transactions_model extends MY_Model {
 
     public function getPaymentTypesList(): array {
         try {
-            $key    = $this->redisservice->orgKey('payment-types');
+            $key    = $this->redisservice->globalKey('payment-types');
             $cached = $this->upstashservice->get($key);
             if ($cached !== null) return array_map(fn($r) => is_array($r) ? (object) $r : $r, $cached);
 
@@ -2116,11 +2117,10 @@ class Transactions_model extends MY_Model {
     // ── Generic transaction PDF generation (works for any moduleUID) ──────────
     public function generateTransactionPdfBytes(int $transUID, int $orgUID, int $moduleUID, string $paperSize = 'A4'): ?string {
 
-        $paperSize = strtoupper(trim($paperSize));
+        $paperSize   = strtoupper(trim($paperSize));
 
         $header = $this->getTransactionById($transUID, $orgUID, $moduleUID);
         if (!$header) return null;
-
         $items = $this->getTransactionItems($transUID, $orgUID);
 
         $this->load->model('organisation_model');
@@ -2148,7 +2148,6 @@ class Transactions_model extends MY_Model {
             $html);
 
         $html = $this->_compositeQrForPdf($html);
-
         $html = $this->_inlineExternalImages($html);
 
         $html = preg_replace('/\bdisplay\s*:\s*flex\s*;?/i',                       'display:block;', $html);
@@ -2206,6 +2205,7 @@ class Transactions_model extends MY_Model {
 
         $folder  = $this->_getModuleFolder($moduleUID);
         $relPath = $folder . '/' . $transUID . '/pdf/' . $transUID . '.pdf';
+
         $stored  = $this->_uploadPdfToR2($relPath, $bytes);
 
         if ($stored) {
@@ -2958,6 +2958,93 @@ class Transactions_model extends MY_Model {
             return false;
         }
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Day Book
+
+    /**
+     * Returns all transaction + payment entries for a given date, newest first.
+     * UNION: TransactionsTbl (all active doc types) + PaymentsTbl (in/out).
+     *
+     * @param string $date   Y-m-d
+     * @param int    $orgUID
+     * @return array
+     */
+    public function getDayBookEntries(string $date, int $orgUID): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $safeDate = $this->ReadDb->escape($date);
+            $orgUID   = (int) $orgUID;
+
+            $sql = "
+                SELECT
+                    Ts.TransUID        AS EntryUID,
+                    'transaction'      AS Source,
+                    Ts.TransType       AS TransType,
+                    Ts.UniqueNumber    AS SerialNumber,
+                    Ts.NetAmount       AS Amount,
+                    Ts.DocStatus       AS DocStatus,
+                    Ts.PartyType       AS PartyType,
+                    Ts.ModuleUID       AS ModuleUID,
+                    Ts.TransToken      AS TransToken,
+                    Ts.TransUID        AS TransUID,
+                    Ts.CreatedOn       AS EntryTime,
+                    COALESCE(Cust.Name, Vend.Name)               AS PartyName,
+                    COALESCE(Cust.Area, Vend.Area)               AS PartyArea,
+                    COALESCE(Cust.MobileNumber, Vend.MobileNumber) AS MobileNumber,
+                    COALESCE(Cust.CountryCode, Vend.CountryCode) AS CountryCode,
+                    NULL               AS PaymentMode,
+                    NULL               AS ReceiptToken
+                FROM Transaction.TransactionsTbl Ts
+                LEFT JOIN Customers.CustomerTbl AS Cust ON Cust.CustomerUID = Ts.PartyUID AND Ts.PartyType = 'C'
+                LEFT JOIN Vendors.VendorTbl     AS Vend ON Vend.VendorUID   = Ts.PartyUID AND Ts.PartyType = 'S'
+                WHERE Ts.OrgUID    = {$orgUID}
+                  AND Ts.TransDate = {$safeDate}
+                  AND Ts.IsDeleted = 0
+                  AND Ts.IsActive  = 1
+                  AND Ts.DocStatus NOT IN ('Draft','Cancelled','Rejected')
+
+                UNION ALL
+
+                SELECT
+                    P.PaymentUID       AS EntryUID,
+                    'payment'          AS Source,
+                    CASE WHEN P.PartyType = 'C' THEN 'Payment In' ELSE 'Payment Out' END AS TransType,
+                    P.UniqueNumber     AS SerialNumber,
+                    P.Amount           AS Amount,
+                    'Paid'             AS DocStatus,
+                    P.PartyType        AS PartyType,
+                    P.ModuleUID        AS ModuleUID,
+                    NULL               AS TransToken,
+                    P.TransUID         AS TransUID,
+                    P.CreatedOn        AS EntryTime,
+                    COALESCE(Cust.Name, Vend.Name)               AS PartyName,
+                    COALESCE(Cust.Area, Vend.Area)               AS PartyArea,
+                    COALESCE(Cust.MobileNumber, Vend.MobileNumber) AS MobileNumber,
+                    COALESCE(Cust.CountryCode, Vend.CountryCode) AS CountryCode,
+                    PT.Name            AS PaymentMode,
+                    P.ReceiptToken     AS ReceiptToken
+                FROM Transaction.PaymentsTbl P
+                LEFT JOIN Global.PaymentTypesTbl AS PT   ON PT.PaymentTypeUID = P.PaymentTypeUID
+                LEFT JOIN Customers.CustomerTbl  AS Cust ON Cust.CustomerUID  = P.PartyUID AND P.PartyType = 'C'
+                LEFT JOIN Vendors.VendorTbl      AS Vend ON Vend.VendorUID    = P.PartyUID AND P.PartyType = 'S'
+                WHERE P.OrgUID      = {$orgUID}
+                  AND P.PaymentDate = {$safeDate}
+                  AND P.IsDeleted   = 0
+                  AND P.IsActive    = 1
+
+                ORDER BY EntryTime DESC
+            ";
+
+            $query = $this->ReadDb->query($sql);
+            return $query ? $query->result_array() : [];
+
+        } catch (Exception $e) {
+            log_message('error', 'getDayBookEntries: ' . $e->getMessage());
+            return [];
+        }
+    }
+
 
 }
 

@@ -64,11 +64,11 @@ if (!empty($DataLists)) {
                         else                        $agoText = (int)($secondsAgo / 3600) . ' hr' . ((int)($secondsAgo / 3600) > 1 ? 's' : '') . ' ago';
                     }
                 ?>
-                <div><?php echo $updatedOn ? changeTimeZonefromDateTime($updatedOn, $JwtData->User->Timezone, 2) : '—'; ?></div>
+                <div class="r2k-col-date"><?php echo $updatedOn ? changeTimeZonefromDateTime($updatedOn, $JwtData->User->Timezone, 2) : '—'; ?></div>
                 <?php if ($within24h): ?>
-                <div style="font-size:.68rem;color:#0d6efd;font-weight:500;"><?php echo $agoText; ?></div>
+                <div class="r2k-col-date-ago"><?php echo $agoText; ?></div>
                 <?php endif; ?>
-                <div class="text-muted" style="font-size: 0.75rem;">by <?php echo htmlspecialchars($row->UpdatedBy ?? '—'); ?></div>
+                <div class="text-muted r2k-col-date-by">by <?php echo htmlspecialchars($row->UpdatedBy ?? '—'); ?></div>
             </td>
             <td class="text-center align-middle">
                 <div class="d-flex align-items-center justify-content-center gap-1">

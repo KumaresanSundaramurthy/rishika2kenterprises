@@ -84,6 +84,9 @@ $(function() {
                 '</textarea>' +
             '</td>' +
             '<td>' +
+                '<input type="text" id="pay-date-fp-' + rowId + '" class="pay-date-inp" data-row="' + rowId + '" placeholder="Today" readonly />' +
+            '</td>' +
+            '<td>' +
                 '<input type="text" class="form-control pay-amount-inp" data-row="' + rowId + '" ' +
                     'value="' + esc(data.amount || '0') + '" maxlength="12" autocomplete="off" />' +
             '</td>' +
@@ -102,7 +105,20 @@ $(function() {
     function addPaymentRow(data) {
         _rowCount++;
         var isFirst = (_rowCount === 1);
-        $('#paymentRowsBody').append(buildRowHtml(_rowCount, data || {}, isFirst));
+        var rowId   = _rowCount;
+        $('#paymentRowsBody').append(buildRowHtml(rowId, data || {}, isFirst));
+        var _altFmt = (typeof _transFormDateFormat !== 'undefined' && _transFormDateFormat) ? _transFormDateFormat : 'd-m-Y';
+        flatpickr('#pay-date-fp-' + rowId, {
+            dateFormat   : 'Y-m-d',
+            altInput     : true,
+            altInputClass: 'pay-date-inp',
+            altFormat    : _altFmt,
+            maxDate      : 'today',
+            defaultDate  : (data && data.paymentDate) ? data.paymentDate : 'today',
+            static       : true,
+            position     : 'below left',
+            disableMobile: true,
+        });
         updatePaymentSummary();
     }
 
@@ -250,6 +266,7 @@ $(function() {
     /* ── serialize → hidden input (called before submit) ──── */
     window.serializePaymentRows = function() {
         var rows = [];
+        var today = new Date().toISOString().split('T')[0];
 
         $('#paymentRowsBody tr').each(function() {
             var $tr            = $(this);
@@ -257,6 +274,7 @@ $(function() {
             var amount         = parseFloat($tr.find('.pay-amount-inp').val()) || 0;
             var notes          = $.trim($tr.find('.pay-notes-inp').val());
             var bankAccountUID = parseInt($tr.find('.pay-bank-sel').val(), 10) || 0;
+            var paymentDate    = $tr.find('.pay-date-inp').val() || today;
 
             $tr.find('.pay-amount-inp').css('border', '');
 
@@ -268,6 +286,7 @@ $(function() {
                 notes          : notes || null,
                 bankAccountUID : bankAccountUID || null,
                 referenceNo    : null,
+                paymentDate    : paymentDate,
             });
         });
 

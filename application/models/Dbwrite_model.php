@@ -514,12 +514,14 @@ class Dbwrite_model extends CI_Model {
                     }
 
                     // Build lookup of user-adjusted component prices passed from the transaction form
-                    $passedCompPrices = [];
+                    $passedCompPrices     = [];
+                    $passedCompSellPrices = [];
                     if (!empty($item['bomComponents']) && is_array($item['bomComponents'])) {
                         foreach ($item['bomComponents'] as $pc) {
                             $pcUID = (int)($pc['childProductUID'] ?? 0);
                             if ($pcUID > 0) {
-                                $passedCompPrices[$pcUID] = (float)($pc['unitPrice'] ?? 0);
+                                $passedCompPrices[$pcUID]     = (float)($pc['unitPrice']    ?? 0);
+                                $passedCompSellPrices[$pcUID] = (float)($pc['sellingPrice'] ?? $pc['unitPrice'] ?? 0);
                             }
                         }
                     }
@@ -538,8 +540,14 @@ class Dbwrite_model extends CI_Model {
                             $sp      = isset($passedCompPrices[$componentUID])
                                         ? $passedCompPrices[$componentUID]
                                         : (float)($cd->SellingPrice ?? 0);
-                            $pp      = (float)($cd->PurchasePrice ?? 0);
-                            $cgstPct = (float)($cd->CGST          ?? 0);
+                            $dbSp    = isset($passedCompSellPrices[$componentUID])
+                                        ? $passedCompSellPrices[$componentUID]
+                                        : (float)($cd->SellingPrice ?? 0);
+                            $pp      = (float)($cd->PurchasePrice  ?? 0);
+                            $origSp  = (float)($cd->SellingPrice   ?? 0);
+                            $taxPct  = (float)($cd->TaxPercentage  ?? 0);
+                            $origUp  = $taxPct > 0 ? round($origSp / (1 + $taxPct / 100), 8) : $origSp;
+                            $cgstPct = (float)($cd->CGST           ?? 0);
                             $sgstPct = (float)($cd->SGST          ?? 0);
                             $igstPct = (float)($cd->IGST          ?? 0);
                             $taxable = round($sp * $componentQty, 4);
@@ -569,8 +577,10 @@ class Dbwrite_model extends CI_Model {
                                 'SGST'               => $sgstPct,
                                 'IGST'               => $igstPct,
                                 'UnitPrice'          => $sp,
-                                'SellingPrice'       => $sp,
+                                'SellingPrice'       => $dbSp,
                                 'PurchasePrice'      => $pp,
+                                'OrigUnitPrice'      => $origUp,
+                                'OrigSellingPrice'   => $origSp,
                                 'TaxableAmount'      => $taxable,
                                 'CgstAmount'         => $cgstAmt,
                                 'SgstAmount'         => $sgstAmt,
@@ -874,13 +884,36 @@ class Dbwrite_model extends CI_Model {
         $params = array_merge([(int)$userUID, (int)$transUID], array_map('intval', $productUIDs));
         $ok = $this->WriteDB->query(
             "UPDATE Transaction.TransProductsTbl
-                SET IsDeleted = 1, IsActive = 0, UpdatedBy = ?, UpdatedOn = NOW()
+                SET IsDeleted = 1, IsActive = 0, UpdatedBy = ?, UpdatedOn = NOW(),
+                    ItemSequence = NULL
               WHERE TransUID = ? AND ProductUID IN ({$placeholders}) AND IsDeleted = 0",
             $params
         );
         if ($ok === false) {
             $err = $this->WriteDB->error();
             throw new Exception('Failed to soft-delete removed items: ' . ($err['message'] ?? 'unknown error'));
+        }
+    }
+
+    /**
+     * Shift ItemSequence by $offset for all active items in a transaction.
+     * Used as Pass 1 before renumbering to vacate all current sequence slots at once,
+     * preventing unique key conflicts when items are reordered or removed.
+     */
+    public function shiftTransProductSequences(int $transUID, array $productUIDs): void {
+        if (empty($productUIDs)) return;
+        $this->WriteDB->db_debug = FALSE;
+        $placeholders = implode(',', array_fill(0, count($productUIDs), '?'));
+        $params = array_merge([(int)$transUID], array_map('intval', $productUIDs));
+        $ok = $this->WriteDB->query(
+            "UPDATE Transaction.TransProductsTbl
+                SET ItemSequence = NULL
+              WHERE TransUID = ? AND ProductUID IN ({$placeholders}) AND IsDeleted = 0",
+            $params
+        );
+        if ($ok === false) {
+            $err = $this->WriteDB->error();
+            throw new Exception('Failed to clear item sequences: ' . ($err['message'] ?? 'unknown error'));
         }
     }
 
@@ -1062,11 +1095,11 @@ class Dbwrite_model extends CI_Model {
         return true;
     }
 
-    public function upsertTransactionSettings(int $orgUID, string $invoiceCancelAction, string $srCancelAction, string $srItemMethod, string $termsAndConditions, int $hideNav, int $purchaseShowSignature, int $purchaseShowTerms, string $prCancelAction, string $prItemMethod, int $showProductDescription, int $userUID, int $dcDefaultReturnDays = 7, int $quotValidityDays = 7, int $showTransactionStats = 1): bool {
+    public function upsertTransactionSettings(int $orgUID, string $invoiceCancelAction, string $srCancelAction, string $srItemMethod, string $termsAndConditions, int $hideNav, int $purchaseShowSignature, int $purchaseShowTerms, string $prCancelAction, string $prItemMethod, int $showProductDescription, int $userUID, int $dcDefaultReturnDays = 7, int $quotValidityDays = 7, int $showTransactionStats = 1, string $comboPriceDistribution = 'ratio', string $belowPurchasePriceAction = 'warn'): bool {
         $this->WriteDB->db_debug = FALSE;
         $sql = "INSERT INTO Settings.TransactionSettingsTbl
-                    (OrgUID, InvoiceCancelAction, SalesReturnCancelAction, SalesReturnItemMethod, TermsAndConditions, HideNavOnTransForm, PurchaseShowSignature, PurchaseShowTerms, PurchaseReturnCancelAction, PurchaseReturnItemMethod, ShowProductDescription, DCDefaultReturnDays, QuotValidityDays, ShowTransactionStats, UpdatedBy)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (OrgUID, InvoiceCancelAction, SalesReturnCancelAction, SalesReturnItemMethod, TermsAndConditions, HideNavOnTransForm, PurchaseShowSignature, PurchaseShowTerms, PurchaseReturnCancelAction, PurchaseReturnItemMethod, ShowProductDescription, DCDefaultReturnDays, QuotValidityDays, ShowTransactionStats, ComboPriceDistribution, BelowPurchasePriceAction, UpdatedBy)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON DUPLICATE KEY UPDATE
                     InvoiceCancelAction        = VALUES(InvoiceCancelAction),
                     SalesReturnCancelAction    = VALUES(SalesReturnCancelAction),
@@ -1081,12 +1114,14 @@ class Dbwrite_model extends CI_Model {
                     DCDefaultReturnDays        = VALUES(DCDefaultReturnDays),
                     QuotValidityDays           = VALUES(QuotValidityDays),
                     ShowTransactionStats       = VALUES(ShowTransactionStats),
+                    ComboPriceDistribution     = VALUES(ComboPriceDistribution),
+                    BelowPurchasePriceAction   = VALUES(BelowPurchasePriceAction),
                     UpdatedBy                  = VALUES(UpdatedBy)";
         $ok = $this->WriteDB->query($sql, [
             $orgUID, $invoiceCancelAction, $srCancelAction,
             $srItemMethod, $termsAndConditions, $hideNav, $purchaseShowSignature, $purchaseShowTerms,
             $prCancelAction, $prItemMethod, $showProductDescription, $dcDefaultReturnDays, $quotValidityDays,
-            $showTransactionStats, $userUID,
+            $showTransactionStats, $comboPriceDistribution, $belowPurchasePriceAction, $userUID,
         ]);
         if (!$ok) {
             $err = $this->WriteDB->error();

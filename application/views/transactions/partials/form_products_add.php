@@ -369,14 +369,18 @@ $_paymentVars    = isset($transPaymentVars) ? $transPaymentVars : null;
                             <tr style="background:#f8f7ff;border-bottom:2px solid #e8e5ff;">
                                 <th class="ps-4 py-3" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.55px;color:#64748b;font-weight:600;">Component</th>
                                 <th class="text-center py-3" style="width:72px;font-size:.68rem;text-transform:uppercase;letter-spacing:.55px;color:#64748b;font-weight:600;">Qty</th>
-                                <th class="py-3" style="width:180px;font-size:.68rem;text-transform:uppercase;letter-spacing:.55px;color:#64748b;font-weight:600;">Selling Price</th>
-                                <th class="text-end pe-4 py-3" style="width:120px;font-size:.68rem;text-transform:uppercase;letter-spacing:.55px;color:#64748b;font-weight:600;">Amount</th>
+                                <th class="text-end py-3" style="width:130px;font-size:.68rem;text-transform:uppercase;letter-spacing:.55px;color:#64748b;font-weight:600;">Unit Price</th>
+                                <th class="py-3" style="width:190px;font-size:.68rem;text-transform:uppercase;letter-spacing:.55px;color:#64748b;font-weight:600;">Selling Price</th>
+                                <th class="text-end pe-4 py-3" style="width:130px;font-size:.68rem;letter-spacing:.55px;color:#64748b;font-weight:600;">
+                                    <span style="text-transform:uppercase;">Amount</span><br>
+                                    <span style="font-size:.6rem;color:#94a3b8;font-weight:500;text-transform:none;letter-spacing:.3px;">incl. of tax</span>
+                                </th>
                             </tr>
                         </thead>
                         <tbody id="comboBOMRows"></tbody>
                         <tfoot>
                             <tr style="background:#f3f0ff;border-top:2px solid #d9d0ff;">
-                                <td colspan="3" class="ps-4 py-3" style="font-size:.88rem;font-weight:700;color:#7c3aed;">
+                                <td colspan="4" class="ps-4 py-3" style="font-size:.88rem;font-weight:700;color:#7c3aed;">
                                     <i class="bx bx-calculator me-1" style="vertical-align:middle;"></i>Combo Total
                                 </td>
                                 <td class="text-end pe-4 py-3" style="font-size:1rem;font-weight:700;color:#7c3aed;" id="comboBOMTotal">0.00</td>

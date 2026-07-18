@@ -177,8 +177,8 @@ window.DropdownCache = (function ($) {
             $pt.html(html);
         }
 
-        // SellingTaxOption + PurchaseTaxOption
-        $.each(['#SellingTaxOption', '#PurchaseTaxOption'], function (_, sel) {
+        // SellingTaxOption + PurchaseTaxOption (product form + combo form)
+        $.each(['#SellingTaxOption', '#PurchaseTaxOption', '#ComboSellingTaxOption', '#ComboPurchaseTaxOption'], function (_, sel) {
             var $s = $(sel);
             if ($s.length && !$s.find('option').length) {
                 var html = '';

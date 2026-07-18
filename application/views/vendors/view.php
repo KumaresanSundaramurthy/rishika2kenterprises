@@ -186,8 +186,7 @@
                             </div>
 
                             <!-- Pagination -->
-                            <hr class="my-0">
-                            <div class="row mx-3 my-2 justify-content-between align-items-center VendorsPagination" id="VendorsPagination">
+                            <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center VendorsPagination apex-pag-sticky" id="VendorsPagination">
                                 <?php echo $ModPagination ?: ''; ?>
                             </div>
                         </div><!-- /#vendTableSection -->
@@ -225,18 +224,11 @@
                                     </tbody>
                                 </table>
                             </div>
-                            <hr class="my-0">
-                            <div class="row mx-3 my-2 justify-content-between align-items-center" id="VendorGroupsPagination"><?php echo $isVendGroupsTab ? ($GrpPagination ?? '') : ''; ?></div>
+                            <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center apex-pag-sticky" id="VendorGroupsPagination"><?php echo $isVendGroupsTab ? ($GrpPagination ?? '') : ''; ?></div>
                         </div><!-- /#vgrpTableSection -->
 
                     </div>
 
-                    <!-- Sticky pagination -->
-                    <div class="card mb-0 cust-sticky-pag apex-sticky-pag" id="vendStickyPagination" data-static-pag="#VendorsPagination" style="display:none;">
-                        <div class="card-body p-0">
-                            <div class="row mx-3 my-2 justify-content-between align-items-center apex-sticky-pag-inner"></div>
-                        </div>
-                    </div>
 
                 </div>
 
@@ -301,8 +293,8 @@
 
 <!-- Filter panels (body-level to avoid overflow clipping) -->
 <?php if (!empty($Tags)): ?>
-<?php $this->load->view('common/filter_panels/checklist_filter', [
-    'ChecklistFilterConfig' => [
+<?php $this->load->view('common/filter_panels/col_filter_box', [
+    'ColFilterConfig' => [
         'id'                => 'vendTagFilterBox',
         'triggerId'         => 'vendTagFilter',
         'checkClass'        => 'vend-tag-chk',
@@ -315,7 +307,7 @@
 <?php endif; ?>
 
 <?php if ($showUserBtn): ?>
-<?php $this->load->view('common/partials/col_user_filter_box', [
+<?php $this->load->view('common/filter_panels/col_user_filter_box', [
     'ColUserFilterConfig' => [
         'id'         => 'vendUserFilterBox',
         'triggerId'  => 'vendUserFilterBtn',
@@ -326,8 +318,8 @@
 ]); ?>
 <?php endif; ?>
 
-<?php $this->load->view('common/filter_panels/checklist_filter', [
-    'ChecklistFilterConfig' => [
+<?php $this->load->view('common/filter_panels/col_filter_box', [
+    'ColFilterConfig' => [
         'id'                => 'vendStatusFilterBox',
         'triggerId'         => 'vendStatusFilterBtn',
         'checkClass'        => 'vend-status-chk',
@@ -340,25 +332,54 @@
         ],
     ],
 ]); ?>
-<?php $this->load->view('common/filter_panels/checklist_filter', [
-    'ChecklistFilterConfig' => [
+<?php $this->load->view('common/filter_panels/col_filter_box', [
+    'ColFilterConfig' => [
         'id'                => 'vendGrpTypeFilterBox',
         'triggerId'         => 'vendGrpTypeFilterBtn',
         'checkClass'        => 'vgrp-type-chk',
         'title'             => 'Group Type',
         'icon'              => 'bx-category',
         'searchPlaceholder' => 'Search types...',
-        'items'             => [
-            ['value' => 'Business Group',  'label' => 'Business Group'],
-            ['value' => 'Branch Group',    'label' => 'Branch Group'],
-            ['value' => 'Family Group',    'label' => 'Family Group'],
-            ['value' => 'Corporate Group', 'label' => 'Corporate Group'],
-            ['value' => 'Dealer Network',  'label' => 'Dealer Network'],
-            ['value' => 'Franchise Group', 'label' => 'Franchise Group'],
-            ['value' => 'Custom',          'label' => 'Custom'],
-        ],
+        'items'             => [],
     ],
 ]); ?>
+
+<!-- ── Vendor Group Detail Modal ───────────────────────────────────────── -->
+<div class="modal fade" id="vgrpDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content" style="overflow-x:hidden;">
+
+            <!-- Header -->
+            <div class="modal-header py-3 px-4" style="border-bottom:1px solid var(--bs-border-color);flex-wrap:nowrap;overflow:hidden;">
+                <div class="d-flex align-items-center gap-3" style="min-width:0;flex:1 1 0;overflow:hidden;">
+                    <div id="vgrpDetailIconWrap" style="width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <i class="bx bxs-layer" style="font-size:1.5rem;"></i>
+                    </div>
+                    <div style="min-width:0;overflow:hidden;">
+                        <div class="fw-bold" id="vgrpDetailTitle" style="font-size:1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Vendor Group</div>
+                        <div class="d-flex align-items-center gap-1 flex-wrap mt-1" id="vgrpDetailBadges"></div>
+                    </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;margin-left:12px;">
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="vgrpDetailEditBtn" style="display:none;white-space:nowrap;">
+                        <i class="bx bx-edit me-1"></i>Edit
+                    </button>
+                    <button type="button" class="btn btn-sm btn-icon btn-outline-secondary" data-bs-dismiss="modal" aria-label="Close">
+                        <i class="bx bx-x fs-5"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Body -->
+            <div class="modal-body p-0" id="vgrpDetailModalBody" style="overflow-x:hidden;">
+                <div class="d-flex justify-content-center align-items-center py-5">
+                    <div class="spinner-border text-primary"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
 
 <?php $this->load->view('common/footer'); ?>
 
@@ -372,6 +393,186 @@
 <script src="<?php echo _assetV('/js/common/bankdetails.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/common/address.js'); ?>"></script>
 <script src="/js/common/vendor_group_form.js"></script>
+
+<script>
+$(function () {
+    'use strict';
+
+    var _vgrpDetailUID = 0;
+    var _currency      = '<?php echo addslashes(htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹')); ?>';
+    var _dec           = <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>;
+
+    var _typeColors = {
+        'Business Group' : { bg: '#f0efff', c: '#696cff' },
+        'Branch Group'   : { bg: '#e0f7fa', c: '#0097a7' },
+        'Family Group'   : { bg: '#fce8ff', c: '#9333ea' },
+        'Corporate Group': { bg: '#e8f5e9', c: '#2e7d32' },
+        'Dealer Network' : { bg: '#fff3e0', c: '#ef6c00' },
+        'Franchise Group': { bg: '#fce4ec', c: '#c62828' },
+        'Custom'         : { bg: '#f5f5f5', c: '#616161' },
+    };
+
+    $(document).on('click', '.vgrp-view-btn', function () {
+        var uid = parseInt($(this).data('uid'));
+        if (!uid) return;
+        _vgrpDetailUID = uid;
+
+        $('#vgrpDetailTitle').text('Vendor Group');
+        $('#vgrpDetailBadges').empty();
+        $('#vgrpDetailIconWrap').css({ background: '#f0efff', color: '#696cff' });
+        $('#vgrpDetailEditBtn').hide().off('click');
+        $('#vgrpDetailModalBody').html(
+            '<div class="d-flex justify-content-center align-items-center py-5">' +
+            '<div class="spinner-border text-primary"></div></div>'
+        );
+        $('#vgrpDetailModal').modal('show');
+
+        ajaxLoading(0);
+        $.ajax({
+            url   : '/vendors/getGroupDetail/' + uid,
+            method: 'GET',
+            cache : false,
+            success: function (res) {
+                ajaxLoading(1);
+                CsrfToken = res.NewCsrfToken || CsrfToken;
+                if (res.Error) {
+                    $('#vgrpDetailModalBody').html(
+                        '<div class="alert alert-danger m-4">' + _vesc(res.Message || 'Failed to load group.') + '</div>'
+                    );
+                    return;
+                }
+                _renderVgrpDetail(res.Data, res.Overview, res.Members || []);
+            },
+            error: function () {
+                ajaxLoading(1);
+                $('#vgrpDetailModalBody').html(
+                    '<div class="alert alert-danger m-4">Failed to load group details. Please try again.</div>'
+                );
+            }
+        });
+    });
+
+    function _renderVgrpDetail(g, ov, members) {
+        var tc        = _typeColors[g.GroupType] || { bg: '#f5f5f5', c: '#616161' };
+        var memberCnt = parseInt(ov ? ov.MemberCount      : 0);
+        var recvAmt   = parseFloat(ov ? ov.TotalReceivable : 0);
+        var payAmt    = parseFloat(ov ? ov.TotalPayable    : 0);
+
+        $('#vgrpDetailIconWrap').css({ background: tc.bg, color: tc.c });
+        $('#vgrpDetailTitle').text(g.GroupName || '—');
+
+        var badges = '';
+        if (g.GroupCode) {
+            badges += '<span class="badge bg-label-secondary" style="font-size:.7rem;font-family:monospace;">' + _vesc(g.GroupCode) + '</span>';
+        }
+        badges += '<span class="badge" style="background:' + tc.bg + ';color:' + tc.c + ';font-size:.7rem;font-weight:600;">' + _vesc(g.GroupType || '') + '</span>';
+        badges += '<span class="badge ' + (g.IsActive ? 'bg-label-success' : 'bg-label-danger') + '" style="font-size:.68rem;">' + (g.IsActive ? 'Active' : 'Inactive') + '</span>';
+        $('#vgrpDetailBadges').html(badges);
+
+        $('#vgrpDetailEditBtn').show().off('click').on('click', function () {
+            $('#vgrpDetailModal').modal('hide');
+            VendorGroupForm.open('edit', _vgrpDetailUID, {
+                onSaveSuccess: function (res) { _applyVgrpData(res); }
+            });
+        });
+
+        // Summary cards
+        var statsHtml =
+            '<div class="row g-3 p-4 pb-3">' +
+                '<div class="col-6 col-md-3">' +
+                    '<div class="p-3 rounded-3 text-center" style="background:#f8f9fa;">' +
+                        '<div style="font-size:1.4rem;font-weight:700;color:#9333ea;">' + memberCnt + '</div>' +
+                        '<div class="text-muted" style="font-size:.74rem;">Members</div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="col-6 col-md-3">' +
+                    '<div class="p-3 rounded-3 text-center" style="background:#f0fdf4;">' +
+                        '<div style="font-size:1rem;font-weight:700;color:#16a34a;">' + _currency + ' ' + recvAmt.toFixed(_dec) + '</div>' +
+                        '<div class="text-muted" style="font-size:.74rem;">Total Receivable</div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="col-6 col-md-3">' +
+                    '<div class="p-3 rounded-3 text-center" style="background:#fff5f5;">' +
+                        '<div style="font-size:1rem;font-weight:700;color:#dc2626;">' + _currency + ' ' + payAmt.toFixed(_dec) + '</div>' +
+                        '<div class="text-muted" style="font-size:.74rem;">Total Payable</div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="col-6 col-md-3">' +
+                    '<div class="p-3 rounded-3 text-center" style="background:#f5f3ff;">' +
+                        '<div style="font-size:.85rem;font-weight:600;color:#7c3aed;">' + _vesc(g.ContactPerson || '—') + '</div>' +
+                        '<div class="text-muted" style="font-size:.74rem;">' + _vesc(g.Mobile || 'Contact Person') + '</div>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+
+        // Members table with balance
+        var totalRec = 0, totalPay = 0;
+        var membersBody = '';
+        if (members.length) {
+            membersBody = members.map(function (m, i) {
+                var isPri    = parseInt(m.IsGroupPrimary || 0) === 1;
+                var bal      = parseFloat(m.Balance || 0);
+                var balType  = m.BalanceType || 'Credit';
+                var balColor = balType === 'Credit' ? '#dc3545' : '#28a745';
+                if (balType === 'Debit')   totalRec += bal;
+                if (balType === 'Credit')  totalPay += bal;
+                return '<tr>' +
+                    '<td class="text-muted text-center" style="width:36px;">' + (i + 1) + '</td>' +
+                    '<td>' +
+                        '<div class="fw-semibold">' + _vesc(m.Name) +
+                            (isPri ? ' <span class="badge bg-label-warning ms-1" style="font-size:.62rem;">Primary</span>' : '') +
+                        '</div>' +
+                        (m.Area ? '<div class="text-muted" style="font-size:.74rem;">' + _vesc(m.Area) + '</div>' : '') +
+                    '</td>' +
+                    '<td class="text-muted" style="font-size:.82rem;">' + _vesc(m.MobileNumber || '—') + '</td>' +
+                    '<td class="text-end" style="font-weight:600;color:' + balColor + ';width:150px;">' +
+                        _currency + ' ' + bal.toFixed(_dec) +
+                        '<div class="text-muted fw-normal" style="font-size:.7rem;">' + (balType === 'Credit' ? 'Payable' : 'Receivable') + '</div>' +
+                    '</td>' +
+                '</tr>';
+            }).join('');
+        } else {
+            membersBody = '<tr><td colspan="4" class="text-center py-4 text-muted">No members in this group.</td></tr>';
+        }
+
+        var footerParts = [];
+        if (totalRec > 0) footerParts.push('<span class="me-3" style="font-weight:700;color:#16a34a;">Receivable: ' + _currency + ' ' + totalRec.toFixed(_dec) + '</span>');
+        if (totalPay > 0) footerParts.push('<span style="font-weight:700;color:#dc2626;">Payable: ' + _currency + ' ' + totalPay.toFixed(_dec) + '</span>');
+        var footerHtml = footerParts.length
+            ? '<tfoot><tr><td colspan="4" class="text-end py-3 pe-3 border-top" style="background:#f8f9fa;">' + footerParts.join('') + '</td></tr></tfoot>'
+            : '';
+
+        var membersHtml =
+            '<div class="px-4 pb-4">' +
+            '<table class="table table-hover align-middle mb-0" style="font-size:.85rem;">' +
+            '<thead class="r2k-thead"><tr>' +
+                '<th class="text-center" style="width:36px;">#</th>' +
+                '<th>Vendor Name</th>' +
+                '<th style="width:130px;">Mobile</th>' +
+                '<th class="text-end" style="width:150px;">Balance</th>' +
+            '</tr></thead>' +
+            '<tbody>' + membersBody + '</tbody>' +
+            footerHtml +
+            '</table></div>';
+
+        $('#vgrpDetailModalBody').html(statsHtml + membersHtml);
+    }
+
+    $('#vgrpDetailModal').on('hidden.bs.modal', function () {
+        _vgrpDetailUID = 0;
+        $('#vgrpDetailModalBody').html(
+            '<div class="d-flex justify-content-center align-items-center py-5">' +
+            '<div class="spinner-border text-primary"></div></div>'
+        );
+        $('#vgrpDetailBadges').empty();
+        $('#vgrpDetailEditBtn').hide();
+    });
+
+    function _vesc(s) {
+        return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+});
+</script>
 
 <script>
 let ModuleId = <?php echo $ModuleId; ?>;
@@ -445,21 +646,6 @@ $(function() {
         });
     })();
 
-    // ── Sticky pagination ──
-    var $vStaticPag = $('#VendorsPagination');
-    var $vStickyPag = $('#vendStickyPagination');
-    function _syncVendSticky() { $vStickyPag.find('.apex-sticky-pag-inner').html($vStaticPag.html()); }
-    function _toggleVendSticky() {
-        if (_inVgrpMode) { $vStickyPag.stop(true, true).hide(); return; }
-        if (!$vStaticPag.length) return;
-        var r = $vStaticPag[0].getBoundingClientRect();
-        var visible = r.top < $(window).height() && r.bottom > 0;
-        if (visible) { $vStickyPag.stop(true,true).fadeOut(150); }
-        else { _syncVendSticky(); $vStickyPag.stop(true,true).fadeIn(150); }
-    }
-    $(window).on('scroll resize', _toggleVendSticky);
-    _toggleVendSticky();
-
     // ── Stat card clicks ──
     $(document).on('click', '.apex-stat-item[data-stat-filter]', function () {
         var filterType = $(this).data('stat-filter');
@@ -513,7 +699,6 @@ $(function() {
                 PageNo = 0;
                 getVendorsDetails(PageNo, RowLimit, Filter);
             }
-            _toggleVendSticky();
             return;
         }
 
@@ -733,7 +918,6 @@ $(function() {
         e.preventDefault();
         if (_inVgrpMode) return;
         _inVgrpMode = true;
-        _toggleVendSticky();
         $('.vend-tab').removeClass('active');
         $('.vgrp-view-tab').addClass('active');
         $('.vend-only-ctrl').addClass('d-none');
@@ -830,6 +1014,15 @@ $(function() {
         }
     });
 
+    // Lazy-load vendor group types into filter box on first click (Upstash → AJAX)
+    var _vendGrpTypeFilterPromise = null;
+    $(document).on('click', '#vendGrpTypeFilterBtn', function () {
+        if (_vendGrpTypeFilterPromise) return;
+        _vendGrpTypeFilterPromise = loadCachedFilterData('vendor-group-types', '/vendors/getGroupTypes', true).then(function (types) {
+            vendGrpTypeFilter.setItems(types.map(function (t) { return { value: t, label: t }; }));
+        }).catch(function () { _vendGrpTypeFilterPromise = null; });
+    });
+
     // ── Group status toggle ──
     $(document).on('click', '.vgrp-status-toggle', function (e) {
         e.preventDefault();
@@ -904,7 +1097,6 @@ $(function() {
         // Groups data is server-rendered by PHP — just wire up JS state, no AJAX needed
         _inVgrpMode = true;
         _vgrpLoaded = true;
-        _toggleVendSticky();
         // PHP already rendered the correct d-none states for all filter/button elements
         if (_vendInitSearch && _vendInitSearch.length >= 3) {
             _vgrpFilter['SearchAllData'] = _vendInitSearch;

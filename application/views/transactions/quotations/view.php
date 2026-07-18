@@ -115,8 +115,12 @@ $this->load->view('common/transactions/header'); ?>
                     <div class="card">
 
                         <!-- Table -->
+                        <style>
+                            #quotTable.quot-draft-mode .quot-col-status,
+                            #quotTable.quot-draft-mode .quot-col-valid-until { display: none; }
+                        </style>
                         <div class="table-responsive">
-                            <table class="table trans-table MainviewTable mb-0" id="quotTable">
+                            <table class="table trans-table MainviewTable mb-0<?= $initTab === 'Draft' ? ' quot-draft-mode' : ''; ?>" id="quotTable">
                                 <thead class="r2k-thead">
                                     <tr>
                                         <th style="width:36px">
@@ -131,9 +135,9 @@ $this->load->view('common/transactions/header'); ?>
                                         <th class="col-sortable cursor-pointer user-select-none" data-sort="Amount" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">
                                             Amount <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Amount"></i>
                                         </th>
-                                        <th>Status</th>
+                                        <th class="quot-col-status">Status</th>
                                         <th>Customer</th>
-                                        <th class="col-sortable cursor-pointer user-select-none" data-sort="Date" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">
+                                        <th class="col-sortable cursor-pointer user-select-none quot-col-valid-until" data-sort="Date" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">
                                             Valid Until <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Date"></i>
                                         </th>
                                         <th>Last Updated</th>
@@ -147,8 +151,7 @@ $this->load->view('common/transactions/header'); ?>
                         </div>
 
                         <!-- Pagination -->
-                        <hr class="my-0">
-                        <div class="row mx-3 my-1 justify-content-between align-items-center quotPagination" id="quotPagination">
+                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center quotPagination apex-pag-sticky" id="quotPagination">
                             <?php echo $ModPagination ?: ''; ?>
                         </div>
 
@@ -156,12 +159,6 @@ $this->load->view('common/transactions/header'); ?>
 
                     <?php $this->load->view('common/transactions/print_modals'); ?>
 
-                    <!-- Sticky pagination -->
-                    <div class="card mb-0 cust-sticky-pag apex-sticky-pag" id="quotStickyPagination" data-static-pag="#quotPagination" style="display:none;">
-                        <div class="card-body p-0">
-                            <div class="row mx-3 my-1 justify-content-between align-items-center apex-sticky-pag-inner"></div>
-                        </div>
-                    </div>
 
                 </div>
             </div>
@@ -174,7 +171,7 @@ $this->load->view('common/transactions/header'); ?>
 </div>
 
 <?php if (count($OrgUsers ?? []) > 1): ?>
-<?php $this->load->view('common/partials/col_user_filter_box', [
+<?php $this->load->view('common/filter_panels/col_user_filter_box', [
     'ColUserFilterConfig' => [
         'id'         => 'quotCreatedByFilterBox',
         'triggerId'  => 'quotCreatedByFilter',
@@ -184,7 +181,7 @@ $this->load->view('common/transactions/header'); ?>
 ]); ?>
 <?php endif; ?>
 
-<?php $this->load->view('common/transactions/col_party_filter_box', [
+<?php $this->load->view('common/filter_panels/col_party_filter_box', [
     'ColPartyFilterConfig' => [
         'id'    => 'quotPartyFilterBox',
         'title' => 'Filter by Customer',
@@ -194,7 +191,7 @@ $this->load->view('common/transactions/header'); ?>
 
 <?php $this->load->view('common/transactions/footer'); ?>
 
-<script src="/js/core/sticky_paginate.js"></script>
+<script src="/js/transactions/attachments.js"></script>
 <script src="/js/common/communication.js"></script>
 <script src="/js/common/party_filter.js"></script>
 <script src="/js/common/pagecheckbox.js"></script>
@@ -238,10 +235,13 @@ var _quotInitSearch = <?php echo json_encode($InitSearch ?? ''); ?>;
 
 var _quotTabFilterMap = <?= json_encode($tabFilterMap); ?>;
 var _allQuotFilterEls = <?= json_encode(array_values(array_unique(array_merge(...array_values($tabFilterMap))))); ?>;
+var _initPage         = <?php echo (int)($InitPage ?? 1); ?>;
 
 $(function () {
     'use strict';
 
+    _checkPendingToast('_quotPendingToast');
+    PageNo = _initPage;
     Filter['Status'] = _quotInitTab;
     if (_quotInitSearch) { Filter.Name = _quotInitSearch; }
     initExport({ moduleUID: 101, getFilters: function () { return Filter; } });
@@ -271,14 +271,30 @@ $(function () {
     });
 
     var _origGetQuotationsDetails = getQuotationsDetails;
-    getQuotationsDetails = function (pageNo, rowLimit, filter) {
+    getQuotationsDetails = function (pageNo, rowLimit, filter, afterLoad) {
         var f = $.extend({}, filter || Filter,
             tfb                 ? tfb.getState()                 : {},
             quotCreatedByFilter ? quotCreatedByFilter.getState() : {},
             quotPartyFilter     ? quotPartyFilter.getState()     : {}
         );
-        _origGetQuotationsDetails(pageNo, rowLimit, f);
+        _origGetQuotationsDetails(pageNo, rowLimit, f, afterLoad);
     };
+
+    // ── Create / Edit — inject returnTab + returnPage ──────────────────
+    $(document).on('click', 'a[href="/quotations/create"]', function (e) {
+        e.preventDefault();
+        var params = new URLSearchParams();
+        params.set('returnTab', Filter.Status || 'All');
+        if (PageNo > 1) params.set('returnPage', PageNo);
+        window.location.href = '/quotations/create?' + params.toString();
+    });
+    $(document).on('click', 'a[href^="/quotations/edit/"]', function (e) {
+        e.preventDefault();
+        var params = new URLSearchParams();
+        params.set('returnTab', Filter.Status || 'All');
+        if (PageNo > 1) params.set('returnPage', PageNo);
+        window.location.href = $(this).attr('href') + '?' + params.toString();
+    });
 
     // ── Stat card click ─────────────────────────────────────
     $(document).on('click', '[data-stat-filter]', function () {
@@ -290,6 +306,7 @@ $(function () {
         _resetQuotFilters();
         _applyTabFilters(statFilter, _quotTabFilterMap, _allQuotFilterEls);
         _updateTransTabUrl(statFilter, '');
+        $('#quotTable').toggleClass('quot-draft-mode', statFilter === 'Draft');
         Filter.Status = statFilter;
         PageNo = 1;
         getQuotationsDetails();
@@ -306,6 +323,7 @@ $(function () {
         _resetQuotFilters();
         _applyTabFilters(status, _quotTabFilterMap, _allQuotFilterEls);
         _updateTransTabUrl(status, '');
+        $('#quotTable').toggleClass('quot-draft-mode', status === 'Draft');
         Filter.Status = status;
         PageNo = 1;
         getQuotationsDetails();
@@ -369,7 +387,7 @@ $(function () {
         $('.col-sortable').each(function () {
             $(this).attr('data-bs-title', 'Click for ascending order');
             var tt = bootstrap.Tooltip.getInstance(this);
-            if (tt) tt.setContent({ '.tooltip-inner': 'Click for ascending order' });
+            if (tt) { tt.dispose(); new bootstrap.Tooltip(this); }
         });
         $('.sort-icon').removeClass('bx-sort-up bx-sort-down').addClass('bx-sort-alt-2');
         if (Filter.SortBy) {
@@ -378,7 +396,7 @@ $(function () {
             $('.sort-icon[data-col="' + col + '"]').removeClass('bx-sort-alt-2').addClass(icon);
             $th.attr('data-bs-title', tipText);
             var tt = bootstrap.Tooltip.getInstance($th[0]);
-            if (tt) tt.setContent({ '.tooltip-inner': tipText });
+            if (tt) { tt.dispose(); new bootstrap.Tooltip($th[0]); }
         }
         PageNo = 1;
         getQuotationsDetails();
@@ -425,22 +443,25 @@ $(function () {
             return;
         }
 
-        if ($(this).data('_confirmed')) { $(this).removeData('_confirmed'); return; }
-        if (status === 'Cancelled') {
+        if (status === 'Cancelled' && !$(this).data('_confirmed')) {
             var num = $(this).data('num') || '';
             var lbl = num ? '<strong>' + $('<span>').text(num).html() + '</strong>' : 'this quotation';
             var $btn = $(this);
             Swal.fire({ title: 'Cancel Quotation?', html: 'Are you sure you want to cancel ' + lbl + '? This cannot be undone.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#6c757d', confirmButtonText: 'Yes, Cancel It', cancelButtonText: 'No, Keep It' }).then(function (r) { if (!r.isConfirmed) return; $btn.data('_confirmed', true).trigger('click'); });
             return;
         }
-        // All other status changes
+        $(this).removeData('_confirmed');
+        // All other status changes (and confirmed Cancelled)
         $.ajax({
             url   : '/quotations/updateQuotationStatus',
             method: 'POST',
             data  : { TransUID: uid, Status: status, [CsrfName]: CsrfToken },
             success: function (resp) {
-                if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); }
-                else            { getQuotationsDetails(); }
+                if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }
+                var _msg = resp.Message || 'Status updated.';
+                getQuotationsDetails(undefined, undefined, undefined, function () {
+                    showToastNotification(_msg, 'success');
+                });
             }
         });
     });
@@ -448,6 +469,20 @@ $(function () {
     // View modal — handled by /js/transactions/viewmodal.js (.viewTransaction)
 
     // ── Delete ───────────────────────────────────────────────
+    function _actionPostData(extra) {
+        Filter.Status = $('.quot-status-tab.active').data('status') || 'All';
+        return $.extend({ RowLimit: RowLimit, PageNo: PageNo, Filter: Filter, [CsrfName]: CsrfToken }, extra);
+    }
+
+    function _renderListResponse(resp) {
+        $(ModuleTable + ' tbody').html(resp.RecordHtmlData);
+        $(ModulePag).html(resp.Pagination);
+        var count = resp.TotalCount || 0;
+        var $badge = $('.quot-status-tab.active .trans-tab-count');
+        if (count > 0) { $badge.text(count).removeClass('d-none'); } else { $badge.text('').addClass('d-none'); }
+        initTooltips();
+    }
+
     $(document).on('click', '.deleteQuotation', function () {
         var uid = $(this).data('uid'), num = $(this).data('num') || '';
         Swal.fire({
@@ -459,10 +494,16 @@ $(function () {
             $.ajax({
                 url   : '/quotations/deleteQuotation',
                 method: 'POST',
-                data  : { TransUID: uid, [CsrfName]: CsrfToken },
+                data  : _actionPostData({ TransUID: uid }),
                 success: function (resp) {
-                    if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); }
-                    else { getQuotationsDetails(); Swal.fire({ icon: 'success', text: resp.Message, timer: 1500, showConfirmButton: false }); }
+                    if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }
+                    showToastNotification(resp.Message || 'Deleted.', 'success');
+                    if (PageNo > 1 && (resp.TotalCount || 0) <= (PageNo - 1) * RowLimit) {
+                        PageNo--;
+                        getQuotationsDetails();
+                    } else {
+                        _renderListResponse(resp);
+                    }
                 }
             });
         });

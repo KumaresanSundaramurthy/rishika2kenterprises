@@ -121,14 +121,14 @@ foreach ($DataLists as $row):
 
     <td class="align-middle">
         <?php if ($updatedOnStr): ?>
-            <div style="font-size:.78rem;"><?php echo changeTimeZonefromDateTime($updatedOnStr, $JwtData->User->Timezone, 2); ?></div>
+            <div class="r2k-col-date"><?php echo changeTimeZonefromDateTime($updatedOnStr, $JwtData->User->Timezone, 2); ?></div>
             <?php if ($agoText): ?>
-                <div style="font-size:.68rem;color:#0d6efd;font-weight:500;"><?php echo $agoText; ?></div>
+                <div class="r2k-col-date-ago"><?php echo $agoText; ?></div>
             <?php endif; ?>
         <?php else: ?>
-            <div style="font-size:.78rem;" class="text-muted">—</div>
+            <div class="r2k-col-date text-muted">—</div>
         <?php endif; ?>
-        <div class="text-muted" style="font-size:.7rem;">by <?php echo $updatedByName; ?></div>
+        <div class="text-muted r2k-col-date-by">by <?php echo $updatedByName; ?></div>
     </td>
 
     <td class="text-center align-middle">

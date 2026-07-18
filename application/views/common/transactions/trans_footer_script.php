@@ -26,6 +26,8 @@ let billItems = [];
 let billMap = {};
 const genSettings = <?php echo json_encode($JwtData->GenSettings ?? new stdClass()); ?>;
 // Date & DateTime format settings from GenSettings JWT
+var _comboPriceDist             = '<?php echo addslashes($JwtData->TransSettings->ComboPriceDistribution ?? 'ratio'); ?>';
+var _belowPurchasePriceAction   = '<?php echo addslashes($JwtData->TransSettings->BelowPurchasePriceAction ?? 'warn'); ?>';
 var _transFormDateFormat      = '<?php echo addslashes($JwtData->GenSettings->FormDateFormat      ?? 'd-m-Y'); ?>';
 var _transListDateFormat      = '<?php echo addslashes($JwtData->GenSettings->ListDateFormat      ?? 'd-m-Y'); ?>';
 var _transPrintDateFormat     = '<?php echo addslashes($JwtData->GenSettings->PrintDateFormat     ?? 'd-m-Y'); ?>';

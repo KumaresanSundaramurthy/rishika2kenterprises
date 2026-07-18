@@ -93,38 +93,32 @@
                                 </div>
                                 <div class="mb-3 col-md-6">
                                     <label class="form-label" for="OrgBussTypeUID">Business Type <span style="color:red">*</span></label>
-                                    <select id="OrgBussTypeUID" name="OrgBussTypeUID" class="select2 form-select" required>
-                                        <option label="-- Select Business Type --"></option>
-                                        <?php if (is_array($OrgBussType) && count($OrgBussType) > 0) {
-                                            foreach ($OrgBussType as $BusType) { ?>
-                                                <option value="<?php echo $BusType->OrgBussTypeUID; ?>" <?php echo $BusType->OrgBussTypeUID == (isset($EditOrgData->OrgBussTypeUID) ? $EditOrgData->OrgBussTypeUID : '') ? 'selected' : ''; ?>><?php echo $BusType->Name; ?></option>
-                                        <?php }
-                                        } ?>
-
+                                    <select id="OrgBussTypeUID" name="OrgBussTypeUID" class="form-select" required
+                                        data-selected="<?php echo isset($EditOrgData->OrgBussTypeUID) ? (int)$EditOrgData->OrgBussTypeUID : 0; ?>">
+                                        <option value="">-- Select Business Type --</option>
+                                        <?php if (!empty($EditOrgData->OrgBussTypeUID) && !empty($EditOrgData->OrgBusinessTypeName)): ?>
+                                        <option value="<?php echo (int)$EditOrgData->OrgBussTypeUID; ?>" selected><?php echo htmlspecialchars($EditOrgData->OrgBusinessTypeName); ?></option>
+                                        <?php endif; ?>
                                     </select>
                                 </div>
                                 <div class="mb-3 col-md-6">
                                     <label class="form-label" for="OrgIndusTypeUID">Industry Type </label>
-                                    <select id="OrgIndusTypeUID" name="OrgIndusTypeUID" class="select2 form-select">
-                                        <option label="-- Select Industry Type --"></option>
-                                        <?php if (is_array($OrgIndusType) && count($OrgIndusType) > 0) {
-                                            foreach ($OrgIndusType as $IndType) { ?>
-                                                <option value="<?php echo $IndType->OrgIndTypeUID; ?>" <?php echo $IndType->OrgIndTypeUID == (isset($EditOrgData->OrgIndTypeUID) ? $EditOrgData->OrgIndTypeUID : '') ? 'selected' : ''; ?>><?php echo $IndType->Name; ?></option>
-                                        <?php }
-                                        } ?>
-
+                                    <select id="OrgIndusTypeUID" name="OrgIndusTypeUID" class="form-select"
+                                        data-selected="<?php echo isset($EditOrgData->OrgIndTypeUID) ? (int)$EditOrgData->OrgIndTypeUID : 0; ?>">
+                                        <option value="">-- Select Industry Type --</option>
+                                        <?php if (!empty($EditOrgData->OrgIndTypeUID) && !empty($EditOrgData->OrgIndTypeName)): ?>
+                                        <option value="<?php echo (int)$EditOrgData->OrgIndTypeUID; ?>" selected><?php echo htmlspecialchars($EditOrgData->OrgIndTypeName); ?></option>
+                                        <?php endif; ?>
                                     </select>
                                 </div>
                                 <div class="mb-3 col-md-6">
                                     <label class="form-label" for="OrgBusRegTypeUID">Business Registration Type </label>
-                                    <select id="OrgBusRegTypeUID" name="OrgBusRegTypeUID" class="select2 form-select">
-                                        <option label="-- Select Business Type --"></option>
-                                        <?php if (is_array($OrgBusRegType) && count($OrgBusRegType) > 0) {
-                                            foreach ($OrgBusRegType as $BusRegType) { ?>
-                                                <option value="<?php echo $BusRegType->OrgBusRegTypeUID; ?>" <?php echo $BusRegType->OrgBusRegTypeUID == (isset($EditOrgData->OrgBusRegTypeUID) ? $EditOrgData->OrgBusRegTypeUID : '') ? 'selected' : ''; ?>><?php echo $BusRegType->Name; ?></option>
-                                        <?php }
-                                        } ?>
-
+                                    <select id="OrgBusRegTypeUID" name="OrgBusRegTypeUID" class="form-select"
+                                        data-selected="<?php echo isset($EditOrgData->OrgBusRegTypeUID) ? (int)$EditOrgData->OrgBusRegTypeUID : 0; ?>">
+                                        <option value="">-- Select Business Registration Type --</option>
+                                        <?php if (!empty($EditOrgData->OrgBusRegTypeUID) && !empty($EditOrgData->OrgBusRegTypeName)): ?>
+                                        <option value="<?php echo (int)$EditOrgData->OrgBusRegTypeUID; ?>" selected><?php echo htmlspecialchars($EditOrgData->OrgBusRegTypeName); ?></option>
+                                        <?php endif; ?>
                                     </select>
                                 </div>
                                 <div class="mb-3 col-md-6">
@@ -176,7 +170,7 @@
                         '36'=>'Telangana',            '37'=>'Andhra Pradesh',
                         '38'=>'Ladakh',               '97'=>'Other Territory',
                     ];
-                    $savedStateCode = isset($EditOrgData->StateCode) ? $EditOrgData->StateCode : '';
+                    $savedStateCode = (string)(isset($EditOrgData->StateCode) ? $EditOrgData->StateCode : '');
                     ?>
                     <div class="card mb-3">
                         <div class="card-header modal-header-center-sticky p-2">
@@ -190,7 +184,7 @@
                                         <option value="">— Select State —</option>
                                         <?php foreach ($indianGstStates as $code => $name): ?>
                                         <option value="<?php echo $code; ?>" data-name="<?php echo htmlspecialchars($name, ENT_QUOTES); ?>"
-                                            <?php echo $savedStateCode === $code ? 'selected' : ''; ?>>
+                                            <?php echo $savedStateCode === (string)$code ? 'selected' : ''; ?>>
                                             <?php echo $code; ?> — <?php echo htmlspecialchars($name); ?>
                                         </option>
                                         <?php endforeach; ?>
@@ -356,7 +350,7 @@ $(function() {
         }
 
         // 1. Check Upstash directly — instant if already cached
-        UpstashService.get(UpstashService.orgKey('loc-timezone-all')).then(function (cached) {
+        UpstashService.get(UpstashService.globalKey('loc-timezone-all')).then(function (cached) {
             if (cached && Array.isArray(cached) && cached.length > 0) {
                 _renderTimezones(cached);
             } else {

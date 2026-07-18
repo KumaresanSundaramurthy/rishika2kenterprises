@@ -5,6 +5,16 @@ $isDraftEdit = $isEdit && ($PurchData->DocStatus === 'Draft');
 $transUID    = $isEdit ? (int)$PurchData->TransUID : 0;
 $formId      = 'purchForm';
 $formAction  = $isEdit ? 'purchases/updatePurchase' : 'purchases/addPurchase';
+$_posCode    = $isEdit ? ($PurchData->PlaceOfSupplyCode  ?? '') : ($JwtData->Org->StateCode  ?? '');
+$_posName    = $isEdit ? ($PurchData->PlaceOfSupplyName  ?? '') : ($JwtData->Org->StateName  ?? '');
+
+$_returnTab  = $this->input->get('returnTab')  ?: 'All';
+$_returnPage = (int)($this->input->get('returnPage') ?: 1);
+$_closeUrl   = '/purchases';
+$_cParams    = [];
+if ($_returnTab) $_cParams[] = 'tab=' . urlencode($_returnTab);
+if ($_returnPage > 1) $_cParams[] = 'page=' . $_returnPage;
+if ($_cParams) $_closeUrl .= '?' . implode('&', $_cParams);
 
 // Edit: resolve prefix config for the existing transaction
 $editPrefixConfig = null;
@@ -106,8 +116,7 @@ if ($isEdit) {
                 <?php if ($isEdit): ?>
                 <input type="hidden" name="TransUID" value="<?php echo $transUID; ?>" />
                 <?php endif; ?>
-                <input type="hidden" id="placeOfSupplyCode" name="placeOfSupplyCode" value="<?php echo !$isEdit ? htmlspecialchars($JwtData->Org->StateCode ?? '', ENT_QUOTES) : ''; ?>" />
-                <input type="hidden" id="placeOfSupplyName" name="placeOfSupplyName" value="<?php echo !$isEdit ? htmlspecialchars($JwtData->Org->StateName ?? '', ENT_QUOTES) : ''; ?>" />
+                <?php $this->load->view('transactions/partials/place_of_supply_inputs', ['_posCode' => $_posCode, '_posName' => $_posName]); ?>
 
                     <div class="card mb-3">
 
@@ -225,7 +234,7 @@ if ($isEdit) {
                                     <button type="submit" name="action" value="save" class="btn btn-sm btn-primary"><i class="bx bx-check me-1"></i>Save</button>
                                 <?php endif; ?>
                                 <?php $_hideNav = (int)($JwtData->TransSettings->HideNavOnTransForm ?? 0); ?>
-                                <a href="/purchases" class="btn btn-sm btn-outline-danger px-3<?php echo $_hideNav ? ' d-none' : ''; ?>"><i class="bx bx-x me-1"></i>Close</a>
+                                <a href="<?php echo $_closeUrl; ?>" class="btn btn-sm btn-outline-danger px-3<?php echo $_hideNav ? ' d-none' : ''; ?>"><i class="bx bx-x me-1"></i>Close</a>
                             </div>
                         </div>
 
@@ -325,8 +334,8 @@ if ($isEdit) {
                                     <div class="input-group input-group-sm input-group-merge">
                                         <span class="input-group-text bg-white"><i class="icon-base bx bx-calendar"></i></span>
                                         <input type="text" class="form-control form-control-sm bg-white" id="billDueDate_disp" readonly="readonly"
-                                            value="<?php echo ($isEdit && !empty($PurchData->ValidityDate)) ? format_datedisplay($PurchData->ValidityDate, $_fmt) : ''; ?>" />
-                                        <input type="hidden" id="billDueDate" name="billDueDate" value="<?php echo ($isEdit && !empty($PurchData->ValidityDate)) ? htmlspecialchars(format_datedisplay($PurchData->ValidityDate, 'Y-m-d')) : ''; ?>" />
+                                            value="<?php echo ($isEdit && !empty($PurchData->ValidityDate)) ? format_datedisplay($PurchData->ValidityDate, $_fmt) : format_datedisplay(date('Y-m-d'), $_fmt); ?>" />
+                                        <input type="hidden" id="billDueDate" name="billDueDate" value="<?php echo ($isEdit && !empty($PurchData->ValidityDate)) ? htmlspecialchars(format_datedisplay($PurchData->ValidityDate, 'Y-m-d')) : date('Y-m-d'); ?>" />
                                     </div>
                                 </div>
 
@@ -534,6 +543,8 @@ var _vendorState    = '<?php echo isset($VendorAddr) ? addslashes($VendorAddr->S
 var _upstashUrl       = '<?php echo addslashes($UpstashReadUrl  ?? ''); ?>';
 var _upstashReadToken = '<?php echo addslashes($UpstashReadToken ?? ''); ?>';
 var _vendorCacheKey   = '<?php echo addslashes($VendorCacheKey  ?? ''); ?>';
+var _returnTab  = <?php echo json_encode($_returnTab); ?>;
+var _returnPage = <?php echo (int)$_returnPage; ?>;
 window._productPurchaseMode = true;
 
 <?php if ($isEdit): ?>
@@ -615,7 +626,7 @@ $(function() {
     searchVendors('vendorSearch');
     <?php endif; ?>
     transDatePickr('#transDate_disp',    '#transDate',   false, false, true,  true,  '');
-    transDatePickr('#billDueDate_disp',  '#billDueDate', false, false, false, <?php echo $isEdit ? 'false' : 'true'; ?>, '#transDate');
+    transDatePickr('#billDueDate_disp',  '#billDueDate', false, false, false, false, '#transDate');
 
     // Keep billDueDate minDate in sync whenever supplier invoice date changes
     (function () {
@@ -791,16 +802,8 @@ $(function() {
                         setFormLoading('#<?php echo $formId; ?>', false);
                         showFormError(response.Message);
                     } else {
-                        Swal.fire({
-                            icon             : 'success',
-                            title            : _isEdit ? 'Purchase Bill Updated' : 'Purchase Bill Saved',
-                            text             : response.Message || (_isEdit ? 'Purchase bill updated successfully.' : 'Purchase bill recorded successfully.'),
-                            confirmButtonText: 'OK',
-                            timer            : 3000,
-                            timerProgressBar : true,
-                        }).then(function() {
-                            window.location.href = '/purchases';
-                        });
+                        _setPendingToast('_purPendingToast', response.Message, 'success');
+                        window.location.href = _buildReturnUrl('/purchases');
                     }
                 },
                 error: function() {

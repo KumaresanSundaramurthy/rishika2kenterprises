@@ -744,17 +744,34 @@ class Vendors_model extends CI_Model {
     // Vendor Group model methods
     // ══════════════════════════════════════════════════════════════════
 
-    public function searchVendorsForGroup(string $term): array {
+    public function searchVendorsForGroup(string $term, int $orgUID = 0, int $excludeGroupUID = 0): array {
         try {
             $this->ReadDb->db_debug = FALSE;
-            $this->ReadDb->select(['VendorUID', 'Name', 'Area']);
-            $this->ReadDb->from('Vendors.VendorTbl');
+            $this->ReadDb->select('V.VendorUID, V.Name, V.Area');
+            $this->ReadDb->from('Vendors.VendorTbl V');
+            if ($orgUID > 0) {
+                $this->ReadDb->join(
+                    'Vendors.VendorGroupMemberTbl VGM',
+                    'VGM.VendorUID = V.VendorUID AND VGM.OrgUID = V.OrgUID AND VGM.IsDeleted = 0',
+                    'left'
+                );
+            }
             $this->ReadDb->group_start();
-            $this->ReadDb->or_like('Name',         $term, 'both');
-            $this->ReadDb->or_like('MobileNumber', $term, 'both');
-            $this->ReadDb->or_like('Area',         $term, 'both');
+            $this->ReadDb->or_like('V.Name',         $term, 'both');
+            $this->ReadDb->or_like('V.MobileNumber', $term, 'both');
+            $this->ReadDb->or_like('V.Area',         $term, 'both');
             $this->ReadDb->group_end();
-            $this->ReadDb->where(['IsDeleted' => 0, 'IsActive' => 1]);
+            $this->ReadDb->where(['V.IsDeleted' => 0, 'V.IsActive' => 1]);
+            if ($orgUID > 0) {
+                $this->ReadDb->where('V.OrgUID', (int)$orgUID);
+                // Exclude vendors already in a different group
+                $this->ReadDb->group_start();
+                $this->ReadDb->where('VGM.MemberUID IS NULL', null, false);
+                if ($excludeGroupUID > 0) {
+                    $this->ReadDb->or_where('VGM.GroupUID', (int)$excludeGroupUID);
+                }
+                $this->ReadDb->group_end();
+            }
             $this->ReadDb->limit(10);
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
@@ -791,14 +808,15 @@ class Vendors_model extends CI_Model {
             // ── Step 1: Paginated groups with member count + primary name (no VOB join) ──
             $this->ReadDb->select(
                 'VG.GroupUID, VG.GroupCode, VG.GroupName, VG.GroupType,
-                 VG.ContactPerson, VG.Mobile, VG.Email, VG.IsActive, VG.CreatedAt,
+                 VG.ContactPerson, VG.Mobile, VG.Email, VG.IsActive,
                  COUNT(V.VendorUID) AS MemberCount,
-                 MAX(CASE WHEN V.IsGroupPrimary = 1 THEN V.Name ELSE NULL END) AS PrimaryName,
+                 MAX(CASE WHEN VGM.IsGroupPrimary = 1 THEN V.Name ELSE NULL END) AS PrimaryName,
                  0 AS TotalReceivable, 0 AS TotalPayable',
                 false
             );
             $this->ReadDb->from('Vendors.VendorGroupTbl VG');
-            $this->ReadDb->join('Vendors.VendorTbl V', 'V.GroupUID = VG.GroupUID AND V.IsDeleted = 0', 'left');
+            $this->ReadDb->join('Vendors.VendorGroupMemberTbl VGM', 'VGM.GroupUID = VG.GroupUID AND VGM.OrgUID = VG.OrgUID AND VGM.IsDeleted = 0', 'left');
+            $this->ReadDb->join('Vendors.VendorTbl V', 'V.VendorUID = VGM.VendorUID AND V.IsDeleted = 0', 'left');
             $this->ReadDb->where(['VG.OrgUID' => (int)$orgUID, 'VG.IsDeleted' => 0]);
             if (!empty($filter['SearchAllData'])) {
                 $s = $filter['SearchAllData'];
@@ -827,14 +845,16 @@ class Vendors_model extends CI_Model {
                 foreach ($rows as $row) { $groupUIDs[] = (int)$row->GroupUID; }
                 $placeholders = implode(',', array_fill(0, count($groupUIDs), '?'));
                 $balQuery = $this->ReadDb->query(
-                    "SELECT V.GroupUID,
+                    "SELECT VGM.GroupUID,
                             COALESCE(SUM(CASE WHEN VOB.PendingBalType = 'Debit'  AND VOB.PendingBalance > 0 THEN VOB.PendingBalance ELSE 0 END), 0) AS TotalReceivable,
                             COALESCE(SUM(CASE WHEN VOB.PendingBalType = 'Credit' AND VOB.PendingBalance > 0 THEN VOB.PendingBalance ELSE 0 END), 0) AS TotalPayable
-                     FROM Vendors.VendorTbl V
+                     FROM Vendors.VendorGroupMemberTbl VGM
+                     JOIN Vendors.VendorTbl V
+                          ON V.VendorUID = VGM.VendorUID AND V.IsDeleted = 0
                      JOIN Vendors.VendOpeningBalanceTbl VOB
                           ON VOB.VendorUID = V.VendorUID AND VOB.OrgUID = V.OrgUID AND VOB.IsDeleted = 0
-                     WHERE V.OrgUID = ? AND V.GroupUID IN ({$placeholders}) AND V.IsDeleted = 0
-                     GROUP BY V.GroupUID",
+                     WHERE VGM.OrgUID = ? AND VGM.GroupUID IN ({$placeholders}) AND VGM.IsDeleted = 0
+                     GROUP BY VGM.GroupUID",
                     array_merge([(int)$orgUID], $groupUIDs)
                 );
                 $balMap = [];
@@ -862,7 +882,7 @@ class Vendors_model extends CI_Model {
             $this->ReadDb->db_debug = FALSE;
             $query = $this->ReadDb->query(
                 "SELECT COUNT(*) AS TotalCount, SUM(IsActive=1) AS ActiveCount, SUM(IsActive=0) AS InactiveCount,
-                        (SELECT COUNT(*) FROM Vendors.VendorTbl WHERE OrgUID=? AND GroupUID IS NOT NULL AND IsDeleted=0) AS TotalMembers
+                        (SELECT COUNT(*) FROM Vendors.VendorGroupMemberTbl WHERE OrgUID=? AND IsDeleted=0) AS TotalMembers
                  FROM Vendors.VendorGroupTbl WHERE OrgUID=? AND IsDeleted=0",
                 [(int)$orgUID, (int)$orgUID]
             );
@@ -902,14 +922,16 @@ class Vendors_model extends CI_Model {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select([
-                'V.VendorUID', 'V.Name', 'V.Area', 'V.MobileNumber', 'V.IsGroupPrimary',
+                'V.VendorUID', 'V.Name', 'V.Area', 'V.MobileNumber',
+                'VGM.IsGroupPrimary',
                 "IFNULL(VOB.PendingBalance, 0)        AS Balance",
                 "IFNULL(VOB.PendingBalType, 'Credit') AS BalanceType",
             ]);
-            $this->ReadDb->from('Vendors.VendorTbl V');
+            $this->ReadDb->from('Vendors.VendorGroupMemberTbl VGM');
+            $this->ReadDb->join('Vendors.VendorTbl V', 'V.VendorUID = VGM.VendorUID AND V.IsDeleted = 0');
             $this->ReadDb->join('Vendors.VendOpeningBalanceTbl VOB', 'VOB.VendorUID = V.VendorUID AND VOB.OrgUID = V.OrgUID AND VOB.IsDeleted = 0', 'left');
-            $this->ReadDb->where(['V.OrgUID' => (int)$orgUID, 'V.GroupUID' => (int)$groupUID, 'V.IsDeleted' => 0]);
-            $this->ReadDb->order_by('V.IsGroupPrimary', 'DESC');
+            $this->ReadDb->where(['VGM.OrgUID' => (int)$orgUID, 'VGM.GroupUID' => (int)$groupUID, 'VGM.IsDeleted' => 0]);
+            $this->ReadDb->order_by('VGM.IsGroupPrimary', 'DESC');
             $this->ReadDb->order_by('V.Name', 'ASC');
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
@@ -935,34 +957,111 @@ class Vendors_model extends CI_Model {
     public function assignVendorGroupMembers(int $orgUID, int $groupUID, array $memberUIDs, int $primaryUID, int $userUID): void {
         if (empty($memberUIDs)) return;
         foreach ($memberUIDs as $vendUID) {
-            $this->dbwrite_model->updateData('Vendors', 'VendorTbl', [
-                'GroupUID'       => (int)$groupUID,
-                'IsGroupPrimary' => ((int)$vendUID === (int)$primaryUID) ? 1 : 0,
-                'UpdatedBy'      => (int)$userUID,
-            ], ['VendorUID' => (int)$vendUID, 'OrgUID' => (int)$orgUID]);
+            $this->saveVendorGroupMembership(
+                $orgUID, (int)$vendUID, $groupUID,
+                ((int)$vendUID === (int)$primaryUID) ? 1 : 0,
+                $userUID
+            );
         }
     }
 
     public function syncVendorGroupMembers(int $orgUID, int $groupUID, array $newMemberUIDs, int $primaryUID, int $userUID): void {
         $db = $this->dbwrite_model->getWriteDb();
-        $db->where('OrgUID', (int)$orgUID);
+        // Soft-delete members removed from the group
+        $db->where('OrgUID',   (int)$orgUID);
         $db->where('GroupUID', (int)$groupUID);
         $db->where('IsDeleted', 0);
         if (!empty($newMemberUIDs)) {
             $db->where_not_in('VendorUID', array_map('intval', $newMemberUIDs));
         }
-        $db->update('Vendors.VendorTbl', [
-            'GroupUID' => null, 'IsGroupPrimary' => 0, 'UpdatedBy' => (int)$userUID,
-        ]);
+        $db->update('Vendors.VendorGroupMemberTbl', ['IsDeleted' => 1, 'UpdatedBy' => (int)$userUID]);
+        // Upsert all current members
         if (!empty($newMemberUIDs)) {
             $this->assignVendorGroupMembers($orgUID, $groupUID, $newMemberUIDs, $primaryUID, $userUID);
         }
     }
 
     public function unlinkAllVendorGroupMembers(int $orgUID, int $groupUID, int $userUID): void {
-        $this->dbwrite_model->updateData('Vendors', 'VendorTbl', [
-            'GroupUID' => null, 'IsGroupPrimary' => 0, 'UpdatedBy' => (int)$userUID,
-        ], ['OrgUID' => (int)$orgUID, 'GroupUID' => (int)$groupUID]);
+        $db = $this->dbwrite_model->getWriteDb();
+        $db->where('OrgUID',   (int)$orgUID);
+        $db->where('GroupUID', (int)$groupUID);
+        $db->where('IsDeleted', 0);
+        $db->update('Vendors.VendorGroupMemberTbl', ['IsDeleted' => 1, 'UpdatedBy' => (int)$userUID]);
+    }
+
+    public function getVendorGroupMembership(int $orgUID, int $vendorUID): ?object {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('VGM.MemberUID, VGM.GroupUID, VGM.IsGroupPrimary');
+            $this->ReadDb->from('Vendors.VendorGroupMemberTbl VGM');
+            $this->ReadDb->where(['VGM.OrgUID' => $orgUID, 'VGM.VendorUID' => $vendorUID, 'VGM.IsDeleted' => 0]);
+            $this->ReadDb->limit(1);
+            $query = $this->ReadDb->get();
+            return $query ? $query->row() : null;
+        } catch (Exception $e) {
+            return null;
+        }
+    }
+
+    public function saveVendorGroupMembership(int $orgUID, int $vendorUID, int $groupUID, int $isGroupPrimary, int $userUID): void {
+        $db = $this->dbwrite_model->getWriteDb();
+        $db->query(
+            "INSERT INTO Vendors.VendorGroupMemberTbl
+                (OrgUID, VendorUID, GroupUID, IsGroupPrimary, IsDeleted, CreatedBy, UpdatedBy)
+             VALUES (?, ?, ?, ?, 0, ?, ?)
+             ON DUPLICATE KEY UPDATE
+                GroupUID       = VALUES(GroupUID),
+                IsGroupPrimary = VALUES(IsGroupPrimary),
+                IsDeleted      = 0,
+                UpdatedBy      = VALUES(UpdatedBy)",
+            [(int)$orgUID, (int)$vendorUID, (int)$groupUID, (int)$isGroupPrimary, (int)$userUID, (int)$userUID]
+        );
+    }
+
+    public function removeVendorFromGroup(int $orgUID, int $vendorUID, int $userUID): void {
+        $db = $this->dbwrite_model->getWriteDb();
+        $db->where('OrgUID',    (int)$orgUID);
+        $db->where('VendorUID', (int)$vendorUID);
+        $db->where('IsDeleted', 0);
+        $db->update('Vendors.VendorGroupMemberTbl', ['IsDeleted' => 1, 'UpdatedBy' => (int)$userUID]);
+    }
+
+    public function getVendorsInOtherGroups(int $orgUID, int $excludeGroupUID = 0): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('VendorUID');
+            $this->ReadDb->from('Vendors.VendorGroupMemberTbl');
+            $this->ReadDb->where(['OrgUID' => (int)$orgUID, 'IsDeleted' => 0]);
+            if ($excludeGroupUID > 0) {
+                $this->ReadDb->where('GroupUID !=', (int)$excludeGroupUID);
+            }
+            $query = $this->ReadDb->get();
+            if (!$query) return [];
+            return array_column($query->result_array(), 'VendorUID');
+        } catch (Exception $e) {
+            return [];
+        }
+    }
+
+    public function getVendorGroupOverview(int $orgUID, int $groupUID): ?object {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $query = $this->ReadDb->query(
+                "SELECT
+                    COUNT(VGM.VendorUID) AS MemberCount,
+                    COALESCE(SUM(CASE WHEN VOB.PendingBalType = 'Debit'  AND VOB.PendingBalance > 0 THEN VOB.PendingBalance ELSE 0 END), 0) AS TotalReceivable,
+                    COALESCE(SUM(CASE WHEN VOB.PendingBalType = 'Credit' AND VOB.PendingBalance > 0 THEN VOB.PendingBalance ELSE 0 END), 0) AS TotalPayable
+                 FROM Vendors.VendorGroupMemberTbl VGM
+                 JOIN Vendors.VendorTbl V ON V.VendorUID = VGM.VendorUID AND V.IsDeleted = 0
+                 LEFT JOIN Vendors.VendOpeningBalanceTbl VOB
+                      ON VOB.VendorUID = V.VendorUID AND VOB.OrgUID = V.OrgUID AND VOB.IsDeleted = 0
+                 WHERE VGM.OrgUID = ? AND VGM.GroupUID = ? AND VGM.IsDeleted = 0",
+                [(int)$orgUID, (int)$groupUID]
+            );
+            return $query ? $query->row() : null;
+        } catch (Exception $e) {
+            return null;
+        }
     }
 
     // ── Vendor Attachments ────────────────────────────────────────────────────

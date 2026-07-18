@@ -60,6 +60,8 @@ class Customers extends MY_Controller {
             // Default empty state for groups (filled only when landing on groups tab)
             $this->pageData['GrpRowData']    = '';
             $this->pageData['GrpPagination'] = '';
+            $this->pageData['ModRowData']    = '';
+            $this->pageData['ModPagination'] = '';
             $this->pageData['GrpStats']      = null;
             $this->pageData['GrpTotal']      = 0;
 
@@ -68,8 +70,6 @@ class Customers extends MY_Controller {
                 $this->pageData['ModRowData']    = $pageData->RecordHtmlData;
                 $this->pageData['ModPagination'] = $pageData->Pagination;
             } else {
-                $this->pageData['ModRowData']    = '';
-                $this->pageData['ModPagination'] = '';
                 $grpFilter = strlen($initSearch) >= 3 ? ['SearchAllData' => $initSearch] : [];
                 $grpPage   = $this->_fetchGroupsTableData(1, $limit, $grpFilter);
                 $this->pageData['GrpRowData']    = $grpPage->RecordHtmlData;
@@ -83,9 +83,8 @@ class Customers extends MY_Controller {
             $this->pageData['InitSearch'] = $initSearch;
 
             $this->pageData['CustStats']         = $this->customers_model->getCustomerStats($orgUID);
-            $this->pageData['CustomerGroupList'] = $this->customers_model->getActiveGroupsForDropdown($orgUID);
+            $this->pageData['CustomerGroupList'] = [];
             $this->pageData['Tags']              = $this->customers_model->getCustomerTags($orgUID);
-            $this->pageData['GroupTypes']        = $this->_groupTypesList();
 
             // Resolve org phone country code from JwtData (sourced from OrganisationTbl at login)
             $this->pageData['OrgCCode'] = $this->pageData['JwtData']->Org->OrgCCode  ?? '';
@@ -135,12 +134,22 @@ class Customers extends MY_Controller {
         $this->EndReturnData->Lists = [];
         try {
 
-            $term = trim($this->input->get('term'));
+            $term     = trim($this->input->get('term'));
+            $groupUID = (int) $this->input->get('groupUID'); // 0 = new group; >0 = editing this group
             if ($term) {
                 $this->load->model('customers_model');
-                $customersData = $this->customers_model->getCustomersDetails($term);
+                $orgUID = (int)$this->pageData['JwtData']->Org->OrgUID;
+
+                // Exclude customers who are already in a DIFFERENT group
+                $excludeUIDs = $this->customers_model->getCustomersInOtherGroups($orgUID, $groupUID);
+
+                $customersData = $this->customers_model->getCustomersDetails(
+                    $term,
+                    ['Customers.OrgUID' => $orgUID]
+                );
 
                 foreach ($customersData as $value) {
+                    if (in_array((int)$value->CustomerUID, $excludeUIDs, true)) continue;
                     $this->EndReturnData->Lists[] = [
                         'id'   => $value->CustomerUID,
                         'text' => $value->Area ? $value->Name . ' (' . $value->Area . ')' : $value->Name,
@@ -180,8 +189,6 @@ class Customers extends MY_Controller {
             'Tags'              => getPostValue($postData, 'Tags', 'Comma'),
             'CCEmails'          => getPostValue($postData, 'CCEmails', 'Comma'),
             'CustomerTypeUID'   => (int) getPostValue($postData, 'CustomerTypeUID', '', 0),
-            'GroupUID'          => (int) getPostValue($postData, 'GroupUID', '', 0) ?: null,
-            'IsGroupPrimary'    => 0,
             'SalutationUID'     => (int) trim(getPostValue($postData, 'SalutationUID') ?? '', '"\'') ?: null,
             'UpdatedBy'         => $this->pageData['JwtData']->User->UserUID,
         ];
@@ -270,6 +277,18 @@ class Customers extends MY_Controller {
             $deleteUIDs = $this->input->post('CustAttachDeleteUIDs') ?: '';
             $this->_handleCustomerAttachments((int)$CustomerUID, (int)$this->pageData['JwtData']->Org->OrgUID, (int)$this->pageData['JwtData']->User->UserUID, $deleteUIDs);
 
+            $this->cachehelper->upsertCustomer((int)$CustomerUID);
+
+            $newGroupUID = (int) getPostValue($PostData, 'GroupUID', '', 0);
+            if ($newGroupUID > 0) {
+                $this->customers_model->saveCustomerGroupMembership(
+                    (int)$this->pageData['JwtData']->Org->OrgUID,
+                    (int)$CustomerUID,
+                    $newGroupUID, 0,
+                    (int)$this->pageData['JwtData']->User->UserUID
+                );
+            }
+
             // Success is confirmed — customer is saved
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Created Successfully';
@@ -322,7 +341,6 @@ class Customers extends MY_Controller {
 
             $orgUID = $this->pageData['JwtData']->Org->OrgUID;
             $this->load->model('customers_model');
-            $this->pageData['CustomerGroupList'] = $this->customers_model->getActiveGroupsForDropdown($orgUID);
 
             $formData     = null;
             $bankDetails  = [];
@@ -349,7 +367,7 @@ class Customers extends MY_Controller {
                 'BillingAddr'       => $billingAddr,
                 'ShippingAddr'      => $shippingAddr,
                 'CustomerTypeList'  => [],
-                'CustomerGroupList' => $this->pageData['CustomerGroupList'],
+                'CustomerGroupList' => [],
                 'OrgCCode'          => $this->pageData['JwtData']->Org->OrgCCode  ?? '',
                 'OrgCISO2'          => $this->pageData['JwtData']->Org->OrgCISO2  ?? '',
                 'JwtData'           => $this->pageData['JwtData'],
@@ -438,6 +456,7 @@ class Customers extends MY_Controller {
                     'PANNumber'        => $cust->PANNumber       ?? '',
                     'SalutationUID'    => (int)($cust->SalutationUID   ?? 0) ?: null,
                     'CustomerTypeUID'  => (int)($cust->CustomerTypeUID  ?? 0),
+                    'GroupUID'         => (int)($cust->GroupUID         ?? 0) ?: null,
                     'DiscountPercent'  => (float)($cust->DiscountPercent ?? 0),
                     'CreditPeriod'     => (int)($cust->CreditPeriod     ?? 0),
                     'CreditLimit'      => (float)($cust->CreditLimit    ?? 0),
@@ -651,6 +670,19 @@ class Customers extends MY_Controller {
 
             // Refresh org-level customer cache
             $this->cachehelper->upsertCustomer((int)$CustomerUID);
+
+            $newGroupUID = (int) getPostValue($PostData, 'GroupUID', '', 0);
+            $existing    = $this->customers_model->getCustomerGroupMembership((int)$orgUID, (int)$CustomerUID);
+            if ($newGroupUID > 0) {
+                // Preserve primary flag only if staying in the same group; reset to 0 when moving to a new group
+                $sameGroup = $existing && (int)$existing->GroupUID === $newGroupUID;
+                $isPrimary = $sameGroup ? (int)$existing->IsGroupPrimary : 0;
+                $this->customers_model->saveCustomerGroupMembership(
+                    (int)$orgUID, (int)$CustomerUID, $newGroupUID, $isPrimary, (int)$userUID
+                );
+            } elseif ($existing) {
+                $this->customers_model->removeCustomerFromGroup((int)$orgUID, (int)$CustomerUID, (int)$userUID);
+            }
 
             $pageNo = (int) ($this->input->post('PageNo') ?: 1);
             $this->_initModule();
@@ -1362,11 +1394,20 @@ class Customers extends MY_Controller {
         return $this->customers_model->getGroupTypes('customers');
     }
 
-    public function getGroupTypes() {
+
+    public function getGroupTypes(): void {
         $this->EndReturnData = new stdClass();
         try {
+            $types = $this->_groupTypesList();
             $this->EndReturnData->Error = false;
-            $this->EndReturnData->Data  = $this->_groupTypesList();
+            $this->EndReturnData->Data  = $types;
+            if (!empty($types)) {
+                $this->upstashservice->set(
+                    $this->redisservice->globalKey('customer-group-types'),
+                    $types,
+                    0
+                );
+            }
         } catch (Exception $e) {
             $this->EndReturnData->Error = true;
             $this->EndReturnData->Data  = [];
@@ -1500,6 +1541,8 @@ class Customers extends MY_Controller {
                 $this->customers_model->assignGroupMembers($orgUID, $groupUID, $memberUIDs, $primaryUID, $userUID);
             }
             $this->dbwrite_model->commitTransaction();
+            $this->cachehelper->upsertCustomerGroup((int) $groupUID);
+            foreach ($memberUIDs as $mUID) { $this->cachehelper->upsertCustomer($mUID); }
             $this->EndReturnData->Error     = false;
             $this->EndReturnData->Message   = 'Customer Group created successfully.';
             $this->auditlog->log(
@@ -1591,13 +1634,19 @@ class Customers extends MY_Controller {
                 'UpdatedBy'         => $userUID,
             ];
             $this->load->model('customers_model');
-            $oldGroup = $this->customers_model->getGroupByUID($orgUID, $groupUID);
+            $oldGroup      = $this->customers_model->getGroupByUID($orgUID, $groupUID);
+            $oldMembers    = $this->customers_model->getGroupMembers($orgUID, $groupUID);
+            $oldMemberUIDs = array_map(function($m) { return (int)$m->CustomerUID; }, $oldMembers);
             $resp = $this->dbwrite_model->updateData('Customers', 'CustomerGroupTbl', $data, ['GroupUID' => $groupUID, 'OrgUID' => $orgUID]);
             if ($resp->Error) throw new Exception($resp->Message);
             $memberUIDs = array_values(array_filter(array_map('intval', (array)($post['MemberUIDs'] ?? []))));
             $primaryUID = (int)($post['PrimaryUID'] ?? 0);
             $this->customers_model->syncGroupMembers($orgUID, $groupUID, $memberUIDs, $primaryUID, $userUID);
             $this->dbwrite_model->commitTransaction();
+            $this->cachehelper->upsertCustomerGroup((int) $groupUID);
+            foreach (array_unique(array_merge($oldMemberUIDs, $memberUIDs)) as $mUID) {
+                $this->cachehelper->upsertCustomer($mUID);
+            }
             $this->EndReturnData->Error     = false;
             $this->EndReturnData->Message   = 'Customer Group updated successfully.';
             $this->auditlog->log(
@@ -1655,6 +1704,7 @@ class Customers extends MY_Controller {
             );
             if ($resp->Error) throw new Exception($resp->Message);
             $this->dbwrite_model->commitTransaction();
+            $this->cachehelper->removeCustomerGroup((int) $groupUID);
             $this->_initModule();
             $pageData = $this->_fetchGroupsTableData($pageNo, $this->pageData['Limit']);
             $this->EndReturnData->Error          = false;
@@ -1695,6 +1745,11 @@ class Customers extends MY_Controller {
                 ['GroupUID' => $groupUID, 'OrgUID' => $orgUID]
             );
             if ($resp->Error) throw new Exception($resp->Message);
+            if ($newStatus === 1) {
+                $this->cachehelper->upsertCustomerGroup((int) $groupUID);
+            } else {
+                $this->cachehelper->removeCustomerGroup((int) $groupUID);
+            }
             $this->_initModule();
             $pageData = $this->_fetchGroupsTableData($pageNo, $this->pageData['Limit']);
             $this->load->model('customers_model');
@@ -1719,22 +1774,24 @@ class Customers extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    public function groupDetail($groupUID = 0) {
-        $groupUID = (int) $groupUID;
-        if (!$groupUID) { redirect('customers'); return; }
-        if (!$this->_loadPageTitle()) { redirect('customers'); return; }
+    public function getGroupDetail(int $groupUID = 0): void {
+        $this->EndReturnData = new stdClass();
         try {
+            $groupUID = (int)$groupUID;
+            if (!$groupUID) throw new Exception('Group ID is missing.');
             $orgUID = $this->pageData['JwtData']->Org->OrgUID;
             $this->load->model('customers_model');
             $group = $this->customers_model->getGroupByUID($orgUID, $groupUID);
-            if (!$group) { redirect('customers'); return; }
-            $this->pageData['GroupData']     = $group;
-            $this->pageData['Members']       = $this->customers_model->getGroupMembers($orgUID, $groupUID);
-            $this->pageData['GroupOverview'] = $this->customers_model->getGroupOverview($orgUID, $groupUID);
-            $this->load->view('customers/groups/detail', $this->pageData);
+            if (!$group) throw new Exception('Group not found.');
+            $this->EndReturnData->Error    = false;
+            $this->EndReturnData->Data     = $group;
+            $this->EndReturnData->Members  = $this->customers_model->getGroupMembers($orgUID, $groupUID);
+            $this->EndReturnData->Overview = $this->customers_model->getGroupOverview($orgUID, $groupUID);
         } catch (Exception $e) {
-            redirect('customers');
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
     public function getGroupOutstanding($groupUID = 0) {
@@ -1751,13 +1808,28 @@ class Customers extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    public function getGroupsForDropdown() {
+    public function getGroupsForDropdown(): void {
         $this->EndReturnData = new stdClass();
         try {
-            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
+            $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
             $this->load->model('customers_model');
+            $rows = $this->customers_model->getActiveGroupsForDropdown($orgUID);
+            if (!empty($rows)) {
+                $key = $this->redisservice->orgKey('customer-groups');
+                $this->upstashservice->del($key);
+                $map = [];
+                foreach ($rows as $row) {
+                    $map[(string)(int)$row->GroupUID] = json_encode([
+                        'GroupUID'  => (int) $row->GroupUID,
+                        'GroupName' => $row->GroupName ?? '',
+                        'GroupCode' => $row->GroupCode ?? '',
+                        'GroupType' => $row->GroupType ?? '',
+                    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                }
+                $this->upstashservice->hmset($key, $map);
+            }
             $this->EndReturnData->Error  = false;
-            $this->EndReturnData->Groups = $this->customers_model->getActiveGroupsForDropdown($orgUID);
+            $this->EndReturnData->Groups = $rows ?: [];
         } catch (Exception $e) {
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();

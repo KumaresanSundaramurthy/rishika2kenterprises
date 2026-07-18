@@ -44,6 +44,7 @@ if (!empty($DataLists)):
         $pfDocNum         = $list->UniqueNumber ?? '';
         $waMsg            = "Hello *{$pfPartyName}*,\n\nHere is your Pro Forma Invoice *{$pfDocNum}*.\n\nThanks";
         $waMessageEncoded = rawurlencode($waMsg);
+        $hasAttach        = !empty($list->AttachmentCount) && (int)$list->AttachmentCount > 0;
 ?>
     <tr class="<?php echo $isOverdueRow ? 'trans-row-overdue' : ''; ?>">
 
@@ -74,7 +75,20 @@ if (!empty($DataLists)):
                    data-status="<?php echo htmlspecialchars($list->Status ?? ''); ?>">
                     <?php echo htmlspecialchars($list->UniqueNumber); ?>
                 </a>
-                <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate)); ?></div>
+                <div class="d-flex align-items-center gap-2 mt-1">
+                    <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate)); ?></div>
+                    <?php if ($hasAttach): ?>
+                    <button type="button" class="btn btn-link p-0 transAttachBtn"
+                            data-uid="<?php echo (int)$list->TransUID; ?>"
+                            data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
+                            data-url="/transactions/getAttachments"
+                            data-module-uid="<?php echo (int)$list->ModuleUID; ?>"
+                            title="<?php echo (int)$list->AttachmentCount; ?> attachment(s)"
+                            style="font-size:.82rem;line-height:1;color:#0d6efd;">
+                        <i class="bx bx-paperclip"></i>
+                    </button>
+                    <?php endif; ?>
+                </div>
             <?php endif; ?>
         </td>
 
@@ -179,9 +193,9 @@ if (!empty($DataLists)):
                     else                        $agoText = (int)($secondsAgo / 3600) . ' hr' . ((int)($secondsAgo / 3600) > 1 ? 's' : '') . ' ago';
                 }
             ?>
-            <div style="font-size:.78rem;"><?php echo $updatedOn ? changeTimeZonefromDateTime($updatedOn, $JwtData->User->Timezone, 2) : '—'; ?></div>
-            <?php if ($within24h): ?><div style="font-size:.68rem;color:#0d6efd;font-weight:500;"><?php echo $agoText; ?></div><?php endif; ?>
-            <div class="text-muted" style="font-size:.7rem;">by <?php echo htmlspecialchars($list->UpdatedBy ?? '—'); ?></div>
+            <div class="r2k-col-date"><?php echo $updatedOn ? changeTimeZonefromDateTime($updatedOn, $JwtData->User->Timezone, 2) : '—'; ?></div>
+            <?php if ($within24h): ?><div class="r2k-col-date-ago"><?php echo $agoText; ?></div><?php endif; ?>
+            <div class="text-muted r2k-col-date-by">by <?php echo htmlspecialchars($list->UpdatedBy ?? '—'); ?></div>
         </td>
 
         <!-- Actions -->

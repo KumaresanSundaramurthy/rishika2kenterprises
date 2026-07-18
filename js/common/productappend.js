@@ -23,6 +23,8 @@
  */
 window.ProductAppend = (function () {
 
+    var _rawMap = null; // holds the full HGETALL map so BOM lookups can skip Upstash
+
     // ── Build a normalized product list from the Upstash bulk map ─────────────
 
     function _buildList(map) {
@@ -78,10 +80,12 @@ window.ProductAppend = (function () {
                 isComboItem         : parseInt(p.IsComboItem   || 0, 10),
                 isComposite         : parseInt(p.IsComposite   || 0, 10),
                 comboItemCount      : 0,
+                mrp                 : parseFloat(p.MRP        || 0),
                 image               : p.Image                 || '',
                 notForSale          : parseInt(p.NotForSale   || 0, 10),
             };
         }).filter(function (p) {
+            if (p.notForSale && !p.isComposite) return false; // component-only products hidden from search
             return !forPurchase || !p.isComposite;
         }).sort(function (a, b) { return a.text.localeCompare(b.text); });
     }
@@ -114,9 +118,13 @@ window.ProductAppend = (function () {
             if (!map || typeof map !== 'object' || Array.isArray(map)) { onFail(); return; }
             var keys = Object.keys(map);
             if (!keys.length) { onFail(); return; }
+            _rawMap = map; // cache the full map for in-memory BOM resolution
             onSuccess(_buildList(map));
         }).catch(function () { onFail(); });
     }
+
+    /** Returns the raw HGETALL map (all products including NotForSale), or null if not yet loaded. */
+    function getRawMap() { return _rawMap; }
 
     // ── Tier 2: AJAX fallback ─────────────────────────────────────────────────
 
@@ -147,6 +155,6 @@ window.ProductAppend = (function () {
         });
     }
 
-    return { load };
+    return { load, getRawMap };
 
 }());

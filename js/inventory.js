@@ -528,16 +528,32 @@ $(document).ready(function () {
     // Column sort
     $(document).on('click', '.inv-sort-th', function () {
         var col = $(this).data('sort');
-        if (_invFilter['SortBy'] === col) {
-            _invFilter['SortDir'] = (_invFilter['SortDir'] === 'ASC') ? 'DESC' : 'ASC';
-        } else {
+        var $th = $(this);
+        if (_invFilter['SortBy'] !== col) {
             _invFilter['SortBy']  = col;
             _invFilter['SortDir'] = 'ASC';
+        } else if (_invFilter['SortDir'] === 'ASC') {
+            _invFilter['SortDir'] = 'DESC';
+        } else {
+            delete _invFilter['SortBy'];
+            delete _invFilter['SortDir'];
         }
-        // Update all sort icons
-        $('.inv-sort-icon').removeClass('bx-sort-up bx-sort-down').addClass('bx-sort');
-        var $icon = $('.inv-sort-icon[data-col="' + col + '"]');
-        $icon.removeClass('bx-sort').addClass(_invFilter['SortDir'] === 'ASC' ? 'bx-sort-up' : 'bx-sort-down');
+        // Reset all headers to neutral
+        $('.inv-sort-th').each(function () {
+            $(this).attr('data-bs-title', 'Click for ascending order');
+            var tt = bootstrap.Tooltip.getInstance(this);
+            if (tt) { tt.dispose(); new bootstrap.Tooltip(this); }
+        });
+        $('.inv-sort-icon').removeClass('bx-sort-up bx-sort-down text-primary').addClass('bx-sort-alt-2');
+        // Update active column
+        if (_invFilter['SortBy']) {
+            var icon    = _invFilter['SortDir'] === 'ASC' ? 'bx-sort-up' : 'bx-sort-down';
+            var tipText = _invFilter['SortDir'] === 'ASC' ? 'Click for descending order' : 'Click to remove sorting';
+            $('.inv-sort-icon[data-col="' + col + '"]').removeClass('bx-sort-alt-2').addClass(icon + ' text-primary');
+            $th.attr('data-bs-title', tipText);
+            var tt = bootstrap.Tooltip.getInstance($th[0]);
+            if (tt) { tt.dispose(); new bootstrap.Tooltip($th[0]); }
+        }
         invLoadPage(1);
     });
 

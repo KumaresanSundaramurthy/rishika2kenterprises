@@ -1,8 +1,6 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php
 $CI =& get_instance();
-$CI->load->model('customers_model');
-
 $_orgUID          = (int)($CI->pageData['JwtData']->Org->OrgUID ?? 0);
 $_JwtData         = $CI->pageData['JwtData'];
 $_ps              = $_JwtData->ProdSettings ?? new stdClass();
@@ -10,8 +8,6 @@ $_defProdTypeUID  = (int)($_ps->DefaultProductTypeUID  ?? 0);
 $_defDiscTypeUID  = (int)($_ps->DefaultDiscountTypeUID ?? 0);
 $_defProdTaxUID   = (int)($_ps->DefaultProductTaxUID   ?? 0);
 $_defTaxDetailUID = (int)($_ps->DefaultTaxDetailUID    ?? 0);
-
-$_CustomerTypeInfo = $CI->customers_model->getCustomerTypeList($_orgUID) ?? [];
 
 $_fltStorageData = [];
 if (!empty($_JwtData->GenSettings->EnableStorage)) {
@@ -310,52 +306,6 @@ if (!empty($_JwtData->GenSettings->EnableStorage)) {
                     <div class="col-md-3"><label class="form-label fw-semibold">Min Rental Hours</label><input type="number" class="form-control form-control-sm" id="rc_MinRentalHours" name="rc_MinRentalHours" min="1" step="1" placeholder="1" value="1"></div>
                 </div>
             </div>
-            <hr>
-
-            <!-- Customer Type Pricing -->
-            <div class="card-header modal-header-border-bottom p-1 mb-3">
-                <h5 class="modal-title mb-0">Customer Type Pricing <span class="text-muted small">(Optional)</span></h5>
-            </div>
-            <div class="row mb-3">
-                <div class="col-md-7">
-                    <label class="form-label">Customer Type</label>
-                    <select id="CustomerTypeSelect" class="form-select">
-                        <option value="">-- Select Customer Type --</option>
-                        <?php foreach ($_CustomerTypeInfo as $_ct): ?>
-                            <option value="<?= $_ct->CustomerTypeUID ?>"><?= $_ct->TypeName ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Selling Price</label>
-                    <div class="input-group input-group-merge">
-                        <span class="input-group-text"><?= $_JwtData->GenSettings->CurrenySymbol ?></span>
-                        <input type="text" class="form-control" name="CustomerTypePrice" id="CustomerTypePrice" min="0" placeholder="Enter Price"
-                            onkeydown="return handleDotOnly(event)"
-                            oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?= $_JwtData->GenSettings->PriceMaxLength ?>, <?= $_JwtData->GenSettings->DecimalPoints ?>)"
-                            maxLength="<?= $_JwtData->GenSettings->PriceMaxLength ?>"
-                            pattern="^\d{1,<?= $_JwtData->GenSettings->PriceMaxLength ?>}(\.\d{0,<?= $_JwtData->GenSettings->DecimalPoints ?>})?$"
-                            onpaste="handlePricePaste(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, <?= $_JwtData->GenSettings->DecimalPoints ?>)"
-                            ondrop="handlePriceDrop(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, <?= $_JwtData->GenSettings->DecimalPoints ?>)" />
-                    </div>
-                </div>
-                <div class="col-md-2 d-flex align-items-end">
-                    <button type="button" class="btn btn-success w-100" id="AddCustomerPriceBtn"><i class="bx bx-plus"></i> Add</button>
-                </div>
-            </div>
-            <div class="table-responsive mb-3">
-                <table class="table table-bordered table-sm" id="CustomerPricingTable">
-                    <thead class="table-light">
-                        <tr><th>#</th><th>Customer Type</th><th>Selling Price</th><th>Action</th></tr>
-                    </thead>
-                    <tbody id="CustomerPricingBody">
-                        <tr id="CustomerPricingEmptyRow">
-                            <td colspan="4" class="text-center text-muted">No rates added. Default selling price applies to all customers.</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            <input type="hidden" name="CustomerPricingData" id="CustomerPricingData" value="[]" />
 
         </div>
     </div>

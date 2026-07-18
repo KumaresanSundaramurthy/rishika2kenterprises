@@ -104,16 +104,10 @@ $d       = $FormData; // shorthand, null for add
             <div class="mb-3 col-md-4">
                 <label for="CM_GroupUID" class="form-label">Customer Group
                     <a href="javascript:void(0);" class="ms-1 text-primary" style="font-size:.72rem;" title="Create new group"
-                       onclick="CustomerGroupForm.open('add', null, { hideMembers: true, onSaveSuccess: function(r){ if(r.GroupUID){ var opt = new Option(r.GroupName || r.GroupUID, r.GroupUID, true, true); $('#CM_GroupUID').append(opt).trigger('change'); } } })">+ New</a>
+                       onclick="CustomerGroupForm.open('add', null, { hideMembers: true, onSaveSuccess: function(r){ if (typeof CustomerForm !== 'undefined' && CustomerForm.clearGroupsCache) CustomerForm.clearGroupsCache(); if(r.GroupUID){ var opt = new Option(r.GroupName || r.GroupUID, r.GroupUID, true, true); $('#CM_GroupUID').append(opt).trigger('change'); } } })">+ New</a>
                 </label>
                 <select id="CM_GroupUID" name="GroupUID" class="form-select">
                     <option value="">— No Group —</option>
-                    <?php if (!empty($CustomerGroupList)): foreach ($CustomerGroupList as $cg): ?>
-                        <option value="<?php echo $cg->GroupUID; ?>"
-                            <?php echo ($isEdit || $isClone) && isset($d->GroupUID) && $d->GroupUID == $cg->GroupUID ? 'selected' : ''; ?>>
-                            <?php echo htmlspecialchars($cg->GroupName); ?>
-                        </option>
-                    <?php endforeach; endif; ?>
                 </select>
             </div>
         </div>

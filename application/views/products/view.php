@@ -26,7 +26,7 @@
 
                 <?php if ($JwtData->TransSettings->ShowTransactionStats ?? 1): ?>
                 <!-- ── Stats Strip ───────────────────────────────────────────── -->
-                <div class="apex-stats-strip<?php echo $ActiveTabData == 'group' ? ' d-none' : ''; ?>" id="ProductStatsRow">
+                <div class="apex-stats-strip<?php echo ($ActiveTabData == 'group' || $ActiveTabData == 'pricelist') ? ' d-none' : ''; ?>" id="ProductStatsRow">
                     <div class="apex-stat-item" style="--stat-color:#059669;cursor:default;pointer-events:none">
                         <div class="apex-stat-icon" style="background:#ecfdf5"><i class="bx bx-package" style="color:#059669"></i></div>
                         <div class="apex-stat-body">
@@ -94,7 +94,7 @@
                             <div class="r2k-search-wrap">
                                 <i class="bx bx-search r2k-si"></i>
                                 <?php
-                                $searchPlaceholderMap = ['item' => 'Search items...', 'group' => 'Search groups...', 'category' => 'Search categories...'];
+                                $searchPlaceholderMap = ['item' => 'Search items...', 'group' => 'Search groups...', 'pricelist' => 'Search price lists...', 'category' => 'Search categories...'];
                                 $searchPlaceholder = $searchPlaceholderMap[$ActiveTabData] ?? 'Search items...';
                                 ?>
                                 <input type="text" class="SearchDetails" id="SearchDetails" placeholder="<?php echo $searchPlaceholder; ?>" value="<?php echo htmlspecialchars($InitSearch ?? ''); ?>">
@@ -104,10 +104,14 @@
                             <a href="javascript:void(0);" id="statusFilter" class="apex-filter-btn <?php echo ($ActiveTabData == 'item' || $ActiveTabData == 'group') ? '' : 'd-none'; ?>" title="Filter by Status"><i class="bx bx-transfer me-1"></i>Status</a>
                             <a href="javascript:void(0);" id="taxFilter" class="apex-filter-btn <?php echo ($ActiveTabData == 'item' || $ActiveTabData == 'group') ? '' : 'd-none'; ?>" title="Filter by Tax"><i class="bx bx-receipt me-1"></i>Tax</a>
                             <a href="javascript:void(0);" id="categoryFilter" class="apex-filter-btn <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" title="Filter by Category"><i class="bx bx-layer me-1"></i>Category</a>
+                            <a href="javascript:void(0);" id="plStatusFilter" class="apex-filter-btn <?php echo $ActiveTabData == 'pricelist' ? '' : 'd-none'; ?>" title="Filter by Status"><i class="bx bx-transfer me-1"></i>Status</a>
+                            <a href="javascript:void(0);" id="plAssignedToFilter" class="apex-filter-btn <?php echo $ActiveTabData == 'pricelist' ? '' : 'd-none'; ?>" title="Filter by Assigned To"><i class="bx bx-group me-1"></i>Assigned To</a>
+                            <a href="javascript:void(0);" id="plScopeFilter" class="apex-filter-btn <?php echo $ActiveTabData == 'pricelist' ? '' : 'd-none'; ?>" title="Filter by Scope"><i class="bx bx-list-ul me-1"></i>Scope</a>
                             <div class="apex-filter-spacer"></div>
                             <a href="javascript:void(0);" class="apex-icon-btn PageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
                             <a href="javascript:void(0);" class="apex-icon-btn <?php echo ($ActiveTabData == 'item' || $ActiveTabData == 'group') ? '' : 'd-none'; ?>" id="btnSyncProductsCache" title="Sync Items Cache"><i class="bx bx-planet"></i></a>
                             <a href="javascript:void(0);" class="apex-icon-btn <?php echo $ActiveTabData == 'category' ? '' : 'd-none'; ?>" id="btnSyncCategoriesCache" title="Sync Categories Cache"><i class="bx bx-planet"></i></a>
+                            <a href="javascript:void(0);" class="apex-icon-btn <?php echo $ActiveTabData == 'pricelist' ? '' : 'd-none'; ?>" id="btnSyncPriceListCache" title="Sync Price List Cache"><i class="bx bx-planet"></i></a>
                             <div class="btn-group d-none" id="ActionsDD-Div">
                                 <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="actionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                                     <i class="bx bx-slider-alt"></i>
@@ -124,6 +128,7 @@
                             <?php $this->load->view('common/partials/export_btn'); ?>
                             <a href="javascript:void(0);" class="btn btn-primary btn-sm addItem <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" id="NewItem"><i class="bx bx-plus me-1"></i> Create Item</a>
                             <a href="javascript:void(0);" class="btn btn-primary btn-sm <?php echo $ActiveTabData == 'group' ? '' : 'd-none'; ?>" id="NewComboItem"><i class="bx bx-git-merge me-1"></i> Create Group</a>
+                            <a href="javascript:void(0);" class="btn btn-primary btn-sm <?php echo $ActiveTabData == 'pricelist' ? '' : 'd-none'; ?>" id="NewPriceList"><i class="bx bx-plus me-1"></i> Create Price List</a>
                             <a href="javascript:void(0);" class="btn btn-primary btn-sm addCategory <?php echo $ActiveTabData == 'category' ? '' : 'd-none'; ?>" id="NewCategory"><i class="bx bx-plus me-1"></i> Create Category</a>
                         </div>
 
@@ -140,6 +145,12 @@
                                     <a class="nav-link <?php echo $ActiveTabData == 'group' ? 'active' : ''; ?> TabPane" data-id="Groups" data-status="Groups" data-url-tab="groups" role="tab" data-bs-toggle="tab" data-bs-target="#NavGroupsPage" href="javascript:void(0);">
                                         <i class="bx bx-git-merge me-1"></i> Groups
                                         <span class="trans-tab-count<?php echo ($ActiveTabData != 'group' || $ModTotalCount == 0) ? ' d-none' : ''; ?>" id="groupTotalCount"><?php echo ($ActiveTabData == 'group' && $ModTotalCount > 0) ? $ModTotalCount : ''; ?></span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link <?php echo $ActiveTabData == 'pricelist' ? 'active' : ''; ?> TabPane" data-id="PriceLists" data-status="PriceLists" data-url-tab="pricelists" role="tab" data-bs-toggle="tab" data-bs-target="#NavPriceListPage" href="javascript:void(0);">
+                                        <i class="bx bx-purchase-tag me-1"></i> Price Lists
+                                        <span class="trans-tab-count<?php echo ($ActiveTabData != 'pricelist' || ($PriceListTotalCount ?? 0) == 0) ? ' d-none' : ''; ?>" id="priceListTotalCount"><?php echo ($ActiveTabData == 'pricelist' && ($PriceListTotalCount ?? 0) > 0) ? $PriceListTotalCount : ''; ?></span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
@@ -192,8 +203,7 @@
                                                 </tbody>
                                             </table>
                                         </div>
-                                        <hr class="my-0" />
-                                        <div class="row mx-3 justify-content-between ProductsPagination" id="ProductsPagination">
+                                        <div class="row mx-0 px-3 mt-1 justify-content-between ProductsPagination apex-pag-sticky" id="ProductsPagination">
                                             <?php echo $ActiveTabData == 'item' ? $ModPagination : ''; ?>
                                         </div>
 
@@ -230,9 +240,45 @@
                                                 </tbody>
                                             </table>
                                         </div>
-                                        <hr class="my-0" />
-                                        <div class="row mx-3 justify-content-between GroupsPagination" id="GroupsPagination">
+                                        <div class="row mx-0 px-3 mt-1 justify-content-between GroupsPagination apex-pag-sticky" id="GroupsPagination">
                                             <?php echo $ActiveTabData == 'group' ? $ModPagination : ''; ?>
+                                        </div>
+
+                                    </div>
+
+                                    <div class="tab-pane fade <?php echo $ActiveTabData == 'pricelist' ? 'show active' : ''; ?>" id="NavPriceListPage" role="tabpanel">
+
+                                        <div class="table-responsive text-nowrap h-100 tablecard">
+                                            <table class="table trans-table table-hover" id="PriceListTable">
+                                                <thead class="r2k-thead">
+                                                    <tr>
+                                                        <th class="table-serialno <?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>">S.No</th>
+                                                        <th>Name</th>
+                                                        <th>Applies To</th>
+                                                        <th>Discount Type</th>
+                                                        <th>Valid From</th>
+                                                        <th>Valid To</th>
+                                                        <th>Status</th>
+                                                        <th>Last Updated</th>
+                                                        <th class="text-center">Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="r2k-tbody table-border-bottom-0" id="PriceListTableBody">
+                                                    <?php if ($ActiveTabData == 'pricelist' && !empty($ModRowData)): ?>
+                                                        <?php echo $ModRowData; ?>
+                                                    <?php else: ?>
+                                                        <tr class="r2k-empty-row">
+                                                            <td colspan="10" class="text-center py-5 text-muted">
+                                                                <i class="bx bx-purchase-tag fs-1 d-block mx-auto mb-2 opacity-25"></i>
+                                                                No price lists found. Click <strong>Create Price List</strong> to add one.
+                                                            </td>
+                                                        </tr>
+                                                    <?php endif; ?>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <div class="row mx-0 px-3 mt-1 justify-content-between PriceListPagination apex-pag-sticky" id="PriceListPagination">
+                                            <?php echo ($ActiveTabData == 'pricelist' && !empty($ModPagination)) ? $ModPagination : ''; ?>
                                         </div>
 
                                     </div>
@@ -267,8 +313,7 @@
                                                 </tbody>
                                             </table>
                                         </div>
-                                        <hr class="my-0" />
-                                        <div class="d-flex align-items-center justify-content-between mx-3 CategoriesPagination" id="CategoriesPagination">
+                                        <div class="d-flex align-items-center justify-content-between mx-0 px-3 mt-1 CategoriesPagination apex-pag-sticky" id="CategoriesPagination">
                                             <?php echo $ActiveTabData == 'category' ? $ModPagination : ''; ?>
                                         </div>
 
@@ -278,12 +323,6 @@
                         </div>
                     </div>
 
-                    <!-- Sticky pagination (products page — one bar, content swaps per active tab) -->
-                    <div class="card mb-0 cust-sticky-pag apex-sticky-pag" id="prodStickyPagination" style="display:none;">
-                        <div class="card-body p-0">
-                            <div class="row mx-3 my-2 justify-content-between align-items-center apex-sticky-pag-inner"></div>
-                        </div>
-                    </div>
 
                 </div>
             </div>
@@ -296,6 +335,7 @@
             <?php $this->load->view('products/modals/combo'); ?>
             <?php $this->load->view('products/modals/category'); ?>
             <?php $this->load->view('products/modals/barcodeprint'); ?>
+            <?php $this->load->view('products/modals/pricelist'); ?>
 
             <!-- Category Products Modal -->
             <style>
@@ -324,7 +364,7 @@
     </div>
 </div>
 
-<?php $this->load->view('common/transactions/col_filter_box', [
+<?php $this->load->view('common/filter_panels/col_filter_box', [
     'ColFilterConfig' => [
         'id'         => 'productTypeFilterBox',
         'triggerId'  => 'productTypeFilter',
@@ -338,7 +378,7 @@
         ],
     ],
 ]); ?>
-<?php $this->load->view('common/transactions/col_filter_box', [
+<?php $this->load->view('common/filter_panels/col_filter_box', [
     'ColFilterConfig' => [
         'id'         => 'statusFilterBox',
         'triggerId'  => 'statusFilter',
@@ -353,7 +393,7 @@
     ],
 ]); ?>
 
-<?php $this->load->view('common/transactions/col_filter_box', [
+<?php $this->load->view('common/filter_panels/col_filter_box', [
     'ColFilterConfig' => [
         'id'         => 'taxFilterBox',
         'triggerId'  => 'taxFilter',
@@ -372,6 +412,50 @@
      data-chk-class="category-checkbox"
      style="display:none;position:fixed;z-index:9999;width:280px;"></div>
 
+<?php $this->load->view('common/filter_panels/col_filter_box', [
+    'ColFilterConfig' => [
+        'id'         => 'plStatusFilterBox',
+        'triggerId'  => 'plStatusFilter',
+        'title'      => 'Status',
+        'icon'       => 'bx-transfer',
+        'filterKey'  => 'StatusFilter',
+        'checkClass' => 'pl-status-checkbox',
+        'items'      => [
+            ['value' => '1', 'label' => 'Active'],
+            ['value' => '0', 'label' => 'In-Active'],
+        ],
+    ],
+]); ?>
+<?php $this->load->view('common/filter_panels/col_filter_box', [
+    'ColFilterConfig' => [
+        'id'         => 'plAssignedToFilterBox',
+        'triggerId'  => 'plAssignedToFilter',
+        'title'      => 'Assigned To',
+        'icon'       => 'bx-group',
+        'filterKey'  => 'AssignedToFilter',
+        'checkClass' => 'pl-assignedto-checkbox',
+        'items'      => [
+            ['value' => 'All',       'label' => 'All Customers'],
+            ['value' => 'Groups',    'label' => 'Customer Groups'],
+            ['value' => 'Customers', 'label' => 'Specific Customers'],
+        ],
+    ],
+]); ?>
+<?php $this->load->view('common/filter_panels/col_filter_box', [
+    'ColFilterConfig' => [
+        'id'         => 'plScopeFilterBox',
+        'triggerId'  => 'plScopeFilter',
+        'title'      => 'Scope',
+        'icon'       => 'bx-list-ul',
+        'filterKey'  => 'ScopeFilter',
+        'checkClass' => 'pl-scope-checkbox',
+        'items'      => [
+            ['value' => 'All',      'label' => 'All Products'],
+            ['value' => 'Specific', 'label' => 'Specific Products'],
+        ],
+    ],
+]); ?>
+
 <?php $this->load->view('common/footer'); ?>
 
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
@@ -386,6 +470,7 @@
 <script src="<?php echo _assetV('/js/common/product_form.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/transactions/col_filter.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/products.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/common/productappend.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/combinemodules/combo.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/common/pagecheckbox.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/products/barcodeprint.js'); ?>"></script>
@@ -405,6 +490,8 @@ const CatgTable = '#CategoriesTable';
 const CatgPag = '.CategoriesPagination';
 const CatgHeader = '.categoryHeaderCheck';
 const CatgRow = '.categoryCheck';
+const PLTable  = '#PriceListTable';
+const PLPag    = '#PriceListPagination';
 let ActiveTabId = '<?php echo $ActiveTabName; ?>';
 let ActiveTabModuleId = 4
 var EnableStorage = <?php echo $JwtData->GenSettings->EnableStorage; ?>;
@@ -452,12 +539,13 @@ $(function() {
             ActiveTabModuleId = $(this).data('moduleid');
             $('.trans-tab-count').addClass('d-none');
             _pushTabUrl(TabValue, '');
-            $('#ProductStatsRow').toggleClass('d-none', TabValue === 'Groups');
-            $('#NewItem,#NewComboItem,#NewCategory,#CloneOption,#DeleteOption,#ItemCategory-Div').addClass('d-none');
+            $('#ProductStatsRow').toggleClass('d-none', TabValue === 'Groups' || TabValue === 'PriceLists');
+            $('#NewItem,#NewComboItem,#NewPriceList,#NewCategory,#CloneOption,#DeleteOption,#ItemCategory-Div').addClass('d-none');
             $('#ActionsDD-Div').addClass('d-none');
             $('#productTypeFilter,#categoryFilter').toggleClass('d-none', TabValue !== 'Item');
             $('#statusFilter,#taxFilter').toggleClass('d-none', TabValue !== 'Item' && TabValue !== 'Groups');
-            var _prodSearchPlaceholders = { Item: 'Search items...', Groups: 'Search groups...', Categories: 'Search categories...' };
+            $('#plStatusFilter,#plAssignedToFilter,#plScopeFilter').toggleClass('d-none', TabValue !== 'PriceLists');
+            var _prodSearchPlaceholders = { Item: 'Search items...', Groups: 'Search groups...', PriceLists: 'Search price lists...', Categories: 'Search categories...' };
             $('#SearchDetails').val('').attr('placeholder', _prodSearchPlaceholders[TabValue] || 'Search...');
             PageNo = 0;
             Filter = {};
@@ -467,8 +555,9 @@ $(function() {
             $('.name-sortable, .col-sortable').removeClass('col-active').attr('data-bs-title', 'Click for ascending order');
             $('.mp-filterbox').hide();
             $('#categoryFilter, #productTypeFilter, #statusFilter, #taxFilter').removeClass('text-primary');
+            $('#plStatusFilter, #plAssignedToFilter, #plScopeFilter').removeClass('text-primary has-filter');
             $('#ProductCountWrap').addClass('d-none');
-            $('#btnSyncProductsCache,#btnSyncCategoriesCache').addClass('d-none');
+            $('#btnSyncProductsCache,#btnSyncCategoriesCache,#btnSyncPriceListCache').addClass('d-none');
             if (ActiveTabId == 'Item') {
                 $('#NewItem,#ItemCategory-Div,#ProductCountWrap').removeClass('d-none');
                 $('#btnSyncProductsCache').removeClass('d-none');
@@ -490,6 +579,12 @@ $(function() {
                     $(GroupHeader).prop('checked', false);
                     unSelectTableRecords(GroupTable, ProdRow);
                     updateGroupCount(parseInt($('#groupTotalCount').text(), 10) || 0);
+                }
+            } else if (ActiveTabId == 'PriceLists') {
+                $('#NewPriceList,#btnSyncPriceListCache').removeClass('d-none');
+                var plLen = $(PLTable + ' tr.pl-list-row').length;
+                if (plLen == 0) {
+                    getPriceListDetails(PageNo, RowLimit, Filter);
                 }
             } else if (ActiveTabId == 'Categories') {
                 $('#NewCategory').removeClass('d-none');
@@ -739,71 +834,20 @@ $(function() {
         }
     });
 
-    var _taxFilterLoaded = false;
-    $(document).on('click', '#taxFilter', function (e) {
-        if (_taxFilterLoaded) return;
-        e.stopImmediatePropagation();
-
-        var triggerEl = this;
-        var $box = $('#taxFilterBox');
-        var rect = triggerEl.getBoundingClientRect();
-        var boxW = $box.outerWidth() || 220;
-        var left = rect.left;
-        var top  = rect.bottom + 4;
-        if (left + boxW + 16 > window.innerWidth) left = window.innerWidth - boxW - 16;
-        $box.find('.d-flex.flex-column').html(
-            '<i class="bx bx-loader-alt bx-spin fs-2 mb-2"></i>' +
-            '<span style="font-size:.8rem;">Loading...</span>'
-        );
-        $box.css({ top: top + 'px', left: left + 'px' }).show();
-
-        DropdownCache.ready().then(function (data) {
-            var items = data.taxDetails || [];
-            if (!items.length) {
-                $box.find('.d-flex.flex-column').html(
-                    '<i class="bx bx-error-circle fs-2 mb-2 text-danger"></i>' +
-                    '<span style="font-size:.8rem;">Failed to load</span>'
-                );
-                return;
-            }
-            var boxId    = 'taxFilterBox';
-            var chkClass = 'tax-checkbox';
-
-            var itemsHtml = items.map(function (t) {
-                var uid  = parseInt(t.TaxDetailsUID || 0, 10);
-                var name = $('<span>').text(t.TaxName || '').html();
-                return '<label class="catg-list-item">' +
-                           '<input class="form-check-input ' + chkClass + '" type="checkbox" value="' + uid + '">' +
-                           '<span>' + name + '</span>' +
-                       '</label>';
-            }).join('');
-
-            $box.html(
-                '<div class="catg-filter-header">' +
-                    '<span class="catg-filter-title"><i class="bx bx-receipt me-1"></i>Tax</span>' +
-                    '<div class="d-flex align-items-center gap-2">' +
-                        '<span class="badge">' + items.length + '</span>' +
-                        '<button type="button" class="catg-filter-close-btn tcf-close-btn" title="Close">&times;</button>' +
-                    '</div>' +
-                '</div>' +
-                '<div class="catg-filter-search-wrap">' +
-                    '<div class="catg-search-inner">' +
-                        '<input type="text" class="form-control form-control-sm tcf-search-input" placeholder="Search tax...">' +
-                        '<button type="button" class="catg-search-clear" title="Clear" style="display:none;"><i class="bx bx-x"></i></button>' +
-                    '</div>' +
-                '</div>' +
-                '<div class="catg-select-all-wrap">' +
-                    '<input type="checkbox" class="form-check-input tcf-select-all" id="' + boxId + 'SelectAll">' +
-                    '<label class="small fw-semibold mb-0" for="' + boxId + 'SelectAll">Select All</label>' +
-                '</div>' +
-                '<div class="catg-list" style="max-height:180px;">' + itemsHtml + '</div>' +
-                '<div class="catg-filter-footer">' +
-                    '<button type="button" class="btn btn-primary btn-sm tcf-apply-btn"><i class="bx bx-check me-1"></i>Apply</button>' +
-                    '<button type="button" class="btn btn-outline-secondary btn-sm tcf-reset-btn"><i class="bx bx-reset me-1"></i>Reset</button>' +
-                '</div>'
+    // Lazy-load tax items into filter box on first click (DropdownCache)
+    var _taxFilterPromise = null;
+    $(document).on('click', '#taxFilter', function () {
+        if (_taxFilterPromise) return;
+        _taxFilterPromise = DropdownCache.ready().then(function (data) {
+            prodTaxFilter.setItems(
+                (data.taxDetails || []).map(function (t) {
+                    return {
+                        value: parseInt(t.TaxDetailsUID || 0, 10),
+                        label: t.Percentage ? smartDecimal(t.Percentage) + '%' : ''
+                    };
+                })
             );
-            _taxFilterLoaded = true;
-        });
+        }).catch(function () { _taxFilterPromise = null; });
     });
 
     var prodTaxFilter = new TransColFilter({
@@ -865,27 +909,6 @@ $(function() {
     
     basePageHeaderFunc(ProdHeader, ProdTable, ProdRow);
     basePageHeaderFunc(GroupHeader, GroupTable, ProdRow);
-
-    // ── Sticky pagination (products) ──
-    var $prodStickyPag   = $('#prodStickyPagination');
-    var $prodStickyInner = $prodStickyPag.find('.apex-sticky-pag-inner');
-    function _getActiveProdPagEl() {
-        if (ActiveTabId === 'Item')       return $('#ProductsPagination');
-        if (ActiveTabId === 'Groups')     return $('#GroupsPagination');
-        if (ActiveTabId === 'Categories') return $('#CategoriesPagination');
-        return $('#ProductsPagination');
-    }
-    function _syncProdSticky() { $prodStickyInner.html(_getActiveProdPagEl().html()); }
-    function _toggleProdSticky() {
-        var $el = _getActiveProdPagEl();
-        if (!$el.length) return;
-        var r = $el[0].getBoundingClientRect();
-        var visible = r.top < $(window).height() && r.bottom > 0;
-        if (visible) { $prodStickyPag.stop(true,true).fadeOut(150); }
-        else { _syncProdSticky(); $prodStickyPag.stop(true,true).fadeIn(150); }
-    }
-    $(window).on('scroll resize', _toggleProdSticky);
-    _toggleProdSticky();
 
     $(document).on('click', ProdRow, function() {
         var activeTbl = (ActiveTabId === 'Groups') ? GroupTable : ProdTable;
@@ -981,6 +1004,48 @@ $(function() {
     
     basePaginationFunc(CatgPag, getCategoriesDetails);
     basePageHeaderFunc(CatgHeader, CatgTable, CatgRow);
+    basePaginationFunc(PLPag, getPriceListDetails);
+
+    // ── Price List filter instances ───────────────────────────────────────────
+
+    var plStatusColFilter = new TransColFilter({
+        boxId      : 'plStatusFilterBox',
+        triggerId  : 'plStatusFilter',
+        filterKey  : 'StatusFilter',
+        activeClass: 'has-filter',
+        onApply    : function () {
+            var vals = plStatusColFilter.getState()['StatusFilter'] || [];
+            if (vals.length) Filter['StatusFilter'] = vals; else delete Filter['StatusFilter'];
+            PageNo = 1;
+            getPriceListDetails(PageNo, RowLimit, Filter);
+        }
+    });
+
+    var plAssignedToColFilter = new TransColFilter({
+        boxId      : 'plAssignedToFilterBox',
+        triggerId  : 'plAssignedToFilter',
+        filterKey  : 'AssignedToFilter',
+        activeClass: 'has-filter',
+        onApply    : function () {
+            var vals = plAssignedToColFilter.getState()['AssignedToFilter'] || [];
+            if (vals.length) Filter['AssignedToFilter'] = vals; else delete Filter['AssignedToFilter'];
+            PageNo = 1;
+            getPriceListDetails(PageNo, RowLimit, Filter);
+        }
+    });
+
+    var plScopeColFilter = new TransColFilter({
+        boxId      : 'plScopeFilterBox',
+        triggerId  : 'plScopeFilter',
+        filterKey  : 'ScopeFilter',
+        activeClass: 'has-filter',
+        onApply    : function () {
+            var vals = plScopeColFilter.getState()['ScopeFilter'] || [];
+            if (vals.length) Filter['ScopeFilter'] = vals; else delete Filter['ScopeFilter'];
+            PageNo = 1;
+            getPriceListDetails(PageNo, RowLimit, Filter);
+        }
+    });
 
     $(document).on('click', CatgRow, function() {
         onClickOfCheckbox($(this), CatgTable, CatgHeader, CatgRow);
@@ -1094,6 +1159,1136 @@ $(function() {
         });
     });
 
+});
+
+// ── Price List Modal ────────────────────────────────────────────────────────
+
+var _plFpFrom, _plFpTo;
+var _plRuleSeq        = 0;
+var _plCustomerTypes  = null; // null = not yet fetched; Array = cached (may be empty)
+var _plGroupsCache    = null; // null = not yet fetched; Array = cached
+var _plProductCache   = null; // null = not yet loaded; Array = full product list from Upstash/AJAX
+var _plTierHeadHtml   = '';   // cached thead HTML for tier sub-tables inside product blocks
+var _plCurSym              = '<?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>';
+var _plBelowPurchaseAction = '<?php echo addslashes($JwtData->TransSettings->BelowPurchasePriceAction ?? 'warn'); ?>';
+
+/**
+ * Load all products via ProductAppend (Upstash → AJAX fallback), cached after first load.
+ * @param {Function} callback  receives Array of product objects
+ * @returns {void}
+ */
+function _loadPlProducts(callback) {
+    if (_plProductCache) { callback(_plProductCache); return; }
+    ProductAppend.load(
+        function (products) { _plProductCache = products; callback(products); },
+        function ()         { callback([]); }
+    );
+}
+
+/**
+ * Update the Price Lists tab count badge.
+ * @param {number} n
+ * @returns {void}
+ */
+function _updatePLCount(n) {
+    var $badge = $('#priceListTotalCount');
+    if (!$badge.length) return;
+    if (n > 0) $badge.text(n).removeClass('d-none');
+    else       $badge.text('').addClass('d-none');
+}
+
+/**
+ * Apply a price list AJAX response — refreshes table, pagination, and count badge.
+ * @param {Object} response
+ * @returns {void}
+ */
+function _applyPLResponse(response) {
+    $(PLPag).html(response.Pagination);
+    $(PLTable + ' tbody').html(response.List);
+    if (typeof response.TotalCount !== 'undefined') _updatePLCount(response.TotalCount);
+    $(window).trigger('scroll');
+}
+
+// ── Date pickers ─────────────────────────────────────────────────────────────
+
+/**
+ * @returns {void}
+ */
+function _initPLDatePickers() {
+    if (typeof flatpickr === 'undefined') return;
+    var _fmt = (typeof _transFormDateFormat !== 'undefined' && _transFormDateFormat) ? _transFormDateFormat : 'd-m-Y';
+    if (_plFpFrom) _plFpFrom.destroy();
+    if (_plFpTo)   _plFpTo.destroy();
+    _plFpFrom = flatpickr('#PLValidFrom', {
+        dateFormat: 'Y-m-d', altInput: true, altFormat: _fmt,
+        static: true, position: 'below left',
+        onChange: function (s) { $('#PLValidFromRaw').val(s.length ? s[0].toISOString().slice(0, 10) : ''); }
+    });
+    _plFpTo = flatpickr('#PLValidTo', {
+        dateFormat: 'Y-m-d', altInput: true, altFormat: _fmt,
+        static: true, position: 'below left',
+        onChange: function (s) { $('#PLValidToRaw').val(s.length ? s[0].toISOString().slice(0, 10) : ''); }
+    });
+}
+
+// ── Customer Groups loader ────────────────────────────────────────────────────
+
+/**
+ * Load customer groups from /customers/getGroupsForDropdown and populate
+ * the #PLCustomerGroups Select2. Cached for the lifetime of the page.
+ * @param {function} [callback]  called once options are ready (or immediately if already cached)
+ * @returns {void}
+ */
+function _loadPLGroups(callback) {
+    if (_plGroupsCache !== null) {
+        if (typeof callback === 'function') callback();
+        return;
+    }
+
+    var $sel = $('#PLCustomerGroups');
+    $sel.prop('disabled', true).next('.select2-container').css('opacity', .5);
+
+    function _applyGroups(groups) {
+        _plGroupsCache = groups;
+        $sel.empty();
+        $.each(groups, function (_, g) {
+            $sel.append($('<option>').val(g.GroupUID).text(g.GroupName));
+        });
+        $sel.prop('disabled', false).next('.select2-container').css('opacity', '');
+        $sel.trigger('change.select2');
+        if (typeof callback === 'function') callback();
+    }
+
+    function _fetchFromServer() {
+        $.ajax({
+            url: '/customers/getGroupsForDropdown', method: 'GET', cache: false,
+            success: function (r) {
+                _applyGroups((!r.Error && r.Groups && r.Groups.length) ? r.Groups : []);
+            },
+            error: function () {
+                _plGroupsCache = [];
+                $sel.prop('disabled', false).next('.select2-container').css('opacity', '');
+                showToastNotification('Failed to load customer groups.', 'error');
+                if (typeof callback === 'function') callback();
+            }
+        });
+    }
+
+    if (typeof UpstashService !== 'undefined' && UpstashService.isEnabled()) {
+        UpstashService.hgetall(UpstashService.orgKey('customer-groups')).then(function (map) {
+            if (map && Object.keys(map).length > 0) {
+                var groups = Object.values(map)
+                    .map(function (v) { return typeof v === 'string' ? JSON.parse(v) : v; })
+                    .sort(function (a, b) { return (a.GroupName || '').localeCompare(b.GroupName || ''); });
+                _applyGroups(groups);
+            } else {
+                _fetchFromServer();
+            }
+        }).catch(function () { _fetchFromServer(); });
+    } else {
+        _fetchFromServer();
+    }
+}
+
+// ── Customer loader for #PLCustomers Select2 ─────────────────────────────────
+
+/**
+ * Load customers into #PLCustomers Select2.
+ * Tries Upstash orgKey('customers') first; falls back to AJAX.
+ * Page-level cache: _plCustomersCache persists across modal opens.
+ * @param {function} [callback]  called once options are ready (or immediately if already cached)
+ * @returns {void}
+ */
+var _plCustomersCache = null;
+
+function _loadPLCustomers(callback) {
+    if (_plCustomersCache !== null) {
+        if (typeof callback === 'function') callback();
+        return;
+    }
+
+    var $sel = $('#PLCustomers');
+    $sel.prop('disabled', true).next('.select2-container').css('opacity', .5);
+
+    /**
+     * @param {Array<{id: number, text: string}>} items
+     * @returns {void}
+     */
+    function _populate(items) {
+        _plCustomersCache = items;
+        $sel.empty();
+        $.each(items, function (_, c) {
+            $sel.append($('<option>').val(c.id).text(c.text));
+        });
+        $sel.prop('disabled', false).next('.select2-container').css('opacity', '');
+        $sel.trigger('change.select2');
+        if (typeof callback === 'function') callback();
+    }
+
+    /**
+     * @returns {void}
+     */
+    function _fallback() {
+        $.ajax({
+            url: '/customers/getCustomerSearchList', method: 'GET', cache: false,
+            data: { limit: 500, page: 1, search: '' },
+            success: function (r) {
+                var rows = (!r.Error && r.Data && r.Data.length) ? r.Data : [];
+                _populate(rows.map(function (c) {
+                    return { id: c.CustomerUID, text: c.Name || c.CustomerName || '' };
+                }));
+            },
+            error: function () {
+                _plCustomersCache = [];
+                $sel.prop('disabled', false).next('.select2-container').css('opacity', '');
+                showToastNotification('Failed to load customers.', 'error');
+                if (typeof callback === 'function') callback();
+            }
+        });
+    }
+
+    if (typeof UpstashService === 'undefined' || !UpstashService.isEnabled()) {
+        _fallback(); return;
+    }
+
+    UpstashService.hgetall(UpstashService.orgKey('customers'))
+        .then(function (map) {
+            if (!map || typeof map !== 'object' || !Object.keys(map).length) {
+                _fallback(); return;
+            }
+            var items = [];
+            Object.keys(map).forEach(function (uid) {
+                var c = map[uid];
+                var name = c.Name || c.CustomerName || '';
+                if (name) items.push({ id: parseInt(uid, 10), text: name });
+            });
+            items.sort(function (a, b) { return a.text.localeCompare(b.text); });
+            _populate(items);
+        })
+        .catch(_fallback);
+}
+
+// ── Customer Types loader ─────────────────────────────────────────────────────
+
+/**
+ * Load customer types from Upstash (r2k-customer-types) with AJAX fallback.
+ * Calls callback immediately when already cached.
+ * @param {function(Array): void} callback
+ * @returns {void}
+ */
+function _loadCustTypes(callback) {
+    if (_plCustomerTypes !== null) { callback(_plCustomerTypes); return; }
+
+    /**
+     * @param {Array} types
+     * @returns {void}
+     */
+    function _done(types) {
+        _plCustomerTypes = types;
+        callback(types);
+    }
+
+    /**
+     * @returns {void}
+     */
+    function _fallback() {
+        $.ajax({ url: '/customers/getCustomerTypes', method: 'GET', cache: false,
+            success: function (r) { _done(!r.Error && r.Data ? r.Data : []); },
+            error:   function ()  { _done([]); }
+        });
+    }
+
+    UpstashService.get(UpstashService.globalKey('customer-types'))
+        .then(function (d) { (d && Array.isArray(d) && d.length) ? _done(d) : _fallback(); })
+        .catch(_fallback);
+}
+
+// ── Build Global Discount table (All Products scope) ─────────────────────────
+
+/**
+ * Renders one row per customer type (or one row for Specific Customers).
+ * @param {Array}   types
+ * @param {boolean} isSpecific  true = "Specific Customers" selected
+ * @returns {void}
+ */
+function _buildGlobalTable(types, isSpecific) {
+    var curSym   = $('<span>').text(_plCurSym).html();
+    var typeOpts = '<option value="Percentage">% Discount</option>'
+        + '<option value="Fixed">Fixed Discount (' + curSym + ')</option>'
+        + '<option value="NoDiscount">No Discount</option>';
+    var html = '';
+
+    if (isSpecific || !types || !types.length) {
+        html = '<tr data-ctuid="0">'
+            + '<td class="text-muted" style="font-size:.82rem;">All Selected Customers</td>'
+            + '<td><select class="form-select form-select-sm pl-global-type">' + typeOpts + '</select></td>'
+            + '<td><div class="input-group input-group-sm">'
+            +   '<span class="input-group-text pl-global-sym">%</span>'
+            +   '<input type="number" class="form-control pl-global-val" min="0" step="' + _plDecStep() + '" placeholder="0" value="0">'
+            + '</div></td></tr>';
+    } else {
+        $.each(types, function (_, t) {
+            var uid = parseInt(t.CustomerTypeUID);
+            var lbl = $('<span>').text(t.TypeName).html();
+            html += '<tr data-ctuid="' + uid + '">'
+                + '<td class="fw-semibold">' + lbl + '</td>'
+                + '<td><select class="form-select form-select-sm pl-global-type">' + typeOpts + '</select></td>'
+                + '<td><div class="input-group input-group-sm">'
+                +   '<span class="input-group-text pl-global-sym">%</span>'
+                +   '<input type="number" class="form-control pl-global-val" min="0" step="' + _plDecStep() + '" placeholder="0" value="0">'
+                + '</div></td></tr>';
+        });
+    }
+
+    $('#PLGlobalBody').html(html);
+    $('#PLGlobalLoading').addClass('d-none');
+    $('#PLGlobalTableWrap').removeClass('d-none');
+}
+
+// ── Build Price Rules table header (Specific Products scope) ─────────────────
+
+/**
+ * Generates CustomerType columns dynamically in the price rules thead.
+ * @param {Array}   types
+ * @param {boolean} isSpecific  true = "Specific Customers" selected
+ * @returns {void}
+ */
+/**
+ * Build the thead HTML for a tier sub-table (MinQty | MaxQty | CT prices | Remove).
+ * @param {Array}   types
+ * @param {boolean} isSpecific
+ * @returns {string}
+ */
+function _buildTierHead(types, isSpecific) {
+    var curSym = $('<span>').text(_plCurSym).html();
+    var th = '<tr>'
+        + '<th style="width:80px;">Min Qty</th>'
+        + '<th style="width:80px;">Max Qty</th>';
+    if (isSpecific || !types || !types.length) {
+        th += '<th style="min-width:100px;">Price (' + curSym + ')</th>';
+    } else {
+        $.each(types, function (_, t) {
+            th += '<th style="min-width:100px;">'
+                + $('<span>').text(t.TypeName).html()
+                + '<br><small style="font-weight:400;font-size:.7rem;">price (' + curSym + ')</small>'
+                + '</th>';
+        });
+    }
+    th += '<th style="width:32px;"></th></tr>';
+    return th;
+}
+
+/**
+ * Cache the tier thead HTML and push it into all existing product block tables.
+ * @param {Array}   types
+ * @param {boolean} isSpecific
+ * @returns {void}
+ */
+function _buildRulesHeader(types, isSpecific) {
+    _plTierHeadHtml = _buildTierHead(types, isSpecific);
+    $('.pl-prod-block .pl-tiers-thead').html(_plTierHeadHtml);
+    $('#PLRulesLoading').addClass('d-none');
+}
+
+// ── Scope toggle ─────────────────────────────────────────────────────────────
+
+$(document).on('change', 'input[name="PLScope"]', function () {
+    var isSpecific = $(this).val() === 'Specific';
+    $('#PLGlobalSection').toggleClass('d-none', isSpecific);
+    $('#PLRulesSection').toggleClass('d-none', !isSpecific);
+    if (isSpecific && _plCustomerTypes === null) {
+        $('#PLRulesLoading').removeClass('d-none');
+        $('#PLRulesTableWrap').addClass('d-none');
+    }
+});
+
+// ── Assigned To toggle ────────────────────────────────────────────────────────
+
+$(document).on('change', 'input[name="PLAssignedTo"]', function () {
+    var val        = $(this).val();
+    var isSpecific = val === 'Customers';
+    $('#PLGroupsRow').toggleClass('d-none', val !== 'Groups');
+    $('#PLSpecificCustRow').toggleClass('d-none', val !== 'Customers');
+    if (val === 'Groups')     _loadPLGroups();
+    if (val === 'Customers')  _loadPLCustomers();
+    if (_plCustomerTypes !== null) {
+        _buildGlobalTable(_plCustomerTypes, isSpecific);
+        _buildRulesHeader(_plCustomerTypes, isSpecific);
+        $('#PLProductBlocksWrap .pl-prod-block').remove();
+        _syncRulesEmpty();
+    }
+});
+
+// ── Global discount symbol update ─────────────────────────────────────────────
+
+$(document).on('change', '.pl-global-type', function () {
+    var val = $(this).val();
+    var sym = val === 'Percentage' ? '%' : (val === 'NoDiscount' ? '—' : _plCurSym);
+    var $tr = $(this).closest('tr');
+    $tr.find('.pl-global-sym').text(sym);
+    $tr.find('.pl-global-val').prop('disabled', val === 'NoDiscount');
+    if (val === 'NoDiscount') $tr.find('.pl-global-val').val('0');
+});
+$(document).on('keydown', '.pl-global-val, .pl-ct-price', function (e) {
+    if (!/^\d$/.test(e.key)) return;
+    var dec = (typeof JwtData !== 'undefined' && JwtData.GenSettings)
+        ? (parseInt(JwtData.GenSettings.DecimalPoints, 10) || 2) : 2;
+    var raw = this.value;
+    var dot = raw.indexOf('.');
+    if (dot === -1) return;
+    if ((raw.length - dot - 1) >= dec) e.preventDefault();
+});
+$(document).on('blur', '.pl-global-val', function () {
+    var v = parseFloat(this.value);
+    if (isNaN(v) || v < 0) v = 0;
+    this.value = _plSmartDec(v);
+});
+$(document).on('blur', '.pl-ct-price', function () {
+    var self = this;
+    var v    = parseFloat(this.value);
+    if (isNaN(v) || v < 0) { this.value = ''; return; }
+    this.value  = _plSmartDec(v);
+    var entered = parseFloat(this.value);
+    if (!entered || !_plProductCache || (_plBelowPurchaseAction !== 'strict' && _plBelowPurchaseAction !== 'warn')) return;
+    var $block  = $(this).closest('.pl-prod-block');
+    var prodUID = parseInt($block.find('.pl-prod-uid').val() || 0, 10);
+    if (!prodUID) return;
+    var prodObj = null;
+    for (var _bi = 0; _bi < _plProductCache.length; _bi++) {
+        if (parseInt(_plProductCache[_bi].id, 10) === prodUID) { prodObj = _plProductCache[_bi]; break; }
+    }
+    if (!prodObj || !(prodObj.purchasePrice > 0)) return;
+    var dec   = (typeof JwtData !== 'undefined' && JwtData.GenSettings) ? (parseInt(JwtData.GenSettings.DecimalPoints, 10) || 2) : 2;
+    var effPP = (prodObj.purchasePriceTaxUID === 1)
+        ? prodObj.purchasePrice
+        : prodObj.purchasePrice * (1 + (prodObj.taxPercent || 0) / 100);
+    if (entered < effPP) {
+        var msg = 'Price (' + _plCurSym + entered.toFixed(dec) + ') is below purchase cost (' + _plCurSym + effPP.toFixed(dec) + ').';
+        if (_plBelowPurchaseAction === 'strict') {
+            self.value = '';
+            showToastNotification(msg + ' Value cleared.', 'error');
+        } else {
+            showToastNotification(msg, 'warning');
+        }
+    }
+});
+
+// ── Price Rules table ─────────────────────────────────────────────────────────
+
+/**
+ * @returns {void}
+ */
+function _syncRulesEmpty() {
+    $('#PLRulesEmpty').toggleClass('d-none', $('#PLProductBlocksWrap .pl-prod-block').length > 0);
+}
+
+$(document).on('focusin', '.pl-prod-block .pl-max-qty, .pl-prod-block .pl-ct-price', function () {
+    var $block = $(this).closest('.pl-prod-block');
+    if (!parseInt($block.find('.pl-prod-uid').val() || 0, 10)) {
+        var self = this;
+        setTimeout(function () { $(self).blur(); }, 0);
+        showToastNotification('Select a product before entering prices.', 'warning');
+    }
+});
+
+/**
+ * Add one price-tier row to a product block's tier tbody.
+ * @param {jQuery} $tbody
+ * @param {Object} [tierData]  {MinQty, MaxQty, Prices:{ctUID:value}}
+ * @returns {void}
+ */
+function _plAddTierRow($tbody, tierData) {
+    var types      = _plCustomerTypes || [];
+    var isSpecific = $('input[name="PLAssignedTo"]:checked').val() === 'Customers';
+    var t          = tierData || {};
+    var maxVal     = (t.MaxQty !== null && t.MaxQty !== undefined && t.MaxQty !== 0) ? t.MaxQty : '';
+    var curSym     = $('<span>').text(_plCurSym).html();
+    var dec        = (typeof JwtData !== 'undefined' && JwtData.GenSettings) ? (parseInt(JwtData.GenSettings.DecimalPoints,  10) || 2)  : 2;
+    var maxLen     = (typeof JwtData !== 'undefined' && JwtData.GenSettings) ? (parseInt(JwtData.GenSettings.PriceMaxLength, 10) || 15) : 15;
+
+    function _priceCell(uid, pv) {
+        return '<td><div class="input-group input-group-sm">'
+            + '<span class="input-group-text">' + curSym + '</span>'
+            + '<input type="text" class="form-control form-control-sm pl-ct-price" data-ctuid="' + uid + '"'
+            + ' value="' + (pv !== '' ? pv : '') + '" placeholder="0.00"'
+            + ' onkeydown="return handleDotOnly(event)"'
+            + ' oninput="validatePriceInput(this,' + maxLen + ',' + dec + ')"'
+            + ' onpaste="handlePricePaste(event,' + maxLen + ',' + dec + ')"'
+            + ' ondrop="handlePriceDrop(event,' + maxLen + ',' + dec + ')">'
+            + '</div></td>';
+    }
+
+    var priceCells = '';
+    if (isSpecific || !types.length) {
+        var pv = (t.Prices && t.Prices[0] !== undefined) ? t.Prices[0] : '';
+        priceCells = _priceCell(0, pv);
+    } else {
+        $.each(types, function (_, ct) {
+            var uid = parseInt(ct.CustomerTypeUID);
+            var pv  = (t.Prices && t.Prices[uid] !== undefined) ? t.Prices[uid] : '';
+            priceCells += _priceCell(uid, pv);
+        });
+    }
+
+    $tbody.append(
+        '<tr class="pl-tier-row">'
+        + '<td><input type="number" class="form-control form-control-sm pl-min-qty bg-light" value="' + (t.MinQty || 1) + '" min="1" step="1" readonly tabindex="-1"></td>'
+        + '<td><input type="number" class="form-control form-control-sm pl-max-qty" value="' + maxVal + '" min="1" step="1" placeholder="—"'
+        +     ' onblur="var v=parseInt(this.value,10);if(isNaN(v)||v<=0)this.value=\'\';">'
+        + '</td>'
+        + priceCells
+        + '<td class="text-center"><button type="button" class="btn btn-sm btn-link text-danger pl-remove-tier-btn p-0" title="Remove tier"><i class="bx bx-minus-circle"></i></button></td>'
+        + '</tr>'
+    );
+}
+
+/**
+ * Add a product block card to the rules section.
+ * Each block = one product header + a tier sub-table with qty break rows.
+ * @param {Object} [data]  {ProductUID, ProductName, Tiers:[{MinQty,MaxQty,Prices}]}
+ * @returns {void}
+ */
+function plAddProductBlock(data) {
+    if (_plCustomerTypes === null) {
+        showToastNotification('Customer types are still loading. Please wait a moment.', 'warning');
+        return;
+    }
+
+    _plRuleSeq++;
+    var d          = data || {};
+    var preOption  = d.ProductUID
+        ? '<option value="' + d.ProductUID + '">' + $('<span>').text(d.ProductName || '').html() + '</option>'
+        : '';
+
+    var $block = $(
+        '<div class="pl-prod-block card border mb-2" data-seq="' + _plRuleSeq + '">'
+        + '<div class="pl-block-header d-flex align-items-center gap-2 p-2 border-bottom">'
+        +   '<input type="hidden" class="pl-prod-uid" value="' + (d.ProductUID || 0) + '">'
+        +   '<select class="pl-prod-select form-select form-select-sm flex-grow-1" style="min-width:0;">'
+        +     preOption
+        +   '</select>'
+        +   '<button type="button" class="btn btn-sm btn-outline-primary pl-add-tier-btn flex-shrink-0">'
+        +     '<i class="bx bx-plus me-1"></i>Add Tier'
+        +   '</button>'
+        +   '<button type="button" class="btn btn-sm btn-link text-danger p-0 pl-remove-block-btn flex-shrink-0" title="Remove product">'
+        +     '<i class="bx bx-trash"></i>'
+        +   '</button>'
+        + '</div>'
+        + '<div class="table-responsive">'
+        +   '<table class="table table-sm table-bordered align-middle mb-0">'
+        +     '<thead class="r2k-thead pl-tiers-thead" style="font-size:.74rem;">'
+        +       _plTierHeadHtml
+        +     '</thead>'
+        +     '<tbody class="pl-tiers-body"></tbody>'
+        +   '</table>'
+        + '</div>'
+        + '</div>'
+    );
+
+    $('#PLProductBlocksWrap').append($block);
+
+    // Select2 — Upstash cache via ProductAppend, client-side filter
+    $block.find('.pl-prod-select').select2({
+        placeholder        : 'Search product…',
+        allowClear         : false,
+        width              : '100%',
+        minimumInputLength : 1,
+        dropdownParent     : $('#priceListModal'),
+        ajax: {
+            delay    : 250,
+            transport: function (params, success) {
+                _loadPlProducts(function (products) {
+                    var term = ((params.data && params.data.term) || '').toLowerCase();
+                    var results = products
+                        .filter(function (p) { return !term || (p.text || '').toLowerCase().indexOf(term) !== -1; })
+                        .slice(0, 50)
+                        .map(function (p) { return { id: p.id, text: p.text }; });
+                    success({ results: results });
+                });
+            },
+            processResults: function (d) { return d; }
+        }
+    }).on('change', function () {
+        var $block     = $(this).closest('.pl-prod-block');
+        var newUID     = parseInt($(this).val() || 0, 10);
+        var currentUID = parseInt($block.find('.pl-prod-uid').val() || 0, 10);
+        if (currentUID > 0 && newUID !== currentUID) {
+            var $tbody = $block.find('.pl-tiers-body');
+            $tbody.empty();
+            _plAddTierRow($tbody, null);
+        }
+        $block.find('.pl-prod-uid').val(newUID);
+    });
+
+    // Add tier rows
+    var $tbody = $block.find('.pl-tiers-body');
+    if (d.Tiers && d.Tiers.length) {
+        $.each(d.Tiers, function (_, tier) { _plAddTierRow($tbody, tier); });
+    } else {
+        _plAddTierRow($tbody, null);
+    }
+
+    _syncRulesEmpty();
+}
+
+// Remove an entire product block
+$(document).on('click', '.pl-remove-block-btn', function () {
+    $(this).closest('.pl-prod-block').remove();
+    _syncRulesEmpty();
+});
+
+// Remove a single tier row; auto-remove the block if that was its last tier
+$(document).on('click', '.pl-remove-tier-btn', function () {
+    var $block = $(this).closest('.pl-prod-block');
+    $(this).closest('.pl-tier-row').remove();
+    if (!$block.find('.pl-tier-row').length) {
+        $block.remove();
+        _syncRulesEmpty();
+    }
+});
+
+// Add a new tier row — validate ALL existing rows in this block first
+$(document).on('click', '.pl-add-tier-btn', function () {
+    var $block  = $(this).closest('.pl-prod-block');
+    var $tiers  = $block.find('.pl-tier-row');
+    var blockNo = $('#PLProductBlocksWrap .pl-prod-block').index($block) + 1;
+    var error   = null;
+    var nextMinQty = 1;
+
+    $tiers.each(function (ti) {
+        if (error) return false;
+        var $tr    = $(this);
+        var tierNo = ti + 1;
+        var minQty = parseInt($tr.find('.pl-min-qty').val() || 1, 10);
+        var maxRaw = $.trim($tr.find('.pl-max-qty').val());
+        var maxQty = maxRaw !== '' ? parseInt(maxRaw, 10) : null;
+
+        if (maxQty === null || maxQty <= 0) {
+            error = 'Tier ' + tierNo + ': Set Max Qty before adding another tier.';
+            $tr.find('.pl-max-qty').focus();
+            return false;
+        }
+        if (maxQty <= minQty) {
+            error = 'Tier ' + tierNo + ': Max Qty (' + maxQty + ') must be greater than Min Qty (' + minQty + ').';
+            $tr.find('.pl-max-qty').focus();
+            return false;
+        }
+        nextMinQty = maxQty + 1;
+
+        $tr.find('.pl-ct-price').each(function () {
+            if (error) return false;
+            var raw = $.trim($(this).val());
+            var v   = parseFloat(raw);
+            if (raw === '' || isNaN(v) || v <= 0) {
+                error = 'Tier ' + tierNo + ': Fill all price fields with a value greater than zero.';
+                $(this).focus();
+                return false;
+            }
+        });
+    });
+
+    if (error) { showToastNotification('Product ' + blockNo + ', ' + error, 'warning'); return; }
+
+    _plAddTierRow($block.find('.pl-tiers-body'), { MinQty: nextMinQty });
+});
+
+// ── Open / Reset ──────────────────────────────────────────────────────────────
+
+/**
+ * Open the Price List modal. Loads customer types first (cached after first fetch).
+ * Tables are built after types are available; modal opens immediately.
+ * @returns {void}
+ */
+function openPriceListModal() {
+    $('#PLUID').val(0);
+    $('#PLModalTitle').text('Create Price List');
+    $('#PLName').val('');
+    $('#PLPriority').val('1');
+    $('#PLStatus').val('1');
+    $('#PLDescription').val('');
+    $('#PLValidFromRaw,#PLValidToRaw').val('');
+    $('input[name="PLAssignedTo"][value="All"]').prop('checked', true);
+    $('input[name="PLScope"][value="All"]').prop('checked', true);
+    $('#PLGroupsRow,#PLSpecificCustRow').addClass('d-none');
+    if ($.fn.select2) {
+        var $modal = $('#priceListModal');
+        if (!$('#PLCustomerGroups').hasClass('select2-hidden-accessible')) {
+            $('#PLCustomerGroups').select2({
+                placeholder: 'Search and select customer groups…',
+                allowClear: true,
+                dropdownParent: $modal,
+                width: '100%'
+            });
+        }
+        if (!$('#PLCustomers').hasClass('select2-hidden-accessible')) {
+            $('#PLCustomers').select2({
+                placeholder: 'Search and select customers…',
+                allowClear: true,
+                dropdownParent: $modal,
+                width: '100%'
+            });
+        }
+        $('#PLCustomerGroups,#PLCustomers').val(null).trigger('change.select2');
+    } else {
+        $('#PLCustomerGroups,#PLCustomers').val(null);
+    }
+    $('#PLGlobalSection').removeClass('d-none');
+    $('#PLRulesSection').addClass('d-none');
+    $('#PLGlobalBasedOn').val('SellingPrice');
+    $('#PLGlobalBody').empty();
+    $('#PLGlobalLoading').removeClass('d-none');
+    $('#PLGlobalTableWrap').addClass('d-none');
+    $('#PLProductBlocksWrap .pl-prod-block').remove();
+    _plTierHeadHtml = '';
+    $('#PLRulesLoading').addClass('d-none');
+    _syncRulesEmpty();
+    _plRuleSeq = 0;
+    $('.plFormAlert').addClass('d-none');
+    _initPLDatePickers();
+    $('#priceListModal').modal('show');
+
+    _loadCustTypes(function (types) {
+        var isSpecific = $('input[name="PLAssignedTo"]:checked').val() === 'Customers';
+        _buildGlobalTable(types, isSpecific);
+        _buildRulesHeader(types, isSpecific);
+    });
+}
+
+$(document).on('click', '#NewPriceList, #NewPriceListEmpty', function (e) {
+    e.preventDefault();
+    openPriceListModal();
+});
+
+// ── Edit ──────────────────────────────────────────────────────────────────────
+
+/**
+ * Populate the price list modal form with data fetched for editing.
+ * Call this after openPriceListModal() has already reset/shown the modal.
+ * @param {Object} data  response from getPriceListForEdit (header fields + Assignments/Discounts/Rules)
+ * @returns {void}
+ */
+/**
+ * Format a number using org decimal settings, stripping unnecessary trailing zeros.
+ * @param {number|string} v
+ * @returns {number}
+ */
+function _plSmartDec(v) {
+    var dec = (typeof JwtData !== 'undefined' && JwtData.GenSettings) ? (parseInt(JwtData.GenSettings.DecimalPoints, 10) || 2) : 2;
+    return parseFloat(parseFloat(v || 0).toFixed(dec));
+}
+function _plDecStep() {
+    var dec = (typeof JwtData !== 'undefined' && JwtData.GenSettings) ? (parseInt(JwtData.GenSettings.DecimalPoints, 10) || 2) : 2;
+    return (1 / Math.pow(10, dec)).toFixed(dec);
+}
+
+/**
+ * @param {Object} data  response from getPriceListForEdit (header fields + Assignments/Discounts/Rules)
+ * @returns {void}
+ */
+function _fillPriceListForm(data) {
+    var assignedTo = data.AssignedToType || 'All';
+    var scope      = data.Scope || 'All';
+    var isSpecific = assignedTo === 'Customers';
+
+    // Basic fields
+    $('#PLName').val(data.Name || '');
+    $('#PLStatus').val(String(data.Status != null ? data.Status : 1));
+    $('#PLPriority').val(data.Priority || 1);
+    $('#PLDescription').val(data.Description || '');
+
+    // Dates
+    if (data.ValidFrom && _plFpFrom) _plFpFrom.setDate(data.ValidFrom);
+    if (data.ValidTo   && _plFpTo)   _plFpTo.setDate(data.ValidTo);
+
+    // Assigned To — set radio + visibility WITHOUT triggering change (avoids double-loading)
+    $('input[name="PLAssignedTo"][value="' + assignedTo + '"]').prop('checked', true);
+    $('#PLGroupsRow').toggleClass('d-none', assignedTo !== 'Groups');
+    $('#PLSpecificCustRow').toggleClass('d-none', assignedTo !== 'Customers');
+
+    // Scope — set radio + section visibility
+    $('input[name="PLScope"][value="' + scope + '"]').prop('checked', true);
+    $('#PLGlobalSection').toggleClass('d-none', scope === 'Specific');
+    $('#PLRulesSection').toggleClass('d-none', scope !== 'Specific');
+    $('#PLGlobalBasedOn').val(data.GlobalBasedOn || 'SellingPrice');
+
+    // Build tables with correct isSpecific, then fill saved values
+    _loadCustTypes(function (types) {
+        _buildGlobalTable(types, isSpecific);
+        _buildRulesHeader(types, isSpecific);
+
+        // Fill All Products discount rows (smart decimal on value)
+        if (scope === 'All' && data.Discounts && data.Discounts.length) {
+            $.each(data.Discounts, function (_, d) {
+                var $tr = $('#PLGlobalBody tr[data-ctuid="' + d.CustomerTypeUID + '"]');
+                if (!$tr.length) return;
+                $tr.find('.pl-global-type').val(d.DiscountType).trigger('change');
+                $tr.find('.pl-global-val').val(_plSmartDec(d.DiscountValue));
+            });
+        }
+
+        // Fill Specific Products — group flat DB rows by ProductUID, then by tier (MinQty+MaxQty)
+        if (scope === 'Specific' && data.Rules && data.Rules.length) {
+            var prodMap   = {};
+            var prodOrder = [];
+            $.each(data.Rules, function (_, r) {
+                var pKey = r.ProductUID;
+                if (!prodMap[pKey]) {
+                    prodMap[pKey] = { ProductUID: r.ProductUID, ProductName: r.ProductName, Tiers: {}, TierOrder: [] };
+                    prodOrder.push(pKey);
+                }
+                var tKey = r.MinQty + '_' + (r.MaxQty !== null && r.MaxQty !== undefined ? r.MaxQty : '');
+                if (!prodMap[pKey].Tiers[tKey]) {
+                    prodMap[pKey].Tiers[tKey] = { MinQty: r.MinQty, MaxQty: r.MaxQty, Prices: {} };
+                    prodMap[pKey].TierOrder.push(tKey);
+                }
+                prodMap[pKey].Tiers[tKey].Prices[r.CustomerTypeUID] = _plSmartDec(r.Price);
+            });
+            $.each(prodOrder, function (_, pKey) {
+                var prod  = prodMap[pKey];
+                var tiers = prod.TierOrder.map(function (k) { return prod.Tiers[k]; });
+                plAddProductBlock({ ProductUID: prod.ProductUID, ProductName: prod.ProductName, Tiers: tiers });
+            });
+        }
+    });
+
+    // Set assignment selections after their options are populated
+    var refUIDs = (data.Assignments || []).map(function (a) { return String(a.RefUID); });
+    if (assignedTo === 'Groups' && refUIDs.length) {
+        _loadPLGroups(function () { $('#PLCustomerGroups').val(refUIDs).trigger('change.select2'); });
+    } else if (assignedTo === 'Customers' && refUIDs.length) {
+        _loadPLCustomers(function () { $('#PLCustomers').val(refUIDs).trigger('change.select2'); });
+    }
+}
+
+// Fetch data first, open modal only after data is ready
+$(document).on('click', '.editPriceList', function () {
+    var uid = parseInt($(this).data('uid'), 10);
+    if (!uid) return;
+
+    var $btn = $(this).prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i>');
+
+    $.ajax({
+        url: '/products/getPriceListForEdit', method: 'GET', cache: false,
+        data: { uid: uid },
+        success: function (r) {
+            $btn.prop('disabled', false).html('<i class="bx bx-edit"></i>');
+            if (r.Error) { showToastNotification(r.Message || 'Failed to load price list.', 'error'); return; }
+            openPriceListModal();
+            $('#PLModalTitle').text('Edit Price List');
+            $('#PLUID').val(uid);
+            _fillPriceListForm(r.Data);
+        },
+        error: function () {
+            $btn.prop('disabled', false).html('<i class="bx bx-edit"></i>');
+            showToastNotification('Failed to load price list data. Please try again.', 'error');
+        }
+    });
+});
+
+// ── Save ──────────────────────────────────────────────────────────────────────
+
+/**
+ * Collect discount rows from the All Products global table.
+ * @returns {Array<{CustomerTypeUID:number,DiscountType:string,DiscountValue:number}>}
+ */
+function _collectDiscounts() {
+    var rows = [];
+    $('#PLGlobalBody tr').each(function () {
+        var $tr   = $(this);
+        var uid   = parseInt($tr.data('ctuid') || 0, 10);
+        var dtype = $tr.find('.pl-global-type').val() || 'Percentage';
+        var val   = parseFloat($tr.find('.pl-global-val').val()) || 0;
+        rows.push({ CustomerTypeUID: uid, DiscountType: dtype, DiscountValue: val });
+    });
+    return rows;
+}
+
+/**
+ * Collect rule rows from the Specific Products table.
+ * Expands each row into one entry per CustomerType column.
+ * @returns {Array<{ProductUID:number,MinQty:number,MaxQty:number|null,CustomerTypeUID:number,Price:number}>}
+ */
+function _collectRules() {
+    var rules = [];
+    $('#PLProductBlocksWrap .pl-prod-block').each(function () {
+        var $block  = $(this);
+        var prodUID = parseInt($block.find('.pl-prod-uid').val() || 0, 10);
+        $block.find('.pl-tier-row').each(function () {
+            var $tr       = $(this);
+            var minQty    = parseInt($tr.find('.pl-min-qty').val() || 1, 10);
+            var maxQtyRaw = $.trim($tr.find('.pl-max-qty').val());
+            var maxQty    = maxQtyRaw !== '' ? parseInt(maxQtyRaw, 10) : null;
+            $tr.find('.pl-ct-price').each(function () {
+                var raw = $.trim($(this).val());
+                rules.push({
+                    ProductUID:      prodUID,
+                    MinQty:          minQty,
+                    MaxQty:          maxQty,
+                    CustomerTypeUID: parseInt($(this).data('ctuid') || 0, 10),
+                    Price:           raw !== '' ? (parseFloat(raw) || 0) : null
+                });
+            });
+        });
+    });
+    return rules;
+}
+
+/**
+ * Validate all product blocks + tiers for Specific Products scope.
+ * @returns {string|null}  error message, or null if all valid
+ */
+function _validateAllRules() {
+    var $blocks = $('#PLProductBlocksWrap .pl-prod-block');
+    if (!$blocks.length) return 'Add at least one product rule, or switch Scope to All Products.';
+
+    var errorMsg = null;
+
+    $blocks.each(function (bi) {
+        if (errorMsg) return false;
+        var $block  = $(this);
+        var blockNo = bi + 1;
+
+        if (!parseInt($block.find('.pl-prod-uid').val() || 0, 10)) {
+            errorMsg = 'Product ' + blockNo + ': Please select a product.';
+            return false;
+        }
+
+        var $tiers = $block.find('.pl-tier-row');
+        if (!$tiers.length) {
+            errorMsg = 'Product ' + blockNo + ': Add at least one price tier.';
+            return false;
+        }
+
+        $tiers.each(function (ti) {
+            if (errorMsg) return false;
+            var $tr      = $(this);
+            var tierNo   = ti + 1;
+            var isLast   = ti === $tiers.length - 1;
+            var minQty   = parseInt($tr.find('.pl-min-qty').val() || 1, 10);
+            var maxRaw   = $.trim($tr.find('.pl-max-qty').val());
+            var maxQty   = maxRaw !== '' ? parseInt(maxRaw, 10) : null;
+
+            if (!isLast) {
+                if (maxQty === null || maxQty <= 0) {
+                    errorMsg = 'Product ' + blockNo + ', Tier ' + tierNo + ': Max Qty is required (only the last tier can be open-ended).';
+                    $tr.find('.pl-max-qty').focus();
+                    return false;
+                }
+                if (maxQty <= minQty) {
+                    errorMsg = 'Product ' + blockNo + ', Tier ' + tierNo + ': Max Qty (' + maxQty + ') must be greater than Min Qty (' + minQty + ').';
+                    $tr.find('.pl-max-qty').focus();
+                    return false;
+                }
+            } else if (maxQty !== null && maxQty > 0 && maxQty <= minQty) {
+                errorMsg = 'Product ' + blockNo + ', Tier ' + tierNo + ': Max Qty must be greater than Min Qty (' + minQty + ').';
+                $tr.find('.pl-max-qty').focus();
+                return false;
+            }
+
+            if (ti > 0) {
+                var prevMaxRaw = $.trim($tiers.eq(ti - 1).find('.pl-max-qty').val());
+                var prevMax    = prevMaxRaw !== '' ? parseInt(prevMaxRaw, 10) : null;
+                if (prevMax !== null && minQty !== prevMax + 1) {
+                    errorMsg = 'Product ' + blockNo + ', Tier ' + tierNo + ': Min Qty (' + minQty + ') must equal previous tier\'s Max Qty + 1 (' + (prevMax + 1) + ').';
+                    $tr.find('.pl-min-qty').closest('td').addClass('table-warning');
+                    return false;
+                }
+            }
+
+            $tr.find('.pl-ct-price').each(function () {
+                if (errorMsg) return false;
+                var raw = $.trim($(this).val());
+                var v   = parseFloat(raw);
+                if (raw === '' || isNaN(v) || v <= 0) {
+                    errorMsg = 'Product ' + blockNo + ', Tier ' + tierNo + ': Fill all price fields with a value greater than zero.';
+                    $(this).focus();
+                    return false;
+                }
+            });
+            if (errorMsg) return false;
+
+            if (_plProductCache && (_plBelowPurchaseAction === 'strict' || _plBelowPurchaseAction === 'warn')) {
+                var prodUID2 = parseInt($block.find('.pl-prod-uid').val() || 0, 10);
+                var prodObj  = null;
+                for (var _pi = 0; _pi < _plProductCache.length; _pi++) {
+                    if (parseInt(_plProductCache[_pi].id, 10) === prodUID2) { prodObj = _plProductCache[_pi]; break; }
+                }
+                if (prodObj && prodObj.purchasePrice > 0) {
+                    var dec2  = (typeof JwtData !== 'undefined' && JwtData.GenSettings) ? (parseInt(JwtData.GenSettings.DecimalPoints, 10) || 2) : 2;
+                    var effPP = (prodObj.purchasePriceTaxUID === 1)
+                        ? prodObj.purchasePrice
+                        : prodObj.purchasePrice * (1 + (prodObj.taxPercent || 0) / 100);
+                    $tr.find('.pl-ct-price').each(function () {
+                        if (errorMsg) return false;
+                        var raw2    = $.trim($(this).val());
+                        if (raw2 === '') return;
+                        var entered = parseFloat(raw2);
+                        if (!isNaN(entered) && entered > 0 && entered < effPP) {
+                            var msg = 'Product ' + blockNo + ', Tier ' + tierNo + ': Price (' + _plCurSym + entered.toFixed(dec2) + ') is below purchase cost (' + _plCurSym + effPP.toFixed(dec2) + ').';
+                            if (_plBelowPurchaseAction === 'strict') {
+                                errorMsg = msg + ' Cannot save.';
+                                $(this).focus();
+                            } else {
+                                showToastNotification(msg, 'warning');
+                            }
+                        }
+                    });
+                }
+            }
+        });
+    });
+
+    return errorMsg;
+}
+
+/**
+ * Validate the All Products global discount table.
+ * @returns {string|null}
+ */
+function _validateGlobalDiscounts() {
+    var errorMsg = null;
+    $('#PLGlobalBody tr').each(function (i) {
+        if (errorMsg) return false;
+        var $tr   = $(this);
+        var dtype = $tr.find('.pl-global-type').val() || 'Percentage';
+        if (dtype === 'NoDiscount') return;
+        var val   = parseFloat($tr.find('.pl-global-val').val());
+        var label = $.trim($tr.find('td:first').text()) || ('Row ' + (i + 1));
+        if (isNaN(val) || val <= 0) {
+            errorMsg = 'Discount for "' + label + '": Enter a value greater than zero, or select No Discount.';
+            $tr.find('.pl-global-val').focus();
+            return false;
+        }
+    });
+    return errorMsg;
+}
+
+/**
+ * @returns {void}
+ */
+function savePriceListForm() {
+    var name = $.trim($('#PLName').val());
+    if (!name) {
+        showToastNotification('Please enter a price list name.', 'error');
+        $('#PLName').focus();
+        return;
+    }
+
+    var assignedTo  = $('input[name="PLAssignedTo"]:checked').val() || 'All';
+    var scope       = $('input[name="PLScope"]:checked').val()       || 'All';
+    var assignments = [];
+
+    if (assignedTo === 'Groups') {
+        assignments = $('#PLCustomerGroups').val() || [];
+        if (!assignments.length) {
+            showToastNotification('Please select at least one customer group.', 'error');
+            return;
+        }
+    } else if (assignedTo === 'Customers') {
+        assignments = $('#PLCustomers').val() || [];
+        if (!assignments.length) {
+            showToastNotification('Please select at least one customer.', 'error');
+            return;
+        }
+    }
+
+    var rules = [];
+    if (scope === 'All') {
+        var discErr = _validateGlobalDiscounts();
+        if (discErr) { showToastNotification(discErr, 'error'); return; }
+    }
+    if (scope === 'Specific') {
+        var ruleErr = _validateAllRules();
+        if (ruleErr) { showToastNotification(ruleErr, 'error'); return; }
+        rules = _collectRules();
+    }
+
+    var isEdit  = parseInt($('#PLUID').val(), 10) > 0;
+    var payload = {
+        PLUID:          parseInt($('#PLUID').val(), 10) || 0,
+        PageNo:         isEdit ? PageNo : 1,
+        RowLimit:       RowLimit,
+        Filter:         JSON.stringify(Filter),
+        Name:           name,
+        Status:         $('#PLStatus').val(),
+        Priority:       $('#PLPriority').val() || 1,
+        ValidFrom:      $('#PLValidFromRaw').val(),
+        ValidTo:        $('#PLValidToRaw').val(),
+        Description:    $.trim($('#PLDescription').val()),
+        AssignedToType: assignedTo,
+        Scope:          scope,
+        GlobalBasedOn:  $('#PLGlobalBasedOn').val() || 'SellingPrice',
+        Assignments:    JSON.stringify(assignments),
+        Discounts:      JSON.stringify(scope === 'All' ? _collectDiscounts() : []),
+        Rules:          JSON.stringify(rules)
+    };
+
+    function _submitPL() {
+        $('.plFormAlert').addClass('d-none');
+        var $btn = $('#priceListModal .btn-primary').first().prop('disabled', true).text('Saving…');
+        $.ajax({
+            url: '/products/savePriceList', method: 'POST', data: payload, cache: false,
+            success: function (r) {
+                $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i>Save');
+                if (r.Error) { showToastNotification(r.Message, 'error'); return; }
+                $('#priceListModal').modal('hide');
+                showToastNotification(r.Message, 'success');
+                _applyPLResponse(r);
+            },
+            error: function () {
+                $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i>Save');
+                showToastNotification('Server error. Please try again.', 'error');
+            }
+        });
+    }
+
+    if (!isEdit) {
+        Swal.fire({
+            title: 'Create Price List?',
+            html: 'Once created, this price list will be <strong>applied to matching products</strong> and will <strong>affect customer pricing</strong> on the transaction page.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#0d6efd',
+            confirmButtonText: 'Yes, Create',
+            cancelButtonColor: '#6c757d',
+            cancelButtonText: 'Cancel',
+        }).then(function (r) {
+            if (r.isConfirmed) _submitPL();
+        });
+    } else {
+        _submitPL();
+    }
+}
+
+// ── Delete Price List ─────────────────────────────────────────────────────────
+
+$(document).on('click', '.deletePriceList', function () {
+    var uid  = parseInt($(this).data('uid'), 10);
+    var name = $(this).data('name') || 'this price list';
+    if (!uid) return;
+
+    Swal.fire({
+        title: 'Delete Price List?',
+        html: 'Are you sure you want to delete <strong>' + $('<span>').text(name).html() + '</strong>? This action cannot be undone.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        confirmButtonText: 'Yes, delete',
+        cancelButtonColor: '#6c757d',
+        cancelButtonText: 'Cancel',
+    }).then(function (result) {
+        if (!result.isConfirmed) return;
+        $.ajax({
+            url: '/products/deletePriceList', method: 'POST', cache: false,
+            data: { PriceListUID: uid, PageNo: PageNo, RowLimit: RowLimit, Filter: JSON.stringify(Filter), [CsrfName]: CsrfToken },
+            success: function (r) {
+                if (r.Error) { showToastNotification(r.Message, 'error'); return; }
+                showToastNotification(r.Message, 'success');
+                _applyPLResponse(r);
+            },
+            error: function () { showToastNotification('Failed to delete. Please try again.', 'error'); }
+        });
+    });
 });
 
 // Category product count click
@@ -1264,6 +2459,27 @@ $(document).on('click', '#btnSyncCategoriesCache', function () {
     $btn.find('i').removeClass('bx-planet').addClass('bx-loader-alt bx-spin');
     $.ajax({
         url    : '/products/syncCategoriesCache',
+        method : 'POST',
+        data   : { [CsrfName]: CsrfToken },
+        success: function (resp) {
+            CsrfToken = resp.NewCsrfToken || CsrfToken;
+            $btn.find('i').removeClass('bx-loader-alt bx-spin').addClass('bx-planet');
+            if (resp.Error) { showToastNotification(resp.Message, 'error'); }
+            else { showToastNotification(resp.Message, 'success'); }
+        },
+        error: function () {
+            $btn.find('i').removeClass('bx-loader-alt bx-spin').addClass('bx-planet');
+            showToastNotification('Sync failed. Please try again.', 'error');
+        }
+    });
+});
+
+// Sync Price List Cache
+$(document).on('click', '#btnSyncPriceListCache', function () {
+    var $btn = $(this);
+    $btn.find('i').removeClass('bx-planet').addClass('bx-loader-alt bx-spin');
+    $.ajax({
+        url    : '/products/syncPriceListCache',
         method : 'POST',
         data   : { [CsrfName]: CsrfToken },
         success: function (resp) {

@@ -4,13 +4,18 @@
 
 var _commSmsQuill        = null;
 var _commEmailQuill      = null;
-var _commDropzone        = null;
+var _commDropzone        = null;   // kept for backward compat; no longer used
 var _commMobiles         = [];
 var _commEmails          = [];
 var _commTpl             = { rawSubject: '', rawBody: '', resolvedSubject: '', resolvedBody: '', showingRaw: false };
 var _commPendingTpl      = null;
-var _commPdfAutoAttached = false;
-var _commRowData         = null;   // row data attributes from the clicked email button
+var _commPdfAutoAttached = false;  // legacy alias; logic now uses _commPdfAlertSetup
+var _commPdfDocNumber    = '';     // document number shown in the PDF attach alert
+var _commPdfFetchFn      = null;   // function(onSuccess) called when user clicks the PDF alert
+var _commPdfAlertSetup   = false;  // prevents duplicate setup per modal open
+var _commPreviewBlobUrl  = null;   // active blob URL shown in #CommAttachPreview
+var _commPreviewFileName = '';     // filename of the file currently being previewed
+var _commRowData         = null;   // row data attributes from the clicked comm button
 
 function _initCommQuill() {
     if (!_commSmsQuill && document.getElementById('CommSmsEditor')) {
@@ -57,54 +62,11 @@ function _initCommQuill() {
     }
 }
 
-function _initCommDropzone() {
-    if (_commDropzone) return;
-    var el = document.getElementById('CommAttachDropzone');
-    if (!el || typeof Dropzone === 'undefined') return;
-
-    Dropzone.autoDiscover = false;
-
-    var previewTemplate =
-        '<div class="dz-preview dz-file-preview">' +
-            '<div class="dz-thumbnail">' +
-                '<img data-dz-thumbnail />' +
-                '<span class="dz-nopreview">No Preview</span>' +
-            '</div>' +
-            '<div class="dz-filename"><span data-dz-name></span></div>' +
-            '<div class="dz-size"><span data-dz-size></span></div>' +
-            '<div class="dz-progress"><span class="dz-upload" data-dz-uploadprogress></span></div>' +
-            '<div class="dz-error-message"><span data-dz-errormessage></span></div>' +
-            '<a class="dz-remove" href="javascript:undefined;" data-dz-remove>Remove</a>' +
-        '</div>';
-
-    _commDropzone = new Dropzone(el, {
-        url              : '#',
-        autoProcessQueue : false,
-        maxFiles         : 3,
-        maxFilesize      : 3,
-        addRemoveLinks   : false,
-        acceptedFiles    : '.pdf,.jpg,.jpeg,.png',
-        parallelUploads  : 3,
-        previewTemplate  : previewTemplate,
-        init: function () {
-            this.on('addedfile', function (file) {
-                if (this.files.length > 3) {
-                    this.removeFile(file);
-                    Swal.fire({ icon: 'warning', text: 'Maximum 3 attachments allowed.' });
-                }
-            });
-            this.on('error', function (file) {
-                if (file.size > 3 * 1024 * 1024) {
-                    this.removeFile(file);
-                    Swal.fire({ icon: 'warning', text: 'Each file must be 3 MB or smaller.' });
-                }
-            });
-            this.on('maxfilesexceeded', function (file) {
-                this.removeFile(file);
-                Swal.fire({ icon: 'warning', text: 'Maximum 3 attachments allowed.' });
-            });
-        }
-    });
+// Bind the comm modal attachment zone (uses the shared custom attach system from attachments.js)
+function _initCommAttach() {
+    if (typeof _attachBindListeners === 'function') {
+        _attachBindListeners('CommAttach');
+    }
 }
 
 function _applyCommTemplate(resp) {
@@ -192,8 +154,12 @@ function openCommModal(commType, recipientType, uids, names, mobiles, emails, op
     $('#CommSmsPartsS').text('');
 
     // Reset attachments
-    if (_commDropzone) { _commDropzone.removeAllFiles(true); }
-    _commPdfAutoAttached = false;
+    if (typeof _attachResetState === 'function') { _attachResetState('CommAttach'); }
+    _commPdfAlertSetup = false;
+    _commPdfDocNumber  = '';
+    _commPdfFetchFn    = null;
+    _commHidePdfAlert();
+    _commClosePreview();
 
     // Reset token toggle
     _commTpl        = { rawSubject: '', rawBody: '', resolvedSubject: '', resolvedBody: '', showingRaw: false };
@@ -321,46 +287,164 @@ function _resolveCommTokensJS(subject, body, ctx) {
     return { subject: replace(subject), body: replace(body) };
 }
 
-// -- PDF attachment fetch (module 110 Payments) ------------------------------
+// -- PDF attachment — module 110 Payments (registers alert, no auto-fetch) ---
 function _fetchCommPdfAttachment(moduleUID, recordUID) {
-    if (!moduleUID || !recordUID) return;
-
-    var endpoint = null;
-    if (moduleUID === 110) { endpoint = '/payments/getPaymentPdfBase64'; }
-    if (!endpoint) return;
-
-    _commPdfAutoAttached = true;
-
-    var $dz = $('#CommAttachDropzone');
-    var $loader = $('<div id="CommPdfAttachLoader" class="text-center py-2" style="font-size:.78rem;color:#666;"><span class="spinner-border spinner-border-sm me-1"></span>Attaching receipt PDF...</div>');
-    $dz.append($loader);
-
-    $.ajax({
-        url   : endpoint,
-        method: 'POST',
-        data  : { PaymentUID: recordUID, PaperSize: 'A4', [CsrfName]: CsrfToken },
-        success: function (resp) {
-            $('#CommPdfAttachLoader').remove();
-            if (resp.Error || !resp.Base64) { _commPdfAutoAttached = false; return; }
-            _initCommDropzone();
-            if (!_commDropzone) { _commPdfAutoAttached = false; return; }
-            try {
-                var binary = atob(resp.Base64);
-                var bytes  = new Uint8Array(binary.length);
-                for (var i = 0; i < binary.length; i++) { bytes[i] = binary.charCodeAt(i); }
-                var blob = new Blob([bytes], { type: 'application/pdf' });
-                var file = new File([blob], resp.Filename || 'receipt.pdf', { type: 'application/pdf' });
-                _commDropzone.addFile(file);
-            } catch (e) {
-                _commPdfAutoAttached = false;
-            }
-        },
-        error: function () {
-            $('#CommPdfAttachLoader').remove();
-            _commPdfAutoAttached = false;
-        }
+    if (!moduleUID || !recordUID || moduleUID !== 110) return;
+    var docNum = _commRowData ? (_commRowData.docNumber || ('Receipt-' + recordUID)) : ('Receipt-' + recordUID);
+    _setupCommPdfAlert(docNum, function (onSuccess) {
+        $.ajax({
+            url   : '/payments/getPaymentPdfBase64',
+            method: 'POST',
+            data  : { PaymentUID: recordUID, PaperSize: 'A4', [CsrfName]: CsrfToken },
+            success: function (resp) {
+                if (resp.Error || !resp.Base64) { onSuccess(null); return; }
+                try {
+                    var binary = atob(resp.Base64);
+                    var bytes  = new Uint8Array(binary.length);
+                    for (var i = 0; i < binary.length; i++) { bytes[i] = binary.charCodeAt(i); }
+                    var blob = new Blob([bytes], { type: 'application/pdf' });
+                    onSuccess(new File([blob], resp.Filename || 'receipt.pdf', { type: 'application/pdf' }));
+                } catch (ex) {
+                    onSuccess(null);
+                }
+            },
+            error: function () { onSuccess(null); }
+        });
     });
 }
+
+// -- Smart PDF attach alert --------------------------------------------------
+
+// Called by page-specific handlers (quotations.js, invoices.js, etc.) to register
+// the PDF alert for the currently open modal. Idempotent — only first call wins.
+function _setupCommPdfAlert(docNumber, fetchFn) {
+    if (_commPdfAlertSetup) return;
+    _commPdfAlertSetup = true;
+    _commPdfDocNumber  = docNumber || '';
+    _commPdfFetchFn    = fetchFn   || null;
+    _commOnAttachChange(); // decide whether to show alert based on current state
+}
+
+function _commShowPdfAlert() {
+    var label = _commPdfDocNumber ? '"' + _commPdfDocNumber + '.pdf"' : 'the document PDF';
+    $('#CommPdfAttachAlertText').text('Attach ' + label + '? Click here to add.');
+    $('#CommPdfAttachAlert').removeClass('d-none');
+}
+
+function _commHidePdfAlert() {
+    $('#CommPdfAttachAlert').addClass('d-none');
+}
+
+// Invoked by onclick on the alert banner
+function _commClickPdfAlert() {
+    if (!_commPdfFetchFn) return;
+    var $alert = $('#CommPdfAttachAlert');
+    if ($alert.hasClass('d-none')) return;
+    $alert.css('pointer-events', 'none');
+    $('#CommPdfAttachAlertIcon').addClass('d-none');
+    $('#CommPdfAttachAlertSpinner').removeClass('d-none');
+    _commPdfFetchFn(function (file) {
+        $('#CommPdfAttachAlertSpinner').addClass('d-none');
+        $('#CommPdfAttachAlertIcon').removeClass('d-none');
+        $alert.css('pointer-events', '');
+        if (!file) return; // fetch failed — leave alert visible so user can retry
+        _initCommAttach();
+        var state = _attachState['CommAttach'];
+        if (!state) { _attachState['CommAttach'] = { newFiles: [], existing: [], toDelete: [] }; state = _attachState['CommAttach']; }
+        file._isCommAutoPdf = true;
+        state.newFiles.push(file);
+        _attachRender('CommAttach'); // triggers onAfterChange → _commOnAttachChange → hides alert
+    });
+}
+
+// Called via _attachCfg.CommAttach.onAfterChange after every add/remove in the zone
+function _commOnAttachChange() {
+    var files = ((_attachState && _attachState['CommAttach']) ? _attachState['CommAttach'].newFiles : []) || [];
+    // Close preview if the file being previewed was removed
+    if (_commPreviewFileName && !files.some(function (f) { return f.name === _commPreviewFileName; })) {
+        _commClosePreview();
+    }
+    if (!_commPdfFetchFn) return;
+    var isDraft = (_commRowData && _commRowData.docStatus === 'Draft');
+    if (isDraft) { _commHidePdfAlert(); return; }
+    var hasAuto = files.some(function (f) { return !!f._isCommAutoPdf; });
+    if (hasAuto) { _commHidePdfAlert(); } else { _commShowPdfAlert(); }
+}
+
+// -- Attachment preview — opens a separate modal above the email modal --------
+// Same stacking technique used by #imagePreviewModal:
+//   data-bs-backdrop="false" + z-index:2000 (set in HTML) keeps the email modal
+//   visible behind the preview without adding a second backdrop overlay.
+
+// Opens #filePreviewModal above the email modal for any file type.
+// Images render as <img>, all other files render as <iframe>.
+// No dependency on #imagePreviewModal — works on every page that has the comm modal.
+function _commOpenAttachPreview(idx) {
+    _commClosePreview();
+    var state = _attachState && _attachState['CommAttach'];
+    if (!state) return;
+    var file = (state.newFiles || [])[idx];
+    if (!file) return;
+
+    _commPreviewBlobUrl  = URL.createObjectURL(file);
+    _commPreviewFileName = file.name;
+
+    // Highlight active chip
+    $('#commAttachList .prod-attach-item').removeClass('comm-preview-active');
+    $('#commAttachList .prod-attach-item').eq(idx).addClass('comm-preview-active');
+
+    var mime      = (file.type || file.name).toLowerCase();
+    var isImg     = /^image\//i.test(file.type) || /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(file.name);
+    var iconCls   = 'bx bx-image';
+    var iconColor = '#94a3b8';
+    if (isImg) {
+        iconCls = 'bx bx-image'; iconColor = '#6366f1';
+    } else if (mime.indexOf('pdf') !== -1) {
+        iconCls = 'bx bxs-file-pdf'; iconColor = '#ef4444';
+    } else if (mime.indexOf('word') !== -1 || mime.indexOf('.doc') !== -1) {
+        iconCls = 'bx bxs-file-doc'; iconColor = '#2563eb';
+    } else if (mime.indexOf('sheet') !== -1 || mime.indexOf('.xls') !== -1) {
+        iconCls = 'bx bxs-spreadsheet'; iconColor = '#16a34a';
+    }
+
+    $('#filePreviewIcon').attr('class', iconCls).css('color', iconColor);
+    $('#filePreviewTitle').text(file.name);
+
+    var $content = $('#filePreviewContent').empty();
+    if (isImg) {
+        $('<img>').attr({ src: _commPreviewBlobUrl, alt: file.name })
+            .css({ maxWidth: '100%', maxHeight: '78vh', objectFit: 'contain', display: 'block', margin: '0 auto', padding: '12px' })
+            .appendTo($content);
+    } else {
+        $('<iframe>').attr({ src: _commPreviewBlobUrl, title: file.name })
+            .css({ width: '100%', height: '78vh', border: 'none', display: 'block' })
+            .appendTo($content);
+    }
+
+    var modal = document.getElementById('filePreviewModal');
+    if (modal) {
+        bootstrap.Modal.getOrCreateInstance(modal, { backdrop: false, keyboard: true }).show();
+    }
+}
+
+function _commClosePreview() {
+    $('#commAttachList .prod-attach-item').removeClass('comm-preview-active');
+    var fModal = document.getElementById('filePreviewModal');
+    if (fModal) { var fi = bootstrap.Modal.getInstance(fModal); if (fi) fi.hide(); }
+}
+
+// Cleanup when #filePreviewModal is dismissed (Esc, × button, or _commClosePreview)
+$(document).on('hidden.bs.modal', '#filePreviewModal', function () {
+    if (_commPreviewBlobUrl) { URL.revokeObjectURL(_commPreviewBlobUrl); _commPreviewBlobUrl = null; }
+    _commPreviewFileName = '';
+    $('#filePreviewContent').empty();
+    $('#commAttachList .prod-attach-item').removeClass('comm-preview-active');
+});
+
+$(document).on('click', '#commAttachList .prod-attach-item', function (e) {
+    if ($(e.target).closest('.attach-remove').length) return;
+    _commOpenAttachPreview($(this).index());
+});
 
 // -- Token toggle ------------------------------------------------------------
 $(document).on('click', '#CommTokenToggleBtn', function () {
@@ -399,18 +483,18 @@ $(document).on('click', '.comm-type-tab', function () {
         $('#CommNoContactWarning').addClass('d-none');
     }
 
-    // Switching to Email: fetch template + trigger page-specific PDF fetch
+    // Switching to Email: bind attach zone, fetch template, trigger page-specific PDF alert
     if (type === 'Email') {
         var moduleUID = parseInt($('#CommModuleUID').val()) || 0;
         var recordUID = parseInt($('#CommRecordUID').val()) || 0;
-        setTimeout(_initCommDropzone, 100);
+        setTimeout(_initCommAttach, 100);
         if (moduleUID && !$('#CommEmailSubject').val() && !_commTpl.resolvedSubject) {
             _fetchCommTemplate(moduleUID, recordUID);
         }
-        if (!_commPdfAutoAttached && moduleUID === 110 && recordUID > 0) {
+        if (!_commPdfAlertSetup && moduleUID === 110 && recordUID > 0) {
             _fetchCommPdfAttachment(moduleUID, recordUID);
         }
-        // Let page-specific handlers attach their PDF (e.g. invoices.js)
+        // Let page-specific handlers register their PDF alert (e.g. invoices.js)
         $(document).trigger('comm:switchedToEmail', [moduleUID, recordUID]);
     }
 });
@@ -516,8 +600,8 @@ $(document).on('click', '#SendCommBtn', function () {
     fd.append('RecordUID', $('#CommRecordUID').val() || 0);
     fd.append(CsrfName, CsrfToken);
 
-    if (type === 'Email' && _commDropzone && _commDropzone.files.length) {
-        _commDropzone.files.forEach(function (f) { fd.append('Attachments[]', f); });
+    if (type === 'Email' && _attachState && _attachState['CommAttach']) {
+        (_attachState['CommAttach'].newFiles || []).forEach(function (f) { fd.append('Attachments[]', f, f.name); });
     }
 
     $.ajax({
@@ -550,26 +634,36 @@ $(document).on('shown.bs.modal', '#SendCommModal', function () {
     var recordUID = parseInt($('#CommRecordUID').val()) || 0;
 
     if (type === 'Email') {
-        setTimeout(_initCommDropzone, 100);
+        setTimeout(_initCommAttach, 100);
         if (moduleUID) {
             _fetchCommTemplate(moduleUID, recordUID);
         }
-        if (!_commPdfAutoAttached && moduleUID === 110 && recordUID > 0) {
+        if (!_commPdfAlertSetup && moduleUID === 110 && recordUID > 0) {
             _fetchCommPdfAttachment(moduleUID, recordUID);
         }
-        // Let page-specific handlers attach their PDF (e.g. invoices.js)
+        // Let page-specific handlers register their PDF alert (e.g. invoices.js)
         $(document).trigger('comm:switchedToEmail', [moduleUID, recordUID]);
     }
-    // If opening on SMS tab, leave _commPdfAutoAttached = false so PDF fetch
-    // fires correctly when user switches to Email tab later
+    // If opening on SMS tab, _commPdfAlertSetup stays false so the alert is
+    // registered correctly when the user switches to Email tab later
 });
 
 // -- Reset on modal close ----------------------------------------------------
 $(document).on('hidden.bs.modal', '#SendCommModal', function () {
-    if (_commDropzone) { _commDropzone.removeAllFiles(true); }
+    if (typeof _attachResetState === 'function') { _attachResetState('CommAttach'); }
+    _commHidePdfAlert();
+    _commClosePreview();
 });
 
 // -- Keep resolvedSubject in sync with manual edits --------------------------
 $(document).on('input', '#CommEmailSubject', function () {
     if (!_commTpl.showingRaw) { _commTpl.resolvedSubject = $(this).val(); }
+});
+
+// -- Wire CommAttach callbacks at DOMready ------------------------------------
+$(function () {
+    if (typeof _attachCfg !== 'undefined' && _attachCfg.CommAttach) {
+        _attachCfg.CommAttach.onAfterChange = _commOnAttachChange;
+        _attachCfg.CommAttach.onThumbClick  = function (idx) { _commOpenAttachPreview(idx); };
+    }
 });

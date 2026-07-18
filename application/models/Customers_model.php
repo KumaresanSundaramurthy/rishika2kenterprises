@@ -62,7 +62,8 @@ class Customers_model extends CI_Model {
                 'Customers.Tags as Tags',
                 'Customers.CCEmails as CCEmails',
                 'Customers.CustomerTypeUID as CustomerTypeUID',
-                'Customers.GroupUID as GroupUID',
+                'COALESCE(CGM.GroupUID, NULL) as GroupUID',
+                'COALESCE(CGM.IsGroupPrimary, 0) as IsGroupPrimary',
                 'Customers.CreatedOn as CreatedOn',
                 'Customers.UpdatedOn as UpdatedOn',
                 // Actual opening balance from CustOpeningBalanceTbl (source of truth)
@@ -73,6 +74,11 @@ class Customers_model extends CI_Model {
             $this->ReadDb->join(
                 'Customers.CustOpeningBalanceTbl as COB',
                 'COB.CustomerUID = Customers.CustomerUID AND COB.OrgUID = Customers.OrgUID AND COB.IsDeleted = 0',
+                'left'
+            );
+            $this->ReadDb->join(
+                'Customers.CustGroupMemberTbl as CGM',
+                'CGM.CustomerUID = Customers.CustomerUID AND CGM.OrgUID = Customers.OrgUID AND CGM.IsDeleted = 0',
                 'left'
             );
             $this->ReadDb->where(['Customers.IsDeleted' => 0, 'Customers.IsActive' => 1]);
@@ -930,13 +936,14 @@ class Customers_model extends CI_Model {
             $this->ReadDb->select(
                 'CG.GroupUID, CG.GroupCode, CG.GroupName, CG.GroupType,
                  CG.ContactPerson, CG.Mobile, CG.Email, CG.IsActive, CG.CreatedOn,
-                 COUNT(C.CustomerUID) AS MemberCount,
-                 MAX(CASE WHEN C.IsGroupPrimary = 1 THEN C.Name ELSE NULL END) AS PrimaryName,
+                 COUNT(CGM.CustomerUID) AS MemberCount,
+                 MAX(CASE WHEN CGM.IsGroupPrimary = 1 THEN C.Name ELSE NULL END) AS PrimaryName,
                  0 AS TotalReceivable, 0 AS TotalPayable',
                 false
             );
             $this->ReadDb->from('Customers.CustomerGroupTbl CG');
-            $this->ReadDb->join('Customers.CustomerTbl C', 'C.GroupUID = CG.GroupUID AND C.IsDeleted = 0', 'left');
+            $this->ReadDb->join('Customers.CustGroupMemberTbl CGM', 'CGM.GroupUID = CG.GroupUID AND CGM.OrgUID = CG.OrgUID AND CGM.IsDeleted = 0', 'left');
+            $this->ReadDb->join('Customers.CustomerTbl C', 'C.CustomerUID = CGM.CustomerUID AND C.IsDeleted = 0', 'left');
             $this->ReadDb->where(['CG.OrgUID' => (int)$orgUID, 'CG.IsDeleted' => 0]);
             if (!empty($filter['SearchAllData'])) {
                 $s = $filter['SearchAllData'];
@@ -965,14 +972,14 @@ class Customers_model extends CI_Model {
                 foreach ($rows as $row) { $groupUIDs[] = (int)$row->GroupUID; }
                 $placeholders = implode(',', array_fill(0, count($groupUIDs), '?'));
                 $balQuery = $this->ReadDb->query(
-                    "SELECT C.GroupUID,
+                    "SELECT CGM.GroupUID,
                             COALESCE(SUM(CASE WHEN COB.PendingBalType = 'Debit'  AND COB.PendingBalance > 0 THEN COB.PendingBalance ELSE 0 END), 0) AS TotalReceivable,
                             COALESCE(SUM(CASE WHEN COB.PendingBalType = 'Credit' AND COB.PendingBalance > 0 THEN COB.PendingBalance ELSE 0 END), 0) AS TotalPayable
-                     FROM Customers.CustomerTbl C
+                     FROM Customers.CustGroupMemberTbl CGM
                      JOIN Customers.CustOpeningBalanceTbl COB
-                          ON COB.CustomerUID = C.CustomerUID AND COB.OrgUID = C.OrgUID AND COB.IsDeleted = 0
-                     WHERE C.OrgUID = ? AND C.GroupUID IN ({$placeholders}) AND C.IsDeleted = 0
-                     GROUP BY C.GroupUID",
+                          ON COB.CustomerUID = CGM.CustomerUID AND COB.OrgUID = CGM.OrgUID AND COB.IsDeleted = 0
+                     WHERE CGM.OrgUID = ? AND CGM.GroupUID IN ({$placeholders}) AND CGM.IsDeleted = 0
+                     GROUP BY CGM.GroupUID",
                     array_merge([(int)$orgUID], $groupUIDs)
                 );
                 $balMap = [];
@@ -1000,7 +1007,7 @@ class Customers_model extends CI_Model {
             $this->ReadDb->db_debug = false;
             $query = $this->ReadDb->query(
                 "SELECT COUNT(*) AS TotalCount, SUM(IsActive=1) AS ActiveCount, SUM(IsActive=0) AS InactiveCount,
-                        (SELECT COUNT(*) FROM Customers.CustomerTbl WHERE OrgUID=? AND GroupUID IS NOT NULL AND IsDeleted=0) AS TotalMembers
+                        (SELECT COUNT(*) FROM Customers.CustGroupMemberTbl WHERE OrgUID=? AND IsDeleted=0) AS TotalMembers
                  FROM Customers.CustomerGroupTbl WHERE OrgUID=? AND IsDeleted=0",
                 [(int)$orgUID, (int)$orgUID]
             );
@@ -1027,14 +1034,15 @@ class Customers_model extends CI_Model {
         try {
             $this->ReadDb->db_debug = false;
             $this->ReadDb->select([
-                'C.CustomerUID', 'C.Name', 'C.Area', 'C.MobileNumber', 'C.IsGroupPrimary',
+                'C.CustomerUID', 'C.Name', 'C.Area', 'C.MobileNumber', 'CGM.IsGroupPrimary',
                 "IFNULL(COB.PendingBalance, 0)       AS Balance",
                 "IFNULL(COB.PendingBalType, 'Debit') AS BalanceType",
             ]);
             $this->ReadDb->from('Customers.CustomerTbl C');
+            $this->ReadDb->join('Customers.CustGroupMemberTbl CGM', 'CGM.CustomerUID = C.CustomerUID AND CGM.OrgUID = C.OrgUID AND CGM.IsDeleted = 0', 'inner');
             $this->ReadDb->join('Customers.CustOpeningBalanceTbl COB', 'COB.CustomerUID = C.CustomerUID AND COB.OrgUID = C.OrgUID AND COB.IsDeleted = 0', 'left');
-            $this->ReadDb->where(['C.OrgUID' => (int)$orgUID, 'C.GroupUID' => (int)$groupUID, 'C.IsDeleted' => 0]);
-            $this->ReadDb->order_by('C.IsGroupPrimary', 'DESC');
+            $this->ReadDb->where(['C.OrgUID' => (int)$orgUID, 'CGM.GroupUID' => (int)$groupUID, 'C.IsDeleted' => 0]);
+            $this->ReadDb->order_by('CGM.IsGroupPrimary', 'DESC');
             $this->ReadDb->order_by('C.Name', 'ASC');
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
@@ -1051,8 +1059,9 @@ class Customers_model extends CI_Model {
                         COALESCE(SUM(CASE WHEN COB.PendingBalType='Debit'  THEN COB.PendingBalance END),0) AS TotalReceivable,
                         COALESCE(SUM(CASE WHEN COB.PendingBalType='Credit' THEN COB.PendingBalance END),0) AS TotalPayable
                  FROM Customers.CustomerTbl C
+                 INNER JOIN Customers.CustGroupMemberTbl CGM ON CGM.CustomerUID=C.CustomerUID AND CGM.OrgUID=C.OrgUID AND CGM.IsDeleted=0
                  LEFT JOIN Customers.CustOpeningBalanceTbl COB ON COB.CustomerUID=C.CustomerUID AND COB.OrgUID=C.OrgUID AND COB.IsDeleted=0
-                 WHERE C.GroupUID=? AND C.OrgUID=? AND C.IsDeleted=0",
+                 WHERE CGM.GroupUID=? AND C.OrgUID=? AND C.IsDeleted=0",
                 [(int)$groupUID, (int)$orgUID]
             );
             return $query ? $query->row() : new stdClass();
@@ -1065,13 +1074,14 @@ class Customers_model extends CI_Model {
         try {
             $this->ReadDb->db_debug = false;
             $query = $this->ReadDb->query(
-                "SELECT C.CustomerUID, C.Name, C.Area, C.MobileNumber, C.IsGroupPrimary,
+                "SELECT C.CustomerUID, C.Name, C.Area, C.MobileNumber, CGM.IsGroupPrimary,
                         IFNULL(COB.PendingBalance,0)       AS Balance,
                         IFNULL(COB.PendingBalType,'Debit') AS BalanceType
                  FROM Customers.CustomerTbl C
+                 INNER JOIN Customers.CustGroupMemberTbl CGM ON CGM.CustomerUID=C.CustomerUID AND CGM.OrgUID=C.OrgUID AND CGM.IsDeleted=0
                  LEFT JOIN Customers.CustOpeningBalanceTbl COB ON COB.CustomerUID=C.CustomerUID AND COB.OrgUID=C.OrgUID AND COB.IsDeleted=0
-                 WHERE C.GroupUID=? AND C.OrgUID=? AND C.IsDeleted=0
-                 ORDER BY C.IsGroupPrimary DESC, C.Name ASC",
+                 WHERE CGM.GroupUID=? AND C.OrgUID=? AND C.IsDeleted=0
+                 ORDER BY CGM.IsGroupPrimary DESC, C.Name ASC",
                 [(int)$groupUID, (int)$orgUID]
             );
             return $query ? $query->result() : [];
@@ -1094,37 +1104,103 @@ class Customers_model extends CI_Model {
         }
     }
 
+    public function getGroupDropdownDataByUID(int $orgUID, int $groupUID): ?object {
+        try {
+            $this->ReadDb->db_debug = false;
+            $this->ReadDb->select(['GroupUID', 'GroupName', 'GroupCode', 'GroupType']);
+            $this->ReadDb->from('Customers.CustomerGroupTbl');
+            $this->ReadDb->where(['OrgUID' => $orgUID, 'GroupUID' => $groupUID, 'IsActive' => 1, 'IsDeleted' => 0]);
+            $q = $this->ReadDb->get();
+            return $q ? ($q->row() ?: null) : null;
+        } catch (Exception $e) {
+            return null;
+        }
+    }
+
     public function assignGroupMembers(int $orgUID, int $groupUID, array $memberUIDs, int $primaryUID, int $userUID): void {
         if (empty($memberUIDs)) return;
+        $db = $this->dbwrite_model->getWriteDb();
         foreach ($memberUIDs as $custUID) {
-            $this->dbwrite_model->updateData('Customers', 'CustomerTbl', [
-                'GroupUID'       => (int)$groupUID,
-                'IsGroupPrimary' => ((int)$custUID === (int)$primaryUID) ? 1 : 0,
-                'UpdatedBy'      => (int)$userUID,
-            ], ['CustomerUID' => (int)$custUID, 'OrgUID' => (int)$orgUID]);
+            $isPrimary = ((int)$custUID === (int)$primaryUID) ? 1 : 0;
+            $db->query(
+                "INSERT INTO Customers.CustGroupMemberTbl
+                    (OrgUID, CustomerUID, GroupUID, IsGroupPrimary, IsDeleted, CreatedBy, UpdatedBy)
+                 VALUES (?, ?, ?, ?, 0, ?, ?)
+                 ON DUPLICATE KEY UPDATE
+                    GroupUID=VALUES(GroupUID), IsGroupPrimary=VALUES(IsGroupPrimary),
+                    IsDeleted=0, UpdatedBy=VALUES(UpdatedBy)",
+                [(int)$orgUID, (int)$custUID, (int)$groupUID, $isPrimary, (int)$userUID, (int)$userUID]
+            );
         }
     }
 
     public function syncGroupMembers(int $orgUID, int $groupUID, array $newMemberUIDs, int $primaryUID, int $userUID): void {
         $db = $this->dbwrite_model->getWriteDb();
+        // Soft-delete members removed from the group
         $db->where('OrgUID', (int)$orgUID);
         $db->where('GroupUID', (int)$groupUID);
         $db->where('IsDeleted', 0);
         if (!empty($newMemberUIDs)) {
             $db->where_not_in('CustomerUID', array_map('intval', $newMemberUIDs));
         }
-        $db->update('Customers.CustomerTbl', [
-            'GroupUID' => null, 'IsGroupPrimary' => 0, 'UpdatedBy' => (int)$userUID,
-        ]);
+        $db->update('Customers.CustGroupMemberTbl', ['IsDeleted' => 1, 'UpdatedBy' => (int)$userUID]);
         if (!empty($newMemberUIDs)) {
             $this->assignGroupMembers($orgUID, $groupUID, $newMemberUIDs, $primaryUID, $userUID);
         }
     }
 
     public function unlinkAllGroupMembers(int $orgUID, int $groupUID, int $userUID): void {
-        $this->dbwrite_model->updateData('Customers', 'CustomerTbl', [
-            'GroupUID' => null, 'IsGroupPrimary' => 0, 'UpdatedBy' => (int)$userUID,
-        ], ['OrgUID' => (int)$orgUID, 'GroupUID' => (int)$groupUID]);
+        $db = $this->dbwrite_model->getWriteDb();
+        $db->where(['OrgUID' => (int)$orgUID, 'GroupUID' => (int)$groupUID, 'IsDeleted' => 0]);
+        $db->update('Customers.CustGroupMemberTbl', ['IsDeleted' => 1, 'UpdatedBy' => (int)$userUID]);
+    }
+
+    public function getCustomerGroupMembership(int $orgUID, int $customerUID): ?object {
+        try {
+            $this->ReadDb->db_debug = false;
+            $this->ReadDb->select(['MemberUID', 'GroupUID', 'IsGroupPrimary']);
+            $this->ReadDb->from('Customers.CustGroupMemberTbl');
+            $this->ReadDb->where(['OrgUID' => (int)$orgUID, 'CustomerUID' => (int)$customerUID, 'IsDeleted' => 0]);
+            $q = $this->ReadDb->get();
+            return $q ? ($q->row() ?: null) : null;
+        } catch (Exception $e) {
+            return null;
+        }
+    }
+
+    public function saveCustomerGroupMembership(int $orgUID, int $customerUID, int $groupUID, int $isGroupPrimary, int $userUID): void {
+        $db = $this->dbwrite_model->getWriteDb();
+        $db->query(
+            "INSERT INTO Customers.CustGroupMemberTbl
+                (OrgUID, CustomerUID, GroupUID, IsGroupPrimary, IsDeleted, CreatedBy, UpdatedBy)
+             VALUES (?, ?, ?, ?, 0, ?, ?)
+             ON DUPLICATE KEY UPDATE
+                GroupUID=VALUES(GroupUID), IsGroupPrimary=VALUES(IsGroupPrimary),
+                IsDeleted=0, UpdatedBy=VALUES(UpdatedBy)",
+            [(int)$orgUID, (int)$customerUID, (int)$groupUID, (int)$isGroupPrimary, (int)$userUID, (int)$userUID]
+        );
+    }
+
+    public function removeCustomerFromGroup(int $orgUID, int $customerUID, int $userUID): void {
+        $db = $this->dbwrite_model->getWriteDb();
+        $db->where(['OrgUID' => (int)$orgUID, 'CustomerUID' => (int)$customerUID, 'IsDeleted' => 0]);
+        $db->update('Customers.CustGroupMemberTbl', ['IsDeleted' => 1, 'UpdatedBy' => (int)$userUID]);
+    }
+
+    public function getCustomersInOtherGroups(int $orgUID, int $excludeGroupUID = 0): array {
+        try {
+            $this->ReadDb->db_debug = false;
+            $this->ReadDb->select('CustomerUID');
+            $this->ReadDb->from('Customers.CustGroupMemberTbl');
+            $this->ReadDb->where(['OrgUID' => (int)$orgUID, 'IsDeleted' => 0]);
+            if ($excludeGroupUID > 0) {
+                $this->ReadDb->where('GroupUID !=', (int)$excludeGroupUID);
+            }
+            $q = $this->ReadDb->get();
+            return $q ? array_column($q->result_array(), 'CustomerUID') : [];
+        } catch (Exception $e) {
+            return [];
+        }
     }
 
     // ── Customer Attachments ──────────────────────────────────────────────────

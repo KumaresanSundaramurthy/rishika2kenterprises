@@ -582,7 +582,45 @@ class MY_Controller extends CI_Controller {
         }
     }
 
+    protected function _savePaymentAttachments($paymentUID) {
+        $files = $_FILES['PaymentFiles'] ?? null;
+        if (empty($files) || empty($files['name'][0])) return;
 
+        $userUID = $this->pageData['JwtData']->User->UserUID;
+        $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
+
+        $this->load->library('fileupload');
+        $this->load->model('dbwrite_model');
+
+        $allowed = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+        $count   = min(count($files['name']), 3);
+
+        for ($i = 0; $i < $count; $i++) {
+            if ($files['error'][$i] !== UPLOAD_ERR_OK || empty($files['name'][$i])) continue;
+            if ($files['size'][$i] > 3 * 1024 * 1024) continue;
+            if (!in_array($files['type'][$i], $allowed)) continue;
+
+            $origName    = basename($files['name'][$i]);
+            $safeName    = time() . '_' . $i . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $origName);
+            $storagePath = 'payments/' . $paymentUID . '/' . $safeName;
+
+            $uploadResult = $this->fileupload->fileUpload('file', $storagePath, $files['tmp_name'][$i]);
+            if ($uploadResult->Error) continue;
+
+            $this->dbwrite_model->insertData('Transaction', 'PaymentAttachmentsTbl', [
+                'OrgUID'     => $orgUID,
+                'PaymentUID' => $paymentUID,
+                'FileName'   => $origName,
+                'FilePath'   => '/' . ltrim($uploadResult->Path, '/'),
+                'FileType'   => $files['type'][$i],
+                'FileSize'   => $files['size'][$i],
+                'SortOrder'  => $i,
+                'IsActive'   => 1,
+                'IsDeleted'  => 0,
+                'CreatedBy'  => $userUID,
+            ]);
+        }
+    }
 
     // ── Attachment config loader ──────────────────────────────────────────────
 
@@ -755,9 +793,18 @@ class MY_Controller extends CI_Controller {
     }
 
     protected function _getTaxList(): array {
+        $cacheKey = $this->redisservice->globalKey('tax-details');
+        $cached   = $this->upstashservice->get($cacheKey);
+        if ($cached !== null && $cached !== false) {
+            return array_map(fn($r) => is_array($r) ? (object)$r : $r, (array)$cached);
+        }
         $this->load->model('global_model');
         $result = $this->global_model->getTaxDetailsInfo();
-        return ($result->Error === FALSE) ? (array)($result->Data ?? []) : [];
+        $data   = ($result->Error === FALSE) ? (array)($result->Data ?? []) : [];
+        if (!empty($data)) {
+            $this->upstashservice->set($cacheKey, $data, (int)getenv('ONEYEAR_EXPIRE_SECS'));
+        }
+        return $data;
     }
 
     protected function _annotatePRListWithCancelDeps(array &$rows, int $orgUID): void
@@ -845,6 +892,7 @@ class MY_Controller extends CI_Controller {
         $tabSlug    = strtolower(trim($this->input->get('tab') ?: 'all'));
         $initTab    = $tabSlugMap[$tabSlug] ?? 'All';
         $initSearch = trim($this->input->get('search') ?: '');
+        $initPage   = max(1, (int)($this->input->get('page') ?: 1));
         $initFilter = $statsFilter;
         if ($initTab !== 'All') { $initFilter['Status'] = $initTab; }
         if ($initSearch !== '') { $initFilter['Name']   = $initSearch; }
@@ -854,19 +902,25 @@ class MY_Controller extends CI_Controller {
 
         if (in_array($initTab, $skipTabs, true)) {
             $allDataCount = 0;
+            $initPage     = 1;
             $listHtml     = $this->load->view($config['listViewPath'],
                 array_merge(['DataLists' => [], 'SerialNumber' => 0, 'JwtData' => $this->pageData['JwtData']], $listExtras), true);
         } else {
-            $res          = $this->_fetchAndRenderTransList($limit, 0, $initFilter, $config['listViewPath'], $listExtras);
+            $initOffset   = ($initPage - 1) * $limit;
+            $res          = $this->_fetchAndRenderTransList($limit, $initOffset, $initFilter, $config['listViewPath'], $listExtras);
             $allDataCount = $res['count'];
             $listHtml     = $res['html'];
+            // Clamp page to valid range if it's beyond the last page
+            $maxPage  = $allDataCount > 0 ? (int)ceil($allDataCount / $limit) : 1;
+            if ($initPage > $maxPage) { $initPage = $maxPage; }
         }
 
         $this->pageData['SavedDateRange'] = $datePref['range'];
         $this->pageData['SavedDateLabel'] = $datePref['label'];
         $this->pageData['ModRowData']     = $listHtml;
-        $this->pageData['ModPagination']  = $this->globalservice->buildPagePaginationHtml($config['paginationUrl'], $allDataCount, 1, $limit);
+        $this->pageData['ModPagination']  = $this->globalservice->buildPagePaginationHtml($config['paginationUrl'], $allDataCount, $initPage, $limit);
         $this->pageData['ModAllCount']    = $allDataCount;
+        $this->pageData['InitPage']       = $initPage;
         $this->pageData['SummaryStats']   = $this->_computeTransSummaryStats($orgUID, $statsFilter);
 
         // PaymentTypes + BankAccounts: Invoices(103), Purchases(105), SR(106), PR(108)
@@ -915,6 +969,372 @@ class MY_Controller extends CI_Controller {
         }
 
         return $result;
+    }
+
+    /**
+     * Builds the TransactionsTbl insert array from module config + computed amounts.
+     *
+     * $cfg keys: TransType, PartyType, PartyUID, DocTypePostKey, DocTypeDefault (optional),
+     *            DispatchPostKey (empty string = always NULL), InitialStatus,
+     *            hasPaidAmount (bool), hasBalanceAmount (bool), hasIsFullyPaid (bool)
+     *
+     * $amounts keys: moduleUID, prefixUID, uniqueNumber, transNumber, transDate, financialYear,
+     *                totalQty, totalItems, subTotal, discountAmount, taxAmount, cgstAmount,
+     *                sgstAmount, igstAmount, additionalChargesTotal, roundOff,
+     *                globalDiscPercent, extraDiscount, netAmount
+     *
+     * @param array $cfg
+     * @param array $amounts
+     * @param array $post
+     * @param int $orgUID
+     * @param int $userUID
+     * @return array
+     */
+    protected function _buildTransHeader(array $cfg, array $amounts, array $post, int $orgUID, int $userUID): array {
+        $isDraft   = getPostValue($post, 'action') === 'draft';
+        $subTotal  = (float) $amounts['subTotal'];
+        $extraDisc = (float) $amounts['extraDiscount'];
+        $dispatch  = !empty($cfg['DispatchPostKey'])
+            ? (getPostValue($post, $cfg['DispatchPostKey']) ?: NULL)
+            : NULL;
+        $data = [
+            'OrgUID'            => $orgUID,
+            'ModuleUID'         => (int) $amounts['moduleUID'],
+            'PrefixUID'         => $amounts['prefixUID'],
+            'UniqueNumber'      => $amounts['uniqueNumber'],
+            'TransType'         => $cfg['TransType'],
+            'TransNumber'       => $amounts['transNumber'],
+            'PartyType'         => $cfg['PartyType'],
+            'PartyUID'          => (int) $cfg['PartyUID'],
+            'TransDate'         => $amounts['transDate'],
+            'TransYear'         => (int) $amounts['financialYear'],
+            'DocType'           => getPostValue($post, $cfg['DocTypePostKey']) ?: ($cfg['DocTypeDefault'] ?? NULL),
+            'DispatchFrom'      => $dispatch,
+            'TotalQuantity'     => (float) $amounts['totalQty'],
+            'TotalItems'        => (int) $amounts['totalItems'],
+            'GrossAmount'       => $subTotal + (float) $amounts['discountAmount'],
+            'SubTotal'          => $subTotal,
+            'TaxableAmount'     => $subTotal,
+            'DiscountAmount'    => (float) $amounts['discountAmount'],
+            'AdditionalCharges' => (float) $amounts['additionalChargesTotal'],
+            'TaxAmount'         => (float) $amounts['taxAmount'],
+            'CgstAmount'        => (float) $amounts['cgstAmount'],
+            'SgstAmount'        => (float) $amounts['sgstAmount'],
+            'IgstAmount'        => (float) $amounts['igstAmount'],
+            'RoundOff'          => (float) $amounts['roundOff'],
+            'GlobalDiscPercent' => (float) $amounts['globalDiscPercent'],
+            'ExtraDiscApplied'  => $extraDisc > 0 ? 1 : 0,
+            'ExtraDiscAmount'   => $extraDisc,
+            'ExtraDiscType'     => getPostValue($post, 'extDiscountType') ?: NULL,
+            'NetAmount'         => (float) $amounts['netAmount'],
+            'DocStatus'         => $isDraft ? 'Draft' : $cfg['InitialStatus'],
+            'TransToken'        => generate_uuid4(),
+            'IsActive'          => 1,
+            'IsDeleted'         => 0,
+            'CreatedBy'         => $userUID,
+            'UpdatedBy'         => $userUID,
+        ];
+        if (!empty($cfg['hasPaidAmount'])) {
+            $data['PaidAmount']    = 0;
+            $data['BalanceAmount'] = (float) $amounts['netAmount'];
+        } elseif (!empty($cfg['hasBalanceAmount'])) {
+            $data['BalanceAmount'] = NULL;
+        }
+        if (!empty($cfg['hasIsFullyPaid'])) {
+            $data['IsFullyPaid'] = 0;
+        }
+        return $data;
+    }
+
+    /**
+     * Builds the TransDetailTbl insert array.
+     *
+     * $cfg keys: PartyType, PartyUID, ValidityDatePostKey ('' = always NULL),
+     *            ValidityDaysPostKey (optional), ReferencePostKey (default: 'referenceDetails'),
+     *            SupplierInvoiceNoPostKey (optional), extraDetailFields (array col=>postKey, optional)
+     *
+     * $amounts keys: financialYear, cgstAmount, sgstAmount, igstAmount
+     *
+     * @param array $cfg
+     * @param array $amounts
+     * @param array $post
+     * @param int $transUID
+     * @return array
+     */
+    protected function _buildTransDetail(array $cfg, array $amounts, array $post, int $transUID): array {
+        $igst         = (float) $amounts['igstAmount'];
+        $cgst         = (float) $amounts['cgstAmount'];
+        $sgst         = (float) $amounts['sgstAmount'];
+        $isInterState = $igst > 0 ? 1 : ($cgst > 0 || $sgst > 0 ? 0 : NULL);
+
+        $isForeignCustomer = NULL;
+        if (($cfg['PartyType'] ?? '') === 'C' && !empty($cfg['PartyUID'])) {
+            $this->load->model('transactions_model');
+            $_cc               = $this->transactions_model->getCustomerCountryCode((int) $cfg['PartyUID']);
+            $isForeignCustomer = $_cc !== NULL ? ($_cc === 'IN' ? 0 : 1) : NULL;
+        }
+
+        $validityDays = NULL;
+        if (!empty($cfg['ValidityDaysPostKey'])) {
+            $vd           = (int) getPostValue($post, $cfg['ValidityDaysPostKey'], 'Array', 0);
+            $validityDays = $vd > 0 ? $vd : NULL;
+        }
+
+        $validityDateKey = $cfg['ValidityDatePostKey'] ?? '';
+        $validityDate    = $validityDateKey !== '' ? (getPostValue($post, $validityDateKey) ?: NULL) : NULL;
+        $refKey          = !empty($cfg['ReferencePostKey']) ? $cfg['ReferencePostKey'] : 'referenceDetails';
+
+        $data = [
+            'FinancialYear'     => (int) $amounts['financialYear'],
+            'TransUID'          => (int) $transUID,
+            'ValidityDays'      => $validityDays,
+            'ValidityDate'      => $validityDate,
+            'Reference'         => getPostValue($post, $refKey) ?: NULL,
+            'Notes'             => getPostValue($post, 'transNotes') ?: NULL,
+            'TermsConditions'   => getPostValue($post, 'transTermsCond') ?: NULL,
+            'SignatureUID'      => (int) getPostValue($post, 'SignatureUID') ?: NULL,
+            'PlaceOfSupplyCode' => getPostValue($post, 'placeOfSupplyCode') ?: NULL,
+            'PlaceOfSupplyName' => getPostValue($post, 'placeOfSupplyName') ?: NULL,
+            'IsInterState'      => $isInterState,
+            'IsForeignCustomer' => $isForeignCustomer,
+            'PriceListUID'      => (int) getPostValue($post, 'PriceListUID') ?: NULL,
+            'PriceListData'     => getPostValue($post, 'PriceListData') ?: NULL,
+        ];
+        if (!empty($cfg['SupplierInvoiceNoPostKey'])) {
+            $data['SupplierInvoiceNo'] = getPostValue($post, $cfg['SupplierInvoiceNoPostKey']) ?: NULL;
+        }
+        if (!empty($cfg['extraDetailFields']) && is_array($cfg['extraDetailFields'])) {
+            foreach ($cfg['extraDetailFields'] as $col => $postKey) {
+                $data[$col] = getPostValue($post, $postKey) ?: NULL;
+            }
+        }
+        return $data;
+    }
+
+    /**
+     * Inserts all line items into TransProductsTbl. Identical logic across all 9 transaction modules.
+     *
+     * @param int $transUID
+     * @param int $financialYear
+     * @param int $orgUID
+     * @param int $userUID
+     * @param array $items
+     * @param int $seqOffset
+     * @return void
+     */
+    protected function _insertTransItems(int $transUID, int $financialYear, int $orgUID, int $userUID, array $items, int $seqOffset = 0): void {
+        $this->load->model('dbwrite_model');
+        $rows = [];
+        foreach ($items as $seq => $item) {
+            $productUID = isset($item['id'])       ? (int)   $item['id']       : 0;
+            $qty        = isset($item['quantity'])  ? (float) $item['quantity']  : 0;
+            $unitPrice  = isset($item['unitPrice']) ? (float) $item['unitPrice'] : 0;
+            if ($productUID <= 0 || $qty <= 0) continue;
+            $rows[] = [
+                'OrgUID'            => $orgUID,
+                'FinancialYear'     => $financialYear,
+                'TransUID'          => $transUID,
+                'ItemSequence'      => $seqOffset + $seq + 1,
+                'ProductUID'        => $productUID,
+                'ProductName'       => substr(strip_tags($item['itemName'] ?? ''), 0, 100),
+                'Description'       => !empty($item['description'])  ? substr($item['description'],  0, 500) : NULL,
+                'PartNumber'        => !empty($item['partNumber'])   ? substr($item['partNumber'],   0, 50)  : NULL,
+                'CategoryUID'       => !empty($item['categoryUID'])  ? (int) $item['categoryUID']             : NULL,
+                'CategoryName'      => !empty($item['categoryName']) ? substr($item['categoryName'], 0, 100) : NULL,
+                'StorageUID'        => isset($item['storageUID'])    ? (int) $item['storageUID']               : NULL,
+                'Quantity'          => $qty,
+                'PrimaryUnitName'   => isset($item['primaryUnit'])    ? substr($item['primaryUnit'],    0, 20) : NULL,
+                'TaxDetailsUID'     => isset($item['taxDetailsUID'])  ? (int) $item['taxDetailsUID']            : 1,
+                'TaxPercentage'     => (float) ($item['taxPercent']    ?? 0),
+                'CGST'              => (float) ($item['cgstPercent']   ?? 0),
+                'SGST'              => (float) ($item['sgstPercent']   ?? 0),
+                'IGST'              => (float) ($item['igstPercent']   ?? 0),
+                'DiscountTypeUID'   => isset($item['discountTypeUID']) ? (int) $item['discountTypeUID']  : NULL,
+                'Discount'          => (float) ($item['discount']        ?? 0),
+                'UnitPrice'         => $unitPrice,
+                'SellingPrice'      => (float) ($item['sellingPrice']    ?? $unitPrice),
+                'PurchasePrice'     => (float) ($item['purchasePrice']   ?? 0),
+                'MRP'               => (float) ($item['mrp']             ?? 0),
+                'DistributionMode'  => !empty($item['isComposite']) ? ($item['distributionMode'] ?? null) : null,
+                'TaxableAmount'     => (float) ($item['line_total']      ?? 0),
+                'CgstAmount'        => (float) ($item['cgstAmount']      ?? 0),
+                'SgstAmount'        => (float) ($item['sgstAmount']      ?? 0),
+                'IgstAmount'        => (float) ($item['igstAmount']      ?? 0),
+                'TaxAmount'         => (float) ($item['taxAmount']       ?? 0),
+                'DiscountAmount'    => (float) ($item['discount_amount']  ?? 0),
+                'NetAmount'         => (float) ($item['net_total']        ?? 0),
+                'QuantityConverted' => 0,
+                'IsActive'          => 1,
+                'IsDeleted'         => 0,
+                'CreatedBy'         => $userUID,
+                'UpdatedBy'         => $userUID,
+            ];
+        }
+        if (empty($rows)) return;
+        $batchResp = $this->dbwrite_model->insertBatchInTransaction('Transaction', 'TransProductsTbl', $rows);
+        if ($batchResp->Error) throw new Exception($batchResp->Message);
+    }
+
+    /**
+     * Validates transaction header + items. Throws on any error.
+     * Returns the raw items JSON string for further processing.
+     *
+     * @param array $post
+     * @return string $itemsJson
+     */
+    protected function _validateTransForm(array $post): string {
+        $this->load->model('formvalidation_model');
+        $headerError = $this->formvalidation_model->transactionValidateForm($post);
+        if (!empty($headerError)) throw new Exception($headerError);
+
+        $itemsJson  = getPostValue($post, 'Items');
+        $itemsError = $this->formvalidation_model->validateQuotationItems($itemsJson);
+        if (!empty($itemsError)) throw new Exception($itemsError);
+
+        return $itemsJson;
+    }
+
+    /**
+     * Extracts all financial amounts + computed fields from POST into the $amounts
+     * array expected by _buildTransHeader() and _buildTransDetail().
+     *
+     * @param array $post
+     * @param string $itemsJson  Already-validated items JSON from _validateTransForm()
+     * @return array{
+     *   prefixUID: int, transNumber: int, transDate: string, financialYear: int,
+     *   isDraft: bool, items: array, totalQty: float, totalItems: int,
+     *   subTotal: float, discountAmount: float, taxAmount: float,
+     *   cgstAmount: float, sgstAmount: float, igstAmount: float,
+     *   additionalChargesTotal: float, roundOff: float,
+     *   globalDiscPercent: float, extraDiscount: float, netAmount: float
+     * }
+     */
+    protected function _extractTransAmounts(array $post, string $itemsJson): array {
+        $transDate = getPostValue($post, 'transDate');
+        $items     = json_decode($itemsJson, true);
+        return [
+            'prefixUID'              => (int)   getPostValue($post, 'transPrefixSelect'),
+            'transNumber'            => (int)   getPostValue($post, 'transNumber'),
+            'transDate'              =>         $transDate,
+            'financialYear'          => (int)   date('Y', strtotime($transDate)),
+            'isDraft'                =>         getPostValue($post, 'action') === 'draft',
+            'items'                  =>         $items,
+            'totalQty'               => (float) array_sum(array_column($items, 'quantity')),
+            'totalItems'             =>         count($items),
+            'subTotal'               => (float) getPostValue($post, 'SubTotal',               'Array', 0),
+            'discountAmount'         => (float) getPostValue($post, 'DiscountAmount',         'Array', 0),
+            'taxAmount'              => (float) getPostValue($post, 'TaxAmount',              'Array', 0),
+            'cgstAmount'             => (float) getPostValue($post, 'CgstAmount',             'Array', 0),
+            'sgstAmount'             => (float) getPostValue($post, 'SgstAmount',             'Array', 0),
+            'igstAmount'             => (float) getPostValue($post, 'IgstAmount',             'Array', 0),
+            'additionalChargesTotal' => (float) getPostValue($post, 'AdditionalChargesTotal', 'Array', 0),
+            'roundOff'               => (float) getPostValue($post, 'RoundOff',               'Array', 0),
+            'globalDiscPercent'      => (float) getPostValue($post, 'GlobalDiscPercent',      'Array', 0),
+            'extraDiscount'          => (float) getPostValue($post, 'extraDiscount',          'Array', 0),
+            'netAmount'              => (float) getPostValue($post, 'NetAmount',              'Array', 0),
+        ];
+    }
+
+    /**
+     * Handles the draft/prefix/duplicate-check/uniqueNumber resolution block.
+     * Returns an array with resolved values; throws on any validation failure.
+     *
+     * @param bool   $isDraft
+     * @param int    $prefixUID
+     * @param int    $transNumber
+     * @param string $transDate
+     * @param int    $orgUID
+     * @return array{ prefix: object|null, prefixUID: int|null, transNumber: int|null, uniqueNumber: string|null }
+     */
+    protected function _resolveTransPrefix(bool $isDraft, int $prefixUID, int $transNumber, string $transDate, int $orgUID): array {
+        if ($isDraft) {
+            return ['prefix' => NULL, 'prefixUID' => NULL, 'transNumber' => NULL, 'uniqueNumber' => NULL];
+        }
+
+        if ($transNumber <= 0) throw new Exception('Transaction number must be greater than 0.');
+        if ($transNumber > 2147483647) throw new Exception('Transaction number exceeds the maximum allowed value of 2,147,483,647. Please use a smaller number or create a new prefix series.');
+
+        $this->load->model('transactions_model');
+        $prefixData = $this->transactions_model->getTransactionsPrefixDetails([
+            'Prefix.PrefixUID' => $prefixUID,
+            'Prefix.OrgUID'    => $orgUID,
+        ]);
+        if (empty($prefixData->Data)) throw new Exception('Invalid prefix selected.');
+        $prefix = $prefixData->Data[0];
+
+        $dupCheck = $this->transactions_model->getTransactionByPrefixAndNumber($prefixUID, $transNumber, $orgUID, $this->pageModuleUID);
+        if ($dupCheck) {
+            $next = $this->transactions_model->getNextTransactionNumber($prefixUID, $orgUID, $this->pageModuleUID);
+            throw new Exception("Transaction number {$transNumber} already exists for this prefix. Next available: {$next}.");
+        }
+
+        list($uniqueNumber) = $this->buildUniqueNumber($prefix, $transNumber, $transDate);
+        return ['prefix' => $prefix, 'prefixUID' => $prefixUID, 'transNumber' => $transNumber, 'uniqueNumber' => $uniqueNumber];
+    }
+
+    /**
+     * Extracts AdditionalCharges from POST and saves them via transactions_model.
+     * No-op if there are no charges.
+     *
+     * @param int   $transUID
+     * @param int   $orgUID
+     * @param int   $userUID
+     * @param array $post
+     * @return void
+     */
+    protected function _saveTransCharges(int $transUID, int $orgUID, int $userUID, array $post): void {
+        $json = getPostValue($post, 'AdditionalCharges') ?: '[]';
+        $list = json_decode($json, true) ?: [];
+        if (!empty($list)) {
+            $this->load->model('transactions_model');
+            $this->transactions_model->saveTransactionCharges($transUID, $orgUID, $userUID, $list);
+        }
+    }
+
+    /**
+     * Updates TransactionsTbl paid/balance/isFullyPaid fields after a payment.
+     * Throws if the DB update fails.
+     *
+     * @param int   $transUID
+     * @param float $netAmount
+     * @param float $paidAmount
+     * @param int   $userUID
+     * @return void
+     */
+    protected function _updateTransactionBalance(int $transUID, float $netAmount, float $paidAmount, int $userUID): void {
+        $isFullyPaid   = ($netAmount > 0 && round($netAmount - $paidAmount, 4) <= 0) ? 1 : 0;
+        $balanceAmount = max(0, round($netAmount - $paidAmount, $this->_decimals()));
+        $ok = $this->dbwrite_model->updateTransIsFullyPaid($transUID, $isFullyPaid, $paidAmount, $balanceAmount, $userUID);
+        if ($ok === false) {
+            throw new Exception('Failed to update transaction balance for TransUID ' . $transUID);
+        }
+    }
+
+    /**
+     * Builds a formatted UniqueNumber for a payment entry using prefix formatting rules.
+     *
+     * @param object $prefix
+     * @param string $paymentDate
+     * @param int    $paymentNumber
+     * @return string
+     */
+    protected function _buildPaymentUniqueNumber(object $prefix, string $paymentDate, int $paymentNumber): string {
+        $sep   = $prefix->Separator ?? '-';
+        $parts = [strtoupper($prefix->Name)];
+        if (!empty($prefix->IncludeShortName) && !empty($prefix->ShortName)) {
+            $parts[] = strtoupper($prefix->ShortName);
+        }
+        if (!empty($prefix->IncludeFiscalYear)) {
+            $m       = (int) date('m', strtotime($paymentDate));
+            $yr      = (int) date('Y', strtotime($paymentDate));
+            $fy      = $m >= 4 ? $yr : $yr - 1;
+            $parts[] = ($prefix->FiscalYearFormat ?? 'SHORT') === 'LONG'
+                ? $fy . '-' . ($fy + 1)
+                : str_pad($fy % 100, 2, '0', STR_PAD_LEFT) . '-' . str_pad(($fy + 1) % 100, 2, '0', STR_PAD_LEFT);
+        }
+        $pad     = (int) ($prefix->NumberPadding ?? 1);
+        $parts[] = $pad > 1 ? str_pad($paymentNumber, $pad, '0', STR_PAD_LEFT) : (string) $paymentNumber;
+        return implode($sep, $parts);
     }
 
 }

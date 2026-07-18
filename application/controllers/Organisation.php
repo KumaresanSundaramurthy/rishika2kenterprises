@@ -13,9 +13,7 @@ class Organisation extends CI_Controller {
     public function index() {
 
         // Ensure view-required keys always exist so footer_script.php never crashes
-        $this->pageData['OrgBussType']    = [];
-        $this->pageData['OrgIndusType']   = [];
-        $this->pageData['OrgBusRegType']  = [];
+        // OrgBussType / OrgIndusType / OrgBusRegType removed — lazy-loaded by JS via globalKey
         $this->pageData['EditOrgData']    = null;
         $this->pageData['BillOrgAddrData'] = null;
         $this->pageData['ShipOrgAddrData'] = null;
@@ -25,14 +23,6 @@ class Organisation extends CI_Controller {
             $this->load->model('global_model');
             
             $this->load->model('organisation_model');
-            $OrgBussTypeData = $this->organisation_model->getOrgBusinessTypeDetails();
-            $this->pageData['OrgBussType'] = $OrgBussTypeData->Error === FALSE ? $OrgBussTypeData->Data : [];
-            
-            $OrgIndusTypeData = $this->organisation_model->getOrgIndustryTypeDetails();
-            $this->pageData['OrgIndusType'] = $OrgIndusTypeData->Error === FALSE ? $OrgIndusTypeData->Data : [];
-            
-            $OrgBusRegData = $this->organisation_model->getOrgBusRegTypeDetails();
-            $this->pageData['OrgBusRegType'] = $OrgBusRegData->Error === FALSE ? $OrgBusRegData->Data : [];
 
             $orgUID = $this->pageData['JwtData']->Org->OrgUID;
 
@@ -217,6 +207,60 @@ class Organisation extends CI_Controller {
             ->_display();
         exit;
 
+    }
+
+    public function getBusinessTypes(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $this->load->model('organisation_model');
+            $result = $this->organisation_model->getOrgBusinessTypeDetails();
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Data  = $result->Data;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->output->set_status_header(200)
+            ->set_content_type('application/json', 'utf-8')
+            ->set_output(json_encode($this->EndReturnData))
+            ->_display();
+        exit;
+    }
+
+    public function getIndustryTypes(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $this->load->model('organisation_model');
+            $result = $this->organisation_model->getOrgIndustryTypeDetails();
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Data  = $result->Data;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->output->set_status_header(200)
+            ->set_content_type('application/json', 'utf-8')
+            ->set_output(json_encode($this->EndReturnData))
+            ->_display();
+        exit;
+    }
+
+    public function getBusRegTypes(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $this->load->model('organisation_model');
+            $result = $this->organisation_model->getOrgBusRegTypeDetails();
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Data  = $result->Data;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->output->set_status_header(200)
+            ->set_content_type('application/json', 'utf-8')
+            ->set_output(json_encode($this->EndReturnData))
+            ->_display();
+        exit;
     }
 
     private function handleAddress($PostData, $type, $userUID, $now) {

@@ -985,14 +985,16 @@ class Vendors extends MY_Controller {
     }
 
     public function searchVendors() {
-        $this->EndReturnData       = new stdClass();
+        $this->EndReturnData        = new stdClass();
         $this->EndReturnData->Error = false;
         $this->EndReturnData->Lists = [];
         try {
-            $term = trim($this->input->get('term'));
+            $term          = trim($this->input->get('term'));
+            $orgUID        = (int)$this->pageData['JwtData']->Org->OrgUID;
+            $excludeGroupUID = (int)($this->input->get('groupUID') ?? 0);
             if ($term) {
                 $this->load->model('vendors_model');
-                $rows = $this->vendors_model->searchVendorsForGroup($term);
+                $rows = $this->vendors_model->searchVendorsForGroup($term, $orgUID, $excludeGroupUID);
                 foreach ($rows as $v) {
                     $this->EndReturnData->Lists[] = [
                         'id'   => $v->VendorUID,
@@ -1282,6 +1284,28 @@ class Vendors extends MY_Controller {
             $this->load->model('vendors_model');
             $this->EndReturnData->Error  = false;
             $this->EndReturnData->Groups = $this->vendors_model->getActiveVendorGroupsForDropdown($orgUID);
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function getGroupDetail(int $groupUID = 0): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $groupUID = (int)$groupUID;
+            if (!$groupUID) throw new Exception('Group ID is missing.');
+            $orgUID = (int)$this->pageData['JwtData']->Org->OrgUID;
+            $this->load->model('vendors_model');
+            $group = $this->vendors_model->getVendorGroupByUID($orgUID, $groupUID);
+            if (!$group) throw new Exception('Group not found.');
+            $members  = $this->vendors_model->getVendorGroupMembers($orgUID, $groupUID);
+            $overview = $this->vendors_model->getVendorGroupOverview($orgUID, $groupUID);
+            $this->EndReturnData->Error    = false;
+            $this->EndReturnData->Data     = $group;
+            $this->EndReturnData->Members  = $members;
+            $this->EndReturnData->Overview = $overview;
         } catch (Exception $e) {
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();

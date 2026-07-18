@@ -12,6 +12,16 @@ $isDraftEdit = $isEdit && ($DCData->DocStatus === 'Draft');
 $transUID    = $isEdit ? (int)$DCData->TransUID : 0;
 $formId      = 'dcForm';
 $formAction  = $isEdit ? 'deliverychallan/updateDeliveryChallan' : 'deliverychallan/addDeliveryChallan';
+$_posCode    = $isEdit ? ($DCData->PlaceOfSupplyCode  ?? '') : ($JwtData->Org->StateCode  ?? '');
+$_posName    = $isEdit ? ($DCData->PlaceOfSupplyName  ?? '') : ($JwtData->Org->StateName  ?? '');
+
+$_returnTab  = $this->input->get('returnTab')  ?: 'All';
+$_returnPage = (int)($this->input->get('returnPage') ?: 1);
+$_closeUrl   = '/deliverychallan';
+$_cParams    = [];
+if ($_returnTab) $_cParams[] = 'tab=' . urlencode($_returnTab);
+if ($_returnPage > 1) $_cParams[] = 'page=' . $_returnPage;
+if ($_cParams) $_closeUrl .= '?' . implode('&', $_cParams);
 
 if ($isEdit && !function_exists('buildDCPrefixSegment')) {
     function buildDCPrefixSegment(?object $cfg): string {
@@ -78,6 +88,9 @@ if ($isEdit && !empty($DCData->DeliveryByDate)) {
 } elseif (!$isEdit && !empty($SOSourceData->DeliveryByDate)) {
     $_deliveryByDate = htmlspecialchars(format_datedisplay($SOSourceData->DeliveryByDate, 'Y-m-d'));
     $_deliveryByDisp = format_datedisplay($SOSourceData->DeliveryByDate, $_fmt);
+} else {
+    $_deliveryByDate = date('Y-m-d');
+    $_deliveryByDisp = format_datedisplay(date('Y-m-d'), $_fmt);
 }
 
 // Notes / Terms
@@ -134,8 +147,7 @@ if (!empty($DispatchAddress)) {
                     <?php else: ?>
                     <input type="hidden" name="fromSOUID" id="fromSOUID" value="<?php echo (int)($FromSOUID ?? 0); ?>" />
                     <?php endif; ?>
-                    <input type="hidden" id="placeOfSupplyCode" name="placeOfSupplyCode" value="<?php echo !$isEdit ? htmlspecialchars($JwtData->Org->StateCode ?? '', ENT_QUOTES) : ''; ?>" />
-                    <input type="hidden" id="placeOfSupplyName" name="placeOfSupplyName" value="<?php echo !$isEdit ? htmlspecialchars($JwtData->Org->StateName ?? '', ENT_QUOTES) : ''; ?>" />
+                    <?php $this->load->view('transactions/partials/place_of_supply_inputs', ['_posCode' => $_posCode, '_posName' => $_posName]); ?>
 
                     <div class="card mb-3">
 
@@ -227,7 +239,7 @@ if (!empty($DispatchAddress)) {
                                         <li><button type="submit" class="dropdown-item py-1" name="action" value="save_thermal"><i class="bx bx-receipt text-success me-2"></i>Save &amp; Print Thermal</button></li>
                                     </ul>
                                 </div>
-                                <a href="/deliverychallan" class="btn btn-sm btn-outline-danger px-3<?php echo $_hideNav ? ' d-none' : ''; ?>"><i class="bx bx-x me-1"></i>Close</a>
+                                <a href="<?php echo $_closeUrl; ?>" class="btn btn-sm btn-outline-danger px-3<?php echo $_hideNav ? ' d-none' : ''; ?>"><i class="bx bx-x me-1"></i>Close</a>
                             </div>
                         </div>
 
@@ -320,6 +332,7 @@ if (!empty($DispatchAddress)) {
                                 <?php endif; ?>
                                 <div class="ms-auto d-flex align-items-center gap-2">
                                     <div id="custTypeIndicator" class="d-none"></div>
+                                    <div id="plChipWrap" class="d-none"></div>
                                     <div id="onAccountIndicator" class="d-none d-flex align-items-center gap-1"
                                          style="font-size:.78rem;color:#856404;background:#fff8e1;border:1px solid #ffc107;padding:3px 12px;border-radius:20px;white-space:nowrap;">
                                         <i class="bx bx-wallet" style="font-size:.88rem;"></i>
@@ -528,6 +541,7 @@ if (!empty($DispatchAddress)) {
 <script src="/js/common/customer_form.js"></script>
 <script src="/js/transactions/deliverychallans.js"></script>
 <script src="/js/transactions/transactions.js"></script>
+<script src="/js/transactions/pricelist_trans.js"></script>
 <script src="/js/transactions/transprefix.js"></script>
 <script src="/js/transactions/modaladdress.js"></script>
 <script src="/js/common/category_form.js"></script>
@@ -547,6 +561,8 @@ var _orgState  = '<?php echo addslashes($DispatchAddress->StateText ?? ''); ?>';
 var _upstashUrl       = '<?php echo addslashes($UpstashReadUrl   ?? ''); ?>';
 var _upstashReadToken = '<?php echo addslashes($UpstashReadToken ?? ''); ?>';
 var _custCacheKey     = '<?php echo addslashes($CustomerCacheKey ?? ''); ?>';
+var _returnTab  = <?php echo json_encode($_returnTab); ?>;
+var _returnPage = <?php echo (int)$_returnPage; ?>;
 let imgData;
 
 <?php if ($isEdit): ?>
@@ -712,7 +728,7 @@ $(function() {
     <?php endif; ?>
     transDatePickr('#transDate_disp',      '#transDate',      false, false, true,  true,  '');
     transDatePickr('#returnDate_disp',     '#returnDate',     false, false, false, false, '#transDate');
-    transDatePickr('#deliveryByDate_disp', '#deliveryByDate', false, false, false, true,  '');
+    transDatePickr('#deliveryByDate_disp', '#deliveryByDate', false, false, false, false, '');
 
     // ── DC Expected Return Date auto-fill ─────────────────────────────────────
     // Reads DCDefaultReturnDays from user's settings.
@@ -1024,6 +1040,7 @@ $(function() {
             var formData = new FormData();
             $.each(postData, function(k, v) { formData.append(k, v); });
             collectTransAttachData(formData);
+            if (typeof _plTransInjectFormData === 'function') _plTransInjectFormData(formData);
 
             setFormLoading('#<?php echo $formId; ?>', true, action);
 
@@ -1039,16 +1056,8 @@ $(function() {
                         setFormLoading('#<?php echo $formId; ?>', false);
                         showFormError(response.Message);
                     } else {
-                        Swal.fire({
-                            icon             : 'success',
-                            title            : _isEdit ? 'Challan Updated' : 'Challan Saved',
-                            text             : response.Message || (_isEdit ? 'Delivery challan updated successfully.' : 'Delivery challan created successfully.'),
-                            confirmButtonText: 'OK',
-                            timer            : 3000,
-                            timerProgressBar : true,
-                        }).then(function() {
-                            window.location.href = '/deliverychallan';
-                        });
+                        _setPendingToast('_dcPendingToast', response.Message, 'success');
+                        window.location.href = _buildReturnUrl('/deliverychallan');
                     }
                 },
                 error: function() {

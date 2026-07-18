@@ -2,12 +2,13 @@
 // Shared utilities (loadTransactionList, debounce, initTooltips) are in common.js
 // Date helpers (getDateRange, formatDate) are in /js/common/datefilter.js
 
-function getPurchasesDetails(pageNo, rowLimit, filter) {
+function getPurchasesDetails(pageNo, rowLimit, filter, afterLoad) {
     loadTransactionList({
         url:            '/purchases/getPurchasesPageDetails/',
         tabCountClass:  '.purch-tab-count',
         statusTabClass: '.purch-status-tab',
         errorMessage:   'Failed to load purchase bills.',
+        onSuccess:      function(resp) { if (typeof afterLoad === 'function') afterLoad(resp); },
     }, pageNo, rowLimit, filter);
 }
 
@@ -18,36 +19,35 @@ $(document).on('click', '.purch-wa-link', function (e) {
     if (url) window.open(url, '_blank');
 });
 
-// ── Auto-attach purchase PDF when comm modal switches to Email tab ────────────
+// ── Register smart PDF attach alert when comm modal opens in Email tab ────────
 $(document).on('comm:switchedToEmail', function (e, moduleUID, recordUID) {
-    if (moduleUID !== 105 || !recordUID || _commPdfAutoAttached) return;
+    if (moduleUID !== 105 || !recordUID) return;
+    if (typeof _setupCommPdfAlert !== 'function') return;
 
-    _commPdfAutoAttached = true;
+    var rowData   = (typeof _commRowData !== 'undefined') ? _commRowData : null;
+    var docNumber = rowData ? (rowData.docNumber || '') : '';
+    var filename  = (docNumber || 'purchase').replace(/[^A-Za-z0-9_.\-]/g, '_') + '.pdf';
 
-    setTimeout(function () {
-        _initCommDropzone();
-
+    _setupCommPdfAlert(docNumber, function (onSuccess) {
         $.ajax({
             url   : '/purchases/getPurchasePdfBase64',
             method: 'POST',
             data  : { TransUID: recordUID, PaperSize: 'A4', [CsrfName]: CsrfToken },
             success: function (resp) {
-                if (resp.Error || !resp.Base64) { _commPdfAutoAttached = false; return; }
-                if (!_commDropzone) { _commPdfAutoAttached = false; return; }
+                if (resp.Error || !resp.Base64) { onSuccess(null); return; }
                 try {
                     var binary = atob(resp.Base64);
                     var bytes  = new Uint8Array(binary.length);
                     for (var i = 0; i < binary.length; i++) { bytes[i] = binary.charCodeAt(i); }
                     var blob = new Blob([bytes], { type: 'application/pdf' });
-                    var file = new File([blob], resp.Filename || 'purchase.pdf', { type: 'application/pdf' });
-                    _commDropzone.addFile(file);
+                    onSuccess(new File([blob], resp.Filename || filename, { type: 'application/pdf' }));
                 } catch (ex) {
-                    _commPdfAutoAttached = false;
+                    onSuccess(null);
                 }
             },
-            error: function () { _commPdfAutoAttached = false; }
+            error: function () { onSuccess(null); }
         });
-    }, 150);
+    });
 });
 
 // ── Payment Details Panel ─────────────────────────────────────────────────────

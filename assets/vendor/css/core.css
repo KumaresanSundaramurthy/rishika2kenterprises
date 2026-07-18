@@ -29643,6 +29643,12 @@ body:not(.modal-open) .layout-content-navbar .layout-navbar {
     from { width: 100%; }
     to   { width: 0%; }
 }
+/* Filled (solid background) variant — used for persistent below-purchase-price toast */
+.r2k-toast-notify.r2k-toast-filled { border-left-width: 0; }
+.r2k-toast-notify.r2k-toast-filled .r2k-toast-icon,
+.r2k-toast-notify.r2k-toast-filled .r2k-toast-msg,
+.r2k-toast-notify.r2k-toast-filled .r2k-toast-close { color: #fff; }
+.r2k-toast-notify.r2k-toast-filled .r2k-toast-close:hover { color: rgba(255,255,255,.75); }
 
 
 /* ── Modal Select2 — standard dropdown (no combobox overlap) ────────────── */

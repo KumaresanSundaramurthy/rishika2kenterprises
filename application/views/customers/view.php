@@ -195,9 +195,8 @@
                             </table>
                         </div>
 
-                        <!-- Pagination (static — inside card) -->
-                        <hr class="my-0">
-                        <div class="row mx-3 my-2 justify-content-between align-items-center CustomersPagination" id="CustomersPagination">
+                        <!-- Pagination -->
+                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center CustomersPagination apex-pag-sticky" id="CustomersPagination">
                             <?php echo $ModPagination; ?>
                         </div>
                         </div><!-- /#custTableSection -->
@@ -221,7 +220,7 @@
                                             <th style="width:150px;">Contact</th>
                                             <th class="text-end" style="width:140px;">Outstanding</th>
                                             <th style="width:90px;">Status</th>
-                                            <th style="width:100px;">Actions</th>
+                                            <th class="text-center" style="width:100px;">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody id="GroupsTableBody">
@@ -235,17 +234,9 @@
                                     </tbody>
                                 </table>
                             </div>
-                            <hr class="my-0">
-                            <div class="row mx-3 my-2 justify-content-between align-items-center" id="GroupsPagination"><?php echo $isGroupsTab ? ($GrpPagination ?? '') : ''; ?></div>
+                            <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center apex-pag-sticky" id="GroupsPagination"><?php echo $isGroupsTab ? ($GrpPagination ?? '') : ''; ?></div>
                         </div><!-- /#grpTableSection -->
 
-                    </div>
-
-                    <!-- Sticky pagination bar — mirrors static one, fades in when static scrolls out of view -->
-                    <div class="card mb-0 cust-sticky-pag apex-sticky-pag" id="custStickyPagination" data-static-pag="#CustomersPagination" style="display:none;">
-                        <div class="card-body p-0">
-                            <div class="row mx-3 my-2 justify-content-between align-items-center apex-sticky-pag-inner"></div>
-                        </div>
                     </div>
 
                 </div>
@@ -265,8 +256,8 @@
 
 <!-- Filter panels (body-level to avoid overflow clipping) -->
 <?php if (!empty($Tags)): ?>
-<?php $this->load->view('common/filter_panels/checklist_filter', [
-    'ChecklistFilterConfig' => [
+<?php $this->load->view('common/filter_panels/col_filter_box', [
+    'ColFilterConfig' => [
         'id'                => 'custTagFilterBox',
         'triggerId'         => 'custTagFilterBtn',
         'checkClass'        => 'cust-tag-chk',
@@ -277,8 +268,8 @@
     ],
 ]); ?>
 <?php endif; ?>
-<?php $this->load->view('common/filter_panels/checklist_filter', [
-    'ChecklistFilterConfig' => [
+<?php $this->load->view('common/filter_panels/col_filter_box', [
+    'ColFilterConfig' => [
         'id'                => 'custTypeFilterBox',
         'triggerId'         => 'custTypeFilterBtn',
         'checkClass'        => 'cust-type-chk',
@@ -289,7 +280,7 @@
     ],
 ]); ?>
 <?php if ($showUserBtn): ?>
-<?php $this->load->view('common/partials/col_user_filter_box', [
+<?php $this->load->view('common/filter_panels/col_user_filter_box', [
     'ColUserFilterConfig' => [
         'id'         => 'custUserFilterBox',
         'triggerId'  => 'custUserFilterBtn',
@@ -299,19 +290,19 @@
     ],
 ]); ?>
 <?php endif; ?>
-<?php $this->load->view('common/filter_panels/checklist_filter', [
-    'ChecklistFilterConfig' => [
+<?php $this->load->view('common/filter_panels/col_filter_box', [
+    'ColFilterConfig' => [
         'id'                => 'grpTypeFilterBox',
         'triggerId'         => 'grpTypeFilterBtn',
         'checkClass'        => 'grp-type-chk',
         'title'             => 'Group Type',
         'icon'              => 'bx-category',
         'searchPlaceholder' => 'Search types...',
-        'items'             => array_map(function ($t) { return ['value' => $t, 'label' => $t]; }, $GroupTypes ?? []),
+        'items'             => [],
     ],
 ]); ?>
-<?php $this->load->view('common/filter_panels/checklist_filter', [
-    'ChecklistFilterConfig' => [
+<?php $this->load->view('common/filter_panels/col_filter_box', [
+    'ColFilterConfig' => [
         'id'                => 'custStatusFilterBox',
         'triggerId'         => 'custStatusFilterBtn',
         'checkClass'        => 'cust-status-chk',
@@ -324,6 +315,233 @@
         ],
     ],
 ]); ?>
+
+<!-- ── Group Detail Modal ──────────────────────────────────────────────── -->
+<div class="modal fade" id="grpDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content" style="overflow-x:hidden;">
+
+            <!-- Header -->
+            <div class="modal-header py-3 px-4" id="grpDetailModalHeader" style="border-bottom:1px solid var(--bs-border-color);flex-wrap:nowrap;overflow:hidden;">
+                <div class="d-flex align-items-center gap-3" style="min-width:0;flex:1 1 0;overflow:hidden;">
+                    <div id="grpDetailIconWrap" style="width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <i class="bx bxs-layer" style="font-size:1.5rem;"></i>
+                    </div>
+                    <div style="min-width:0;overflow:hidden;">
+                        <div class="fw-bold" id="grpDetailTitle" style="font-size:1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Customer Group</div>
+                        <div class="d-flex align-items-center gap-1 flex-wrap mt-1" id="grpDetailBadges"></div>
+                    </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;margin-left:12px;">
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="grpDetailEditBtn" style="display:none;white-space:nowrap;">
+                        <i class="bx bx-edit me-1"></i>Edit
+                    </button>
+                    <button type="button" class="btn btn-sm btn-icon btn-outline-secondary" data-bs-dismiss="modal" aria-label="Close">
+                        <i class="bx bx-x fs-5"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Body -->
+            <div class="modal-body p-0" id="grpDetailModalBody" style="overflow-x:hidden;">
+                <div class="d-flex justify-content-center align-items-center py-5">
+                    <div class="spinner-border text-primary"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    'use strict';
+
+    var _grpDetailUID = 0;
+    var _currency             = '<?php echo addslashes(htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹')); ?>';
+    var _dec                  = <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>;
+
+    var _typeColors = {
+        'Business Group' : { bg: '#f0efff', c: '#696cff' },
+        'Branch Group'   : { bg: '#e0f7fa', c: '#0097a7' },
+        'Family Group'   : { bg: '#fce8ff', c: '#9333ea' },
+        'Corporate Group': { bg: '#e8f5e9', c: '#2e7d32' },
+        'Dealer Network' : { bg: '#fff3e0', c: '#ef6c00' },
+        'Franchise Group': { bg: '#fce4ec', c: '#c62828' },
+        'Custom'         : { bg: '#f5f5f5', c: '#616161' },
+    };
+
+    // ── Open modal on view button click ───────────────────────────────────────
+    $(document).on('click', '.grp-view-btn', function () {
+        var uid = parseInt($(this).data('uid'));
+        if (!uid) return;
+
+        _grpDetailUID = uid;
+
+        // Reset header
+        $('#grpDetailTitle').text('Customer Group');
+        $('#grpDetailBadges').empty();
+        $('#grpDetailIconWrap').css({ background: '#f0efff', color: '#696cff' });
+        $('#grpDetailEditBtn').hide().off('click');
+
+        // Show spinner in body
+        $('#grpDetailModalBody').html(
+            '<div class="d-flex justify-content-center align-items-center py-5">' +
+            '<div class="spinner-border text-primary"></div></div>'
+        );
+
+        $('#grpDetailModal').modal('show');
+
+        ajaxLoading(0);
+        $.ajax({
+            url   : '/customers/getGroupDetail/' + uid,
+            method: 'GET',
+            cache : false,
+            success: function (res) {
+                ajaxLoading(1);
+                CsrfToken = res.NewCsrfToken || CsrfToken;
+                if (res.Error) {
+                    $('#grpDetailModalBody').html(
+                        '<div class="alert alert-danger m-4">' + _esc(res.Message || 'Failed to load group.') + '</div>'
+                    );
+                    return;
+                }
+                _renderGroupDetail(res.Data, res.Overview, res.Members || []);
+            },
+            error: function () {
+                ajaxLoading(1);
+                $('#grpDetailModalBody').html(
+                    '<div class="alert alert-danger m-4">Failed to load group details. Please try again.</div>'
+                );
+            }
+        });
+    });
+
+    // ── Render header + body ──────────────────────────────────────────────────
+    function _renderGroupDetail(g, ov, members) {
+        var tc        = _typeColors[g.GroupType] || { bg: '#f5f5f5', c: '#616161' };
+        var memberCnt = parseInt(ov ? ov.MemberCount      : 0);
+        var recvAmt   = parseFloat(ov ? ov.TotalReceivable : 0);
+        var payAmt    = parseFloat(ov ? ov.TotalPayable    : 0);
+
+        // Header icon + title + badges
+        $('#grpDetailIconWrap').css({ background: tc.bg, color: tc.c });
+        $('#grpDetailTitle').text(g.GroupName || '—');
+
+        var badges = '';
+        if (g.GroupCode) {
+            badges += '<span class="badge bg-label-secondary" style="font-size:.7rem;font-family:monospace;">' + _esc(g.GroupCode) + '</span>';
+        }
+        badges += '<span class="badge" style="background:' + tc.bg + ';color:' + tc.c + ';font-size:.7rem;font-weight:600;">' + _esc(g.GroupType || '') + '</span>';
+        badges += '<span class="badge ' + (g.IsActive ? 'bg-label-success' : 'bg-label-danger') + '" style="font-size:.68rem;">' + (g.IsActive ? 'Active' : 'Inactive') + '</span>';
+        $('#grpDetailBadges').html(badges);
+
+        $('#grpDetailEditBtn').show().off('click').on('click', function () {
+            $('#grpDetailModal').modal('hide');
+            CustomerGroupForm.open('edit', _grpDetailUID, {
+                onSaveSuccess: function (res) { _applyGrpData(res); }
+            });
+        });
+
+        // ── Summary stat cards ──────────────────────────────────────────────
+        var statsHtml =
+            '<div class="row g-3 p-4 pb-3">' +
+                '<div class="col-6 col-md-3">' +
+                    '<div class="p-3 rounded-3 text-center" style="background:#f8f9fa;">' +
+                        '<div style="font-size:1.4rem;font-weight:700;color:#9333ea;">' + memberCnt + '</div>' +
+                        '<div class="text-muted" style="font-size:.74rem;">Members</div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="col-6 col-md-3">' +
+                    '<div class="p-3 rounded-3 text-center" style="background:#f0fdf4;">' +
+                        '<div style="font-size:1rem;font-weight:700;color:#16a34a;">' + _currency + ' ' + recvAmt.toFixed(_dec) + '</div>' +
+                        '<div class="text-muted" style="font-size:.74rem;">Total Receivable</div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="col-6 col-md-3">' +
+                    '<div class="p-3 rounded-3 text-center" style="background:#fff5f5;">' +
+                        '<div style="font-size:1rem;font-weight:700;color:#dc2626;">' + _currency + ' ' + payAmt.toFixed(_dec) + '</div>' +
+                        '<div class="text-muted" style="font-size:.74rem;">Total Payable</div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="col-6 col-md-3">' +
+                    '<div class="p-3 rounded-3 text-center" style="background:#f5f3ff;">' +
+                        '<div style="font-size:.85rem;font-weight:600;color:#7c3aed;">' + _esc(g.ContactPerson || '—') + '</div>' +
+                        '<div class="text-muted" style="font-size:.74rem;">' + _esc(g.Mobile || 'Contact Person') + '</div>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+
+        // ── Members table (with balance, no separate Outstanding tab) ───────
+        var totalRec = 0, totalPay = 0;
+        var membersBody = '';
+        if (members.length) {
+            membersBody = members.map(function (m, i) {
+                var isPri    = parseInt(m.IsGroupPrimary || 0) === 1;
+                var bal      = parseFloat(m.Balance || 0);
+                var balType  = m.BalanceType || 'Debit';
+                var balColor = balType === 'Credit' ? '#dc3545' : '#28a745';
+                if (balType === 'Debit')  totalRec += bal;
+                if (balType === 'Credit') totalPay += bal;
+                return '<tr>' +
+                    '<td class="text-muted text-center" style="width:36px;">' + (i + 1) + '</td>' +
+                    '<td>' +
+                        '<div class="fw-semibold">' + _esc(m.Name) +
+                            (isPri ? ' <span class="badge bg-label-warning ms-1" style="font-size:.62rem;">Primary</span>' : '') +
+                        '</div>' +
+                        (m.Area ? '<div class="text-muted" style="font-size:.74rem;">' + _esc(m.Area) + '</div>' : '') +
+                    '</td>' +
+                    '<td class="text-muted" style="font-size:.82rem;">' + _esc(m.MobileNumber || '—') + '</td>' +
+                    '<td class="text-end" style="font-weight:600;color:' + balColor + ';">' +
+                        _currency + ' ' + bal.toFixed(_dec) +
+                        '<div class="text-muted fw-normal" style="font-size:.7rem;">' + (balType === 'Credit' ? 'Payable' : 'Receivable') + '</div>' +
+                    '</td>' +
+                '</tr>';
+            }).join('');
+        } else {
+            membersBody = '<tr><td colspan="4" class="text-center py-4 text-muted">No members in this group.</td></tr>';
+        }
+
+        var footerParts = [];
+        if (totalRec > 0) footerParts.push('<span class="me-3" style="font-weight:700;color:#16a34a;">Receivable: ' + _currency + ' ' + totalRec.toFixed(_dec) + '</span>');
+        if (totalPay > 0) footerParts.push('<span style="font-weight:700;color:#dc2626;">Payable: ' + _currency + ' ' + totalPay.toFixed(_dec) + '</span>');
+        var footerHtml = footerParts.length
+            ? '<tfoot><tr><td colspan="4" class="text-end py-3 pe-3 border-top" style="background:#f8f9fa;">' + footerParts.join('') + '</td></tr></tfoot>'
+            : '';
+
+        var membersHtml =
+            '<div class="px-4 pb-4">' +
+            '<table class="table table-hover align-middle mb-0" style="font-size:.85rem;">' +
+            '<thead class="r2k-thead"><tr>' +
+                '<th class="text-center" style="width:36px;">#</th>' +
+                '<th>Customer Name</th>' +
+                '<th style="width:130px;">Mobile</th>' +
+                '<th class="text-end" style="width:150px;">Balance</th>' +
+            '</tr></thead>' +
+            '<tbody>' + membersBody + '</tbody>' +
+            footerHtml +
+            '</table></div>';
+
+        $('#grpDetailModalBody').html(statsHtml + membersHtml);
+    }
+
+    // Clear state when modal closes
+    $('#grpDetailModal').on('hidden.bs.modal', function () {
+        _grpDetailUID = 0;
+        $('#grpDetailModalBody').html(
+            '<div class="d-flex justify-content-center align-items-center py-5">' +
+            '<div class="spinner-border text-primary"></div></div>'
+        );
+        $('#grpDetailBadges').empty();
+        $('#grpDetailEditBtn').hide();
+    });
+
+    function _esc(s) {
+        return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+});
+</script>
 
 <?php $this->load->view('common/footer'); ?>
 
@@ -421,31 +639,6 @@ $(function () {
         CustomerForm.open('add', null, { onSaveSuccess: _custPageSaveSuccess });
     });
 
-    // ── Sticky pagination ──
-    var $staticPag = $('#CustomersPagination');
-    var $stickyPag = $('#custStickyPagination');
-
-    function syncStickyPagination() {
-        $stickyPag.find('.apex-sticky-pag-inner').html($staticPag.html());
-    }
-
-    function toggleStickyPagination() {
-        if (_inGroupsMode) { $stickyPag.stop(true, true).hide(); return; }
-        if (!$staticPag.length) return;
-        var rect = $staticPag[0].getBoundingClientRect();
-        var windowHeight = $(window).height();
-        var staticVisible = rect.top < windowHeight && rect.bottom > 0;
-        if (staticVisible) {
-            $stickyPag.stop(true, true).fadeOut(150);
-        } else {
-            syncStickyPagination();
-            $stickyPag.stop(true, true).fadeIn(150);
-        }
-    }
-
-    $(window).on('scroll resize', toggleStickyPagination);
-    toggleStickyPagination();
-
     // ── Stat card clicks ──
     $(document).on('click', '.apex-stat-item[data-stat-filter]', function () {
         var filterType = $(this).data('stat-filter');
@@ -509,7 +702,6 @@ $(function () {
                 getCustomersDetails(PageNo, RowLimit, Filter);
             }
 
-            toggleStickyPagination();
             return;
         }
 
@@ -727,40 +919,22 @@ $(function () {
     });
 
     // Lazy-load customer types into filter box on first click (Upstash → AJAX)
-    var _custTypeFilterLoaded = false;
+    var _custTypeFilterPromise = null;
     $(document).on('click', '#custTypeFilterBtn', function () {
-        if (_custTypeFilterLoaded) return;
-        function _buildCustTypeFilter(types) {
-            if (!types || !types.length) return;
-            var $box = $('#custTypeFilterBox');
-            var itemsHtml = '';
-            $.each(types, function (_, t) {
-                itemsHtml += '<label class="catg-list-item">'
-                    + '<input class="form-check-input cust-type-chk" type="checkbox" value="' + parseInt(t.CustomerTypeUID) + '">'
-                    + '<span>' + $('<span>').text(t.TypeName || '').html() + '</span>'
-                    + '</label>';
-            });
-            $box.find('.catg-filter-header .d-flex').prepend('<span class="badge">' + types.length + '</span>');
-            $box.find('.d-flex.flex-column.align-items-center.justify-content-center').replaceWith(
-                '<div class="catg-filter-search-wrap"><div class="input-group input-group-sm">'
-                + '<span class="input-group-text"><i class="bx bx-search"></i></span>'
-                + '<input type="text" class="form-control tcf-search-input" placeholder="Search types..."></div></div>'
-                + '<div class="catg-select-all-wrap"><input type="checkbox" class="form-check-input tcf-select-all" id="custTypeFilterBoxSelectAll">'
-                + '<label class="small fw-semibold mb-0" for="custTypeFilterBoxSelectAll">Select All</label></div>'
-                + '<div class="catg-list" style="max-height:200px;overflow-y:auto;">' + itemsHtml + '</div>'
+        if (_custTypeFilterPromise) return;
+        _custTypeFilterPromise = loadCachedFilterData('customer-types', '/customers/getCustomerTypes').then(function (types) {
+            custTypeFilter.setItems(
+                types.map(function (type) {
+                    return {
+                        value: type.CustomerTypeUID,
+                        label: type.TypeName
+                    };
+                })
             );
-            _custTypeFilterLoaded = true;
-        }
-        if (typeof UpstashService !== 'undefined' && UpstashService.isEnabled()) {
-            UpstashService.get(UpstashService.globalKey('customer-types')).then(function (data) {
-                if (data && Array.isArray(data) && data.length) { _buildCustTypeFilter(data); }
-                else { $.getJSON('/customers/getCustomerTypes', function (r) { if (!r.Error) _buildCustTypeFilter(r.Data); }); }
-            }).catch(function () {
-                $.getJSON('/customers/getCustomerTypes', function (r) { if (!r.Error) _buildCustTypeFilter(r.Data); });
-            });
-        } else {
-            $.getJSON('/customers/getCustomerTypes', function (r) { if (!r.Error) _buildCustTypeFilter(r.Data); });
-        }
+        }).catch(function () {
+            // Allow retry on next click
+            _custTypeFilterPromise = null;
+        });
     });
 
     // ── Status toggle ──
@@ -841,7 +1015,6 @@ $(function () {
         delete Filter['SearchAllData'];
         delete _grpFilter['SearchAllData'];
 
-        toggleStickyPagination();
         $('.cust-tab').removeClass('active');
         $('.grp-view-tab').addClass('active');
         $('.cust-only-ctrl').addClass('d-none');
@@ -853,7 +1026,7 @@ $(function () {
 
         _pushTabUrl('Groups', '');
 
-        if (!_grpLoaded) { _grpLoaded = true; _grpReload(1); }
+        _grpLoaded = true; _grpReload(1);
     });
 
     // ── Apply groups response data to DOM ──
@@ -870,6 +1043,9 @@ $(function () {
     }
 
     function _refreshCustomerGroupDropdown() {
+        if (typeof CustomerForm !== 'undefined' && CustomerForm.clearGroupsCache) {
+            CustomerForm.clearGroupsCache();
+        }
         $.get('/customers/getGroupsForDropdown', function (res) {
             if (res && !res.Error && res.Groups && res.Groups.length) {
                 var $sel = $('#CM_GroupUID');
@@ -959,6 +1135,7 @@ $(function () {
                     $('#GroupsTableBody').html(res.RecordHtmlData);
                     $('#GroupsPagination').html(res.Pagination);
                     if (_custShowStats) { _updateGrpStats(res.Stats); }
+                    _refreshCustomerGroupDropdown();
                 },
                 error: function () { showToastNotification('Failed to update status.', 'error'); }
             });
@@ -993,6 +1170,7 @@ $(function () {
                     if (_custShowStats) { _updateGrpStats(res.Stats); }
                     var cnt = res.TotalCount || 0;
                     $('#grpTabCount').text(cnt > 0 ? cnt : '').toggleClass('d-none', cnt === 0);
+                    _refreshCustomerGroupDropdown();
                 },
                 error: function () { showToastNotification('Delete failed.', 'error'); }
             });
@@ -1025,6 +1203,15 @@ $(function () {
         }
     });
 
+    // Lazy-load group types into filter box on first click (Upstash → AJAX)
+    var _grpTypeFilterPromise = null;
+    $(document).on('click', '#grpTypeFilterBtn', function () {
+        if (_grpTypeFilterPromise) return;
+        _grpTypeFilterPromise = loadCachedFilterData('customer-group-types', '/customers/getGroupTypes').then(function (types) {
+            GrpTypeFilter.setItems(types.map(function (t) { return { value: t, label: t }; }));
+        }).catch(function () { _grpTypeFilterPromise = null; });
+    });
+
     initExport({ moduleUID: 201, getFilters: function () { return Filter; } });
 
     // ── URL tab state init ───────────────────────────────────────────────────
@@ -1032,7 +1219,6 @@ $(function () {
         // Groups data is server-rendered by PHP — just wire up JS state, no AJAX needed
         _inGroupsMode = true;
         _grpLoaded    = true;
-        toggleStickyPagination();
         // PHP already rendered the correct d-none states for all filter/button elements
         if (_custInitSearch && _custInitSearch.length >= 3) {
             _grpFilter['SearchAllData'] = _custInitSearch;

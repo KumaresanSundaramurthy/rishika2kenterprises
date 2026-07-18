@@ -276,7 +276,9 @@ class Login_model extends CI_Model {
             if (!isset($row->TermsAndConditions))      $row->TermsAndConditions      = '';
             if (!isset($row->HideNavOnTransForm))        $row->HideNavOnTransForm        = 0;
             if (!isset($row->ShowProductDescription)) $row->ShowProductDescription  = 1;
-            if (!isset($row->MaxAdditionalCharges))   $row->MaxAdditionalCharges     = 5;
+            if (!isset($row->MaxAdditionalCharges))        $row->MaxAdditionalCharges        = 5;
+            if (!isset($row->ComboPriceDistribution))    $row->ComboPriceDistribution    = 'ratio';
+            if (!isset($row->BelowPurchasePriceAction))  $row->BelowPurchasePriceAction  = 'warn';
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = [$row];

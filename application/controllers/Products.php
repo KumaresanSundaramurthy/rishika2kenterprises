@@ -15,7 +15,7 @@ class Products extends MY_Controller {
     private function sanitizeTabInput($tab): string {
 
         $tab = strtolower($tab ?: 'item');
-        $map = ['item' => 'item', 'group' => 'group', 'category' => 'category', 'items' => 'item', 'groups' => 'group', 'categories' => 'category'];
+        $map = ['item' => 'item', 'group' => 'group', 'category' => 'category', 'pricelist' => 'pricelist', 'items' => 'item', 'groups' => 'group', 'categories' => 'category', 'pricelists' => 'pricelist'];
         return $map[$tab] ?? 'item';
 
     }
@@ -43,7 +43,8 @@ class Products extends MY_Controller {
         }
         $isComposite = (int) $isComposite;
 
-        $filter       = $this->input->post('Filter') ?: [];
+        $rawFilter = $this->input->post('Filter');
+        $filter    = is_array($rawFilter) ? $rawFilter : (json_decode($rawFilter ?: '{}', true) ?? []);
         $filterResult = $this->products_model->itemFilterFormation((object)['TableAliasName' => 'Products'], $filter);
 
         $baseQuery   = 'Products.IsComposite = ' . $isComposite;
@@ -150,6 +151,16 @@ class Products extends MY_Controller {
                 ], TRUE);
                 $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/products/getGroupList', $tableData->totalCount, 1, $limit);
                 $this->pageData['ModTotalCount'] = $tableData->totalCount;
+            } elseif ($activeTab === 'pricelist') {
+                $this->load->model('pricelists_model');
+                $tableData = $this->pricelists_model->getPriceListPaginated($OrgUID, $limit, 0, $initSearch !== '' ? ['SearchAllData' => $initSearch] : []);
+                $this->pageData['ModRowData'] = $this->load->view('products/pricelists/list', [
+                    'DataLists' => $tableData->rows,
+                    'StartFrom' => 0,
+                    'JwtData'   => $this->pageData['JwtData'],
+                ], TRUE);
+                $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/products/getPriceListData', $tableData->totalCount, 1, $limit);
+                $this->pageData['ModTotalCount'] = $tableData->totalCount;
             } elseif ($activeTab === 'category') {
                 $tableData = $this->products_model->getCategoryListPaginated($OrgUID, $limit, 0);
                 $this->pageData['ModRowData'] = $this->load->view('products/categories/list', [
@@ -168,7 +179,7 @@ class Products extends MY_Controller {
             
             $this->pageData['ActiveTabData']  = $activeTab;
             // Must match the data-id attribute values on the tab nav links in view.php
-            $tabNameMap = ['item' => 'Item', 'group' => 'Groups', 'category' => 'Categories'];
+            $tabNameMap = ['item' => 'Item', 'group' => 'Groups', 'pricelist' => 'PriceLists', 'category' => 'Categories'];
             $this->pageData['ActiveTabName']  = $tabNameMap[$activeTab] ?? ucfirst($activeTab);
             $this->pageData['InitSearch']     = $initSearch;
             $this->pageData['ActiveModuleId'] = 4;
@@ -274,58 +285,6 @@ class Products extends MY_Controller {
 
     }
 
-    private function saveCustomerTypePricing($ProductUID, $PostData) {
-
-        $userUID = (int) $this->pageData['JwtData']->User->UserUID;
-        $orgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
-
-        $pricingJson = getPostValue($PostData, 'CustomerPricingData', '', '[]');
-        $pricing = json_decode($pricingJson, true);
-
-        if (!is_array($pricing)) return;
-
-        
-        $prvData = $this->products_model->getCustomerTypePricing($ProductUID);
-        $existingRates = (count($prvData) > 0) ? array_column($prvData, 'RateUID') : [];
-
-        $newRateUIDs = array_filter(array_column($pricing, 'RateUID'));
-        $toDelete = array_diff($existingRates, $newRateUIDs);
-        if (!empty($toDelete)) {
-            foreach ($toDelete as $delRateUID) {
-                if (is_numeric($delRateUID) && (int)$delRateUID > 0) {
-                    $this->dbwrite_model->updateData('Products', 'ProductRateTbl', ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID], ['ProductUID' => (int) $ProductUID, 'OrgUID' => $orgUID, 'ProductRateUID' => $delRateUID]);
-                }
-            }
-        }
-
-        foreach ($pricing as $row) {
-            $RateUID = (int) ($row['RateUID'] ?? 0);
-            $ctUID = (int) ($row['CustomerTypeUID'] ?? 0);
-            $price = (float) ($row['SellingPrice'] ?? 0);
-            if ($ctUID > 0 && $price >= 0) {
-                if ($RateUID > 0) {
-                    $this->dbwrite_model->updateData('Products', 'ProductRateTbl',
-                        [
-                            'SellingPrice' => $price,
-                            'UpdatedBy'    => $userUID
-                        ],
-                        ['ProductRateUID' => $RateUID, 'OrgUID' => $orgUID, 'ProductUID' => (int) $ProductUID]
-                    );
-                } else {
-                    $this->dbwrite_model->insertData('Products', 'ProductRateTbl', [
-                        'OrgUID'          => $orgUID,
-                        'ProductUID'      => (int) $ProductUID,
-                        'CustomerTypeUID' => $ctUID,
-                        'SellingPrice'    => $price,
-                        'CreatedBy'       => $userUID,
-                        'UpdatedBy'       => $userUID,
-                    ]);
-                }
-            }
-        }
-
-    }
-
     private function _saveRentalConfig($ProductUID, $PostData) {
 
         $isRentable = (!empty($PostData['IsRentable']) && $PostData['IsRentable'] == 1) ? 1 : 0;
@@ -393,7 +352,8 @@ class Products extends MY_Controller {
             $pageNo = (int) $this->input->post('PageNo') ?: 1;
             $limit  = (int) $this->input->post('RowLimit') ?: 10;
             $offset = ($pageNo - 1) * $limit;
-            $filter = $this->input->post('Filter') ?: [];
+            $rawFilter = $this->input->post('Filter');
+            $filter    = is_array($rawFilter) ? $rawFilter : (json_decode($rawFilter ?: '{}', true) ?? []);
 
             $filterResult = $this->products_model->itemFilterFormation((object)['TableAliasName' => 'Products'], $filter);
 
@@ -434,7 +394,8 @@ class Products extends MY_Controller {
             $pageNo = (int) $this->input->post('PageNo') ?: 1;
             $limit  = (int) $this->input->post('RowLimit') ?: 10;
             $offset = ($pageNo - 1) * $limit;
-            $filter = $this->input->post('Filter') ?: [];
+            $rawFilter = $this->input->post('Filter');
+            $filter    = is_array($rawFilter) ? $rawFilter : (json_decode($rawFilter ?: '{}', true) ?? []);
 
             $filterResult = $this->products_model->itemFilterFormation((object)['TableAliasName' => 'Products'], $filter);
 
@@ -498,9 +459,6 @@ class Products extends MY_Controller {
             }
 
             $ProductUID = $InsertDataResp->ID;
-
-            // Customer type pricing
-            $this->saveCustomerTypePricing($ProductUID, $PostData);
 
             // Rental configuration (only when IsRentable = 1)
             $this->_saveRentalConfig($ProductUID, $PostData);
@@ -611,33 +569,29 @@ class Products extends MY_Controller {
             $attachments = $this->_getAttachmentsWithUrl('Product', $ProductUID, $orgUID);
 
             if ($cached !== null) {
-                $this->EndReturnData->Error           = FALSE;
-                $this->EndReturnData->Message         = 'Retrieved Successfully';
-                $this->EndReturnData->Data            = (object)$cached['Data'];
-                $this->EndReturnData->CustomerPricing = $cached['CustomerPricing'] ?? [];
-                $this->EndReturnData->RentalConfig    = isset($cached['RentalConfig']) ? (object)$cached['RentalConfig'] : null;
-                $this->EndReturnData->Attachments     = $attachments;
+                $this->EndReturnData->Error        = FALSE;
+                $this->EndReturnData->Message      = 'Retrieved Successfully';
+                $this->EndReturnData->Data         = (object)$cached['Data'];
+                $this->EndReturnData->RentalConfig = isset($cached['RentalConfig']) ? (object)$cached['RentalConfig'] : null;
+                $this->EndReturnData->Attachments  = $attachments;
             } else {
                 $this->load->model('products_model');
                 $GetProductData = $this->products_model->getProductsDetails(['Products.ProductUID' => $ProductUID]);
                 if (count($GetProductData) != 1) {
                     throw new Exception('Product not found');
                 }
-                $customerPricing = $this->products_model->getCustomerTypePricing($ProductUID);
-                $rentalConfig    = $this->products_model->getRentalConfig($ProductUID, $orgUID);
+                $rentalConfig = $this->products_model->getRentalConfig($ProductUID, $orgUID);
 
-                $this->EndReturnData->Error           = FALSE;
-                $this->EndReturnData->Message         = 'Retrieved Successfully';
-                $this->EndReturnData->Data            = $GetProductData[0];
-                $this->EndReturnData->CustomerPricing = $customerPricing;
-                $this->EndReturnData->RentalConfig    = $rentalConfig;
-                $this->EndReturnData->Attachments     = $attachments;
+                $this->EndReturnData->Error        = FALSE;
+                $this->EndReturnData->Message      = 'Retrieved Successfully';
+                $this->EndReturnData->Data         = $GetProductData[0];
+                $this->EndReturnData->RentalConfig = $rentalConfig;
+                $this->EndReturnData->Attachments  = $attachments;
 
                 // Populate cache for next request
                 $this->upstashservice->set($cacheKey, [
-                    'Data'            => $GetProductData[0],
-                    'CustomerPricing' => $customerPricing,
-                    'RentalConfig'    => $rentalConfig,
+                    'Data'         => $GetProductData[0],
+                    'RentalConfig' => $rentalConfig,
                 ], Upstashservice::TTL_PRODUCT);
             }
 
@@ -675,6 +629,15 @@ class Products extends MY_Controller {
             $ProductUID = (int) getPostValue($PostData, 'ProductUID');
             $orgUID     = (int) $this->pageData['JwtData']->Org->OrgUID;
 
+            // Block marking as Not for Sale if the item is a combo component
+            $newNotForSale = (!empty($PostData['NotForSale']) && $PostData['NotForSale'] == 1) ? 1 : 0;
+            if ($newNotForSale === 1) {
+                $this->load->model('products_model');
+                if ($this->products_model->isProductLinkedToCombo($ProductUID)) {
+                    throw new InvalidArgumentException('This item is already linked with a combo. You cannot mark it as Not for Sale.');
+                }
+            }
+
             // Read current OpeningQuantity BEFORE update to compute delta later
             $readDb = $this->load->database('ReadDB', TRUE);
             $readDb->db_debug = FALSE;
@@ -700,9 +663,6 @@ class Products extends MY_Controller {
                     $this->dbwrite_model->applyOpeningQtyDelta($ProductUID, $orgUID, $delta);
                 }
             }
-
-            // Customer type pricing
-            $this->saveCustomerTypePricing($ProductUID, $PostData);
 
             // Rental configuration (only when IsRentable = 1)
             $this->_saveRentalConfig($ProductUID, $PostData);
@@ -768,6 +728,15 @@ class Products extends MY_Controller {
             // }
 
             $this->load->model('products_model');
+            if ($this->products_model->isProductLinkedToCombo($ProductUID)) {
+                throw new Exception('This item is already linked with a combo. You cannot delete it.');
+            }
+            if ($this->products_model->productHasTransactions($ProductUID)) {
+                throw new Exception('This item has been used in transactions. You cannot delete it.');
+            }
+            if ($this->products_model->productUsedInComboWithTransactions($ProductUID)) {
+                throw new Exception('This item has been used in a combo that has transactions. You cannot delete it.');
+            }
             $oldProductRows = $this->products_model->getProductsDetails(['Products.ProductUID' => $ProductUID]);
             $oldProductData = !empty($oldProductRows) ? (array) $oldProductRows[0] : [];
             $this->load->model('dbwrite_model');
@@ -837,6 +806,19 @@ class Products extends MY_Controller {
             //     }
             // }
             
+            $this->load->model('products_model');
+            foreach ($ProductUIDs as $uid) {
+                if ($this->products_model->isProductLinkedToCombo($uid)) {
+                    throw new Exception('One or more selected items are linked to a combo. Remove them from the combo before deleting.');
+                }
+                if ($this->products_model->productHasTransactions($uid)) {
+                    throw new Exception('One or more selected items have been used in transactions and cannot be deleted.');
+                }
+                if ($this->products_model->productUsedInComboWithTransactions($uid)) {
+                    throw new Exception('One or more selected items have been used in a combo that has transactions and cannot be deleted.');
+                }
+            }
+
             $this->load->model('dbwrite_model');
             $UpdateResp = $this->dbwrite_model->updateData('Products', 'ProductTbl', $this->globalservice->baseDeleteArrayDetails(), [], array('ProductUID' => $ProductUIDs));
             if($UpdateResp->Error) {
@@ -912,14 +894,18 @@ class Products extends MY_Controller {
 
             $PostData = $this->input->post();
 
-            $comboName  = trim(getPostValue($PostData, 'ComboName'));
-            $comboPrice = (float) getPostValue($PostData, 'ComboSellingPrice', '', 0);
+            $comboName      = trim(getPostValue($PostData, 'ComboName'));
+            $comboPrice     = (float) getPostValue($PostData, 'ComboSellingPrice', '', 0);
+            $comboPurchasePrice = (float) getPostValue($PostData, 'ComboPurchasePrice', '', -1);
 
             if (empty($comboName)) {
                 throw new InvalidArgumentException('Combo name is required.');
             }
             if ($comboPrice < 0) {
                 throw new InvalidArgumentException('Selling price must be 0 or greater.');
+            }
+            if ($comboPurchasePrice < 0) {
+                throw new InvalidArgumentException('Purchase price is required and must be 0 or greater.');
             }
 
             $componentsJson = getPostValue($PostData, 'ComboComponentsData', '', '[]');
@@ -939,20 +925,32 @@ class Products extends MY_Controller {
             }
 
             
-            $Tax_Percentage = isset($TaxDetails->Percentage) ? (float) $TaxDetails->Percentage : 0;            
+            $Tax_Percentage  = isset($TaxDetails->Percentage) ? (float) $TaxDetails->Percentage : 0;
+            $sellingTaxUID   = (int) getPostValue($PostData, 'ComboSellingTaxOption');
+            $purchaseTaxUID  = (int) getPostValue($PostData, 'ComboPurchaseTaxOption');
+
             $Unit_Price = $comboPrice;
-            if ($Tax_Percentage > 0) {
+            if ($sellingTaxUID == 1 && $Tax_Percentage > 0) {
+                // With Tax — entered price is tax-inclusive; back-calculate unit price
                 $Unit_Price = $comboPrice / (1 + ($Tax_Percentage / 100));
+            } elseif ($sellingTaxUID != 1 && $Tax_Percentage > 0) {
+                // Without Tax — entered price is tax-exclusive; gross up to get SellingPrice
+                $Unit_Price = $comboPrice;
+                $comboPrice = round($comboPrice * (1 + ($Tax_Percentage / 100)), 4);
             }
 
             $primaryUnitUID = (int) getPostValue($PostData, 'ComboPrimaryUnit') ?: null;
 
             $comboData = [
-                'OrgUID'        => $orgUID,
-                'ItemName'      => $comboName,
-                'ProductType'   => 'Product',
-                'UnitPrice'     => round($Unit_Price, 5),
-                'SellingPrice'  => $comboPrice,
+                'OrgUID'                     => $orgUID,
+                'ProdToken'                  => generate_uuid4(),
+                'ItemName'                   => $comboName,
+                'ProductType'                => 'Product',
+                'UnitPrice'                  => round($Unit_Price, 5),
+                'SellingPrice'               => $comboPrice,
+                'SellingProductTaxUID'       => $sellingTaxUID ?: null,
+                'PurchasePrice'              => $comboPurchasePrice,
+                'PurchasePriceProductTaxUID' => $purchaseTaxUID ?: null,
                 'MRP'           => (float) getPostValue($PostData, 'ComboMRP', '', 0),
                 'TaxDetailsUID' => $taxUID ?: null,
                 'TaxPercentage' => isset($TaxDetails->Percentage) ? $TaxDetails->Percentage : null,
@@ -1022,11 +1020,15 @@ class Products extends MY_Controller {
                 throw new InvalidArgumentException('Invalid combo item.');
             }
 
-            $comboName  = trim(getPostValue($PostData, 'ComboName'));
-            $comboPrice = (float) getPostValue($PostData, 'ComboSellingPrice', '', 0);
+            $comboName          = trim(getPostValue($PostData, 'ComboName'));
+            $comboPrice         = (float) getPostValue($PostData, 'ComboSellingPrice', '', 0);
+            $comboPurchasePrice = (float) getPostValue($PostData, 'ComboPurchasePrice', '', -1);
 
             if (empty($comboName)) {
                 throw new InvalidArgumentException('Combo name is required.');
+            }
+            if ($comboPurchasePrice < 0) {
+                throw new InvalidArgumentException('Purchase price is required and must be 0 or greater.');
             }
 
             $componentsJson = getPostValue($PostData, 'ComboComponentsData', '', '[]');
@@ -1044,11 +1046,27 @@ class Products extends MY_Controller {
                 $TaxDetails = $this->global_model->getTaxPercentageDetailsInfo(['TaxDetail.TaxDetailsUID' => $taxUID])->Data[0] ?? null;
             }
 
+            $Tax_Percentage  = isset($TaxDetails->Percentage) ? (float) $TaxDetails->Percentage : 0;
+            $sellingTaxUID   = (int) getPostValue($PostData, 'ComboSellingTaxOption');
+            $purchaseTaxUID  = (int) getPostValue($PostData, 'ComboPurchaseTaxOption');
+
+            $Unit_Price = $comboPrice;
+            if ($sellingTaxUID == 1 && $Tax_Percentage > 0) {
+                $Unit_Price = $comboPrice / (1 + ($Tax_Percentage / 100));
+            } elseif ($sellingTaxUID != 1 && $Tax_Percentage > 0) {
+                $Unit_Price = $comboPrice;
+                $comboPrice = round($comboPrice * (1 + ($Tax_Percentage / 100)), 4);
+            }
+
             $primaryUnitUID = (int) getPostValue($PostData, 'ComboPrimaryUnit') ?: null;
 
             $comboData = [
-                'ItemName'      => $comboName,
-                'SellingPrice'  => $comboPrice,
+                'ItemName'                   => $comboName,
+                'UnitPrice'                  => round($Unit_Price, 5),
+                'SellingPrice'               => $comboPrice,
+                'SellingProductTaxUID'       => $sellingTaxUID ?: null,
+                'PurchasePrice'              => $comboPurchasePrice,
+                'PurchasePriceProductTaxUID' => $purchaseTaxUID ?: null,
                 'MRP'           => (float) getPostValue($PostData, 'ComboMRP', '', 0),
                 'TaxDetailsUID' => $taxUID ?: null,
                 'TaxPercentage' => isset($TaxDetails->Percentage) ? $TaxDetails->Percentage : null,
@@ -1266,7 +1284,8 @@ class Products extends MY_Controller {
             $pageNo = (int) $this->input->post('PageNo') ?: 1;
             $limit  = (int) $this->input->post('RowLimit') ?: 10;
             $offset = ($pageNo - 1) * $limit;
-            $filter = $this->input->post('Filter') ?: [];
+            $rawFilter = $this->input->post('Filter');
+            $filter    = is_array($rawFilter) ? $rawFilter : (json_decode($rawFilter ?: '{}', true) ?? []);
 
             $filterResult = $this->products_model->catgFilterFormation((object)['TableAliasName' => 'Category'], $filter);
 
@@ -1797,17 +1816,26 @@ class Products extends MY_Controller {
             $products = $this->products_model->getProductsForCache($orgUID);
             if (empty($products)) throw new Exception('No active items found.');
 
+            // Build BOM map: parentUID => [{uid, qty}, ...] — one query for all composites
+            $bomRows      = $this->products_model->getAllProductBOMsForSync($orgUID);
+            $bomByParent  = [];
+            foreach ($bomRows as $row) {
+                $pUID = (string)(int)$row->ParentProductUID;
+                $bomByParent[$pUID][] = [
+                    'uid' => (int) $row->ChildProductUID,
+                    'qty' => (float) $row->Quantity,
+                ];
+            }
+
             $cacheKey = $this->redisservice->orgKey('products');
             $this->upstashservice->del($cacheKey);
             $newMap = [];
 
             foreach ($products as $prod) {
+                if ((int)($prod->NotForSale ?? 0) === 1) continue;
+                $uid         = (int) $prod->ProductUID;
                 $isComposite = (int)($prod->IsComposite ?? 0);
-                $notForSale  = (int)($prod->NotForSale  ?? 0);
-                if (!$isComposite && $notForSale) continue;
-
-                $uid = (int) $prod->ProductUID;
-                $newMap[(string)$uid] = [
+                $entry = [
                     'ProductUID'                  => $uid,
                     'ItemName'                    => $prod->ItemName                   ?? '',
                     'ProductType'                 => $prod->ProductType                ?? '',
@@ -1835,9 +1863,13 @@ class Products extends MY_Controller {
                     'LowStockAlertAt'             => (float)($prod->LowStockAlertAt    ?? 0),
                     'NotForSale'                  => (int)($prod->NotForSale           ?? 0),
                     'IsComboItem'                 => (int)($prod->IsComboItem          ?? 0),
-                    'IsComposite'                 => (int)($prod->IsComposite          ?? 0),
+                    'IsComposite'                 => $isComposite,
                     'IsSerialTracked'             => (int)($prod->IsSerialTracked      ?? 0),
                 ];
+                if ($isComposite) {
+                    $entry['items'] = $bomByParent[(string)$uid] ?? [];
+                }
+                $newMap[(string)$uid] = $entry;
             }
 
             $this->upstashservice->hmset($cacheKey, $newMap);
@@ -2181,6 +2213,343 @@ class Products extends MY_Controller {
         } catch (Exception $e) {
             log_message('error', '_syncPrimaryImage failed: ' . $e->getMessage());
         }
+    }
+
+    // ── Price Lists ───────────────────────────────────────────────────────────
+
+    public function getPriceListData(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID    = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $pageNo    = (int) $this->input->post('PageNo') ?: 1;
+            $limit     = (int) $this->input->post('RowLimit') ?: 10;
+            $offset    = ($pageNo - 1) * $limit;
+            $rawFilter = $this->input->post('Filter');
+            $filter    = is_array($rawFilter) ? $rawFilter : (json_decode($rawFilter ?: '{}', true) ?? []);
+
+            $this->load->model('pricelists_model');
+            $result = $this->pricelists_model->getPriceListPaginated($orgUID, $limit, $offset, $filter);
+
+            $this->EndReturnData->Error      = false;
+            $this->EndReturnData->List       = $this->_buildPriceListHtml($result->rows, $offset);
+            $this->EndReturnData->Pagination = $this->globalservice->buildPagePaginationHtml('/products/getPriceListData', $result->totalCount, $pageNo, $limit);
+            $this->EndReturnData->TotalCount = $result->totalCount;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    /**
+     * @param array $rows
+     * @param int   $offset
+     * @return string
+     */
+    private function _buildPriceListHtml(array $rows, int $offset): string {
+        return $this->load->view('products/pricelists/list', [
+            'DataLists' => $rows,
+            'StartFrom' => $offset,
+            'JwtData'   => $this->pageData['JwtData'],
+        ], TRUE);
+    }
+
+    /**
+     * @param int $orgUID
+     * @param int $pageNo
+     * @param int $limit
+     * @param array $filter
+     * @return void  populates $this->EndReturnData with List/Pagination/TotalCount
+     */
+    private function _appendPriceListRefresh(int $orgUID, int $pageNo, int $limit, array $filter): void {
+        $offset  = ($pageNo - 1) * $limit;
+        $result  = $this->pricelists_model->getPriceListPaginated($orgUID, $limit, $offset, $filter);
+        $this->EndReturnData->List       = $this->_buildPriceListHtml($result->rows, $offset);
+        $this->EndReturnData->Pagination = $this->globalservice->buildPagePaginationHtml('/products/getPriceListData', $result->totalCount, $pageNo, $limit);
+        $this->EndReturnData->TotalCount = $result->totalCount;
+    }
+
+    public function getPriceListForEdit(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID       = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $priceListUID = (int) $this->input->get('uid', true);
+            if ($priceListUID <= 0) throw new InvalidArgumentException('Invalid price list ID.');
+
+            $this->load->model('pricelists_model');
+            $data = $this->pricelists_model->getForEdit($orgUID, $priceListUID);
+            if (!$data) throw new Exception('Price list not found.');
+
+            $this->EndReturnData->Error = false;
+            $this->EndReturnData->Data  = $data;
+        } catch (InvalidArgumentException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        } catch (Exception $e) {
+            log_message('error', 'getPriceListForEdit: ' . $e->getMessage());
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = 'Failed to load price list data.';
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function savePriceList(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $jwt     = $this->pageData['JwtData'];
+            $orgUID  = (int) $jwt->Org->OrgUID;
+            $userUID = (int) $jwt->User->UserUID;
+            $post    = $this->input->post(null, true);
+
+            $plUID = (int) ($post['PLUID'] ?? 0);
+            $isEdit = $plUID > 0;
+
+            $name = trim($post['Name'] ?? '');
+            if ($name === '') throw new InvalidArgumentException('Price list name is required.');
+
+            $assignedTo = $post['AssignedToType'] ?? 'All';
+            if (!in_array($assignedTo, ['All', 'Groups', 'Customers'], true))
+                throw new InvalidArgumentException('Invalid Assigned To value.');
+
+            $scope = $post['Scope'] ?? 'All';
+            if (!in_array($scope, ['All', 'Specific'], true))
+                throw new InvalidArgumentException('Invalid Scope value.');
+
+            $discounts   = json_decode($post['Discounts']   ?? '[]', true) ?: [];
+            $rules       = json_decode($post['Rules']       ?? '[]', true) ?: [];
+            $assignments = json_decode($post['Assignments'] ?? '[]', true) ?: [];
+
+            if ($scope === 'Specific' && empty($rules))
+                throw new InvalidArgumentException('Add at least one product rule for Specific Products scope.');
+
+            $this->load->model(['pricelists_model', 'dbwrite_model']);
+
+            if ($isEdit && !$this->pricelists_model->getByUID($orgUID, $plUID))
+                throw new Exception('Price list not found.');
+
+            $headerData = [
+                'Name'           => $name,
+                'Status'         => (int) ($post['Status'] ?? 1),
+                'Priority'       => max(1, (int) ($post['Priority'] ?? 1)),
+                'ValidFrom'      => $post['ValidFrom'] ?? '',
+                'ValidTo'        => $post['ValidTo']   ?? '',
+                'Description'    => $post['Description'] ?? '',
+                'AssignedToType' => $assignedTo,
+                'Scope'          => $scope,
+                'GlobalBasedOn'  => $post['GlobalBasedOn'] ?? 'SellingPrice',
+            ];
+
+            // Capture old state before any writes (for audit log)
+            $oldData = $isEdit ? $this->pricelists_model->getForEdit($orgUID, $plUID) : null;
+
+            $this->dbwrite_model->startTransaction();
+
+            if ($isEdit) {
+                $this->pricelists_model->updateHeader($plUID, $orgUID, $userUID, $headerData);
+                $this->pricelists_model->softDeleteChildRecords($plUID, $orgUID);
+            } else {
+                $plUID = $this->pricelists_model->createHeader($orgUID, $userUID, $headerData);
+            }
+
+            if ($assignedTo !== 'All' && !empty($assignments)) {
+                $refType = ($assignedTo === 'Groups') ? 'Group' : 'Customer';
+                $this->pricelists_model->saveAssignments($plUID, $orgUID, $refType, $assignments);
+            }
+
+            if ($scope === 'All' && !empty($discounts)) {
+                $this->pricelists_model->saveDiscounts($plUID, $orgUID, $discounts);
+            }
+
+            if ($scope === 'Specific' && !empty($rules)) {
+                $this->pricelists_model->saveRules($plUID, $orgUID, $rules);
+            }
+
+            $this->dbwrite_model->commitTransaction();
+            $this->_upsertOnePriceListCache($orgUID, $plUID);
+
+            $newValues = [
+                'Header'      => $headerData,
+                'Assignments' => $assignments,
+                'Discounts'   => $discounts,
+                'Rules'       => $rules,
+            ];
+            $oldValues = $oldData ? $this->_priceListToAuditArray($oldData) : [];
+            $this->auditlog->log(
+                $orgUID, $userUID,
+                $isEdit ? 'UPDATE' : 'CREATE',
+                'PriceList', $plUID, $name,
+                [], $isEdit ? 'Price list updated: ' . $name : 'Price list created: ' . $name,
+                'PriceList', 'MASTER', 'SUCCESS', '', 'WEB',
+                $oldValues, $newValues
+            );
+
+            $pageNo    = max(1, (int) ($post['PageNo']   ?? 1));
+            $limit     = (int) ($post['RowLimit'] ?? 10);
+            $rawFilter = $post['Filter'] ?? '{}';
+            $filter    = is_array($rawFilter) ? $rawFilter : (json_decode($rawFilter ?: '{}', true) ?? []);
+
+            $this->EndReturnData->Error        = false;
+            $this->EndReturnData->Message      = $isEdit ? 'Price list updated successfully.' : 'Price list created successfully.';
+            $this->EndReturnData->PriceListUID = $plUID;
+            $this->_appendPriceListRefresh($orgUID, $pageNo, $limit, $filter);
+
+        } catch (InvalidArgumentException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        } catch (Exception $e) {
+            if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
+            log_message('error', 'savePriceList: ' . $e->getMessage());
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = 'Failed to save price list. Please try again.';
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function deletePriceList(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $jwt          = $this->pageData['JwtData'];
+            $orgUID       = (int) $jwt->Org->OrgUID;
+            $userUID      = (int) $jwt->User->UserUID;
+            $post         = $this->input->post(null, true);
+            $priceListUID = (int) ($post['PriceListUID'] ?? 0);
+            if ($priceListUID <= 0) throw new InvalidArgumentException('Invalid price list ID.');
+
+            $this->load->model(['pricelists_model', 'dbwrite_model']);
+            if (!$this->pricelists_model->getByUID($orgUID, $priceListUID))
+                throw new Exception('Price list not found.');
+
+            // Capture old state before soft-delete (for audit log)
+            $oldData = $this->pricelists_model->getForEdit($orgUID, $priceListUID);
+
+            $this->pricelists_model->softDelete($orgUID, $priceListUID, $userUID);
+            $this->_removeOnePriceListCache($orgUID, $priceListUID);
+
+            $oldValues = $oldData ? $this->_priceListToAuditArray($oldData) : [];
+            $this->auditlog->log(
+                $orgUID, $userUID,
+                'DELETE',
+                'PriceList', $priceListUID, $oldData->Name ?? '',
+                [], 'Price list deleted: ' . ($oldData->Name ?? ''),
+                'PriceList', 'MASTER', 'SUCCESS', '', 'WEB',
+                $oldValues, []
+            );
+
+            $pageNo    = max(1, (int) ($post['PageNo']   ?? 1));
+            $limit     = (int) ($post['RowLimit'] ?? 10);
+            $rawFilter = $post['Filter'] ?? '{}';
+            $filter    = is_array($rawFilter) ? $rawFilter : (json_decode($rawFilter ?: '{}', true) ?? []);
+
+            $this->EndReturnData->Error   = false;
+            $this->EndReturnData->Message = 'Price list deleted successfully.';
+            $this->_appendPriceListRefresh($orgUID, $pageNo, $limit, $filter);
+
+        } catch (InvalidArgumentException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        } catch (Exception $e) {
+            log_message('error', 'deletePriceList: ' . $e->getMessage());
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = 'Failed to delete price list. Please try again.';
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    /**
+     * Upsert a single price list entry in orgKey('price-lists').
+     * If the list is inactive or deleted, it is removed from cache instead.
+     * Fire-and-forget — failure is logged, never surfaced to the user.
+     */
+    private function _upsertOnePriceListCache(int $orgUID, int $plUID): void {
+        try {
+            $this->load->model('pricelists_model');
+            $entry    = $this->pricelists_model->getOneForCache($orgUID, $plUID);
+            $cacheKey = $this->redisservice->orgKey('price-lists');
+            $current  = $this->upstashservice->get($cacheKey) ?? [];
+            if (!is_array($current)) $current = [];
+
+            $current = array_values(array_filter($current, fn($pl) => (int)($pl['PriceListUID'] ?? 0) !== $plUID));
+
+            if ($entry !== null) {
+                $current[] = $entry;
+                usort($current, fn($a, $b) => (int)($b['Priority'] ?? 0) <=> (int)($a['Priority'] ?? 0));
+            }
+
+            $this->upstashservice->set($cacheKey, $current, 0);
+        } catch (Exception $e) {
+            log_message('error', '_upsertOnePriceListCache: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Remove a single price list entry from orgKey('price-lists').
+     * Fire-and-forget — failure is logged, never surfaced to the user.
+     */
+    private function _removeOnePriceListCache(int $orgUID, int $plUID): void {
+        try {
+            $cacheKey = $this->redisservice->orgKey('price-lists');
+            $current  = $this->upstashservice->get($cacheKey) ?? [];
+            if (!is_array($current)) $current = [];
+
+            $filtered = array_values(array_filter($current, fn($pl) => (int)($pl['PriceListUID'] ?? 0) !== $plUID));
+            $this->upstashservice->set($cacheKey, $filtered, 0);
+        } catch (Exception $e) {
+            log_message('error', '_removeOnePriceListCache: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Full rebuild of orgKey('price-lists') from DB.
+     * Called by the sync button and as fallback.
+     * Fire-and-forget — failure is logged, never surfaced to the user.
+     */
+    private function _syncPriceListCache(int $orgUID): void {
+        try {
+            $this->load->model('pricelists_model');
+            $lists    = $this->pricelists_model->getAllForCache($orgUID);
+            $cacheKey = $this->redisservice->orgKey('price-lists');
+            $this->upstashservice->set($cacheKey, $lists, 0);
+        } catch (Exception $e) {
+            log_message('error', '_syncPriceListCache: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Full resync endpoint — called by the globe button on the Price Lists tab.
+     */
+    public function syncPriceListCache(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID = (int)$this->pageData['JwtData']->Org->OrgUID;
+            $this->load->model('pricelists_model');
+            $lists    = $this->pricelists_model->getAllForCache($orgUID);
+            $cacheKey = $this->redisservice->orgKey('price-lists');
+            $this->upstashservice->set($cacheKey, $lists, 0);
+            $this->EndReturnData->Error   = false;
+            $this->EndReturnData->Message = count($lists) . ' price list(s) synced to cache.';
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    private function _priceListToAuditArray(?object $data): array {
+        if (!$data) return [];
+        return [
+            'Name'           => $data->Name           ?? '',
+            'Status'         => $data->Status          ?? '',
+            'Priority'       => $data->Priority        ?? '',
+            'ValidFrom'      => $data->ValidFrom       ?? '',
+            'ValidTo'        => $data->ValidTo         ?? '',
+            'Description'    => $data->Description     ?? '',
+            'AssignedToType' => $data->AssignedToType  ?? '',
+            'Scope'          => $data->Scope           ?? '',
+            'GlobalBasedOn'  => $data->GlobalBasedOn   ?? '',
+            'Assignments'    => array_map(function ($r) { return (array) $r; }, (array) ($data->Assignments ?? [])),
+            'Discounts'      => array_map(function ($r) { return (array) $r; }, (array) ($data->Discounts   ?? [])),
+            'Rules'          => array_map(function ($r) { return (array) $r; }, (array) ($data->Rules       ?? [])),
+        ];
     }
 
 }

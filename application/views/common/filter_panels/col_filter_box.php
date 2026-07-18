@@ -4,34 +4,34 @@ defined('BASEPATH') or exit('No direct script access allowed');
  * Reusable column-level filter box partial.
  *
  * Renders a floating card filter panel (body-level, position:fixed)
- * that can be shared across any transaction list page.
+ * that can be shared across any list page.
  *
  * Required $ColFilterConfig keys:
  *   'id'          => string   Unique DOM id for the box div  e.g. 'invPayStatusFilterBox'
  *   'triggerId'   => string   DOM id of the <a> icon that opens it  e.g. 'invPayStatusFilter'
  *   'title'       => string   Header label  e.g. 'Payment Status'
  *   'icon'        => string   Boxicons class for header  e.g. 'bx-wallet-alt'
- *   'filterKey'   => string   JS Filter object key  e.g. 'PaymentStatus'
  *   'checkClass'  => string   CSS class applied to each checkbox  e.g. 'inv-pay-status-chk'
  *   'items'       => array    [ ['value' => '', 'label' => '', 'icon' => '', 'color' => ''] ]
- *                             icon/color are optional
+ *
+ * Optional $ColFilterConfig keys:
+ *   'filterKey'         => string   JS Filter object key  e.g. 'PaymentStatus'
+ *                                   If omitted, data-filter-key attribute is not rendered.
+ *   'searchPlaceholder' => string   Search input placeholder text.
+ *                                   Defaults to "Search {title}..."
  */
 
-$cfg        = $ColFilterConfig ?? [];
-$boxId      = htmlspecialchars($cfg['id']        ?? 'colFilterBox');
-$triggerId  = htmlspecialchars($cfg['triggerId'] ?? 'colFilterTrigger');
-$title      = htmlspecialchars($cfg['title']     ?? 'Filter');
-$icon       = htmlspecialchars($cfg['icon']      ?? 'bx-filter-alt');
-$filterKey  = htmlspecialchars($cfg['filterKey'] ?? 'Filter');
-$chkClass   = htmlspecialchars($cfg['checkClass'] ?? 'col-filter-chk');
-$items      = $cfg['items'] ?? [];
+$cfg       = $ColFilterConfig ?? [];
+$boxId     = htmlspecialchars($cfg['id']                ?? 'colFilterBox');
+$triggerId = htmlspecialchars($cfg['triggerId']         ?? 'colFilterTrigger');
+$title     = htmlspecialchars($cfg['title']             ?? 'Filter');
+$icon      = htmlspecialchars($cfg['icon']              ?? 'bx-filter-alt');
+$chkClass  = htmlspecialchars($cfg['checkClass']        ?? 'col-filter-chk');
+$items     = $cfg['items']                              ?? [];
+$filterKey = $cfg['filterKey']                          ?? '';
+$searchPh  = $cfg['searchPlaceholder']                  ?? ('Search ' . strtolower($title) . '...');
 ?>
-<div id="<?php echo $boxId; ?>"
-     class="card mp-filterbox trans-col-filterbox"
-     data-trigger-id="<?php echo $triggerId; ?>"
-     data-filter-key="<?php echo $filterKey; ?>"
-     data-chk-class="<?php echo $chkClass; ?>"
-     style="z-index:9999;display:none;position:fixed;">
+<div id="<?php echo $boxId; ?>" class="card mp-filterbox trans-col-filterbox" data-trigger-id="<?php echo $triggerId; ?>" data-filter-key="<?php echo $filterKey; ?>" data-chk-class="<?php echo $chkClass; ?>" style="z-index:9999; display:none; position:fixed;">
 
     <!-- Header -->
     <div class="catg-filter-header">
@@ -75,8 +75,7 @@ $items      = $cfg['items'] ?? [];
             $label = htmlspecialchars($item['label'] ?? '');
         ?>
         <label class="catg-list-item">
-            <input class="form-check-input <?php echo $chkClass; ?>"
-                   type="checkbox" value="<?php echo $val; ?>">
+            <input class="form-check-input <?php echo $chkClass; ?>" type="checkbox" value="<?php echo $val; ?>">
             <span><?php echo $label; ?></span>
         </label>
         <?php endforeach; ?>
@@ -98,4 +97,5 @@ $items      = $cfg['items'] ?? [];
         <span style="font-size:.8rem;">No items found</span>
     </div>
     <?php endif; ?>
+    
 </div>

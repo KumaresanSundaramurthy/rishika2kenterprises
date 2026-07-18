@@ -17,6 +17,7 @@ if (!empty($DataLists)):
     foreach ($DataLists as $list):
         $SerialNumber++;
         $status      = $list->Status ?? 'Draft';
+        if ($status === 'Rejected') $status = 'Cancelled';
         $isDraft     = $status === 'Draft';
         $isTerminal  = in_array($status, $terminalStatuses);
         $badgeClass  = $statusBadgeClass[$status]  ?? 'trans-badge-Draft';
@@ -72,7 +73,7 @@ if (!empty($DataLists)):
         $numericAmt = smartDecimal($netAmt, $decimals, true);
         $billAmount = $currency . ' ' . $numericAmt;
         $transDate  = !empty($list->TransDate) ? format_datedisplay($list->TransDate) : '';
-        $quotStatus = $list->Status ?? '';
+        $quotStatus = $status;
 
         if (!empty($waTemplate)) {
             $waMessage = str_replace(
@@ -118,6 +119,7 @@ if (!empty($DataLists)):
             }
         }
         $waMessageEncoded = rawurlencode($waMessage);
+        $hasAttach        = !empty($list->AttachmentCount) && (int)$list->AttachmentCount > 0;
 ?>
     <tr class="<?php echo $isOverdueRow ? 'trans-row-overdue' : ''; ?>">
 
@@ -145,10 +147,23 @@ if (!empty($DataLists)):
                    data-type="quotation"
                    data-number="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
                    data-date="<?php echo htmlspecialchars($list->TransDate ?? ''); ?>"
-                   data-status="<?php echo htmlspecialchars($list->Status ?? ''); ?>">
+                   data-status="<?php echo htmlspecialchars($status); ?>">
                     <?php echo htmlspecialchars($list->UniqueNumber); ?>
                 </a>
-                <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate)); ?></div>
+                <div class="d-flex align-items-center gap-2 mt-1">
+                    <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate)); ?></div>
+                    <?php if ($hasAttach): ?>
+                    <button type="button" class="btn btn-link p-0 transAttachBtn"
+                            data-uid="<?php echo (int)$list->TransUID; ?>"
+                            data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
+                            data-url="/transactions/getAttachments"
+                            data-module-uid="<?php echo $quotModuleUID; ?>"
+                            title="<?php echo (int)$list->AttachmentCount; ?> attachment(s)"
+                            style="font-size:.82rem;line-height:1;color:#0d6efd;">
+                        <i class="bx bx-paperclip"></i>
+                    </button>
+                    <?php endif; ?>
+                </div>
                 <?php if (!empty($list->CreatedBy)): ?>
                 <div style="font-size:.68rem;color:#bbb;">by <?php echo htmlspecialchars($list->CreatedBy); ?></div>
                 <?php endif; ?>
@@ -165,7 +180,7 @@ if (!empty($DataLists)):
         </td>
 
         <!-- Status -->
-        <td>
+        <td class="quot-col-status">
             <?php if (!empty($transitions)): ?>
             <div class="dropdown">
                 <span class="trans-badge <?php echo $badgeClass; ?>" data-bs-toggle="dropdown"
@@ -254,7 +269,7 @@ if (!empty($DataLists)):
                     data-paid-amount="<?php echo (float)($list->PaidAmount ?? 0); ?>"
                     data-doc-date="<?php echo htmlspecialchars(!empty($list->TransDate) ? format_datedisplay($list->TransDate) : ''); ?>"
                     data-validity-date="<?php echo htmlspecialchars(!empty($list->ValidityDate) ? format_datedisplay($list->ValidityDate) : ''); ?>"
-                    data-doc-status="<?php echo htmlspecialchars($list->Status ?? ''); ?>"
+                    data-doc-status="<?php echo htmlspecialchars($status); ?>"
                     data-trans-token="<?php echo htmlspecialchars($list->TransToken ?? ''); ?>"
                     data-pdf-path="<?php echo htmlspecialchars($list->PdfPath ?? ''); ?>"
                     data-amount-words="<?php echo htmlspecialchars(function_exists('print_number_to_words') ? print_number_to_words((float)($list->NetAmount ?? 0)) : ''); ?>"
@@ -269,7 +284,7 @@ if (!empty($DataLists)):
         </td>
 
         <!-- Valid Until -->
-        <td>
+        <td class="quot-col-valid-until">
             <?php if ($showValidity): ?>
                 <?php echo $validityHtml; ?>
             <?php elseif (!$isDraft && !empty($list->ValidityDate)): ?>
@@ -291,11 +306,11 @@ if (!empty($DataLists)):
                     else                         $agoText = (int)($secondsAgo / 3600) . ' hr' . ((int)($secondsAgo / 3600) > 1 ? 's' : '') . ' ago';
                 }
             ?>
-            <div style="font-size:.78rem;"><?php echo $updatedOn ? changeTimeZonefromDateTime($updatedOn, $JwtData->User->Timezone, 2) : '—'; ?></div>
+            <div class="r2k-col-date"><?php echo $updatedOn ? changeTimeZonefromDateTime($updatedOn, $JwtData->User->Timezone, 2) : '—'; ?></div>
             <?php if ($within24h): ?>
-            <div style="font-size:.68rem;color:#0d6efd;font-weight:500;"><?php echo $agoText; ?></div>
+            <div class="r2k-col-date-ago"><?php echo $agoText; ?></div>
             <?php endif; ?>
-            <div class="text-muted" style="font-size:.7rem;">by <?php echo htmlspecialchars($list->UpdatedBy ?? '—'); ?></div>
+            <div class="text-muted r2k-col-date-by">by <?php echo htmlspecialchars($list->UpdatedBy ?? '—'); ?></div>
         </td>
 
         <!-- Actions -->
@@ -405,7 +420,8 @@ if (!empty($DataLists)):
                         <li>
                             <button class="dropdown-item quot-status-update text-warning"
                                     data-uid="<?php echo (int)$list->TransUID; ?>"
-                                    data-status="Cancelled">
+                                    data-status="Cancelled"
+                                    data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>">
                                 <i class="bx bx-x-circle me-2"></i>Cancel Quotation
                             </button>
                         </li>

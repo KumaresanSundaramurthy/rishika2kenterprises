@@ -548,6 +548,7 @@
                                             $tgsHideNav     = !empty($tgs->HideNavOnTransForm) ? (int)$tgs->HideNavOnTransForm : 0;
                                             $tgsShowDesc    = isset($tgs->ShowProductDescription) ? (int)$tgs->ShowProductDescription : 1;
                                             $tgsShowStats   = isset($tgs->ShowTransactionStats)   ? (int)$tgs->ShowTransactionStats   : 1;
+                                            $tgsComboDist   = $tgs->ComboPriceDistribution ?? 'ratio';
                                             ?>
                                             <div class="tab-pane fade show active" id="tab-txn-general" role="tabpanel" aria-labelledby="tab-txn-general-tab">
 
@@ -603,6 +604,59 @@
                                                                     Show summary stats strip on all transaction list pages
                                                                 </label>
                                                                 <div class="form-text mt-0">When enabled, the summary cards (totals strip) appear at the top of every transaction list page — Invoices, Sales Orders, Purchases, etc. Disable globally for a cleaner, faster view.</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="col-12">
+                                                        <label class="form-label fw-semibold">Combo Product Price Distribution</label>
+                                                        <p class="text-muted small mb-3">When a combo product is added to a transaction, its selling price often differs from the sum of its individual components — combos are usually cheaper when bought together. This setting controls how that price difference (higher or lower) is spread across each component for stock valuation and accounting.</p>
+                                                        <div class="row g-3">
+                                                            <div class="col-md-6">
+                                                                <div class="border rounded p-3 h-100 <?php echo $tgsComboDist === 'ratio' ? 'border-primary bg-label-primary' : ''; ?>" style="cursor:pointer;" onclick="selectComboPriceDist('ratio')">
+                                                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                                                        <input class="form-check-input mt-0" type="radio" name="ComboPriceDistribution" id="cpd_ratio" value="ratio" <?php echo $tgsComboDist === 'ratio' ? 'checked' : ''; ?>>
+                                                                        <label class="fw-semibold mb-0" for="cpd_ratio" style="cursor:pointer;">Proportional (Ratio-based)</label>
+                                                                    </div>
+                                                                    <p class="text-muted small mb-1">Each component absorbs the price difference in proportion to its original value. A higher-priced component gets a larger share. Preserves the relative cost of each item and is more accurate for margin and tax reporting.</p>
+                                                                    <p class="text-muted mb-0" style="font-size:.75rem;"><em>E.g. Items ₹10 + ₹8 = ₹18 sum, combo ₹20 → stored as ₹11.11 + ₹8.89</em></p>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-md-6">
+                                                                <div class="border rounded p-3 h-100 <?php echo $tgsComboDist === 'average' ? 'border-primary bg-label-primary' : ''; ?>" style="cursor:pointer;" onclick="selectComboPriceDist('average')">
+                                                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                                                        <input class="form-check-input mt-0" type="radio" name="ComboPriceDistribution" id="cpd_average" value="average" <?php echo $tgsComboDist === 'average' ? 'checked' : ''; ?>>
+                                                                        <label class="fw-semibold mb-0" for="cpd_average" style="cursor:pointer;">Equal Split (Average)</label>
+                                                                    </div>
+                                                                    <p class="text-muted small mb-1">The price difference is divided equally across all component items regardless of their individual prices. Simple and predictable — each component gets the same adjustment.</p>
+                                                                    <p class="text-muted mb-0" style="font-size:.75rem;"><em>E.g. Items ₹10 + ₹8 = ₹18 sum, combo ₹20 → stored as ₹11 + ₹9</em></p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <?php $tgsBelowPurchase = $tgs->BelowPurchasePriceAction ?? 'warn'; ?>
+                                                    <div class="col-12">
+                                                        <label class="form-label fw-semibold">Below Purchase Price Action</label>
+                                                        <p class="text-muted small mb-3">When a selling price entered on a sales transaction falls below the product's purchase price, choose how the system should respond. This applies to sales-side pages only (Invoice, Sales Order, Quotation, Delivery Challan) and only for Regular / With Tax product types.</p>
+                                                        <div class="row g-3">
+                                                            <div class="col-md-6">
+                                                                <div class="border rounded p-3 h-100 <?php echo $tgsBelowPurchase === 'warn' ? 'border-primary bg-label-primary' : ''; ?>" style="cursor:pointer;" onclick="selectBelowPurchaseAction('warn')">
+                                                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                                                        <input class="form-check-input mt-0" type="radio" name="BelowPurchasePriceAction" id="bpa_warn" value="warn" <?php echo $tgsBelowPurchase === 'warn' ? 'checked' : ''; ?>>
+                                                                        <label class="fw-semibold mb-0" for="bpa_warn" style="cursor:pointer;">Warn Only</label>
+                                                                    </div>
+                                                                    <p class="text-muted small mb-0">Show a persistent, closeable warning toast that includes the purchase price and the value the user entered. The user is informed but can still proceed and save the transaction at the lower price.</p>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-md-6">
+                                                                <div class="border rounded p-3 h-100 <?php echo $tgsBelowPurchase === 'strict' ? 'border-primary bg-label-primary' : ''; ?>" style="cursor:pointer;" onclick="selectBelowPurchaseAction('strict')">
+                                                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                                                        <input class="form-check-input mt-0" type="radio" name="BelowPurchasePriceAction" id="bpa_strict" value="strict" <?php echo $tgsBelowPurchase === 'strict' ? 'checked' : ''; ?>>
+                                                                        <label class="fw-semibold mb-0" for="bpa_strict" style="cursor:pointer;">Block &amp; Revert</label>
+                                                                    </div>
+                                                                    <p class="text-muted small mb-0">Show the same warning toast and automatically revert the field back to the last valid selling price the user entered. The transaction cannot proceed with a price below cost — the revert is immediate and cannot be overridden.</p>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -1212,6 +1266,8 @@ $(document).ready(function () {
                 HideNavOnTransForm         : $('#txn_HideNavOnTransForm').is(':checked') ? 1 : 0,
                 ShowProductDescription     : $('#txn_ShowProductDescription').is(':checked') ? 1 : 0,
                 ShowTransactionStats       : $('#txn_ShowTransactionStats').is(':checked')   ? 1 : 0,
+                ComboPriceDistribution     : $('input[name="ComboPriceDistribution"]:checked').val() || 'ratio',
+                BelowPurchasePriceAction   : $('input[name="BelowPurchasePriceAction"]:checked').val() || 'warn',
                 InvoiceCancelAction        : $('input[name="InvoiceCancelAction"]:checked').val()        || 'ask',
                 SalesReturnCancelAction    : $('input[name="SalesReturnCancelAction"]:checked').val()    || 'ask',
                 SalesReturnItemMethod      : $('input[name="SalesReturnItemMethod"]:checked').val()      || 'Manual',
@@ -1286,6 +1342,26 @@ $(document).ready(function () {
             .closest('.border').addClass('border-primary bg-label-primary');
     };
 
+    // ── Combo price distribution card selection ───────────────────────────────
+    window.selectComboPriceDist = function (value) {
+        $('input[name="ComboPriceDistribution"]').val([value]);
+        $('input[name="ComboPriceDistribution"]').closest('.border').each(function () {
+            $(this).removeClass('border-primary bg-label-primary');
+        });
+        $('input[name="ComboPriceDistribution"][value="' + value + '"]')
+            .closest('.border').addClass('border-primary bg-label-primary');
+    };
+
+    // ── Below purchase price action card selection ────────────────────────────
+    window.selectBelowPurchaseAction = function (value) {
+        $('input[name="BelowPurchasePriceAction"]').val([value]);
+        $('input[name="BelowPurchasePriceAction"]').closest('.border').each(function () {
+            $(this).removeClass('border-primary bg-label-primary');
+        });
+        $('input[name="BelowPurchasePriceAction"][value="' + value + '"]')
+            .closest('.border').addClass('border-primary bg-label-primary');
+    };
+
     // ── Save Purchase Return Settings ─────────────────────────────────────────
     $('#btnSavePurchaseReturnSettings').on('click', function () {
         var $btn    = $(this);
@@ -1313,6 +1389,7 @@ $(document).ready(function () {
                 HideNavOnTransForm         : $('#txn_HideNavOnTransForm').is(':checked') ? 1 : 0,
                 ShowProductDescription     : $('#txn_ShowProductDescription').is(':checked') ? 1 : 0,
                 ShowTransactionStats       : $('#txn_ShowTransactionStats').is(':checked')   ? 1 : 0,
+                ComboPriceDistribution     : $('input[name="ComboPriceDistribution"]:checked').val() || 'ratio',
                 PurchaseShowSignature      : $('#purch_ShowSignature').is(':checked') ? 1 : 0,
                 PurchaseShowTerms          : $('#purch_ShowTerms').is(':checked')    ? 1 : 0,
                 DCDefaultReturnDays        : $('#dc_DefaultReturnDays').val(),
@@ -1361,6 +1438,7 @@ $(document).ready(function () {
                 HideNavOnTransForm         : $('#txn_HideNavOnTransForm').is(':checked') ? 1 : 0,
                 ShowProductDescription     : $('#txn_ShowProductDescription').is(':checked') ? 1 : 0,
                 ShowTransactionStats       : $('#txn_ShowTransactionStats').is(':checked')   ? 1 : 0,
+                ComboPriceDistribution     : $('input[name="ComboPriceDistribution"]:checked').val() || 'ratio',
                 PurchaseShowSignature      : $('#purch_ShowSignature').is(':checked') ? 1 : 0,
                 PurchaseShowTerms          : $('#purch_ShowTerms').is(':checked')    ? 1 : 0,
                 DCDefaultReturnDays        : $('#dc_DefaultReturnDays').val(),
@@ -1403,6 +1481,7 @@ $(document).ready(function () {
                 HideNavOnTransForm         : $('#txn_HideNavOnTransForm').is(':checked') ? 1 : 0,
                 ShowProductDescription     : $('#txn_ShowProductDescription').is(':checked') ? 1 : 0,
                 ShowTransactionStats       : $('#txn_ShowTransactionStats').is(':checked')   ? 1 : 0,
+                ComboPriceDistribution     : $('input[name="ComboPriceDistribution"]:checked').val() || 'ratio',
                 DCDefaultReturnDays        : $('#dc_DefaultReturnDays').val(),
                 QuotValidityDays           : $('#quot_ValidityDays').val(),
                 [CsrfName]                 : CsrfToken,
@@ -1446,6 +1525,7 @@ $(document).ready(function () {
                 HideNavOnTransForm         : $('#txn_HideNavOnTransForm').is(':checked') ? 1 : 0,
                 ShowProductDescription     : $('#txn_ShowProductDescription').is(':checked') ? 1 : 0,
                 ShowTransactionStats       : $('#txn_ShowTransactionStats').is(':checked')   ? 1 : 0,
+                ComboPriceDistribution     : $('input[name="ComboPriceDistribution"]:checked').val() || 'ratio',
                 [CsrfName]                 : CsrfToken,
             },
             success: function (resp) {
@@ -1488,6 +1568,7 @@ $(document).ready(function () {
                 HideNavOnTransForm         : $('#txn_HideNavOnTransForm').is(':checked') ? 1 : 0,
                 ShowProductDescription     : $('#txn_ShowProductDescription').is(':checked') ? 1 : 0,
                 ShowTransactionStats       : $('#txn_ShowTransactionStats').is(':checked')   ? 1 : 0,
+                ComboPriceDistribution     : $('input[name="ComboPriceDistribution"]:checked').val() || 'ratio',
                 PurchaseShowSignature      : $('#purch_ShowSignature').is(':checked') ? 1 : 0,
                 PurchaseShowTerms          : $('#purch_ShowTerms').is(':checked')    ? 1 : 0,
                 DCDefaultReturnDays        : $('#dc_DefaultReturnDays').val(),
@@ -1538,6 +1619,7 @@ $(document).ready(function () {
                 HideNavOnTransForm         : $('#txn_HideNavOnTransForm').is(':checked') ? 1 : 0,
                 ShowProductDescription     : $('#txn_ShowProductDescription').is(':checked') ? 1 : 0,
                 ShowTransactionStats       : $('#txn_ShowTransactionStats').is(':checked')   ? 1 : 0,
+                ComboPriceDistribution     : $('input[name="ComboPriceDistribution"]:checked').val() || 'ratio',
                 [CsrfName]                 : CsrfToken,
             },
             success: function (resp) {

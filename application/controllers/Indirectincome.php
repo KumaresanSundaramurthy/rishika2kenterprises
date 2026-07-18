@@ -916,39 +916,6 @@ class Indirectincome extends MY_Controller {
     // Uploads files from $_FILES['Attachments'] and saves rows to ExpenseIncomeAttachmentsTbl
 
 
-    // Saves files from $_FILES['PaymentFiles'] to Transaction.PaymentAttachmentsTbl
-    private function _savePaymentAttachments($paymentUID) {
-        $files = $_FILES['PaymentFiles'] ?? null;
-        if (empty($files) || empty($files['name'][0])) return;
-        $userUID = $this->pageData['JwtData']->User->UserUID;
-        $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
-        $this->load->library('fileupload');
-        $allowed = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
-        $count   = min(count($files['name']), 3);
-        for ($i = 0; $i < $count; $i++) {
-            if ($files['error'][$i] !== UPLOAD_ERR_OK || empty($files['name'][$i])) continue;
-            if ($files['size'][$i] > 3 * 1024 * 1024) continue;
-            if (!in_array($files['type'][$i], $allowed)) continue;
-            $origName    = basename($files['name'][$i]);
-            $safeName    = time() . '_' . $i . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $origName);
-            $storagePath = 'payments/' . $paymentUID . '/' . $safeName;
-            $uploadResult = $this->fileupload->fileUpload('file', $storagePath, $files['tmp_name'][$i]);
-            if ($uploadResult->Error) continue;
-            $this->dbwrite_model->insertData('Transaction', 'PaymentAttachmentsTbl', [
-                'OrgUID'     => $orgUID,
-                'PaymentUID' => $paymentUID,
-                'FileName'   => $origName,
-                'FilePath'   => '/' . ltrim($uploadResult->Path, '/'),
-                'FileType'   => $files['type'][$i],
-                'FileSize'   => $files['size'][$i],
-                'SortOrder'  => $i,
-                'IsActive'   => 1,
-                'IsDeleted'  => 0,
-                'CreatedBy'  => $userUID,
-            ]);
-        }
-    }
-
     // Inserts a PaymentsTbl record + AccountLedgerTbl credit for received income
     private function _insertIncomePayment($PostData, $orgUID, $userUID, $incomeUID, $incomeNumber, $netAmount, $fallbackDate) {
         $paymentTypeUID = (int)getPostValue($PostData, 'PaymentTypeUID') ?: NULL;

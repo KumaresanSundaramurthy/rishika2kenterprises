@@ -19,7 +19,7 @@ function toggleProductStatus(ProductUID, IsActive) {
         },
         success: function (response) {
             if (response.Error) {
-                showAlertMessageSwal('error', '', response.Message);
+                showToastNotification(response.Message, 'error');
             } else {
                 showToastNotification(response.Message, 'success');
                 executeProdPagnFunc(response, true, true);
@@ -108,13 +108,14 @@ function deleteProduct(ProductUID) {
         },
         success: function (response) {
             if (response.Error) {
-                Swal.fire(response.Message, "", "error");
+                showToastNotification(response.Message, 'error');
             } else {
                 if (SelectedUIDs.length > 0) {
                     SelectedUIDs = SelectedUIDs.filter(function (item) {
                         return item !== ProductUID;
                     });
                 }
+                showToastNotification(response.Message, 'success');
                 executeProdPagnFunc(response, true);
             }
         },
@@ -137,9 +138,10 @@ function deleteMultipleProduct() {
         },
         success: function (response) {
             if (response.Error) {
-                Swal.fire(response.Message, "", "error");
+                showToastNotification(response.Message, 'error');
             } else {
                 SelectedUIDs = [];
+                showToastNotification(response.Message, 'success');
                 executeProdPagnFunc(response, true);
             }
         },
@@ -219,6 +221,28 @@ function updateProductStats(stats) {
  * @param {*} RowLimit
  * @param {*} Filter
  */
+/**
+ * @param {*} PageNo
+ * @param {*} RowLimit
+ * @param {*} Filter
+ */
+function getPriceListDetails(PageNo, RowLimit, Filter) {
+    $.ajax({
+        url: '/products/getPriceListData',
+        method: 'POST',
+        cache: false,
+        data: { RowLimit: RowLimit, PageNo: PageNo, Filter: Filter, [CsrfName]: CsrfToken },
+        success: function (response) {
+            if (response.Error) {
+                $(PLTable + ' tbody').html('');
+                $(PLPag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
+            } else {
+                _applyPLResponse(response);
+            }
+        },
+    });
+}
+
 function getCategoriesDetails(PageNo, RowLimit, Filter) {
     $.ajax({
         url: '/products/getCategoryList',
@@ -296,7 +320,7 @@ function retrieveCategoryDetails(CategoryUID) {
         },
         success: function (response) {
             if (response.Error) {
-                Swal.fire({icon: "error", title: "Oops...", text: response.Message});
+                showToastNotification(response.Message, 'error');
             } else {
 
                 $('#categoryForm').trigger('reset');
@@ -388,7 +412,7 @@ function deleteMultipleCategory() {
         },
         success: function (response) {
             if (response.Error) {
-                Swal.fire(response.Message, "", "error");
+                showToastNotification(response.Message, 'error');
             } else {
                 var formObj = {};
                 formObj.UpdateId = SelectedUIDs;

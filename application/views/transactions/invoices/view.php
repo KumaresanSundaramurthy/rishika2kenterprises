@@ -138,7 +138,7 @@ $this->load->view('common/transactions/header'); ?>
                                             <th>Payment Mode</th>
                                             <th>Customer</th>
                                             <th>Last Updated</th>
-                                            <th style="width:50px">Actions</th>
+                                            <th class="text-center" style="width:50px">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody class="r2k-tbody table-border-bottom-0">
@@ -148,8 +148,7 @@ $this->load->view('common/transactions/header'); ?>
                             </div>
 
                             <!-- Pagination -->
-                            <hr class="my-0">
-                            <div class="row mx-3 my-2 justify-content-between align-items-center invPagination" id="invPagination">
+                            <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center invPagination apex-pag-sticky" id="invPagination">
                                 <?php echo $ModPagination ?: ''; ?>
                             </div>
                         </div>
@@ -174,20 +173,13 @@ $this->load->view('common/transactions/header'); ?>
                                     </tbody>
                                 </table>
                             </div>
-                            <hr class="my-0">
-                            <div class="row mx-3 my-2 justify-content-between align-items-center" id="cnPagination"></div>
+                            <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center apex-pag-sticky" id="cnPagination"></div>
                         </div>
 
                     </div>
 
                     <?php $this->load->view('common/transactions/print_modals'); ?>
 
-                    <!-- Sticky pagination -->
-                    <div class="card mb-0 cust-sticky-pag apex-sticky-pag" id="invStickyPagination" data-static-pag="#invPagination" style="display:none;">
-                        <div class="card-body p-0">
-                            <div class="row mx-3 my-2 justify-content-between align-items-center apex-sticky-pag-inner"></div>
-                        </div>
-                    </div>
 
                 </div>
             </div>
@@ -209,7 +201,7 @@ $this->load->view('common/transactions/header'); ?>
     </div>
 </div>
 
-<?php $this->load->view('common/transactions/col_filter_box', [
+<?php $this->load->view('common/filter_panels/col_filter_box', [
     'ColFilterConfig' => [
         'id'         => 'invPayStatusFilterBox',
         'triggerId'  => 'invPayStatusFilter',
@@ -225,7 +217,7 @@ $this->load->view('common/transactions/header'); ?>
     ],
 ]); ?>
 
-<?php $this->load->view('common/transactions/col_filter_box', [
+<?php $this->load->view('common/filter_panels/col_filter_box', [
     'ColFilterConfig' => [
         'id'         => 'invPayModeFilterBox',
         'triggerId'  => 'invPayModeFilter',
@@ -233,14 +225,12 @@ $this->load->view('common/transactions/header'); ?>
         'icon'       => 'bx-credit-card',
         'filterKey'  => 'PaymentMode',
         'checkClass' => 'inv-pay-mode-chk',
-        'items'      => array_map(function($t) {
-            return ['value' => $t->Name, 'label' => $t->Name, 'icon' => 'bx-credit-card', 'color' => '#1565c0'];
-        }, $PaymentTypes ?? []),
+        'items'      => [],
     ],
 ]); ?>
 
 <?php if (count($OrgUsers ?? []) > 1): ?>
-<?php $this->load->view('common/partials/col_user_filter_box', [
+<?php $this->load->view('common/filter_panels/col_user_filter_box', [
     'ColUserFilterConfig' => [
         'id'         => 'invCreatedByFilterBox',
         'triggerId'  => 'invCreatedByFilter',
@@ -250,7 +240,7 @@ $this->load->view('common/transactions/header'); ?>
 ]); ?>
 <?php endif; ?>
 
-<?php $this->load->view('common/transactions/col_party_filter_box', [
+<?php $this->load->view('common/filter_panels/col_party_filter_box', [
     'ColPartyFilterConfig' => [
         'id'    => 'invPartyFilterBox',
         'title' => 'Filter by Customer',
@@ -279,7 +269,6 @@ $this->load->view('common/transactions/header'); ?>
 
 <?php $this->load->view('common/transactions/footer'); ?>
 
-<script src="/js/core/sticky_paginate.js"></script>
 <script src="/js/common/communication.js"></script>
 <script src="/js/common/party_filter.js"></script>
 <script src="/js/transactions/attachments.js"></script>
@@ -303,10 +292,13 @@ var _invInitSearch = <?php echo json_encode($initSearch ?? ''); ?>;
 // ── Tab filter visibility map ────────────────────────────────────────
 const _invTabFilterMap = <?= json_encode($tabFilterMap); ?>;
 const _allInvFilterEls = <?= json_encode(array_values(array_unique(array_merge(...array_values($tabFilterMap))))); ?>;
+var _initPage          = <?php echo (int)($InitPage ?? 1); ?>;
 
 $(function () {
     'use strict';
 
+    _checkPendingToast('_invPendingToast');
+    PageNo = _initPage;
     Filter['Status'] = _invInitTab === 'CreditNotes' ? 'All' : _invInitTab;
     if (_invInitSearch) { Filter.Name = _invInitSearch; }
     initExport({ moduleUID: 103, getFilters: function () { return Filter; } });
@@ -329,6 +321,15 @@ $(function () {
         filterKey   : 'PaymentMode',
         activeClass : 'has-filter',
         onApply     : function () { PageNo = 1; getInvoicesDetails(); }
+    });
+
+    // Lazy-load payment modes on first click (Upstash → AJAX)
+    var _payModeFilterPromise = null;
+    $(document).on('click', '#invPayModeFilter', function () {
+        if (_payModeFilterPromise) return;
+        _payModeFilterPromise = loadCachedFilterData('payment-types', '/payments/getPaymentTypes').then(function (types) {
+            payModeFilter.setItems(types.map(function (t) { return { value: t.Name, label: t.Name }; }));
+        }).catch(function () { _payModeFilterPromise = null; });
     });
 
     var invCreatedByFilter = (document.getElementById('invCreatedByFilterBox'))
@@ -388,6 +389,22 @@ $(function () {
         $('#invCnStatusBox').hide();
         $('.trans-col-filterbox, .tpcf-box').hide();
     }
+
+    // ── Create / Edit — inject returnTab + returnPage ──────────────────
+    $(document).on('click', 'a[href="/invoices/create"]', function (e) {
+        e.preventDefault();
+        var params = new URLSearchParams();
+        params.set('returnTab', Filter.Status || 'All');
+        if (PageNo > 1) params.set('returnPage', PageNo);
+        window.location.href = '/invoices/create?' + params.toString();
+    });
+    $(document).on('click', 'a[href*="/invoices/"][href*="/edit"]', function (e) {
+        e.preventDefault();
+        var params = new URLSearchParams();
+        params.set('returnTab', Filter.Status || 'All');
+        if (PageNo > 1) params.set('returnPage', PageNo);
+        window.location.href = $(this).attr('href') + '?' + params.toString();
+    });
 
     _applyTabFilters(_invInitTab || 'All', _invTabFilterMap, _allInvFilterEls);
     if (_invInitTab === 'CreditNotes') {
@@ -496,7 +513,7 @@ $(function () {
         $('.col-sortable').each(function () {
             $(this).attr('data-bs-title', 'Click for ascending order');
             var tt = bootstrap.Tooltip.getInstance(this);
-            if (tt) tt.setContent({ '.tooltip-inner': 'Click for ascending order' });
+            if (tt) { tt.dispose(); new bootstrap.Tooltip(this); }
         });
         $('.sort-icon').removeClass('bx-sort-up bx-sort-down').addClass('bx-sort-alt-2');
         if (Filter.SortBy) {
@@ -505,7 +522,7 @@ $(function () {
             $('.sort-icon[data-col="' + col + '"]').removeClass('bx-sort-alt-2').addClass(icon);
             $th.attr('data-bs-title', tipText);
             var tt = bootstrap.Tooltip.getInstance($th[0]);
-            if (tt) tt.setContent({ '.tooltip-inner': tipText });
+            if (tt) { tt.dispose(); new bootstrap.Tooltip($th[0]); }
         }
         PageNo = 1;
         getInvoicesDetails();
@@ -519,6 +536,20 @@ $(function () {
     });
 
     // ── Delete ──────────────────────────────────────────────
+    function _actionPostData(extra) {
+        Filter.Status = $('.inv-status-tab.active').data('status') || 'All';
+        return $.extend({ RowLimit: RowLimit, PageNo: PageNo, Filter: Filter, [CsrfName]: CsrfToken }, extra);
+    }
+
+    function _renderListResponse(resp) {
+        $(ModuleTable + ' tbody').html(resp.RecordHtmlData);
+        $(ModulePag).html(resp.Pagination);
+        var count = resp.TotalCount || 0;
+        var $badge = $('.inv-status-tab.active .trans-tab-count');
+        if (count > 0) { $badge.text(count).removeClass('d-none'); } else { $badge.text('').addClass('d-none'); }
+        initTooltips();
+    }
+
     $(document).on('click', '.deleteInvoice', function () {
         var uid = $(this).data('uid');
         var num = $(this).data('num') || '';
@@ -532,10 +563,16 @@ $(function () {
             $.ajax({
                 url   : '/invoices/deleteInvoice',
                 method: 'POST',
-                data  : { TransUID: uid, [CsrfName]: CsrfToken },
+                data  : _actionPostData({ TransUID: uid }),
                 success: function (resp) {
-                    if (resp.Error) { Swal.fire({ icon:'error', text:resp.Message }); }
-                    else { getInvoicesDetails(); Swal.fire({ icon:'success', text:resp.Message, timer:1500, showConfirmButton:false }); }
+                    if (resp.Error) { Swal.fire({ icon:'error', text:resp.Message }); return; }
+                    showToastNotification(resp.Message || 'Deleted.', 'success');
+                    if (PageNo > 1 && (resp.TotalCount || 0) <= (PageNo - 1) * RowLimit) {
+                        PageNo--;
+                        getInvoicesDetails();
+                    } else {
+                        _renderListResponse(resp);
+                    }
                 }
             });
         });

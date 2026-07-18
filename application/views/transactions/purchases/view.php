@@ -132,8 +132,7 @@ $this->load->view('common/transactions/header'); ?>
                         </div>
 
                         <!-- Pagination -->
-                        <hr class="my-0">
-                        <div class="row mx-3 my-2 justify-content-between align-items-center purchPagination" id="purchPagination">
+                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center purchPagination apex-pag-sticky" id="purchPagination">
                             <?php echo $ModPagination ?: ''; ?>
                         </div>
 
@@ -141,12 +140,6 @@ $this->load->view('common/transactions/header'); ?>
 
                     <?php $this->load->view('common/transactions/print_modals'); ?>
 
-                    <!-- Sticky pagination -->
-                    <div class="card mb-0 cust-sticky-pag apex-sticky-pag" id="purchStickyPagination" data-static-pag="#purchPagination" style="display:none;">
-                        <div class="card-body p-0">
-                            <div class="row mx-3 my-2 justify-content-between align-items-center apex-sticky-pag-inner"></div>
-                        </div>
-                    </div>
 
                 </div>
             </div>
@@ -170,7 +163,7 @@ $this->load->view('common/transactions/header'); ?>
     </div>
 </div>
 
-<?php $this->load->view('common/transactions/col_filter_box', [
+<?php $this->load->view('common/filter_panels/col_filter_box', [
     'ColFilterConfig' => [
         'id'         => 'purchPayStatusFilterBox',
         'triggerId'  => 'purchPayStatusFilter',
@@ -186,7 +179,7 @@ $this->load->view('common/transactions/header'); ?>
     ],
 ]); ?>
 
-<?php $this->load->view('common/transactions/col_filter_box', [
+<?php $this->load->view('common/filter_panels/col_filter_box', [
     'ColFilterConfig' => [
         'id'         => 'purchPayModeFilterBox',
         'triggerId'  => 'purchPayModeFilter',
@@ -201,7 +194,7 @@ $this->load->view('common/transactions/header'); ?>
 ]); ?>
 
 <?php if (count($OrgUsers ?? []) > 1): ?>
-<?php $this->load->view('common/partials/col_user_filter_box', [
+<?php $this->load->view('common/filter_panels/col_user_filter_box', [
     'ColUserFilterConfig' => [
         'id'         => 'purchCreatedByFilterBox',
         'triggerId'  => 'purchCreatedByFilter',
@@ -211,7 +204,7 @@ $this->load->view('common/transactions/header'); ?>
 ]); ?>
 <?php endif; ?>
 
-<?php $this->load->view('common/transactions/col_party_filter_box', [
+<?php $this->load->view('common/filter_panels/col_party_filter_box', [
     'ColPartyFilterConfig' => [
         'id'    => 'purchPartyFilterBox',
         'title' => 'Filter by Vendor',
@@ -221,7 +214,6 @@ $this->load->view('common/transactions/header'); ?>
 
 <?php $this->load->view('common/transactions/footer'); ?>
 
-<script src="/js/core/sticky_paginate.js"></script>
 <script src="/js/common/communication.js"></script>
 <script src="/js/common/party_filter.js"></script>
 <script src="/js/transactions/attachments.js"></script>
@@ -241,15 +233,18 @@ const ModuleRow    = '.purchCheck';
 
 var _purchInitTab    = <?php echo json_encode($InitTab    ?? 'All'); ?>;
 var _purchInitSearch = <?php echo json_encode($InitSearch ?? ''); ?>;
+var _initPage        = <?php echo (int)($InitPage ?? 1); ?>;
 
 $(function () {
     'use strict';
 
+    _checkPendingToast('_purPendingToast');
     // Bootstrap tooltips
     [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]')).map(function (el) {
         return new bootstrap.Tooltip(el, { container: 'body' });
     });
 
+    PageNo = _initPage;
     Filter['Status'] = _purchInitTab;
     if (_purchInitSearch) { Filter.Name = _purchInitSearch; }
     initExport({ moduleUID: 105, getFilters: function () { return Filter; } });
@@ -290,15 +285,31 @@ $(function () {
     });
 
     var _origGetPurchasesDetails = getPurchasesDetails;
-    getPurchasesDetails = function (pageNo, rowLimit, filter) {
+    getPurchasesDetails = function (pageNo, rowLimit, filter, afterLoad) {
         var f = $.extend({}, filter || Filter,
             payStatusFilter      ? payStatusFilter.getState()      : {},
             payModeFilter        ? payModeFilter.getState()        : {},
             purchCreatedByFilter ? purchCreatedByFilter.getState() : {},
             purchPartyFilter     ? purchPartyFilter.getState()     : {}
         );
-        _origGetPurchasesDetails(pageNo, rowLimit, f);
+        _origGetPurchasesDetails(pageNo, rowLimit, f, afterLoad);
     };
+
+    // ── Create / Edit — inject returnTab + returnPage ──────────────────
+    $(document).on('click', 'a[href="/purchases/create"]', function (e) {
+        e.preventDefault();
+        var params = new URLSearchParams();
+        params.set('returnTab', Filter.Status || 'All');
+        if (PageNo > 1) params.set('returnPage', PageNo);
+        window.location.href = '/purchases/create?' + params.toString();
+    });
+    $(document).on('click', 'a[href^="/purchases/edit/"]', function (e) {
+        e.preventDefault();
+        var params = new URLSearchParams();
+        params.set('returnTab', Filter.Status || 'All');
+        if (PageNo > 1) params.set('returnPage', PageNo);
+        window.location.href = $(this).attr('href') + '?' + params.toString();
+    });
 
     // ── Tab filter visibility ────────────────────────────────────
     var _purchTabFilterMap = <?= json_encode($tabFilterMap); ?>;
@@ -392,7 +403,7 @@ $(function () {
         $('.col-sortable').each(function () {
             $(this).attr('data-bs-title', 'Click for ascending order');
             var tt = bootstrap.Tooltip.getInstance(this);
-            if (tt) tt.setContent({ '.tooltip-inner': 'Click for ascending order' });
+            if (tt) { tt.dispose(); new bootstrap.Tooltip(this); }
         });
         $('.sort-icon').removeClass('bx-sort-up bx-sort-down').addClass('bx-sort-alt-2');
         if (Filter.SortBy) {
@@ -401,7 +412,7 @@ $(function () {
             $('.sort-icon[data-col="' + col + '"]').removeClass('bx-sort-alt-2').addClass(icon);
             $th.attr('data-bs-title', tipText);
             var tt = bootstrap.Tooltip.getInstance($th[0]);
-            if (tt) tt.setContent({ '.tooltip-inner': tipText });
+            if (tt) { tt.dispose(); new bootstrap.Tooltip($th[0]); }
         }
         PageNo = 1;
         getPurchasesDetails();
@@ -415,6 +426,20 @@ $(function () {
     });
 
     // ── Delete ──────────────────────────────────────────────────
+    function _actionPostData(extra) {
+        Filter.Status = $('.purch-status-tab.active').data('status') || 'All';
+        return $.extend({ RowLimit: RowLimit, PageNo: PageNo, Filter: Filter, [CsrfName]: CsrfToken }, extra);
+    }
+
+    function _renderListResponse(resp) {
+        $(ModuleTable + ' tbody').html(resp.RecordHtmlData);
+        $(ModulePag).html(resp.Pagination);
+        var count = resp.TotalCount || 0;
+        var $badge = $('.purch-status-tab.active .purch-tab-count');
+        if (count > 0) { $badge.text(count).removeClass('d-none'); } else { $badge.text('').addClass('d-none'); }
+        initTooltips();
+    }
+
     $(document).on('click', '.deletePurchase', function () {
         var uid = $(this).data('uid');
         var num = $(this).data('num') || '';
@@ -428,10 +453,16 @@ $(function () {
             $.ajax({
                 url   : '/purchases/deletePurchase',
                 method: 'POST',
-                data  : { TransUID: uid, [CsrfName]: CsrfToken },
+                data  : _actionPostData({ TransUID: uid }),
                 success: function (resp) {
-                    if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); }
-                    else { getPurchasesDetails(); Swal.fire({ icon: 'success', text: resp.Message, timer: 1500, showConfirmButton: false }); }
+                    if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }
+                    showToastNotification(resp.Message || 'Deleted.', 'success');
+                    if (PageNo > 1 && (resp.TotalCount || 0) <= (PageNo - 1) * RowLimit) {
+                        PageNo--;
+                        getPurchasesDetails();
+                    } else {
+                        _renderListResponse(resp);
+                    }
                 }
             });
         });
@@ -454,8 +485,11 @@ $(function () {
                 method: 'POST',
                 data  : { TransUID: uid, Status: status, [CsrfName]: CsrfToken },
                 success: function (resp) {
-                    if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); }
-                    else { getPurchasesDetails(); Swal.fire({ icon: 'success', text: resp.Message, timer: 1500, showConfirmButton: false }); }
+                    if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }
+                    var _msg = resp.Message || 'Cancelled.';
+                    getPurchasesDetails(undefined, undefined, undefined, function () {
+                        showToastNotification(_msg, 'success');
+                    });
                 }
             });
         });

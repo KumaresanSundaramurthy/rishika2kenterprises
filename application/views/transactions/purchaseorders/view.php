@@ -154,12 +154,12 @@ $this->load->view('common/transactions/header'); ?>
                         </div>
 
                         <!-- ── Pagination ──────────────────────────────── -->
-                        <hr class="my-0">
-                        <div class="row mx-3 my-2 justify-content-between align-items-center poPagination" id="poPagination">
+                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center poPagination apex-pag-sticky" id="poPagination">
                             <?php echo $ModPagination ? $ModPagination : ''; ?>
                         </div>
 
                     </div>
+
 
                     <?php $this->load->view('common/transactions/print_modals'); ?>
 
@@ -174,7 +174,7 @@ $this->load->view('common/transactions/header'); ?>
 </div>
 
 <?php if (count($OrgUsers ?? []) > 1): ?>
-<?php $this->load->view('common/partials/col_user_filter_box', [
+<?php $this->load->view('common/filter_panels/col_user_filter_box', [
     'ColUserFilterConfig' => [
         'id'         => 'poCreatedByFilterBox',
         'triggerId'  => 'poUserFilterBtn',
@@ -184,7 +184,7 @@ $this->load->view('common/transactions/header'); ?>
 ]); ?>
 <?php endif; ?>
 
-<?php $this->load->view('common/transactions/col_filter_box', [
+<?php $this->load->view('common/filter_panels/col_filter_box', [
     'ColFilterConfig' => [
         'id'         => 'poStatusFilterBox',
         'triggerId'  => 'poStatusFilterTrigger',
@@ -201,7 +201,7 @@ $this->load->view('common/transactions/header'); ?>
     ],
 ]); ?>
 
-<?php $this->load->view('common/transactions/col_party_filter_box', [
+<?php $this->load->view('common/filter_panels/col_party_filter_box', [
     'ColPartyFilterConfig' => [
         'id'    => 'poPartyFilterBox',
         'title' => 'Filter by Vendor',
@@ -231,10 +231,13 @@ var _poInitSearch = <?php echo json_encode($InitSearch ?? ''); ?>;
 
 var _poTabFilterMap = <?= json_encode($tabFilterMap); ?>;
 var _allPoFilterEls = <?= json_encode(array_values(array_unique(array_merge(...array_values($tabFilterMap))))); ?>;
+var _initPage       = <?php echo (int)($InitPage ?? 1); ?>;
 
 $(function () {
     'use strict'
 
+    _checkPendingToast('_poPendingToast');
+    PageNo = _initPage;
     Filter['Status'] = _poInitTab;
     if (_poInitSearch) { Filter.Name = _poInitSearch; }
     initExport({ moduleUID: 104, getFilters: function () { return Filter; } });
@@ -279,13 +282,29 @@ $(function () {
     });
 
     var _origGetPurchaseOrdersDetails = getPurchaseOrdersDetails;
-    getPurchaseOrdersDetails = function (pageNo, rowLimit, filter) {
+    getPurchaseOrdersDetails = function (pageNo, rowLimit, filter, afterLoad) {
         var f = $.extend({}, filter || Filter,
             poCreatedByFilter ? poCreatedByFilter.getState() : {},
             poPartyFilter     ? poPartyFilter.getState()     : {}
         );
-        _origGetPurchaseOrdersDetails(pageNo, rowLimit, f);
+        _origGetPurchaseOrdersDetails(pageNo, rowLimit, f, afterLoad);
     };
+
+    // ── Create / Edit — inject returnTab + returnPage ──────────────────
+    $(document).on('click', 'a[href="/purchaseorders/create"]', function (e) {
+        e.preventDefault();
+        var params = new URLSearchParams();
+        params.set('returnTab', Filter.Status || 'All');
+        if (PageNo > 1) params.set('returnPage', PageNo);
+        window.location.href = '/purchaseorders/create?' + params.toString();
+    });
+    $(document).on('click', 'a[href^="/purchaseorders/edit/"]', function (e) {
+        e.preventDefault();
+        var params = new URLSearchParams();
+        params.set('returnTab', Filter.Status || 'All');
+        if (PageNo > 1) params.set('returnPage', PageNo);
+        window.location.href = $(this).attr('href') + '?' + params.toString();
+    });
 
     // ── Status tabs ─────────────────────────────────────────────────────────
     $(document).on('click', '.po-status-tab', function (e) {
@@ -349,7 +368,7 @@ $(function () {
         $('.col-sortable').each(function () {
             $(this).attr('data-bs-title', 'Click for ascending order');
             var tt = bootstrap.Tooltip.getInstance(this);
-            if (tt) tt.setContent({ '.tooltip-inner': 'Click for ascending order' });
+            if (tt) { tt.dispose(); new bootstrap.Tooltip(this); }
         });
         $('.sort-icon').removeClass('bx-sort-up bx-sort-down').addClass('bx-sort-alt-2');
         if (Filter.SortBy) {
@@ -358,7 +377,7 @@ $(function () {
             $('.sort-icon[data-col="' + col + '"]').removeClass('bx-sort-alt-2').addClass(icon);
             $th.attr('data-bs-title', tipText);
             var tt = bootstrap.Tooltip.getInstance($th[0]);
-            if (tt) tt.setContent({ '.tooltip-inner': tipText });
+            if (tt) { tt.dispose(); new bootstrap.Tooltip($th[0]); }
         }
         PageNo = 1;
         getPurchaseOrdersDetails();
@@ -404,8 +423,11 @@ $(function () {
             method: 'POST',
             data  : { TransUID: uid, Status: status, [CsrfName]: CsrfToken },
             success: function (resp) {
-                if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); }
-                else            { getPurchaseOrdersDetails(); }
+                if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }
+                var _msg = resp.Message || 'Status updated.';
+                getPurchaseOrdersDetails(undefined, undefined, undefined, function () {
+                    showToastNotification(_msg, 'success');
+                });
             }
         });
     });
@@ -454,6 +476,20 @@ $(function () {
     });
 
     // ── Delete ────────────────────────────────────────────────────────────────
+    function _actionPostData(extra) {
+        Filter.Status = $('.po-status-tab.active').data('status') || 'All';
+        return $.extend({ RowLimit: RowLimit, PageNo: PageNo, Filter: Filter, [CsrfName]: CsrfToken }, extra);
+    }
+
+    function _renderListResponse(resp) {
+        $(ModuleTable + ' tbody').html(resp.RecordHtmlData);
+        $(ModulePag).html(resp.Pagination);
+        var count = resp.TotalCount || 0;
+        var $badge = $('.po-status-tab.active .po-tab-count');
+        if (count > 0) { $badge.text(count).removeClass('d-none'); } else { $badge.text('').addClass('d-none'); }
+        initTooltips();
+    }
+
     $(document).on('click', '.deletePO', function () {
         var uid = $(this).data('uid');
         var num = $(this).data('num') || '';
@@ -469,10 +505,16 @@ $(function () {
             $.ajax({
                 url   : '/purchaseorders/deletePurchaseOrder',
                 method: 'POST',
-                data  : { TransUID: uid, [CsrfName]: CsrfToken },
+                data  : _actionPostData({ TransUID: uid }),
                 success: function (resp) {
-                    if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); }
-                    else { getPurchaseOrdersDetails(); Swal.fire({ icon: 'success', text: resp.Message, timer: 1500, showConfirmButton: false }); }
+                    if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }
+                    showToastNotification(resp.Message || 'Deleted.', 'success');
+                    if (PageNo > 1 && (resp.TotalCount || 0) <= (PageNo - 1) * RowLimit) {
+                        PageNo--;
+                        getPurchaseOrdersDetails();
+                    } else {
+                        _renderListResponse(resp);
+                    }
                 }
             });
         });

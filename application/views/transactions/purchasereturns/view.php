@@ -142,12 +142,12 @@ $this->load->view('common/transactions/header'); ?>
                         </div>
 
                         <!-- Pagination -->
-                        <hr class="my-0">
-                        <div class="row mx-3 my-2 justify-content-between align-items-center prPagination" id="prPagination">
+                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center prPagination apex-pag-sticky" id="prPagination">
                             <?php echo $ModPagination ?: ''; ?>
                         </div>
 
                     </div>
+
 
                     <?php $this->load->view('common/transactions/print_modals'); ?>
 
@@ -257,7 +257,7 @@ $this->load->view('common/transactions/header'); ?>
 </div>
 
 <?php if (count($OrgUsers ?? []) > 1): ?>
-<?php $this->load->view('common/partials/col_user_filter_box', [
+<?php $this->load->view('common/filter_panels/col_user_filter_box', [
     'ColUserFilterConfig' => [
         'id'         => 'prCreatedByFilterBox',
         'triggerId'  => 'prCreatedByFilter',
@@ -267,7 +267,7 @@ $this->load->view('common/transactions/header'); ?>
 ]); ?>
 <?php endif; ?>
 
-<?php $this->load->view('common/transactions/col_filter_box', [
+<?php $this->load->view('common/filter_panels/col_filter_box', [
     'ColFilterConfig' => [
         'id'         => 'prStatusFilterBox',
         'triggerId'  => 'prStatusFilterTrigger',
@@ -284,7 +284,7 @@ $this->load->view('common/transactions/header'); ?>
     ],
 ]); ?>
 
-<?php $this->load->view('common/transactions/col_party_filter_box', [
+<?php $this->load->view('common/filter_panels/col_party_filter_box', [
     'ColPartyFilterConfig' => [
         'id'    => 'prPartyFilterBox',
         'title' => 'Filter by Vendor',
@@ -312,10 +312,13 @@ const ModuleRow    = '.prCheck';
 
 var _prInitTab    = <?php echo json_encode($InitTab    ?? 'All'); ?>;
 var _prInitSearch = <?php echo json_encode($InitSearch ?? ''); ?>;
+var _initPage     = <?php echo (int)($InitPage ?? 1); ?>;
 
 $(function () {
     'use strict';
 
+    _checkPendingToast('_prPendingToast');
+    PageNo = _initPage;
     Filter['Status'] = _prInitTab;
     if (_prInitSearch) { Filter.Name = _prInitSearch; }
     initExport({ moduleUID: 108, getFilters: function () { return Filter; } });
@@ -361,14 +364,30 @@ $(function () {
     });
 
     var _origGetPurchaseReturnsDetails = getPurchaseReturnsDetails;
-    getPurchaseReturnsDetails = function (pageNo, rowLimit, filter) {
+    getPurchaseReturnsDetails = function (pageNo, rowLimit, filter, afterLoad) {
         var f = $.extend({}, filter || Filter,
             tfb               ? tfb.getState()               : {},
             prCreatedByFilter ? prCreatedByFilter.getState() : {},
             prPartyFilter     ? prPartyFilter.getState()     : {}
         );
-        _origGetPurchaseReturnsDetails(pageNo, rowLimit, f);
+        _origGetPurchaseReturnsDetails(pageNo, rowLimit, f, afterLoad);
     };
+
+    // ── Create / Edit — inject returnTab + returnPage ──────────────────
+    $(document).on('click', 'a[href="/purchasereturns/create"]', function (e) {
+        e.preventDefault();
+        var params = new URLSearchParams();
+        params.set('returnTab', Filter.Status || 'All');
+        if (PageNo > 1) params.set('returnPage', PageNo);
+        window.location.href = '/purchasereturns/create?' + params.toString();
+    });
+    $(document).on('click', 'a[href^="/purchasereturns/edit/"]', function (e) {
+        e.preventDefault();
+        var params = new URLSearchParams();
+        params.set('returnTab', Filter.Status || 'All');
+        if (PageNo > 1) params.set('returnPage', PageNo);
+        window.location.href = $(this).attr('href') + '?' + params.toString();
+    });
 
     var _prTabFilterMap = <?= json_encode($tabFilterMap); ?>;
     var _allPrFilterEls = <?= json_encode(array_values(array_unique(array_merge(...array_values($tabFilterMap))))); ?>;
@@ -443,7 +462,7 @@ $(function () {
         $('.col-sortable').each(function () {
             $(this).attr('data-bs-title', 'Click for ascending order');
             var tt = bootstrap.Tooltip.getInstance(this);
-            if (tt) tt.setContent({ '.tooltip-inner': 'Click for ascending order' });
+            if (tt) { tt.dispose(); new bootstrap.Tooltip(this); }
         });
         $('.sort-icon').removeClass('bx-sort-up bx-sort-down').addClass('bx-sort-alt-2');
         if (Filter.SortBy) {
@@ -452,7 +471,7 @@ $(function () {
             $('.sort-icon[data-col="' + col + '"]').removeClass('bx-sort-alt-2').addClass(icon);
             $th.attr('data-bs-title', tipText);
             var tt = bootstrap.Tooltip.getInstance($th[0]);
-            if (tt) tt.setContent({ '.tooltip-inner': tipText });
+            if (tt) { tt.dispose(); new bootstrap.Tooltip($th[0]); }
         }
         PageNo = 1;
         getPurchaseReturnsDetails();
@@ -525,8 +544,11 @@ $(function () {
                 data: { TransUID: uid, Status: status, [CsrfName]: CsrfToken },
                 success: function (resp) {
                     hideProcessing();
-                    if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); }
-                    else { getPurchaseReturnsDetails(); }
+                    if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }
+                    var _msg = resp.Message || 'Status updated.';
+                    getPurchaseReturnsDetails(undefined, undefined, undefined, function () {
+                        showToastNotification(_msg, 'success');
+                    });
                 },
                 error: function () { hideProcessing(); Swal.fire({ icon: 'error', text: 'Request failed. Try again.' }); }
             });
@@ -611,14 +633,37 @@ $(function () {
         });
     }
 
+    function _actionPostData(extra) {
+        Filter.Status = $('.pr-status-tab.active').data('status') || 'All';
+        return $.extend({ RowLimit: RowLimit, PageNo: PageNo, Filter: Filter, [CsrfName]: CsrfToken }, extra);
+    }
+
+    function _renderListResponse(resp) {
+        $(ModuleTable + ' tbody').html(resp.RecordHtmlData);
+        $(ModulePag).html(resp.Pagination);
+        var count = resp.TotalCount || 0;
+        var $badge = $('.pr-status-tab.active .pr-tab-count');
+        if (count > 0) { $badge.text(count).removeClass('d-none'); } else { $badge.text('').addClass('d-none'); }
+        initTooltips();
+    }
+
     $(document).on('click', '.deletePurchaseReturn', function () {
         var uid = $(this).data('uid'), num = $(this).data('num') || '';
         Swal.fire({ title: 'Delete Purchase Return?', html: num ? 'Delete <strong>' + num + '</strong>? This cannot be undone.' : 'This cannot be undone.',
             icon: 'warning', showCancelButton: true, confirmButtonText: 'Delete', confirmButtonColor: '#d33' })
             .then(function (r) {
                 if (!r.isConfirmed) return;
-                $.ajax({ url: '/purchasereturns/deletePurchaseReturn', method: 'POST', data: { TransUID: uid, [CsrfName]: CsrfToken },
-                    success: function (resp) { if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); } else { getPurchaseReturnsDetails(); Swal.fire({ icon: 'success', text: resp.Message, timer: 1500, showConfirmButton: false }); } }
+                $.ajax({ url: '/purchasereturns/deletePurchaseReturn', method: 'POST', data: _actionPostData({ TransUID: uid }),
+                    success: function (resp) {
+                        if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }
+                        showToastNotification(resp.Message || 'Deleted.', 'success');
+                        if (PageNo > 1 && (resp.TotalCount || 0) <= (PageNo - 1) * RowLimit) {
+                            PageNo--;
+                            getPurchaseReturnsDetails();
+                        } else {
+                            _renderListResponse(resp);
+                        }
+                    }
                 });
             });
     });

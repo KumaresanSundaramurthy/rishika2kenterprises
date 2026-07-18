@@ -151,12 +151,12 @@ $this->load->view('common/transactions/header'); ?>
                                 <thead class="r2k-thead">
                                     <tr>
                                         <th class="<?php echo $showSno ? '' : 'd-none'; ?> table-serialno" style="width:44px">S.No</th>
-                                        <th class="inv-sort-th" data-sort="ItemName" style="cursor:pointer;white-space:nowrap;">Item <i class="bx bx-sort inv-sort-icon ms-1" data-col="ItemName"></i></th>
-                                        <th class="inv-sort-th" data-sort="CategoryName" style="cursor:pointer;white-space:nowrap;">Category <i class="bx bx-sort inv-sort-icon ms-1" data-col="CategoryName"></i></th>
-                                        <th class="inv-sort-th" data-sort="Qty" style="cursor:pointer;white-space:nowrap;">Qty <i class="bx bx-sort inv-sort-icon ms-1" data-col="Qty"></i></th>
-                                        <th style="white-space:nowrap;">Status</th>
-                                        <th class="inv-sort-th" data-sort="PurchasePrice" style="cursor:pointer;white-space:nowrap;">Purchase Price <i class="bx bx-sort inv-sort-icon ms-1" data-col="PurchasePrice"></i></th>
-                                        <th class="inv-sort-th" data-sort="SellingPrice" style="cursor:pointer;white-space:nowrap;">Sale Price <i class="bx bx-sort inv-sort-icon ms-1" data-col="SellingPrice"></i></th>
+                                        <th class="inv-sort-th cursor-pointer user-select-none text-nowrap" data-sort="ItemName" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">Item <i class="bx bx-sort-alt-2 inv-sort-icon ms-1" data-col="ItemName"></i></th>
+                                        <th class="inv-sort-th cursor-pointer user-select-none text-nowrap" data-sort="CategoryName" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">Category <i class="bx bx-sort-alt-2 inv-sort-icon ms-1" data-col="CategoryName"></i></th>
+                                        <th class="inv-sort-th cursor-pointer user-select-none text-nowrap" data-sort="Qty" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">Qty <i class="bx bx-sort-alt-2 inv-sort-icon ms-1" data-col="Qty"></i></th>
+                                        <th class="text-nowrap">Status</th>
+                                        <th class="inv-sort-th cursor-pointer user-select-none text-nowrap" data-sort="PurchasePrice" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">Purchase Price <i class="bx bx-sort-alt-2 inv-sort-icon ms-1" data-col="PurchasePrice"></i></th>
+                                        <th class="inv-sort-th cursor-pointer user-select-none text-nowrap" data-sort="SellingPrice" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">Sale Price <i class="bx bx-sort-alt-2 inv-sort-icon ms-1" data-col="SellingPrice"></i></th>
                                         <th style="white-space:nowrap;">Last Updated</th>
                                         <th style="width:130px;">Actions</th>
                                     </tr>
@@ -198,7 +198,7 @@ $this->load->view('common/transactions/header'); ?>
      style="display:none;position:fixed;z-index:9999;width:260px;"></div>
 
 <!-- ── Status Filter Box ──────────────────────────────────────────────────── -->
-<?php $this->load->view('common/transactions/col_filter_box', [
+<?php $this->load->view('common/filter_panels/col_filter_box', [
     'ColFilterConfig' => [
         'id'         => 'invStatusFilterBox',
         'triggerId'  => 'invStatusFilterBtn',
@@ -216,7 +216,7 @@ $this->load->view('common/transactions/header'); ?>
 
 <!-- ── Updated By Filter Box ──────────────────────────────────────────────── -->
 <?php if (!empty($ShowUserFilter)): ?>
-<?php $this->load->view('common/partials/col_user_filter_box', [
+<?php $this->load->view('common/filter_panels/col_user_filter_box', [
     'ColUserFilterConfig' => [
         'id'         => 'invUpdatedByFilterBox',
         'triggerId'  => 'invUpdatedByFilterBtn',

@@ -1124,7 +1124,6 @@ div.selectdisp>ul {
 .trans-col-filterbox {
     display: flex;
     flex-direction: column;
-    bottom: 10px;
 }
 .trans-col-filterbox .catg-list {
     flex: 1;

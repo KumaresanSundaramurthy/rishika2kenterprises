@@ -76,7 +76,7 @@ if (!empty($DataLists)):
 
         <!-- Amount -->
         <td>
-            <div class="trans-amount-main"><?php echo $currency . ' ' . smartDecimal($list->Amount, $decimals, true); ?></div>
+            <div class="trans-amount-main"><?php echo $currency . ' ' . smartDecimal($list->NetAmount, $decimals, true); ?></div>
             <?php if ($status === 'Partial' && $pendingAmt > 0): ?>
                 <div style="font-size:.7rem;color:#dc3545;margin-top:2px;">Bal <?php echo $currency . ' ' . number_format($pendingAmt, $decimals); ?></div>
             <?php endif; ?>

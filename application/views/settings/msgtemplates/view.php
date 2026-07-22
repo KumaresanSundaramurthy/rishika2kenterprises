@@ -218,12 +218,12 @@ window.addEventListener('load', function() {
 
     function loadMsgTemplates() {
         $('#MsgTemplateBody').html('<tr><td colspan="4" class="text-center py-4"><span class="spinner-border spinner-border-sm me-2"></span>Loading...</td></tr>');
-        AjaxLoading = 0;
+        ajaxLoading(0);
         $.ajax({
             url: '/settings/getMsgTemplateList', method: 'POST',
             data: { [CsrfName]: CsrfToken },
             success: function(resp) {
-                AjaxLoading = 1;
+                ajaxLoading(1);
                 if (!resp.Error) {
                     $('#MsgTemplateBody').html(resp.RecordHtmlData);
                     msgTokens  = resp.Tokens  || {};
@@ -231,7 +231,7 @@ window.addEventListener('load', function() {
                     msgTplLoaded = true;
                     buildModuleOptions();
                 }
-            }, error: function() { AjaxLoading = 1; }
+            }, error: function() { ajaxLoading(1); }
         });
     }
 
@@ -341,13 +341,13 @@ window.addEventListener('load', function() {
         $('#msgBodyPlain').prop('disabled', true);
         $('#btnSaveMsgTemplate').prop('disabled', true);
         $('#msgTemplateModal').modal('show');
-        AjaxLoading = 0;
+        ajaxLoading(0);
         $.ajax({
             url   : '/settings/getMsgTemplateDetail',
             method: 'GET',
             data  : { TemplateUID: uid },
             success: function(resp) {
-                AjaxLoading = 1;
+                ajaxLoading(1);
                 $('#msgModuleUID, #msgChannel, #msgSubject').prop('disabled', false);
                 $('#msgBodyPlain').prop('disabled', false);
                 $('#btnSaveMsgTemplate').prop('disabled', false);
@@ -370,7 +370,7 @@ window.addEventListener('load', function() {
                 updateMsgPreview();
             },
             error: function() {
-                AjaxLoading = 1;
+                ajaxLoading(1);
                 $('#msgModuleUID, #msgChannel, #msgSubject').prop('disabled', false);
                 $('#msgBodyPlain').prop('disabled', false);
                 $('#btnSaveMsgTemplate').prop('disabled', false);
@@ -436,19 +436,19 @@ window.addEventListener('load', function() {
             confirmButtonText: 'Delete', confirmButtonColor: '#d33'
         }).then(function(r) {
             if (!r.isConfirmed) return;
-            AjaxLoading = 0;
+            ajaxLoading(0);
             $.ajax({
                 url: '/settings/deleteMsgTemplate', method: 'POST',
                 data: { TemplateUID: uid, [CsrfName]: CsrfToken },
                 success: function(resp) {
-                    AjaxLoading = 1;
+                    ajaxLoading(1);
                     if (!resp.Error) {
                         loadMsgTemplates();
                         Swal.fire({ icon:'success', text: resp.Message, timer:1500, showConfirmButton:false });
                     } else {
                         Swal.fire({ icon:'error', text: resp.Message });
                     }
-                }, error: function() { AjaxLoading = 1; }
+                }, error: function() { ajaxLoading(1); }
             });
         });
     });

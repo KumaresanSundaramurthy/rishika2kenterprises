@@ -3,7 +3,7 @@
 
 function getDeliveryChallansDetails(pageNo, rowLimit, filter, afterLoad) {
     loadTransactionList({
-        url:            '/deliverychallan/getPageDetails/',
+        url:            '/transactions/getPageDetails/112/',
         tabCountClass:  '.dc-tab-count',
         statusTabClass: '.dc-status-tab',
         errorMessage:   'Failed to load delivery challans.',

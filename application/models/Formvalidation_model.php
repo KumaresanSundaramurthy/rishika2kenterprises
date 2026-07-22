@@ -279,6 +279,30 @@ class Formvalidation_model extends CI_Model {
 
     }
 
+    public function brandValidateForm(array $data): string {
+
+        $this->form_validation->set_data($data);
+
+        $dd['BrandUID']     = ['field' => 'BrandUID',     'label' => 'Brand UID',     'rules' => 'required|xss_clean|trim|numeric'];
+        $dd['BrandName']    = ['field' => 'BrandName',    'label' => 'Brand Name',    'rules' => 'trim|required|xss_clean|min_length[2]|max_length[150]'];
+        $dd['BrandCode']    = ['field' => 'BrandCode',    'label' => 'Brand Code',    'rules' => 'trim|xss_clean|max_length[50]'];
+        $dd['Description']  = ['field' => 'Description',  'label' => 'Description',   'rules' => 'trim|xss_clean|max_length[500]'];
+
+        $config = [];
+        foreach ($data as $key => $value) {
+            if (array_key_exists($key, $dd)) {
+                $config[] = $dd[$key];
+            }
+        }
+
+        $this->form_validation->set_rules($config);
+        if ($this->form_validation->run() == FALSE) {
+            return validation_errors();
+        }
+        return '';
+
+    }
+
     public function sizesValidateForm(array $data): string {
 
         $this->form_validation->set_data($data);

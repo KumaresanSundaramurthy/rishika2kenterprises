@@ -436,13 +436,13 @@ window.addEventListener('load', function() {
 
     function loadThermalConfigList() {
         $('#ThermalConfigBody').html('<tr><td colspan="7" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Loading...</td></tr>');
-        AjaxLoading = 0;
+        ajaxLoading(0);
         $.ajax({
             url: '/settings/getThermalConfigList',
             method: 'POST',
             data: { [CsrfName]: CsrfToken },
             success: function(resp) {
-                AjaxLoading = 1;
+                ajaxLoading(1);
                 CsrfToken = resp.NewCsrfToken || CsrfToken;
                 if (!resp.Error) {
                     thermalUsedTypes = resp.UsedTypes || [];

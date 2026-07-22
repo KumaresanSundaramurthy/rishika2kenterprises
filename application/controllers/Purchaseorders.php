@@ -25,28 +25,12 @@ class Purchaseorders extends MY_Controller {
                 'datePrefKey'  => 'purchaseorders',
                 'tabSlugMap'   => ['all' => 'All', 'received' => 'Received', 'closed' => 'Closed', 'cancelled' => 'Cancelled', 'draft' => 'Draft'],
                 'listViewPath' => 'transactions/purchaseorders/list',
-                'paginationUrl'=> '/purchaseorders/getPurchaseOrdersPageDetails',
+                'paginationUrl'=> '/transactions/getPageDetails/104',
             ]);
             $this->load->view('transactions/purchaseorders/view', $this->pageData);
         } catch (Exception $e) {
             redirect('dashboard', 'refresh');
         }
-    }
-
-    public function getPurchaseOrdersPageDetails(int $pageNo = 0): void
-    {
-        $this->EndReturnData = new stdClass();
-        try {
-            $this->EndReturnData = $this->_buildTransactionPageDetailsResult([
-                'pageNo'        => $pageNo,
-                'listViewPath'  => 'transactions/purchaseorders/list',
-                'paginationUrl' => '/purchaseorders/getPurchaseOrdersPageDetails',
-            ]);
-        } catch (Exception $e) {
-            $this->EndReturnData->Error   = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-        $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
     public function addPurchaseOrder() {
@@ -151,36 +135,24 @@ class Purchaseorders extends MY_Controller {
             $transUID = (int) getPostValue($PostData, 'TransUID');
             if ($transUID <= 0) throw new Exception('Purchase order ID is required.');
 
-            $this->load->model('formvalidation_model');
-            $headerError = $this->formvalidation_model->transactionValidateForm($PostData);
-            if (!empty($headerError)) throw new Exception($headerError);
+            $itemsJson = $this->_validateTransForm($PostData);
+            $amounts   = $this->_extractTransAmounts($PostData, $itemsJson);
 
-            $itemsJson  = getPostValue($PostData, 'Items');
-            $itemsError = $this->formvalidation_model->validateQuotationItems($itemsJson);
-            if (!empty($itemsError)) throw new Exception($itemsError);
+            $amounts['moduleUID'] = $this->pageModuleUID;
+            $vendorUID    = (int) getPostValue($PostData, 'vendorSearch');
+            $prefixUID    = $amounts['prefixUID'];
+            $transNumber  = $amounts['transNumber'];
+            $isDraft      = $amounts['isDraft'];
+            $items        = $amounts['items'];
+            $expectedDate = getPostValue($PostData, 'expectedDate');
 
-            $vendorUID              = (int)   getPostValue($PostData, 'vendorSearch');
-            $prefixUID              = (int)   getPostValue($PostData, 'transPrefixSelect');
-            $transNumber            = (int)   getPostValue($PostData, 'transNumber');
-            $transDate              =         getPostValue($PostData, 'transDate');
-            $expectedDate           =         getPostValue($PostData, 'expectedDate');
-            $items                  = json_decode($itemsJson, true);
-            $totalQty               = (float) array_sum(array_column($items, 'quantity'));
-            $netAmount              = (float) getPostValue($PostData, 'NetAmount',              'Array', 0);
-            $subTotal               = (float) getPostValue($PostData, 'SubTotal',               'Array', 0);
-            $discountAmount         = (float) getPostValue($PostData, 'DiscountAmount',         'Array', 0);
-            $taxAmount              = (float) getPostValue($PostData, 'TaxAmount',              'Array', 0);
-            $cgstAmount             = (float) getPostValue($PostData, 'CgstAmount',             'Array', 0);
-            $sgstAmount             = (float) getPostValue($PostData, 'SgstAmount',             'Array', 0);
-            $igstAmount             = (float) getPostValue($PostData, 'IgstAmount',             'Array', 0);
-            $additionalChargesTotal = (float) getPostValue($PostData, 'AdditionalChargesTotal', 'Array', 0);
-            $roundOff               = (float) getPostValue($PostData, 'RoundOff',               'Array', 0);
-            $globalDiscPercent      = (float) getPostValue($PostData, 'GlobalDiscPercent',      'Array', 0);
-            $extraDiscount          = (float) getPostValue($PostData, 'extraDiscount',          'Array', 0);
-            $isDraft                = getPostValue($PostData, 'action') === 'draft';
-            $status                 = $isDraft ? 'Draft' : 'Received';
-
-            $financialYear = (int) date('Y', strtotime($transDate));
+            $cfg = [
+                'TransType'      => 'PurchaseOrder',
+                'PartyType'      => 'S',
+                'PartyUID'       => $vendorUID,
+                'DocTypePostKey' => 'poType',
+                'InitialStatus'  => 'Received',
+            ];
 
             $this->load->model('transactions_model');
             $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
@@ -201,57 +173,10 @@ class Purchaseorders extends MY_Controller {
                     throw new Exception("Transaction number {$transNumber} already exists. Next available: {$nextSuggested}.");
                 }
 
-                $sep   = $prefix->Separator ?? '-';
-                $parts = [strtoupper($prefix->Name)];
-                if (!empty($prefix->IncludeShortName) && !empty($prefix->ShortName)) {
-                    $parts[] = strtoupper($prefix->ShortName);
-                }
-                if (!empty($prefix->IncludeFiscalYear)) {
-                    $txMonth = (int) date('m', strtotime($transDate));
-                    $txYear  = (int) date('Y', strtotime($transDate));
-                    $fyStart = $txMonth >= 4 ? $txYear : $txYear - 1;
-                    $parts[] = ($prefix->FiscalYearFormat ?? 'SHORT') === 'LONG'
-                        ? $fyStart . '-' . ($fyStart + 1)
-                        : str_pad($fyStart % 100, 2, '0', STR_PAD_LEFT) . '-' . str_pad(($fyStart + 1) % 100, 2, '0', STR_PAD_LEFT);
-                }
-                $padding      = (int)($prefix->NumberPadding ?? 1);
-                $parts[]      = $padding > 1 ? str_pad($transNumber, $padding, '0', STR_PAD_LEFT) : (string)$transNumber;
-                $uniqueNumber = implode($sep, $parts);
+                [$uniqueNumber] = $this->buildUniqueNumber($prefix, $transNumber, $amounts['transDate']);
             }
 
-            $additionalChargesJson  = getPostValue($PostData, 'AdditionalCharges') ?: '[]';
-            $additionalChargesList  = json_decode($additionalChargesJson, true) ?: [];
-
-            $commonHeader = [
-                'OrgUID'            => $orgUID,
-                'ModuleUID'         => $this->pageModuleUID,
-                'PartyType'         => 'S',
-                'PartyUID'          => $vendorUID,
-                'TransDate'         => $transDate,
-                'TransYear'         => $financialYear,
-                'TransType'         => 'PurchaseOrder',
-                'DocType'     => getPostValue($PostData, 'poType') ?: NULL,
-                'GrossAmount'       => $subTotal + $discountAmount,
-                'SubTotal'          => $subTotal,
-                'TaxableAmount'     => $subTotal,
-                'DiscountAmount'    => $discountAmount,
-                'AdditionalCharges' => $additionalChargesTotal,
-                'TaxAmount'         => $taxAmount,
-                'CgstAmount'        => $cgstAmount,
-                'SgstAmount'        => $sgstAmount,
-                'IgstAmount'        => $igstAmount,
-                'RoundOff'          => $roundOff,
-                'GlobalDiscPercent' => $globalDiscPercent,
-                'ExtraDiscApplied'  => $extraDiscount > 0 ? 1 : 0,
-                'ExtraDiscAmount'   => $extraDiscount,
-                'ExtraDiscType'     => getPostValue($PostData, 'extDiscountType') ?: NULL,
-                'NetAmount'         => $netAmount,
-                'DocStatus'         => $status,
-                'UpdatedBy'         => $userUID,
-                'PdfPath'           => NULL,
-            ];
-
-            $isInterState          = $igstAmount > 0 ? 1 : ($cgstAmount > 0 || $sgstAmount > 0 ? 0 : NULL);
+            $isInterState = $amounts['igstAmount'] > 0 ? 1 : ($amounts['cgstAmount'] > 0 || $amounts['sgstAmount'] > 0 ? 0 : NULL);
             $commonDetail = [
                 'ValidityDays'      => NULL,
                 'ValidityDate'      => $expectedDate ?: NULL,
@@ -268,20 +193,19 @@ class Purchaseorders extends MY_Controller {
             if ($existing->DocStatus === 'Draft' && !$isDraft
                 && $this->transactions_model->hasNewerTransactions($transUID, $orgUID, $this->pageModuleUID)) {
 
-                $newHeader = array_merge($commonHeader, [
-                    'PrefixUID'    => $prefixUID,
-                    'TransNumber'  => $transNumber,
-                    'UniqueNumber' => $uniqueNumber,
-                    'IsActive'     => 1,
-                    'IsDeleted'    => 0,
-                    'CreatedBy'    => $userUID,
-                ]);
-                $insertResp = $this->dbwrite_model->insertData('Transaction', 'TransactionsTbl', $newHeader);
+                $amounts['prefixUID']    = $prefixUID;
+                $amounts['transNumber']  = $transNumber;
+                $amounts['uniqueNumber'] = $uniqueNumber;
+
+                $insertResp = $this->dbwrite_model->insertData(
+                    'Transaction', 'TransactionsTbl',
+                    $this->_buildTransHeader($cfg, $amounts, $PostData, $orgUID, $userUID)
+                );
                 if ($insertResp->Error) throw new Exception($insertResp->Message);
                 $newTransUID = $insertResp->ID;
 
                 $this->dbwrite_model->insertData('Transaction', 'TransDetailTbl', array_merge($commonDetail, [
-                    'FinancialYear' => $financialYear,
+                    'FinancialYear' => $amounts['financialYear'],
                     'TransUID'      => $newTransUID,
                 ]));
 
@@ -290,107 +214,39 @@ class Purchaseorders extends MY_Controller {
                     ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
                     ['TransUID' => $transUID, 'IsDeleted' => 0]
                 );
-                $this->_insertTransItems($newTransUID, $financialYear, $orgUID, $userUID, $items);
+                $this->_insertTransItems($newTransUID, $amounts['financialYear'], $orgUID, $userUID, $items);
 
                 $this->dbwrite_model->deleteInTransaction('Transaction', 'TransactionsTbl', ['TransUID' => $transUID]);
                 $this->dbwrite_model->deleteInTransaction('Transaction', 'TransDetailTbl',  ['TransUID' => $transUID]);
 
             } else {
-                $numberFields = [];
+                $updateHeader = $this->_buildTransUpdateHeader($cfg, $amounts, $PostData, $orgUID, $userUID);
                 if ($uniqueNumber !== NULL) {
-                    $numberFields = [
-                        'PrefixUID'    => $prefixUID,
-                        'TransNumber'  => $transNumber,
-                        'UniqueNumber' => $uniqueNumber,
-                    ];
+                    $updateHeader['PrefixUID']    = $prefixUID;
+                    $updateHeader['TransNumber']  = $transNumber;
+                    $updateHeader['UniqueNumber'] = $uniqueNumber;
                 }
 
                 $updateResp = $this->dbwrite_model->updateData(
                     'Transaction', 'TransactionsTbl',
-                    array_merge($commonHeader, $numberFields),
+                    $updateHeader,
                     ['TransUID' => $transUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
                 );
                 if ($updateResp->Error) throw new Exception($updateResp->Message);
 
                 $this->dbwrite_model->updateData(
                     'Transaction', 'TransDetailTbl', $commonDetail,
-                    ['FinancialYear' => $financialYear, 'TransUID' => $transUID]
+                    ['FinancialYear' => $amounts['financialYear'], 'TransUID' => $transUID]
                 );
 
-                                // Smart item diff: only soft-delete removed items, update existing, insert new
-                $existingItems = $this->transactions_model->getTransactionItems($transUID, $orgUID);
-                $existingByProduct = [];
-                foreach ($existingItems as $ei) { $existingByProduct[(int)$ei->ProductUID] = $ei; }
-                $submittedProductUIDs = [];
-                foreach ($items as $item) { $pid = isset($item['id']) ? (int)$item['id'] : 0; if ($pid > 0) $submittedProductUIDs[] = $pid; }
-                $removedProductUIDs = array_diff(array_keys($existingByProduct), $submittedProductUIDs);
-                if (!empty($removedProductUIDs)) {
-                    $this->dbwrite_model->softDeleteTransactionItemsByProductUIDs($transUID, array_values($removedProductUIDs), $userUID);
-                }
-                $updatingProductUIDs = array_values(array_intersect(array_keys($existingByProduct), $submittedProductUIDs));
-                if (!empty($updatingProductUIDs)) {
-                    $this->dbwrite_model->shiftTransProductSequences($transUID, $updatingProductUIDs);
-                }
-                $newRows = [];
-                foreach ($items as $seq => $item) {
-                    $productUID = isset($item['id']) ? (int)$item['id'] : 0;
-                    $qty        = isset($item['quantity']) ? (float)$item['quantity'] : 0;
-                    $unitPrice  = isset($item['unitPrice']) ? (float)$item['unitPrice'] : 0;
-                    if ($productUID <= 0 || $qty <= 0) continue;
-                    $rowData = [
-                        'ItemSequence'    => $seq + 1,
-                        'ProductName'     => substr(strip_tags($item['itemName'] ?? ''), 0, 100),
-                        'Description'     => !empty($item['description'])  ? substr($item['description'], 0, 500) : NULL,
-                        'PartNumber'      => !empty($item['partNumber'])   ? substr($item['partNumber'], 0, 50)   : NULL,
-                        'CategoryUID'     => !empty($item['categoryUID'])  ? (int)$item['categoryUID']            : NULL,
-                        'CategoryName'    => !empty($item['categoryName']) ? substr($item['categoryName'], 0, 100) : NULL,
-                        'StorageUID'      => isset($item['storageUID'])    ? (int)$item['storageUID']              : NULL,
-                        'Quantity'        => $qty,
-                        'PrimaryUnitName' => isset($item['primaryUnit'])    ? substr($item['primaryUnit'], 0, 20)  : NULL,
-                        'TaxDetailsUID'   => isset($item['taxDetailsUID'])  ? (int)$item['taxDetailsUID']          : 1,
-                        'TaxPercentage'   => (float)($item['taxPercent']    ?? 0),
-                        'CGST'            => (float)($item['cgstPercent']   ?? 0),
-                        'SGST'            => (float)($item['sgstPercent']   ?? 0),
-                        'IGST'            => (float)($item['igstPercent']   ?? 0),
-                        'DiscountTypeUID' => isset($item['discountTypeUID']) ? (int)$item['discountTypeUID'] : NULL,
-                        'Discount'        => (float)($item['discount']        ?? 0),
-                        'UnitPrice'       => $unitPrice,
-                        'SellingPrice'    => (float)($item['sellingPrice']    ?? $unitPrice),
-                        'PurchasePrice'   => (float)($item['purchasePrice']   ?? 0),
-                        'MRP'             => (float)($item['mrp']             ?? 0),
-                        'DistributionMode'=> !empty($item['isComposite']) ? ($item['distributionMode'] ?? null) : null,
-                        'TaxableAmount'   => (float)($item['line_total']      ?? 0),
-                        'CgstAmount'      => (float)($item['cgstAmount']      ?? 0),
-                        'SgstAmount'      => (float)($item['sgstAmount']      ?? 0),
-                        'IgstAmount'      => (float)($item['igstAmount']      ?? 0),
-                        'TaxAmount'       => (float)($item['taxAmount']       ?? 0),
-                        'DiscountAmount'  => (float)($item['discount_amount']  ?? 0),
-                        'NetAmount'       => (float)($item['net_total']        ?? 0),
-                        'UpdatedBy'       => $userUID,
-                    ];
-                    if (isset($existingByProduct[$productUID])) {
-                        $this->dbwrite_model->updateTransProductItem($transUID, $productUID, $rowData);
-                    } else {
-                        $newRows[] = array_merge($rowData, [
-                            'OrgUID' => $orgUID, 'FinancialYear' => $financialYear,
-                            'TransUID' => $transUID, 'ProductUID' => $productUID,
-                            'QuantityConverted' => 0, 'IsActive' => 1, 'IsDeleted' => 0, 'CreatedBy' => $userUID,
-                        ]);
-                    }
-                }
-                if (!empty($newRows)) {
-                    $batchResp = $this->dbwrite_model->insertBatchInTransaction('Transaction', 'TransProductsTbl', $newRows);
-                    if ($batchResp->Error) throw new Exception($batchResp->Message);
-                }
+                $this->_updateTransItems($transUID, $items, $orgUID, $amounts['financialYear'], $userUID);
             }
 
-            $activeTransUID = isset($newTransUID) ? $newTransUID : $transUID;
-            if (!empty($additionalChargesList)) {
-                $this->transactions_model->saveTransactionCharges($activeTransUID, (int)$orgUID, (int)$userUID, $additionalChargesList);
-            }
+            $activeTransUID = $newTransUID ?? $transUID;
+            $this->_saveTransCharges($activeTransUID, $orgUID, $userUID, $PostData);
             $this->dbwrite_model->commitTransaction();
 
-            $this->_saveAttachments($transUID);
+            $this->_saveAttachments($activeTransUID);
             $this->_softDeleteAttachments($this->input->post('RemovedAttachIDs') ?? '');
             $this->_touchVendorCache($vendorUID);
             $this->transactions_model->generateAndStorePdf($activeTransUID, $orgUID, $this->pageModuleUID);
@@ -462,15 +318,7 @@ class Purchaseorders extends MY_Controller {
                 [], 'Deleted purchase order #' . $transUID, 'PurchaseOrders', 'TRANSACTION'
             );
 
-            $pageNo  = max(1, (int) $this->input->post('PageNo'));
-            $limit   = (int) $this->input->post('RowLimit') ?: 10;
-            $filter  = $this->input->post('Filter') ?: [];
-            $offset  = ($pageNo - 1) * $limit;
-            $allData      = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, 0);
-            $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $filter);
-            $this->EndReturnData->RecordHtmlData = $this->load->view('transactions/purchaseorders/list', ['DataLists' => $allData, 'SerialNumber' => $offset, 'JwtData' => $this->pageData['JwtData']], true);
-            $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml('/purchaseorders/getPurchaseOrdersPageDetails', $allDataCount, $pageNo, $limit);
-            $this->EndReturnData->TotalCount     = $allDataCount;
+            $this->_buildListResponse('transactions/purchaseorders/list', '/transactions/getPageDetails/104');
 
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -708,101 +556,6 @@ class Purchaseorders extends MY_Controller {
 
     }
 
-    public function getPurchaseOrderDetail() {
-
-        $this->EndReturnData = new stdClass();
-        try {
-
-            $transUID = (int) $this->input->get_post('TransUID');
-            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
-
-            if ($transUID <= 0) throw new Exception('Invalid purchase order.');
-
-            $this->load->model('transactions_model');
-            $header = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
-            if (!$header) throw new Exception('Purchase order not found.');
-
-            $items = $this->transactions_model->getTransactionItems($transUID, $orgUID);
-
-            $this->load->model('organisation_model');
-            $orgInfo          = $this->organisation_model->getOrgInfoCached($orgUID);
-            $printThemeResult = $this->organisation_model->getPrintThemeByType($orgUID, 'PurchaseOrder');
-
-            $this->EndReturnData->Error      = FALSE;
-            $this->EndReturnData->Header     = $header;
-            $this->EndReturnData->Items      = $items;
-            $this->EndReturnData->OrgInfo    = $orgInfo->Data ?? null;
-            $this->EndReturnData->PrintTheme = $printThemeResult->Data ?? null;
-
-        } catch (Exception $e) {
-            $this->EndReturnData->Error   = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-
-        $this->globalservice->sendJsonResponse($this->EndReturnData);
-
-    }
-
-    private function savePOItems($transUID, $financialYear, $orgUID, $userUID, array $items, $seqOffset = 0) {
-
-        $this->load->model('dbwrite_model');
-
-        $rows = [];
-        foreach ($items as $seq => $item) {
-
-            $productUID = isset($item['id'])       ? (int)   $item['id']       : 0;
-            $qty        = isset($item['quantity'])  ? (float) $item['quantity']  : 0;
-            $unitPrice  = isset($item['unitPrice']) ? (float) $item['unitPrice'] : 0;
-
-            if ($productUID <= 0 || $qty <= 0) continue;
-
-            $rows[] = [
-                'OrgUID'            => $orgUID,
-                'FinancialYear'     => $financialYear,
-                'TransUID'          => $transUID,
-                'ItemSequence'      => $seqOffset + $seq + 1,
-                'ProductUID'        => $productUID,
-                'ProductName'       => substr(strip_tags($item['itemName'] ?? ''), 0, 100),
-                'Description'       => !empty($item['description'])  ? substr($item['description'], 0, 500) : NULL,
-                'PartNumber'        => !empty($item['partNumber'])   ? substr($item['partNumber'], 0, 50)  : NULL,
-                'CategoryUID'       => !empty($item['categoryUID'])  ? (int) $item['categoryUID']           : NULL,
-                'CategoryName'      => !empty($item['categoryName']) ? substr($item['categoryName'], 0, 100) : NULL,
-                'StorageUID'        => isset($item['storageUID'])    ? (int) $item['storageUID']             : NULL,
-                'Quantity'          => $qty,
-                'PrimaryUnitName'   => isset($item['primaryUnit'])   ? substr($item['primaryUnit'], 0, 20)  : NULL,
-                'TaxDetailsUID'     => isset($item['taxDetailsUID']) ? (int) $item['taxDetailsUID']          : 1,
-                'TaxPercentage'     => (float) ($item['taxPercent']   ?? 0),
-                'CGST'              => (float) ($item['cgstPercent']  ?? 0),
-                'SGST'              => (float) ($item['sgstPercent']  ?? 0),
-                'IGST'              => (float) ($item['igstPercent']  ?? 0),
-                'DiscountTypeUID'   => isset($item['discountTypeUID']) ? (int) $item['discountTypeUID'] : NULL,
-                'Discount'          => (float) ($item['discount']       ?? 0),
-                'UnitPrice'         => $unitPrice,
-                'SellingPrice'      => (float) ($item['sellingPrice']   ?? $unitPrice),
-                'PurchasePrice'     => (float) ($item['purchasePrice']  ?? 0),
-                'MRP'               => (float) ($item['mrp']            ?? 0),
-                'DistributionMode'  => !empty($item['isComposite']) ? ($item['distributionMode'] ?? null) : null,
-                'TaxableAmount'     => (float) ($item['line_total']     ?? 0),
-                'CgstAmount'        => (float) ($item['cgstAmount']     ?? 0),
-                'SgstAmount'        => (float) ($item['sgstAmount']     ?? 0),
-                'IgstAmount'        => (float) ($item['igstAmount']     ?? 0),
-                'TaxAmount'         => (float) ($item['taxAmount']      ?? 0),
-                'DiscountAmount'    => (float) ($item['discount_amount'] ?? 0),
-                'NetAmount'         => (float) ($item['net_total']       ?? 0),
-                'QuantityConverted' => 0,
-                'IsActive'          => 1,
-                'IsDeleted'         => 0,
-                'CreatedBy'         => $userUID,
-                'UpdatedBy'         => $userUID,
-            ];
-        }
-
-        if (empty($rows)) return;
-
-        $batchResp = $this->dbwrite_model->insertBatchInTransaction('Transaction', 'TransProductsTbl', $rows);
-        if ($batchResp->Error) throw new Exception($batchResp->Message);
-
-    }
 
     public function create() {
 

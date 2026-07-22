@@ -4,7 +4,7 @@
 
 function getPurchaseOrdersDetails(pageNo, rowLimit, filter, afterLoad) {
     loadTransactionList({
-        url:            '/purchaseorders/getPurchaseOrdersPageDetails/',
+        url:            '/transactions/getPageDetails/104/',
         tabCountClass:  '.po-tab-count',
         statusTabClass: '.po-status-tab',
         errorMessage:   'Failed to load purchase orders.',

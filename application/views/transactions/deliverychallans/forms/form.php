@@ -555,595 +555,152 @@ var _transTransactionCharges = <?php echo json_encode(array_values($TransactionC
 <script src="/js/transactions/additional_charges.js"></script>
 
 <script>
-const EnableStorage = <?php echo $JwtData->GenSettings->EnableStorage; ?>;
-var _isEdit    = <?php echo $isEdit ? 'true' : 'false'; ?>;
-var _orgState  = '<?php echo addslashes($DispatchAddress->StateText ?? ''); ?>';
-var _upstashUrl       = '<?php echo addslashes($UpstashReadUrl   ?? ''); ?>';
-var _upstashReadToken = '<?php echo addslashes($UpstashReadToken ?? ''); ?>';
-var _custCacheKey     = '<?php echo addslashes($CustomerCacheKey ?? ''); ?>';
-var _returnTab  = <?php echo json_encode($_returnTab); ?>;
-var _returnPage = <?php echo (int)$_returnPage; ?>;
-let imgData;
-
-<?php if ($isEdit): ?>
-var _custState = '<?php echo addslashes($CustAddr->StateText ?? ''); ?>';
-var _editItems = <?php echo json_encode(array_map(function($item) {
-    return [
-        'id'               => (int)  $item->ProductUID,
-        'text'             => $item->ProductName,
-        'itemName'         => $item->ProductName,
-        'description'      => $item->Description   ?? '',
-        'unitPrice'        => (float)$item->UnitPrice,
-        'taxAmount'        => (float)$item->TaxAmount,
-        'sellingPrice'     => (float)$item->SellingPrice,
-        'purchasePrice'    => (float)($item->PurchasePrice ?? 0),
-        'availableQuantity'=> 0,
-        'hsnCode'          => '',
-        'categoryUID'      => $item->CategoryUID ? (int)$item->CategoryUID : null,
-        'categoryName'     => $item->CategoryName  ?? '',
-        'storageUID'       => $item->StorageUID  ? (int)$item->StorageUID  : null,
-        'taxPercent'       => (float)$item->TaxPercentage,
-        'cgstPercent'      => (float)$item->CGST,
-        'sgstPercent'      => (float)$item->SGST,
-        'igstPercent'      => (float)$item->IGST,
-        'taxDetailsUID'    => (int)  $item->TaxDetailsUID,
-        'quantity'         => (float)$item->Quantity,
-        'partNumber'       => $item->PartNumber      ?? '',
-        'primaryUnit'      => $item->PrimaryUnitName ?? '',
-        'discount'         => (float)$item->Discount,
-        'discountType'     => 'Percentage',
-        'discountTypeUID'  => $item->DiscountTypeUID ? (int)$item->DiscountTypeUID : null,
-        'discount_amount'  => (float)$item->DiscountAmount,
-        'line_total'       => (float)$item->TaxableAmount,
-        'net_total'        => (float)$item->NetAmount,
-    ];
-}, $DCItems)); ?>;
-<?php else: ?>
-<?php if (!empty($SOSourceData)): ?>
-var _fromSO = <?php echo json_encode([
-    'uid'            => (int)$FromSOUID,
-    'customer'       => (int)$SOSourceData->PartyUID,
-    'customerName'   => $SOSourceData->PartyName   ?? '',
-    'customerArea'   => $SOSourceData->PartyArea   ?? '',
-    'customerMobile' => $SOSourceData->PartyMobile ?? '',
-    'soNumber'       => $SOSourceData->UniqueNumber ?? '',
-]); ?>;
-var _fromSOItems = <?php echo json_encode(array_map(function($item) {
-    return [
-        'id'               => (int)   $item->ProductUID,
-        'text'             => $item->ProductName,
-        'itemName'         => $item->ProductName,
-        'unitPrice'        => (float) $item->UnitPrice,
-        'sellingPrice'     => (float) $item->SellingPrice,
-        'taxAmount'        => (float) $item->TaxAmount,
-        'purchasePrice'    => 0,
-        'availableQuantity'=> 0,
-        'hsnCode'          => '',
-        'categoryUID'      => $item->CategoryUID ? (int)$item->CategoryUID : null,
-        'storageUID'       => $item->StorageUID  ? (int)$item->StorageUID  : null,
-        'taxPercent'       => (float) $item->TaxPercentage,
-        'cgstPercent'      => (float) $item->CGST,
-        'sgstPercent'      => (float) $item->SGST,
-        'igstPercent'      => (float) $item->IGST,
-        'taxDetailsUID'    => (int)   $item->TaxDetailsUID,
-        'quantity'         => (float) $item->Quantity,
-        'partNumber'       => $item->PartNumber      ?? '',
-        'primaryUnit'      => $item->PrimaryUnitName ?? '',
-        'discount'         => 0.0,
-        'discountType'     => 'Percentage',
-        'discountTypeUID'  => null,
-        'discount_amount'  => 0.0,
-        'line_total'       => (float) $item->TaxableAmount,
-        'net_total'        => (float) $item->NetAmount,
-    ];
-}, $SOSourceItems ?? [])); ?>;
-<?php else: ?>
-var _fromSO = null;
-var _fromSOItems = [];
-<?php endif; ?>
-
-<?php if (!empty($CloneData)): ?>
-var _fromClone = <?php echo json_encode([
-    'uid'         => (int)($FromCloneUID ?? 0),
-    'challanType' => $CloneData->DocType ?? 'Non-Returnable',
-    'invoiceType' => $CloneData->InvoiceType   ?? 'Regular',
-    'dispatchFrom'=> (int)($CloneData->DispatchFrom ?? 0),
-    'notes'       => $CloneData->Notes           ?? '',
-    'terms'       => $CloneData->TermsConditions ?? '',
-    'reference'   => $CloneData->Reference       ?? '',
-]); ?>;
-var _fromCloneItems = <?php echo json_encode(array_map(function($item) {
-    return [
-        'id'               => (int)   $item->ProductUID,
-        'text'             => $item->ProductName,
-        'itemName'         => $item->ProductName,
-        'unitPrice'        => (float) $item->UnitPrice,
-        'sellingPrice'     => (float) $item->SellingPrice,
-        'taxAmount'        => (float) $item->TaxAmount,
-        'purchasePrice'    => 0,
-        'availableQuantity'=> 0,
-        'hsnCode'          => '',
-        'categoryUID'      => $item->CategoryUID ? (int)$item->CategoryUID : null,
-        'storageUID'       => $item->StorageUID  ? (int)$item->StorageUID  : null,
-        'taxPercent'       => (float) $item->TaxPercentage,
-        'cgstPercent'      => (float) $item->CGST,
-        'sgstPercent'      => (float) $item->SGST,
-        'igstPercent'      => (float) $item->IGST,
-        'taxDetailsUID'    => (int)   $item->TaxDetailsUID,
-        'quantity'         => (float) $item->Quantity,
-        'partNumber'       => $item->PartNumber      ?? '',
-        'primaryUnit'      => $item->PrimaryUnitName ?? '',
-        'discount'         => (float) $item->Discount,
-        'discountType'     => 'Percentage',
-        'discountTypeUID'  => $item->DiscountTypeUID ? (int)$item->DiscountTypeUID : null,
-        'discount_amount'  => (float) $item->DiscountAmount,
-        'line_total'       => (float) $item->TaxableAmount,
-        'net_total'        => (float) $item->NetAmount,
-    ];
-}, $CloneItems ?? [])); ?>;
-<?php else: ?>
-var _fromClone = null;
-var _fromCloneItems = [];
-<?php endif; ?>
-<?php endif; ?>
-
-$(function() {
-    'use strict';
-
-    <?php if ((!$isEdit || $isDraftEdit) && empty($SOSourceData)): ?>
-    searchCustomers('customerSearch');
-    var _dcOACur = '<?php echo addslashes($JwtData->GenSettings->CurrenySymbol ?? "₹"); ?>';
-    window._showOnAccountBanner = function(total) {
-        if ((parseFloat(total) || 0) > 0) {
-            $('#onAccountTotal').text(_dcOACur + ' ' + parseFloat(total).toFixed(2));
-            $('#onAccountIndicator').removeClass('d-none');
-        } else {
-            $('#onAccountIndicator').addClass('d-none');
-        }
-    };
-    $('#customerSearch').on('select2:clear change', function() {
-        if (!parseInt($(this).val(), 10)) $('#onAccountIndicator').addClass('d-none');
-    });
-    <?php if ($isDraftEdit && !empty($DCData->PartyUID) && !empty($CustAddr)): ?>
-    (function () {
-        var a = <?php echo json_encode([
-            'Line1'  => $CustAddr->Line1    ?? '',
-            'Line2'  => $CustAddr->Line2    ?? '',
-            'City'   => $CustAddr->CityText ?? '',
-            'State'  => $CustAddr->StateText ?? '',
-            'Pincode'=> $CustAddr->Pincode  ?? '',
-        ]); ?>;
-        if (a.Line1 || a.City || a.State) {
-            var _dcLines = [a.Line1, a.Line2].filter(Boolean).join(', ');
-            var _dcLoc   = [a.City, a.State].filter(Boolean).join(', ');
-            if (a.Pincode) _dcLoc += ' – ' + a.Pincode;
-            $('#customerAddressBox').find('span').text([_dcLines, _dcLoc].filter(Boolean).join(' · '));
-            $('#customerAddressBox').removeClass('d-none');
-        }
-        if (typeof window._onCustStateSelected === 'function' && a.State) {
-            window._onCustStateSelected(a.State.trim());
-        }
-    })();
-    <?php endif; ?>
-    <?php endif; ?>
-    transDatePickr('#transDate_disp',      '#transDate',      false, false, true,  true,  '');
-    transDatePickr('#returnDate_disp',     '#returnDate',     false, false, false, false, '#transDate');
-    transDatePickr('#deliveryByDate_disp', '#deliveryByDate', false, false, false, false, '');
-
-    // ── DC Expected Return Date auto-fill ─────────────────────────────────────
-    // Reads DCDefaultReturnDays from user's settings.
-    // Only auto-sets when the field is empty (new DC, not edit mode).
-    // Tracks whether the date was auto-set so dispatch-date changes can recalculate it.
-    // User manually picking a date marks it as manual — no further auto-recalculation.
-
-    var _dcReturnAutoSet  = false; // true = currently holding an auto-calculated date
-    var _dcReturnLocking  = false; // guard: prevents our own setDate triggering the "manual" flag
-
-    var _dcGetReturnDays  = function () {
-        var days = (typeof JwtData !== 'undefined' && JwtData.TransSettings && JwtData.TransSettings.DCDefaultReturnDays !== undefined)
-            ? parseInt(JwtData.TransSettings.DCDefaultReturnDays, 10)
-            : 7;
-        return isNaN(days) ? 7 : days;
-    };
-
-    var _dcCalcReturnDate = function () {
-        var days = _dcGetReturnDays();
-        if (days <= 0) return; // 0 = no default, leave blank
-
-        var rawDispatch = $('#transDate').val(); // Y-m-d from hidden field
-        if (!rawDispatch) return;
-
-        var dispatchDate = new Date(rawDispatch + 'T00:00:00');
-        dispatchDate.setDate(dispatchDate.getDate() + days);
-
-        var fp = document.getElementById('returnDate_disp')?._flatpickr;
-        if (!fp) return;
-
-        _dcReturnLocking = true;
-        _dcReturnAutoSet = true;
-        fp.setDate(dispatchDate, true); // triggers onChange → updates #returnDate hidden field
-        _dcReturnLocking = false;
-    };
-
-    // Hook onto returnDate flatpickr: mark as manual when user picks a date
-    (function () {
-        var fpEl = document.getElementById('returnDate_disp');
-        if (fpEl && fpEl._flatpickr && Array.isArray(fpEl._flatpickr.config.onChange)) {
-            fpEl._flatpickr.config.onChange.push(function () {
-                if (!_dcReturnLocking) {
-                    _dcReturnAutoSet = false; // user manually selected — stop auto-recalculating
-                }
-            });
-        }
-    })();
-
-    // Hook onto transDate flatpickr: update return date minDate + recalculate auto-set date
-    (function () {
-        var fpEl = document.getElementById('transDate_disp');
-        if (fpEl && fpEl._flatpickr && Array.isArray(fpEl._flatpickr.config.onChange)) {
-            fpEl._flatpickr.config.onChange.push(function (selectedDates) {
-                // Always update the minDate of returnDate picker to match dispatch date
-                var returnFp = document.getElementById('returnDate_disp')?._flatpickr;
-                if (returnFp && selectedDates.length) {
-                    returnFp.set('minDate', selectedDates[0]);
-
-                    // If current return date is now before the new dispatch date, clear it
-                    var currentReturn = returnFp.selectedDates[0];
-                    if (currentReturn && currentReturn < selectedDates[0]) {
-                        _dcReturnLocking = true;
-                        returnFp.clear();
-                        $('#returnDate').val('');
-                        _dcReturnAutoSet = false;
-                        _dcReturnLocking = false;
-                    }
-                }
-
-                // Recalculate auto-set return date if it was auto-set (not manually picked)
-                var type = $('#challanType').val();
-                if ((type === 'Returnable' || type === 'Job Work') && _dcReturnAutoSet) {
-                    _dcCalcReturnDate();
-                }
-            });
-        }
-    })();
-
-    // Show/hide Expected Return Date + auto-fill on type change
-    $('#challanType').on('change', function () {
-        var type = $(this).val();
-        if (type === 'Returnable' || type === 'Job Work') {
-            $('#returnDateWrap').show();
-            // Auto-set only if field is currently empty (create mode, not edit)
-            if (!$('#returnDate').val()) {
-                _dcCalcReturnDate();
-            }
-        } else {
-            $('#returnDateWrap').hide();
-            var fp = document.getElementById('returnDate_disp')?._flatpickr;
-            if (fp) fp.clear();
-            $('#returnDate').val('');
-            _dcReturnAutoSet = false;
-        }
-    });
-
-    <?php if ($isEdit): ?>
-    // Attachments pre-loaded by controller — no AJAX needed
-    renderTransAttachmentsFromData(<?php echo json_encode(array_map(function($a) {
+var _transFormData = <?php echo json_encode([
+    'isEdit'       => $isEdit,
+    'isDraftEdit'  => $isDraftEdit,
+    'moduleUID'    => 112,
+    'enableStorage'=> (bool)$JwtData->GenSettings->EnableStorage,
+    'formId'       => $formId,
+    'formAction'   => $formAction,
+    'upstashUrl'   => $UpstashReadUrl   ?? '',
+    'upstashToken' => $UpstashReadToken ?? '',
+    'custCacheKey' => $CustomerCacheKey ?? '',
+    'returnTab'    => $_returnTab,
+    'returnPage'   => (int)$_returnPage,
+    'currency'     => $JwtData->GenSettings->CurrenySymbol ?? '₹',
+    'decimals'     => (int)($JwtData->GenSettings->DecimalPoints ?? 2),
+    'orgState'     => $DispatchAddress->StateText ?? '',
+    'editData'     => $isEdit ? [
+        'transUID'          => $transUID,
+        'custUID'           => (int)($DCData->PartyUID ?? 0),
+        'custState'         => isset($CustAddr) ? ($CustAddr->StateText ?? '') : '',
+        'custAddr'          => [
+            'Line1'   => isset($CustAddr) ? ($CustAddr->Line1    ?? '') : '',
+            'Line2'   => isset($CustAddr) ? ($CustAddr->Line2    ?? '') : '',
+            'City'    => isset($CustAddr) ? ($CustAddr->CityText ?? '') : '',
+            'State'   => isset($CustAddr) ? ($CustAddr->StateText ?? '') : '',
+            'Pincode' => isset($CustAddr) ? ($CustAddr->Pincode  ?? '') : '',
+        ],
+        'extraDiscAmount'   => (float)($DCData->ExtraDiscAmount ?? 0),
+        'extraDiscType'     => $DCData->ExtraDiscType ?? '',
+        'globalDiscPercent' => (float)($DCData->GlobalDiscPercent ?? 0),
+        'attachments'       => array_map(function($a) {
+            return [
+                'AttachUID' => (int)$a->AttachUID,
+                'FileName'  => $a->FileName  ?? '',
+                'FilePath'  => $a->FilePath  ?? '',
+                'FileSize'  => (int)($a->FileSize ?? 0),
+                'FileType'  => $a->FileType  ?? '',
+                'Url'       => $a->Url       ?? '',
+            ];
+        }, $DCAttachments ?? []),
+        'items'             => array_map(function($item) {
+            return [
+                'id'               => (int)   $item->ProductUID,
+                'text'             => $item->ProductName,
+                'itemName'         => $item->ProductName,
+                'description'      => $item->Description   ?? '',
+                'unitPrice'        => (float)  $item->UnitPrice,
+                'taxAmount'        => (float)  $item->TaxAmount,
+                'sellingPrice'     => (float)  $item->SellingPrice,
+                'purchasePrice'    => (float)($item->PurchasePrice ?? 0),
+                'availableQuantity'=> 0,
+                'hsnCode'          => '',
+                'categoryUID'      => $item->CategoryUID ? (int)$item->CategoryUID : null,
+                'categoryName'     => $item->CategoryName  ?? '',
+                'storageUID'       => $item->StorageUID  ? (int)$item->StorageUID  : null,
+                'taxPercent'       => (float)  $item->TaxPercentage,
+                'cgstPercent'      => (float)  $item->CGST,
+                'sgstPercent'      => (float)  $item->SGST,
+                'igstPercent'      => (float)  $item->IGST,
+                'taxDetailsUID'    => (int)    $item->TaxDetailsUID,
+                'quantity'         => (float)  $item->Quantity,
+                'partNumber'       => $item->PartNumber      ?? '',
+                'primaryUnit'      => $item->PrimaryUnitName ?? '',
+                'discount'         => (float)  $item->Discount,
+                'discountType'     => 'Percentage',
+                'discountTypeUID'  => $item->DiscountTypeUID ? (int)$item->DiscountTypeUID : null,
+                'discount_amount'  => (float)  $item->DiscountAmount,
+                'line_total'       => (float)  $item->TaxableAmount,
+                'net_total'        => (float)  $item->NetAmount,
+            ];
+        }, $DCItems ?? []),
+    ] : null,
+    'fromSO'        => !$isEdit && !empty($SOSourceData) ? [
+        'uid'            => (int)$FromSOUID,
+        'customer'       => (int)$SOSourceData->PartyUID,
+        'customerName'   => $SOSourceData->PartyName   ?? '',
+        'customerArea'   => $SOSourceData->PartyArea   ?? '',
+        'customerMobile' => $SOSourceData->PartyMobile ?? '',
+        'soNumber'       => $SOSourceData->UniqueNumber ?? '',
+    ] : null,
+    'fromSOItems'   => !$isEdit && !empty($SOSourceData) ? array_map(function($item) {
         return [
-            'AttachUID' => (int)$a->AttachUID,
-            'FileName'  => $a->FileName  ?? '',
-            'FilePath'  => $a->FilePath  ?? '',
-            'FileSize'  => (int)($a->FileSize ?? 0),
-            'FileType'  => $a->FileType  ?? '',
-            'Url'       => $a->Url       ?? '',
+            'id'               => (int)   $item->ProductUID,
+            'text'             => $item->ProductName,
+            'itemName'         => $item->ProductName,
+            'unitPrice'        => (float) $item->UnitPrice,
+            'sellingPrice'     => (float) $item->SellingPrice,
+            'taxAmount'        => (float) $item->TaxAmount,
+            'purchasePrice'    => 0,
+            'availableQuantity'=> 0,
+            'hsnCode'          => '',
+            'categoryUID'      => $item->CategoryUID ? (int)$item->CategoryUID : null,
+            'storageUID'       => $item->StorageUID  ? (int)$item->StorageUID  : null,
+            'taxPercent'       => (float) $item->TaxPercentage,
+            'cgstPercent'      => (float) $item->CGST,
+            'sgstPercent'      => (float) $item->SGST,
+            'igstPercent'      => (float) $item->IGST,
+            'taxDetailsUID'    => (int)   $item->TaxDetailsUID,
+            'quantity'         => (float) $item->Quantity,
+            'partNumber'       => $item->PartNumber      ?? '',
+            'primaryUnit'      => $item->PrimaryUnitName ?? '',
+            'discount'         => 0.0,
+            'discountType'     => 'Percentage',
+            'discountTypeUID'  => null,
+            'discount_amount'  => 0.0,
+            'line_total'       => (float) $item->TaxableAmount,
+            'net_total'        => (float) $item->NetAmount,
         ];
-    }, $DCAttachments ?? [])); ?>);
-
-    $('#extraDiscount').val('<?php echo smartDecimal($DCData->ExtraDiscAmount ?? 0); ?>');
-    $('#extDiscountType').val('<?php echo addslashes($DCData->ExtraDiscType ?? ''); ?>').trigger('change');
-    $('#globalDiscount').val('<?php echo smartDecimal($DCData->GlobalDiscPercent ?? 0); ?>').trigger('input');
-
-    if (typeof billManager !== 'undefined' && _orgState && _custState) {
-        billManager.setInterState(_custState.trim().toLowerCase() !== _orgState.trim().toLowerCase());
-    }
-
-    if (typeof billManager !== 'undefined' && typeof formationTableBillItems === 'function'
-            && Array.isArray(_editItems) && _editItems.length > 0) {
-        $('#billTableBody').empty();
-        _editItems.forEach(function(item) {
-            var added = billManager.addItem(item, item.quantity);
-            if (added !== false) {
-                formationTableBillItems(billManager.getItemById(item.id));
-            }
-        });
-        if (typeof updateItemTaxBreakdown === 'function') updateItemTaxBreakdown();
-        billManager.updateSummary();
-    }
-    <?php else: ?>
-    if (_fromSO && _fromSO.uid > 0) {
-        var _soNum = _fromSO.soNumber || 'SO';
-
-        // ── Apply CSS class to form — handles static + dynamically created elements ─
-        // CSS rules in the <style> block above cover:
-        //   #openCustomerSearchModal, #addTransCustomer, #addTransProduct,
-        //   .prod-header-static (entire search row), .deleteBillItem (per-row delete)
-        document.getElementById('<?php echo $formId; ?>').classList.add('so-linked-dc');
-
-        // ── Pre-fill SO items ─────────────────────────────────────────────────
-        if (typeof billManager !== 'undefined' && typeof formationTableBillItems === 'function'
-                && Array.isArray(_fromSOItems) && _fromSOItems.length > 0) {
-            $('#billTableBody').empty();
-            _fromSOItems.forEach(function(item) {
-                var added = billManager.addItem(item, item.quantity);
-                if (added !== false) formationTableBillItems(billManager.getItemById(item.id));
-            });
-            if (typeof updateItemTaxBreakdown === 'function') updateItemTaxBreakdown();
-            billManager.updateSummary();
-        }
-
-        // ── Restriction 2: Block adding non-SO products via billManager ───────
-        var _soProductIds = {};
-        _fromSOItems.forEach(function(item) { _soProductIds[item.id] = true; });
-
-        if (typeof billManager !== 'undefined') {
-            var _origAddItem = billManager.addItem.bind(billManager);
-            billManager.addItem = function(item, qty) {
-                if (item && item.id && !_soProductIds[item.id]) {
-                    showToastNotification('Only items from ' + _soNum + ' can be dispatched on this challan.', 'warning');
-                    return false;
-                }
-                return _origAddItem(item, qty);
-            };
-        }
-
-        // Show info notice below the product section header
-        $('#addTransProduct').closest('.card-header').after(
-            '<div class="alert dc-so-notice d-flex align-items-center gap-2 py-2 px-3 mx-3 mt-2">' +
-            '<i class="bx bx-link-alt flex-shrink-0 dc-so-notice-icon"></i>' +
-            '<span>Linked to <strong>' + _soNum + '</strong>. You may adjust quantities or remove items for a partial dispatch. Adding new products is not allowed.</span>' +
-            '</div>'
-        );
-
-        // ── Restriction 3: Cap quantity to SO ordered quantity ────────────────
-        var _soQtyMap = {};
-        _fromSOItems.forEach(function(item) { _soQtyMap[item.id] = item.quantity; });
-
-        $('#<?php echo $formId; ?>').on('change blur', '#billTableBody input[type="number"]', function () {
-            var $row   = $(this).closest('tr[data-item-id]');
-            var itemId = parseInt($row.data('item-id')) || 0;
-            if (!itemId || !_soQtyMap.hasOwnProperty(itemId)) return;
-            var maxQty = _soQtyMap[itemId];
-            var entered = parseFloat($(this).val()) || 0;
-            if (entered > maxQty) {
-                $(this).val(maxQty);
-                showToastNotification('Quantity cannot exceed SO ordered qty (' + maxQty + ').', 'warning');
-                $(this).trigger('input');
-            }
-        });
-    } else if (_fromClone && _fromClone.uid > 0) {
-
-        // ── Pre-fill Type (invoiceType select) ───────────────────────────────
-        if (_fromClone.invoiceType) {
-            $('#dcInvoiceType').val(_fromClone.invoiceType).trigger('change');
-        }
-
-        // ── Pre-fill Mode (challanType select) — triggers return-date visibility
-        if (_fromClone.challanType) {
-            $('#challanType').val(_fromClone.challanType).trigger('change');
-        }
-
-        // ── Pre-fill Dispatch From ────────────────────────────────────────────
-        if (_fromClone.dispatchFrom > 0 && typeof window._setDispatchFrom === 'function') {
-            window._setDispatchFrom(_fromClone.dispatchFrom);
-        }
-
-        // ── Pre-fill Notes / Reference ────────────────────────────────────────
-        if (_fromClone.notes)     $('#transNotes').val(_fromClone.notes);
-        if (_fromClone.reference) $('#vehicleNumber').val(_fromClone.reference);
-
-        // ── Pre-fill items ────────────────────────────────────────────────────
-        if (typeof billManager !== 'undefined' && typeof formationTableBillItems === 'function'
-                && Array.isArray(_fromCloneItems) && _fromCloneItems.length > 0) {
-            $('#billTableBody').empty();
-            _fromCloneItems.forEach(function(item) {
-                var added = billManager.addItem(item, item.quantity);
-                if (added !== false) formationTableBillItems(billManager.getItemById(item.id));
-            });
-            if (typeof updateItemTaxBreakdown === 'function') updateItemTaxBreakdown();
-            billManager.updateSummary();
-        }
-    }
-    <?php endif; ?>
-
-    var $form = $('#<?php echo $formId; ?>');
-    if ($form.length) {
-
-        $form.on('submit', function(e) {
-            e.preventDefault();
-
-            var $btn     = $('button[type="submit"][name="action"]:focus, button[type="submit"][name="action"].active-submit', $form);
-            var action   = $btn.val() || 'save';
-            var csrfName = $form.data('csrf');
-            var csrfVal  = $form.data('csrf-value');
-
-            var customerUID = parseInt($('#customerSearch').val(), 10);
-            if (!customerUID || customerUID <= 0) return showFormError('Please select a customer.');
-
-            if (!_isEdit && action !== 'draft') {
-                var prefixUID = parseInt($('#transPrefixSelect').val(), 10);
-                if (!prefixUID || prefixUID <= 0) return showFormError('Please select a delivery challan prefix.');
-
-                var transNumber = $.trim($('#transNumber').val());
-                if (!transNumber || parseInt(transNumber, 10) <= 0) return showFormError('Transaction number must be greater than 0.');
-            }
-
-            var transDate = $.trim($('#transDate').val());
-            if (!transDate || !/^\d{4}-\d{2}-\d{2}$/.test(transDate)) return showFormError('Please enter a valid dispatch date.');
-
-            var items = typeof billManager !== 'undefined' ? billManager.getAllItems() : [];
-            if (!items || items.length === 0) return showFormError('Please add at least one product.');
-
-            var bm            = typeof billManager !== 'undefined' ? billManager : null;
-            var summary       = bm ? bm.summary : {};
-            var netAmount     = summary.totals    ? (summary.totals.grandTotal       || 0) : 0;
-            var subTotal      = summary.items     ? (summary.items.taxableAmount     || 0) : 0;
-            var discountAmt   = summary.items     ? (summary.items.discountTotal     || 0) : 0;
-            var taxAmt        = summary.taxTotals ? (summary.taxTotals.totalTax      || 0) : 0;
-            var cgstAmt       = summary.taxTotals ? (summary.taxTotals.cgstTotal     || 0) : 0;
-            var sgstAmt       = summary.taxTotals ? (summary.taxTotals.sgstTotal     || 0) : 0;
-            var igstAmt       = summary.taxTotals ? (summary.taxTotals.igstTotal     || 0) : 0;
-            var addCharges    = (summary.additionalCharges && summary.additionalCharges.total) ? (summary.additionalCharges.total.grossAmount || 0) : 0;
-            var globalDiscPct = bm ? (bm.globalDiscountPercent || 0) : 0;
-            var roundOff      = summary.extra ? (summary.extra.roundOff || 0) : 0;
-            var extraDisc     = parseFloat($('#extraDiscount').val()) || 0;
-
-            var charges = { AdditionalCharges: JSON.stringify(typeof collectAdditionalCharges === 'function' ? collectAdditionalCharges() : []) };
-
-            var postData = $.extend({
-                transPrefixSelect      : parseInt($('#transPrefixSelect').val(), 10) || 0,
-                transNumber            : $.trim($('#transNumber').val()),
-                transDate              : transDate,
-                returnDate             : $.trim($('#returnDate').val()),
-                customerSearch         : customerUID,
-                invoiceType            : $('#dcInvoiceType').val() || 'Regular',
-                challanType            : $('#challanType').val() || 'Non-Returnable',
-                vehicleNumber          : $.trim($('#vehicleNumber').val()),
-                deliveryBy             : $.trim($('#deliveryByDate').val()),
-                dispatchFrom           : $('#dispatchFrom').val() || '',
-                transNotes             : $.trim($('#transNotes').val()),
-                transTermsCond         : $.trim($('#transTermsCond').val()),
-                placeOfSupplyCode      : $('#placeOfSupplyCode').val() || '',
-                placeOfSupplyName      : $('#placeOfSupplyName').val() || '',
-                extraDiscount          : extraDisc,
-                extDiscountType        : $('#extDiscountType').val() || '',
-                SubTotal               : subTotal,
-                DiscountAmount         : discountAmt,
-                TaxAmount              : taxAmt,
-                CgstAmount             : cgstAmt,
-                SgstAmount             : sgstAmt,
-                IgstAmount             : igstAmt,
-                AdditionalChargesTotal : addCharges,
-                GlobalDiscPercent      : globalDiscPct,
-                RoundOff               : roundOff,
-                NetAmount              : netAmount,
-                Items                  : JSON.stringify(items),
-                SignatureUID           : parseInt($('#transSignatureUID').val(), 10) || 0,
-                action                 : action,
-                [csrfName]             : csrfVal,
-            }, charges);
-
-            if (_isEdit) {
-                postData.TransUID = parseInt($('input[name="TransUID"]').val(), 10);
-            } else {
-                postData.fromSOUID = parseInt($('#fromSOUID').val(), 10) || 0;
-            }
-
-            var formData = new FormData();
-            $.each(postData, function(k, v) { formData.append(k, v); });
-            collectTransAttachData(formData);
-            if (typeof _plTransInjectFormData === 'function') _plTransInjectFormData(formData);
-
-            setFormLoading('#<?php echo $formId; ?>', true, action);
-
-            $.ajax({
-                url         : '/<?php echo $formAction; ?>',
-                method      : 'POST',
-                data        : formData,
-                processData : false,
-                contentType : false,
-                cache       : false,
-                success: function(response) {
-                    if (response.Error) {
-                        setFormLoading('#<?php echo $formId; ?>', false);
-                        showFormError(response.Message);
-                    } else {
-                        _setPendingToast('_dcPendingToast', response.Message, 'success');
-                        window.location.href = _buildReturnUrl('/deliverychallan');
-                    }
-                },
-                error: function() {
-                    setFormLoading('#<?php echo $formId; ?>', false);
-                    showFormError('Server error. Please try again.');
-                }
-            });
-        });
-
-        $form.on('click', 'button[type="submit"][name="action"]', function() {
-            $form.find('button[type="submit"][name="action"]').removeClass('active-submit');
-            $(this).addClass('active-submit');
-        });
-
-    }
-
-});
+    }, $SOSourceItems ?? []) : [],
+    'fromClone'     => !$isEdit && !empty($CloneData) ? [
+        'uid'         => (int)($FromCloneUID ?? 0),
+        'challanType' => $CloneData->DocType ?? 'Non-Returnable',
+        'invoiceType' => $CloneData->InvoiceType   ?? 'Regular',
+        'dispatchFrom'=> (int)($CloneData->DispatchFrom ?? 0),
+        'notes'       => $CloneData->Notes           ?? '',
+        'terms'       => $CloneData->TermsConditions ?? '',
+        'reference'   => $CloneData->Reference       ?? '',
+    ] : null,
+    'fromCloneItems'=> !$isEdit && !empty($CloneData) ? array_map(function($item) {
+        return [
+            'id'               => (int)   $item->ProductUID,
+            'text'             => $item->ProductName,
+            'itemName'         => $item->ProductName,
+            'unitPrice'        => (float) $item->UnitPrice,
+            'sellingPrice'     => (float) $item->SellingPrice,
+            'taxAmount'        => (float) $item->TaxAmount,
+            'purchasePrice'    => 0,
+            'availableQuantity'=> 0,
+            'hsnCode'          => '',
+            'categoryUID'      => $item->CategoryUID ? (int)$item->CategoryUID : null,
+            'storageUID'       => $item->StorageUID  ? (int)$item->StorageUID  : null,
+            'taxPercent'       => (float) $item->TaxPercentage,
+            'cgstPercent'      => (float) $item->CGST,
+            'sgstPercent'      => (float) $item->SGST,
+            'igstPercent'      => (float) $item->IGST,
+            'taxDetailsUID'    => (int)   $item->TaxDetailsUID,
+            'quantity'         => (float) $item->Quantity,
+            'partNumber'       => $item->PartNumber      ?? '',
+            'primaryUnit'      => $item->PrimaryUnitName ?? '',
+            'discount'         => (float) $item->Discount,
+            'discountType'     => 'Percentage',
+            'discountTypeUID'  => $item->DiscountTypeUID ? (int)$item->DiscountTypeUID : null,
+            'discount_amount'  => (float) $item->DiscountAmount,
+            'line_total'       => (float) $item->TaxableAmount,
+            'net_total'        => (float) $item->NetAmount,
+        ];
+    }, $CloneItems ?? []) : [],
+]); ?>;
 </script>
-<script>
-(function () {
-    var _formEl   = document.getElementById('<?php echo $formId; ?>');
-    var _barEl    = document.getElementById('stickyBottomBar');
-    var _inlineEl = document.getElementById('inlineSummaryBar');
-    if (!_barEl || !_inlineEl) return;
-
-    var cur = '<?php echo addslashes($JwtData->GenSettings->CurrenySymbol ?? "₹"); ?>';
-    var dec = <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>;
-    function _r2(n) { return parseFloat((+n || 0).toFixed(dec)); }
-    function _fmt(n) { return cur + ' ' + _r2(n).toFixed(dec); }
-
-    function _alignStickyBar() {
-        if (!_formEl) return;
-        var rect = _formEl.getBoundingClientRect();
-        var vpW  = document.documentElement.clientWidth;
-        _barEl.style.left  = rect.left + 'px';
-        _barEl.style.right = (vpW - rect.right) + 'px';
-        _barEl.style.width = 'auto';
-    }
-
-    function _sync() {
-        if (typeof billManager === 'undefined') return;
-        var grand = (billManager.summary && billManager.summary.totals)
-            ? (billManager.summary.totals.grandTotal || 0) : 0;
-        var tax   = (billManager.summary && billManager.summary.taxTotals)
-            ? (billManager.summary.taxTotals.totalTax || 0) : 0;
-        ['stickyGrandTotal','inlineGrandTotal'].forEach(function (id) {
-            var el = document.getElementById(id); if (el) el.textContent = _fmt(grand);
-        });
-        ['stickyTotalTax','inlineTotalTax'].forEach(function (id) {
-            var el = document.getElementById(id); if (el) el.textContent = _fmt(tax);
-        });
-    }
-
-    var _obs = new IntersectionObserver(function (entries) {
-        if (!entries[0].isIntersecting) { _alignStickyBar(); _barEl.style.display = 'flex'; }
-        else { _barEl.style.display = 'none'; }
-    }, { threshold: 0.1 });
-    _obs.observe(_inlineEl);
-    _barEl.style.display = 'none';
-    window.addEventListener('resize', _alignStickyBar);
-
-    function _delegate(val) {
-        var sel = (val === 'save' || !val)
-            ? 'button[name="action"][value="save"][type="submit"]'
-            : 'button[name="action"][value="' + val + '"]';
-        var btn = _formEl && _formEl.querySelector(sel);
-        if (!btn && (val === 'save' || !val)) btn = _formEl && _formEl.querySelector('button[name="action"][value="save"]');
-        if (btn) btn.click();
-    }
-
-    ['stickySaveBtn','inlineSaveBtn'].forEach(function (id) {
-        var el = document.getElementById(id);
-        if (el) el.addEventListener('click', function () { _delegate('save'); });
-    });
-    ['stickyDraftBtn','inlineDraftBtn'].forEach(function (id) {
-        var el = document.getElementById(id);
-        if (el) el.addEventListener('click', function () { _delegate('draft'); });
-    });
-    document.addEventListener('click', function (e) {
-        var t = e.target.closest('[data-sticky-action],[data-inline-action]');
-        if (!t) return;
-        _delegate(t.dataset.stickyAction || t.dataset.inlineAction);
-    });
-
-    var _totEl = document.querySelector('.bill_tot_amt');
-    if (_totEl) new MutationObserver(_sync).observe(_totEl, { childList: true, subtree: true, characterData: true });
-    _sync();
-})();
-</script>
+<script src="/js/transactions/forms/deliverychallan.js"></script>

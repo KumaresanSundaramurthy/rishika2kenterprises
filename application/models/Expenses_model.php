@@ -91,7 +91,12 @@ class Expenses_model extends CI_Model {
                 'e.ExpenseUID, e.ExpenseNumber, e.ExpenseDate, e.Amount, e.NetAmount,
                  e.PaidAmount, e.BalanceAmount,
                  e.TaxApplicable, e.TaxPercentage, e.TaxAmount,
-                 e.TDSApplicable, e.TDSPercentage, e.TDSAmount,
+                 e.CGSTTotal, e.SGSTTotal, e.IGSTTotal,
+                 e.TDSApplicable, e.TdsSectionUID, e.TDSPercentage, e.TDSAmount,
+                 e.RCMApplicable, e.RCMAmount, e.RoundOff,
+                 e.VendorUID, IFNULL(v.Name, \'\') AS VendorName,
+                 e.SupplierInvoiceDate, e.SupplierInvoiceSerialNo,
+                 IFNULL(e.AmountType, \'NetAmount\') AS AmountType,
                  e.CategoryUID, ec.CategoryName,
                  e.Notes, e.DocStatus, e.IsPaid,
                  py.PaymentUID, py.PaymentTypeUID, pt.Name AS PaymentTypeName,
@@ -102,6 +107,7 @@ class Expenses_model extends CI_Model {
             );
             $this->ReadDb->from('Transaction.ExpensesTbl e');
             $this->ReadDb->join('Transaction.ExpenseCategoryTbl ec', 'ec.CategoryUID = e.CategoryUID AND ec.IsDeleted = 0',                            'left');
+            $this->ReadDb->join('Vendors.VendorTbl v',               'v.VendorUID = e.VendorUID',                                                     'left');
             $this->ReadDb->join('Transaction.PaymentsTbl py',        'py.TransUID = e.ExpenseUID AND py.SourceType = \'Expense\' AND py.IsDeleted = 0', 'left');
             $this->ReadDb->join('Global.PaymentTypesTbl pt',    'pt.PaymentTypeUID = py.PaymentTypeUID',                                           'left');
             $this->ReadDb->join('Organisation.OrgBankAccountsTbl ba', 'ba.BankAccountUID = py.BankAccountUID AND ba.IsDeleted = 0',                      'left');
@@ -191,6 +197,23 @@ class Expenses_model extends CI_Model {
             return $query ? $query->result() : [];
         } catch (Exception $e) {
             log_message('error', 'Expenses_model::getBankAccounts — ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    // ── TDS Sections ─────────────────────────────────────────────────────────
+    public function getTdsSections(): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('TdsSectionUID, SectionCode, TaxRate, Description');
+            $this->ReadDb->from('Global.TdsSectionTbl');
+            $this->ReadDb->where('IsActive', 1);
+            $this->ReadDb->order_by('SortOrder', 'ASC');
+            $this->ReadDb->order_by('SectionCode', 'ASC');
+            $query = $this->ReadDb->get();
+            return $query ? $query->result() : [];
+        } catch (Exception $e) {
+            log_message('error', 'Expenses_model::getTdsSections — ' . $e->getMessage());
             return [];
         }
     }
@@ -300,6 +323,101 @@ class Expenses_model extends CI_Model {
             log_message('error', 'Expenses_model::isCategoryLinked — ' . $e->getMessage());
             return true; // fail-safe: treat as linked to prevent accidental delete
         }
+    }
+
+    // ── Write DB helper ──────────────────────────────────────────────────────
+    private function _wdb(): CI_DB_driver {
+        return $this->load->database('WriteDB', TRUE);
+    }
+
+    // ── Expense items ─────────────────────────────────────────────────────────
+
+    /**
+     * @param int   $expenseUID
+     * @param int   $orgUID
+     * @param array $items       [{ItemDescription, Amount, TaxPercentage, TaxAmount, TotalAmount, SortOrder}]
+     * @param int   $actorUID
+     * @return void
+     */
+    public function saveExpenseItems(int $expenseUID, int $orgUID, array $items, int $actorUID): void {
+        $wdb = $this->_wdb();
+        foreach ($items as $i => $item) {
+            $wdb->insert('Transaction.ExpenseItemsTbl', [
+                'ExpenseUID'     => $expenseUID,
+                'OrgUID'         => $orgUID,
+                'CategoryUID'    => ($item['CategoryUID'] ?? 0) > 0 ? (int)$item['CategoryUID'] : null,
+                'ItemDescription'=> !empty($item['ItemDescription']) ? (string)$item['ItemDescription'] : null,
+                'Amount'         => round((float)($item['Amount']      ?? 0), 4),
+                'TaxPercentage'  => round((float)($item['TaxPercentage'] ?? 0), 4),
+                'TaxAmount'      => round((float)($item['TaxAmount']    ?? 0), 4),
+                'CGSTAmount'     => round((float)($item['CGSTAmount']   ?? 0), 4),
+                'SGSTAmount'     => round((float)($item['SGSTAmount']   ?? 0), 4),
+                'IGSTAmount'     => round((float)($item['IGSTAmount']   ?? 0), 4),
+                'TotalAmount'    => round((float)($item['TotalAmount']  ?? 0), 4),
+                'SortOrder'      => (int)($item['SortOrder'] ?? $i),
+                'IsDeleted'      => 0,
+                'CreatedBy'      => $actorUID,
+                'UpdatedBy'      => $actorUID,
+            ]);
+        }
+    }
+
+    /**
+     * @param int $expenseUID
+     * @param int $orgUID
+     * @return array
+     */
+    public function getExpenseItems(int $expenseUID, int $orgUID): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('ExpenseItemUID, CategoryUID, ItemDescription, Amount, TaxPercentage, TaxAmount, CGSTAmount, SGSTAmount, IGSTAmount, TotalAmount, SortOrder');
+            $this->ReadDb->from('Transaction.ExpenseItemsTbl');
+            $this->ReadDb->where(['ExpenseUID' => $expenseUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
+            $this->ReadDb->order_by('SortOrder', 'ASC');
+            $query = $this->ReadDb->get();
+            return $query ? $query->result() : [];
+        } catch (Exception $e) {
+            log_message('error', 'Expenses_model::getExpenseItems — ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * @param int $expenseUID
+     * @param int $orgUID
+     * @param int $actorUID
+     * @return void
+     */
+    public function deleteExpenseItems(int $expenseUID, int $orgUID, int $actorUID): void {
+        $wdb = $this->_wdb();
+        $wdb->where(['ExpenseUID' => $expenseUID, 'OrgUID' => $orgUID]);
+        $wdb->update('Transaction.ExpenseItemsTbl', ['IsDeleted' => 1, 'UpdatedBy' => $actorUID]);
+    }
+
+    /**
+     * @param int   $expItemUID
+     * @param int   $orgUID
+     * @param array $data
+     * @param int   $actorUID
+     * @return void
+     */
+    public function updateExpenseItem(int $expItemUID, int $orgUID, array $data, int $actorUID): void {
+        $wdb = $this->_wdb();
+        $data['UpdatedBy'] = $actorUID;
+        $wdb->where(['ExpenseItemUID' => $expItemUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
+        $wdb->update('Transaction.ExpenseItemsTbl', $data);
+    }
+
+    /**
+     * @param int $expItemUID
+     * @param int $orgUID
+     * @param int $actorUID
+     * @return void
+     */
+    public function softDeleteExpenseItem(int $expItemUID, int $orgUID, int $actorUID): void {
+        $wdb = $this->_wdb();
+        $wdb->where(['ExpenseItemUID' => $expItemUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
+        $wdb->update('Transaction.ExpenseItemsTbl', ['IsDeleted' => 1, 'UpdatedBy' => $actorUID]);
     }
 
     // ── Private filter helper ────────────────────────────────────────────────

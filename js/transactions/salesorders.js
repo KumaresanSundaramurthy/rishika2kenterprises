@@ -4,7 +4,7 @@
 
 function getSalesOrdersDetails(pageNo, rowLimit, filter, afterLoad) {
     loadTransactionList({
-        url:            '/salesorders/getSalesOrdersPageDetails/',
+        url:            '/transactions/getPageDetails/102/',
         tabCountClass:  '.so-tab-count',
         statusTabClass: '.so-status-tab',
         errorMessage:   'Failed to load sales orders.',

@@ -26,7 +26,11 @@ class Indirectincome extends MY_Controller {
             $limit  = $GeneralSettings->RowLimit ?? 10;
             $orgUID = $this->pageData['JwtData']->Org->OrgUID;
 
-            $filter = ['Status' => 'All', 'DateFrom' => date('Y-m-01'), 'DateTo' => date('Y-m-t')];
+            $datePref = $this->getDateFilterPreference('indirectincome');
+            $this->pageData['SavedDateRange'] = $datePref['range'];
+            $this->pageData['SavedDateLabel'] = $datePref['label'];
+
+            $filter = ['Status' => 'All', 'DateFrom' => $datePref['from'], 'DateTo' => $datePref['to']];
 
             $allData      = $this->indirectincome_model->getIncomeList($orgUID, $filter, $limit, 0);
             $allDataCount = $this->indirectincome_model->getIncomeCount($orgUID, $filter);
@@ -44,6 +48,9 @@ class Indirectincome extends MY_Controller {
             $this->pageData['Categories']   = $this->indirectincome_model->getCategories($orgUID);
             $this->pageData['PaymentTypes'] = $this->indirectincome_model->getPaymentTypes();
             $this->pageData['BankAccounts'] = $this->indirectincome_model->getBankAccounts($orgUID);
+            $this->pageData['InitDateFrom'] = $datePref['from'];
+            $this->pageData['InitDateTo']   = $datePref['to'];
+            // SavedDateFromDisplay / SavedDateToDisplay already set by getDateFilterPreference()
 
             // Org users for column filter
             $this->load->model('users_model');
@@ -174,10 +181,32 @@ class Indirectincome extends MY_Controller {
             $data = $this->_buildIncomeData($PostData, $userUID, $orgUID, false);
             unset($data['CreatedBy'], $data['CreatedOn'], $data['OrgUID'], $data['ModuleUID']);
 
-            // Preserve DocStatus/IsReceived for Received entries
-            if ($existing->DocStatus === 'Received') {
-                $data['DocStatus']  = 'Received';
-                $data['IsReceived'] = 1;
+            $dec        = $this->_decimals();
+            $paidAmount = round((float)($existing->PaidAmount ?? 0), $dec);
+            $newNetAmt  = round((float)$data['NetAmount'], $dec);
+
+            if ($paidAmount > 0 && $newNetAmt < $paidAmount - 0.001) {
+                throw new Exception(
+                    'Amount cannot be less than ' . $this->_currency() . ' ' .
+                    number_format($paidAmount, $dec) . ' (already received).'
+                );
+            }
+
+            if ($paidAmount <= 0) {
+                $data['DocStatus']     = 'Pending';
+                $data['IsReceived']    = 0;
+                $data['PaidAmount']    = 0;
+                $data['BalanceAmount'] = $newNetAmt;
+            } elseif (round($newNetAmt - $paidAmount, $dec) <= 0) {
+                $data['DocStatus']     = 'Received';
+                $data['IsReceived']    = 1;
+                $data['PaidAmount']    = $paidAmount;
+                $data['BalanceAmount'] = 0;
+            } else {
+                $data['DocStatus']     = 'Partial';
+                $data['IsReceived']    = 0;
+                $data['PaidAmount']    = $paidAmount;
+                $data['BalanceAmount'] = round($newNetAmt - $paidAmount, $dec);
             }
 
             $resp = $this->dbwrite_model->updateData(
@@ -186,6 +215,7 @@ class Indirectincome extends MY_Controller {
             );
             if ($resp->Error) throw new Exception($resp->Message);
 
+            $this->_softDeleteAttachments(getPostValue($PostData, 'RemovedAttachIDs'), 'IndirectIncome');
             $this->_saveAttachments($incomeUID, 'IndirectIncome');
 
             // Reverse old journal and re-post with updated amount/date (non-fatal)
@@ -656,6 +686,9 @@ class Indirectincome extends MY_Controller {
 
             $income = $this->indirectincome_model->getIncomeById($incomeUID, $orgUID);
             if (!$income) throw new Exception('Income not found.');
+
+            $this->load->model('transactions_model');
+            $income->Attachments = $this->transactions_model->getExpenseIncomeAttachments($incomeUID, $orgUID, 'IndirectIncome');
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $income;

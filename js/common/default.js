@@ -111,10 +111,22 @@ function blankControls() {
     $('input[type=file]').each(function () { $(this).val(''); });
 }
 
+// Bootstrap Tooltip race-condition fix (global — covers all pages).
+// dispose() sets this._config = null, but a hide transition's complete callback
+// can still fire _cleanTipClass → getTipElement → this._config.template → crash.
+// Bail early when the instance is already disposed.
+if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
+    var _bsOrigCleanTipClass = bootstrap.Tooltip.prototype._cleanTipClass;
+    bootstrap.Tooltip.prototype._cleanTipClass = function () {
+        if (!this._config) return;
+        _bsOrigCleanTipClass.call(this);
+    };
+}
+
 $(document).ready(function () {
 
     const BLUR_ID = 'modal-blur-layer';
-    
+
     initializeTooltips();
 
     // MutationObserver: auto-dispose when trigger leaves DOM (prevents stuck tooltips
@@ -551,12 +563,14 @@ function hideUIBlock() {
 
 }
 
+window._r2kRedirecting = false;
+
 jQuery(document).ajaxStart(function () {
     if (AjaxLoading == 1) {
         showUIBlock();
     }
 }).ajaxStop(function () {
-    hideUIBlock();
+    if (!window._r2kRedirecting) hideUIBlock();
 });
 
 function showOneDropzoneImgDetails(dropzoneInstance, imageUrl, fileName, fileSize) {

@@ -432,49 +432,6 @@ $(function () {
         });
     });
 
-    // ── A4 Print ─────────────────────────────────────────────────────────────
-    $(document).on('click', '.a4PrintPO', function () {
-        var uid = $(this).data('uid');
-        $('#a4ModalTitle').text('Purchase Order Preview');
-        $('#a4PrintModal').modal('show');
-        $("#a4PreviewStage").html('<div class="d-flex justify-content-center align-items-center w-100 h-100"><div class="spinner-border text-light"></div></div>');
-        $.ajax({
-            url   : '/purchaseorders/getPurchaseOrderDetail',
-            method: 'POST',
-            data  : { TransUID: uid, [CsrfName]: CsrfToken },
-            success: function (resp) {
-                if (resp.Error) {
-                    $("#a4PreviewStage").html('<div class="alert alert-danger m-3">' + resp.Message + '</div>');
-                } else {
-                    var size = $('input[name="a4PaperSize"]:checked').val() || 'A4';
-                    window._poLastPrintData = resp;
-                    $("#a4PreviewStage").html(_buildA4Html(resp, size));
-                }
-            }
-        });
-    });
-
-    $('input[name="a4PaperSize"]').on('change', function () {
-        if (!window._poLastPrintData) return;
-        $("#a4PreviewStage").html(_buildA4Html(window._poLastPrintData, $(this).val()));
-    });
-
-    $('#a4PrintBtn').on('click', function () {
-        var frame = document.getElementById('a4PrintFrame');
-        if (!frame) {
-            frame = document.createElement('iframe');
-            frame.id = 'a4PrintFrame';
-            frame.style.display = 'none';
-            document.body.appendChild(frame);
-        }
-        var size    = $('input[name="a4PaperSize"]:checked').val() || 'A4';
-        var content = _buildA4Html(window._poLastPrintData, size, true);
-        frame.contentDocument.open();
-        frame.contentDocument.write(content);
-        frame.contentDocument.close();
-        frame.onload = function () { frame.contentWindow.print(); };
-    });
-
     // ── Delete ────────────────────────────────────────────────────────────────
     function _actionPostData(extra) {
         Filter.Status = $('.po-status-tab.active').data('status') || 'All';
@@ -522,69 +479,5 @@ $(function () {
 
 });
 
-// ── Detail view HTML builder ──────────────────────────────────────────────
-function _buildPODetailHtml(resp) {
-    window._poLastPrintData = resp;
-    return _buildTransDetailHtml(resp, {
-        partyLabel  : 'Vendor',
-        typeIcon    : 'bx-purchase-tag-alt',
-        typeColor   : '#0f766e',
-        typeBg      : '#e0f5f2',
-        hasPayments : false,
-        validLabel  : 'Expected Delivery',
-    });
-}
 
-function _buildA4Html(resp, size, forPrint) {
-    if (!resp) return '';
-    window._poLastPrintData = resp;
-    var w   = size === 'A5' ? '148mm' : '210mm';
-    var h   = resp.Header || {};
-    var org = resp.OrgInfo || {};
-    var cur = (org.CurrenySymbol || '₹') + ' ';
-    var dec = 2;
-    var rows = '';
-    (resp.Items || []).forEach(function (item, i) {
-        rows += '<tr>' +
-            '<td style="text-align:center">' + (i + 1) + '</td>' +
-            '<td>' + _esc(item.ProductName) + (item.PartNumber ? '<br><span style="font-size:.8em;color:#888">' + _esc(item.PartNumber) + '</span>' : '') + '</td>' +
-            '<td style="text-align:center">' + _esc(item.Quantity) + ' ' + (_esc(item.PrimaryUnitName) || '') + '</td>' +
-            '<td style="text-align:right">' + cur + parseFloat(item.UnitPrice || 0).toFixed(dec) + '</td>' +
-            '<td style="text-align:right">' + cur + parseFloat(item.NetAmount || 0).toFixed(dec) + '</td>' +
-            '</tr>';
-    });
-    var printStyles = forPrint ? '@media print { body { margin: 0; } .page { box-shadow: none; } }' : '';
-    var html = '<!DOCTYPE html><html><head><meta charset="UTF-8">' +
-        '<style>body{font-family:Arial,sans-serif;font-size:12px;background:#404040}' +
-        '.page{width:' + w + ';background:#fff;margin:0 auto;padding:20px;box-shadow:0 0 20px rgba(0,0,0,.5)}' +
-        'table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:6px 8px;font-size:11px}' +
-        'th{background:#f5f5f5;font-weight:bold}' + printStyles + '</style></head>' +
-        '<body><div class="page">' +
-        '<div style="display:flex;justify-content:space-between;margin-bottom:12px">' +
-            '<div><strong style="font-size:14px">' + _esc(org.OrgName || '') + '</strong>' +
-            (org.Address ? '<br><span style="color:#666">' + _esc(org.Address) + '</span>' : '') +
-            (org.GSTNumber ? '<br><span style="color:#666">GSTIN: ' + _esc(org.GSTNumber) + '</span>' : '') + '</div>' +
-            '<div style="text-align:right"><strong style="font-size:16px">PURCHASE ORDER</strong><br>' +
-            '<span style="color:#666">' + _esc(h.UniqueNumber || '—') + '</span><br>' +
-            '<span style="color:#666">Date: ' + _esc(h.TransDate || '') + '</span>' +
-            (h.ValidityDate ? '<br><span style="color:#666">Expected: ' + _esc(h.ValidityDate) + '</span>' : '') +
-            '</div>' +
-        '</div>' +
-        '<div style="background:#f9f9f9;padding:8px;border-radius:4px;margin-bottom:12px">' +
-            '<strong>Vendor:</strong> ' + _esc(h.PartyName || '—') +
-            (h.Reference ? ' &nbsp;|&nbsp; <strong>Ref:</strong> ' + _esc(h.Reference) : '') +
-        '</div>' +
-        '<table><thead class="r2k-thead"><tr><th style="width:30px">#</th><th>Product</th><th style="width:60px;text-align:center">Qty</th><th style="width:90px;text-align:right">Unit Price</th><th style="width:90px;text-align:right">Net Amount</th></tr></thead>' +
-        '<tbody class="r2k-tbody">' + rows + '</tbody>' +
-        '<tfoot>' +
-            '<tr><td colspan="4" style="text-align:right;font-weight:bold">Sub Total</td><td style="text-align:right">' + cur + parseFloat(h.SubTotal || 0).toFixed(dec) + '</td></tr>' +
-            (parseFloat(h.DiscountAmount) > 0 ? '<tr><td colspan="4" style="text-align:right;color:#c00">Discount</td><td style="text-align:right;color:#c00">- ' + cur + parseFloat(h.DiscountAmount).toFixed(dec) + '</td></tr>' : '') +
-            (parseFloat(h.TaxAmount) > 0 ? '<tr><td colspan="4" style="text-align:right">Tax</td><td style="text-align:right">' + cur + parseFloat(h.TaxAmount).toFixed(dec) + '</td></tr>' : '') +
-            '<tr><td colspan="4" style="text-align:right;font-weight:bold">Net Amount</td><td style="text-align:right;font-weight:bold">' + cur + parseFloat(h.NetAmount || 0).toFixed(dec) + '</td></tr>' +
-        '</tfoot></table>' +
-        (h.Notes ? '<p style="margin-top:12px;font-size:11px;color:#666"><strong>Notes:</strong> ' + _esc(h.Notes) + '</p>' : '') +
-        (h.TermsConditions ? '<p style="font-size:11px;color:#666"><strong>Terms & Conditions:</strong> ' + _esc(h.TermsConditions) + '</p>' : '') +
-    '</div></body></html>';
-    return forPrint ? html : '<iframe srcdoc="' + html.replace(/"/g, '&quot;') + '" style="width:100%;height:100%;border:0;min-height:75vh"></iframe>';
-}
 </script>

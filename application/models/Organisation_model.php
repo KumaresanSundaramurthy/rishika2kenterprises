@@ -550,7 +550,7 @@ class Organisation_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->ReadDb->select(['TemplateUID', 'TemplateKey', 'TemplateName', 'Description', 'Category', 'PreviewImage']);
+            $this->ReadDb->select(['TemplateUID', 'TemplateKey', 'TemplateName', 'Description', 'Category', 'PreviewImage', 'PreviewHtmlContent']);
             $this->ReadDb->from('Settings.PrintTemplatesTbl');
             $this->ReadDb->where(['IsDeleted' => 0, 'IsActive' => 1]);
             $this->ReadDb->order_by('SortOrder', 'ASC');

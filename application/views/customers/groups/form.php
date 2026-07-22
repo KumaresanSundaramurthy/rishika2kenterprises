@@ -307,20 +307,20 @@ $pageHead = $isEdit ? 'Edit Customer Group' : 'Create Customer Group';
         $('#GroupName').removeClass('is-invalid');
         var formData = $('#CGroupForm').serializeArray();
         formData.push({ name: CsrfName, value: CsrfToken });
-        AjaxLoading = 0;
+        ajaxLoading(0);
         $.ajax({
             url   : '<?php echo $saveUrl; ?>',
             method: 'POST',
             data  : formData,
             success: function (res) {
-                AjaxLoading = 1;
+                ajaxLoading(1);
                 if (res.Error) { toastr.error(res.Message); return; }
                 toastr.success(res.Message);
                 setTimeout(function () {
                     window.location.href = '/customers?tab=groups';
                 }, 800);
             },
-            error: function () { AjaxLoading = 1; toastr.error('Request failed. Please try again.'); }
+            error: function () { ajaxLoading(1); toastr.error('Request failed. Please try again.'); }
         });
     });
 

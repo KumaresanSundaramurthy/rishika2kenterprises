@@ -480,7 +480,7 @@ class Products_model extends CI_Model {
                 $cdnUrl = rtrim(getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN'), '/');
                 $placeholders = implode(',', array_fill(0, count($productUIDs), '?'));
                 $attQuery = $this->ReadDb->query(
-                    "SELECT EntityUID, FilePath, FileName FROM Products.ProductCategoryAttachmentsTbl
+                    "SELECT EntityUID, FilePath, FileName FROM Products.EntityAttachmentsTbl
                       WHERE EntityType = 'Product' AND EntityUID IN ({$placeholders}) AND IsDeleted = 0
                       ORDER BY EntityUID, SortOrder ASC",
                     $productUIDs
@@ -594,7 +594,7 @@ class Products_model extends CI_Model {
                 $cdnUrl = rtrim(getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN'), '/');
                 $placeholders = implode(',', array_fill(0, count($categoryUIDs), '?'));
                 $attQuery = $this->ReadDb->query(
-                    "SELECT EntityUID, FilePath, FileName FROM Products.ProductCategoryAttachmentsTbl
+                    "SELECT EntityUID, FilePath, FileName FROM Products.EntityAttachmentsTbl
                       WHERE EntityType = 'Category' AND EntityUID IN ({$placeholders}) AND IsDeleted = 0
                       ORDER BY EntityUID, SortOrder ASC",
                     $categoryUIDs
@@ -963,6 +963,165 @@ class Products_model extends CI_Model {
 
     }
 
+    // ── Brands ────────────────────────────────────────────────────────────────
+
+    public function brandFilterFormation(object $ModuleInfoData, array $Filter): object {
+
+        $this->EndReturnData = new StdClass();
+        try {
+            $SearchDirectQuery = '';
+            $sortOperation     = [];
+            if (!empty($Filter)) {
+                if (array_key_exists('SearchAllData', $Filter)) {
+                    $s = $this->ReadDb->escape_like_str($Filter['SearchAllData']);
+                    $a = $ModuleInfoData->TableAliasName;
+                    $SearchDirectQuery = "(({$a}.BrandName LIKE '%{$s}%') OR ({$a}.BrandCode LIKE '%{$s}%') OR ({$a}.Description LIKE '%{$s}%'))";
+                }
+                if (array_key_exists('NameSorting', $Filter)) {
+                    $sortOperation[$ModuleInfoData->TableAliasName . '.BrandName'] = $Filter['NameSorting'] == 1 ? 'ASC' : 'DESC';
+                }
+            }
+            $this->EndReturnData->Error             = false;
+            $this->EndReturnData->SearchDirectQuery = $SearchDirectQuery;
+            $this->EndReturnData->sortOperation     = $sortOperation;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error             = true;
+            $this->EndReturnData->SearchDirectQuery = '';
+            $this->EndReturnData->sortOperation     = [];
+        }
+        return $this->EndReturnData;
+
+    }
+
+    public function getBrandListPaginated(int $orgUID, int $limit, int $offset, string $searchQuery = '', array $sortArr = []): object {
+
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $baseWhere = [
+                'Brand.IsDeleted' => 0,
+                'Brand.IsActive'  => 1,
+                'Brand.OrgUID'    => (int) $orgUID,
+            ];
+
+            // Count query
+            $this->ReadDb->select('COUNT(Brand.BrandUID) AS TotalCount');
+            $this->ReadDb->from('Products.BrandTbl as Brand');
+            $this->ReadDb->where($baseWhere);
+            if (!empty($searchQuery)) { $this->ReadDb->where($searchQuery, null, false); }
+            $countQuery = $this->ReadDb->get();
+            $countError = $this->ReadDb->error();
+            if ($countError['code']) throw new Exception($countError['message']);
+            $totalCount = (int) ($countQuery->row()->TotalCount ?? 0);
+
+            // Data query
+            $this->ReadDb->select([
+                'Brand.BrandUID AS BrandUID',
+                'Brand.BrandName AS BrandName',
+                'Brand.BrandCode AS BrandCode',
+                'Brand.Description AS Description',
+                'Brand.UpdatedOn AS UpdatedOn',
+                "CONCAT(User.FirstName, ' ', User.LastName) AS UpdatedBy",
+                '0 AS ProductCount',
+            ]);
+            $this->ReadDb->from('Products.BrandTbl as Brand');
+            $this->ReadDb->join('Users.UserTbl as User', 'User.UserUID = Brand.UpdatedBy', 'left');
+            $this->ReadDb->where($baseWhere);
+            if (!empty($searchQuery)) { $this->ReadDb->where($searchQuery, null, false); }
+            $this->ReadDb->group_by('Brand.BrandUID');
+            if (!empty($sortArr)) {
+                foreach ($sortArr as $col => $dir) { $this->ReadDb->order_by($col, $dir); }
+            } else {
+                $this->ReadDb->order_by('Brand.BrandUID', 'DESC');
+            }
+            $this->ReadDb->limit($limit, $offset);
+            $dataQuery = $this->ReadDb->get();
+            $dataError = $this->ReadDb->error();
+            if ($dataError['code']) throw new Exception($dataError['message']);
+
+            $rows = $dataQuery->result();
+
+            // Batch-fetch attachments for this page of brands
+            if (!empty($rows)) {
+                $brandUIDs    = array_column((array)$rows, 'BrandUID');
+                $cdnUrl       = rtrim(getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN'), '/');
+                $placeholders = implode(',', array_fill(0, count($brandUIDs), '?'));
+                $attQuery     = $this->ReadDb->query(
+                    "SELECT EntityUID, FilePath, FileName FROM Products.EntityAttachmentsTbl
+                      WHERE EntityType = 'Brand' AND EntityUID IN ({$placeholders}) AND IsDeleted = 0
+                      ORDER BY EntityUID, SortOrder ASC",
+                    $brandUIDs
+                );
+                $attMap = [];
+                if ($attQuery) {
+                    foreach ($attQuery->result() as $att) {
+                        $attMap[(int)$att->EntityUID][] = [
+                            'url'  => $cdnUrl . '/' . ltrim($att->FilePath, '/'),
+                            'name' => $att->FileName,
+                        ];
+                    }
+                }
+                foreach ($rows as $row) {
+                    $row->AttachmentsJson = json_encode($attMap[(int)$row->BrandUID] ?? [], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                }
+            }
+
+            $result             = new stdClass();
+            $result->rows       = $rows;
+            $result->totalCount = $totalCount;
+            return $result;
+
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+
+    }
+
+    public function getBrandsForCache(int $orgUID): array {
+
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select(['BrandUID', 'BrandName', 'BrandCode', 'Description']);
+            $this->ReadDb->from('Products.BrandTbl');
+            $this->ReadDb->where(['OrgUID' => (int)$orgUID, 'IsDeleted' => 0, 'IsActive' => 1]);
+            $this->ReadDb->order_by('BrandUID', 'ASC');
+            $query = $this->ReadDb->get();
+            $error = $this->ReadDb->error();
+            if ($error['code']) throw new Exception($error['message']);
+            return $query->result();
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+
+    }
+
+    public function getBrandByUID(int $brandUID, int $orgUID): ?object {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select(['BrandUID', 'BrandName', 'BrandCode', 'Description']);
+            $this->ReadDb->from('Products.BrandTbl');
+            $this->ReadDb->where(['BrandUID' => $brandUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
+            $q = $this->ReadDb->get();
+            return $q ? $q->row() : null;
+        } catch (Exception $e) {
+            return null;
+        }
+    }
+
+    public function isDuplicateBrandName(int $orgUID, string $name, int $excludeUID = 0): bool {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('COUNT(*) AS cnt');
+            $this->ReadDb->from('Products.BrandTbl');
+            $this->ReadDb->where(['OrgUID' => $orgUID, 'IsDeleted' => 0, 'IsActive' => 1]);
+            $this->ReadDb->where('LOWER(BrandName)', strtolower(trim($name)));
+            if ($excludeUID > 0) { $this->ReadDb->where('BrandUID !=', $excludeUID); }
+            $q = $this->ReadDb->get();
+            return $q ? ((int)($q->row()->cnt ?? 0) > 0) : false;
+        } catch (Exception $e) {
+            return false;
+        }
+    }
+
     // ── Product / Category Attachments ────────────────────────────────────────
 
     /** Get all non-deleted attachments for an entity, ordered by SortOrder */
@@ -970,7 +1129,7 @@ class Products_model extends CI_Model {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('AttachUID, FileName, FilePath, FileSize, SortOrder, CreatedOn');
-            $this->ReadDb->from('Products.ProductCategoryAttachmentsTbl');
+            $this->ReadDb->from('Products.EntityAttachmentsTbl');
             $this->ReadDb->where([
                 'EntityType' => $entityType,
                 'EntityUID'  => $entityUID,
@@ -991,7 +1150,7 @@ class Products_model extends CI_Model {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('FilePath');
-            $this->ReadDb->from('Products.ProductCategoryAttachmentsTbl');
+            $this->ReadDb->from('Products.EntityAttachmentsTbl');
             $this->ReadDb->where([
                 'EntityType' => $entityType,
                 'EntityUID'  => $entityUID,

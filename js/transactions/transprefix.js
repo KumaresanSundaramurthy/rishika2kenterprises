@@ -166,12 +166,12 @@ $(document).ready(function () {
     function loadPrefixList() {
         $('#prefixListLoading').removeClass('d-none');
         $('#prefixListContainer').addClass('d-none');
-        AjaxLoading = 0;
+        ajaxLoading(0);
         $.ajax({
             url    : '/transactions/getTransactionPrefixes/',
             method : 'GET',
             success: function (resp) {
-                AjaxLoading = 1;
+                ajaxLoading(1);
                 $('#prefixListLoading').addClass('d-none');
                 $('#prefixListContainer').removeClass('d-none');
                 if (!resp.Error) {
@@ -181,7 +181,7 @@ $(document).ready(function () {
                 }
             },
             error  : function () {
-                AjaxLoading = 1;
+                ajaxLoading(1);
                 $('#prefixListLoading').addClass('d-none');
                 Swal.fire({ icon: 'error', title: '', text: 'Failed to load prefixes.' });
             }

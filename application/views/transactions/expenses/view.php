@@ -102,9 +102,9 @@ $this->load->view('common/transactions/header'); ?>
                             <button type="button" class="btn btn-sm btn-outline-secondary" id="expManageCatBtn">
                                 <i class="bx bx-category me-1"></i>Categories
                             </button>
-                            <button type="button" class="btn btn-primary addExpenseBtn">
+                            <a href="/expenses/create" class="btn btn-primary">
                                 <i class="bx bx-plus me-1"></i>Add Expense
-                            </button>
+                            </a>
                         </div>
 
                         <!-- Tabs Row -->
@@ -373,14 +373,14 @@ $this->load->view('common/transactions/header'); ?>
 <!-- Category Manager Modal -->
 <div class="modal fade" id="expCatManagerModal" tabindex="-1" aria-hidden="true"
      style="backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);">
-    <div class="modal-dialog modal-dialog-scrollable" style="max-width:480px;">
+    <div class="modal-dialog modal-dialog-scrollable" style="max-width:640px;">
         <div class="modal-content">
             <div class="modal-header bg-white border-bottom d-flex align-items-center justify-content-between px-3 py-2 trans-theme">
                 <div class="d-flex align-items-center gap-2">
                     <div class="modal-doc-icon" style="background:#dcfce7;">
                         <i class="bx bx-category modal-doc-icon-inner" style="color:#16a34a;"></i>
                     </div>
-                    <h6 class="modal-title mb-0">Manage Categories</h6>
+                    <h5 class="modal-title mb-0">Manage Categories</h5>
                 </div>
                 <div class="d-flex align-items-center gap-2">
                     <button type="button" class="btn btn-sm btn-outline-primary" id="expAddNewCatFromMgr">
@@ -396,6 +396,9 @@ $this->load->view('common/transactions/header'); ?>
                     <div class="input-group input-group-sm">
                         <span class="input-group-text"><i class="bx bx-search"></i></span>
                         <input type="text" id="catMgrSearch" class="form-control" placeholder="Search categories...">
+                        <button type="button" id="catMgrSearchClear" class="btn btn-outline-secondary d-none" title="Clear search">
+                            <i class="bx bx-x"></i>
+                        </button>
                     </div>
                 </div>
                 <ul class="list-group list-group-flush" id="catMgrList" style="min-height:150px;max-height:380px;overflow-y:auto;">
@@ -403,7 +406,7 @@ $this->load->view('common/transactions/header'); ?>
                         <span class="spinner-border spinner-border-sm text-success"></span>
                     </li>
                 </ul>
-                <div class="d-flex justify-content-center py-2" id="catMgrPagination"></div>
+                <div class="d-flex justify-content-center py-2 px-2" id="catMgrPagination" style="background:#f8f9fb;border-top:1px solid #e9eaec;"></div>
             </div>
         </div>
     </div>
@@ -491,6 +494,12 @@ const ModuleRow    = '.expCheck';
 $(function () {
     'use strict';
 
+    var _pt = sessionStorage.getItem('pendingToast');
+    if (_pt) {
+        try { var _t = JSON.parse(_pt); showToastNotification(_t.message, _t.type); } catch (e) {}
+        sessionStorage.removeItem('pendingToast');
+    }
+
     Filter['Status'] = 'All';
 
     // ── Expense Category Filter (TransColFilter) ─────────────────────────────
@@ -572,6 +581,8 @@ $(function () {
     var fpExpDate       = null;
     var fpExpPmtDate    = null;
     var _expPickersInit = false;
+
+    function _syncSticky() {}
 
     // Init shared payment modal
     initRecordPaymentModal(
@@ -1133,17 +1144,13 @@ $(function () {
     // Modal — Event handlers
     // ══════════════════════════════════════════════════════════
 
-    // Open for Add
-    $('.addExpenseBtn').on('click', function () {
-        _resetExpModal();
-        initExpDropzone();
-        new bootstrap.Modal(document.getElementById('expenseModal')).show();
-        setTimeout(function () { $('#emAmount').focus(); }, 400);
-    });
-
     // Open for Edit
     $(document).on('click', '.expEdit', function () {
-        var uid = $(this).data('uid');
+        window.location.href = '/expenses/edit/' + $(this).data('uid');
+    });
+
+    // (legacy getExpenseDetail kept for detail panel; modal path removed)
+    function _legacyExpenseDetailFetch(uid) {
         $.ajax({
             url: '/expenses/getExpenseDetail', method: 'POST',
             data: { ExpenseUID: uid, [CsrfName]: CsrfToken },
@@ -1155,7 +1162,7 @@ $(function () {
                 new bootstrap.Modal(document.getElementById('expenseModal')).show();
             }
         });
-    });
+    }
 
     // Mark as Paid toggle
     $('#emMarkPaidBtn').on('click', function () {
@@ -1214,20 +1221,24 @@ $(function () {
                 }
                 _expCatData.sort(function (a, b) { return a.name.localeCompare(b.name); });
                 _rebuildExpCatFilter();
-                var $mgr = document.getElementById('expCatManagerModal');
-                if ($mgr && bootstrap.Modal.getInstance($mgr)) _loadCatMgr(1);
                 bootstrap.Modal.getInstance(document.getElementById('addCategoryModal')).hide();
-                showToastNotification(resp.Message || (isEdit ? 'Category updated.' : 'Category added.'), 'success');
+                var toastMsg = resp.Message || (isEdit ? 'Category updated.' : 'Category added.');
+                var $mgr = document.getElementById('expCatManagerModal');
+                if ($mgr && bootstrap.Modal.getInstance($mgr)) {
+                    _loadCatMgr(toastMsg);
+                } else {
+                    showToastNotification(toastMsg, 'success');
+                }
             }
         });
     });
 
     // ── Category Manager ─────────────────────────────────────
-    function _loadCatMgr(pageNo) {
+    function _loadCatMgr(toastMsg) {
         ajaxLoading(0);
         $.ajax({
             url: '/expenses/getCategoryList', method: 'POST',
-            data: { PageNo: pageNo || 1, Search: $.trim($('#catMgrSearch').val()), [CsrfName]: CsrfToken },
+            data: { PageNo: 1, [CsrfName]: CsrfToken },
             success: function (resp) {
                 ajaxLoading(1);
                 if (resp.Error) {
@@ -1235,15 +1246,39 @@ $(function () {
                     return;
                 }
                 $('#catMgrList').html(resp.RecordHtmlData);
-                $('#catMgrPagination').html(resp.Pagination || '');
+                _catMgrFilter();
+                if (toastMsg) showToastNotification(toastMsg, 'success');
             }
         });
     }
 
+    function _catMgrUpdateCount(visible, total) {
+        var text = visible === 0
+            ? 'No results found'
+            : visible === total
+                ? 'Showing 1–' + total + ' of ' + total + ' Results'
+                : 'Showing ' + visible + ' of ' + total + ' Results';
+        $('#catMgrPagination').html('<span style="font-size:.82rem;color:#6b7280;">' + text + '</span>');
+    }
+
+    function _catMgrFilter() {
+        var term    = $.trim($('#catMgrSearch').val()).toLowerCase();
+        var $items  = $('#catMgrList li.list-group-item');
+        var visible = 0;
+        $items.each(function () {
+            var name = $(this).find('.fw-medium').text().toLowerCase();
+            var show = !term || name.indexOf(term) !== -1;
+            $(this).toggle(show);
+            if (show) visible++;
+        });
+        _catMgrUpdateCount(visible, $items.length);
+    }
+
     $('#expManageCatBtn').on('click', function () {
         $('#catMgrSearch').val('');
+        $('#catMgrSearchClear').addClass('d-none');
         new bootstrap.Modal(document.getElementById('expCatManagerModal')).show();
-        _loadCatMgr(1);
+        _loadCatMgr();
     });
 
     $('#expAddNewCatFromMgr').on('click', function () {
@@ -1255,12 +1290,15 @@ $(function () {
         setTimeout(function () { $('#newCategoryName').focus(); }, 350);
     });
 
-    $('#catMgrSearch').on('input', debounce(function () { _loadCatMgr(1); }, 1500));
+    $('#catMgrSearch').on('input', function () {
+        $('#catMgrSearchClear').toggleClass('d-none', $(this).val() === '');
+        _catMgrFilter();
+    });
 
-    $(document).on('click', '#catMgrPagination .page-link', function (e) {
-        e.preventDefault();
-        var match = ($(this).attr('href') || '').match(/\/(\d+)$/);
-        if (match) _loadCatMgr(parseInt(match[1]));
+    $('#catMgrSearchClear').on('click', function () {
+        $('#catMgrSearch').val('');
+        $(this).addClass('d-none');
+        _catMgrFilter();
     });
 
     $(document).on('click', '.catEditBtn', function () {
@@ -1286,13 +1324,12 @@ $(function () {
                 url: '/expenses/deleteCategory', method: 'POST',
                 data: { CategoryUID: uid, [CsrfName]: CsrfToken },
                 success: function (resp) {
-                    if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
+                    if (resp.Error) { showPersistentToast(resp.Message, 'error'); return; }
                     _expCatData = _expCatData.filter(function (c) { return c.uid !== uid; });
                     _rebuildExpCatFilter();
                     var $opt = $('#emCategory option[value="' + uid + '"]');
                     if ($opt.length) { $opt.remove(); if ($.fn.select2 && $('#emCategory').data('select2')) $('#emCategory').trigger('change'); }
-                    _loadCatMgr(1);
-                    showToastNotification(resp.Message || 'Category deleted.', 'success');
+                    _loadCatMgr(resp.Message || 'Category deleted.');
                 }
             });
         });

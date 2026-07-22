@@ -1574,6 +1574,38 @@ class Transactions_model extends MY_Model {
         $hsnTotalIgst    = array_sum(array_map(fn($it) => (float)($it->IgstAmount ?? 0), $items));
         $hsnTotalTax     = round($hsnTotalCgst + $hsnTotalSgst + $hsnTotalIgst, $dec2);
 
+        // ── Party closing balance ─────────────────────────────────────
+        $partyBalAmt  = '';
+        $partyBalShow = '';
+        if (!empty($theme->ShowPartyBalance)) {
+            try {
+                $orgUID   = (int)($CI->pageData['JwtData']->Org->OrgUID ?? 0);
+                $partyUID = (int)($h->PartyUID  ?? 0);
+                $partyType = $h->PartyType ?? '';
+                $bal      = 0.0;
+                $balType  = '';
+                if ($partyUID > 0 && $partyType === 'C') {
+                    $this->ReadDb->db_debug = FALSE;
+                    $this->ReadDb->select(['PendingBalance', 'PendingBalType']);
+                    $this->ReadDb->from('Customers.CustOpeningBalanceTbl');
+                    $this->ReadDb->where(['OrgUID' => $orgUID, 'CustomerUID' => $partyUID, 'IsDeleted' => 0]);
+                    $this->ReadDb->limit(1);
+                    $balRow  = $this->ReadDb->get()->row();
+                    $bal     = (float)($balRow->PendingBalance ?? 0);
+                    $balType = $balRow->PendingBalType ?? 'Debit';
+                } elseif ($partyUID > 0 && $partyType === 'S') {
+                    $this->load->model('Vendors_model');
+                    $result  = $this->Vendors_model->getVendorClosingBalanceFresh($partyUID);
+                    $bal     = $result['balance'];
+                    $balType = $result['balType'];
+                }
+                if ($partyUID > 0 && !empty($balType)) {
+                    $partyBalAmt  = $cur . number_format($bal, $dec) . ' ' . ($balType === 'Debit' ? 'Dr' : 'Cr');
+                    $partyBalShow = '1';
+                }
+            } catch (Exception $_) {}
+        }
+
         // ── Token map ────────────────────────────────────────────────
         $tokens = [
             '{{PRIMARY_COLOR}}'        => $theme->PrimaryColor  ?? '#1a3c6e',
@@ -1615,6 +1647,9 @@ class Transactions_model extends MY_Model {
             '{{DOC_TYPE}}'             => $e($h->TransType ?? 'Document'),
             '{{DOC_NUMBER}}'           => $e($h->UniqueNumber ?? '—'),
             '{{DOC_DATE}}'             => $fmt($h->TransDate ?? ''),
+            '{{DOC_TIME}}'             => (!empty($h->CreatedOn) && ($theme->ShowTime ?? 0)) ? date('h:i A', strtotime($h->CreatedOn)) : '',
+            '{{PARTY_CLOSING_BALANCE}}' => $partyBalAmt,
+            '{{PARTYBAL_SHOW}}'        => $partyBalShow,
             '{{DUE_DATE}}'             => $fmt($h->ValidityDate ?? ''),
             '{{ITEMS_TABLE}}'          => $itemsTable,
             '{{ITEMS_TABLE_ROWS}}'     => $itemRows,
@@ -1980,6 +2015,7 @@ class Transactions_model extends MY_Model {
                 '{{SIGNATURE_SPACE}}'    => $signatureSpaceHtml,
                 /** Misc */
                 '{{NOTES}}'              => $e($p->Notes ?? ''),
+                '{{DOC_TIME}}'           => (!empty($p->CreatedOn) && ($theme->ShowTime ?? 0)) ? date('h:i A', strtotime($p->CreatedOn)) : '',
                 '{{FOOTER_TEXT}}'        => $e($theme->FooterText ?? 'Thank you for your business!'),
                 '{{CURRENCY}}'           => $cur,
                 '{{PAYMENTS_REF}}'       => $payRefText,

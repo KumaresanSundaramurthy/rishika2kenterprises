@@ -3,7 +3,7 @@
 
 function getProFormaInvoicesDetails(pageNo, rowLimit, filter, afterLoad) {
     loadTransactionList({
-        url:            '/proforma/getPageDetails/',
+        url:            '/transactions/getPageDetails/113/',
         tabCountClass:  '.pf-tab-count',
         statusTabClass: '.pf-status-tab',
         errorMessage:   'Failed to load pro forma invoices.',

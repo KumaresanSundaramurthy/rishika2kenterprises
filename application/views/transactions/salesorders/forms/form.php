@@ -402,416 +402,107 @@ var _transTransactionCharges = <?php echo json_encode(array_values($TransactionC
 <script src="/js/transactions/additional_charges.js"></script>
 
 <script>
-const EnableStorage = <?php echo $JwtData->GenSettings->EnableStorage; ?>;
-var _isEdit    = <?php echo $isEdit ? 'true' : 'false'; ?>;
-var _orgState  = '<?php echo addslashes($DispatchAddress->StateText ?? ''); ?>';
-var _upstashUrl       = '<?php echo addslashes($UpstashReadUrl   ?? ''); ?>';
-var _upstashReadToken = '<?php echo addslashes($UpstashReadToken ?? ''); ?>';
-var _custCacheKey     = '<?php echo addslashes($CustomerCacheKey ?? ''); ?>';
-var _returnTab  = <?php echo json_encode($_returnTab); ?>;
-var _returnPage = <?php echo (int)$_returnPage; ?>;
-let imgData;
-
-<?php if ($isEdit): ?>
-var _custState = '<?php echo addslashes($CustAddr->StateText ?? ''); ?>';
-var _editItems = <?php echo json_encode(array_map(function($item) {
-    return [
-        'id'               => (int)  $item->ProductUID,
-        'text'             => $item->ProductName,
-        'itemName'         => $item->ProductName,
-        'description'      => $item->Description   ?? '',
-        'unitPrice'        => (float)$item->UnitPrice,
-        'taxAmount'        => (float)$item->TaxAmount,
-        'sellingPrice'     => (float)$item->SellingPrice,
-        'purchasePrice'    => (float)($item->PurchasePrice ?? 0),
-        'availableQuantity'=> 0,
-        'hsnCode'          => '',
-        'categoryUID'      => $item->CategoryUID ? (int)$item->CategoryUID : null,
-        'categoryName'     => $item->CategoryName  ?? '',
-        'storageUID'       => $item->StorageUID  ? (int)$item->StorageUID  : null,
-        'taxPercent'       => (float)$item->TaxPercentage,
-        'cgstPercent'      => (float)$item->CGST,
-        'sgstPercent'      => (float)$item->SGST,
-        'igstPercent'      => (float)$item->IGST,
-        'taxDetailsUID'    => (int)  $item->TaxDetailsUID,
-        'quantity'         => (float)$item->Quantity,
-        'partNumber'       => $item->PartNumber      ?? '',
-        'primaryUnit'      => $item->PrimaryUnitName ?? '',
-        'discount'         => (float)$item->Discount,
-        'discountType'     => 'Percentage',
-        'discountTypeUID'  => $item->DiscountTypeUID ? (int)$item->DiscountTypeUID : null,
-        'discount_amount'  => (float)$item->DiscountAmount,
-        'line_total'       => (float)$item->TaxableAmount,
-        'net_total'        => (float)$item->NetAmount,
-    ];
-}, $SOItems)); ?>;
-<?php else: ?>
-<?php if (!empty($QuotationData)): ?>
-var _fromQuotation = <?php echo json_encode([
-    'uid'            => (int)$FromQuotationUID,
-    'customer'       => (int)$QuotationData->PartyUID,
-    'customerName'   => $QuotationData->PartyName   ?? '',
-    'customerArea'   => $QuotationData->PartyArea   ?? '',
-    'customerMobile' => $QuotationData->PartyMobile ?? '',
+var _transFormData = <?php echo json_encode([
+    'isEdit'       => $isEdit,
+    'isDraftEdit'  => $isDraftEdit,
+    'moduleUID'    => (int)($JwtData->ModuleUID ?? 0),
+    'enableStorage'=> (bool)$JwtData->GenSettings->EnableStorage,
+    'formId'       => $formId,
+    'formAction'   => $formAction,
+    'orgState'     => $DispatchAddress->StateText ?? '',
+    'upstashUrl'   => $UpstashReadUrl   ?? '',
+    'upstashToken' => $UpstashReadToken ?? '',
+    'custCacheKey' => $CustomerCacheKey ?? '',
+    'returnTab'    => $_returnTab,
+    'returnPage'   => (int)$_returnPage,
+    'currency'     => $JwtData->GenSettings->CurrenySymbol ?? '₹',
+    'decimals'     => (int)($JwtData->GenSettings->DecimalPoints ?? 2),
+    'editData'     => $isEdit ? [
+        'transUID'          => (int)$SOData->TransUID,
+        'custUID'           => (int)($SOData->PartyUID ?? 0),
+        'custName'          => $SOData->PartyName ?? '',
+        'custState'         => $CustAddr->StateText ?? '',
+        'extraDiscAmount'   => (float)($SOData->ExtraDiscAmount ?? 0),
+        'extraDiscType'     => $SOData->ExtraDiscType ?? '',
+        'globalDiscPercent' => (float)($SOData->GlobalDiscPercent ?? 0),
+        'items'             => array_map(function($item) {
+            return [
+                'id'               => (int)  $item->ProductUID,
+                'text'             => $item->ProductName,
+                'itemName'         => $item->ProductName,
+                'description'      => $item->Description   ?? '',
+                'unitPrice'        => (float)$item->UnitPrice,
+                'taxAmount'        => (float)$item->TaxAmount,
+                'sellingPrice'     => (float)$item->SellingPrice,
+                'purchasePrice'    => (float)($item->PurchasePrice ?? 0),
+                'availableQuantity'=> 0,
+                'hsnCode'          => '',
+                'categoryUID'      => $item->CategoryUID ? (int)$item->CategoryUID : null,
+                'categoryName'     => $item->CategoryName  ?? '',
+                'storageUID'       => $item->StorageUID  ? (int)$item->StorageUID  : null,
+                'taxPercent'       => (float)$item->TaxPercentage,
+                'cgstPercent'      => (float)$item->CGST,
+                'sgstPercent'      => (float)$item->SGST,
+                'igstPercent'      => (float)$item->IGST,
+                'taxDetailsUID'    => (int)  $item->TaxDetailsUID,
+                'quantity'         => (float)$item->Quantity,
+                'partNumber'       => $item->PartNumber      ?? '',
+                'primaryUnit'      => $item->PrimaryUnitName ?? '',
+                'discount'         => (float)$item->Discount,
+                'discountType'     => 'Percentage',
+                'discountTypeUID'  => $item->DiscountTypeUID ? (int)$item->DiscountTypeUID : null,
+                'discount_amount'  => (float)$item->DiscountAmount,
+                'line_total'       => (float)$item->TaxableAmount,
+                'net_total'        => (float)$item->NetAmount,
+            ];
+        }, $SOItems ?? []),
+    ] : null,
+    'fromQuotation' => (!$isEdit && !empty($QuotationData)) ? [
+        'uid'            => (int)($FromQuotationUID ?? 0),
+        'customer'       => (int)$QuotationData->PartyUID,
+        'customerName'   => $QuotationData->PartyName   ?? '',
+        'customerArea'   => $QuotationData->PartyArea   ?? '',
+        'customerMobile' => $QuotationData->PartyMobile ?? '',
+    ] : null,
+    'fromQuotAttachments' => (!$isEdit && !empty($QuotationData)) ? array_map(function($a) {
+        return [
+            'AttachUID' => (int)$a->AttachUID,
+            'FileName'  => $a->FileName ?? '',
+            'FilePath'  => $a->FilePath ?? '',
+            'FileSize'  => (int)($a->FileSize ?? 0),
+            'FileType'  => $a->FileType ?? '',
+            'Url'       => $a->Url ?? '',
+        ];
+    }, $QuotationAttachments ?? []) : [],
+    'fromQuotItems' => (!$isEdit && !empty($QuotationData)) ? array_map(function($item) {
+        return [
+            'id'               => (int)   $item->ProductUID,
+            'text'             => $item->ProductName,
+            'itemName'         => $item->ProductName,
+            'unitPrice'        => (float) $item->UnitPrice,
+            'sellingPrice'     => (float) $item->SellingPrice,
+            'taxAmount'        => (float) $item->TaxAmount,
+            'purchasePrice'    => 0,
+            'availableQuantity'=> 0,
+            'hsnCode'          => '',
+            'categoryUID'      => $item->CategoryUID ? (int)$item->CategoryUID : null,
+            'storageUID'       => $item->StorageUID  ? (int)$item->StorageUID  : null,
+            'taxPercent'       => (float) $item->TaxPercentage,
+            'cgstPercent'      => (float) $item->CGST,
+            'sgstPercent'      => (float) $item->SGST,
+            'igstPercent'      => (float) $item->IGST,
+            'taxDetailsUID'    => (int)   $item->TaxDetailsUID,
+            'quantity'         => (float) $item->Quantity,
+            'partNumber'       => $item->PartNumber      ?? '',
+            'primaryUnit'      => $item->PrimaryUnitName ?? '',
+            'discount'         => (float) $item->Discount,
+            'discountType'     => 'Percentage',
+            'discountTypeUID'  => $item->DiscountTypeUID ? (int)$item->DiscountTypeUID : null,
+            'discount_amount'  => (float) $item->DiscountAmount,
+            'line_total'       => (float) $item->TaxableAmount,
+            'net_total'        => (float) $item->NetAmount,
+        ];
+    }, $QuotationItems ?? []) : [],
 ]); ?>;
-var _fromQuotAttachments = <?php echo json_encode(array_map(function($a) {
-    return [
-        'AttachUID' => (int)$a->AttachUID,
-        'FileName'  => $a->FileName ?? '',
-        'FilePath'  => $a->FilePath ?? '',
-        'FileSize'  => (int)($a->FileSize ?? 0),
-        'FileType'  => $a->FileType ?? '',
-        'Url'       => $a->Url ?? '',
-    ];
-}, $QuotationAttachments ?? [])); ?>;
-var _fromQuotItems = <?php echo json_encode(array_map(function($item) {
-    return [
-        'id'               => (int)   $item->ProductUID,
-        'text'             => $item->ProductName,
-        'itemName'         => $item->ProductName,
-        'unitPrice'        => (float) $item->UnitPrice,
-        'sellingPrice'     => (float) $item->SellingPrice,
-        'taxAmount'        => (float) $item->TaxAmount,
-        'purchasePrice'    => 0,
-        'availableQuantity'=> 0,
-        'hsnCode'          => '',
-        'categoryUID'      => $item->CategoryUID ? (int)$item->CategoryUID : null,
-        'storageUID'       => $item->StorageUID  ? (int)$item->StorageUID  : null,
-        'taxPercent'       => (float) $item->TaxPercentage,
-        'cgstPercent'      => (float) $item->CGST,
-        'sgstPercent'      => (float) $item->SGST,
-        'igstPercent'      => (float) $item->IGST,
-        'taxDetailsUID'    => (int)   $item->TaxDetailsUID,
-        'quantity'         => (float) $item->Quantity,
-        'partNumber'       => $item->PartNumber      ?? '',
-        'primaryUnit'      => $item->PrimaryUnitName ?? '',
-        'discount'         => (float) $item->Discount,
-        'discountType'     => 'Percentage',
-        'discountTypeUID'  => $item->DiscountTypeUID ? (int)$item->DiscountTypeUID : null,
-        'discount_amount'  => (float) $item->DiscountAmount,
-        'line_total'       => (float) $item->TaxableAmount,
-        'net_total'        => (float) $item->NetAmount,
-    ];
-}, $QuotationItems ?? [])); ?>;
-<?php else: ?>
-var _fromQuotation = null;
-var _fromQuotItems = [];
-<?php endif; ?>
-<?php endif; ?>
-
-$(function() {
-    'use strict'
-
-    searchCustomers('customerSearch');
-    transDatePickr('#transDate_disp',   '#transDate',    false, false, true,  true,  '');
-    transDatePickr('#deliveryDate_disp','#deliveryDate', false, false, false, false, '#transDate');
-
-    <?php if (!$isEdit): ?>
-    var _soCur = '<?php echo addslashes($JwtData->GenSettings->CurrenySymbol ?? "₹"); ?>';
-    window._showOnAccountBanner = function(total) {
-        if ((parseFloat(total) || 0) > 0) {
-            $('#onAccountTotal').text(_soCur + ' ' + parseFloat(total).toFixed(2));
-            $('#onAccountIndicator').removeClass('d-none');
-        } else {
-            $('#onAccountIndicator').addClass('d-none');
-        }
-    };
-    $('#customerSearch').on('select2:clear change', function() {
-        if (!parseInt($(this).val(), 10)) $('#onAccountIndicator').addClass('d-none');
-    });
-    <?php endif; ?>
-
-    <?php if ($isEdit): ?>
-    initTransAttachments(<?php echo $transUID; ?>, '/transactions/getAttachments', 102);
-
-    <?php if (!empty($SOData->PartyUID)): ?>
-    $('#customerSearch').append(new Option(
-        '<?php echo addslashes($SOData->PartyName ?? ''); ?>',
-        <?php echo (int)$SOData->PartyUID; ?>, true, true
-    )).trigger('change');
-    <?php endif; ?>
-
-    $('#extraDiscount').val('<?php echo smartDecimal($SOData->ExtraDiscAmount ?? 0); ?>');
-    $('#extDiscountType').val('<?php echo addslashes($SOData->ExtraDiscType ?? ''); ?>').trigger('change');
-    $('#globalDiscount').val('<?php echo smartDecimal($SOData->GlobalDiscPercent ?? 0); ?>').trigger('input');
-
-    if (typeof billManager !== 'undefined' && _orgState && _custState) {
-        billManager.isInterState = (_custState.trim().toLowerCase() !== _orgState.trim().toLowerCase());
-    }
-
-    if (typeof billManager !== 'undefined' && typeof formationTableBillItems === 'function'
-            && Array.isArray(_editItems) && _editItems.length > 0) {
-        $('#billTableBody').empty();
-        _editItems.forEach(function(item) {
-            var added = billManager.addItem(item, item.quantity);
-            if (added !== false) {
-                formationTableBillItems(billManager.getItemById(item.id));
-            }
-        });
-        if (typeof updateItemTaxBreakdown === 'function') updateItemTaxBreakdown();
-        billManager.updateSummary();
-    }
-    <?php else: ?>
-    if (_fromQuotation && _fromQuotation.uid > 0) {
-
-        // 1. Auto-select customer and lock — conversion must use the same customer
-        if (_fromQuotation.customer > 0) {
-            var _soCustLabel = _fromQuotation.customerName;
-            if (_fromQuotation.customerArea)   _soCustLabel += ', ' + _fromQuotation.customerArea;
-            if (_fromQuotation.customerMobile) _soCustLabel += ' (' + _fromQuotation.customerMobile + ')';
-            $('#customerSearch')
-                .append(new Option(_soCustLabel, _fromQuotation.customer, true, true))
-                .trigger('change')
-                .prop('disabled', true);
-        }
-        // Hide Add Customer button and the search-modal icon (not applicable on conversion)
-        $('#addTransCustomer').hide();
-        $('#openCustomerSearchModal').hide();
-
-        // 2. Delivery date = today + 7 days, pre-set by PHP in the value attribute.
-        //    transDatePickr reads it via existingVal on init — nothing needed here.
-
-        // 3. Load quotation items into bill
-        if (typeof billManager !== 'undefined' && typeof formationTableBillItems === 'function'
-                && Array.isArray(_fromQuotItems) && _fromQuotItems.length > 0) {
-            $('#billTableBody').empty();
-            var _convIds = []; // track conversion item IDs to lock their delete buttons
-            _fromQuotItems.forEach(function(item) {
-                var added = billManager.addItem(item, item.quantity);
-                if (added !== false) {
-                    formationTableBillItems(billManager.getItemById(item.id));
-                    _convIds.push(item.id);
-                }
-            });
-
-            // Hide delete icon for every conversion item row (they are locked)
-            _convIds.forEach(function(id) {
-                $('button.deleteBillItem[data-id="' + id + '"]').addClass('d-none');
-            });
-            if (typeof updateItemTaxBreakdown === 'function') updateItemTaxBreakdown();
-            billManager.updateSummary();
-
-            // Lock Clear All — conversion items must stay in the cart
-            var _clearBtn = document.getElementById('btnClearCart');
-            if (_clearBtn) _clearBtn.setAttribute('style', 'display:none!important');
-
-            // 4. Sync grand-total display (the sticky IIFE _sync ran before items loaded)
-            var _grand   = (billManager.summary && billManager.summary.totals)   ? (billManager.summary.totals.grandTotal   || 0) : 0;
-            var _tax     = (billManager.summary && billManager.summary.taxTotals) ? (billManager.summary.taxTotals.totalTax  || 0) : 0;
-            var _cur     = '<?php echo addslashes($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>';
-            var _fmtAmt  = function(n) { return _cur + ' ' + parseFloat(n).toFixed(2); };
-            ['stickyGrandTotal', 'inlineGrandTotal'].forEach(function(id) {
-                var el = document.getElementById(id); if (el) el.textContent = _fmtAmt(_grand);
-            });
-            ['stickyTotalTax', 'inlineTotalTax'].forEach(function(id) {
-                var el = document.getElementById(id); if (el) el.textContent = parseFloat(_tax).toFixed(2);
-            });
-        }
-
-        // 5. Load quotation attachments from controller-passed data (no AJAX)
-        if (typeof renderTransAttachmentsFromData === 'function' && Array.isArray(_fromQuotAttachments)) {
-            renderTransAttachmentsFromData(_fromQuotAttachments);
-        }
-    }
-    <?php endif; ?>
-
-    var $form = $('#<?php echo $formId; ?>');
-    if ($form.length) {
-
-        $form.on('submit', function(e) {
-            e.preventDefault();
-
-            var $btn     = $('button[type="submit"][name="action"]:focus, button[type="submit"][name="action"].active-submit', $form);
-            var action   = $btn.val() || 'save';
-            var csrfName = $form.data('csrf');
-            var csrfVal  = $form.data('csrf-value');
-
-            var customerUID = parseInt($('#customerSearch').val(), 10);
-            if (!customerUID || customerUID <= 0) return showFormError('Please select a customer.');
-
-            if (!_isEdit && action !== 'draft') {
-                var prefixUID = parseInt($('#transPrefixSelect').val(), 10);
-                if (!prefixUID || prefixUID <= 0) return showFormError('Please select a sales order prefix.');
-
-                var transNumber = $.trim($('#transNumber').val());
-                if (!transNumber || parseInt(transNumber, 10) <= 0) return showFormError('Transaction number must be greater than 0.');
-            }
-
-            var transDate = $.trim($('#transDate').val());
-            if (!transDate || !/^\d{4}-\d{2}-\d{2}$/.test(transDate)) return showFormError('Please enter a valid order date.');
-
-            var items = typeof billManager !== 'undefined' ? billManager.getAllItems() : [];
-            if (!items || items.length === 0) return showFormError('Please add at least one product.');
-
-            if (!_isEdit) {
-                for (var i = 0; i < items.length; i++) {
-                    var item = items[i];
-                    var qty  = parseFloat(item.quantity);
-                    if (!qty || qty <= 0) return showFormError('Row ' + (i + 1) + ': Quantity must be greater than 0.');
-                    if (parseFloat(item.unitPrice) < 0) return showFormError('Row ' + (i + 1) + ': Price cannot be negative.');
-                }
-            }
-
-            var bm            = typeof billManager !== 'undefined' ? billManager : null;
-            var summary       = bm ? bm.summary : {};
-            var netAmount     = summary.totals    ? (summary.totals.grandTotal       || 0) : 0;
-            var subTotal      = summary.items     ? (summary.items.taxableAmount     || 0) : 0;
-            var discountAmt   = summary.items     ? (summary.items.discountTotal     || 0) : 0;
-            var taxAmt        = summary.taxTotals ? (summary.taxTotals.totalTax      || 0) : 0;
-            var cgstAmt       = summary.taxTotals ? (summary.taxTotals.cgstTotal     || 0) : 0;
-            var sgstAmt       = summary.taxTotals ? (summary.taxTotals.sgstTotal     || 0) : 0;
-            var igstAmt       = summary.taxTotals ? (summary.taxTotals.igstTotal     || 0) : 0;
-            var addCharges    = (summary.additionalCharges && summary.additionalCharges.total) ? (summary.additionalCharges.total.grossAmount || 0) : 0;
-            var globalDiscPct = bm ? (bm.globalDiscountPercent || 0) : 0;
-            var roundOff      = summary.extra ? (summary.extra.roundOff || 0) : 0;
-            var extraDisc     = parseFloat($('#extraDiscount').val()) || 0;
-
-            var charges = { AdditionalCharges: JSON.stringify(typeof collectAdditionalCharges === 'function' ? collectAdditionalCharges() : []) };
-
-            var postData = $.extend({
-                transPrefixSelect      : parseInt($('#transPrefixSelect').val(), 10) || 0,
-                transNumber            : $.trim($('#transNumber').val()),
-                transDate              : transDate,
-                deliveryDate           : $.trim($('#deliveryDate').val()),
-                customerSearch         : customerUID,
-                orderType              : $('#orderType').val() || '',
-                dispatchFrom           : $('#dispatchFrom').val() || '',
-                referenceDetails       : $.trim($('#referenceDetails').val()),
-                transNotes             : $.trim($('#transNotes').val()),
-                transTermsCond         : $.trim($('#transTermsCond').val()),
-                placeOfSupplyCode      : $('#placeOfSupplyCode').val() || '',
-                placeOfSupplyName      : $('#placeOfSupplyName').val() || '',
-                extraDiscount          : extraDisc,
-                extDiscountType        : $('#extDiscountType').val() || '',
-                SubTotal               : subTotal,
-                DiscountAmount         : discountAmt,
-                TaxAmount              : taxAmt,
-                CgstAmount             : cgstAmt,
-                SgstAmount             : sgstAmt,
-                IgstAmount             : igstAmt,
-                AdditionalChargesTotal : addCharges,
-                GlobalDiscPercent      : globalDiscPct,
-                RoundOff               : roundOff,
-                NetAmount              : netAmount,
-                Items                  : JSON.stringify(items),
-                SignatureUID           : parseInt($('#transSignatureUID').val(), 10) || 0,
-                action                 : action,
-                [csrfName]             : csrfVal,
-            }, charges);
-
-            if (_isEdit) {
-                postData.TransUID = parseInt($('input[name="TransUID"]').val(), 10);
-            } else {
-                postData.fromQuotationUID = parseInt($('#fromQuotationUID').val(), 10) || 0;
-            }
-
-            var formData = new FormData();
-            $.each(postData, function(k, v) { formData.append(k, v); });
-            collectTransAttachData(formData);
-            if (typeof _plTransInjectFormData === 'function') _plTransInjectFormData(formData);
-
-            setFormLoading('#<?php echo $formId; ?>', true, action);
-
-            $.ajax({
-                url         : '/<?php echo $formAction; ?>',
-                method      : 'POST',
-                data        : formData,
-                processData : false,
-                contentType : false,
-                cache       : false,
-                success: function(response) {
-                    if (response.Error) {
-                        setFormLoading('#<?php echo $formId; ?>', false);
-                        showFormError(response.Message);
-                    } else {
-                        _setPendingToast('_soPendingToast', response.Message, 'success');
-                        window.location.href = _buildReturnUrl('/salesorders');
-                    }
-                },
-                error: function() {
-                    setFormLoading('#<?php echo $formId; ?>', false);
-                    showFormError('Server error. Please try again.');
-                }
-            });
-        });
-
-        $form.on('click', 'button[type="submit"][name="action"]', function() {
-            $form.find('button[type="submit"][name="action"]').removeClass('active-submit');
-            $(this).addClass('active-submit');
-        });
-
-    }
-
-});
 </script>
-<script>
-(function () {
-    var _formEl   = document.getElementById('<?php echo $formId; ?>');
-    var _barEl    = document.getElementById('stickyBottomBar');
-    var _inlineEl = document.getElementById('inlineSummaryBar');
-    if (!_barEl || !_inlineEl) return;
-
-    var cur = '<?php echo addslashes($JwtData->GenSettings->CurrenySymbol ?? "₹"); ?>';
-    var dec = <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>;
-    function _r2(n) { return parseFloat((+n || 0).toFixed(dec)); }
-    function _fmt(n) { return cur + ' ' + _r2(n).toFixed(dec); }
-
-    function _alignStickyBar() {
-        if (!_formEl) return;
-        var rect = _formEl.getBoundingClientRect();
-        var vpW  = document.documentElement.clientWidth;
-        _barEl.style.left  = rect.left + 'px';
-        _barEl.style.right = (vpW - rect.right) + 'px';
-        _barEl.style.width = 'auto';
-    }
-
-    function _sync() {
-        if (typeof billManager === 'undefined') return;
-        var grand = (billManager.summary && billManager.summary.totals)
-            ? (billManager.summary.totals.grandTotal || 0) : 0;
-        var tax   = (billManager.summary && billManager.summary.taxTotals)
-            ? (billManager.summary.taxTotals.totalTax || 0) : 0;
-        ['stickyGrandTotal','inlineGrandTotal'].forEach(function (id) {
-            var el = document.getElementById(id); if (el) el.textContent = _fmt(grand);
-        });
-        ['stickyTotalTax','inlineTotalTax'].forEach(function (id) {
-            var el = document.getElementById(id); if (el) el.textContent = _fmt(tax);
-        });
-    }
-
-    var _obs = new IntersectionObserver(function (entries) {
-        if (!entries[0].isIntersecting) { _alignStickyBar(); _barEl.style.display = 'flex'; }
-        else { _barEl.style.display = 'none'; }
-    }, { threshold: 0.1 });
-    _obs.observe(_inlineEl);
-    _barEl.style.display = 'none';
-    window.addEventListener('resize', _alignStickyBar);
-
-    function _delegate(val) {
-        var sel = (val === 'save' || !val)
-            ? 'button[name="action"][value="save"][type="submit"]'
-            : 'button[name="action"][value="' + val + '"]';
-        var btn = _formEl && _formEl.querySelector(sel);
-        if (!btn && (val === 'save' || !val)) btn = _formEl && _formEl.querySelector('button[name="action"][value="save"]');
-        if (btn) btn.click();
-    }
-
-    ['stickySaveBtn','inlineSaveBtn'].forEach(function (id) {
-        var el = document.getElementById(id);
-        if (el) el.addEventListener('click', function () { _delegate('save'); });
-    });
-    ['stickyDraftBtn','inlineDraftBtn'].forEach(function (id) {
-        var el = document.getElementById(id);
-        if (el) el.addEventListener('click', function () { _delegate('draft'); });
-    });
-    document.addEventListener('click', function (e) {
-        var t = e.target.closest('[data-sticky-action],[data-inline-action]');
-        if (!t) return;
-        _delegate(t.dataset.stickyAction || t.dataset.inlineAction);
-    });
-
-    var _totEl = document.getElementById('bill_tot_amt');
-    if (_totEl) new MutationObserver(_sync).observe(_totEl, { childList: true, subtree: true, characterData: true });
-    _sync();
-})();
-</script>
+<script src="/js/transactions/forms/salesorder.js"></script>

@@ -107,7 +107,7 @@ $this->load->view('common/transactions/header'); ?>
                         <!-- Tabs Row -->
                         <div class="apex-tabs-row">
                             <ul class="nav trans-status-tabs gap-1" id="incStatusTabs" role="tablist">
-                                <li class="nav-item"><a class="nav-link active inc-status-tab" data-status="All"       href="javascript:void(0);">All       <span class="trans-tab-count ms-1<?php echo $ModAllCount > 0 ? '' : ' d-none'; ?>"><?php echo $ModAllCount > 0 ? $ModAllCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link active inc-status-tab" data-status="All"       href="javascript:void(0);">All       <span class="inc-tab-count trans-tab-count ms-1<?php echo $ModAllCount > 0 ? '' : ' d-none'; ?>"><?php echo $ModAllCount > 0 ? $ModAllCount : ''; ?></span></a></li>
                                 <li class="nav-item"><a class="nav-link inc-status-tab"        data-status="Pending"   href="javascript:void(0);">Pending   <span class="inc-tab-count trans-tab-count ms-1 d-none"></span></a></li>
                                 <li class="nav-item"><a class="nav-link inc-status-tab"        data-status="Received"  href="javascript:void(0);">Received  <span class="inc-tab-count trans-tab-count ms-1 d-none"></span></a></li>
                                 <li class="nav-item"><a class="nav-link inc-status-tab"        data-status="Cancelled" href="javascript:void(0);">Cancelled <span class="inc-tab-count trans-tab-count ms-1 d-none"></span></a></li>
@@ -187,7 +187,7 @@ $this->load->view('common/transactions/header'); ?>
                         <!-- Basic Details -->
                         <div class="card mb-3">
                             <div class="card-header py-2">
-                                <h6 class="mb-0">Basic Details</h6>
+                                <h5 class="mb-0">Basic Details</h5>
                             </div>
                             <div class="card-body">
 
@@ -208,8 +208,8 @@ $this->load->view('common/transactions/header'); ?>
                                 <!-- Date + Category -->
                                 <div class="row g-3 mb-3">
                                     <div class="col-md-6">
-                                        <label class="form-label fw-semibold">Income Date</label>
-                                        <input type="date" class="form-control" id="imDate">
+                                        <label class="form-label fw-semibold">Date</label>
+                                        <input type="text" class="form-control" id="imDate" placeholder="Select date" readonly>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label fw-semibold">
@@ -242,18 +242,27 @@ $this->load->view('common/transactions/header'); ?>
 
                         <!-- Attachments -->
                         <div class="card mb-0">
-                            <div class="card-body p-3">
-                                <h6 class="mb-2 fw-semibold">
-                                    <i class="bx bx-paperclip me-1 text-muted"></i>Attach Files
-                                    <small class="text-muted fw-normal ms-1">(Max 3, 3 MB each)</small>
-                                </h6>
-                                <div class="dropzone needsclick p-3 dz-clickable w-100" id="incAttachDropzone">
-                                    <div class="dz-message needsclick text-center">
-                                        <i class="upload-icon mb-3"></i>
-                                        <p class="h5 needsclick mb-2">Drag and drop files here</p>
-                                        <p class="h4 text-body-secondary fw-normal mb-0">or click to browse (max 3 MB per file)</p>
+                            <div class="card-header modal-header-center-sticky p-2 mb-3 d-flex align-items-center justify-content-between">
+                                <h5 class="modal-title d-flex align-items-center gap-2 mb-0" style="font-size:.92rem;">
+                                    <span class="d-flex align-items-center gap-2">
+                                        <i class="bx bx-paperclip" style="color:#6366f1;font-size:1.1rem;"></i>
+                                        Attach Files
+                                    </span>
+                                </h5>
+                                <span id="transAttachBadge" class="badge rounded-pill d-none"
+                                      style="background:#ede9fe;color:#6366f1;font-size:.7rem;font-weight:600;"></span>
+                            </div>
+                            <div class="card-body px-3 pt-0 pb-3">
+                                <div id="transAttachZone" class="prod-attach-zone" onclick="_attachZoneTrigger('Transaction', event)">
+                                    <div id="transAttachEmpty" class="prod-attach-empty">
+                                        <i class="bx bx-upload" id="transAttachIcon" style="font-size:1.4rem;color:#9ca3af;display:block;margin-bottom:3px;"></i>
+                                        <div id="transAttachLabel" style="font-size:.78rem;font-weight:600;color:#6b7280;">Drag &amp; drop files here</div>
                                     </div>
                                 </div>
+                                <span id="transAttachHint" style="font-size:.72rem;color:#9ca3af;"></span>
+                                <div id="transAttachList" class="prod-attach-list mt-2" style="display:none;"></div>
+                                <input type="file" id="transAttachInput" multiple style="display:none;">
+                                <input type="hidden" id="RemovedAttachIDs" name="RemovedAttachIDs" value="">
                             </div>
                         </div>
 
@@ -266,7 +275,7 @@ $this->load->view('common/transactions/header'); ?>
                         <div class="card mb-0">
                             <div class="card-header py-2">
                                 <div class="d-flex align-items-center justify-content-between">
-                                    <h6 class="mb-0">Payment</h6>
+                                    <h5 class="mb-0">Payment</h5>
                                     <button type="button" id="imMarkReceivedBtn"
                                             class="btn btn-sm btn-outline-secondary" style="min-width:140px;">
                                         <i class="bx bx-credit-card me-1"></i>Mark as Received
@@ -280,7 +289,7 @@ $this->load->view('common/transactions/header'); ?>
                                     <!-- Payment Date -->
                                     <div class="mb-3">
                                         <label class="form-label fw-semibold" style="font-size:.85rem;">Payment Date</label>
-                                        <input type="date" class="form-control" id="imPmtDate">
+                                        <input type="text" class="form-control" id="imPmtDate" placeholder="Select date" readonly>
                                     </div>
 
                                     <!-- Payment Type pills -->
@@ -351,7 +360,7 @@ $this->load->view('common/transactions/header'); ?>
                     <div class="modal-doc-icon" style="background:#dcfce7;">
                         <i class="bx bx-category modal-doc-icon-inner" style="color:#059669;"></i>
                     </div>
-                    <h6 class="modal-title mb-0">Manage Categories</h6>
+                    <h5 class="modal-title mb-0">Manage Categories</h5>
                 </div>
                 <div class="d-flex align-items-center gap-2">
                     <button type="button" class="btn btn-sm btn-outline-primary" id="incAddNewCatFromMgr">
@@ -494,16 +503,31 @@ const ModuleRow    = '.incCheck';
 $(function () {
     'use strict';
 
-    Filter['Status'] = 'All';
+    Filter['Status']   = 'All';
+    Filter['DateFrom'] = '<?php echo $InitDateFrom ?? date('Y-m-01'); ?>';
+    Filter['DateTo']   = '<?php echo $InitDateTo   ?? date('Y-m-t');  ?>';
 
     var incCurSymbol    = '<?php echo addslashes($cur); ?>';
     var incDecPoints    = <?php echo (int)$dec; ?>;
-    var incDropzone     = null;
     var _incIsEdit      = false;
+
+    $('#imAmount').on('input', function () {
+        var v = $(this).val();
+        if (incDecPoints === 0) {
+            $(this).val(v.replace(/\.\d*$/, ''));
+        } else {
+            var parts = v.split('.');
+            if (parts[1] && parts[1].length > incDecPoints) {
+                $(this).val(parts[0] + '.' + parts[1].slice(0, incDecPoints));
+            }
+        }
+    });
     var _noBankTypes    = ['Cash'];
     var fpIncDate       = null;
     var fpIncPmtDate    = null;
     var _incPickersInit = false;
+
+    function _syncSticky() {}
 
     // Init shared payment modal
     initRecordPaymentModal(
@@ -516,8 +540,7 @@ $(function () {
         incCurSymbol
     );
     window.rpAfterSuccess = function (resp) {
-        if (resp.SummaryStats) _updateStatCards(resp.SummaryStats);
-        _syncSticky();
+        _renderList(resp);
     };
 
     // ── List helpers ─────────────────────────────────────────
@@ -679,19 +702,9 @@ $(function () {
         Filter.Name = $.trim($(this).val()); PageNo = 1; getIncomeDetails();
     }, 1500));
 
-    // Seed filter with This Month for initial AJAX calls
-    var _incInitDr = getDateRange('this_month');
-    Filter.DateFrom = _incInitDr.from;
-    Filter.DateTo   = _incInitDr.to;
-
-    $(document).on('click', '.date-option', function () {
-        var range = $(this).data('range') || '';
-        if (range === 'custom') return;
-        var dates = getDateRange(range);
-        Filter.DateFrom = dates.from; Filter.DateTo = dates.to;
-        var _lbl = $.trim($(this).clone().children('.df-date-preview').remove().end().text());
-        if (_lbl) $('#dateFilterLabel').text(_lbl);
-        $('.date-option').removeClass('active'); $(this).addClass('active');
+    $(document).on('r2k:datechange', function (e, dr) {
+        Filter.DateFrom = dr.from || '';
+        Filter.DateTo   = dr.to   || '';
         PageNo = 1; getIncomeDetails();
     });
 
@@ -790,6 +803,14 @@ $(function () {
         });
     }
 
+    $(document).on('click', '.transPayAttachBtn', function (e) {
+        e.stopPropagation();
+        var uid = $(this).data('uid');
+        var num = $(this).data('num') || '';
+        var url = $(this).data('url') || '/indirectincome/getPaymentAttachments';
+        openTransAttachModal(uid, num, url, '#059669', 'Payment Attachments', 115);
+    });
+
     $(document).on('click', '.pay-mode-clickable', function (e) {
         if ($(e.target).closest('.transPayAttachBtn').length) return;
         e.stopPropagation();
@@ -857,66 +878,6 @@ $(function () {
     });
 
     // ══════════════════════════════════════════════════════════
-    // Modal — Dropzone init
-    // ══════════════════════════════════════════════════════════
-    function initIncDropzone() {
-        var el = document.querySelector('#incAttachDropzone');
-        if (!el) return;
-        if (el.dropzone)  { try { el.dropzone.destroy();  } catch (e) {} }
-        if (incDropzone)  { try { incDropzone.destroy();  } catch (e) {} incDropzone = null; }
-        Dropzone.instances = Dropzone.instances.filter(function (d) { return d.element !== el; });
-        el.classList.remove('dz-started');
-
-        incDropzone = new Dropzone(el, {
-            url: '#',
-            autoProcessQueue: false,
-            parallelUploads: 3,
-            maxFilesize: 3,
-            maxFiles: 3,
-            acceptedFiles: '.pdf,.png,.jpg,.jpeg',
-            addRemoveLinks: true,
-            previewTemplate: `
-                <div class="dz-preview dz-file-preview">
-                    <div class="dz-details">
-                        <div class="dz-thumbnail">
-                            <img data-dz-thumbnail>
-                            <span class="dz-nopreview">No preview</span>
-                            <div class="dz-success-mark"></div>
-                            <div class="dz-error-mark"></div>
-                            <div class="dz-error-message"><span data-dz-errormessage></span></div>
-                            <div class="progress">
-                                <div class="progress-bar progress-bar-primary" role="progressbar" aria-valuemin="0" aria-valuemax="100" data-dz-uploadprogress></div>
-                            </div>
-                        </div>
-                        <div class="dz-filename" data-dz-name></div>
-                        <div class="dz-size" data-dz-size></div>
-                    </div>
-                </div>`,
-            init: function () {
-                var dz = this;
-                dz.on('addedfile', function (file) {
-                    var totalSize = 0;
-                    dz.files.forEach(function (f) { totalSize += f.size; });
-                    if (totalSize > 9 * 1024 * 1024) {
-                        dz.removeFile(file);
-                        Swal.fire({ icon: 'error', title: 'File too large', text: 'Total upload size cannot exceed 9 MB (3 files × 3 MB).' });
-                    }
-                });
-                dz.on('error', function (file, message) {
-                    if (file.size > dz.options.maxFilesize * 1024 * 1024) {
-                        Swal.fire({ icon: 'error', title: 'File too large', text: 'Each file must be 3 MB or smaller.' });
-                        dz.removeFile(file);
-                    }
-                });
-                dz.on('maxfilesexceeded', function (file) {
-                    dz.removeFile(file);
-                    Swal.fire({ icon: 'error', title: 'Limit Reached', text: 'Maximum 3 files allowed.' });
-                });
-            }
-        });
-    }
-
-    // ══════════════════════════════════════════════════════════
     // Modal — Reset & Populate
     // ══════════════════════════════════════════════════════════
     function _todayStr() {
@@ -930,22 +891,23 @@ $(function () {
         $('#imAmountAddWrap').show();
         $('#imAmountEditWrap').hide();
         $('#imAmountDisplay').text('');
+        $('#imFormColumn').removeClass('col-lg-12').addClass('col-lg-8');
         $('#imPaymentColumn').show();
         $('#imAmount').val('');
         if (fpIncDate) fpIncDate.setDate(_todayStr(), false); else $('#imDate').val(_todayStr());
         $('#imCategory').val('');
         if ($.fn.select2 && $('#imCategory').data('select2')) $('#imCategory').trigger('change');
         $('#imNotes').val('');
-        $('#imMarkReceivedBtn').removeClass('btn-success').addClass('btn-outline-secondary')
-            .html('<i class="bx bx-credit-card me-1"></i>Mark as Received');
-        $('#imPaymentSection').hide();
+        $('#imMarkReceivedBtn').removeClass('btn-outline-secondary').addClass('btn-success')
+            .html('<i class="bx bx-check me-1"></i>Received');
+        $('#imPaymentSection').show();
         if (fpIncPmtDate) fpIncPmtDate.setDate(_todayStr(), false); else $('#imPmtDate').val(_todayStr());
         $('#imPmtTypeUID').val('');
         $('.inc-pmt-pill').removeClass('btn-primary').addClass('btn-outline-secondary');
         $('#imBankUID').val('');
         $('#imBankSection').show();
         $('#imPmtNotes').val('');
-        if (incDropzone) incDropzone.removeAllFiles(true);
+        if (typeof _attachResetState === 'function') _attachResetState('Transaction');
     }
 
     function _populateIncModal(d) {
@@ -959,11 +921,13 @@ $(function () {
         });
         $('#imAmountDisplay').text(incCurSymbol + ' ' + fmt);
         $('#imAmount').val(d.Amount || '');
+        $('#imFormColumn').removeClass('col-lg-8').addClass('col-lg-12');
         $('#imPaymentColumn').hide();
         if (fpIncDate) fpIncDate.setDate(d.IncomeDate || _todayStr(), false); else $('#imDate').val(d.IncomeDate || _todayStr());
         $('#imCategory').val(d.CategoryUID || '');
         if ($.fn.select2 && $('#imCategory').data('select2')) $('#imCategory').trigger('change');
         $('#imNotes').val(d.Notes || '');
+        if (typeof renderTransAttachmentsFromData === 'function') renderTransAttachmentsFromData(d.Attachments || []);
     }
 
     function _updateBankVisibility(pmtName) {
@@ -977,9 +941,8 @@ $(function () {
 
     function _ensureIncDatePickers() {
         if (_incPickersInit) return;
-        var modalBody = document.querySelector('#incomeModal .modal-body');
-        fpIncDate    = flatpickr('#imDate',    { dateFormat: 'Y-m-d', altInput: true, altFormat: 'd M Y', appendTo: modalBody });
-        fpIncPmtDate = flatpickr('#imPmtDate', { dateFormat: 'Y-m-d', altInput: true, altFormat: 'd M Y', appendTo: modalBody });
+        fpIncDate    = flatpickr('#imDate',    { dateFormat: 'Y-m-d', altInput: true, altFormat: _transFormDateFormat, static: true, position: 'below left', allowInput: false });
+        fpIncPmtDate = flatpickr('#imPmtDate', { dateFormat: 'Y-m-d', altInput: true, altFormat: _transFormDateFormat, static: true, position: 'below left', allowInput: false });
         _incPickersInit = true;
     }
 
@@ -990,7 +953,6 @@ $(function () {
     // ── Open for Add ─────────────────────────────────────────
     $(document).on('click', '#addIncomeBtn', function () {
         _resetIncModal();
-        initIncDropzone();
         new bootstrap.Modal(document.getElementById('incomeModal')).show();
         setTimeout(function () { $('#imAmount').focus(); }, 400);
     });
@@ -1004,7 +966,6 @@ $(function () {
             success: function (resp) {
                 if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
                 _resetIncModal();
-                initIncDropzone();
                 _populateIncModal(resp.Data);
                 new bootstrap.Modal(document.getElementById('incomeModal')).show();
             }
@@ -1036,9 +997,23 @@ $(function () {
 
     // ── Add Category (nested) ────────────────────────────────
     $('#imAddCategoryBtn').on('click', function () {
+        $('#incCatModalTitle').text('Add Category');
+        $('#incCatSaveBtnLabel').text('Add');
+        $('#incCatModalUID').val('0');
         $('#newIncomeCategoryName').val('').removeClass('is-invalid');
-        new bootstrap.Modal(document.getElementById('addIncomeCategoryModal')).show();
-        setTimeout(function () { $('#newIncomeCategoryName').focus(); }, 350);
+        $('#incCatSaveError').hide();
+        var incModalEl = document.getElementById('incomeModal');
+        var addCatEl   = document.getElementById('addIncomeCategoryModal');
+        var incInst    = bootstrap.Modal.getInstance(incModalEl);
+        incModalEl.addEventListener('hidden.bs.modal', function () {
+            var catInst = new bootstrap.Modal(addCatEl);
+            addCatEl.addEventListener('hidden.bs.modal', function () {
+                new bootstrap.Modal(incModalEl).show();
+            }, { once: true });
+            catInst.show();
+            setTimeout(function () { $('#newIncomeCategoryName').focus(); }, 350);
+        }, { once: true });
+        if (incInst) incInst.hide();
     });
 
     var _incCatData = <?php echo json_encode(array_map(function($c) {
@@ -1193,9 +1168,7 @@ $(function () {
         fd.append('Filter',          JSON.stringify(Filter));
         fd.append('RowLimit',        RowLimit);
 
-        if (incDropzone) {
-            incDropzone.files.forEach(function (f) { fd.append('Attachments[]', f); });
-        }
+        if (typeof collectTransAttachData === 'function') collectTransAttachData(fd);
 
         $.ajax({
             url: url, method: 'POST', data: fd, processData: false, contentType: false,
@@ -1346,4 +1319,6 @@ $(function () {
 </script>
 
 <?php $this->load->view('common/transactions/print_modals'); ?>
+<?php $this->load->view('common/imagepreview_modal'); ?>
+<?php $this->load->view('common/modals/attach_preview'); ?>
 <script src="/js/transactions/attachments.js"></script>

@@ -442,6 +442,187 @@ function executeCatgPagnFunc(response, tableinfo = false) {
     MultipleDeleteOption();
 }
 
+// ── Brands ────────────────────────────────────────────────────────────────────
+
+/**
+ * @param {number} count
+ * @returns {void}
+ */
+function updateBrandCount(count) {
+    var $badge = $('#brandTotalCount');
+    if (!$badge.length) return;
+    if (count > 0) { $badge.text(count).removeClass('d-none'); }
+    else           { $badge.text('').addClass('d-none'); }
+}
+
+/**
+ * @param {number} PageNo
+ * @param {number} RowLimit
+ * @param {Object} Filter
+ * @returns {void}
+ */
+function getBrandsDetails(PageNo, RowLimit, Filter) {
+    $.ajax({
+        url: '/products/getBrandList',
+        method: 'POST',
+        cache: false,
+        data: { RowLimit: RowLimit, PageNo: PageNo, Filter: Filter, [CsrfName]: CsrfToken },
+        success: function (response) {
+            if (response.Error) {
+                $(BrandTable + ' tbody').html('');
+                $(BrandPag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
+            } else {
+                $(BrandPag).html(response.Pagination);
+                $(BrandTable + ' tbody').html(response.List);
+                if (typeof response.TotalCount !== 'undefined') {
+                    updateBrandCount(response.TotalCount);
+                }
+                $(window).trigger('scroll');
+            }
+        },
+    });
+}
+
+/**
+ * @param {FormData} formdata
+ * @param {Function} onSuccess
+ * @returns {void}
+ */
+function addBrandDetails(formdata, onSuccess) {
+    formdata.append('returnList', 1);
+    $.ajax({
+        url: '/products/addBrandDetails',
+        method: 'POST',
+        data: formdata,
+        cache: false,
+        processData: false,
+        contentType: false,
+        enctype: 'multipart/form-data',
+        success: function (response) {
+            if (response.Error) {
+                $('.brandFormAlert').removeClass('d-none');
+                inlineMessageAlert('.brandFormAlert', 'danger', response.Message, false, false);
+                $('#BrandSaveButton').prop('disabled', false).text('Save');
+            } else {
+                $('#brandForm').trigger('reset');
+                executeBrandPagnFunc(response, true);
+                showToastNotification(response.Message || 'Brand created.', 'success');
+                if (typeof onSuccess === 'function') onSuccess(response.InsertId);
+            }
+        }
+    });
+}
+
+/**
+ * @param {FormData} formdata
+ * @param {Function} onSuccess
+ * @returns {void}
+ */
+function editBrandDetails(formdata, onSuccess) {
+    $.ajax({
+        url: '/products/updateBrandDetails',
+        method: 'POST',
+        data: formdata,
+        cache: false,
+        processData: false,
+        contentType: false,
+        enctype: 'multipart/form-data',
+        success: function (response) {
+            if (response.Error) {
+                $('.brandFormAlert').removeClass('d-none');
+                inlineMessageAlert('.brandFormAlert', 'danger', response.Message, false, false);
+                $('#BrandSaveButton').prop('disabled', false).text('Update');
+            } else {
+                $('#brandForm').trigger('reset');
+                executeBrandPagnFunc(response, true);
+                showToastNotification(response.Message || 'Brand updated.', 'success');
+                if (typeof onSuccess === 'function') onSuccess();
+            }
+        }
+    });
+}
+
+/**
+ * @param {number} BrandUID
+ * @returns {void}
+ */
+function deleteBrand(BrandUID) {
+    $.ajax({
+        url: '/products/deleteBrandDetails',
+        method: 'POST',
+        cache: false,
+        data: {
+            RowLimit: RowLimit,
+            PageNo: PageNo,
+            Filter: Filter,
+            BrandUID: BrandUID,
+            [CsrfName]: CsrfToken,
+        },
+        success: function (response) {
+            if (response.Error) {
+                showToastNotification(response.Message, 'error');
+            } else {
+                if (SelectedUIDs.length > 0) {
+                    SelectedUIDs = SelectedUIDs.filter(function (item) { return item !== BrandUID; });
+                }
+                showToastNotification(response.Message || 'Brand deleted.', 'success');
+                executeBrandPagnFunc(response, true);
+            }
+        },
+    });
+}
+
+/**
+ * @returns {void}
+ */
+function deleteMultipleBrand() {
+    $.ajax({
+        url: '/products/deleteBulkBrand',
+        method: 'POST',
+        cache: false,
+        data: {
+            RowLimit: RowLimit,
+            PageNo: PageNo,
+            Filter: Filter,
+            BrandUIDs: SelectedUIDs,
+            [CsrfName]: CsrfToken,
+        },
+        success: function (response) {
+            if (response.Error) {
+                showToastNotification(response.Message, 'error');
+            } else {
+                SelectedUIDs = [];
+                showToastNotification(response.Message || 'Brands deleted.', 'success');
+                executeBrandPagnFunc(response, true);
+            }
+        },
+    });
+}
+
+/**
+ * @param {Object}  response
+ * @param {boolean} tableinfo
+ * @returns {void}
+ */
+function executeBrandPagnFunc(response, tableinfo = false) {
+    if (tableinfo) {
+        var total = response.TotalCount || 0;
+        var showingHtml = total > 0
+            ? '<div class="col-auto text-muted" style="font-size:.82rem;">Showing <strong>1</strong> – <strong>' + Math.min(RowLimit, total) + '</strong> of <strong>' + total + '</strong> Results</div>'
+            : '';
+        $(BrandPag).html(showingHtml + '<div class="col-auto">' + response.Pagination + '</div>');
+        $(BrandTable + ' tbody').html(response.List);
+        if (typeof response.TotalCount !== 'undefined') {
+            updateBrandCount(response.TotalCount);
+        }
+        $(window).trigger('scroll');
+    }
+    headerCheckboxTrueFalse(BrandTable, BrandHeader, BrandRow);
+    MultipleDeleteOption();
+}
+
+function brandAttachTrigger(e) { _attachZoneTrigger('Brand', e); }
+
 
 function commonSelectFunctionality(PageSelcType) {
     if (ActiveTabId == 'Item') {
@@ -584,6 +765,8 @@ function showProductPageDetails() {
         getGroupDetails(PageNo, RowLimit, Filter);
     } else if (ActiveTabId == 'Categories') {
         getCategoriesDetails(PageNo, RowLimit, Filter);
+    } else if (ActiveTabId == 'Brands') {
+        getBrandsDetails(PageNo, RowLimit, Filter);
     }
 }
 
@@ -689,14 +872,14 @@ function updateCategoryOptions(fields, type) {
 
 function refreshSearchStorage($this) {
     $('#storageFilterBox').show();
-    AjaxLoading = 0;
+    ajaxLoading(0);
     $('#storageFilterBox').html('<div class="d-flex justify-content-center align-items-center p-3"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>');
     $.ajax({
         url: '/storage/getAllStorage/',
         method: "POST",
         cache: false,
         success: function (response) {
-            AjaxLoading = 1;
+            ajaxLoading(1);
             if (response.Error) {
                 $('#storageFilterBox').html('');
                 $('#storageFilterBox').html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');

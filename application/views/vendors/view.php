@@ -1037,7 +1037,7 @@ $(function() {
         }).then(function (r) {
             if (!r.isConfirmed) return;
             $('#VendorGroupsTableBody').html('<tr><td colspan="9" class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary" role="status"></span></td></tr>');
-            AjaxLoading = 0;
+            ajaxLoading(0);
             $.ajax({
                 url   : '/vendors/toggleGroupStatus',
                 method: 'POST',
@@ -1069,7 +1069,7 @@ $(function() {
         }).then(function (r) {
             if (!r.isConfirmed) return;
             $('#VendorGroupsTableBody').html('<tr><td colspan="9" class="text-center py-4"><span class="spinner-border spinner-border-sm text-danger" role="status"></span></td></tr>');
-            AjaxLoading = 0;
+            ajaxLoading(0);
             $.ajax({
                 url   : '/vendors/deleteGroup',
                 method: 'POST',

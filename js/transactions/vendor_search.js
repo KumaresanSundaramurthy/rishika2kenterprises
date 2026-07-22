@@ -66,7 +66,7 @@ function searchVendors(key) {
                           })
                         : list;
                     var start = (page - 1) * pageSize;
-                    AjaxLoading = 1;
+                    ajaxLoading(1);
                     success({ Lists: filtered.slice(start, start + pageSize), more: (start + pageSize) < filtered.length });
                 }
 
@@ -98,8 +98,8 @@ function searchVendors(key) {
                                     mobile:      v.MobileNumber     || '',
                                     gstin:       v.GSTIN            || '',
                                     company:     v.CompanyName      || '',
-                                    balance:     parseFloat(v.OpeningBalance || 0),
-                                    balanceType: v.OpeningBalType   || 'Debit',
+                                    balance:     parseFloat(v.ClosingBalance || v.OpeningBalance || 0),
+                                    balanceType: v.ClosingBalType   || v.OpeningBalType || 'Credit',
                                     lastTxAt:    v.LastTransactionAt || '',
                                 };
                             });
@@ -116,8 +116,8 @@ function searchVendors(key) {
                                 url: '/transactions/searchVendors',
                                 dataType: 'json',
                                 data: { term: (params.data && params.data.term) || '', type: 'public' },
-                                success: function (data) { AjaxLoading = 1; success(data); },
-                                error: function () { AjaxLoading = 1; failure(); }
+                                success: function (data) { ajaxLoading(1); success(data); },
+                                error: function () { ajaxLoading(1); failure(); }
                             });
                         }
                     });
@@ -126,18 +126,18 @@ function searchVendors(key) {
                         url: '/transactions/searchVendors',
                         dataType: 'json',
                         data: { term: (params.data && params.data.term) || '', type: 'public' },
-                        success: function (data) { AjaxLoading = 1; success(data); },
-                        error: function () { AjaxLoading = 1; failure(); }
+                        success: function (data) { ajaxLoading(1); success(data); },
+                        error: function () { ajaxLoading(1); failure(); }
                     });
                 }
             },
             delay: 250,
             data: function (params) {
-                AjaxLoading = 0;
+                ajaxLoading(0);
                 return { term: params.term, page: params.page || 1 };
             },
             processResults: function (data) {
-                AjaxLoading = 1;
+                ajaxLoading(1);
                 return { results: data.Lists, pagination: { more: data.more || false } };
             },
             cache: false
@@ -145,7 +145,7 @@ function searchVendors(key) {
     }).on('select2:select', function () {
         vendorCache = null;
     }).on('select2:close', function () {
-        AjaxLoading = 1;
+        ajaxLoading(1);
     });
 }
 
@@ -256,8 +256,8 @@ function searchVendors(key) {
                             mobile:  v.MobileNumber || '',
                             gstin:   v.GSTIN        || '',
                             company: v.CompanyName  || '',
-                            balance: parseFloat(v.OpeningBalance || 0),
-                            balType: v.OpeningBalType || 'Credit',
+                            balance: parseFloat(v.ClosingBalance || v.OpeningBalance || 0),
+                            balType: v.ClosingBalType || v.OpeningBalType || 'Credit',
                             lastTx:  v.LastTransactionAt || '',
                             address: billing ? {
                                 Line1:   billing.Line1     || '',

@@ -5433,6 +5433,10 @@ textarea.form-control-lg {
     color: var(--bs-breadcrumb-item-active-color)
 }
 
+ul.pagination {
+    margin-bottom: 0.5rem;
+}
+
 .pagination {
     --bs-pagination-padding-x: 0.5rem;
     --bs-pagination-padding-y: 0.4809rem;

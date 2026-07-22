@@ -23,26 +23,16 @@ class Activitylog extends MY_Controller {
         $orgUID   = $this->_orgUID();
         $rowLimit = $this->_rowLimit();
 
-        // Default filter: today
-        $today  = date('Y-m-d');
-        $filter = ['DateFrom' => $today, 'DateTo' => $today];
+        // Default filter: this month
+        $filter = ['DateFrom' => date('Y-m-01'), 'DateTo' => date('Y-m-d')];
 
         $total  = $this->activitylog_model->getAuditLogCount($orgUID, $filter);
         $logs   = $this->activitylog_model->getAuditLogs($orgUID, $filter, $rowLimit, 0);
 
-        $this->load->library('pagination');
-        $this->pagination->initialize([
-            'base_url'        => '/activitylog/getPageDetails/',
-            'total_rows'      => $total,
-            'per_page'        => $rowLimit,
-            'uri_segment'     => 3,
-            'use_page_numbers'=> TRUE,
-        ]);
-
-        $this->pageData['JwtData']     = $this->pageData['JwtData'] ?? null;
-        $this->pageData['DataLists']   = $logs;
-        $this->pageData['ModAllCount'] = $total;
-        $this->pageData['ModPagination'] = $this->pagination->create_links();
+        $this->pageData['JwtData']       = $this->pageData['JwtData'] ?? null;
+        $this->pageData['DataLists']     = $logs;
+        $this->pageData['ModAllCount']   = $total;
+        $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/settings/activitylog/getPageDetails', $total, 1, $rowLimit);
         $this->pageData['ModRowData']  = $this->_renderRows($logs);
         $this->pageData['Modules']     = $this->activitylog_model->getDistinctModules($orgUID);
         $this->pageData['OrgUsers']    = $this->activitylog_model->getDistinctUsers($orgUID);
@@ -63,20 +53,11 @@ class Activitylog extends MY_Controller {
         $total  = $this->activitylog_model->getAuditLogCount($orgUID, $filter);
         $logs   = $this->activitylog_model->getAuditLogs($orgUID, $filter, $rowLimit, $offset);
 
-        $this->load->library('pagination');
-        $this->pagination->initialize([
-            'base_url'        => '/activitylog/getPageDetails/',
-            'total_rows'      => $total,
-            'per_page'        => $rowLimit,
-            'uri_segment'     => 3,
-            'use_page_numbers'=> TRUE,
-        ]);
-
         $this->globalservice->sendJsonResponse([
             'Error'          => false,
             'TotalCount'     => $total,
             'RecordHtmlData' => $this->_renderRows($logs),
-            'Pagination'     => $this->pagination->create_links(),
+            'Pagination'     => $this->globalservice->buildPagePaginationHtml('/settings/activitylog/getPageDetails', $total, $pageNo, $rowLimit),
         ]);
     }
 
@@ -108,23 +89,29 @@ class Activitylog extends MY_Controller {
      */
     private function _renderRows(array $logs): string {
         if (empty($logs)) {
-            return '<tr><td colspan="7" class="text-center py-4 text-muted">No activity records found.</td></tr>';
+            return '<tr><td colspan="12" class="text-center py-4 text-muted">No activity records found.</td></tr>';
         }
 
-        $jwtData = $this->pageData['JwtData'] ?? null;
-        $dateFmt = $jwtData->GenSettings->ListDateFormat ?? 'd M Y';
+        $jwtData     = $this->pageData['JwtData'] ?? null;
+        $dateFmt     = $jwtData->GenSettings->ListDateFormat     ?? 'd M Y';
+        $dateTimeFmt = $jwtData->GenSettings->ListDateTimeFormat ?? 'd M Y H:i';
 
         $html = '';
         foreach ($logs as $log) {
             $createdOn  = !empty($log->CreatedOn) ? date($dateFmt, strtotime($log->CreatedOn)) : '—';
-            $createdAt  = !empty($log->CreatedOn) ? date('H:i', strtotime($log->CreatedOn))    : '';
+            $createdAt  = !empty($log->CreatedOn) ? trim(str_replace($createdOn, '', date($dateTimeFmt, strtotime($log->CreatedOn)))) : '';
             $userName   = htmlspecialchars($log->UserName ?? '—');
             $module     = htmlspecialchars($log->Module ?? $log->EntityType ?? '—');
             $action     = htmlspecialchars($log->Action ?? '—');
             $entityRef  = htmlspecialchars($log->EntityRef ?? '—');
             $summary    = htmlspecialchars($log->Summary ?? '');
-            $auditUID   = (int)$log->AuditUID;
-            $details    = $log->Details ?? '';
+            $auditUID     = (int)$log->AuditUID;
+            $details      = $log->Details ?? '';
+            $auditCatg    = htmlspecialchars($log->AuditCategory ?? '—');
+            $result       = htmlspecialchars($log->Result       ?? '');
+            $source       = htmlspecialchars($log->Source       ?? '');
+            $ipAddress    = htmlspecialchars($log->IPAddress    ?? '—');
+            $deviceType   = htmlspecialchars($log->DeviceType   ?? '—');
 
             // Action badge colour
             $actionLower = strtolower($action);
@@ -139,6 +126,9 @@ class Activitylog extends MY_Controller {
             } else {
                 $badgeStyle = 'background:#f1f5f9;color:#475569;';
             }
+
+            // Result badge
+            $resultStyle = $result === 'FAILED' ? 'background:#fee2e2;color:#dc2626;' : 'background:#dcfce7;color:#16a34a;';
 
             $html .= '<tr>';
             $html .= '<td style="white-space:nowrap;">';
@@ -166,18 +156,36 @@ class Activitylog extends MY_Controller {
 
             $html .= '<td style="font-size:.82rem;color:#374151;">' . $entityRef . '</td>';
 
-            $html .= '<td style="font-size:.8rem;color:#64748b;max-width:240px;">';
+            $html .= '<td style="font-size:.8rem;color:#64748b;min-width:200px;">';
             if ($summary) {
                 $html .= '<span title="' . $summary . '">' . (mb_strlen($summary) > 60 ? mb_substr($summary, 0, 58) . '…' : $summary) . '</span>';
             }
             $html .= '</td>';
 
-            $html .= '<td style="width:56px;text-align:center;">';
+            // ── Scrollable extra columns ─────────────────────────────────────
+            $html .= '<td style="font-size:.78rem;color:#475569;white-space:nowrap;">' . $auditCatg . '</td>';
+
+            $html .= '<td style="white-space:nowrap;">';
+            if ($result) {
+                $html .= '<span style="font-size:.72rem;font-weight:600;padding:2px 7px;border-radius:20px;' . $resultStyle . '">' . $result . '</span>';
+            } else {
+                $html .= '—';
+            }
+            $html .= '</td>';
+
+            $html .= '<td style="font-size:.78rem;color:#475569;white-space:nowrap;">' . ($source ?: '—') . '</td>';
+
+            $html .= '<td style="font-size:.78rem;color:#475569;white-space:nowrap;font-family:monospace;">' . $ipAddress . '</td>';
+
+            $html .= '<td style="font-size:.78rem;color:#475569;white-space:nowrap;">' . $deviceType . '</td>';
+
+            // ── Sticky last column ───────────────────────────────────────────
+            $html .= '<td class="al-sticky-col" style="text-align:center;">';
             if ($details) {
                 $html .= '<button type="button" class="btn btn-sm btn-link p-0 alDetailsBtn" ';
                 $html .= 'data-uid="' . $auditUID . '" ';
                 $html .= 'data-details="' . htmlspecialchars($details) . '" ';
-                $html .= 'title="View details" style="font-size:.8rem;">';
+                $html .= 'title="View details">';
                 $html .= '<i class="bx bx-code-alt" style="font-size:1rem;color:#7c3aed;"></i>';
                 $html .= '</button>';
             }

@@ -601,7 +601,7 @@ function _openOnAccountModal() {
         modal.show();
 
         var _prev = (typeof AjaxLoading !== 'undefined') ? AjaxLoading : 1;
-        if (typeof AjaxLoading !== 'undefined') AjaxLoading = 0;
+        if (typeof AjaxLoading !== 'undefined') ajaxLoading(0);
         var _oaPostData = { CustomerUID: window._oaCustomerUID };
         if (typeof CsrfName !== 'undefined' && typeof CsrfToken !== 'undefined') {
             _oaPostData[CsrfName] = CsrfToken;

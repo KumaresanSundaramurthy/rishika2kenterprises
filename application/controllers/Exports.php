@@ -50,6 +50,7 @@ class Exports extends MY_Controller {
 
             // Print: return HTML as JSON — JS opens it in a new tab
             if ($format === 'print') {
+                header('Content-Type: application/json; charset=utf-8');
                 echo json_encode(['Error' => false, 'Html' => $result['content']]);
                 return;
             }

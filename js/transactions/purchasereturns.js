@@ -3,7 +3,7 @@
 
 function getPurchaseReturnsDetails(pageNo, rowLimit, filter, afterLoad) {
     loadTransactionList({
-        url           : '/purchasereturns/getPurchaseReturnsPageDetails/',
+        url           : '/transactions/getPageDetails/108/',
         tabCountClass : '.pr-tab-count',
         statusTabClass: '.pr-status-tab',
         errorMessage  : 'Failed to load purchase returns.',

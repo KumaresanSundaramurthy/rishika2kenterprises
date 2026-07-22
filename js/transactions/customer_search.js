@@ -292,7 +292,7 @@
     function _loadFromBackend(append) {
         if (_loading) return;
         _loading = true;
-        AjaxLoading = 0;
+        ajaxLoading(0);
         if (append) $('#custSearchLoadingMore').removeClass('d-none');
 
         var postData = { PageNo: _page, RowLimit: _limit, Search: _term };
@@ -304,7 +304,7 @@
             data   : postData,
             success: function (res) {
                 _loading = false;
-                AjaxLoading = 1;
+                ajaxLoading(1);
                 $('#custSearchLoadingMore').addClass('d-none');
 
                 if (res.Error) {
@@ -364,7 +364,7 @@
             },
             error: function () {
                 _loading = false;
-                AjaxLoading = 1;
+                ajaxLoading(1);
                 $('#custSearchLoadingMore').addClass('d-none');
                 if (!append) _showError('Failed to load customers. Please try again.');
                 _hasMore = false;

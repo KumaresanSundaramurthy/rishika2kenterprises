@@ -44,6 +44,18 @@ var _attachCfg = {
         iconId:      'catgAttachIcon',
         deleteField: 'catgAttachDeleteUIDs',
     },
+    Brand: {
+        maxFiles: 3, maxFileSizeMB: 3, maxTotalMB: 3,
+        acceptedTypes: 'images', enabled: true,
+        inputId:     'brandAttachInput',
+        zoneId:      'brandAttachZone',
+        listId:      'brandAttachList',
+        emptyId:     'brandAttachEmpty',
+        labelId:     'brandAttachLabel',
+        hintId:      'brandAttachHint',
+        iconId:      'brandAttachIcon',
+        deleteField: 'brandAttachDeleteUIDs',
+    },
     Customer: {
         maxFiles: 3, maxFileSizeMB: 3, maxTotalMB: 3,
         acceptedTypes: 'images', enabled: true,
@@ -374,6 +386,15 @@ function _attachRender(entityType) {
             fileIcon.className = 'attach-file-icon';
             fileIcon.innerHTML = _attachFileIcon(att.FileType || att.FileName);
             item.appendChild(fileIcon);
+            if (att.Url) {
+                (function (url) {
+                    item.style.cursor = 'pointer';
+                    item.addEventListener('click', function (e) {
+                        if (e.target.closest('.attach-remove')) return;
+                        window.open(url, '_blank', 'noopener');
+                    });
+                })(att.Url);
+            }
         }
 
         var nm = document.createElement('span');

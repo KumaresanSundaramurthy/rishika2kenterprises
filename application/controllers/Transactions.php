@@ -1,13 +1,62 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed');
 
-class Transactions extends CI_Controller {
+class Transactions extends MY_Controller {
 
-    public $pageData = array();
     private $EndReturnData;
 
     public function __construct() {
         parent::__construct();
 
+    }
+
+    // ----------------------------------------------------------------
+    // GET /transactions/getPageDetails/{moduleUID}/{pageNo}
+    // Single endpoint replacing get{Module}PageDetails in all 9 controllers.
+    // Sets $this->pageModuleUID so MY_Controller helpers query the right module.
+    // ----------------------------------------------------------------
+    public function getPageDetails(int $moduleUID = 0, int $pageNo = 0): void {
+        $this->pageModuleUID  = $moduleUID;
+        $this->EndReturnData  = new stdClass();
+        try {
+            if ($moduleUID <= 0) throw new Exception('Invalid module.');
+
+            $map = [
+                101 => ['view' => 'transactions/quotations/list',       'wa' => true,  'stats' => true ],
+                102 => ['view' => 'transactions/salesorders/list',      'wa' => true,  'stats' => true ],
+                103 => ['view' => 'transactions/invoices/list',         'wa' => true,  'stats' => true ],
+                104 => ['view' => 'transactions/purchaseorders/list',   'wa' => false, 'stats' => false],
+                105 => ['view' => 'transactions/purchases/list',        'wa' => false, 'stats' => false],
+                106 => ['view' => 'transactions/salesreturns/list',     'wa' => false, 'stats' => true ],
+                108 => ['view' => 'transactions/purchasereturns/list',  'wa' => false, 'stats' => false],
+                112 => ['view' => 'transactions/deliverychallans/list', 'wa' => false, 'stats' => false],
+                113 => ['view' => 'transactions/proformainvoices/list', 'wa' => false, 'stats' => false],
+            ];
+
+            if (!isset($map[$moduleUID])) throw new Exception('Unknown module.');
+
+            $cfg       = $map[$moduleUID];
+            $extraData = [];
+
+            if ($cfg['wa']) {
+                $orgUID    = (int)$this->pageData['JwtData']->Org->OrgUID;
+                $this->load->model('organisation_model');
+                $templates = $this->organisation_model->getModuleMessageTemplates($orgUID, $moduleUID);
+                $extraData['WhatsAppTemplate'] = $templates['WhatsApp'] ?? null;
+            }
+
+            $this->EndReturnData = $this->_buildTransactionPageDetailsResult([
+                'pageNo'              => $pageNo,
+                'listViewPath'        => $cfg['view'],
+                'paginationUrl'       => '/transactions/getPageDetails/' . $moduleUID,
+                'listViewExtraData'   => $extraData,
+                'includeSummaryStats' => $cfg['stats'],
+            ]);
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
     // ----------------------------------------------------------------

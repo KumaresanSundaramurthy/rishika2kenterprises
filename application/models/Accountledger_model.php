@@ -185,6 +185,9 @@ class Accountledger_model extends CI_Model {
 
     public function getLastLedgerBalance(int $ledgerUID, int $financialYear, int $orgUID = 0): ?object {
         try {
+            // End any open REPEATABLE READ snapshot so this read sees WriteDb auto-commits
+            // made by earlier _addJournalLine calls in the same HTTP request.
+            $this->ReadDb->simple_query('COMMIT');
             $this->ReadDb->select('RunningBalance, BalanceType');
             $this->ReadDb->from('Accounting.LedgerBalances');
             $this->ReadDb->where('LedgerUID', (int)$ledgerUID);

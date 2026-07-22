@@ -1,6 +1,5 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php
-$cdnUrl = getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN');
 if (!empty($DataLists)):
     foreach ($DataLists as $i => $row):
         $preview   = !empty($row->PreviewImage) ? $row->PreviewImage : null;
@@ -18,11 +17,10 @@ if (!empty($DataLists)):
         <?php if ($preview): ?>
             <img src="<?php echo htmlspecialchars($preview); ?>"
                  alt="<?php echo htmlspecialchars($row->TemplateName); ?>"
-                 style="width:80px;height:58px;object-fit:cover;border-radius:4px;border:1px solid #ddd;cursor:pointer;"
-                 onclick="window.open('<?php echo htmlspecialchars($preview); ?>','_blank')">
+                 class="tpl-preview-thumb"
+                 data-src="<?php echo htmlspecialchars($preview); ?>">
         <?php else: ?>
-            <div style="width:80px;height:58px;border-radius:4px;border:1px solid #ddd;background:#f5f5f5;
-                        display:flex;align-items:center;justify-content:center;">
+            <div class="tpl-preview-placeholder">
                 <i class="bx bx-image text-muted fs-4"></i>
             </div>
         <?php endif; ?>
@@ -35,21 +33,17 @@ if (!empty($DataLists)):
     </td>
     <td><code class="text-muted small"><?php echo htmlspecialchars($row->TemplateKey); ?></code></td>
     <td><span class="badge <?php echo $catBadge; ?>"><?php echo htmlspecialchars(ucfirst($row->Category)); ?></span></td>
-    <td><span class="text-muted small"><?php echo $updatedOn; ?></span></td>
+    <td class="r2k-col-date"><span class="text-muted small"><?php echo $updatedOn; ?></span></td>
     <td class="text-center">
-        <div class="d-flex justify-content-center gap-2">
-            <button class="btn btn-sm btn-outline-primary editTemplateBtn"
-                    data-uid="<?php echo (int)$row->TemplateUID; ?>"
-                    title="Edit">
-                <i class="bx bx-edit"></i>
-            </button>
-            <button class="btn btn-sm btn-outline-danger deleteTemplateBtn"
-                    data-uid="<?php echo (int)$row->TemplateUID; ?>"
-                    data-label="<?php echo htmlspecialchars($row->TemplateName); ?>"
-                    title="Delete">
-                <i class="bx bx-trash"></i>
-            </button>
-        </div>
+        <a href="javascript:void(0);" class="apex-icon-btn editTemplateBtn"
+           data-uid="<?php echo (int)$row->TemplateUID; ?>" title="Edit">
+            <i class="bx bx-edit"></i>
+        </a>
+        <a href="javascript:void(0);" class="apex-icon-btn text-danger deleteTemplateBtn"
+           data-uid="<?php echo (int)$row->TemplateUID; ?>"
+           data-label="<?php echo htmlspecialchars($row->TemplateName); ?>" title="Delete">
+            <i class="bx bx-trash"></i>
+        </a>
     </td>
 </tr>
 <?php endforeach; else: ?>

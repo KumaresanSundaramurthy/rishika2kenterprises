@@ -67,7 +67,7 @@ function _quotFetchPdfAjax(recordUID, moduleUID, filename, onSuccess) {
 }
 
 var _quotConfig = {
-    url:            '/quotations/getQuotationsPageDetails/',
+    url:            '/transactions/getPageDetails/101/',
     tabCountClass:  '.trans-tab-count',
     statusTabClass: '.quot-status-tab',
     errorMessage:   'Failed to load quotations.',

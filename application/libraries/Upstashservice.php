@@ -26,6 +26,7 @@ class Upstashservice {
     const TTL_VENDOR    = 1800;   // 30 min
     const TTL_PRODUCT   = 3600;   // 1 hour
     const TTL_CATEGORY  = 86400;  // 24 hours
+    const TTL_BRAND     = 86400;  // 24 hours
 
     public function __construct() {
         $this->url     = rtrim((string)(getenv('UPSTASH_REDIS_REST_URL')   ?: ''), '/');
@@ -239,6 +240,8 @@ class Upstashservice {
     public static function keyProductsAll(): string            { return 'products:all'; }
     public static function keyCategory(int $id): string        { return "category:{$id}"; }
     public static function keyCategoriesAll(): string          { return 'categories:all'; }
+    public static function keyBrand(int $id): string           { return "brand:{$id}"; }
+    public static function keyBrandsAll(): string              { return 'brands:all'; }
 
     // ── Dev / Monitor helpers ─────────────────────────────────────────────────
 

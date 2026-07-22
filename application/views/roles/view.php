@@ -365,7 +365,7 @@ function loadRolePermissions(roleUID) {
     fd.append('RoleUID', roleUID);
     fd.append([CsrfName], CsrfToken);
 
-    AjaxLoading = 0;
+    ajaxLoading(0);
 
     $.ajax({
         url: '/settings/roles/getRolePermissions',
@@ -388,7 +388,7 @@ function loadRolePermissions(roleUID) {
             $('#permMatrixBody').html('<div class="alert alert-danger m-3">Failed to load permissions.</div>');
         },
         complete: function () {
-            AjaxLoading = 1;
+            ajaxLoading(1);
         }
     });
 }

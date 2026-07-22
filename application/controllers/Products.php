@@ -15,7 +15,7 @@ class Products extends MY_Controller {
     private function sanitizeTabInput($tab): string {
 
         $tab = strtolower($tab ?: 'item');
-        $map = ['item' => 'item', 'group' => 'group', 'category' => 'category', 'pricelist' => 'pricelist', 'items' => 'item', 'groups' => 'group', 'categories' => 'category', 'pricelists' => 'pricelist'];
+        $map = ['item' => 'item', 'group' => 'group', 'category' => 'category', 'pricelist' => 'pricelist', 'brand' => 'brand', 'items' => 'item', 'groups' => 'group', 'categories' => 'category', 'pricelists' => 'pricelist', 'brands' => 'brand'];
         return $map[$tab] ?? 'item';
 
     }
@@ -112,6 +112,32 @@ class Products extends MY_Controller {
 
     }
 
+    private function fetchBrandTableData(int $pageNo, int $limit = 0): object {
+
+        $OrgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
+        if (!$limit) {
+            $postLimit     = (int) $this->input->post('RowLimit');
+            $settingsLimit = (int) (($this->pageData['JwtData']->GenSettings ?? null)?->RowLimit ?? 0);
+            $limit = $postLimit ?: ($settingsLimit ?: 10);
+        }
+        $pageNo = max(1, $pageNo);
+        $offset = ($pageNo - 1) * $limit;
+
+        $result  = $this->products_model->getBrandListPaginated($OrgUID, $limit, $offset);
+        $rowHtml = $this->load->view('products/brands/list', [
+            'DataLists' => $result->rows,
+            'StartFrom' => $offset,
+            'JwtData'   => $this->pageData['JwtData'],
+        ], TRUE);
+
+        $resp                 = new stdClass();
+        $resp->RecordHtmlData = $rowHtml;
+        $resp->Pagination     = $this->globalservice->buildPagePaginationHtml('/products/getBrandList', $result->totalCount, $pageNo, $limit);
+        $resp->TotalCount     = $result->totalCount;
+        return $resp;
+
+    }
+
     public function index() {
 
         if (!$this->_loadPageTitle()) {
@@ -170,6 +196,15 @@ class Products extends MY_Controller {
                 ], TRUE);
                 $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/products/getCategoryList', $tableData->totalCount, 1, $limit);
                 $this->pageData['ModTotalCount'] = $tableData->totalCount;
+            } elseif ($activeTab === 'brand') {
+                $tableData = $this->products_model->getBrandListPaginated($OrgUID, $limit, 0);
+                $this->pageData['ModRowData'] = $this->load->view('products/brands/list', [
+                    'DataLists' => $tableData->rows,
+                    'StartFrom' => 0,
+                    'JwtData'   => $this->pageData['JwtData'],
+                ], TRUE);
+                $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/products/getBrandList', $tableData->totalCount, 1, $limit);
+                $this->pageData['ModTotalCount'] = $tableData->totalCount;
             } else {
                 $this->pageData['ModRowData']    = '';
                 $this->pageData['ModPagination'] = '';
@@ -179,7 +214,7 @@ class Products extends MY_Controller {
             
             $this->pageData['ActiveTabData']  = $activeTab;
             // Must match the data-id attribute values on the tab nav links in view.php
-            $tabNameMap = ['item' => 'Item', 'group' => 'Groups', 'pricelist' => 'PriceLists', 'category' => 'Categories'];
+            $tabNameMap = ['item' => 'Item', 'group' => 'Groups', 'pricelist' => 'PriceLists', 'category' => 'Categories', 'brand' => 'Brands'];
             $this->pageData['ActiveTabName']  = $tabNameMap[$activeTab] ?? ucfirst($activeTab);
             $this->pageData['InitSearch']     = $initSearch;
             $this->pageData['ActiveModuleId'] = 4;
@@ -1368,6 +1403,7 @@ class Products extends MY_Controller {
             // Org keys — per-org, prefixed via orgKey(); writable from code
             $orgKeyMap = [
                 'categories'  => $this->redisservice->orgKey('categories'),
+                'brands'      => $this->redisservice->orgKey('brands'),
             ];
 
             $allKeyMap = array_merge($globalKeyMap, $orgKeyMap);
@@ -1390,8 +1426,9 @@ class Products extends MY_Controller {
             // Try Upstash pipeline for the requested fields
             // 'categories' is a Redis hash â†’ HGETALL; all others are strings â†’ GET
             if (!empty($fieldNames)) {
-                $cmds = array_map(function ($field, $key) {
-                    return $field === 'categories' ? ['HGETALL', $key] : ['GET', $key];
+                $hashFields = ['categories', 'brands'];
+                $cmds = array_map(function ($field, $key) use ($hashFields) {
+                    return in_array($field, $hashFields) ? ['HGETALL', $key] : ['GET', $key];
                 }, $fieldNames, array_values($keys));
                 $pipeResults = $this->upstashservice->pipeline($cmds);
 
@@ -1401,15 +1438,15 @@ class Products extends MY_Controller {
                         $field = $fieldNames[$i];
                         $raw   = $result['result'] ?? null;
 
-                        if ($field === 'categories') {
-                            // HGETALL â†’ flat [uid, jsonStr, uid, jsonStr, ...] array
+                        if (in_array($field, [‘categories’, ‘brands’])) {
+                            // HGETALL → flat [uid, jsonStr, uid, jsonStr, ...] array
                             if (is_array($raw) && count($raw) >= 2) {
-                                $cats = [];
+                                $items = [];
                                 for ($j = 0; $j + 1 < count($raw); $j += 2) {
                                     $decoded = json_decode($raw[$j + 1], true);
-                                    if ($decoded) $cats[] = (object)$decoded;
+                                    if ($decoded) $items[] = (object)$decoded;
                                 }
-                                if (!empty($cats)) { $data[$field] = $cats; continue; }
+                                if (!empty($items)) { $data[$field] = $items; continue; }
                             }
                             $missingFields[] = $field;
                         } else {
@@ -1439,6 +1476,7 @@ class Products extends MY_Controller {
                         case 'prodTax':     $data['prodTax']     = $this->global_model->getProductTaxInfo()->Data   ?? []; break;
                         case 'taxDetails':  $data['taxDetails']  = $this->global_model->getTaxDetailsInfo()->Data   ?? []; break;
                         case 'categories':  $data['categories']  = $this->products_model->getCategoriesDetails([])  ?? []; break;
+                        case 'brands':      $data['brands']      = $this->products_model->getBrandsForCache((int)$this->pageData['JwtData']->Org->OrgUID) ?? []; break;
                     }
                 }
             }
@@ -1800,6 +1838,321 @@ class Products extends MY_Controller {
 
     }
 
+    // ── Brands ───────────────────────────────────────────────────────────────
+
+    public function getBrandList(): void {
+
+        $this->EndReturnData = new stdClass();
+        try {
+            $OrgUID    = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $pageNo    = (int) $this->input->post('PageNo') ?: 1;
+            $limit     = (int) $this->input->post('RowLimit') ?: 10;
+            $offset    = ($pageNo - 1) * $limit;
+            $rawFilter = $this->input->post('Filter');
+            $filter    = is_array($rawFilter) ? $rawFilter : (json_decode($rawFilter ?: '{}', true) ?? []);
+
+            $filterResult = $this->products_model->brandFilterFormation((object)['TableAliasName' => 'Brand'], $filter);
+
+            $result  = $this->products_model->getBrandListPaginated($OrgUID, $limit, $offset, $filterResult->SearchDirectQuery, $filterResult->sortOperation);
+            $rowHtml = $this->load->view('products/brands/list', [
+                'DataLists' => $result->rows,
+                'StartFrom' => $offset,
+                'JwtData'   => $this->pageData['JwtData'],
+            ], TRUE);
+
+            $this->EndReturnData->Error      = false;
+            $this->EndReturnData->List       = $rowHtml;
+            $this->EndReturnData->Pagination = $this->globalservice->buildPagePaginationHtml('/products/getBrandList', $result->totalCount, $pageNo, $limit);
+            $this->EndReturnData->TotalCount = $result->totalCount;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    private function buildBrandFormData(array $postData, bool $isCreate = false): array {
+
+        $data = [
+            'OrgUID'      => (int) $this->pageData['JwtData']->Org->OrgUID,
+            'BrandName'   => trim($postData['BrandName'] ?? ''),
+            'BrandCode'   => trim($postData['BrandCode'] ?? '') ?: null,
+            'Description' => trim($postData['Description'] ?? '') ?: null,
+            'UpdatedBy'   => (int) $this->pageData['JwtData']->User->UserUID,
+        ];
+        if ($isCreate) {
+            $data['BrandToken'] = generate_uuid4();
+            $data['CreatedBy']  = (int) $this->pageData['JwtData']->User->UserUID;
+        }
+        return $data;
+
+    }
+
+    public function addBrandDetails(): void {
+
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $userUID = (int) $this->pageData['JwtData']->User->UserUID;
+            $post    = $this->input->post(null, true);
+
+            $this->load->model('formvalidation_model');
+            $valErr = $this->formvalidation_model->brandValidateForm([
+                'BrandUID'    => 0,
+                'BrandName'   => $post['BrandName'] ?? '',
+                'BrandCode'   => $post['BrandCode'] ?? '',
+                'Description' => $post['Description'] ?? '',
+            ]);
+            if ($valErr) throw new Exception($valErr);
+
+            $this->load->model('products_model');
+            if ($this->products_model->isDuplicateBrandName($orgUID, $post['BrandName'] ?? '')) {
+                throw new Exception('A brand with this name already exists.');
+            }
+
+            $data = $this->buildBrandFormData($post, true);
+
+            $this->load->model('dbwrite_model');
+            $resp = $this->dbwrite_model->insertData('Products', 'BrandTbl', $data);
+            if ($resp->Error) throw new Exception($resp->Message);
+
+            $brandUID = (int) $resp->ID;
+
+            $this->_handleAttachments('Brand', $brandUID, $orgUID, $userUID, 'BrandAttachFiles', 'BrandAttachDeleteUIDs');
+            $this->cachehelper->upsertBrand($brandUID);
+
+            $this->auditlog->log(
+                $orgUID, $userUID,
+                'ADD_BRAND', 'Brand', $brandUID, $data['BrandName'],
+                ['BrandName' => $data['BrandName'], 'BrandCode' => $data['BrandCode']],
+                'Created brand "' . $data['BrandName'] . '"', 'Products',
+                'MASTER', 'SUCCESS', '', 'WEB', [], $data
+            );
+
+            $pageNo  = (int) ($post['PageNo'] ?? 1) ?: 1;
+            $getResp = $this->fetchBrandTableData($pageNo);
+
+            $this->EndReturnData->Error      = false;
+            $this->EndReturnData->Message    = 'Brand created successfully.';
+            $this->EndReturnData->InsertId   = $brandUID;
+            $this->EndReturnData->List       = $getResp->RecordHtmlData;
+            $this->EndReturnData->Pagination = $getResp->Pagination;
+            $this->EndReturnData->TotalCount = $getResp->TotalCount;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    public function retrieveBrandDetails(): void {
+
+        $this->EndReturnData = new stdClass();
+        try {
+            $brandUID = (int) $this->input->post('BrandUID');
+            $orgUID   = (int) $this->pageData['JwtData']->Org->OrgUID;
+            if ($brandUID <= 0) throw new Exception('Invalid brand.');
+
+            $this->load->model('products_model');
+            $brand = $this->products_model->getBrandByUID($brandUID, $orgUID);
+            if (!$brand) throw new Exception('Brand not found.');
+
+            $attachments = $this->_getAttachmentsWithUrl('Brand', $brandUID, $orgUID);
+
+            $this->EndReturnData->Error       = false;
+            $this->EndReturnData->Data        = $brand;
+            $this->EndReturnData->Attachments = $attachments;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    public function updateBrandDetails(): void {
+
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID   = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $userUID  = (int) $this->pageData['JwtData']->User->UserUID;
+            $post     = $this->input->post(null, true);
+            $brandUID = (int) ($post['BrandUID'] ?? 0);
+            if ($brandUID <= 0) throw new Exception('Invalid brand.');
+
+            $this->load->model('formvalidation_model');
+            $valErr = $this->formvalidation_model->brandValidateForm([
+                'BrandUID'    => $brandUID,
+                'BrandName'   => $post['BrandName'] ?? '',
+                'BrandCode'   => $post['BrandCode'] ?? '',
+                'Description' => $post['Description'] ?? '',
+            ]);
+            if ($valErr) throw new Exception($valErr);
+
+            $this->load->model('products_model');
+            if ($this->products_model->isDuplicateBrandName($orgUID, $post['BrandName'] ?? '', $brandUID)) {
+                throw new Exception('A brand with this name already exists.');
+            }
+
+            $oldBrand = $this->products_model->getBrandByUID($brandUID, $orgUID);
+            $oldRec   = $oldBrand ? (array) $oldBrand : [];
+
+            $data = $this->buildBrandFormData($post, false);
+
+            $this->load->model('dbwrite_model');
+            $resp = $this->dbwrite_model->updateData('Products', 'BrandTbl', $data, ['BrandUID' => $brandUID, 'OrgUID' => $orgUID]);
+            if ($resp->Error) throw new Exception($resp->Message);
+
+            $this->_handleAttachments('Brand', $brandUID, $orgUID, $userUID, 'BrandAttachFiles', 'BrandAttachDeleteUIDs');
+            $this->cachehelper->upsertBrand($brandUID);
+
+            $this->auditlog->log(
+                $orgUID, $userUID,
+                'UPDATE_BRAND', 'Brand', $brandUID, $data['BrandName'],
+                [], 'Updated brand "' . $data['BrandName'] . '"', 'Products',
+                'MASTER', 'SUCCESS', '', 'WEB', $oldRec, $data
+            );
+
+            $pageNo  = (int) ($post['PageNo'] ?? 1) ?: 1;
+            $getResp = $this->fetchBrandTableData($pageNo);
+
+            $this->EndReturnData->Error      = false;
+            $this->EndReturnData->Message    = 'Brand updated successfully.';
+            $this->EndReturnData->List       = $getResp->RecordHtmlData;
+            $this->EndReturnData->Pagination = $getResp->Pagination;
+            $this->EndReturnData->TotalCount = $getResp->TotalCount;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    public function deleteBrandDetails(): void {
+
+        $this->EndReturnData = new stdClass();
+        try {
+            $brandUID = (int) $this->input->post('BrandUID');
+            $orgUID   = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $userUID  = (int) $this->pageData['JwtData']->User->UserUID;
+            if ($brandUID <= 0) throw new Exception('Invalid brand.');
+
+            $this->load->model('dbwrite_model');
+            $resp = $this->dbwrite_model->updateData('Products', 'BrandTbl', $this->globalservice->baseDeleteArrayDetails(), ['BrandUID' => $brandUID, 'OrgUID' => $orgUID]);
+            if ($resp->Error) throw new Exception($resp->Message);
+
+            $this->cachehelper->removeBrand($brandUID);
+
+            $this->auditlog->log(
+                $orgUID, $userUID,
+                'DELETE_BRAND', 'Brand', $brandUID, '',
+                ['brandUID' => $brandUID], 'Deleted brand #' . $brandUID, 'Products',
+                'MASTER', 'SUCCESS', '', 'WEB',
+                ['brandUID' => $brandUID], []
+            );
+
+            $pageNo  = (int) $this->input->post('PageNo') ?: 1;
+            $getResp = $this->fetchBrandTableData($pageNo);
+
+            $this->EndReturnData->Error      = false;
+            $this->EndReturnData->Message    = 'Brand deleted successfully.';
+            $this->EndReturnData->List       = $getResp->RecordHtmlData;
+            $this->EndReturnData->Pagination = $getResp->Pagination;
+            $this->EndReturnData->TotalCount = $getResp->TotalCount;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    public function deleteBulkBrand(): void {
+
+        $this->EndReturnData = new stdClass();
+        try {
+            $brandUIDs = $this->input->post('BrandUIDs[]');
+            if (empty($brandUIDs)) throw new Exception('No brands selected for deletion.');
+
+            if (!is_array($brandUIDs)) { $brandUIDs = [$brandUIDs]; }
+            $brandUIDs = array_filter(array_map('intval', $brandUIDs), fn($id) => $id > 0);
+            if (empty($brandUIDs)) throw new Exception('Invalid brand IDs provided.');
+
+            $orgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $userUID = (int) $this->pageData['JwtData']->User->UserUID;
+
+            $this->load->model('dbwrite_model');
+            $resp = $this->dbwrite_model->updateData('Products', 'BrandTbl', $this->globalservice->baseDeleteArrayDetails(), [], ['BrandUID' => array_values($brandUIDs)]);
+            if ($resp->Error) throw new Exception($resp->Message);
+
+            foreach ($brandUIDs as $id) { $this->cachehelper->removeBrand($id); }
+
+            $this->auditlog->log(
+                $orgUID, $userUID,
+                'BULK_DELETE_BRANDS', 'Brand', 0, implode(',', $brandUIDs),
+                ['count' => count($brandUIDs)], 'Bulk deleted ' . count($brandUIDs) . ' brand' . (count($brandUIDs) > 1 ? 's' : ''), 'Products',
+                'MASTER', 'SUCCESS', '', 'WEB',
+                ['deletedUIDs' => array_values($brandUIDs)], []
+            );
+
+            $pageNo  = (int) $this->input->post('PageNo') ?: 1;
+            $getResp = $this->fetchBrandTableData($pageNo);
+
+            $this->EndReturnData->Error      = false;
+            $this->EndReturnData->Message    = 'Deleted Successfully.';
+            $this->EndReturnData->List       = $getResp->RecordHtmlData;
+            $this->EndReturnData->Pagination = $getResp->Pagination;
+            $this->EndReturnData->TotalCount = $getResp->TotalCount;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    public function syncBrandsCache(): void {
+
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $brands = $this->products_model->getBrandsForCache($orgUID);
+            if (empty($brands)) throw new Exception('No active brands found.');
+
+            $cacheKey = $this->redisservice->orgKey('brands');
+            $this->upstashservice->del($cacheKey);
+            $newMap = [];
+            foreach ($brands as $b) {
+                $uid                  = (int) $b->BrandUID;
+                $newMap[(string)$uid] = [
+                    'BrandUID'    => $uid,
+                    'BrandName'   => $b->BrandName   ?? '',
+                    'BrandCode'   => $b->BrandCode   ?? '',
+                    'Description' => $b->Description ?? '',
+                    'Image'       => $b->Image       ?? '',
+                ];
+            }
+            $this->upstashservice->hmset($cacheKey, $newMap);
+
+            $this->EndReturnData->Error   = false;
+            $this->EndReturnData->Message = count($brands) . ' brand(s) synced to cache.';
+            $this->EndReturnData->Count   = count($brands);
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
     // ── Cache Sync ────────────────────────────────────────────────────────────
 
     /**
@@ -1941,12 +2294,16 @@ class Products extends MY_Controller {
         $this->load->model('dbwrite_model');
         $this->load->library('fileupload');
 
-        $maxFiles   = $entityType === 'Category' ? 3 : 5;
-        $maxTotalMB = $entityType === 'Category' ? 3 : 5;
+        $maxFiles   = in_array($entityType, ['Category', 'Brand']) ? 3 : 5;
+        $maxTotalMB = in_array($entityType, ['Category', 'Brand']) ? 3 : 5;
         $allowed    = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
-        $folder     = $entityType === 'Category'
-            ? 'categories/attachments/' . $entityUID
-            : 'products/attachments/'   . $entityUID;
+        if ($entityType === 'Category') {
+            $folder = 'categories/attachments/' . $entityUID;
+        } elseif ($entityType === 'Brand') {
+            $folder = 'brands/attachments/' . $entityUID;
+        } else {
+            $folder = 'products/attachments/' . $entityUID;
+        }
 
         // Use WriteDb directly — avoids ReadDb replication lag
         $wdb = $this->dbwrite_model->getWriteDb();
@@ -1954,10 +2311,11 @@ class Products extends MY_Controller {
 
         // 1. Auto-migrate legacy Image field into the attachment table (once per entity)
         //    Prevents the old single image from being silently replaced on first new upload.
-        $legacyTbl   = $entityType === 'Product' ? 'ProductTbl'  : 'CategoryTbl';
-        $legacyPkCol = $entityType === 'Product' ? 'ProductUID'  : 'CategoryUID';
+        if ($entityType === 'Product')       { $legacyTbl = 'ProductTbl';  $legacyPkCol = 'ProductUID'; }
+        elseif ($entityType === 'Brand')    { $legacyTbl = 'BrandTbl';    $legacyPkCol = 'BrandUID'; }
+        else                                { $legacyTbl = 'CategoryTbl'; $legacyPkCol = 'CategoryUID'; }
         $existCountQ = $wdb->query(
-            "SELECT COUNT(*) AS cnt FROM Products.ProductCategoryAttachmentsTbl
+            "SELECT COUNT(*) AS cnt FROM Products.EntityAttachmentsTbl
               WHERE EntityType = ? AND EntityUID = ? AND OrgUID = ? AND IsDeleted = 0",
             [$entityType, $entityUID, $orgUID]
         );
@@ -1968,7 +2326,7 @@ class Products extends MY_Controller {
         if ($deleteRaw) {
             foreach (array_filter(array_map('intval', explode(',', $deleteRaw))) as $attachUID) {
                 $wdb->query(
-                    "UPDATE Products.ProductCategoryAttachmentsTbl SET IsDeleted=1, IsActive=0, UpdatedBy=? WHERE AttachUID=? AND OrgUID=? AND IsDeleted=0",
+                    "UPDATE Products.EntityAttachmentsTbl SET IsDeleted=1, IsActive=0, UpdatedBy=? WHERE AttachUID=? AND OrgUID=? AND IsDeleted=0",
                     [$userUID, $attachUID, $orgUID]
                 );
             }
@@ -1984,7 +2342,7 @@ class Products extends MY_Controller {
         // MAX(SortOrder) via WriteDb — the only reliable source after a just-committed write
         $maxSortQ  = $wdb->query(
             "SELECT COALESCE(MAX(SortOrder), 0) AS maxSort, COUNT(*) AS cnt, COALESCE(SUM(FileSize), 0) AS totalSize
-               FROM Products.ProductCategoryAttachmentsTbl
+               FROM Products.EntityAttachmentsTbl
               WHERE EntityType = ? AND EntityUID = ? AND OrgUID = ? AND IsDeleted = 0",
             [$entityType, $entityUID, $orgUID]
         );
@@ -2014,7 +2372,7 @@ class Products extends MY_Controller {
             $result = $this->fileupload->fileUpload('file', $folder . '/' . $safe, $tmp);
             if ($result->Error) continue;
 
-            $wdb->insert('Products.ProductCategoryAttachmentsTbl', [
+            $wdb->insert('Products.EntityAttachmentsTbl', [
                 'OrgUID'     => $orgUID,
                 'EntityType' => $entityType,
                 'EntityUID'  => $entityUID,
@@ -2055,7 +2413,7 @@ class Products extends MY_Controller {
             $entityUID  = (int) $this->input->get_post('EntityUID');
             $orgUID     = (int) $this->pageData['JwtData']->Org->OrgUID;
 
-            if (!in_array($entityType, ['Product', 'Category'])) throw new Exception('Invalid entity type.');
+            if (!in_array($entityType, ['Product', 'Category', 'Brand'])) throw new Exception('Invalid entity type.');
             if ($entityUID <= 0) throw new Exception('Invalid entity ID.');
 
             $this->load->model('products_model');
@@ -2083,10 +2441,10 @@ class Products extends MY_Controller {
             $entityUID    = (int) $this->input->post('EntityUID');
             $orgUID       = (int) $this->pageData['JwtData']->Org->OrgUID;
             $userUID      = (int) $this->pageData['JwtData']->User->UserUID;
-            $maxFiles     = $entityType === 'Category' ? 3 : 5;
-            $maxTotalMB   = $entityType === 'Category' ? 3 : 5;
+            $maxFiles     = in_array($entityType, ['Category', 'Brand']) ? 3 : 5;
+            $maxTotalMB   = in_array($entityType, ['Category', 'Brand']) ? 3 : 5;
 
-            if (!in_array($entityType, ['Product', 'Category'])) throw new Exception('Invalid entity type.');
+            if (!in_array($entityType, ['Product', 'Category', 'Brand'])) throw new Exception('Invalid entity type.');
             if ($entityUID <= 0) throw new Exception('Invalid entity ID.');
 
             $files = $_FILES['Attachments'] ?? null;
@@ -2109,7 +2467,9 @@ class Products extends MY_Controller {
             $this->load->model('dbwrite_model');
             $this->load->library('fileupload');
 
-            $folder    = $entityType === 'Category' ? 'categories/attachments/' . $entityUID : 'products/attachments/' . $entityUID;
+            if ($entityType === 'Category')     { $folder = 'categories/attachments/' . $entityUID; }
+            elseif ($entityType === 'Brand')    { $folder = 'brands/attachments/' . $entityUID; }
+            else                                { $folder = 'products/attachments/' . $entityUID; }
             $sortStart = $existingCount + 1;
 
             for ($i = 0; $i < min($count, $maxFiles); $i++) {
@@ -2127,7 +2487,7 @@ class Products extends MY_Controller {
                 $uploadResult = $this->fileupload->fileUpload('file', $storagePath, $files['tmp_name'][$i]);
                 if ($uploadResult->Error) continue;
 
-                $resp = $this->dbwrite_model->insertData('Products', 'ProductCategoryAttachmentsTbl', [
+                $resp = $this->dbwrite_model->insertData('Products', 'EntityAttachmentsTbl', [
                     'OrgUID'     => $orgUID,
                     'EntityType' => $entityType,
                     'EntityUID'  => $entityUID,
@@ -2172,7 +2532,7 @@ class Products extends MY_Controller {
             if ($attachUID <= 0) throw new Exception('Invalid attachment.');
 
             $this->load->model('dbwrite_model');
-            $resp = $this->dbwrite_model->updateData('Products', 'ProductCategoryAttachmentsTbl',
+            $resp = $this->dbwrite_model->updateData('Products', 'EntityAttachmentsTbl',
                 ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
                 ['AttachUID' => $attachUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
             );
@@ -2204,7 +2564,7 @@ class Products extends MY_Controller {
                     ['ProductUID' => $entityUID, 'OrgUID' => $orgUID]
                 );
                 $this->cachehelper->upsertProduct($entityUID);
-            } else {
+            } elseif ($entityType === 'Category') {
                 $this->dbwrite_model->updateData('Products', 'CategoryTbl',
                     ['Image' => $primary, 'UpdatedBy' => $userUID],
                     ['CategoryUID' => $entityUID, 'OrgUID' => $orgUID]

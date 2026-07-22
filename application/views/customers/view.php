@@ -1075,7 +1075,7 @@ $(function () {
                 var cnt = res.TotalCount || 0;
                 $('#grpTabCount').text(cnt > 0 ? cnt : '').toggleClass('d-none', cnt === 0);
             },
-            error: function () { AjaxLoading = 1; }
+            error: function () { ajaxLoading(1); }
         });
     }
 
@@ -1123,7 +1123,7 @@ $(function () {
         }).then(function (r) {
             if (!r.isConfirmed) return;
             $('#GroupsTableBody').html('<tr><td colspan="9" class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary" role="status"></span></td></tr>');
-            AjaxLoading = 0;
+            ajaxLoading(0);
             $.ajax({
                 url   : '/customers/toggleGroupStatus',
                 method: 'POST',
@@ -1156,7 +1156,7 @@ $(function () {
         }).then(function (r) {
             if (!r.isConfirmed) return;
             $('#GroupsTableBody').html('<tr><td colspan="9" class="text-center py-4"><span class="spinner-border spinner-border-sm text-danger" role="status"></span></td></tr>');
-            AjaxLoading = 0;
+            ajaxLoading(0);
             $.ajax({
                 url   : '/customers/deleteGroup',
                 method: 'POST',

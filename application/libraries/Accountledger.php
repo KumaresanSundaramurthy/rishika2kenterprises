@@ -560,7 +560,6 @@ Class Accountledger {
             'Narration'     => $narration,
             'IsDeleted'     => 0,
             'CreatedBy'     => (int) $createdBy,
-            'UpdatedBy'     => (int) $createdBy,
         ]);
         if ($resp->Error) throw new Exception('GeneralJournal insert failed: ' . $resp->Message);
 
@@ -579,6 +578,8 @@ Class Accountledger {
     private function _addJournalLine($journalUID, $ledgerUID, $type, $amount, $particulars, $journalDate, $fy, $createdBy) {
         $amount = round((float) $amount, $this->_dec());
         if ($amount <= 0 || !$ledgerUID) return;
+
+        log_message('debug', '[EXP-BAL] _addJournalLine → ledgerUID=' . $ledgerUID . ' type=' . $type . ' amount=' . $amount . ' particulars="' . $particulars . '"');
 
         $orgUID = $this->_orgUID();
 
@@ -602,6 +603,8 @@ Class Accountledger {
         $prevBal  = $last ? (float)$last->RunningBalance : 0.0;
         $prevType = $last ? $last->BalanceType : 'Debit';
 
+        log_message('debug', '[EXP-BAL] _addJournalLine → prevBal=' . $prevBal . ' ' . $prevType . ' (last row ' . ($last ? 'found' : 'NULL/empty') . ')');
+
         if ($type === $prevType) {
             $newBal  = $prevBal + $amount;
             $newType = $prevType;
@@ -614,6 +617,8 @@ Class Accountledger {
                 $newType = $prevType;
             }
         }
+
+        log_message('debug', '[EXP-BAL] _addJournalLine → newBal=' . $newBal . ' ' . $newType . ' → writing to LedgerBalances + ChartOfAccounts');
 
         // One LedgerBalances row per journal ENTRY (EntryUID), not per journal
         // This allows the same ledger to appear in multiple lines of one journal
@@ -629,6 +634,18 @@ Class Accountledger {
             'RunningBalance'  => $newBal,
             'BalanceType'     => $newType,
         ]);
+
+        // Sync denormalized CurrentBalance on ChartOfAccounts so vendor/customer
+        // list pages reflect the updated balance immediately after journal posting
+        $this->CI->dbwrite_model->updateData(
+            'Accounting', 'ChartOfAccounts',
+            [
+                'CurrentBalance'     => $newBal,
+                'CurrentBalanceType' => $newType,
+                'UpdatedBy'          => (int)$createdBy,
+            ],
+            ['OrgUID' => $orgUID, 'LedgerUID' => (int)$ledgerUID]
+        );
     }
 
     // -------------------------------------------------------------------------
@@ -729,6 +746,7 @@ Class Accountledger {
 
     // Payment journal: received = Cr Customer; made = Dr Vendor
     public function postPaymentJournal($direction, $transUID, $paymentDate, $fy, $amount, $partyUID, $entityType, $createdBy) {
+        log_message('debug', '[EXP-BAL] postPaymentJournal → direction=' . $direction . ' transUID=' . $transUID . ' amount=' . $amount . ' partyUID=' . $partyUID . ' entityType=' . $entityType);
         $amount = round((float) $amount, $this->_dec());
         if ($amount <= 0) return;
 
@@ -840,9 +858,20 @@ Class Accountledger {
         }
     }
 
-    // Expense: Dr Expense Account, Cr Accounts Payable
-    public function postExpenseJournal($expenseUID, $expenseDate, $expenseNumber, $fy, $netAmount, $createdBy) {
-        $netAmount = round((float) $netAmount, $this->_dec());
+    // Expense journal:
+    //   With-tax + vendor → Dr Expense (taxable) + Dr Input Tax, Cr Vendor Ledger (specific)
+    //   Without-tax / no vendor → Dr Expense, Cr Accounts Payable (generic)
+    // Expense journal:
+    //   With-tax + vendor (intra-state) → Dr Expense + Dr CGST ITC + Dr SGST ITC, Cr Vendor Ledger
+    //   With-tax + vendor (inter-state) → Dr Expense + Dr IGST ITC, Cr Vendor Ledger
+    //   Without-tax / no vendor → Dr Expense, Cr Accounts Payable (generic)
+    public function postExpenseJournal($expenseUID, $expenseDate, $expenseNumber, $fy, $netAmount, $createdBy, $vendorUID = null, $taxableAmount = 0.0, $taxAmount = 0.0, $cgst = 0.0, $sgst = 0.0, $igst = 0.0) {
+        log_message('debug', '[EXP-BAL] postExpenseJournal → expenseUID=' . $expenseUID . ' netAmount=' . $netAmount . ' taxable=' . $taxableAmount . ' cgst=' . $cgst . ' sgst=' . $sgst . ' igst=' . $igst . ' vendorUID=' . $vendorUID);
+        $netAmount     = round((float) $netAmount,     $this->_dec());
+        $taxableAmount = round((float) $taxableAmount, $this->_dec());
+        $cgst          = round((float) $cgst,          $this->_dec());
+        $sgst          = round((float) $sgst,          $this->_dec());
+        $igst          = round((float) $igst,          $this->_dec());
         if ($netAmount <= 0) return;
 
         $jUID = $this->_createJournalHeader(
@@ -852,6 +881,50 @@ Class Accountledger {
         );
 
         $expUID = $this->_getSystemLedgerUID('expense_account');
+
+        if ($vendorUID > 0) {
+            $mapping = $this->getEntityLedgerMapping((int) $vendorUID, 'Vendor');
+            if ($mapping && !empty($mapping->LedgerUID)) {
+                $vendLedgerUID = (int) $mapping->LedgerUID;
+                $ref = $expenseNumber ?: '#' . $expenseUID;
+
+                // Dr: Expense Account — taxable portion
+                if ($expUID) {
+                    $drExpAmt = $taxableAmount > 0 ? $taxableAmount : $netAmount;
+                    $this->_addJournalLine($jUID, $expUID, 'Debit', $drExpAmt,
+                        'Expense recorded — ' . $ref, $expenseDate, $fy, $createdBy);
+                }
+
+                // Dr: CGST Input Tax Credit (intra-state)
+                if ($cgst > 0) {
+                    $uid = $this->_getSystemLedgerUID('cgst_input');
+                    if ($uid) $this->_addJournalLine($jUID, $uid, 'Debit', $cgst,
+                        'Input CGST on expense — ' . $ref, $expenseDate, $fy, $createdBy);
+                }
+
+                // Dr: SGST Input Tax Credit (intra-state)
+                if ($sgst > 0) {
+                    $uid = $this->_getSystemLedgerUID('sgst_input');
+                    if ($uid) $this->_addJournalLine($jUID, $uid, 'Debit', $sgst,
+                        'Input SGST on expense — ' . $ref, $expenseDate, $fy, $createdBy);
+                }
+
+                // Dr: IGST Input Tax Credit (inter-state)
+                if ($igst > 0) {
+                    $uid = $this->_getSystemLedgerUID('igst_input');
+                    if ($uid) $this->_addJournalLine($jUID, $uid, 'Debit', $igst,
+                        'Input IGST on expense — ' . $ref, $expenseDate, $fy, $createdBy);
+                }
+
+                // Cr: Vendor Ledger — net payable (after TDS)
+                $this->_addJournalLine($jUID, $vendLedgerUID, 'Credit', $netAmount,
+                    'Payable to vendor — expense ' . $ref, $expenseDate, $fy, $createdBy);
+
+                return;
+            }
+        }
+
+        // Without-tax or vendor ledger not found — fall back to generic AP
         if ($expUID) {
             $this->_addJournalLine($jUID, $expUID, 'Debit', $netAmount,
                 'Expense recorded — ' . ($expenseNumber ?: '#' . $expenseUID), $expenseDate, $fy, $createdBy);
@@ -1096,9 +1169,45 @@ Class Accountledger {
     }
 
     // Reverse all non-deleted journals for a given reference — creates counter-entry journals
+    /**
+     * Ensure every payment recorded against an expense has a corresponding
+     * Payment-Out journal entry in the vendor ledger. Payments made before
+     * postPaymentJournal was wired up have no GeneralJournal row; this method
+     * detects and back-fills them so the vendor's running balance is correct.
+     */
+    public function ensurePaymentJournals(int $expenseUID, int $vendorUID, int $userUID): void {
+        $this->CI->load->model('accountledger_model');
+        $orgUID = $this->_orgUID();
+
+        // Fresh snapshot so we see all committed payments and existing journals
+        $readDb = $this->CI->load->database('ReadDB', TRUE);
+        $readDb->db_debug = FALSE;
+        $readDb->simple_query('COMMIT');
+        $readDb->select('PaymentUID, PaymentDate, TransYear, Amount');
+        $readDb->from('Transaction.PaymentsTbl');
+        $readDb->where(['TransUID' => $expenseUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0, 'IsActive' => 1]);
+        $readDb->order_by('PaymentUID', 'ASC');
+        $payments = ($q = $readDb->get()) ? $q->result() : [];
+
+        foreach ($payments as $pmt) {
+            $existing = $this->CI->accountledger_model->getJournalByReference('Payment-Out', (int)$pmt->PaymentUID);
+            if (!empty($existing)) {
+                log_message('debug', '[EXP-BAL] ensurePaymentJournals → PaymentUID=' . $pmt->PaymentUID . ' journal exists, skip');
+                continue;
+            }
+            log_message('debug', '[EXP-BAL] ensurePaymentJournals → PaymentUID=' . $pmt->PaymentUID . ' amount=' . $pmt->Amount . ' back-filling journal');
+            $this->postPaymentJournal(
+                'made', (int)$pmt->PaymentUID, $pmt->PaymentDate, (int)$pmt->TransYear,
+                (float)$pmt->Amount, $vendorUID, 'Vendor', $userUID
+            );
+        }
+    }
+
     public function reverseJournal($refType, $transUID, $createdBy) {
         $this->CI->load->model('accountledger_model');
         $journals = $this->CI->accountledger_model->getJournalByReference($refType, (int) $transUID);
+
+        log_message('debug', '[EXP-BAL] reverseJournal → refType=' . $refType . ' transUID=' . $transUID . ' journalsFound=' . count($journals));
 
         foreach ($journals as $journal) {
             $jUID    = (int) $journal->JournalUID;
@@ -1106,6 +1215,7 @@ Class Accountledger {
             $revDate = date('Y-m-d');
 
             $entries = $this->CI->accountledger_model->getJournalEntries($jUID);
+            log_message('debug', '[EXP-BAL] reverseJournal → reversing JournalUID=' . $jUID . ' JournalNo=' . $journal->JournalNo . ' entries=' . count($entries));
 
             // Soft-delete original journal header + lines (scoped to this org)
             $this->CI->dbwrite_model->updateData('Accounting', 'GeneralJournal',

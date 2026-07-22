@@ -94,7 +94,7 @@
                             <div class="r2k-search-wrap">
                                 <i class="bx bx-search r2k-si"></i>
                                 <?php
-                                $searchPlaceholderMap = ['item' => 'Search items...', 'group' => 'Search groups...', 'pricelist' => 'Search price lists...', 'category' => 'Search categories...'];
+                                $searchPlaceholderMap = ['item' => 'Search items...', 'group' => 'Search groups...', 'pricelist' => 'Search price lists...', 'category' => 'Search categories...', 'brand' => 'Search brands...'];
                                 $searchPlaceholder = $searchPlaceholderMap[$ActiveTabData] ?? 'Search items...';
                                 ?>
                                 <input type="text" class="SearchDetails" id="SearchDetails" placeholder="<?php echo $searchPlaceholder; ?>" value="<?php echo htmlspecialchars($InitSearch ?? ''); ?>">
@@ -112,6 +112,7 @@
                             <a href="javascript:void(0);" class="apex-icon-btn <?php echo ($ActiveTabData == 'item' || $ActiveTabData == 'group') ? '' : 'd-none'; ?>" id="btnSyncProductsCache" title="Sync Items Cache"><i class="bx bx-planet"></i></a>
                             <a href="javascript:void(0);" class="apex-icon-btn <?php echo $ActiveTabData == 'category' ? '' : 'd-none'; ?>" id="btnSyncCategoriesCache" title="Sync Categories Cache"><i class="bx bx-planet"></i></a>
                             <a href="javascript:void(0);" class="apex-icon-btn <?php echo $ActiveTabData == 'pricelist' ? '' : 'd-none'; ?>" id="btnSyncPriceListCache" title="Sync Price List Cache"><i class="bx bx-planet"></i></a>
+                            <a href="javascript:void(0);" class="apex-icon-btn <?php echo $ActiveTabData == 'brand' ? '' : 'd-none'; ?>" id="btnSyncBrandsCache" title="Sync Brands Cache"><i class="bx bx-planet"></i></a>
                             <div class="btn-group d-none" id="ActionsDD-Div">
                                 <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="actionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                                     <i class="bx bx-slider-alt"></i>
@@ -130,6 +131,7 @@
                             <a href="javascript:void(0);" class="btn btn-primary btn-sm <?php echo $ActiveTabData == 'group' ? '' : 'd-none'; ?>" id="NewComboItem"><i class="bx bx-git-merge me-1"></i> Create Group</a>
                             <a href="javascript:void(0);" class="btn btn-primary btn-sm <?php echo $ActiveTabData == 'pricelist' ? '' : 'd-none'; ?>" id="NewPriceList"><i class="bx bx-plus me-1"></i> Create Price List</a>
                             <a href="javascript:void(0);" class="btn btn-primary btn-sm addCategory <?php echo $ActiveTabData == 'category' ? '' : 'd-none'; ?>" id="NewCategory"><i class="bx bx-plus me-1"></i> Create Category</a>
+                            <a href="javascript:void(0);" class="btn btn-primary btn-sm addBrand <?php echo $ActiveTabData == 'brand' ? '' : 'd-none'; ?>" id="NewBrand"><i class="bx bx-plus me-1"></i> Create Brand</a>
                         </div>
 
                         <!-- Tabs Row -->
@@ -157,6 +159,12 @@
                                     <a class="nav-link <?php echo $ActiveTabData == 'category' ? 'active' : ''; ?> TabPane" data-id="Categories" data-status="Categories" data-url-tab="categories" role="tab" data-bs-toggle="tab" data-bs-target="#NavCategoriesPage" href="javascript:void(0);">
                                         <i class="bx bx-layer me-1"></i> Categories
                                         <span class="trans-tab-count<?php echo ($ActiveTabData != 'category' || $ModTotalCount == 0) ? ' d-none' : ''; ?>" id="categoryTotalCount"><?php echo ($ActiveTabData == 'category' && $ModTotalCount > 0) ? $ModTotalCount : ''; ?></span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link <?php echo $ActiveTabData == 'brand' ? 'active' : ''; ?> TabPane" data-id="Brands" data-status="Brands" data-url-tab="brands" role="tab" data-bs-toggle="tab" data-bs-target="#NavBrandsPage" href="javascript:void(0);">
+                                        <i class="bx bx-purchase-tag me-1"></i> Brands
+                                        <span class="trans-tab-count<?php echo ($ActiveTabData != 'brand' || $ModTotalCount == 0) ? ' d-none' : ''; ?>" id="brandTotalCount"><?php echo ($ActiveTabData == 'brand' && $ModTotalCount > 0) ? $ModTotalCount : ''; ?></span>
                                     </a>
                                 </li>
                             </ul>
@@ -319,6 +327,42 @@
 
                                     </div>
 
+                                    <div class="tab-pane fade <?php echo $ActiveTabData == 'brand' ? 'show active' : ''; ?>" id="NavBrandsPage" role="tabpanel">
+
+                                        <div class="table-responsive text-nowrap h-100 tablecard">
+                                            <table class="table trans-table table-hover" id="BrandsTable">
+                                                <thead class="r2k-thead">
+                                                    <tr>
+                                                        <th class="table-checkbox">
+                                                            <div class="form-check form-check-inline">
+                                                                <input class="form-check-input table-chkbox brandHeaderCheck" type="checkbox">
+                                                            </div>
+                                                        </th>
+                                                        <th class="table-serialno <?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>">S.No</th>
+                                                        <th class="name-sortable position-relative" id="sortBrandName" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">
+                                                            <span class="sort-label cursor-pointer">Name <i class="bx bx-sort-alt-2 sort-icon ms-1"></i></span>
+                                                        </th>
+                                                        <th>Products</th>
+                                                        <th>Last Updated</th>
+                                                        <th class="text-center">Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="r2k-tbody table-border-bottom-0">
+                                                    <?php if ($ActiveTabData == 'brand') {
+                                                        echo $ModRowData;
+                                                    } else {
+                                                        $PageData['DataLists'] = [];
+                                                        echo $this->load->view('products/brands/list', $PageData, TRUE);
+                                                    } ?>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <div class="d-flex align-items-center justify-content-between mx-0 px-3 mt-1 BrandsPagination apex-pag-sticky" id="BrandsPagination">
+                                            <?php echo $ActiveTabData == 'brand' ? $ModPagination : ''; ?>
+                                        </div>
+
+                                    </div>
+
 
                         </div>
                     </div>
@@ -334,6 +378,7 @@
             <?php $this->load->view('common/modals/category_form'); ?>
             <?php $this->load->view('products/modals/combo'); ?>
             <?php $this->load->view('products/modals/category'); ?>
+            <?php $this->load->view('products/modals/brand'); ?>
             <?php $this->load->view('products/modals/barcodeprint'); ?>
             <?php $this->load->view('products/modals/pricelist'); ?>
 
@@ -490,6 +535,10 @@ const CatgTable = '#CategoriesTable';
 const CatgPag = '.CategoriesPagination';
 const CatgHeader = '.categoryHeaderCheck';
 const CatgRow = '.categoryCheck';
+const BrandTable = '#BrandsTable';
+const BrandPag = '.BrandsPagination';
+const BrandHeader = '.brandHeaderCheck';
+const BrandRow = '.brandCheck';
 const PLTable  = '#PriceListTable';
 const PLPag    = '#PriceListPagination';
 let ActiveTabId = '<?php echo $ActiveTabName; ?>';
@@ -500,7 +549,9 @@ let imgData;
 var _prodInitSearch = <?php echo json_encode($InitSearch ?? ''); ?>;
 let sortState = 0;
 let catgSortState = 0;
+let brandSortState = 0;
 var _catgListDirty = false;
+var _brandListDirty = false;
 let colSortStates = {};
 $(function() {
     'use strict';
@@ -540,24 +591,24 @@ $(function() {
             $('.trans-tab-count').addClass('d-none');
             _pushTabUrl(TabValue, '');
             $('#ProductStatsRow').toggleClass('d-none', TabValue === 'Groups' || TabValue === 'PriceLists');
-            $('#NewItem,#NewComboItem,#NewPriceList,#NewCategory,#CloneOption,#DeleteOption,#ItemCategory-Div').addClass('d-none');
+            $('#NewItem,#NewComboItem,#NewPriceList,#NewCategory,#NewBrand,#CloneOption,#DeleteOption,#ItemCategory-Div').addClass('d-none');
             $('#ActionsDD-Div').addClass('d-none');
             $('#productTypeFilter,#categoryFilter').toggleClass('d-none', TabValue !== 'Item');
             $('#statusFilter,#taxFilter').toggleClass('d-none', TabValue !== 'Item' && TabValue !== 'Groups');
             $('#plStatusFilter,#plAssignedToFilter,#plScopeFilter').toggleClass('d-none', TabValue !== 'PriceLists');
-            var _prodSearchPlaceholders = { Item: 'Search items...', Groups: 'Search groups...', PriceLists: 'Search price lists...', Categories: 'Search categories...' };
+            var _prodSearchPlaceholders = { Item: 'Search items...', Groups: 'Search groups...', PriceLists: 'Search price lists...', Categories: 'Search categories...', Brands: 'Search brands...' };
             $('#SearchDetails').val('').attr('placeholder', _prodSearchPlaceholders[TabValue] || 'Search...');
             PageNo = 0;
             Filter = {};
             // Reset all sort visual states
-            sortState = 0; catgSortState = 0; colSortStates = {};
+            sortState = 0; catgSortState = 0; brandSortState = 0; colSortStates = {};
             $('.name-sortable .sort-icon, .col-sortable .sort-icon').removeClass('bx-sort-up bx-sort-down text-primary').addClass('bx-sort-alt-2');
             $('.name-sortable, .col-sortable').removeClass('col-active').attr('data-bs-title', 'Click for ascending order');
             $('.mp-filterbox').hide();
             $('#categoryFilter, #productTypeFilter, #statusFilter, #taxFilter').removeClass('text-primary');
             $('#plStatusFilter, #plAssignedToFilter, #plScopeFilter').removeClass('text-primary has-filter');
             $('#ProductCountWrap').addClass('d-none');
-            $('#btnSyncProductsCache,#btnSyncCategoriesCache,#btnSyncPriceListCache').addClass('d-none');
+            $('#btnSyncProductsCache,#btnSyncCategoriesCache,#btnSyncPriceListCache,#btnSyncBrandsCache').addClass('d-none');
             if (ActiveTabId == 'Item') {
                 $('#NewItem,#ItemCategory-Div,#ProductCountWrap').removeClass('d-none');
                 $('#btnSyncProductsCache').removeClass('d-none');
@@ -597,6 +648,18 @@ $(function() {
                     $(CatgHeader).prop('checked', false);
                     unSelectTableRecords(CatgTable, CatgRow);
                     updateCategoryCount(parseInt($('#categoryTotalCount').text(), 10) || 0);
+                }
+            } else if (ActiveTabId == 'Brands') {
+                $('#NewBrand').removeClass('d-none');
+                $('#btnSyncBrandsCache').removeClass('d-none');
+                var brandLen = $(BrandTable + ' ' + BrandRow).length;
+                if (brandLen == 0 || _brandListDirty) {
+                    _brandListDirty = false;
+                    getBrandsDetails(PageNo, RowLimit, Filter);
+                } else {
+                    $(BrandHeader).prop('checked', false);
+                    unSelectTableRecords(BrandTable, BrandRow);
+                    updateBrandCount(parseInt($('#brandTotalCount').text(), 10) || 0);
                 }
             }
         }
@@ -641,6 +704,8 @@ $(function() {
                 DeleteContent = 'Do you want to delete all the selected product?';
             } else if (ActiveTabId == 'Categories') {
                 DeleteContent = 'Do you want to delete all the selected category?';
+            } else if (ActiveTabId == 'Brands') {
+                DeleteContent = 'Do you want to delete all the selected brand?';
             }
             Swal.fire({
                 title: DeleteContent,
@@ -656,6 +721,8 @@ $(function() {
                         deleteMultipleProduct();
                     } else if (ActiveTabId == 'Categories') {
                         deleteMultipleCategory();
+                    } else if (ActiveTabId == 'Brands') {
+                        deleteMultipleBrand();
                     }
                 }
             });
@@ -719,6 +786,10 @@ $(function() {
             catgSortState = (catgSortState + 1) % 3;
             defSortState = catgSortState;
             defFieldName = '#sortCatgName';
+        } else if (ActiveTabId == 'Brands') {
+            brandSortState = (brandSortState + 1) % 3;
+            defSortState = brandSortState;
+            defFieldName = '#sortBrandName';
         }
         const icon = $(this).find('.sort-icon');
         icon.removeClass('bx-sort-alt-2 bx-sort-up bx-sort-down text-primary');
@@ -1004,6 +1075,8 @@ $(function() {
     
     basePaginationFunc(CatgPag, getCategoriesDetails);
     basePageHeaderFunc(CatgHeader, CatgTable, CatgRow);
+    basePaginationFunc(BrandPag, getBrandsDetails);
+    basePageHeaderFunc(BrandHeader, BrandTable, BrandRow);
     basePaginationFunc(PLPag, getPriceListDetails);
 
     // ── Price List filter instances ───────────────────────────────────────────
@@ -1155,6 +1228,151 @@ $(function() {
         }).then((result) => {
             if (result.isConfirmed) {
                 deleteCategory(GetId);
+            }
+        });
+    });
+
+    // ── Brands Page ─────────────────────────────────────────────────────────────
+
+    $(document).on('click', '.addBrand', function(e) {
+        e.preventDefault();
+        $('#brandForm').trigger('reset');
+        $('#BrandModalTitle').text('Add Brand');
+        $('#BrandSaveButton').text('Save');
+        $('#BrandUID').val(0);
+        $('#BrandName').val('');
+        $('#BrandCode').val('');
+        $('#BrandDescription').val('');
+        $('.brandFormAlert').addClass('d-none');
+        if (typeof _attachBindListeners === 'function') _attachBindListeners('Brand');
+        if (typeof _attachResetState    === 'function') _attachResetState('Brand');
+        $('#brandModal').modal('show');
+    });
+
+    $('#brandModal').on('shown.bs.modal', function() {
+        $('#BrandName').trigger('focus');
+        $('.brandFormAlert').addClass('d-none');
+    });
+
+    $('#brandModal').on('hide.bs.modal', function() {
+        formOpenCloseDefActions();
+    });
+
+    $(document).on('click', BrandRow, function() {
+        onClickOfCheckbox($(this), BrandTable, BrandHeader, BrandRow);
+        MultipleDeleteOption();
+    });
+
+    $(document).on('click', '.editBrand', function(e) {
+        e.preventDefault();
+        var getVal = $(this).data('uid');
+        if (!getVal) return;
+
+        var getName      = $(this).data('name');
+        var getCode      = $(this).data('code');
+        var getDesc      = $(this).data('description');
+        var getAttachRaw = $(this).data('attachments');
+
+        $('#brandForm').trigger('reset');
+        $('#BrandModalTitle').text('Edit Brand');
+        $('#BrandSaveButton').text('Update');
+
+        $('#BrandUID').val(getVal);
+        $('#BrandName').val(getName ? atob(getName) : '');
+        $('#BrandCode').val(getCode ? atob(getCode) : '');
+        $('#BrandDescription').val(getDesc ? atob(getDesc) : '');
+
+        if (typeof _attachBindListeners === 'function') _attachBindListeners('Brand');
+        if (typeof _attachResetState    === 'function') _attachResetState('Brand');
+
+        try {
+            var attachments = typeof getAttachRaw === 'string' ? JSON.parse(getAttachRaw) : (getAttachRaw || []);
+            if (attachments.length && _attachState['Brand']) {
+                _attachState['Brand'].existing = attachments.map(function(a, i) {
+                    return {
+                        AttachUID : a.AttachUID || (1000 + i),
+                        FileName  : a.name  || a.FileName  || '',
+                        FilePath  : a.url   || a.FilePath  || '',
+                        FileSize  : a.FileSize || 0,
+                        Url       : a.url   || a.Url       || '',
+                    };
+                });
+                if (typeof _attachRender === 'function') _attachRender('Brand');
+            }
+        } catch(err) {}
+
+        $('#brandModal').modal('show');
+    });
+
+    $('#brandForm').submit(function(e) {
+        e.preventDefault();
+
+        var formData = new FormData($('#brandForm')[0]);
+        var BrandUID = parseInt($('#BrandUID').val() || 0);
+
+        formData.append('PageNo',   PageNo);
+        formData.append('RowLimit', RowLimit);
+        if (Object.keys(Filter).length > 0) formData.append('Filter', JSON.stringify(Filter));
+
+        if (typeof _attachState !== 'undefined' && _attachState['Brand']) {
+            (_attachState['Brand'].newFiles || []).forEach(function(f) {
+                formData.append('BrandAttachFiles[]', f, f.name);
+            });
+        }
+
+        var $btn = $('#BrandSaveButton');
+        $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
+
+        var onDone = function() {
+            $btn.prop('disabled', false).text(BrandUID ? 'Update' : 'Save');
+            $('#brandModal').modal('hide');
+        };
+
+        if (BrandUID === 0) {
+            addBrandDetails(formData, onDone);
+        } else {
+            editBrandDetails(formData, onDone);
+        }
+    });
+
+    $(document).on('click', '.DeleteBrand', function(e) {
+        e.preventDefault();
+        var GetId        = $(this).data('branduid');
+        var productCount = parseInt($(this).data('productcount') || 0, 10);
+        var brandName    = $(this).data('brandname') || 'this brand';
+
+        if (!GetId) return;
+
+        if (productCount > 0) {
+            showToastNotification(
+                '"' + brandName + '" has ' + productCount + ' linked product' + (productCount > 1 ? 's' : '') + '. Remove the product link first before deleting.',
+                'error'
+            );
+            return false;
+        }
+
+        Swal.fire({
+            title: "Delete brand?",
+            text: "You won't be able to revert this!",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#d33",
+            confirmButtonText: "Yes, delete it!",
+            cancelButtonColor: "#3085d6",
+        }).then((result) => {
+            if (result.isConfirmed) {
+                deleteBrand(GetId);
+            }
+        });
+    });
+
+    $('#btnSyncBrandsCache').click(function(e) {
+        e.preventDefault();
+        $.ajax({
+            url: '/products/syncBrandsCache', method: 'POST', cache: false,
+            data: { [CsrfName]: CsrfToken },
+            success: function(r) {
+                showToastNotification(r.Message || 'Brands cache synced.', r.Error ? 'error' : 'success');
             }
         });
     });
@@ -2323,13 +2541,13 @@ $(document).on('click', '.catg-prod-count-btn', function () {
 
     $('#catgProductsModalBody').html(skeleton);
     $('#catgProductsModal').modal('show');
-    AjaxLoading = 0;
+    ajaxLoading(0);
     $.ajax({
         url    : '/products/getProductsByCategory',
         method : 'POST',
         data   : { CategoryUID: catgUID, [CsrfName]: CsrfToken },
         success: function (res) {
-            AjaxLoading = 1;
+            ajaxLoading(1);
             function _amt(n) { return sym + ' ' + parseFloat(n || 0).toFixed(dec); }
             function _infoCard(content, borderColor) {
                 return '<div style="background:#fafafa;border:1px solid #e9ecef;border-left:3px solid '
@@ -2410,7 +2628,7 @@ $(document).on('click', '.catg-prod-count-btn', function () {
             $('#catgProductsModalBody').html(html);
         },
         error: function () {
-            AjaxLoading = 1;
+            ajaxLoading(1);
             $('#catgProductsModalBody').html('<div class="alert alert-danger m-3">Failed to load products.</div>');
         }
     });

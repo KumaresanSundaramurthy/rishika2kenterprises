@@ -51,6 +51,18 @@ class TransactionExporter {
         'ClosingBalance'    => 'Balance',
         'ClosingBalanceType'=> 'Balance Type',
         'IsActiveLabel'     => 'Status',
+        // Activity Log columns
+        'CreatedOn'         => 'Date / Time',
+        'UserName'          => 'User',
+        'Module'            => 'Module',
+        'AuditCategory'     => 'Category',
+        'Action'            => 'Action',
+        'EntityRef'         => 'Reference',
+        'Result'            => 'Result',
+        'Source'            => 'Type',
+        'IPAddress'         => 'IP Address',
+        'DeviceType'        => 'Device',
+        'Summary'           => 'Summary',
         // Product columns
         'ItemName'          => 'Item Name',
         'CategoryName'      => 'Category',
@@ -198,6 +210,18 @@ class TransactionExporter {
             ],
         ],
 
+        // ── 700: Activity Log ────────────────────────────────────────────────────
+        700 => [
+            'title'   => 'Activity Log',
+            'party'   => '',
+            'formats' => [
+                'csv'   => ['columns' => ['CreatedOn','UserName','Module','AuditCategory','Action','EntityRef','Result','Source','IPAddress','DeviceType','Summary']],
+                'excel' => ['columns' => ['CreatedOn','UserName','Module','AuditCategory','Action','EntityRef','Result','Source','IPAddress','DeviceType','Summary']],
+                'pdf'   => ['columns' => ['CreatedOn','UserName','Module','Action','EntityRef','Result','Summary']],
+                'print' => ['columns' => ['CreatedOn','UserName','Module','Action','EntityRef','Result','Summary']],
+            ],
+        ],
+
         // ── 203: Products ────────────────────────────────────────────────────
         203 => [
             'title'  => 'Products',
@@ -285,6 +309,9 @@ class TransactionExporter {
             case 203:
                 $this->CI->load->model('products_model');
                 return $this->CI->products_model->getProductsForExport($orgUID);
+            case 700:
+                $this->CI->load->model('activitylog_model');
+                return $this->CI->activitylog_model->getAuditLogs($orgUID, $filters, 5000, 0);
             default:
                 return [];
         }

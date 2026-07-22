@@ -8,6 +8,7 @@
 $isEdit  = ($FormMode === 'edit');
 $isClone = ($FormMode === 'clone');
 $d       = $FormData; // shorthand, null for add
+$dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 ?>
 
 <form id="CustomerModalForm" data-mode="<?php echo $FormMode; ?>" autocomplete="off" novalidate>
@@ -245,10 +246,10 @@ $d       = $FormData; // shorthand, null for add
                 <div class="row">
                     <div class="mb-3 col-md-4">
                         <label for="CM_DiscountPercent" class="form-label">Discount (%)</label>
-                        <input class="form-control" type="number" id="CM_DiscountPercent" name="DiscountPercent"
-                            min="0" max="100" maxlength="3" placeholder="Discount (%)"
-                            onkeypress="return (event.charCode!=8 && event.charCode==0 || (event.charCode>=48 && event.charCode<=57))"
-                            oninput="this.value=this.value.slice(0,this.maxLength)" pattern="[0-9]*"
+                        <input class="form-control" type="text" inputmode="decimal" id="CM_DiscountPercent" name="DiscountPercent"
+                            placeholder="Discount (%)"
+                            onkeypress="return (event.charCode===8||event.charCode===0||(event.charCode>=48&&event.charCode<=57)||(event.charCode===46&&this.value.indexOf('.')===-1))"
+                            oninput="var p=this.value.split('.');if(p.length>1&&p[1].length><?php echo $dec; ?>)this.value=p[0]+'.'+p[1].slice(0,<?php echo $dec; ?>);var v=parseFloat(this.value);if(!isNaN(v)&&v>100)this.value='100';"
                             value="<?php echo $isEdit ? smartDecimal($d->DiscountPercent ?? 0) : '0'; ?>" />
                     </div>
                     <div class="mb-3 col-md-4">

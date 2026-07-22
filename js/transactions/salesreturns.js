@@ -3,7 +3,7 @@
 
 function getSalesReturnsDetails(pageNo, rowLimit, filter, afterLoad) {
     loadTransactionList({
-        url:            '/salesreturns/getSalesReturnsPageDetails/',
+        url:            '/transactions/getPageDetails/106/',
         tabCountClass:  '.trans-tab-count',
         statusTabClass: '.sr-status-tab',
         errorMessage:   'Failed to load sales returns.',
@@ -33,13 +33,13 @@ function getSalesReturnsDetails(pageNo, rowLimit, filter, afterLoad) {
         $body.html('<div class="text-center py-3"><span class="spinner-border spinner-border-sm text-success"></span></div>');
         $panel.css({ top: top, left: left }).show();
         openUID = transUID;
-        AjaxLoading = 0;
+        ajaxLoading(0);
         $.ajax({
             url    : '/payments/getPaymentsByTransaction',
             type   : 'GET',
             data   : { TransUID: transUID },
             success: function (resp) {
-                AjaxLoading = 1;
+                ajaxLoading(1);
                 if (resp && !resp.Error && resp.Payments && resp.Payments.length) {
                     $body.html(buildPaymentHtml(resp.Payments));
                 } else {
@@ -47,7 +47,7 @@ function getSalesReturnsDetails(pageNo, rowLimit, filter, afterLoad) {
                 }
             },
             error: function () {
-                AjaxLoading = 1;
+                ajaxLoading(1);
                 $body.html('<p class="text-danger mb-0" style="font-size:.8rem;">Failed to load payments.</p>');
             }
         });

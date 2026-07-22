@@ -2,7 +2,7 @@
 
 <!-- Add / Edit Category Modal (shared by income form and category manager) -->
 <div class="modal fade" id="addIncomeCategoryModal" tabindex="-1" aria-hidden="true"
-     style="backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);">
+     data-bs-backdrop="false" style="z-index:1065;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);">
     <div class="modal-dialog modal-sm modal-dialog-top-centered">
         <div class="modal-content">
             <div class="modal-header bg-white border-bottom d-flex align-items-center justify-content-between px-3 py-2 trans-theme">

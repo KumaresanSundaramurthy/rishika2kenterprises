@@ -48,13 +48,13 @@ $(document).on('click', '.a4PrintTransaction', function () {
 
     $('#a4PrintModal').modal('show');
     _a4SetLoading(true);
-    AjaxLoading = 0;
+    ajaxLoading(0);
     $.ajax({
         url    : '/transactions/getTransactionDetail',
         method : 'GET',
         data   : { TransUID: uid, ModuleUID: moduleUID },
         success: function (data) {
-            AjaxLoading = 1;
+            ajaxLoading(1);
             // Ensure we have a plain object regardless of how jQuery received the response
             var resp = (typeof data === 'object' && data !== null) ? data : null;
             if (!resp) {
@@ -74,7 +74,7 @@ $(document).on('click', '.a4PrintTransaction', function () {
             _a4ShowPreview();
         },
         error: function (jqXHR, textStatus) {
-            AjaxLoading = 1;
+            ajaxLoading(1);
             _a4SetLoading(false);
             $('#a4PreviewStage').html('<div class="alert alert-danger m-4">Failed to load document. (' + textStatus + ')</div>');
         }
@@ -321,7 +321,7 @@ $('#a4EmailBtn').on('click', function () {
 
     if (!partyEmail) { Swal.fire({ icon: 'info', text: 'No email address found for this customer.' }); return; }
 
-    AjaxLoading = 0;
+    ajaxLoading(0);
     $.post('/transactions/sendTransactionEmail', {
         TransUID   : transUID,
         ModuleUID  : moduleUID,
@@ -329,14 +329,14 @@ $('#a4EmailBtn').on('click', function () {
         PartyType  : 'C',
         [CsrfName] : CsrfToken
     }, function (resp) {
-        AjaxLoading = 1;
+        ajaxLoading(1);
         if (resp && !resp.Error) {
             showToastNotification(transType + ' emailed to ' + partyEmail + ' successfully.', 'success');
         } else {
             Swal.fire({ icon: 'error', text: (resp && resp.Message) ? resp.Message : 'Failed to send email.' });
         }
     }).fail(function () {
-        AjaxLoading = 1;
+        ajaxLoading(1);
         Swal.fire({ icon: 'error', text: 'Failed to send email. Please try again.' });
     });
 });
@@ -390,13 +390,13 @@ function openA4PrintByUID(transUID, moduleUID, format, afterCloseCb) {
 
     $('#a4PrintModal').modal('show');
     _a4SetLoading(true);
-    AjaxLoading = 0;
+    ajaxLoading(0);
     $.ajax({
         url    : '/transactions/getTransactionDetail',
         method : 'GET',
         data   : { TransUID: transUID, ModuleUID: moduleUID },
         success: function (data) {
-            AjaxLoading = 1;
+            ajaxLoading(1);
             var resp = (typeof data === 'object' && data !== null) ? data : null;
             if (!resp || resp.Error) {
                 _a4SetLoading(false);
@@ -415,7 +415,7 @@ function openA4PrintByUID(transUID, moduleUID, format, afterCloseCb) {
             }
         },
         error: function (jqXHR, textStatus) {
-            AjaxLoading = 1;
+            ajaxLoading(1);
             _a4SetLoading(false);
             $('#a4PreviewStage').html('<div class="alert alert-danger m-4">Failed to load document. (' + textStatus + ')</div>');
         }

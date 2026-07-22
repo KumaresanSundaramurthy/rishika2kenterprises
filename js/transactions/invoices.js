@@ -42,7 +42,7 @@ $(document).on('comm:switchedToEmail', function (e, moduleUID, recordUID) {
 
 function getInvoicesDetails(pageNo, rowLimit, filter, afterLoad) {
     loadTransactionList({
-        url:            '/invoices/getInvoicesPageDetails/',
+        url:            '/transactions/getPageDetails/103/',
         tabCountClass:  '.trans-tab-count',
         statusTabClass: '.inv-status-tab',
         errorMessage:   'Failed to load invoices.',
@@ -78,14 +78,14 @@ function getInvoicesDetails(pageNo, rowLimit, filter, afterLoad) {
         $panel.css({ top: top, left: left }).show();
         openUID = transUID;
 
-        AjaxLoading = 0;
+        ajaxLoading(0);
 
         $.ajax({
             url     : '/payments/getPaymentsByTransaction',
             type    : 'GET',
             data    : { TransUID: transUID },
             success : function (resp) {
-                AjaxLoading = 1;
+                ajaxLoading(1);
                 if (resp && !resp.Error && resp.Payments && resp.Payments.length) {
                     $body.html(buildPaymentHtml(resp.Payments));
                 } else {
@@ -93,7 +93,7 @@ function getInvoicesDetails(pageNo, rowLimit, filter, afterLoad) {
                 }
             },
             error   : function () {
-                AjaxLoading = 1;
+                ajaxLoading(1);
                 $body.html('<p class="text-danger mb-0" style="font-size:.8rem;">Failed to load payments.</p>');
             }
         });

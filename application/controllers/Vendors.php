@@ -1525,8 +1525,8 @@ class Vendors extends MY_Controller {
                         'Name'         => $v['Name']           ?? '',
                         'Area'         => $v['Area']           ?? '',
                         'MobileNumber' => $v['MobileNumber']   ?? '',
-                        'Balance'      => $v['OpeningBalance'] ?? 0,
-                        'BalanceType'  => $v['OpeningBalType'] ?? 'Credit',
+                        'Balance'      => $v['ClosingBalance'] ?? ($v['OpeningBalance'] ?? 0),
+                        'BalanceType'  => $v['ClosingBalType'] ?? ($v['OpeningBalType'] ?? 'Credit'),
                         'address'      => $billingAddr,
                     ];
                 }, $page);
@@ -1649,6 +1649,14 @@ class Vendors extends MY_Controller {
             if (!empty($errors)) {
                 $this->EndReturnData->Errors = $errors;
             }
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'RECALC_VENDOR_BALANCE', 'Vendor', (int) $filterUID, '',
+                ['updated' => $updated, 'skipped' => $skipped, 'filterUID' => $filterUID],
+                "Recalculated vendor balances: {$updated} updated, {$skipped} skipped", 'Vendors',
+                'MASTER', 'SUCCESS', '', 'WEB',
+                [], []
+            );
 
         } catch (Exception $e) {
             $this->EndReturnData->Error   = TRUE;
@@ -1696,6 +1704,13 @@ class Vendors extends MY_Controller {
             if ($vendorUID > 0) $this->_syncVendorPrimaryImage($vendorUID, $orgUID, $userUID);
             $this->EndReturnData->Error   = false;
             $this->EndReturnData->Message = 'Attachment deleted.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'DELETE_VENDOR_ATTACHMENT', 'Vendor', (int) $vendorUID, '',
+                ['attachUID' => $attachUID], 'Deleted attachment #' . $attachUID . ' for vendor #' . $vendorUID, 'Vendors',
+                'MASTER', 'SUCCESS', '', 'WEB',
+                ['attachUID' => $attachUID], []
+            );
         } catch (Exception $e) {
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();

@@ -87,17 +87,17 @@ function searchCustomers(key) {
             dataType: 'json',
             delay: 250,
             data: function (params) {
-                AjaxLoading = 0;
+                ajaxLoading(0);
                 return { term: params.term, type: 'public' };
             },
             processResults: function (data) {
-                AjaxLoading = 1;
+                ajaxLoading(1);
                 return { results: data.Lists };
             },
             cache: true
         }
     }).on('select2:close', function () {
-        AjaxLoading = 1;
+        ajaxLoading(1);
     });
 }
 
@@ -225,7 +225,7 @@ function _fetchSalVendorFromServer(callback) {
 function _ensureSalVendor(callback) {
     if ($('#VM_SalutationUID option').length > 1) { callback(); return; }
     if (typeof UpstashService !== 'undefined' && UpstashService.isEnabled()) {
-        UpstashService.get(UpstashService.orgKey('salutation')).then(function (data) {
+        UpstashService.get(UpstashService.globalKey('salutation')).then(function (data) {
             if (data && Array.isArray(data) && data.length > 0) {
                 _populateSalVendor(data);
                 callback();

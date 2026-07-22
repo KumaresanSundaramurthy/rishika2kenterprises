@@ -116,6 +116,7 @@ class Roles_model extends CI_Model {
 
     public function saveRolePermissions(int $RoleUID, array $PostData, int $UserUID): void {
 
+        $this->load->model('dbwrite_model');
         $db = $this->dbwrite_model->getWriteDb();
         $now     = date('Y-m-d H:i:s');
 

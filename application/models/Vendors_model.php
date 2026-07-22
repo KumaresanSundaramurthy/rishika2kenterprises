@@ -663,6 +663,48 @@ class Vendors_model extends CI_Model {
         }
     }
 
+    /**
+     * Return the vendor's current ChartOfAccounts balance using a fresh DB read.
+     * Commits any open REPEATABLE READ transaction on ReadDb first so the next
+     * query starts a new consistent-read snapshot and sees data written by WriteDb
+     * in the same HTTP request (e.g. from postExpenseJournal / reverseJournal).
+     *
+     * @param int $vendorUID
+     * @return array{balance: float, balType: string}
+     */
+    public function getVendorClosingBalanceFresh(int $vendorUID): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            // End any stale REPEATABLE READ snapshot so the next SELECT sees committed data.
+            $this->ReadDb->simple_query('COMMIT');
+            $row = $this->ReadDb->query(
+                "SELECT
+                    IFNULL((SELECT COA.CurrentBalance
+                            FROM Accounting.EntityLedgerMap ELM
+                            JOIN Accounting.ChartOfAccounts COA
+                              ON COA.LedgerUID = ELM.LedgerUID AND COA.IsDeleted = 0
+                            WHERE ELM.VendorUID = ? AND ELM.EntityType = 'Vendor' AND ELM.IsDeleted = 0
+                            LIMIT 1), 0.00) AS ClosingBalance,
+                    IFNULL((SELECT COA.CurrentBalanceType
+                            FROM Accounting.EntityLedgerMap ELM
+                            JOIN Accounting.ChartOfAccounts COA
+                              ON COA.LedgerUID = ELM.LedgerUID AND COA.IsDeleted = 0
+                            WHERE ELM.VendorUID = ? AND ELM.EntityType = 'Vendor' AND ELM.IsDeleted = 0
+                            LIMIT 1), 'Credit') AS ClosingBalanceType",
+                [(int)$vendorUID, (int)$vendorUID]
+            )->row();
+            $result = [
+                'balance' => $row ? (float)$row->ClosingBalance      : 0.0,
+                'balType' => $row ? (string)$row->ClosingBalanceType  : 'Credit',
+            ];
+            log_message('debug', '[EXP-BAL] getVendorClosingBalanceFresh → vendorUID=' . $vendorUID . ' ChartOfAccounts.CurrentBalance=' . $result['balance'] . ' ' . $result['balType']);
+            return $result;
+        } catch (Exception $e) {
+            log_message('error', '[VENDOR-CACHE] getVendorClosingBalanceFresh: ' . $e->getMessage());
+            return ['balance' => 0.0, 'balType' => 'Credit'];
+        }
+    }
+
     // Total net amount billed by vendor (Purchases, ModuleUID=105).
     public function getVendorTotalPurchased(int $orgUID, int $vendorUID): float {
         try {

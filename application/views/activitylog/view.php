@@ -18,6 +18,21 @@ $this->load->view('common/transactions/header'); ?>
 
                 <div class="container-xxl flex-grow-1 py-3">
 
+                    <style>
+                        .al-sticky-col {
+                            position: sticky;
+                            right: 0;
+                            z-index: 2;
+                            background: var(--bs-body-bg, #fff);
+                            box-shadow: -2px 0 6px rgba(0,0,0,.06);
+                            width: 56px;
+                            text-align: center;
+                        }
+                        [data-bs-theme="dark"] .al-sticky-col,
+                        :root[data-theme="dark"] .al-sticky-col { background: var(--bs-body-bg, #1e293b); }
+                        thead .al-sticky-col { z-index: 3; }
+                    </style>
+
                     <div class="card">
 
                         <!-- Filter Row -->
@@ -50,21 +65,27 @@ $this->load->view('common/transactions/header'); ?>
                             <?php $this->load->view('common/transactions/date_filter_btn'); ?>
 
                             <div class="apex-filter-spacer"></div>
+                            <?php $this->load->view('common/partials/export_btn'); ?>
                             <a href="javascript:void(0);" class="apex-icon-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
                         </div>
 
                         <!-- Table -->
                         <div class="table-responsive">
-                            <table class="table table-hover mb-0" id="alTable">
+                            <table class="table table-hover mb-0" id="alTable" style="min-width:1600px;">
                                 <thead class="r2k-thead">
                                     <tr>
                                         <th style="width:120px;">Date / Time</th>
-                                        <th style="width:140px;">User</th>
+                                        <th style="width:180px;">User</th>
                                         <th style="width:130px;">Module</th>
                                         <th style="width:200px;">Action</th>
                                         <th style="width:160px;">Reference</th>
-                                        <th>Summary</th>
-                                        <th style="width:56px;"></th>
+                                        <th style="min-width:200px;">Summary</th>
+                                        <th style="width:130px;">Category</th>
+                                        <th style="width:100px;">Result</th>
+                                        <th style="width:100px;">Type</th>
+                                        <th style="width:130px;">IP Address</th>
+                                        <th style="width:100px;">Device</th>
+                                        <th class="al-sticky-col"></th>
                                     </tr>
                                 </thead>
                                 <tbody class="r2k-tbody table-border-bottom-0" id="alTableBody">
@@ -73,8 +94,7 @@ $this->load->view('common/transactions/header'); ?>
                             </table>
                         </div>
 
-                        <hr class="my-0">
-                        <div class="row mx-3 my-2 justify-content-between align-items-center" id="alPagination">
+                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center apex-pag-sticky" id="alPagination">
                             <?php echo $ModPagination ?: ''; ?>
                         </div>
 
@@ -128,9 +148,11 @@ $this->load->view('common/transactions/header'); ?>
     var PageNo   = 1;
     var RowLimit = <?php echo (int)($JwtData->GenSettings->RowLimit ?? 25); ?>;
 
-    // Seed with today (matching PHP default)
-    var _today = new Date().toISOString().slice(0, 10);
-    Filter.DateFrom = _today;
+    // Seed with this month (matching PHP default)
+    var _now            = new Date();
+    var _monthStart     = _now.getFullYear() + '-' + String(_now.getMonth() + 1).padStart(2, '0') + '-01';
+    var _today          = _now.toISOString().slice(0, 10);
+    Filter.DateFrom = _monthStart;
     Filter.DateTo   = _today;
 
     // ── Fetch list ───────────────────────────────────────────────────────────
@@ -138,7 +160,7 @@ $this->load->view('common/transactions/header'); ?>
     function getActivityLog() {
         ajaxLoading(0);
         $.ajax({
-            url: '/activitylog/getPageDetails', method: 'POST',
+            url: '/settings/activitylog/getPageDetails', method: 'POST',
             data: { RowLimit: RowLimit, PageNo: PageNo, Filter: JSON.stringify(Filter), [CsrfName]: CsrfToken },
             success: function (resp) {
                 ajaxLoading(1);
@@ -291,6 +313,12 @@ $this->load->view('common/transactions/header'); ?>
         }
     });
     $(document).on('keydown', function (e) { if (e.key === 'Escape') { $(_historyPanel).hide(); _historyPanelOpen = null; } });
+
+    // ── Export ───────────────────────────────────────────────────────────────
+    initExport({
+        moduleUID: 700,
+        getFilters: function () { return Filter; }
+    });
 
 })();
 </script>

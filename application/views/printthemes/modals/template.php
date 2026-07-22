@@ -77,6 +77,19 @@
                         </div>
                     </div>
 
+                    <!-- Preview HTML Content -->
+                    <div class="col-12">
+                        <label class="form-label small fw-semibold mb-1">
+                            Preview HTML Content
+                            <span class="text-muted fw-normal ms-1" style="font-size:.7rem;">
+                                Shown in the live preview panel — use same <code>{{PLACEHOLDER}}</code> tokens
+                            </span>
+                        </label>
+                        <textarea class="form-control font-monospace" id="TplPreviewHtmlContent"
+                            rows="10" style="font-size:.72rem;resize:vertical;"
+                            placeholder="Paste a simplified HTML snippet for live preview (tokens like {{PRIMARY_COLOR}}, {{ORG_NAME}}, {{FOOTER_TEXT}} are replaced in real-time)…"></textarea>
+                    </div>
+
                     <!-- HTML Content -->
                     <div class="col-12">
                         <label class="form-label small fw-semibold mb-1">

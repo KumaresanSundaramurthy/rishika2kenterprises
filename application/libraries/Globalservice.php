@@ -125,6 +125,7 @@ Class Globalservice {
     public function buildPagePaginationHtml($pageUrl, $totalCount, $pageNo, $limit) {
 
         $config['base_url']        = $pageUrl;
+        $config['first_url']       = rtrim($pageUrl, '/') . '/1';
         $config['use_page_numbers'] = TRUE;
         $config['total_rows']      = $totalCount;
         $config['per_page']        = $limit;

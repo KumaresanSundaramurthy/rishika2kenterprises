@@ -186,7 +186,13 @@
         }
         if (left < 8) left = 8;
 
-        this._$box.css({ top: top + 'px', left: left + 'px' }).show();
+        // Clamp list height so the box stays within viewport
+        var availH  = window.innerHeight - top - 10;
+        var listMax = Math.min(260, Math.max(80, availH - 134));
+        this._$box.find('.tpcf-list').css('max-height', listMax + 'px');
+
+        // Set display:flex explicitly — jQuery .show() sets display:block, breaking the flex layout
+        this._$box.css({ top: top + 'px', left: left + 'px', display: 'flex' });
         this._ensureCache();
     };
 

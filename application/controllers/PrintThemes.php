@@ -227,7 +227,8 @@ class PrintThemes extends MY_Controller {
                 'ShowGSTIN'        => (int)(bool)getPostValue($PostData, 'ShowGSTIN'),
                 'ShowHSN'          => (int)(bool)getPostValue($PostData, 'ShowHSN'),
                 'ShowTaxBreakdown' => (int)(bool)getPostValue($PostData, 'ShowTaxBreakdown'),
-                'FooterText'       => substr(getPostValue($PostData, 'FooterText') ?: '', 0, 200) ?: 'Thank you for your business!',
+                'ShowPartyBalance' => (int)(bool)getPostValue($PostData, 'ShowPartyBalance'),
+                'ShowTime'         => (int)(bool)getPostValue($PostData, 'ShowTime'),
                 'FontFamily'       => $fontFamily,
                 'FontSizePx'       => $fontSizePx,
                 'UpdatedBy'        => $userUID,
@@ -337,8 +338,9 @@ class PrintThemes extends MY_Controller {
             $templateName = trim(getPostValue($PostData, 'TemplateName') ?: '');
             $category     = trim(getPostValue($PostData, 'Category') ?: 'general');
             $description  = substr(trim(getPostValue($PostData, 'Description') ?: ''), 0, 500);
-            $htmlContent  = trim(getPostValue($PostData, 'HtmlContent') ?: '');
-            $previewImage = substr(trim(getPostValue($PostData, 'PreviewImage') ?: ''), 0, 500);
+            $htmlContent        = trim(getPostValue($PostData, 'HtmlContent') ?: '');
+            $previewHtmlContent = trim(getPostValue($PostData, 'PreviewHtmlContent') ?: '');
+            $previewImage       = substr(trim(getPostValue($PostData, 'PreviewImage') ?: ''), 0, 500);
             $sortOrder    = max(0, (int) getPostValue($PostData, 'SortOrder'));
 
             if (!$templateName) throw new Exception('Template name is required.');
@@ -352,12 +354,13 @@ class PrintThemes extends MY_Controller {
             if (!in_array($category, $allowedCategories)) $category = 'general';
 
             $data = [
-                'TemplateKey'  => $templateKey,
-                'TemplateName' => $templateName,
-                'Description'  => $description,
-                'Category'     => $category,
-                'HtmlContent'  => $htmlContent,
-                'PreviewImage' => $previewImage,
+                'TemplateKey'        => $templateKey,
+                'TemplateName'       => $templateName,
+                'Description'        => $description,
+                'Category'           => $category,
+                'HtmlContent'        => $htmlContent,
+                'PreviewHtmlContent' => $previewHtmlContent,
+                'PreviewImage'       => $previewImage,
                 'SortOrder'    => $sortOrder,
                 'UpdatedOn'    => date('Y-m-d H:i:s'),
             ];

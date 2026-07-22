@@ -182,6 +182,7 @@ class Indirectincome_model extends CI_Model {
             $this->ReadDb->select('BankAccountUID, AccountName, BankName, IsDefault');
             $this->ReadDb->from('Organisation.OrgBankAccountsTbl');
             $this->ReadDb->where('OrgUID',    $orgUID);
+            $this->ReadDb->where('IsCash',    0);
             $this->ReadDb->where('IsDeleted', 0);
             $this->ReadDb->where('IsActive',  1);
             $this->ReadDb->order_by('IsDefault', 'DESC');

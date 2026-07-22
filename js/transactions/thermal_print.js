@@ -53,13 +53,13 @@ $(document).on('click', '.thermalPrintTransaction', function () {
     });
     $('#thermalPrintBody').html('<div class="d-flex justify-content-center py-5"><div class="spinner-border text-primary"></div></div>');
     new bootstrap.Modal(document.getElementById('thermalPrintModal')).show();
-    AjaxLoading = 0;
+    ajaxLoading(0);
     $.ajax({
         url   : '/transactions/getTransactionDetail',
         method: 'GET',
         data  : { TransUID: uid, ModuleUID: moduleUID, PrintType: 'thermal' },
         success: function (resp) {
-            AjaxLoading = 1;
+            ajaxLoading(1);
             if (resp.Error) {
                 $('#thermalPrintBody').html('<div class="alert alert-danger m-2">' + _esc(resp.Message) + '</div>');
                 _thermalSetBanner(cfg.icon, cfg.color, cfg.bg, cfg.label + ' — Thermal Print', '<span class="text-danger">Failed to load</span>', '');
@@ -79,7 +79,7 @@ $(document).on('click', '.thermalPrintTransaction', function () {
             $('#thermalPrintBtn').removeClass('d-none');
         },
         error: function () {
-            AjaxLoading = 1;
+            ajaxLoading(1);
             $('#thermalPrintBody').html('<div class="alert alert-danger m-2">Failed to load receipt.</div>');
             _thermalSetBanner(cfg.icon, cfg.color, cfg.bg, cfg.label + ' — Thermal Print', '<span class="text-danger">Failed to load</span>', '');
         }
@@ -101,13 +101,13 @@ $(document).on('click', '.pmtThermalPrint', function () {
     });
     $('#thermalPrintBody').html('<div class="d-flex justify-content-center py-5"><div class="spinner-border text-primary"></div></div>');
     new bootstrap.Modal(document.getElementById('thermalPrintModal')).show();
-    AjaxLoading = 0;
+    ajaxLoading(0);
     $.ajax({
         url   : '/payments/getPaymentPrintDetail',
         method: 'GET',
         data  : { PaymentUID: paymentUID, PrintType: 'thermal' },
         success: function (resp) {
-            AjaxLoading = 1;
+            ajaxLoading(1);
             if (resp.Error) {
                 $('#thermalPrintBody').html('<div class="alert alert-danger m-2">' + _esc(resp.Message) + '</div>');
                 _thermalSetBanner(cfg.icon, cfg.color, cfg.bg, 'Payment Receipt — Thermal Print', '<span class="text-danger">Failed to load</span>', '');
@@ -127,7 +127,7 @@ $(document).on('click', '.pmtThermalPrint', function () {
             $('#thermalPrintBtn').removeClass('d-none');
         },
         error: function () {
-            AjaxLoading = 1;
+            ajaxLoading(1);
             $('#thermalPrintBody').html('<div class="alert alert-danger m-2">Failed to load payment receipt.</div>');
             _thermalSetBanner(cfg.icon, cfg.color, cfg.bg, 'Payment Receipt — Thermal Print', '<span class="text-danger">Failed to load</span>', '');
         }
@@ -136,18 +136,18 @@ $(document).on('click', '.pmtThermalPrint', function () {
 
 // ── Shared payment data loader (used by A4 print handlers in view pages) ─
 function _pmtLoadPrintData(paymentUID, printType, cb) {
-    AjaxLoading = 0;
+    ajaxLoading(0);
     $.ajax({
         url   : '/payments/getPaymentPrintDetail',
         method: 'GET',
         data  : { PaymentUID: paymentUID, PrintType: printType },
         success: function (resp) {
-            AjaxLoading = 1;
+            ajaxLoading(1);
             if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }
             cb(resp);
         },
         error: function () {
-            AjaxLoading = 1;
+            ajaxLoading(1);
             Swal.fire({ icon: 'error', text: 'Failed to load payment data.' });
         }
     });
@@ -174,13 +174,13 @@ function openThermalPrintByUID(transUID, moduleUID, afterCloseCb) {
     });
     $('#thermalPrintBody').html('<div class="d-flex justify-content-center py-5"><div class="spinner-border text-primary"></div></div>');
     new bootstrap.Modal(document.getElementById('thermalPrintModal')).show();
-    AjaxLoading = 0;
+    ajaxLoading(0);
     $.ajax({
         url   : '/transactions/getTransactionDetail',
         method: 'GET',
         data  : { TransUID: transUID, ModuleUID: moduleUID, PrintType: 'thermal' },
         success: function (resp) {
-            AjaxLoading = 1;
+            ajaxLoading(1);
             if (resp.Error) {
                 $('#thermalPrintBody').html('<div class="alert alert-danger m-2">' + _esc(resp.Message) + '</div>');
                 _thermalSetBanner(cfg.icon, cfg.color, cfg.bg, cfg.label + ' — Thermal Print', '<span class="text-danger">Failed to load</span>', '');
@@ -203,7 +203,7 @@ function openThermalPrintByUID(transUID, moduleUID, afterCloseCb) {
             }
         },
         error: function () {
-            AjaxLoading = 1;
+            ajaxLoading(1);
             $('#thermalPrintBody').html('<div class="alert alert-danger m-2">Failed to load receipt.</div>');
             _thermalSetBanner(cfg.icon, cfg.color, cfg.bg, cfg.label + ' — Thermal Print', '<span class="text-danger">Failed to load</span>', '');
         }

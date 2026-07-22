@@ -556,14 +556,14 @@
 
         // Show modal immediately — header already visible
         $modal.modal('show');
-        AjaxLoading = 0;
+        ajaxLoading(0);
 
         $.ajax({
             url   : '/transactions/getTransactionDetail',
             method: 'POST',
             data  : { TransUID: uid, ModuleUID: moduleUID, [CsrfName]: CsrfToken },
         }).done(function (resp) {
-            AjaxLoading = 1;
+            ajaxLoading(1);
             if (resp.Error) {
                 $('#viewTransModalBody').html('<div class="alert alert-danger m-3">' + _esc(resp.Message || 'Error loading details.') + '</div>');
                 return;
@@ -584,7 +584,7 @@
             $('#viewTransModalBody').html(bodyHtml);
 
         }).fail(function () {
-            AjaxLoading = 1;
+            ajaxLoading(1);
             $('#viewTransModalBody').html('<div class="alert alert-danger m-3">Failed to load transaction details.</div>');
         });
     });

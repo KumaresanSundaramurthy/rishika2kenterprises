@@ -1638,7 +1638,7 @@ $(document).ready(function () {
                     var page = (params.data && params.data.page) || 1;
 
                     if (catgCache) {
-                        AjaxLoading = 1;
+                        ajaxLoading(1);
                         success(_paginate(catgCache, term, page));
                         return;
                     }
@@ -1650,19 +1650,19 @@ $(document).ready(function () {
                             catgCache = catgs.map(function (c) {
                                 return { id: c.uid, text: c.name };
                             });
-                            AjaxLoading = 1;
+                            ajaxLoading(1);
                             success(_paginate(catgCache, term, page));
                         },
-                        function () { AjaxLoading = 1; success({ Lists: [], more: false }); }
+                        function () { ajaxLoading(1); success({ Lists: [], more: false }); }
                     );
                 },
                 delay: 1000,
                 data: function (params) {
-                    AjaxLoading = 0;
+                    ajaxLoading(0);
                     return { term: params.term, page: params.page || 1 };
                 },
                 processResults: function (data) {
-                    AjaxLoading = 1;
+                    ajaxLoading(1);
                     return { results: data.Lists, pagination: { more: data.more || false } };
                 },
                 cache: false
@@ -2486,7 +2486,7 @@ function searchCustomers(key) {
                           })
                         : list;
                     var start = (page - 1) * pageSize;
-                    AjaxLoading = 1;
+                    ajaxLoading(1);
                     success({ Lists: filtered.slice(start, start + pageSize), more: (start + pageSize) < filtered.length });
                 }
 
@@ -2552,18 +2552,18 @@ function searchCustomers(key) {
                         url: '/transactions/searchCustomers',
                         dataType: 'json',
                         data: { term: (params.data && params.data.term) || '', type: 'public' },
-                        success: function (data) { AjaxLoading = 1; success(data); },
-                        error: function () { AjaxLoading = 1; failure(); }
+                        success: function (data) { ajaxLoading(1); success(data); },
+                        error: function () { ajaxLoading(1); failure(); }
                     });
                 }
             },
             delay: 1000,
             data: function (params) {
-                AjaxLoading = 0;
+                ajaxLoading(0);
                 return { term: params.term, page: params.page || 1 };
             },
             processResults: function (data) {
-                AjaxLoading = 1;
+                ajaxLoading(1);
                 return { results: data.Lists, pagination: { more: data.more || false } };
             },
             cache: false
@@ -2660,7 +2660,7 @@ function searchCustomers(key) {
         if (typeof _showOnAccountBanner === 'function') _showOnAccountBanner(0, [], 0);
         if (typeof _plTransClear === 'function') _plTransClear();
     }).on('select2:close', function () {
-        AjaxLoading = 1;
+        ajaxLoading(1);
     });
 }
 
@@ -2878,7 +2878,7 @@ function searchProductInfo() {
                 var catgUID = parseInt($('#prodCategory').val() || 0, 10);
 
                 if (prodCache) {
-                    AjaxLoading = 1;
+                    ajaxLoading(1);
                     success(_paginate(prodCache, term, catgUID, page));
                     return;
                 }
@@ -2886,19 +2886,19 @@ function searchProductInfo() {
                 ProductAppend.load(
                     function (products) {
                         prodCache = products;
-                        AjaxLoading = 1;
+                        ajaxLoading(1);
                         success(_paginate(prodCache, term, catgUID, page));
                     },
-                    function () { AjaxLoading = 1; success({ Lists: [], more: false }); }
+                    function () { ajaxLoading(1); success({ Lists: [], more: false }); }
                 );
             },
             delay: 1000,
             data: function (params) {
-                AjaxLoading = 0;
+                ajaxLoading(0);
                 return { term: params.term || '', page: params.page || 1 };
             },
             processResults: function (data) {
-                AjaxLoading = 1;
+                ajaxLoading(1);
                 return { results: data.Lists, pagination: { more: data.more || false } };
             },
             cache: false
@@ -3023,7 +3023,7 @@ function searchProductInfo() {
     }).on('select2:close', function () {
         lastTerm  = '';
         prodCache = null;
-        AjaxLoading = 1;
+        ajaxLoading(1);
         $('#searchProductGroup').off('input.prodSearch');
         $('#searchProductGroup').find('.select2-dropdown').off('mousedown.createProd');
     });

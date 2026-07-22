@@ -14,6 +14,67 @@ class Expenses extends MY_Controller {
         $this->load->model('transactions_model');
     }
 
+    // ── Add Expense page ─────────────────────────────────────────────────────
+    public function openCreate(): void {
+        if (!$this->_loadPageTitle($this->pageModuleUID)) {
+            $this->load->view('common/module_error', $this->pageData);
+            return;
+        }
+        try {
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
+            $this->_loadUpstashConfig();
+            $this->pageData['Categories']        = $this->expenses_model->getCategories($orgUID);
+            $this->pageData['PaymentTypes']      = $this->expenses_model->getPaymentTypes();
+            $this->pageData['BankAccounts']      = $this->expenses_model->getBankAccounts($orgUID);
+            $this->pageData['ExpenseData']       = null;
+            $this->pageData['ExpenseItems']      = [];
+            $this->pageData['ExpenseAttachments']= [];
+            $this->load->view('transactions/expenses/forms/form', $this->pageData);
+        } catch (Throwable $e) {
+            log_message('error', 'Expenses::createForm — ' . $e->getMessage());
+            redirect('expenses', 'refresh');
+        }
+    }
+
+    // ── Edit Expense page ─────────────────────────────────────────────────────
+    public function openEdit(int $expenseUID = 0): void {
+        if (!$this->_loadPageTitle($this->pageModuleUID)) {
+            $this->load->view('common/module_error', $this->pageData);
+            return;
+        }
+        try {
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
+            $expense  = $this->expenses_model->getExpenseById($expenseUID, $orgUID);
+            if (!$expense) { redirect('expenses', 'refresh'); return; }
+
+            $this->_loadUpstashConfig();
+            $this->pageData['Categories']        = $this->expenses_model->getCategories($orgUID);
+            $this->pageData['PaymentTypes']      = $this->expenses_model->getPaymentTypes();
+            $this->pageData['BankAccounts']      = $this->expenses_model->getBankAccounts($orgUID);
+            $this->pageData['ExpenseData']       = $expense;
+            $this->pageData['ExpenseItems']      = $this->expenses_model->getExpenseItems($expenseUID, $orgUID);
+            $this->load->model('transactions_model');
+            $this->pageData['ExpenseAttachments'] = $this->transactions_model->getExpenseIncomeAttachments($expenseUID, $orgUID, 'Expense');
+
+            // Vendor billing state — used by view to determine intra/inter-state GST
+            $vendorStateCode = '';
+            if ((int)($expense->VendorUID ?? 0) > 0) {
+                $this->load->model('vendors_model');
+                $vendAddr = $this->vendors_model->getVendorAddress([
+                    'VendAddress.VendorUID'   => (int)$expense->VendorUID,
+                    'VendAddress.AddressType' => 'Billing',
+                ]);
+                $vendorStateCode = !empty($vendAddr) ? ($vendAddr[0]->State ?? '') : '';
+            }
+            $this->pageData['VendorStateCode'] = $vendorStateCode;
+
+            $this->load->view('transactions/expenses/forms/form', $this->pageData);
+        } catch (Throwable $e) {
+            log_message('error', 'Expenses::editForm — ' . $e->getMessage());
+            redirect('expenses', 'refresh');
+        }
+    }
+
     // ── List page ────────────────────────────────────────────────────────────
     public function index() {
         if (!$this->_loadPageTitle($this->pageModuleUID)) {
@@ -26,7 +87,11 @@ class Expenses extends MY_Controller {
             $limit  = $GeneralSettings->RowLimit ?? 10;
             $orgUID = $this->pageData['JwtData']->Org->OrgUID;
 
-            $filter = ['Status' => 'All', 'DateFrom' => date('Y-m-01'), 'DateTo' => date('Y-m-t')];
+            $datePref = $this->getDateFilterPreference('expenses');
+            $this->pageData['SavedDateRange'] = $datePref['range'];
+            $this->pageData['SavedDateLabel'] = $datePref['label'];
+
+            $filter = ['Status' => 'All', 'DateFrom' => $datePref['from'], 'DateTo' => $datePref['to']];
 
             $allData      = $this->expenses_model->getExpenseList($orgUID, $filter, $limit, 0);
             $allDataCount = $this->expenses_model->getExpenseCount($orgUID, $filter);
@@ -84,7 +149,10 @@ class Expenses extends MY_Controller {
             $this->EndReturnData->RecordHtmlData = $rowHtml;
             $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml('/expenses/getPageDetails', $allDataCount, $pageNo, $limit);
             $this->EndReturnData->TotalCount     = $allDataCount;
-            $this->EndReturnData->SummaryStats   = $this->expenses_model->getExpenseSummaryStats($orgUID);
+
+            if ((int)$this->input->post('ShowStats') === 1) {
+                $this->EndReturnData->SummaryStats = $this->expenses_model->getExpenseSummaryStats($orgUID);
+            }
 
         } catch (Throwable $e) {
             $this->EndReturnData->Error   = TRUE;
@@ -117,9 +185,12 @@ class Expenses extends MY_Controller {
                 ['ExpenseUID' => $expenseUID, 'OrgUID' => $orgUID]
             );
 
+            $pmtData = null;
             if ($data['IsPaid']) {
-                $this->_insertExpensePayment($PostData, $orgUID, $userUID, $expenseUID, $expenseNumber, $data['NetAmount'], $data['ExpenseDate']);
+                $pmtData = $this->_insertExpensePayment($PostData, $orgUID, $userUID, $expenseUID, $expenseNumber, (float)$data['NetAmount'], (string)$data['ExpenseDate']);
             }
+
+            $this->_saveExpenseItems($PostData, $expenseUID, $orgUID, $userUID);
 
             $this->dbwrite_model->commitTransaction();
 
@@ -128,16 +199,39 @@ class Expenses extends MY_Controller {
                 $expFY = (int) date('Y', strtotime($data['ExpenseDate']));
                 $this->accountledger->postExpenseJournal(
                     $expenseUID, $data['ExpenseDate'], $expenseNumber, $expFY,
-                    (float) $data['NetAmount'], $userUID
+                    (float) $data['NetAmount'], $userUID,
+                    (int)   ($data['VendorUID']  ?? 0),
+                    (float) ($data['Amount']     ?? 0),
+                    (float) ($data['TaxAmount']  ?? 0),
+                    (float) ($data['CGSTTotal']  ?? 0),
+                    (float) ($data['SGSTTotal']  ?? 0),
+                    (float) ($data['IGSTTotal']  ?? 0)
                 );
+                if ($pmtData !== null && (int)($data['VendorUID'] ?? 0) > 0) {
+                    $this->accountledger->postPaymentJournal(
+                        'made', $pmtData['pmtUID'], $pmtData['paymentDate'], $pmtData['payTransYear'],
+                        (float)$data['NetAmount'], (int)$data['VendorUID'], 'Vendor', $userUID
+                    );
+                }
             } catch (Exception $ledgerEx) {
                 log_message('error', 'Ledger update failed after expense creation: ' . $ledgerEx->getMessage());
+            }
+
+            $vendorUID = (int)($data['VendorUID'] ?? 0);
+            if ($vendorUID > 0) {
+                try {
+                    $this->load->library('cachehelper');
+                    $this->cachehelper->upsertVendor($vendorUID);
+                } catch (Exception $cacheEx) {
+                    log_message('error', 'Vendor cache sync failed after expense creation: ' . $cacheEx->getMessage());
+                }
             }
 
             $this->_saveAttachments($expenseUID, 'Expense');
 
             $this->EndReturnData->Error         = FALSE;
             $this->EndReturnData->Message       = 'Expense recorded successfully.';
+            $this->EndReturnData->RedirectURL   = '/expenses';
             $this->auditlog->log(
                 (int) $orgUID, (int) $userUID,
                 'ADD_EXPENSE', 'Expense', (int) $expenseUID, (string) $expenseNumber,
@@ -150,10 +244,6 @@ class Expenses extends MY_Controller {
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
-        }
-
-        if (!$this->EndReturnData->Error) {
-            $this->_appendListResponse($orgUID);
         }
 
         $this->globalservice->sendJsonResponse($this->EndReturnData);
@@ -174,14 +264,48 @@ class Expenses extends MY_Controller {
             if (!$existing) throw new Exception('Expense not found.');
             if ($existing->DocStatus === 'Cancelled') throw new Exception('This expense cannot be edited.');
 
+            log_message('debug', '[EXP-BAL] updateExpense START → expenseUID=' . $expenseUID
+                . ' DocStatus=' . $existing->DocStatus
+                . ' NetAmount=' . $existing->NetAmount
+                . ' PaidAmount=' . ($existing->PaidAmount ?? 0)
+                . ' BalanceAmount=' . ($existing->BalanceAmount ?? 0)
+                . ' VendorUID=' . ($existing->VendorUID ?? 'NULL'));
+
             $data = $this->_buildExpenseData($PostData, $userUID, $orgUID, false);
             unset($data['CreatedBy'], $data['CreatedOn'], $data['OrgUID'], $data['ModuleUID']);
 
-            // Preserve DocStatus/IsPaid for Paid expenses — only edit allowed, not payment reversal
-            if ($existing->DocStatus === 'Paid') {
-                $data['DocStatus'] = 'Paid';
-                $data['IsPaid']    = 1;
+            // Recalculate payment status: PaidAmount in DB is what was actually paid,
+            // the new NetAmount is the updated expense total — derive DocStatus from their difference.
+            $dec        = $this->_decimals();
+            $paidAmount = round((float)($existing->PaidAmount ?? 0), $dec);
+            $newNetAmt  = (float)$data['NetAmount'];
+
+            // Server-side guard: new amount cannot drop below what was already paid
+            if ($paidAmount > 0 && $newNetAmt < $paidAmount - 0.001) {
+                throw new Exception(
+                    'Amount cannot be less than ' . $this->_currency() . ' ' .
+                    number_format($paidAmount, $dec) . ' (already paid).'
+                );
             }
+
+            if ($paidAmount <= 0) {
+                $data['DocStatus']     = 'Pending';
+                $data['IsPaid']        = 0;
+                $data['PaidAmount']    = 0;
+                $data['BalanceAmount'] = $newNetAmt;
+            } elseif (round($newNetAmt - $paidAmount, $dec) <= 0) {
+                $data['DocStatus']     = 'Paid';
+                $data['IsPaid']        = 1;
+                $data['PaidAmount']    = $paidAmount;
+                $data['BalanceAmount'] = 0;
+            } else {
+                $data['DocStatus']     = 'Partial';
+                $data['IsPaid']        = 0;
+                $data['PaidAmount']    = $paidAmount;
+                $data['BalanceAmount'] = round($newNetAmt - $paidAmount, $dec);
+            }
+
+            $this->dbwrite_model->startTransaction();
 
             $resp = $this->dbwrite_model->updateData(
                 'Transaction', 'ExpensesTbl', $data,
@@ -189,23 +313,52 @@ class Expenses extends MY_Controller {
             );
             if ($resp->Error) throw new Exception($resp->Message);
 
+            $this->_saveExpenseItems($PostData, $expenseUID, $orgUID, $userUID);
+
+            $this->dbwrite_model->commitTransaction();
+
+            $this->_softDeleteAttachments(getPostValue($PostData, 'RemovedAttachIDs'), 'Expense');
             $this->_saveAttachments($expenseUID, 'Expense');
 
             // Reverse old journal and re-post with new amount/date (non-fatal)
+            log_message('debug', '[EXP-BAL] updateExpense → new NetAmount=' . $data['NetAmount'] . ' BalanceAmount=' . ($data['BalanceAmount'] ?? 'n/a') . ' PaidAmount=' . ($data['PaidAmount'] ?? 'n/a') . ' VendorUID=' . ($data['VendorUID'] ?? 'NULL'));
             try {
                 $this->load->library('accountledger');
                 $this->accountledger->reverseJournal('Expense', $expenseUID, $userUID);
                 $expFY = (int)date('Y', strtotime($data['ExpenseDate']));
                 $this->accountledger->postExpenseJournal(
                     $expenseUID, $data['ExpenseDate'], $existing->ExpenseNumber, $expFY,
-                    (float)$data['NetAmount'], $userUID
+                    (float) $data['NetAmount'], $userUID,
+                    (int)   ($data['VendorUID']  ?? 0),
+                    (float) ($data['Amount']     ?? 0),
+                    (float) ($data['TaxAmount']  ?? 0),
+                    (float) ($data['CGSTTotal']  ?? 0),
+                    (float) ($data['SGSTTotal']  ?? 0),
+                    (float) ($data['IGSTTotal']  ?? 0)
                 );
+                // Back-fill any payment journals that predate the postPaymentJournal wiring,
+                // so the vendor running balance reflects BalanceAmount, not NetAmount.
+                $journalVendorUID = (int)($data['VendorUID'] ?? 0);
+                if ($journalVendorUID > 0) {
+                    $this->accountledger->ensurePaymentJournals($expenseUID, $journalVendorUID, $userUID);
+                }
             } catch (Exception $ledgerEx) {
                 log_message('error', 'Ledger update failed after expense edit #' . $expenseUID . ': ' . $ledgerEx->getMessage());
             }
 
-            $this->EndReturnData->Error   = FALSE;
-            $this->EndReturnData->Message = 'Expense updated successfully.';
+            $vendorUID = (int)($data['VendorUID'] ?? 0);
+            if ($vendorUID > 0) {
+                try {
+                    $this->load->library('cachehelper');
+                    $this->cachehelper->upsertVendor($vendorUID);
+                } catch (Exception $cacheEx) {
+                    log_message('error', 'Vendor cache sync failed after expense update: ' . $cacheEx->getMessage());
+                }
+            }
+
+            $this->EndReturnData->Error       = FALSE;
+            $this->EndReturnData->Message     = 'Expense updated successfully.';
+            $this->EndReturnData->RedirectURL = '/expenses';
             $this->auditlog->log(
                 (int) $orgUID, (int) $userUID,
                 'UPDATE_EXPENSE', 'Expense', (int) $expenseUID, (string) ($existing->ExpenseNumber ?? ''),
@@ -213,12 +366,9 @@ class Expenses extends MY_Controller {
             );
 
         } catch (Throwable $e) {
+            $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
-        }
-
-        if (!$this->EndReturnData->Error) {
-            $this->_appendListResponse($orgUID);
         }
 
         $this->globalservice->sendJsonResponse($this->EndReturnData);
@@ -478,6 +628,27 @@ class Expenses extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
             $this->_savePaymentAttachments((int)$pmtResp->ID);
+
+            // Sync vendor ledger journals and Upstash cache.
+            // ensurePaymentJournals back-fills any historical payments that predate
+            // the journaling fix, then journals the current payment — so the vendor
+            // balance always equals the true outstanding BalanceAmount.
+            $vendorUID = (int)($existing->VendorUID ?? 0);
+            if ($vendorUID > 0) {
+                try {
+                    $this->load->library('accountledger');
+                    $this->accountledger->ensurePaymentJournals($expenseUID, $vendorUID, $userUID);
+                } catch (Throwable $jEx) {
+                    log_message('error', 'Expense payment journal failed: ' . $jEx->getMessage());
+                }
+                try {
+                    $this->load->library('cachehelper');
+                    $this->cachehelper->upsertVendor($vendorUID);
+                } catch (Throwable $cEx) {
+                    log_message('error', 'Vendor cache sync failed after expense payment: ' . $cEx->getMessage());
+                }
+            }
+
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = $isFullyPaid
                 ? 'Expense marked as paid.'
@@ -601,12 +772,13 @@ class Expenses extends MY_Controller {
             );
             if ($resp->Error) throw new Exception($resp->Message);
 
+            $pmtData = null;
             if ($newStatus === 'Paid') {
                 // Payment details come from the "Mark as Paid" modal in the list
-                $this->_insertExpensePayment(
+                $pmtData = $this->_insertExpensePayment(
                     $PostData, $orgUID, $userUID,
                     $expenseUID, $existing->ExpenseNumber,
-                    $existing->NetAmount, $existing->ExpenseDate
+                    (float)$existing->NetAmount, (string)$existing->ExpenseDate
                 );
             } elseif ($newStatus === 'Cancelled' && !empty($existing->PaymentUID)) {
                 // Void the linked payment record
@@ -623,11 +795,25 @@ class Expenses extends MY_Controller {
             try {
                 $this->load->library('accountledger');
                 if ($newStatus === 'Cancelled') {
-                    // Reverse the journal that was posted when the expense was created
                     $this->accountledger->reverseJournal('Expense', $expenseUID, $userUID);
+                } elseif ($newStatus === 'Paid' && $pmtData !== null && (int)($existing->VendorUID ?? 0) > 0) {
+                    $this->accountledger->postPaymentJournal(
+                        'made', $pmtData['pmtUID'], $pmtData['paymentDate'], $pmtData['payTransYear'],
+                        (float)$existing->NetAmount, (int)$existing->VendorUID, 'Vendor', $userUID
+                    );
                 }
             } catch (Exception $ledgerEx) {
                 log_message('error', 'Ledger failed on expense status change #' . $expenseUID . ': ' . $ledgerEx->getMessage());
+            }
+
+            $vendorUID = (int)($existing->VendorUID ?? 0);
+            if ($vendorUID > 0) {
+                try {
+                    $this->load->library('cachehelper');
+                    $this->cachehelper->upsertVendor($vendorUID);
+                } catch (Exception $cacheEx) {
+                    log_message('error', 'Vendor cache sync failed after expense status change: ' . $cacheEx->getMessage());
+                }
             }
 
             $this->EndReturnData->Error   = FALSE;
@@ -668,6 +854,7 @@ class Expenses extends MY_Controller {
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $expense;
+            $this->EndReturnData->Items = $this->expenses_model->getExpenseItems($expenseUID, $orgUID);
 
         } catch (Throwable $e) {
             $this->EndReturnData->Error   = TRUE;
@@ -683,6 +870,20 @@ class Expenses extends MY_Controller {
             $orgUID = $this->pageData['JwtData']->Org->OrgUID;
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $this->expenses_model->getCategories($orgUID);
+        } catch (Throwable $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    // ── TDS Sections dropdown data ────────────────────────────────────────────
+    public function getTdsSections(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $sections = $this->expenses_model->getTdsSections();
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Data  = $sections;
         } catch (Throwable $e) {
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -833,7 +1034,7 @@ class Expenses extends MY_Controller {
     // Private helpers
     // ═══════════════════════════════════════════════════════════════════════
 
-    // Builds refreshed list HTML + pagination + stats and appends to EndReturnData
+    // Builds refreshed list HTML + pagination + optional stats and appends to EndReturnData
     private function _appendListResponse($orgUID) {
         $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
 
@@ -853,7 +1054,10 @@ class Expenses extends MY_Controller {
         $this->EndReturnData->RecordHtmlData = $rowHtml;
         $this->EndReturnData->TotalCount     = $allCount;
         $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml('/expenses/getPageDetails', $allCount, 1, $limit);
-        $this->EndReturnData->SummaryStats   = $this->expenses_model->getExpenseSummaryStats($orgUID);
+
+        if ((int)$this->input->post('ShowStats') === 1) {
+            $this->EndReturnData->SummaryStats = $this->expenses_model->getExpenseSummaryStats($orgUID);
+        }
     }
 
     // Rebuilds category list HTML and appends to EndReturnData
@@ -881,13 +1085,14 @@ class Expenses extends MY_Controller {
         }
         $html = '';
         foreach ($list as $cat) {
-            $isSystem = is_null($cat->OrgUID) || $cat->OrgUID === '';
+            $isSystem = is_null($cat->OrgUID) || $cat->OrgUID === '' || (int)$cat->IsDefault;
             $eName    = htmlspecialchars($cat->CategoryName);
             $uid      = (int)$cat->CategoryUID;
-            $html .= '<li class="list-group-item d-flex align-items-center justify-content-between px-3 py-2">';
+            $html .= '<li class="list-group-item px-0 py-0">';
+            $html .= '<div class="d-flex align-items-center justify-content-between px-3 py-2">';
             $html .= '<div class="d-flex align-items-center gap-2">';
             $html .= '<span class="fw-medium" style="font-size:.88rem;">' . $eName . '</span>';
-            if ($isSystem || (int)$cat->IsDefault) {
+            if ($isSystem) {
                 $html .= '<span class="badge bg-label-secondary" style="font-size:.65rem;">System</span>';
             }
             $html .= '</div>';
@@ -895,64 +1100,202 @@ class Expenses extends MY_Controller {
             if (!$isSystem) {
                 $html .= '<button class="btn btn-icon btn-sm text-primary catEditBtn" data-uid="' . $uid . '" data-name="' . $eName . '" title="Edit"><i class="bx bx-edit" style="font-size:1rem;"></i></button>';
                 $html .= '<button class="btn btn-icon btn-sm text-danger catDeleteBtn" data-uid="' . $uid . '" data-name="' . $eName . '" title="Delete"><i class="bx bx-trash" style="font-size:1rem;"></i></button>';
-            } else {
-                $html .= '<span class="text-muted px-2" title="System category — cannot be modified"><i class="bx bx-lock-alt" style="font-size:.85rem;"></i></span>';
             }
+            $html .= '</div>';
             $html .= '</div>';
             $html .= '</li>';
         }
         return $html;
     }
 
-    // Validates POST, computes amounts, returns data array for ExpensesTbl only
-    private function _buildExpenseData($PostData, $userUID, $orgUID, $isCreate) {
-        $amount      = (float) getPostValue($PostData, 'Amount');
-        $isPaid      = (int)   getPostValue($PostData, 'IsPaid') === 1 ? 1 : 0;
-        $categoryUID = (int)   getPostValue($PostData, 'CategoryUID') ?: NULL;
-        $expenseDate =         getPostValue($PostData, 'ExpenseDate') ?: date('Y-m-d');
-        $notes       =         getPostValue($PostData, 'Notes') ?: NULL;
+    // Validates POST, computes amounts from items, returns data array for ExpensesTbl
+    private function _buildExpenseData(array $PostData, int $userUID, int $orgUID, bool $isCreate): array {
+        $dec         = $this->_decimals();
+        $isPaid      = (int)getPostValue($PostData, 'IsPaid') === 1 ? 1 : 0;
+        $categoryUID = (int)getPostValue($PostData, 'CategoryUID') ?: null;
+        $expenseDate =      getPostValue($PostData, 'ExpenseDate') ?: date('Y-m-d');
+        $notes       =      getPostValue($PostData, 'Notes') ?: null;
+        $taxApplicable = (int)getPostValue($PostData, 'TaxApplicable') ? 1 : 0;
+        $vendorUID   = (int)getPostValue($PostData, 'VendorUID') ?: null;
+        if ($taxApplicable && !$vendorUID) throw new Exception('Please select a vendor.');
+        $supplierDate=      getPostValue($PostData, 'SupplierInvoiceDate') ?: null;
+        $supplierRef =      getPostValue($PostData, 'SupplierInvoiceSerialNo') ?: null;
+        $amountType  =      getPostValue($PostData, 'AmountType') ?: 'TotalAmount';
+        if ($amountType === 'TaxableAmount') $amountType = 'NetAmount'; // normalise legacy value
+        if (!in_array($amountType, ['NetAmount', 'TotalAmount'])) $amountType = 'TotalAmount';
 
-        if ($amount <= 0)        throw new Exception('Expense amount must be greater than 0.');
         if (empty($expenseDate)) throw new Exception('Expense date is required.');
-        if ($isPaid && !(int)getPostValue($PostData, 'PaymentTypeUID')) {
+        if ($isCreate && $isPaid && !(int)getPostValue($PostData, 'PaymentTypeUID')) {
             throw new Exception('Please select a payment type.');
         }
 
+        // ── Tax mode branch ───────────────────────────────────────────────────
+        if (!$taxApplicable) $amountType = null;
+        $simpleAmount  = 0.0;
+
+        if (!$taxApplicable) {
+            $simpleAmount = round((float)getPostValue($PostData, 'SimpleAmount'), $dec);
+            if ($simpleAmount <= 0) throw new Exception('Expense amount must be greater than 0.');
+            $taxableSum = $simpleAmount;
+            $taxAmtSum  = 0.0;
+            $cgstSum    = 0.0;
+            $sgstSum    = 0.0;
+            $igstSum    = 0.0;
+            $totalSum   = $simpleAmount;
+        } else {
+            $itemsJson = getPostValue($PostData, 'Items');
+            $rawItems  = $itemsJson ? json_decode($itemsJson, true) : [];
+            if (!is_array($rawItems) || empty($rawItems)) {
+                throw new Exception('At least one expense item is required.');
+            }
+            $taxableSum = 0.0;
+            $taxAmtSum  = 0.0;
+            $cgstSum    = 0.0;
+            $sgstSum    = 0.0;
+            $igstSum    = 0.0;
+            $totalSum   = 0.0;
+            foreach ($rawItems as $row) {
+                $taxableSum += (float)($row['Amount']     ?? 0);
+                $taxAmtSum  += (float)($row['TaxAmount']  ?? 0);
+                $cgstSum    += (float)($row['CGSTAmount'] ?? 0);
+                $sgstSum    += (float)($row['SGSTAmount'] ?? 0);
+                $igstSum    += (float)($row['IGSTAmount'] ?? 0);
+                $totalSum   += (float)($row['TotalAmount'] ?? 0);
+            }
+            $taxableSum = round($taxableSum, $dec);
+            $taxAmtSum  = round($taxAmtSum,  $dec);
+            $cgstSum    = round($cgstSum,    $dec);
+            $sgstSum    = round($sgstSum,    $dec);
+            $igstSum    = round($igstSum,    $dec);
+            $totalSum   = round($totalSum,   $dec);
+            if ($taxableSum <= 0 && $totalSum <= 0) throw new Exception('Expense amount must be greater than 0.');
+        }
+        $taxPct        = $taxApplicable ? round((float)getPostValue($PostData, 'TaxPercentage'), 2) : 0.0;
+
+        // ── TDS ───────────────────────────────────────────────────────────────
+        $tdsApplicable  = (int)getPostValue($PostData, 'TDSApplicable') ? 1 : 0;
+        $tdsSectionUID  = $tdsApplicable ? max(0, (int)getPostValue($PostData, 'TdsSectionUID')) : 0;
+        if ($tdsApplicable && $tdsSectionUID <= 0) {
+            throw new Exception('Please select a TDS section.');
+        }
+        $tdsPct         = $tdsApplicable ? round((float)getPostValue($PostData, 'TDSPercentage'), 2) : 0.0;
+        $tdsAmt         = $tdsApplicable ? round($totalSum * $tdsPct / 100, $dec) : 0.0;
+
+        // ── RCM ───────────────────────────────────────────────────────────────
+        $rcmApplicable = (int)getPostValue($PostData, 'RCMApplicable') ? 1 : 0;
+        $rcmAmount     = $rcmApplicable ? round((float)getPostValue($PostData, 'RCMAmount'), $dec) : 0.0;
+
+        // ── Round Off ─────────────────────────────────────────────────────────
+        $roundOff = round((float)getPostValue($PostData, 'RoundOff'), $dec);
+
+        // ── Final amounts ─────────────────────────────────────────────────────
+        $netAmount = round($totalSum + $roundOff - $tdsAmt, $dec);
+
         $data = [
-            'OrgUID'        => $orgUID,
-            'ModuleUID'     => $this->pageModuleUID,
-            'ExpenseDate'   => $expenseDate,
-            'Amount'        => $amount,
-            'TaxApplicable' => 0,
-            'TaxPercentage' => 0,
-            'TaxAmount'     => 0,
-            'TDSApplicable' => 0,
-            'TDSPercentage' => 0,
-            'TDSAmount'     => 0,
-            'NetAmount'     => $amount,
-            'CategoryUID'   => $categoryUID,
-            'Notes'         => $notes,
-            'DocStatus'     => $isPaid ? 'Paid' : 'Pending',
-            'IsPaid'        => $isPaid,
-            'IsActive'      => 1,
-            'IsDeleted'     => 0,
-            'UpdatedBy'     => $userUID,
-            'UpdatedOn'     => date('Y-m-d H:i:s'),
+            'OrgUID'                  => $orgUID,
+            'ModuleUID'               => $this->pageModuleUID,
+            'ExpenseDate'             => $expenseDate,
+            'Amount'                  => $taxableSum,
+            'TaxApplicable'           => $taxApplicable,
+            'TaxPercentage'           => $taxPct,
+            'TaxAmount'               => $taxAmtSum,
+            'CGSTTotal'               => $cgstSum ?? 0.0,
+            'SGSTTotal'               => $sgstSum ?? 0.0,
+            'IGSTTotal'               => $igstSum ?? 0.0,
+            'TDSApplicable'           => $tdsApplicable,
+            'TdsSectionUID'           => $tdsSectionUID,
+            'TDSPercentage'           => $tdsPct,
+            'TDSAmount'               => $tdsAmt,
+            'RCMApplicable'           => $rcmApplicable,
+            'RCMAmount'               => $rcmAmount,
+            'RoundOff'                => $roundOff,
+            'NetAmount'               => $netAmount,
+            'VendorUID'               => $vendorUID,
+            'SupplierInvoiceDate'     => $supplierDate ?: null,
+            'SupplierInvoiceSerialNo' => $supplierRef ?: null,
+            'AmountType'              => $amountType,
+            'CategoryUID'             => $categoryUID,
+            'Notes'                   => $notes,
+            'DocStatus'               => $isPaid ? 'Paid' : 'Pending',
+            'IsPaid'                  => $isPaid,
+            'IsActive'                => 1,
+            'IsDeleted'               => 0,
+            'UpdatedBy'               => $userUID,
+            'UpdatedOn'               => date('Y-m-d H:i:s'),
         ];
 
         if ($isCreate) {
-            $data['CreatedBy'] = $userUID;
-            $data['CreatedOn'] = date('Y-m-d H:i:s');
+            $data['CreatedBy']     = $userUID;
+            $data['CreatedOn']     = date('Y-m-d H:i:s');
+            $data['PaidAmount']    = $isPaid ? $netAmount : 0;
+            $data['BalanceAmount'] = $isPaid ? 0 : $netAmount;
         }
 
         return $data;
+    }
+
+    // Saves parsed items to ExpenseItemsTbl — skipped entirely for without-tax mode.
+    // On create: all items have UID=0 → INSERT.
+    // On update:
+    //   - UID > 0 → UPDATE that specific row in place
+    //   - UID = 0 → INSERT as new row
+    //   - DeletedItemUIDs (sent explicitly by frontend) → soft-delete those rows
+    private function _saveExpenseItems(array $PostData, int $expenseUID, int $orgUID, int $actorUID): void {
+        if (!(int)getPostValue($PostData, 'TaxApplicable')) return;
+
+        $dec       = $this->_decimals();
+        $itemsJson = getPostValue($PostData, 'Items');
+        $rawItems  = $itemsJson ? json_decode($itemsJson, true) : [];
+        if (!is_array($rawItems)) return;
+
+        // 1. Soft-delete items the user explicitly removed
+        $deletedJson = getPostValue($PostData, 'DeletedItemUIDs');
+        $deletedUIDs = $deletedJson ? json_decode($deletedJson, true) : [];
+        if (is_array($deletedUIDs)) {
+            foreach ($deletedUIDs as $dUID) {
+                $dUID = (int)$dUID;
+                if ($dUID > 0) {
+                    $this->expenses_model->softDeleteExpenseItem($dUID, $orgUID, $actorUID);
+                }
+            }
+        }
+
+        // 2. INSERT new items / UPDATE existing items
+        foreach ($rawItems as $i => $row) {
+            $amount   = round((float)($row['Amount']        ?? 0), $dec);
+            $taxPct   = round((float)($row['TaxPercentage'] ?? 0), 2);
+            $taxAmt   = round((float)($row['TaxAmount']     ?? 0), $dec);
+            $totalAmt = round((float)($row['TotalAmount']   ?? 0), $dec);
+            if ($amount <= 0 && $totalAmt <= 0) continue;
+
+            $uid  = (int)($row['ExpItemUID'] ?? 0);
+            $item = [
+                'CategoryUID'     => ($row['CategoryUID'] ?? 0) > 0 ? (int)$row['CategoryUID'] : null,
+                'ItemDescription' => !empty($row['ItemDescription']) ? (string)$row['ItemDescription'] : null,
+                'Amount'          => $amount,
+                'TaxPercentage'   => $taxPct,
+                'TaxAmount'       => $taxAmt,
+                'CGSTAmount'      => round((float)($row['CGSTAmount'] ?? 0), $dec),
+                'SGSTAmount'      => round((float)($row['SGSTAmount'] ?? 0), $dec),
+                'IGSTAmount'      => round((float)($row['IGSTAmount'] ?? 0), $dec),
+                'TotalAmount'     => $totalAmt,
+                'SortOrder'       => $i,
+            ];
+
+            if ($uid > 0) {
+                $this->expenses_model->updateExpenseItem($uid, $orgUID, $item, $actorUID);
+            } else {
+                $this->expenses_model->saveExpenseItems($expenseUID, $orgUID, [$item], $actorUID);
+            }
+        }
     }
 
     // Uploads files from $_FILES['Attachments'] and saves rows to ExpenseIncomeAttachmentsTbl
 
 
     // Inserts a PaymentsTbl record + AccountLedgerTbl debit for a paid expense
-    private function _insertExpensePayment($PostData, $orgUID, $userUID, $expenseUID, $expenseNumber, $netAmount, $fallbackDate) {
+    private function _insertExpensePayment($PostData, int $orgUID, int $userUID, int $expenseUID, string $expenseNumber, float $netAmount, string $fallbackDate): array {
+
         $paymentTypeUID = (int)getPostValue($PostData, 'PaymentTypeUID') ?: NULL;
         $bankAccountUID = (int)getPostValue($PostData, 'BankAccountUID') ?: NULL;
         $paymentDate    = getPostValue($PostData, 'PaymentDate') ?: $fallbackDate;
@@ -1020,11 +1363,15 @@ class Expenses extends MY_Controller {
                 'IsActive'       => 1,
                 'IsDeleted'      => 0,
                 'CreatedBy'      => $userUID,
-                'UpdatedBy'      => $userUID,
-                'CreatedOn'      => date('Y-m-d H:i:s'),
-                'UpdatedOn'      => date('Y-m-d H:i:s'),
+                'UpdatedBy'      => $userUID
             ]);
             if ($ledgerResp->Error) throw new Exception('Ledger entry failed: ' . $ledgerResp->Message);
         }
+
+        return [
+            'pmtUID'       => (int)$pmtResp->ID,
+            'paymentDate'  => $paymentDate,
+            'payTransYear' => $payTransYear,
+        ];
     }
 }

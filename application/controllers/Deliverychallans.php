@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
+<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 /**
  * @property object $transactions_model
@@ -21,7 +21,7 @@ class Deliverychallans extends MY_Controller {
         $this->load->helper('transaction');
     }
 
-    // â”€â”€ List page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â"€â"€ List page â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
     public function index(): void {
         if (!$this->_loadPageTitle($this->pageModuleUID)) {
             $this->load->view('common/module_error', $this->pageData);
@@ -33,7 +33,7 @@ class Deliverychallans extends MY_Controller {
                 'datePrefKey'  => 'deliverychallan',
                 'tabSlugMap'   => ['all' => 'All', 'dispatched' => 'Dispatched', 'delivered' => 'Delivered', 'converted' => 'Converted', 'cancelled' => 'Cancelled', 'draft' => 'Draft'],
                 'listViewPath' => 'transactions/deliverychallans/list',
-                'paginationUrl'=> '/deliverychallan/getPageDetails',
+                'paginationUrl'=> '/transactions/getPageDetails/112',
             ]);
             $this->load->view('transactions/deliverychallans/view', $this->pageData);
         } catch (Exception $e) {
@@ -41,24 +41,7 @@ class Deliverychallans extends MY_Controller {
         }
     }
 
-    // â”€â”€ Paginated list (AJAX) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    public function getPageDetails(int $pageNo = 0): void
-    {
-        $this->EndReturnData = new stdClass();
-        try {
-            $this->EndReturnData = $this->_buildTransactionPageDetailsResult([
-                'pageNo'        => $pageNo,
-                'listViewPath'  => 'transactions/deliverychallans/list',
-                'paginationUrl' => '/deliverychallan/getPageDetails',
-            ]);
-        } catch (Exception $e) {
-            $this->EndReturnData->Error   = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-        $this->globalservice->sendJsonResponse($this->EndReturnData);
-    }
-
-    // â”€â”€ Create form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â"€â"€ Create form â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
     public function create() {
         try {
             $orgUID = $this->pageData['JwtData']->Org->OrgUID;
@@ -117,7 +100,7 @@ class Deliverychallans extends MY_Controller {
         }
     }
 
-    // â”€â”€ Edit form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â"€â"€ Edit form â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
     public function edit($transUID = 0) {
         try {
             $transUID = (int) $transUID;
@@ -138,7 +121,7 @@ class Deliverychallans extends MY_Controller {
             $billing  = current(array_filter($custAddr, fn($a) => $a->AddressType === 'Billing'));
             $this->pageData['CustAddr'] = $shipping ?: ($billing ?: ($custAddr[0] ?? null));
 
-            // Pre-fetch attachments â€” eliminates the AJAX call on the edit form
+            // Pre-fetch attachments â€" eliminates the AJAX call on the edit form
             $attachments = $this->transactions_model->getTransactionAttachments($transUID, $orgUID);
             $cdnUrl = rtrim(getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN'), '/');
             foreach ($attachments as &$a) {
@@ -177,7 +160,7 @@ class Deliverychallans extends MY_Controller {
         }
     }
 
-    // â”€â”€ Save new challan â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â"€â"€ Save new challan â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
     public function addDeliveryChallan() {
         $this->EndReturnData = new stdClass();
         $ErrorInForm = '';
@@ -191,22 +174,22 @@ class Deliverychallans extends MY_Controller {
 
             $itemsJson     = $this->_validateTransForm($PostData);
             $amounts       = $this->_extractTransAmounts($PostData, $itemsJson);
-            $isDraft       = $amounts[‘isDraft’];
-            $items         = $amounts[‘items’];
-            $financialYear = $amounts[‘financialYear’];
-            $transDate     = $amounts[‘transDate’];
+            $isDraft       = $amounts['isDraft'];
+            $items         = $amounts['items'];
+            $financialYear = $amounts['financialYear'];
+            $transDate     = $amounts['transDate'];
 
-            $customerUID = (int) getPostValue($PostData, ‘customerSearch’);
+            $customerUID = (int) getPostValue($PostData, 'customerSearch');
 
             // -- SO-linked DC: enforce customer lock + item/qty restrictions --
-            $fromSOUID = (int) getPostValue($PostData, ‘fromSOUID’);
+            $fromSOUID = (int) getPostValue($PostData, 'fromSOUID');
             if ($fromSOUID > 0) {
-                $this->load->model(‘transactions_model’);
+                $this->load->model('transactions_model');
                 $soData  = $this->transactions_model->getTransactionById($fromSOUID, $orgUID, 102);
                 $soItems = $soData ? $this->transactions_model->getTransactionItems($fromSOUID, $orgUID) : [];
 
                 if ($soData && (int)$soData->PartyUID !== $customerUID) {
-                    throw new Exception(‘Customer cannot be changed on a challan linked to a Sales Order.’);
+                    throw new Exception('Customer cannot be changed on a challan linked to a Sales Order.');
                 }
 
                 $soQtyMap = [];
@@ -215,66 +198,66 @@ class Deliverychallans extends MY_Controller {
                 }
 
                 foreach ($items as $item) {
-                    $pid = (int)($item[‘productUID’] ?? $item[‘id’] ?? 0);
+                    $pid = (int)($item['productUID'] ?? $item['id'] ?? 0);
                     if (!isset($soQtyMap[$pid])) {
-                        throw new Exception(‘Item “’ . ($item[‘itemName’] ?? ‘Unknown’) . ‘” is not part of the Sales Order and cannot be dispatched.’);
+                        throw new Exception('Item "' . ($item['itemName'] ?? 'Unknown') . '" is not part of the Sales Order and cannot be dispatched.');
                     }
-                    $dispatchedQty = (float)($item[‘quantity’] ?? 0);
+                    $dispatchedQty = (float)($item['quantity'] ?? 0);
                     if ($dispatchedQty > $soQtyMap[$pid]) {
-                        throw new Exception(‘Quantity for “’ . ($item[‘itemName’] ?? ‘Unknown’) . ‘” (‘ . $dispatchedQty . ‘) exceeds the Sales Order quantity (‘ . $soQtyMap[$pid] . ‘).’);
+                        throw new Exception('Quantity for "' . ($item['itemName'] ?? 'Unknown') . '" (' . $dispatchedQty . ') exceeds the Sales Order quantity (' . $soQtyMap[$pid] . ').');
                     }
                 }
             }
 
-            $this->load->model(‘transactions_model’);
+            $this->load->model('transactions_model');
 
-            $resolved = $this->_resolveTransPrefix($isDraft, $amounts[‘prefixUID’], $amounts[‘transNumber’], $transDate, $orgUID);
-            $amounts[‘moduleUID’]    = $this->pageModuleUID;
-            $amounts[‘prefixUID’]    = $resolved[‘prefixUID’];
-            $amounts[‘transNumber’]  = $resolved[‘transNumber’];
-            $amounts[‘uniqueNumber’] = $resolved[‘uniqueNumber’];
+            $resolved = $this->_resolveTransPrefix($isDraft, $amounts['prefixUID'], $amounts['transNumber'], $transDate, $orgUID);
+            $amounts['moduleUID']    = $this->pageModuleUID;
+            $amounts['prefixUID']    = $resolved['prefixUID'];
+            $amounts['transNumber']  = $resolved['transNumber'];
+            $amounts['uniqueNumber'] = $resolved['uniqueNumber'];
 
             $headerData = $this->_buildTransHeader(
                 [
-                    ‘TransType’       => ‘DeliveryChallan’,
-                    ‘PartyType’       => ‘C’,
-                    ‘PartyUID’        => $customerUID,
-                    ‘DocTypePostKey’  => ‘challanType’,
-                    ‘DocTypeDefault’  => ‘Non-Returnable’,
-                    ‘DispatchPostKey’ => ‘dispatchFrom’,
-                    ‘InitialStatus’   => ‘Dispatched’,
+                    'TransType'       => 'DeliveryChallan',
+                    'PartyType'       => 'C',
+                    'PartyUID'        => $customerUID,
+                    'DocTypePostKey'  => 'challanType',
+                    'DocTypeDefault'  => 'Non-Returnable',
+                    'DispatchPostKey' => 'dispatchFrom',
+                    'InitialStatus'   => 'Dispatched',
                 ],
                 $amounts, $PostData, $orgUID, $userUID
             );
 
-            $insertResp = $this->_insertTransactionWithRetry($headerData, $resolved[‘prefixUID’], $orgUID, $resolved[‘prefix’], $transDate);
+            $insertResp = $this->_insertTransactionWithRetry($headerData, $resolved['prefixUID'], $orgUID, $resolved['prefix'], $transDate);
             if ($insertResp->Error) throw new Exception($insertResp->Message);
 
             $transUID     = $insertResp->ID;
-            $transNumber  = $headerData[‘TransNumber’];
-            $uniqueNumber = $headerData[‘UniqueNumber’];
+            $transNumber  = $headerData['TransNumber'];
+            $uniqueNumber = $headerData['UniqueNumber'];
 
             $this->_saveTransCharges($transUID, $orgUID, $userUID, $PostData);
 
             $detailData = $this->_buildTransDetail(
                 [
-                    ‘PartyType’          => ‘C’,
-                    ‘PartyUID’           => $customerUID,
-                    ‘ValidityDatePostKey’ => ‘’,
-                    ‘ReferencePostKey’   => ‘vehicleNumber’,
-                    ‘extraDetailFields’  => [
-                        ‘ExpectedDeliveryDate’ => ‘returnDate’,
-                        ‘DeliveryByDate’       => ‘deliveryBy’,
+                    'PartyType'          => 'C',
+                    'PartyUID'           => $customerUID,
+                    'ValidityDatePostKey' => '',
+                    'ReferencePostKey'   => 'vehicleNumber',
+                    'extraDetailFields'  => [
+                        'ExpectedDeliveryDate' => 'returnDate',
+                        'DeliveryByDate'       => 'deliveryBy',
                     ],
                 ],
                 $amounts, $PostData, $transUID
             );
-            $detailResp = $this->dbwrite_model->insertData(‘Transaction’, ‘TransDetailTbl’, $detailData);
+            $detailResp = $this->dbwrite_model->insertData('Transaction', 'TransDetailTbl', $detailData);
             if ($detailResp->Error) throw new Exception($detailResp->Message);
 
             $this->_insertTransItems($transUID, $financialYear, $orgUID, $userUID, $items);
 
-            // Conversion tracking: SalesOrder â†’ DeliveryChallan
+            // Conversion tracking: SalesOrder â†' DeliveryChallan
             $fromSOUID = (int) getPostValue($PostData, 'fromSOUID');
             if ($fromSOUID > 0 && !$isDraft) {
                 $this->dbwrite_model->updateTransDocStatus($fromSOUID, $orgUID, 'Converted', $userUID);
@@ -309,7 +292,7 @@ class Deliverychallans extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Update existing challan â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â"€â"€ Update existing challan â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
     public function updateDeliveryChallan() {
         $this->EndReturnData = new stdClass();
         try {
@@ -323,37 +306,26 @@ class Deliverychallans extends MY_Controller {
             $transUID = (int) getPostValue($PostData, 'TransUID');
             if ($transUID <= 0) throw new Exception('Delivery Challan ID is required.');
 
-            $this->load->model('formvalidation_model');
-            $headerError = $this->formvalidation_model->transactionValidateForm($PostData);
-            if (!empty($headerError)) throw new Exception($headerError);
+            $itemsJson = $this->_validateTransForm($PostData);
+            $amounts   = $this->_extractTransAmounts($PostData, $itemsJson);
 
-            $itemsJson  = getPostValue($PostData, 'Items');
-            $itemsError = $this->formvalidation_model->validateQuotationItems($itemsJson);
-            if (!empty($itemsError)) throw new Exception($itemsError);
+            $amounts['moduleUID'] = $this->pageModuleUID;
+            $customerUID    = (int) getPostValue($PostData, 'customerSearch');
+            $prefixUID      = $amounts['prefixUID'];
+            $transNumber    = $amounts['transNumber'];
+            $isDraft        = $amounts['isDraft'];
+            $items          = $amounts['items'];
+            $returnDate     = getPostValue($PostData, 'returnDate');
+            $deliveryByDate = getPostValue($PostData, 'deliveryBy');
 
-            $customerUID            = (int)   getPostValue($PostData, 'customerSearch');
-            $prefixUID              = (int)   getPostValue($PostData, 'transPrefixSelect');
-            $transNumber            = (int)   getPostValue($PostData, 'transNumber');
-            $transDate              =         getPostValue($PostData, 'transDate');
-            $returnDate             =         getPostValue($PostData, 'returnDate');    // â†’ ExpectedDeliveryDate
-            $deliveryByDate         =         getPostValue($PostData, 'deliveryBy');    // â†’ DeliveryByDate
-            $items                  = json_decode($itemsJson, true);
-            $totalQty               = (float) array_sum(array_column($items, 'quantity'));
-            $netAmount              = (float) getPostValue($PostData, 'NetAmount',              'Array', 0);
-            $subTotal               = (float) getPostValue($PostData, 'SubTotal',               'Array', 0);
-            $discountAmount         = (float) getPostValue($PostData, 'DiscountAmount',         'Array', 0);
-            $taxAmount              = (float) getPostValue($PostData, 'TaxAmount',              'Array', 0);
-            $cgstAmount             = (float) getPostValue($PostData, 'CgstAmount',             'Array', 0);
-            $sgstAmount             = (float) getPostValue($PostData, 'SgstAmount',             'Array', 0);
-            $igstAmount             = (float) getPostValue($PostData, 'IgstAmount',             'Array', 0);
-            $additionalChargesTotal = (float) getPostValue($PostData, 'AdditionalChargesTotal', 'Array', 0);
-            $roundOff               = (float) getPostValue($PostData, 'RoundOff',               'Array', 0);
-            $globalDiscPercent      = (float) getPostValue($PostData, 'GlobalDiscPercent',      'Array', 0);
-            $extraDiscount          = (float) getPostValue($PostData, 'extraDiscount',          'Array', 0);
-            $isDraft                = getPostValue($PostData, 'action') === 'draft';
-            $status                 = $isDraft ? 'Draft' : 'Dispatched';
-
-            $financialYear = (int) date('Y', strtotime($transDate));
+            $cfg = [
+                'TransType'      => 'DeliveryChallan',
+                'PartyType'      => 'C',
+                'PartyUID'       => $customerUID,
+                'DocTypePostKey' => 'challanType',
+                'DocTypeDefault' => 'Non-Returnable',
+                'InitialStatus'  => 'Dispatched',
+            ];
 
             $this->load->model('transactions_model');
             $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
@@ -374,165 +346,61 @@ class Deliverychallans extends MY_Controller {
                     throw new Exception("Transaction number {$transNumber} already exists. Next available: {$nextSuggested}.");
                 }
 
-                $sep   = $prefix->Separator ?? '-';
-                $parts = [strtoupper($prefix->Name)];
-                if (!empty($prefix->IncludeShortName) && !empty($prefix->ShortName)) $parts[] = strtoupper($prefix->ShortName);
-                if (!empty($prefix->IncludeFiscalYear)) {
-                    $txMonth = (int) date('m', strtotime($transDate));
-                    $txYear  = (int) date('Y', strtotime($transDate));
-                    $fyStart = $txMonth >= 4 ? $txYear : $txYear - 1;
-                    $parts[] = ($prefix->FiscalYearFormat ?? 'SHORT') === 'LONG'
-                        ? $fyStart . '-' . ($fyStart + 1)
-                        : str_pad($fyStart % 100, 2, '0', STR_PAD_LEFT) . '-' . str_pad(($fyStart + 1) % 100, 2, '0', STR_PAD_LEFT);
-                }
-                $padding      = (int)($prefix->NumberPadding ?? 1);
-                $parts[]      = $padding > 1 ? str_pad($transNumber, $padding, '0', STR_PAD_LEFT) : (string)$transNumber;
-                $uniqueNumber = implode($sep, $parts);
+                [$uniqueNumber] = $this->buildUniqueNumber($prefix, $transNumber, $amounts['transDate']);
             }
 
-            $additionalChargesJson  = getPostValue($PostData, 'AdditionalCharges') ?: '[]';
-            $additionalChargesList  = json_decode($additionalChargesJson, true) ?: [];
-            $isInterState          = $igstAmount > 0 ? 1 : ($cgstAmount > 0 || $sgstAmount > 0 ? 0 : NULL);
-            $_cc                   = $this->transactions_model->getCustomerCountryCode($customerUID);
-            $isForeignCustomer     = $_cc !== NULL ? ($_cc === 'IN' ? 0 : 1) : NULL;
-
-            $commonHeader = [
-                'OrgUID'            => $orgUID,
-                'ModuleUID'         => $this->pageModuleUID,
-                'PartyType'         => 'C',
-                'PartyUID'          => $customerUID,
-                'TransDate'         => $transDate,
-                'TransYear'         => $financialYear,
-                'TransType'         => 'DeliveryChallan',
-                'DocType'     => getPostValue($PostData, 'challanType') ?: 'Non-Returnable',
-                'GrossAmount'       => $subTotal + $discountAmount,
-                'SubTotal'          => $subTotal,
-                'TaxableAmount'     => $subTotal,
-                'DiscountAmount'    => $discountAmount,
-                'AdditionalCharges' => $additionalChargesTotal,
-                'TaxAmount'         => $taxAmount,
-                'CgstAmount'        => $cgstAmount,
-                'SgstAmount'        => $sgstAmount,
-                'IgstAmount'        => $igstAmount,
-                'RoundOff'          => $roundOff,
-                'GlobalDiscPercent' => $globalDiscPercent,
-                'ExtraDiscApplied'  => $extraDiscount > 0 ? 1 : 0,
-                'ExtraDiscAmount'   => $extraDiscount,
-                'ExtraDiscType'     => getPostValue($PostData, 'extDiscountType') ?: NULL,
-                'NetAmount'         => $netAmount,
-                'DocStatus'         => $status,
-                'UpdatedBy'         => $userUID,
-                'PdfPath'           => NULL,
-            ];
+            $isInterState      = $amounts['igstAmount'] > 0 ? 1 : ($amounts['cgstAmount'] > 0 || $amounts['sgstAmount'] > 0 ? 0 : NULL);
+            $_cc               = $this->transactions_model->getCustomerCountryCode($customerUID);
+            $isForeignCustomer = $_cc !== NULL ? ($_cc === 'IN' ? 0 : 1) : NULL;
 
             $commonDetail = [
                 'ValidityDays'        => NULL,
                 'ValidityDate'        => NULL,
-                'ExpectedDeliveryDate'=> $returnDate    ?: NULL,
+                'ExpectedDeliveryDate'=> $returnDate     ?: NULL,
                 'DeliveryByDate'      => $deliveryByDate ?: NULL,
-                'Reference'         => getPostValue($PostData, 'vehicleNumber') ?: NULL,
-                'Notes'             => getPostValue($PostData, 'transNotes') ?: NULL,
-                'TermsConditions'   => getPostValue($PostData, 'transTermsCond') ?: NULL,
-                'SignatureUID'      => (int)getPostValue($PostData, 'SignatureUID') ?: NULL,
-                'PlaceOfSupplyCode' => getPostValue($PostData, 'placeOfSupplyCode') ?: NULL,
-                'PlaceOfSupplyName' => getPostValue($PostData, 'placeOfSupplyName') ?: NULL,
-                'IsInterState'      => $isInterState,
-                'IsForeignCustomer' => $isForeignCustomer,
-                'PriceListUID'      => (int)getPostValue($PostData, 'PriceListUID') ?: NULL,
-                'PriceListData'     => getPostValue($PostData, 'PriceListData') ?: NULL,
+                'Reference'           => getPostValue($PostData, 'vehicleNumber') ?: NULL,
+                'Notes'               => getPostValue($PostData, 'transNotes') ?: NULL,
+                'TermsConditions'     => getPostValue($PostData, 'transTermsCond') ?: NULL,
+                'SignatureUID'        => (int)getPostValue($PostData, 'SignatureUID') ?: NULL,
+                'PlaceOfSupplyCode'   => getPostValue($PostData, 'placeOfSupplyCode') ?: NULL,
+                'PlaceOfSupplyName'   => getPostValue($PostData, 'placeOfSupplyName') ?: NULL,
+                'IsInterState'        => $isInterState,
+                'IsForeignCustomer'   => $isForeignCustomer,
+                'PriceListUID'        => (int)getPostValue($PostData, 'PriceListUID') ?: NULL,
+                'PriceListData'       => getPostValue($PostData, 'PriceListData') ?: NULL,
             ];
 
-            $numberFields = [];
+            $updateHeader = $this->_buildTransUpdateHeader($cfg, $amounts, $PostData, $orgUID, $userUID);
             if ($uniqueNumber !== NULL) {
-                $numberFields = ['PrefixUID' => $prefixUID, 'TransNumber' => $transNumber, 'UniqueNumber' => $uniqueNumber];
+                $updateHeader['PrefixUID']    = $prefixUID;
+                $updateHeader['TransNumber']  = $transNumber;
+                $updateHeader['UniqueNumber'] = $uniqueNumber;
             }
 
             $updateResp = $this->dbwrite_model->updateData(
                 'Transaction', 'TransactionsTbl',
-                array_merge($commonHeader, $numberFields),
+                $updateHeader,
                 ['TransUID' => $transUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
             );
             if ($updateResp->Error) throw new Exception($updateResp->Message);
 
             $this->dbwrite_model->updateData(
                 'Transaction', 'TransDetailTbl', $commonDetail,
-                ['FinancialYear' => $financialYear, 'TransUID' => $transUID]
+                ['FinancialYear' => $amounts['financialYear'], 'TransUID' => $transUID]
             );
 
-            // Smart item diff
-            $existingItems     = $this->transactions_model->getTransactionItems($transUID, $orgUID);
-            $existingByProduct = [];
-            foreach ($existingItems as $ei) { $existingByProduct[(int)$ei->ProductUID] = $ei; }
-            $submittedProductUIDs = [];
-            foreach ($items as $item) { $pid = isset($item['id']) ? (int)$item['id'] : 0; if ($pid > 0) $submittedProductUIDs[] = $pid; }
-            $removedProductUIDs = array_diff(array_keys($existingByProduct), $submittedProductUIDs);
-            if (!empty($removedProductUIDs)) {
-                $this->dbwrite_model->softDeleteTransactionItemsByProductUIDs($transUID, array_values($removedProductUIDs), $userUID);
-            }
-            $newRows = [];
-            foreach ($items as $seq => $item) {
-                $productUID = isset($item['id']) ? (int)$item['id'] : 0;
-                $qty        = isset($item['quantity']) ? (float)$item['quantity'] : 0;
-                $unitPrice  = isset($item['unitPrice']) ? (float)$item['unitPrice'] : 0;
-                if ($productUID <= 0 || $qty <= 0) continue;
-                $rowData = [
-                    'ItemSequence'    => $seq + 1,
-                    'ProductName'     => substr(strip_tags($item['itemName'] ?? ''), 0, 100),
-                    'Description'     => !empty($item['description'])  ? substr($item['description'], 0, 500) : NULL,
-                    'PartNumber'      => !empty($item['partNumber'])   ? substr($item['partNumber'], 0, 50)   : NULL,
-                    'CategoryUID'     => !empty($item['categoryUID'])  ? (int)$item['categoryUID']            : NULL,
-                    'CategoryName'    => !empty($item['categoryName']) ? substr($item['categoryName'], 0, 100) : NULL,
-                    'StorageUID'      => isset($item['storageUID'])    ? (int)$item['storageUID']              : NULL,
-                    'Quantity'        => $qty,
-                    'PrimaryUnitName' => isset($item['primaryUnit'])    ? substr($item['primaryUnit'], 0, 20)  : NULL,
-                    'TaxDetailsUID'   => isset($item['taxDetailsUID'])  ? (int)$item['taxDetailsUID']          : 1,
-                    'TaxPercentage'   => (float)($item['taxPercent']    ?? 0),
-                    'CGST'            => (float)($item['cgstPercent']   ?? 0),
-                    'SGST'            => (float)($item['sgstPercent']   ?? 0),
-                    'IGST'            => (float)($item['igstPercent']   ?? 0),
-                    'DiscountTypeUID' => isset($item['discountTypeUID']) ? (int)$item['discountTypeUID'] : NULL,
-                    'Discount'        => (float)($item['discount']        ?? 0),
-                    'UnitPrice'       => $unitPrice,
-                    'SellingPrice'    => (float)($item['sellingPrice']    ?? $unitPrice),
-                    'PurchasePrice'   => (float)($item['purchasePrice']   ?? 0),
-                    'MRP'             => (float)($item['mrp']             ?? 0),
-                    'DistributionMode'=> !empty($item['isComposite']) ? ($item['distributionMode'] ?? null) : null,
-                    'TaxableAmount'   => (float)($item['line_total']      ?? 0),
-                    'CgstAmount'      => (float)($item['cgstAmount']      ?? 0),
-                    'SgstAmount'      => (float)($item['sgstAmount']      ?? 0),
-                    'IgstAmount'      => (float)($item['igstAmount']      ?? 0),
-                    'TaxAmount'       => (float)($item['taxAmount']       ?? 0),
-                    'DiscountAmount'  => (float)($item['discount_amount']  ?? 0),
-                    'NetAmount'       => (float)($item['net_total']        ?? 0),
-                    'UpdatedBy'       => $userUID,
-                ];
-                if (isset($existingByProduct[$productUID])) {
-                    $this->dbwrite_model->updateTransProductItem($transUID, $productUID, $rowData);
-                } else {
-                    $newRows[] = array_merge($rowData, [
-                        'OrgUID' => $orgUID, 'FinancialYear' => $financialYear,
-                        'TransUID' => $transUID, 'ProductUID' => $productUID,
-                        'QuantityConverted' => 0, 'IsActive' => 1, 'IsDeleted' => 0, 'CreatedBy' => $userUID,
-                    ]);
-                }
-            }
-            if (!empty($newRows)) {
-                $batchResp = $this->dbwrite_model->insertBatchInTransaction('Transaction', 'TransProductsTbl', $newRows);
-                if ($batchResp->Error) throw new Exception($batchResp->Message);
-            }
+            $this->_updateTransItems($transUID, $items, $orgUID, $amounts['financialYear'], $userUID);
 
-            if (!empty($additionalChargesList)) {
-                $this->transactions_model->saveTransactionCharges($transUID, (int)$orgUID, (int)$userUID, $additionalChargesList);
-            }
+            $this->_saveTransCharges($transUID, $orgUID, $userUID, $PostData);
             $this->dbwrite_model->commitTransaction();
             $this->cachehelper->touchCustomer($customerUID);
             $this->_saveAttachments($transUID);
-            $this->transactions_model->generateAndStorePdf(isset($newTransUID) ? $newTransUID : $transUID, $orgUID, $this->pageModuleUID);
+            $this->transactions_model->generateAndStorePdf($transUID, $orgUID, $this->pageModuleUID);
 
-            // Stock movement after commit â€” handle 3 transitions:
-            // Draft â†’ Draft     : no stock change
-            // Draft â†’ Dispatched: save new stock movements (OUT)
-            // Dispatched â†’ Dispatched: reverse old items then save new items (item qty may have changed)
+            // Stock movement after commit — handle 3 transitions:
+            // Draft → Draft     : no stock change
+            // Draft → Dispatched: save new stock movements (OUT)
+            // Dispatched → Dispatched: reverse old items then save new items (item qty may have changed)
             if (!$isDraft) {
                 $wasDispatched = ($existing->DocStatus === 'Dispatched');
                 if ($wasDispatched) {
@@ -547,7 +415,7 @@ class Deliverychallans extends MY_Controller {
             $this->EndReturnData->Message = 'Delivery challan updated successfully.';
             $this->auditlog->log(
                 (int) $orgUID, (int) $userUID,
-                'UPDATE_DELIVERY_CHALLAN', 'DeliveryChallan', (int) (isset($newTransUID) ? $newTransUID : $transUID), (string) ($uniqueNumber ?? $existing->UniqueNumber ?? ''),
+                'UPDATE_DELIVERY_CHALLAN', 'DeliveryChallan', (int) $transUID, (string) ($uniqueNumber ?? $existing->UniqueNumber ?? ''),
                 [], 'Updated delivery challan ' . ($uniqueNumber ?? $existing->UniqueNumber ?? ''), 'DeliveryChallans', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
             );
         } catch (Exception $e) {
@@ -558,7 +426,7 @@ class Deliverychallans extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Delete challan â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â"€â"€ Delete challan â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
     public function deleteDeliveryChallan() {
         $this->EndReturnData = new stdClass();
         try {
@@ -599,14 +467,6 @@ class Deliverychallans extends MY_Controller {
                 $this->_syncProductCacheByTransUID($transUID);
             }
 
-            $pageNo  = max(1, (int) $this->input->post('PageNo'));
-            $limit   = (int) $this->input->post('RowLimit') ?: 10;
-            $filter  = $this->input->post('Filter') ?: [];
-            $offset  = ($pageNo - 1) * $limit;
-
-            $allData      = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, 0);
-            $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $filter);
-
             $this->EndReturnData->Error          = FALSE;
             $this->EndReturnData->Message        = 'Delivery challan deleted successfully.';
             $this->auditlog->log(
@@ -614,9 +474,7 @@ class Deliverychallans extends MY_Controller {
                 'DELETE_DELIVERY_CHALLAN', 'DeliveryChallan', (int) $transUID, '',
                 [], 'Deleted delivery challan #' . $transUID, 'DeliveryChallans', 'TRANSACTION'
             );
-            $this->EndReturnData->RecordHtmlData = $this->load->view('transactions/deliverychallans/list', ['DataLists' => $allData, 'SerialNumber' => $offset, 'JwtData' => $this->pageData['JwtData']], true);
-            $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml('/deliverychallan/getPageDetails', $allDataCount, $pageNo, $limit);
-            $this->EndReturnData->TotalCount     = $allDataCount;
+            $this->_buildListResponse('transactions/deliverychallans/list', '/transactions/getPageDetails/112');
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
@@ -625,7 +483,7 @@ class Deliverychallans extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Duplicate challan â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â"€â"€ Duplicate challan â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
     public function duplicateDeliveryChallan() {
         $this->EndReturnData = new stdClass();
         try {
@@ -752,7 +610,7 @@ class Deliverychallans extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Status update â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â"€â"€ Status update â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
     public function updateDeliveryChallanStatus() {
         $this->EndReturnData = new stdClass();
         try {
@@ -773,9 +631,9 @@ class Deliverychallans extends MY_Controller {
             $isReturnable = in_array($challanMode, ['Returnable', 'Job Work']);
 
             // Mode-aware transitions:
-            // Non-Returnable: Dispatched â†’ Delivered (then â†’ Converted to invoice)
-            // Returnable / Job Work: Dispatched â†’ Returned (stock comes back)
-            // All modes: Dispatched â†’ Cancelled
+            // Non-Returnable: Dispatched â†' Delivered (then â†' Converted to invoice)
+            // Returnable / Job Work: Dispatched â†' Returned (stock comes back)
+            // All modes: Dispatched â†' Cancelled
             $validTransitions = [
                 'Draft'      => ['Dispatched'],
                 'Dispatched' => $isReturnable ? ['Returned', 'Cancelled'] : ['Delivered', 'Cancelled'],
@@ -804,14 +662,6 @@ class Deliverychallans extends MY_Controller {
                 $this->_syncProductCacheByTransUID($transUID);
             }
 
-            $pageNo  = max(1, (int) $this->input->post('PageNo'));
-            $limit   = (int) $this->input->post('RowLimit') ?: 10;
-            $filter  = $this->input->post('Filter') ?: [];
-            $offset  = ($pageNo - 1) * $limit;
-
-            $allData      = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, 0);
-            $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $filter);
-
             $this->EndReturnData->Error          = FALSE;
             $this->EndReturnData->Message        = 'Status updated to ' . $newStatus . '.';
             $this->auditlog->log(
@@ -820,9 +670,7 @@ class Deliverychallans extends MY_Controller {
                 ['NewStatus' => $newStatus], 'Updated delivery challan status #' . $transUID, 'DeliveryChallans', 'TRANSACTION'
             );
             $this->EndReturnData->NewStatus      = $newStatus;
-            $this->EndReturnData->RecordHtmlData = $this->load->view('transactions/deliverychallans/list', ['DataLists' => $allData, 'SerialNumber' => $offset, 'JwtData' => $this->pageData['JwtData']], true);
-            $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml('/deliverychallan/getPageDetails', $allDataCount, $pageNo, $limit);
-            $this->EndReturnData->TotalCount     = $allDataCount;
+            $this->_buildListResponse('transactions/deliverychallans/list', '/transactions/getPageDetails/112');
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
@@ -831,7 +679,7 @@ class Deliverychallans extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Partial Return: fetch data for the modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â"€â"€ Partial Return: fetch data for the modal â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
     public function getPartialReturnData(): void {
         $this->EndReturnData = new stdClass();
         try {
@@ -877,7 +725,7 @@ class Deliverychallans extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Partial Return: save return event â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â"€â"€ Partial Return: save return event â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
     public function partialReturn(): void {
         $this->EndReturnData = new stdClass();
         try {
@@ -982,7 +830,7 @@ class Deliverychallans extends MY_Controller {
                 }
                 $newTotalReturned = $alreadyReturned + $batchReturn;
                 if ($newTotalReturned < $dispatched - 0.001) {
-                    $totalStillOut = 1; // at least one item still out â€” force Partially Returned
+                    $totalStillOut = 1; // at least one item still out â€" force Partially Returned
                     break;
                 }
             }
@@ -1001,21 +849,10 @@ class Deliverychallans extends MY_Controller {
             // Sync product cache for returned items
             $this->_syncProductCacheByTransUID($transUID);
 
-            // Return updated list
-            $pageNo  = max(1, (int) $this->input->post('PageNo'));
-            $limit   = (int) $this->input->post('RowLimit') ?: 10;
-            $filter  = $this->input->post('Filter') ?: [];
-            $offset  = ($pageNo - 1) * $limit;
-
-            $allData      = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, 0);
-            $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $filter);
-
             $this->EndReturnData->Error          = FALSE;
             $this->EndReturnData->Message        = 'Return recorded. Status updated to ' . $newStatus . '.';
             $this->EndReturnData->NewStatus      = $newStatus;
-            $this->EndReturnData->RecordHtmlData = $this->load->view('transactions/deliverychallans/list', ['DataLists' => $allData, 'SerialNumber' => $offset, 'JwtData' => $this->pageData['JwtData']], true);
-            $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml('/deliverychallan/getPageDetails', $allDataCount, $pageNo, $limit);
-            $this->EndReturnData->TotalCount     = $allDataCount;
+            $this->_buildListResponse('transactions/deliverychallans/list', '/transactions/getPageDetails/112');
 
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -1025,7 +862,7 @@ class Deliverychallans extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Convert to Invoice â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â"€â"€ Convert to Invoice â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
     public function convertChallanToInvoice() {
         $this->EndReturnData = new stdClass();
         try {
@@ -1066,88 +903,6 @@ class Deliverychallans extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Detail (for print/view modal) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    public function getChallanDetail() {
-        $this->EndReturnData = new stdClass();
-        try {
-            $transUID = (int) $this->input->get_post('TransUID');
-            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
-            if ($transUID <= 0) throw new Exception('Invalid delivery challan.');
+    // â"€â"€ Detail (for print/view modal) â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
-            $this->load->model('transactions_model');
-            $header = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
-            if (!$header) throw new Exception('Delivery Challan not found.');
-            $items = $this->transactions_model->getTransactionItems($transUID, $orgUID);
-
-            $this->load->model('organisation_model');
-            $orgInfo          = $this->organisation_model->getOrgInfoCached($orgUID);
-            $thermalCfgResult = $this->organisation_model->getThermalPrintConfig($orgUID);
-            $printThemeResult = $this->organisation_model->getPrintThemeByType($orgUID, 'DeliveryChallan');
-
-            $this->EndReturnData->Error         = FALSE;
-            $this->EndReturnData->Header        = $header;
-            $this->EndReturnData->Items         = $items;
-            $this->EndReturnData->OrgInfo       = $orgInfo->Data ?? null;
-            $this->EndReturnData->ThermalConfig = $thermalCfgResult->Data ?? null;
-            $this->EndReturnData->PrintTheme    = $printThemeResult->Data ?? null;
-        } catch (Exception $e) {
-            $this->EndReturnData->Error   = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-        $this->globalservice->sendJsonResponse($this->EndReturnData);
-    }
-
-    // â”€â”€ Private helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    private function saveChallanItems($transUID, $financialYear, $orgUID, $userUID, array $items) {
-        $this->load->model('dbwrite_model');
-        $rows = [];
-        foreach ($items as $seq => $item) {
-            $productUID = isset($item['id'])       ? (int)   $item['id']       : 0;
-            $qty        = isset($item['quantity'])  ? (float) $item['quantity']  : 0;
-            $unitPrice  = isset($item['unitPrice']) ? (float) $item['unitPrice'] : 0;
-            if ($productUID <= 0 || $qty <= 0) continue;
-            $rows[] = [
-                'OrgUID'            => $orgUID,
-                'FinancialYear'     => $financialYear,
-                'TransUID'          => $transUID,
-                'ItemSequence'      => $seq + 1,
-                'ProductUID'        => $productUID,
-                'ProductName'       => substr(strip_tags($item['itemName'] ?? ''), 0, 100),
-                'Description'       => !empty($item['description'])  ? substr($item['description'], 0, 500) : NULL,
-                'PartNumber'        => !empty($item['partNumber'])   ? substr($item['partNumber'], 0, 50)  : NULL,
-                'CategoryUID'       => !empty($item['categoryUID'])  ? (int) $item['categoryUID']           : NULL,
-                'CategoryName'      => !empty($item['categoryName']) ? substr($item['categoryName'], 0, 100) : NULL,
-                'StorageUID'        => isset($item['storageUID'])    ? (int) $item['storageUID']             : NULL,
-                'Quantity'          => $qty,
-                'PrimaryUnitName'   => isset($item['primaryUnit'])   ? substr($item['primaryUnit'], 0, 20)  : NULL,
-                'TaxDetailsUID'     => isset($item['taxDetailsUID']) ? (int) $item['taxDetailsUID']          : 1,
-                'TaxPercentage'     => (float) ($item['taxPercent']   ?? 0),
-                'CGST'              => (float) ($item['cgstPercent']  ?? 0),
-                'SGST'              => (float) ($item['sgstPercent']  ?? 0),
-                'IGST'              => (float) ($item['igstPercent']  ?? 0),
-                'DiscountTypeUID'   => isset($item['discountTypeUID']) ? (int) $item['discountTypeUID'] : NULL,
-                'Discount'          => (float) ($item['discount']       ?? 0),
-                'UnitPrice'         => $unitPrice,
-                'SellingPrice'      => (float) ($item['sellingPrice']   ?? $unitPrice),
-                'PurchasePrice'     => (float) ($item['purchasePrice']  ?? 0),
-                'MRP'               => (float) ($item['mrp']            ?? 0),
-                'DistributionMode'  => !empty($item['isComposite']) ? ($item['distributionMode'] ?? null) : null,
-                'TaxableAmount'     => (float) ($item['line_total']     ?? 0),
-                'CgstAmount'        => (float) ($item['cgstAmount']     ?? 0),
-                'SgstAmount'        => (float) ($item['sgstAmount']     ?? 0),
-                'IgstAmount'        => (float) ($item['igstAmount']     ?? 0),
-                'TaxAmount'         => (float) ($item['taxAmount']      ?? 0),
-                'DiscountAmount'    => (float) ($item['discount_amount'] ?? 0),
-                'NetAmount'         => (float) ($item['net_total']       ?? 0),
-                'QuantityConverted' => 0,
-                'IsActive'          => 1,
-                'IsDeleted'         => 0,
-                'CreatedBy'         => $userUID,
-                'UpdatedBy'         => $userUID,
-            ];
-        }
-        if (empty($rows)) return;
-        $batchResp = $this->dbwrite_model->insertBatchInTransaction('Transaction', 'TransProductsTbl', $rows);
-        if ($batchResp->Error) throw new Exception($batchResp->Message);
-    }
 }

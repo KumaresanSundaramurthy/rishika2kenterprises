@@ -186,6 +186,7 @@ class Cachehelper {
                     'Line2'       => $addr->Line2     ?? '',
                     'Pincode'     => $addr->Pincode   ?? '',
                     'CityText'    => $addr->CityText  ?? '',
+                    'State'       => $addr->State     ?? '',
                     'StateText'   => $addr->StateText ?? '',
                 ];
             }
@@ -193,6 +194,11 @@ class Cachehelper {
             $obRow          = $CI->vendors_model->getVendorOpeningBalance($orgUID, $uid);
             $openingBalance = $obRow ? (float)$obRow->OpeningBalance : 0.0;
             $openingBalType = $obRow ? $obRow->OpeningBalType        : 'Credit';
+
+            // Read closing balance via a fresh DB snapshot to see WriteDb-committed journal data.
+            $balFresh       = $CI->vendors_model->getVendorClosingBalanceFresh($uid);
+            $closingBalance = $balFresh['balance'];
+            $closingBalType = $balFresh['balType'];
 
             $cacheKey = $CI->redisservice->orgKey('vendors');
 
@@ -209,6 +215,8 @@ class Cachehelper {
                 'PANNumber'       => $vend->PANNumber     ?? '',
                 'OpeningBalance'  => $openingBalance,
                 'OpeningBalType'  => $openingBalType,
+                'ClosingBalance'  => $closingBalance,
+                'ClosingBalType'  => $closingBalType,
                 'Area'            => $vend->Area          ?? '',
                 'Notes'           => $vend->Notes         ?? '',
                 'Image'           => $vend->Image         ?? '',
@@ -222,7 +230,9 @@ class Cachehelper {
                 ['DEL',  Upstashservice::keyVendor($uid)],
             ]);
 
-        } catch (Exception $e) {}
+        } catch (Exception $e) {
+            log_message('error', '[VENDOR-CACHE] upsertVendor: EXCEPTION vendorUID=' . ($uid ?? '?') . ' — ' . $e->getMessage());
+        }
     }
 
     /**
@@ -519,6 +529,59 @@ class Cachehelper {
             $CI->upstashservice->del(
                 Upstashservice::keyCategory($uid),
                 Upstashservice::keyCategoriesAll()
+            );
+        } catch (Exception $e) {}
+    }
+
+    public function upsertBrand($brandUID): void {
+        try {
+            $CI     =& get_instance();
+            $orgUID = (int) $CI->pageData['JwtData']->Org->OrgUID;
+            $uid    = (int) $brandUID;
+            if ($uid <= 0) return;
+
+            $CI->load->model('products_model');
+            $rows = $CI->products_model->getBrandsForCache($orgUID);
+            if (empty($rows)) return;
+
+            $brand = null;
+            foreach ($rows as $row) {
+                if ((int)$row->BrandUID === $uid) { $brand = $row; break; }
+            }
+            if (!$brand) return;
+
+            $attRows = $CI->products_model->getEntityAttachments('Brand', $uid, $orgUID);
+            $images  = [];
+            foreach ($attRows as $att) {
+                $images[] = [
+                    'path' => '/' . ltrim($att['FilePath'], '/'),
+                    'name' => $att['FileName'],
+                ];
+            }
+
+            $cacheKey = $CI->redisservice->orgKey('brands');
+            $CI->upstashservice->pipeline([
+                ['HSET', $cacheKey, (string)$uid, json_encode([
+                    'BrandUID'    => $uid,
+                    'BrandName'   => $brand->BrandName   ?? '',
+                    'BrandCode'   => $brand->BrandCode   ?? '',
+                    'Description' => $brand->Description ?? '',
+                    'Images'      => $images,
+                ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)],
+                ['DEL', Upstashservice::keyBrand($uid)],
+            ]);
+        } catch (Exception $e) {}
+    }
+
+    public function removeBrand($brandUID): void {
+        try {
+            $CI       =& get_instance();
+            $uid      = (int) $brandUID;
+            $cacheKey = $CI->redisservice->orgKey('brands');
+            $CI->upstashservice->hdel($cacheKey, (string)$uid);
+            $CI->upstashservice->del(
+                Upstashservice::keyBrand($uid),
+                Upstashservice::keyBrandsAll()
             );
         } catch (Exception $e) {}
     }

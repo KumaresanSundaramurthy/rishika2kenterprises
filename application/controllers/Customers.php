@@ -1184,6 +1184,14 @@ class Customers extends MY_Controller {
             if (!empty($errors)) {
                 $this->EndReturnData->Errors = $errors;
             }
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'RECALC_CUSTOMER_BALANCE', 'Customer', (int) $filterUID, '',
+                ['updated' => $updated, 'skipped' => $skipped, 'filterUID' => $filterUID],
+                "Recalculated customer balances: {$updated} updated, {$skipped} skipped", 'Customers',
+                'MASTER', 'SUCCESS', '', 'WEB',
+                [], []
+            );
 
         } catch (Exception $e) {
             $this->EndReturnData->Error   = TRUE;
@@ -1892,6 +1900,13 @@ class Customers extends MY_Controller {
             if ($customerUID > 0) $this->_syncCustomerPrimaryImage($customerUID, $orgUID, $userUID);
             $this->EndReturnData->Error   = false;
             $this->EndReturnData->Message = 'Attachment deleted.';
+            $this->auditlog->log(
+                (int) $orgUID, (int) $userUID,
+                'DELETE_CUSTOMER_ATTACHMENT', 'Customer', (int) $customerUID, '',
+                ['attachUID' => $attachUID], 'Deleted attachment #' . $attachUID . ' for customer #' . $customerUID, 'Customers',
+                'MASTER', 'SUCCESS', '', 'WEB',
+                ['attachUID' => $attachUID], []
+            );
         } catch (Exception $e) {
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();

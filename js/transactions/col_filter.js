@@ -79,6 +79,7 @@
         this._renderItems($list, items);
         this._updateItemCount(items.length);
         this._syncSelectAll();
+        this._reclampList();
 
         return this;
     };
@@ -351,8 +352,14 @@
             left = window.innerWidth - boxW - 16;
         }
 
+        // Clamp list height so Apply/Reset footer stays visible at any trigger position
+        var availH  = window.innerHeight - top - 10;
+        var listMax = Math.min(180, Math.max(60, availH - 176));
+        this._$box.find('.catg-list').css('max-height', listMax + 'px');
+
         if (typeof this._onBeforeShow === 'function') this._onBeforeShow();
-        this._$box.css({ top: top + 'px', left: left + 'px' }).show();
+        // Set display:flex explicitly — jQuery .show() sets display:block, breaking the flex layout
+        this._$box.css({ top: top + 'px', left: left + 'px', display: 'flex' });
     };
 
     /* ===================================================================
@@ -401,6 +408,14 @@
         } else {
             $sa.prop('checked', false).prop('indeterminate', true);
         }
+    };
+
+    TransColFilter.prototype._reclampList = function () {
+        if (!this._$box.is(':visible')) return;
+        var top     = parseInt(this._$box.css('top')) || 0;
+        var availH  = window.innerHeight - top - 10;
+        var listMax = Math.min(180, Math.max(60, availH - 176));
+        this._$box.find('.catg-list').css('max-height', listMax + 'px');
     };
 
     TransColFilter.prototype._setTriggerActive = function (active) {

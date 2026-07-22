@@ -384,270 +384,60 @@ var _transTransactionCharges = <?php echo json_encode(array_values($TransactionC
 <script src="/js/transactions/additional_charges.js"></script>
 
 <script>
-const EnableStorage = <?php echo $JwtData->GenSettings->EnableStorage; ?>;
-var _orgState       = '';
-var _isEdit         = <?php echo $isEdit ? 'true' : 'false'; ?>;
-var _transUID       = <?php echo $transUID; ?>;
-var _vendorState    = '<?php echo $isEdit && isset($VendorAddr) ? addslashes($VendorAddr->StateText ?? '') : ''; ?>';
-var _upstashUrl       = '<?php echo addslashes($UpstashReadUrl  ?? ''); ?>';
-var _upstashReadToken = '<?php echo addslashes($UpstashReadToken ?? ''); ?>';
-var _vendorCacheKey   = '<?php echo addslashes($VendorCacheKey  ?? ''); ?>';
-var _returnTab  = <?php echo json_encode($_returnTab); ?>;
-var _returnPage = <?php echo (int)$_returnPage; ?>;
-window._productPurchaseMode = true;
-
-<?php if ($isEdit): ?>
-var _editItems = <?php echo json_encode(array_map(function($item) {
-    return [
-        'id'               => (int)  $item->ProductUID,
-        'text'             => $item->ProductName,
-        'itemName'         => $item->ProductName,
-        'description'      => $item->Description   ?? '',
-        'unitPrice'        => (float)$item->UnitPrice,
-        'taxAmount'        => (float)$item->TaxAmount,
-        'sellingPrice'     => (float)$item->SellingPrice,
-        'purchasePrice'    => (float)($item->PurchasePrice ?? 0),
-        'availableQuantity'=> 0,
-        'hsnCode'          => '',
-        'categoryUID'      => $item->CategoryUID ? (int)$item->CategoryUID : null,
-        'categoryName'     => $item->CategoryName  ?? '',
-        'storageUID'       => $item->StorageUID  ? (int)$item->StorageUID  : null,
-        'taxPercent'       => (float)$item->TaxPercentage,
-        'cgstPercent'      => (float)$item->CGST,
-        'sgstPercent'      => (float)$item->SGST,
-        'igstPercent'      => (float)$item->IGST,
-        'taxDetailsUID'    => (int)  $item->TaxDetailsUID,
-        'quantity'         => (float)$item->Quantity,
-        'partNumber'       => $item->PartNumber      ?? '',
-        'primaryUnit'      => $item->PrimaryUnitName ?? '',
-        'discount'         => (float)$item->Discount,
-        'discountType'     => 'Percentage',
-        'discountTypeUID'  => $item->DiscountTypeUID ? (int)$item->DiscountTypeUID : null,
-        'discount_amount'  => (float)$item->DiscountAmount,
-        'line_total'       => (float)$item->TaxableAmount,
-        'net_total'        => (float)$item->NetAmount,
-    ];
-}, $POItems)); ?>;
-<?php endif; ?>
-
-$(function() {
-    'use strict';
-
-    <?php if ($isEdit): ?>
-    initTransAttachments(<?php echo $transUID; ?>, '/transactions/getAttachments', 104);
-    <?php endif; ?>
-
-    searchVendors('vendorSearch');
-    <?php if ($isEdit && !empty($POData->PartyUID)): ?>
-    $('#vendorSearch').append(new Option('<?php echo addslashes($POData->PartyName ?? ''); ?>', <?php echo (int)$POData->PartyUID; ?>, true, true)).trigger('change');
-    <?php endif; ?>
-
-    transDatePickr('#transDate_disp',    '#transDate',    false, false, true,  true, '');
-    transDatePickr('#expectedDate_disp', '#expectedDate', false, false, false, false, '#transDate');
-
-    <?php if ($isEdit): ?>
-    if (typeof billManager !== 'undefined' && _orgState && _vendorState) {
-        billManager.isInterState = (_vendorState.trim().toLowerCase() !== _orgState.trim().toLowerCase());
-    }
-
-    if (typeof billManager !== 'undefined' && typeof formationTableBillItems === 'function'
-            && Array.isArray(_editItems) && _editItems.length > 0) {
-        $('#billTableBody').empty();
-        _editItems.forEach(function(item) {
-            var added = billManager.addItem(item, item.quantity);
-            if (added !== false) formationTableBillItems(billManager.getItemById(item.id));
-        });
-        if (typeof updateItemTaxBreakdown === 'function') updateItemTaxBreakdown();
-        billManager.updateSummary();
-    }
-
-    <?php if (!empty($POData->GlobalDiscPercent) && $POData->GlobalDiscPercent > 0): ?>
-    $('#globalDiscount').val('<?php echo smartDecimal($POData->GlobalDiscPercent); ?>').trigger('input');
-    <?php endif; ?>
-    <?php if (!empty($POData->ExtraDiscAmount) && $POData->ExtraDiscAmount > 0): ?>
-    $('#extraDiscount').val('<?php echo smartDecimal($POData->ExtraDiscAmount ?? 0); ?>');
-    <?php endif; ?>
-    <?php if (!empty($POData->ExtraDiscType)): ?>
-    $('#extDiscountType').val('<?php echo addslashes($POData->ExtraDiscType); ?>');
-    <?php endif; ?>
-    <?php endif; ?>
-
-    var $form = $('#<?php echo $formId; ?>');
-    if ($form.length) {
-
-        $form.on('submit', function(e) {
-            e.preventDefault();
-
-            var $btn     = $('button[type="submit"][name="action"]:focus, button[type="submit"][name="action"].active-submit', $form);
-            var action   = $btn.val() || 'save';
-            var csrfName = $form.data('csrf');
-            var csrfVal  = $form.data('csrf-value');
-
-            var vendorUID = parseInt($('#vendorSearch').val(), 10);
-            if (!vendorUID || vendorUID <= 0) return showFormError('Please select a vendor.');
-
-            if (!_isEdit && action !== 'draft') {
-                var prefixUID = parseInt($('#transPrefixSelect').val(), 10);
-                if (!prefixUID || prefixUID <= 0) return showFormError('Please select a purchase order prefix.');
-                var transNumber = $.trim($('#transNumber').val());
-                if (!transNumber || parseInt(transNumber, 10) <= 0) return showFormError('Transaction number must be greater than 0.');
-            }
-
-            var transDate = $.trim($('#transDate').val());
-            if (!transDate || !/^\d{4}-\d{2}-\d{2}$/.test(transDate)) return showFormError('Please enter a valid PO date.');
-
-            var items = typeof billManager !== 'undefined' ? billManager.getAllItems() : [];
-            if (!items || items.length === 0) return showFormError('Please add at least one product.');
-
-            for (var i = 0; i < items.length; i++) {
-                var item = items[i];
-                var qty  = parseFloat(item.quantity);
-                if (!qty || qty <= 0) return showFormError('Row ' + (i + 1) + ': Quantity must be greater than 0.');
-                if (parseFloat(item.unitPrice) < 0) return showFormError('Row ' + (i + 1) + ': Price cannot be negative.');
-            }
-
-            var bm      = typeof billManager !== 'undefined' ? billManager : null;
-            var summary = bm ? bm.summary : {};
-            var charges = { AdditionalCharges: JSON.stringify(typeof collectAdditionalCharges === 'function' ? collectAdditionalCharges() : []) };
-
-            var postData = $.extend({
-                transPrefixSelect      : parseInt($('#transPrefixSelect').val(), 10) || 0,
-                transNumber            : $.trim($('#transNumber').val()),
-                transDate              : transDate,
-                expectedDate           : $.trim($('#expectedDate').val()),
-                vendorSearch           : vendorUID,
-                poType                 : $('#poType').val() || '',
-                referenceDetails       : $.trim($('#referenceDetails').val()),
-                transNotes             : $.trim($('#transNotes').val()),
-                transTermsCond         : $.trim($('#transTermsCond').val()),
-                placeOfSupplyCode      : $('#placeOfSupplyCode').val() || '',
-                placeOfSupplyName      : $('#placeOfSupplyName').val() || '',
-                extraDiscount          : parseFloat($('#extraDiscount').val()) || 0,
-                extDiscountType        : $('#extDiscountType').val() || '',
-                SubTotal               : summary.items     ? (summary.items.taxableAmount     || 0) : 0,
-                DiscountAmount         : summary.items     ? (summary.items.discountTotal      || 0) : 0,
-                TaxAmount              : summary.taxTotals ? (summary.taxTotals.totalTax       || 0) : 0,
-                CgstAmount             : summary.taxTotals ? (summary.taxTotals.cgstTotal      || 0) : 0,
-                SgstAmount             : summary.taxTotals ? (summary.taxTotals.sgstTotal      || 0) : 0,
-                IgstAmount             : summary.taxTotals ? (summary.taxTotals.igstTotal      || 0) : 0,
-                AdditionalChargesTotal : (summary.additionalCharges && summary.additionalCharges.total) ? (summary.additionalCharges.total.grossAmount || 0) : 0,
-                GlobalDiscPercent      : bm ? (bm.globalDiscountPercent || 0) : 0,
-                RoundOff               : summary.extra ? (summary.extra.roundOff || 0) : 0,
-                NetAmount              : summary.totals ? (summary.totals.grandTotal || 0) : 0,
-                Items                  : JSON.stringify(items),
-                SignatureUID           : parseInt($('#transSignatureUID').val(), 10) || 0,
-                action                 : action,
-                [csrfName]             : csrfVal,
-            }, charges);
-
-            if (_isEdit) postData.TransUID = _transUID;
-
-            var formData = new FormData();
-            $.each(postData, function(k, v) { formData.append(k, v); });
-            collectTransAttachData(formData);
-
-            var ajaxUrl = _isEdit ? '/purchaseorders/updatePurchaseOrder' : '/purchaseorders/addPurchaseOrder';
-            setFormLoading('#<?php echo $formId; ?>', true, action);
-
-            $.ajax({
-                url         : ajaxUrl,
-                method      : 'POST',
-                data        : formData,
-                processData : false,
-                contentType : false,
-                cache       : false,
-                success: function(response) {
-                    if (response.Error) {
-                        setFormLoading('#<?php echo $formId; ?>', false);
-                        showFormError(response.Message);
-                    } else {
-                        _setPendingToast('_poPendingToast', response.Message, 'success');
-                        window.location.href = _buildReturnUrl('/purchaseorders');
-                    }
-                },
-                error: function() {
-                    setFormLoading('#<?php echo $formId; ?>', false);
-                    showFormError('Server error. Please try again.');
-                }
-            });
-        });
-
-        $form.on('click', 'button[type="submit"][name="action"]', function() {
-            $form.find('button[type="submit"][name="action"]').removeClass('active-submit');
-            $(this).addClass('active-submit');
-        });
-
-    }
-});
+var _transFormData = <?php echo json_encode([
+    'isEdit'        => $isEdit,
+    'isDraftEdit'   => $isDraftEdit,
+    'moduleUID'     => 104,
+    'enableStorage' => (bool)$JwtData->GenSettings->EnableStorage,
+    'formId'        => $formId,
+    'formAction'    => $formAction,
+    'upstashUrl'    => $UpstashReadUrl   ?? '',
+    'upstashToken'  => $UpstashReadToken ?? '',
+    'vendorCacheKey'=> $VendorCacheKey   ?? '',
+    'returnTab'     => $_returnTab,
+    'returnPage'    => (int)$_returnPage,
+    'currency'      => $JwtData->GenSettings->CurrenySymbol ?? '₹',
+    'decimals'      => (int)($JwtData->GenSettings->DecimalPoints ?? 2),
+    'editData'      => $isEdit ? [
+        'transUID'          => $transUID,
+        'vendorUID'         => (int)($POData->PartyUID ?? 0),
+        'vendorName'        => $POData->PartyName ?? '',
+        'vendorState'       => isset($VendorAddr) ? ($VendorAddr->StateText ?? '') : '',
+        'extraDiscAmount'   => (float)($POData->ExtraDiscAmount ?? 0),
+        'extraDiscType'     => $POData->ExtraDiscType ?? '',
+        'globalDiscPercent' => (float)($POData->GlobalDiscPercent ?? 0),
+        'items'             => array_map(function($item) {
+            return [
+                'id'               => (int)  $item->ProductUID,
+                'text'             => $item->ProductName,
+                'itemName'         => $item->ProductName,
+                'description'      => $item->Description   ?? '',
+                'unitPrice'        => (float)$item->UnitPrice,
+                'taxAmount'        => (float)$item->TaxAmount,
+                'sellingPrice'     => (float)$item->SellingPrice,
+                'purchasePrice'    => (float)($item->PurchasePrice ?? 0),
+                'availableQuantity'=> 0,
+                'hsnCode'          => '',
+                'categoryUID'      => $item->CategoryUID ? (int)$item->CategoryUID : null,
+                'categoryName'     => $item->CategoryName  ?? '',
+                'storageUID'       => $item->StorageUID  ? (int)$item->StorageUID  : null,
+                'taxPercent'       => (float)$item->TaxPercentage,
+                'cgstPercent'      => (float)$item->CGST,
+                'sgstPercent'      => (float)$item->SGST,
+                'igstPercent'      => (float)$item->IGST,
+                'taxDetailsUID'    => (int)  $item->TaxDetailsUID,
+                'quantity'         => (float)$item->Quantity,
+                'partNumber'       => $item->PartNumber      ?? '',
+                'primaryUnit'      => $item->PrimaryUnitName ?? '',
+                'discount'         => (float)$item->Discount,
+                'discountType'     => 'Percentage',
+                'discountTypeUID'  => $item->DiscountTypeUID ? (int)$item->DiscountTypeUID : null,
+                'discount_amount'  => (float)$item->DiscountAmount,
+                'line_total'       => (float)$item->TaxableAmount,
+                'net_total'        => (float)$item->NetAmount,
+            ];
+        }, $POItems ?? []),
+    ] : null,
+]); ?>;
 </script>
-<script>
-(function () {
-    var _formEl   = document.getElementById('<?php echo $formId; ?>');
-    var _barEl    = document.getElementById('stickyBottomBar');
-    var _inlineEl = document.getElementById('inlineSummaryBar');
-    if (!_barEl || !_inlineEl) return;
-
-    var cur = '<?php echo addslashes($JwtData->GenSettings->CurrenySymbol ?? "₹"); ?>';
-    var dec = <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>;
-    function _r2(n) { return parseFloat((+n || 0).toFixed(dec)); }
-    function _fmt(n) { return cur + ' ' + _r2(n).toFixed(dec); }
-
-    function _alignStickyBar() {
-        if (!_formEl) return;
-        var rect = _formEl.getBoundingClientRect();
-        var vpW  = document.documentElement.clientWidth;
-        _barEl.style.left  = rect.left + 'px';
-        _barEl.style.right = (vpW - rect.right) + 'px';
-        _barEl.style.width = 'auto';
-    }
-
-    function _sync() {
-        if (typeof billManager === 'undefined') return;
-        var grand = (billManager.summary && billManager.summary.totals)
-            ? (billManager.summary.totals.grandTotal || 0) : 0;
-        var tax   = (billManager.summary && billManager.summary.taxTotals)
-            ? (billManager.summary.taxTotals.totalTax || 0) : 0;
-        ['stickyGrandTotal','inlineGrandTotal'].forEach(function (id) {
-            var el = document.getElementById(id); if (el) el.textContent = _fmt(grand);
-        });
-        ['stickyTotalTax','inlineTotalTax'].forEach(function (id) {
-            var el = document.getElementById(id); if (el) el.textContent = _fmt(tax);
-        });
-    }
-
-    var _obs = new IntersectionObserver(function (entries) {
-        if (!entries[0].isIntersecting) { _alignStickyBar(); _barEl.style.display = 'flex'; }
-        else { _barEl.style.display = 'none'; }
-    }, { threshold: 0.1 });
-    _obs.observe(_inlineEl);
-    _barEl.style.display = 'none';
-    window.addEventListener('resize', _alignStickyBar);
-
-    function _delegate(val) {
-        var sel = (val === 'save' || !val)
-            ? 'button[name="action"][value="save"][type="submit"]'
-            : 'button[name="action"][value="' + val + '"]';
-        var btn = _formEl && _formEl.querySelector(sel);
-        if (!btn && (val === 'save' || !val)) btn = _formEl && _formEl.querySelector('button[name="action"][value="save"]');
-        if (btn) btn.click();
-    }
-
-    ['stickySaveBtn','inlineSaveBtn'].forEach(function (id) {
-        var el = document.getElementById(id);
-        if (el) el.addEventListener('click', function () { _delegate('save'); });
-    });
-    ['stickyDraftBtn','inlineDraftBtn'].forEach(function (id) {
-        var el = document.getElementById(id);
-        if (el) el.addEventListener('click', function () { _delegate('draft'); });
-    });
-    document.addEventListener('click', function (e) {
-        var t = e.target.closest('[data-sticky-action],[data-inline-action]');
-        if (!t) return;
-        _delegate(t.dataset.stickyAction || t.dataset.inlineAction);
-    });
-
-    var _totEl = document.getElementById('bill_tot_amt');
-    if (_totEl) new MutationObserver(_sync).observe(_totEl, { childList: true, subtree: true, characterData: true });
-    _sync();
-})();
-</script>
+<script src="/js/transactions/forms/purchaseorder.js"></script>

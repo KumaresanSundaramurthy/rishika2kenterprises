@@ -4,64 +4,73 @@ $typeLabels = $TransactionTypes ?? [];
 if (!empty($DataLists)):
     foreach ($DataLists as $i => $row):
         $typeLabel = $typeLabels[$row->TransactionType] ?? $row->TransactionType;
-        $tplName   = !empty($row->TemplateName) ? htmlspecialchars($row->TemplateName) : '<span class="text-muted">—</span>';
-        $preview   = !empty($row->TemplatePreviewImage) ? $row->TemplatePreviewImage : null;
+        $tplName   = !empty($row->TemplateName) ? htmlspecialchars($row->TemplateName) : 'Custom Theme';
+        $primary   = htmlspecialchars($row->PrimaryColor ?? '#1a3c6e');
+        $accent    = htmlspecialchars($row->AccentColor  ?? '#f59e0b');
+        $themeKey  = htmlspecialchars($row->ThemeKey ?? 'classic');
         $updatedOn = !empty($row->UpdatedOn) ? format_datedisplay($row->UpdatedOn) : '—';
 ?>
-<tr>
-    <td>
-        <?php if ($preview): ?>
-            <img src="<?php echo htmlspecialchars($preview); ?>" alt="<?php echo $tplName; ?>"
-                 style="width:72px;height:52px;object-fit:cover;border-radius:4px;border:1px solid #ddd;">
-        <?php else: ?>
-            <div style="width:72px;height:52px;border-radius:4px;border:1px solid #ddd;background:#f5f5f5;display:flex;align-items:center;justify-content:center;">
-                <i class="bx bx-image text-muted fs-4"></i>
+<div class="col-xl-3 col-lg-4 col-md-6">
+    <div class="card h-100 border-0 shadow-sm theme-card-wrap">
+
+        <!-- Thumbnail with action overlay -->
+        <div style="padding:10px 10px 0;background:#f4f5f7;border-radius:8px 8px 0 0;position:relative;">
+            <div class="theme-card-thumb"
+                 data-key="<?php echo $themeKey; ?>"
+                 data-primary="<?php echo $primary; ?>"
+                 data-accent="<?php echo $accent; ?>"
+                 style="width:100%;height:108px;background:#fff;border:1px solid #e0e0e0;border-radius:4px;overflow:hidden;"></div>
+
+            <!-- Action overlay (appears on hover) -->
+            <div class="theme-card-actions">
+                <button class="theme-card-action-btn editThemeBtn"
+                        data-uid="<?php echo (int)$row->ThemeConfigUID; ?>"
+                        title="Edit">
+                    <i class="bx bx-edit"></i>
+                </button>
+                <button class="theme-card-action-btn danger deleteThemeBtn"
+                        data-uid="<?php echo (int)$row->ThemeConfigUID; ?>"
+                        data-label="<?php echo htmlspecialchars($typeLabel); ?>"
+                        title="Delete">
+                    <i class="bx bx-trash"></i>
+                </button>
             </div>
-        <?php endif; ?>
-    </td>
-    <td>
-        <div class="fw-semibold"><?php echo htmlspecialchars($typeLabel); ?></div>
-        <div class="text-muted tinysmall"><?php echo htmlspecialchars($row->TransactionType); ?></div>
-    </td>
-    <td><?php echo $tplName; ?></td>
-    <td>
-        <div class="d-flex align-items-center gap-2">
-            <div style="width:18px;height:18px;border-radius:3px;background:<?php echo htmlspecialchars($row->PrimaryColor); ?>;border:1px solid rgba(0,0,0,.12);" title="Primary: <?php echo htmlspecialchars($row->PrimaryColor); ?>"></div>
-            <div style="width:18px;height:18px;border-radius:3px;background:<?php echo htmlspecialchars($row->AccentColor);  ?>;border:1px solid rgba(0,0,0,.12);" title="Accent: <?php echo htmlspecialchars($row->AccentColor); ?>"></div>
-            <span class="text-muted tinysmall"><?php echo htmlspecialchars($row->PrimaryColor); ?></span>
         </div>
-    </td>
-    <td>
-        <div class="d-flex flex-wrap gap-1">
-            <?php if ($row->ShowLogo):        ?><span class="badge bg-label-secondary">Logo</span><?php endif; ?>
-            <?php if ($row->ShowOrgAddress):  ?><span class="badge bg-label-secondary">Address</span><?php endif; ?>
-            <?php if ($row->ShowGSTIN):       ?><span class="badge bg-label-secondary">GSTIN</span><?php endif; ?>
-            <?php if ($row->ShowHSN):         ?><span class="badge bg-label-secondary">HSN</span><?php endif; ?>
-            <?php if ($row->ShowTaxBreakdown):?><span class="badge bg-label-secondary">Tax</span><?php endif; ?>
+
+        <div class="card-body py-2 px-3">
+            <div class="d-flex justify-content-between align-items-start mb-1">
+                <div>
+                    <span class="badge bg-label-primary mb-1"><?php echo htmlspecialchars($typeLabel); ?></span>
+                    <div class="fw-semibold small"><?php echo $tplName; ?></div>
+                </div>
+                <div class="d-flex gap-1 mt-1 flex-shrink-0">
+                    <div title="Primary: <?php echo $primary; ?>"
+                         style="width:16px;height:16px;border-radius:50%;background:<?php echo $primary; ?>;border:1px solid rgba(0,0,0,.1);"></div>
+                    <div title="Accent: <?php echo $accent; ?>"
+                         style="width:16px;height:16px;border-radius:50%;background:<?php echo $accent; ?>;border:1px solid rgba(0,0,0,.1);"></div>
+                </div>
+            </div>
+            <div class="d-flex flex-wrap gap-1 mb-1">
+                <?php if ($row->ShowLogo):        ?><span class="badge bg-label-secondary" style="font-size:.62rem;">Logo</span><?php endif; ?>
+                <?php if ($row->ShowOrgAddress):  ?><span class="badge bg-label-secondary" style="font-size:.62rem;">Address</span><?php endif; ?>
+                <?php if ($row->ShowGSTIN):       ?><span class="badge bg-label-secondary" style="font-size:.62rem;">GSTIN</span><?php endif; ?>
+                <?php if ($row->ShowHSN):         ?><span class="badge bg-label-secondary" style="font-size:.62rem;">HSN</span><?php endif; ?>
+                <?php if ($row->ShowTaxBreakdown):?><span class="badge bg-label-secondary" style="font-size:.62rem;">Tax</span><?php endif; ?>
+            </div>
+            <div class="text-muted" style="font-size:.67rem;">
+                <?php echo htmlspecialchars($row->FontFamily ?? 'Arial'); ?>, <?php echo (int)($row->FontSizePx ?? 11); ?>px
+                &nbsp;·&nbsp;<?php echo $updatedOn; ?>
+            </div>
         </div>
-    </td>
-    <td>
-        <span class="text-muted small"><?php echo htmlspecialchars($row->FontFamily ?? 'Arial'); ?>, <?php echo (int)($row->FontSizePx ?? 11); ?>px</span>
-    </td>
-    <td><span class="text-muted small"><?php echo $updatedOn; ?></span></td>
-    <td class="text-center">
-        <div class="d-flex justify-content-center gap-2">
-            <button class="btn btn-sm btn-outline-primary editThemeBtn" data-uid="<?php echo (int)$row->ThemeConfigUID; ?>">
-                <i class="bx bx-edit"></i>
-            </button>
-            <button class="btn btn-sm btn-outline-danger deleteThemeBtn"
-                    data-uid="<?php echo (int)$row->ThemeConfigUID; ?>"
-                    data-label="<?php echo htmlspecialchars($typeLabel); ?>">
-                <i class="bx bx-trash"></i>
-            </button>
-        </div>
-    </td>
-</tr>
+
+    </div>
+</div>
 <?php endforeach; else: ?>
-<tr>
-    <td colspan="8" class="text-center py-4 text-muted">
+<div class="col-12">
+    <div class="text-center py-5 text-muted">
         <i class="bx bx-palette fs-1 d-block mb-2 opacity-50"></i>
-        No themes configured yet. Click <strong>Add Theme</strong> to get started.
-    </td>
-</tr>
+        <div class="mb-1">No themes configured yet.</div>
+        <div class="small">Click <strong>Add Theme</strong> to get started.</div>
+    </div>
+</div>
 <?php endif; ?>

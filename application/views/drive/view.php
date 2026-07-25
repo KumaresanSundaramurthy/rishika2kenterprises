@@ -16,7 +16,7 @@ $this->load->view('common/transactions/header'); ?>
                     'pageIconColor'   => $PageIconColor   ?? '#0369a1',
                 ]); ?>
 
-                <div class="container-xxl flex-grow-1 py-3">
+                <div class="container-xxl flex-grow-1">
 
                     <style>
                         .drive-toolbar {

@@ -129,7 +129,7 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                                 </div>
                             </div>
                             <div class="d-flex align-items-center gap-2">
-                                <button type="submit" name="action" value="draft" class="btn btn-sm btn-outline-secondary"><i class="bx bx-save me-1"></i>Save as Draft</button>
+                                <button type="submit" name="action" value="draft" class="btn btn-sm btn-outline-secondary"><i class="bx bx-save me-1"></i><?php echo t('btn_save_draft', 'Save as Draft'); ?></button>
                                 <div class="btn-group">
                                     <button type="submit" name="action" value="save" class="btn btn-sm btn-primary px-3"><i class="bx bx-check me-1"></i>Save</button>
                                     <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2" data-bs-toggle="dropdown" aria-expanded="false">
@@ -137,9 +137,9 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:195px;font-size:.82rem;">
                                         <li><span class="dropdown-header py-1" style="font-size:.65rem;letter-spacing:.4px;">SAVE &amp; PRINT</span></li>
-                                        <li><button type="submit" class="dropdown-item py-1" name="action" value="save_a4"><i class="bx bx-file text-primary me-2"></i>Save &amp; Print A4</button></li>
-                                        <li><button type="submit" class="dropdown-item py-1" name="action" value="save_a5"><i class="bx bx-file-blank text-info me-2"></i>Save &amp; Print A5</button></li>
-                                        <li><button type="submit" class="dropdown-item py-1" name="action" value="save_thermal"><i class="bx bx-receipt text-success me-2"></i>Save &amp; Print Thermal</button></li>
+                                        <li><button type="submit" class="dropdown-item py-1" name="action" value="save_a4"><i class="bx bx-file text-primary me-2"></i><?php echo t('btn_save_a4', 'Save & Print A4'); ?></button></li>
+                                        <li><button type="submit" class="dropdown-item py-1" name="action" value="save_a5"><i class="bx bx-file-blank text-info me-2"></i><?php echo t('btn_save_a5', 'Save & Print A5'); ?></button></li>
+                                        <li><button type="submit" class="dropdown-item py-1" name="action" value="save_thermal"><i class="bx bx-receipt text-success me-2"></i><?php echo t('btn_save_thermal', 'Save & Print Thermal'); ?></button></li>
                                     </ul>
                                 </div>
                                 <a href="<?php echo $_closeUrl; ?>" class="btn btn-sm btn-outline-danger px-3<?php echo $_hideNav ? ' d-none' : ''; ?>"><i class="bx bx-x me-1"></i>Close</a>
@@ -162,7 +162,7 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                             </div>
                             <div class="d-flex align-items-center gap-2">
                                 <?php if ($isDraftEdit): ?>
-                                <button type="submit" name="action" value="draft" class="btn btn-outline-secondary"><i class="bx bx-save me-1"></i>Save as Draft</button>
+                                <button type="submit" name="action" value="draft" class="btn btn-outline-secondary"><i class="bx bx-save me-1"></i><?php echo t('btn_save_draft', 'Save as Draft'); ?></button>
                                 <?php endif; ?>
                                 <button type="submit" name="action" value="save" class="btn btn-primary"><i class="bx bx-check me-1"></i>Save</button>
                                 <a href="<?php echo $_closeUrl; ?>" class="btn btn-label-danger<?php echo $_hideNav ? ' d-none' : ''; ?>">Close</a>
@@ -208,7 +208,7 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                                     <?php else: ?>
                                     <div class="d-flex align-items-center justify-content-between mb-2">
                                         <label for="customerSearch" class="trans-field-label mb-0">Select Customer <span class="text-danger">*</span></label>
-                                        <button type="button" id="addTransCustomer" class="trans-add-btn btn btn-outline-primary btn-sm" aria-label="Add new customer" style="font-size:.72rem;white-space:nowrap;"><i class="bx bx-plus-circle me-1"></i>Add Customer</button>
+                                        <button type="button" id="addTransCustomer" class="trans-add-btn btn btn-outline-primary btn-sm" aria-label="Add new customer" style="font-size:.72rem;white-space:nowrap;"><i class="bx bx-plus-circle me-1"></i><?php echo t('btn_add_customer', 'Add Customer'); ?></button>
                                     </div>
                                     <div class="input-group input-group-sm input-group-merge customer-search-group" id="customerGroup_customerSearch">
                                         <span class="input-group-text p-2 cursor-pointer" id="openCustomerSearchModal" style="background:#f0efff;border-color:#d9d8ff;color:#696cff;"><i class="icon-base bx bx-search"></i></span>
@@ -217,7 +217,7 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                                     <?php endif; ?>
                                 </div>
                                 <div class="col-auto" style="min-width:155px;">
-                                    <label for="transDate" class="trans-field-label">Quotation Date <span class="text-danger">*</span></label>
+                                    <label for="transDate" class="trans-field-label"><?php echo t('lbl_quotation_date', 'Quotation Date'); ?> <span class="text-danger">*</span></label>
                                     <div class="input-group input-group-sm input-group-merge">
                                         <span class="input-group-text bg-white"><i class="icon-base bx bx-calendar"></i></span>
                                         <?php $_fmt = $JwtData->GenSettings->FormDateFormat ?? 'd-m-Y'; ?>
@@ -246,7 +246,7 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                                     </div>
                                 </div>
                                 <div class="col">
-                                    <label for="referenceDetails" class="trans-field-label">Reference</label>
+                                    <label for="referenceDetails" class="trans-field-label"><?php echo t('lbl_reference', 'Reference'); ?></label>
                                     <input type="text" id="referenceDetails" name="referenceDetails" class="form-control form-control-sm"
                                         placeholder="PO Number, Sales Person, Ref No..." maxlength="100"
                                         value="<?php echo $isEdit ? htmlspecialchars($QuotData->Reference ?? '') : (!empty($CloneData->Reference) ? htmlspecialchars($CloneData->Reference) : ''); ?>" />
@@ -292,7 +292,7 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                                 </div>
                                 <div class="d-flex align-items-center gap-2">
                                     <?php if (!$isEdit || $isDraftEdit): ?>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="inlineDraftBtn"><i class="bx bx-save me-1"></i>Save as Draft</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="inlineDraftBtn"><i class="bx bx-save me-1"></i><?php echo t('btn_save_draft', 'Save as Draft'); ?></button>
                                     <?php endif; ?>
                                     <div class="btn-group">
                                         <button type="button" class="btn btn-sm btn-primary px-3" id="inlineSaveBtn">
@@ -302,9 +302,9 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                                         <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2" data-bs-toggle="dropdown" aria-expanded="false"><span class="visually-hidden">Save options</span></button>
                                         <ul class="dropdown-menu dropdown-menu-end shadow dropup" style="min-width:195px;font-size:.82rem;">
                                             <li><span class="dropdown-header py-1" style="font-size:.65rem;letter-spacing:.4px;">SAVE &amp; PRINT</span></li>
-                                            <li><button type="button" class="dropdown-item py-1" data-inline-action="save_a4"><i class="bx bx-file text-primary me-2"></i>Save &amp; Print A4</button></li>
-                                            <li><button type="button" class="dropdown-item py-1" data-inline-action="save_a5"><i class="bx bx-file-blank text-info me-2"></i>Save &amp; Print A5</button></li>
-                                            <li><button type="button" class="dropdown-item py-1" data-inline-action="save_thermal"><i class="bx bx-receipt text-success me-2"></i>Save &amp; Print Thermal</button></li>
+                                            <li><button type="button" class="dropdown-item py-1" data-inline-action="save_a4"><i class="bx bx-file text-primary me-2"></i><?php echo t('btn_save_a4', 'Save & Print A4'); ?></button></li>
+                                            <li><button type="button" class="dropdown-item py-1" data-inline-action="save_a5"><i class="bx bx-file-blank text-info me-2"></i><?php echo t('btn_save_a5', 'Save & Print A5'); ?></button></li>
+                                            <li><button type="button" class="dropdown-item py-1" data-inline-action="save_thermal"><i class="bx bx-receipt text-success me-2"></i><?php echo t('btn_save_thermal', 'Save & Print Thermal'); ?></button></li>
                                         </ul>
                                         <?php endif; ?>
                                     </div>
@@ -324,7 +324,7 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                         </div>
                         <div class="d-flex align-items-center gap-2">
                             <?php if (!$isEdit || $isDraftEdit): ?>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" id="stickyDraftBtn"><i class="bx bx-save me-1"></i>Save as Draft</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="stickyDraftBtn"><i class="bx bx-save me-1"></i><?php echo t('btn_save_draft', 'Save as Draft'); ?></button>
                             <?php endif; ?>
                             <div class="btn-group">
                                 <button type="button" class="btn btn-sm btn-primary px-3" id="stickySaveBtn">
@@ -334,9 +334,9 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                                 <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2" data-bs-toggle="dropdown" aria-expanded="false"><span class="visually-hidden">Save options</span></button>
                                 <ul class="dropdown-menu dropdown-menu-end shadow dropup" style="min-width:195px;font-size:.82rem;">
                                     <li><span class="dropdown-header py-1" style="font-size:.65rem;letter-spacing:.4px;">SAVE &amp; PRINT</span></li>
-                                    <li><button type="button" class="dropdown-item py-1" data-sticky-action="save_a4"><i class="bx bx-file text-primary me-2"></i>Save &amp; Print A4</button></li>
-                                    <li><button type="button" class="dropdown-item py-1" data-sticky-action="save_a5"><i class="bx bx-file-blank text-info me-2"></i>Save &amp; Print A5</button></li>
-                                    <li><button type="button" class="dropdown-item py-1" data-sticky-action="save_thermal"><i class="bx bx-receipt text-success me-2"></i>Save &amp; Print Thermal</button></li>
+                                    <li><button type="button" class="dropdown-item py-1" data-sticky-action="save_a4"><i class="bx bx-file text-primary me-2"></i><?php echo t('btn_save_a4', 'Save & Print A4'); ?></button></li>
+                                    <li><button type="button" class="dropdown-item py-1" data-sticky-action="save_a5"><i class="bx bx-file-blank text-info me-2"></i><?php echo t('btn_save_a5', 'Save & Print A5'); ?></button></li>
+                                    <li><button type="button" class="dropdown-item py-1" data-sticky-action="save_thermal"><i class="bx bx-receipt text-success me-2"></i><?php echo t('btn_save_thermal', 'Save & Print Thermal'); ?></button></li>
                                 </ul>
                                 <?php endif; ?>
                             </div>

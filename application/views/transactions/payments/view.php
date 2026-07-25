@@ -12,13 +12,12 @@
                     'pageTitle'       => $PageTitle       ?? 'Payments',
                     'pageDescription' => $PageDescription ?? 'Track payments received and made',
                 ]); ?>
-                <div class="container-xxl flex-grow-1 py-3">
+                <div class="container-xxl flex-grow-1">
 
                     <?php
-                    $cur     = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-                    $dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
-                    $totals  = $Totals ?? (object)['TotalReceived' => 0, 'TotalPaid' => 0];
-                    $stats   = $BalanceStats ?? (object)['CashIn' => 0, 'CashOut' => 0, 'BankIn' => 0, 'BankOut' => 0];
+                    $cur   = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
+                    $dec   = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
+                    $stats = $BalanceStats ?? (object)['CashIn' => 0, 'CashOut' => 0, 'BankIn' => 0, 'BankOut' => 0];
 
                     $cashIn  = (float)($stats->CashIn  ?? 0);
                     $cashOut = (float)($stats->CashOut ?? 0);
@@ -99,19 +98,13 @@
                                 <input type="text" id="allPmtSearch" placeholder="Party, ref, amount…">
                             </div>
                             <a href="javascript:void(0);" id="allPmtModeFilter" class="apex-filter-btn" title="Filter by Payment Mode"><i class="bx bx-credit-card me-1"></i>Pay Mode</a>
+                            <a href="javascript:void(0);" id="allPmtDocTypeFilter" class="apex-filter-btn" title="Filter by Document Type"><i class="bx bx-file me-1"></i>Doc Type</a>
+                            <a href="javascript:void(0);" id="allPmtPartyTypeFilter" class="apex-filter-btn" title="Filter by Party Type"><i class="bx bx-group me-1"></i>Party Type</a>
                             <?php if (count($OrgUsers ?? []) > 1): ?>
-                            <a href="javascript:void(0);" id="allPmtCreatedByFilter" class="apex-filter-btn" title="Filter by User"><i class="bx bx-user me-1"></i>Updated By</a>
+                            <a href="javascript:void(0);" id="allPmtCreatedByFilter" class="apex-filter-btn" title="Filter by Created By"><i class="bx bx-user me-1"></i>Created By</a>
                             <?php endif; ?>
-                            <div class="dropdown">
-                                <button class="apex-filter-btn dropdown-toggle" type="button" id="allPmtDateBtn" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="bx bx-calendar"></i><span id="allPmtDateLabel" class="ms-1">This Month</span><strong id="allPmtDateDates" class="r2k-df-dates" style="display:none;"></strong>
-                                </button>
-                                <ul class="dropdown-menu shadow" id="allPmtDateMenu" style="width:220px;max-height:360px;overflow-y:auto;font-size:.82rem;"></ul>
-                            </div>
+                            <?php $this->load->view('common/transactions/date_filter_btn'); ?>
                             <div class="apex-filter-spacer"></div>
-                            <button class="btn btn-sm btn-outline-secondary" id="allPmtClearBtn" title="Clear all filters">
-                                <i class="bx bx-x me-1"></i>Clear
-                            </button>
                         </div>
 
                         <!-- Tabs Row -->
@@ -122,21 +115,22 @@
                                 <li class="nav-item"><a class="nav-link allpmt-dir-pill"          data-dir="Out"          href="javascript:void(0);"><i class="bx bx-down-arrow-alt text-danger"></i> Out</a></li>
                                 <li class="nav-item"><a class="nav-link allpmt-status-tab"        data-status="Cancelled" href="javascript:void(0);">Cancelled <span class="trans-tab-count ms-1 d-none" id="allPmtTabCountCancelled"></span></a></li>
                             </ul>
+                            <?php $this->load->view('common/transactions/filter_notice'); ?>
                         </div>
 
                         <!-- Table -->
                         <div class="table-responsive">
-                            <table class="table trans-table table-hover MainviewTable mb-0" id="allPaymentsTable">
+                            <table class="table trans-table table-hover MainviewTable last-col-sticky mb-0" id="allPaymentsTable">
                                 <thead class="r2k-thead">
                                     <tr>
-                                        <th class="ps-3" style="width:160px;">Date / Ref No</th>
-                                        <th style="width:70px;">Type</th>
-                                        <th style="width:140px;">Amount</th>
+                                        <th class="ps-3 col-sortable cursor-pointer user-select-none" style="width:160px;" data-sort="Date" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">Date / Ref No <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Date"></i></th>
+                                        <th class="col-sortable cursor-pointer user-select-none" style="width:70px;" data-sort="Type" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">Type <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Type"></i></th>
+                                        <th class="col-sortable cursor-pointer user-select-none" style="width:140px;" data-sort="Amount" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">Amount <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Amount"></i></th>
                                         <th style="width:160px;">Mode / Bank</th>
-                                        <th>Party</th>
+                                        <th class="col-sortable cursor-pointer user-select-none" style="width:200px;" data-sort="Party" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">Party <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Party"></i></th>
                                         <th style="width:140px;">Linked Doc</th>
-                                        <th style="width:170px;">Created By</th>
-                                        <th style="width:80px;" class="text-center pe-3">Actions</th>
+                                        <th style="width:150px;">Created By</th>
+                                        <th style="width:70px;" class="text-center pe-3 pmt-sticky-col">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="allPaymentsTableBody">
@@ -145,31 +139,9 @@
                             </table>
                         </div>
 
-                        <!-- Footer totals + pagination -->
-                        <div class="card-footer bg-white border-top d-flex flex-wrap justify-content-between align-items-center px-3 py-2 gap-3 apex-pag-sticky">
-                            <div class="d-flex align-items-center gap-3 flex-wrap">
-                                <span class="text-muted" style="font-size:.8rem;">
-                                    In: &nbsp;<strong class="text-success" id="allPmtFooterIn">
-                                        <?php echo allPmtFmt((float)($totals->TotalReceived ?? 0), $cur, $dec); ?>
-                                    </strong>
-                                </span>
-                                <span class="text-muted" style="font-size:.8rem;">
-                                    Out: &nbsp;<strong class="text-danger" id="allPmtFooterOut">
-                                        <?php echo allPmtFmt((float)($totals->TotalPaid ?? 0), $cur, $dec); ?>
-                                    </strong>
-                                </span>
-                                <span class="text-muted" style="font-size:.8rem;">
-                                    Net: &nbsp;<strong class="text-dark" id="allPmtFooterNet">
-                                        <?php echo allPmtFmt((float)($totals->TotalReceived ?? 0) - (float)($totals->TotalPaid ?? 0), $cur, $dec); ?>
-                                    </strong>
-                                </span>
-                            </div>
-                            <div id="allPmtPagination" class="d-flex align-items-center gap-3">
-                                <span class="text-muted" style="font-size:.78rem;">
-                                    Total: <strong id="allPmtTotalCount"><?php echo number_format($ModAllCount); ?></strong>
-                                </span>
-                                <?php echo $ModPagination; ?>
-                            </div>
+                        <!-- Pagination -->
+                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center apex-pag-sticky" id="allPmtPagination">
+                            <?php echo $ModPagination; ?>
                         </div>
 
                     </div><!-- /.card -->
@@ -221,6 +193,41 @@ $this->load->view('common/transactions/payment_modal');
 ]); ?>
 <?php endif; ?>
 
+<?php $this->load->view('common/filter_panels/col_filter_box', [
+    'ColFilterConfig' => [
+        'id'         => 'allPmtDocTypeFilterBox',
+        'triggerId'  => 'allPmtDocTypeFilter',
+        'title'      => 'Document Type',
+        'icon'       => 'bx-file',
+        'filterKey'  => 'DocTypeModuleUIDs',
+        'checkClass' => 'allpmt-doctype-chk',
+        'items'      => [
+            ['value' => '103', 'label' => 'Invoice'],
+            ['value' => '105', 'label' => 'Purchase'],
+            ['value' => '106', 'label' => 'Sales Return'],
+            ['value' => '108', 'label' => 'Purchase Return'],
+            ['value' => '114', 'label' => 'Expense'],
+            ['value' => '115', 'label' => 'Income'],
+            ['value' => '110', 'label' => 'Standalone'],
+        ],
+    ],
+]); ?>
+
+<?php $this->load->view('common/filter_panels/col_filter_box', [
+    'ColFilterConfig' => [
+        'id'         => 'allPmtPartyTypeFilterBox',
+        'triggerId'  => 'allPmtPartyTypeFilter',
+        'title'      => 'Party Type',
+        'icon'       => 'bx-group',
+        'filterKey'  => 'PartyTypes',
+        'checkClass' => 'allpmt-partytype-chk',
+        'items'      => [
+            ['value' => 'C', 'label' => 'Customer'],
+            ['value' => 'S', 'label' => 'Vendor'],
+        ],
+    ],
+]); ?>
+
 <!-- ── Styles + Scripts ─────────────────────────────────────────────────── -->
 <link rel="stylesheet" href="/assets/vendor/css/transactions.css">
 <link rel="stylesheet" href="/css/transactions-theme.css">
@@ -234,6 +241,10 @@ $this->load->view('common/transactions/payment_modal');
 <script src="/js/common/communication.js"></script>
 
 <script>
+// ── Date filter globals — must be defined before datefilter.js DOM-ready fires ──
+var r2kSavedDateRange = '<?php echo addslashes($SavedDateRange ?? 'this_month'); ?>';
+var r2kSavedDateLabel = '<?php echo addslashes($SavedDateLabel ?? 'This Month'); ?>';
+
 $('#viewTransEditBtn').data('hide-edit', true);
 
 // ── Bootstrap PaymentsPage ───────────────────────────────────────────────
@@ -257,14 +268,37 @@ var allPmtCreatedByFilter = (document.getElementById('allPmtCreatedByFilterBox')
     })
     : null;
 
-_allPmtPage = new PaymentsPage({
-    sym            : '<?php echo addslashes($cur); ?>',
-    dec            : <?php echo $dec; ?>,
-    limit          : <?php echo (int)($JwtData->GenSettings->RowLimit ?? 10); ?>,
-    initStats      : <?php echo json_encode($BalanceStats ?? (object)['CashIn'=>0,'CashOut'=>0,'BankIn'=>0,'BankOut'=>0]); ?>,
-    payModeFilter  : allPmtPayModeFilter,
-    createdByFilter: allPmtCreatedByFilter,
+var allPmtDocTypeFilter = new TransColFilter({
+    boxId       : 'allPmtDocTypeFilterBox',
+    triggerId   : 'allPmtDocTypeFilter',
+    filterKey   : 'DocTypeModuleUIDs',
+    activeClass : 'has-filter',
+    onApply     : function () { _allPmtPage.loadData(1); }
 });
+
+var allPmtPartyTypeFilter = new TransColFilter({
+    boxId       : 'allPmtPartyTypeFilterBox',
+    triggerId   : 'allPmtPartyTypeFilter',
+    filterKey   : 'PartyTypes',
+    activeClass : 'has-filter',
+    onApply     : function () { _allPmtPage.loadData(1); }
+});
+
+_allPmtPage = new PaymentsPage({
+    sym             : '<?php echo addslashes($cur); ?>',
+    dec             : <?php echo $dec; ?>,
+    limit           : <?php echo (int)($JwtData->GenSettings->RowLimit ?? 10); ?>,
+    initStats       : <?php echo json_encode($BalanceStats ?? (object)['CashIn'=>0,'CashOut'=>0,'BankIn'=>0,'BankOut'=>0]); ?>,
+    showStats       : <?php echo json_encode(($JwtData->TransSettings->ShowTransactionStats ?? 1) == 1); ?>,
+    payModeFilter   : allPmtPayModeFilter,
+    createdByFilter : allPmtCreatedByFilter,
+    docTypeFilter   : allPmtDocTypeFilter,
+    partyTypeFilter : allPmtPartyTypeFilter,
+});
+
+// Seed date filter from controller-side saved preference
+_allPmtPage._filter.DateFrom = '<?php echo addslashes($InitDateFrom ?? ''); ?>';
+_allPmtPage._filter.DateTo   = '<?php echo addslashes($InitDateTo   ?? ''); ?>';
 
 $(function () {
     'use strict';
@@ -314,47 +348,40 @@ $(function () {
         }, 1500);
     });
 
-    // ── Date filter — defaults to This Month ─────────────────────────────────
-    initDateFilter({
-        btnId  : 'allPmtDateBtn',
-        labelId: 'allPmtDateLabel',
-        fromId : 'allPmtDateFrom',
-        toId   : 'allPmtDateTo',
-        onApply: function (from, to) {
-            _allPmtPage._filter.DateFrom = from;
-            _allPmtPage._filter.DateTo   = to;
-            _allPmtPage.loadData(1);
-        }
-    });
-    // Seed filter with This Month so initial load is date-scoped
-    var _pmtInitDr = getDateRange('this_month');
-    _allPmtPage._filter.DateFrom = _pmtInitDr.from;
-    _allPmtPage._filter.DateTo   = _pmtInitDr.to;
-    $('#allPmtDateBtn').addClass('r2k-date-active');
-    $('#allPmtDateDates').text(formatDateDisplay(_pmtInitDr.from) + ' – ' + formatDateDisplay(_pmtInitDr.to)).show();
-    $(document).on('shown.bs.dropdown', '#allPmtDateBtn', function () {
-        if (!$('#allPmtDateFrom').data('fpInit')) {
-            flatpickr('#allPmtDateFrom', { dateFormat: 'Y-m-d', altInput: true, altFormat: 'd M Y', maxDate: 'today', disableMobile: true });
-            flatpickr('#allPmtDateTo',   { dateFormat: 'Y-m-d', altInput: true, altFormat: 'd M Y', maxDate: 'today', disableMobile: true });
-            $('#allPmtDateFrom').data('fpInit', true);
-        }
+    // ── Date filter ──────────────────────────────────────────────────────────
+    $(document).on('r2k:datechange', function (e, dr) {
+        _allPmtPage._filter.DateFrom = dr.from;
+        _allPmtPage._filter.DateTo   = dr.to;
+        _allPmtPage.loadData(1);
     });
 
-    // ── Clear all filters — date resets to This Month ───────────────────────
-    $('#allPmtClearBtn').on('click', function () {
-        _allPmtPage.clearFilters();
-        $('#allPmtSearch').val('');
-        var _clrDr = getDateRange('this_month');
-        _allPmtPage._filter.DateFrom = _clrDr.from;
-        _allPmtPage._filter.DateTo   = _clrDr.to;
-        $('#allPmtDateLabel').text('This Month');
-        $('#allPmtDateDates').text(formatDateDisplay(_clrDr.from) + ' – ' + formatDateDisplay(_clrDr.to)).show();
-        $('#allPmtDateBtn').addClass('r2k-date-active');
-        $('#allPmtDateMenu').find('.date-option').removeClass('active');
-        $('#allPmtDateMenu').find('.date-option[data-range="this_month"]').addClass('active');
-        $('.allpmt-status-tab').removeClass('active').addClass('text-muted');
-        $('.allpmt-status-tab[data-status=""]').addClass('active').removeClass('text-muted');
-        $('.allpmt-dir-pill').removeClass('active').addClass('text-muted');
+    // ── Column sort ───────────────────────────────────────────────────────────
+    $(document).on('click', '.col-sortable', function () {
+        var col = $(this).data('sort');
+        var $th = $(this);
+        if (_allPmtPage._filter.SortBy !== col) {
+            _allPmtPage._filter.SortBy  = col;
+            _allPmtPage._filter.SortDir = 'ASC';
+        } else if (_allPmtPage._filter.SortDir === 'ASC') {
+            _allPmtPage._filter.SortDir = 'DESC';
+        } else {
+            delete _allPmtPage._filter.SortBy;
+            delete _allPmtPage._filter.SortDir;
+        }
+        $('.col-sortable').each(function () {
+            $(this).attr('data-bs-title', 'Click for ascending order');
+            var tt = bootstrap.Tooltip.getInstance(this);
+            if (tt) { tt.dispose(); new bootstrap.Tooltip(this); }
+        });
+        $('.sort-icon').removeClass('bx-sort-up bx-sort-down').addClass('bx-sort-alt-2');
+        if (_allPmtPage._filter.SortBy) {
+            var icon    = _allPmtPage._filter.SortDir === 'ASC' ? 'bx-sort-up' : 'bx-sort-down';
+            var tipText = _allPmtPage._filter.SortDir === 'ASC' ? 'Click for descending order' : 'Click to remove sorting';
+            $('.sort-icon[data-col="' + col + '"]').removeClass('bx-sort-alt-2').addClass(icon);
+            $th.attr('data-bs-title', tipText);
+            var tt2 = bootstrap.Tooltip.getInstance($th[0]);
+            if (tt2) { tt2.dispose(); new bootstrap.Tooltip($th[0]); }
+        }
         _allPmtPage.loadData(1);
     });
 

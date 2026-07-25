@@ -35,7 +35,7 @@ $this->load->view('common/transactions/header'); ?>
                     </div>
                 </div>
 
-                <div class="container-xxl flex-grow-1 py-3">
+                <div class="container-xxl flex-grow-1">
                     <div class="card">
 
                         <!-- Filter row -->

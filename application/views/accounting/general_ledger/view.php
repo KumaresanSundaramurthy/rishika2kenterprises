@@ -16,7 +16,7 @@ $this->load->view('common/header'); ?>
                     'pageIconColor'   => '#7c3aed',
                 ]); ?>
 
-                <div class="container-xxl flex-grow-1 py-3">
+                <div class="container-xxl flex-grow-1">
 
                     <!-- ── Filter Card ───────────────────────────────────── -->
                     <div class="card mb-3">

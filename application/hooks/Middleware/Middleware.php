@@ -97,6 +97,10 @@ class Middleware {
 					}
 					// ────────────────────────────────────────────────────────
 
+					// Load per-user language file for t() helper
+					$_uiLang = $CI->pageData['JwtData']->User->UILanguage ?? 'en';
+					$CI->lang->load('app', $_uiLang === 'ta' ? 'tamil' : 'english');
+
 					$uriString = $CI->uri->uri_string;
 					if ($uriString === '' || $uriString === '/') {
 						redirect('dashboard', 'refresh');

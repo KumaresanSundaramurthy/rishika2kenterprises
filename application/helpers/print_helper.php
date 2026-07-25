@@ -35,18 +35,38 @@ if (!function_exists('print_number_to_words')) {
 
 if (!function_exists('print_process_conditionals')) {
     /**
-     * Collapses {{IF:TOKEN}}...{{/IF:TOKEN}} blocks.
-     * Keeps inner content when the token's resolved value is non-empty; removes the block otherwise.
+     * Collapses {{IF:TOKEN}}...{{/IF:TOKEN}} blocks per token.
+     * Non-empty value → strip the wrapper tags, keep inner content.
+     * Empty value     → remove the entire block including inner content.
+     * Works per-token using str_replace so template line endings / encoding never interfere.
      */
     function print_process_conditionals(string $html, array $tokens): string {
-        return preg_replace_callback(
-            '/\{\{IF:([A-Z0-9_]+)\}\}(.*?)\{\{\/IF:\1\}\}/s',
-            function ($m) use ($tokens) {
-                $value = trim($tokens['{{' . $m[1] . '}}'] ?? '');
-                return $value !== '' ? $m[2] : '';
-            },
-            $html
-        );
+        // Pass 1 — process every known token's IF block
+        foreach ($tokens as $tag => $value) {
+            if (!preg_match('/^\{\{([A-Z0-9_]+)\}\}$/', $tag, $m)) continue;
+            $key      = $m[1];
+            $openTag  = '{{IF:'  . $key . '}}';
+            $closeTag = '{{/IF:' . $key . '}}';
+            if (strpos($html, $openTag) === false) continue;
+            if (trim((string)$value) !== '') {
+                // Non-empty value → keep inner content, strip the wrapper tags only
+                $html = str_replace($openTag,  '', $html);
+                $html = str_replace($closeTag, '', $html);
+            } else {
+                // Empty value → remove entire block including inner content
+                $html = preg_replace(
+                    '/' . preg_quote($openTag, '/') . '.*?' . preg_quote($closeTag, '/') . '/s',
+                    '',
+                    $html
+                );
+            }
+        }
+        // Pass 2 — collapse any remaining {{IF:KEY}}…{{/IF:KEY}} blocks whose token
+        // was not in the map (unknown tokens → treat as empty → remove block)
+        if (strpos($html, '{{IF:') !== false) {
+            $html = preg_replace('/\{\{IF:[A-Z0-9_]+\}\}.*?\{\{\/IF:[A-Z0-9_]+\}\}/s', '', $html);
+        }
+        return $html;
     }
 }
 

@@ -5,7 +5,7 @@
  *   - Merge filter state from multiple sources (date, search, direction,
  *     payment-mode TransColFilter, created-by TransColFilter)
  *   - Load paginated list data and live balance stats via AJAX
- *   - Render the 3 stats cards (Balance / In / Out) and footer totals
+ *   - Render the 3 stats cards (Balance / In / Out)
  *   - Expose clearFilters() so the toolbar "Clear" button can call it
  */
 var PaymentsPage = (function () {
@@ -27,8 +27,11 @@ var PaymentsPage = (function () {
         this._filter          = {};
         this._pageNo          = 1;
         this._dir             = 'All';   // 'All' | 'In' | 'Out'
+        this._showStats       = cfg.showStats !== false;
         this._payModeFilter   = cfg.payModeFilter   || null;
         this._createdByFilter = cfg.createdByFilter || null;
+        this._docTypeFilter   = cfg.docTypeFilter   || null;
+        this._partyTypeFilter = cfg.partyTypeFilter || null;
 
         if (cfg.initStats) {
             this._renderStats(cfg.initStats);
@@ -49,7 +52,9 @@ var PaymentsPage = (function () {
             {},
             this._filter,
             this._payModeFilter   ? this._payModeFilter.getState()   : {},
-            this._createdByFilter ? this._createdByFilter.getState() : {}
+            this._createdByFilter ? this._createdByFilter.getState() : {},
+            this._docTypeFilter   ? this._docTypeFilter.getState()   : {},
+            this._partyTypeFilter ? this._partyTypeFilter.getState() : {}
         );
         if (this._dir !== 'All') {
             f.PaymentDirection = this._dir;
@@ -92,17 +97,11 @@ var PaymentsPage = (function () {
                     return;
                 }
                 $('#allPaymentsTableBody').html(resp.RecordHtmlData);
-                $('#allPmtPagination').html(
-                    '<span class="text-muted" style="font-size:.78rem;">Total: <strong id="allPmtTotalCount">' +
-                    Number(resp.TotalCount).toLocaleString() + '</strong></span>' +
-                    (resp.Pagination || '')
-                );
-                if (resp.Totals) { self._renderFooterTotals(resp.Totals); }
+                $('#allPmtPagination').html(resp.Pagination || '');
             }
         });
 
-        // Always refresh stats in parallel with the list
-        self.loadStats(f);
+        if (self._showStats) { self.loadStats(f); }
     };
 
     // ── Fetch and render live balance stats ───────────────────────────────────
@@ -119,14 +118,6 @@ var PaymentsPage = (function () {
                 }
             }
         });
-    };
-
-    // ── Update footer totals row ──────────────────────────────────────────────
-    PaymentsPage.prototype._renderFooterTotals = function (totals) {
-        var net = (parseFloat(totals.TotalReceived) || 0) - (parseFloat(totals.TotalPaid) || 0);
-        $('#allPmtFooterIn').text(this.fmt(totals.TotalReceived || 0));
-        $('#allPmtFooterOut').text(this.fmt(totals.TotalPaid    || 0));
-        $('#allPmtFooterNet').text(this.fmt(net));
     };
 
     // ── Render the 3 stats cards ──────────────────────────────────────────────
@@ -159,6 +150,8 @@ var PaymentsPage = (function () {
         this._pageNo  = 1;
         if (this._payModeFilter)   { this._payModeFilter.reset(); }
         if (this._createdByFilter) { this._createdByFilter.reset(); }
+        if (this._docTypeFilter)   { this._docTypeFilter.reset(); }
+        if (this._partyTypeFilter) { this._partyTypeFilter.reset(); }
     };
 
     return PaymentsPage;

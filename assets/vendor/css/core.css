@@ -30062,3 +30062,22 @@ body:not(.modal-open) .layout-content-navbar .layout-navbar {
     color: #8592a3;
     line-height: 1;
 }
+
+.last-col-sticky td:last-child {
+    position: sticky;
+    right: 0;
+    z-index: 1;
+    /* background-color: var(--bs-body-bg, #fff);
+    box-shadow: -3px 0 6px rgba(0,0,0,.05); */
+}
+
+.last-col-sticky .dropdown-menu {
+    z-index: 1050 !important;
+}
+
+/* Elevate the open dropdown's cell above other rows */
+.last-col-sticky td:last-child.show,
+.last-col-sticky td:last-child:focus-within,
+.last-col-sticky tr.show td:last-child {
+    z-index: 10 !important;
+}

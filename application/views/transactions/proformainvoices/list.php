@@ -61,7 +61,7 @@ if (!empty($DataLists)):
         <!-- Pro Forma Number -->
         <td>
             <?php if ($isDraft || empty($list->UniqueNumber)): ?>
-                <span class="trans-doc-draft"><i class="bx bx-pencil me-1" style="font-size:.8rem;"></i>Draft</span>
+                <span class="trans-doc-draft"><i class="bx bx-pencil me-1" style="font-size:.8rem;"></i><?php echo t('status_draft', 'Draft'); ?></span>
                 <?php if (!empty($list->TransDate)): ?>
                     <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate)); ?></div>
                 <?php endif; ?>
@@ -183,18 +183,9 @@ if (!empty($DataLists)):
 
         <!-- Last Updated -->
         <td>
-            <?php
-                $updatedOn  = $list->UpdatedOn ?? null;
-                $secondsAgo = $updatedOn ? (time() - strtotime($updatedOn)) : null;
-                $within24h  = $secondsAgo !== null && $secondsAgo < 86400;
-                if ($within24h) {
-                    if ($secondsAgo < 60)       $agoText = 'just now';
-                    elseif ($secondsAgo < 3600) $agoText = (int)($secondsAgo / 60) . ' min' . ((int)($secondsAgo / 60) > 1 ? 's' : '') . ' ago';
-                    else                        $agoText = (int)($secondsAgo / 3600) . ' hr' . ((int)($secondsAgo / 3600) > 1 ? 's' : '') . ' ago';
-                }
-            ?>
-            <div class="r2k-col-date"><?php echo $updatedOn ? changeTimeZonefromDateTime($updatedOn, $JwtData->User->Timezone, 2) : '—'; ?></div>
-            <?php if ($within24h): ?><div class="r2k-col-date-ago"><?php echo $agoText; ?></div><?php endif; ?>
+            <?php $updatedTs = viewPageDateTimeFormat($list->UpdatedOn ?? null, $JwtData->User->Timezone ?? 'UTC', 2); ?>
+            <div class="r2k-col-date"><?php echo $updatedTs->formatted; ?></div>
+            <?php if ($updatedTs->ago): ?><div class="r2k-col-date-ago"><?php echo $updatedTs->ago; ?></div><?php endif; ?>
             <div class="text-muted r2k-col-date-by">by <?php echo htmlspecialchars($list->UpdatedBy ?? '—'); ?></div>
         </td>
 
@@ -217,17 +208,17 @@ if (!empty($DataLists)):
                         <?php if (!$isDraft): ?>
                         <li>
                             <button class="dropdown-item a4PrintTransaction" data-uid="<?php echo (int)$list->TransUID; ?>" data-module="<?php echo (int)$list->ModuleUID; ?>">
-                                <i class="bx bx-printer me-2 text-primary"></i>Print / Download
+                                <i class="bx bx-printer me-2 text-primary"></i><?php echo t('act_print_download', 'Print / Download'); ?>
                             </button>
                         </li>
                         <li>
                             <button class="dropdown-item downloadPdfTransaction" data-uid="<?php echo (int)$list->TransUID; ?>" data-module="<?php echo (int)$list->ModuleUID; ?>">
-                                <i class="bx bx-download me-2 text-success"></i>Download PDF
+                                <i class="bx bx-download me-2 text-success"></i><?php echo t('act_download_pdf', 'Download PDF'); ?>
                             </button>
                         </li>
                         <li>
                             <button class="dropdown-item thermalPrintTransaction" data-uid="<?php echo (int)$list->TransUID; ?>" data-module="<?php echo (int)$list->ModuleUID; ?>">
-                                <i class="bx bx-receipt me-2 text-dark"></i>Thermal Print
+                                <i class="bx bx-receipt me-2 text-dark"></i><?php echo t('act_thermal_print', 'Thermal Print'); ?>
                             </button>
                         </li>
                         <li><hr class="dropdown-divider my-1"></li>
@@ -239,7 +230,7 @@ if (!empty($DataLists)):
                                     data-uid="<?php echo (int)$list->TransUID; ?>"
                                     data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
                                     data-status="Sent">
-                                <i class="bx bx-send me-2 text-primary"></i>Send Pro Forma
+                                <i class="bx bx-send me-2 text-primary"></i><?php echo t('trans_send_proforma', 'Send Pro Forma'); ?>
                             </button>
                         </li>
                         <?php endif; ?>
@@ -249,7 +240,7 @@ if (!empty($DataLists)):
                             <button class="dropdown-item convertPFToInvoice"
                                     data-uid="<?php echo (int)$list->TransUID; ?>"
                                     data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>">
-                                <i class="bx bx-receipt me-2 text-success"></i>Convert to Invoice
+                                <i class="bx bx-receipt me-2 text-success"></i><?php echo t('trans_convert_to_invoice', 'Convert to Invoice'); ?>
                             </button>
                         </li>
                         <li>
@@ -257,7 +248,7 @@ if (!empty($DataLists)):
                                     data-uid="<?php echo (int)$list->TransUID; ?>"
                                     data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
                                     data-status="Expired">
-                                <i class="bx bx-calendar-x me-2 text-warning"></i>Mark as Expired
+                                <i class="bx bx-calendar-x me-2 text-warning"></i><?php echo t('trans_mark_expired', 'Mark as Expired'); ?>
                             </button>
                         </li>
                         <li>
@@ -265,7 +256,7 @@ if (!empty($DataLists)):
                                     data-uid="<?php echo (int)$list->TransUID; ?>"
                                     data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
                                     data-status="Cancelled">
-                                <i class="bx bx-x-circle me-2 text-warning"></i>Cancel
+                                <i class="bx bx-x-circle me-2 text-warning"></i><?php echo t('cancel', 'Cancel'); ?>
                             </button>
                         </li>
                         <?php endif; ?>
@@ -275,7 +266,7 @@ if (!empty($DataLists)):
                             <button class="dropdown-item pf-status-update"
                                     data-uid="<?php echo (int)$list->TransUID; ?>"
                                     data-status="Sent">
-                                <i class="bx bx-refresh me-2 text-info"></i>Reactivate
+                                <i class="bx bx-refresh me-2 text-info"></i><?php echo t('trans_reactivate', 'Reactivate'); ?>
                             </button>
                         </li>
                         <?php endif; ?>
@@ -288,7 +279,7 @@ if (!empty($DataLists)):
                                href="javascript:void(0)"
                                data-wa-url="https://wa.me/<?php echo $waNum; ?>?text=<?php echo $waMessageEncoded; ?>"
                                style="color:#25d366;">
-                                <i class="bx bxl-whatsapp me-2"></i>Share via WhatsApp
+                                <i class="bx bxl-whatsapp me-2"></i><?php echo t('act_share_whatsapp', 'Share via WhatsApp'); ?>
                             </a>
                         </li>
                         <li>
@@ -301,7 +292,7 @@ if (!empty($DataLists)):
                                     data-email="<?php echo htmlspecialchars($partyEmail); ?>"
                                     data-module-uid="<?php echo (int)$list->ModuleUID; ?>"
                                     style="color:#0097a7;">
-                                <i class="bx bx-message-dots me-2"></i>Send SMS
+                                <i class="bx bx-message-dots me-2"></i><?php echo t('act_send_sms', 'Send SMS'); ?>
                             </button>
                         </li>
                         <?php endif; ?>
@@ -317,7 +308,7 @@ if (!empty($DataLists)):
                                     data-email="<?php echo htmlspecialchars($partyEmail); ?>"
                                     data-module-uid="<?php echo (int)$list->ModuleUID; ?>"
                                     style="color:#1565c0;">
-                                <i class="bx bx-envelope me-2"></i>Send Email
+                                <i class="bx bx-envelope me-2"></i><?php echo t('act_send_email', 'Send Email'); ?>
                             </button>
                         </li>
                         <?php endif; ?>
@@ -329,7 +320,7 @@ if (!empty($DataLists)):
                             <button class="dropdown-item duplicateProForma"
                                     data-uid="<?php echo (int)$list->TransUID; ?>"
                                     data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>">
-                                <i class="bx bx-copy me-2 text-info"></i>Duplicate
+                                <i class="bx bx-copy me-2 text-info"></i><?php echo t('act_duplicate', 'Duplicate'); ?>
                             </button>
                         </li>
                         <?php endif; ?>
@@ -340,7 +331,7 @@ if (!empty($DataLists)):
                             <button class="dropdown-item text-danger deleteProForma"
                                     data-uid="<?php echo (int)$list->TransUID; ?>"
                                     data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? 'Draft'); ?>">
-                                <i class="bx bx-trash me-2"></i>Delete
+                                <i class="bx bx-trash me-2"></i><?php echo t('delete', 'Delete'); ?>
                             </button>
                         </li>
                         <?php endif; ?>
@@ -359,9 +350,9 @@ else:
         <td colspan="9">
             <div class="d-flex flex-column align-items-center py-5">
                 <img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:150px;object-fit:contain;">
-                <span class="text-muted mb-3" style="font-size:.9rem;">No pro forma invoices found</span>
+                <span class="text-muted mb-3" style="font-size:.9rem;"><?php echo t('empty_proforma_invoices', 'No pro forma invoices found'); ?></span>
                 <a href="/proforma/create" class="btn btn-primary btn-sm px-4">
-                    <i class="bx bx-plus me-1"></i>Create Pro Forma Invoice
+                    <i class="bx bx-plus me-1"></i><?php echo t('create_proforma_invoice', 'Create Pro Forma Invoice'); ?>
                 </a>
             </div>
         </td>

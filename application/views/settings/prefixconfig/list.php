@@ -49,20 +49,11 @@ foreach ($DataLists as $row):
     $padLabel   = (int)$row->NumberPadding > 1 ? (int)$row->NumberPadding . ' digits' : 'No pad';
     $cfgBadges .= '<span class="badge bg-label-secondary me-1 mb-1">Pad: ' . $padLabel . '</span>';
 
-    // Last-updated display (UpdatedOn stored as unix int by Transactions controller)
-    $updatedOnTs  = null;
-    $updatedOnStr = null;
-    if (!empty($row->UpdatedOn)) {
-        $updatedOnTs  = is_numeric($row->UpdatedOn) ? (int)$row->UpdatedOn : strtotime($row->UpdatedOn);
-        $updatedOnStr = is_numeric($row->UpdatedOn) ? date('Y-m-d H:i:s', (int)$row->UpdatedOn) : $row->UpdatedOn;
-    }
-    $secondsAgo = $updatedOnTs ? (time() - $updatedOnTs) : null;
-    $agoText    = '';
-    if ($secondsAgo !== null && $secondsAgo >= 0 && $secondsAgo < 86400) {
-        if ($secondsAgo < 60)        $agoText = 'just now';
-        elseif ($secondsAgo < 3600)  $agoText = (int)($secondsAgo / 60) . ' min' . ((int)($secondsAgo / 60) > 1 ? 's' : '') . ' ago';
-        else                         $agoText = (int)($secondsAgo / 3600) . ' hr' . ((int)($secondsAgo / 3600) > 1 ? 's' : '') . ' ago';
-    }
+    // Last-updated display (UpdatedOn may be stored as unix int by Transactions controller)
+    $updatedOnStr  = !empty($row->UpdatedOn)
+        ? (is_numeric($row->UpdatedOn) ? date('Y-m-d H:i:s', (int)$row->UpdatedOn) : $row->UpdatedOn)
+        : null;
+    $updatedTs     = viewPageDateTimeFormat($updatedOnStr, $JwtData->User->Timezone ?? 'UTC', 2);
     $updatedByName = htmlspecialchars(trim($row->UpdatedByName ?? '—'));
 
     // JSON payload for Edit button (use htmlspecialchars to prevent XSS)
@@ -120,13 +111,9 @@ foreach ($DataLists as $row):
     </td>
 
     <td class="align-middle">
-        <?php if ($updatedOnStr): ?>
-            <div class="r2k-col-date"><?php echo changeTimeZonefromDateTime($updatedOnStr, $JwtData->User->Timezone, 2); ?></div>
-            <?php if ($agoText): ?>
-                <div class="r2k-col-date-ago"><?php echo $agoText; ?></div>
-            <?php endif; ?>
-        <?php else: ?>
-            <div class="r2k-col-date text-muted">—</div>
+        <div class="r2k-col-date"><?php echo $updatedTs->formatted; ?></div>
+        <?php if ($updatedTs->ago): ?>
+            <div class="r2k-col-date-ago"><?php echo $updatedTs->ago; ?></div>
         <?php endif; ?>
         <div class="text-muted r2k-col-date-by">by <?php echo $updatedByName; ?></div>
     </td>

@@ -78,7 +78,7 @@
                 </div>
                 <?php endif; ?>
 
-                <div class="container-xxl flex-grow-1 py-3">
+                <div class="container-xxl flex-grow-1">
 
                     <?php $showUserBtn = is_array($OrgUsers) && count($OrgUsers) > 1; ?>
 
@@ -122,21 +122,21 @@
                                     <i class="bx bx-slider-alt"></i>
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="actionsDropdown">
-                                    <li class="d-none" id="CloneOption"><a class="dropdown-item" href="javascript:void(0);" id="btnClone"><i class="bx bx-duplicate me-1"></i> Clone</a></li>
-                                    <li class="d-none" id="DeleteOption"><a class="dropdown-item text-danger" href="javascript:void(0);" id="btnDelete"><i class="bx bx-trash me-1"></i> Delete</a></li>
-                                    <li class="d-none" id="BulkSmsOption"><a class="dropdown-item" href="javascript:void(0);" id="btnBulkSms"><i class="bx bx-message-rounded me-1 text-info"></i> Send SMS</a></li>
-                                    <li class="d-none" id="BulkEmailOption"><a class="dropdown-item" href="javascript:void(0);" id="btnBulkEmail"><i class="bx bx-envelope me-1 text-primary"></i> Send Email</a></li>
+                                    <li class="d-none" id="CloneOption"><a class="dropdown-item" href="javascript:void(0);" id="btnClone"><i class="bx bx-duplicate me-1"></i><?php echo t('act_clone', 'Clone'); ?></a></li>
+                                    <li class="d-none" id="DeleteOption"><a class="dropdown-item text-danger" href="javascript:void(0);" id="btnDelete"><i class="bx bx-trash me-1"></i><?php echo t('delete', 'Delete'); ?></a></li>
+                                    <li class="d-none" id="BulkSmsOption"><a class="dropdown-item" href="javascript:void(0);" id="btnBulkSms"><i class="bx bx-message-rounded me-1 text-info"></i><?php echo t('act_send_sms', 'Send SMS'); ?></a></li>
+                                    <li class="d-none" id="BulkEmailOption"><a class="dropdown-item" href="javascript:void(0);" id="btnBulkEmail"><i class="bx bx-envelope me-1 text-primary"></i><?php echo t('act_send_email', 'Send Email'); ?></a></li>
                                 </ul>
                             </div>
                             <div class="cust-only-ctrl<?php echo $initIsGroups ? ' d-none' : ''; ?>">
                                 <?php $this->load->view('common/partials/export_btn'); ?>
                             </div>
                             <a href="javascript:void(0);" class="btn btn-primary cust-only-ctrl<?php echo $initIsGroups ? ' d-none' : ''; ?>" id="btnCreateCustomerHeader">
-                                <i class="bx bx-plus me-1"></i>New Customer
+                                <i class="bx bx-plus me-1"></i><?php echo t('create_customer', 'New Customer'); ?>
                             </a>
                             <!-- Group-only button -->
                             <button type="button" id="btnNewGroup" class="btn btn-primary grp-only-ctrl<?php echo $initIsGroups ? '' : ' d-none'; ?>">
-                                <i class="bx bx-plus me-1"></i>New Group
+                                <i class="bx bx-plus me-1"></i><?php echo t('btn_new_group', 'New Group'); ?>
                             </button>
                         </div>
 
@@ -157,10 +157,10 @@
                                 ?>
                                 <!-- Group stats — visible only in groups mode when stats are enabled -->
                                 <li id="grpTabStats" class="<?php echo $grpStatsVis ? 'd-flex' : 'd-none'; ?> align-items-center gap-3 ms-auto pe-2" style="font-size:.81rem;list-style:none;">
-                                    <span class="text-muted">Total: <strong class="cg-stat-total text-body"><?php echo $grpS ? (int)$grpS->TotalCount : '—'; ?></strong></span>
-                                    <span class="text-muted">Active: <strong class="cg-stat-active text-success"><?php echo $grpS ? (int)$grpS->ActiveCount : '—'; ?></strong></span>
-                                    <span class="text-muted">Inactive: <strong class="cg-stat-inactive text-danger"><?php echo $grpS ? (int)$grpS->InactiveCount : '—'; ?></strong></span>
-                                    <span class="text-muted">Members: <strong class="cg-stat-members text-body"><?php echo $grpS ? (int)$grpS->TotalMembers : '—'; ?></strong></span>
+                                    <span class="text-muted"><?php echo t('lbl_total', 'Total'); ?>: <strong class="cg-stat-total text-body"><?php echo $grpS ? (int)$grpS->TotalCount : '—'; ?></strong></span>
+                                    <span class="text-muted"><?php echo t('lbl_active', 'Active'); ?>: <strong class="cg-stat-active text-success"><?php echo $grpS ? (int)$grpS->ActiveCount : '—'; ?></strong></span>
+                                    <span class="text-muted"><?php echo t('lbl_inactive', 'Inactive'); ?>: <strong class="cg-stat-inactive text-danger"><?php echo $grpS ? (int)$grpS->InactiveCount : '—'; ?></strong></span>
+                                    <span class="text-muted"><?php echo t('col_members', 'Members'); ?>: <strong class="cg-stat-members text-body"><?php echo $grpS ? (int)$grpS->TotalMembers : '—'; ?></strong></span>
                                 </li>
                             </ul>
                         </div>
@@ -178,15 +178,15 @@
                                         </th>
                                         <th class="th-sno <?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>" style="width:44px">#</th>
                                         <th class="cust-name-sortable cursor-pointer" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">
-                                            <span class="sort-label">Customer <i class="bx bx-sort-alt-2 sort-icon ms-1"></i></span>
+                                            <span class="sort-label"><?php echo t('col_customer', 'Customer'); ?> <i class="bx bx-sort-alt-2 sort-icon ms-1"></i></span>
                                         </th>
-                                        <th class="cust-area-sortable cursor-pointer" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">Area <i class="bx bx-sort-alt-2 sort-icon ms-1"></i></th>
-                                        <th>Mobile</th>
-                                        <th>GSTIN / Company</th>
-                                        <th class="cust-bal-sortable cursor-pointer" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">Balance <i class="bx bx-sort-alt-2 sort-icon ms-1"></i></th>
-                                        <th>Customer Type</th>
-                                        <th>Last Updated</th>
-                                        <th class="th-act" style="width:80px">Actions</th>
+                                        <th class="cust-area-sortable cursor-pointer" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order"><?php echo t('col_area', 'Area'); ?> <i class="bx bx-sort-alt-2 sort-icon ms-1"></i></th>
+                                        <th><?php echo t('col_mobile', 'Mobile'); ?></th>
+                                        <th><?php echo t('col_gstin', 'GSTIN / Company'); ?></th>
+                                        <th class="cust-bal-sortable cursor-pointer" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order"><?php echo t('col_balance', 'Balance'); ?> <i class="bx bx-sort-alt-2 sort-icon ms-1"></i></th>
+                                        <th><?php echo t('col_customer_type', 'Customer Type'); ?></th>
+                                        <th><?php echo t('col_last_updated', 'Last Updated'); ?></th>
+                                        <th class="th-act" style="width:80px"><?php echo t('col_actions', 'Actions'); ?></th>
                                     </tr>
                                 </thead>
                                 <tbody class="r2k-tbody table-border-bottom-0">
@@ -213,21 +213,21 @@
                                                     <input class="form-check-input table-chkbox grpHeaderCheck" type="checkbox">
                                                 </div>
                                             </th>
-                                            <th>Group Name</th>
-                                            <th style="width:110px;">Code</th>
-                                            <th style="width:140px;">Type</th>
-                                            <th class="text-center" style="width:90px;">Members</th>
-                                            <th style="width:150px;">Contact</th>
-                                            <th class="text-end" style="width:140px;">Outstanding</th>
-                                            <th style="width:90px;">Status</th>
-                                            <th class="text-center" style="width:100px;">Actions</th>
+                                            <th><?php echo t('col_group_name', 'Group Name'); ?></th>
+                                            <th style="width:110px;"><?php echo t('col_code', 'Code'); ?></th>
+                                            <th style="width:140px;"><?php echo t('col_type', 'Type'); ?></th>
+                                            <th class="text-center" style="width:90px;"><?php echo t('col_members', 'Members'); ?></th>
+                                            <th style="width:150px;"><?php echo t('col_contact', 'Contact'); ?></th>
+                                            <th class="text-end" style="width:140px;"><?php echo t('col_outstanding', 'Outstanding'); ?></th>
+                                            <th style="width:90px;"><?php echo t('col_status', 'Status'); ?></th>
+                                            <th class="text-center" style="width:100px;"><?php echo t('col_actions', 'Actions'); ?></th>
                                         </tr>
                                     </thead>
                                     <tbody id="GroupsTableBody">
                                         <?php if ($isGroupsTab && !empty($GrpRowData)): ?>
                                             <?php echo $GrpRowData; ?>
                                         <?php elseif ($isGroupsTab): ?>
-                                            <tr><td colspan="9" class="text-center py-4 text-muted">No groups found.</td></tr>
+                                            <tr><td colspan="9" class="text-center py-4 text-muted"><?php echo t('empty_groups', 'No groups found'); ?></td></tr>
                                         <?php else: ?>
                                             <tr><td colspan="9" class="text-center py-4 text-muted">Loading groups…</td></tr>
                                         <?php endif; ?>

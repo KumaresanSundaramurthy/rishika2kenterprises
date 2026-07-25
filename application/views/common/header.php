@@ -1,7 +1,8 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <!doctype html>
-<html lang="en" class="layout-menu-fixed layout-compact" data-layout="vertical" data-topbar="dark" data-sidebar-size="lg" data-sidebar="light" data-sidebar-image="none" data-preloader="disable" dir="ltr" data-skin="default" data-assets-path="/assets/" data-template="vertical-menu-template" data-bs-theme="light">
+<?php $_htmlLang = (isset($JwtData) && !empty($JwtData->User->UILanguage)) ? $JwtData->User->UILanguage : 'en'; ?>
+<html lang="<?php echo $_htmlLang; ?>" class="layout-menu-fixed layout-compact" data-layout="vertical" data-topbar="dark" data-sidebar-size="lg" data-sidebar="light" data-sidebar-image="none" data-preloader="disable" dir="ltr" data-skin="default" data-assets-path="/assets/" data-template="vertical-menu-template" data-bs-theme="light">
 
 <head>
 
@@ -30,6 +31,9 @@ unset($_sc, $_tk, $_env, $_envMap);
 
     <!-- Fonts -->
     <link rel="stylesheet" href="/assets/vendor/fonts/public-sans/public-sans.css" />
+<?php if (isset($_htmlLang) && $_htmlLang === 'ta'): ?>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Tamil:wght@400;600;700&display=swap">
+<?php endif; ?>
 
     <!-- Icons. Uncomment required icon fonts -->
     <link rel="stylesheet" href="/assets/vendor/fonts/boxicons.css" />

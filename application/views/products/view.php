@@ -85,7 +85,7 @@
                 </div>
                 <?php endif; ?>
 
-                <div class="container-xxl flex-grow-1 py-3">
+                <div class="container-xxl flex-grow-1">
 
                     <div class="card">
 
@@ -119,19 +119,19 @@
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="actionsDropdown">
                                     <li class="d-none" id="CloneOption">
-                                        <a class="dropdown-item" href="javascript:void(0);" id="btnClone"><i class="bx bx-duplicate me-1"></i> Clone</a>
+                                        <a class="dropdown-item" href="javascript:void(0);" id="btnClone"><i class="bx bx-duplicate me-1"></i><?php echo t('act_clone', 'Clone'); ?></a>
                                     </li>
                                     <li class="d-none" id="DeleteOption">
-                                        <a class="dropdown-item text-danger" href="javascript:void(0);" id="btnDelete"><i class="bx bx-trash me-1"></i> Delete</a>
+                                        <a class="dropdown-item text-danger" href="javascript:void(0);" id="btnDelete"><i class="bx bx-trash me-1"></i><?php echo t('delete', 'Delete'); ?></a>
                                     </li>
                                 </ul>
                             </div>
                             <?php $this->load->view('common/partials/export_btn'); ?>
-                            <a href="javascript:void(0);" class="btn btn-primary btn-sm addItem <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" id="NewItem"><i class="bx bx-plus me-1"></i> Create Item</a>
-                            <a href="javascript:void(0);" class="btn btn-primary btn-sm <?php echo $ActiveTabData == 'group' ? '' : 'd-none'; ?>" id="NewComboItem"><i class="bx bx-git-merge me-1"></i> Create Group</a>
-                            <a href="javascript:void(0);" class="btn btn-primary btn-sm <?php echo $ActiveTabData == 'pricelist' ? '' : 'd-none'; ?>" id="NewPriceList"><i class="bx bx-plus me-1"></i> Create Price List</a>
-                            <a href="javascript:void(0);" class="btn btn-primary btn-sm addCategory <?php echo $ActiveTabData == 'category' ? '' : 'd-none'; ?>" id="NewCategory"><i class="bx bx-plus me-1"></i> Create Category</a>
-                            <a href="javascript:void(0);" class="btn btn-primary btn-sm addBrand <?php echo $ActiveTabData == 'brand' ? '' : 'd-none'; ?>" id="NewBrand"><i class="bx bx-plus me-1"></i> Create Brand</a>
+                            <a href="javascript:void(0);" class="btn btn-primary btn-sm addItem <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" id="NewItem"><i class="bx bx-plus me-1"></i><?php echo t('create_item', 'Create Item'); ?></a>
+                            <a href="javascript:void(0);" class="btn btn-primary btn-sm <?php echo $ActiveTabData == 'group' ? '' : 'd-none'; ?>" id="NewComboItem"><i class="bx bx-git-merge me-1"></i><?php echo t('create_item_group', 'Create Group'); ?></a>
+                            <a href="javascript:void(0);" class="btn btn-primary btn-sm <?php echo $ActiveTabData == 'pricelist' ? '' : 'd-none'; ?>" id="NewPriceList"><i class="bx bx-plus me-1"></i><?php echo t('create_price_list', 'Create Price List'); ?></a>
+                            <a href="javascript:void(0);" class="btn btn-primary btn-sm addCategory <?php echo $ActiveTabData == 'category' ? '' : 'd-none'; ?>" id="NewCategory"><i class="bx bx-plus me-1"></i><?php echo t('create_category', 'Create Category'); ?></a>
+                            <a href="javascript:void(0);" class="btn btn-primary btn-sm addBrand <?php echo $ActiveTabData == 'brand' ? '' : 'd-none'; ?>" id="NewBrand"><i class="bx bx-plus me-1"></i><?php echo t('create_brand', 'Create Brand'); ?></a>
                         </div>
 
                         <!-- Tabs Row -->
@@ -183,22 +183,22 @@
                                                                 <input class="form-check-input table-chkbox productsHeaderCheck" type="checkbox">
                                                             </div>
                                                         </th>
-                                                        <th class="table-serialno <?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>">S.No</th>
+                                                        <th class="table-serialno <?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>"><?php echo t('col_sno', 'S.No'); ?></th>
                                                         <th class="name-sortable position-relative" id="sortName" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">
-                                                            <span class="sort-label cursor-pointer">Item <i class="bx bx-sort-alt-2 sort-icon ms-1"></i></span>
+                                                            <span class="sort-label cursor-pointer"><?php echo t('col_item', 'Item'); ?> <i class="bx bx-sort-alt-2 sort-icon ms-1"></i></span>
                                                         </th>
                                                         <th class="col-sortable cursor-pointer position-relative" data-filterkey="StatusSorting" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">
-                                                            Status <i class="bx bx-sort-alt-2 sort-icon ms-1"></i>
+                                                            <?php echo t('col_status', 'Status'); ?> <i class="bx bx-sort-alt-2 sort-icon ms-1"></i>
                                                         </th>
                                                         <th class="col-sortable cursor-pointer position-relative" data-filterkey="CategorySorting" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">
-                                                            Category <i class="bx bx-sort-alt-2 sort-icon ms-1"></i>
+                                                            <?php echo t('col_category', 'Category'); ?> <i class="bx bx-sort-alt-2 sort-icon ms-1"></i>
                                                         </th>
-                                                        <th class="col-sortable cursor-pointer" data-filterkey="QtySorting" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">Qty <i class="bx bx-sort-alt-2 sort-icon ms-1"></i></th>
-                                                        <th class="col-sortable cursor-pointer" data-filterkey="MRPSorting" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">MRP <i class="bx bx-sort-alt-2 sort-icon ms-1"></i></th>
-                                                        <th class="col-sortable cursor-pointer" data-filterkey="SellingPriceSorting" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">Selling Price <i class="bx bx-sort-alt-2 sort-icon ms-1"></i></th>
-                                                        <th class="col-sortable cursor-pointer" data-filterkey="PurchasePriceSorting" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">Purchase Price <i class="bx bx-sort-alt-2 sort-icon ms-1"></i></th>
-                                                        <th>Last Updated</th>
-                                                        <th class="text-center">Actions</th>
+                                                        <th class="col-sortable cursor-pointer" data-filterkey="QtySorting" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order"><?php echo t('col_qty', 'Qty'); ?> <i class="bx bx-sort-alt-2 sort-icon ms-1"></i></th>
+                                                        <th class="col-sortable cursor-pointer" data-filterkey="MRPSorting" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order"><?php echo t('col_mrp', 'MRP'); ?> <i class="bx bx-sort-alt-2 sort-icon ms-1"></i></th>
+                                                        <th class="col-sortable cursor-pointer" data-filterkey="SellingPriceSorting" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order"><?php echo t('col_selling_price', 'Selling Price'); ?> <i class="bx bx-sort-alt-2 sort-icon ms-1"></i></th>
+                                                        <th class="col-sortable cursor-pointer" data-filterkey="PurchasePriceSorting" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order"><?php echo t('col_purchase_price', 'Purchase Price'); ?> <i class="bx bx-sort-alt-2 sort-icon ms-1"></i></th>
+                                                        <th><?php echo t('col_last_updated', 'Last Updated'); ?></th>
+                                                        <th class="text-center"><?php echo t('col_actions', 'Actions'); ?></th>
                                                     </tr>
                                                 </thead>
                                                 <tbody class="r2k-tbody table-border-bottom-0">
@@ -228,14 +228,14 @@
                                                                 <input class="form-check-input table-chkbox groupsHeaderCheck" type="checkbox">
                                                             </div>
                                                         </th>
-                                                        <th class="table-serialno <?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>">S.No</th>
-                                                        <th>Item</th>
-                                                        <th>Status</th>
-                                                        <th>Unit</th>
-                                                        <th>MRP</th>
-                                                        <th>Selling Price</th>
-                                                        <th>Last Updated</th>
-                                                        <th class="text-center">Actions</th>
+                                                        <th class="table-serialno <?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>"><?php echo t('col_sno', 'S.No'); ?></th>
+                                                        <th><?php echo t('col_item', 'Item'); ?></th>
+                                                        <th><?php echo t('col_status', 'Status'); ?></th>
+                                                        <th><?php echo t('col_unit', 'Unit'); ?></th>
+                                                        <th><?php echo t('col_mrp', 'MRP'); ?></th>
+                                                        <th><?php echo t('col_selling_price', 'Selling Price'); ?></th>
+                                                        <th><?php echo t('col_last_updated', 'Last Updated'); ?></th>
+                                                        <th class="text-center"><?php echo t('col_actions', 'Actions'); ?></th>
                                                     </tr>
                                                 </thead>
                                                 <tbody class="r2k-tbody table-border-bottom-0">
@@ -260,15 +260,15 @@
                                             <table class="table trans-table table-hover" id="PriceListTable">
                                                 <thead class="r2k-thead">
                                                     <tr>
-                                                        <th class="table-serialno <?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>">S.No</th>
-                                                        <th>Name</th>
-                                                        <th>Applies To</th>
-                                                        <th>Discount Type</th>
-                                                        <th>Valid From</th>
-                                                        <th>Valid To</th>
-                                                        <th>Status</th>
-                                                        <th>Last Updated</th>
-                                                        <th class="text-center">Actions</th>
+                                                        <th class="table-serialno <?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>"><?php echo t('col_sno', 'S.No'); ?></th>
+                                                        <th><?php echo t('col_name', 'Name'); ?></th>
+                                                        <th><?php echo t('col_applies_to', 'Applies To'); ?></th>
+                                                        <th><?php echo t('col_discount_type', 'Discount Type'); ?></th>
+                                                        <th><?php echo t('col_valid_from', 'Valid From'); ?></th>
+                                                        <th><?php echo t('col_valid_to', 'Valid To'); ?></th>
+                                                        <th><?php echo t('col_status', 'Status'); ?></th>
+                                                        <th><?php echo t('col_last_updated', 'Last Updated'); ?></th>
+                                                        <th class="text-center"><?php echo t('col_actions', 'Actions'); ?></th>
                                                     </tr>
                                                 </thead>
                                                 <tbody class="r2k-tbody table-border-bottom-0" id="PriceListTableBody">
@@ -278,7 +278,7 @@
                                                         <tr class="r2k-empty-row">
                                                             <td colspan="10" class="text-center py-5 text-muted">
                                                                 <i class="bx bx-purchase-tag fs-1 d-block mx-auto mb-2 opacity-25"></i>
-                                                                No price lists found. Click <strong>Create Price List</strong> to add one.
+                                                                <?php echo t('empty_price_lists', 'No price lists found'); ?>. Click <strong><?php echo t('create_price_list', 'Create Price List'); ?></strong> to add one.
                                                             </td>
                                                         </tr>
                                                     <?php endif; ?>
@@ -302,13 +302,13 @@
                                                                 <input class="form-check-input table-chkbox categoryHeaderCheck" type="checkbox">
                                                             </div>
                                                         </th>
-                                                        <th class="table-serialno <?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>">S.No</th>
+                                                        <th class="table-serialno <?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>"><?php echo t('col_sno', 'S.No'); ?></th>
                                                         <th class="name-sortable position-relative" id="sortCatgName" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">
-                                                            <span class="sort-label cursor-pointer">Name <i class="bx bx-sort-alt-2 sort-icon ms-1"></i></span>
+                                                            <span class="sort-label cursor-pointer"><?php echo t('col_name', 'Name'); ?> <i class="bx bx-sort-alt-2 sort-icon ms-1"></i></span>
                                                         </th>
-                                                        <th>Products</th>
-                                                        <th>Last Updated</th>
-                                                        <th class="text-center">Actions</th>
+                                                        <th><?php echo t('col_products', 'Products'); ?></th>
+                                                        <th><?php echo t('col_last_updated', 'Last Updated'); ?></th>
+                                                        <th class="text-center"><?php echo t('col_actions', 'Actions'); ?></th>
                                                     </tr>
                                                 </thead>
                                                 <tbody class="r2k-tbody table-border-bottom-0">
@@ -338,13 +338,13 @@
                                                                 <input class="form-check-input table-chkbox brandHeaderCheck" type="checkbox">
                                                             </div>
                                                         </th>
-                                                        <th class="table-serialno <?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>">S.No</th>
+                                                        <th class="table-serialno <?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>"><?php echo t('col_sno', 'S.No'); ?></th>
                                                         <th class="name-sortable position-relative" id="sortBrandName" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">
-                                                            <span class="sort-label cursor-pointer">Name <i class="bx bx-sort-alt-2 sort-icon ms-1"></i></span>
+                                                            <span class="sort-label cursor-pointer"><?php echo t('col_name', 'Name'); ?> <i class="bx bx-sort-alt-2 sort-icon ms-1"></i></span>
                                                         </th>
-                                                        <th>Products</th>
-                                                        <th>Last Updated</th>
-                                                        <th class="text-center">Actions</th>
+                                                        <th><?php echo t('col_products', 'Products'); ?></th>
+                                                        <th><?php echo t('col_last_updated', 'Last Updated'); ?></th>
+                                                        <th class="text-center"><?php echo t('col_actions', 'Actions'); ?></th>
                                                     </tr>
                                                 </thead>
                                                 <tbody class="r2k-tbody table-border-bottom-0">

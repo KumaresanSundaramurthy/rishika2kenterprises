@@ -46,24 +46,13 @@ if (!function_exists('_allPmtModeBadge')) {
         // Amount color
         $amtClass  = $isIn ? 'text-success' : 'text-danger';
 
-
         // Date + ago
-        $createdTs   = strtotime($row->CreatedOn);
-        $diffSec     = time() - $createdTs;
-        $showAgo     = ($diffSec >= 0 && $diffSec < 86400);
-        $agoText     = '';
-        if ($showAgo) {
-            $mins = (int)floor($diffSec / 60);
-            $agoText = $mins < 60 ? $mins . 'm ago' : (int)floor($mins / 60) . 'h ago';
-        }
-        $dateFormatted = date('d M Y', $createdTs);
-        $timeFormatted = date('h:i A', $createdTs);
+        $createdTs = viewPageDateTimeFormat($row->CreatedOn ?? null, $JwtData->User->Timezone ?? 'UTC', 2);
 
         // Party contact
         $countryCode = trim($row->PartyCountryCode ?? '');
         $mobileNum   = trim($row->PartyMobile ?? '');
-        $fullMobile  = ($countryCode && $countryCode !== '+91' && $countryCode !== '91'
-                        ? $countryCode . ' ' : '+91 ') . $mobileNum;
+        $fullMobile  = ($countryCode && $countryCode !== '+91' && $countryCode !== '91' ? $countryCode . ' ' : '+91 ') . $mobileNum;
         if (empty($mobileNum)) $fullMobile = '';
 
         $partyEmail  = trim($row->PartyEmail ?? '');
@@ -126,7 +115,6 @@ if (!function_exists('_allPmtModeBadge')) {
 
         <!-- Date / Ref No -->
         <td class="ps-3">
-            <div class="text-muted" style="font-size:.72rem;"><?php echo $dateFormatted; ?></div>
             <?php if (!empty($row->PaymentUniqueNumber)): ?>
                 <a href="javascript:void(0);" class="trans-doc-number viewPaymentDetail"
                    style="font-size:.82rem;">
@@ -135,7 +123,7 @@ if (!function_exists('_allPmtModeBadge')) {
             <?php else: ?>
                 <span class="text-muted" style="font-size:.8rem;">—</span>
             <?php endif; ?>
-            <div class="text-muted" style="font-size:.68rem;"><?php echo $timeFormatted; ?></div>
+            <div class="text-muted" style="font-size:.68rem;"><?php echo $createdTs->formatted; ?></div>
         </td>
 
         <!-- Type badge -->
@@ -275,8 +263,8 @@ if (!function_exists('_allPmtModeBadge')) {
             <div style="font-size:.82rem;font-weight:500;">
                 <?php echo htmlspecialchars($row->CreatedByName ?? '—'); ?>
             </div>
-            <?php if ($showAgo && $agoText): ?>
-                <div style="font-size:.68rem;color:#4f46e5;font-weight:500;"><?php echo $agoText; ?></div>
+            <?php if ($createdTs->ago): ?>
+                <div style="font-size:.68rem;color:#4f46e5;font-weight:500;"><?php echo $createdTs->ago; ?></div>
             <?php endif; ?>
         </td>
 
@@ -291,20 +279,20 @@ if (!function_exists('_allPmtModeBadge')) {
                     <li>
                         <button class="dropdown-item pmtA4Print"
                                 data-payment-uid="<?php echo (int)$row->PaymentUID; ?>">
-                            <i class="bx bx-printer me-2 text-dark"></i>Print / Download
+                            <i class="bx bx-printer me-2 text-dark"></i><?php echo t('act_print_download', 'Print / Download'); ?>
                         </button>
                     </li>
                     <li>
                         <button class="dropdown-item pmtDownloadPdf"
                                 data-payment-uid="<?php echo (int)$row->PaymentUID; ?>"
                                 data-num="<?php echo htmlspecialchars($row->PaymentUniqueNumber ?? ''); ?>">
-                            <i class="bx bx-download me-2 text-primary"></i>Download PDF
+                            <i class="bx bx-download me-2 text-primary"></i><?php echo t('act_download_pdf', 'Download PDF'); ?>
                         </button>
                     </li>
                     <li>
                         <button class="dropdown-item pmtThermalPrint"
                                 data-payment-uid="<?php echo (int)$row->PaymentUID; ?>">
-                            <i class="bx bx-receipt me-2 text-dark"></i>Thermal Print
+                            <i class="bx bx-receipt me-2 text-dark"></i><?php echo t('act_thermal_print', 'Thermal Print'); ?>
                         </button>
                     </li>
 
@@ -315,7 +303,7 @@ if (!function_exists('_allPmtModeBadge')) {
                         <a class="dropdown-item pmt-wa-link" href="javascript:void(0)"
                            data-wa-url="https://wa.me/<?php echo $waNum; ?>?text=<?php echo rawurlencode($shareMsg); ?>"
                            style="color:#25d366;">
-                            <i class="bx bxl-whatsapp me-2"></i>Share via WhatsApp
+                            <i class="bx bxl-whatsapp me-2"></i><?php echo t('act_share_whatsapp', 'Share via WhatsApp'); ?>
                         </a>
                     </li>
                     <li>
@@ -328,7 +316,7 @@ if (!function_exists('_allPmtModeBadge')) {
                                 data-email="<?php echo htmlspecialchars($partyEmail); ?>"
                                 data-module-uid="<?php echo (int)$PmtModuleUID; ?>"
                                 style="color:#0097a7;">
-                            <i class="bx bx-message-dots me-2"></i>Send SMS
+                            <i class="bx bx-message-dots me-2"></i><?php echo t('act_send_sms', 'Send SMS'); ?>
                         </button>
                     </li>
                     <?php endif; ?>
@@ -352,7 +340,7 @@ if (!function_exists('_allPmtModeBadge')) {
                                     'ReceiptLink'   => $receiptUrl,
                                 ]), ENT_QUOTES); ?>'
                                 style="color:#1565c0;">
-                            <i class="bx bx-envelope me-2"></i>Send Email
+                            <i class="bx bx-envelope me-2"></i><?php echo t('act_send_email', 'Send Email'); ?>
                         </button>
                     </li>
                     <?php endif; ?>
@@ -363,13 +351,13 @@ if (!function_exists('_allPmtModeBadge')) {
                     <li>
                         <button class="dropdown-item cancelPayment text-warning"
                                 data-payment-uid="<?php echo (int)$row->PaymentUID; ?>">
-                            <i class="bx bx-x-circle me-2"></i>Cancel
+                            <i class="bx bx-x-circle me-2"></i><?php echo t('cancel', 'Cancel'); ?>
                         </button>
                     </li>
                     <li>
                         <button class="dropdown-item deletePayment text-danger"
                                 data-payment-uid="<?php echo (int)$row->PaymentUID; ?>">
-                            <i class="bx bx-trash me-2"></i>Delete
+                            <i class="bx bx-trash me-2"></i><?php echo t('delete', 'Delete'); ?>
                         </button>
                     </li>
                     <?php else: ?>
@@ -378,14 +366,14 @@ if (!function_exists('_allPmtModeBadge')) {
                                 data-payment-uid="<?php echo (int)$row->PaymentUID; ?>"
                                 data-num="<?php echo htmlspecialchars($row->PaymentUniqueNumber ?? ''); ?>"
                                 data-amount="<?php echo htmlspecialchars(number_format((float)$row->Amount, $dec)); ?>">
-                            <i class="bx bx-x-circle me-2"></i>Cancel
+                            <i class="bx bx-x-circle me-2"></i><?php echo t('cancel', 'Cancel'); ?>
                         </button>
                     </li>
                     <li>
                         <button class="dropdown-item deletePaymentOut text-danger"
                                 data-payment-uid="<?php echo (int)$row->PaymentUID; ?>"
                                 data-amount="<?php echo htmlspecialchars(number_format((float)$row->Amount, $dec)); ?>">
-                            <i class="bx bx-trash me-2"></i>Delete
+                            <i class="bx bx-trash me-2"></i><?php echo t('delete', 'Delete'); ?>
                         </button>
                     </li>
                     <?php endif; ?>
@@ -403,8 +391,8 @@ if (!function_exists('_allPmtModeBadge')) {
                             display:flex;align-items:center;justify-content:center;">
                     <i class="bx bx-wallet-alt" style="font-size:1.6rem;color:#4f46e5;"></i>
                 </div>
-                <div class="fw-semibold text-dark" style="font-size:.92rem;">No Payments Found</div>
-                <div class="text-muted" style="font-size:.8rem;">Try adjusting your filters or date range.</div>
+                <div class="fw-semibold text-dark" style="font-size:.92rem;"><?php echo t('empty_payments', 'No Payments Found'); ?></div>
+                <div class="text-muted" style="font-size:.8rem;"><?php echo t('lbl_adjust_filters', 'Try adjusting your filters or date range.'); ?></div>
             </div>
         </td>
     </tr>

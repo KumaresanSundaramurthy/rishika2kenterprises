@@ -14,14 +14,7 @@ if (!empty($DataLists)):
         $scope       = $row->Scope ?? 'All';
         $validFrom   = $row->ValidFrom ?? null;
         $validTo     = $row->ValidTo   ?? null;
-        $updatedAt   = $row->UpdatedAt ?? null;
-        $secondsAgo  = $updatedAt ? (time() - strtotime($updatedAt)) : null;
-        $within24h   = $secondsAgo !== null && $secondsAgo < 86400;
-        if ($within24h) {
-            if ($secondsAgo < 60)       $agoText = 'just now';
-            elseif ($secondsAgo < 3600) $agoText = (int)($secondsAgo / 60) . ' min' . ((int)($secondsAgo / 60) > 1 ? 's' : '') . ' ago';
-            else                        $agoText = (int)($secondsAgo / 3600) . ' hr'  . ((int)($secondsAgo / 3600) > 1 ? 's' : '') . ' ago';
-        }
+        $updatedTs = viewPageDateTimeFormat($row->UpdatedAt ?? null, $JwtData->User->Timezone ?? 'UTC', 2);
 ?>
         <tr class="pl-list-row">
             <td class="<?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>"><?php echo $sno; ?></td>
@@ -56,9 +49,9 @@ if (!empty($DataLists)):
                 <?php endif; ?>
             </td>
             <td>
-                <div class="r2k-col-date"><?php echo $updatedAt ? changeTimeZonefromDateTime($updatedAt, $JwtData->User->Timezone, 2) : '—'; ?></div>
-                <?php if ($within24h): ?>
-                <div class="r2k-col-date-ago"><?php echo $agoText; ?></div>
+                <div class="r2k-col-date"><?php echo $updatedTs->formatted; ?></div>
+                <?php if ($updatedTs->ago): ?>
+                <div class="r2k-col-date-ago"><?php echo $updatedTs->ago; ?></div>
                 <?php endif; ?>
                 <div class="text-muted r2k-col-date-by">by <?php echo htmlspecialchars($row->UpdatedByName ?? '—'); ?></div>
             </td>

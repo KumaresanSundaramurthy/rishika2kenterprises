@@ -84,7 +84,7 @@ if ($isEdit) {
                     <!-- ── Sticky action bar — full width, directly below page header ── -->
                     <div class="exp-form-action-bar trans-theme d-flex align-items-center justify-content-between px-4 py-2">
                         <div class="d-flex align-items-center gap-3">
-                            <span class="text-muted" style="font-size:.82rem;">With Tax</span>
+                            <span class="text-muted" style="font-size:.82rem;"><?php echo t('lbl_with_tax', 'With Tax'); ?></span>
                             <div class="form-check form-switch mb-0">
                                 <input class="form-check-input" type="checkbox" id="taxToggle"
                                        <?php echo $taxApplicable ? 'checked' : ''; ?>
@@ -93,10 +93,10 @@ if ($isEdit) {
                         </div>
                         <div class="d-flex align-items-center gap-2">
                             <button type="submit" class="btn btn-sm btn-primary px-4" id="submitBtn">
-                                <i class="bx bx-check me-1"></i><?php echo $isEdit ? 'Update' : 'Save'; ?>
+                                <i class="bx bx-check me-1"></i><?php echo $isEdit ? t('btn_update', 'Update') : t('btn_save', 'Save'); ?>
                             </button>
                             <a href="/expenses" class="btn btn-sm btn-outline-danger px-3">
-                                <i class="bx bx-x me-1"></i>Cancel
+                                <i class="bx bx-x me-1"></i><?php echo t('cancel', 'Cancel'); ?>
                             </a>
                         </div>
                     </div>
@@ -151,7 +151,7 @@ if ($isEdit) {
 
                                             <!-- Expense Date | Supplier Invoice Date -->
                                             <div class="col-md-6">
-                                                <label for="expDate_disp" class="form-label">Expense Date <span class="text-danger">*</span></label>
+                                                <label for="expDate_disp" class="form-label"><?php echo t('lbl_expense_date', 'Expense Date'); ?> <span class="text-danger">*</span></label>
                                                 <div class="input-group input-group-merge">
                                                     <span class="input-group-text"><i class="bx bx-calendar"></i></span>
                                                     <input type="text" class="form-control" id="expDate_disp"
@@ -160,7 +160,7 @@ if ($isEdit) {
                                                 </div>
                                             </div>
                                             <div class="col-md-6 with-tax-field" style="display:<?php echo $taxApplicable ? 'block' : 'none'; ?>;">
-                                                <label for="supplierDate_disp" class="form-label">Supplier Invoice Date <span class="fw-normal text-muted">(Optional)</span></label>
+                                                <label for="supplierDate_disp" class="form-label"><?php echo t('lbl_supplier_invoice_date', 'Supplier Invoice Date'); ?> <span class="fw-normal text-muted">(Optional)</span></label>
                                                 <div class="input-group input-group-merge">
                                                     <span class="input-group-text"><i class="bx bx-calendar"></i></span>
                                                     <input type="text" class="form-control" id="supplierDate_disp"

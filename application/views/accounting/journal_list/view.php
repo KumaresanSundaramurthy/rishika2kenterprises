@@ -54,7 +54,7 @@ $this->load->view('common/header'); ?>
                     </a>
                 </div>
 
-                <div class="container-xxl flex-grow-1 py-3">
+                <div class="container-xxl flex-grow-1">
                     <div class="card">
 
                         <!-- Filter Row -->

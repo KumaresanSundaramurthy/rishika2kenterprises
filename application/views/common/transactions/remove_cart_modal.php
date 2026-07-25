@@ -47,7 +47,7 @@
 
                 <!-- Buttons -->
                 <div class="d-flex gap-2 justify-content-end">
-                    <button type="button" class="btn btn-outline-secondary btn-sm px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm px-4" data-bs-dismiss="modal"><?php echo t('cancel', 'Cancel'); ?></button>
                     <button type="button" class="btn btn-danger btn-sm px-4" id="rcm-confirm">
                         <i class="bx bx-trash me-1"></i>Remove
                     </button>

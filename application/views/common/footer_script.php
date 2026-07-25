@@ -1,6 +1,13 @@
 <script>
 var JwtToken = '<?php echo $JwtToken; ?>';
 var JwtData = <?php echo json_encode($JwtData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;
+var _appLang = <?php echo json_encode((array)($this->lang->language ?? []), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;
+/**
+ * @param {string} key
+ * @param {string} [fallback]
+ * @returns {string}
+ */
+function t(key, fallback) { return (_appLang && _appLang[key]) ? _appLang[key] : (fallback !== undefined ? fallback : key); }
 var CsrfName = '<?php echo $this->security->get_csrf_token_name(); ?>';
 var CsrfToken = '<?php echo $this->security->get_csrf_hash(); ?>';
 const defaultIso2 = '<?php echo $JwtData->Org->OrgCISO2 ?? 'IN'; ?>';
@@ -239,6 +246,23 @@ $(function() {
         });
 
     }
+
+    // ── Language switcher ─────────────────────────────────────────────────
+    $('.LangToggleBtn').on('click', function () {
+        var lang = $(this).data('switch-to');
+        ajaxLoading(1);
+        $.post('/users/updateLanguage', { UILanguage: lang }, function (res) {
+            ajaxLoading(0);
+            if (res && !res.Error) {
+                location.reload();
+            } else {
+                Swal.fire({ icon: 'error', title: 'Error', text: (res && res.Message) ? res.Message : 'Failed to update language.' });
+            }
+        }, 'json').fail(function () {
+            ajaxLoading(0);
+            Swal.fire({ icon: 'error', title: 'Error', text: 'Request failed.' });
+        });
+    });
 
     // ── Party hover card ──────────────────────────────────────────────────
     (function () {

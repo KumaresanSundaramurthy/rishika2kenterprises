@@ -123,7 +123,7 @@ $kpiData = [
                     'pageHeaderActions' => $quickAddHtml,
                 ]); ?>
 
-                <div class="container-xxl flex-grow-1 py-3">
+                <div class="container-xxl flex-grow-1">
 
                     <!-- ── KPI Tabs (21st.dev Line Charts 6 pattern) ──────── -->
                     <div class="row g-3 mb-4">

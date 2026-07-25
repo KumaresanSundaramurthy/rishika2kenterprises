@@ -89,7 +89,7 @@ if (!empty($DataLists)) {
                         <?php echo htmlspecialchars($list->UniqueNumber); ?>
                     </a>
                 <?php else: ?>
-                    <span class="text-muted fst-italic" style="font-size:.82rem;">Draft</span>
+                    <span class="text-muted fst-italic" style="font-size:.82rem;"><?php echo t('status_draft', 'Draft'); ?></span>
                 <?php endif; ?>
                 <div class="d-flex align-items-center gap-2">
                     <div class="apex-doc-meta"><?php echo htmlspecialchars(format_datedisplay($list->TransDate)); ?></div>
@@ -223,19 +223,10 @@ if (!empty($DataLists)) {
 
             <!-- Last Updated -->
             <td class="small text-muted">
-                <?php
-                    $updatedOn  = $list->UpdatedOn ?? null;
-                    $secondsAgo = $updatedOn ? (time() - strtotime($updatedOn)) : null;
-                    $within24h  = $secondsAgo !== null && $secondsAgo < 86400;
-                    if ($within24h) {
-                        if ($secondsAgo < 60)        $agoText = 'just now';
-                        elseif ($secondsAgo < 3600)  $agoText = (int)($secondsAgo / 60) . ' min' . ((int)($secondsAgo / 60) > 1 ? 's' : '') . ' ago';
-                        else                         $agoText = (int)($secondsAgo / 3600) . ' hr' . ((int)($secondsAgo / 3600) > 1 ? 's' : '') . ' ago';
-                    }
-                ?>
-                <div class="r2k-col-date"><?php echo $updatedOn ? changeTimeZonefromDateTime($updatedOn, $JwtData->User->Timezone, 2) : '—'; ?></div>
-                <?php if ($within24h): ?>
-                <div class="r2k-col-date-ago"><?php echo $agoText; ?></div>
+                <?php $updatedTs = viewPageDateTimeFormat($list->UpdatedOn ?? null, $JwtData->User->Timezone ?? 'UTC', 2); ?>
+                <div class="r2k-col-date"><?php echo $updatedTs->formatted; ?></div>
+                <?php if ($updatedTs->ago): ?>
+                <div class="r2k-col-date-ago"><?php echo $updatedTs->ago; ?></div>
                 <?php endif; ?>
                 <div class="text-muted r2k-col-date-by">by <?php echo htmlspecialchars($list->UpdatedBy ?? '—'); ?></div>
             </td>
@@ -259,17 +250,17 @@ if (!empty($DataLists)) {
                             <?php if (!$isDraft): ?>
                             <li>
                                 <button class="dropdown-item a4PrintTransaction" data-uid="<?php echo (int)$list->TransUID; ?>" data-module="<?php echo (int)$list->ModuleUID; ?>">
-                                    <i class="bx bx-printer me-2 text-primary"></i>Print / Download
+                                    <i class="bx bx-printer me-2 text-primary"></i><?php echo t('act_print_download', 'Print / Download'); ?>
                                 </button>
                             </li>
                             <li>
                                 <button class="dropdown-item downloadPdfTransaction" data-uid="<?php echo (int)$list->TransUID; ?>" data-module="<?php echo (int)$list->ModuleUID; ?>">
-                                    <i class="bx bx-download me-2 text-success"></i>Download PDF
+                                    <i class="bx bx-download me-2 text-success"></i><?php echo t('act_download_pdf', 'Download PDF'); ?>
                                 </button>
                             </li>
                             <li>
                                 <button class="dropdown-item thermalPrintTransaction" data-uid="<?php echo (int)$list->TransUID; ?>" data-module="<?php echo (int)$list->ModuleUID; ?>">
-                                    <i class="bx bx-receipt me-2 text-dark"></i>Thermal Print
+                                    <i class="bx bx-receipt me-2 text-dark"></i><?php echo t('act_thermal_print', 'Thermal Print'); ?>
                                 </button>
                             </li>
                             <li><hr class="dropdown-divider my-1"></li>
@@ -282,7 +273,7 @@ if (!empty($DataLists)) {
                                    href="javascript:void(0)"
                                    data-wa-url="https://wa.me/<?php echo $waNum; ?>?text=<?php echo $waMessageEncoded; ?>"
                                    style="color:#25d366;">
-                                    <i class="bx bxl-whatsapp me-2"></i>Share via WhatsApp
+                                    <i class="bx bxl-whatsapp me-2"></i><?php echo t('act_share_whatsapp', 'Share via WhatsApp'); ?>
                                 </a>
                             </li>
                             <li>
@@ -295,7 +286,7 @@ if (!empty($DataLists)) {
                                         data-email="<?php echo htmlspecialchars($partyEmail); ?>"
                                         data-module-uid="<?php echo (int)$list->ModuleUID; ?>"
                                         style="color:#0097a7;">
-                                    <i class="bx bx-message-dots me-2"></i>Send SMS
+                                    <i class="bx bx-message-dots me-2"></i><?php echo t('act_send_sms', 'Send SMS'); ?>
                                 </button>
                             </li>
                             <?php endif; ?>
@@ -311,7 +302,7 @@ if (!empty($DataLists)) {
                                         data-email="<?php echo htmlspecialchars($partyEmail); ?>"
                                         data-module-uid="<?php echo (int)$list->ModuleUID; ?>"
                                         style="color:#1565c0;">
-                                    <i class="bx bx-envelope me-2"></i>Send Email
+                                    <i class="bx bx-envelope me-2"></i><?php echo t('act_send_email', 'Send Email'); ?>
                                 </button>
                             </li>
                             <?php endif; ?>
@@ -325,7 +316,7 @@ if (!empty($DataLists)) {
                                         data-uid="<?php echo (int) $list->TransUID; ?>"
                                         data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
                                         data-status="Cancelled">
-                                    <i class="bx bx-x-circle me-2"></i>Cancel
+                                    <i class="bx bx-x-circle me-2"></i><?php echo t('cancel', 'Cancel'); ?>
                                 </button>
                             </li>
                             <?php endif; ?>
@@ -333,7 +324,7 @@ if (!empty($DataLists)) {
                                 <button class="dropdown-item text-danger deletePO"
                                         data-uid="<?php echo (int) $list->TransUID; ?>"
                                         data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? 'Draft'); ?>">
-                                    <i class="bx bx-trash me-2"></i>Delete
+                                    <i class="bx bx-trash me-2"></i><?php echo t('delete', 'Delete'); ?>
                                 </button>
                             </li>
                             <?php endif; ?>
@@ -349,9 +340,9 @@ if (!empty($DataLists)) {
         <td colspan="10">
             <div class="d-flex flex-column align-items-center py-5">
                 <img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:160px;object-fit:contain">
-                <span class="text-muted mb-3">No purchase orders found</span>
+                <span class="text-muted mb-3"><?php echo t('empty_purchase_orders', 'No purchase orders found'); ?></span>
                 <a href="/purchaseorders/create" class="btn btn-primary btn-sm px-3">
-                    <i class="bx bx-plus me-1"></i>Create Purchase Order
+                    <i class="bx bx-plus me-1"></i><?php echo t('create_purchase_order', 'Create Purchase Order'); ?>
                 </a>
             </div>
         </td>

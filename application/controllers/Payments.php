@@ -27,10 +27,10 @@ class Payments extends MY_Controller {
 
             $orgUID = $this->pageData['JwtData']->Org->OrgUID;
 
-            // Default to This Month so the initial server render is date-scoped
-            $filter = [
-                'DateFrom' => date('Y-m-01'),
-                'DateTo'   => date('Y-m-t'),
+            $datePref = $this->getDateFilterPreference('payments');
+            $filter   = [
+                'DateFrom' => $datePref['from'],
+                'DateTo'   => $datePref['to'],
             ];
 
             $this->load->model('transactions_model');
@@ -45,14 +45,17 @@ class Payments extends MY_Controller {
                 'OrgInfo'      => $this->organisation_model->getOrgInfoCached($orgUID)->Data ?? null,
                 'PmtModuleUID' => (int)($this->pageData['JwtData']->ModuleUID ?? 0),
             ], TRUE);
-            $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/payments/getPaymentsPageDetails', $allDataCount, 1, $limit);
-            $this->pageData['ModAllCount']   = $allDataCount;
-            $this->pageData['BalanceStats']  = $this->transactions_model->getPaymentsBalanceStats($orgUID);
-            $this->pageData['Totals']        = $this->transactions_model->getPaymentsTotals($orgUID, $filter);
-            $this->pageData['BankAccounts']  = $this->transactions_model->getOrgBankAccounts($orgUID);
-            $this->pageData['PaymentTypes']  = $this->transactions_model->getPaymentTypesList();
+            $this->pageData['ModPagination']  = $this->globalservice->buildPagePaginationHtml('/payments/getPaymentsPageDetails', $allDataCount, 1, $limit);
+            $this->pageData['ModAllCount']    = $allDataCount;
+            $this->pageData['BalanceStats']   = $this->transactions_model->getPaymentsBalanceStats($orgUID);
+            $this->pageData['BankAccounts']   = $this->transactions_model->getOrgBankAccounts($orgUID);
+            $this->pageData['PaymentTypes']   = $this->transactions_model->getPaymentTypesList();
+            $this->pageData['SavedDateRange'] = $datePref['range'];
+            $this->pageData['SavedDateLabel'] = $datePref['label'];
+            $this->pageData['InitDateFrom']   = $datePref['from'];
+            $this->pageData['InitDateTo']     = $datePref['to'];
             $this->load->model('users_model');
-            $this->pageData['OrgUsers']      = $this->users_model->getOrgUsersForCache($orgUID);
+            $this->pageData['OrgUsers']       = $this->users_model->getOrgUsersForCache($orgUID);
 
             $this->load->view('transactions/payments/view', $this->pageData);
 
@@ -93,8 +96,6 @@ class Payments extends MY_Controller {
             $this->EndReturnData->Error          = FALSE;
             $this->EndReturnData->RecordHtmlData = $rowHtml;
             $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml('/payments/getPaymentsPageDetails', $allDataCount, $pageNo, $limit);
-            $this->EndReturnData->TotalCount     = $allDataCount;
-            $this->EndReturnData->Totals         = $this->transactions_model->getPaymentsTotals($orgUID, $filter);
 
         } catch (Exception $e) {
             $this->EndReturnData->Error   = TRUE;

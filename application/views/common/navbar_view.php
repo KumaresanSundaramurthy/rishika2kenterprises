@@ -74,6 +74,10 @@
 
 .nb-label { font-size: .67rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; line-height: 1; margin-bottom: 3px; }
 .nb-value { font-size: 1.1rem; font-weight: 800; color: #1e293b; line-height: 1; }
+
+/* Language switcher icon */
+.nav-lang-btn { display: flex; align-items: center; gap: 4px; padding: 0 8px !important; }
+.nav-lang-badge { font-size: .68rem; font-weight: 700; letter-spacing: .5px; line-height: 1; }
 </style>
 
 <!-- Navbar -->
@@ -117,6 +121,20 @@
 
         <ul class="navbar-nav flex-row align-items-center gap-1">
 
+            <!-- Language Switcher -->
+            <?php $_navLang = $JwtData->User->UILanguage ?? 'en'; ?>
+            <li class="nav-item">
+                <a class="nav-link nav-lang-btn LangToggleBtn"
+                   href="javascript:void(0);"
+                   data-switch-to="<?php echo $_navLang === 'ta' ? 'en' : 'ta'; ?>"
+                   data-bs-toggle="tooltip"
+                   data-bs-placement="bottom"
+                   title="<?php echo $_navLang === 'ta' ? 'Switch to English' : 'தமிழுக்கு மாறு'; ?>">
+                    <i class="bx bx-globe icon-base icon-md"></i>
+                    <span class="nav-lang-badge"><?php echo strtoupper($_navLang); ?></span>
+                </a>
+            </li>
+
             <!-- Style Switcher -->
             <li class="nav-item dropdown">
                 <a class="nav-link dropdown-toggle hide-arrow" id="nav-theme" href="javascript:void(0);" data-bs-toggle="dropdown" aria-label="Toggle theme" aria-expanded="false">
@@ -125,17 +143,17 @@
                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="nav-theme-text">
                     <li>
                         <button type="button" class="dropdown-item align-items-center active" data-bs-theme-value="light" aria-pressed="true">
-                            <span><i class="icon-base bx bx-sun icon-md me-3" data-icon="sun"></i>Light</span>
+                            <span><i class="icon-base bx bx-sun icon-md me-3" data-icon="sun"></i><?php echo t('theme_light', 'Light'); ?></span>
                         </button>
                     </li>
                     <li>
                         <button type="button" class="dropdown-item align-items-center" data-bs-theme-value="dark" aria-pressed="false">
-                            <span><i class="icon-base bx bx-moon icon-md me-3" data-icon="moon"></i>Dark</span>
+                            <span><i class="icon-base bx bx-moon icon-md me-3" data-icon="moon"></i><?php echo t('theme_dark', 'Dark'); ?></span>
                         </button>
                     </li>
                     <li>
                         <button type="button" class="dropdown-item align-items-center" data-bs-theme-value="system" aria-pressed="false">
-                            <span><i class="icon-base bx bx-desktop icon-md me-3" data-icon="desktop"></i>System</span>
+                            <span><i class="icon-base bx bx-desktop icon-md me-3" data-icon="desktop"></i><?php echo t('theme_system', 'System'); ?></span>
                         </button>
                     </li>
                 </ul>
@@ -167,25 +185,25 @@
                     <li><div class="dropdown-divider"></div></li>
                     <li>
                         <a class="dropdown-item" href="/settings/profile">
-                            <i class="bx bx-user me-2"></i><span class="align-middle">My Profile</span>
+                            <i class="bx bx-user me-2"></i><span class="align-middle"><?php echo t('my_profile', 'My Profile'); ?></span>
                         </a>
                     </li>
                     <?php if ($JwtData->User->RoleUID == 1) { ?>
                     <li>
                         <a class="dropdown-item" href="javascript:void(0);">
-                            <i class="bx bx-cog me-2"></i><span class="align-middle">Settings</span>
+                            <i class="bx bx-cog me-2"></i><span class="align-middle"><?php echo t('settings', 'Settings'); ?></span>
                         </a>
                     </li>
                     <?php } ?>
                     <li>
                         <a class="dropdown-item ChangePasswordBtn" href="javascript:void(0);">
-                            <i class="bx bx-lock me-2"></i><span class="align-middle">Change Password</span>
+                            <i class="bx bx-lock me-2"></i><span class="align-middle"><?php echo t('change_password', 'Change Password'); ?></span>
                         </a>
                     </li>
                     <li><div class="dropdown-divider"></div></li>
                     <li>
                         <a class="dropdown-item" href="/logout">
-                            <i class="bx bx-power-off me-2"></i><span class="align-middle">Log Out</span>
+                            <i class="bx bx-power-off me-2"></i><span class="align-middle"><?php echo t('log_out', 'Log Out'); ?></span>
                         </a>
                     </li>
                 </ul>

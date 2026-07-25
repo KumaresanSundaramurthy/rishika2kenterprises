@@ -413,6 +413,37 @@ class Users extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
+    // ── Per-user language preference ──────────────────────────────────────────
+    public function updateLanguage(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $lang = trim((string)($this->input->post('UILanguage') ?? ''));
+            if (!in_array($lang, ['en', 'ta'], true)) {
+                throw new Exception('Invalid language code.');
+            }
+
+            $userUID = $this->_userUID();
+            $orgUID  = $this->_orgUID();
+
+            $this->dbwrite_model->updateData('Users', 'UserTbl', ['UILanguage' => $lang], ['UserUID' => $userUID, 'OrgUID' => $orgUID]);
+
+            $jwtKey      = $this->pageData['JwtUserKey'] ?? null;
+            $redisPayload = $jwtKey ? $this->redisservice->getCache($jwtKey) : null;
+            if ($redisPayload && !$redisPayload->Error) {
+                $redisPayload->Value->User->UILanguage = $lang;
+                $this->redisservice->setCache($jwtKey, $redisPayload->Value, $redisPayload->TTL);
+            }
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = t('language_updated', 'Language updated successfully.');
+        } catch (Exception $e) {
+            log_message('error', 'Users::updateLanguage — ' . $e->getMessage());
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
     // ── Employee dropdown for Attendance / Payroll ────────────────────────────
     public function getEmployeeList() {
         $this->EndReturnData = new stdClass();

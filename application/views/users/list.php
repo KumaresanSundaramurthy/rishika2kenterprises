@@ -18,17 +18,6 @@ if (!empty($DataLists)):
         $isActive     = (int)($list->IsActive ?? 1);
         $hasLogin     = (int)($list->HasLoginAccess ?? 0);
         $empStatus    = $list->EmployeeStatus ?? 'Active';
-        $updatedOn    = $list->UpdatedOn ?? null;
-        $agoText      = ''; $within24h = false;
-        if ($updatedOn) {
-            $secondsAgo = time() - strtotime($updatedOn);
-            $within24h  = $secondsAgo < 86400;
-            if ($within24h) {
-                if ($secondsAgo < 60)       $agoText = 'just now';
-                elseif ($secondsAgo < 3600) $agoText = (int)($secondsAgo / 60) . 'm ago';
-                else                        $agoText = (int)($secondsAgo / 3600) . 'h ago';
-            }
-        }
 ?>
     <tr>
         <td style="width:36px">

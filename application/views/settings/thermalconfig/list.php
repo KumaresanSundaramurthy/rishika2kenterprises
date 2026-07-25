@@ -12,15 +12,8 @@ if (empty($DataLists)) { ?>
 $idx = 1;
 foreach ($DataLists as $row):
     $typeLabel = $row->ModuleName ?? $row->TransactionType ?? 'Unknown';
-    $updatedTs  = !empty($row->UpdatedOn) ? strtotime($row->UpdatedOn) : strtotime($row->CreatedOn);
-    $updatedOn  = !empty($row->UpdatedOn) ? $row->UpdatedOn : $row->CreatedOn;
-    $diffSec    = time() - $updatedTs;
-    $agoText    = '';
-    if ($diffSec >= 0 && $diffSec < 86400) {
-        if ($diffSec < 60)       $agoText = 'just now';
-        elseif ($diffSec < 3600) $agoText = (int)($diffSec / 60) . ' min' . ((int)($diffSec / 60) > 1 ? 's' : '') . ' ago';
-        else                     $agoText = (int)($diffSec / 3600) . ' hr' . ((int)($diffSec / 3600) > 1 ? 's' : '') . ' ago';
-    }
+    $updatedOn     = !empty($row->UpdatedOn) ? $row->UpdatedOn : ($row->CreatedOn ?? null);
+    $updatedTs     = viewPageDateTimeFormat($updatedOn, $JwtData->User->Timezone ?? 'UTC', 2);
     $updatedByName = htmlspecialchars($row->UpdatedByName ?? '—');
 
     // Receipt element badges
@@ -75,9 +68,9 @@ foreach ($DataLists as $row):
         <small class="text-muted">Prod: </small><?php echo (int)($row->ProductInfoFontSize ?? 12); ?>px
     </td>
     <td class="align-middle">
-        <div class="r2k-col-date"><?php echo $updatedOn ? changeTimeZonefromDateTime($updatedOn, $JwtData->User->Timezone, 2) : '—'; ?></div>
-        <?php if ($agoText): ?>
-        <div class="r2k-col-date-ago"><?php echo $agoText; ?></div>
+        <div class="r2k-col-date"><?php echo $updatedTs->formatted; ?></div>
+        <?php if ($updatedTs->ago): ?>
+        <div class="r2k-col-date-ago"><?php echo $updatedTs->ago; ?></div>
         <?php endif; ?>
         <div class="text-muted r2k-col-date-by">by <?php echo $updatedByName; ?></div>
     </td>

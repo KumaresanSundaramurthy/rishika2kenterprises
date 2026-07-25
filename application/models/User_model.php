@@ -44,7 +44,8 @@ class User_model extends CI_Model {
                 'Org.ShortCode as OrgShortCode',
                 'Org.OrgToken as OrgToken',
                 'Org.StateCode as OrgStateCode',
-                'Org.StateName as OrgStateName'
+                'Org.StateName as OrgStateName',
+                'User.UILanguage as UILanguage'
             ]);
             $this->ReadDb->from('Users.UserTbl as User');
             $this->ReadDb->join('UserRole.RolesTbl as Roles', 'Roles.RoleUID = User.RoleUID', 'left');

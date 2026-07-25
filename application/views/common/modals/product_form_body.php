@@ -29,8 +29,8 @@ if (!empty($_JwtData->GenSettings->EnableStorage)) {
             </div>
         </div>
         <div class="d-flex align-items-center gap-2">
-            <button type="submit" class="btn btn-sm btn-primary AddEditProductBtn"><i class="bx bx-check me-1"></i>Save</button>
-            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-dismiss="modal" aria-label="Close"><i class="bx bx-x me-1"></i>Close</button>
+            <button type="submit" class="btn btn-sm btn-primary AddEditProductBtn"><i class="bx bx-check me-1"></i><?php echo t('save', 'Save'); ?></button>
+            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-dismiss="modal" aria-label="Close"><i class="bx bx-x me-1"></i><?php echo t('close', 'Close'); ?></button>
         </div>
     </div>
 

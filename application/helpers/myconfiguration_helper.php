@@ -65,50 +65,93 @@ function getAWSConfigurationDetails() {
 
 }
 
-function changeTimeZonefromDateTime($DateTimeVal, $TimeZone, $FormatType = 1) {
-    if (empty($DateTimeVal)) return '—';
-    $DateTime = new DateTime($DateTimeVal);
-    $DateTime->setTimezone(new DateTimeZone($TimeZone));
+function viewPageDateTimeFormat($dateTimeVal, $timezone = 'UTC', $formatType = 2) {
 
-    // Cache format strings across calls — avoids get_instance() on every row in list views
+    if (empty($dateTimeVal)) {
+        return (object)[
+            'formatted' => '—',
+            'date_only' => '—',
+            'time_only' => '—',
+            'w24'       => false,
+            'ago'       => null
+        ];
+    }
+
+    // Convert date string using configured Timezone via changeTimeZonefromDateTime
+    $formattedDate = changeTimeZonefromDateTime($dateTimeVal, $timezone, $formatType);
+    $dateOnly      = changeTimeZonefromDateTime($dateTimeVal, $timezone, 1);          // Date Only (Format 1)
+    $timeOnly      = changeTimeZonefromDateTime($dateTimeVal, $timezone, 4);
+
+    // Calculate time elapsed
+    $timestamp  = strtotime($dateTimeVal);
+    $secondsAgo = time() - $timestamp;
+    $within24h  = ($secondsAgo >= 0 && $secondsAgo < 86400);
+    $agoText    = null;
+
+    if ($within24h) {
+        if ($secondsAgo < 60) {
+            $agoText = 'just now';
+        } elseif ($secondsAgo < 3600) {
+            $mins    = (int)($secondsAgo / 60);
+            $agoText = $mins . ' min' . ($mins > 1 ? 's' : '') . ' ago';
+        } else {
+            $hrs     = (int)($secondsAgo / 3600);
+            $agoText = $hrs . ' hr' . ($hrs > 1 ? 's' : '') . ' ago';
+        }
+    }
+
+    return (object)[
+        'formatted' => $formattedDate,
+        'date_only' => $dateOnly,
+        'time_only' => $timeOnly,
+        'w24'       => $within24h,
+        'ago'       => $agoText
+    ];
+
+}
+
+function changeTimeZonefromDateTime($DateTimeVal, $TimeZone, $FormatType = 1) {
+
+    if (empty($DateTimeVal)) return '—';
+
+    // Static cache for TimeZone objects
+    static $_tzObjects = [];
+    if (!isset($_tzObjects[$TimeZone])) {
+        $_tzObjects[$TimeZone] = new DateTimeZone($TimeZone ?: 'UTC');
+    }
+
+    try {
+        $DateTime = new DateTime($DateTimeVal);
+        $DateTime->setTimezone($_tzObjects[$TimeZone]);
+    } catch (Exception $e) {
+        return '—';
+    }
+
+    // Static cache for CI settings format strings
     static $_dateFmt     = null;
     static $_dateTimeFmt = null;
     if ($_dateFmt === null) {
         try {
-            $CI          = &get_instance();
-            $_dateFmt    = $CI->pageData['JwtData']->GenSettings->ListDateFormat     ?? 'd M Y';
-            $_dateTimeFmt= $CI->pageData['JwtData']->GenSettings->ListDateTimeFormat ?? 'd M Y h:i A';
+            $CI           = &get_instance();
+            $_dateFmt     = $CI->pageData['JwtData']->GenSettings->ListDateFormat     ?? 'd M Y';
+            $_dateTimeFmt = $CI->pageData['JwtData']->GenSettings->ListDateTimeFormat ?? 'd M Y h:i A';
         } catch (Exception $_) {
             $_dateFmt     = 'd M Y';
             $_dateTimeFmt = 'd M Y h:i A';
         }
     }
 
-    switch($FormatType) {
-        case 1: // Date only — uses ListDateFormat setting
-            return $DateTime->format($_dateFmt);
-
-        case 2: // Date + Time — uses ListDateTimeFormat setting
-            return $DateTime->format($_dateTimeFmt);
-
-        case 3: // Full datetime with seconds: '15 Jan 2024 14:30:45'
-            return $DateTime->format('d M Y H:i:s');
-
-        case 4: // Time only: '02:30 PM'
-            return $DateTime->format('h:i A');
-
-        case 5: // Database format: '2024-01-15 14:30:45'
-            return $DateTime->format('Y-m-d H:i:s');
-
-        case 6: // ISO 8601: '2024-01-15T14:30:45+05:30'
-            return $DateTime->format(DateTime::ISO8601);
-
-        case 7: // Month Year: 'January 2024'
-            return $DateTime->format('F Y');
-
-        default:
-            return $DateTime->format($_dateFmt);
+    switch ($FormatType) {
+        case 1:  return $DateTime->format($_dateFmt);
+        case 2:  return $DateTime->format($_dateTimeFmt);
+        case 3:  return $DateTime->format('d M Y H:i:s');
+        case 4:  return $DateTime->format('h:i A');
+        case 5:  return $DateTime->format('Y-m-d H:i:s');
+        case 6:  return $DateTime->format(DateTime::ISO8601);
+        case 7:  return $DateTime->format('F Y');
+        default: return $DateTime->format($_dateFmt);
     }
+    
 }
 
 function changeTimeZomeDateFormat($TimeStamp, $TimeZone, $FormatType = 1) {

@@ -62,34 +62,59 @@ $statusIcon = [
 // ── Terminal states (no more transitions) ───────────────────────
 $terminalStatuses = ['Paid', 'Cancelled', 'Completed', 'Converted', 'Fulfilled', 'Rejected', 'Received', 'Delivered', 'Returned'];
 
+// ── Translated display labels (DB key → UI string) ──────────────
+$statusLabels = [
+    'Draft'              => t('status_draft',              'Draft'),
+    'Dispatched'         => t('status_dispatched',         'Dispatched'),
+    'Delivered'          => t('status_delivered',          'Delivered'),
+    'Issued'             => t('status_issued',             'Issued'),
+    'Sent'               => t('status_sent',               'Sent'),
+    'Paid'               => t('status_paid',               'Paid'),
+    'Partial'            => t('status_partial',            'Partial'),
+    'Overdue'            => t('status_overdue',            'Overdue'),
+    'Cancelled'          => t('status_cancelled',          'Cancelled'),
+    'Completed'          => t('status_completed',          'Completed'),
+    'Converted'          => t('status_converted',          'Converted'),
+    'Pending'            => t('status_pending',            'Pending'),
+    'Accepted'           => t('status_accepted',           'Accepted'),
+    'Rejected'           => t('status_rejected',           'Rejected'),
+    'Confirmed'          => t('status_confirmed',          'Confirmed'),
+    'Expired'            => t('status_expired',            'Expired'),
+    'Fulfilled'          => t('status_fulfilled',          'Fulfilled'),
+    'Received'           => t('status_received',           'Received'),
+    'Approved'           => t('status_approved',           'Approved'),
+    'Returned'           => t('status_returned',           'Returned'),
+    'Partially Returned' => t('status_partially_returned', 'Partially Returned'),
+];
+
 // ── Status transitions per module ───────────────────────────────
 $statusTransitions = [
     'invoice' => [
-        'Draft'  => [['db' => 'Issued',    'label' => 'Issue Invoice']],
-        'Issued' => [['db' => 'Paid',      'label' => 'Mark as Paid'],
-                     ['db' => 'Partial',   'label' => 'Mark as Partial'],
-                     ['db' => 'Cancelled', 'label' => 'Cancel Invoice']],
-        'Partial'=> [['db' => 'Paid',      'label' => 'Mark as Paid'],
-                     ['db' => 'Cancelled', 'label' => 'Cancel Invoice']],
+        'Draft'  => [['db' => 'Issued',    'label' => t('trans_issue_invoice',  'Issue Invoice')]],
+        'Issued' => [['db' => 'Paid',      'label' => t('trans_mark_paid',      'Mark as Paid')],
+                     ['db' => 'Partial',   'label' => t('trans_mark_partial',   'Mark as Partial')],
+                     ['db' => 'Cancelled', 'label' => t('trans_cancel_invoice', 'Cancel Invoice')]],
+        'Partial'=> [['db' => 'Paid',      'label' => t('trans_mark_paid',      'Mark as Paid')],
+                     ['db' => 'Cancelled', 'label' => t('trans_cancel_invoice', 'Cancel Invoice')]],
     ],
     'purchase' => [
-        'Draft'    => [['db' => 'Received',  'label' => 'Mark as Received']],
-        'Received' => [['db' => 'Paid',      'label' => 'Mark as Paid'],
-                       ['db' => 'Partial',   'label' => 'Mark as Partial'],
-                       ['db' => 'Cancelled', 'label' => 'Cancel Purchase']],
-        'Partial'  => [['db' => 'Paid',      'label' => 'Mark as Paid']],
+        'Draft'    => [['db' => 'Received',  'label' => t('trans_mark_received',   'Mark as Received')]],
+        'Received' => [['db' => 'Paid',      'label' => t('trans_mark_paid',       'Mark as Paid')],
+                       ['db' => 'Partial',   'label' => t('trans_mark_partial',    'Mark as Partial')],
+                       ['db' => 'Cancelled', 'label' => t('trans_cancel_purchase', 'Cancel Purchase')]],
+        'Partial'  => [['db' => 'Paid',      'label' => t('trans_mark_paid',       'Mark as Paid')]],
     ],
     'quotation' => [
         'Draft'    => [
-            ['db' => 'Pending',   'label' => 'Send Quotation'],
+            ['db' => 'Pending',   'label' => t('trans_send_quotation',     'Send Quotation')],
         ],
         'Pending'  => [
-            ['db' => 'Accepted',  'label' => 'Mark as Accepted'],
+            ['db' => 'Accepted',  'label' => t('trans_mark_accepted',      'Mark as Accepted')],
         ],
         'Accepted' => [
-            ['db' => 'Converted', 'label' => 'Convert to Invoice',     'target' => 'Invoice'],
-            ['db' => 'Converted', 'label' => 'Convert to Sales Order', 'target' => 'SalesOrder'],
-            ['db' => 'Pending',   'label' => 'Revert to Open',         'target' => ''],
+            ['db' => 'Converted', 'label' => t('trans_convert_to_invoice', 'Convert to Invoice'),     'target' => 'Invoice'],
+            ['db' => 'Converted', 'label' => t('trans_convert_to_so',      'Convert to Sales Order'), 'target' => 'SalesOrder'],
+            ['db' => 'Pending',   'label' => t('trans_revert_to_open',     'Revert to Open'),         'target' => ''],
         ],
         'Converted'=> [],
         'Cancelled'=> [],
@@ -97,42 +122,42 @@ $statusTransitions = [
     'salesorder'       => [],
     'deliverychallan'  => [],
     'proformainvoice'  => [
-        'Draft'   => [['db' => 'Sent',      'label' => 'Send Pro Forma']],
+        'Draft'   => [['db' => 'Sent',      'label' => t('trans_send_proforma',        'Send Pro Forma')]],
         'Sent'    => [
-            ['db' => 'Converted', 'label' => 'Convert to Invoice'],
-            ['db' => 'Expired',   'label' => 'Mark as Expired'],
-            ['db' => 'Cancelled', 'label' => 'Cancel'],
+            ['db' => 'Converted', 'label' => t('trans_convert_to_invoice', 'Convert to Invoice')],
+            ['db' => 'Expired',   'label' => t('trans_mark_expired',       'Mark as Expired')],
+            ['db' => 'Cancelled', 'label' => t('cancel',                   'Cancel')],
         ],
-        'Expired' => [['db' => 'Sent', 'label' => 'Reactivate']],
+        'Expired' => [['db' => 'Sent', 'label' => t('trans_reactivate', 'Reactivate')]],
     ],
     'salesreturn'   => [
-        'Draft'    => [['db' => 'Approved',  'label' => 'Approve Return']],
-        'Approved' => [['db' => 'Cancelled', 'label' => 'Cancel']],
+        'Draft'    => [['db' => 'Approved',  'label' => t('trans_approve_return', 'Approve Return')]],
+        'Approved' => [['db' => 'Cancelled', 'label' => t('cancel',               'Cancel')]],
     ],
     'purchasereturn'=> [
-        'Draft'    => [['db' => 'Approved',  'label' => 'Approve Return']],
-        'Approved' => [['db' => 'Cancelled', 'label' => 'Cancel']],
+        'Draft'    => [['db' => 'Approved',  'label' => t('trans_approve_return', 'Approve Return')]],
+        'Approved' => [['db' => 'Cancelled', 'label' => t('cancel',               'Cancel')]],
     ],
     'expense' => [
         'Pending' => [
-            ['db' => 'Paid',      'label' => 'Mark as Paid'],
-            ['db' => 'Partial',   'label' => 'Record Partial Payment'],
-            ['db' => 'Cancelled', 'label' => 'Cancel Expense'],
+            ['db' => 'Paid',      'label' => t('trans_mark_paid',             'Mark as Paid')],
+            ['db' => 'Partial',   'label' => t('trans_record_partial_payment','Record Partial Payment')],
+            ['db' => 'Cancelled', 'label' => t('trans_cancel_expense',        'Cancel Expense')],
         ],
         'Partial' => [
-            ['db' => 'Paid',      'label' => 'Mark as Paid'],
-            ['db' => 'Cancelled', 'label' => 'Cancel Expense'],
+            ['db' => 'Paid',      'label' => t('trans_mark_paid',      'Mark as Paid')],
+            ['db' => 'Cancelled', 'label' => t('trans_cancel_expense', 'Cancel Expense')],
         ],
     ],
     'indirectincome' => [
         'Pending' => [
-            ['db' => 'Received',  'label' => 'Mark as Received'],
-            ['db' => 'Partial',   'label' => 'Record Partial Receipt'],
-            ['db' => 'Cancelled', 'label' => 'Cancel Income'],
+            ['db' => 'Received',  'label' => t('trans_mark_received',          'Mark as Received')],
+            ['db' => 'Partial',   'label' => t('trans_record_partial_receipt', 'Record Partial Receipt')],
+            ['db' => 'Cancelled', 'label' => t('trans_cancel_income',          'Cancel Income')],
         ],
         'Partial' => [
-            ['db' => 'Received',  'label' => 'Mark as Received'],
-            ['db' => 'Cancelled', 'label' => 'Cancel Income'],
+            ['db' => 'Received',  'label' => t('trans_mark_received', 'Mark as Received')],
+            ['db' => 'Cancelled', 'label' => t('trans_cancel_income', 'Cancel Income')],
         ],
     ],
 ];

@@ -1046,9 +1046,11 @@ class Transactions_model extends MY_Model {
             'P.IsFullyPaid', 'P.ReferenceNo', 'P.Notes', 'P.CreatedOn',
             'P.PaymentDate', 'P.UniqueNumber', 'P.PaymentNumber', 'P.TransYear', 'P.ReceiptToken', 'P.ModuleUID',
             'PT.Name AS PaymentTypeName', 'PT.IsCash',
-            'T.UniqueNumber AS TransNumber', 'T.TransDate', 'T.NetAmount AS BillAmount', 'T.BalanceAmount',
+            'T.UniqueNumber AS TransNumber', 'T.TransDate', 'T.NetAmount AS BillAmount', 'T.BalanceAmount', 'T.ModuleUID AS TransModuleUID',
             "CASE WHEN P.PartyType = 'C' THEN C.Name ELSE V.Name END AS PartyName",
+            "CASE WHEN P.PartyType = 'C' THEN C.Area ELSE V.Area END AS PartyArea",
             "CASE WHEN P.PartyType = 'C' THEN C.MobileNumber ELSE V.MobileNumber END AS PartyMobile",
+            "CASE WHEN P.PartyType = 'C' THEN C.GSTIN ELSE V.GSTIN END AS PartyGSTIN",
             'BA.AccountName', 'BA.BankName', 'BA.AccountNumber', 'BA.IFSC', 'BA.BranchName', 'BA.UPIId', 'BA.UPINumber',
             "CONCAT(CrUser.FirstName, ' ', CrUser.LastName) AS CreatedByName",
         ]);
@@ -1230,8 +1232,24 @@ class Transactions_model extends MY_Model {
                 $modes = is_array($filter['PaymentMode']) ? $filter['PaymentMode'] : [$filter['PaymentMode']];
                 $this->ReadDb->where_in('PT.Name', $modes);
             }
+            if (!empty($filter['DocTypeModuleUIDs']) && is_array($filter['DocTypeModuleUIDs'])) {
+                $docUids = array_values(array_filter(array_map('intval', $filter['DocTypeModuleUIDs'])));
+                if (!empty($docUids)) { $this->ReadDb->where_in('P.ModuleUID', $docUids); }
+            }
+            if (!empty($filter['PartyTypes']) && is_array($filter['PartyTypes'])) {
+                $types = array_values(array_filter($filter['PartyTypes'], fn($t) => in_array($t, ['C', 'S'], true)));
+                if (!empty($types)) { $this->ReadDb->where_in('P.PartyType', $types); }
+            }
 
-            $this->ReadDb->order_by('P.PaymentUID', 'DESC');
+            $sortMap = [
+                'Date'   => 'P.CreatedOn',
+                'Amount' => 'P.Amount',
+                'Type'   => 'P.PaymentDirection',
+                'Party'  => 'PartyName',
+            ];
+            $sortCol = $sortMap[$filter['SortBy'] ?? ''] ?? 'P.PaymentUID';
+            $sortDir = strtoupper($filter['SortDir'] ?? 'DESC') === 'ASC' ? 'ASC' : 'DESC';
+            $this->ReadDb->order_by($sortCol, $sortDir);
             if ($limit > 0) {
                 $this->ReadDb->limit($limit, $offset);
             }
@@ -1301,6 +1319,14 @@ class Transactions_model extends MY_Model {
                 $modes = is_array($filter['PaymentMode']) ? $filter['PaymentMode'] : [$filter['PaymentMode']];
                 $this->ReadDb->where_in('PT2.Name', $modes);
             }
+            if (!empty($filter['DocTypeModuleUIDs']) && is_array($filter['DocTypeModuleUIDs'])) {
+                $docUids = array_values(array_filter(array_map('intval', $filter['DocTypeModuleUIDs'])));
+                if (!empty($docUids)) { $this->ReadDb->where_in('P.ModuleUID', $docUids); }
+            }
+            if (!empty($filter['PartyTypes']) && is_array($filter['PartyTypes'])) {
+                $types = array_values(array_filter($filter['PartyTypes'], fn($t) => in_array($t, ['C', 'S'], true)));
+                if (!empty($types)) { $this->ReadDb->where_in('P.PartyType', $types); }
+            }
 
             return $this->ReadDb->count_all_results();
 
@@ -1354,35 +1380,6 @@ class Transactions_model extends MY_Model {
 
     }
 
-    public function getPaymentsTotals(int $orgUID, array $filter = []): object {
-
-        try {
-
-            $this->ReadDb->db_debug = FALSE;
-            $this->ReadDb->select([
-                "SUM(CASE WHEN P.PartyType = 'C' THEN P.Amount ELSE 0 END) AS TotalReceived",
-                "SUM(CASE WHEN P.PartyType = 'S' THEN P.Amount ELSE 0 END) AS TotalPaid",
-            ]);
-            $this->ReadDb->from('Transaction.PaymentsTbl AS P');
-            $this->ReadDb->where(['P.OrgUID' => $orgUID, 'P.IsDeleted' => 0, 'P.IsActive' => 1]);
-
-            if (!empty($filter['DateFrom']))         $this->ReadDb->where('DATE(P.CreatedOn) >=', $filter['DateFrom']);
-            if (!empty($filter['DateTo']))           $this->ReadDb->where('DATE(P.CreatedOn) <=', $filter['DateTo']);
-            if (!empty($filter['PartyType']))        $this->ReadDb->where('P.PartyType', $filter['PartyType']);
-            if (!empty($filter['PaymentDirection'])) $this->ReadDb->where('P.PaymentDirection', $filter['PaymentDirection']);
-            if (!empty($filter['ModuleUID']))         $this->ReadDb->where('P.PaymentModuleUID', (int)$filter['ModuleUID']);
-            if (!empty($filter['PaymentSource']))     $this->ReadDb->where('P.PaymentSource', $filter['PaymentSource']);
-
-            $query = $this->ReadDb->get();
-            if (!$query) return (object)['TotalReceived' => 0, 'TotalPaid' => 0];
-            return $query->row() ?: (object)['TotalReceived' => 0, 'TotalPaid' => 0];
-
-        } catch (Exception $e) {
-            return (object)['TotalReceived' => 0, 'TotalPaid' => 0];
-        }
-
-    }
-
     public function getPaymentsBalanceStats(int $orgUID, array $filter = []): object {
 
         try {
@@ -1406,6 +1403,14 @@ class Transactions_model extends MY_Model {
             }
             if (!empty($filter['UpdatedByUIDs']) && is_array($filter['UpdatedByUIDs'])) {
                 $this->ReadDb->where_in('P.CreatedBy', array_map('intval', $filter['UpdatedByUIDs']));
+            }
+            if (!empty($filter['DocTypeModuleUIDs']) && is_array($filter['DocTypeModuleUIDs'])) {
+                $docUids = array_values(array_filter(array_map('intval', $filter['DocTypeModuleUIDs'])));
+                if (!empty($docUids)) { $this->ReadDb->where_in('P.ModuleUID', $docUids); }
+            }
+            if (!empty($filter['PartyTypes']) && is_array($filter['PartyTypes'])) {
+                $types = array_values(array_filter($filter['PartyTypes'], fn($t) => in_array($t, ['C', 'S'], true)));
+                if (!empty($types)) { $this->ReadDb->where_in('P.PartyType', $types); }
             }
 
             $query = $this->ReadDb->get();
@@ -1933,8 +1938,57 @@ class Transactions_model extends MY_Model {
         $dec    = 2;
         $fmtAmt = fn($v) => number_format((float)$v, $dec, '.', ',');
 
+        try {
+            $CI        = &get_instance();
+            $_printFmt = $CI->pageData['JwtData']->GenSettings->PrintDateFormat ?? 'd M Y';
+        } catch (Exception $_) {
+            $_printFmt = 'd M Y';
+        }
+        $fmt = function(string $date) use ($_printFmt): string {
+            if (!$date) return '—';
+            $d = date_create($date);
+            return $d ? date_format($d, $_printFmt) : $date;
+        };
+
         $direction  = ($p->PartyType === 'C') ? 'Payment Received' : 'Payment Made';
         $partyLabel = ($p->PartyType === 'C') ? 'Customer' : 'Vendor';
+
+        // Phase 1 — module-based document title
+        // Real module UIDs: 103=Invoices, 105=Purchases, 106=SalesReturns, 108=PurchaseReturns, 114=Expenses, 115=IndirectIncome
+        $moduleDocTypeMap = [
+            103 => 'Payment Receipt',
+            105 => 'Payment Voucher',
+            106 => 'Refund Receipt',
+            108 => 'Refund Voucher',
+            114 => 'Expense Payment',
+            115 => 'Income Receipt',
+        ];
+        $moduleUID = (int)($p->ModuleUID ?? 0);
+        $docType   = $moduleDocTypeMap[$moduleUID] ?? $direction;
+
+        // Phase 5 — context-aware document number label
+        $docNumberLabelMap = [
+            103 => 'Receipt No.',
+            105 => 'Voucher No.',
+            106 => 'Refund No.',
+            108 => 'Refund No.',
+            114 => 'Payment No.',
+            115 => 'Receipt No.',
+        ];
+        $docNumberLabel = $docNumberLabelMap[$moduleUID] ?? 'Payment No.';
+
+        // Phases 3 & 4 — invoice summary block
+        // Check the LINKED transaction's ModuleUID (reliable) OR the payment's own ModuleUID as fallback.
+        // Invoice module UID = 103 (Invoices controller pageModuleUID).
+        $transModuleUID   = (int)($p->TransModuleUID ?? 0);
+        $isInvoicePayment = (($transModuleUID === 103 || $moduleUID === 103) && (int)($p->TransUID ?? 0) > 0);
+        $invSummary       = null;
+        if ($isInvoicePayment) {
+            $invSummary = $this->_getInvoicePaymentSummary((int)$p->TransUID, (int)$p->PaymentUID);
+            if ($invSummary !== null) {
+                $invSummary['outstanding_after'] = max(0.0, $invSummary['outstanding_before'] - (float)($p->Amount ?? 0));
+            }
+        }
         $orgAddr    = implode(', ', array_filter([$org->Line1 ?? '', $org->Line2 ?? '', $org->CityText ?? '', $org->StateText ?? '', $org->Pincode ?? '']));
         $bankLine   = (!$p->IsCash && !empty($p->BankName))
             ? $e($p->BankName) . (!empty($p->AccountName) ? ' (' . $e($p->AccountName) . ')' : '')
@@ -2003,17 +2057,19 @@ class Transactions_model extends MY_Model {
                 ])),
                 '{{PLACE_OF_SUPPLY}}'    => $e($org->StateText ?? ''),
                 /** Document */
-                '{{DOC_TYPE}}'           => $e($direction),
+                '{{DOC_TYPE}}'           => $e($docType),
+                '{{DOC_NUMBER_LABEL}}'   => $e($docNumberLabel),
+                '{{PAYMENT_DIRECTION}}'  => $e($direction),
                 '{{DOC_NUMBER}}'         => $e($p->UniqueNumber ?? ('PMT-' . $p->PaymentUID)),
                 '{{DOC_DATE}}'           => $fmt($p->PaymentDate ?? $p->CreatedOn),
                 /** Party */
-                '{{CUSTOMER_NAME}}'      => $e($p->PartyName   ?? '—'),
+                '{{IS_PARTY}}'           => !empty($p->PartyName) ? '1' : '',
                 '{{PARTY_LABEL}}'        => $e($partyLabel),
-                '{{PARTY_NAME}}'         => $e($p->PartyName   ?? '—'),
+                '{{PARTY_NAME}}'         => $e($p->PartyName   ?? ''),
+                '{{PARTY_ADDRESS}}'      => $e($p->PartyArea   ?? ''),
                 '{{PARTY_PHONE}}'        => $e($p->PartyMobile ?? ''),
                 '{{PARTY_GSTIN}}'        => $e($p->PartyGSTIN  ?? ''),
-                '{{BILLING_ADDRESS}}'    => '',
-                '{{SHIPPING_ADDRESS}}'   => '',
+                '{{BILLING_ADDRESS}}'    => $e($p->PartyArea   ?? ''),
                 /** Amounts */
                 '{{LINKED_DOC}}'         => $e($p->TransNumber ?? ''),
                 '{{BILL_AMOUNT}}'        => !empty($p->BillAmount) ? $fmtAmt($p->BillAmount) : '',
@@ -2030,7 +2086,10 @@ class Transactions_model extends MY_Model {
                 '{{BANK_IFSC}}'          => $e($p->IFSC          ?? ''),
                 '{{BANK_BRANCH}}'        => $e($p->BranchName    ?? ''),
                 '{{REFERENCE_NO}}'       => $e($p->ReferenceNo   ?? ''),
-                '{{RECORDED_BY}}'        => $e($p->CreatedByName ?? '—'),
+                '{{REFERENCE}}'          => $e($p->ReferenceNo   ?? ''),
+                '{{TRANSACTION_REF}}'    => $e($p->ReferenceNo   ?? ''),
+                '{{RECORDED_BY}}'        => $e($p->CreatedByName ?? ''),
+                '{{RECEIVED_BY}}'        => $e($p->CreatedByName ?? ''),
                 /** Org print bank account (for "Pay to" QR / bank details) */
                 '{{BANK_ACCOUNT_NO}}'    => $bankAccNo,
                 '{{BANK_UPI_ID}}'        => $e($bankUpiId),
@@ -2043,20 +2102,41 @@ class Transactions_model extends MY_Model {
                 '{{FOOTER_TEXT}}'        => $e($theme->FooterText ?? 'Thank you for your business!'),
                 '{{CURRENCY}}'           => $cur,
                 '{{PAYMENTS_REF}}'       => $payRefText,
+                '{{COPY_LABEL}}'         => '__COPY_LABEL__',
+                /** Invoice payment summary — {{IF:INVOICE_SUMMARY}} block is shown only for ModuleUID = 100 */
+                '{{INVOICE_SUMMARY}}'        => $isInvoicePayment ? '1' : '',
+                '{{INVOICE_NUMBER}}'         => ($isInvoicePayment && $invSummary) ? $e($invSummary['invoice_number'])         : '',
+                '{{INVOICE_DATE}}'           => ($isInvoicePayment && $invSummary) ? $fmt($invSummary['invoice_date'])          : '',
+                '{{PREVIOUS_BALANCE}}'       => ($isInvoicePayment && $invSummary) ? $fmtAmt($invSummary['outstanding_before']) : '',
+                '{{PARTY_CLOSING_BALANCE}}'  => ($isInvoicePayment && $invSummary) ? $fmtAmt($invSummary['outstanding_after'])  : '',
             ];
             $html = print_apply_tokens($theme->TemplateHtmlContent, $tokens);
             $fontFamily = str_replace("'", "\\'", $theme->FontFamily ?? 'Arial');
             $fontSizePx = (int)($theme->FontSizePx ?? 11);
-            $headInject = '<style>@page{size:A4;margin:0;}body{font-family:\'' . $fontFamily . '\',Arial,sans-serif;font-size:' . $fontSizePx . 'px;}@media print{body{background:#fff;}}</style>';
-            return str_replace('</head>', $headInject . '</head>', $html);
+            $headInject = '<style>@page{size:A4;margin:0;}body{font-family:\'' . $fontFamily . '\',Arial,sans-serif;font-size:' . $fontSizePx . 'px;}@media print{body{background:#fff;}}'
+                . '.r2k-watermark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-45deg);font-size:72px;font-weight:800;letter-spacing:4px;color:rgba(0,0,0,0.045);white-space:nowrap;pointer-events:none;z-index:9999;}'
+                . '</style>';
+            $html = str_replace('</head>', $headInject . '</head>', $html);
+            $wmText = htmlspecialchars($org->BrandName ?? $org->Name ?? '', ENT_QUOTES, 'UTF-8');
+            if (!empty($wmText)) {
+                $html = preg_replace('/<body([^>]*)>/i', '<body$1><div class="r2k-watermark">' . $wmText . '</div>', $html, 1);
+            }
+            return $html;
 
         }
 
-        return $this->_getStaticPaymentReceiptTemplate($p, $org, $theme, $logoHtml, $direction, $partyLabel, $orgAddr, $fmt, $fmtAmt, $bankLine, $bankQrHtml, $signatureSpaceHtml);
+        $html    = $this->_getStaticPaymentReceiptTemplate($p, $org, $theme, $logoHtml, $docType, $partyLabel, $orgAddr, $fmt, $fmtAmt, $bankLine, $bankQrHtml, $signatureSpaceHtml);
+        $wmStyle = '<style>.r2k-watermark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-45deg);font-size:72px;font-weight:800;letter-spacing:4px;color:rgba(0,0,0,0.045);white-space:nowrap;pointer-events:none;z-index:9999;}</style>';
+        $html    = str_replace('</head>', $wmStyle . '</head>', $html);
+        $wmText  = htmlspecialchars($org->BrandName ?? $org->Name ?? '', ENT_QUOTES, 'UTF-8');
+        if (!empty($wmText)) {
+            $html = preg_replace('/<body([^>]*)>/i', '<body$1><div class="r2k-watermark">' . $wmText . '</div>', $html, 1);
+        }
+        return $html;
 
     }
 
-    private function _getStaticPaymentReceiptTemplate(object $p, ?object $org, ?object $theme, string $logoHtml, string $direction, string $partyLabel, string $orgAddr, callable $fmt, callable $fmtAmt, string $bankLine, string $bankQrHtml, string $signatureSpaceHtml): string {
+    private function _getStaticPaymentReceiptTemplate(object $p, ?object $org, ?object $theme, string $logoHtml, string $docType, string $partyLabel, string $orgAddr, callable $fmt, callable $fmtAmt, string $bankLine, string $bankQrHtml, string $signatureSpaceHtml): string {
 
         $e = fn($v) => htmlspecialchars((string)($v ?? ''), ENT_QUOTES);
 
@@ -2088,7 +2168,7 @@ class Transactions_model extends MY_Model {
                             <div style="font-size:10px;">' . $e($orgAddr) . '</div>
                         </td>
                         <td style="text-align:right;vertical-align:top;">
-                            <div class="receipt-title">' . $e($direction) . '</div>
+                            <div class="receipt-title">' . $e($docType) . '</div>
                             <div>' . $e($p->UniqueNumber ?? '') . '</div>
                             <div>' . $fmt($p->PaymentDate ?? $p->CreatedOn) . '</div>
                         </td>
@@ -2134,6 +2214,34 @@ class Transactions_model extends MY_Model {
 
             </div>
         </body></html>';
+    }
+
+    /**
+     * Returns invoice details needed for the Invoice Payment Summary block.
+     * outstanding_before = invoice net amount minus all payments recorded before this one.
+     */
+    private function _getInvoicePaymentSummary(int $transUID, int $paymentUID): ?array {
+        $this->ReadDb->db_debug = FALSE;
+        $this->ReadDb->select(['NetAmount', 'UniqueNumber AS InvoiceNumber', 'TransDate AS InvoiceDate']);
+        $this->ReadDb->from('Transaction.TransactionsTbl');
+        $this->ReadDb->where('TransUID', $transUID);
+        $q1 = $this->ReadDb->get();
+        if (!$q1 || $q1->num_rows() === 0) return null;
+        $inv = $q1->row();
+
+        $this->ReadDb->db_debug = FALSE;
+        $this->ReadDb->select('COALESCE(SUM(Amount), 0) AS PrevPaid');
+        $this->ReadDb->from('Transaction.PaymentsTbl');
+        $this->ReadDb->where(['TransUID' => $transUID, 'IsDeleted' => 0, 'IsActive' => 1]);
+        $this->ReadDb->where('PaymentUID <', $paymentUID);
+        $q2 = $this->ReadDb->get();
+        $prevPaid = $q2 ? (float)($q2->row()->PrevPaid ?? 0) : 0.0;
+
+        return [
+            'invoice_number'     => (string)($inv->InvoiceNumber ?? ''),
+            'invoice_date'       => (string)($inv->InvoiceDate   ?? ''),
+            'outstanding_before' => max(0.0, (float)($inv->NetAmount ?? 0) - $prevPaid),
+        ];
     }
 
     // ── Shared PDF generation ─────────────────────────────────────────────────

@@ -10,8 +10,8 @@
 //   $transShowDropzone         — default: false (set true for quotations)
 //   $transShowChargesBreakdown — default: false (set true for quotations)
 $_secTitle  = isset($transProductSectionTitle) ? $transProductSectionTitle : 'Product &amp; Services Details';
-$_notesPh   = isset($transNotesPlaceholder)    ? $transNotesPlaceholder    : 'Enter your notes, say thanks, or anything else';
-$_termsPh   = isset($transTermsPlaceholder)    ? $transTermsPlaceholder    : 'Enter your business terms &amp; Condition';
+$_notesPh   = isset($transNotesPlaceholder)    ? $transNotesPlaceholder    : t('lbl_notes_placeholder', 'Enter your notes, say thanks, or anything else');
+$_termsPh   = isset($transTermsPlaceholder)    ? $transTermsPlaceholder    : t('lbl_terms_placeholder', 'Enter your business terms & Condition');
 $_notesVal  = isset($transNotesContent)        ? htmlspecialchars($transNotesContent) : '';
 $_termsVal  = isset($transTermsContent)        ? htmlspecialchars($transTermsContent) : '';
 $_dropzone    = !empty($transShowDropzone);
@@ -33,13 +33,13 @@ $_paymentVars    = isset($transPaymentVars) ? $transPaymentVars : null;
         <?php if (!empty($JwtData->TransSettings->ShowProductDescription)): ?>
         <div class="form-check form-check-inline mb-0">
             <input class="form-check-input" type="checkbox" id="chkShowDesc" checked>
-            <label class="form-check-label small" for="chkShowDesc" style="cursor:pointer;">Show Description</label>
+            <label class="form-check-label small" for="chkShowDesc" style="cursor:pointer;"><?php echo t('lbl_show_desc', 'Show Description'); ?></label>
         </div>
         <?php endif; ?>
 <script>window._showProductDescription = <?= !empty($JwtData->TransSettings->ShowProductDescription) ? 'true' : 'false'; ?>;</script>
         <div class="form-check form-check-inline mb-0">
             <input class="form-check-input" type="checkbox" id="chkReverseOrder">
-            <label class="form-check-label small" for="chkReverseOrder" style="cursor:pointer;">Reverse Order</label>
+            <label class="form-check-label small" for="chkReverseOrder" style="cursor:pointer;"><?php echo t('lbl_reverse_order', 'Reverse Order'); ?></label>
         </div>
         <button type="button" class="btn btn-sm btn-outline-danger d-none" id="btnClearCart" style="font-size:.75rem;">
             <i class="bx bx-trash me-1"></i>Clear All
@@ -53,7 +53,7 @@ $_paymentVars    = isset($transPaymentVars) ? $transPaymentVars : null;
         <div class="d-flex align-items-center gap-2 mb-1">
             <div style="width: 20%;">
                 <select id="prodCategory" name="prodCategory" class="form-select form-select-sm">
-                    <option label="Select Category"></option>
+                    <option label="<?php echo t('lbl_select_category', 'Select Category'); ?>"></option>
                 </select>
             </div>
             <div style="width: 35%;">
@@ -87,7 +87,7 @@ $_paymentVars    = isset($transPaymentVars) ? $transPaymentVars : null;
                         <th style="width:30%;">Product Name</th>
                         <th style="width:10%;">Quantity</th>
                         <th style="width:15%;">Unit Price</th>
-                        <th style="width:15%;">Price with Tax <i class="bx bx-info-circle ms-1 fs-6 text-primary" style="cursor:pointer;" data-bs-toggle="tooltip" title="Click to view tax breakdown" onclick="showTaxDetails()"></i></th>
+                        <th style="width:15%;"><?php echo t('lbl_price_with_tax', 'Price with Tax'); ?> <i class="bx bx-info-circle ms-1 fs-6 text-primary" style="cursor:pointer;" data-bs-toggle="tooltip" title="Click to view tax breakdown" onclick="showTaxDetails()"></i></th>
                         <th style="width:15%;">
                             <div class="d-flex align-items-center gap-1 justify-content-center">
                                 <span class="fw-semibold text-nowrap">Discount on</span>
@@ -129,7 +129,7 @@ $_paymentVars    = isset($transPaymentVars) ? $transPaymentVars : null;
             <div class="row mt-1 m-1 p-2">
                 <div class="d-flex align-items-center justify-content-between px-1">
                     <div class="col-md-4">
-                        <label for="globalDiscount" class="form-label fw-semibold mb-0">Apply Discount (%) to all items in the cart</label>
+                        <label for="globalDiscount" class="form-label fw-semibold mb-0"><?php echo t('lbl_apply_discount', 'Apply Discount (%) to all items in the cart'); ?></label>
                         <div class="input-group input-group-merge input-group-sm mt-1 w-50">
                             <input type="text" inputmode="decimal" class="form-control form-control-sm" name="globalDiscount" id="globalDiscount" min="0" step="0.01" max="50" placeholder="Discount (%)" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" maxLength="<?php echo $JwtData->GenSettings->PriceMaxLength; ?>" pattern="^\d{1,<?php echo $JwtData->GenSettings->PriceMaxLength; ?>}(\.\d{0,<?php echo $JwtData->GenSettings->DecimalPoints; ?>})?$" onpaste="handlePricePaste(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" ondrop="handlePriceDrop(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" value="0" />
                             <button class="btn btn-sm btn-outline-danger" type="button" id="clearGlobalDiscount"><i class="bx bx-x"></i></button>
@@ -149,12 +149,12 @@ $_paymentVars    = isset($transPaymentVars) ? $transPaymentVars : null;
 
     <div class="col-md-6">
         <div class="mb-2">
-            <label for="transNotes" class="form-label small fw-semibold">Notes</label>
+            <label for="transNotes" class="form-label small fw-semibold"><?php echo t('lbl_notes', 'Notes'); ?></label>
             <textarea class="form-control" name="transNotes" id="transNotes" rows="2" placeholder="<?php echo $_notesPh; ?>"><?php echo $_notesVal; ?></textarea>
         </div>
         <?php if (empty($transHideTerms)): ?>
         <div class="mb-2">
-            <label for="transTermsCond" class="form-label small fw-semibold">Terms &amp; Conditions</label>
+            <label for="transTermsCond" class="form-label small fw-semibold"><?php echo t('lbl_terms', 'Terms & Conditions'); ?></label>
             <textarea class="form-control" name="transTermsCond" id="transTermsCond" rows="2" placeholder="<?php echo $_termsPh; ?>"><?php echo $_termsVal; ?></textarea>
         </div>
         <?php endif; ?>

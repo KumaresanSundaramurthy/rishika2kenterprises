@@ -109,7 +109,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
             </div><!-- /modal-body -->
 
             <div class="modal-footer py-3" style="background:#f8f9fa;border-top:1px solid #dee2e6;">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"><?php echo t('cancel', 'Cancel'); ?></button>
                 <button type="button" class="btn btn-primary" id="saveAdditionalChargeBtn">
                     <i class="bx bx-save me-1"></i>Save Charge
                 </button>

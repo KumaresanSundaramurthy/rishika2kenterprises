@@ -60,7 +60,7 @@ $this->load->view('common/transactions/header'); ?>
                 </div>
                 <?php endif; ?>
 
-                <div class="container-xxl flex-grow-1 py-3">
+                <div class="container-xxl flex-grow-1">
 
                     <div class="card">
 

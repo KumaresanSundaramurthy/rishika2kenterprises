@@ -142,7 +142,7 @@
 
             <!-- Footer — static -->
             <div class="modal-footer border-top px-4 py-2 flex-shrink-0">
-                <button type="button" class="btn btn-outline-secondary btn-sm px-4" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm px-4" data-bs-dismiss="modal"><?php echo t('cancel', 'Cancel'); ?></button>
                 <button type="button" class="btn btn-primary btn-sm px-4" id="SendCommBtn">
                     <i class="bx bx-send me-1"></i><span id="SendCommBtnLabel">Send</span>
                 </button>

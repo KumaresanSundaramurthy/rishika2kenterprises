@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
+<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Invoices extends MY_Controller {
 
@@ -207,7 +207,7 @@ class Invoices extends MY_Controller {
                 }
             }
 
-            try { $this->load->library('auditlog'); $this->auditlog->log($orgUID, $userUID, 'CREATE_INVOICE', 'Invoice', $transUID, $uniqueNumber ?? 'Draft', ['status' => $status, 'netAmount' => $netAmount, 'customerUID' => $customerUID], ($isDraft ? 'Saved draft invoice' : 'Created invoice') . ' ' . ($uniqueNumber ?? 'Draft'), 'Invoices', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData); } catch (Exception $auditEx) { log_message('error', 'Audit log failed: ' . $auditEx->getMessage()); }
+            try { $this->load->library('auditlog'); $this->auditlog->log($orgUID, $userUID, 'CREATE_INVOICE', 'Invoice', $transUID, $uniqueNumber ?? 'Draft', ['status' => ($isDraft ? 'Draft' : 'Issued'), 'netAmount' => $netAmount, 'customerUID' => $customerUID], ($isDraft ? 'Saved draft invoice' : 'Created invoice') . ' ' . ($uniqueNumber ?? 'Draft'), 'Invoices', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData); } catch (Exception $auditEx) { log_message('error', 'Audit log failed: ' . $auditEx->getMessage()); }
 
             if (!$isDraft) {
                 try {

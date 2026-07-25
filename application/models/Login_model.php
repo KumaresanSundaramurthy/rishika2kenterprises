@@ -35,6 +35,7 @@ class Login_model extends CI_Model {
             // Keep OrgShortCode/OrgToken in User for backward compat (header.php prefix building)
             $JwtUserData['OrgShortCode'] = $UserData->OrgShortCode ?? '';
             $JwtUserData['OrgToken']     = $UserData->OrgToken     ?? '';
+            $JwtUserData['UILanguage']   = $UserData->UILanguage   ?? 'en';
 
             // Org — organisation-level fields
             $JwtOrgData = [];

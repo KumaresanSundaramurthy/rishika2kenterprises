@@ -45,7 +45,7 @@ $_fyLong  = $_fyStart . '-' . ($_fyStart + 1);
                     <button type="button" class="btn btn-primary me-2" id="showAddPrefixFormBtn">
                         <i class="bx bx-plus me-1"></i> Add New Prefix
                     </button>
-                    <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal"><?php echo t('close', 'Close'); ?></button>
                     <!-- <button type="button" class="btn btn-outline-danger btn-icon-square"
                             data-bs-dismiss="modal" aria-label="Close">
                         <i class="bx bx-x fs-4"></i>
@@ -110,7 +110,7 @@ $_fyLong  = $_fyStart . '-' . ($_fyStart + 1);
                 </div><!-- /modal-body -->
 
                 <!-- <div class="modal-footer p-3 d-flex justify-content-between">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"><?php echo t('close', 'Close'); ?></button>
                 </div> -->
 
             </div><!-- /prefixListPanel -->
@@ -264,7 +264,7 @@ $_fyLong  = $_fyStart . '-' . ($_fyStart + 1);
                         <i class="bx bx-arrow-back me-1"></i> Back to List
                     </button>
                     <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"><?php echo t('close', 'Close'); ?></button>
                         <button type="submit" class="btn btn-primary" id="savePrefixBtn">
                             <i class="bx bx-save me-1"></i> Save Prefix
                         </button>

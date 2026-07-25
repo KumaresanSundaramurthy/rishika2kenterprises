@@ -103,6 +103,7 @@ class MY_Controller extends CI_Controller {
     protected function _dateFormat(): string { return       $this->pageData['JwtData']->GenSettings->ListDateFormat ?? 'd M Y'; }
     protected function _currency(): string   { return       $this->pageData['JwtData']->GenSettings->CurrenySymbol  ?? '₹'; }
     protected function _decimals(): int      { return (int)($this->pageData['JwtData']->GenSettings->DecimalPoints  ?? 2); }
+    protected function _uiLang(): string     { return       $this->pageData['JwtData']->User->UILanguage            ?? 'en'; }
 
     /**
      * Looks up the module record from the Redis module cache and sets:

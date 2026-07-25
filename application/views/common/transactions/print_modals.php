@@ -49,7 +49,7 @@
                     <i class="bx bx-file-blank text-primary me-1"></i>
                     <span id="a4ModalTitle">Document Preview</span>
                 </span>
-                <button type="button" class="btn btn-sm btn-outline-secondary px-3" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary px-3" data-bs-dismiss="modal"><?php echo t('close', 'Close'); ?></button>
             </div>
 
             <!-- Row 2: Copy checkboxes (left) | Paper + Actions (right) -->

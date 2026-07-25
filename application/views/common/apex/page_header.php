@@ -56,16 +56,16 @@ foreach ($_qaMenus as $_qaMM) {
         <!-- Quick Access trigger -->
         <button class="apex-header-search-btn" id="apexHeaderSearch" type="button">
             <i class="bx bx-search"></i>
-            <span>Search or go to a module...</span>
+            <span><?php echo t('search_go_module', 'Search or go to a module'); ?>...</span>
             <kbd class="apex-header-search-kbd">Ctrl K</kbd>
         </button>
         <div class="apex-nav-divider"></div>
         <!-- Help -->
-        <button class="apex-nav-btn" title="Help" type="button">
+        <button class="apex-nav-btn" title="<?php echo t('lbl_help', 'Help'); ?>" type="button">
             <i class="bx bx-help-circle"></i>
         </button>
         <!-- Notifications -->
-        <button class="apex-nav-btn" id="apexNotifBtn" title="Notifications" type="button">
+        <button class="apex-nav-btn" id="apexNotifBtn" title="<?php echo t('lbl_notifications', 'Notifications'); ?>" type="button">
             <i class="bx bx-bell"></i>
             <span class="apex-notif-badge" id="apexNotifCount" style="display:none;">0</span>
         </button>
@@ -94,17 +94,17 @@ foreach ($_qaMenus as $_qaMM) {
                 </div>
                 <div class="apex-user-dd-divider"></div>
                 <a href="/settings/profile" class="apex-user-dd-item">
-                    <i class="bx bx-user"></i> My Profile
+                    <i class="bx bx-user"></i> <?php echo t('my_profile', 'My Profile'); ?>
                 </a>
                 <a href="/settings/generalsettings" class="apex-user-dd-item">
-                    <i class="bx bx-cog"></i> Settings
+                    <i class="bx bx-cog"></i> <?php echo t('settings', 'Settings'); ?>
                 </a>
                 <button class="apex-user-dd-item ChangePasswordBtn" type="button">
-                    <i class="bx bx-lock"></i> Change Password
+                    <i class="bx bx-lock"></i> <?php echo t('change_password', 'Change Password'); ?>
                 </button>
                 <div class="apex-user-dd-divider"></div>
                 <a href="/logout" class="apex-user-dd-item apex-user-dd-logout">
-                    <i class="bx bx-power-off"></i> Log Out
+                    <i class="bx bx-power-off"></i> <?php echo t('log_out', 'Log Out'); ?>
                 </a>
             </div>
         </div>
@@ -117,8 +117,8 @@ foreach ($_qaMenus as $_qaMM) {
         <!-- Header: title + subtitle + close -->
         <div class="r2k-qs-header">
             <div>
-                <div class="r2k-qs-title">Quick Access</div>
-                <div class="r2k-qs-subtitle">Search or go to any module</div>
+                <div class="r2k-qs-title"><?php echo t('quick_access', 'Quick Access'); ?></div>
+                <div class="r2k-qs-subtitle"><?php echo t('search_go_module', 'Search or go to any module'); ?></div>
             </div>
             <button class="r2k-qs-close" id="apexQuickAccessClose" type="button" title="Close">
                 <i class="bx bx-x"></i>
@@ -128,7 +128,7 @@ foreach ($_qaMenus as $_qaMM) {
         <div class="r2k-qs-search-row">
             <i class="bx bx-search r2k-qs-search-icon"></i>
             <input type="text" id="apexQuickSearchInput" class="r2k-qs-search-input"
-                   placeholder="Search or go to a module..." autocomplete="off" spellcheck="false">
+                   placeholder="<?php echo t('search_go_module', 'Search or go to a module'); ?>..." autocomplete="off" spellcheck="false">
             <span class="r2k-qs-kbd-badge"><kbd>Ctrl</kbd><kbd>K</kbd></span>
         </div>
         <div class="r2k-qs-body" id="apexQABody">
@@ -136,7 +136,7 @@ foreach ($_qaMenus as $_qaMM) {
         </div>
         <div class="r2k-qs-footer">
             <i class="bx bx-bulb r2k-qs-footer-tip-icon"></i>
-            <span>Tip: Press <kbd>Ctrl K</kbd> anywhere to open Quick Access</span>
+            <span><?php echo t('tip_ctrl_k', 'Tip: Press Ctrl K anywhere to open Quick Access'); ?></span>
             <span class="r2k-qs-footer-sep"></span>
             <span><kbd>ESC</kbd> to close</span>
         </div>

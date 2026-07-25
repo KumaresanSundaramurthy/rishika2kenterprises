@@ -78,7 +78,7 @@ if (!empty($DataLists)):
         <td>
             <div class="trans-amount-main"><?php echo $currency . ' ' . smartDecimal($list->NetAmount, $decimals, true); ?></div>
             <?php if ($status === 'Partial' && $pendingAmt > 0): ?>
-                <div style="font-size:.7rem;color:#dc3545;margin-top:2px;">Bal <?php echo $currency . ' ' . number_format($pendingAmt, $decimals); ?></div>
+                <div style="font-size:.7rem;color:#dc3545;margin-top:2px;"><?php echo t('lbl_bal', 'Bal'); ?> <?php echo $currency . ' ' . number_format($pendingAmt, $decimals); ?></div>
             <?php endif; ?>
         </td>
 
@@ -100,7 +100,7 @@ if (!empty($DataLists)):
         <td>
             <span class="trans-badge <?php echo $badgeClass; ?>">
                 <i class="bx <?php echo $icon; ?>" style="font-size:.8rem;"></i>
-                <?php echo htmlspecialchars($status); ?>
+                <?php echo htmlspecialchars($statusLabels[$status] ?? $status); ?>
             </span>
         </td>
 
@@ -160,20 +160,10 @@ if (!empty($DataLists)):
 
         <!-- Last Updated -->
         <td>
-            <?php
-                $updatedOn  = $list->UpdatedOn ?? null;
-                $secondsAgo = $updatedOn ? (time() - strtotime($updatedOn)) : null;
-                $within24h  = $secondsAgo !== null && $secondsAgo < 86400;
-                $agoText    = '';
-                if ($within24h) {
-                    if ($secondsAgo < 60)       $agoText = 'just now';
-                    elseif ($secondsAgo < 3600) $agoText = (int)($secondsAgo / 60) . ' min' . ((int)($secondsAgo / 60) > 1 ? 's' : '') . ' ago';
-                    else                        $agoText = (int)($secondsAgo / 3600) . ' hr' . ((int)($secondsAgo / 3600) > 1 ? 's' : '') . ' ago';
-                }
-            ?>
-            <div class="r2k-col-date"><?php echo $updatedOn ? changeTimeZonefromDateTime($updatedOn, $JwtData->User->Timezone, 2) : '—'; ?></div>
-            <?php if ($within24h): ?>
-                <div class="r2k-col-date-ago"><?php echo $agoText; ?></div>
+            <?php $updatedTs = viewPageDateTimeFormat($list->UpdatedOn ?? null, $JwtData->User->Timezone ?? 'UTC', 2); ?>
+            <div class="r2k-col-date"><?php echo $updatedTs->formatted; ?></div>
+            <?php if ($updatedTs->ago): ?>
+                <div class="r2k-col-date-ago"><?php echo $updatedTs->ago; ?></div>
             <?php endif; ?>
             <div class="text-muted r2k-col-date-by">by <?php echo htmlspecialchars(trim($list->UpdatedBy ?? '—')); ?></div>
         </td>
@@ -190,13 +180,13 @@ if (!empty($DataLists)):
                         data-total="<?php echo htmlspecialchars($netAmt); ?>"
                         data-paid="<?php echo htmlspecialchars($paidAmt); ?>"
                         data-pending="<?php echo htmlspecialchars($pendingAmt); ?>"
-                        title="Record Payment"><?php echo $currency; ?></button>
+                        title="<?php echo t('act_record_payment', 'Record Payment'); ?>"><?php echo $currency; ?></button>
                 <?php endif; ?>
 
                 <?php if ($status !== 'Cancelled'): ?>
                 <button class="btn btn-icon btn-sm text-warning expEdit"
                         data-uid="<?php echo (int)$list->ExpenseUID; ?>"
-                        title="Edit">
+                        title="<?php echo t('edit', 'Edit'); ?>">
                     <i class="bx bx-edit"></i>
                 </button>
                 <?php endif; ?>
@@ -216,14 +206,14 @@ if (!empty($DataLists)):
                                     data-total="<?php echo htmlspecialchars($netAmt); ?>"
                                     data-paid="<?php echo htmlspecialchars($paidAmt); ?>"
                                     data-pending="<?php echo htmlspecialchars($pendingAmt); ?>">
-                                <i class="bx bx-wallet me-2 text-success"></i>Record Payment
+                                <i class="bx bx-wallet me-2 text-success"></i><?php echo t('act_record_payment', 'Record Payment'); ?>
                             </button>
                         </li>
                         <li>
                             <button class="dropdown-item expCancel"
                                     data-uid="<?php echo (int)$list->ExpenseUID; ?>"
                                     data-num="<?php echo htmlspecialchars($list->ExpenseNumber ?? ''); ?>">
-                                <i class="bx bx-x-circle me-2 text-warning"></i>Cancel Expense
+                                <i class="bx bx-x-circle me-2 text-warning"></i><?php echo t('act_cancel_expense', 'Cancel Expense'); ?>
                             </button>
                         </li>
                         <li><hr class="dropdown-divider my-1"></li>
@@ -231,7 +221,7 @@ if (!empty($DataLists)):
                             <button class="dropdown-item text-danger expDelete"
                                     data-uid="<?php echo (int)$list->ExpenseUID; ?>"
                                     data-num="<?php echo htmlspecialchars($list->ExpenseNumber ?? 'this expense'); ?>">
-                                <i class="bx bx-trash me-2"></i>Delete
+                                <i class="bx bx-trash me-2"></i><?php echo t('delete', 'Delete'); ?>
                             </button>
                         </li>
                         <?php endif; ?>
@@ -241,7 +231,7 @@ if (!empty($DataLists)):
                             <button class="dropdown-item expClone"
                                     data-uid="<?php echo (int)$list->ExpenseUID; ?>"
                                     data-num="<?php echo htmlspecialchars($list->ExpenseNumber ?? ''); ?>">
-                                <i class="bx bx-git-branch me-2 text-info"></i>Clone
+                                <i class="bx bx-git-branch me-2 text-info"></i><?php echo t('act_clone', 'Clone'); ?>
                             </button>
                         </li>
                         <li><hr class="dropdown-divider my-1"></li>
@@ -249,14 +239,14 @@ if (!empty($DataLists)):
                             <button class="dropdown-item text-warning expMarkCancelled"
                                     data-uid="<?php echo (int)$list->ExpenseUID; ?>"
                                     data-num="<?php echo htmlspecialchars($list->ExpenseNumber ?? ''); ?>">
-                                <i class="bx bx-x-circle me-2"></i>Mark as Cancelled
+                                <i class="bx bx-x-circle me-2"></i><?php echo t('act_mark_cancelled', 'Mark as Cancelled'); ?>
                             </button>
                         </li>
                         <li>
                             <button class="dropdown-item text-danger expDelete"
                                     data-uid="<?php echo (int)$list->ExpenseUID; ?>"
                                     data-num="<?php echo htmlspecialchars($list->ExpenseNumber ?? 'this expense'); ?>">
-                                <i class="bx bx-trash me-2"></i>Delete
+                                <i class="bx bx-trash me-2"></i><?php echo t('delete', 'Delete'); ?>
                             </button>
                         </li>
                         <?php endif; ?>
@@ -264,7 +254,7 @@ if (!empty($DataLists)):
                         <?php if ($status === 'Cancelled'): ?>
                         <li>
                             <button class="dropdown-item text-muted" disabled>
-                                <i class="bx bx-lock-alt me-2"></i>Cancelled — No Actions
+                                <i class="bx bx-lock-alt me-2"></i><?php echo t('act_cancelled_no_actions', 'Cancelled — No Actions'); ?>
                             </button>
                         </li>
                         <?php endif; ?>
@@ -283,9 +273,9 @@ else:
         <td colspan="9">
             <div class="d-flex flex-column align-items-center py-5">
                 <img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:150px;object-fit:contain;">
-                <span class="text-muted mb-3" style="font-size:.9rem;">No expenses found</span>
+                <span class="text-muted mb-3" style="font-size:.9rem;"><?php echo t('empty_expenses', 'No expenses found'); ?></span>
                 <button type="button" class="btn btn-primary btn-sm px-4 addExpenseBtn">
-                    <i class="bx bx-plus me-1"></i>Add Expense
+                    <i class="bx bx-plus me-1"></i><?php echo t('add_expense', 'Add Expense'); ?>
                 </button>
             </div>
         </td>

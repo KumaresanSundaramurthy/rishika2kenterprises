@@ -158,7 +158,7 @@ $rpBtnLabel    = $rpBtnLabel    ?? 'Record Payment';
 
                 <!-- Footer -->
                 <div class="rp-footer">
-                    <button type="button" class="btn btn-outline-secondary btn-sm px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm px-3" data-bs-dismiss="modal"><?php echo t('cancel', 'Cancel'); ?></button>
                     <button type="button" class="btn btn-primary btn-sm px-4" id="btnSubmitPayment">
                         <i class="bx bx-check me-1"></i> <?php echo htmlspecialchars($rpBtnLabel); ?>
                     </button>

@@ -85,7 +85,7 @@
                 <span id="r2kCrDisplay" class="text-muted" style="font-size:.82rem;"></span>
                 <div class="d-flex gap-2">
                     <button type="button" class="btn btn-outline-secondary btn-sm px-4"
-                            id="r2kCrCancel">Cancel</button>
+                            id="r2kCrCancel"><?php echo t('cancel', 'Cancel'); ?></button>
                     <button type="button" class="btn btn-primary btn-sm px-4"
                             id="r2kCrApply" disabled>Apply</button>
                 </div>

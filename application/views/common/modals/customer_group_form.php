@@ -17,10 +17,10 @@
                 </div>
                 <div class="d-flex align-items-center gap-2">
                     <button type="button" class="btn btn-sm btn-primary" id="CGroupSaveBtn">
-                        <i class="bx bx-check me-1"></i><span id="CGroupSaveBtnLabel">Save</span>
+                        <i class="bx bx-check me-1"></i><span id="CGroupSaveBtnLabel"><?php echo t('save', 'Save'); ?></span>
                     </button>
                     <button type="button" class="btn btn-sm btn-outline-danger" data-bs-dismiss="modal">
-                        <i class="bx bx-x me-1"></i>Close
+                        <i class="bx bx-x me-1"></i><?php echo t('close', 'Close'); ?>
                     </button>
                 </div>
             </div>

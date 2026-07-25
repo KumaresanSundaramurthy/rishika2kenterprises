@@ -24,10 +24,8 @@ var _editItems     = _isEdit ? (_editData.items || []) : [];
 $(function () {
     'use strict';
 
-    if (!_isEdit || _isDraftEdit) {
-        window._custSearchHideCreate = true;
-        searchCustomers('customerSearch');
-    }
+    window._custSearchHideCreate = true;
+    searchCustomers('customerSearch');
     transDatePickr('#transDate_disp', '#transDate', false, false, true, true, '');
 
     // Load invoices when customer is selected (Automatic / Both modes)
@@ -271,14 +269,22 @@ $(function () {
 
     // ── Edit path ────────────────────────────────────────────────────────────
     if (_isEdit) {
-        initTransAttachments(_editData.transUID, '/transactions/getAttachments', _formModuleUID || 106);
+        renderTransAttachmentsFromData(_editData.attachments || []);
 
-        if (_isDraftEdit && _editData.custUID > 0) {
+        if (_editData.custUID > 0) {
+            var _custLabel = _editData.custName || '';
+            if (_editData.custArea)   _custLabel += ', ' + _editData.custArea;
+            if (_editData.custMobile) _custLabel += ' (' + _editData.custMobile + ')';
             $('#customerSearch')
-                .append(new Option(_editData.custName || '', _editData.custUID, true, true))
+                .append(new Option(_custLabel, _editData.custUID, true, true))
                 .trigger('change');
-        } else if (!_isDraftEdit && _editData.custUID > 0) {
-            if (_srItemMethod !== 'Manual') loadCustomerInvoices(_editData.custUID);
+            if (!_isDraftEdit) {
+                $('#customerSearch')
+                    .on('select2:opening',  function (e) { e.preventDefault(); })
+                    .on('select2:clearing', function (e) { e.preventDefault(); });
+                $('#customerSearch').data('select2').$container.addClass('select2-party-readonly');
+                if (_srItemMethod !== 'Manual') loadCustomerInvoices(_editData.custUID);
+            }
         }
 
         $('#extraDiscount').val(_editData.extraDiscAmount || 0);

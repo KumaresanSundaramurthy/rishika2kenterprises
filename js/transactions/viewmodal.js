@@ -561,7 +561,7 @@
         $.ajax({
             url   : '/transactions/getTransactionDetail',
             method: 'POST',
-            data  : { TransUID: uid, ModuleUID: moduleUID, [CsrfName]: CsrfToken },
+            data  : { TransUID: uid, ModuleUID: moduleUID, PrintType: 'view', [CsrfName]: CsrfToken },
         }).done(function (resp) {
             ajaxLoading(1);
             if (resp.Error) {

@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php $this->load->view('common/transactions/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -123,7 +123,8 @@
 $(function () {
 'use strict';
 var ActiveTab  = '<?php echo $ActiveTabData; ?>';
-var _usedTypes = <?php echo json_encode(array_values($UsedTypes)); ?>;
+var _usedTypes  = <?php echo json_encode(array_values($UsedTypes)); ?>;
+var _transTypes = <?php echo json_encode((object)$TransactionTypes); ?>;
 var PageNo     = 1, Filter = {};
 var _themeModal = new bootstrap.Modal(document.getElementById('themeModal'));
 var _tplModal   = new bootstrap.Modal(document.getElementById('templateModal'));
@@ -301,159 +302,30 @@ function _buildLivePreview(forceReload) {
         return;
     }
 
-    // ── JS-generated fallback (no PreviewHtmlContent) ────────────────────────
+    // ── No PreviewHtmlContent — show placeholder instead of fake invoice ────────
     _previewLoadedUID = null;
-
-    var showLogo         = $('#ShowLogo').is(':checked');
-    var showAddr         = $('#ShowOrgAddress').is(':checked');
-    var showGSTIN        = $('#ShowGSTIN').is(':checked');
-    var showHSN          = $('#ShowHSN').is(':checked');
-    var showTax          = $('#ShowTaxBreakdown').is(':checked');
-
-    var orgName  = _orgPreview.name;
-    var orgAddr  = _orgPreview.addr;
-    var orgPhone = _orgPreview.phone;
-    var orgGST   = _orgPreview.gstin;
-
-    var sysF = ['Arial','Helvetica','Verdana','Tahoma','Trebuchet MS','Times New Roman','Georgia','Palatino Linotype','Calibri'];
-    var fontLink = sysF.indexOf(ff) === -1
-        ? '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=' + encodeURIComponent(ff) + ':wght@400;600;700&display=swap">'
-        : '';
-
-    var logoHtml = showLogo
-        ? '<img src="https://pub-bb40942a33344637936ade1f3800ff8b.r2.dev/Global/favicon_io/android-chrome-512x512-1.png" style="width:44px;height:44px;object-fit:contain;border-radius:4px;flex-shrink:0;" alt="Logo">'
-        : '';
-
-    var addrLines = [];
-    if (showAddr && orgAddr)  addrLines.push('<div>' + orgAddr + '</div>');
-    if (showGSTIN && orgGST)  addrLines.push('<div>GSTIN: ' + orgGST + '</div>');
-    addrLines.push('<div>Ph: ' + orgPhone + '</div>');
-    var addrHtml = addrLines.join('');
-
-    var th = function(t, align) {
-        return '<th style="padding:5px 6px;font-size:7.5pt;font-weight:700;background:' + p + ';color:#fff;border:1px solid ' + acc + ';white-space:nowrap;text-align:' + (align||'left') + ';">' + t + '</th>';
-    };
-    var sampleItems = [
-        { name:'Rotavator Blade',   hsn:'84322900', qty:'2 Nos', rate:'4,500.00', disc:'—',      taxable:'9,000.00', cgst:'9%', cgstA:'810.00',  sgst:'9%', sgstA:'810.00',  amt:'10,620.00' },
-        { name:'Gear Assembly Kit', hsn:'84831000', qty:'1 Set', rate:'3,200.00', disc:'160.00', taxable:'3,040.00', cgst:'9%', cgstA:'273.60',  sgst:'9%', sgstA:'273.60',  amt:'3,587.20'  },
-    ];
-    var thead = '<tr>'
-        + th('#','center') + th('Item Description')
-        + (showHSN ? th('HSN/SAC','center') : '')
-        + th('Qty','center') + th('Rate','right') + th('Disc.','right') + th('Taxable','right')
-        + (showTax ? th('CGST%','center')+th('CGST Amt','right')+th('SGST%','center')+th('SGST Amt','right') : '')
-        + th('Amount','right') + '</tr>';
-
-    var tbody = sampleItems.map(function(it, i) {
-        var bg = i%2 ? '#f8f9fb' : '#fff';
-        var td = function(v, align, bold, color) {
-            return '<td style="padding:5px 6px;font-size:' + fs + 'px;border:1px solid ' + acc + ';background:' + bg + ';text-align:' + (align||'left') + ';' + (bold?'font-weight:700;':'') + (color?'color:'+color+';':'') + '">' + v + '</td>';
-        };
-        var r = '<tr>';
-        r += td(i+1,'center',false,'#aaa');
-        r += td(it.name,'left',true);
-        if (showHSN) r += td(it.hsn,'center',false,'#666');
-        r += td(it.qty,'center');
-        r += td('&#8377; '+it.rate,'right');
-        r += td(it.disc,'right');
-        r += td('&#8377; '+it.taxable,'right');
-        if (showTax) {
-            r += td(it.cgst,'center'); r += td('&#8377; '+it.cgstA,'right');
-            r += td(it.sgst,'center'); r += td('&#8377; '+it.sgstA,'right');
-        }
-        r += td('&#8377; '+it.amt,'right',true);
-        r += '</tr>';
-        return r;
-    }).join('');
-
-    var tRow = function(l, v, bold, color) {
-        return '<tr><td style="padding:3px 10px;font-size:7.5pt;color:#666;border:1px solid ' + acc + ';">' + l + '</td>'
-             + '<td style="padding:3px 10px;font-size:7.5pt;text-align:right;border:1px solid ' + acc + ';' + (bold?'font-weight:700;':'') + (color?'color:'+color+';':'') + '">&#8377; ' + v + '</td></tr>';
-    };
-    var totRows = tRow('Sub Total','12,040.00') + tRow('Discount','160.00',false,'#c00');
-    totRows += showTax ? tRow('CGST','1,083.60')+tRow('SGST','1,083.60') : tRow('Tax (18%)','2,167.20');
-    totRows += '<tr style="background:' + p + ';color:#fff;"><td style="padding:6px 10px;font-weight:700;font-size:9.5pt;">Grand Total</td>'
-             + '<td style="padding:6px 10px;font-weight:700;font-size:9.5pt;text-align:right;">&#8377; 14,207.20</td></tr>';
-
-    var itemsTable = '<table style="width:100%;border-collapse:collapse;margin-bottom:10px;"><thead>' + thead + '</thead><tbody>' + tbody + '</tbody></table>';
-    var totalsBox  = '<div style="display:flex;justify-content:flex-end;margin-bottom:10px;"><table style="min-width:220px;border-collapse:collapse;">' + totRows + '</table></div>';
-    var amtWords   = '<div style="font-size:7.5pt;color:#666;margin-bottom:10px;padding:5px 8px;background:#f9f9f9;border:1px solid #ddd;"><strong>Amount in Words:</strong> Fourteen Thousand Two Hundred Seven Only</div>';
-    var sigHtml    = '<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:10px;border-top:1px solid #ddd;padding-top:8px;">'
-                   + '<div style="font-size:7pt;color:#bbb;">Computer generated document.</div>'
-                   + '<div style="text-align:center;min-width:160px;"><div style="border-top:1px solid #555;padding-top:4px;font-size:8pt;font-weight:600;">Authorised Signatory</div>'
-                   + '<div style="font-size:7pt;color:#888;">For ' + orgName + '</div></div></div>';
-
-    var docBody = '';
-    if (tplKey === 'modern') {
-        docBody  = '<div style="background:' + p + ';padding:12px 14px;display:flex;justify-content:space-between;align-items:center;">'
-                 +   '<div style="display:flex;align-items:center;gap:8px;color:#fff;">'
-                 +     logoHtml
-                 +     '<div><div style="font-size:13pt;font-weight:800;">' + orgName + '</div>'
-                 +     (addrHtml ? '<div style="font-size:7.5pt;opacity:.8;">' + addrHtml.replace(/<div>/g,'').replace(/<\/div>/g,' · ').replace(/ · $/,'') + '</div>' : '') + '</div>'
-                 +   '</div>'
-                 +   '<div style="text-align:right;"><div style="font-size:16pt;font-weight:900;color:' + acc + ';letter-spacing:2px;">TAX INVOICE</div>'
-                 +     '<div style="font-size:8.5pt;font-weight:700;color:#fff;">INV-2025-001</div>'
-                 +     '<div style="font-size:7.5pt;color:rgba(255,255,255,.8);">Date: 05 Apr 2025</div></div></div>'
-                 + '<div style="background:' + acc + ';height:3px;margin-bottom:8px;"></div>'
-                 + '<table style="width:100%;border-collapse:collapse;margin-bottom:8px;"><tr>'
-                 +   '<td style="border:none;width:50%;vertical-align:top;"><div style="font-size:7pt;font-weight:700;color:#888;text-transform:uppercase;margin-bottom:2px;">From</div>'
-                 +   '<div style="font-size:7.5pt;color:#555;">Sample address</div></td>'
-                 +   '<td style="border:none;vertical-align:top;"><div style="font-size:7pt;font-weight:700;color:#888;text-transform:uppercase;margin-bottom:2px;">Bill To</div>'
-                 +   '<div style="font-size:9.5pt;font-weight:700;">Sample Trading Co.</div>'
-                 +   '<div style="font-size:7.5pt;color:#555;">+91 9876543210</div></td></tr></table>'
-                 + itemsTable + amtWords + totalsBox + sigHtml;
-    } else if (tplKey === 'minimal') {
-        docBody  = '<div style="border-top:3px solid ' + p + ';padding-top:12px;">'
-                 + '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">'
-                 +   '<div style="display:flex;align-items:flex-start;gap:8px;">'
-                 +     logoHtml
-                 +     '<div><div style="font-size:14pt;font-weight:800;color:' + p + ';">' + orgName + '</div>'
-                 +     '<div style="font-size:7.5pt;color:#999;">' + addrHtml.replace(/<div>/g,'').replace(/<\/div>/g,' ') + '</div></div>'
-                 +   '</div>'
-                 +   '<div style="text-align:right;">'
-                 +     '<div style="font-size:18pt;font-weight:300;letter-spacing:4px;color:' + p + ';">Invoice</div>'
-                 +     '<div style="font-size:8.5pt;font-weight:600;color:#333;margin-top:3px;">INV-2025-001</div>'
-                 +     '<div style="font-size:7.5pt;color:#aaa;">Date: 05 Apr 2025</div></div></div>'
-                 + '<div style="border-bottom:1px solid #ddd;margin-bottom:10px;"></div>'
-                 + '<div style="margin-bottom:10px;"><div style="font-size:7pt;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:3px;">Bill To</div>'
-                 +   '<div style="font-size:10pt;font-weight:600;color:#222;">Sample Trading Co.</div>'
-                 +   '<div style="font-size:7.5pt;color:#888;">+91 9876543210</div></div>'
-                 + '</div>'
-                 + itemsTable + amtWords + totalsBox + sigHtml;
-    } else {
-        // classic (default for all other keys)
-        docBody  = '<div style="border:2px solid ' + p + ';padding:10px;">'
-                 + '<table style="width:100%;border-collapse:collapse;border-bottom:2px solid ' + acc + ';padding-bottom:6px;margin-bottom:6px;"><tr>'
-                 +   '<td style="border:none;vertical-align:top;">'
-                 +     '<div style="display:flex;align-items:flex-start;gap:8px;">'
-                 +       logoHtml
-                 +       '<div><div style="font-size:12pt;font-weight:800;color:' + p + ';">' + orgName + '</div>'
-                 +       '<div style="font-size:7.5pt;color:#555;">' + addrHtml + '</div></div>'
-                 +     '</div></td>'
-                 +   '<td style="border:none;text-align:right;vertical-align:top;white-space:nowrap;">'
-                 +     '<div style="font-size:16pt;font-weight:800;color:' + p + ';letter-spacing:2px;">TAX INVOICE</div>'
-                 +     '<table style="margin-left:auto;border:1px solid #ddd;border-collapse:collapse;font-size:7.5pt;margin-top:4px;">'
-                 +       '<tr><td style="padding:2px 6px;border-bottom:1px solid #eee;color:#888;">No.</td><td style="padding:2px 6px;border-bottom:1px solid #eee;font-weight:700;">INV-2025-001</td></tr>'
-                 +       '<tr><td style="padding:2px 6px;color:#888;">Date</td><td style="padding:2px 6px;">05 Apr 2025</td></tr>'
-                 +     '</table></td></tr></table>'
-                 + '<table style="width:100%;border-collapse:collapse;margin-bottom:8px;"><tr>'
-                 +   '<td style="width:50%;border:1px solid #ddd;padding:0;vertical-align:top;">'
-                 +     '<div style="background:#f3f4f6;font-size:6.5pt;font-weight:700;padding:3px 6px;border-bottom:1px solid #ddd;color:' + p + ';text-transform:uppercase;">Bill To</div>'
-                 +     '<div style="padding:5px 6px;"><div style="font-size:9.5pt;font-weight:700;">Sample Trading Co.</div>'
-                 +     '<div style="font-size:7.5pt;color:#555;">+91 9876543210</div></div></td>'
-                 +   '<td style="border:none;"></td></tr></table>'
-                 + itemsTable + amtWords + totalsBox + sigHtml
-                 + '</div>';
-    }
-
-    var htmlDoc = '<!DOCTYPE html><html><head><meta charset="UTF-8">'
-        + fontLink
-        + '<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:"' + ff + '",Arial,Helvetica,sans-serif;font-size:' + fs + 'px;color:#222;padding:20px}table{border-collapse:collapse}</style>'
-        + '</head><body>' + docBody + '</body></html>';
-
-    var frame = document.getElementById('livePreviewFrame');
-    if (frame) frame.srcdoc = htmlDoc;
+    (function () {
+        var frame = document.getElementById('livePreviewFrame');
+        if (!frame) return;
+        frame.srcdoc = '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>'
+            + 'body{margin:0;height:100vh;display:flex;align-items:center;justify-content:center;'
+            + 'font-family:Arial,sans-serif;background:#f8f9fa;}'
+            + '.msg{text-align:center;color:#6c757d;user-select:none;pointer-events:none;}'
+            + '</style></head><body>'
+            + '<div class="msg">'
+            + '<svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 24 24"'
+            + ' fill="none" stroke="#dee2e6" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"'
+            + ' style="display:block;margin:0 auto 14px;">'
+            + '<rect x="3" y="3" width="18" height="18" rx="2"/>'
+            + '<path d="M9 8h6M9 12h6M9 16h4"/>'
+            + '</svg>'
+            + '<p style="font-size:14px;font-weight:600;margin:0 0 6px;color:#6c757d;">No Preview Available</p>'
+            + '<p style="font-size:11px;margin:0;color:#adb5bd;">This template has no preview configured.</p>'
+            + '</div></body></html>';
+    })();
+    return;
 }
+
 
 // Tab
 $(document).on('click', '.trans-status-tabs .nav-link', function(e){
@@ -702,21 +574,18 @@ function _fontPreview(){
 $('#FontFamily').on('change',_fontPreview);
 $('#FontSizePx').on('input',_fontPreview);
 
-function _filterTypeOptions(){
-    var isEdit = parseInt($('#ThemeConfigUID').val())>0;
-    var cur    = isEdit ? $('#TransactionType').val() : null;
-    $('#TransactionType option[value!=""]').each(function(){
-        var v=$(this).val();
-        $(this).prop('disabled', _usedTypes.indexOf(v)!==-1 && v!==cur);
-    });
-}
+// Sync hidden TransactionTypeVal when select changes (Add mode)
+$('#TransactionType').on('change', function () {
+    $('#TransactionTypeVal').val($(this).val());
+});
 
 // Open Add
 $('#btnNewTheme').on('click', function(){
     $('#ThemeConfigUID').val(0);
     $('#themeModalTitle').html('<i class="bx bx-palette me-1"></i>Add Print Theme');
-    $('#TransactionType').val('').prop('disabled', false);
-    _filterTypeOptions();
+    $('#TransactionType').val('').show();
+    $('#TransactionTypeVal').val('');
+    $('#ModuleDisplayText').addClass('d-none');
     var _defTpl = _templates.find(function(x){ return x.TemplateKey === 'classic'; }) || _templates[0] || null;
     var _defUID = _defTpl ? _defTpl.TemplateUID : 0;
     $('#TemplateUID').val(_defUID);
@@ -727,7 +596,6 @@ $('#btnNewTheme').on('click', function(){
     $('.r2k-swatch[data-color="'+_dc+'"]').addClass('r2k-swatch-active');
     $('#ShowLogo,#ShowOrgAddress,#ShowGSTIN,#ShowHSN,#ShowTaxBreakdown,#ShowPartyBalance,#ShowTime').prop('checked',true);
     $('#FontFamily').val('Arial'); $('#FontSizePx').val(11);
-    $('#typeUsedNote').addClass('d-none');
     _renderCarousel(_defUID);
     _previewLoadedUID = null;
     _themeModal.show();
@@ -743,8 +611,9 @@ $(document).on('click','.editThemeBtn', function(){
             var d = resp.Data;
             $('#ThemeConfigUID').val(d.ThemeConfigUID);
             $('#themeModalTitle').html('<i class="bx bx-edit me-1"></i>Edit Print Theme');
-            $('#TransactionType').val(d.TransactionType).prop('disabled',true);
-            $('#typeUsedNote').addClass('d-none');
+            $('#TransactionTypeVal').val(d.TransactionType);
+            $('#TransactionType').hide();
+            $('#ModuleDisplayText').text(_transTypes[d.TransactionType] || d.TransactionType).removeClass('d-none');
             var _ec = d.PrimaryColor || '#1a3c6e';
             $('#BrandColor').val(_ec); $('#BrandColorPicker').val(_ec); $('#brandColorRing').css('border-color', _ec);
             $('#PrimaryColor').val(_ec); $('#AccentColor').val(_deriveAccent(_ec));
@@ -768,14 +637,16 @@ $(document).on('click','.editThemeBtn', function(){
 
 // Save theme
 $('#saveThemeBtn').on('click', function(){
-    if(!$('#TransactionType').val()){ Swal.fire({icon:'warning',text:'Please select a transaction type.'}); return; }
+    var _typeVal = $('#TransactionTypeVal').val();
+    if(!_typeVal){ Swal.fire({icon:'warning',text:'Please select a module.'}); return; }
     if(!$('#TemplateUID').val()||$('#TemplateUID').val()==='0'){ Swal.fire({icon:'warning',text:'Please select a template.'}); return; }
+    var _isNewTheme = parseInt($('#ThemeConfigUID').val()) === 0;
     var _bc = $('#BrandColor').val() || '#1a3c6e';
     $('#PrimaryColor').val(_bc); $('#AccentColor').val(_deriveAccent(_bc));
     $('#saveThemeSpinner').removeClass('d-none'); $('#saveThemeBtn').prop('disabled',true);
     var fd = new FormData();
     fd.append('ThemeConfigUID',$('#ThemeConfigUID').val());
-    fd.append('TransactionType',$('#TransactionType').val());
+    fd.append('TransactionType', _typeVal);
     fd.append('TemplateUID',$('#TemplateUID').val());
     fd.append('PrimaryColor',$('#PrimaryColor').val());
     fd.append('AccentColor',$('#AccentColor').val());
@@ -790,7 +661,18 @@ $('#saveThemeBtn').on('click', function(){
     fd.append('FontSizePx',$('#FontSizePx').val());
     fd.append(CsrfName,CsrfToken);
     $.ajax({ url:'/settings/printthemes/saveTheme', method:'POST', data:fd, processData:false, contentType:false,
-        success:function(r){ $('#saveThemeSpinner').addClass('d-none'); $('#saveThemeBtn').prop('disabled',false); if(r.Error){Swal.fire({icon:'error',text:r.Message});return;} _themeModal.hide(); Swal.fire({icon:'success',text:r.Message,timer:1500,showConfirmButton:false}); _loadThemes(); },
+        success:function(r){
+            $('#saveThemeSpinner').addClass('d-none'); $('#saveThemeBtn').prop('disabled',false);
+            if(r.Error){ Swal.fire({icon:'error',text:r.Message}); return; }
+            if(_isNewTheme){
+                // Remove the now-used module from the Add dropdown so it can't be picked again
+                $('#TransactionType option[value="'+_typeVal+'"]').remove();
+                _usedTypes.push(_typeVal);
+            }
+            _themeModal.hide();
+            Swal.fire({icon:'success',text:r.Message,timer:1500,showConfirmButton:false});
+            _loadThemes();
+        },
         error:function(){ $('#saveThemeSpinner').addClass('d-none'); $('#saveThemeBtn').prop('disabled',false); Swal.fire({icon:'error',text:'Request failed.'}); }
     });
 });

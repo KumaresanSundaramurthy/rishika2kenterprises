@@ -10,11 +10,7 @@ $_posName    = $isEdit ? ($PFData->PlaceOfSupplyName  ?? '') : ($JwtData->Org->S
 
 $_returnTab  = $this->input->get('returnTab')  ?: 'All';
 $_returnPage = (int)($this->input->get('returnPage') ?: 1);
-$_closeUrl   = '/proforma';
-$_cParams    = [];
-if ($_returnTab) $_cParams[] = 'tab=' . urlencode($_returnTab);
-if ($_returnPage > 1) $_cParams[] = 'page=' . $_returnPage;
-if ($_cParams) $_closeUrl .= '?' . implode('&', $_cParams);
+$_closeUrl   = trans_build_close_url('/proforma', $_returnTab, $_returnPage);
 
 if ($isEdit && !function_exists('buildPFPrefixSegment')) {
     function buildPFPrefixSegment($cfg) {
@@ -98,6 +94,7 @@ if (!empty($DispatchAddress)) {
                         ?>
                         <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between px-3 py-2 trans-header-static trans-theme modal-header-center-sticky">
                             <div class="d-flex align-items-center gap-3" id="transHeaderInfo">
+                                <?php $this->load->view('transactions/partials/form_back_button'); ?>
                                 <div class="trans-doc-icon" style="background:#ede9fe;">
                                     <i class="bx bx-file-blank" style="color:#7c3aed;font-size:1.1rem;"></i>
                                 </div>
@@ -112,43 +109,12 @@ if (!empty($DispatchAddress)) {
                                                 <span class="trans-form-doc-number"><?php echo htmlspecialchars($PFData->UniqueNumber); ?></span>
                                                 <span class="badge bg-label-<?php echo $_pfStatusClr; ?>" style="font-size:.7rem;"><?php echo htmlspecialchars($_pfStatus); ?></span>
                                             <?php endif; ?>
-                                            <div class="d-flex align-items-center gap-1 <?php echo (!$isDraftEdit ? 'd-none' : ''); ?>">
-                                                <div class="input-group w-auto">
-                                                    <select id="transPrefixSelect" name="transPrefixSelect" class="select2 form-select form-select-sm" <?php echo (!$isDraftEdit ? 'disabled' : 'required'); ?>>
-                                                        <?php try {
-                                                            if (empty($PrefixData)) throw new Exception('No prefix data');
-                                                            foreach ($PrefixData as $preData) {
-                                                                $sel = (int)$preData->PrefixUID === (int)$PFData->PrefixUID ? 'selected' : ''; ?>
-                                                                <option value="<?php echo (int)$preData->PrefixUID; ?>"
-                                                                    data-sep="<?php echo htmlspecialchars($preData->Separator ?? '-'); ?>"
-                                                                    data-fiscal="<?php echo !empty($preData->IncludeFiscalYear) ? '1' : '0'; ?>"
-                                                                    data-fiscal-format="<?php echo htmlspecialchars($preData->FiscalYearFormat ?? 'SHORT'); ?>"
-                                                                    data-inc-short="<?php echo !empty($preData->IncludeShortName) ? '1' : '0'; ?>"
-                                                                    data-short-name="<?php echo htmlspecialchars($preData->ShortName ?? ''); ?>"
-                                                                    data-padding="<?php echo (int)($preData->NumberPadding ?? 3); ?>"
-                                                                    data-next-number="<?php echo (int)($NextNumberMap[(int)$preData->PrefixUID] ?? 1); ?>"
-                                                                    <?php echo $sel; ?>
-                                                                ><?php echo htmlspecialchars($preData->Name); ?></option>
-                                                            <?php }
-                                                        } catch (Exception $e) { ?><option value="">Error loading prefixes</option><?php } ?>
-                                                    </select>
-                                                    <?php if ($isDraftEdit): ?>
-                                                    <button type="button" class="btn btn-outline-secondary" id="addTransPrefixBtn" title="Configure Prefix"><i class="bx bx-cog"></i></button>
-                                                    <?php endif; ?>
-                                                </div>
-                                                <div class="input-group input-group-sm w-auto">
-                                                    <span class="input-group-text cursor-pointer fw-semibold text-primary" id="appendPrefixVal"><?php echo htmlspecialchars($editPrefixSeg); ?></span>
-                                                    <input type="number" id="transNumber" name="transNumber" class="form-control transAutoGenNumber stop-incre-indicator" maxLength="20"
-                                                        onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))"
-                                                        oninput="this.value=this.value.slice(0,this.maxLength)"
-                                                        pattern="[0-9]*" value="<?php echo $editTransNumber; ?>"
-                                                        <?php echo (!$isDraftEdit ? 'disabled' : 'required'); ?> />
-                                                </div>
-                                            </div>
-                                            <?php if (!$isDraftEdit): ?>
-                                            <input type="hidden" name="transPrefixSelect" value="<?php echo (int)$PFData->PrefixUID; ?>" />
-                                            <input type="hidden" name="transNumber"       value="<?php echo (int)$PFData->TransNumber; ?>" />
-                                            <?php endif; ?>
+                                            <?php $this->load->view('transactions/partials/form_prefix_edit', [
+                                                '_editPrefixUID'  => (int)($PFData->PrefixUID   ?? 0),
+                                                'editTransNumber' => $editTransNumber,
+                                                'editPrefixSeg'   => $editPrefixSeg,
+                                                'isDraftEdit'     => $isDraftEdit,
+                                            ]); ?>
                                         <?php endif; ?>
                                     </div>
                                     <?php if ($isEdit && !$isDraftEdit): ?>
@@ -223,6 +189,10 @@ if (!empty($DispatchAddress)) {
                             <!-- ── Customer + fields row ── -->
                             <div class="row g-2 align-items-end mb-2">
                                 <div class="col-md-4">
+                                    <?php if ($isEdit && !$isDraftEdit): ?>
+                                    <label class="trans-field-label mb-1">Customer</label>
+                                    <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
+                                    <?php else: ?>
                                     <div class="d-flex align-items-center justify-content-between mb-1">
                                         <label for="customerSearch" class="trans-field-label mb-0">Select Customer <span class="text-danger">*</span></label>
                                         <?php if (!$isEdit): ?>
@@ -233,6 +203,7 @@ if (!empty($DispatchAddress)) {
                                         <span class="input-group-text p-2 cursor-pointer" id="openCustomerSearchModal" style="background:#f0efff;border-color:#d9d8ff;color:#696cff;"><i class="icon-base bx bx-search"></i></span>
                                         <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
                                     </div>
+                                    <?php endif; ?>
                                 </div>
                                 <div class="col-md-2">
                                     <label class="form-label small fw-semibold">Pro Forma Date <span class="text-danger">*</span></label>
@@ -345,10 +316,7 @@ if (!empty($DispatchAddress)) {
 
             <?php $this->load->view('common/transactions/transprefix'); ?>
             <?php $this->load->view('common/modals/customer_form'); ?>
-            <?php $this->load->view('transactions/modals/taxdetails'); ?>
-            <?php $this->load->view('common/modals/category_form'); ?>
-            <?php $this->load->view('common/modals/product_form'); ?>
-            <?php $this->load->view('common/footer_desc'); ?>
+            <?php $this->load->view('transactions/partials/form_common_modals'); ?>
 
         </div>
     </div>
@@ -369,12 +337,7 @@ if (!empty($DispatchAddress)) {
 <script src="/js/common/category_form.js"></script>
 <script src="/js/common/product_form.js"></script>
 <script src="/js/transactions/attachments.js"></script>
-<script>
-var _transAdditionalCharges  = <?php echo json_encode(array_values($AdditionalCharges   ?? [])); ?>;
-var _transAdditionalTaxOpts  = <?php echo json_encode(array_values($TaxList             ?? [])); ?>;
-var _transTransactionCharges = <?php echo json_encode(array_values($TransactionCharges  ?? [])); ?>;
-</script>
-<script src="/js/transactions/additional_charges.js"></script>
+<?php $this->load->view('transactions/partials/additional_charges_data'); ?>
 
 <script>
 var _transFormData = <?php echo json_encode([
@@ -395,11 +358,14 @@ var _transFormData = <?php echo json_encode([
     'editData'     => $isEdit ? [
         'transUID'          => $transUID,
         'custUID'           => (int)($PFData->PartyUID ?? 0),
-        'custName'          => $PFData->PartyName ?? '',
+        'custName'          => $PFData->PartyName  ?? '',
+        'custArea'          => $PFData->PartyArea   ?? '',
+        'custMobile'        => $PFData->PartyMobile ?? '',
         'custState'         => isset($CustAddr) ? ($CustAddr->StateText ?? '') : '',
         'extraDiscAmount'   => (float)($PFData->ExtraDiscAmount ?? 0),
         'extraDiscType'     => $PFData->ExtraDiscType ?? '',
         'globalDiscPercent' => (float)($PFData->GlobalDiscPercent ?? 0),
+        'attachments'       => $PFAttachments ?? [],
         'items'             => array_map(function($item) {
             return [
                 'id'               => (int)  $item->ProductUID,

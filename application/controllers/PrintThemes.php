@@ -115,12 +115,14 @@ class PrintThemes extends MY_Controller {
             // Load templates for the theme-creation carousel
             $this->pageData['Templates'] = $this->organisation_model->getPrintTemplatesAll()->Data ?? [];
 
-            $this->pageData['TransactionTypes'] = $this->_loadPrintModules()['types'];
+            $printModules = $this->_loadPrintModules();
+            $this->pageData['TransactionTypes']   = $printModules['types'];
+            $this->pageData['TransactionTypeIds'] = $printModules['ids']; // Name => ModuleUID
 
-            // Used types (for disabling in add form)
-            $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
+            // Already-configured modules — compared by ModuleUID (integer, reliable)
+            $orgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
             $configs = $this->organisation_model->getPrintThemeConfigs($orgUID)->Data ?? [];
-            $this->pageData['UsedTypes'] = array_map(fn($c) => $c->TransactionType, $configs);
+            $this->pageData['UsedTypes'] = array_map(fn($c) => (int)$c->ModuleUID, $configs);
 
             // Org data for preview
             $orgData = $this->organisation_model->getOrgInfoCached($orgUID)->Data;

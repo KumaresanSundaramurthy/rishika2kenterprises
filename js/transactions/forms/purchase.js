@@ -33,9 +33,8 @@ $(function () {
     if (_isEdit) {
         initTooltips();
         renderTransAttachmentsFromData(_editData.attachments || []);
-    } else {
-        searchVendors('vendorSearch');
     }
+    searchVendors('vendorSearch');
 
     transDatePickr('#transDate_disp',   '#transDate',   false, false, true,  true,  '');
     transDatePickr('#billDueDate_disp', '#billDueDate', false, false, false, false, '#transDate');
@@ -56,7 +55,19 @@ $(function () {
     }());
 
     if (_isEdit) {
-        // Vendor pre-set via hidden input — no select2 needed
+        if (_editData.vendorUID > 0) {
+            var _vendorLabel = _editData.vendorName || '';
+            if (_editData.vendorArea) _vendorLabel += ' (' + _editData.vendorArea + ')';
+            $('#vendorSearch')
+                .append(new Option(_vendorLabel, _editData.vendorUID, true, true))
+                .trigger('change');
+            if (!_isDraftEdit) {
+                $('#vendorSearch')
+                    .on('select2:opening',  function (e) { e.preventDefault(); })
+                    .on('select2:clearing', function (e) { e.preventDefault(); });
+                $('#vendorSearch').data('select2').$container.addClass('select2-party-readonly');
+            }
+        }
         if (typeof billManager !== 'undefined' && _orgState && _vendorState) {
             billManager.isInterState = (_vendorState.trim().toLowerCase() !== _orgState.trim().toLowerCase());
         }
@@ -64,12 +75,7 @@ $(function () {
         if (typeof billManager !== 'undefined' && typeof formationTableBillItems === 'function'
                 && Array.isArray(_editItems) && _editItems.length > 0) {
             $('#billTableBody').empty();
-            _editItems.forEach(function (item) {
-                var added = billManager.addItem(item, item.quantity);
-                if (added !== false) formationTableBillItems(billManager.getItemById(item.id));
-            });
-            if (typeof updateItemTaxBreakdown === 'function') updateItemTaxBreakdown();
-            billManager.updateSummary();
+            billManager.batchAdd(_editItems, formationTableBillItems);
         }
 
         if (_editData.globalDiscPercent > 0) {
@@ -316,7 +322,7 @@ $(function () {
         _delegate(t.dataset.stickyAction || t.dataset.inlineAction);
     });
 
-    var _totEl  = document.getElementById('bill_tot_amt');
+    var _totEl  = document.querySelector('.bill_tot_amt');
     if (_totEl) new MutationObserver(_sync).observe(_totEl, { childList: true, subtree: true, characterData: true });
     var _payRows = document.getElementById('paymentRowsBody');
     if (_payRows) new MutationObserver(_sync).observe(_payRows, { childList: true, subtree: true, characterData: true });

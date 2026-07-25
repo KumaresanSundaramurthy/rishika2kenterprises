@@ -30,17 +30,22 @@ $(function () {
     'use strict';
 
     if (_isEdit) {
-        initTransAttachments(_transUID, '/transactions/getAttachments', 108);
+        renderTransAttachmentsFromData(_editData.attachments || []);
     }
 
-    if (!_isEdit || _isDraftEdit) {
-        searchVendors('vendorSearch');
-        window._custSearchHideCreate = true;
-        if (_isDraftEdit && _editData.vendorUID) {
-            $('#vendorSearch').append(new Option(
-                _editData.vendorName || '',
-                _editData.vendorUID, true, true
-            )).trigger('change');
+    window._custSearchHideCreate = true;
+    searchVendors('vendorSearch');
+    if (_isEdit && _editData.vendorUID > 0) {
+        var _vendorLabel = _editData.vendorName || '';
+        if (_editData.vendorArea) _vendorLabel += ' (' + _editData.vendorArea + ')';
+        $('#vendorSearch')
+            .append(new Option(_vendorLabel, _editData.vendorUID, true, true))
+            .trigger('change');
+        if (!_isDraftEdit) {
+            $('#vendorSearch')
+                .on('select2:opening',  function (e) { e.preventDefault(); })
+                .on('select2:clearing', function (e) { e.preventDefault(); });
+            $('#vendorSearch').data('select2').$container.addClass('select2-party-readonly');
         }
     }
 
@@ -472,7 +477,7 @@ $(function () {
         _delegate(t.dataset.stickyAction || t.dataset.inlineAction);
     });
 
-    var _totEl  = document.getElementById('bill_tot_amt');
+    var _totEl  = document.querySelector('.bill_tot_amt');
     if (_totEl) new MutationObserver(_sync).observe(_totEl, { childList: true, subtree: true, characterData: true });
     _sync();
 }());

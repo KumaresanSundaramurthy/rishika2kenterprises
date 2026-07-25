@@ -996,28 +996,7 @@ class Purchases extends MY_Controller {
             );
             $this->EndReturnData->IsFullyPaid = $isFullyPaid;
 
-            // Refresh the purchase list
-            $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
-            $limit  = $GeneralSettings->RowLimit ?? 10;
-            $pageNo = (int) $this->input->post('CurrentPage') ?: 1;
-            $offset = ($pageNo - 1) * $limit;
-            $filter = $this->input->post('Filter') ?: [];
-
-            $allData      = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, 0);
-            $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $filter);
-            $summaryStats = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $orgUID);
-
-            $this->pageData['JwtData']->GenSettings = $GeneralSettings;
-            $rowHtml = $this->load->view('transactions/purchases/list', [
-                'DataLists'    => $allData,
-                'SerialNumber' => $offset,
-                'JwtData'      => $this->pageData['JwtData'],
-            ], true);
-
-            $this->EndReturnData->RecordHtmlData = $rowHtml;
-            $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml('/transactions/getPageDetails/105', $allDataCount, $pageNo, $limit);
-            $this->EndReturnData->TotalCount     = $allDataCount;
-            $this->EndReturnData->SummaryStats   = $summaryStats;
+            $this->_buildPaymentListResponse('transactions/purchases/list', '/transactions/getPageDetails/105');
 
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();

@@ -10,11 +10,7 @@ $_posName    = $isEdit ? ($InvData->PlaceOfSupplyName  ?? '') : ($JwtData->Org->
 
 $_returnTab  = $this->input->get('returnTab')  ?: 'All';
 $_returnPage = (int)($this->input->get('returnPage') ?: 1);
-$_closeUrl   = '/invoices';
-$_cParams    = [];
-if ($_returnTab) $_cParams[] = 'tab=' . urlencode($_returnTab);
-if ($_returnPage > 1) $_cParams[] = 'page=' . $_returnPage;
-if ($_cParams) $_closeUrl .= '?' . implode('&', $_cParams);
+$_closeUrl   = trans_build_close_url('/invoices', $_returnTab, $_returnPage);
 
 if ($isEdit && !function_exists('buildInvPrefixSegment')) {
     function buildInvPrefixSegment($cfg) {
@@ -125,6 +121,7 @@ if ($isEdit) {
 
                         <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between px-3 py-2 trans-header-static trans-theme modal-header-center-sticky">
                             <div class="d-flex align-items-center gap-3" id="transHeaderInfo">
+                                <?php $this->load->view('transactions/partials/form_back_button'); ?>
                                 <div class="trans-doc-icon bg-primary bg-opacity-10">
                                     <i class="bx bx-receipt text-primary" style="font-size:1.1rem;"></i>
                                 </div>
@@ -139,46 +136,12 @@ if ($isEdit) {
                                                 <span class="trans-form-doc-number"><?php echo htmlspecialchars($InvData->UniqueNumber); ?></span>
                                                 <span class="badge bg-label-<?php echo $hStatusClr; ?>" style="font-size:.7rem;"><?php echo $hStatus; ?></span>
                                             <?php endif; ?>
-                                            <div class="d-flex align-items-center gap-1 <?php echo (!$isDraftEdit ? 'd-none' : ''); ?>">
-                                                <div class="input-group w-auto">
-                                                    <select id="transPrefixSelect" name="transPrefixSelect" class="select2 form-select form-select-sm" <?php echo (!$isDraftEdit ? 'disabled' : 'required'); ?>>
-                                                        <?php try {
-                                                            if (empty($PrefixData)) throw new Exception('Prefix data not loaded');
-                                                            foreach ($PrefixData as $preData) {
-                                                                $isSelected = (int)$preData->PrefixUID === (int)$InvData->PrefixUID ? 'selected' : '';
-                                                            ?>
-                                                            <option value="<?php echo (int)$preData->PrefixUID; ?>"
-                                                                data-sep="<?php echo htmlspecialchars($preData->Separator ?? '-'); ?>"
-                                                                data-fiscal="<?php echo !empty($preData->IncludeFiscalYear) ? '1' : '0'; ?>"
-                                                                data-fiscal-format="<?php echo htmlspecialchars($preData->FiscalYearFormat ?? 'SHORT'); ?>"
-                                                                data-inc-short="<?php echo !empty($preData->IncludeShortName) ? '1' : '0'; ?>"
-                                                                data-short-name="<?php echo htmlspecialchars($preData->ShortName ?? ''); ?>"
-                                                                data-padding="<?php echo (int)($preData->NumberPadding ?? 3); ?>"
-                                                                data-next-number="<?php echo (int)($NextNumberMap[(int)$preData->PrefixUID] ?? 1); ?>"
-                                                                <?php echo $isSelected; ?>
-                                                            ><?php echo htmlspecialchars($preData->Name); ?></option>
-                                                        <?php }
-                                                        } catch (Exception $e) { ?>
-                                                            <option value="">Error loading prefixes</option>
-                                                        <?php } ?>
-                                                    </select>
-                                                    <?php if ($isDraftEdit): ?>
-                                                    <button type="button" class="btn btn-outline-secondary" id="addTransPrefixBtn" title="Configure Prefix"><i class="bx bx-cog"></i></button>
-                                                    <?php endif; ?>
-                                                </div>
-                                                <div class="input-group input-group-sm w-auto">
-                                                    <span class="input-group-text cursor-pointer fw-semibold text-primary" id="appendPrefixVal"><?php echo htmlspecialchars($editPrefixSeg); ?></span>
-                                                    <input type="number" id="transNumber" name="transNumber" class="form-control transAutoGenNumber stop-incre-indicator" maxLength="20"
-                                                        onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))"
-                                                        oninput="this.value=this.value.slice(0,this.maxLength)"
-                                                        pattern="[0-9]*" value="<?php echo $editTransNumber; ?>"
-                                                        <?php echo (!$isDraftEdit ? 'disabled' : 'required'); ?> />
-                                                </div>
-                                            </div>
-                                            <?php if (!$isDraftEdit): ?>
-                                            <input type="hidden" name="transPrefixSelect" value="<?php echo (int)$InvData->PrefixUID; ?>" />
-                                            <input type="hidden" name="transNumber" value="<?php echo (int)$InvData->TransNumber; ?>" />
-                                            <?php endif; ?>
+                                            <?php $this->load->view('transactions/partials/form_prefix_edit', [
+                                                '_editPrefixUID'  => (int)($InvData->PrefixUID  ?? 0),
+                                                'editTransNumber' => $editTransNumber,
+                                                'editPrefixSeg'   => $editPrefixSeg,
+                                                'isDraftEdit'     => $isDraftEdit,
+                                            ]); ?>
                                         <?php endif; ?>
                                     </div>
                                     <?php if ($isEdit && !$isDraftEdit): ?>
@@ -281,21 +244,8 @@ if ($isEdit) {
                                 <!-- Customer -->
                                 <div class="col-md-4">
                                     <?php if ($isEdit && !$isDraftEdit): ?>
-                                        <label class="trans-field-label">Customer</label>
-                                        <div class="trans-vendor-card">
-                                            <div class="trans-vendor-card-name"><i class="bx bx-user me-1"></i><?php echo htmlspecialchars($InvData->PartyName ?? '—'); ?></div>
-                                            <?php if (!empty($InvData->PartyMobile)): ?>
-                                            <div class="trans-vendor-card-meta"><i class="bx bx-phone me-1"></i><?php echo htmlspecialchars($InvData->PartyMobile); ?></div>
-                                            <?php endif; ?>
-                                            <?php if (!empty($InvData->PartyGSTIN)): ?>
-                                            <div class="trans-vendor-card-meta"><i class="bx bx-id-card me-1"></i><?php echo htmlspecialchars($InvData->PartyGSTIN); ?></div>
-                                            <?php endif; ?>
-                                            <?php $_cParts = array_filter([$CustAddr->Line1 ?? '', $CustAddr->CityText ?? '', $CustAddr->StateText ?? '']);
-                                                if (!empty($_cParts)): ?>
-                                            <div class="trans-vendor-card-meta"><i class="bx bx-map me-1"></i><?php echo htmlspecialchars(implode(', ', $_cParts)); ?></div>
-                                            <?php endif; ?>
-                                        </div>
-                                        <input type="hidden" id="customerSearch" name="customerSearch" value="<?php echo (int)$InvData->PartyUID; ?>" />
+                                        <label class="trans-field-label mb-1">Customer</label>
+                                        <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
                                     <?php else: ?>
                                         <div class="d-flex align-items-center justify-content-between mb-2">
                                             <label for="customerSearch" class="trans-field-label mb-0">Customer <span class="text-danger">*</span></label>
@@ -544,10 +494,7 @@ if ($isEdit) {
 
             <?php $this->load->view('common/transactions/transprefix'); ?>
             <?php $this->load->view('common/modals/customer_form'); ?>
-            <?php $this->load->view('transactions/modals/taxdetails'); ?>
-            <?php $this->load->view('common/modals/category_form'); ?>
-            <?php $this->load->view('common/modals/product_form'); ?>
-            <?php $this->load->view('common/footer_desc'); ?>
+            <?php $this->load->view('transactions/partials/form_common_modals'); ?>
 
         </div>
 
@@ -572,12 +519,7 @@ if ($isEdit) {
 <script src="/js/transactions/payment_section.js"></script>
 <?php endif; ?>
 <script src="/js/transactions/attachments.js"></script>
-<script>
-var _transAdditionalCharges  = <?php echo json_encode(array_values($AdditionalCharges   ?? [])); ?>;
-var _transAdditionalTaxOpts  = <?php echo json_encode(array_values($TaxList             ?? [])); ?>;
-var _transTransactionCharges = <?php echo json_encode(array_values($TransactionCharges  ?? [])); ?>;
-</script>
-<script src="/js/transactions/additional_charges.js"></script>
+<?php $this->load->view('transactions/partials/additional_charges_data'); ?>
 
 <script>
 var _transFormData = <?php echo json_encode([
@@ -597,6 +539,9 @@ var _transFormData = <?php echo json_encode([
     'decimals'     => (int)($JwtData->GenSettings->DecimalPoints ?? 2),
     'editData'     => $isEdit ? [
         'custUID'           => (int)($InvData->PartyUID ?? 0),
+        'custName'          => $InvData->PartyName  ?? '',
+        'custArea'          => $InvData->PartyArea   ?? '',
+        'custMobile'        => $InvData->PartyMobile ?? '',
         'custState'         => $CustAddr->StateText ?? '',
         'extraDiscAmount'   => (float)($InvData->ExtraDiscAmount ?? 0),
         'extraDiscType'     => $InvData->ExtraDiscType ?? '',

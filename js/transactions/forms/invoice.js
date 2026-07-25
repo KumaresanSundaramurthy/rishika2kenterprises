@@ -30,9 +30,7 @@ var _fromChallanItems = !_isEdit ? (_cfg.fromChallanItems  || [])   : [];
 $(function () {
     'use strict';
 
-    if (!_isEdit || _isDraftEdit) {
-        searchCustomers('customerSearch');
-    }
+    searchCustomers('customerSearch');
 
     if (!_isEdit) {
         var _cur = _cfg.currency || '₹';
@@ -79,6 +77,20 @@ $(function () {
     if (_isEdit) {
         initTooltips();
         renderTransAttachmentsFromData(_editData.attachments || []);
+        if (_editData.custUID > 0) {
+            var _custLabel = _editData.custName || '';
+            if (_editData.custArea)   _custLabel += ', ' + _editData.custArea;
+            if (_editData.custMobile) _custLabel += ' (' + _editData.custMobile + ')';
+            $('#customerSearch')
+                .append(new Option(_custLabel, _editData.custUID, true, true))
+                .trigger('change');
+            if (!_isDraftEdit) {
+                $('#customerSearch')
+                    .on('select2:opening',  function (e) { e.preventDefault(); })
+                    .on('select2:clearing', function (e) { e.preventDefault(); });
+                $('#customerSearch').data('select2').$container.addClass('select2-party-readonly');
+            }
+        }
         $('#extraDiscount').val(_editData.extraDiscAmount || 0);
         $('#extDiscountType').val(_editData.extraDiscType || '').trigger('change');
         $('#globalDiscount').val(_editData.globalDiscPercent || 0).trigger('input');
@@ -90,14 +102,7 @@ $(function () {
         if (typeof billManager !== 'undefined' && typeof formationTableBillItems === 'function'
                 && Array.isArray(_editItems) && _editItems.length > 0) {
             $('#billTableBody').empty();
-            _editItems.forEach(function (item) {
-                var added = billManager.addItem(item, item.quantity);
-                if (added !== false) {
-                    formationTableBillItems(billManager.getItemById(item.id));
-                }
-            });
-            if (typeof updateItemTaxBreakdown === 'function') updateItemTaxBreakdown();
-            billManager.updateSummary();
+            billManager.batchAdd(_editItems, formationTableBillItems);
         }
 
     } else {
@@ -114,14 +119,7 @@ $(function () {
             if (typeof billManager !== 'undefined' && typeof formationTableBillItems === 'function'
                     && Array.isArray(_sourceItems) && _sourceItems.length > 0) {
                 $('#billTableBody').empty();
-                _sourceItems.forEach(function (item) {
-                    var added = billManager.addItem(item, item.quantity);
-                    if (added !== false) {
-                        formationTableBillItems(billManager.getItemById(item.id));
-                    }
-                });
-                if (typeof updateItemTaxBreakdown === 'function') updateItemTaxBreakdown();
-                billManager.updateSummary();
+                billManager.batchAdd(_sourceItems, formationTableBillItems);
             }
         }
     }

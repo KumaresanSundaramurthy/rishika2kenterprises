@@ -28,36 +28,50 @@ var _fromCloneItems= !_isEdit ? (_cfg.fromCloneItems || [])   : [];
 $(function () {
     'use strict';
 
-    // ── Customer search (add / draft-edit, not SO-linked) ─────────────────────
-    if ((!_isEdit || _isDraftEdit) && !_fromSO) {
+    // ── Customer search ────────────────────────────────────────────────────────
+    if (!_fromSO) {
         searchCustomers('customerSearch');
-        var _dcOACur = _cfg.currency || '₹';
-        window._showOnAccountBanner = function (total) {
-            if ((parseFloat(total) || 0) > 0) {
-                $('#onAccountTotal').text(_dcOACur + ' ' + parseFloat(total).toFixed(2));
-                $('#onAccountIndicator').removeClass('d-none');
-            } else {
-                $('#onAccountIndicator').addClass('d-none');
+        if (!_isEdit || _isDraftEdit) {
+            var _dcOACur = _cfg.currency || '₹';
+            window._showOnAccountBanner = function (total) {
+                if ((parseFloat(total) || 0) > 0) {
+                    $('#onAccountTotal').text(_dcOACur + ' ' + parseFloat(total).toFixed(2));
+                    $('#onAccountIndicator').removeClass('d-none');
+                } else {
+                    $('#onAccountIndicator').addClass('d-none');
+                }
+            };
+            $('#customerSearch').on('select2:clear change', function () {
+                if (!parseInt($(this).val(), 10)) $('#onAccountIndicator').addClass('d-none');
+            });
+            // Pre-fill customer address box and state in draft-edit mode
+            if (_isDraftEdit && _editData.custUID && _editData.custAddr) {
+                (function () {
+                    var a = _editData.custAddr;
+                    if (a.Line1 || a.City || a.State) {
+                        var _dcLines = [a.Line1, a.Line2].filter(Boolean).join(', ');
+                        var _dcLoc   = [a.City, a.State].filter(Boolean).join(', ');
+                        if (a.Pincode) _dcLoc += ' – ' + a.Pincode;
+                        $('#customerAddressBox').find('span').text([_dcLines, _dcLoc].filter(Boolean).join(' · '));
+                        $('#customerAddressBox').removeClass('d-none');
+                    }
+                    if (typeof window._onCustStateSelected === 'function' && a.State) {
+                        window._onCustStateSelected(a.State.trim());
+                    }
+                }());
             }
-        };
-        $('#customerSearch').on('select2:clear change', function () {
-            if (!parseInt($(this).val(), 10)) $('#onAccountIndicator').addClass('d-none');
-        });
-        // Pre-fill customer address box and state in draft-edit mode
-        if (_isDraftEdit && _editData.custUID && _editData.custAddr) {
-            (function () {
-                var a = _editData.custAddr;
-                if (a.Line1 || a.City || a.State) {
-                    var _dcLines = [a.Line1, a.Line2].filter(Boolean).join(', ');
-                    var _dcLoc   = [a.City, a.State].filter(Boolean).join(', ');
-                    if (a.Pincode) _dcLoc += ' – ' + a.Pincode;
-                    $('#customerAddressBox').find('span').text([_dcLines, _dcLoc].filter(Boolean).join(' · '));
-                    $('#customerAddressBox').removeClass('d-none');
-                }
-                if (typeof window._onCustStateSelected === 'function' && a.State) {
-                    window._onCustStateSelected(a.State.trim());
-                }
-            }());
+        }
+        if (_isEdit && !_isDraftEdit && _editData.custUID > 0) {
+            var _custLabel = _editData.custName || '';
+            if (_editData.custArea)   _custLabel += ', ' + _editData.custArea;
+            if (_editData.custMobile) _custLabel += ' (' + _editData.custMobile + ')';
+            $('#customerSearch')
+                .append(new Option(_custLabel, _editData.custUID, true, true))
+                .trigger('change');
+            $('#customerSearch')
+                .on('select2:opening',  function (e) { e.preventDefault(); })
+                .on('select2:clearing', function (e) { e.preventDefault(); });
+            $('#customerSearch').data('select2').$container.addClass('select2-party-readonly');
         }
     }
 

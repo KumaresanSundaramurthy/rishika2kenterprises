@@ -90,17 +90,4 @@ if ($_hideNavOnTransForm) {
 #layout-menu { display: none !important; }
 .layout-page  { margin-left: 0 !important; padding-left: 0 !important; }
 </style>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    var headerInfo = document.getElementById('transHeaderInfo');
-    if (!headerInfo) return;
-    var btn = document.createElement('button');
-    btn.type      = 'button';
-    btn.className = 'btn btn-outline-secondary btn-sm me-1';
-    btn.style.cssText = 'display:inline-flex;align-items:center;gap:3px;flex-shrink:0;';
-    btn.innerHTML = '<i class="bx bx-undo" style="font-size:1rem;"></i>Back';
-    btn.onclick   = function () { history.back(); };
-    headerInfo.insertBefore(btn, headerInfo.firstChild);
-});
-</script>
 <?php endif; unset($_hideNavOnTransForm); ?>

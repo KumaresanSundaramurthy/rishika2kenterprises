@@ -48,6 +48,15 @@ if (!function_exists('smart_dec_amount')) {
     }
 }
 
+if (!function_exists('trans_build_close_url')) {
+    function trans_build_close_url(string $basePath, string $returnTab, int $returnPage): string {
+        $params = [];
+        if ($returnTab)      $params[] = 'tab=' . urlencode($returnTab);
+        if ($returnPage > 1) $params[] = 'page=' . $returnPage;
+        return $basePath . ($params ? '?' . implode('&', $params) : '');
+    }
+}
+
 if (!function_exists('format_datedisplay')) {
     function format_datedisplay($getDate, $format = null, $default = '', $timezone = null, $adjustDays = 0) {
         // When no format supplied, read ListDateFormat from JWT TransSettings via CI instance

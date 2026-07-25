@@ -111,16 +111,48 @@ function blankControls() {
     $('input[type=file]').each(function () { $(this).val(''); });
 }
 
-// Bootstrap Tooltip race-condition fix (global — covers all pages).
-// dispose() sets this._config = null, but a hide transition's complete callback
-// can still fire _cleanTipClass → getTipElement → this._config.template → crash.
-// Bail early when the instance is already disposed.
+// ── Bootstrap Tooltip dispose-during-animation crash fix (global, all pages) ──
+//
+// Root cause (this Bootstrap version):
+//   hide() registers a transitionend listener on this.tip via _queueCallback.
+//   If dispose() is called while the CSS fade is in progress it sets
+//   this._element = null. The queued complete() callback still fires
+//   (Bootstrap uses a setTimeout fallback via triggerTransitionEnd) and crashes
+//   on _this36._element.removeAttribute('aria-describedby') → null dereference.
+//
+// Fix: three guards layered from outermost to innermost.
 if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
+
+    // Guard 1 — _cleanTipClass: bail when _config already null (covers the
+    // original race that was patched before; kept for completeness).
     var _bsOrigCleanTipClass = bootstrap.Tooltip.prototype._cleanTipClass;
     bootstrap.Tooltip.prototype._cleanTipClass = function () {
         if (!this._config) return;
         _bsOrigCleanTipClass.call(this);
     };
+
+    // Guard 2 — hide(): skip if already disposed (prevents starting a new
+    // transition on an instance whose _element is already null).
+    var _bsOrigHide = bootstrap.Tooltip.prototype.hide;
+    bootstrap.Tooltip.prototype.hide = function () {
+        if (!this._element) return;
+        _bsOrigHide.call(this);
+    };
+
+    // Guard 3 — _queueCallback(): wraps EVERY transition-end callback queued
+    // by this Tooltip instance. If the instance was disposed (dispose() nulls
+    // _element) before the animation completes, the callback is a no-op.
+    // This is the actual fix for the crash at tooltip.js:324.
+    var _bsOrigQCB = bootstrap.Tooltip.prototype._queueCallback;
+    if (_bsOrigQCB) {
+        bootstrap.Tooltip.prototype._queueCallback = function (callback, element, isAnimated) {
+            var instance = this;
+            _bsOrigQCB.call(this, function () {
+                if (!instance._element) return;
+                callback();
+            }, element, isAnimated);
+        };
+    }
 }
 
 $(document).ready(function () {

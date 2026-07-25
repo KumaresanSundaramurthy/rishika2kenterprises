@@ -35,8 +35,12 @@ if (!empty($DataLists)):
         $countryCode = trim($list->CountryCode   ?? '');
         $partyEmail  = trim($list->EmailAddress  ?? '');
         $waNum       = $mobileNum ? preg_replace('/[^0-9]/', '', ($countryCode ?: '91') . $mobileNum) : '';
-        $hasMobile   = $mobileNum !== '';
-        $hasEmail    = $partyEmail !== '';
+        $hasMobile        = $mobileNum !== '';
+        $hasEmail         = $partyEmail !== '';
+        $dcPartyName      = $list->PartyName ?? 'Customer';
+        $dcDocNum         = $list->UniqueNumber ?? '';
+        $waMsg            = "Hello *{$dcPartyName}*,\n\nHere is your Delivery Challan *{$dcDocNum}*.\n\nThanks";
+        $waMessageEncoded = rawurlencode($waMsg);
 
         // Overdue logic for Returnable challans
         $dueClass = 'trans-due-normal';
@@ -157,7 +161,7 @@ if (!empty($DataLists)):
             <div class="inv-contact-icons">
                 <?php if ($hasMobile): ?>
                 <a href="javascript:void(0)" class="wa inv-wa-link"
-                   data-wa-url="https://wa.me/<?php echo $waNum; ?>?text=Hi"
+                   data-wa-url="https://wa.me/<?php echo $waNum; ?>?text=<?php echo $waMessageEncoded; ?>"
                    data-bs-toggle="tooltip" data-bs-trigger="hover" title="WhatsApp">
                     <i class="bx bxl-whatsapp"></i>
                 </a>
@@ -277,7 +281,7 @@ if (!empty($DataLists)):
                         <?php if ($hasMobile): ?>
                         <li>
                             <a class="dropdown-item inv-wa-link" href="javascript:void(0)"
-                               data-wa-url="https://wa.me/<?php echo $waNum; ?>?text=Hi"
+                               data-wa-url="https://wa.me/<?php echo $waNum; ?>?text=<?php echo $waMessageEncoded; ?>"
                                style="color:#25d366;">
                                 <i class="bx bxl-whatsapp me-2"></i>Share via WhatsApp
                             </a>

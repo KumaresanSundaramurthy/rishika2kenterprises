@@ -773,6 +773,9 @@ class Salesorders extends MY_Controller {
                 $this->pageData['fltStorageData'] = $this->storage_model->getStorageDetails([]) ?? [];
             }
 
+            // Attachments — load server-side to avoid AJAX call on page load
+            $this->pageData['SOAttachments'] = $this->transactions_model->getTransactionAttachments($transUID, $orgUID);
+
             $this->load->view('transactions/salesorders/forms/form', $this->pageData);
 
         } catch (Exception $e) {

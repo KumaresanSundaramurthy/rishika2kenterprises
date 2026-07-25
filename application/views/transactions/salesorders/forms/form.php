@@ -10,11 +10,7 @@ $_posName    = $isEdit ? ($SOData->PlaceOfSupplyName  ?? '') : ($JwtData->Org->S
 
 $_returnTab  = $this->input->get('returnTab')  ?: 'All';
 $_returnPage = (int)($this->input->get('returnPage') ?: 1);
-$_closeUrl   = '/salesorders';
-$_cParams    = [];
-if ($_returnTab) $_cParams[] = 'tab=' . urlencode($_returnTab);
-if ($_returnPage > 1) $_cParams[] = 'page=' . $_returnPage;
-if ($_cParams) $_closeUrl .= '?' . implode('&', $_cParams);
+$_closeUrl   = trans_build_close_url('/salesorders', $_returnTab, $_returnPage);
 
 if ($isEdit && !function_exists('buildSOPrefixSegment')) {
     function buildSOPrefixSegment($cfg) {
@@ -117,6 +113,7 @@ if (!empty($DispatchAddress)) {
                         <?php if (!$isEdit): ?>
                         <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between px-3 py-2 trans-header-static trans-theme modal-header-center-sticky">
                             <div class="d-flex align-items-center gap-3" id="transHeaderInfo">
+                                <?php $this->load->view('transactions/partials/form_back_button'); ?>
                                 <div class="trans-doc-icon bg-warning bg-opacity-10">
                                     <i class="bx bx-store-alt text-warning" style="font-size:1.1rem;"></i>
                                 </div>
@@ -151,56 +148,24 @@ if (!empty($DispatchAddress)) {
                         <?php else: ?>
                         <div class="card-header bg-body-tertiary trans-header-static trans-theme modal-header-center-sticky d-flex justify-content-between align-items-center pb-3">
                             <div class="d-flex flex-wrap align-items-center gap-3" id="transHeaderInfo">
+                                <?php $this->load->view('transactions/partials/form_back_button'); ?>
                                 <h5 class="modal-title mb-0 ms-2"><?php echo $isDraftEdit ? '' : 'Edit'; ?> Sales Order</h5>
                                 <?php if (!$isDraftEdit && !empty($SOData->UniqueNumber)): ?>
                                     <span class="trans-form-doc-number"><?php echo htmlspecialchars($SOData->UniqueNumber); ?></span>
                                 <?php endif; ?>
-                                <div class="d-flex align-items-center gap-1">
-                                    <div class="input-group w-auto <?php echo (!$isDraftEdit ? 'd-none' : ''); ?>">
-                                        <select id="transPrefixSelect" name="transPrefixSelect" class="select2 form-select form-select-sm" <?php echo (!$isDraftEdit ? 'disabled' : 'required'); ?>>
-                                            <?php try {
-                                                if (empty($PrefixData)) throw new Exception('Prefix data not loaded');
-                                                foreach ($PrefixData as $preData) {
-                                                    $isSelected = (int)$preData->PrefixUID === (int)$SOData->PrefixUID ? 'selected' : '';
-                                                ?>
-                                                <option value="<?php echo (int)$preData->PrefixUID; ?>"
-                                                    data-sep="<?php echo htmlspecialchars($preData->Separator ?? '-'); ?>"
-                                                    data-fiscal="<?php echo !empty($preData->IncludeFiscalYear) ? '1' : '0'; ?>"
-                                                    data-fiscal-format="<?php echo htmlspecialchars($preData->FiscalYearFormat ?? 'SHORT'); ?>"
-                                                    data-inc-short="<?php echo !empty($preData->IncludeShortName) ? '1' : '0'; ?>"
-                                                    data-short-name="<?php echo htmlspecialchars($preData->ShortName ?? ''); ?>"
-                                                    data-padding="<?php echo (int)($preData->NumberPadding ?? 3); ?>"
-                                                    data-next-number="<?php echo (int)($NextNumberMap[(int)$preData->PrefixUID] ?? 1); ?>"
-                                                    <?php echo $isSelected; ?>
-                                                ><?php echo htmlspecialchars($preData->Name); ?></option>
-                                            <?php }
-                                            } catch (Exception $e) { ?>
-                                                <option value="">Error loading prefixes</option>
-                                            <?php } ?>
-                                        </select>
-                                        <?php if ($isDraftEdit): ?>
-                                        <button type="button" class="btn btn-outline-secondary" id="addTransPrefixBtn" title="Configure Prefix"><i class="bx bx-cog"></i></button>
-                                        <?php endif; ?>
-                                    </div>
-                                    <div class="input-group input-group-sm w-auto <?php echo (!$isDraftEdit ? 'd-none' : ''); ?>">
-                                        <span class="input-group-text cursor-pointer fw-semibold text-primary" id="appendPrefixVal"><?php echo htmlspecialchars($editPrefixSeg); ?></span>
-                                        <input type="number" id="transNumber" name="transNumber" class="form-control transAutoGenNumber stop-incre-indicator" maxLength="20"
-                                            onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))"
-                                            oninput="this.value=this.value.slice(0,this.maxLength)"
-                                            pattern="[0-9]*" value="<?php echo $editTransNumber; ?>"
-                                            <?php echo (!$isDraftEdit ? 'disabled' : 'required'); ?> />
-                                    </div>
-                                    <?php if (!$isDraftEdit): ?>
-                                    <input type="hidden" name="transPrefixSelect" value="<?php echo (int)$SOData->PrefixUID; ?>" />
-                                    <input type="hidden" name="transNumber" value="<?php echo (int)$SOData->TransNumber; ?>" />
-                                    <?php endif; ?>
-                                </div>
+                                <?php $this->load->view('transactions/partials/form_prefix_edit', [
+                                    '_editPrefixUID'  => (int)($SOData->PrefixUID   ?? 0),
+                                    'editTransNumber' => $editTransNumber,
+                                    'editPrefixSeg'   => $editPrefixSeg,
+                                    'isDraftEdit'     => $isDraftEdit,
+                                ]); ?>
                             </div>
                             <div class="d-flex align-items-center gap-2">
                                 <?php if ($isDraftEdit): ?>
                                 <button type="submit" name="action" value="draft" class="btn btn-outline-secondary">Save as Draft</button>
                                 <?php endif; ?>
                                 <button type="submit" name="action" value="save" class="btn btn-primary">Save</button>
+                                <?php $_hideNav = $_hideNav ?? (int)($JwtData->TransSettings->HideNavOnTransForm ?? 0); ?>
                                 <a href="<?php echo $_closeUrl; ?>" class="btn btn-label-danger<?php echo $_hideNav ? ' d-none' : ''; ?>">Close</a>
                             </div>
                         </div>
@@ -245,14 +210,14 @@ if (!empty($DispatchAddress)) {
                                         <button type="button" id="addTransCustomer" class="trans-add-btn btn btn-outline-primary btn-sm" style="font-size:.72rem;white-space:nowrap;"><i class="bx bx-plus-circle me-1"></i>Add Customer</button>
                                         <?php endif; ?>
                                     </div>
-                                    <div class="input-group input-group-sm input-group-merge customer-search-group" id="customerGroup_customerSearch">
-                                        <span class="input-group-text p-2 cursor-pointer" id="openCustomerSearchModal" style="background:#f0efff;border-color:#d9d8ff;color:#696cff;"><i class="icon-base bx bx-search"></i></span>
-                                        <select id="customerSearch" name="customerSearch" class="form-select form-select-sm">
-                                            <?php if ($isEdit && !empty($SOData->PartyUID)): ?>
-                                            <option value="<?php echo (int)$SOData->PartyUID; ?>" selected><?php echo htmlspecialchars($SOData->PartyName ?? ''); ?></option>
-                                            <?php endif; ?>
-                                        </select>
-                                    </div>
+                                    <?php if ($isEdit && !$isDraftEdit): ?>
+                                        <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
+                                    <?php else: ?>
+                                        <div class="input-group input-group-sm input-group-merge customer-search-group" id="customerGroup_customerSearch">
+                                            <span class="input-group-text p-2 cursor-pointer" id="openCustomerSearchModal" style="background:#f0efff;border-color:#d9d8ff;color:#696cff;"><i class="icon-base bx bx-search"></i></span>
+                                            <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
+                                        </div>
+                                    <?php endif; ?>
                                 </div>
                                 <div class="col-auto" style="min-width:155px;">
                                     <label for="transDate" class="trans-field-label">Order Date <span class="text-danger">*</span></label>
@@ -369,10 +334,7 @@ if (!empty($DispatchAddress)) {
 
             <?php $this->load->view('common/transactions/transprefix'); ?>
             <?php $this->load->view('common/modals/customer_form'); ?>
-            <?php $this->load->view('transactions/modals/taxdetails'); ?>
-            <?php $this->load->view('common/modals/category_form'); ?>
-            <?php $this->load->view('common/modals/product_form'); ?>
-            <?php $this->load->view('common/footer_desc'); ?>
+            <?php $this->load->view('transactions/partials/form_common_modals'); ?>
 
         </div>
 
@@ -394,12 +356,7 @@ if (!empty($DispatchAddress)) {
 <script src="/js/common/category_form.js"></script>
 <script src="/js/common/product_form.js"></script>
 <script src="/js/transactions/attachments.js"></script>
-<script>
-var _transAdditionalCharges  = <?php echo json_encode(array_values($AdditionalCharges   ?? [])); ?>;
-var _transAdditionalTaxOpts  = <?php echo json_encode(array_values($TaxList             ?? [])); ?>;
-var _transTransactionCharges = <?php echo json_encode(array_values($TransactionCharges  ?? [])); ?>;
-</script>
-<script src="/js/transactions/additional_charges.js"></script>
+<?php $this->load->view('transactions/partials/additional_charges_data'); ?>
 
 <script>
 var _transFormData = <?php echo json_encode([
@@ -421,10 +378,13 @@ var _transFormData = <?php echo json_encode([
         'transUID'          => (int)$SOData->TransUID,
         'custUID'           => (int)($SOData->PartyUID ?? 0),
         'custName'          => $SOData->PartyName ?? '',
+        'custArea'          => $SOData->PartyArea   ?? '',
+        'custMobile'        => $SOData->PartyMobile ?? '',
         'custState'         => $CustAddr->StateText ?? '',
         'extraDiscAmount'   => (float)($SOData->ExtraDiscAmount ?? 0),
         'extraDiscType'     => $SOData->ExtraDiscType ?? '',
         'globalDiscPercent' => (float)($SOData->GlobalDiscPercent ?? 0),
+        'attachments'       => $SOAttachments ?? [],
         'items'             => array_map(function($item) {
             return [
                 'id'               => (int)  $item->ProductUID,

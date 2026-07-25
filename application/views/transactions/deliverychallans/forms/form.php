@@ -17,11 +17,7 @@ $_posName    = $isEdit ? ($DCData->PlaceOfSupplyName  ?? '') : ($JwtData->Org->S
 
 $_returnTab  = $this->input->get('returnTab')  ?: 'All';
 $_returnPage = (int)($this->input->get('returnPage') ?: 1);
-$_closeUrl   = '/deliverychallan';
-$_cParams    = [];
-if ($_returnTab) $_cParams[] = 'tab=' . urlencode($_returnTab);
-if ($_returnPage > 1) $_cParams[] = 'page=' . $_returnPage;
-if ($_cParams) $_closeUrl .= '?' . implode('&', $_cParams);
+$_closeUrl   = trans_build_close_url('/deliverychallan', $_returnTab, $_returnPage);
 
 if ($isEdit && !function_exists('buildDCPrefixSegment')) {
     function buildDCPrefixSegment(?object $cfg): string {
@@ -159,6 +155,7 @@ if (!empty($DispatchAddress)) {
                         ?>
                         <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between px-3 py-2 trans-header-static trans-theme modal-header-center-sticky">
                             <div class="d-flex align-items-center gap-3" id="transHeaderInfo">
+                                <?php $this->load->view('transactions/partials/form_back_button'); ?>
                                 <div class="trans-doc-icon dc-doc-icon">
                                     <i class="bx bx-package"></i>
                                 </div>
@@ -346,22 +343,7 @@ if (!empty($DispatchAddress)) {
                                 <div class="col-md-4">
                                     <?php if ($isEdit && !$isDraftEdit): ?>
                                     <label class="trans-field-label mb-1">Customer</label>
-                                    <div class="d-flex align-items-center gap-2 border rounded px-2 py-1 dc-cust-readonly">
-                                        <i class="bx bx-user-circle text-muted dc-cust-icon"></i>
-                                        <div class="dc-cust-body">
-                                            <div class="fw-semibold text-truncate dc-cust-name"><?php echo htmlspecialchars($DCData->PartyName ?? ''); ?></div>
-                                            <?php
-                                            $_custMeta = array_filter([
-                                                !empty($DCData->PartyArea)   ? htmlspecialchars($DCData->PartyArea)   : '',
-                                                !empty($DCData->PartyMobile) ? htmlspecialchars($DCData->PartyMobile) : '',
-                                            ]);
-                                            if ($_custMeta): ?>
-                                            <div class="text-muted dc-cust-meta"><?php echo implode(' &middot; ', $_custMeta); ?></div>
-                                            <?php endif; ?>
-                                        </div>
-                                        <i class="bx bx-lock-alt text-muted dc-cust-lock" title="Cannot change customer on edit"></i>
-                                    </div>
-                                    <input type="hidden" id="customerSearch" name="customerSearch" value="<?php echo (int)($DCData->PartyUID ?? 0); ?>" />
+                                    <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
                                     <?php elseif (!empty($SOSourceData)): ?>
                                     <!-- SO conversion: skip Select2 entirely, render static readonly display -->
                                     <label class="trans-field-label mb-1">Customer <span class="text-danger">*</span></label>
@@ -522,10 +504,7 @@ if (!empty($DispatchAddress)) {
 
             <?php $this->load->view('common/transactions/transprefix'); ?>
             <?php $this->load->view('common/modals/customer_form'); ?>
-            <?php $this->load->view('transactions/modals/taxdetails'); ?>
-            <?php $this->load->view('common/modals/category_form'); ?>
-            <?php $this->load->view('common/modals/product_form'); ?>
-            <?php $this->load->view('common/footer_desc'); ?>
+            <?php $this->load->view('transactions/partials/form_common_modals'); ?>
 
         </div>
 
@@ -547,12 +526,7 @@ if (!empty($DispatchAddress)) {
 <script src="/js/common/category_form.js"></script>
 <script src="/js/common/product_form.js"></script>
 <script src="/js/transactions/attachments.js"></script>
-<script>
-var _transAdditionalCharges  = <?php echo json_encode(array_values($AdditionalCharges   ?? [])); ?>;
-var _transAdditionalTaxOpts  = <?php echo json_encode(array_values($TaxList             ?? [])); ?>;
-var _transTransactionCharges = <?php echo json_encode(array_values($TransactionCharges  ?? [])); ?>;
-</script>
-<script src="/js/transactions/additional_charges.js"></script>
+<?php $this->load->view('transactions/partials/additional_charges_data'); ?>
 
 <script>
 var _transFormData = <?php echo json_encode([
@@ -573,6 +547,9 @@ var _transFormData = <?php echo json_encode([
     'editData'     => $isEdit ? [
         'transUID'          => $transUID,
         'custUID'           => (int)($DCData->PartyUID ?? 0),
+        'custName'          => $DCData->PartyName  ?? '',
+        'custArea'          => $DCData->PartyArea   ?? '',
+        'custMobile'        => $DCData->PartyMobile ?? '',
         'custState'         => isset($CustAddr) ? ($CustAddr->StateText ?? '') : '',
         'custAddr'          => [
             'Line1'   => isset($CustAddr) ? ($CustAddr->Line1    ?? '') : '',

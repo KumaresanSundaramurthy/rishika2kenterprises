@@ -132,7 +132,7 @@ class Salesreturns extends MY_Controller {
             // â”€â”€ Save payment if recorded on create â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             $hasPayment = false;
             if (!$isDraft && (int) getPostValue($PostData, 'RecordPayment') === 1) {
-                $payResult = $this->_savePaymentRecord($transUID, $orgUID, $userUID, 'C', $customerUID, $netAmount, $PostData, $transDate);
+                $payResult = $this->_savePaymentRecord($transUID, $orgUID, $userUID, 'C', $customerUID, $netAmount, $PostData, 'Out', $transDate);
                 if ($payResult['totalPaid'] > 0) {
                     $hasPayment    = true;
                     $isFullyPaid   = ($netAmount > 0 && round($netAmount - $payResult['totalPaid'], 4) <= 0) ? 1 : 0;
@@ -911,6 +911,9 @@ class Salesreturns extends MY_Controller {
             $this->pageData['TaxList']            = $this->_getTaxList();
             $this->pageData['IsEditMode']         = true;
 
+            // Attachments — load server-side to avoid AJAX call on page load
+            $this->pageData['SRAttachments'] = $this->transactions_model->getTransactionAttachments($transUID, $orgUID);
+
             $this->load->view('transactions/salesreturns/forms/form', $this->pageData);
         } catch (Exception $e) {
             redirect('salesreturns', 'refresh');
@@ -1104,7 +1107,12 @@ class Salesreturns extends MY_Controller {
 
     }
 
-    private function _savePaymentRecord($transUID, $orgUID, $userUID, $partyType, $partyUID, $billTotal, $PostData, $transDate = null) {
+    protected function _savePaymentRecord(
+        int $transUID, int $orgUID, int $userUID,
+        string $partyType, int $partyUID, float $billTotal,
+        array $PostData, string $paymentDirection,
+        ?string $transDate = null
+    ): array {
         $rowsJson    = getPostValue($PostData, 'PaymentRows') ?: '';
         $isFullyPaid = (int) getPostValue($PostData, 'IsFullyPaid') === 1 ? 1 : 0;
         if (empty($rowsJson)) return ['totalPaid' => 0, 'firstPaymentUID' => null];
@@ -1173,7 +1181,7 @@ class Salesreturns extends MY_Controller {
                 'ReferenceNo'      => $referenceNo,
                 'Notes'            => $notes,
                 'PaymentSource'    => 'Create',
-                'PaymentDirection' => 'Out',
+                'PaymentDirection' => $paymentDirection,
                 'IsFullyPaid'      => ($idx === count($rows) - 1) ? $isFullyPaid : 0,
                 'ExcessAmount'     => $rowExcess,
                 'IsActive'         => 1,

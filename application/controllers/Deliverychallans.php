@@ -30,7 +30,7 @@ class Deliverychallans extends MY_Controller {
         try {
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
             $this->_loadTransactionIndexPage([
-                'datePrefKey'  => 'deliverychallan',
+                'datePrefKey'  => 'deliverychallans',
                 'tabSlugMap'   => ['all' => 'All', 'dispatched' => 'Dispatched', 'delivered' => 'Delivered', 'converted' => 'Converted', 'cancelled' => 'Cancelled', 'draft' => 'Draft'],
                 'listViewPath' => 'transactions/deliverychallans/list',
                 'paginationUrl'=> '/transactions/getPageDetails/112',

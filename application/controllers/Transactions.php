@@ -391,11 +391,10 @@ class Transactions extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $transUID   = (int) $this->input->get_post('TransUID');
-            $moduleUID  = (int) $this->input->get_post('ModuleUID');
-            $printType  = $this->input->get_post('PrintType') ?: 'a4'; // 'thermal' | 'a4'
-            $orgUID     = $this->pageData['JwtData']->Org->OrgUID;
-            $isThermal  = ($printType === 'thermal');
+            $transUID  = (int) $this->input->get_post('TransUID');
+            $moduleUID = (int) $this->input->get_post('ModuleUID');
+            $printType = $this->input->get_post('PrintType') ?: 'a4'; // 'a4' | 'thermal' | 'view'
+            $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
 
             if ($transUID  <= 0) throw new Exception('Invalid transaction.');
             if ($moduleUID <= 0) throw new Exception('ModuleUID is required.');
@@ -404,35 +403,47 @@ class Transactions extends MY_Controller {
             $header = $this->transactions_model->getTransactionById($transUID, $orgUID, $moduleUID);
             if (!$header) throw new Exception('Transaction not found.');
 
-            $items     = $this->transactions_model->getTransactionItems($transUID, $orgUID);
-            $payments  = $this->transactions_model->getTransactionPayments($transUID, $orgUID);
-            $paidTotal = array_sum(array_map(function ($p) { return (float) $p->Amount; }, $payments));
-            $attachments = $this->transactions_model->getTransactionAttachments($transUID, $orgUID);
+            $this->EndReturnData->Error  = FALSE;
+            $this->EndReturnData->Header = $header;
 
-            $this->load->model('organisation_model');
-            $orgInfo          = $this->organisation_model->getOrgInfoCached($orgUID);
-            $thermalCfgResult = $this->organisation_model->getThermalPrintConfigByModule($orgUID, $moduleUID);
-
-            $this->EndReturnData->Error         = FALSE;
-            $this->EndReturnData->Header        = $header;
-            $this->EndReturnData->Items         = $items;
-            $this->EndReturnData->Payments      = $payments;
-            $this->EndReturnData->PaidTotal     = $paidTotal;
-            $this->EndReturnData->Attachments   = $attachments;
-            $this->EndReturnData->OrgInfo       = $orgInfo->Data ?? null;
-            $this->EndReturnData->ThermalConfig = $thermalCfgResult->Data ?? null;
-
-            // PrintTheme and PrintHtml are only needed for A4/A5 preview — skip for thermal
-            if (!$isThermal) {
+            if ($printType === 'a4') {
+                // A4 / A5 print — server renders HTML; JS only needs Header + PrintHtml
+                $items = $this->transactions_model->getTransactionItems($transUID, $orgUID);
+                $this->load->model('organisation_model');
+                $orgInfo          = $this->organisation_model->getOrgInfoCached($orgUID);
                 $printThemeResult = $this->organisation_model->getPrintThemeByModule($orgUID, $moduleUID);
                 $printBankAccount = $this->transactions_model->getPrintBankAccount($orgUID);
-                $this->EndReturnData->PrintTheme = $printThemeResult->Data ?? null;
-                $this->EndReturnData->PrintHtml  = null;
+                $this->EndReturnData->PrintHtml = null;
                 try {
-                    $this->EndReturnData->PrintHtml = $this->transactions_model->_renderA4Html($moduleUID, $header, $items, $orgInfo->Data ?? null, $printThemeResult->Data ?? null, $printBankAccount);
+                    $this->EndReturnData->PrintHtml = $this->transactions_model->_renderA4Html(
+                        $moduleUID, $header, $items,
+                        $orgInfo->Data ?? null,
+                        $printThemeResult->Data ?? null,
+                        $printBankAccount
+                    );
                 } catch (Exception $renderEx) {
                     $this->EndReturnData->PrintHtml = '<div style="padding:20px;color:#c00;">Preview error: ' . htmlspecialchars($renderEx->getMessage()) . '</div>';
                 }
+
+            } elseif ($printType === 'thermal') {
+                // Thermal print — JS builds the receipt; needs Header + Items + OrgInfo + ThermalConfig
+                $this->EndReturnData->Items = $this->transactions_model->getTransactionItems($transUID, $orgUID);
+                $this->load->model('organisation_model');
+                $orgInfo          = $this->organisation_model->getOrgInfoCached($orgUID);
+                $thermalCfgResult = $this->organisation_model->getThermalPrintConfigByModule($orgUID, $moduleUID);
+                $this->EndReturnData->OrgInfo       = $orgInfo->Data ?? null;
+                $this->EndReturnData->ThermalConfig = $thermalCfgResult->Data ?? null;
+
+            } elseif ($printType === 'view') {
+                // View modal — JS renders detail panel; needs Header + Items + Payments + PaidTotal + Attachments + OrgInfo
+                $this->EndReturnData->Items       = $this->transactions_model->getTransactionItems($transUID, $orgUID);
+                $payments                          = $this->transactions_model->getTransactionPayments($transUID, $orgUID);
+                $this->EndReturnData->Payments    = $payments;
+                $this->EndReturnData->PaidTotal   = array_sum(array_map(fn($p) => (float)$p->Amount, $payments));
+                $this->EndReturnData->Attachments = $this->transactions_model->getTransactionAttachments($transUID, $orgUID);
+                $this->load->model('organisation_model');
+                $orgInfo                          = $this->organisation_model->getOrgInfoCached($orgUID);
+                $this->EndReturnData->OrgInfo     = $orgInfo->Data ?? null;
             }
 
         } catch (Exception $e) {
@@ -490,33 +501,6 @@ class Transactions extends MY_Controller {
 
             return '<img src="data:image/png;base64,' . base64_encode($imgData) . '" width="150" height="150">';
         }, $html);
-    }
-
-    private function _numberToWords(float $amount): string {
-        $ones  = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
-                  'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen',
-                  'Seventeen', 'Eighteen', 'Nineteen'];
-        $tens  = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
-
-        $convert = function(int $n) use (&$convert, $ones, $tens): string {
-            if ($n === 0)        return '';
-            if ($n < 20)         return $ones[$n] . ' ';
-            if ($n < 100)        return $tens[(int)($n / 10)] . ' ' . $convert($n % 10);
-            if ($n < 1000)       return $ones[(int)($n / 100)] . ' Hundred ' . $convert($n % 100);
-            if ($n < 100000)     return $convert((int)($n / 1000)) . 'Thousand ' . $convert($n % 1000);
-            if ($n < 10000000)   return $convert((int)($n / 100000)) . 'Lakh ' . $convert($n % 100000);
-            return $convert((int)($n / 10000000)) . 'Crore ' . $convert($n % 10000000);
-        };
-
-        $rupees = (int) $amount;
-        $paise  = (int) round(($amount - $rupees) * 100);
-
-        $words = trim($convert($rupees));
-        $result = $words ? $words . ' Rupees' : 'Zero Rupees';
-        if ($paise > 0) {
-            $result .= ' and ' . trim($convert($paise)) . ' Paise';
-        }
-        return $result . ' Only';
     }
 
     // ----------------------------------------------------------------

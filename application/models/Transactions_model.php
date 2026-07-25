@@ -1450,8 +1450,13 @@ class Transactions_model extends MY_Model {
             $d = date_create($date);
             return $d ? date_format($d, $_printFmt) : $date;
         };
-        $addr    = fn($l1,$l2,$city,$state,$pin) => implode(', ', array_filter([$l1,$l2,$city,$state,$pin]));
-        $addrHtml = fn($l1,$l2,$city,$state,$pin) => implode('<br>', array_filter(array_map('htmlspecialchars', array_filter([$l1,$l2,$city,$state,$pin]))));
+        $addr        = fn($l1,$l2,$city,$state,$pin) => implode(', ', array_filter([$l1,$l2,$city,$state,$pin]));
+        $addrHtml    = fn($l1,$l2,$city,$state,$pin) => implode('<br>', array_filter(array_map('htmlspecialchars', array_filter([$l1,$l2,$city,$state,$pin]))));
+        $addrHtmlFmt = function(string $l1, string $l2, string $city, string $state, string $pin) use ($e): string {
+            $cs = implode(', ', array_filter([$e($city), $e($state)]));
+            if (!empty($pin)) $cs .= ($cs ? ' - ' : '') . $e($pin);
+            return implode('<br>', array_filter([$e($l1), $e($l2), $cs]));
+        };
 
         // ── Items table ──────────────────────────────────────────────
         $itemRows = '';
@@ -1495,7 +1500,8 @@ class Transactions_model extends MY_Model {
 
         // ── Customer Addresses ────────────────────────────────────────────────
         $billAddr = $addr($h->BillLine1 ?? '', $h->BillLine2 ?? '', $h->BillCity ?? '', $h->BillState ?? '', $h->BillPincode ?? '') ?: '';
-        $shipAddr = $addr($h->ShipLine1 ?? '', $h->ShipLine2 ?? '', $h->ShipCity ?? '', $h->ShipState ?? '', $h->ShipPincode ?? '') ?: '';
+        $shipAddr     = $addr($h->ShipLine1 ?? '', $h->ShipLine2 ?? '', $h->ShipCity ?? '', $h->ShipState ?? '', $h->ShipPincode ?? '') ?: '';
+        $shipAddrHtml = $addrHtmlFmt($h->ShipLine1 ?? '', $h->ShipLine2 ?? '', $h->ShipCity ?? '', $h->ShipState ?? '', $h->ShipPincode ?? '');
         // \u2500\u2500 Customer address (billing first, fallback to shipping) \u2500\u2500
         $custAddrHtml = $addrHtml($h->BillLine1 ?? '', $h->BillLine2 ?? '', $h->BillCity ?? '', $h->BillState ?? '', $h->BillPincode ?? '');
         if (empty($custAddrHtml)) {
@@ -1513,8 +1519,12 @@ class Transactions_model extends MY_Model {
                 $dispatchDb->where('OrgAddressUID', $dispatchFromUID);
                 $da = $dispatchDb->get()->row();
                 if ($da) {
-                    $dFrom = $addr($da->Line1 ?? '', $da->Line2 ?? '', $da->CityText ?? '', $da->StateText ?? '', $da->Pincode ?? '');
-                    if (!empty($dFrom)) { $shipAddr = $dFrom; }
+                    $dFrom     = $addr($da->Line1 ?? '', $da->Line2 ?? '', $da->CityText ?? '', $da->StateText ?? '', $da->Pincode ?? '');
+                    $dFromHtml = $addrHtmlFmt($da->Line1 ?? '', $da->Line2 ?? '', $da->CityText ?? '', $da->StateText ?? '', $da->Pincode ?? '');
+                    if (!empty($dFrom)) {
+                        $shipAddr     = $dFrom;
+                        $shipAddrHtml = $dFromHtml;
+                    }
                 }
             } catch (Exception $_) {}
         }
@@ -1637,7 +1647,7 @@ class Transactions_model extends MY_Model {
             '{{CUSTOMER_PHONE}}'       => $e($h->PartyMobile ?? ''),
             '{{CUSTOMER_GSTIN}}'       => $e($h->PartyGSTIN ?? ''),
             '{{BILLING_ADDRESS}}'      => $e($billAddr),
-            '{{SHIPPING_ADDRESS}}'     => $e($shipAddr),
+            '{{SHIPPING_ADDRESS}}'     => $shipAddrHtml,
             '{{CUSTOMER_ADDRESS}}'     => $custAddrHtml,
             '{{PARTY_GSTIN}}'          => $e($h->PartyGSTIN ?? ''),
             '{{PARTY_PHONE}}'          => $e($h->PartyMobile ?? ''),
@@ -1651,6 +1661,20 @@ class Transactions_model extends MY_Model {
             '{{PARTY_CLOSING_BALANCE}}' => $partyBalAmt,
             '{{PARTYBAL_SHOW}}'        => $partyBalShow,
             '{{DUE_DATE}}'             => $fmt($h->ValidityDate ?? ''),
+            '{{SHOW_DUE_DATE}}'        => in_array($modId, [101, 102, 103, 104, 113]) ? 'block' : 'none',
+            '{{DUE_DATE_LABEL}}'       => ([
+                103 => 'Due Date',
+                101 => 'Due Date',
+                108 => 'Due Date',
+                106 => '',
+                113 => 'Valid Until',
+                112 => 'Delivery By',
+                105 => 'Payment By',
+                104 => 'Payment By',
+                102 => 'Expected Delivery Date',
+            ][$modId] ?? 'Due Date'),
+            '{{REFERENCE}}'            => $e($h->Reference ?? ''),
+            '{{SUPPLIER_INVOICE_NO}}' => $e($h->SupplierInvoiceNo ?? ''),
             '{{ITEMS_TABLE}}'          => $itemsTable,
             '{{ITEMS_TABLE_ROWS}}'     => $itemRows,
             '{{TOTALS_SECTION}}'       => $totals,

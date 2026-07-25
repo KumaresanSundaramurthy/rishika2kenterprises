@@ -127,7 +127,7 @@ class Purchasereturns extends MY_Controller {
             $balanceAmount = $netAmount;
 
             if (!$isDraft && (int) getPostValue($PostData, 'RecordPayment') === 1) {
-                $payResult = $this->_savePaymentRecord($transUID, $orgUID, $userUID, 'S', $vendorUID, $netAmount, $PostData, $transDate);
+                $payResult = $this->_savePaymentRecord($transUID, $orgUID, $userUID, 'S', $vendorUID, $netAmount, $PostData, 'In', $transDate);
                 if ($payResult['totalPaid'] > 0) {
                     $hasPayment    = true;
                     $isFullyPaid   = ($netAmount > 0 && round($netAmount - $payResult['totalPaid'], 4) <= 0) ? 1 : 0;
@@ -782,6 +782,9 @@ class Purchasereturns extends MY_Controller {
             $this->_getDispatchAddresses($orgUID);
             $this->_loadUpstashConfig();
 
+            // Attachments — load server-side to avoid AJAX call on page load
+            $this->pageData['PRAttachments'] = $this->transactions_model->getTransactionAttachments($transUID, $orgUID);
+
             $this->load->view('transactions/purchasereturns/forms/form', $this->pageData);
         } catch (Exception $e) {
             redirect('purchasereturns', 'refresh');
@@ -1067,99 +1070,6 @@ class Purchasereturns extends MY_Controller {
             $this->EndReturnData->Message = $e->getMessage();
         }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
-    }
-
-    private function _savePaymentRecord($transUID, $orgUID, $userUID, $partyType, $partyUID, $billTotal, $PostData, $transDate = null) {
-        $rowsJson    = getPostValue($PostData, 'PaymentRows') ?: '';
-        $isFullyPaid = (int) getPostValue($PostData, 'IsFullyPaid') === 1 ? 1 : 0;
-
-        if (empty($rowsJson)) return ['totalPaid' => 0, 'firstPaymentUID' => null];
-        $rows = json_decode($rowsJson, true);
-        if (!is_array($rows) || empty($rows)) return ['totalPaid' => 0, 'firstPaymentUID' => null];
-
-        $defaultPaymentDate = $transDate ?: date('Y-m-d');
-        $totalPaid          = array_sum(array_column($rows, 'amount'));
-        $firstPaymentUID    = null;
-
-        $this->load->model('transactions_model');
-        $payPrefixData = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.OrgUID' => $orgUID, 'Prefix.ModuleUID' => 110]);
-        $payPrefix     = !empty($payPrefixData->Data) ? $payPrefixData->Data[0] : null;
-        $payPrefixUID  = $payPrefix ? (int) $payPrefix->PrefixUID : null;
-
-        foreach ($rows as $idx => $row) {
-            $paymentTypeUID = (int)   ($row['paymentTypeUID'] ?? 0);
-            $amount         = (float) ($row['amount']         ?? 0);
-            $bankAccountUID = !empty($row['bankAccountUID']) ? (int) $row['bankAccountUID'] : NULL;
-            $referenceNo    = !empty($row['referenceNo'])    ? $row['referenceNo'] : NULL;
-            $notes          = !empty($row['notes'])          ? $row['notes']       : NULL;
-            $rowDate        = !empty($row['paymentDate']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $row['paymentDate'])
-                                ? $row['paymentDate'] : $defaultPaymentDate;
-            $rowTransYear   = (int) date('Y', strtotime($rowDate));
-
-            if ($paymentTypeUID <= 0 || $amount <= 0) continue;
-
-            $rowExcess = 0;
-            if ($idx === count($rows) - 1 && $billTotal > 0 && $totalPaid > $billTotal) {
-                $rowExcess = round($totalPaid - $billTotal, 4);
-            }
-
-            $paymentNumber = $payPrefixUID ? $this->transactions_model->getNextPaymentNumber($payPrefixUID, $orgUID, $rowTransYear) : 0;
-            $payUniqueNum  = ($payPrefix && $paymentNumber > 0) ? $this->_buildPaymentUniqueNumber($payPrefix, $rowDate, $paymentNumber) : null;
-            $receiptToken  = $this->transactions_model->_generateReceiptToken();
-
-            $paymentData = [
-                'OrgUID'            => $orgUID,
-                'PaymentDate'       => $rowDate,
-                'PrefixUID'         => $payPrefixUID,
-                'PaymentNumber'     => $paymentNumber,
-                'UniqueNumber'      => $payUniqueNum,
-                'ReceiptToken'      => $receiptToken,
-                'TransYear'         => $rowTransYear,
-                'TransUID'          => $transUID,
-                'ModuleUID'         => 110,
-                'PartyType'         => $partyType,
-                'PartyUID'          => $partyUID,
-                'PaymentTypeUID'    => $paymentTypeUID,
-                'Amount'            => $amount,
-                'BankAccountUID'    => $bankAccountUID,
-                'ReferenceNo'       => $referenceNo,
-                'Notes'             => $notes,
-                'PaymentSource'     => 'Create',
-                'PaymentDirection'  => 'In',
-                'IsFullyPaid'       => ($idx === count($rows) - 1) ? $isFullyPaid : 0,
-                'ExcessAmount'      => $rowExcess,
-                'AppliedToTransUID' => NULL,
-                'IsActive'          => 1,
-                'IsDeleted'         => 0,
-                'CreatedBy'         => $userUID,
-                'UpdatedBy'         => $userUID,
-            ];
-
-            $resp = $this->dbwrite_model->insertData('Transaction', 'PaymentsTbl', $paymentData);
-            if ($idx === 0) $firstPaymentUID = $resp->ID ?? null;
-        }
-
-        return ['totalPaid' => $totalPaid, 'firstPaymentUID' => $firstPaymentUID];
-    }
-
-
-    private function _buildPaymentUniqueNumber($prefix, $paymentDate, $paymentNumber) {
-        $sep   = $prefix->Separator ?? '-';
-        $parts = [strtoupper($prefix->Name)];
-        if (!empty($prefix->IncludeShortName) && !empty($prefix->ShortName)) {
-            $parts[] = strtoupper($prefix->ShortName);
-        }
-        if (!empty($prefix->IncludeFiscalYear)) {
-            $m  = (int) date('m', strtotime($paymentDate));
-            $yr = (int) date('Y', strtotime($paymentDate));
-            $fy = $m >= 4 ? $yr : $yr - 1;
-            $parts[] = ($prefix->FiscalYearFormat ?? 'SHORT') === 'LONG'
-                ? $fy . '-' . ($fy + 1)
-                : str_pad($fy % 100, 2, '0', STR_PAD_LEFT) . '-' . str_pad(($fy + 1) % 100, 2, '0', STR_PAD_LEFT);
-        }
-        $pad     = (int)($prefix->NumberPadding ?? 1);
-        $parts[] = $pad > 1 ? str_pad($paymentNumber, $pad, '0', STR_PAD_LEFT) : (string) $paymentNumber;
-        return implode($sep, $parts);
     }
 
     private function _touchVendorCache($vendorUID) {

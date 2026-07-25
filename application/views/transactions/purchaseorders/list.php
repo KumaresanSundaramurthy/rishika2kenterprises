@@ -258,12 +258,63 @@ if (!empty($DataLists)) {
 
                             <?php if (!$isDraft): ?>
                             <li>
-                                <button class="dropdown-item a4PrintTransaction"
-                                    data-uid="<?php echo (int) $list->TransUID; ?>" data-module="<?php echo (int) $list->ModuleUID; ?>">
-                                    <i class="bx bx-file me-2 text-primary"></i>Print (A4 / A5)
-                            </button>
+                                <button class="dropdown-item a4PrintTransaction" data-uid="<?php echo (int)$list->TransUID; ?>" data-module="<?php echo (int)$list->ModuleUID; ?>">
+                                    <i class="bx bx-printer me-2 text-primary"></i>Print / Download
+                                </button>
+                            </li>
+                            <li>
+                                <button class="dropdown-item downloadPdfTransaction" data-uid="<?php echo (int)$list->TransUID; ?>" data-module="<?php echo (int)$list->ModuleUID; ?>">
+                                    <i class="bx bx-download me-2 text-success"></i>Download PDF
+                                </button>
+                            </li>
+                            <li>
+                                <button class="dropdown-item thermalPrintTransaction" data-uid="<?php echo (int)$list->TransUID; ?>" data-module="<?php echo (int)$list->ModuleUID; ?>">
+                                    <i class="bx bx-receipt me-2 text-dark"></i>Thermal Print
+                                </button>
                             </li>
                             <li><hr class="dropdown-divider my-1"></li>
+                            <?php endif; ?>
+
+                            <?php if (!$isDraft && ($hasMobile || $hasEmail)): ?>
+                            <?php if ($hasMobile): ?>
+                            <li>
+                                <a class="dropdown-item inv-wa-link"
+                                   href="javascript:void(0)"
+                                   data-wa-url="https://wa.me/<?php echo $waNum; ?>?text=<?php echo $waMessageEncoded; ?>"
+                                   style="color:#25d366;">
+                                    <i class="bx bxl-whatsapp me-2"></i>Share via WhatsApp
+                                </a>
+                            </li>
+                            <li>
+                                <button class="dropdown-item comm-send-single"
+                                        data-commtype="SMS"
+                                        data-recipienttype="Vendor"
+                                        data-uid="<?php echo (int)$list->PartyUID; ?>"
+                                        data-name="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
+                                        data-mobile="<?php echo htmlspecialchars($mobileNum); ?>"
+                                        data-email="<?php echo htmlspecialchars($partyEmail); ?>"
+                                        data-module-uid="<?php echo (int)$list->ModuleUID; ?>"
+                                        style="color:#0097a7;">
+                                    <i class="bx bx-message-dots me-2"></i>Send SMS
+                                </button>
+                            </li>
+                            <?php endif; ?>
+                            <?php if ($hasEmail): ?>
+                            <li>
+                                <button class="dropdown-item comm-send-single"
+                                        data-commtype="Email"
+                                        data-recipienttype="Vendor"
+                                        data-uid="<?php echo (int)$list->PartyUID; ?>"
+                                        data-trans-uid="<?php echo (int)$list->TransUID; ?>"
+                                        data-name="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
+                                        data-mobile="<?php echo htmlspecialchars($mobileNum); ?>"
+                                        data-email="<?php echo htmlspecialchars($partyEmail); ?>"
+                                        data-module-uid="<?php echo (int)$list->ModuleUID; ?>"
+                                        style="color:#1565c0;">
+                                    <i class="bx bx-envelope me-2"></i>Send Email
+                                </button>
+                            </li>
+                            <?php endif; ?>
                             <?php endif; ?>
 
                             <?php if (!$isTerminal): ?>

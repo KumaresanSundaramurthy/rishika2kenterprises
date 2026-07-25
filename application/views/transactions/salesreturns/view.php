@@ -122,7 +122,7 @@ $this->load->view('common/transactions/header'); ?>
                                         <th>Payment Mode</th>
                                         <th>Customer</th>
                                         <th>Last Updated</th>
-                                        <th style="width:50px">Actions</th>
+                                        <th class="text-center" style="width:50px">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody class="r2k-tbody table-border-bottom-0">

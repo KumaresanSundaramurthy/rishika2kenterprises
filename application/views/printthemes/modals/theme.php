@@ -44,22 +44,25 @@
                         <input type="hidden" id="ThemeConfigUID" value="0">
                         <input type="hidden" id="TemplateUID" value="0">
 
-                        <!-- 1. Transaction Type -->
+                        <!-- 1. Module -->
                         <div class="mb-3">
                             <div class="fw-bold text-uppercase text-muted small mb-2" style="letter-spacing:.8px;">
-                                1. Transaction Type
+                                1. Module
                             </div>
+                            <input type="hidden" id="TransactionTypeVal" value="">
+                            <!-- Add mode: only modules without a theme yet (compared by ModuleUID) -->
                             <select class="form-select form-select-sm" id="TransactionType">
-                                <option value="">— Select type —</option>
-                                <?php foreach ($TransactionTypes as $key => $label): ?>
+                                <option value="">— Select module —</option>
+                                <?php foreach ($TransactionTypes as $key => $label):
+                                    $moduleUID = (int)($TransactionTypeIds[$key] ?? 0);
+                                    if ($moduleUID > 0 && in_array($moduleUID, $UsedTypes ?? [])) continue; ?>
                                 <option value="<?php echo htmlspecialchars($key); ?>">
                                     <?php echo htmlspecialchars($label); ?>
                                 </option>
                                 <?php endforeach; ?>
                             </select>
-                            <div class="form-text text-warning small d-none" id="typeUsedNote">
-                                <i class="bx bx-error-circle me-1"></i>A theme already exists for this type.
-                            </div>
+                            <!-- Edit mode: read-only badge (select is hidden) -->
+                            <div class="form-control form-control-sm bg-body-secondary text-muted d-none" id="ModuleDisplayText"></div>
                         </div>
 
                         <!-- 2. Choose Template (carousel from DB) -->

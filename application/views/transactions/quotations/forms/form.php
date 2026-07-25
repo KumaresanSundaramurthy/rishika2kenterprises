@@ -10,11 +10,7 @@ $_posName    = $isEdit ? ($QuotData->PlaceOfSupplyName  ?? '') : ($JwtData->Org-
 
 $_returnTab  = $this->input->get('returnTab')  ?: 'All';
 $_returnPage = (int)($this->input->get('returnPage') ?: 1);
-$_closeUrl   = '/quotations';
-$_cParams    = [];
-if ($_returnTab) $_cParams[] = 'tab=' . urlencode($_returnTab);
-if ($_returnPage > 1) $_cParams[] = 'page=' . $_returnPage;
-if ($_cParams) $_closeUrl .= '?' . implode('&', $_cParams);
+$_closeUrl   = trans_build_close_url('/quotations', $_returnTab, $_returnPage);
 
 if ($isEdit && !function_exists('buildQuotPrefixSegment')) {
     function buildQuotPrefixSegment($cfg) {
@@ -118,6 +114,7 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                         <?php if (!$isEdit): ?>
                         <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between px-3 py-2 trans-header-static trans-theme modal-header-center-sticky">
                             <div class="d-flex align-items-center gap-3" id="transHeaderInfo">
+                                <?php $this->load->view('transactions/partials/form_back_button'); ?>
                                 <div class="trans-doc-icon bg-primary bg-opacity-10">
                                     <i class="bx bx-file-blank text-primary" style="font-size:1.1rem;"></i>
                                 </div>
@@ -151,50 +148,17 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                         <?php else: ?>
                         <div class="card-header bg-body-tertiary trans-header-static trans-theme modal-header-center-sticky d-flex justify-content-between align-items-center pb-3">
                             <div class="d-flex flex-wrap align-items-center gap-3" id="transHeaderInfo">
+                                <?php $this->load->view('transactions/partials/form_back_button'); ?>
                                 <h5 class="modal-title mb-0 ms-2"><?php echo $isDraftEdit ? '' : 'Edit'; ?> Quotation</h5>
                                 <?php if (!$isDraftEdit && !empty($QuotData->UniqueNumber)): ?>
                                     <span class="trans-form-doc-number"><?php echo htmlspecialchars($QuotData->UniqueNumber); ?></span>
                                 <?php endif; ?>
-                                <div class="d-flex align-items-center gap-1">
-                                    <div class="input-group w-auto <?php echo (!$isDraftEdit ? 'd-none' : ''); ?>">
-                                        <select id="transPrefixSelect" name="transPrefixSelect" class="select2 form-select form-select-sm" <?php echo (!$isDraftEdit ? 'disabled' : 'required'); ?>>
-                                            <?php try {
-                                                if (empty($PrefixData)) throw new Exception('Prefix data not loaded');
-                                                foreach ($PrefixData as $preData) {
-                                                    $isSelected = (int)$preData->PrefixUID === (int)$QuotData->PrefixUID ? 'selected' : '';
-                                                ?>
-                                                <option value="<?php echo (int)$preData->PrefixUID; ?>"
-                                                    data-sep="<?php echo htmlspecialchars($preData->Separator ?? '-'); ?>"
-                                                    data-fiscal="<?php echo !empty($preData->IncludeFiscalYear) ? '1' : '0'; ?>"
-                                                    data-fiscal-format="<?php echo htmlspecialchars($preData->FiscalYearFormat ?? 'SHORT'); ?>"
-                                                    data-inc-short="<?php echo !empty($preData->IncludeShortName) ? '1' : '0'; ?>"
-                                                    data-short-name="<?php echo htmlspecialchars($preData->ShortName ?? ''); ?>"
-                                                    data-padding="<?php echo (int)($preData->NumberPadding ?? 3); ?>"
-                                                    data-next-number="<?php echo (int)($NextNumberMap[(int)$preData->PrefixUID] ?? 1); ?>"
-                                                    <?php echo $isSelected; ?>
-                                                ><?php echo htmlspecialchars($preData->Name); ?></option>
-                                            <?php }
-                                            } catch (Exception $e) { ?>
-                                                <option value="">Error loading prefixes</option>
-                                            <?php } ?>
-                                        </select>
-                                        <?php if ($isDraftEdit): ?>
-                                        <button type="button" class="btn btn-outline-secondary" id="addTransPrefixBtn" title="Configure Prefix"><i class="bx bx-cog"></i></button>
-                                        <?php endif; ?>
-                                    </div>
-                                    <div class="input-group input-group-sm w-auto <?php echo (!$isDraftEdit ? 'd-none' : ''); ?>">
-                                        <span class="input-group-text cursor-pointer fw-semibold text-primary" id="appendPrefixVal"><?php echo htmlspecialchars($editPrefixSeg); ?></span>
-                                        <input type="number" id="transNumber" name="transNumber" class="form-control transAutoGenNumber stop-incre-indicator" maxLength="20"
-                                            onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))"
-                                            oninput="this.value=this.value.slice(0,this.maxLength)"
-                                            pattern="[0-9]*" value="<?php echo $editTransNumber; ?>"
-                                            <?php echo (!$isDraftEdit ? 'disabled' : 'required'); ?> />
-                                    </div>
-                                    <?php if (!$isDraftEdit): ?>
-                                    <input type="hidden" name="transPrefixSelect" value="<?php echo (int)$QuotData->PrefixUID; ?>" />
-                                    <input type="hidden" name="transNumber" value="<?php echo (int)$QuotData->TransNumber; ?>" />
-                                    <?php endif; ?>
-                                </div>
+                                <?php $this->load->view('transactions/partials/form_prefix_edit', [
+                                    '_editPrefixUID'  => (int)($QuotData->PrefixUID ?? 0),
+                                    'editTransNumber' => $editTransNumber,
+                                    'editPrefixSeg'   => $editPrefixSeg,
+                                    'isDraftEdit'     => $isDraftEdit,
+                                ]); ?>
                             </div>
                             <div class="d-flex align-items-center gap-2">
                                 <?php if ($isDraftEdit): ?>
@@ -238,18 +202,19 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                             <!-- ── Row 1: Customer | Quotation Date | Validity Days | Validity Date | Reference ── -->
                             <div class="row g-2 align-items-end mb-2">
                                 <div class="col-md-4">
+                                    <?php if ($isEdit && !$isDraftEdit): ?>
+                                    <label class="trans-field-label mb-1">Customer</label>
+                                    <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
+                                    <?php else: ?>
                                     <div class="d-flex align-items-center justify-content-between mb-2">
                                         <label for="customerSearch" class="trans-field-label mb-0">Select Customer <span class="text-danger">*</span></label>
                                         <button type="button" id="addTransCustomer" class="trans-add-btn btn btn-outline-primary btn-sm" aria-label="Add new customer" style="font-size:.72rem;white-space:nowrap;"><i class="bx bx-plus-circle me-1"></i>Add Customer</button>
                                     </div>
                                     <div class="input-group input-group-sm input-group-merge customer-search-group" id="customerGroup_customerSearch">
                                         <span class="input-group-text p-2 cursor-pointer" id="openCustomerSearchModal" style="background:#f0efff;border-color:#d9d8ff;color:#696cff;"><i class="icon-base bx bx-search"></i></span>
-                                        <select id="customerSearch" name="customerSearch" class="form-select form-select-sm">
-                                            <?php if ($isEdit && !empty($QuotData->PartyUID)): ?>
-                                            <option value="<?php echo (int)$QuotData->PartyUID; ?>" selected><?php echo htmlspecialchars($QuotData->PartyName ?? ''); ?></option>
-                                            <?php endif; ?>
-                                        </select>
+                                        <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
                                     </div>
+                                    <?php endif; ?>
                                 </div>
                                 <div class="col-auto" style="min-width:155px;">
                                     <label for="transDate" class="trans-field-label">Quotation Date <span class="text-danger">*</span></label>
@@ -385,10 +350,7 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
 
             <?php $this->load->view('common/transactions/transprefix'); ?>
             <?php $this->load->view('common/modals/customer_form'); ?>
-            <?php $this->load->view('transactions/modals/taxdetails'); ?>
-            <?php $this->load->view('common/modals/category_form'); ?>
-            <?php $this->load->view('common/modals/product_form'); ?>
-            <?php $this->load->view('common/footer_desc'); ?>
+            <?php $this->load->view('transactions/partials/form_common_modals'); ?>
 
         </div>
 
@@ -411,12 +373,7 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
 <script src="/js/common/category_form.js"></script>
 <script src="/js/common/product_form.js"></script>
 <script src="/js/transactions/attachments.js"></script>
-<script>
-var _transAdditionalCharges  = <?php echo json_encode(array_values($AdditionalCharges   ?? [])); ?>;
-var _transAdditionalTaxOpts  = <?php echo json_encode(array_values($TaxList             ?? [])); ?>;
-var _transTransactionCharges = <?php echo json_encode(array_values($TransactionCharges  ?? [])); ?>;
-</script>
-<script src="/js/transactions/additional_charges.js"></script>
+<?php $this->load->view('transactions/partials/additional_charges_data'); ?>
 <script src="/js/transactions/a4_print.js"></script>
 <script src="/js/transactions/thermal_print.js"></script>
 
@@ -438,6 +395,9 @@ var _transFormData = <?php echo json_encode([
     'decimals'     => (int)($JwtData->GenSettings->DecimalPoints ?? 2),
     'editData'     => $isEdit ? [
         'custUID'           => (int)($QuotData->PartyUID ?? 0),
+        'custName'          => $QuotData->PartyName  ?? '',
+        'custArea'          => $QuotData->PartyArea   ?? '',
+        'custMobile'        => $QuotData->PartyMobile ?? '',
         'custState'         => $CustAddr->StateText ?? '',
         'priceListUID'      => (int)($QuotData->PriceListUID ?? 0),
         'priceListData'     => !empty($QuotData->PriceListData) ? $QuotData->PriceListData : null,

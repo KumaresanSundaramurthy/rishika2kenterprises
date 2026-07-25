@@ -21,7 +21,7 @@ class Proformainvoices extends MY_Controller {
         try {
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
             $this->_loadTransactionIndexPage([
-                'datePrefKey'  => 'proforma',
+                'datePrefKey'  => 'proformainvoices',
                 'tabSlugMap'   => ['all' => 'All', 'sent' => 'Sent', 'converted' => 'Converted', 'expired' => 'Expired', 'cancelled' => 'Cancelled', 'drafts' => 'Draft'],
                 'listViewPath' => 'transactions/proformainvoices/list',
                 'paginationUrl'=> '/transactions/getPageDetails/113',
@@ -105,12 +105,15 @@ class Proformainvoices extends MY_Controller {
             $this->pageData['NextNumberMap'] = $nextNumberMap;
 
             $this->_getDispatchAddresses($orgUID);
-            
+
             $this->pageData['fltStorageData']  = [];
             if (!empty($this->pageData['JwtData']->GenSettings->EnableStorage)) {
                 $this->load->model('storage_model');
                 $this->pageData['fltStorageData'] = $this->storage_model->getStorageDetails([]) ?? [];
             }
+
+            // Attachments — load server-side to avoid AJAX call on page load
+            $this->pageData['PFAttachments'] = $this->transactions_model->getTransactionAttachments($transUID, $orgUID);
 
             $this->load->view('transactions/proformainvoices/forms/form', $this->pageData);
         } catch (Exception $e) {

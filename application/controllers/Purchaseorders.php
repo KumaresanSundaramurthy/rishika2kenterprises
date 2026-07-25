@@ -635,6 +635,9 @@ class Purchaseorders extends MY_Controller {
 
             $this->_loadUpstashConfig();
 
+            // Attachments — load server-side to avoid AJAX call on page load
+            $this->pageData['POAttachments'] = $this->transactions_model->getTransactionAttachments($transUID, $orgUID);
+
             $this->load->view('transactions/purchaseorders/forms/form', $this->pageData);
 
         } catch (Exception $e) {

@@ -339,18 +339,18 @@ if (!empty($DataLists)):
                         <!-- Print section -->
                         <?php if (!$isDraft): ?>
                         <li>
-                            <button class="dropdown-item thermalPrintTransaction" data-uid="<?php echo (int)$list->TransUID; ?>" data-module="<?php echo (int)$list->ModuleUID; ?>">
-                                <i class="bx bx-receipt me-2 text-dark"></i>Thermal Print
-                            </button>
-                        </li>
-                        <li>
                             <button class="dropdown-item a4PrintTransaction" data-uid="<?php echo (int)$list->TransUID; ?>" data-module="<?php echo (int)$list->ModuleUID; ?>">
                                 <i class="bx bx-printer me-2 text-primary"></i>Print / Download
                             </button>
                         </li>
                         <li>
-                            <button class="dropdown-item downloadPdfQuotation" data-uid="<?php echo (int)$list->TransUID; ?>" data-module="<?php echo (int)$list->ModuleUID; ?>">
+                            <button class="dropdown-item downloadPdfTransaction" data-uid="<?php echo (int)$list->TransUID; ?>" data-module="<?php echo (int)$list->ModuleUID; ?>">
                                 <i class="bx bx-download me-2 text-success"></i>Download PDF
+                            </button>
+                        </li>
+                        <li>
+                            <button class="dropdown-item thermalPrintTransaction" data-uid="<?php echo (int)$list->TransUID; ?>" data-module="<?php echo (int)$list->ModuleUID; ?>">
+                                <i class="bx bx-receipt me-2 text-dark"></i>Thermal Print
                             </button>
                         </li>
                         <li><hr class="dropdown-divider my-1"></li>

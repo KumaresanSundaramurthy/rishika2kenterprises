@@ -1527,6 +1527,31 @@ class MY_Controller extends CI_Controller {
     }
 
     /**
+     * Rebuilds the transaction list response after recording a payment.
+     * Reads CurrentPage from POST; reads RowLimit from JWT GenSettings (not POST).
+     * Also populates SummaryStats — needed after payment recording changes totals.
+     *
+     * @param string $viewPath      CI view path, e.g. 'transactions/invoices/list'
+     * @param string $paginationUrl Route for pagination links, e.g. '/transactions/getPageDetails/103'
+     * @return void
+     */
+    protected function _buildPaymentListResponse(string $viewPath, string $paginationUrl): void {
+        $genSettings  = $this->pageData['JwtData']->GenSettings ?? new stdClass();
+        $limit        = max(1, (int) ($genSettings->RowLimit ?? 10));
+        $pageNo       = max(1, (int) $this->input->post('CurrentPage'));
+        $filter       = $this->input->post('Filter') ?: [];
+        $offset       = ($pageNo - 1) * $limit;
+        $orgUID       = (int) $this->pageData['JwtData']->Org->OrgUID;
+        $allData      = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, 0);
+        $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $filter);
+        $this->pageData['JwtData']->GenSettings  = $genSettings;
+        $this->EndReturnData->RecordHtmlData = $this->load->view($viewPath, ['DataLists' => $allData, 'SerialNumber' => $offset, 'JwtData' => $this->pageData['JwtData']], true);
+        $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml($paginationUrl, $allDataCount, $pageNo, $limit);
+        $this->EndReturnData->TotalCount     = $allDataCount;
+        $this->EndReturnData->SummaryStats   = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $orgUID, $filter);
+    }
+
+    /**
      * Saves payment rows submitted with a transaction form.
      * Direction 'In'  = customer payment received (module 110, CR ledger) — used by Invoices.
      * Direction 'Out' = vendor payment made     (module 111, DR ledger) — used by Purchases.

@@ -1279,6 +1279,41 @@ class BillManager {
     }
 
     // =============================================
+    // BATCH LOAD (edit page — suppresses per-item DOM recalcs)
+    // =============================================
+
+    /**
+     * Add multiple items at once without triggering updateSummary /
+     * updateItemTaxBreakdown on every add.  Runs both exactly once at the end.
+     * Use this instead of a forEach + addItem loop on the edit page.
+     *
+     * @param {Array}    items       Array of item objects (same shape as addItem expects)
+     * @param {Function} onEachItem  Called with the stored item after each add;
+     *                               use it to call formationTableBillItems(item)
+     * @returns {void}
+     */
+    batchAdd(items, onEachItem) {
+        const origUpdateSummary = this.updateSummary.bind(this);
+        const origTaxBreakdown  = (typeof updateItemTaxBreakdown === 'function') ? updateItemTaxBreakdown : null;
+
+        this.updateSummary = function () {};
+        if (origTaxBreakdown) window.updateItemTaxBreakdown = function () {};
+
+        items.forEach((item) => {
+            const added = this.addItem(item, item.quantity);
+            if (added !== false && typeof onEachItem === 'function') {
+                onEachItem(this.getItemById(parseInt(item.id, 10)));
+            }
+        });
+
+        this.updateSummary = origUpdateSummary;
+        if (origTaxBreakdown) window.updateItemTaxBreakdown = origTaxBreakdown;
+
+        if (origTaxBreakdown) origTaxBreakdown();
+        this.updateSummary();
+    }
+
+    // =============================================
     // HELPER METHODS
     // =============================================
 

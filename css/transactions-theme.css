@@ -456,3 +456,7 @@
     .pl-price-tinted .form-control { background: #0d1a2e !important; border-color: #4285f4 !important; color: #7ab4ff !important; }
     .pl-row-indicator { color: #7ab4ff; }
 }
+
+/* ── Party Select2 field — readonly on edit ──────────────────────────────── */
+.select2-party-readonly .select2-selection__clear  { display: none !important; }
+.select2-party-readonly .select2-selection         { cursor: default; background-color: #e9ecef !important; }

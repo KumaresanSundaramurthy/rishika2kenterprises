@@ -39,6 +39,7 @@
     <script type="text/javascript" src="<?php echo _assetV('/js/common/item_filter.js'); ?>"></script>
     <script type="text/javascript" src="<?php echo _assetV('/js/common/dropdown_cache.js'); ?>"></script>
     <script>var R2K_STATS_DEFAULT_OPEN = <?php echo json_encode(isset($JwtData->GenSettings->StatsDefaultOpen) ? (bool)$JwtData->GenSettings->StatsDefaultOpen : true); ?>;</script>
+    <script><?php $CI=&get_instance(); echo 'window._appLang=' . json_encode($CI->lang->language ?: new stdClass()) . ';'; ?></script>
     <script type="text/javascript" src="<?php echo _assetV('/js/common/default.js'); ?>"></script>
     <script type="text/javascript" src="<?php echo _assetV('/js/transactions/customer_search.js'); ?>"></script>
     <script type="text/javascript" src="<?php echo _assetV('/js/transactions/product_search.js'); ?>"></script>

@@ -1,3 +1,9 @@
+function t(key, fallback) {
+    var dict = window._appLang || {};
+    var val  = dict[key];
+    return (val !== undefined && val !== '') ? val : ((fallback !== undefined && fallback !== '') ? fallback : key);
+}
+
 jQuery.fn.center = function () {
     this.css("position", "absolute");
     this.css("top", Math.max(0, (($(window).height() - $(this).outerHeight()) / 2) +

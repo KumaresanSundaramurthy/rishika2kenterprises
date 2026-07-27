@@ -42,14 +42,9 @@
 
     function _smartDec(n) {
         if (n === null || n === undefined || n === '') return '0.00';
-        var dec    = typeof genSettings !== 'undefined' ? (genSettings.DecimalPoints || 2) : 2;
-        var str    = String(n).trim();
-        var dotIdx = str.indexOf('.');
-        if (dotIdx !== -1) {
-            var decPart = str.slice(dotIdx + 1);
-            if (decPart.length > dec && decPart[dec] !== '0') return parseFloat(str).toFixed(dec + 1);
-        }
-        return parseFloat(str || 0).toFixed(dec);
+        var dec = typeof genSettings !== 'undefined' ? (parseInt(genSettings.DecimalPoints, 10) || 2) : 2;
+        var val = parseFloat(n);
+        return (isNaN(val) ? 0 : val).toFixed(dec);
     }
 
     function _statusBadge(status) {

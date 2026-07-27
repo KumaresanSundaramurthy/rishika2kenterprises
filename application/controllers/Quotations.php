@@ -15,11 +15,11 @@ class Quotations extends MY_Controller {
     }
 
     public function index(): void {
-        // if (!$this->_loadPageTitle($this->pageModuleUID)) {
-        //     $this->load->view('common/module_error', $this->pageData);
-        //     return;
-        // }
-        // try {
+        if (!$this->_loadPageTitle($this->pageModuleUID)) {
+            $this->load->view('common/module_error', $this->pageData);
+            return;
+        }
+        try {
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
             $orgUID = (int)$this->pageData['JwtData']->Org->OrgUID;
             $this->load->model('organisation_model');
@@ -37,9 +37,10 @@ class Quotations extends MY_Controller {
                 'listViewExtraData' => ['WhatsAppTemplate' => $templates['WhatsApp'] ?? null],
             ]);
             $this->load->view('transactions/quotations/view', $this->pageData);
-        // } catch (Exception $e) {
-        //     redirect('dashboard', 'refresh');
-        // }
+        } catch (Exception $e) {
+            log_message('error', '[Quotations::index] ' . $e->getMessage() . ' | ' . $e->getFile() . ':' . $e->getLine());
+            redirect('dashboard', 'refresh');
+        }
     }
 
     public function addQuotation() {

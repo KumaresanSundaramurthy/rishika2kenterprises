@@ -233,13 +233,13 @@ $this->load->view('common/transactions/header'); ?>
                                 <i class="bx bx-bar-chart-alt-2"></i>
                             </div>
                             <div>
-                                <h5 class="mb-0 fw-semibold">Reports</h5>
-                                <div class="text-muted" style="font-size:.76rem;"><?php echo $totalReports; ?> reports across <?php echo count($categories); ?> categories</div>
+                                <h5 class="mb-0 fw-semibold"><?php echo t('lbl_reports', 'Reports'); ?></h5>
+                                <div class="text-muted" style="font-size:.76rem;"><?php echo $totalReports . ' ' . t('lbl_reports_across', 'reports across') . ' ' . count($categories) . ' ' . t('lbl_categories', 'categories'); ?></div>
                             </div>
                         </div>
                         <div class="rpt-search-wrap">
                             <i class="bx bx-search rpt-search-icon"></i>
-                            <input type="text" id="rptSearch" class="rpt-search-input" placeholder="Search reports..." autocomplete="off" />
+                            <input type="text" id="rptSearch" class="rpt-search-input" placeholder="<?php echo t('lbl_search_reports', 'Search reports...'); ?>" autocomplete="off" />
                             <i class="bx bx-x rpt-search-clear d-none" id="rptSearchClear"></i>
                         </div>
                     </div>
@@ -254,7 +254,7 @@ $this->load->view('common/transactions/header'); ?>
                                     <span class="rpt-nav-icon-wrap" style="background:#f1f5f9;">
                                         <i class="bx bx-grid-alt" style="color:#64748b;"></i>
                                     </span>
-                                    <span class="rpt-nav-label">All Reports</span>
+                                    <span class="rpt-nav-label"><?php echo t('lbl_all_reports', 'All Reports'); ?></span>
                                     <span class="rpt-nav-badge"><?php echo $totalReports; ?></span>
                                 </div>
                                 <div class="rpt-nav-divider"></div>
@@ -263,7 +263,7 @@ $this->load->view('common/transactions/header'); ?>
                                     <span class="rpt-nav-icon-wrap" style="background:<?php echo $cat['bg']; ?>;">
                                         <i class="bx <?php echo $cat['icon']; ?>" style="color:<?php echo $cat['color']; ?>;"></i>
                                     </span>
-                                    <span class="rpt-nav-label"><?php echo $cat['name']; ?></span>
+                                    <span class="rpt-nav-label"><?php echo t('cat_' . $cat['id'], $cat['name']); ?></span>
                                     <span class="rpt-nav-badge"><?php echo count($cat['reports']); ?></span>
                                 </div>
                                 <?php endforeach; ?>
@@ -276,7 +276,7 @@ $this->load->view('common/transactions/header'); ?>
                             <!-- No results message -->
                             <div id="rptNoResults" class="d-none text-center py-5 text-muted">
                                 <i class="bx bx-search-alt" style="font-size:2.5rem;display:block;margin-bottom:.5rem;"></i>
-                                No reports match your search.
+                                <?php echo t('lbl_no_reports_found', 'No reports found.'); ?>
                             </div>
 
                             <?php foreach ($categories as $cat): ?>
@@ -285,19 +285,21 @@ $this->load->view('common/transactions/header'); ?>
                                     <span class="rpt-section-icon-wrap" style="background:<?php echo $cat['bg']; ?>;">
                                         <i class="bx <?php echo $cat['icon']; ?>" style="color:<?php echo $cat['color']; ?>;"></i>
                                     </span>
-                                    <span class="rpt-section-title"><?php echo $cat['name']; ?></span>
+                                    <span class="rpt-section-title"><?php echo t('cat_' . $cat['id'], $cat['name']); ?></span>
                                     <span class="rpt-section-count"><?php echo count($cat['reports']); ?></span>
                                 </div>
                                 <div class="row g-3">
-                                    <?php foreach ($cat['reports'] as $rpt): ?>
+                                    <?php foreach ($cat['reports'] as $rpt):
+                                        $rptKey = 'report_' . str_replace('-', '_', basename($rpt['url']));
+                                    ?>
                                     <div class="col-md-4 rpt-card-col" data-name="<?php echo strtolower($rpt['name']); ?>" data-cat="<?php echo $cat['id']; ?>">
                                         <a href="<?php echo $rpt['url']; ?>" class="rpt-card">
                                             <div class="rpt-card-icon-wrap" style="background:<?php echo $cat['bg']; ?>;">
                                                 <i class="bx <?php echo $rpt['icon']; ?>" style="color:<?php echo $cat['color']; ?>;"></i>
                                             </div>
                                             <div class="rpt-card-body">
-                                                <div class="rpt-card-name"><?php echo $rpt['name']; ?></div>
-                                                <div class="rpt-card-desc"><?php echo $rpt['desc']; ?></div>
+                                                <div class="rpt-card-name"><?php echo t($rptKey, $rpt['name']); ?></div>
+                                                <div class="rpt-card-desc"><?php echo t($rptKey . '_desc', $rpt['desc']); ?></div>
                                             </div>
                                             <i class="bx bx-chevron-right rpt-card-arrow"></i>
                                         </a>

@@ -82,7 +82,7 @@ function _hidden(name, value) {
 
 function _exportAlert(msg) {
     if (typeof Swal !== 'undefined') {
-        Swal.fire({ icon: 'error', title: 'Export Error', text: msg, confirmButtonColor: '#1a73e8' });
+        Swal.fire({ icon: 'error', title: t('swal_export_error', 'Export Error'), text: msg, confirmButtonColor: '#1a73e8' });
     } else {
         alert(msg);
     }

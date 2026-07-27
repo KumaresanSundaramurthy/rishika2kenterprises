@@ -22,10 +22,10 @@
                             <span class="text-muted small">Manage your organisation's bank accounts used in transactions and payments.</span>
                             <div class="d-flex gap-2">
                                 <button class="btn btn-outline-secondary btn-sm px-3" id="btnTransferFunds">
-                                    <i class="bx bx-transfer me-1"></i>Transfer Funds
+                                    <i class="bx bx-transfer me-1"></i><?php echo t('btn_transfer_funds', 'Transfer Funds'); ?>
                                 </button>
                                 <button class="btn btn-primary btn-sm px-3" id="btnAddBank">
-                                    <i class="bx bx-plus me-1"></i>Add Bank Account
+                                    <i class="bx bx-plus me-1"></i><?php echo t('btn_add_bank', 'Add Bank Account'); ?>
                                 </button>
                             </div>
                         </div>

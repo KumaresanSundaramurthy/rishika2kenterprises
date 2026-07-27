@@ -183,8 +183,8 @@ function baseExportFunctionality(Flag, Type, PageType, FileName, SheetName) {
         if (SelectedUIDs.length == 0) {
             Swal.fire({
                 icon: "error",
-                title: "Oops...",
-                text: "You have not selected any items. Kindly select items.!",
+                title: t('swal_oops', 'Oops...'),
+                text: t('swal_no_selection', 'You have not selected any items. Kindly select items.'),
             });
             return false;
         }

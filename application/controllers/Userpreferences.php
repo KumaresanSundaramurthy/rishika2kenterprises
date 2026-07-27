@@ -7,7 +7,7 @@ class Userpreferences extends MY_Controller {
     public function __construct() {
         parent::__construct();
         $this->load->model('dbwrite_model');
-        $this->load->model('UserPreferences_model');
+        $this->load->model('Userpreferences_model');
     }
 
     // POST /userpreferences/save
@@ -42,7 +42,7 @@ class Userpreferences extends MY_Controller {
             $this->dbwrite_model->upsertPreference($orgUID, $branchUID, $userUID, $key, $value);
 
             $out->Error = false;
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             $out->Error   = true;
             $out->Message = $e->getMessage();
         }
@@ -58,13 +58,11 @@ class Userpreferences extends MY_Controller {
             $branchUID = (int)($jwtData->Org->BranchUID ?? 0);
             $userUID   = (int)($jwtData->User->UserUID  ?? 0);
 
-            $prefs = ($orgUID && $userUID)
-                ? $this->UserPreferences_model->getAllUserPreferences($orgUID, $branchUID, $userUID)
-                : [];
+            $prefs = ($orgUID && $userUID) ? $this->Userpreferences_model->getAllUserPreferences($orgUID, $branchUID, $userUID) : [];
 
             $out->Error       = false;
             $out->Preferences = $prefs;
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             $out->Error   = true;
             $out->Message = $e->getMessage();
             $out->Preferences = [];

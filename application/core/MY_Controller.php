@@ -664,10 +664,8 @@ class MY_Controller extends CI_Controller {
 
         $range = $default;
         if ($orgUID && $userUID) {
-            $this->load->model('UserPreferences_model');
-            $saved = $this->UserPreferences_model->getUserPreference(
-                $orgUID, $branchUID, $userUID, 'df_' . $pageKey
-            );
+            $this->load->model('Userpreferences_model');
+            $saved = $this->Userpreferences_model->getUserPreference($orgUID, $branchUID, $userUID, 'df_' . $pageKey);
             if ($saved !== null && $saved !== '') $range = $saved;
         }
 

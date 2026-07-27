@@ -14,7 +14,7 @@
  * @property object $globalservice
  * @property object $input
  */
-class PackingLists extends MY_Controller {
+class Packinglists extends MY_Controller {
 
     /** @var object|null */
     private $EndReturnData;
@@ -28,10 +28,10 @@ class PackingLists extends MY_Controller {
     // ── Index (list all packing lists) ──────────────────────────
     public function index(): void {
         $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
-        $this->load->model('PackingList_model');
+        $this->load->model('Packinglist_model');
         $this->pageData['PageTitle']       = 'Packing Lists';
         $this->pageData['PageDescription'] = 'All packing lists across transactions';
-        $this->pageData['PLList']          = $this->PackingList_model->getAll($orgUID);
+        $this->pageData['PLList']          = $this->Packinglist_model->getAll($orgUID);
         $this->load->view('packing_lists/index', $this->pageData);
     }
 
@@ -51,9 +51,9 @@ class PackingLists extends MY_Controller {
             $srcItems = $this->transactions_model->getTransactionItems($transUID, $orgUID);
 
             // Load existing PL if one already exists for this transaction
-            $this->load->model('PackingList_model');
-            $pl      = $this->PackingList_model->getByTransUID($transUID, $orgUID);
-            $plItems = $pl ? $this->PackingList_model->getItems((int) $pl->PackingListUID, $orgUID) : [];
+            $this->load->model('Packinglist_model');
+            $pl      = $this->Packinglist_model->getByTransUID($transUID, $orgUID);
+            $plItems = $pl ? $this->Packinglist_model->getItems((int) $pl->PackingListUID, $orgUID) : [];
 
             $this->load->model('organisation_model');
             $orgInfo = $this->organisation_model->getOrgInfoCached($orgUID);
@@ -121,8 +121,8 @@ class PackingLists extends MY_Controller {
                 ];
             }
 
-            $this->load->model('PackingList_model');
-            $savedUID = $this->PackingList_model->save($plUID, $header, $items, $orgUID, $userUID);
+            $this->load->model('Packinglist_model');
+            $savedUID = $this->Packinglist_model->save($plUID, $header, $items, $orgUID, $userUID);
 
             $this->dbwrite_model->commitTransaction();
 
@@ -150,12 +150,12 @@ class PackingLists extends MY_Controller {
             $srcHeader = $this->transactions_model->getTransactionById($transUID, $orgUID);
             if (!$srcHeader) redirect('/', 'refresh');
 
-            $this->load->model('PackingList_model');
-            $pl = $this->PackingList_model->getByTransUID($transUID, $orgUID);
+            $this->load->model('Packinglist_model');
+            $pl = $this->Packinglist_model->getByTransUID($transUID, $orgUID);
 
             // Graceful fallback: no PL saved yet → use raw DC/Invoice items
             $plItems = $pl
-                ? $this->PackingList_model->getItems((int) $pl->PackingListUID, $orgUID)
+                ? $this->Packinglist_model->getItems((int) $pl->PackingListUID, $orgUID)
                 : $this->transactions_model->getTransactionItems($transUID, $orgUID);
 
             $this->load->model('organisation_model');

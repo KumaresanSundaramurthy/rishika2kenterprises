@@ -456,7 +456,7 @@
         var area   = $(this).data('area')   || '';
 
         if (_members.some(function (m) { return m.uid === uid; })) {
-            showToastNotification('Already in group.', 'info');
+            showToastNotification(t('toast_already_in_group', 'Already in group.'), 'info');
             $('#VG_MemberSearch').val('').focus();
             $('#VG_MemberDropdown').hide();
             return;
@@ -472,7 +472,7 @@
     $(document).on('click', '#VG_BtnAddMember', function () {
         var $first = $('#VG_MemberDropdown .vg-vend-item:first');
         if ($first.length) { $first.trigger('click'); return; }
-        showToastNotification('Search for a vendor first.', 'warning');
+        showToastNotification(t('toast_search_vend_first', 'Search for a vendor first.'), 'warning');
     });
 
     $(document).on('click', function (e) {
@@ -614,7 +614,7 @@
             error: function () {
                 $spinner.remove();
                 $btn.prop('disabled', false);
-                showToastNotification('Request failed. Please try again.', 'error');
+                showToastNotification(t('swal_request_failed', 'Request failed. Please try again.'), 'error');
             }
         });
     });

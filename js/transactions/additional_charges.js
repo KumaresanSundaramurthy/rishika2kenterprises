@@ -356,7 +356,7 @@
         var $section = $('#additionalChargesSection');
         // Block expansion when cart has no items
         if (!$section.is(':visible') && !$('#billTableBody tr[data-id]').length) {
-            showToastNotification('Please add items to the cart before applying additional charges.', 'error');
+            showToastNotification(t('toast_add_charges_first', 'Please add items to the cart before applying additional charges.'), 'error');
             return;
         }
         $section.slideToggle(200, function () {

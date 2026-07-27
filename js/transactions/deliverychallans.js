@@ -14,11 +14,11 @@ function getDeliveryChallansDetails(pageNo, rowLimit, filter, afterLoad) {
 $(document).on('click', '.duplicateDeliveryChallan', function () {
     var uid = $(this).data('uid'), num = $(this).data('num') || '';
     Swal.fire({
-        title: 'Clone Challan?',
+        title: t('swal_clone_challan', 'Clone Challan?'),
         html : num ? 'Create a copy of <strong>' + num + '</strong>?' : 'Clone this delivery challan?',
         icon : 'question', showCancelButton: true,
         confirmButtonColor: '#0dcaf0', cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Yes, Clone', cancelButtonText: 'Cancel'
+        confirmButtonText: t('btn_yes_clone', 'Yes, Clone'), cancelButtonText: t('btn_cancel', 'Cancel')
     }).then(function (r) {
         if (!r.isConfirmed) return;
         window.location.href = '/deliverychallan/create?fromClone=' + uid;

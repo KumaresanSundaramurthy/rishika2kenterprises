@@ -305,7 +305,7 @@ $(function() {
     // Upload button click handler
     $(document).on('click', '#uploadPaymentAttachmentBtn', function() {
         if (_paymentAttachments.length >= _maxFiles) {
-            showToastNotification('You can upload a maximum of ' + _maxFiles + ' files. Please remove a file before adding a new one.', 'error');
+            showToastNotification(t('toast_upload_max_files', 'You can upload a maximum of {n} files. Please remove a file before adding a new one.').replace('{n}', _maxFiles), 'error');
             return;
         }
         $('#paymentAttachmentInput').click();
@@ -320,8 +320,8 @@ $(function() {
         if (_paymentAttachments.length + files.length > _maxFiles) {
             Swal.fire({
                 icon: 'warning',
-                title: 'Too Many Files',
-                text: 'You can upload a maximum of ' + _maxFiles + ' files.'
+                title: t('swal_too_many_files', 'Too Many Files'),
+                text: t('toast_upload_limit', 'You can upload a maximum of {n} files.').replace('{n}', _maxFiles)
             });
             $(this).val(''); // Clear input
             return;
@@ -335,7 +335,7 @@ $(function() {
             if (file.size > _maxFileSize) {
                 Swal.fire({
                     icon: 'warning',
-                    title: 'File Too Large',
+                    title: t('swal_file_too_large', 'File Too Large'),
                     text: file.name + ' is larger than 3MB. Please choose a smaller file.'
                 });
                 continue;

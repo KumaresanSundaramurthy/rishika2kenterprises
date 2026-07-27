@@ -979,6 +979,149 @@ tr:hover .apex-party-actions {
 .apex-nav-btn i {
     font-size: 1.2rem;
 }
+/* ── Language dropdown ───────────────────────────────────────────────────── */
+.apex-lang-wrap {
+    position: relative;
+}
+.apex-lang-trigger {
+    display: inline-flex;
+    /* align-items: center; */
+    gap: 5px;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 20px;
+    padding: 4px 10px 4px 6px;
+    cursor: pointer;
+    transition: background .15s, border-color .15s;
+    white-space: nowrap;
+}
+.apex-lang-trigger:hover {
+    background: #e8ecf4;
+    border-color: #c7d0e0;
+}
+.apex-lang-wrap.open .apex-lang-trigger {
+    background: #ededff;
+    border-color: #696cff;
+}
+.apex-lang-flag {
+    /* font-size: 1rem; */
+    line-height: 1;
+    flex-shrink: 0;
+}
+.apex-lang-name {
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: #334155;
+    white-space: nowrap;
+}
+.apex-lang-caret {
+    font-size: 0.85rem;
+    color: #94a3b8;
+    transition: transform .18s;
+    flex-shrink: 0;
+}
+.apex-lang-wrap.open .apex-lang-caret {
+    transform: rotate(180deg);
+}
+.apex-lang-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 140px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    box-shadow: 0 6px 24px rgba(0,0,0,.1);
+    padding: 4px;
+    z-index: 1080;
+}
+.apex-lang-wrap.open .apex-lang-dropdown {
+    display: block;
+    animation: apexLangFadeIn .14s ease;
+}
+@keyframes apexLangFadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0);    }
+}
+.apex-lang-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 12px;
+    border: none;
+    background: none;
+    border-radius: 7px;
+    cursor: pointer;
+    text-align: left;
+    transition: background .1s;
+}
+.apex-lang-option:hover {
+    background: #f1f5f9;
+}
+.apex-lang-option.active {
+    background: #f0f0ff;
+}
+.apex-lang-opt-flag {
+    font-size: 1.1rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+.apex-lang-opt-name {
+    flex: 1;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #334155;
+}
+.apex-lang-option.active .apex-lang-opt-name {
+    color: #696cff;
+    font-weight: 700;
+}
+.apex-lang-check {
+    font-size: 1rem;
+    color: #696cff;
+    opacity: 0;
+    flex-shrink: 0;
+}
+.apex-lang-option.active .apex-lang-check {
+    opacity: 1;
+}
+[data-theme="dark"] .apex-lang-trigger,
+.dark-layout .apex-lang-trigger {
+    background: #1e293b;
+    border-color: #334155;
+}
+[data-theme="dark"] .apex-lang-trigger:hover,
+.dark-layout .apex-lang-trigger:hover {
+    background: #273445;
+}
+[data-theme="dark"] .apex-lang-name,
+.dark-layout .apex-lang-name {
+    color: #94a3b8;
+}
+[data-theme="dark"] .apex-lang-dropdown,
+.dark-layout .apex-lang-dropdown {
+    background: #1e293b;
+    border-color: #334155;
+    box-shadow: 0 6px 24px rgba(0,0,0,.3);
+}
+[data-theme="dark"] .apex-lang-opt-name,
+.dark-layout .apex-lang-opt-name {
+    color: #94a3b8;
+}
+[data-theme="dark"] .apex-lang-option:hover,
+.dark-layout .apex-lang-option:hover {
+    background: #334155;
+}
+[data-theme="dark"] .apex-lang-option.active,
+.dark-layout .apex-lang-option.active {
+    background: #2d2b55;
+}
+[data-theme="dark"] .apex-lang-option.active .apex-lang-opt-name,
+.dark-layout .apex-lang-option.active .apex-lang-opt-name {
+    color: #a5b4fc;
+}
 .apex-notif-badge {
     position: absolute;
     top: 4px;
@@ -1106,6 +1249,52 @@ tr:hover .apex-party-actions {
     font-size: 0.7rem;
     color: #64748b;
     margin-top: 2px;
+}
+.apex-user-dd-lastlogin {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 7px;
+    padding-top: 7px;
+    border-top: 1px solid #e2e8f0;
+}
+.apex-user-dd-ll-label {
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #94a3b8;
+}
+.apex-user-dd-ll-time {
+    font-size: 0.7rem;
+    color: #475569;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.apex-user-dd-ll-time .bx {
+    font-size: 0.8rem;
+    color: #94a3b8;
+}
+.apex-user-dd-ll-device {
+    font-size: 0.635rem;
+    color: #94a3b8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+}
+[data-theme="dark"] .apex-user-dd-lastlogin,
+.dark-layout .apex-user-dd-lastlogin {
+    border-top-color: #334155;
+}
+[data-theme="dark"] .apex-user-dd-ll-time,
+.dark-layout .apex-user-dd-ll-time {
+    color: #94a3b8;
+}
+[data-theme="dark"] .apex-user-dd-ll-device,
+.dark-layout .apex-user-dd-ll-device {
+    color: #64748b;
 }
 .apex-user-dd-divider {
     height: 1px;
@@ -1318,4 +1507,78 @@ tr:hover .apex-party-actions {
 }
 .theme-card-action-btn:hover { background: #fff; color: #0d6efd; }
 .theme-card-action-btn.danger:hover { color: #dc3545; }
+
+/* ── Phase 7: RTL foundations (dormant for en/ta — activates for ar/he/fa/ur) ── */
+[dir="rtl"] body,
+[dir="rtl"] .apex-page-header,
+[dir="rtl"] .apex-stats-strip,
+[dir="rtl"] .r2k-search-wrap,
+[dir="rtl"] .mp-filterbox-bar {
+    direction: rtl;
+    text-align: right;
+}
+
+/* Sidebar / nav — flip left/right margins and padding */
+[dir="rtl"] .layout-menu         { right: 0; left: auto; }
+[dir="rtl"] .layout-page         { margin-right: var(--sidebar-width, 260px); margin-left: 0; }
+[dir="rtl"] .layout-navbar       { padding-right: var(--sidebar-width, 260px); padding-left: 0; }
+
+/* Page header — reverse left/right alignment */
+[dir="rtl"] .apex-page-header-left  { flex-direction: row-reverse; }
+[dir="rtl"] .apex-page-header-right { flex-direction: row-reverse; }
+[dir="rtl"] .apex-back-btn          { transform: scaleX(-1); }
+
+/* User dropdown — open on left instead of right */
+[dir="rtl"] .apex-user-dropdown {
+    right: auto;
+    left: 0;
+}
+
+/* Table cells */
+[dir="rtl"] table,
+[dir="rtl"] th,
+[dir="rtl"] td {
+    text-align: right;
+}
+[dir="rtl"] .col-actions,
+[dir="rtl"] .r2k-actions-col {
+    text-align: left;
+}
+
+/* Form labels and inputs */
+[dir="rtl"] .form-label,
+[dir="rtl"] .col-form-label {
+    text-align: right;
+}
+[dir="rtl"] .input-group > .form-control:not(:last-child) {
+    border-radius: 0 var(--bs-border-radius) var(--bs-border-radius) 0;
+}
+[dir="rtl"] .input-group > .input-group-text:first-child {
+    border-radius: 0 var(--bs-border-radius) var(--bs-border-radius) 0;
+}
+[dir="rtl"] .input-group > .input-group-text:last-child {
+    border-radius: var(--bs-border-radius) 0 0 var(--bs-border-radius);
+}
+
+/* Toast notifications — appear from left in RTL */
+[dir="rtl"] #toast-container {
+    right: auto;
+    left: 1rem;
+}
+
+/* Filter box — open from right */
+[dir="rtl"] .mp-filterbox-panel {
+    right: auto;
+    left: 0;
+}
+
+/* Pagination */
+[dir="rtl"] .pagination { flex-direction: row-reverse; }
+
+/* Breadcrumb divider flip */
+[dir="rtl"] .breadcrumb-item + .breadcrumb-item::before {
+    content: "/";
+    transform: scaleX(-1);
+    display: inline-block;
+}
 

@@ -4,7 +4,7 @@ if (empty($DataLists)) { ?>
     <tr>
         <td colspan="7" class="text-center py-5 text-muted">
             <i class="bx bx-tag-alt fs-1 d-block mb-2"></i>
-            No prefix configurations added yet.
+            <?php echo t('empty_prefixes', 'No prefixes configured.'); ?>
         </td>
     </tr>
 <?php return; }
@@ -38,13 +38,13 @@ foreach ($DataLists as $row):
     // Configuration badges
     $cfgBadges = '';
     if (!empty($row->IncludeFiscalYear)) {
-        $fyLabel    = ($row->FiscalYearFormat ?? 'SHORT') === 'LONG' ? 'Full year' : 'Short year';
+        $fyLabel    = ($row->FiscalYearFormat ?? 'SHORT') === 'LONG' ? t('lbl_full_year', 'Full year') : t('lbl_short_year', 'Short year');
         $cfgBadges .= '<span class="badge bg-label-info me-1 mb-1">FY ' . $fyLabel . '</span>';
     }
     if (!empty($row->IncludeShortName) && !empty($row->ShortName)) {
         $cfgBadges .= '<span class="badge bg-label-warning me-1 mb-1">' . htmlspecialchars($row->ShortName) . '</span>';
     }
-    $sepLabels  = ['-' => 'Hyphen (–)', '/' => 'Slash (/)', '|' => 'Pipe (|)', '_' => 'Underscore (_)', '.' => 'Dot (.)'];
+    $sepLabels  = ['-' => t('lbl_separator_hyphen', 'Hyphen (–)'), '/' => t('lbl_separator_slash', 'Slash (/)'), '|' => 'Pipe (|)', '_' => 'Underscore (_)', '.' => 'Dot (.)'];
     $cfgBadges .= '<span class="badge bg-label-secondary me-1 mb-1">Sep: ' . htmlspecialchars($sepLabels[$row->Separator] ?? $row->Separator) . '</span>';
     $padLabel   = (int)$row->NumberPadding > 1 ? (int)$row->NumberPadding . ' digits' : 'No pad';
     $cfgBadges .= '<span class="badge bg-label-secondary me-1 mb-1">Pad: ' . $padLabel . '</span>';
@@ -85,7 +85,7 @@ foreach ($DataLists as $row):
     <td class="align-middle">
         <code class="fw-bold text-primary" style="font-size:.9rem;"><?php echo $preview; ?></code>
         <?php if ($isDefault): ?>
-            <span class="badge bg-success ms-1" style="font-size:.65rem;">Default</span>
+            <span class="badge bg-success ms-1" style="font-size:.65rem;"><?php echo t('lbl_default', 'Default'); ?></span>
         <?php endif; ?>
     </td>
 

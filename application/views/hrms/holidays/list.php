@@ -24,11 +24,11 @@ if (!empty($DataLists)):
         data-name="<?php echo htmlspecialchars($row->HolidayName ?? ''); ?>"
         data-date="<?php echo $dt; ?>"
         data-optional="<?php echo $opt; ?>"
-        data-desc="<?php echo htmlspecialchars($row->Description ?? ''); ?>" title="Edit"><i class="bx bx-edit"></i></button>
-      <button class="btn btn-icon btn-sm text-danger holiday-delete-btn" data-uid="<?php echo $uid; ?>" title="Delete"><i class="bx bx-trash"></i></button>
+        data-desc="<?php echo htmlspecialchars($row->Description ?? ''); ?>" title="<?php echo t('vm_edit', 'Edit'); ?>"><i class="bx bx-edit"></i></button>
+      <button class="btn btn-icon btn-sm text-danger holiday-delete-btn" data-uid="<?php echo $uid; ?>" title="<?php echo t('btn_delete', 'Delete'); ?>"><i class="bx bx-trash"></i></button>
     </div>
   </td>
 </tr>
 <?php endforeach; else: ?>
-<tr><td colspan="6" class="text-center text-muted py-4"><i class="bx bx-calendar-event me-1"></i>No holidays found.</td></tr>
+<tr><td colspan="6" class="text-center text-muted py-4"><i class="bx bx-calendar-event me-1"></i><?php echo t('empty_holidays', 'No holidays found.'); ?></td></tr>
 <?php endif; ?>

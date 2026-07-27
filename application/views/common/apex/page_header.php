@@ -60,6 +60,30 @@ foreach ($_qaMenus as $_qaMM) {
             <kbd class="apex-header-search-kbd">Ctrl K</kbd>
         </button>
         <div class="apex-nav-divider"></div>
+        <!-- Language Switcher -->
+        <?php $_apexLang = $JwtData->User->UILanguage ?? 'en'; ?>
+        <div class="apex-lang-wrap" id="apexLangWrap">
+            <button class="apex-lang-trigger" id="apexLangBtn" type="button"
+                    title="<?php echo t('lbl_language', 'Language'); ?>">
+                <span class="apex-lang-flag"><?php echo $_apexLang === 'ta' ? '🇮🇳' : '🇬🇧'; ?></span>
+                <span class="apex-lang-name"><?php echo $_apexLang === 'ta' ? 'தமிழ்' : 'English'; ?></span>
+                <i class="bx bx-chevron-down apex-lang-caret"></i>
+            </button>
+            <div class="apex-lang-dropdown" id="apexLangDropdown">
+                <button class="apex-lang-option<?php echo $_apexLang === 'en' ? ' active' : ''; ?>"
+                        data-lang="en" type="button">
+                    <span class="apex-lang-opt-flag">🇬🇧</span>
+                    <span class="apex-lang-opt-name">English</span>
+                    <i class="bx bx-check apex-lang-check"></i>
+                </button>
+                <button class="apex-lang-option<?php echo $_apexLang === 'ta' ? ' active' : ''; ?>"
+                        data-lang="ta" type="button">
+                    <span class="apex-lang-opt-flag">🇮🇳</span>
+                    <span class="apex-lang-opt-name">தமிழ்</span>
+                    <i class="bx bx-check apex-lang-check"></i>
+                </button>
+            </div>
+        </div>
         <!-- Help -->
         <button class="apex-nav-btn" title="<?php echo t('lbl_help', 'Help'); ?>" type="button">
             <i class="bx bx-help-circle"></i>
@@ -91,6 +115,19 @@ foreach ($_qaMenus as $_qaMM) {
                 <div class="apex-user-dd-header">
                     <div class="apex-user-dd-name"><?php echo htmlspecialchars($JwtData->User->FirstName . ' ' . ($JwtData->User->LastName ?? '')); ?></div>
                     <div class="apex-user-dd-org"><?php echo htmlspecialchars($JwtData->Org->OrgName ?? ''); ?></div>
+                    <?php
+                    $_llOn = $JwtData->User->LastLoginOn ?? null;
+                    if (!empty($_llOn)):
+                        $_llTs = viewPageDateTimeFormat($_llOn, $JwtData->User->Timezone ?? 'UTC', 2);
+                    ?>
+                    <div class="apex-user-dd-lastlogin">
+                        <span class="apex-user-dd-ll-label"><?php echo t('last_login', 'Last login'); ?></span>
+                        <span class="apex-user-dd-ll-time"><i class="bx bx-time-five"></i><?php echo $_llTs->formatted; ?></span>
+                        <?php if (!empty($JwtData->User->LastLoginDevice ?? null)): ?>
+                        <span class="apex-user-dd-ll-device"><?php echo htmlspecialchars(mb_strimwidth($JwtData->User->LastLoginDevice, 0, 42, '…')); ?></span>
+                        <?php endif; ?>
+                    </div>
+                    <?php endif; ?>
                 </div>
                 <div class="apex-user-dd-divider"></div>
                 <a href="/settings/profile" class="apex-user-dd-item">

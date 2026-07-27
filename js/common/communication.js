@@ -582,9 +582,9 @@ $(document).on('click', '#SendCommBtn', function () {
         message = $('#CommSmsMessage').val() || (_commSmsQuill ? _commSmsQuill.getText().trim() : '');
     }
 
-    if (!uids.length)                              { Swal.fire({ icon: 'warning', text: 'No recipients selected.' }); return; }
-    if (!message || message === '<p><br></p>')     { Swal.fire({ icon: 'warning', text: 'Please enter a message.' }); return; }
-    if (type === 'Email' && !subject)              { Swal.fire({ icon: 'warning', text: 'Please enter an email subject.' }); return; }
+    if (!uids.length)                              { Swal.fire({ icon: 'warning', text: t('swal_no_recipients', 'No recipients selected.') }); return; }
+    if (!message || message === '<p><br></p>')     { Swal.fire({ icon: 'warning', text: t('swal_enter_message', 'Please enter a message.') }); return; }
+    if (type === 'Email' && !subject)              { Swal.fire({ icon: 'warning', text: t('swal_enter_subject', 'Please enter an email subject.') }); return; }
 
     var url = '/' + recipientType.toLowerCase() + 's/sendCommunication';
 
@@ -613,15 +613,15 @@ $(document).on('click', '#SendCommBtn', function () {
         success: function (resp) {
             $('#SendCommBtn').prop('disabled', false).html('<i class="bx bx-send me-1"></i><span id="SendCommBtnLabel">Send ' + type + '</span>');
             if (resp.Error) {
-                Swal.fire({ icon: 'error', title: 'Failed', text: resp.Message });
+                Swal.fire({ icon: 'error', title: t('swal_failed', 'Failed'), text: resp.Message });
             } else {
                 $('#SendCommModal').modal('hide');
-                Swal.fire({ icon: 'success', title: 'Sent!', text: resp.Message, timer: 2500, showConfirmButton: false });
+                Swal.fire({ icon: 'success', title: t('swal_sent', 'Sent!'), text: resp.Message, timer: 2500, showConfirmButton: false });
             }
         },
         error: function () {
             $('#SendCommBtn').prop('disabled', false).html('<i class="bx bx-send me-1"></i><span id="SendCommBtnLabel">Send ' + type + '</span>');
-            Swal.fire({ icon: 'error', text: 'Request failed. Please try again.' });
+            Swal.fire({ icon: 'error', text: t('swal_request_failed', 'Request failed. Please try again.') });
         }
     });
 });

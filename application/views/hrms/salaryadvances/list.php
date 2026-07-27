@@ -45,7 +45,7 @@ if (!empty($DataLists)):
         data-employee="<?php echo (int)($row->EmployeeUID ?? 0); ?>"
         data-date="<?php echo htmlspecialchars($row->AdvanceDate ?? ''); ?>"
         data-amount="<?php echo $amount; ?>"
-        data-remarks="<?php echo htmlspecialchars($row->Remarks ?? ''); ?>" title="Edit">
+        data-remarks="<?php echo htmlspecialchars($row->Remarks ?? ''); ?>" title="<?php echo t('vm_edit', 'Edit'); ?>">
         <i class="bx bx-edit"></i>
       </button>
       <div class="dropdown">
@@ -55,18 +55,18 @@ if (!empty($DataLists)):
         <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:.82rem;min-width:160px;">
           <li>
             <button class="dropdown-item adv-approve-btn" data-uid="<?php echo $uid; ?>">
-              <i class="bx bx-check-circle me-2 text-success"></i>Approve
+              <i class="bx bx-check-circle me-2 text-success"></i><?php echo t('btn_approve', 'Approve'); ?>
             </button>
           </li>
           <li>
             <button class="dropdown-item adv-reject-btn" data-uid="<?php echo $uid; ?>">
-              <i class="bx bx-x-circle me-2 text-warning"></i>Reject
+              <i class="bx bx-x-circle me-2 text-warning"></i><?php echo t('btn_reject', 'Reject'); ?>
             </button>
           </li>
           <li><hr class="dropdown-divider my-1"></li>
           <li>
             <button class="dropdown-item text-danger adv-delete-btn" data-uid="<?php echo $uid; ?>">
-              <i class="bx bx-trash me-2"></i>Delete
+              <i class="bx bx-trash me-2"></i><?php echo t('btn_delete', 'Delete'); ?>
             </button>
           </li>
         </ul>
@@ -81,7 +81,7 @@ if (!empty($DataLists)):
         <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:.82rem;min-width:160px;">
           <li>
             <button class="dropdown-item text-danger adv-delete-btn" data-uid="<?php echo $uid; ?>">
-              <i class="bx bx-trash me-2"></i>Delete
+              <i class="bx bx-trash me-2"></i><?php echo t('btn_delete', 'Delete'); ?>
             </button>
           </li>
         </ul>

@@ -29,14 +29,14 @@
               <div class="trans-toolbar-actions">
                 <a href="#" class="r2k-icon-btn PageRefresh"><i class="bx bx-refresh"></i></a>
                 <div class="r2k-search-wrap"><i class="bx bx-search r2k-si"></i><input type="text" id="SearchDetails" placeholder="Search…"><i class="bx bx-x r2k-clear d-none" id="clearSearch"></i></div>
-                <button class="btn btn-sm btn-primary" id="btnNewHoliday"><i class="bx bx-plus me-1"></i>Add Holiday</button>
+                <button class="btn btn-sm btn-primary" id="btnNewHoliday"><i class="bx bx-plus me-1"></i><?php echo t('btn_add_holiday', 'Add Holiday'); ?></button>
               </div>
             </div>
             <div class="table-responsive">
               <table class="table trans-table MainviewTable mb-0">
                 <thead class="r2k-thead"><tr>
-                  <th class="<?php echo ($JwtData->GenSettings->SerialNoDisplay ?? 0) == 1 ? '' : 'd-none'; ?>">S.No</th>
-                  <th>Holiday Name</th><th>Date</th><th>Day</th><th>Type</th><th class="th-act">Actions</th>
+                  <th class="<?php echo ($JwtData->GenSettings->SerialNoDisplay ?? 0) == 1 ? '' : 'd-none'; ?>"><?php echo t('col_sno', 'S.No'); ?></th>
+                  <th><?php echo t('col_holiday_name', 'Holiday Name'); ?></th><th><?php echo t('col_holiday_date', 'Holiday Date'); ?></th><th><?php echo t('col_day', 'Day'); ?></th><th><?php echo t('col_holiday_type', 'Holiday Type'); ?></th><th class="th-act"><?php echo t('col_actions', 'Actions'); ?></th>
                 </tr></thead>
                 <tbody class="r2k-tbody table-border-bottom-0" id="HolidayTableBody"><?php echo $ModRowData; ?></tbody>
               </table>
@@ -63,10 +63,10 @@
         </div>
         <div class="d-flex align-items-center gap-2">
           <button type="button" class="btn btn-sm btn-primary" id="btnSaveHoliday">
-            <i class="bx bx-check me-1"></i>Save
+            <i class="bx bx-check me-1"></i><?php echo t('btn_save', 'Save'); ?>
           </button>
           <button type="button" class="btn btn-sm btn-outline-danger" data-bs-dismiss="modal">
-            <i class="bx bx-x me-1"></i>Close
+            <i class="bx bx-x me-1"></i><?php echo t('btn_cancel', 'Close'); ?>
           </button>
         </div>
       </div>

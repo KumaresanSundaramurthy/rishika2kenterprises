@@ -46,47 +46,47 @@ $period = ($months[(int)($s->PayrollMonth ?? 0)] ?? '—') . ' ' . ($s->PayrollY
       <div class="org-addr"><?php echo htmlspecialchars($org->Address ?? ''); ?></div>
     </div>
     <div class="slip-title">
-      <div class="label">Salary Slip</div>
+      <div class="label"><?php echo t('lbl_salary_slip', 'Salary Slip'); ?></div>
       <div class="period"><?php echo $period; ?></div>
       <div class="badge"><?php echo $s->PayrollStatus ?? '—'; ?></div>
     </div>
   </div>
   <hr>
   <div class="info-grid">
-    <div class="info-item"><div class="lbl">Employee Name</div><div class="val"><?php echo htmlspecialchars($s->EmployeeName ?? ''); ?></div></div>
-    <div class="info-item"><div class="lbl">Employee Code</div><div class="val"><?php echo htmlspecialchars($s->EmployeeCode ?? ''); ?></div></div>
-    <div class="info-item"><div class="lbl">Department</div><div class="val"><?php echo htmlspecialchars($s->DepartmentName ?? '—'); ?></div></div>
-    <div class="info-item"><div class="lbl">Designation</div><div class="val"><?php echo htmlspecialchars($s->DesignationName ?? '—'); ?></div></div>
-    <div class="info-item"><div class="lbl">Salary Type</div><div class="val"><?php echo htmlspecialchars($s->SalaryType ?? '—'); ?></div></div>
-    <div class="info-item"><div class="lbl">Working Days</div><div class="val"><?php echo number_format((float)($s->WorkingDays ?? 0)); ?></div></div>
-    <div class="info-item"><div class="lbl">Present Days</div><div class="val"><?php echo number_format((float)($s->PresentDays ?? 0), 1); ?></div></div>
-    <div class="info-item"><div class="lbl">Absent Days</div><div class="val"><?php echo number_format((float)($s->AbsentDays ?? 0), 1); ?></div></div>
+    <div class="info-item"><div class="lbl"><?php echo t('col_employee_name', 'Employee Name'); ?></div><div class="val"><?php echo htmlspecialchars($s->EmployeeName ?? ''); ?></div></div>
+    <div class="info-item"><div class="lbl"><?php echo t('col_employee_code', 'Employee Code'); ?></div><div class="val"><?php echo htmlspecialchars($s->EmployeeCode ?? ''); ?></div></div>
+    <div class="info-item"><div class="lbl"><?php echo t('col_department', 'Department'); ?></div><div class="val"><?php echo htmlspecialchars($s->DepartmentName ?? '—'); ?></div></div>
+    <div class="info-item"><div class="lbl"><?php echo t('col_designation', 'Designation'); ?></div><div class="val"><?php echo htmlspecialchars($s->DesignationName ?? '—'); ?></div></div>
+    <div class="info-item"><div class="lbl"><?php echo t('col_salary_type', 'Salary Type'); ?></div><div class="val"><?php echo htmlspecialchars($s->SalaryType ?? '—'); ?></div></div>
+    <div class="info-item"><div class="lbl"><?php echo t('col_working_days', 'Working Days'); ?></div><div class="val"><?php echo number_format((float)($s->WorkingDays ?? 0)); ?></div></div>
+    <div class="info-item"><div class="lbl"><?php echo t('col_present_days', 'Present Days'); ?></div><div class="val"><?php echo number_format((float)($s->PresentDays ?? 0), 1); ?></div></div>
+    <div class="info-item"><div class="lbl"><?php echo t('col_absent_days', 'Absent Days'); ?></div><div class="val"><?php echo number_format((float)($s->AbsentDays ?? 0), 1); ?></div></div>
   </div>
   <hr>
   <div class="earn-ded">
     <div>
-      <div class="section-title">Earnings</div>
+      <div class="section-title"><?php echo t('lbl_earnings', 'Earnings'); ?></div>
       <table class="breakdown">
-        <tr><td>Basic Salary</td><td><?php echo $cur . ' ' . number_format((float)($s->BasicSalary ?? 0), $dec); ?></td></tr>
-        <tr><td>Allowances</td><td><?php echo $cur . ' ' . number_format((float)($s->Allowances ?? 0), $dec); ?></td></tr>
-        <tr><td>Incentives</td><td><?php echo $cur . ' ' . number_format((float)($s->Incentives ?? 0), $dec); ?></td></tr>
-        <?php if ((float)($s->OtherEarnings ?? 0) > 0): ?><tr><td>Other Earnings</td><td><?php echo $cur . ' ' . number_format((float)$s->OtherEarnings, $dec); ?></td></tr><?php endif; ?>
-        <tr><td>Gross Salary</td><td style="color:#16a34a;"><?php echo $cur . ' ' . number_format((float)($s->GrossSalary ?? 0), $dec); ?></td></tr>
+        <tr><td><?php echo t('lbl_basic_salary', 'Basic Salary'); ?></td><td><?php echo $cur . ' ' . number_format((float)($s->BasicSalary ?? 0), $dec); ?></td></tr>
+        <tr><td><?php echo t('lbl_allowances', 'Allowances'); ?></td><td><?php echo $cur . ' ' . number_format((float)($s->Allowances ?? 0), $dec); ?></td></tr>
+        <tr><td><?php echo t('lbl_incentives', 'Incentives'); ?></td><td><?php echo $cur . ' ' . number_format((float)($s->Incentives ?? 0), $dec); ?></td></tr>
+        <?php if ((float)($s->OtherEarnings ?? 0) > 0): ?><tr><td><?php echo t('lbl_other_earnings', 'Other Earnings'); ?></td><td><?php echo $cur . ' ' . number_format((float)$s->OtherEarnings, $dec); ?></td></tr><?php endif; ?>
+        <tr><td><?php echo t('lbl_gross_salary', 'Gross Salary'); ?></td><td style="color:#16a34a;"><?php echo $cur . ' ' . number_format((float)($s->GrossSalary ?? 0), $dec); ?></td></tr>
       </table>
     </div>
     <div>
-      <div class="section-title">Deductions</div>
+      <div class="section-title"><?php echo t('lbl_deductions', 'Deductions'); ?></div>
       <table class="breakdown">
-        <tr><td>Absent Deduction</td><td style="color:#dc2626;"><?php echo $cur . ' ' . number_format((float)($s->AbsentDeduction ?? 0), $dec); ?></td></tr>
-        <tr><td>Fixed Deductions</td><td style="color:#dc2626;"><?php echo $cur . ' ' . number_format((float)($s->FixedDeductions ?? 0), $dec); ?></td></tr>
-        <tr><td>Advance Recovery</td><td style="color:#d97706;"><?php echo $cur . ' ' . number_format((float)($s->AdvanceRecovery ?? 0), $dec); ?></td></tr>
-        <?php if ((float)($s->OtherDeductions ?? 0) > 0): ?><tr><td>Other Deductions</td><td style="color:#dc2626;"><?php echo $cur . ' ' . number_format((float)$s->OtherDeductions, $dec); ?></td></tr><?php endif; ?>
-        <tr><td>Total Deductions</td><td style="color:#dc2626;"><?php echo $cur . ' ' . number_format((float)($s->TotalDeductions ?? 0), $dec); ?></td></tr>
+        <tr><td><?php echo t('lbl_absent_deduction', 'Absent Deduction'); ?></td><td style="color:#dc2626;"><?php echo $cur . ' ' . number_format((float)($s->AbsentDeduction ?? 0), $dec); ?></td></tr>
+        <tr><td><?php echo t('lbl_fixed_deductions', 'Fixed Deductions'); ?></td><td style="color:#dc2626;"><?php echo $cur . ' ' . number_format((float)($s->FixedDeductions ?? 0), $dec); ?></td></tr>
+        <tr><td><?php echo t('lbl_advance_recovery', 'Advance Recovery'); ?></td><td style="color:#d97706;"><?php echo $cur . ' ' . number_format((float)($s->AdvanceRecovery ?? 0), $dec); ?></td></tr>
+        <?php if ((float)($s->OtherDeductions ?? 0) > 0): ?><tr><td><?php echo t('lbl_other_deductions', 'Other Deductions'); ?></td><td style="color:#dc2626;"><?php echo $cur . ' ' . number_format((float)$s->OtherDeductions, $dec); ?></td></tr><?php endif; ?>
+        <tr><td><?php echo t('lbl_total_deductions', 'Total Deductions'); ?></td><td style="color:#dc2626;"><?php echo $cur . ' ' . number_format((float)($s->TotalDeductions ?? 0), $dec); ?></td></tr>
       </table>
     </div>
   </div>
   <div class="net-row">
-    <div class="net-label">NET PAYABLE</div>
+    <div class="net-label"><?php echo strtoupper(t('lbl_net_payable', 'Net Payable')); ?></div>
     <div class="net-value"><?php echo $cur . ' ' . number_format((float)($s->NetPayable ?? 0), $dec); ?></div>
   </div>
   <div class="footer-note">This is a computer-generated payslip and does not require a signature.</div>

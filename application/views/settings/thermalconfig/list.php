@@ -4,7 +4,7 @@ if (empty($DataLists)) { ?>
     <tr>
         <td colspan="7" class="text-center py-4 text-muted">
             <i class="bx bx-printer fs-3 d-block mb-2"></i>
-            No thermal print configurations added yet.
+            <?php echo t('empty_thermal', 'No thermal templates configured.'); ?>
         </td>
     </tr>
 <?php return; }
@@ -18,8 +18,8 @@ foreach ($DataLists as $row):
 
     // Receipt element badges
     $badges = '';
-    if (!empty($row->ShowCompanyDetails))  $badges .= '<span class="badge bg-label-primary me-1 mb-1">Co. Details</span>';
-    if (!empty($row->ShowGSTIN))           $badges .= '<span class="badge bg-label-info me-1 mb-1">GSTIN</span>';
+    if (!empty($row->ShowCompanyDetails))  $badges .= '<span class="badge bg-label-primary me-1 mb-1">' . t('lbl_co_details', 'Co. Details') . '</span>';
+    if (!empty($row->ShowGSTIN))           $badges .= '<span class="badge bg-label-info me-1 mb-1">' . t('lbl_gstin', 'GSTIN') . '</span>';
     if (!empty($row->ShowMobile))          $badges .= '<span class="badge bg-label-info me-1 mb-1">Mobile</span>';
     if (!empty($row->ShowHSN))             $badges .= '<span class="badge bg-label-secondary me-1 mb-1">HSN</span>';
     if (!empty($row->ShowTaxBreakdown))    $badges .= '<span class="badge bg-label-warning me-1 mb-1">Tax</span>';

@@ -183,7 +183,7 @@ $(document).ready(function () {
             error  : function () {
                 ajaxLoading(1);
                 $('#prefixListLoading').addClass('d-none');
-                Swal.fire({ icon: 'error', title: '', text: 'Failed to load prefixes.' });
+                Swal.fire({ icon: 'error', title: t('swal_failed', 'Failed'), text: t('toast_payments_failed', 'Failed to load prefixes.') });
             }
         });
     }
@@ -286,11 +286,11 @@ $(document).ready(function () {
         var uid = $(this).data('uid');
 
         Swal.fire({
-            title            : 'Delete this prefix?',
-            text             : 'This action cannot be undone.',
+            title            : t('swal_delete_prefix', 'Delete this prefix?'),
+            text             : t('swal_delete_prefix_body', 'This action cannot be undone.'),
             icon             : 'warning',
             showCancelButton : true,
-            confirmButtonText: 'Delete',
+            confirmButtonText: t('btn_delete', 'Delete'),
             confirmButtonColor: '#d33',
         }).then(function (result) {
             if (!result.isConfirmed) return;
@@ -421,7 +421,7 @@ $(document).ready(function () {
 
                 Swal.fire({
                     icon             : 'success',
-                    title            : 'Saved',
+                    title            : t('swal_saved', 'Saved'),
                     text             : resp.Message,
                     timer            : 1500,
                     showConfirmButton: false,

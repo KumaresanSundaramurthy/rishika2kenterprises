@@ -82,12 +82,12 @@ $(document).on('comm:switchedToEmail', function (e, moduleUID, recordUID) {
                 if (resp && !resp.Error && resp.Payments && resp.Payments.length) {
                     $body.html(buildPaymentHtml(resp.Payments));
                 } else {
-                    $body.html('<p class="text-muted mb-0" style="font-size:.8rem;">No payments found.</p>');
+                    $body.html('<p class="text-muted mb-0" style="font-size:.8rem;">' + t('toast_no_payments', 'No payments found.') + '</p>');
                 }
             },
             error: function () {
                 ajaxLoading(1);
-                $body.html('<p class="text-danger mb-0" style="font-size:.8rem;">Failed to load payments.</p>');
+                $body.html('<p class="text-danger mb-0" style="font-size:.8rem;">' + t('toast_payments_failed', 'Failed to load payments.') + '</p>');
             }
         });
     }
@@ -134,7 +134,7 @@ $(document).on('comm:switchedToEmail', function (e, moduleUID, recordUID) {
                 html += '  </div>';
             }
             html += '  </div>';
-            html += '  <a href="/payments" class="btn btn-icon btn-sm" style="color:#6f42c1;flex-shrink:0;" title="View Payments"><i class="bx bx-show fs-6"></i></a>';
+            html += '  <a href="/payments" class="btn btn-icon btn-sm" style="color:#6f42c1;flex-shrink:0;" title="' + t('vm_view_payments', 'View Payments') + '"><i class="bx bx-show fs-6"></i></a>';
             html += '</div>';
         });
         return html;

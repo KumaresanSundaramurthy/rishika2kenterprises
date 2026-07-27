@@ -19,7 +19,7 @@
 
                         <div class="d-flex justify-content-end mb-3">
                             <button class="btn btn-primary btn-sm px-3 me-1" id="btnAddMsgTemplate">
-                                <i class="bx bx-plus me-1"></i>Add Template
+                                <i class="bx bx-plus me-1"></i><?php echo t('btn_add_template', 'Add Template'); ?>
                             </button>
                         </div>
 
@@ -28,10 +28,10 @@
                             <table class="table trans-table MainviewTable mb-0" id="MsgTemplateTable">
                                 <thead class="r2k-thead">
                                     <tr>
-                                        <th style="width:130px;">Channel</th>
-                                        <th>Template Preview</th>
-                                        <th style="width:130px;">Last Updated</th>
-                                        <th class="text-center" style="width:90px;">Actions</th>
+                                        <th style="width:130px;"><?php echo t('col_channel', 'Channel'); ?></th>
+                                        <th><?php echo t('col_template_preview', 'Template Preview'); ?></th>
+                                        <th style="width:130px;"><?php echo t('col_last_updated', 'Last Updated'); ?></th>
+                                        <th class="text-center" style="width:90px;"><?php echo t('col_actions', 'Actions'); ?></th>
                                     </tr>
                                 </thead>
                                 <tbody id="MsgTemplateBody" class="r2k-tbody table-border-bottom-0">
@@ -119,9 +119,9 @@
                             </div>
                         </div>
                         <div class="modal-footer py-3">
-                            <button type="button" class="btn btn-label-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-label-secondary" data-bs-dismiss="modal"><?php echo t('btn_cancel', 'Cancel'); ?></button>
                             <button type="button" class="btn btn-primary" id="btnSaveMsgTemplate">
-                                <i class="bx bx-save me-1"></i>Save Template
+                                <i class="bx bx-save me-1"></i><?php echo t('btn_save', 'Save'); ?>
                             </button>
                         </div>
                     </div>

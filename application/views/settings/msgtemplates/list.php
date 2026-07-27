@@ -17,7 +17,7 @@ foreach ($DataLists as $row) {
     <td colspan="4">
         <div class="d-flex flex-column align-items-center justify-content-center py-5" style="gap:8px;">
             <i class="bx bx-message-square-edit" style="font-size:2.2rem;color:#bbb;"></i>
-            <div class="text-muted" style="font-size:.88rem;">No message templates yet.</div>
+            <div class="text-muted" style="font-size:.88rem;"><?php echo t('empty_templates', 'No templates configured.'); ?></div>
             <div class="text-muted" style="font-size:.78rem;">Click <strong>+ Add Template</strong> to create one.</div>
         </div>
     </td>
@@ -66,7 +66,7 @@ foreach ($DataLists as $row) {
             ?>
             <div class="text-muted" style="font-size:.76rem;white-space:pre-wrap;max-height:48px;overflow:hidden;"><?php echo htmlspecialchars($bodyPreview); ?></div>
         <?php else: ?>
-            <span class="text-muted fst-italic" style="font-size:.78rem;">No template configured</span>
+            <span class="text-muted fst-italic" style="font-size:.78rem;"><?php echo t('lbl_no_template', 'No template configured'); ?></span>
         <?php endif; ?>
     </td>
     <td style="width:130px;">

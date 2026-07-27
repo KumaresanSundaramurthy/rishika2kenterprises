@@ -255,7 +255,7 @@ function _attachZoneTrigger(entityType, e) {
     }).length;
     var total = active + (state.newFiles || []).length;
     if (total >= cfg.maxFiles) {
-        showToastNotification('Maximum ' + cfg.maxFiles + ' files allowed.', 'error');
+        showToastNotification(t('toast_files_max', 'Maximum {n} files allowed.').replace('{n}', cfg.maxFiles), 'error');
         return;
     }
     if (e && e.target && e.target.closest('.prod-attach-item')) return;
@@ -278,7 +278,7 @@ function _attachHandleFiles(entityType, fileList) {
     }).length;
     var slots = cfg.maxFiles - active - (state.newFiles || []).length;
     if (slots <= 0) {
-        showToastNotification('Maximum ' + cfg.maxFiles + ' files allowed.', 'error');
+        showToastNotification(t('toast_files_max', 'Maximum {n} files allowed.').replace('{n}', cfg.maxFiles), 'error');
         return;
     }
 
@@ -288,15 +288,15 @@ function _attachHandleFiles(entityType, fileList) {
     for (var i = 0; i < fileList.length && slots > 0; i++) {
         var f = fileList[i];
         if (allowed && !allowed.includes(f.type)) {
-            showToastNotification('"' + f.name + '" is not a valid image (JPG/PNG/GIF only).', 'error');
+            showToastNotification(t('toast_invalid_image', '"{name}" is not a valid image (JPG/PNG/GIF only).').replace('{name}', f.name), 'error');
             continue;
         }
         if (perFileBytes > 0 && f.size > perFileBytes) {
-            showToastNotification('"' + f.name + '" exceeds the ' + cfg.maxFileSizeMB + ' MB per-file limit.', 'error');
+            showToastNotification(t('toast_file_too_large', '"{name}" exceeds the {mb} MB per-file limit.').replace('{name}', f.name).replace('{mb}', cfg.maxFileSizeMB), 'error');
             continue;
         }
         if (usedSize + f.size > totalSizeBytes) {
-            showToastNotification('Total size exceeds ' + cfg.maxTotalMB + ' MB limit.', 'error');
+            showToastNotification(t('toast_total_size_limit', 'Total size exceeds {mb} MB limit.').replace('{mb}', cfg.maxTotalMB), 'error');
             break;
         }
         usedSize += f.size;
@@ -493,10 +493,10 @@ function _attachFileIcon(mimeOrName) {
 // ── Soft-delete / undo helpers ────────────────────────────────────────────────
 function _attachRemoveExisting(entityType, attachUID) {
     Swal.fire({
-        title: 'Remove this file?', text: 'It will be deleted when you save.',
+        title: t('swal_remove_file', 'Remove this file?'), text: t('swal_file_remove_body', 'It will be deleted when you save.'),
         icon: 'warning', showCancelButton: true,
-        confirmButtonColor: '#ef4444', confirmButtonText: 'Yes, remove',
-        cancelButtonColor: '#6b7280',
+        confirmButtonColor: '#ef4444', confirmButtonText: t('btn_yes_remove', 'Yes, remove'),
+        cancelButtonColor: '#6b7280', cancelButtonText: t('btn_cancel', 'Cancel'),
     }).then(function (r) {
         if (!r.isConfirmed) return;
         var state = _attachState[entityType];

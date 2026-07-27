@@ -1,3 +1,22 @@
+var _prodPageRefreshing = false;
+
+/**
+ * Show a spinner row in the given table tbody and optionally hide pagination.
+ * @param {string} tableSelector
+ * @param {string} paginationSelector
+ * @returns {void}
+ */
+function showTabSpinner(tableSelector, paginationSelector) {
+    var cols = $(tableSelector + ' thead tr:first th:visible').length || 6;
+    $(tableSelector + ' tbody').html(
+        '<tr><td colspan="' + cols + '" class="text-center py-4">' +
+        '<span class="spinner-border spinner-border-sm text-primary me-2"></span>' +
+        '<span class="text-muted" style="font-size:.85rem;">Loading...</span>' +
+        '</td></tr>'
+    );
+    if (paginationSelector) $(paginationSelector).css('visibility', 'hidden');
+}
+
 /**
  * @param {*} PageNo
  * @param {*} RowLimit
@@ -22,13 +41,26 @@ function toggleProductStatus(ProductUID, IsActive) {
                 showToastNotification(response.Message, 'error');
             } else {
                 showToastNotification(response.Message, 'success');
-                executeProdPagnFunc(response, true, true);
+                hideUIBlock();
+                ajaxLoading(0);
+                _prodPageRefreshing = true;
+                if (ActiveTabId === 'Groups') {
+                    getGroupDetails(PageNo, RowLimit, Filter);
+                } else {
+                    getProductDetails(PageNo, RowLimit, Filter);
+                }
             }
         }
     });
 }
 
 function getProductDetails(PageNo, RowLimit, Filter) {
+    var _overlay = _prodPageRefreshing;
+    _prodPageRefreshing = false;
+    if (!_overlay) {
+        ajaxLoading(0);
+    }
+    showTabSpinner(ProdTable, ProdPag);
     $.ajax({
         url: '/products/getProductList',
         method: "POST",
@@ -40,6 +72,8 @@ function getProductDetails(PageNo, RowLimit, Filter) {
             [CsrfName]: CsrfToken,
         },
         success: function (response) {
+            ajaxLoading(1);
+            $(ProdPag).css('visibility', '');
             if (response.Error) {
                 $(ProdTable + ' tbody').html('');
                 $(ProdPag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
@@ -52,10 +86,20 @@ function getProductDetails(PageNo, RowLimit, Filter) {
             }
             executeProdPagnFunc(response, false);
         },
+        error: function () {
+            ajaxLoading(1);
+            $(ProdPag).css('visibility', '');
+        }
     });
 }
 
 function getGroupDetails(PageNo, RowLimit, Filter) {
+    var _overlay = _prodPageRefreshing;
+    _prodPageRefreshing = false;
+    if (!_overlay) {
+        ajaxLoading(0);
+    }
+    showTabSpinner(GroupTable, GroupPag);
     $.ajax({
         url: '/products/getGroupList',
         method: 'POST',
@@ -67,6 +111,8 @@ function getGroupDetails(PageNo, RowLimit, Filter) {
             [CsrfName]: CsrfToken,
         },
         success: function (response) {
+            ajaxLoading(1);
+            $(GroupPag).css('visibility', '');
             if (response.Error) {
                 $(GroupTable + ' tbody').html('');
                 $(GroupPag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
@@ -79,13 +125,24 @@ function getGroupDetails(PageNo, RowLimit, Filter) {
             }
             headerCheckboxTrueFalse(GroupTable, GroupHeader, ProdRow);
         },
+        error: function () {
+            ajaxLoading(1);
+            $(GroupPag).css('visibility', '');
+        }
     });
 }
 
 function _prodPageSaveSuccess(response) {
-    executeProdPagnFunc(response, true, true);
+    hideUIBlock();
+    ajaxLoading(0);
+    _prodPageRefreshing = true;
+    if (ActiveTabId === 'Groups') {
+        getGroupDetails(PageNo, RowLimit, Filter);
+    } else {
+        getProductDetails(PageNo, RowLimit, Filter);
+    }
 }
-_prodPageSaveSuccess._needsList = true;
+_prodPageSaveSuccess._needsList = false;
 
 function retrieveProductDetails(ItemUID, CloneFlag) {
     ProductForm.open(CloneFlag ? 'clone' : 'edit', ItemUID, { onSaveSuccess: _prodPageSaveSuccess });
@@ -116,7 +173,14 @@ function deleteProduct(ProductUID) {
                     });
                 }
                 showToastNotification(response.Message, 'success');
-                executeProdPagnFunc(response, true);
+                hideUIBlock();
+                ajaxLoading(0);
+                _prodPageRefreshing = true;
+                if (ActiveTabId === 'Groups') {
+                    getGroupDetails(PageNo, RowLimit, Filter);
+                } else {
+                    getProductDetails(PageNo, RowLimit, Filter);
+                }
             }
         },
     });
@@ -142,7 +206,14 @@ function deleteMultipleProduct() {
             } else {
                 SelectedUIDs = [];
                 showToastNotification(response.Message, 'success');
-                executeProdPagnFunc(response, true);
+                hideUIBlock();
+                ajaxLoading(0);
+                _prodPageRefreshing = true;
+                if (ActiveTabId === 'Groups') {
+                    getGroupDetails(PageNo, RowLimit, Filter);
+                } else {
+                    getProductDetails(PageNo, RowLimit, Filter);
+                }
             }
         },
     });
@@ -227,12 +298,20 @@ function updateProductStats(stats) {
  * @param {*} Filter
  */
 function getPriceListDetails(PageNo, RowLimit, Filter) {
+    var _overlay = _prodPageRefreshing;
+    _prodPageRefreshing = false;
+    if (!_overlay) {
+        ajaxLoading(0);
+    }
+    showTabSpinner(PLTable, PLPag);
     $.ajax({
         url: '/products/getPriceListData',
         method: 'POST',
         cache: false,
         data: { RowLimit: RowLimit, PageNo: PageNo, Filter: Filter, [CsrfName]: CsrfToken },
         success: function (response) {
+            ajaxLoading(1);
+            $(PLPag).css('visibility', '');
             if (response.Error) {
                 $(PLTable + ' tbody').html('');
                 $(PLPag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
@@ -240,10 +319,20 @@ function getPriceListDetails(PageNo, RowLimit, Filter) {
                 _applyPLResponse(response);
             }
         },
+        error: function () {
+            ajaxLoading(1);
+            $(PLPag).css('visibility', '');
+        }
     });
 }
 
 function getCategoriesDetails(PageNo, RowLimit, Filter) {
+    var _overlay = _prodPageRefreshing;
+    _prodPageRefreshing = false;
+    if (!_overlay) {
+        ajaxLoading(0);
+    }
+    showTabSpinner(CatgTable, CatgPag);
     $.ajax({
         url: '/products/getCategoryList',
         method: "POST",
@@ -255,13 +344,12 @@ function getCategoriesDetails(PageNo, RowLimit, Filter) {
             [CsrfName]: CsrfToken,
         },
         success: function (response) {
+            ajaxLoading(1);
+            $(CatgPag).css('visibility', '');
             if (response.Error) {
                 $(CatgTable + ' tbody').html('');
                 $(CatgPag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
             } else {
-                // response.Pagination already contains the "Showing X-Y of Z" text (left)
-                // and pagination links (right) as two direct children — place them straight
-                // into the d-flex container so justify-content-between puts them left & right.
                 $(CatgPag).html(response.Pagination);
                 $(CatgTable + ' tbody').html(response.List);
                 if (typeof response.TotalCount !== 'undefined') {
@@ -269,14 +357,16 @@ function getCategoriesDetails(PageNo, RowLimit, Filter) {
                 }
             }
             executeCatgPagnFunc(response, false);
-            // Refresh sticky pagination bar after content loads
             $(window).trigger('scroll');
         },
+        error: function () {
+            ajaxLoading(1);
+            $(CatgPag).css('visibility', '');
+        }
     });
 }
 
 function addCategoryDetails(formdata, onSuccess) {
-    formdata.append('returnList', 1);
     $.ajax({
         url: '/products/addCategoryDetails',
         method: 'POST',
@@ -293,7 +383,10 @@ function addCategoryDetails(formdata, onSuccess) {
             } else {
                 $('#categoryForm').trigger('reset');
                 if (!$('#categoryModal').data('calledFromItemForm')) {
-                    executeCatgPagnFunc(response, true);
+                    hideUIBlock();
+                    ajaxLoading(0);
+                    _prodPageRefreshing = true;
+                    getCategoriesDetails(PageNo, RowLimit, Filter);
                 }
                 if (response.InsertId) {
                     var formObj = { InsertId: response.InsertId, CategoryName: formdata.get('CategoryName') };
@@ -354,7 +447,10 @@ function editCategoryDetails(formdata, onSuccess) {
                 $('#CatgSaveButton').prop('disabled', false).text('Update');
             } else {
                 $('#categoryForm').trigger('reset');
-                executeCatgPagnFunc(response, true);
+                hideUIBlock();
+                ajaxLoading(0);
+                _prodPageRefreshing = true;
+                getCategoriesDetails(PageNo, RowLimit, Filter);
                 if (formdata.get('CategoryUID')) {
                     updateCategoryOptions({ UpdateId: formdata.get('CategoryUID'), CategoryName: formdata.get('CategoryName') }, 'update');
                 }
@@ -389,9 +485,12 @@ function deleteCategory(CategoryUID) {
                     });
                 }
                 showToastNotification(response.Message, 'success');
-                executeCatgPagnFunc(response, true);
+                hideUIBlock();
+                ajaxLoading(0);
+                _prodPageRefreshing = true;
+                getCategoriesDetails(PageNo, RowLimit, Filter);
                 var formObj = {};
-                formObj.UpdateId = [CategoryUID]
+                formObj.UpdateId = [CategoryUID];
                 updateCategoryOptions(formObj, 'delete');
             }
         },
@@ -419,7 +518,10 @@ function deleteMultipleCategory() {
                 updateCategoryOptions(formObj, 'delete');
                 SelectedUIDs = [];
                 showToastNotification(response.Message, 'success');
-                executeCatgPagnFunc(response, true);
+                hideUIBlock();
+                ajaxLoading(0);
+                _prodPageRefreshing = true;
+                getCategoriesDetails(PageNo, RowLimit, Filter);
             }
         },
     });
@@ -462,12 +564,20 @@ function updateBrandCount(count) {
  * @returns {void}
  */
 function getBrandsDetails(PageNo, RowLimit, Filter) {
+    var _overlay = _prodPageRefreshing;
+    _prodPageRefreshing = false;
+    if (!_overlay) {
+        ajaxLoading(0);
+    }
+    showTabSpinner(BrandTable, BrandPag);
     $.ajax({
         url: '/products/getBrandList',
         method: 'POST',
         cache: false,
         data: { RowLimit: RowLimit, PageNo: PageNo, Filter: Filter, [CsrfName]: CsrfToken },
         success: function (response) {
+            ajaxLoading(1);
+            $(BrandPag).css('visibility', '');
             if (response.Error) {
                 $(BrandTable + ' tbody').html('');
                 $(BrandPag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
@@ -480,6 +590,10 @@ function getBrandsDetails(PageNo, RowLimit, Filter) {
                 $(window).trigger('scroll');
             }
         },
+        error: function () {
+            ajaxLoading(1);
+            $(BrandPag).css('visibility', '');
+        }
     });
 }
 
@@ -489,7 +603,6 @@ function getBrandsDetails(PageNo, RowLimit, Filter) {
  * @returns {void}
  */
 function addBrandDetails(formdata, onSuccess) {
-    formdata.append('returnList', 1);
     $.ajax({
         url: '/products/addBrandDetails',
         method: 'POST',
@@ -505,8 +618,11 @@ function addBrandDetails(formdata, onSuccess) {
                 $('#BrandSaveButton').prop('disabled', false).text('Save');
             } else {
                 $('#brandForm').trigger('reset');
-                executeBrandPagnFunc(response, true);
                 showToastNotification(response.Message || 'Brand created.', 'success');
+                hideUIBlock();
+                ajaxLoading(0);
+                _prodPageRefreshing = true;
+                getBrandsDetails(PageNo, RowLimit, Filter);
                 if (typeof onSuccess === 'function') onSuccess(response.InsertId);
             }
         }
@@ -534,8 +650,11 @@ function editBrandDetails(formdata, onSuccess) {
                 $('#BrandSaveButton').prop('disabled', false).text('Update');
             } else {
                 $('#brandForm').trigger('reset');
-                executeBrandPagnFunc(response, true);
                 showToastNotification(response.Message || 'Brand updated.', 'success');
+                hideUIBlock();
+                ajaxLoading(0);
+                _prodPageRefreshing = true;
+                getBrandsDetails(PageNo, RowLimit, Filter);
                 if (typeof onSuccess === 'function') onSuccess();
             }
         }
@@ -566,7 +685,10 @@ function deleteBrand(BrandUID) {
                     SelectedUIDs = SelectedUIDs.filter(function (item) { return item !== BrandUID; });
                 }
                 showToastNotification(response.Message || 'Brand deleted.', 'success');
-                executeBrandPagnFunc(response, true);
+                hideUIBlock();
+                ajaxLoading(0);
+                _prodPageRefreshing = true;
+                getBrandsDetails(PageNo, RowLimit, Filter);
             }
         },
     });
@@ -593,7 +715,37 @@ function deleteMultipleBrand() {
             } else {
                 SelectedUIDs = [];
                 showToastNotification(response.Message || 'Brands deleted.', 'success');
-                executeBrandPagnFunc(response, true);
+                hideUIBlock();
+                ajaxLoading(0);
+                _prodPageRefreshing = true;
+                getBrandsDetails(PageNo, RowLimit, Filter);
+            }
+        },
+    });
+}
+
+/**
+ * @returns {void}
+ */
+function deleteMultiplePriceList() {
+    $.ajax({
+        url: '/products/deleteBulkPriceList',
+        method: 'POST',
+        cache: false,
+        data: {
+            RowLimit: RowLimit,
+            PageNo: PageNo,
+            Filter: Filter,
+            PriceListUIDs: SelectedUIDs.join(','),
+            [CsrfName]: CsrfToken,
+        },
+        success: function (response) {
+            if (response.Error) {
+                showToastNotification(response.Message, 'error');
+            } else {
+                SelectedUIDs = [];
+                showToastNotification(response.Message || 'Price lists deleted.', 'success');
+                _applyPLResponse(response);
             }
         },
     });
@@ -767,6 +919,8 @@ function showProductPageDetails() {
         getCategoriesDetails(PageNo, RowLimit, Filter);
     } else if (ActiveTabId == 'Brands') {
         getBrandsDetails(PageNo, RowLimit, Filter);
+    } else if (ActiveTabId == 'PriceLists') {
+        getPriceListDetails(PageNo, RowLimit, Filter);
     }
 }
 

@@ -155,7 +155,7 @@ function getInvoicesDetails(pageNo, rowLimit, filter, afterLoad) {
                 html += '  </div>';
             }
             html += '  </div>';
-            html += '  <a href="/payments" class="btn btn-icon btn-sm" style="color:#696cff;flex-shrink:0;" title="View Payments"><i class="bx bx-show fs-6"></i></a>';
+            html += '  <a href="/payments" class="btn btn-icon btn-sm" style="color:#696cff;flex-shrink:0;" title="' + t('vm_view_payments', 'View Payments') + '"><i class="bx bx-show fs-6"></i></a>';
             html += '</div>';
         });
         return html;

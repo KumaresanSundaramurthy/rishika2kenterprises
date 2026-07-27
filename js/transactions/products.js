@@ -183,7 +183,7 @@ function addProductData(formdata) {
         enctype: 'multipart/form-data',
         success: function (response) {
             if (response.Error) {
-                Swal.fire({icon: "error", title: "Oops..", text: response.Message});
+                Swal.fire({icon: "error", title: t('swal_oops', 'Oops...'), text: response.Message});
             } else {
                 prodOpenCloseDefActions();
                 $('#itemsModal').modal('hide');
@@ -202,7 +202,7 @@ function retrieveProductDetails(ItemUID, CloneFlag = false) {
         },
         success: function (response) {
             if (response.Error) {
-                Swal.fire({icon: "error", title: "Oops...", text: response.Message});
+                Swal.fire({icon: "error", title: t('swal_oops', 'Oops...'), text: response.Message});
             } else {
 
                 $('#AddEditItemForm').trigger('reset');

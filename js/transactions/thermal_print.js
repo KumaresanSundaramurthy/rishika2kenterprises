@@ -5,12 +5,12 @@ var _thermalPmtData = null;
 
 // ── Type config (mirrors viewmodal.js) ───────────────────────────────────
 var _thermalTypeConfig = {
-    103: { icon: 'bx-receipt',           color: '#0d6efd', bg: '#e8f0fe', label: 'Invoice'        },
-    101: { icon: 'bx-file-blank',        color: '#0891b2', bg: '#e0f5fb', label: 'Quotation'       },
-    102: { icon: 'bx-store-alt',         color: '#d97706', bg: '#fff8e1', label: 'Sales Order'     },
-    104: { icon: 'bx-cart',              color: '#6f42c1', bg: '#f0ebff', label: 'Purchase Bill'   },
-    105: { icon: 'bx-purchase-tag-alt',  color: '#0f766e', bg: '#e0f5f2', label: 'Purchase Order'  },
-    110: { icon: 'bx-wallet',            color: '#198754', bg: '#e8f5ee', label: 'Payment'         },
+    103: { icon: 'bx-receipt',           color: '#0d6efd', bg: '#e8f0fe', label: t('type_invoice', 'Invoice')        },
+    101: { icon: 'bx-file-blank',        color: '#0891b2', bg: '#e0f5fb', label: t('type_quotation', 'Quotation')       },
+    102: { icon: 'bx-store-alt',         color: '#d97706', bg: '#fff8e1', label: t('type_sales_order', 'Sales Order')     },
+    104: { icon: 'bx-cart',              color: '#6f42c1', bg: '#f0ebff', label: t('type_purchase_bill', 'Purchase Bill')   },
+    105: { icon: 'bx-purchase-tag-alt',  color: '#0f766e', bg: '#e0f5f2', label: t('type_purchase_order', 'Purchase Order')  },
+    110: { icon: 'bx-wallet',            color: '#198754', bg: '#e8f5ee', label: t('type_payment', 'Payment')         },
 };
 
 function _thermalSetBanner(icon, color, bg, title, meta, status) {
@@ -148,7 +148,7 @@ function _pmtLoadPrintData(paymentUID, printType, cb) {
         },
         error: function () {
             ajaxLoading(1);
-            Swal.fire({ icon: 'error', text: 'Failed to load payment data.' });
+            Swal.fire({ icon: 'error', text: t('swal_payment_load_failed', 'Failed to load payment data.') });
         }
     });
 }

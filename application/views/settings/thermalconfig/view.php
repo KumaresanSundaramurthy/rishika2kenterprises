@@ -40,8 +40,8 @@
                                         <th>Paper Width</th>
                                         <th style="white-space:normal;min-width:240px;">Receipt Elements</th>
                                         <th>Font Sizes</th>
-                                        <th>Last Updated</th>
-                                        <th class="text-center">Actions</th>
+                                        <th><?php echo t('col_last_updated', 'Last Updated'); ?></th>
+                                        <th class="text-center"><?php echo t('col_actions', 'Actions'); ?></th>
                                     </tr>
                                 </thead>
                                 <tbody id="ThermalConfigBody" class="r2k-tbody table-border-bottom-0">
@@ -69,7 +69,7 @@
                                 <small class="text-muted" id="thermalModalSubtitle">Add a new configuration</small>
                             </div>
                             <button type="button" class="btn btn-sm btn-danger ms-auto" data-bs-dismiss="modal">
-                                <i class="bx bx-x me-1"></i>Close
+                                <i class="bx bx-x me-1"></i><?php echo t('btn_cancel', 'Cancel'); ?>
                             </button>
                         </div>
 
@@ -239,7 +239,7 @@
 
                         <div class="modal-footer py-3">
                             <button type="button" class="btn btn-primary" id="saveThermalConfigBtn">
-                                <i class="bx bx-save me-1"></i>Save Config
+                                <i class="bx bx-save me-1"></i><?php echo t('btn_save', 'Save'); ?>
                             </button>
                         </div>
 

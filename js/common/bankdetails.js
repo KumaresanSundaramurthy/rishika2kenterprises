@@ -14,11 +14,11 @@ $(document).on('click', '#IFSC_Fetch', function () {
     $('#BankIFSC_Code').val(ifsc);
 
     if (!ifsc) {
-        Swal.fire({ icon: 'warning', text: 'Please enter an IFSC code first.' });
+        Swal.fire({ icon: 'warning', text: t('swal_ifsc_enter', 'Please enter an IFSC code first.') });
         return;
     }
     if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifsc)) {
-        Swal.fire({ icon: 'warning', text: 'Invalid IFSC format. Example: HDFC0001234' });
+        Swal.fire({ icon: 'warning', text: t('swal_ifsc_invalid', 'Invalid IFSC format. Example: HDFC0001234') });
         return;
     }
 
@@ -33,7 +33,7 @@ $(document).on('click', '#IFSC_Fetch', function () {
             $btn.prop('disabled', false).html('Fetch');
 
             if (resp.Error) {
-                Swal.fire({ icon: 'error', title: 'IFSC Lookup Failed', text: resp.Message });
+                Swal.fire({ icon: 'error', title: t('swal_ifsc_failed', 'IFSC Lookup Failed'), text: resp.Message });
                 return;
             }
 
@@ -42,17 +42,17 @@ $(document).on('click', '#IFSC_Fetch', function () {
 
             Swal.fire({
                 icon : 'success',
-                title: 'IFSC Details Fetched',
+                title: t('swal_ifsc_fetched', 'IFSC Details Fetched'),
                 html : '<b>' + (resp.Bank || '') + '</b>' +
-                       (resp.Branch ? '<br><small class="text-muted">Branch: ' + resp.Branch + '</small>' : '') +
-                       (resp.City   ? '<br><small class="text-muted">City: '   + resp.City   + '</small>' : ''),
+                       (resp.Branch ? '<br><small class="text-muted">' + t('lbl_branch', 'Branch') + ': ' + resp.Branch + '</small>' : '') +
+                       (resp.City   ? '<br><small class="text-muted">' + t('lbl_city', 'City') + ': '   + resp.City   + '</small>' : ''),
                 timer: 2500,
                 showConfirmButton: false,
             });
         },
         error: function () {
             $btn.prop('disabled', false).html('Fetch');
-            Swal.fire({ icon: 'error', text: 'Network error. Please try again.' });
+            Swal.fire({ icon: 'error', text: t('swal_network_error', 'Network error. Please try again.') });
         }
     });
 
@@ -175,12 +175,13 @@ $(document).on('submit', '#AddEditBankDataForm', function(e) {
         const row = $(this).closest('tr');
         const recordId = row.data('id');
         Swal.fire({
-            title: "Do you want to delete the bank details?",
-            text: "You won't be able to revert this!",
+            title: t('swal_bank_delete_title', 'Do you want to delete the bank details?'),
+            text: t('swal_bank_delete_body', "You won't be able to revert this!"),
             showCancelButton: true,
             confirmButtonColor: "#d33",
-            confirmButtonText: "Yes, delete it!",
+            confirmButtonText: t('btn_yes_delete', 'Yes, delete it!'),
             cancelButtonColor: "#3085d6",
+            cancelButtonText: t('btn_cancel', 'Cancel'),
         }).then((result) => {
             if (result.isConfirmed) {
                 if (recordId > 0) {

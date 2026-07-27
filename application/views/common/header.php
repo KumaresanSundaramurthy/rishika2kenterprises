@@ -1,8 +1,12 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <!doctype html>
-<?php $_htmlLang = (isset($JwtData) && !empty($JwtData->User->UILanguage)) ? $JwtData->User->UILanguage : 'en'; ?>
-<html lang="<?php echo $_htmlLang; ?>" class="layout-menu-fixed layout-compact" data-layout="vertical" data-topbar="dark" data-sidebar-size="lg" data-sidebar="light" data-sidebar-image="none" data-preloader="disable" dir="ltr" data-skin="default" data-assets-path="/assets/" data-template="vertical-menu-template" data-bs-theme="light">
+<?php
+$_htmlLang  = (isset($JwtData) && !empty($JwtData->User->UILanguage)) ? $JwtData->User->UILanguage : 'en';
+$_rtlLangs  = ['ar', 'he', 'fa', 'ur'];
+$_htmlDir   = in_array($_htmlLang, $_rtlLangs) ? 'rtl' : 'ltr';
+?>
+<html lang="<?php echo $_htmlLang; ?>" dir="<?php echo $_htmlDir; ?>" class="layout-menu-fixed layout-compact" data-layout="vertical" data-topbar="dark" data-sidebar-size="lg" data-sidebar="light" data-sidebar-image="none" data-preloader="disable" data-skin="default" data-assets-path="/assets/" data-template="vertical-menu-template" data-bs-theme="light">
 
 <head>
 

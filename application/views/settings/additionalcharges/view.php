@@ -29,7 +29,7 @@
                             <div class="ms-auto">
                                 <button class="btn btn-primary btn-sm px-3" id="btnAddAdditionalCharge"
                                     <?php if ((int)($ChargeCount ?? 0) >= (int)($ChargeLimit ?? 5)): ?>disabled title="Charge limit reached"<?php endif; ?>>
-                                    <i class="bx bx-plus me-1"></i>Add Charge
+                                    <i class="bx bx-plus me-1"></i><?php echo t('add_charge', 'Add Charge'); ?>
                                 </button>
                             </div>
                         </div>
@@ -39,13 +39,13 @@
                             <table class="table trans-table MainviewTable" id="AdditionalChargesTable">
                                 <thead class="r2k-thead">
                                     <tr>
-                                        <th class="text-center" style="width:50px;">S.No</th>
-                                        <th style="min-width:180px;">Display Name</th>
-                                        <th style="min-width:140px;">Default Tax</th>
-                                        <th style="min-width:180px;white-space:normal;">Description</th>
-                                        <th class="text-center" style="width:100px;">Show By Default</th>
-                                        <th class="text-center" style="width:80px;">Sort Order</th>
-                                        <th class="text-center" style="width:90px;">Actions</th>
+                                        <th class="text-center" style="width:50px;"><?php echo t('col_sno', 'S.No'); ?></th>
+                                        <th style="min-width:180px;"><?php echo t('col_display_name', 'Display Name'); ?></th>
+                                        <th style="min-width:140px;"><?php echo t('col_default_tax', 'Default Tax'); ?></th>
+                                        <th style="min-width:180px;white-space:normal;"><?php echo t('col_description', 'Description'); ?></th>
+                                        <th class="text-center" style="width:100px;"><?php echo t('col_show_default', 'Show By Default'); ?></th>
+                                        <th class="text-center" style="width:80px;"><?php echo t('col_sort_order', 'Sort Order'); ?></th>
+                                        <th class="text-center" style="width:90px;"><?php echo t('col_actions', 'Actions'); ?></th>
                                     </tr>
                                 </thead>
                                 <tbody id="AdditionalChargesBody" class="r2k-tbody table-border-bottom-0">

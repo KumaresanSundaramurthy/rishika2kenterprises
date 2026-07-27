@@ -297,7 +297,7 @@ $('#a4WhatsappBtn').on('click', function () {
     if (!_a4Header) return;
     var mobile = (_a4Header.PartyMobile || '').replace(/[^0-9+]/g, '');
     var cc     = (_a4Header.PartyCountryCode || '91').replace(/[^0-9]/g, '');
-    if (!mobile) { Swal.fire({ icon: 'info', text: 'No mobile number found for this customer.' }); return; }
+    if (!mobile) { Swal.fire({ icon: 'info', text: t('swal_no_mobile', 'No mobile number found for this customer.') }); return; }
     var waNum = mobile.startsWith('+') ? mobile.replace('+','') : (cc + mobile);
     var msg   = 'Dear ' + (_a4Header.PartyName || 'Customer') + ',\n\n'
               + 'Please find your ' + (_a4Header.TransType || 'document') + ' details:\n'
@@ -319,7 +319,7 @@ $('#a4EmailBtn').on('click', function () {
     var docNum     = _a4Header.UniqueNumber || '';
     var transType  = _a4Header.TransType || 'Document';
 
-    if (!partyEmail) { Swal.fire({ icon: 'info', text: 'No email address found for this customer.' }); return; }
+    if (!partyEmail) { Swal.fire({ icon: 'info', text: t('swal_no_email', 'No email address found for this customer.') }); return; }
 
     ajaxLoading(0);
     $.post('/transactions/sendTransactionEmail', {
@@ -333,17 +333,17 @@ $('#a4EmailBtn').on('click', function () {
         if (resp && !resp.Error) {
             showToastNotification(transType + ' emailed to ' + partyEmail + ' successfully.', 'success');
         } else {
-            Swal.fire({ icon: 'error', text: (resp && resp.Message) ? resp.Message : 'Failed to send email.' });
+            Swal.fire({ icon: 'error', text: (resp && resp.Message) ? resp.Message : t('swal_email_failed', 'Failed to send email. Please try again.') });
         }
     }).fail(function () {
         ajaxLoading(1);
-        Swal.fire({ icon: 'error', text: 'Failed to send email. Please try again.' });
+        Swal.fire({ icon: 'error', text: t('swal_email_failed', 'Failed to send email. Please try again.') });
     });
 });
 
 // ── Direct PDF download (from list page) ─────────────────────────────────
 function _submitDownloadPdf(uid, moduleUID) {
-    if (!uid || !moduleUID) { Swal.fire({ icon: 'warning', text: 'Unable to download: missing transaction data.' }); return; }
+    if (!uid || !moduleUID) { Swal.fire({ icon: 'warning', text: t('swal_download_missing', 'Unable to download: missing transaction data.') }); return; }
     var form = document.createElement('form');
     form.method = 'POST'; form.action = '/transactions/downloadA4Pdf'; form.style.display = 'none';
     var fields = { TransUID: uid, ModuleUID: moduleUID, PaperSize: 'A4', [CsrfName]: CsrfToken };

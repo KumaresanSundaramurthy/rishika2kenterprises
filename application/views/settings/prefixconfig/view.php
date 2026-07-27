@@ -37,7 +37,7 @@
                             </span>
                             <div class="ms-auto">
                                 <button class="btn btn-primary btn-sm px-3" id="btnAddPrefixConfig">
-                                    <i class="bx bx-plus me-1"></i>Add Prefix
+                                    <i class="bx bx-plus me-1"></i><?php echo t('btn_add_prefix', 'Add Prefix'); ?>
                                 </button>
                             </div>
                         </div>
@@ -47,14 +47,14 @@
                             <table class="table trans-table MainviewTable" id="PrefixConfigTable">
                                 <thead class="r2k-thead">
                                     <tr>
-                                        <th class="text-center" style="width:50px;">S.No</th>
+                                        <th class="text-center" style="width:50px;"><?php echo t('col_sno', 'S.No'); ?></th>
                                         <th style="min-width:120px;">Module</th>
                                         <th style="min-width:180px;">Preview</th>
-                                        <th style="min-width:80px;">Name</th>
+                                        <th style="min-width:80px;"><?php echo t('col_name', 'Name'); ?></th>
                                         <th style="white-space:normal;min-width:260px;">Configuration</th>
                                         <th class="text-center" style="width:70px;">Default</th>
-                                        <th style="min-width:140px;">Last Updated</th>
-                                        <th class="text-center" style="width:90px;">Actions</th>
+                                        <th style="min-width:140px;"><?php echo t('col_last_updated', 'Last Updated'); ?></th>
+                                        <th class="text-center" style="width:90px;"><?php echo t('col_actions', 'Actions'); ?></th>
                                     </tr>
                                 </thead>
                                 <tbody id="PrefixConfigBody" class="r2k-tbody table-border-bottom-0">
@@ -230,9 +230,9 @@
                         </div><!-- /modal-body -->
 
                         <div class="modal-footer py-3" style="background:#f8f9fa;border-top:1px solid #dee2e6;">
-                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"><?php echo t('btn_cancel', 'Cancel'); ?></button>
                             <button type="button" class="btn btn-primary" id="savePrefixConfigBtn">
-                                <i class="bx bx-save me-1"></i>Save Prefix
+                                <i class="bx bx-save me-1"></i><?php echo t('btn_save', 'Save'); ?>
                             </button>
                         </div>
 

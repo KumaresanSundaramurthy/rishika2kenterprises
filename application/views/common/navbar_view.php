@@ -78,6 +78,15 @@
 /* Language switcher icon */
 .nav-lang-btn { display: flex; align-items: center; gap: 4px; padding: 0 8px !important; }
 .nav-lang-badge { font-size: .68rem; font-weight: 700; letter-spacing: .5px; line-height: 1; }
+
+/* User dropdown — org + last login info block */
+.nav-user-info-block { padding: .45rem .9rem .5rem; pointer-events: none; }
+.nav-user-info-org { display: flex; align-items: center; gap: .35rem; font-size: .76rem; color: #475569; font-weight: 500; margin-bottom: .4rem; }
+.nav-user-info-org i { font-size: .85rem; color: #94a3b8; }
+.nav-user-info-label { font-size: .66rem; color: #94a3b8; text-transform: uppercase; letter-spacing: .4px; font-weight: 600; margin-bottom: 2px; }
+.nav-user-info-time { display: flex; align-items: center; gap: .35rem; font-size: .75rem; color: #475569; }
+.nav-user-info-time i { font-size: .8rem; color: #94a3b8; flex-shrink: 0; }
+.nav-user-info-device { font-size: .68rem; color: #94a3b8; margin-top: 2px; padding-left: 1.15rem; }
 </style>
 
 <!-- Navbar -->
@@ -181,6 +190,29 @@
                                 </div>
                             </div>
                         </a>
+                    </li>
+                    <li><div class="dropdown-divider"></div></li>
+                    <li>
+                        <div class="nav-user-info-block">
+                            <div class="nav-user-info-org">
+                                <i class="bx bx-buildings"></i>
+                                <?php echo htmlspecialchars($JwtData->Org->OrgName ?? ''); ?>
+                            </div>
+                            <?php
+                            $_lastLoginOn = $JwtData->User->LastLoginOn ?? null;
+                            if (!empty($_lastLoginOn)):
+                                $_lastLoginTs = viewPageDateTimeFormat($_lastLoginOn, $JwtData->User->Timezone ?? 'UTC', 2);
+                            ?>
+                            <div class="nav-user-info-label">Last login</div>
+                            <div class="nav-user-info-time">
+                                <i class="bx bx-time-five"></i>
+                                <?php echo $_lastLoginTs->formatted; ?>
+                            </div>
+                            <?php if (!empty($JwtData->User->LastLoginDevice ?? null)): ?>
+                            <div class="nav-user-info-device"><?php echo htmlspecialchars(mb_strimwidth($JwtData->User->LastLoginDevice, 0, 42, '…')); ?></div>
+                            <?php endif; ?>
+                            <?php endif; ?>
+                        </div>
                     </li>
                     <li><div class="dropdown-divider"></div></li>
                     <li>

@@ -421,6 +421,7 @@ $(function () {
 }());
 
 function _showSavedAndGo(title, msg) {
+    $(document).one('ajaxStop', function () { showUIBlock(); });
     _setPendingToast('_invPendingToast', msg, 'success');
     window.location.href = _buildReturnUrl('/invoices');
 }

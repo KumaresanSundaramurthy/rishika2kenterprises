@@ -115,7 +115,7 @@
         var hideEdit = $('#viewTransEditBtn').data('hide-edit');
         var editBtn  = hideEdit ? '' :
             '<a href="' + editHref + '" class="vtm-edit-btn">' +
-            '<i class="bx bx-edit"></i>Edit</a>';
+            '<i class="bx bx-edit"></i>' + t('vm_edit', 'Edit') + '</a>';
 
         var closeBtn =
             '<button type="button" class="vtm-close-btn" data-bs-dismiss="modal" aria-label="Close">' +
@@ -147,7 +147,7 @@
         var org = resp.OrgInfo || {};
         var cur = (org.CurrenySymbol || '&#8377;') + '&nbsp;';
 
-        var partyLabel  = opts.partyLabel  || 'Party';
+        var partyLabel  = opts.partyLabel  || t('vm_party', 'Party');
         var hasPayments = !!opts.hasPayments;
 
         function _amt(n) { return cur + _smartDec(n); }
@@ -159,7 +159,7 @@
         var billAddr = _buildAddr(h.BillLine1, h.BillLine2, h.BillCity, h.BillState, h.BillPincode);
         var shipAddr = _buildAddr(h.ShipLine1, h.ShipLine2, h.ShipCity, h.ShipState, h.ShipPincode);
 
-        var contactHtml = _cardLabel('bx-id-card', 'Contact') +
+        var contactHtml = _cardLabel('bx-id-card', t('vm_contact', 'Contact')) +
             '<div class="vtm-party-name">' + _esc(h.PartyName || '—') + '</div>';
         if (h.PartyArea) {
             contactHtml += '<div class="vtm-party-sub" style="margin-top:2px;">' +
@@ -182,12 +182,12 @@
 
         var partyCols = '<div class="col-sm-4 mb-2">' + _infoCard(contactHtml, 'vtm-info-card-cyan') + '</div>';
         if (billAddr) {
-            var billHtml = _cardLabel('bx-home', 'Billing Address') +
+            var billHtml = _cardLabel('bx-home', t('vm_billing_address', 'Billing Address')) +
                 '<div class="vtm-addr-text">' + billAddr + '</div>';
             partyCols += '<div class="col-sm-4 mb-2">' + _infoCard(billHtml, 'vtm-info-card-purple') + '</div>';
         }
         if (shipAddr) {
-            var shipHtml = _cardLabel('bx-map', 'Shipping Address') +
+            var shipHtml = _cardLabel('bx-map', t('vm_shipping_address', 'Shipping Address')) +
                 '<div class="vtm-addr-text">' + shipAddr + '</div>';
             partyCols += '<div class="col-sm-4 mb-2">' + _infoCard(shipHtml, 'vtm-info-card-orange') + '</div>';
         }
@@ -246,18 +246,18 @@
         });
 
         html += '<div class="vtm-section">' +
-            _secHdr('bx-package', 'Products / Services', 'text-warning') +
+            _secHdr('bx-package', t('vm_products_services', 'Products / Services'), 'text-warning') +
             '<div class="table-responsive">' +
             '<table class="table table-sm table-hover mb-0 vtm-items-table">' +
             '<thead class="vtm-items-thead"><tr>' +
                 '<th class="text-center">#</th>' +
-                '<th>Product</th>' +
-                '<th class="text-center">Qty</th>' +
-                '<th class="text-end">Rate</th>' +
-                '<th class="text-end">Disc</th>' +
-                '<th class="text-end">Taxable Amt</th>' +
+                '<th>' + t('vm_product', 'Product') + '</th>' +
+                '<th class="text-center">' + t('col_qty', 'Qty') + '</th>' +
+                '<th class="text-end">' + t('vm_rate', 'Rate') + '</th>' +
+                '<th class="text-end">' + t('vm_disc', 'Disc') + '</th>' +
+                '<th class="text-end">' + t('vm_taxable_amt', 'Taxable Amt') + '</th>' +
                 '<th>Tax</th>' +
-                '<th class="text-end">Net Amt</th>' +
+                '<th class="text-end">' + t('vm_net_amt', 'Net Amt') + '</th>' +
             '</tr></thead>' +
             '<tbody>' + itemRows + '</tbody>' +
             '</table></div>' +
@@ -273,7 +273,7 @@
         var roundOff = parseFloat(h.RoundOff || 0);
 
         var summRows = '';
-        summRows += _summaryRow('Sub Total', _amt(h.SubTotal));
+        summRows += _summaryRow(t('vm_sub_total', 'Sub Total'), _amt(h.SubTotal));
         if (discTot > 0) {
             summRows += _summaryRow(
                 '<i class="bx bx-minus-circle me-1"></i>Discount',
@@ -281,22 +281,22 @@
             );
         }
         if (igstTot > 0) {
-            summRows += _summaryRow('IGST', cur + _smartDec(h.IgstAmount));
+            summRows += _summaryRow(t('lbl_igst', 'IGST'), cur + _smartDec(h.IgstAmount));
         } else {
-            if (cgstTot > 0) summRows += _summaryRow('CGST', cur + _smartDec(h.CgstAmount));
-            if (sgstTot > 0) summRows += _summaryRow('SGST', cur + _smartDec(h.SgstAmount));
+            if (cgstTot > 0) summRows += _summaryRow(t('lbl_cgst', 'CGST'), cur + _smartDec(h.CgstAmount));
+            if (sgstTot > 0) summRows += _summaryRow(t('lbl_sgst', 'SGST'), cur + _smartDec(h.SgstAmount));
             if (taxTot > 0 && cgstTot === 0 && sgstTot === 0) summRows += _summaryRow('Tax', _amt(h.TaxAmount));
         }
-        if (addChg   > 0) summRows += _summaryRow('Additional Charges', _amt(h.AdditionalChargesTotal));
-        if (roundOff !== 0) summRows += _summaryRow('Round Off', cur + (roundOff >= 0 ? '+' : '') + _smartDec(roundOff));
+        if (addChg   > 0) summRows += _summaryRow(t('vm_additional_charges', 'Additional Charges'), _amt(h.AdditionalChargesTotal));
+        if (roundOff !== 0) summRows += _summaryRow(t('vm_round_off', 'Round Off'), cur + (roundOff >= 0 ? '+' : '') + _smartDec(roundOff));
         summRows += _summaryRow(
-            'Net Amount',
+            t('vm_net_amount', 'Net Amount'),
             '<span class="vtm-net-val">' + _amt(h.NetAmount) + '</span>',
             'vtm-summary-net'
         );
 
         html += '<div class="vtm-section">' +
-            _secHdr('bx-calculator', 'Amount Summary', 'text-success') +
+            _secHdr('bx-calculator', t('vm_amount_summary', 'Amount Summary'), 'text-success') +
             '<div class="row"><div class="col-md-5 ms-auto">' +
                 '<table class="table table-sm mb-0 vtm-summary-table">' +
                 '<tbody>' + summRows + '</tbody></table>' +
@@ -335,10 +335,10 @@
                     '<span>' + label + ': ' + cur + _smartDec(value) + '</span></div>';
             }
 
-            var paidPill = _pill('vtm-pay-pill-paid', 'bx-check-circle', 'Paid', paidTotal);
+            var paidPill = _pill('vtm-pay-pill-paid', 'bx-check-circle', t('vm_paid', 'Paid'), paidTotal);
             var balPill  = settled
-                ? _pill('vtm-pay-pill-paid', 'bx-check-circle', 'Balance', balance)
-                : _pill('vtm-pay-pill-due',  'bx-error-circle', 'Balance Due', balance);
+                ? _pill('vtm-pay-pill-paid', 'bx-check-circle', t('vm_balance', 'Balance'), balance)
+                : _pill('vtm-pay-pill-due',  'bx-error-circle', t('vm_balance_due', 'Balance Due'), balance);
 
             var payRows = '';
             if (payments.length) {
@@ -360,7 +360,7 @@
             }
 
             html += '<div class="vtm-section-last">' +
-                _secHdr('bx-wallet', 'Payment Details', 'text-purple') +
+                _secHdr('bx-wallet', t('vm_payment_details', 'Payment Details'), 'text-purple') +
                 '<div class="d-flex gap-3 mb-3 flex-wrap">' + paidPill + balPill + '</div>' +
                 '<div class="table-responsive">' +
                 '<table class="table table-sm table-hover mb-0 vtm-pay-table">' +
@@ -381,64 +381,64 @@
     // ── Type config ────────────────────────────────────────────────────────────
     var _typeConfig = {
         'quotation': {
-            title      : 'Quotation Details',
+            title      : t('type_quotation', 'Quotation') + ' Details',
             editPath   : '/quotations/edit/',
             dataKey    : '_quotLastPrintData',
-            partyLabel : 'Customer',
+            partyLabel : t('vm_customer', 'Customer'),
             typeIcon   : 'bx-file-blank',
             typeColor  : '#0891b2',
             typeBg     : '#e0f5fb',
             hasPayments: false,
-            validLabel : 'Valid Until',
+            validLabel : t('vm_valid_until', 'Valid Until'),
         },
         'invoice': {
-            title      : 'Invoice Details',
+            title      : t('type_invoice', 'Invoice') + ' Details',
             editPath   : '/invoices/edit/',
             dataKey    : '_invLastPrintData',
-            partyLabel : 'Customer',
+            partyLabel : t('vm_customer', 'Customer'),
             typeIcon   : 'bx-receipt',
             typeColor  : '#0d6efd',
             typeBg     : '#e8f0fe',
             hasPayments: true,
         },
         'purchase': {
-            title      : 'Purchase Bill Details',
+            title      : t('type_purchase_bill', 'Purchase Bill') + ' Details',
             editPath   : '/purchases/edit/',
             dataKey    : '_purchLastPrintData',
-            partyLabel : 'Vendor',
+            partyLabel : t('vm_vendor', 'Vendor'),
             typeIcon   : 'bx-cart',
             typeColor  : '#6f42c1',
             typeBg     : '#f0ebff',
             hasPayments: true,
-            validLabel : 'Bill Due',
+            validLabel : t('vm_bill_due', 'Bill Due'),
         },
         'salesorder': {
-            title      : 'Sales Order Details',
+            title      : t('type_sales_order', 'Sales Order') + ' Details',
             editPath   : '/salesorders/edit/',
             dataKey    : '_soLastPrintData',
-            partyLabel : 'Customer',
+            partyLabel : t('vm_customer', 'Customer'),
             typeIcon   : 'bx-store-alt',
             typeColor  : '#d97706',
             typeBg     : '#fff8e1',
             hasPayments: false,
-            validLabel : 'Expected Delivery',
+            validLabel : t('vm_exp_delivery', 'Expected Delivery'),
         },
         'purchaseorder': {
-            title      : 'Purchase Order Details',
+            title      : t('type_purchase_order', 'Purchase Order') + ' Details',
             editPath   : '/purchaseorders/edit/',
             dataKey    : '_poLastPrintData',
-            partyLabel : 'Vendor',
+            partyLabel : t('vm_vendor', 'Vendor'),
             typeIcon   : 'bx-purchase-tag-alt',
             typeColor  : '#0f766e',
             typeBg     : '#e0f5f2',
             hasPayments: false,
-            validLabel : 'Expected Delivery',
+            validLabel : t('vm_exp_delivery', 'Expected Delivery'),
         },
         'salesreturn': {
             title      : 'Sales Return Details',
             editPath   : '/salesreturns/edit/',
             dataKey    : '_srLastPrintData',
-            partyLabel : 'Customer',
+            partyLabel : t('vm_customer', 'Customer'),
             typeIcon   : 'bx-undo',
             typeColor  : '#0891b2',
             typeBg     : '#e0f5fb',
@@ -448,7 +448,7 @@
             title      : 'Credit Note Details',
             editPath   : '/creditnotes/edit/',
             dataKey    : '_cnLastPrintData',
-            partyLabel : 'Customer',
+            partyLabel : t('vm_customer', 'Customer'),
             typeIcon   : 'bx-credit-card',
             typeColor  : '#0891b2',
             typeBg     : '#e0f5fb',
@@ -458,7 +458,7 @@
             title      : 'Purchase Return Details',
             editPath   : '/purchasereturns/edit/',
             dataKey    : '_prLastPrintData',
-            partyLabel : 'Vendor',
+            partyLabel : t('vm_vendor', 'Vendor'),
             typeIcon   : 'bx-undo',
             typeColor  : '#d97706',
             typeBg     : '#fff8e1',
@@ -468,23 +468,23 @@
             title      : 'Delivery Challan Details',
             editPath   : '/deliverychallan/edit/',
             dataKey    : '_dcLastPrintData',
-            partyLabel : 'Customer',
+            partyLabel : t('vm_customer', 'Customer'),
             typeIcon   : 'bx-package',
             typeColor  : '#16a34a',
             typeBg     : '#dcfce7',
             hasPayments: false,
-            validLabel : 'Expected Return',
+            validLabel : t('vm_exp_return', 'Expected Return'),
         },
         'proformainvoice': {
             title      : 'Pro Forma Invoice Details',
             editPath   : '/proforma/edit/',
             dataKey    : '_pfLastPrintData',
-            partyLabel : 'Customer',
+            partyLabel : t('vm_customer', 'Customer'),
             typeIcon   : 'bx-file-blank',
             typeColor  : '#7c3aed',
             typeBg     : '#ede9fe',
             hasPayments: false,
-            validLabel : 'Valid Until',
+            validLabel : t('vm_valid_until', 'Valid Until'),
         },
     };
 
@@ -517,7 +517,7 @@
             '</div>';
         });
         return '<div class="vtm-section-last">' +
-            _secHdr('bx-paperclip', 'Attachments (' + attachments.length + ')', 'text-secondary') +
+            _secHdr('bx-paperclip', t('vm_attachments', 'Attachments') + ' (' + attachments.length + ')', 'text-secondary') +
             '<div class="row g-2">' + cards + '</div>' +
         '</div>';
     }

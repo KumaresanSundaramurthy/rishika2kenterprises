@@ -33,9 +33,11 @@ class Login_model extends CI_Model {
             $JwtUserData['Timezone']     = $UserData->Timezone;
             $JwtUserData['Signatures']   = $this->_loadUserSignatures($UserData->UserUID, $UserData->UserOrgUID);
             // Keep OrgShortCode/OrgToken in User for backward compat (header.php prefix building)
-            $JwtUserData['OrgShortCode'] = $UserData->OrgShortCode ?? '';
-            $JwtUserData['OrgToken']     = $UserData->OrgToken     ?? '';
-            $JwtUserData['UILanguage']   = $UserData->UILanguage   ?? 'en';
+            $JwtUserData['OrgShortCode']    = $UserData->OrgShortCode      ?? '';
+            $JwtUserData['OrgToken']        = $UserData->OrgToken          ?? '';
+            $JwtUserData['UILanguage']      = $UserData->UILanguage        ?? 'en';
+            $JwtUserData['LastLoginOn']     = $UserData->LastLoginOn       ?? null;
+            $JwtUserData['LastLoginDevice'] = $UserData->LastLoginDevice   ?? null;
 
             // Org — organisation-level fields
             $JwtOrgData = [];

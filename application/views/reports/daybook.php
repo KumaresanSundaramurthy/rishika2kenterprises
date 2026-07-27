@@ -165,8 +165,8 @@ $this->load->view('common/transactions/header'); ?>
         <div class="layout-page">
             <div class="content-wrapper apex-content">
                 <?php $this->load->view('common/apex/page_header', [
-                    'pageTitle'       => 'Day Book',
-                    'pageDescription' => 'All transactions recorded on a given date',
+                    'pageTitle'       => t('lbl_day_book', 'Day Book'),
+                    'pageDescription' => t('lbl_daybook_desc', 'All transactions recorded on a given date'),
                     'pageIcon'        => 'bx-calendar-event',
                     'pageIconBg'      => '#f0ebff',
                     'pageIconColor'   => '#7c3aed',
@@ -181,7 +181,7 @@ $this->load->view('common/transactions/header'); ?>
                             <div class="db-stat-card">
                                 <div class="db-stat-icon db-stat-icon-purple"><i class="bx bx-list-ul"></i></div>
                                 <div class="db-stat-body">
-                                    <div class="db-stat-label">Total Entries</div>
+                                    <div class="db-stat-label"><?php echo t('lbl_total_entries', 'Total Entries'); ?></div>
                                     <div class="db-stat-val" id="statTotal">—</div>
                                 </div>
                             </div>
@@ -190,7 +190,7 @@ $this->load->view('common/transactions/header'); ?>
                             <div class="db-stat-card">
                                 <div class="db-stat-icon db-stat-icon-green"><i class="bx bx-receipt"></i></div>
                                 <div class="db-stat-body">
-                                    <div class="db-stat-label">Sales (Invoiced)</div>
+                                    <div class="db-stat-label"><?php echo t('lbl_sales_invoiced', 'Sales (Invoiced)'); ?></div>
                                     <div class="db-stat-val" id="statSales">—</div>
                                 </div>
                             </div>
@@ -199,7 +199,7 @@ $this->load->view('common/transactions/header'); ?>
                             <div class="db-stat-card">
                                 <div class="db-stat-icon db-stat-icon-blue"><i class="bx bx-down-arrow-circle"></i></div>
                                 <div class="db-stat-body">
-                                    <div class="db-stat-label">Collections</div>
+                                    <div class="db-stat-label"><?php echo t('lbl_collections', 'Collections'); ?></div>
                                     <div class="db-stat-val" id="statCollections">—</div>
                                 </div>
                             </div>
@@ -208,7 +208,7 @@ $this->load->view('common/transactions/header'); ?>
                             <div class="db-stat-card">
                                 <div class="db-stat-icon db-stat-icon-emerald"><i class="bx bx-trending-up"></i></div>
                                 <div class="db-stat-body">
-                                    <div class="db-stat-label">Net Cash Flow</div>
+                                    <div class="db-stat-label"><?php echo t('lbl_net_cash_flow', 'Net Cash Flow'); ?></div>
                                     <div class="db-stat-val" id="statNet">—</div>
                                 </div>
                             </div>
@@ -222,7 +222,7 @@ $this->load->view('common/transactions/header'); ?>
                         <div class="apex-filter-row">
                             <div class="r2k-search-wrap<?php echo $_initSearch ? ' is-expanded r2k-search-active' : ''; ?>" id="dbSearchWrap">
                                 <i class="bx bx-search r2k-si"></i>
-                                <input type="text" id="dbSearch" placeholder="Party name or serial no…"
+                                <input type="text" id="dbSearch" placeholder="<?php echo t('lbl_party_search_placeholder', 'Party name or serial no…'); ?>"
                                        value="<?php echo htmlspecialchars($_initSearch, ENT_QUOTES); ?>"
                                        autocomplete="off">
                                 <i class="bx bx-x r2k-clear<?php echo $_initSearch ? '' : ' d-none'; ?>" id="dbSearchClear"></i>
@@ -232,9 +232,9 @@ $this->load->view('common/transactions/header'); ?>
                                 <input type="text" id="dbDateDisplay" class="db-date-input" readonly />
                                 <input type="hidden" id="dbDate" value="<?php echo htmlspecialchars($_initDate, ENT_QUOTES); ?>" />
                             </div>
-                            <button class="btn btn-sm btn-outline-primary db-today-btn" id="dbTodayBtn">Today</button>
+                            <button class="btn btn-sm btn-outline-primary db-today-btn" id="dbTodayBtn"><?php echo t('lbl_today', 'Today'); ?></button>
                             <a href="javascript:void(0);" id="dbTypeFilterBtn" class="apex-filter-btn" title="Filter by Transaction Type">
-                                <i class="bx bx-category me-1"></i><span id="dbTypeFilterLabel">All Types</span>
+                                <i class="bx bx-category me-1"></i><span id="dbTypeFilterLabel"><?php echo t('lbl_all_types', 'All Types'); ?></span>
                             </a>
                             <div class="apex-filter-spacer"></div>
                             <?php $this->load->view('common/partials/export_btn'); ?>
@@ -245,18 +245,18 @@ $this->load->view('common/transactions/header'); ?>
                             <table class="db-table" id="dbTable">
                                 <thead>
                                     <tr>
-                                        <th class="db-th-time">Time</th>
-                                        <th class="db-th-ptype">Party Type</th>
-                                        <th class="db-th-party">Party Details</th>
-                                        <th class="db-th-type">Transaction Type</th>
-                                        <th class="db-th-serial">Serial Number</th>
-                                        <th class="db-th-mode">Payment Mode</th>
-                                        <th class="db-th-amount">Amount</th>
+                                        <th class="db-th-time"><?php echo t('col_time', 'Time'); ?></th>
+                                        <th class="db-th-ptype"><?php echo t('col_party_type', 'Party Type'); ?></th>
+                                        <th class="db-th-party"><?php echo t('col_party_details', 'Party Details'); ?></th>
+                                        <th class="db-th-type"><?php echo t('col_transaction_type', 'Transaction Type'); ?></th>
+                                        <th class="db-th-serial"><?php echo t('col_serial_number', 'Serial Number'); ?></th>
+                                        <th class="db-th-mode"><?php echo t('col_payment_mode', 'Payment Mode'); ?></th>
+                                        <th class="db-th-amount"><?php echo t('col_amount', 'Amount'); ?></th>
                                     </tr>
                                 </thead>
                                 <tbody id="dbTableBody">
                                     <tr><td colspan="7" class="db-loading-cell">
-                                        <div class="db-loading"><span class="spinner-border spinner-border-sm me-2"></span>Loading…</div>
+                                        <div class="db-loading"><span class="spinner-border spinner-border-sm me-2"></span><?php echo t('lbl_loading', 'Loading…'); ?></div>
                                     </td></tr>
                                 </tbody>
                             </table>
@@ -265,11 +265,11 @@ $this->load->view('common/transactions/header'); ?>
                         <div class="db-table-footer d-none" id="dbTableFooter">
                             <div class="db-footer-left"><span id="dbFooterCount"></span></div>
                             <div class="db-footer-right">
-                                <span class="db-footer-item"><span class="text-muted me-1">In:</span><strong class="text-success" id="dbFooterIn"></strong></span>
+                                <span class="db-footer-item"><span class="text-muted me-1"><?php echo t('lbl_in', 'In:'); ?></span><strong class="text-success" id="dbFooterIn"></strong></span>
                                 <span class="db-footer-sep">|</span>
-                                <span class="db-footer-item"><span class="text-muted me-1">Out:</span><strong class="text-danger" id="dbFooterOut"></strong></span>
+                                <span class="db-footer-item"><span class="text-muted me-1"><?php echo t('lbl_out', 'Out:'); ?></span><strong class="text-danger" id="dbFooterOut"></strong></span>
                                 <span class="db-footer-sep">|</span>
-                                <span class="db-footer-item"><span class="text-muted me-1">Net:</span><strong id="dbFooterNet"></strong></span>
+                                <span class="db-footer-item"><span class="text-muted me-1"><?php echo t('lbl_net', 'Net:'); ?></span><strong id="dbFooterNet"></strong></span>
                             </div>
                         </div>
 
@@ -285,7 +285,7 @@ $this->load->view('common/transactions/header'); ?>
 <!-- ── Type Filter Box ───────────────────────────────────────────── -->
 <div id="dbTypeBox" class="card mp-filterbox" style="z-index:9999;display:none;position:fixed;width:240px;">
     <div class="catg-filter-header">
-        <span class="catg-filter-title"><i class="bx bx-category me-1"></i>Filter by Type</span>
+        <span class="catg-filter-title"><i class="bx bx-category me-1"></i><?php echo t('lbl_filter_by_type', 'Filter by Type'); ?></span>
         <div class="d-flex align-items-center gap-2">
             <span class="badge" id="dbTypeBoxBadge"></span>
             <button type="button" class="catg-filter-close-btn" id="dbTypeBoxClose" title="Close">&times;</button>
@@ -293,7 +293,7 @@ $this->load->view('common/transactions/header'); ?>
     </div>
     <div class="catg-filter-search-wrap">
         <div class="catg-search-inner">
-            <input type="text" class="form-control form-control-sm" id="dbTypeBoxSearch" placeholder="Search type...">
+            <input type="text" class="form-control form-control-sm" id="dbTypeBoxSearch" placeholder="<?php echo t('lbl_search_type', 'Search type...'); ?>">
             <button type="button" class="catg-search-clear" id="dbTypeBoxSearchClear" title="Clear" style="display:none;">
                 <i class="bx bx-x"></i>
             </button>
@@ -301,17 +301,17 @@ $this->load->view('common/transactions/header'); ?>
     </div>
     <div class="catg-select-all-wrap">
         <input type="checkbox" class="form-check-input" id="dbTypeBoxSelectAll" checked>
-        <label class="small fw-semibold mb-0" for="dbTypeBoxSelectAll">Select All</label>
+        <label class="small fw-semibold mb-0" for="dbTypeBoxSelectAll"><?php echo t('lbl_select_all', 'Select All'); ?></label>
     </div>
     <div class="catg-list" id="dbTypeBoxList" style="max-height:240px;overflow-y:auto;">
         <!-- populated by JS -->
     </div>
     <div class="catg-filter-footer">
         <button type="button" class="btn btn-primary btn-sm" id="dbTypeBoxApply">
-            <i class="bx bx-check me-1"></i>Apply
+            <i class="bx bx-check me-1"></i><?php echo t('btn_apply', 'Apply'); ?>
         </button>
         <button type="button" class="btn btn-outline-secondary btn-sm" id="dbTypeBoxReset">
-            <i class="bx bx-reset me-1"></i>Reset
+            <i class="bx bx-reset me-1"></i><?php echo t('btn_reset', 'Reset'); ?>
         </button>
     </div>
 </div>

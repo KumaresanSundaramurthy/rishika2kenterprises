@@ -27,16 +27,16 @@ if (!empty($DataLists)):
   <td class="text-muted" style="font-size:.8rem;"><?php echo htmlspecialchars($row->ProcessedByName ?? '—'); ?></td>
   <td>
     <div class="d-flex align-items-center gap-1">
-      <a href="/payroll/detail/<?php echo $uid; ?>" class="btn btn-icon btn-sm text-primary" title="View Detail"><i class="bx bx-show"></i></a>
+      <a href="/payroll/detail/<?php echo $uid; ?>" class="btn btn-icon btn-sm text-primary" title="<?php echo t('btn_view_detail', 'View Detail'); ?>"><i class="bx bx-show"></i></a>
       <?php if ($status !== 'Paid'): ?>
-      <a href="/payroll/process?id=<?php echo $uid; ?>" class="btn btn-icon btn-sm text-warning" title="Edit/Reprocess"><i class="bx bx-edit"></i></button>
+      <a href="/payroll/process?id=<?php echo $uid; ?>" class="btn btn-icon btn-sm text-warning" title="<?php echo t('btn_edit_reprocess', 'Edit/Reprocess'); ?>"><i class="bx bx-edit"></i></button>
       <?php endif; ?>
       <?php if ($status === 'Processed'): ?>
-      <button class="btn btn-icon btn-sm text-success prl-mark-paid" data-uid="<?php echo $uid; ?>" title="Mark as Paid"><i class="bx bx-check-circle"></i></button>
+      <button class="btn btn-icon btn-sm text-success prl-mark-paid" data-uid="<?php echo $uid; ?>" title="<?php echo t('btn_mark_paid', 'Mark as Paid'); ?>"><i class="bx bx-check-circle"></i></button>
       <?php endif; ?>
     </div>
   </td>
 </tr>
 <?php endforeach; else: ?>
-<tr><td colspan="9" class="text-center text-muted py-4"><i class="bx bx-calculator me-1"></i>No payrolls found. <a href="/payroll/process">Process your first payroll</a>.</td></tr>
+<tr><td colspan="9" class="text-center text-muted py-4"><i class="bx bx-calculator me-1"></i><?php echo t('empty_payrolls', 'No payrolls found.'); ?> <a href="/payroll/process"><?php echo t('btn_process_payroll', 'Process your first payroll'); ?></a>.</td></tr>
 <?php endif; ?>

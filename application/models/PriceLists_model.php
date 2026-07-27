@@ -1,6 +1,6 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
 
-class PriceLists_model extends CI_Model {
+class Pricelists_model extends CI_Model {
 
     /** @var CI_DB_query_builder */
     private $ReadDb;
@@ -168,6 +168,7 @@ class PriceLists_model extends CI_Model {
      * @return object  ->rows (array), ->totalCount (int)
      */
     public function getPriceListPaginated(int $orgUID, int $limit, int $offset, array $filter = []): object {
+
         $result             = new stdClass();
         $result->rows       = [];
         $result->totalCount = 0;
@@ -180,9 +181,10 @@ class PriceLists_model extends CI_Model {
             $this->ReadDb->from('Products.PriceListTbl PL');
             $this->ReadDb->where($baseWhere);
             if ($search !== '') $this->ReadDb->like('PL.Name', $search);
-            if (!empty($filter['StatusFilter']))     $this->ReadDb->where_in('PL.Status',         array_map('intval', (array) $filter['StatusFilter']));
-            if (!empty($filter['AssignedToFilter'])) $this->ReadDb->where_in('PL.AssignedToType', (array) $filter['AssignedToFilter']);
-            if (!empty($filter['ScopeFilter']))      $this->ReadDb->where_in('PL.Scope',          (array) $filter['ScopeFilter']);
+            if (!empty($filter['StatusFilter']))       $this->ReadDb->where_in('PL.Status',         array_map('intval', (array) $filter['StatusFilter']));
+            if (!empty($filter['AssignedToFilter']))   $this->ReadDb->where_in('PL.AssignedToType', (array) $filter['AssignedToFilter']);
+            if (!empty($filter['ScopeFilter']))        $this->ReadDb->where_in('PL.Scope',          (array) $filter['ScopeFilter']);
+            if (!empty($filter['LastUpdatedFilter']))  $this->ReadDb->where_in('PL.UpdatedBy',      array_map('intval', (array) $filter['LastUpdatedFilter']));
             $cq = $this->ReadDb->get();
             $result->totalCount = (int) ($cq ? $cq->row()->TotalCount : 0);
 
@@ -196,10 +198,22 @@ class PriceLists_model extends CI_Model {
             $this->ReadDb->join('Users.UserTbl U', 'U.UserUID = PL.UpdatedBy', 'left');
             $this->ReadDb->where($baseWhere);
             if ($search !== '') $this->ReadDb->like('PL.Name', $search);
-            if (!empty($filter['StatusFilter']))     $this->ReadDb->where_in('PL.Status',         array_map('intval', (array) $filter['StatusFilter']));
-            if (!empty($filter['AssignedToFilter'])) $this->ReadDb->where_in('PL.AssignedToType', (array) $filter['AssignedToFilter']);
-            if (!empty($filter['ScopeFilter']))      $this->ReadDb->where_in('PL.Scope',          (array) $filter['ScopeFilter']);
-            $this->ReadDb->order_by('PL.PriceListUID', 'DESC');
+            if (!empty($filter['StatusFilter']))       $this->ReadDb->where_in('PL.Status',         array_map('intval', (array) $filter['StatusFilter']));
+            if (!empty($filter['AssignedToFilter']))   $this->ReadDb->where_in('PL.AssignedToType', (array) $filter['AssignedToFilter']);
+            if (!empty($filter['ScopeFilter']))        $this->ReadDb->where_in('PL.Scope',          (array) $filter['ScopeFilter']);
+            if (!empty($filter['LastUpdatedFilter']))  $this->ReadDb->where_in('PL.UpdatedBy',      array_map('intval', (array) $filter['LastUpdatedFilter']));
+            $hasSort = false;
+            if (!empty($filter['NameSorting'])) {
+                $this->ReadDb->order_by('PL.Name', (int) $filter['NameSorting'] === 1 ? 'ASC' : 'DESC');
+                $hasSort = true;
+            }
+            if (!empty($filter['StatusSorting'])) {
+                $this->ReadDb->order_by('PL.Status', (int) $filter['StatusSorting'] === 1 ? 'ASC' : 'DESC');
+                $hasSort = true;
+            }
+            if (!$hasSort) {
+                $this->ReadDb->order_by('PL.PriceListUID', 'DESC');
+            }
             $this->ReadDb->limit($limit, $offset);
             $dq = $this->ReadDb->get();
             $result->rows = $dq ? $dq->result() : [];

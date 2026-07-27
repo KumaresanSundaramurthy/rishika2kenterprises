@@ -26,11 +26,11 @@ if (!empty($DataLists)):
   <td><span class="badge bg-label-<?php echo $badge; ?>"><?php echo $status; ?></span></td>
   <td>
     <div class="d-flex align-items-center gap-1">
-      <a href="/payslips/view/<?php echo $uid; ?>" class="btn btn-icon btn-sm text-primary" title="View"><i class="bx bx-file"></i></a>
-      <a href="/payslips/print/<?php echo $uid; ?>" class="btn btn-icon btn-sm text-secondary" title="Print" target="_blank"><i class="bx bx-printer"></i></a>
+      <a href="/payslips/view/<?php echo $uid; ?>" class="btn btn-icon btn-sm text-primary" title="<?php echo t('btn_view_detail', 'View'); ?>"><i class="bx bx-file"></i></a>
+      <a href="/payslips/print/<?php echo $uid; ?>" class="btn btn-icon btn-sm text-secondary" title="<?php echo t('btn_print', 'Print'); ?>" target="_blank"><i class="bx bx-printer"></i></a>
     </div>
   </td>
 </tr>
 <?php endforeach; else: ?>
-<tr><td colspan="8" class="text-center text-muted py-4"><i class="bx bx-file me-1"></i>No payslips found.</td></tr>
+<tr><td colspan="8" class="text-center text-muted py-4"><i class="bx bx-file me-1"></i><?php echo t('empty_payslips', 'No payslips found.'); ?></td></tr>
 <?php endif; ?>

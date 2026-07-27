@@ -415,8 +415,8 @@ function exportURLDynamic(Url) {
     if (Url.length > 7000) {
         Swal.fire({
             icon: "error",
-            title: "Oops...",
-            text: "Too many items selected. Please select fewer items.",
+            title: t('swal_oops', 'Oops...'),
+            text: t('swal_too_many_selected', 'Too many items selected. Please select fewer items.'),
         });
     } else {
         window.location.href = Url;
@@ -1147,7 +1147,7 @@ function checkPageSettingsSortOrder() {
     if (hasDuplicates) {
         Swal.fire({
             icon: "error",
-            title: "Oops...",
+            title: t('swal_oops', 'Oops...'),
             text: 'Form submission blocked due to duplicate sort values:\n\n' + message,
         });
     }
@@ -1191,7 +1191,7 @@ function reinitDropzoneOne(selector) {
             });
             this.on('error', function (file) {
                 if (file.size > this.options.maxFilesize * 1024 * 1024) {
-                    Swal.fire({ icon: 'error', title: 'File too large', text: 'Maximum allowed size is 1 MB.' });
+                    Swal.fire({ icon: 'error', title: t('swal_file_too_large', 'File Too Large'), text: t('swal_max_1mb', 'Maximum allowed size is 1 MB.') });
                     this.removeFile(file);
                 }
             });
@@ -1200,7 +1200,7 @@ function reinitDropzoneOne(selector) {
             });
             this.on('maxfilesexceeded', function (file) {
                 this.removeFile(file);
-                Swal.fire({ icon: 'error', title: 'Oops...', text: 'Only one image is allowed.' });
+                Swal.fire({ icon: 'error', title: t('swal_oops', 'Oops...'), text: t('swal_one_image_only', 'Only one image is allowed.') });
             });
         }
     });
@@ -1555,7 +1555,7 @@ function copyMobileNumber(mobile) {
     if (!mobile) return;
     if (navigator.clipboard && window.isSecureContext) {
         navigator.clipboard.writeText(mobile).then(function () {
-            showToastNotification('Mobile number copied!', 'success');
+            showToastNotification(t('toast_mobile_copied', 'Mobile number copied!'), 'success');
         });
     } else {
         var $tmp = $('<input>').val(mobile).appendTo('body').select();

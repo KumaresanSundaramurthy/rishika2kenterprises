@@ -551,20 +551,6 @@ class Products extends MY_Controller {
                 'comboItemCount'   => 0,
             ];
 
-            if ($this->input->post('returnList') == 1) {
-                $pageNo  = (int) $this->input->post('PageNo');
-                $getResp = $this->fetchProductTableData($pageNo, 0, 0);
-                $this->EndReturnData->List       = $getResp->RecordHtmlData;
-                $this->EndReturnData->Pagination = $getResp->Pagination;
-                $this->EndReturnData->Stats      = $this->fetchProductStats();
-            } else if (getPostValue($PostData, 'getTableDetails') == 1) {
-                // backward-compat for any callers still using getTableDetails
-                $pageNo  = (int) $this->input->post('PageNo');
-                $getResp = $this->fetchProductTableData($pageNo, 0, 0);
-                $this->EndReturnData->List       = $getResp->RecordHtmlData;
-                $this->EndReturnData->Pagination = $getResp->Pagination;
-                $this->EndReturnData->Stats      = $this->fetchProductStats();
-            }
 
         } catch (InvalidArgumentException $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -707,9 +693,6 @@ class Products extends MY_Controller {
             // Sync updated product into the Upstash bulk cache
             $this->cachehelper->upsertProduct($ProductUID);
 
-            $pageNo  = (int) $this->input->post('PageNo');
-            $getResp = $this->fetchProductTableData($pageNo, 0, 0); // updateProductData — always items
-
             // Handle attachment uploads + deletes (same request, after commit)
             $this->_handleAttachments('Product', $ProductUID, (int)$this->pageData['JwtData']->Org->OrgUID, (int)$this->pageData['JwtData']->User->UserUID, 'ProdAttachFiles', 'ProdAttachDeleteUIDs');
 
@@ -725,9 +708,6 @@ class Products extends MY_Controller {
                 $prodFormData
             );
             $this->EndReturnData->ProductUID = $ProductUID;
-            $this->EndReturnData->List       = $getResp->RecordHtmlData;
-            $this->EndReturnData->Pagination = $getResp->Pagination;
-            $this->EndReturnData->Stats      = $this->fetchProductStats();
 
         } catch (InvalidArgumentException $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -783,12 +763,8 @@ class Products extends MY_Controller {
             // Remove deleted product from the Upstash bulk cache
             $this->cachehelper->removeProduct($ProductUID);
 
-            $pageNo      = (int) $this->input->post('PageNo') ?: 1;
-            $isComposite = (int) $this->input->post('IsComposite');
-            $getResp     = $this->fetchProductTableData($pageNo, 0, $isComposite);
-
-            $this->EndReturnData->Error      = FALSE;
-            $this->EndReturnData->Message    = 'Deleted Successfully';
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Deleted Successfully';
             $this->auditlog->log(
                 (int) $this->pageData['JwtData']->Org->OrgUID,
                 (int) $this->pageData['JwtData']->User->UserUID,
@@ -798,9 +774,6 @@ class Products extends MY_Controller {
                 $oldProductData,
                 []
             );
-            $this->EndReturnData->List       = $getResp->RecordHtmlData;
-            $this->EndReturnData->Pagination = $getResp->Pagination;
-            $this->EndReturnData->Stats      = $this->fetchProductStats();
 
         } catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;
@@ -868,12 +841,8 @@ class Products extends MY_Controller {
             $keysToDelete[] = Upstashservice::keyProductsAll();
             $this->upstashservice->delMany($keysToDelete);
 
-            $pageNo      = (int) $this->input->post('PageNo') ?: 1;
-            $isComposite = (int) $this->input->post('IsComposite');
-            $getResp     = $this->fetchProductTableData($pageNo, 0, $isComposite);
-
-            $this->EndReturnData->Error      = FALSE;
-            $this->EndReturnData->Message    = count($ProductUIDs) . ' product(s) deleted successfully';
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = count($ProductUIDs) . ' product(s) deleted successfully';
             $this->auditlog->log(
                 (int) $this->pageData['JwtData']->Org->OrgUID,
                 (int) $this->pageData['JwtData']->User->UserUID,
@@ -883,9 +852,6 @@ class Products extends MY_Controller {
                 ['deletedUIDs' => $ProductUIDs],
                 []
             );
-            $this->EndReturnData->List       = $getResp->RecordHtmlData;
-            $this->EndReturnData->Pagination = $getResp->Pagination;
-            $this->EndReturnData->Stats      = $this->fetchProductStats();
 
         } catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;
@@ -1231,11 +1197,8 @@ class Products extends MY_Controller {
 
             $this->cachehelper->removeProduct($comboUID);
 
-            $pageNo  = (int) $this->input->post('PageNo') ?: 1;
-            $getResp = $this->fetchProductTableData($pageNo, 0, 1); // deleteComboItem — always groups
-
-            $this->EndReturnData->Error      = false;
-            $this->EndReturnData->Message    = 'Combo item deleted successfully';
+            $this->EndReturnData->Error   = false;
+            $this->EndReturnData->Message = 'Combo item deleted successfully';
             $this->auditlog->log(
                 (int) $this->pageData['JwtData']->Org->OrgUID,
                 (int) $this->pageData['JwtData']->User->UserUID,
@@ -1245,9 +1208,6 @@ class Products extends MY_Controller {
                 $oldComboData,
                 []
             );
-            $this->EndReturnData->List       = $getResp->RecordHtmlData;
-            $this->EndReturnData->Pagination = $getResp->Pagination;
-            $this->EndReturnData->Stats      = $this->fetchProductStats();
 
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -1280,12 +1240,8 @@ class Products extends MY_Controller {
 
             $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
 
-            $pageNo      = (int) $this->input->post('PageNo') ?: 1;
-            $isComposite = (int) $this->input->post('IsComposite');
-            $getResp     = $this->fetchProductTableData($pageNo, 0, $isComposite);
-
-            $this->EndReturnData->Error      = false;
-            $this->EndReturnData->Message    = 'Status updated successfully';
+            $this->EndReturnData->Error   = false;
+            $this->EndReturnData->Message = 'Status updated successfully';
             $this->auditlog->log(
                 (int) $this->pageData['JwtData']->Org->OrgUID,
                 (int) $this->pageData['JwtData']->User->UserUID,
@@ -1295,10 +1251,6 @@ class Products extends MY_Controller {
                 ['IsActive' => 1 - $newStatus],
                 ['IsActive' => $newStatus]
             );
-            $this->EndReturnData->List       = $getResp->RecordHtmlData;
-            $this->EndReturnData->Pagination = $getResp->Pagination;
-            $this->EndReturnData->TotalCount = $getResp->TotalCount;
-            $this->EndReturnData->Stats      = $this->fetchProductStats();
 
         } catch (Exception $e) {
             $this->EndReturnData->Error   = true;
@@ -1577,13 +1529,6 @@ class Products extends MY_Controller {
             $this->EndReturnData->InsertId     = $CategoryUID;
             $this->EndReturnData->CategoryName = getPostValue($PostData, 'CategoryName');
 
-            if ($this->input->post('returnList') == 1) {
-                $pageNo  = (int) $this->input->post('PageNo');
-                $getResp = $this->fetchCategoryTableData($pageNo);
-                $this->EndReturnData->List       = $getResp->RecordHtmlData;
-                $this->EndReturnData->Pagination = $getResp->Pagination;
-            }
-
         } catch (InvalidArgumentException $e) {
             $this->dbwrite_model->rollbackTransaction();
             if ($e->getMessage() === 'VALIDATION_ERROR') {
@@ -1683,11 +1628,8 @@ class Products extends MY_Controller {
             // Sync updated category into the Upstash bulk cache
             $this->cachehelper->upsertCategory($CategoryUID);
 
-            $pageNo  = (int) $this->input->post('PageNo');
-            $getResp = $this->fetchCategoryTableData($pageNo);
-
-            $this->EndReturnData->Error      = FALSE;
-            $this->EndReturnData->Message    = 'Updated Successfully';
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Updated Successfully';
             $this->auditlog->log(
                 (int) $orgUID, (int) $userUID,
                 'UPDATE_PRODUCT_CATEGORY', 'ProductCategory', (int) $CategoryUID, (string) getPostValue($PostData, 'CategoryName'),
@@ -1696,8 +1638,6 @@ class Products extends MY_Controller {
                 $oldCatgData,
                 $catgFormData
             );
-            $this->EndReturnData->List       = $getResp->RecordHtmlData;
-            $this->EndReturnData->Pagination = $getResp->Pagination;
 
         } catch (InvalidArgumentException $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -1745,11 +1685,8 @@ class Products extends MY_Controller {
             // Remove deleted category from the Upstash bulk cache
             $this->cachehelper->removeCategory($CategoryUID);
 
-            $pageNo  = (int) $this->input->post('PageNo') ?: 1;
-            $getResp = $this->fetchCategoryTableData($pageNo);
-
-            $this->EndReturnData->Error      = FALSE;
-            $this->EndReturnData->Message    = 'Deleted Successfully';
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Deleted Successfully';
             $this->auditlog->log(
                 (int) $this->pageData['JwtData']->Org->OrgUID,
                 (int) $this->pageData['JwtData']->User->UserUID,
@@ -1759,8 +1696,6 @@ class Products extends MY_Controller {
                 $oldCatgData,
                 []
             );
-            $this->EndReturnData->List       = $getResp->RecordHtmlData;
-            $this->EndReturnData->Pagination = $getResp->Pagination;
 
         } catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;
@@ -1812,11 +1747,8 @@ class Products extends MY_Controller {
                 $this->cachehelper->removeCategory($id);
             }
 
-            $pageNo  = (int) $this->input->post('PageNo') ?: 1;
-            $getResp = $this->fetchCategoryTableData($pageNo);
-
-            $this->EndReturnData->Error      = FALSE;
-            $this->EndReturnData->Message    = 'Deleted Successfully';
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Deleted Successfully';
             $this->auditlog->log(
                 (int) $this->pageData['JwtData']->Org->OrgUID,
                 (int) $this->pageData['JwtData']->User->UserUID,
@@ -1826,8 +1758,6 @@ class Products extends MY_Controller {
                 ['deletedUIDs' => $CategoryUIDs],
                 []
             );
-            $this->EndReturnData->List       = $getResp->RecordHtmlData;
-            $this->EndReturnData->Pagination = $getResp->Pagination;
 
         } catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;
@@ -1930,15 +1860,9 @@ class Products extends MY_Controller {
                 'MASTER', 'SUCCESS', '', 'WEB', [], $data
             );
 
-            $pageNo  = (int) ($post['PageNo'] ?? 1) ?: 1;
-            $getResp = $this->fetchBrandTableData($pageNo);
-
-            $this->EndReturnData->Error      = false;
-            $this->EndReturnData->Message    = 'Brand created successfully.';
-            $this->EndReturnData->InsertId   = $brandUID;
-            $this->EndReturnData->List       = $getResp->RecordHtmlData;
-            $this->EndReturnData->Pagination = $getResp->Pagination;
-            $this->EndReturnData->TotalCount = $getResp->TotalCount;
+            $this->EndReturnData->Error    = false;
+            $this->EndReturnData->Message  = 'Brand created successfully.';
+            $this->EndReturnData->InsertId = $brandUID;
 
         } catch (Exception $e) {
             $this->EndReturnData->Error   = true;
@@ -2016,14 +1940,8 @@ class Products extends MY_Controller {
                 'MASTER', 'SUCCESS', '', 'WEB', $oldRec, $data
             );
 
-            $pageNo  = (int) ($post['PageNo'] ?? 1) ?: 1;
-            $getResp = $this->fetchBrandTableData($pageNo);
-
-            $this->EndReturnData->Error      = false;
-            $this->EndReturnData->Message    = 'Brand updated successfully.';
-            $this->EndReturnData->List       = $getResp->RecordHtmlData;
-            $this->EndReturnData->Pagination = $getResp->Pagination;
-            $this->EndReturnData->TotalCount = $getResp->TotalCount;
+            $this->EndReturnData->Error    = false;
+            $this->EndReturnData->Message  = 'Brand updated successfully.';
 
         } catch (Exception $e) {
             $this->EndReturnData->Error   = true;
@@ -2056,14 +1974,8 @@ class Products extends MY_Controller {
                 ['brandUID' => $brandUID], []
             );
 
-            $pageNo  = (int) $this->input->post('PageNo') ?: 1;
-            $getResp = $this->fetchBrandTableData($pageNo);
-
-            $this->EndReturnData->Error      = false;
-            $this->EndReturnData->Message    = 'Brand deleted successfully.';
-            $this->EndReturnData->List       = $getResp->RecordHtmlData;
-            $this->EndReturnData->Pagination = $getResp->Pagination;
-            $this->EndReturnData->TotalCount = $getResp->TotalCount;
+            $this->EndReturnData->Error    = false;
+            $this->EndReturnData->Message  = 'Brand deleted successfully.';
 
         } catch (Exception $e) {
             $this->EndReturnData->Error   = true;
@@ -2101,14 +2013,8 @@ class Products extends MY_Controller {
                 ['deletedUIDs' => array_values($brandUIDs)], []
             );
 
-            $pageNo  = (int) $this->input->post('PageNo') ?: 1;
-            $getResp = $this->fetchBrandTableData($pageNo);
-
-            $this->EndReturnData->Error      = false;
-            $this->EndReturnData->Message    = 'Deleted Successfully.';
-            $this->EndReturnData->List       = $getResp->RecordHtmlData;
-            $this->EndReturnData->Pagination = $getResp->Pagination;
-            $this->EndReturnData->TotalCount = $getResp->TotalCount;
+            $this->EndReturnData->Error    = false;
+            $this->EndReturnData->Message  = 'Deleted Successfully.';
 
         } catch (Exception $e) {
             $this->EndReturnData->Error   = true;
@@ -2576,7 +2482,6 @@ class Products extends MY_Controller {
     }
 
     // ── Price Lists ───────────────────────────────────────────────────────────
-
     public function getPriceListData(): void {
         $this->EndReturnData = new stdClass();
         try {
@@ -2594,7 +2499,7 @@ class Products extends MY_Controller {
             $this->EndReturnData->List       = $this->_buildPriceListHtml($result->rows, $offset);
             $this->EndReturnData->Pagination = $this->globalservice->buildPagePaginationHtml('/products/getPriceListData', $result->totalCount, $pageNo, $limit);
             $this->EndReturnData->TotalCount = $result->totalCount;
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -2811,6 +2716,54 @@ class Products extends MY_Controller {
             log_message('error', 'deletePriceList: ' . $e->getMessage());
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = 'Failed to delete price list. Please try again.';
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function deleteBulkPriceList(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $jwt      = $this->pageData['JwtData'];
+            $orgUID   = (int) $jwt->Org->OrgUID;
+            $userUID  = (int) $jwt->User->UserUID;
+            $post     = $this->input->post(null, true);
+            $rawUIDs  = $post['PriceListUIDs'] ?? '';
+            $uidList  = array_filter(array_map('intval', explode(',', $rawUIDs)));
+            if (empty($uidList)) throw new InvalidArgumentException('No price list IDs provided.');
+
+            $this->load->model(['pricelists_model', 'dbwrite_model']);
+            foreach ($uidList as $plUID) {
+                $oldData = $this->pricelists_model->getForEdit($orgUID, $plUID);
+                if (!$oldData) continue;
+                $this->pricelists_model->softDelete($orgUID, $plUID, $userUID);
+                $this->_removeOnePriceListCache($orgUID, $plUID);
+                $oldValues = $this->_priceListToAuditArray($oldData);
+                $this->auditlog->log(
+                    $orgUID, $userUID,
+                    'DELETE',
+                    'PriceList', $plUID, $oldData->Name ?? '',
+                    [], 'Price list deleted: ' . ($oldData->Name ?? ''),
+                    'PriceList', 'MASTER', 'SUCCESS', '', 'WEB',
+                    $oldValues, []
+                );
+            }
+
+            $pageNo    = max(1, (int) ($post['PageNo']   ?? 1));
+            $limit     = (int) ($post['RowLimit'] ?? 10);
+            $rawFilter = $post['Filter'] ?? '{}';
+            $filter    = is_array($rawFilter) ? $rawFilter : (json_decode($rawFilter ?: '{}', true) ?? []);
+
+            $this->EndReturnData->Error   = false;
+            $this->EndReturnData->Message = count($uidList) . ' price list(s) deleted successfully.';
+            $this->_appendPriceListRefresh($orgUID, $pageNo, $limit, $filter);
+
+        } catch (InvalidArgumentException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        } catch (Exception $e) {
+            log_message('error', 'deleteBulkPriceList: ' . $e->getMessage());
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = 'Failed to delete price lists. Please try again.';
         }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }

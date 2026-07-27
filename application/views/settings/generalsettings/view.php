@@ -18,7 +18,7 @@
                     'pageDescription' => $PageDescription ?? '',
                 ]); ?>
 
-                <div class="container-xxl flex-grow-1 container-p-y pt-2">
+                <div class="container-xxl flex-grow-1">
 
                     <div class="card">
 
@@ -33,7 +33,7 @@
                                         data-bs-toggle="tab" data-bs-target="#toptab-general-settings"
                                         role="tab" aria-controls="toptab-general-settings" aria-selected="true"
                                         href="javascript:void(0);">
-                                        <i class="bx bx-cog me-1"></i> General
+                                        <i class="bx bx-cog me-1"></i> <?php echo t('tab_general', 'General'); ?>
                                     </a>
                                 </li>
 
@@ -42,7 +42,7 @@
                                         data-bs-toggle="tab" data-bs-target="#toptab-transaction-settings"
                                         role="tab" aria-controls="toptab-transaction-settings" aria-selected="false"
                                         href="javascript:void(0);">
-                                        <i class="bx bx-transfer me-1"></i> Transaction
+                                        <i class="bx bx-transfer me-1"></i> <?php echo t('tab_transaction', 'Transaction'); ?>
                                     </a>
                                 </li>
 
@@ -374,7 +374,7 @@
                                                 <div class="mt-4 d-flex gap-2">
                                                     <button type="button" class="btn btn-primary" id="btnSaveGeneralSettings">
                                                         <span class="spinner-border spinner-border-sm me-1 d-none" id="gsSpinner"></span>
-                                                        Save Changes
+                                                        <?php echo t('btn_save', 'Save'); ?>
                                                     </button>
                                                 </div>
 
@@ -457,7 +457,7 @@
                                                 <div class="mt-4 d-flex gap-2">
                                                     <button type="button" class="btn btn-primary" id="btnSaveProductSettings">
                                                         <span class="spinner-border spinner-border-sm me-1 d-none" id="psSpinner"></span>
-                                                        Save Changes
+                                                        <?php echo t('btn_save', 'Save'); ?>
                                                     </button>
                                                 </div>
 
@@ -673,7 +673,7 @@
                                                 <div class="mt-4 d-flex gap-2">
                                                     <button type="button" class="btn btn-primary" id="btnSaveTxnGeneral">
                                                         <span class="spinner-border spinner-border-sm me-1 d-none" id="tgSpinner"></span>
-                                                        Save Changes
+                                                        <?php echo t('btn_save', 'Save'); ?>
                                                     </button>
                                                 </div>
 
@@ -744,7 +744,7 @@
                                                 <div class="mt-4 d-flex gap-2">
                                                     <button type="button" class="btn btn-primary" id="btnSaveTransactionSettings">
                                                         <span class="spinner-border spinner-border-sm me-1 d-none" id="tsSpinner"></span>
-                                                        Save Changes
+                                                        <?php echo t('btn_save', 'Save'); ?>
                                                     </button>
                                                 </div>
 
@@ -848,7 +848,7 @@
                                                 <div class="mt-4 d-flex gap-2">
                                                     <button type="button" class="btn btn-primary" id="btnSaveSalesReturnSettings">
                                                         <span class="spinner-border spinner-border-sm me-1 d-none" id="srSpinner"></span>
-                                                        Save Changes
+                                                        <?php echo t('btn_save', 'Save'); ?>
                                                     </button>
                                                 </div>
 
@@ -948,7 +948,7 @@
                                                 <div class="mt-4 d-flex gap-2">
                                                     <button type="button" class="btn btn-primary" id="btnSavePurchaseReturnSettings">
                                                         <span class="spinner-border spinner-border-sm me-1 d-none" id="prSpinner"></span>
-                                                        Save Changes
+                                                        <?php echo t('btn_save', 'Save'); ?>
                                                     </button>
                                                 </div>
 
@@ -1006,7 +1006,7 @@
                                                 <div class="mt-4 d-flex gap-2">
                                                     <button type="button" class="btn btn-primary" id="btnSavePurchaseSettings">
                                                         <span class="spinner-border spinner-border-sm me-1 d-none" id="purchSpinner"></span>
-                                                        Save Changes
+                                                        <?php echo t('btn_save', 'Save'); ?>
                                                     </button>
                                                 </div>
 
@@ -1059,7 +1059,7 @@
                                                 <div class="mt-4 d-flex gap-2">
                                                     <button type="button" class="btn btn-primary" id="btnSaveDCSettings">
                                                         <span class="spinner-border spinner-border-sm me-1 d-none" id="dcSettingsSpinner"></span>
-                                                        Save Changes
+                                                        <?php echo t('btn_save', 'Save'); ?>
                                                     </button>
                                                 </div>
 
@@ -1104,7 +1104,7 @@
                                                 <div class="mt-4 d-flex gap-2">
                                                     <button type="button" class="btn btn-primary" id="btnSaveQuotationSettings">
                                                         <span class="spinner-border spinner-border-sm me-1 d-none" id="quotSettingsSpinner"></span>
-                                                        Save Changes
+                                                        <?php echo t('btn_save', 'Save'); ?>
                                                     </button>
                                                 </div>
 

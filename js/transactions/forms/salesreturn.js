@@ -414,6 +414,7 @@ $(function () {
                         setFormLoading('#' + _formId, false);
                         showFormError(response.Message);
                     } else {
+                        $(document).one('ajaxStop', function () { showUIBlock(); });
                         _setPendingToast('_srPendingToast', response.Message, 'success');
                         window.location.href = _buildReturnUrl('/salesreturns');
                     }

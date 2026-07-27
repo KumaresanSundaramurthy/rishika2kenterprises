@@ -15,7 +15,7 @@
           <div class="row g-2 mb-3">
             <div class="col-auto">
               <select class="form-select form-select-sm" id="psEmpFilter" style="min-width:200px;">
-                <option value="">All Employees</option>
+                <option value=""><?php echo t('lbl_all_employees', 'All Employees'); ?></option>
                 <?php foreach ($EmployeeList as $e): ?>
                 <option value="<?php echo $e->EmployeeUID; ?>"><?php echo htmlspecialchars($e->EmployeeName . ' (' . $e->EmployeeCode . ')'); ?></option>
                 <?php endforeach; ?>
@@ -23,7 +23,7 @@
             </div>
             <div class="col-auto">
               <select class="form-select form-select-sm" id="psMonthFilter" style="min-width:120px;">
-                <option value="">All Months</option>
+                <option value=""><?php echo t('lbl_all_months', 'All Months'); ?></option>
                 <?php $mn = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
                 foreach ($mn as $mi => $mm): ?>
                 <option value="<?php echo $mi + 1; ?>"><?php echo $mm; ?></option>
@@ -37,7 +37,7 @@
                 <?php endfor; ?>
               </select>
             </div>
-            <div class="col-auto"><button class="btn btn-sm btn-outline-primary" id="btnPsFilter"><i class="bx bx-filter-alt me-1"></i>Filter</button></div>
+            <div class="col-auto"><button class="btn btn-sm btn-outline-primary" id="btnPsFilter"><i class="bx bx-filter-alt me-1"></i><?php echo t('btn_filter', 'Filter'); ?></button></div>
           </div>
 
           <div class="card">
@@ -50,7 +50,7 @@
             </div>
             <div class="table-responsive">
               <table class="table trans-table MainviewTable mb-0">
-                <thead class="r2k-thead"><tr><th>#</th><th>Employee</th><th>Period</th><th>Gross</th><th>Deductions</th><th>Net Payable</th><th>Status</th><th class="th-act">Actions</th></tr></thead>
+                <thead class="r2k-thead"><tr><th><?php echo t('col_sno', '#'); ?></th><th><?php echo t('col_employee_name', 'Employee'); ?></th><th><?php echo t('lbl_period', 'Period'); ?></th><th><?php echo t('lbl_gross', 'Gross'); ?></th><th><?php echo t('col_deductions', 'Deductions'); ?></th><th><?php echo t('lbl_net_payable', 'Net Payable'); ?></th><th><?php echo t('col_status', 'Status'); ?></th><th class="th-act"><?php echo t('col_actions', 'Actions'); ?></th></tr></thead>
                 <tbody class="r2k-tbody table-border-bottom-0" id="PayslipTableBody"><?php echo $ModRowData; ?></tbody>
               </table>
             </div>

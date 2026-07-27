@@ -107,6 +107,9 @@
                             <a href="javascript:void(0);" id="plStatusFilter" class="apex-filter-btn <?php echo $ActiveTabData == 'pricelist' ? '' : 'd-none'; ?>" title="Filter by Status"><i class="bx bx-transfer me-1"></i>Status</a>
                             <a href="javascript:void(0);" id="plAssignedToFilter" class="apex-filter-btn <?php echo $ActiveTabData == 'pricelist' ? '' : 'd-none'; ?>" title="Filter by Assigned To"><i class="bx bx-group me-1"></i>Assigned To</a>
                             <a href="javascript:void(0);" id="plScopeFilter" class="apex-filter-btn <?php echo $ActiveTabData == 'pricelist' ? '' : 'd-none'; ?>" title="Filter by Scope"><i class="bx bx-list-ul me-1"></i>Scope</a>
+                            <a href="javascript:void(0);" id="productCatgFilter" class="apex-filter-btn <?php echo $ActiveTabData == 'category' ? '' : 'd-none'; ?>" title="Filter by Product"><i class="bx bx-package me-1"></i>Product</a>
+                            <a href="javascript:void(0);" id="brandProductFilter" class="apex-filter-btn <?php echo $ActiveTabData == 'brand' ? '' : 'd-none'; ?>" title="Filter by Product"><i class="bx bx-package me-1"></i>Product</a>
+                            <a href="javascript:void(0);" id="lastUpdatedFilter" class="apex-filter-btn" title="Filter by Last Updated"><i class="bx bx-user me-1"></i>Last Updated</a>
                             <div class="apex-filter-spacer"></div>
                             <a href="javascript:void(0);" class="apex-icon-btn PageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
                             <a href="javascript:void(0);" class="apex-icon-btn <?php echo ($ActiveTabData == 'item' || $ActiveTabData == 'group') ? '' : 'd-none'; ?>" id="btnSyncProductsCache" title="Sync Items Cache"><i class="bx bx-planet"></i></a>
@@ -229,11 +232,19 @@
                                                             </div>
                                                         </th>
                                                         <th class="table-serialno <?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>"><?php echo t('col_sno', 'S.No'); ?></th>
-                                                        <th><?php echo t('col_item', 'Item'); ?></th>
-                                                        <th><?php echo t('col_status', 'Status'); ?></th>
+                                                        <th class="name-sortable position-relative" id="sortGroupName" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">
+                                                            <span class="sort-label cursor-pointer"><?php echo t('col_item', 'Item'); ?> <i class="bx bx-sort-alt-2 sort-icon ms-1"></i></span>
+                                                        </th>
+                                                        <th class="col-sortable cursor-pointer position-relative" data-filterkey="StatusSorting" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">
+                                                            <?php echo t('col_status', 'Status'); ?> <i class="bx bx-sort-alt-2 sort-icon ms-1"></i>
+                                                        </th>
                                                         <th><?php echo t('col_unit', 'Unit'); ?></th>
-                                                        <th><?php echo t('col_mrp', 'MRP'); ?></th>
-                                                        <th><?php echo t('col_selling_price', 'Selling Price'); ?></th>
+                                                        <th class="col-sortable cursor-pointer position-relative" data-filterkey="MRPSorting" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">
+                                                            <?php echo t('col_mrp', 'MRP'); ?> <i class="bx bx-sort-alt-2 sort-icon ms-1"></i>
+                                                        </th>
+                                                        <th class="col-sortable cursor-pointer position-relative" data-filterkey="SellingPriceSorting" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">
+                                                            <?php echo t('col_selling_price', 'Selling Price'); ?> <i class="bx bx-sort-alt-2 sort-icon ms-1"></i>
+                                                        </th>
                                                         <th><?php echo t('col_last_updated', 'Last Updated'); ?></th>
                                                         <th class="text-center"><?php echo t('col_actions', 'Actions'); ?></th>
                                                     </tr>
@@ -260,13 +271,22 @@
                                             <table class="table trans-table table-hover" id="PriceListTable">
                                                 <thead class="r2k-thead">
                                                     <tr>
+                                                        <th class="table-checkbox text-center align-middle">
+                                                            <div class="form-check d-flex justify-content-center align-items-center mb-0">
+                                                                <input class="form-check-input table-chkbox priceListHeaderCheck" type="checkbox">
+                                                            </div>
+                                                        </th>
                                                         <th class="table-serialno <?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>"><?php echo t('col_sno', 'S.No'); ?></th>
-                                                        <th><?php echo t('col_name', 'Name'); ?></th>
+                                                        <th class="name-sortable position-relative" id="sortPLName" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">
+                                                            <span class="sort-label cursor-pointer"><?php echo t('col_name', 'Name'); ?> <i class="bx bx-sort-alt-2 sort-icon ms-1"></i></span>
+                                                        </th>
                                                         <th><?php echo t('col_applies_to', 'Applies To'); ?></th>
                                                         <th><?php echo t('col_discount_type', 'Discount Type'); ?></th>
                                                         <th><?php echo t('col_valid_from', 'Valid From'); ?></th>
                                                         <th><?php echo t('col_valid_to', 'Valid To'); ?></th>
-                                                        <th><?php echo t('col_status', 'Status'); ?></th>
+                                                        <th class="col-sortable cursor-pointer position-relative" data-filterkey="StatusSorting" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">
+                                                            <?php echo t('col_status', 'Status'); ?> <i class="bx bx-sort-alt-2 sort-icon ms-1"></i>
+                                                        </th>
                                                         <th><?php echo t('col_last_updated', 'Last Updated'); ?></th>
                                                         <th class="text-center"><?php echo t('col_actions', 'Actions'); ?></th>
                                                     </tr>
@@ -501,6 +521,45 @@
     ],
 ]); ?>
 
+<!-- Product filter for Categories tab — items lazy-loaded from Upstash on first click -->
+<?php $this->load->view('common/filter_panels/col_filter_box', [
+    'ColFilterConfig' => [
+        'id'         => 'productCatgFilterBox',
+        'triggerId'  => 'productCatgFilter',
+        'title'      => 'Product',
+        'icon'       => 'bx-package',
+        'filterKey'  => 'ProductFilter',
+        'checkClass' => 'prod-catg-chk',
+        'items'      => [],
+    ],
+]); ?>
+
+<!-- Product filter for Brands tab — items lazy-loaded from Upstash on first click -->
+<?php $this->load->view('common/filter_panels/col_filter_box', [
+    'ColFilterConfig' => [
+        'id'         => 'brandProductFilterBox',
+        'triggerId'  => 'brandProductFilter',
+        'title'      => 'Product',
+        'icon'       => 'bx-package',
+        'filterKey'  => 'ProductFilter',
+        'checkClass' => 'brand-prod-chk',
+        'items'      => [],
+    ],
+]); ?>
+
+<!-- Last Updated filter — visible on all tabs; items lazy-loaded from /users/getOrgUsers -->
+<?php $this->load->view('common/filter_panels/col_filter_box', [
+    'ColFilterConfig' => [
+        'id'         => 'lastUpdatedFilterBox',
+        'triggerId'  => 'lastUpdatedFilter',
+        'title'      => 'Last Updated',
+        'icon'       => 'bx-user',
+        'filterKey'  => 'LastUpdatedFilter',
+        'checkClass' => 'last-upd-chk',
+        'items'      => [],
+    ],
+]); ?>
+
 <?php $this->load->view('common/footer'); ?>
 
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
@@ -541,6 +600,8 @@ const BrandHeader = '.brandHeaderCheck';
 const BrandRow = '.brandCheck';
 const PLTable  = '#PriceListTable';
 const PLPag    = '#PriceListPagination';
+const PLHeader = '.priceListHeaderCheck';
+const PLRow    = '.priceListCheck';
 let ActiveTabId = '<?php echo $ActiveTabName; ?>';
 let ActiveTabModuleId = 4
 var EnableStorage = <?php echo $JwtData->GenSettings->EnableStorage; ?>;
@@ -550,6 +611,8 @@ var _prodInitSearch = <?php echo json_encode($InitSearch ?? ''); ?>;
 let sortState = 0;
 let catgSortState = 0;
 let brandSortState = 0;
+let groupSortState = 0;
+let plNameSortState = 0;
 var _catgListDirty = false;
 var _brandListDirty = false;
 let colSortStates = {};
@@ -596,17 +659,23 @@ $(function() {
             $('#productTypeFilter,#categoryFilter').toggleClass('d-none', TabValue !== 'Item');
             $('#statusFilter,#taxFilter').toggleClass('d-none', TabValue !== 'Item' && TabValue !== 'Groups');
             $('#plStatusFilter,#plAssignedToFilter,#plScopeFilter').toggleClass('d-none', TabValue !== 'PriceLists');
+            $('#productCatgFilter').toggleClass('d-none', TabValue !== 'Categories');
+            $('#brandProductFilter').toggleClass('d-none', TabValue !== 'Brands');
             var _prodSearchPlaceholders = { Item: 'Search items...', Groups: 'Search groups...', PriceLists: 'Search price lists...', Categories: 'Search categories...', Brands: 'Search brands...' };
             $('#SearchDetails').val('').attr('placeholder', _prodSearchPlaceholders[TabValue] || 'Search...');
             PageNo = 0;
             Filter = {};
             // Reset all sort visual states
-            sortState = 0; catgSortState = 0; brandSortState = 0; colSortStates = {};
+            sortState = 0; catgSortState = 0; brandSortState = 0; groupSortState = 0; plNameSortState = 0; colSortStates = {};
             $('.name-sortable .sort-icon, .col-sortable .sort-icon').removeClass('bx-sort-up bx-sort-down text-primary').addClass('bx-sort-alt-2');
             $('.name-sortable, .col-sortable').removeClass('col-active').attr('data-bs-title', 'Click for ascending order');
             $('.mp-filterbox').hide();
             $('#categoryFilter, #productTypeFilter, #statusFilter, #taxFilter').removeClass('text-primary');
             $('#plStatusFilter, #plAssignedToFilter, #plScopeFilter').removeClass('text-primary has-filter');
+            $('#productCatgFilter, #brandProductFilter, #lastUpdatedFilter').removeClass('has-filter');
+            if (typeof lastUpdatedFilter !== 'undefined') lastUpdatedFilter.reset();
+            if (typeof brandProductFilter !== 'undefined') brandProductFilter.reset();
+            if (typeof prodCatgFilter !== 'undefined') prodCatgFilter.reset();
             $('#ProductCountWrap').addClass('d-none');
             $('#btnSyncProductsCache,#btnSyncCategoriesCache,#btnSyncPriceListCache,#btnSyncBrandsCache').addClass('d-none');
             if (ActiveTabId == 'Item') {
@@ -636,6 +705,10 @@ $(function() {
                 var plLen = $(PLTable + ' tr.pl-list-row').length;
                 if (plLen == 0) {
                     getPriceListDetails(PageNo, RowLimit, Filter);
+                } else {
+                    $(PLHeader).prop('checked', false);
+                    unSelectTableRecords(PLTable, PLRow);
+                    _updatePLCount(parseInt($('#priceListTotalCount').text(), 10) || 0);
                 }
             } else if (ActiveTabId == 'Categories') {
                 $('#NewCategory').removeClass('d-none');
@@ -706,6 +779,8 @@ $(function() {
                 DeleteContent = 'Do you want to delete all the selected category?';
             } else if (ActiveTabId == 'Brands') {
                 DeleteContent = 'Do you want to delete all the selected brand?';
+            } else if (ActiveTabId == 'PriceLists') {
+                DeleteContent = 'Do you want to delete all the selected price list?';
             }
             Swal.fire({
                 title: DeleteContent,
@@ -723,6 +798,8 @@ $(function() {
                         deleteMultipleCategory();
                     } else if (ActiveTabId == 'Brands') {
                         deleteMultipleBrand();
+                    } else if (ActiveTabId == 'PriceLists') {
+                        deleteMultiplePriceList();
                     }
                 }
             });
@@ -782,6 +859,14 @@ $(function() {
             sortState = (sortState + 1) % 3;
             defSortState = sortState;
             defFieldName = '#sortName';
+        } else if (ActiveTabId == 'Groups') {
+            groupSortState = (groupSortState + 1) % 3;
+            defSortState = groupSortState;
+            defFieldName = '#sortGroupName';
+        } else if (ActiveTabId == 'PriceLists') {
+            plNameSortState = (plNameSortState + 1) % 3;
+            defSortState = plNameSortState;
+            defFieldName = '#sortPLName';
         } else if (ActiveTabId == 'Categories') {
             catgSortState = (catgSortState + 1) % 3;
             defSortState = catgSortState;
@@ -816,7 +901,7 @@ $(function() {
     /** Column Asc/Desc Sorting — multi-column allowed */
     $(document).on('click', '.col-sortable', function(e) {
         e.preventDefault();
-        if (ActiveTabId !== 'Item') return;
+        if (ActiveTabId !== 'Item' && ActiveTabId !== 'Groups' && ActiveTabId !== 'PriceLists') return;
         const filterKey = $(this).data('filterkey');
         // Cycle this column independently (multi-sort)
         colSortStates[filterKey] = ((colSortStates[filterKey] || 0) + 1) % 3;
@@ -977,6 +1062,13 @@ $(function() {
     basePaginationFunc(ProdPag, getProductDetails);
     basePaginationFunc(GroupPag, getGroupDetails);
     baseRefreshPageFunc('.PageRefresh', showProductPageDetails);
+    // Override Page Refresh: set overlay flag so getXDetails uses full overlay instead of spinner
+    $('.PageRefresh').off('click').on('click', function(e) {
+        e.preventDefault();
+        SelectedUIDs = [];
+        _prodPageRefreshing = true;
+        showProductPageDetails();
+    });
     
     basePageHeaderFunc(ProdHeader, ProdTable, ProdRow);
     basePageHeaderFunc(GroupHeader, GroupTable, ProdRow);
@@ -986,7 +1078,7 @@ $(function() {
         var activeHdr = (ActiveTabId === 'Groups') ? GroupHeader : ProdHeader;
         onClickOfCheckbox($(this), activeTbl, activeHdr, ProdRow);
         $('#CloneOption').addClass('d-none');
-        if (SelectedUIDs.length == 1 && ActiveTabId === 'Item') {
+        if (SelectedUIDs.length == 1 && (ActiveTabId === 'Item' || ActiveTabId === 'Groups')) {
             $('#CloneOption').removeClass('d-none');
         }
         MultipleDeleteOption();
@@ -1013,14 +1105,50 @@ $(function() {
 
     $('#btnClone').click(function(e) {
         e.preventDefault();
-        if (SelectedUIDs.length == 1 && ActiveTabId == 'Item') {
-            var getSelectedId = SelectedUIDs[0];
-            $(ProdTable + ' tbody ' + ProdRow).each(function() {
-                const val = parseInt($(this).val());
-                $(this).prop('checked', false);
-            });
+        if (SelectedUIDs.length !== 1) return;
+        var getSelectedId = SelectedUIDs[0];
+        if (ActiveTabId == 'Item') {
+            $(ProdTable + ' tbody ' + ProdRow).prop('checked', false);
             SelectedUIDs = [];
             retrieveProductDetails(getSelectedId, true);
+        } else if (ActiveTabId == 'Groups') {
+            $(GroupTable + ' tbody ' + ProdRow).prop('checked', false);
+            SelectedUIDs = [];
+            retrieveProductDetails(getSelectedId, true);
+        } else if (ActiveTabId == 'Categories') {
+            var $editBtn = $(CatgTable + ' tbody .editCategory[data-uid="' + getSelectedId + '"]');
+            var srcName  = $editBtn.data('name') ? atob($editBtn.data('name')) : '';
+            var srcDesc  = $editBtn.data('description') ? atob($editBtn.data('description')) : '';
+            $(CatgTable + ' tbody ' + CatgRow).prop('checked', false);
+            SelectedUIDs = [];
+            $('#categoryForm').trigger('reset');
+            $('#CatgModalTitle').text('Add Category');
+            $('#CatgSaveButton').text('Save');
+            $('#CategoryUID').val(0);
+            $('#CategoryName').val('Copy of ' + srcName);
+            $('#CategoryDescription').val(srcDesc);
+            $('.catgFormAlert').addClass('d-none');
+            if (typeof _attachBindListeners === 'function') _attachBindListeners('Category');
+            if (typeof _attachResetState    === 'function') _attachResetState('Category');
+            $('#categoryModal').modal('show');
+        } else if (ActiveTabId == 'Brands') {
+            var $editBrandBtn = $(BrandTable + ' tbody .editBrand[data-uid="' + getSelectedId + '"]');
+            var srcBrandName  = $editBrandBtn.data('name') ? atob($editBrandBtn.data('name')) : '';
+            var srcBrandCode  = $editBrandBtn.data('code') ? atob($editBrandBtn.data('code')) : '';
+            var srcBrandDesc  = $editBrandBtn.data('description') ? atob($editBrandBtn.data('description')) : '';
+            $(BrandTable + ' tbody ' + BrandRow).prop('checked', false);
+            SelectedUIDs = [];
+            $('#brandForm').trigger('reset');
+            $('#BrandModalTitle').text('Add Brand');
+            $('#BrandSaveButton').text('Save');
+            $('#BrandUID').val(0);
+            $('#BrandName').val('Copy of ' + srcBrandName);
+            $('#BrandCode').val(srcBrandCode);
+            $('#BrandDescription').val(srcBrandDesc);
+            $('.brandFormAlert').addClass('d-none');
+            if (typeof _attachBindListeners === 'function') _attachBindListeners('Brand');
+            if (typeof _attachResetState    === 'function') _attachResetState('Brand');
+            $('#brandModal').modal('show');
         }
     });
 
@@ -1078,6 +1206,7 @@ $(function() {
     basePaginationFunc(BrandPag, getBrandsDetails);
     basePageHeaderFunc(BrandHeader, BrandTable, BrandRow);
     basePaginationFunc(PLPag, getPriceListDetails);
+    basePageHeaderFunc(PLHeader, PLTable, PLRow);
 
     // ── Price List filter instances ───────────────────────────────────────────
 
@@ -1120,8 +1249,102 @@ $(function() {
         }
     });
 
+    // ── Product filter for Categories tab ────────────────────────────────────
+    var _prodCatgFilterLoaded = false;
+
+    $(document).on('click', '#productCatgFilter', function () {
+        if (_prodCatgFilterLoaded) return;
+        ProductAppend.load(
+            function (products) {
+                _prodCatgFilterLoaded = true;
+                prodCatgFilter.setItems(
+                    products.map(function (p) {
+                        return { value: String(p.id), label: p.text || p.itemName || '' };
+                    })
+                );
+            },
+            function () { _prodCatgFilterLoaded = false; }
+        );
+    });
+
+    var prodCatgFilter = new TransColFilter({
+        boxId      : 'productCatgFilterBox',
+        triggerId  : 'productCatgFilter',
+        filterKey  : 'ProductFilter',
+        activeClass: 'has-filter',
+        onApply    : function () {
+            var vals = prodCatgFilter.getState()['ProductFilter'] || [];
+            if (vals.length) Filter['ProductFilter'] = vals; else delete Filter['ProductFilter'];
+            PageNo = 0;
+            getCategoriesDetails(PageNo, RowLimit, Filter);
+        }
+    });
+
+    // ── Product filter for Brands tab ────────────────────────────────────────
+    var _brandProdFilterLoaded = false;
+
+    $(document).on('click', '#brandProductFilter', function () {
+        if (_brandProdFilterLoaded) return;
+        ProductAppend.load(
+            function (products) {
+                _brandProdFilterLoaded = true;
+                brandProductFilter.setItems(
+                    products.map(function (p) {
+                        return { value: String(p.id), label: p.text || p.itemName || '' };
+                    })
+                );
+            },
+            function () { _brandProdFilterLoaded = false; }
+        );
+    });
+
+    var brandProductFilter = new TransColFilter({
+        boxId      : 'brandProductFilterBox',
+        triggerId  : 'brandProductFilter',
+        filterKey  : 'ProductFilter',
+        activeClass: 'has-filter',
+        onApply    : function () {
+            var vals = brandProductFilter.getState()['ProductFilter'] || [];
+            if (vals.length) Filter['ProductFilter'] = vals; else delete Filter['ProductFilter'];
+            PageNo = 0;
+            getBrandsDetails(PageNo, RowLimit, Filter);
+        }
+    });
+
+    // ── Last Updated filter — visible on all tabs ────────────────────────────
+    var _lastUpdatedFilterLoaded = false;
+
+    $(document).on('click', '#lastUpdatedFilter', function () {
+        if (_lastUpdatedFilterLoaded) return;
+        ajaxLoading(0);
+        $.getJSON('/users/getOrgUsers', function (res) {
+            ajaxLoading(1);
+            if (!res || res.Error) { return; }
+            _lastUpdatedFilterLoaded = true;
+            var items = (res.Users || []).map(function (u) {
+                return { value: String(u.UserUID), label: u.FullName || ((u.FirstName || '') + ' ' + (u.LastName || '')).trim() };
+            });
+            lastUpdatedFilter.setItems(items);
+        }).fail(function () { ajaxLoading(1); });
+    });
+
+    var lastUpdatedFilter = new TransColFilter({
+        boxId      : 'lastUpdatedFilterBox',
+        triggerId  : 'lastUpdatedFilter',
+        filterKey  : 'LastUpdatedFilter',
+        activeClass: 'has-filter',
+        onApply    : function () {
+            var vals = lastUpdatedFilter.getState()['LastUpdatedFilter'] || [];
+            if (vals.length) Filter['LastUpdatedFilter'] = vals; else delete Filter['LastUpdatedFilter'];
+            PageNo = 0;
+            showProductPageDetails();
+        }
+    });
+
     $(document).on('click', CatgRow, function() {
         onClickOfCheckbox($(this), CatgTable, CatgHeader, CatgRow);
+        $('#CloneOption').addClass('d-none');
+        if (SelectedUIDs.length == 1) { $('#CloneOption').removeClass('d-none'); }
         MultipleDeleteOption();
     });
 
@@ -1260,6 +1483,14 @@ $(function() {
 
     $(document).on('click', BrandRow, function() {
         onClickOfCheckbox($(this), BrandTable, BrandHeader, BrandRow);
+        $('#CloneOption').addClass('d-none');
+        if (SelectedUIDs.length == 1) { $('#CloneOption').removeClass('d-none'); }
+        MultipleDeleteOption();
+    });
+
+    $(document).on('click', PLRow, function() {
+        onClickOfCheckbox($(this), PLTable, PLHeader, PLRow);
+        $('#CloneOption').addClass('d-none');
         MultipleDeleteOption();
     });
 
@@ -1424,6 +1655,8 @@ function _applyPLResponse(response) {
     $(PLPag).html(response.Pagination);
     $(PLTable + ' tbody').html(response.List);
     if (typeof response.TotalCount !== 'undefined') _updatePLCount(response.TotalCount);
+    headerCheckboxTrueFalse(PLTable, PLHeader, PLRow);
+    MultipleDeleteOption();
     $(window).trigger('scroll');
 }
 

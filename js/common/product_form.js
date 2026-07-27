@@ -457,11 +457,11 @@
 
             Swal.fire({
                 icon              : 'warning',
-                title             : 'Confirm Update',
+                title             : t('swal_confirm_update', 'Confirm Update'),
                 text              : message,
                 showCancelButton  : true,
-                confirmButtonText : 'Yes, Save',
-                cancelButtonText  : 'Cancel'
+                confirmButtonText : t('btn_yes_save', 'Yes, Save'),
+                cancelButtonText  : t('btn_cancel', 'Cancel')
             }).then(function (result) {
                 if (result.isConfirmed) {
                     _doProductSave(formData, productUID);
@@ -498,7 +498,7 @@
             },
             error: function () {
                 $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i>Save');
-                Swal.fire({ icon: 'error', title: 'Oops...', text: 'Failed to save product.' });
+                Swal.fire({ icon: 'error', title: t('swal_oops', 'Oops...'), text: t('swal_save_product_failed', 'Failed to save product.') });
             }
         });
     }

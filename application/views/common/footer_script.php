@@ -2,12 +2,66 @@
 var JwtToken = '<?php echo $JwtToken; ?>';
 var JwtData = <?php echo json_encode($JwtData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;
 var _appLang = <?php echo json_encode((array)($this->lang->language ?? []), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;
+<?php
+$_lp_packs = [];
+foreach (['en' => 'english', 'ta' => 'tamil'] as $_lp_code => $_lp_dir) {
+    $lang = [];
+    $_lp_file = APPPATH . 'language/' . $_lp_dir . '/app_lang.php';
+    if (file_exists($_lp_file)) { include $_lp_file; }
+    $_lp_packs[$_lp_code] = $lang;
+}
+unset($_lp_code, $_lp_dir, $_lp_file, $lang);
+?>
+window._langPacks = <?php echo json_encode($_lp_packs, JSON_UNESCAPED_UNICODE); ?>;
+<?php unset($_lp_packs); ?>
 /**
  * @param {string} key
  * @param {string} [fallback]
  * @returns {string}
  */
 function t(key, fallback) { return (_appLang && _appLang[key]) ? _appLang[key] : (fallback !== undefined ? fallback : key); }
+/**
+ * Switches all visible page text to newLang without a page reload.
+ * Reverse-maps current _appLang values → keys, then replaces text nodes + attrs.
+ * Falls back to location.reload() only if the target pack is not available.
+ * @param {string} newLang
+ * @returns {void}
+ */
+function applyLang(newLang) {
+    var newPack = window._langPacks && window._langPacks[newLang];
+    if (!newPack) { location.reload(); return; }
+    var cur = window._appLang || {};
+    var reverseMap = {};
+    Object.keys(cur).forEach(function (k) { if (cur[k]) reverseMap[cur[k]] = k; });
+    // Walk all text nodes
+    var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+    var node;
+    while ((node = walker.nextNode())) {
+        var raw = node.textContent;
+        var trimmed = raw.trim();
+        if (trimmed && Object.prototype.hasOwnProperty.call(reverseMap, trimmed) && newPack[reverseMap[trimmed]]) {
+            node.textContent = raw.replace(trimmed, newPack[reverseMap[trimmed]]);
+        }
+    }
+    // Update title / placeholder / tooltip attributes
+    ['title', 'placeholder', 'data-bs-original-title'].forEach(function (attr) {
+        document.querySelectorAll('[' + attr + ']').forEach(function (el) {
+            var v = (el.getAttribute(attr) || '').trim();
+            if (v && Object.prototype.hasOwnProperty.call(reverseMap, v) && newPack[reverseMap[v]]) {
+                el.setAttribute(attr, newPack[reverseMap[v]]);
+            }
+        });
+    });
+    // Swap active lang pack so t() uses the new language going forward
+    window._appLang = newPack;
+    // Update navbar trigger display
+    $('#apexLangBtn .apex-lang-flag').text(newLang === 'ta' ? '🇮🇳' : '🇬🇧');
+    $('#apexLangBtn .apex-lang-name').text(newLang === 'ta' ? 'தமிழ்' : 'English');
+    $('.apex-lang-option').removeClass('active');
+    $('.apex-lang-option[data-lang="' + newLang + '"]').addClass('active');
+    // Update <html lang> attribute
+    document.documentElement.lang = newLang;
+}
 var CsrfName = '<?php echo $this->security->get_csrf_token_name(); ?>';
 var CsrfToken = '<?php echo $this->security->get_csrf_hash(); ?>';
 const defaultIso2 = '<?php echo $JwtData->Org->OrgCISO2 ?? 'IN'; ?>';
@@ -247,22 +301,40 @@ $(function() {
 
     }
 
-    // ── Language switcher ─────────────────────────────────────────────────
-    $('.LangToggleBtn').on('click', function () {
-        var lang = $(this).data('switch-to');
-        ajaxLoading(1);
-        $.post('/users/updateLanguage', { UILanguage: lang }, function (res) {
-            ajaxLoading(0);
-            if (res && !res.Error) {
-                location.reload();
-            } else {
-                Swal.fire({ icon: 'error', title: 'Error', text: (res && res.Message) ? res.Message : 'Failed to update language.' });
-            }
-        }, 'json').fail(function () {
-            ajaxLoading(0);
-            Swal.fire({ icon: 'error', title: 'Error', text: 'Request failed.' });
+    // ── Language switcher dropdown ────────────────────────────────────────
+    (function () {
+        var $wrap = $('#apexLangWrap');
+        var $btn  = $('#apexLangBtn');
+        var $dd   = $('#apexLangDropdown');
+        if (!$wrap.length) return;
+
+        $btn.on('click', function (e) {
+            e.stopPropagation();
+            $wrap.toggleClass('open');
         });
-    });
+
+        $(document).on('click.langdd', function (e) {
+            if (!$wrap.is(e.target) && $wrap.has(e.target).length === 0) {
+                $wrap.removeClass('open');
+            }
+        });
+
+        $dd.on('click', '.apex-lang-option', function () {
+            var lang = $(this).data('lang');
+            $wrap.removeClass('open');
+            if ($(this).hasClass('active')) return;
+
+            // Optimistic update — switch UI immediately, then persist silently
+            applyLang(lang);
+            showToastNotification(t('toast_lang_changed', 'Language has been changed successfully'), 'success');
+            ajaxLoading(0);
+            $.post('/users/updateLanguage', { UILanguage: lang }, function () {
+                ajaxLoading(1);
+            }, 'json').fail(function () {
+                ajaxLoading(1);
+            });
+        });
+    }());
 
     // ── Party hover card ──────────────────────────────────────────────────
     (function () {

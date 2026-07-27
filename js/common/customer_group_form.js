@@ -467,7 +467,7 @@
         var area   = $(this).data('area')   || '';
 
         if (_members.some(function (m) { return m.uid === uid; })) {
-            showToastNotification('Already in group.', 'info');
+            showToastNotification(t('toast_already_in_group', 'Already in group.'), 'info');
             $('#CG_MemberSearch').val('').focus();
             $('#CG_MemberDropdown').hide();
             return;
@@ -484,7 +484,7 @@
     $(document).on('click', '#CG_BtnAddMember', function () {
         var $first = $('#CG_MemberDropdown .cg-cust-item:first');
         if ($first.length) { $first.trigger('click'); return; }
-        showToastNotification('Search for a customer first.', 'warning');
+        showToastNotification(t('toast_search_cust_first', 'Search for a customer first.'), 'warning');
     });
 
     // Close member dropdown on outside click
@@ -629,7 +629,7 @@
             error: function () {
                 $spinner.remove();
                 $btn.prop('disabled', false);
-                showToastNotification('Request failed. Please try again.', 'error');
+                showToastNotification(t('swal_request_failed', 'Request failed. Please try again.'), 'error');
             }
         });
     });

@@ -5,11 +5,11 @@ $(document).on('click', '#GSTIN_Fetch', function () {
     var gstin = $.trim($('#GSTIN').val()).toUpperCase();
 
     if (!gstin) {
-        Swal.fire({ icon: 'warning', text: 'Please enter a GSTIN number first.' });
+        Swal.fire({ icon: 'warning', text: t('swal_gstin_enter', 'Please enter a GSTIN number first.') });
         return;
     }
     if (gstin.length !== 15) {
-        Swal.fire({ icon: 'warning', text: 'GSTIN must be exactly 15 characters.' });
+        Swal.fire({ icon: 'warning', text: t('swal_gstin_15chars', 'GSTIN must be exactly 15 characters.') });
         return;
     }
 
@@ -24,7 +24,7 @@ $(document).on('click', '#GSTIN_Fetch', function () {
             $btn.prop('disabled', false).html('Fetch');
 
             if (resp.Error) {
-                Swal.fire({ icon: 'error', title: 'GSTIN Lookup Failed', text: resp.Message });
+                Swal.fire({ icon: 'error', title: t('swal_gstin_failed', 'GSTIN Lookup Failed'), text: resp.Message });
                 return;
             }
 
@@ -81,17 +81,17 @@ $(document).on('click', '#GSTIN_Fetch', function () {
             // Success toast
             Swal.fire({
                 icon : 'success',
-                title: 'GSTIN Details Fetched',
+                title: t('swal_gstin_fetched', 'GSTIN Details Fetched'),
                 html : '<b>' + (resp.LegalName || '') + '</b>' +
-                       (resp.TradeName ? '<br><small class="text-muted">Trade Name: ' + resp.TradeName + '</small>' : '') +
-                       (resp.Status ? '<br><small class="text-muted">Status: ' + resp.Status + '</small>' : ''),
+                       (resp.TradeName ? '<br><small class="text-muted">' + t('lbl_trade_name', 'Trade Name') + ': ' + resp.TradeName + '</small>' : '') +
+                       (resp.Status ? '<br><small class="text-muted">' + t('lbl_gstin_status', 'GST Status') + ': ' + resp.Status + '</small>' : ''),
                 timer: 2500,
                 showConfirmButton: false,
             });
         },
         error: function () {
             $btn.prop('disabled', false).html('Fetch');
-            Swal.fire({ icon: 'error', text: 'Network error. Please try again.' });
+            Swal.fire({ icon: 'error', text: t('swal_network_error', 'Network error. Please try again.') });
         }
     });
 

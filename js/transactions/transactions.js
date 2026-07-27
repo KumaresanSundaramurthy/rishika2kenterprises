@@ -216,10 +216,10 @@ class BillManager {
 
         const id = parseInt(productData.id, 10);
         if (this.map[id]) {
-            Swal.fire({icon: "error", title: "Oops...", text: "Item already moved to cart."});
+            Swal.fire({icon: "error", title: t('swal_oops', 'Oops...'), text: t('swal_item_in_cart', 'Item already moved to cart.')});
             return false;
         }
-        
+
         const unitPrice = smartDecimal(parseFloat(productData.unitPrice) || 0, 8);
         const taxPercent = parseFloat(productData.taxPercent) || 0;
         const sellingPrice = this.roundValue(unitPrice * (1 + taxPercent / 100));
@@ -1523,13 +1523,13 @@ $(document).ready(function () {
     $(document).on('click', '#btnClearCart', function () {
         if (!$('#billTableBody tr[data-id]').length) return;
         Swal.fire({
-            title            : 'Clear all items?',
-            text             : 'All items will be removed from the cart.',
+            title            : t('swal_clear_items', 'Clear all items?'),
+            text             : t('swal_clear_items_body', 'All items will be removed from the cart.'),
             icon             : 'warning',
             showCancelButton : true,
             confirmButtonColor: '#dc2626',
-            confirmButtonText: '<i class="bx bx-trash me-1"></i> Yes, Clear All',
-            cancelButtonText : 'Cancel',
+            confirmButtonText: '<i class="bx bx-trash me-1"></i> ' + t('btn_yes_clear_all', 'Yes, Clear All'),
+            cancelButtonText : t('btn_cancel', 'Cancel'),
             reverseButtons   : true,
         }).then(function (result) {
             if (!result.isConfirmed) return;
@@ -2287,7 +2287,7 @@ $(document).ready(function () {
         const taxValue = $selected.data('percent') || '0';
         if (!billManager || !billManager.items || billManager.items.length === 0) {
             if (taxValue !== '0') {
-                Swal.fire({icon: 'error', title: 'No Items', text: 'Please add items to bill before setting tax on additional charges'});
+                Swal.fire({icon: 'error', title: t('swal_no_items', 'No Items'), text: t('swal_no_items_body', 'Please add items to bill before setting tax on additional charges')});
                 $(this).prop('selectedIndex', 0);
                 return;
             }
@@ -3077,7 +3077,7 @@ function pushBillItems(productData, qty) {
     }
     let existingItem = billManager.getItemById(productData.id);
     if (existingItem) {
-        Swal.fire({icon: "error", title: "Oops...", text: "Item already moved to cart."});
+        Swal.fire({icon: "error", title: t('swal_oops', 'Oops...'), text: t('swal_item_in_cart', 'Item already moved to cart.')});
         return false;
     } else {
         billManager.addItem(productData, qty);
@@ -3653,7 +3653,7 @@ function handleDiscountFieldInput($input, $row, getId) {
 function showTaxDetails() {
     
     if (!billManager || billManager.items.length === 0) {
-        showToastNotification('Add items to view tax details.', 'error');
+        showToastNotification(t('toast_add_items_tax', 'Add items to view tax details.'), 'error');
         return;
     }
     
@@ -3903,7 +3903,7 @@ function showDescriptionEditor(itemId, currentDescription, productName) {
                 item.description = newDesc;
                 billManager.updateItemInStorage(iid, item);
                 updateDescriptionInTable(iid, newDesc);
-                showToastNotification('Description updated', 'success');
+                showToastNotification(t('toast_desc_updated', 'Description updated'), 'success');
             }
             $('#descriptionEditorModal').modal('hide');
         });

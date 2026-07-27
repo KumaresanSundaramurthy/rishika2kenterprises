@@ -4,10 +4,10 @@
     <div class="card text-center py-5 border-0">
         <div class="card-body">
             <i class="bx bx-bank display-4 text-muted mb-3 d-block"></i>
-            <h5 class="text-muted">No bank accounts added yet</h5>
+            <h5 class="text-muted"><?php echo t('empty_banks', 'No bank accounts found.'); ?></h5>
             <p class="text-muted small">Add your bank account details to use them in transactions and generate payment QR codes.</p>
             <button class="btn btn-primary mt-2" id="btnAddBankEmpty">
-                <i class="bx bx-plus me-1"></i>Add Bank Account
+                <i class="bx bx-plus me-1"></i><?php echo t('btn_add_bank', 'Add Bank Account'); ?>
             </button>
         </div>
     </div>
@@ -30,11 +30,11 @@
                             <div style="background:linear-gradient(135deg,#ff9f43,#f7b731);border-radius:8px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                                 <i class="bx bx-money text-white" style="font-size:1.1rem;"></i>
                             </div>
-                            <span class="fw-bold" style="font-size:1rem;">Cash</span>
+                            <span class="fw-bold" style="font-size:1rem;"><?php echo t('lbl_cash', 'Cash'); ?></span>
                         </div>
                         <?php if ($isDefault): ?>
                         <span class="badge bg-label-success" style="font-size:0.7rem;">
-                            <i class="bx bx-check-circle me-1"></i>Default
+                            <i class="bx bx-check-circle me-1"></i><?php echo t('lbl_default', 'Default'); ?>
                         </span>
                         <?php endif; ?>
                     </div>
@@ -45,7 +45,7 @@
                     <div class="bank-balance-row d-flex align-items-center justify-content-between py-1 px-2 rounded"
                          style="background:#fffbf0;border:1px dashed #f59e0b;cursor:pointer;"
                          data-uid="<?php echo (int)$bank->BankAccountUID; ?>" title="Click to reveal balance">
-                        <span class="text-muted" style="font-size:0.75rem;"><i class="bx bx-wallet me-1" style="color:#f59e0b;"></i>Current Balance</span>
+                        <span class="text-muted" style="font-size:0.75rem;"><i class="bx bx-wallet me-1" style="color:#f59e0b;"></i><?php echo t('lbl_current_balance', 'Current Balance'); ?></span>
                         <span class="bank-balance-val" style="font-size:0.82rem;font-weight:600;text-decoration:line-through;color:#aaa;">₹ ••••••</span>
                     </div>
                 </div>
@@ -55,10 +55,10 @@
                             data-uid="<?php echo (int)$bank->BankAccountUID; ?>"
                             title="Set as default">
                         <i class="bx bx-radio-circle me-1"></i>
-                        <span style="font-size:0.78rem;">Set as Default</span>
+                        <span style="font-size:0.78rem;"><?php echo t('lbl_set_default', 'Set as Default'); ?></span>
                     </button>
                     <?php else: ?>
-                    <span class="text-success small"><i class="bx bx-radio-circle-marked me-1"></i>Default</span>
+                    <span class="text-success small"><i class="bx bx-radio-circle-marked me-1"></i><?php echo t('lbl_default', 'Default'); ?></span>
                     <?php endif; ?>
                 </div>
             </div>
@@ -82,31 +82,31 @@
                         </div>
                         <?php if ($isDefault): ?>
                         <span class="badge bg-label-primary" style="font-size:0.7rem;">
-                            <i class="bx bx-check-circle me-1"></i>Default
+                            <i class="bx bx-check-circle me-1"></i><?php echo t('lbl_default', 'Default'); ?>
                         </span>
                         <?php endif; ?>
                     </div>
 
                     <div class="mb-2">
-                        <div class="text-muted small">Account Holder</div>
+                        <div class="text-muted small"><?php echo t('col_account_holder', 'Account Holder'); ?></div>
                         <div class="fw-semibold" style="font-size:0.875rem;"><?php echo htmlspecialchars($bank->AccountName ?? '—'); ?></div>
                     </div>
 
                     <div class="mb-2">
-                        <div class="text-muted small">Account Number</div>
+                        <div class="text-muted small"><?php echo t('col_account_number', 'Account Number'); ?></div>
                         <div class="fw-semibold font-monospace" style="font-size:0.875rem;letter-spacing:0.05em;"><?php echo htmlspecialchars($maskedAccNo); ?></div>
                     </div>
 
                     <?php if (!empty($bank->IFSC)): ?>
                     <div class="mb-2">
-                        <div class="text-muted small">IFSC Code</div>
+                        <div class="text-muted small"><?php echo t('col_ifsc_code', 'IFSC Code'); ?></div>
                         <div class="fw-semibold" style="font-size:0.875rem;"><?php echo htmlspecialchars($bank->IFSC); ?></div>
                     </div>
                     <?php endif; ?>
 
                     <?php if (!empty($bank->UPIId)): ?>
                     <div class="mb-2">
-                        <div class="text-muted small">UPI ID</div>
+                        <div class="text-muted small"><?php echo t('col_upi_id', 'UPI ID'); ?></div>
                         <div class="fw-semibold text-success" style="font-size:0.8rem;">
                             <i class="bx bx-qr-scan me-1"></i><?php echo htmlspecialchars($bank->UPIId); ?>
                         </div>
@@ -120,7 +120,7 @@
                     <div class="bank-balance-row d-flex align-items-center justify-content-between py-1 px-2 rounded"
                          style="background:#f0f4ff;border:1px dashed #696cff;cursor:pointer;"
                          data-uid="<?php echo (int)$bank->BankAccountUID; ?>" title="Click to reveal balance">
-                        <span class="text-muted" style="font-size:0.75rem;"><i class="bx bx-wallet me-1" style="color:#696cff;"></i>Current Balance</span>
+                        <span class="text-muted" style="font-size:0.75rem;"><i class="bx bx-wallet me-1" style="color:#696cff;"></i><?php echo t('lbl_current_balance', 'Current Balance'); ?></span>
                         <span class="bank-balance-val" style="font-size:0.82rem;font-weight:600;text-decoration:line-through;color:#aaa;">₹ ••••••</span>
                     </div>
                 </div>
@@ -133,10 +133,10 @@
                                     data-uid="<?php echo (int)$bank->BankAccountUID; ?>"
                                     title="Set as default">
                                 <i class="bx bx-radio-circle me-1"></i>
-                                <span style="font-size:0.78rem;">Set as Default</span>
+                                <span style="font-size:0.78rem;"><?php echo t('lbl_set_default', 'Set as Default'); ?></span>
                             </button>
                             <?php else: ?>
-                            <span class="text-primary small"><i class="bx bx-radio-circle-marked me-1"></i>Default</span>
+                            <span class="text-primary small"><i class="bx bx-radio-circle-marked me-1"></i><?php echo t('lbl_default', 'Default'); ?></span>
                             <?php endif; ?>
                         </div>
                         <div class="d-flex gap-1">

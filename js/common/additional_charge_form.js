@@ -145,7 +145,7 @@
 
         if (!isSystem) {
             if (!displayName) {
-                showToastNotification('Display name is required.', 'error');
+                showToastNotification(t('toast_display_name_req', 'Display name is required.'), 'error');
                 $('#acDisplayName').focus();
                 return;
             }
@@ -153,7 +153,7 @@
                 name = toSlug(displayName);
             }
             if (!name) {
-                showToastNotification('Name is required.', 'error');
+                showToastNotification(t('toast_name_required', 'Name is required.'), 'error');
                 $('#acName').focus();
                 return;
             }
@@ -187,7 +187,7 @@
             },
             error: function () {
                 $btn.prop('disabled', false).html('<i class="bx bx-save me-1"></i>Save Charge');
-                showToastNotification('Server error. Please try again.', 'error');
+                showToastNotification(t('swal_server_error', 'Server error. Please try again.'), 'error');
             },
         });
     });

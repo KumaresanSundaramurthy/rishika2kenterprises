@@ -496,22 +496,20 @@ class Cachehelper {
             $rows = $CI->products_model->getCategoriesForCache($orgUID);
             if (empty($rows)) return;
 
-            $cat = null;
-            foreach ($rows as $row) {
-                if ((int)$row->CategoryUID === $uid) { $cat = $row; break; }
-            }
-            if (!$cat) return;
-
             $cacheKey = $CI->redisservice->orgKey('categories');
-            $CI->upstashservice->pipeline([
-                ['HSET', $cacheKey, (string)$uid, json_encode([
-                    'CategoryUID' => $uid,
-                    'Name'        => $cat->Name        ?? '',
-                    'Description' => $cat->Description ?? '',
-                    'Image'       => $cat->Image       ?? '',
-                ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)],
-                ['DEL', Upstashservice::keyCategory($uid)],
-            ]);
+            $CI->upstashservice->del($cacheKey);
+            $newMap = [];
+            foreach ($rows as $row) {
+                $rUid = (int)$row->CategoryUID;
+                $newMap[(string)$rUid] = [
+                    'CategoryUID' => $rUid,
+                    'Name'        => $row->Name        ?? '',
+                    'Description' => $row->Description ?? '',
+                    'Image'       => $row->Image       ?? '',
+                ];
+            }
+            $CI->upstashservice->hmset($cacheKey, $newMap);
+            $CI->upstashservice->del(Upstashservice::keyCategory($uid));
 
         } catch (Exception $e) {}
     }

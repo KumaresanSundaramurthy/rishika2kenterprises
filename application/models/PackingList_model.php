@@ -1,6 +1,6 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
 
-class PackingList_model extends MY_Model {
+class Packinglist_model extends MY_Model {
 
     /** @var object */
     private $ReadDb;

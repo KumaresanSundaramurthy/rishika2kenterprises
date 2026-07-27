@@ -106,7 +106,7 @@ $(document).ready(function () {
             success: function(resp) {
                 $btn.prop('disabled', false).text('Save');
                 if (resp.Error) {
-                    Swal.fire({ icon: 'error', title: 'Error', text: resp.Message });
+                    Swal.fire({ icon: 'error', title: t('swal_error', 'Error'), text: resp.Message });
                     return;
                 }
                 $('#transVendorModal').modal('hide');
@@ -117,11 +117,11 @@ $(document).ready(function () {
                     : resp.VendorName;
                 var newOpt = new Option(displayText, resp.VendorUID, true, true);
                 $('#vendorSearch').append(newOpt).trigger('change');
-                showToastNotification('Vendor created and selected.', 'success');
+                showToastNotification(t('toast_vendor_created', 'Vendor created and selected.'), 'success');
             },
             error: function() {
                 $btn.prop('disabled', false).text('Save');
-                Swal.fire({ icon: 'error', title: 'Error', text: 'Server error. Please try again.' });
+                Swal.fire({ icon: 'error', title: t('swal_error', 'Error'), text: t('swal_server_error', 'Server error. Please try again.') });
             }
         });
     });

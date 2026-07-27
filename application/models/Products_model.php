@@ -65,6 +65,9 @@ class Products_model extends CI_Model {
                 if (array_key_exists('NameSorting', $Filter)) {
                     $sortOperation[$ModuleInfoData->TableAliasName . '.ItemName'] = $Filter['NameSorting'] == 1 ? 'ASC' : 'DESC';
                 }
+                if (array_key_exists('StatusSorting', $Filter)) {
+                    $sortOperation[$ModuleInfoData->TableAliasName . '.IsActive'] = $Filter['StatusSorting'] == 1 ? 'ASC' : 'DESC';
+                }
                 if (array_key_exists('CategorySorting', $Filter)) {
                     $sortOperation['Category.Name'] = $Filter['CategorySorting'] == 1 ? 'ASC' : 'DESC';
                 }
@@ -79,6 +82,12 @@ class Products_model extends CI_Model {
                 }
                 if (array_key_exists('PurchasePriceSorting', $Filter)) {
                     $sortOperation['Products.PurchasePrice'] = $Filter['PurchasePriceSorting'] == 1 ? 'ASC' : 'DESC';
+                }
+                if (array_key_exists('LastUpdatedFilter', $Filter) && !empty($Filter['LastUpdatedFilter'])) {
+                    $uids = array_values(array_filter(array_map('intval', (array) $Filter['LastUpdatedFilter'])));
+                    if (!empty($uids)) {
+                        $SearchDirectQuery .= ($SearchDirectQuery ? ' AND ' : '') . $ModuleInfoData->TableAliasName . '.UpdatedBy IN (' . implode(',', $uids) . ')';
+                    }
                 }
             }
 
@@ -195,6 +204,21 @@ class Products_model extends CI_Model {
                 }
                 if (array_key_exists('NameSorting', $Filter)) {
                     $sortOperation[$ModuleInfoData->TableAliasName . '.Name'] = $Filter['NameSorting'] == 1 ? 'ASC' : 'DESC';
+                }
+                if (array_key_exists('ProductFilter', $Filter) && !empty($Filter['ProductFilter'])) {
+                    $rawUIDs = is_array($Filter['ProductFilter']) ? $Filter['ProductFilter'] : [$Filter['ProductFilter']];
+                    $uids    = array_values(array_filter(array_map('intval', $rawUIDs)));
+                    if (!empty($uids)) {
+                        $uidStr = implode(',', $uids);
+                        $sub    = "Category.CategoryUID IN (SELECT fp.CategoryUID FROM Products.ProductTbl AS fp WHERE fp.IsDeleted = 0 AND fp.ProductUID IN ({$uidStr}))";
+                        $SearchDirectQuery .= ($SearchDirectQuery ? ' AND ' : '') . $sub;
+                    }
+                }
+                if (array_key_exists('LastUpdatedFilter', $Filter) && !empty($Filter['LastUpdatedFilter'])) {
+                    $uids = array_values(array_filter(array_map('intval', (array) $Filter['LastUpdatedFilter'])));
+                    if (!empty($uids)) {
+                        $SearchDirectQuery .= ($SearchDirectQuery ? ' AND ' : '') . $ModuleInfoData->TableAliasName . '.UpdatedBy IN (' . implode(',', $uids) . ')';
+                    }
                 }
             }
 
@@ -979,6 +1003,23 @@ class Products_model extends CI_Model {
                 }
                 if (array_key_exists('NameSorting', $Filter)) {
                     $sortOperation[$ModuleInfoData->TableAliasName . '.BrandName'] = $Filter['NameSorting'] == 1 ? 'ASC' : 'DESC';
+                }
+                if (array_key_exists('ProductFilter', $Filter) && !empty($Filter['ProductFilter'])) {
+                    $rawUIDs = is_array($Filter['ProductFilter']) ? $Filter['ProductFilter'] : [$Filter['ProductFilter']];
+                    $uids    = array_values(array_filter(array_map('intval', $rawUIDs)));
+                    if (!empty($uids)) {
+                        $uidStr = implode(',', $uids);
+                        $a      = $ModuleInfoData->TableAliasName;
+                        $sub    = "{$a}.BrandUID IN (SELECT fp.BrandUID FROM Products.ProductTbl AS fp WHERE fp.IsDeleted = 0 AND fp.BrandUID IS NOT NULL AND fp.ProductUID IN ({$uidStr}))";
+                        $SearchDirectQuery .= ($SearchDirectQuery ? ' AND ' : '') . $sub;
+                    }
+                }
+                if (array_key_exists('LastUpdatedFilter', $Filter) && !empty($Filter['LastUpdatedFilter'])) {
+                    $uids = array_values(array_filter(array_map('intval', (array) $Filter['LastUpdatedFilter'])));
+                    if (!empty($uids)) {
+                        $a = $ModuleInfoData->TableAliasName;
+                        $SearchDirectQuery .= ($SearchDirectQuery ? ' AND ' : '') . $a . '.UpdatedBy IN (' . implode(',', $uids) . ')';
+                    }
                 }
             }
             $this->EndReturnData->Error             = false;

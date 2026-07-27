@@ -4,7 +4,7 @@ if (empty($DataLists)) { ?>
     <tr>
         <td colspan="7" class="text-center py-5 text-muted">
             <i class="bx bx-receipt fs-1 d-block mb-2"></i>
-            No additional charges defined yet.
+            <?php echo t('empty_charges', 'No additional charges configured.'); ?>
         </td>
     </tr>
 <?php return; }
@@ -36,7 +36,7 @@ foreach ($DataLists as $row):
     <td class="align-middle">
         <div class="fw-semibold"><?php echo htmlspecialchars($row->DisplayName ?? ''); ?></div>
         <?php if ($isSystem): ?>
-            <span class="badge bg-label-secondary mt-1" style="font-size:.68rem;">System</span>
+            <span class="badge bg-label-secondary mt-1" style="font-size:.68rem;"><?php echo t('lbl_system', 'System'); ?></span>
         <?php endif; ?>
     </td>
 
@@ -44,7 +44,7 @@ foreach ($DataLists as $row):
         <?php if ($taxLabel): ?>
             <span class="badge bg-label-info"><?php echo $taxLabel; ?></span>
         <?php else: ?>
-            <span class="text-muted small">— No default —</span>
+            <span class="text-muted small"><?php echo t('lbl_no_default', '— No default —'); ?></span>
         <?php endif; ?>
     </td>
 
@@ -54,9 +54,9 @@ foreach ($DataLists as $row):
 
     <td class="text-center align-middle">
         <?php if ($showDefault): ?>
-            <span class="badge bg-success">Yes</span>
+            <span class="badge bg-success"><?php echo t('lbl_yes', 'Yes'); ?></span>
         <?php else: ?>
-            <span class="badge bg-label-secondary">No</span>
+            <span class="badge bg-label-secondary"><?php echo t('lbl_no', 'No'); ?></span>
         <?php endif; ?>
     </td>
 

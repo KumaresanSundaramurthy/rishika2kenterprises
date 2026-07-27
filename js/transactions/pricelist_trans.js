@@ -704,7 +704,7 @@ function _plHideChip() {
 
 // Edit mode: chip is locked — show error instead of allowing change
 function _plLockedChipClick() {
-    showToastNotification('Price list cannot be changed while editing a transaction. Create a new transaction to apply a different price list.', 'warning');
+    showToastNotification(t('toast_pricelist_locked', 'Price list cannot be changed while editing a transaction. Create a new transaction to apply a different price list.'), 'warning');
 }
 
 // Chip click → change price list (re-open selection modal or auto-apply if single match)
@@ -713,7 +713,7 @@ function _plChangeChipClick() {
     if (!_plCurrentCustData) return;
     var matches = _plResolveForCustomer(_plCurrentCustData);
     if (!matches.length) {
-        showToastNotification('No price lists available for this customer.', 'info');
+        showToastNotification(t('toast_no_pricelist', 'No price lists available for this customer.'), 'info');
         return;
     }
     if (matches.length === 1) {

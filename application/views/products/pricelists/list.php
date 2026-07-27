@@ -17,6 +17,11 @@ if (!empty($DataLists)):
         $updatedTs = viewPageDateTimeFormat($row->UpdatedAt ?? null, $JwtData->User->Timezone ?? 'UTC', 2);
 ?>
         <tr class="pl-list-row">
+            <td class="table-checkbox text-center align-middle">
+                <div class="form-check d-flex justify-content-center align-items-center mb-0">
+                    <input class="form-check-input table-chkbox priceListCheck" type="checkbox" value="<?php echo (int)$row->PriceListUID; ?>">
+                </div>
+            </td>
             <td class="<?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>"><?php echo $sno; ?></td>
             <td>
                 <div class="fw-medium"><?php echo htmlspecialchars($row->Name); ?></div>
@@ -84,7 +89,7 @@ if (!empty($DataLists)):
 else:
 ?>
     <tr>
-        <td colspan="9">
+        <td colspan="10">
             <div class="d-flex justify-content-center align-items-center" style="height:57vh;">
                 <div class="d-flex flex-column align-items-center w-100" style="max-width:500px;padding:1rem;">
                     <div class="w-100 mb-3" style="flex:3;display:flex;justify-content:center;align-items:center;">

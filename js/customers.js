@@ -1,5 +1,21 @@
 // ── List page AJAX functions ──────────────────────────────────────────────
 
+/**
+ * @param {string} tableSelector
+ * @param {string} paginationSelector
+ * @returns {void}
+ */
+function showTabSpinner(tableSelector, paginationSelector) {
+    var cols = $(tableSelector + ' thead tr:first th:visible').length || 6;
+    $(tableSelector + ' tbody').html(
+        '<tr><td colspan="' + cols + '" class="text-center py-4">' +
+        '<span class="spinner-border spinner-border-sm text-primary me-2"></span>' +
+        '<span class="text-muted" style="font-size:.85rem;">Loading...</span>' +
+        '</td></tr>'
+    );
+    if (paginationSelector) $(paginationSelector).css('visibility', 'hidden');
+}
+
 function _smartDecimal(val) {
     var n = parseFloat(val);
     if (isNaN(n)) return '0';
@@ -7,13 +23,16 @@ function _smartDecimal(val) {
 }
 
 function getCustomersDetails(PageNo, RowLimit, Filter) {
-    $('#custStickyPagination').stop(true, true).hide();
+    ajaxLoading(0);
+    showTabSpinner(ModuleTable, ModulePag);
     $.ajax({
         url: '/customers/getCustomersPageDetails/' + PageNo,
         method: 'POST',
         cache: false,
         data: { RowLimit: RowLimit, Filter: Filter },
         success: function (response) {
+            ajaxLoading(1);
+            $(ModulePag).css('visibility', '');
             if (response.Error) {
                 $(ModuleTable + ' tbody').html('');
                 $(ModulePag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
@@ -25,6 +44,10 @@ function getCustomersDetails(PageNo, RowLimit, Filter) {
             }
             executeTablePagnCommonFunc(response, false);
         },
+        error: function () {
+            ajaxLoading(1);
+            $(ModulePag).css('visibility', '');
+        },
     });
 }
 
@@ -32,18 +55,17 @@ function deleteCustomer(DeleteId) {
     $.ajax({
         url: '/customers/deleteCustomerData',
         method: 'POST',
-        data: { RowLimit: RowLimit, PageNo: PageNo, Filter: Filter, CustomerUID: DeleteId, ModuleId: ModuleId },
+        data: { CustomerUID: DeleteId, ModuleId: ModuleId },
         cache: false,
         success: function (response) {
             if (response.Error) {
                 showAlertMessageSwal('error', '', response.Message);
             } else {
                 showToastNotification(response.Message, 'success');
-                $(ModulePag).html(response.Pagination);
-                $(ModuleTable + ' tbody').html(response.List);
-                updateCustomerStats(response.Stats);
+                hideUIBlock();
+                ajaxLoading(0);
+                getCustomersDetails(PageNo, RowLimit, Filter);
             }
-            executeTablePagnCommonFunc(response, true);
         }
     });
 }
@@ -53,17 +75,16 @@ function deleteMultipleCustomers() {
         url: '/customers/deleteBulkCustomers',
         method: 'POST',
         cache: false,
-        data: { RowLimit: RowLimit, PageNo: PageNo, Filter: Filter, CustomerUIDs: SelectedUIDs, ModuleId: ModuleId },
+        data: { CustomerUIDs: SelectedUIDs, ModuleId: ModuleId },
         success: function (response) {
             if (response.Error) {
                 showAlertMessageSwal('error', '', response.Message);
             } else {
                 showToastNotification(response.Message, 'success');
-                $(ModulePag).html(response.Pagination);
-                $(ModuleTable + ' tbody').html(response.List);
                 SelectedUIDs = [];
-                updateCustomerStats(response.Stats);
-                executeTablePagnCommonFunc(response, true);
+                hideUIBlock();
+                ajaxLoading(0);
+                getCustomersDetails(PageNo, RowLimit, Filter);
             }
         },
     });
@@ -74,16 +95,15 @@ function toggleCustomerStatus(CustomerUID, IsActive) {
         url: '/customers/toggleCustomerStatus',
         method: 'POST',
         cache: false,
-        data: { CustomerUID: CustomerUID, IsActive: IsActive, PageNo: PageNo, [CsrfName]: CsrfToken },
+        data: { CustomerUID: CustomerUID, IsActive: IsActive, [CsrfName]: CsrfToken },
         success: function (response) {
             if (response.Error) {
                 showAlertMessageSwal('error', '', response.Message);
             } else {
                 showToastNotification(response.Message, 'success');
-                $(ModulePag).html(response.Pagination);
-                $(ModuleTable + ' tbody').html(response.List);
-                updateCustomerStats(response.Stats);
-                executeTablePagnCommonFunc(response, false);
+                hideUIBlock();
+                ajaxLoading(0);
+                getCustomersDetails(PageNo, RowLimit, Filter);
             }
         }
     });
@@ -99,14 +119,12 @@ function updateCustomerStats(stats) {
     $('.cust-stat-lastmonth').text(Number(s.LastMonthCount || 0).toLocaleString());
 }
 
-// ── Page-level callback: refresh list/stats after any save ───────────────
+// ── Page-level callback: refresh list after any save ─────────────────────
 function _custPageSaveSuccess(response) {
-    if (response.List)       $(ModuleTable + ' tbody').html(response.List);
-    if (response.Pagination) $(ModulePag).html(response.Pagination);
-    if (response.Stats)      updateCustomerStats(response.Stats);
-    if (typeof executeTablePagnCommonFunc === 'function') executeTablePagnCommonFunc(response, false);
+    hideUIBlock();
+    ajaxLoading(0);
+    getCustomersDetails(PageNo, RowLimit, Filter);
 }
-_custPageSaveSuccess._needsList = true; // signals backend to return List/Pagination/Stats
 
 // ── Customer list image → open gallery from data-images (no AJAX) ────────────
 $(document).on('click', '.cust-list-img', function(e) {

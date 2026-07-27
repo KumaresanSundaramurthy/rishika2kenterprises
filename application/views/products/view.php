@@ -547,18 +547,17 @@
     ],
 ]); ?>
 
-<!-- Last Updated filter — visible on all tabs; items lazy-loaded from /users/getOrgUsers -->
-<?php $this->load->view('common/filter_panels/col_filter_box', [
-    'ColFilterConfig' => [
+<?php if (!empty($OrgUsers)): ?>
+<?php $this->load->view('common/filter_panels/col_user_filter_box', [
+    'ColUserFilterConfig' => [
         'id'         => 'lastUpdatedFilterBox',
         'triggerId'  => 'lastUpdatedFilter',
         'title'      => 'Last Updated',
-        'icon'       => 'bx-user',
-        'filterKey'  => 'LastUpdatedFilter',
         'checkClass' => 'last-upd-chk',
-        'items'      => [],
+        'OrgUsers'   => $OrgUsers ?? [],
     ],
 ]); ?>
+<?php endif; ?>
 
 <?php $this->load->view('common/footer'); ?>
 
@@ -673,7 +672,7 @@ $(function() {
             $('#categoryFilter, #productTypeFilter, #statusFilter, #taxFilter').removeClass('text-primary');
             $('#plStatusFilter, #plAssignedToFilter, #plScopeFilter').removeClass('text-primary has-filter');
             $('#productCatgFilter, #brandProductFilter, #lastUpdatedFilter').removeClass('has-filter');
-            if (typeof lastUpdatedFilter !== 'undefined') lastUpdatedFilter.reset();
+            if (lastUpdatedFilter) lastUpdatedFilter.reset();
             if (typeof brandProductFilter !== 'undefined') brandProductFilter.reset();
             if (typeof prodCatgFilter !== 'undefined') prodCatgFilter.reset();
             $('#ProductCountWrap').addClass('d-none');
@@ -1312,34 +1311,20 @@ $(function() {
     });
 
     // ── Last Updated filter — visible on all tabs ────────────────────────────
-    var _lastUpdatedFilterLoaded = false;
-
-    $(document).on('click', '#lastUpdatedFilter', function () {
-        if (_lastUpdatedFilterLoaded) return;
-        ajaxLoading(0);
-        $.getJSON('/users/getOrgUsers', function (res) {
-            ajaxLoading(1);
-            if (!res || res.Error) { return; }
-            _lastUpdatedFilterLoaded = true;
-            var items = (res.Users || []).map(function (u) {
-                return { value: String(u.UserUID), label: u.FullName || ((u.FirstName || '') + ' ' + (u.LastName || '')).trim() };
-            });
-            lastUpdatedFilter.setItems(items);
-        }).fail(function () { ajaxLoading(1); });
-    });
-
-    var lastUpdatedFilter = new TransColFilter({
-        boxId      : 'lastUpdatedFilterBox',
-        triggerId  : 'lastUpdatedFilter',
-        filterKey  : 'LastUpdatedFilter',
-        activeClass: 'has-filter',
-        onApply    : function () {
-            var vals = lastUpdatedFilter.getState()['LastUpdatedFilter'] || [];
-            if (vals.length) Filter['LastUpdatedFilter'] = vals; else delete Filter['LastUpdatedFilter'];
-            PageNo = 0;
-            showProductPageDetails();
-        }
-    });
+    var lastUpdatedFilter = document.getElementById('lastUpdatedFilterBox')
+        ? new TransColFilter({
+            boxId      : 'lastUpdatedFilterBox',
+            triggerId  : 'lastUpdatedFilter',
+            filterKey  : 'LastUpdatedFilter',
+            activeClass: 'has-filter',
+            onApply    : function () {
+                var vals = lastUpdatedFilter.getState()['LastUpdatedFilter'] || [];
+                if (vals.length) Filter['LastUpdatedFilter'] = vals; else delete Filter['LastUpdatedFilter'];
+                PageNo = 0;
+                showProductPageDetails();
+            }
+        })
+        : null;
 
     $(document).on('click', CatgRow, function() {
         onClickOfCheckbox($(this), CatgTable, CatgHeader, CatgRow);

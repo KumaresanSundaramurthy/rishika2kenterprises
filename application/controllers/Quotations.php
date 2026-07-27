@@ -38,6 +38,7 @@ class Quotations extends MY_Controller {
             ]);
             $this->load->view('transactions/quotations/view', $this->pageData);
         } catch (Exception $e) {
+            log_message('error', '[Quotations::index] ' . $e->getMessage() . ' | ' . $e->getFile() . ':' . $e->getLine());
             redirect('dashboard', 'refresh');
         }
     }

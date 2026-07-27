@@ -221,6 +221,9 @@ class Products extends MY_Controller {
 
             $this->pageData['ProductStats'] = $this->products_model->getProductStats($OrgUID);
 
+            $this->load->model('users_model');
+            $this->pageData['OrgUsers'] = $this->users_model->getOrgUsersForCache($OrgUID);
+
             $this->load->view('products/view', $this->pageData);
 
         } catch (Exception $e) {

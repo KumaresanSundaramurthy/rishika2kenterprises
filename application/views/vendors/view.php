@@ -956,12 +956,14 @@ $(function() {
     // ── Groups AJAX reload ──
     function _vgrpReload(page) {
         _vgrpPageNo = page || 1;
+        ajaxLoading(0);
         $('#VendorGroupsTableBody').html('<tr><td colspan="9" class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary" role="status"></span></td></tr>');
         $.ajax({
             url   : '/vendors/getGroupsData/' + _vgrpPageNo,
             method: 'POST',
             data  : { Filter: _vgrpFilter, [CsrfName]: CsrfToken },
             success: function (res) {
+                ajaxLoading(1);
                 CsrfToken = res.NewCsrfToken || CsrfToken;
                 if (res.Error) { showToastNotification(res.Message, 'error'); return; }
                 $('#VendorGroupsTableBody').html(res.RecordHtmlData);
@@ -970,6 +972,7 @@ $(function() {
                 var cnt = res.TotalCount || 0;
                 $('#vgrpTabCount').text(cnt > 0 ? cnt : '').toggleClass('d-none', cnt === 0);
             },
+            error: function () { ajaxLoading(1); }
         });
     }
 

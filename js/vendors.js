@@ -1,6 +1,24 @@
 // ── List page AJAX functions ──────────────────────────────────────────────
 
+/**
+ * @param {string} tableSelector
+ * @param {string} paginationSelector
+ * @returns {void}
+ */
+function showTabSpinner(tableSelector, paginationSelector) {
+    var cols = $(tableSelector + ' thead tr:first th:visible').length || 6;
+    $(tableSelector + ' tbody').html(
+        '<tr><td colspan="' + cols + '" class="text-center py-4">' +
+        '<span class="spinner-border spinner-border-sm text-primary me-2"></span>' +
+        '<span class="text-muted" style="font-size:.85rem;">Loading...</span>' +
+        '</td></tr>'
+    );
+    if (paginationSelector) $(paginationSelector).css('visibility', 'hidden');
+}
+
 function getVendorsDetails(PageNo, RowLimit, Filter) {
+    ajaxLoading(0);
+    showTabSpinner(ModuleTable, ModulePag);
     $.ajax({
         url   : '/vendors/getVendorsPageDetails/' + (PageNo || 1),
         method: 'POST',
@@ -13,6 +31,8 @@ function getVendorsDetails(PageNo, RowLimit, Filter) {
             [CsrfName]: CsrfToken,
         },
         success: function (response) {
+            ajaxLoading(1);
+            $(ModulePag).css('visibility', '');
             if (response.Error) {
                 $(ModuleTable + ' tbody').html('');
                 $(ModulePag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
@@ -22,6 +42,11 @@ function getVendorsDetails(PageNo, RowLimit, Filter) {
                 $('#vendStickyPagination .VendorsPagination').html(response.Pagination);
                 $(window).trigger('scroll');
             }
+            executeTablePagnCommonFunc(response, false);
+        },
+        error: function () {
+            ajaxLoading(1);
+            $(ModulePag).css('visibility', '');
         },
     });
 }
@@ -42,10 +67,9 @@ function addVendorData(formdata) {
             } else {
                 showToastNotification(response.Message, 'success');
                 $('#VendorFormModal').modal('hide');
-                $(ModulePag).html(response.Pagination);
-                $(ModuleTable + ' tbody').html(response.List);
-                updateVendorStats(response.Stats);
-                executeTablePagnCommonFunc(response, false);
+                hideUIBlock();
+                ajaxLoading(0);
+                getVendorsDetails(PageNo, RowLimit, Filter);
             }
         }
     });
@@ -67,10 +91,9 @@ function editVendorData(formdata) {
             } else {
                 showToastNotification(response.Message, 'success');
                 $('#VendorFormModal').modal('hide');
-                $(ModulePag).html(response.Pagination);
-                $(ModuleTable + ' tbody').html(response.List);
-                updateVendorStats(response.Stats);
-                executeTablePagnCommonFunc(response, false);
+                hideUIBlock();
+                ajaxLoading(0);
+                getVendorsDetails(PageNo, RowLimit, Filter);
             }
         }
     });
@@ -118,16 +141,15 @@ function toggleVendorStatus(VendorUID, IsActive) {
         url   : '/vendors/toggleVendorStatus',
         method: 'POST',
         cache : false,
-        data  : { VendorUID: VendorUID, IsActive: IsActive, PageNo: PageNo, [CsrfName]: CsrfToken },
+        data  : { VendorUID: VendorUID, IsActive: IsActive, [CsrfName]: CsrfToken },
         success: function (response) {
             if (response.Error) {
                 showAlertMessageSwal('error', '', response.Message);
             } else {
                 showToastNotification(response.Message, 'success');
-                $(ModulePag).html(response.Pagination);
-                $(ModuleTable + ' tbody').html(response.List);
-                updateVendorStats(response.Stats);
-                executeTablePagnCommonFunc(response, false);
+                hideUIBlock();
+                ajaxLoading(0);
+                getVendorsDetails(PageNo, RowLimit, Filter);
             }
         }
     });
@@ -139,16 +161,15 @@ function deleteVendor(DeleteId) {
         url   : '/vendors/deleteVendorData',
         method: 'POST',
         cache : false,
-        data  : { VendorUID: DeleteId, PageNo: PageNo, [CsrfName]: CsrfToken },
+        data  : { VendorUID: DeleteId, [CsrfName]: CsrfToken },
         success: function (response) {
             if (response.Error) {
                 showAlertMessageSwal('error', '', response.Message);
             } else {
                 showToastNotification(response.Message, 'success');
-                $(ModulePag).html(response.Pagination);
-                $(ModuleTable + ' tbody').html(response.List);
-                updateVendorStats(response.Stats);
-                executeTablePagnCommonFunc(response, true);
+                hideUIBlock();
+                ajaxLoading(0);
+                getVendorsDetails(PageNo, RowLimit, Filter);
             }
         }
     });
@@ -160,17 +181,16 @@ function deleteMultipleVendors() {
         url   : '/vendors/deleteMultipleVendors',
         method: 'POST',
         cache : false,
-        data  : { 'VendorUIDs[]': SelectedUIDs, PageNo: PageNo, [CsrfName]: CsrfToken },
+        data  : { 'VendorUIDs[]': SelectedUIDs, [CsrfName]: CsrfToken },
         success: function (response) {
             if (response.Error) {
                 showAlertMessageSwal('error', '', response.Message);
             } else {
                 showToastNotification(response.Message, 'success');
                 SelectedUIDs = [];
-                $(ModulePag).html(response.Pagination);
-                $(ModuleTable + ' tbody').html(response.List);
-                updateVendorStats(response.Stats);
-                executeTablePagnCommonFunc(response, true);
+                hideUIBlock();
+                ajaxLoading(0);
+                getVendorsDetails(PageNo, RowLimit, Filter);
             }
         }
     });

@@ -1061,12 +1061,14 @@ $(function () {
     // ── Groups AJAX reload ──
     function _grpReload(page) {
         _grpPageNo = page || 1;
+        ajaxLoading(0);
         $('#GroupsTableBody').html('<tr><td colspan="9" class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary" role="status"></span></td></tr>');
         $.ajax({
             url   : '/customers/getGroupsData/' + _grpPageNo,
             method: 'POST',
             data  : { Filter: _grpFilter, [CsrfName]: CsrfToken },
             success: function (res) {
+                ajaxLoading(1);
                 CsrfToken = res.NewCsrfToken || CsrfToken;
                 if (res.Error) { showToastNotification(res.Message, 'error'); return; }
                 $('#GroupsTableBody').html(res.RecordHtmlData);

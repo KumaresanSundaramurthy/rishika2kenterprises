@@ -684,11 +684,8 @@ class Customers extends MY_Controller {
                 $this->customers_model->removeCustomerFromGroup((int)$orgUID, (int)$CustomerUID, (int)$userUID);
             }
 
-            $pageNo = (int) ($this->input->post('PageNo') ?: 1);
-            $this->_initModule();
-            $pageData = $this->_fetchTableData($pageNo, $this->pageData['Limit']);
-            $this->EndReturnData->Error      = FALSE;
-            $this->EndReturnData->Message    = 'Updated Successfully';
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Updated Successfully';
             $this->auditlog->log(
                 (int) $orgUID, (int) $userUID,
                 'UPDATE_CUSTOMER', 'Customer', (int) $CustomerUID, (string) $newName,
@@ -697,9 +694,6 @@ class Customers extends MY_Controller {
                 $oldDCRow ? (array) $oldDCRow : [],
                 $customerFormData
             );
-            $this->EndReturnData->List       = $pageData->RecordHtmlData;
-            $this->EndReturnData->Pagination = $pageData->Pagination;
-            $this->EndReturnData->Stats      = $this->customers_model->getCustomerStats($this->pageData['JwtData']->Org->OrgUID);
 
         } catch (InvalidArgumentException $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -747,12 +741,8 @@ class Customers extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            $pageNo   = (int) ($this->input->post('PageNo') ?: 1);
-            $this->_initModule();
-            $pageData = $this->_fetchTableData($pageNo, $this->pageData['Limit']);
-
-            $this->EndReturnData->Error      = FALSE;
-            $this->EndReturnData->Message    = 'Deleted Successfully';
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Deleted Successfully';
             $this->auditlog->log(
                 (int) $this->pageData['JwtData']->Org->OrgUID,
                 (int) $this->pageData['JwtData']->User->UserUID,
@@ -762,9 +752,6 @@ class Customers extends MY_Controller {
                 (array) $customer,
                 []
             );
-            $this->EndReturnData->List       = $pageData->RecordHtmlData;
-            $this->EndReturnData->Pagination = $pageData->Pagination;
-            $this->EndReturnData->Stats      = $this->customers_model->getCustomerStats($this->pageData['JwtData']->Org->OrgUID);
 
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -856,11 +843,8 @@ class Customers extends MY_Controller {
                 $this->cachehelper->removeCustomer($CustomerUID);
             }
 
-            $pageNo = (int) ($this->input->post('PageNo') ?: 1);
-            $this->_initModule();
-            $pageData = $this->_fetchTableData($pageNo, $this->pageData['Limit']);
-            $this->EndReturnData->Error      = false;
-            $this->EndReturnData->Message    = 'Status updated successfully';
+            $this->EndReturnData->Error   = false;
+            $this->EndReturnData->Message = 'Status updated successfully';
             $this->auditlog->log(
                 (int) $this->pageData['JwtData']->Org->OrgUID,
                 (int) $this->pageData['JwtData']->User->UserUID,
@@ -870,9 +854,6 @@ class Customers extends MY_Controller {
                 ['IsActive' => 1 - $newStatus],
                 ['IsActive' => $newStatus]
             );
-            $this->EndReturnData->Stats      = $this->customers_model->getCustomerStats($this->pageData['JwtData']->Org->OrgUID);
-            $this->EndReturnData->List       = $pageData->RecordHtmlData;
-            $this->EndReturnData->Pagination = $pageData->Pagination;
         } catch (Exception $e) {
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
@@ -933,12 +914,8 @@ class Customers extends MY_Controller {
                 $this->cachehelper->removeCustomer($cid);
             }
 
-            $pageNo   = (int) ($this->input->post('PageNo') ?: 1);
-            $this->_initModule();
-            $pageData = $this->_fetchTableData($pageNo, $this->pageData['Limit']);
-
-            $this->EndReturnData->Error      = FALSE;
-            $this->EndReturnData->Message    = count($CustomerUIDs) . ' customer(s) deleted successfully';
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = count($CustomerUIDs) . ' customer(s) deleted successfully';
             $this->auditlog->log(
                 (int) $this->pageData['JwtData']->Org->OrgUID,
                 (int) $this->pageData['JwtData']->User->UserUID,
@@ -948,9 +925,6 @@ class Customers extends MY_Controller {
                 ['deletedUIDs' => $CustomerUIDs],
                 []
             );
-            $this->EndReturnData->List       = $pageData->RecordHtmlData;
-            $this->EndReturnData->Pagination = $pageData->Pagination;
-            $this->EndReturnData->Stats      = $this->customers_model->getCustomerStats($this->pageData['JwtData']->Org->OrgUID);
 
         } catch (Exception $e) {
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();

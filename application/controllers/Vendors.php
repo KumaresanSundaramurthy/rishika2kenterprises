@@ -297,10 +297,8 @@ class Vendors extends MY_Controller {
 
             $this->cachehelper->upsertVendor($VendorUID);
 
-            $this->_initModule();
-            $pageData = $this->_fetchTableData(1, $this->pageData['Limit']);
-            $this->EndReturnData->Error      = FALSE;
-            $this->EndReturnData->Message    = 'Created Successfully';
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Created Successfully';
             $this->auditlog->log(
                 (int) $orgUID, (int) $userUID,
                 'CREATE_VENDOR', 'Vendor', (int) $VendorUID, (string) getPostValue($PostData, 'Name'),
@@ -312,9 +310,6 @@ class Vendors extends MY_Controller {
             $this->EndReturnData->VendorUID  = $VendorUID;
             $this->EndReturnData->VendorName = getPostValue($PostData, 'Name');
             $this->EndReturnData->VendorArea = getPostValue($PostData, 'Area');
-            $this->EndReturnData->List       = $pageData->RecordHtmlData;
-            $this->EndReturnData->Pagination = $pageData->Pagination;
-            $this->EndReturnData->Stats      = $this->vendors_model->getVendorStats($this->pageData['JwtData']->Org->OrgUID);
 
         } catch (InvalidArgumentException $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -632,11 +627,8 @@ class Vendors extends MY_Controller {
             $this->cachehelper->upsertVendor((int)$VendorUID);
             $this->upstashservice->del(Upstashservice::keyVendorProducts((int)$VendorUID));
 
-            $pageNo = (int) ($this->input->post('PageNo') ?: 1);
-            $this->_initModule();
-            $pageData = $this->_fetchTableData($pageNo, $this->pageData['Limit']);
-            $this->EndReturnData->Error      = FALSE;
-            $this->EndReturnData->Message    = 'Updated Successfully';
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Updated Successfully';
             $this->auditlog->log(
                 (int) $orgUID, (int) $userUID,
                 'UPDATE_VENDOR', 'Vendor', (int) $VendorUID, (string) getPostValue($PostData, 'Name'),
@@ -645,9 +637,6 @@ class Vendors extends MY_Controller {
                 $oldDCRow ? (array) $oldDCRow : [],
                 $vendorFormData
             );
-            $this->EndReturnData->List       = $pageData->RecordHtmlData;
-            $this->EndReturnData->Pagination = $pageData->Pagination;
-            $this->EndReturnData->Stats      = $this->vendors_model->getVendorStats($this->pageData['JwtData']->Org->OrgUID);
 
         } catch (InvalidArgumentException $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -780,11 +769,8 @@ class Vendors extends MY_Controller {
                 $this->cachehelper->removeVendor($VendorUID);
             }
 
-            $pageNo = (int) ($this->input->post('PageNo') ?: 1);
-            $this->_initModule();
-            $pageData = $this->_fetchTableData($pageNo, $this->pageData['Limit']);
-            $this->EndReturnData->Error      = false;
-            $this->EndReturnData->Message    = 'Status updated successfully.';
+            $this->EndReturnData->Error   = false;
+            $this->EndReturnData->Message = 'Status updated successfully.';
             $this->auditlog->log(
                 (int) $this->pageData['JwtData']->Org->OrgUID,
                 (int) $this->pageData['JwtData']->User->UserUID,
@@ -794,9 +780,6 @@ class Vendors extends MY_Controller {
                 ['IsActive' => 1 - $newStatus],
                 ['IsActive' => $newStatus]
             );
-            $this->EndReturnData->Stats      = $this->vendors_model->getVendorStats($this->pageData['JwtData']->Org->OrgUID);
-            $this->EndReturnData->List       = $pageData->RecordHtmlData;
-            $this->EndReturnData->Pagination = $pageData->Pagination;
 
         } catch (Exception $e) {
             $this->EndReturnData->Error   = true;
@@ -837,12 +820,8 @@ class Vendors extends MY_Controller {
             // Remove deleted vendor from bulk search cache
             $this->cachehelper->removeVendor($VendorUID);
 
-            $pageNo   = (int) ($this->input->post('PageNo') ?: 1);
-            $this->_initModule();
-            $pageData = $this->_fetchTableData($pageNo, $this->pageData['Limit']);
-
-            $this->EndReturnData->Error      = FALSE;
-            $this->EndReturnData->Message    = 'Deleted Successfully';
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Deleted Successfully';
             $this->auditlog->log(
                 (int) $this->pageData['JwtData']->Org->OrgUID,
                 (int) $this->pageData['JwtData']->User->UserUID,
@@ -852,9 +831,6 @@ class Vendors extends MY_Controller {
                 (array) $vendor,
                 []
             );
-            $this->EndReturnData->List       = $pageData->RecordHtmlData;
-            $this->EndReturnData->Pagination = $pageData->Pagination;
-            $this->EndReturnData->Stats      = $this->vendors_model->getVendorStats($this->pageData['JwtData']->Org->OrgUID);
 
         } catch (Exception $e) {
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
@@ -905,12 +881,8 @@ class Vendors extends MY_Controller {
                 $this->cachehelper->removeVendor($vid);
             }
 
-            $pageNo   = (int) ($this->input->post('PageNo') ?: 1);
-            $this->_initModule();
-            $pageData = $this->_fetchTableData($pageNo, $this->pageData['Limit']);
-
-            $this->EndReturnData->Error      = FALSE;
-            $this->EndReturnData->Message    = count($VendorUIDs) . ' vendor(s) deleted successfully';
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = count($VendorUIDs) . ' vendor(s) deleted successfully';
             $this->auditlog->log(
                 (int) $this->pageData['JwtData']->Org->OrgUID,
                 (int) $this->pageData['JwtData']->User->UserUID,
@@ -920,9 +892,6 @@ class Vendors extends MY_Controller {
                 ['deletedUIDs' => $VendorUIDs],
                 []
             );
-            $this->EndReturnData->List       = $pageData->RecordHtmlData;
-            $this->EndReturnData->Pagination = $pageData->Pagination;
-            $this->EndReturnData->Stats      = $this->vendors_model->getVendorStats($this->pageData['JwtData']->Org->OrgUID);
 
         } catch (Exception $e) {
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();

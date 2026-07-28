@@ -108,7 +108,7 @@ class Communicationservice {
                 'smtp_port'   => (int)(getenv('MAIL_PORT') ?: 587),
                 'smtp_user'   => getenv('MAIL_USERNAME')  ?: '',
                 'smtp_pass'   => getenv('MAIL_PASSWORD')  ?: '',
-                'smtp_crypto' => 'tls',
+                'smtp_crypto' => getenv('MAIL_CRYPTO') ?: 'tls',
                 'mailtype'    => 'html',
                 'charset'     => 'utf-8',
                 'newline'     => "\r\n",
@@ -145,12 +145,14 @@ class Communicationservice {
             $this->_saveLogs($logs);
 
             if ($sent === 0 && $failed > 0) {
-                $debugInfo = trim($this->CI->email->print_debugger(['headers']));
+                // print_debugger([]) = server SMTP errors only; no headers/subject/body appended
+                $raw       = strip_tags($this->CI->email->print_debugger([]));
+                $debugInfo = trim(preg_replace('/\s+/', ' ', $raw));
                 $this->EndReturnData->Error   = TRUE;
                 $this->EndReturnData->Sent    = 0;
                 $this->EndReturnData->Failed  = $failed;
-                $this->EndReturnData->Message = "Email delivery failed for all {$failed} recipient(s). Please verify your SMTP settings."
-                    . ($debugInfo ? ' Detail: ' . substr(strip_tags($debugInfo), 0, 200) : '');
+                $this->EndReturnData->Message = "Email delivery failed for all {$failed} recipient(s)."
+                    . ($debugInfo ? ' ' . substr($debugInfo, 0, 220) : ' Please verify your SMTP settings.');
                 return $this->EndReturnData;
             }
 

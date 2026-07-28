@@ -4,6 +4,44 @@ function t(key, fallback) {
     return (val !== undefined && val !== '') ? val : ((fallback !== undefined && fallback !== '') ? fallback : key);
 }
 
+/**
+ * Switches all visible page text to newLang without a page reload.
+ * Reverse-maps current _appLang values → keys, then replaces text nodes + attrs.
+ * Falls back to location.reload() only if the target pack is not available.
+ * @param {string} newLang
+ * @returns {void}
+ */
+function applyLang(newLang) {
+    var newPack = window._langPacks && window._langPacks[newLang];
+    if (!newPack) { location.reload(); return; }
+    var cur = window._appLang || {};
+    var reverseMap = {};
+    Object.keys(cur).forEach(function (k) { if (cur[k]) reverseMap[cur[k]] = k; });
+    var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+    var node;
+    while ((node = walker.nextNode())) {
+        var raw = node.textContent;
+        var trimmed = raw.trim();
+        if (trimmed && Object.prototype.hasOwnProperty.call(reverseMap, trimmed) && newPack[reverseMap[trimmed]]) {
+            node.textContent = raw.replace(trimmed, newPack[reverseMap[trimmed]]);
+        }
+    }
+    ['title', 'placeholder', 'data-bs-original-title'].forEach(function (attr) {
+        document.querySelectorAll('[' + attr + ']').forEach(function (el) {
+            var v = (el.getAttribute(attr) || '').trim();
+            if (v && Object.prototype.hasOwnProperty.call(reverseMap, v) && newPack[reverseMap[v]]) {
+                el.setAttribute(attr, newPack[reverseMap[v]]);
+            }
+        });
+    });
+    window._appLang = newPack;
+    $('#apexLangBtn .apex-lang-flag').text(newLang === 'ta' ? '🇮🇳' : '🇬🇧');
+    $('#apexLangBtn .apex-lang-name').text(newLang === 'ta' ? 'தமிழ்' : 'English');
+    $('.apex-lang-option').removeClass('active');
+    $('.apex-lang-option[data-lang="' + newLang + '"]').addClass('active');
+    document.documentElement.lang = newLang;
+}
+
 jQuery.fn.center = function () {
     this.css("position", "absolute");
     this.css("top", Math.max(0, (($(window).height() - $(this).outerHeight()) / 2) +
@@ -1935,6 +1973,40 @@ $(function () {
     $closeBtn.on('click', function () {
         $closeBtn.hide();
         $outer.slideUp(240, function () { $openBtn.show(); });
+    });
+});
+
+// ── Language switcher dropdown ────────────────────────────────────────────────
+$(function () {
+    var $wrap = $('#apexLangWrap');
+    var $btn  = $('#apexLangBtn');
+    var $dd   = $('#apexLangDropdown');
+    if (!$wrap.length) return;
+
+    $btn.on('click', function (e) {
+        e.stopPropagation();
+        $wrap.toggleClass('open');
+    });
+
+    $(document).on('click.langdd', function (e) {
+        if (!$wrap.is(e.target) && $wrap.has(e.target).length === 0) {
+            $wrap.removeClass('open');
+        }
+    });
+
+    $dd.on('click', '.apex-lang-option', function () {
+        var lang = $(this).data('lang');
+        $wrap.removeClass('open');
+        if ($(this).hasClass('active')) return;
+
+        applyLang(lang);
+        showToastNotification(t('toast_lang_changed', 'Language has been changed successfully'), 'success');
+        ajaxLoading(0);
+        $.post('/users/updateLanguage', { UILanguage: lang }, function () {
+            ajaxLoading(1);
+        }, 'json').fail(function () {
+            ajaxLoading(1);
+        });
     });
 });
 

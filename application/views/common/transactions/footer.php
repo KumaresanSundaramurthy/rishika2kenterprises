@@ -39,7 +39,22 @@
     <script type="text/javascript" src="<?php echo _assetV('/js/common/item_filter.js'); ?>"></script>
     <script type="text/javascript" src="<?php echo _assetV('/js/common/dropdown_cache.js'); ?>"></script>
     <script>var R2K_STATS_DEFAULT_OPEN = <?php echo json_encode(isset($JwtData->GenSettings->StatsDefaultOpen) ? (bool)$JwtData->GenSettings->StatsDefaultOpen : true); ?>;</script>
-    <script><?php $CI=&get_instance(); echo 'window._appLang=' . json_encode($CI->lang->language ?: new stdClass()) . ';'; ?></script>
+    <script>
+    <?php
+    $CI =& get_instance();
+    echo 'window._appLang=' . json_encode($CI->lang->language ?: new stdClass()) . ';';
+    $_lp_packs = [];
+    foreach (['en' => 'english', 'ta' => 'tamil'] as $_lp_code => $_lp_dir) {
+        $lang = [];
+        $_lp_file = APPPATH . 'language/' . $_lp_dir . '/app_lang.php';
+        if (file_exists($_lp_file)) { include $_lp_file; }
+        $_lp_packs[$_lp_code] = $lang;
+    }
+    unset($_lp_code, $_lp_dir, $_lp_file, $lang);
+    echo 'window._langPacks=' . json_encode($_lp_packs, JSON_UNESCAPED_UNICODE) . ';';
+    unset($_lp_packs);
+    ?>
+    </script>
     <script type="text/javascript" src="<?php echo _assetV('/js/common/default.js'); ?>"></script>
     <script type="text/javascript" src="<?php echo _assetV('/js/transactions/customer_search.js'); ?>"></script>
     <script type="text/javascript" src="<?php echo _assetV('/js/transactions/product_search.js'); ?>"></script>

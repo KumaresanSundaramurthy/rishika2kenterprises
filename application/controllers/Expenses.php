@@ -112,7 +112,7 @@ class Expenses extends MY_Controller {
             $this->pageData['BankAccounts'] = $this->expenses_model->getBankAccounts($orgUID);
 
             // Org users for column filter
-            $orgUsers = $this->_requireCache($this->redisservice->orgKey('org_users'));
+            $orgUsers = $this->_requireCache($this->redisservice->orgKey('org-users'));
             if (!$orgUsers) return;
             $this->pageData['OrgUsers']      = $orgUsers;
             $this->pageData['ShowUserFilter'] = count($orgUsers) > 1;

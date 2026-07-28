@@ -151,3 +151,4 @@
 </div>
 
 <?php $this->load->view('common/modals/attach_preview'); ?>
+<?php $this->load->view('common/imagepreview_modal'); ?>

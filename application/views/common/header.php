@@ -14,16 +14,14 @@ $_htmlDir   = in_array($_htmlLang, $_rtlLangs) ? 'rtl' : 'ltr';
     <title><?php echo getSiteConfiguration()->ShortName; ?></title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <?php
-$_sc = '';
 $_tk = '';
 if (isset($JwtData)) {
-    $_sc = strtolower($JwtData->Org->OrgShortCode);
     $_tk = strtolower($JwtData->Org->OrgToken ?? '');
 }
 $_env       = defined('ENVIRONMENT') ? ENVIRONMENT : 'production';
-$_envMap    = ['development' => 'dev', 'staging' => 'stg', 'production' => 'prod'];
-$_orgPrefix = ($_sc && $_tk) ? $_sc . ':' . $_tk . ':' . ($_envMap[$_env] ?? $_env) : '';
-unset($_sc, $_tk, $_env, $_envMap);
+$_envFlag   = ($_env === 'production') ? 'P' : 'S';
+$_orgPrefix = $_tk ? $_tk . '-' . $_envFlag : '';
+unset($_tk, $_env, $_envFlag);
 ?>
     <meta name="upstash-url"    content="<?= htmlspecialchars(getenv('UPSTASH_REDIS_REST_URL')   ?: '') ?>">
     <meta name="upstash-token"  content="<?= htmlspecialchars(getenv('UPSTASH_REDIS_REST_TOKEN') ?: '') ?>">

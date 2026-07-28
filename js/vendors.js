@@ -41,6 +41,8 @@ function getVendorsDetails(PageNo, RowLimit, Filter) {
                 $(ModuleTable + ' tbody').html(response.RecordHtmlData);
                 $('#vendStickyPagination .VendorsPagination').html(response.Pagination);
                 $(window).trigger('scroll');
+                var cnt = response.TotalCount || 0;
+                $('.vend-tab .trans-tab-count').text(cnt > 0 ? cnt : '').toggleClass('d-none', cnt === 0);
             }
             executeTablePagnCommonFunc(response, false);
         },

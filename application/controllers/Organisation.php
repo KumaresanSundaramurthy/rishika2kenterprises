@@ -162,7 +162,7 @@ class Organisation extends CI_Controller {
 
             // Rebuild org info Redis cache with fresh DB data + resolved CDN URL
             $orgUID = (int) $PostData['OrgUID'];
-            $this->redisservice->deleteCache($this->redisservice->orgKey('org_info'));
+            $this->redisservice->deleteCache($this->redisservice->orgKey('org-info'));
             $this->load->model('organisation_model');
             $this->organisation_model->getOrgInfoCached($orgUID);
 

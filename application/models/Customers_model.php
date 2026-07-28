@@ -929,6 +929,10 @@ class Customers_model extends CI_Model {
             if (!empty($filter['GroupType'])) {
                 $this->ReadDb->where_in('CG.GroupType', (array)$filter['GroupType']);
             }
+            if (!empty($filter['CustomerUID'])) {
+                $cuid = (int)$filter['CustomerUID'];
+                $this->ReadDb->where("CG.GroupUID IN (SELECT GroupUID FROM Customers.CustGroupMemberTbl WHERE CustomerUID = {$cuid} AND OrgUID = {$orgUID} AND IsDeleted = 0)", null, false);
+            }
             $countRow   = $this->ReadDb->get()->row();
             $totalCount = (int)($countRow->cnt ?? 0);
 
@@ -959,6 +963,10 @@ class Customers_model extends CI_Model {
             }
             if (!empty($filter['GroupType'])) {
                 $this->ReadDb->where_in('CG.GroupType', (array)$filter['GroupType']);
+            }
+            if (!empty($filter['CustomerUID'])) {
+                $cuid = (int)$filter['CustomerUID'];
+                $this->ReadDb->where("CG.GroupUID IN (SELECT GroupUID FROM Customers.CustGroupMemberTbl WHERE CustomerUID = {$cuid} AND OrgUID = {$orgUID} AND IsDeleted = 0)", null, false);
             }
             $this->ReadDb->group_by('CG.GroupUID');
             $this->ReadDb->order_by('CG.GroupName', 'ASC');

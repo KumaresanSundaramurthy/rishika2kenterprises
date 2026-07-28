@@ -60,6 +60,64 @@ foreach ($_qaMenus as $_qaMM) {
             <kbd class="apex-header-search-kbd">Ctrl K</kbd>
         </button>
         <div class="apex-nav-divider"></div>
+        <!-- Quick Create -->
+        <div class="apex-qc-wrap">
+            <button class="apex-qc-btn" id="apexQuickCreateBtn" type="button" title="Quick Create">
+                <i class="bx bx-plus"></i>
+            </button>
+            <div class="apex-qc-dropdown" id="apexQcDropdown">
+                <div class="apex-qc-grid">
+                    <!-- SALES -->
+                    <div class="apex-qc-col apex-qc-col--sales">
+                        <div class="apex-qc-col-header">
+                            <div class="apex-qc-col-icon"><i class="bx bx-receipt"></i></div>
+                            <span class="apex-qc-col-label">Sales</span>
+                        </div>
+                        <a href="/quotations/create" class="apex-qc-item"><i class="bx bx-notepad"></i>Quotation</a>
+                        <a href="/proformainvoices/create" class="apex-qc-item"><i class="bx bx-file-find"></i>Proforma Invoice</a>
+                        <a href="/salesorders/create" class="apex-qc-item"><i class="bx bx-cart-add"></i>Sales Order</a>
+                        <a href="/invoices/create" class="apex-qc-item"><i class="bx bx-receipt"></i>Invoice</a>
+                        <a href="/deliverychallans/create" class="apex-qc-item"><i class="bx bx-package"></i>Delivery Challan</a>
+                        <a href="/salesreturns/create" class="apex-qc-item"><i class="bx bx-revision"></i>Sales Return</a>
+                    </div>
+                    <!-- PURCHASE -->
+                    <div class="apex-qc-col apex-qc-col--purchase">
+                        <div class="apex-qc-col-header">
+                            <div class="apex-qc-col-icon"><i class="bx bx-shopping-bag"></i></div>
+                            <span class="apex-qc-col-label">Purchase</span>
+                        </div>
+                        <a href="/purchaseorders/create" class="apex-qc-item"><i class="bx bx-list-ul"></i>Purchase Order</a>
+                        <a href="/purchases/create" class="apex-qc-item"><i class="bx bx-shopping-bag"></i>Purchase</a>
+                        <a href="/purchasereturns/create" class="apex-qc-item"><i class="bx bx-transfer-alt"></i>Purchase Return</a>
+                    </div>
+                    <!-- PARTY + INVENTORY -->
+                    <div class="apex-qc-col apex-qc-col--party">
+                        <div class="apex-qc-col-header">
+                            <div class="apex-qc-col-icon"><i class="bx bx-group"></i></div>
+                            <span class="apex-qc-col-label">Party</span>
+                        </div>
+                        <a href="/customers?action=create" class="apex-qc-item" data-qc-page="customers"><i class="bx bx-user-plus"></i>Customer</a>
+                        <a href="/vendors?action=create" class="apex-qc-item" data-qc-page="vendors"><i class="bx bx-store"></i>Vendor</a>
+                        <div class="apex-qc-subsection">
+                            <div class="apex-qc-sub-header">
+                                <div class="apex-qc-sub-icon"><i class="bx bx-box"></i></div>
+                                <span class="apex-qc-sub-label">Inventory</span>
+                            </div>
+                            <a href="/products?action=create" class="apex-qc-item" data-qc-page="products"><i class="bx bx-box"></i>Product</a>
+                        </div>
+                    </div>
+                    <!-- ACCOUNTING -->
+                    <div class="apex-qc-col apex-qc-col--accounting">
+                        <div class="apex-qc-col-header">
+                            <div class="apex-qc-col-icon"><i class="bx bx-wallet"></i></div>
+                            <span class="apex-qc-col-label">Accounting</span>
+                        </div>
+                        <a href="/expenses/create" class="apex-qc-item"><i class="bx bx-money-withdraw"></i>Expense</a>
+                        <a href="/indirectincome?action=create" class="apex-qc-item"><i class="bx bx-trending-up"></i>Indirect Income</a>
+                    </div>
+                </div>
+            </div>
+        </div>
         <!-- Language Switcher -->
         <?php $_apexLang = $JwtData->User->UILanguage ?? 'en'; ?>
         <div class="apex-lang-wrap" id="apexLangWrap">

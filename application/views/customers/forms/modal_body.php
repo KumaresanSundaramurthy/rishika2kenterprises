@@ -104,7 +104,8 @@ $dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
             </div>
             <div class="mb-3 col-md-4">
                 <label for="CM_GroupUID" class="form-label">Customer Group
-                    <a href="javascript:void(0);" class="ms-1 text-primary" style="font-size:.72rem;" title="Create new group"
+                    <a href="javascript:void(0);" class="btn btn-sm btn-outline-primary px-2 py-0 ms-1"
+                       data-bs-toggle="tooltip" data-bs-placement="right" title="<?php echo t('create_customer_group', 'Create Customer Group'); ?>"
                        onclick="CustomerGroupForm.open('add', null, { hideMembers: true, onSaveSuccess: function(r){ if (typeof CustomerForm !== 'undefined' && CustomerForm.clearGroupsCache) CustomerForm.clearGroupsCache(); if(r.GroupUID){ var opt = new Option(r.GroupName || r.GroupUID, r.GroupUID, true, true); $('#CM_GroupUID').append(opt).trigger('change'); } } })">+ New</a>
                 </label>
                 <select id="CM_GroupUID" name="GroupUID" class="form-select">
@@ -140,7 +141,8 @@ $dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
         <div class="card-header modal-header-center-sticky p-1 mb-3">
             <h5 class="modal-title mb-0">
                 Bank Details
-                <a href="javascript:void(0)" class="btn btn-sm btn-outline-warning ms-1" id="addBankDetails" data-divid="appendBankDetails">
+                <a href="javascript:void(0)" class="btn btn-sm btn-outline-warning ms-1" id="addBankDetails" data-divid="appendBankDetails"
+                   data-bs-toggle="tooltip" data-bs-placement="right" title="<?php echo t('btn_add_bank', 'Add Bank Account'); ?>">
                     <i class="bx bx-plus-circle me-1"></i> Bank Accounts
                 </a>
             </h5>
@@ -198,7 +200,8 @@ $dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <div class="d-flex align-items-center gap-2">
                         <span class="fw-semibold small text-muted text-uppercase">Billing Address</span>
-                        <a href="javascript:void(0)" class="btn btn-sm btn-outline-warning" id="addBillingAddress" data-divid="appendBillingAddress">
+                        <a href="javascript:void(0)" class="btn btn-sm btn-outline-warning" id="addBillingAddress" data-divid="appendBillingAddress"
+                           data-bs-toggle="tooltip" data-bs-placement="right" title="<?php echo t('add_billing_addr', 'Add Billing Address'); ?>">
                             <i class="bx bx-plus-circle"></i>
                         </a>
                     </div>
@@ -212,7 +215,8 @@ $dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <div class="d-flex align-items-center gap-2">
                         <span class="fw-semibold small text-muted text-uppercase">Shipping Address</span>
-                        <a href="javascript:void(0)" class="btn btn-sm btn-outline-warning" id="addShippingAddress" data-divid="appendShippingAddress">
+                        <a href="javascript:void(0)" class="btn btn-sm btn-outline-warning" id="addShippingAddress" data-divid="appendShippingAddress"
+                           data-bs-toggle="tooltip" data-bs-placement="right" title="<?php echo t('add_shipping_addr', 'Add Shipping Address'); ?>">
                             <i class="bx bx-plus-circle"></i>
                         </a>
                     </div>
@@ -289,6 +293,17 @@ $dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
                                 <option value="<?php echo htmlspecialchars($email); ?>" selected><?php echo htmlspecialchars($email); ?></option>
                             <?php endforeach; endif; ?>
                         </select>
+                    </div>
+                    <div class="col-md-12">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="CM_AllowPortalAccess"
+                                   name="AllowPortalAccess" value="1"
+                                   <?php echo ($isEdit && !empty($d->AllowPortalAccess)) ? 'checked' : ''; ?>>
+                            <label class="form-check-label fw-semibold" for="CM_AllowPortalAccess">
+                                Allow Customer Portal Access
+                            </label>
+                            <div class="form-text">When enabled, this customer can log in to the portal using their registered email address.</div>
+                        </div>
                     </div>
                 </div>
             </div>

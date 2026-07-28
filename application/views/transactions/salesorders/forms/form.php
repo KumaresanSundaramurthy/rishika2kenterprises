@@ -177,10 +177,16 @@ if (!empty($DispatchAddress)) {
                             <div class="d-flex align-items-center gap-4 mb-3 pb-2 border-bottom">
                                 <div class="d-flex align-items-center gap-2">
                                     <span class="text-muted" style="font-size:.78rem;white-space:nowrap;">Type</span>
-                                    <select id="orderType" name="orderType" class="form-select form-select-sm border-0 bg-transparent fw-semibold trans-gst-type-select" style="min-width:110px;cursor:pointer;" <?php echo !$isEdit ? 'required' : ''; ?>>
-                                        <option value="Regular" <?php echo ($isEdit && ($SOData->DocType === 'Regular' || empty($SOData->DocType))) || !$isEdit ? 'selected' : ''; ?>>Regular</option>
-                                        <option value="Without_GST" <?php echo $isEdit && $SOData->DocType === 'Without_GST' ? 'selected' : ''; ?>>Without GST</option>
+                                    <?php if ($isEdit): ?>
+                                    <?php $_soType = $SOData->DocType ?? 'Regular'; ?>
+                                    <span class="trans-type-readonly"><?php echo $_soType === 'Without_GST' ? 'Without GST' : 'Regular'; ?></span>
+                                    <input type="hidden" name="orderType" value="<?php echo htmlspecialchars($_soType); ?>" />
+                                    <?php else: ?>
+                                    <select id="orderType" name="orderType" class="form-select form-select-sm border-0 bg-transparent fw-semibold trans-gst-type-select" style="min-width:110px;cursor:pointer;" required>
+                                        <option value="Regular" selected>Regular</option>
+                                        <option value="Without_GST">Without GST</option>
                                     </select>
+                                    <?php endif; ?>
                                 </div>
                                 <?php if (!empty($DispatchAddresses)): ?>
                                 <div class="d-flex align-items-center gap-2 dispatch-from-grp" style="max-width:360px;">

@@ -75,6 +75,68 @@
 .nb-label { font-size: .67rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; line-height: 1; margin-bottom: 3px; }
 .nb-value { font-size: 1.1rem; font-weight: 800; color: #1e293b; line-height: 1; }
 
+/* ── Quick Create Button ── */
+.nb-qc-btn {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    background: #2563eb;
+    color: #fff;
+    border: none;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem;
+    cursor: pointer;
+    transition: background .15s, box-shadow .15s, transform .1s;
+    box-shadow: 0 2px 8px rgba(37,99,235,.28);
+    padding: 0; line-height: 1;
+}
+.nb-qc-btn:hover { background: #1d4ed8; box-shadow: 0 4px 14px rgba(37,99,235,.38); }
+.nb-qc-btn:active { transform: scale(.92); }
+
+/* ── Quick Create Dropdown ── */
+.nb-qc-dropdown {
+    width: 620px;
+    padding: 16px 18px 14px;
+    border-radius: 14px !important;
+    box-shadow: 0 12px 40px rgba(0,0,0,.13) !important;
+    border: 1px solid #e2e8f0 !important;
+    background: #fff;
+    margin-top: 10px !important;
+}
+.nb-qc-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0 14px;
+}
+.nb-qc-col-header {
+    font-size: .66rem;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: .55px;
+    padding-bottom: 6px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid #f1f5f9;
+}
+.nb-qc-col-header + .nb-qc-col-header,
+.nb-qc-item + .nb-qc-col-header { margin-top: 12px; }
+.nb-qc-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 7px;
+    border-radius: 6px;
+    color: #334155;
+    font-size: .81rem;
+    font-weight: 500;
+    text-decoration: none !important;
+    transition: background .12s, color .12s;
+    white-space: nowrap;
+    margin-bottom: 1px;
+}
+.nb-qc-item:hover { background: #eff6ff; color: #2563eb; }
+.nb-qc-item i { font-size: .95rem; color: #64748b; flex-shrink: 0; transition: color .12s; }
+.nb-qc-item:hover i { color: #2563eb; }
+
 /* Language switcher icon */
 .nav-lang-btn { display: flex; align-items: center; gap: 4px; padding: 0 8px !important; }
 .nav-lang-badge { font-size: .68rem; font-weight: 700; letter-spacing: .5px; line-height: 1; }
@@ -129,6 +191,55 @@
         <?php } ?>
 
         <ul class="navbar-nav flex-row align-items-center gap-1">
+
+            <!-- Quick Create -->
+            <li class="nav-item d-flex align-items-center">
+                <div class="dropdown">
+                    <button class="nb-qc-btn" id="nbQuickCreateBtn" data-bs-toggle="dropdown" data-bs-auto-close="true" aria-expanded="false" title="Quick Create">
+                        <i class="bx bx-plus"></i>
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-end nb-qc-dropdown" aria-labelledby="nbQuickCreateBtn">
+                        <div class="nb-qc-grid">
+
+                            <!-- SALES -->
+                            <div class="nb-qc-col">
+                                <div class="nb-qc-col-header">Sales</div>
+                                <a href="/quotations/create" class="nb-qc-item"><i class="bx bx-notepad"></i>Quotation</a>
+                                <a href="/proformainvoices/create" class="nb-qc-item"><i class="bx bx-file-find"></i>Proforma Invoice</a>
+                                <a href="/salesorders/create" class="nb-qc-item"><i class="bx bx-cart-add"></i>Sales Order</a>
+                                <a href="/invoices/create" class="nb-qc-item"><i class="bx bx-receipt"></i>Invoice</a>
+                                <a href="/deliverychallans/create" class="nb-qc-item"><i class="bx bx-package"></i>Delivery Challan</a>
+                                <a href="/salesreturns/create" class="nb-qc-item"><i class="bx bx-revision"></i>Sales Return</a>
+                            </div>
+
+                            <!-- PURCHASE -->
+                            <div class="nb-qc-col">
+                                <div class="nb-qc-col-header">Purchase</div>
+                                <a href="/purchaseorders/create" class="nb-qc-item"><i class="bx bx-list-ul"></i>Purchase Order</a>
+                                <a href="/purchases/create" class="nb-qc-item"><i class="bx bx-shopping-bag"></i>Purchase</a>
+                                <a href="/purchasereturns/create" class="nb-qc-item"><i class="bx bx-transfer-alt"></i>Purchase Return</a>
+                            </div>
+
+                            <!-- PARTY -->
+                            <div class="nb-qc-col">
+                                <div class="nb-qc-col-header">Party</div>
+                                <a href="/customers?action=create" class="nb-qc-item"><i class="bx bx-user-plus"></i>Customer</a>
+                                <a href="/vendors?action=create" class="nb-qc-item"><i class="bx bx-store"></i>Vendor</a>
+                                <div class="nb-qc-col-header" style="margin-top:12px;">Inventory</div>
+                                <a href="/products?action=create" class="nb-qc-item"><i class="bx bx-box"></i>Product</a>
+                            </div>
+
+                            <!-- ACCOUNTING -->
+                            <div class="nb-qc-col">
+                                <div class="nb-qc-col-header">Accounting</div>
+                                <a href="/expenses/create" class="nb-qc-item"><i class="bx bx-money-withdraw"></i>Expense</a>
+                                <a href="/indirectincome?action=create" class="nb-qc-item"><i class="bx bx-trending-up"></i>Indirect Income</a>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </li>
 
             <!-- Language Switcher -->
             <?php $_navLang = $JwtData->User->UILanguage ?? 'en'; ?>

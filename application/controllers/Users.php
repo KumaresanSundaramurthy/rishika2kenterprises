@@ -394,7 +394,7 @@ class Users extends MY_Controller {
             // Refresh login-users cache
             $orgUID   = $JwtData->Org->OrgUID;
             $orgUsers = $this->users_model->getOrgUsersForCache($orgUID);
-            $this->redisservice->setCache($this->redisservice->orgKey('org_users'), $orgUsers, 86400);
+            $this->redisservice->setCache($this->redisservice->orgKey('org-users'), $orgUsers, 86400);
 
             if ($UserUID > 0 && $UserUID === (int)$JwtData->User->UserUID) {
                 $this->globalservice->refreshUserCache();
@@ -461,7 +461,7 @@ class Users extends MY_Controller {
     // ── Org login-users cache ─────────────────────────────────────────────────
     public function getOrgUsers() {
         $orgUID   = (int)$this->pageData['JwtData']->Org->OrgUID;
-        $cacheKey = $this->redisservice->orgKey('org_users');
+        $cacheKey = $this->redisservice->orgKey('org-users');
         $users    = $this->redisservice->getCache($cacheKey);
         if (empty($users)) {
             $users = $this->users_model->getOrgUsersForCache($orgUID);

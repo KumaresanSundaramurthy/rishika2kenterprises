@@ -49,6 +49,7 @@
         this._searchTerm    = '';
         this._page          = 0;      // pages already rendered
         this._selected      = null;   // { uid, name } or null
+        this._cacheRebuilt  = false;  // prevents infinite rebuild loop on persistent miss
 
         this._state     = {};
 
@@ -250,6 +251,16 @@
                     });
                 }
 
+                if (list.length === 0 && !self._cacheRebuilt) {
+                    self._cacheRebuilt = true;
+                    var syncUrl  = (self._partyType === 'vendor') ? '/vendors/syncVendorsCache' : '/customers/syncCustomersCache';
+                    var syncData = {};
+                    if (typeof CsrfName !== 'undefined' && typeof CsrfToken !== 'undefined') {
+                        syncData[CsrfName] = CsrfToken;
+                    }
+                    $.ajax({ url: syncUrl, method: 'POST', data: syncData, complete: function () { self._ensureCache(); } });
+                    return;
+                }
                 list.sort(function (a, b) { return a.name.localeCompare(b.name); });
                 self._cache = list;
                 self._renderFromCache();

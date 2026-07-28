@@ -34,8 +34,9 @@
         this._config = {};
         try { this._config = JSON.parse(this._$bar.attr('data-filter-config') || '{}'); } catch (e) {}
 
-        this._partyCache = null;   // loaded lazily from Upstash
-        this._partyType  = this._config.partyType || 'customer';   // 'customer'|'vendor'
+        this._partyCache   = null;   // loaded lazily from Upstash
+        this._partyType    = this._config.partyType || 'customer';   // 'customer'|'vendor'
+        this._partyRebuilt = false;  // prevents infinite rebuild loop on persistent miss
 
         this._bind();
         this._syncClearAll();
@@ -246,6 +247,16 @@
                         });
                     } catch (ex) {}
                 });
+                if (list.length === 0 && !self._partyRebuilt) {
+                    self._partyRebuilt = true;
+                    var syncUrl  = (self._partyType === 'vendor') ? '/vendors/syncVendorsCache' : '/customers/syncCustomersCache';
+                    var syncData = {};
+                    if (typeof CsrfName !== 'undefined' && typeof CsrfToken !== 'undefined') {
+                        syncData[CsrfName] = CsrfToken;
+                    }
+                    $.ajax({ url: syncUrl, method: 'POST', data: syncData, complete: function () { self._ensurePartyCache(cb); } });
+                    return;
+                }
                 list.sort(function (a, b) { return a.name.localeCompare(b.name); });
                 self._partyCache = list;
                 cb();

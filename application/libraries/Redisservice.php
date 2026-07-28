@@ -68,31 +68,27 @@ class RedisService {
 
     // ─── Key resolution ──────────────────────────────────────────────────────
 
-    /** Maps CI_ENV value to a short environment tag used in Redis keys. */
-    private function envShort() {
+    /** Returns S (local/dev/staging) or P (production) for use in cache keys. */
+    private function envFlag(): string {
         $env = defined('ENVIRONMENT') ? ENVIRONMENT : (getenv('CI_ENV') ?: 'production');
-        $map = ['development' => 'dev', 'staging' => 'stg', 'production' => 'prod'];
-        return $map[$env] ?? $env;
+        return ($env === 'production') ? 'P' : 'S';
     }
 
     /**
-     * Build the org-level key prefix: {SHORTCODE}:{OrgToken}:{env}
-     * Auto-resolves ShortCode/OrgToken from JWT when not supplied explicitly.
-     * Returns '' when neither is available (callers fall back to bare key names).
+     * Build the org-level key prefix: {OrgToken}-{S|P}
+     * Auto-resolves OrgToken from JWT when not supplied explicitly.
+     * Returns '' when token is unavailable (callers fall back to bare key names).
      */
-    private function buildOrgPrefix($shortCode = '', $token = '') {
-        if (empty($shortCode) || empty($token)) {
+    private function buildOrgPrefix(string $token = ''): string {
+        if (empty($token)) {
             try {
                 $CI      = &get_instance();
                 $jwtData = isset($CI->pageData) ? ($CI->pageData['JwtData'] ?? null) : null;
-                if (!$shortCode) {
-                    $shortCode = $jwtData->Org->OrgShortCode;
-                    $token     = $jwtData->Org->OrgToken ?? '';
-                }
+                $token   = $jwtData->Org->OrgToken ?? '';
             } catch (Exception $e) {}
         }
-        if (empty($shortCode) || empty($token)) return '';
-        return strtolower($shortCode) . ':' . strtolower($token) . ':' . $this->envShort();
+        if (empty($token)) return '';
+        return strtolower($token) . '-' . $this->envFlag();
     }
 
     /**
@@ -113,21 +109,21 @@ class RedisService {
     }
 
     /**
-     * Build a user-scoped key: {ShortCode}:{OrgToken}:{env}:{type}:{uid}
-     * Falls back to {type}:{uid} when the org prefix is unavailable.
+     * Build a user-scoped key: {OrgToken}-{S|P}-{type}-{uid}
+     * Falls back to {type}-{uid} when the org prefix is unavailable.
      */
-    private function userScopedKey($type, $uid, $shortCode = '', $token = '') {
-        $prefix = $this->buildOrgPrefix($shortCode, $token);
-        return ($prefix !== '') ? "{$prefix}:{$type}:{$uid}" : "{$type}:{$uid}";
+    private function userScopedKey(string $type, $uid, string $token = ''): string {
+        $prefix = $this->buildOrgPrefix($token);
+        return ($prefix !== '') ? "{$prefix}-{$type}-{$uid}" : "{$type}-{$uid}";
     }
 
     /**
-     * Build an org-level key (no UID): {ShortCode}:{OrgToken}:{env}:{type}
+     * Build an org-level key: {OrgToken}-{S|P}-{type}
      * Falls back to {type} when the org prefix is unavailable.
      */
-    public function orgKey($type, $shortCode = '', $token = '') {
-        $prefix = $this->buildOrgPrefix($shortCode, $token);
-        return ($prefix !== '') ? "{$prefix}:{$type}" : $type;
+    public function orgKey(string $type, string $token = ''): string {
+        $prefix = $this->buildOrgPrefix($token);
+        return ($prefix !== '') ? "{$prefix}-{$type}" : $type;
     }
 
     /**
@@ -277,9 +273,9 @@ class RedisService {
      * Store user-scoped cache. $type is the semantic name:
      *   menus, submenus, modules, permissions, settings, userinfo
      */
-    public function setUserCache($type, $userUID, $value, $ttl = 0, $shortCode = '', $token = '') {
+    public function setUserCache(string $type, $userUID, $value, int $ttl = 0, string $token = ''): object {
         $ttl = $ttl ?: (int)(getenv('LOGIN_EXPIRE_SECS') ?: 7200);
-        return $this->setCache($this->userScopedKey($type, $userUID, $shortCode, $token), $value, $ttl);
+        return $this->setCache($this->userScopedKey($type, $userUID, $token), $value, $ttl);
     }
 
     /**
@@ -303,9 +299,9 @@ class RedisService {
     }
 
     /** Delete ALL six standard user-scoped keys for a given user at once. */
-    public function deleteAllUserCache($userUID, $shortCode = '', $token = '') {
+    public function deleteAllUserCache($userUID, string $token = ''): void {
         foreach (array_values(self::$keyAliases) as $type) {
-            $this->deleteCache($this->userScopedKey($type, $userUID, $shortCode, $token));
+            $this->deleteCache($this->userScopedKey($type, $userUID, $token));
         }
     }
 

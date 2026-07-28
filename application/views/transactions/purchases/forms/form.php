@@ -204,14 +204,16 @@ if ($isEdit) {
                             <div class="d-flex align-items-center gap-4 mb-3 pb-2 border-bottom">
                                 <div class="d-flex align-items-center gap-2">
                                     <span class="text-muted" style="font-size:.78rem;white-space:nowrap;">Type</span>
-                                    <select class="form-select form-select-sm border-0 bg-transparent fw-semibold trans-gst-type-select"
-                                            id="purchaseType" name="purchaseType" style="min-width:110px;cursor:pointer;"
-                                            <?php echo ($isEdit && !$isDraftEdit) ? 'disabled' : 'required'; ?>>
-                                        <option value="Regular" <?php echo (!$isEdit || ($PurchData->DocType ?? '') === 'Regular' || empty($PurchData->DocType ?? '')) ? 'selected' : ''; ?>>Regular</option>
-                                        <option value="Without_GST" <?php echo ($isEdit && ($PurchData->DocType ?? '') === 'Without_GST') ? 'selected' : ''; ?>>Without GST</option>
-                                    </select>
                                     <?php if ($isEdit && !$isDraftEdit): ?>
-                                    <input type="hidden" name="purchaseType" value="<?php echo htmlspecialchars($PurchData->DocType ?? 'Regular'); ?>" />
+                                    <?php $_purchType = $PurchData->DocType ?? 'Regular'; ?>
+                                    <span class="trans-type-readonly"><?php echo $_purchType === 'Without_GST' ? 'Without GST' : 'Regular'; ?></span>
+                                    <input type="hidden" name="purchaseType" value="<?php echo htmlspecialchars($_purchType); ?>" />
+                                    <?php else: ?>
+                                    <select class="form-select form-select-sm border-0 bg-transparent fw-semibold trans-gst-type-select"
+                                            id="purchaseType" name="purchaseType" style="min-width:110px;cursor:pointer;" required>
+                                        <option value="Regular" <?php echo (!$isEdit || ($PurchData->DocType ?? '') === 'Regular' || empty($PurchData->DocType ?? '')) ? 'selected' : ''; ?>>Regular</option>
+                                        <option value="Without_GST" <?php echo ($PurchData->DocType ?? '') === 'Without_GST' ? 'selected' : ''; ?>>Without GST</option>
+                                    </select>
                                     <?php endif; ?>
                                 </div>
                                 <?php if (!empty($DispatchAddresses)): ?>

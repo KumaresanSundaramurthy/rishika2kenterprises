@@ -56,7 +56,7 @@ function getSalesReturnsDetails(pageNo, rowLimit, filter, afterLoad) {
     function closePanel() { $panel.hide(); openUID = null; }
 
     $(document).on('click', '.pay-mode-clickable', function (e) {
-        if ($(e.target).closest('.srPayAttachBtn').length) return;
+        if ($(e.target).closest('.transPayAttachBtn').length) return;
         e.stopPropagation();
         var transUID = $(this).data('trans-uid');
         if (openUID === transUID) { closePanel(); return; }

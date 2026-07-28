@@ -41,7 +41,7 @@ class Inventory extends MY_Controller {
             $totalCount = $this->inventory_model->getInventoryCount($orgUID, $filter);
             $stats      = $this->inventory_model->getInventoryStats($orgUID);
             $categories = $this->inventory_model->getCategories($orgUID);
-            $orgUsers   = $this->_requireCache($this->redisservice->orgKey('org_users'));
+            $orgUsers   = $this->_requireCache($this->redisservice->orgKey('org-users'));
 
             $this->pageData['ModRowData']    = $this->load->view('inventory/list', [
                 'DataLists'    => $listData,
@@ -421,7 +421,7 @@ class Inventory extends MY_Controller {
             $listData   = $this->inventory_model->getGlobalTimeline($orgUID, $defaultFilter, $limit, 0);
             $totalCount = $this->inventory_model->getGlobalTimelineCount($orgUID, $defaultFilter);
             $categories = $this->inventory_model->getCategories($orgUID);
-            $orgUsers   = $this->_requireCache($this->redisservice->orgKey('org_users'));
+            $orgUsers   = $this->_requireCache($this->redisservice->orgKey('org-users'));
 
             $this->pageData['ModRowData']    = $this->load->view('inventory/timeline_list', [
                 'DataLists' => $listData,

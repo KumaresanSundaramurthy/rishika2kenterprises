@@ -103,8 +103,9 @@
                             <?php if ($showUserBtn): ?>
                             <a href="javascript:void(0);" id="vendUserFilterBtn" class="apex-filter-btn vend-only-ctrl<?php echo $initIsGroups ? ' d-none' : ''; ?>" title="Filter by User"><i class="bx bx-user me-1"></i>Updated By</a>
                             <?php endif; ?>
-                            <!-- Group-only filter -->
+                            <!-- Group-only filters -->
                             <a href="javascript:void(0);" id="vendGrpTypeFilterBtn" class="apex-filter-btn vgrp-only-ctrl<?php echo $initIsGroups ? '' : ' d-none'; ?>" title="Filter by Group Type"><i class="bx bx-category me-1"></i>Group Type</a>
+                            <a href="javascript:void(0);" id="vendGrpPartyFilterBtn" class="apex-filter-btn vgrp-only-ctrl<?php echo $initIsGroups ? '' : ' d-none'; ?>" title="Filter by Vendor"><i class="bx bx-store me-1"></i>Vendor</a>
                             <div class="apex-filter-spacer"></div>
                             <a href="javascript:void(0);" class="apex-icon-btn PageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
                             <a href="javascript:void(0);" class="apex-icon-btn vend-only-ctrl<?php echo $initIsGroups ? ' d-none' : ''; ?>" id="btnSyncVendorsCache" title="Sync Cache"><i class="bx bx-planet"></i></a>
@@ -122,12 +123,14 @@
                             <div class="vend-only-ctrl<?php echo $initIsGroups ? ' d-none' : ''; ?>">
                                 <?php $this->load->view('common/partials/export_btn'); ?>
                             </div>
-                            <a href="javascript:void(0);" class="btn btn-primary vend-only-ctrl<?php echo $initIsGroups ? ' d-none' : ''; ?>" id="btnCreateVendorHeader">
-                                <i class="bx bx-plus me-1"></i><?php echo t('create_vendor', 'New Vendor'); ?>
+                            <a href="javascript:void(0);" class="btn btn-primary vend-only-ctrl<?php echo $initIsGroups ? ' d-none' : ''; ?>" id="btnCreateVendorHeader"
+                               data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('create_vendor', 'Create Vendor'); ?>">
+                                <i class="bx bx-plus me-1"></i><?php echo t('lbl_new', 'New'); ?>
                             </a>
                             <!-- Group-only button -->
-                            <button type="button" id="btnNewVendorGroup" class="btn btn-primary vgrp-only-ctrl<?php echo $initIsGroups ? '' : ' d-none'; ?>">
-                                <i class="bx bx-plus me-1"></i><?php echo t('btn_new_group', 'New Group'); ?>
+                            <button type="button" id="btnNewVendorGroup" class="btn btn-primary vgrp-only-ctrl<?php echo $initIsGroups ? '' : ' d-none'; ?>"
+                                    data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('create_item_group', 'Create Group'); ?>">
+                                <i class="bx bx-plus me-1"></i><?php echo t('lbl_new', 'New'); ?>
                             </button>
                         </div>
 
@@ -148,10 +151,10 @@
                                 ?>
                                 <!-- Group stats — visible only in groups mode when stats are enabled -->
                                 <li id="vgrpTabStats" class="<?php echo $vGrpStatsVis ? 'd-flex' : 'd-none'; ?> align-items-center gap-3 ms-auto pe-2" style="font-size:.81rem;list-style:none;">
-                                    <span class="text-muted"><?php echo t('lbl_total', 'Total'); ?>: <strong class="vg-stat-total text-body"><?php echo $vGrpS ? (int)$vGrpS->TotalCount : '—'; ?></strong></span>
-                                    <span class="text-muted"><?php echo t('lbl_active', 'Active'); ?>: <strong class="vg-stat-active text-success"><?php echo $vGrpS ? (int)$vGrpS->ActiveCount : '—'; ?></strong></span>
-                                    <span class="text-muted"><?php echo t('lbl_inactive', 'Inactive'); ?>: <strong class="vg-stat-inactive text-danger"><?php echo $vGrpS ? (int)$vGrpS->InactiveCount : '—'; ?></strong></span>
-                                    <span class="text-muted"><?php echo t('col_members', 'Members'); ?>: <strong class="vg-stat-members text-body"><?php echo $vGrpS ? (int)$vGrpS->TotalMembers : '—'; ?></strong></span>
+                                    <span class="text-muted"><?php echo t('lbl_total', 'Total'); ?>: <strong class="vg-stat-total text-body"><?php echo $vGrpS ? (int)($vGrpS->TotalCount ?? 0) : '—'; ?></strong></span>
+                                    <span class="text-muted"><?php echo t('lbl_active', 'Active'); ?>: <strong class="vg-stat-active text-success"><?php echo $vGrpS ? (int)($vGrpS->ActiveCount ?? 0) : '—'; ?></strong></span>
+                                    <span class="text-muted"><?php echo t('lbl_inactive', 'Inactive'); ?>: <strong class="vg-stat-inactive text-danger"><?php echo $vGrpS ? (int)($vGrpS->InactiveCount ?? 0) : '—'; ?></strong></span>
+                                    <span class="text-muted"><?php echo t('col_members', 'Members'); ?>: <strong class="vg-stat-members text-body"><?php echo $vGrpS ? (int)($vGrpS->TotalMembers ?? 0) : '—'; ?></strong></span>
                                 </li>
                             </ul>
                         </div>
@@ -343,6 +346,13 @@
         'items'             => [],
     ],
 ]); ?>
+<?php $this->load->view('common/filter_panels/col_party_filter_box', [
+    'ColPartyFilterConfig' => [
+        'id'    => 'vendGrpPartyFilterBox',
+        'title' => 'Filter by Vendor',
+        'icon'  => 'bx-store',
+    ],
+]); ?>
 
 <!-- ── Vendor Group Detail Modal ───────────────────────────────────────── -->
 <div class="modal fade" id="vgrpDetailModal" tabindex="-1" aria-hidden="true">
@@ -384,6 +394,7 @@
 <?php $this->load->view('common/footer'); ?>
 
 <script src="<?php echo _assetV('/js/transactions/col_filter.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/common/party_filter.js'); ?>"></script>
 <link rel="stylesheet" href="<?php echo _assetV('/assets/vendor/css/attachments.css'); ?>">
 <script src="<?php echo _assetV('/js/common/attachments.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/vendors.js'); ?>"></script>
@@ -597,7 +608,8 @@ var _vendShowStats  = <?php echo (int)($JwtData->TransSettings->ShowTransactionS
 $(function() {
     'use strict'
 
-    $('#SearchDetails').val('');
+    $('#SearchDetails').val(_vendInitSearch || '');
+    if (_vendInitSearch) { $('#SearchDetails').closest('.r2k-search-wrap').addClass('is-expanded r2k-search-active'); }
     $(ModuleRow).prop('checked', false).trigger('change');
 
     basePaginationFunc(ModulePag, getVendorsDetails);
@@ -678,10 +690,14 @@ $(function() {
         if (_inVgrpMode) {
             // Switching Groups → All: restore UI
             _inVgrpMode = false;
+            vendGrpTypeFilter.reset();
+            vendGrpPartyFilter.reset();
+            delete _vgrpFilter['GroupType'];
+            delete _vgrpFilter['VendorUID'];
+            delete _vgrpFilter['SearchAllData'];
             $('.vend-only-ctrl').removeClass('d-none');
             $('.vgrp-only-ctrl').addClass('d-none');
             $('#SearchDetails').attr('placeholder', 'Name, mobile, GSTIN...').val('');
-            delete _vgrpFilter['SearchAllData'];
             $('#clearSearch').addClass('d-none');
             $('#vendTableSection').show();
             $('#vgrpTableSection').hide();
@@ -723,12 +739,13 @@ $(function() {
 
     // ── Search — debounced AJAX ──
     $('#SearchDetails').on('input', inputDelay(function () {
+        if (_inVgrpMode) return;
         var val = $.trim($(this).val());
         $('#clearSearch').toggleClass('d-none', !val);
         delete Filter['SearchAllData'];
         if (val.length >= 3) Filter['SearchAllData'] = val;
         if (val.length === 0 || val.length >= 3) { PageNo = 0; getVendorsDetails(PageNo, RowLimit, Filter); }
-    }, 1500));
+    }, 750));
 
     $('#clearSearch').on('click', function () {
         $('#SearchDetails').val('');
@@ -934,14 +951,14 @@ $(function() {
     });
 
     // ── Extend search to groups mode ──
-    $('#SearchDetails').on('input.vgrp', function () {
+    $('#SearchDetails').on('input.vgrp', inputDelay(function () {
         if (!_inVgrpMode) return;
         var val = $.trim($(this).val());
         $('#clearSearch').toggleClass('d-none', !val);
         delete _vgrpFilter['SearchAllData'];
         if (val.length >= 3) _vgrpFilter['SearchAllData'] = val;
         if (val.length === 0 || val.length >= 3) _vgrpReload(1);
-    });
+    }, 750));
 
     // ── Apply groups response data to DOM ──
     function _applyVgrpData(res) {
@@ -1024,6 +1041,20 @@ $(function() {
         _vendGrpTypeFilterPromise = loadCachedFilterData('vendor-group-types', '/vendors/getGroupTypes', true).then(function (types) {
             vendGrpTypeFilter.setItems(types.map(function (t) { return { value: t, label: t }; }));
         }).catch(function () { _vendGrpTypeFilterPromise = null; });
+    });
+
+    // ── Vendor filter for Groups tab (Upstash lazy-load via TransPartyColFilter) ──
+    var vendGrpPartyFilter = new TransPartyColFilter({
+        boxId     : 'vendGrpPartyFilterBox',
+        triggerId : 'vendGrpPartyFilterBtn',
+        partyType : 'vendor',
+        filterKey : 'VendorUID',
+        onApply   : function () {
+            var state = vendGrpPartyFilter.getState();
+            if (state.VendorUID) _vgrpFilter.VendorUID = state.VendorUID;
+            else delete _vgrpFilter.VendorUID;
+            _vgrpReload(1);
+        }
     });
 
     // ── Group status toggle ──
@@ -1109,6 +1140,22 @@ $(function() {
         PageNo = 0;
         getVendorsDetails(PageNo, RowLimit, Filter);
     }
+
+    if (window.location.search.indexOf('action=create') !== -1) {
+        $('#btnCreateVendorHeader').trigger('click');
+    }
+
+    /**
+     * Called by the Quick Create handler in default.js when the user is already
+     * on this page. Returns true if the create modal was opened, false if the
+     * caller should navigate instead (e.g. we're on the Groups tab).
+     * @returns {boolean}
+     */
+    window._qcPageCreate = function () {
+        if ($('#btnCreateVendorHeader').hasClass('d-none')) return false;
+        $('#btnCreateVendorHeader').trigger('click');
+        return true;
+    };
 
 });
 </script>

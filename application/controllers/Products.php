@@ -1390,29 +1390,34 @@ class Products extends MY_Controller {
                 if (!empty($pipeResults)) {
                     $missingFields = [];
                     foreach ($pipeResults as $i => $result) {
-                        $field = $fieldNames[$i];
-                        $raw   = $result['result'] ?? null;
+                        $field = $fieldNames[$i] ?? null;
+                        if ($field === null) continue;
+                        try {
+                            $raw = (is_array($result) ? $result : [])[‘result’] ?? null;
 
-                        if (in_array($field, [‘categories’, ‘brands’])) {
-                            // HGETALL → flat [uid, jsonStr, uid, jsonStr, ...] array
-                            if (is_array($raw) && count($raw) >= 2) {
-                                $items = [];
-                                for ($j = 0; $j + 1 < count($raw); $j += 2) {
-                                    $decoded = json_decode($raw[$j + 1], true);
-                                    if ($decoded) $items[] = (object)$decoded;
+                            if (in_array($field, [‘categories’, ‘brands’], true)) {
+                                // HGETALL → flat [uid, jsonStr, uid, jsonStr, ...] array
+                                if (is_array($raw) && count($raw) >= 2) {
+                                    $items = [];
+                                    for ($j = 0; $j + 1 < count($raw); $j += 2) {
+                                        $decoded = json_decode($raw[$j + 1], true);
+                                        if ($decoded) $items[] = (object)$decoded;
+                                    }
+                                    if (!empty($items)) { $data[$field] = $items; continue; }
                                 }
-                                if (!empty($items)) { $data[$field] = $items; continue; }
-                            }
-                            $missingFields[] = $field;
-                        } else {
-                            if ($raw !== null) {
-                                $decoded      = json_decode($raw, true);
-                                $data[$field] = is_array($decoded)
-                                    ? array_map(fn($r) => is_array($r) ? (object) $r : $r, $decoded)
-                                    : $decoded;
-                            } else {
                                 $missingFields[] = $field;
+                            } else {
+                                if ($raw !== null) {
+                                    $decoded      = json_decode($raw, true);
+                                    $data[$field] = is_array($decoded)
+                                        ? array_map(fn($r) => is_array($r) ? (object) $r : $r, $decoded)
+                                        : $decoded;
+                                } else {
+                                    $missingFields[] = $field;
+                                }
                             }
+                        } catch (Throwable $th) {
+                            $missingFields[] = $field;
                         }
                     }
                 }
@@ -1439,7 +1444,7 @@ class Products extends MY_Controller {
             $this->EndReturnData->Error = false;
             $this->EndReturnData->Data  = $data;
 
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }

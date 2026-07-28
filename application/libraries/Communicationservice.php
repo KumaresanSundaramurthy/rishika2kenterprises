@@ -61,7 +61,7 @@ class Communicationservice {
             $this->EndReturnData->Failed  = $failed;
             $this->EndReturnData->Message = "SMS sent to {$sent} recipient(s)" . ($failed ? ", {$failed} failed." : '.');
 
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -144,12 +144,22 @@ class Communicationservice {
 
             $this->_saveLogs($logs);
 
+            if ($sent === 0 && $failed > 0) {
+                $debugInfo = trim($this->CI->email->print_debugger(['headers']));
+                $this->EndReturnData->Error   = TRUE;
+                $this->EndReturnData->Sent    = 0;
+                $this->EndReturnData->Failed  = $failed;
+                $this->EndReturnData->Message = "Email delivery failed for all {$failed} recipient(s). Please verify your SMTP settings."
+                    . ($debugInfo ? ' Detail: ' . substr(strip_tags($debugInfo), 0, 200) : '');
+                return $this->EndReturnData;
+            }
+
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Sent    = $sent;
             $this->EndReturnData->Failed  = $failed;
             $this->EndReturnData->Message = "Email sent to {$sent} recipient(s)" . ($failed ? ", {$failed} failed." : '.');
 
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }

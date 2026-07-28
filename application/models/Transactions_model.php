@@ -1485,7 +1485,7 @@ class Transactions_model extends MY_Model {
                     '<td>' . $e($item->ProductName) . '</td>' .
                     '<td style="text-align:center">' . $e($item->HSNCode ?? '-') . '</td>' .
                     '<td style="text-align:right">'  . number_format((float)($item->UnitPrice ?? 0), $dec) . '</td>' .
-                    '<td style="text-align:center">' . $e($item->Quantity) . ' ' . $e($item->PrimaryUnitName ?? '') . '</td>' .
+                    '<td style="text-align:center">' . smartDecimal($item->Quantity ?? 0) . ' ' . $e($item->PrimaryUnitName ?? '') . '</td>' .
                     '<td style="text-align:right">'  . number_format((float)($item->UnitPrice ?? 0) * (float)($item->Quantity ?? 0), $dec) . '</td>' .
                     '<td style="text-align:right">'  . ($taxAmt ? number_format($taxAmt, $dec) . ' (' . number_format((float)($item->TaxPercentage ?? 0), 0) . '%)' : '') . '</td>' .
                     '<td style="text-align:right">'  . number_format((float)($item->NetAmount ?? 0), $dec) . '</td>' .
@@ -1879,11 +1879,19 @@ class Transactions_model extends MY_Model {
 
     private function _renderGenericA4Html(object $h, array $items, object $org): string {
 
-        $cur   = '₹ ';
-        $dec   = 2;
-        $e     = fn($v) => htmlspecialchars((string)($v ?? ''), ENT_QUOTES);
-        try { $CI = &get_instance(); $_printFmt = $CI->pageData['JwtData']->GenSettings->PrintDateFormat ?? 'd M Y'; } catch (Exception $_) { $_printFmt = 'd M Y'; }
-        $fmt   = function(string $date) use ($_printFmt): string { if (!$date) return '—'; $d = date_create($date); return $d ? date_format($d, $_printFmt) : $date; };
+        $e = fn($v) => htmlspecialchars((string)($v ?? ''), ENT_QUOTES);
+        try {
+            $CI        = &get_instance();
+            $gs        = $CI->pageData['JwtData']->GenSettings;
+            $_printFmt = $gs->PrintDateFormat ?? 'd M Y';
+            $dec       = (int)($gs->DecimalPoints ?? 2);
+            $cur       = ($gs->CurrenySymbol ?? '₹') . ' ';
+        } catch (Exception $_) {
+            $_printFmt = 'd M Y';
+            $dec       = 2;
+            $cur       = '₹ ';
+        }
+        $fmt = function(string $date) use ($_printFmt): string { if (!$date) return '—'; $d = date_create($date); return $d ? date_format($d, $_printFmt) : $date; };
         $label = strtoupper($h->TransType ?? 'Document');
         $partyLabel = in_array($label, ['PURCHASE ORDER', 'PURCHASE BILL']) ? 'Vendor' : 'Customer';
 
@@ -1892,7 +1900,7 @@ class Transactions_model extends MY_Model {
             $rows .= '<tr>' .
                 '<td style="text-align:center">' . ($i + 1) . '</td>' .
                 '<td>' . $e($item->ProductName) . '</td>' .
-                '<td style="text-align:center">' . $e($item->Quantity) . ' ' . $e($item->PrimaryUnitName ?? '') . '</td>' .
+                '<td style="text-align:center">' . smartDecimal($item->Quantity ?? 0) . ' ' . $e($item->PrimaryUnitName ?? '') . '</td>' .
                 '<td style="text-align:right">' . $cur . number_format((float)($item->UnitPrice ?? 0), $dec) . '</td>' .
                 '<td style="text-align:right">' . $cur . number_format((float)($item->NetAmount ?? 0), $dec) . '</td>' .
                 '</tr>';

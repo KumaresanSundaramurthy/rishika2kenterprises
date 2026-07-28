@@ -100,7 +100,7 @@ $this->load->view('common/transactions/header'); ?>
                             <!-- Fixed right: actions -->
                             <a href="javascript:void(0);" class="apex-filter-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
                             <?php $this->load->view('common/partials/export_btn'); ?>
-                            <a href="/invoices/create" class="btn btn-sm btn-primary flex-shrink-0"><i class="bx bx-plus me-1"></i>New Invoice</a>
+                            <a href="/invoices/create" class="btn btn-sm btn-primary flex-shrink-0" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('create_invoice', 'Create Invoice'); ?>"><i class="bx bx-plus me-1"></i><?php echo t('lbl_new', 'New'); ?></a>
                         </div>
 
                         <!-- ── Tabs Row ──────────────────────────────────── -->

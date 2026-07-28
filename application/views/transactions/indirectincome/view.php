@@ -803,14 +803,6 @@ $(function () {
         });
     }
 
-    $(document).on('click', '.transPayAttachBtn', function (e) {
-        e.stopPropagation();
-        var uid = $(this).data('uid');
-        var num = $(this).data('num') || '';
-        var url = $(this).data('url') || '/indirectincome/getPaymentAttachments';
-        openTransAttachModal(uid, num, url, '#059669', 'Payment Attachments', 115);
-    });
-
     $(document).on('click', '.pay-mode-clickable', function (e) {
         if ($(e.target).closest('.transPayAttachBtn').length) return;
         e.stopPropagation();
@@ -1314,6 +1306,10 @@ $(function () {
             }
         });
     });
+
+    if (window.location.search.indexOf('action=create') !== -1) {
+        $('#addIncomeBtn').trigger('click');
+    }
 
 });
 </script>

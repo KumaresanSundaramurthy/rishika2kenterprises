@@ -105,7 +105,14 @@ window.DropdownCache = (function ($) {
     // Server does DB query → writes each missing field back to Upstash → returns data.
     // Endpoint accepts fields[] POST param so only the missing fields are processed.
 
-    function _fetchMissing(missingFields) {
+    /**
+     * Fetch missing dropdown fields from the server (DB fallback + Upstash sync).
+     * Retries once on error or empty response — same pattern as customer/vendor cache sync.
+     * @param {string[]} missingFields - Field names to fetch.
+     * @param {boolean} [_isRetry=false] - Internal flag to prevent infinite retry.
+     * @returns {Promise<Object>} Resolved data map.
+     */
+    function _fetchMissing(missingFields, _isRetry) {
         return new Promise(function (resolve) {
             if (!missingFields.length) { resolve({}); return; }
 
@@ -123,9 +130,20 @@ window.DropdownCache = (function ($) {
                 cache    : false,
                 success  : function (res) {
                     if (res && res.NewCsrfToken) CsrfToken = res.NewCsrfToken;
-                    resolve((res && !res.Error && res.Data) ? res.Data : {});
+                    var data = (res && !res.Error && res.Data) ? res.Data : {};
+                    if (!Object.keys(data).length && !_isRetry) {
+                        _fetchMissing(missingFields, true).then(resolve);
+                        return;
+                    }
+                    resolve(data);
                 },
-                error: function () { resolve({}); }
+                error: function () {
+                    if (!_isRetry) {
+                        _fetchMissing(missingFields, true).then(resolve);
+                    } else {
+                        resolve({});
+                    }
+                }
             });
         });
     }

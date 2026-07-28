@@ -979,6 +979,155 @@ tr:hover .apex-party-actions {
 .apex-nav-btn i {
     font-size: 1.2rem;
 }
+/* ── Quick Create button ────────────────────────────────────────────────── */
+.apex-qc-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: none;
+    background: #2563eb;
+    color: #fff;
+    cursor: pointer;
+    transition: background .12s, box-shadow .12s, transform .1s;
+    padding: 0;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(37,99,235,.25);
+}
+.apex-qc-btn:hover { background: #1d4ed8; box-shadow: 0 4px 14px rgba(37,99,235,.35); }
+.apex-qc-btn:active { transform: scale(.92); }
+.apex-qc-btn i { font-size: 1.25rem; line-height: 1; }
+
+/* ── Quick Create dropdown ───────────────────────────────────────────────── */
+.apex-qc-wrap {
+    position: relative;
+}
+.apex-qc-dropdown {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: 620px;
+    padding: 0;
+    overflow: hidden;
+    border-radius: 16px;
+    box-shadow: 0 16px 50px rgba(0,0,0,.15);
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    display: none;
+    z-index: 1050;
+}
+.apex-qc-wrap.open .apex-qc-dropdown {
+    display: block;
+    animation: apexQcIn .14s ease;
+}
+@keyframes apexQcIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.apex-qc-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+}
+/* ── Column container ── */
+.apex-qc-col {
+    padding: 16px 14px;
+    border-right: 1px solid #f1f5f9;
+}
+.apex-qc-col:last-child { border-right: none; }
+/* ── Column header: icon badge + label ── */
+.apex-qc-col-header {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #f1f5f9;
+}
+.apex-qc-col-icon {
+    width: 26px; height: 26px;
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+}
+.apex-qc-col-icon i { font-size: .9rem; }
+.apex-qc-col-label {
+    font-size: .7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+}
+/* ── Per-column colour themes ── */
+.apex-qc-col--sales .apex-qc-col-icon  { background: #dbeafe; }
+.apex-qc-col--sales .apex-qc-col-icon i { color: #2563eb; }
+.apex-qc-col--sales .apex-qc-col-label { color: #2563eb; }
+.apex-qc-col--sales .apex-qc-item:hover { background: #eff6ff; color: #2563eb; }
+.apex-qc-col--sales .apex-qc-item:hover i { color: #2563eb; }
+
+.apex-qc-col--purchase .apex-qc-col-icon  { background: #ede9fe; }
+.apex-qc-col--purchase .apex-qc-col-icon i { color: #7c3aed; }
+.apex-qc-col--purchase .apex-qc-col-label { color: #7c3aed; }
+.apex-qc-col--purchase .apex-qc-item:hover { background: #f5f3ff; color: #7c3aed; }
+.apex-qc-col--purchase .apex-qc-item:hover i { color: #7c3aed; }
+
+.apex-qc-col--party .apex-qc-col-icon  { background: #dcfce7; }
+.apex-qc-col--party .apex-qc-col-icon i { color: #059669; }
+.apex-qc-col--party .apex-qc-col-label { color: #059669; }
+.apex-qc-col--party .apex-qc-item:hover { background: #ecfdf5; color: #059669; }
+.apex-qc-col--party .apex-qc-item:hover i { color: #059669; }
+
+.apex-qc-col--accounting .apex-qc-col-icon  { background: #fff7ed; }
+.apex-qc-col--accounting .apex-qc-col-icon i { color: #d97706; }
+.apex-qc-col--accounting .apex-qc-col-label { color: #d97706; }
+.apex-qc-col--accounting .apex-qc-item:hover { background: #fff7ed; color: #d97706; }
+.apex-qc-col--accounting .apex-qc-item:hover i { color: #d97706; }
+
+/* ── Inventory sub-section inside Party column ── */
+.apex-qc-subsection {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid #f1f5f9;
+}
+.apex-qc-sub-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+.apex-qc-sub-icon {
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    background: #fef3c7;
+    flex-shrink: 0;
+}
+.apex-qc-sub-icon i { font-size: .8rem; color: #d97706; }
+.apex-qc-sub-label {
+    font-size: .66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .45px;
+    color: #d97706;
+}
+/* ── Item links ── */
+.apex-qc-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 7px;
+    color: #334155;
+    font-size: .8rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background .12s, color .12s;
+    white-space: nowrap;
+    margin-bottom: 2px;
+}
+.apex-qc-item i { font-size: .95rem; color: #94a3b8; flex-shrink: 0; transition: color .12s; }
+
 /* ── Language dropdown ───────────────────────────────────────────────────── */
 .apex-lang-wrap {
     position: relative;

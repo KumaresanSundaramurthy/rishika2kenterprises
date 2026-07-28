@@ -47,6 +47,19 @@
         return (isNaN(val) ? 0 : val).toFixed(dec);
     }
 
+    /**
+     * Format a quantity value stripping unnecessary trailing zeros.
+     * "10.00" → "10", "10.50" → "10.5", "10.55" → "10.55"
+     * @param {*} n - Raw quantity value
+     * @returns {string} Formatted quantity string
+     */
+    function _fmtQty(n) {
+        if (n === null || n === undefined || n === '') return '0';
+        var val = parseFloat(n);
+        if (isNaN(val)) return String(n);
+        return String(parseFloat(val.toFixed(6)));
+    }
+
     function _statusBadge(status) {
         if (!status) return '';
         var s = String(status).toLowerCase().trim();
@@ -229,7 +242,7 @@
                     (item.HSNCode    ? '<div class="vtm-item-sub">HSN: '  + _esc(item.HSNCode)    + '</div>' : '') +
                 '</td>' +
                 '<td class="text-center">' +
-                    '<span class="fw-500">' + _esc(item.Quantity) + '</span>' +
+                    '<span class="fw-500">' + _fmtQty(item.Quantity) + '</span>' +
                     '<br><span class="vtm-item-sub">' + _esc(item.PrimaryUnitName) + '</span>' +
                 '</td>' +
                 '<td class="text-end">' + _n(item.UnitPrice) + '</td>' +

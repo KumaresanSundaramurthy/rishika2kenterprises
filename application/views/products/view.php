@@ -91,7 +91,7 @@
 
                         <!-- Filter Row -->
                         <div class="apex-filter-row">
-                            <div class="r2k-search-wrap">
+                            <div class="r2k-search-wrap<?php echo !empty($InitSearch) ? ' is-expanded r2k-search-active' : ''; ?>">
                                 <i class="bx bx-search r2k-si"></i>
                                 <?php
                                 $searchPlaceholderMap = ['item' => 'Search items...', 'group' => 'Search groups...', 'pricelist' => 'Search price lists...', 'category' => 'Search categories...', 'brand' => 'Search brands...'];
@@ -130,11 +130,11 @@
                                 </ul>
                             </div>
                             <?php $this->load->view('common/partials/export_btn'); ?>
-                            <a href="javascript:void(0);" class="btn btn-primary btn-sm addItem <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" id="NewItem"><i class="bx bx-plus me-1"></i><?php echo t('create_item', 'Create Item'); ?></a>
-                            <a href="javascript:void(0);" class="btn btn-primary btn-sm <?php echo $ActiveTabData == 'group' ? '' : 'd-none'; ?>" id="NewComboItem"><i class="bx bx-git-merge me-1"></i><?php echo t('create_item_group', 'Create Group'); ?></a>
-                            <a href="javascript:void(0);" class="btn btn-primary btn-sm <?php echo $ActiveTabData == 'pricelist' ? '' : 'd-none'; ?>" id="NewPriceList"><i class="bx bx-plus me-1"></i><?php echo t('create_price_list', 'Create Price List'); ?></a>
-                            <a href="javascript:void(0);" class="btn btn-primary btn-sm addCategory <?php echo $ActiveTabData == 'category' ? '' : 'd-none'; ?>" id="NewCategory"><i class="bx bx-plus me-1"></i><?php echo t('create_category', 'Create Category'); ?></a>
-                            <a href="javascript:void(0);" class="btn btn-primary btn-sm addBrand <?php echo $ActiveTabData == 'brand' ? '' : 'd-none'; ?>" id="NewBrand"><i class="bx bx-plus me-1"></i><?php echo t('create_brand', 'Create Brand'); ?></a>
+                            <a href="javascript:void(0);" class="btn btn-primary btn-sm addItem <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" id="NewItem" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('create_item', 'Create Item'); ?>"><i class="bx bx-plus me-1"></i><?php echo t('lbl_new', 'New'); ?></a>
+                            <a href="javascript:void(0);" class="btn btn-primary btn-sm <?php echo $ActiveTabData == 'group' ? '' : 'd-none'; ?>" id="NewComboItem" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('create_item_group', 'Create Group'); ?>"><i class="bx bx-git-merge me-1"></i><?php echo t('lbl_new', 'New'); ?></a>
+                            <a href="javascript:void(0);" class="btn btn-primary btn-sm <?php echo $ActiveTabData == 'pricelist' ? '' : 'd-none'; ?>" id="NewPriceList" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('create_price_list', 'Create Price List'); ?>"><i class="bx bx-plus me-1"></i><?php echo t('lbl_new', 'New'); ?></a>
+                            <a href="javascript:void(0);" class="btn btn-primary btn-sm addCategory <?php echo $ActiveTabData == 'category' ? '' : 'd-none'; ?>" id="NewCategory" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('create_category', 'Create Category'); ?>"><i class="bx bx-plus me-1"></i><?php echo t('lbl_new', 'New'); ?></a>
+                            <a href="javascript:void(0);" class="btn btn-primary btn-sm addBrand <?php echo $ActiveTabData == 'brand' ? '' : 'd-none'; ?>" id="NewBrand" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('create_brand', 'Create Brand'); ?>"><i class="bx bx-plus me-1"></i><?php echo t('lbl_new', 'New'); ?></a>
                         </div>
 
                         <!-- Tabs Row -->
@@ -633,7 +633,7 @@ $(function() {
         });
     })();
 
-    if (!_prodInitSearch) { $('#SearchDetails').val(''); }
+    $('#SearchDetails').val(_prodInitSearch || '');
     $(ProdHeader + ',' + ProdRow).prop('checked', false).trigger('change');
 
     if (_prodInitSearch && _prodInitSearch.length >= 3) {
@@ -1080,6 +1080,21 @@ $(function() {
         if (SelectedUIDs.length == 1 && (ActiveTabId === 'Item' || ActiveTabId === 'Groups')) {
             $('#CloneOption').removeClass('d-none');
         }
+        MultipleDeleteOption();
+    });
+
+    $(document).on('click', CatgRow, function() {
+        onClickOfCheckbox($(this), CatgTable, CatgHeader, CatgRow);
+        MultipleDeleteOption();
+    });
+
+    $(document).on('click', BrandRow, function() {
+        onClickOfCheckbox($(this), BrandTable, BrandHeader, BrandRow);
+        MultipleDeleteOption();
+    });
+
+    $(document).on('click', PLRow, function() {
+        onClickOfCheckbox($(this), PLTable, PLHeader, PLRow);
         MultipleDeleteOption();
     });
 
@@ -1592,6 +1607,22 @@ $(function() {
             }
         });
     });
+
+    if (window.location.search.indexOf('action=create') !== -1) {
+        $('#NewItem').trigger('click');
+    }
+
+    /**
+     * Called by the Quick Create handler in default.js when the user is already
+     * on this page. Returns true if the create modal was opened, false if the
+     * caller should navigate instead (e.g. we're on Categories/Brands tab).
+     * @returns {boolean}
+     */
+    window._qcPageCreate = function () {
+        if ($('#NewItem').hasClass('d-none')) return false;
+        $('#NewItem').trigger('click');
+        return true;
+    };
 
 });
 

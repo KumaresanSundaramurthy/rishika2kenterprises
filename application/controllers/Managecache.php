@@ -10,10 +10,9 @@ class Managecache extends CI_Controller {
     public function clear_all() {
         $org          = $this->pageData['JwtData']->Org ?? null;
         $userUID      = $this->pageData['JwtData']->User->UserUID ?? null;
-        $orgShortCode = $org->OrgShortCode ?? '';
-        $orgToken     = $org->OrgToken     ?? '';
+        $orgToken = $org->OrgToken ?? '';
         if ($userUID) {
-            $this->redisservice->deleteAllUserCache($userUID, $orgShortCode, $orgToken);
+            $this->redisservice->deleteAllUserCache($userUID, $orgToken);
         }
         // Also sweep any wildcard user-context patterns
         $this->redisservice->clearCacheByPattern('UserActiveSession_*');

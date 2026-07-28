@@ -349,17 +349,17 @@ class Organisation_model extends CI_Model {
 
     /**
      * Returns org receipt info from Redis cache.
-     * Key format: {ShortCode}:{OrgToken}:{env}:org_info  (falls back to org_info:{OrgUID})
+     * Key format: {OrgToken}-{S|P}-org-info  (falls back to org-info-{OrgUID})
      * On cache miss, fetches from DB, resolves the Logo to a full CDN URL,
      * stores in Redis, and returns. Return type matches getOrgForReceipt().
      */
-    public function getOrgInfoCached(int $orgUID, string $shortCode = '', string $token = ''): object {
+    public function getOrgInfoCached(int $orgUID, string $token = ''): object {
         $this->EndReturnData = new stdClass();
         try {
             $CI       =& get_instance();
-            $cacheKey = $CI->redisservice->orgKey('org_info', $shortCode, $token);
-            if ($cacheKey === 'org_info') {
-                $cacheKey = 'org_info:' . (int)$orgUID;
+            $cacheKey = $CI->redisservice->orgKey('org-info', $token);
+            if ($cacheKey === 'org-info') {
+                $cacheKey = 'org-info-' . (int)$orgUID;
             }
             $cached   = $CI->redisservice->getCache($cacheKey);
 

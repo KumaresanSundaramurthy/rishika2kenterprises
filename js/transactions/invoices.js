@@ -105,7 +105,7 @@ function getInvoicesDetails(pageNo, rowLimit, filter, afterLoad) {
     }
 
     $(document).on('click', '.pay-mode-clickable', function (e) {
-        if ($(e.target).closest('.invPayAttachBtn').length) return;
+        if ($(e.target).closest('.transPayAttachBtn').length) return;
         e.stopPropagation();
         var transUID = $(this).data('trans-uid');
         if (openUID === transUID) { closePanel(); return; }

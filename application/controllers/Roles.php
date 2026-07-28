@@ -49,8 +49,7 @@ class Roles extends MY_Controller {
             $userUID      = $JwtData->User->UserUID;
             $orgUID       = $JwtData->Org->OrgUID;
             $roleUID      = $JwtData->User->RoleUID;
-            $orgShortCode = $JwtData->Org->OrgShortCode ?? '';
-            $orgToken     = $JwtData->Org->OrgToken     ?? '';
+            $orgToken     = $JwtData->Org->OrgToken ?? '';
             $loginExpiry  = (int) getenv('LOGIN_EXPIRE_SECS');
 
             $this->load->model('login_model');
@@ -88,7 +87,7 @@ class Roles extends MY_Controller {
             $this->globalservice->refreshUserCache();
 
             // Rebuild org info cache with fresh DB data + resolved CDN URL
-            $this->redisservice->deleteCache($this->redisservice->orgKey('org_info'));
+            $this->redisservice->deleteCache($this->redisservice->orgKey('org-info'));
             $this->load->model('organisation_model');
             $this->organisation_model->getOrgInfoCached($orgUID);
 

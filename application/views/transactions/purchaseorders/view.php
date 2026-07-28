@@ -102,8 +102,8 @@ $this->load->view('common/transactions/header'); ?>
 
                             <?php $this->load->view('common/partials/export_btn'); ?>
 
-                            <a href="/purchaseorders/create" class="btn btn-sm btn-primary">
-                                <i class="bx bx-plus me-1"></i>New Purchase Order
+                            <a href="/purchaseorders/create" class="btn btn-sm btn-primary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('create_purchase_order', 'Create Purchase Order'); ?>">
+                                <i class="bx bx-plus me-1"></i><?php echo t('lbl_new', 'New'); ?>
                             </a>
 
                         </div>

@@ -40,11 +40,10 @@ class Cache extends CI_Controller {
         if (!$userUID) {
             return $this->_json(['Error' => true, 'Message' => 'Unauthenticated'], 401);
         }
-        $orgShortCode = $org->OrgShortCode ?? '';
-        $orgToken     = $org->OrgToken     ?? '';
+        $orgToken = $org->OrgToken ?? '';
         $value  = $post['value'] ?? null;
         $ttl    = isset($post['ttl']) ? (int)$post['ttl'] : 0;
-        $result = $this->redisservice->setUserCache($type, $userUID, $value, $ttl, $orgShortCode, $orgToken);
+        $result = $this->redisservice->setUserCache($type, $userUID, $value, $ttl, $orgToken);
         $this->_json(['Error' => $result->Error, 'Message' => $result->Message, 'Type' => $type]);
     }
 
@@ -56,10 +55,9 @@ class Cache extends CI_Controller {
         if (!$userUID) {
             return $this->_json(['Error' => true, 'Message' => 'Unauthenticated'], 401);
         }
-        $orgShortCode = $org->OrgShortCode ?? '';
-        $orgToken     = $org->OrgToken     ?? '';
+        $orgToken = $org->OrgToken ?? '';
         if ($type === 'all') {
-            $this->redisservice->deleteAllUserCache($userUID, $orgShortCode, $orgToken);
+            $this->redisservice->deleteAllUserCache($userUID, $orgToken);
             return $this->_json(['Error' => false, 'Message' => 'All user cache cleared']);
         }
         if (!$this->_validType($type)) {

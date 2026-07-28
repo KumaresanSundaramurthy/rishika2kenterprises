@@ -8,12 +8,11 @@
     
 <?php
     $_jwt_user  = isset($JwtData) ? ($JwtData->Org ?? null) : null;
-    $_sc        = strtolower($_jwt_user->OrgShortCode ?? '');
-    $_tk        = strtolower($_jwt_user->OrgToken     ?? '');
+    $_tk        = strtolower($_jwt_user->OrgToken ?? '');
     $_env       = defined('ENVIRONMENT') ? ENVIRONMENT : 'production';
-    $_envMap    = ['development' => 'dev', 'staging' => 'stg', 'production' => 'prod'];
-    $_orgPrefix = ($_sc && $_tk) ? $_sc . ':' . $_tk . ':' . ($_envMap[$_env] ?? $_env) : '';
-    unset($_jwt_user, $_sc, $_tk, $_env, $_envMap);
+    $_envFlag   = ($_env === 'production') ? 'P' : 'S';
+    $_orgPrefix = $_tk ? $_tk . '-' . $_envFlag : '';
+    unset($_jwt_user, $_tk, $_env, $_envFlag);
 ?>
     <meta name="upstash-url"    content="<?= htmlspecialchars(getenv('UPSTASH_REDIS_REST_URL')   ?: '') ?>">
     <meta name="upstash-token"  content="<?= htmlspecialchars(getenv('UPSTASH_REDIS_REST_TOKEN') ?: '') ?>">

@@ -29,7 +29,7 @@
               <div class="trans-toolbar-actions">
                 <a href="#" class="r2k-icon-btn PageRefresh"><i class="bx bx-refresh"></i></a>
                 <div class="r2k-search-wrap"><i class="bx bx-search r2k-si"></i><input type="text" id="SearchDetails" placeholder="Search…"><i class="bx bx-x r2k-clear d-none" id="clearSearch"></i></div>
-                <button class="btn btn-sm btn-primary" id="btnNewHoliday"><i class="bx bx-plus me-1"></i><?php echo t('btn_add_holiday', 'Add Holiday'); ?></button>
+                <button class="btn btn-sm btn-primary" id="btnNewHoliday" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('btn_add_holiday', 'Add Holiday'); ?>"><i class="bx bx-plus me-1"></i><?php echo t('lbl_new', 'New'); ?></button>
               </div>
             </div>
             <div class="table-responsive">

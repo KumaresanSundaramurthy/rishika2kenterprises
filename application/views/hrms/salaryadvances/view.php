@@ -77,8 +77,9 @@
               </div>
               <div class="apex-filter-spacer"></div>
               <a href="javascript:void(0);" class="apex-icon-btn PageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
-              <button class="btn btn-primary btn-sm" id="btnNewAdvance">
-                <i class="bx bx-plus me-1"></i><?php echo t('btn_new_advance', 'New Advance'); ?>
+              <button class="btn btn-primary btn-sm" id="btnNewAdvance"
+                      data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('btn_new_advance', 'New Advance'); ?>">
+                <i class="bx bx-plus me-1"></i><?php echo t('lbl_new', 'New'); ?>
               </button>
             </div>
 

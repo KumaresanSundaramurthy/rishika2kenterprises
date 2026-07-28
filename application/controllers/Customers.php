@@ -90,11 +90,12 @@ class Customers extends MY_Controller {
             $this->pageData['OrgCCode'] = $this->pageData['JwtData']->Org->OrgCCode  ?? '';
             $this->pageData['OrgCISO2'] = $this->pageData['JwtData']->Org->OrgCISO2  ?? '';
 
-            $orgUsers = $this->_requireCache($this->redisservice->orgKey('org_users'));
+            $orgUsers = $this->_requireCache($this->redisservice->orgKey('org-users'));
             if (!$orgUsers) return;
             $this->pageData['OrgUsers']      = $orgUsers;
             $this->pageData['ShowUserFilter'] = count($orgUsers) > 1;
 
+            $this->_loadUpstashConfig();
             $this->load->view('customers/view', $this->pageData);
 
         } catch (Exception $e) {
@@ -188,6 +189,7 @@ class Customers extends MY_Controller {
             'Notes'             => getPostValue($postData, 'Notes'),
             'Tags'              => getPostValue($postData, 'Tags', 'Comma'),
             'CCEmails'          => getPostValue($postData, 'CCEmails', 'Comma'),
+            'AllowPortalAccess' => (int)(bool) getPostValue($postData, 'AllowPortalAccess'),
             'CustomerTypeUID'   => (int) getPostValue($postData, 'CustomerTypeUID', '', 0),
             'SalutationUID'     => (int) trim(getPostValue($postData, 'SalutationUID') ?? '', '"\'') ?: null,
             'UpdatedBy'         => $this->pageData['JwtData']->User->UserUID,
@@ -991,7 +993,7 @@ class Customers extends MY_Controller {
             $this->EndReturnData->Sent    = $result->Sent   ?? 0;
             $this->EndReturnData->Failed  = $result->Failed ?? 0;
 
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }

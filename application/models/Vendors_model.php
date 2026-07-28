@@ -826,6 +826,10 @@ class Vendors_model extends CI_Model {
         try {
             $this->ReadDb->db_debug = FALSE;
 
+            $tblChk       = $this->ReadDb->query("SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA='Vendors' AND TABLE_NAME='VendorGroupMemberTbl' LIMIT 1");
+            $hasMemberTbl = $tblChk && $tblChk->num_rows() > 0;
+
+            // ── Count query ──
             $this->ReadDb->select('COUNT(*) AS cnt', false);
             $this->ReadDb->from('Vendors.VendorGroupTbl VG');
             $this->ReadDb->where(['VG.OrgUID' => (int)$orgUID, 'VG.IsDeleted' => 0]);
@@ -844,21 +848,36 @@ class Vendors_model extends CI_Model {
             if (!empty($filter['GroupType'])) {
                 $this->ReadDb->where_in('VG.GroupType', (array)$filter['GroupType']);
             }
+            if ($hasMemberTbl && !empty($filter['VendorUID'])) {
+                $vuid = (int)$filter['VendorUID'];
+                $this->ReadDb->where("VG.GroupUID IN (SELECT GroupUID FROM Vendors.VendorGroupMemberTbl WHERE VendorUID = {$vuid} AND OrgUID = {$orgUID} AND IsDeleted = 0)", null, false);
+            }
             $countRow   = $this->ReadDb->get()->row();
             $totalCount = (int)($countRow->cnt ?? 0);
 
-            // ── Step 1: Paginated groups with member count + primary name (no VOB join) ──
-            $this->ReadDb->select(
-                'VG.GroupUID, VG.GroupCode, VG.GroupName, VG.GroupType,
-                 VG.ContactPerson, VG.Mobile, VG.Email, VG.IsActive,
-                 COUNT(V.VendorUID) AS MemberCount,
-                 MAX(CASE WHEN VGM.IsGroupPrimary = 1 THEN V.Name ELSE NULL END) AS PrimaryName,
-                 0 AS TotalReceivable, 0 AS TotalPayable',
-                false
-            );
-            $this->ReadDb->from('Vendors.VendorGroupTbl VG');
-            $this->ReadDb->join('Vendors.VendorGroupMemberTbl VGM', 'VGM.GroupUID = VG.GroupUID AND VGM.OrgUID = VG.OrgUID AND VGM.IsDeleted = 0', 'left');
-            $this->ReadDb->join('Vendors.VendorTbl V', 'V.VendorUID = VGM.VendorUID AND V.IsDeleted = 0', 'left');
+            // ── Step 1: Paginated groups ──
+            if ($hasMemberTbl) {
+                $this->ReadDb->select(
+                    'VG.GroupUID, VG.GroupCode, VG.GroupName, VG.GroupType,
+                     VG.ContactPerson, VG.Mobile, VG.Email, VG.IsActive,
+                     COUNT(V.VendorUID) AS MemberCount,
+                     MAX(CASE WHEN VGM.IsGroupPrimary = 1 THEN V.Name ELSE NULL END) AS PrimaryName,
+                     0 AS TotalReceivable, 0 AS TotalPayable',
+                    false
+                );
+                $this->ReadDb->from('Vendors.VendorGroupTbl VG');
+                $this->ReadDb->join('Vendors.VendorGroupMemberTbl VGM', 'VGM.GroupUID = VG.GroupUID AND VGM.OrgUID = VG.OrgUID AND VGM.IsDeleted = 0', 'left');
+                $this->ReadDb->join('Vendors.VendorTbl V', 'V.VendorUID = VGM.VendorUID AND V.IsDeleted = 0', 'left');
+            } else {
+                $this->ReadDb->select(
+                    'VG.GroupUID, VG.GroupCode, VG.GroupName, VG.GroupType,
+                     VG.ContactPerson, VG.Mobile, VG.Email, VG.IsActive,
+                     0 AS MemberCount, NULL AS PrimaryName,
+                     0 AS TotalReceivable, 0 AS TotalPayable',
+                    false
+                );
+                $this->ReadDb->from('Vendors.VendorGroupTbl VG');
+            }
             $this->ReadDb->where(['VG.OrgUID' => (int)$orgUID, 'VG.IsDeleted' => 0]);
             if (!empty($filter['SearchAllData'])) {
                 $s = $filter['SearchAllData'];
@@ -875,14 +894,18 @@ class Vendors_model extends CI_Model {
             if (!empty($filter['GroupType'])) {
                 $this->ReadDb->where_in('VG.GroupType', (array)$filter['GroupType']);
             }
+            if ($hasMemberTbl && !empty($filter['VendorUID'])) {
+                $vuid = (int)$filter['VendorUID'];
+                $this->ReadDb->where("VG.GroupUID IN (SELECT GroupUID FROM Vendors.VendorGroupMemberTbl WHERE VendorUID = {$vuid} AND OrgUID = {$orgUID} AND IsDeleted = 0)", null, false);
+            }
             $this->ReadDb->group_by('VG.GroupUID');
             $this->ReadDb->order_by('VG.GroupName', 'ASC');
             $this->ReadDb->limit($limit, $offset);
             $query = $this->ReadDb->get();
             $rows  = $query ? $query->result() : [];
 
-            // ── Step 2: Balance totals scoped only to this page's group UIDs ──
-            if (!empty($rows)) {
+            // ── Step 2: Balance totals (only when member table exists) ──
+            if ($hasMemberTbl && !empty($rows)) {
                 $groupUIDs    = [];
                 foreach ($rows as $row) { $groupUIDs[] = (int)$row->GroupUID; }
                 $placeholders = implode(',', array_fill(0, count($groupUIDs), '?'));
@@ -919,18 +942,29 @@ class Vendors_model extends CI_Model {
         }
     }
 
-    public function getVendorGroupStats(int $orgUID): object {
+    public function getVendorGroupStats(int $orgUID): ?object {
         try {
             $this->ReadDb->db_debug = FALSE;
-            $query = $this->ReadDb->query(
-                "SELECT COUNT(*) AS TotalCount, SUM(IsActive=1) AS ActiveCount, SUM(IsActive=0) AS InactiveCount,
-                        (SELECT COUNT(*) FROM Vendors.VendorGroupMemberTbl WHERE OrgUID=? AND IsDeleted=0) AS TotalMembers
-                 FROM Vendors.VendorGroupTbl WHERE OrgUID=? AND IsDeleted=0",
-                [(int)$orgUID, (int)$orgUID]
-            );
-            return $query ? $query->row() : new stdClass();
+            $tblChk       = $this->ReadDb->query("SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA='Vendors' AND TABLE_NAME='VendorGroupMemberTbl' LIMIT 1");
+            $hasMemberTbl = $tblChk && $tblChk->num_rows() > 0;
+            if ($hasMemberTbl) {
+                $query = $this->ReadDb->query(
+                    "SELECT COUNT(*) AS TotalCount, SUM(IsActive=1) AS ActiveCount, SUM(IsActive=0) AS InactiveCount,
+                            (SELECT COUNT(*) FROM Vendors.VendorGroupMemberTbl WHERE OrgUID=? AND IsDeleted=0) AS TotalMembers
+                     FROM Vendors.VendorGroupTbl WHERE OrgUID=? AND IsDeleted=0",
+                    [(int)$orgUID, (int)$orgUID]
+                );
+            } else {
+                $query = $this->ReadDb->query(
+                    "SELECT COUNT(*) AS TotalCount, SUM(IsActive=1) AS ActiveCount, SUM(IsActive=0) AS InactiveCount,
+                            0 AS TotalMembers
+                     FROM Vendors.VendorGroupTbl WHERE OrgUID=? AND IsDeleted=0",
+                    [(int)$orgUID]
+                );
+            }
+            return $query ? $query->row() : null;
         } catch (Exception $e) {
-            return new stdClass();
+            return null;
         }
     }
 

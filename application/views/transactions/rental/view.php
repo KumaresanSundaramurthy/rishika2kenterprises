@@ -79,8 +79,9 @@ $this->load->view('common/transactions/header'); ?>
                             </div>
                             <div class="apex-filter-spacer"></div>
                             <a href="javascript:void(0);" class="apex-icon-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
-                            <button type="button" class="btn btn-primary" id="rntNewBtn">
-                                <i class="bx bx-plus me-1"></i>New Rental
+                            <button type="button" class="btn btn-primary" id="rntNewBtn"
+                                    data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('create_rental', 'Create Rental'); ?>">
+                                <i class="bx bx-plus me-1"></i><?php echo t('lbl_new', 'New'); ?>
                             </button>
                         </div>
 

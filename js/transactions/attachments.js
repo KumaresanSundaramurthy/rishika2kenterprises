@@ -104,6 +104,18 @@ $(document).on('click', '.transAttachBtn', function () {
     openTransAttachModal(uid, num, url, null, 'Attachments', moduleUID);
 });
 
+// ── Delegated click handler for the payment attachment paperclip on all list pages ──
+// Single shared handler — replaces every page-specific inline handler.
+// Stops bubbling so parent .pay-mode-clickable panels don't intercept the click.
+$(document).on('click', '.transPayAttachBtn', function (e) {
+    e.stopPropagation();
+    var uid       = $(this).data('uid');
+    var num       = $(this).data('num')        || '';
+    var url       = $(this).data('url')        || '/transactions/getPaymentAttachments';
+    var moduleUID = $(this).data('module-uid') || 0;
+    openTransAttachModal(uid, num, url, null, 'Payment Attachments', moduleUID);
+});
+
 function _buildAttachGalleryHtml(attachments) {
     var cdnUrl = (typeof CDN_URL !== 'undefined' && CDN_URL) ? CDN_URL : '';
     var html   = '<div class="row g-3 p-2">';

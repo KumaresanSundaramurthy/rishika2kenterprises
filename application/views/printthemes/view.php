@@ -26,11 +26,13 @@
                             </div>
                             <div class="apex-filter-spacer"></div>
                             <a href="javascript:void(0);" class="apex-icon-btn PageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
-                            <button class="btn btn-primary btn-sm px-3<?php echo $ActiveTabData === 'themes'    ? '' : ' d-none'; ?>" id="btnNewTheme">
-                                <i class="bx bx-plus me-1"></i>Add Theme
+                            <button class="btn btn-primary btn-sm px-3<?php echo $ActiveTabData === 'themes'    ? '' : ' d-none'; ?>" id="btnNewTheme"
+                                    data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('create_theme', 'Add Theme'); ?>">
+                                <i class="bx bx-plus me-1"></i><?php echo t('lbl_new', 'New'); ?>
                             </button>
-                            <button class="btn btn-primary btn-sm px-3<?php echo $ActiveTabData === 'templates' ? '' : ' d-none'; ?>" id="btnNewTemplate">
-                                <i class="bx bx-plus me-1"></i>Add Template
+                            <button class="btn btn-primary btn-sm px-3<?php echo $ActiveTabData === 'templates' ? '' : ' d-none'; ?>" id="btnNewTemplate"
+                                    data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('create_template', 'Add Template'); ?>">
+                                <i class="bx bx-plus me-1"></i><?php echo t('lbl_new', 'New'); ?>
                             </button>
                         </div>
 

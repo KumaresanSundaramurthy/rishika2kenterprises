@@ -98,7 +98,7 @@ class Vendors extends MY_Controller {
             $this->pageData['VendStats'] = $this->vendors_model->getVendorStats($orgUID);
             $this->pageData['Tags']      = $this->vendors_model->getVendorTags($orgUID);
 
-            $orgUsers = $this->_requireCache($this->redisservice->orgKey('org_users'));
+            $orgUsers = $this->_requireCache($this->redisservice->orgKey('org-users'));
             if (!$orgUsers) return;
             $this->pageData['OrgUsers']      = $orgUsers;
             $this->pageData['ShowUserFilter'] = count($orgUsers) > 1;
@@ -128,6 +128,7 @@ class Vendors extends MY_Controller {
             $this->pageData['OrgCCode'] = $orgCCode;
             $this->pageData['OrgCISO2'] = $orgCISO2;
 
+            $this->_loadUpstashConfig();
             $this->load->view('vendors/view', $this->pageData);
 
         } catch (Exception $e) {
@@ -1338,7 +1339,7 @@ class Vendors extends MY_Controller {
             $this->EndReturnData->Sent    = $result->Sent   ?? 0;
             $this->EndReturnData->Failed  = $result->Failed ?? 0;
 
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }

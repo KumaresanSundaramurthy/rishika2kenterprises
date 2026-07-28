@@ -83,7 +83,7 @@ $this->load->view('common/transactions/header'); ?>
                             <div class="apex-filter-spacer"></div>
                             <a href="javascript:void(0);" class="apex-filter-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
                             <?php $this->load->view('common/partials/export_btn'); ?>
-                            <a href="/deliverychallan/create" class="btn btn-sm btn-primary"><i class="bx bx-plus me-1"></i>New Delivery Challan</a>
+                            <a href="/deliverychallan/create" class="btn btn-sm btn-primary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('create_delivery_challan', 'Create Delivery Challan'); ?>"><i class="bx bx-plus me-1"></i><?php echo t('lbl_new', 'New'); ?></a>
                         </div>
 
                         <!-- ── Tabs Row ──────────────────────────────────── -->

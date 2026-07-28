@@ -77,9 +77,8 @@ class Login extends CI_Controller {
                             $this->session->set_flashdata('danger', 'Oops! '.$jwtPayload->Message);
                         } else {
 
-                            $newPayload   = clone $jwtPayload;
-                            $orgShortCode = $newPayload->JWTData['Org']['OrgShortCode'] ?? '';
-                            $orgToken     = $newPayload->JWTData['Org']['OrgToken']     ?? '';
+                            $newPayload = clone $jwtPayload;
+                            $orgToken   = $newPayload->JWTData['Org']['OrgToken'] ?? '';
 
                             $auditId = $this->logLoginSuccess($UserData->Data[0]);
                             $jwtPayload->JWTData['User']['auditId'] = $auditId ?? 0;
@@ -110,26 +109,26 @@ class Login extends CI_Controller {
 
                                 $loginExpiry = (int) getenv('LOGIN_EXPIRE_SECS');
                                 $userUID     = $UserData->Data[0]->UserUID;
-                                $this->redisservice->setUserCache('menus',       $userUID, $newPayload->JWTData['UserMainModule'] ?? [], $loginExpiry, $orgShortCode, $orgToken);
-                                $this->redisservice->setUserCache('submenus',    $userUID, $newPayload->JWTData['UserSubModule']  ?? [], $loginExpiry, $orgShortCode, $orgToken);
-                                $this->redisservice->setUserCache('modules',     $userUID, $newPayload->JWTData['ModuleInfo']     ?? [], $loginExpiry, $orgShortCode, $orgToken);
-                                $this->redisservice->setUserCache('permissions', $userUID, $newPayload->JWTData['Permissions']    ?? [], $loginExpiry, $orgShortCode, $orgToken);
-                                $this->redisservice->setUserCache('userinfo',    $userUID, $UserData->Data[0],                         $loginExpiry, $orgShortCode, $orgToken);
+                                $this->redisservice->setUserCache('menus',       $userUID, $newPayload->JWTData['UserMainModule'] ?? [], $loginExpiry, $orgToken);
+                                $this->redisservice->setUserCache('submenus',    $userUID, $newPayload->JWTData['UserSubModule']  ?? [], $loginExpiry, $orgToken);
+                                $this->redisservice->setUserCache('modules',     $userUID, $newPayload->JWTData['ModuleInfo']     ?? [], $loginExpiry, $orgToken);
+                                $this->redisservice->setUserCache('permissions', $userUID, $newPayload->JWTData['Permissions']    ?? [], $loginExpiry, $orgToken);
+                                $this->redisservice->setUserCache('userinfo',    $userUID, $UserData->Data[0],                         $loginExpiry, $orgToken);
 
                                 $orgUID = $UserData->Data[0]->UserOrgUID ?? null;
                                 if ($orgUID) {
                                     $this->load->model('users_model');
                                     $orgUsers = $this->users_model->getOrgUsersForCache((int)$orgUID);
-                                    $this->redisservice->setCache($this->redisservice->orgKey('org_users', $orgShortCode, $orgToken), $orgUsers, $loginExpiry);
+                                    $this->redisservice->setCache($this->redisservice->orgKey('org-users', $orgToken), $orgUsers, $loginExpiry);
 
                                     // Pre-warm org info cache (full CDN-resolved URL stored)
                                     $this->load->model('organisation_model');
-                                    $this->organisation_model->getOrgInfoCached((int)$orgUID, $orgShortCode, $orgToken);
+                                    $this->organisation_model->getOrgInfoCached((int)$orgUID, $orgToken);
 
                                     // Cache all active dispatch addresses
                                     $dispatchAddresses = $this->organisation_model->getAllOrgDispatchAddresses((int)$orgUID);
                                     $this->redisservice->setCache(
-                                        $this->redisservice->orgKey('org_dispatch_addresses', $orgShortCode, $orgToken),
+                                        $this->redisservice->orgKey('org-dispatch-addresses', $orgToken),
                                         $dispatchAddresses,
                                         $loginExpiry
                                     );
@@ -669,15 +668,14 @@ class Login extends CI_Controller {
 			}
 
             // Org object exists in new JWT structure; fall back to User for old cached JWTs
-            $logoutShortCode = $getAuditInfo->Value->Org->OrgShortCode ?? ($getAuditInfo->Value->User->OrgShortCode ?? '');
-            $logoutOrgToken  = $getAuditInfo->Value->Org->OrgToken     ?? ($getAuditInfo->Value->User->OrgToken     ?? '');
+            $logoutOrgToken = $getAuditInfo->Value->Org->OrgToken ?? ($getAuditInfo->Value->User->OrgToken ?? '');
             if ($userUID) {
-                $this->redisservice->deleteAllUserCache($userUID, $logoutShortCode, $logoutOrgToken);
+                $this->redisservice->deleteAllUserCache($userUID, $logoutOrgToken);
             }
 
             $orgUID = $getAuditInfo->Value->Org->OrgUID ?? ($getAuditInfo->Value->User->OrgUID ?? null);
             if ($orgUID) {
-                $this->redisservice->deleteCache($this->redisservice->orgKey('org_users', $logoutShortCode, $logoutOrgToken));
+                $this->redisservice->deleteCache($this->redisservice->orgKey('org-users', $logoutOrgToken));
             }
 
 			delete_cookie(getenv('JWT_COOKIE_NAME'));

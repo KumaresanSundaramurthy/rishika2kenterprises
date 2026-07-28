@@ -1478,8 +1478,7 @@ $(document).ready(function () {
     // Signal additional_charges.js that BillingManager is ready
     $(document).trigger('billManagerReady');
 
-    // Pre-warm dropdown cache so #extDiscountType is populated immediately on load
-    if (typeof DropdownCache !== 'undefined') DropdownCache.init();
+    // Dropdown cache is loaded on demand — no pre-warm on page load.
 
     // ── Cart controls visibility (called on every add / remove / clear) ───────
     function _syncCartControls() {
@@ -1678,7 +1677,7 @@ $(document).ready(function () {
                         return;
                     }
 
-                    // Fetch via CategoryAppend (Upstash → AJAX fallback)
+                    // Fetch via CategoryAppend (Upstash → syncCategoriesCache → AJAX fallback)
                     // CategoryAppend returns {uid,name} — map to {id,text} for Select2
                     CategoryAppend.load(
                         function (catgs) {
@@ -1687,6 +1686,7 @@ $(document).ready(function () {
                             });
                             ajaxLoading(1);
                             success(_paginate(catgCache, term, page));
+                            setTimeout(function () { $el.select2('open'); }, 0);
                         },
                         function () { ajaxLoading(1); success({ Lists: [], more: false }); }
                     );
@@ -2445,7 +2445,7 @@ function searchCustomers(key) {
     var $el      = $('#' + key);
     var wrapId   = 'customerGroup_' + key;
     var custCache = null;
-
+    var _syncDone = false;
 
     $el.select2({
         placeholder: "Search customer...",
@@ -2523,61 +2523,93 @@ function searchCustomers(key) {
                     var start = (page - 1) * pageSize;
                     ajaxLoading(1);
                     success({ Lists: filtered.slice(start, start + pageSize), more: (start + pageSize) < filtered.length });
+                    setTimeout(function () { $el.select2('open'); }, 0);
                 }
 
                 // Already loaded — paginate instantly
                 if (custCache) { _paginate(custCache); return; }
 
+                function _buildFromMap(map) {
+                    var list = Object.keys(map).map(function (uid) {
+                        var c = map[uid];
+                        var entry = {
+                            id:                parseInt(c.CustomerUID || uid, 10),
+                            text:              c.Area ? (c.Name + ' (' + c.Area + ')') : (c.Name || ''),
+                            name:              c.Name             || '',
+                            area:              c.Area             || '',
+                            mobile:            c.MobileNumber     || '',
+                            email:             c.EmailAddress     || '',
+                            gstin:             c.GSTIN            || '',
+                            company:           c.CompanyName      || '',
+                            contact:           c.ContactPerson    || '',
+                            balance:           parseFloat(c.ClosingBalance    || 0),
+                            balanceType:       c.ClosingBalType              || 'Debit',
+                            onAccountBalance:  parseFloat(c.OnAccountBalance || 0),
+                            onAccountRecords:  c.OnAccountRecords            || [],
+                            lastTxAt:          c.LastTransactionAt || '',
+                            countryISO2:       c.CountryISO2 || 'IN',
+                            customerTypeUID:   parseInt(c.CustomerTypeUID || 0, 10),
+                            groupUID:          c.GroupUID ? parseInt(c.GroupUID, 10) : null,
+                            discountPercent:   parseFloat(c.DiscountPercent || 0),
+                        };
+                        if (c.Address && c.Address.length) {
+                            var addr = c.Address[0];
+                            c.Address.forEach(function (a) {
+                                if (a.AddressType === 'Billing') addr = a;
+                            });
+                            entry.address = {
+                                Line1:   addr.Line1     || '',
+                                Line2:   addr.Line2     || '',
+                                Pincode: addr.Pincode   || '',
+                                City:    addr.CityText  || '',
+                                State:   addr.StateText || '',
+                            };
+                        }
+                        return entry;
+                    });
+                    list.sort(function (a, b) {
+                        if (a.lastTxAt && b.lastTxAt) return new Date(b.lastTxAt) - new Date(a.lastTxAt);
+                        if (a.lastTxAt) return -1;
+                        if (b.lastTxAt) return 1;
+                        return a.name.localeCompare(b.name);
+                    });
+                    return list;
+                }
+
+                function _syncOrFallback() {
+                    if (_syncDone) { _fallbackSearch(); return; }
+                    _syncDone = true;
+                    var syncData = {};
+                    if (typeof CsrfName !== 'undefined' && typeof CsrfToken !== 'undefined') {
+                        syncData[CsrfName] = CsrfToken;
+                    }
+                    ajaxLoading(1);
+                    $.ajax({
+                        url     : '/customers/syncCustomersCache',
+                        method  : 'POST',
+                        data    : syncData,
+                        complete: function () {
+                            if (!UpstashService.isEnabled()) { _fallbackSearch(); return; }
+                            UpstashService.hgetall(UpstashService.orgKey('customers')).then(function (map) {
+                                if (!map || typeof map !== 'object' || !Object.keys(map).length) { _fallbackSearch(); return; }
+                                var built = _buildFromMap(map);
+                                if (!built.length) { _fallbackSearch(); return; }
+                                custCache = built;
+                                _paginate(custCache);
+                            }).catch(function () { _fallbackSearch(); });
+                        }
+                    });
+                }
+
                 // Fetch from Upstash via UpstashService (same pattern as categories/products)
                 if (UpstashService.isEnabled()) {
                     UpstashService.hgetall(UpstashService.orgKey('customers')).then(function (map) {
-                        if (!map || typeof map !== 'object' || !Object.keys(map).length) { _fallbackSearch(); return; }
-                        custCache = Object.keys(map).map(function (uid) {
-                            var c = map[uid];
-                            var entry = {
-                                id:          parseInt(c.CustomerUID || uid, 10),
-                                text:        c.Area ? (c.Name + ' (' + c.Area + ')') : (c.Name || ''),
-                                name:        c.Name             || '',
-                                area:        c.Area             || '',
-                                mobile:      c.MobileNumber     || '',
-                                email:       c.EmailAddress     || '',
-                                gstin:       c.GSTIN            || '',
-                                company:     c.CompanyName      || '',
-                                contact:     c.ContactPerson    || '',
-                                balance:           parseFloat(c.ClosingBalance    || 0),
-                                balanceType:       c.ClosingBalType              || 'Debit',
-                                onAccountBalance:  parseFloat(c.OnAccountBalance || 0),
-                                onAccountRecords:  c.OnAccountRecords            || [],
-                                lastTxAt:        c.LastTransactionAt || '',
-                                countryISO2:     c.CountryISO2 || 'IN',
-                                customerTypeUID:  parseInt(c.CustomerTypeUID || 0, 10),
-                                groupUID:         c.GroupUID ? parseInt(c.GroupUID, 10) : null,
-                                discountPercent:  parseFloat(c.DiscountPercent || 0),
-                            };
-                            if (c.Address && c.Address.length) {
-                                var addr = c.Address[0];
-                                c.Address.forEach(function (a) {
-                                    if (a.AddressType === 'Billing') addr = a;
-                                });
-                                entry.address = {
-                                    Line1:   addr.Line1     || '',
-                                    Line2:   addr.Line2     || '',
-                                    Pincode: addr.Pincode   || '',
-                                    City:    addr.CityText  || '',
-                                    State:   addr.StateText || '',
-                                };
-                            }
-                            return entry;
-                        });
-                        custCache.sort(function (a, b) {
-                            if (a.lastTxAt && b.lastTxAt) return new Date(b.lastTxAt) - new Date(a.lastTxAt);
-                            if (a.lastTxAt) return -1;
-                            if (b.lastTxAt) return 1;
-                            return a.name.localeCompare(b.name);
-                        });
-                        if (!custCache.length) { _fallbackSearch(); return; }
+                        if (!map || typeof map !== 'object' || !Object.keys(map).length) { _syncOrFallback(); return; }
+                        var built = _buildFromMap(map);
+                        if (!built.length) { _syncOrFallback(); return; }
+                        custCache = built;
                         _paginate(custCache);
-                    }).catch(function () { _fallbackSearch(); });
+                    }).catch(function () { _syncOrFallback(); });
                 } else {
                     _fallbackSearch();
                 }
@@ -2923,6 +2955,7 @@ function searchProductInfo() {
                         prodCache = products;
                         ajaxLoading(1);
                         success(_paginate(prodCache, term, catgUID, page));
+                        setTimeout(function () { $('#searchProductInfo').select2('open'); }, 0);
                     },
                     function () { ajaxLoading(1); success({ Lists: [], more: false }); }
                 );

@@ -88,7 +88,7 @@
                         <!-- Filter Row -->
                         <?php $initIsGroups = ($InitTab ?? 'All') === 'Groups'; ?>
                         <div class="apex-filter-row">
-                            <div class="r2k-search-wrap">
+                            <div class="r2k-search-wrap<?php echo !empty($InitSearch) ? ' is-expanded r2k-search-active' : ''; ?>">
                                 <i class="bx bx-search r2k-si"></i>
                                 <input type="text" id="SearchDetails" placeholder="<?php echo $initIsGroups ? 'Group name, code, type...' : 'Name, mobile, GSTIN...'; ?>" value="<?php echo htmlspecialchars($InitSearch ?? ''); ?>">
                                 <i class="bx bx-x r2k-clear<?php echo !empty($InitSearch) ? '' : ' d-none'; ?>" id="clearSearch"></i>
@@ -109,9 +109,12 @@
                             <a href="javascript:void(0);" id="custStatusFilterBtn" class="apex-filter-btn cust-only-ctrl<?php echo $initIsGroups ? ' d-none' : ''; ?>" title="Filter by Status">
                                 <i class="bx bx-toggle-left me-1"></i>Status
                             </a>
-                            <!-- Group-only filter chip -->
+                            <!-- Group-only filter chips -->
                             <a href="javascript:void(0);" id="grpTypeFilterBtn" class="apex-filter-btn grp-only-ctrl<?php echo $initIsGroups ? '' : ' d-none'; ?>" title="Filter by Group Type">
                                 <i class="bx bx-category"></i> Group Type
+                            </a>
+                            <a href="javascript:void(0);" id="grpCustomerFilterBtn" class="apex-filter-btn grp-only-ctrl<?php echo $initIsGroups ? '' : ' d-none'; ?>" title="Filter by Customer">
+                                <i class="bx bx-user"></i> Customer
                             </a>
                             <div class="apex-filter-spacer"></div>
                             <a href="javascript:void(0);" class="apex-icon-btn PageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
@@ -131,12 +134,14 @@
                             <div class="cust-only-ctrl<?php echo $initIsGroups ? ' d-none' : ''; ?>">
                                 <?php $this->load->view('common/partials/export_btn'); ?>
                             </div>
-                            <a href="javascript:void(0);" class="btn btn-primary cust-only-ctrl<?php echo $initIsGroups ? ' d-none' : ''; ?>" id="btnCreateCustomerHeader">
-                                <i class="bx bx-plus me-1"></i><?php echo t('create_customer', 'New Customer'); ?>
+                            <a href="javascript:void(0);" class="btn btn-primary cust-only-ctrl<?php echo $initIsGroups ? ' d-none' : ''; ?>" id="btnCreateCustomerHeader"
+                               data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('create_customer', 'Create Customer'); ?>">
+                                <i class="bx bx-plus me-1"></i><?php echo t('lbl_new', 'New'); ?>
                             </a>
                             <!-- Group-only button -->
-                            <button type="button" id="btnNewGroup" class="btn btn-primary grp-only-ctrl<?php echo $initIsGroups ? '' : ' d-none'; ?>">
-                                <i class="bx bx-plus me-1"></i><?php echo t('btn_new_group', 'New Group'); ?>
+                            <button type="button" id="btnNewGroup" class="btn btn-primary grp-only-ctrl<?php echo $initIsGroups ? '' : ' d-none'; ?>"
+                                    data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('create_item_group', 'Create Group'); ?>">
+                                <i class="bx bx-plus me-1"></i><?php echo t('lbl_new', 'New'); ?>
                             </button>
                         </div>
 
@@ -299,6 +304,13 @@
         'icon'              => 'bx-category',
         'searchPlaceholder' => 'Search types...',
         'items'             => [],
+    ],
+]); ?>
+<?php $this->load->view('common/filter_panels/col_party_filter_box', [
+    'ColPartyFilterConfig' => [
+        'id'    => 'grpCustomerFilterBox',
+        'title' => 'Filter by Customer',
+        'icon'  => 'bx-user',
     ],
 ]); ?>
 <?php $this->load->view('common/filter_panels/col_filter_box', [
@@ -553,6 +565,7 @@ document.addEventListener('DOMContentLoaded', function () {
 <script src="<?php echo _assetV('/js/common/customer_form.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/common/customer_group_form.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/transactions/col_filter.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/common/party_filter.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/customers.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/common/pagecheckbox.js'); ?>"></script>
 <script src="/js/common/communication.js"></script>
@@ -587,7 +600,7 @@ $(function () {
     var _grpLoaded      = false;
     var _custDataLoaded = (_custInitTab !== 'Groups'); // false when page loaded with ?tab=groups (Option B)
 
-    if (!_custInitSearch) { $('#SearchDetails').val(''); }
+    $('#SearchDetails').val(_custInitSearch || '');
     $(ModuleRow).prop('checked', false).trigger('change');
 
     // Auto-show/hide the Actions gear button based on whether any option is visible
@@ -674,7 +687,9 @@ $(function () {
 
             // Reset group filters before leaving groups mode
             GrpTypeFilter.reset();
+            grpCustomerFilter.reset();
             delete _grpFilter['GroupType'];
+            delete _grpFilter['CustomerUID'];
             delete _grpFilter['SearchAllData'];
 
             $('.cust-only-ctrl').removeClass('d-none');
@@ -1214,6 +1229,20 @@ $(function () {
         }).catch(function () { _grpTypeFilterPromise = null; });
     });
 
+    // ── Customer filter for Groups tab (Upstash lazy-load via TransPartyColFilter) ──
+    var grpCustomerFilter = new TransPartyColFilter({
+        boxId     : 'grpCustomerFilterBox',
+        triggerId : 'grpCustomerFilterBtn',
+        partyType : 'customer',
+        filterKey : 'CustomerUID',
+        onApply   : function () {
+            var state = grpCustomerFilter.getState();
+            if (state.CustomerUID) _grpFilter.CustomerUID = state.CustomerUID;
+            else delete _grpFilter.CustomerUID;
+            _grpReload(1);
+        }
+    });
+
     initExport({ moduleUID: 201, getFilters: function () { return Filter; } });
 
     // ── URL tab state init ───────────────────────────────────────────────────
@@ -1230,6 +1259,22 @@ $(function () {
         PageNo = 0;
         getCustomersDetails(PageNo, RowLimit, Filter);
     }
+
+    if (window.location.search.indexOf('action=create') !== -1) {
+        $('#btnCreateCustomerHeader').trigger('click');
+    }
+
+    /**
+     * Called by the Quick Create handler in default.js when the user is already
+     * on this page. Returns true if the create modal was opened, false if the
+     * caller should navigate instead (e.g. we're on the Groups tab).
+     * @returns {boolean}
+     */
+    window._qcPageCreate = function () {
+        if ($('#btnCreateCustomerHeader').hasClass('d-none')) return false;
+        $('#btnCreateCustomerHeader').trigger('click');
+        return true;
+    };
 
 });
 </script>

@@ -54,9 +54,31 @@ window.CategoryAppend = (function () {
         });
     }
 
+    var _cacheRebuilt = false; // prevents infinite sync-retry loop per page session
+
+    /**
+     * Load categories: Upstash → syncCategoriesCache (once) → retry Upstash → AJAX fallback.
+     * @param {Function} onSuccess - Called with [{uid, name}] array.
+     * @param {Function} onFail    - Called with no args on complete failure.
+     * @returns {void}
+     */
     function _load(onSuccess, onFail) {
         _fromUpstash(onSuccess, function () {
-            _fromServer(onSuccess, onFail);
+            if (_cacheRebuilt) { _fromServer(onSuccess, onFail); return; }
+            _cacheRebuilt = true;
+            var syncData = {};
+            if (typeof CsrfName !== 'undefined' && typeof CsrfToken !== 'undefined') {
+                syncData[CsrfName] = CsrfToken;
+            }
+            ajaxLoading(1);
+            $.ajax({
+                url     : '/products/syncCategoriesCache',
+                method  : 'POST',
+                data    : syncData,
+                complete: function () {
+                    _fromUpstash(onSuccess, function () { _fromServer(onSuccess, onFail); });
+                }
+            });
         });
     }
 

@@ -149,9 +149,33 @@ window.ProductAppend = (function () {
 
     // ── Public ────────────────────────────────────────────────────────────────
 
+    var _rebuilt = false; // prevents infinite sync-retry loop per page session
+
+    /**
+     * Load the full product list: Upstash → syncProductsCache (once) → retry Upstash → AJAX fallback.
+     * @param {Function} onSuccess - Called with the product list array.
+     * @param {Function} [onFail]  - Called with no args on complete failure.
+     * @returns {void}
+     */
     function load(onSuccess, onFail) {
         _fromUpstash(onSuccess, function () {
-            _fromServer(onSuccess, onFail || function () {});
+            if (_rebuilt) { _fromServer(onSuccess, onFail || function () {}); return; }
+            _rebuilt = true;
+            var syncData = {};
+            if (typeof CsrfName !== 'undefined' && typeof CsrfToken !== 'undefined') {
+                syncData[CsrfName] = CsrfToken;
+            }
+            ajaxLoading(1);
+            $.ajax({
+                url     : '/products/syncProductsCache',
+                method  : 'POST',
+                data    : syncData,
+                complete: function () {
+                    _fromUpstash(onSuccess, function () {
+                        _fromServer(onSuccess, onFail || function () {});
+                    });
+                }
+            });
         });
     }
 

@@ -327,6 +327,52 @@ $(document).ready(function () {
 
     ApexHeader.init();
 
+    // ── Quick Create: toggle, outside-click close, tooltip ───────────────────
+    (function () {
+        var qcEl = document.getElementById('apexQuickCreateBtn');
+        if (!qcEl) return;
+
+        // Tooltip — no conflict now (no data-bs-toggle="dropdown" on the button)
+        if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
+            new bootstrap.Tooltip(qcEl, { placement: 'bottom', title: 'Quick Create', trigger: 'hover' });
+        }
+
+        // Toggle open/close on button click
+        $(document).on('click', '#apexQuickCreateBtn', function (e) {
+            e.stopPropagation();
+            $(this).closest('.apex-qc-wrap').toggleClass('open');
+        });
+
+        // Close on outside click (same pattern as filterbox)
+        $(document).on('click.apexQcClose', function (e) {
+            if (!$(e.target).closest('.apex-qc-wrap').length) {
+                $('.apex-qc-wrap').removeClass('open');
+            }
+        });
+
+        // Close on Escape
+        $(document).on('keydown.apexQcEsc', function (e) {
+            if (e.key === 'Escape') $('.apex-qc-wrap').removeClass('open');
+        });
+    }());
+
+    // ── Quick Create: smart same-page modal open ──────────────────────────────
+    // When a Quick Create link carries data-qc-page and the user is already on
+    // that page, call window._qcPageCreate() (defined by the page) instead of
+    // navigating.  If the page returns false (wrong tab), fall back to navigation.
+    $(document).on('click', '.apex-qc-item[data-qc-page]', function (e) {
+        var $link   = $(this);
+        var qcPage  = $link.data('qc-page');
+        var curPage = window.location.pathname.replace(/^\/+/, '').split('/')[0].toLowerCase();
+        if (curPage !== qcPage) return;                         // different page — navigate normally
+        if (typeof window._qcPageCreate !== 'function') return; // page didn't register a handler
+        e.preventDefault();
+        $('.apex-qc-wrap').removeClass('open');
+        if (!window._qcPageCreate()) {
+            window.location.href = $link.attr('href');
+        }
+    });
+
     // ── Same-controller menu link interceptor ──────────────────────────────────
     // When a menu link points to the same base path as the current page but with
     // a different ?tab= query, prevent a full page reload and fire a custom event

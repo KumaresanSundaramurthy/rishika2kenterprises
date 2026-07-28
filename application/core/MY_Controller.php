@@ -157,7 +157,7 @@ class MY_Controller extends CI_Controller {
      * Sets pageData['DispatchAddresses'] (array) and pageData['DispatchAddress'] (first/default).
      */
     protected function _getDispatchAddresses($orgUID) {
-        $cacheKey  = $this->redisservice->orgKey('org_dispatch_addresses_shipping');
+        $cacheKey  = $this->redisservice->orgKey('org-dispatch-addresses-shipping');
         $addresses = $this->redisservice->getCache($cacheKey)->Value ?? null;
         if (!is_array($addresses)) {
             $this->load->model('organisation_model');

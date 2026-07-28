@@ -460,3 +460,22 @@
 /* ── Party Select2 field — readonly on edit ──────────────────────────────── */
 .select2-party-readonly .select2-selection__clear  { display: none !important; }
 .select2-party-readonly .select2-selection         { cursor: default; background-color: #e9ecef !important; }
+
+/* ── Transaction type — static text on edit (same visual as party readonly) ── */
+.trans-type-readonly {
+    display: inline-flex;
+    align-items: center;
+    padding: .25rem .5rem;
+    font-size: .875rem;
+    font-weight: 600;
+    line-height: 1.5;
+    background-color: #e9ecef;
+    border-radius: .25rem;
+    cursor: default;
+    white-space: nowrap;
+}
+@media (prefers-color-scheme: dark) {
+    .trans-type-readonly { background-color: #3a3f50; color: #cdd0e0; }
+}
+:root[data-theme="dark"]  .trans-type-readonly { background-color: #3a3f50; color: #cdd0e0; }
+:root[data-theme="light"] .trans-type-readonly { background-color: #e9ecef; color: inherit; }

@@ -1443,17 +1443,29 @@ class Transactions_model extends MY_Model {
         $cur = '₹ ';
         $dec = 2;
         $e   = fn($v) => htmlspecialchars((string)($v ?? ''), ENT_QUOTES);
-        // Read PrintDateFormat from GenSettings JWT (stored in OrgSettingsTbl)
+        // Read print formats and org timezone from GenSettings JWT
         try {
-            $CI = &get_instance();
-            $_printFmt = $CI->pageData['JwtData']->GenSettings->PrintDateFormat ?? 'd M Y';
+            $CI          = &get_instance();
+            $_printFmt   = $CI->pageData['JwtData']->GenSettings->PrintDateFormat ?? 'd M Y';
+            $_timezone   = $CI->pageData['JwtData']->User->Timezone               ?? 'UTC';
         } catch (Exception $_) {
-            $_printFmt = 'd M Y';
+            $_printFmt   = 'd M Y';
+            $_timezone   = 'UTC';
         }
-        $fmt = function($date) use ($_printFmt) {
+        // Formats user-set date fields (TransDate, ValidityDate) — no timezone shift needed.
+        $fmt = function(string $date) use ($_printFmt): string {
             if (!$date) return '—';
             $d = date_create($date);
             return $d ? date_format($d, $_printFmt) : $date;
+        };
+        // Formats system-generated datetime fields (CreatedOn) in the org's timezone.
+        $fmtTime = function(string $dt) use ($_timezone): string {
+            if (!$dt) return '';
+            try {
+                $d = new DateTime($dt, new DateTimeZone('UTC'));
+                $d->setTimezone(new DateTimeZone($_timezone));
+                return $d->format('h:i A');
+            } catch (Exception $_) { return ''; }
         };
         $addr        = fn($l1,$l2,$city,$state,$pin) => implode(', ', array_filter([$l1,$l2,$city,$state,$pin]));
         $addrHtml    = fn($l1,$l2,$city,$state,$pin) => implode('<br>', array_filter(array_map('htmlspecialchars', array_filter([$l1,$l2,$city,$state,$pin]))));
@@ -1662,7 +1674,7 @@ class Transactions_model extends MY_Model {
             '{{DOC_TYPE}}'             => $e($h->TransType ?? 'Document'),
             '{{DOC_NUMBER}}'           => $e($h->UniqueNumber ?? '—'),
             '{{DOC_DATE}}'             => $fmt($h->TransDate ?? ''),
-            '{{DOC_TIME}}'             => (!empty($h->CreatedOn) && ($theme->ShowTime ?? 0)) ? date('h:i A', strtotime($h->CreatedOn)) : '',
+            '{{DOC_TIME}}'             => (!empty($h->CreatedOn) && ($theme->ShowTime ?? 0)) ? $fmtTime($h->CreatedOn) : '',
             '{{PARTY_CLOSING_BALANCE}}' => $partyBalAmt,
             '{{PARTYBAL_SHOW}}'        => $partyBalShow,
             '{{DUE_DATE}}'             => $fmt($h->ValidityDate ?? ''),
@@ -1865,22 +1877,13 @@ class Transactions_model extends MY_Model {
         );
     }
 
-    private function _processConditionals(string $html, array $tokens): string {
-        return preg_replace_callback(
-            '/\{\{IF:([A-Z0-9_]+)\}\}(.*?)\{\{\/IF:\1\}\}/s',
-            function ($m) use ($tokens) {
-                $value = trim($tokens['{{' . $m[1] . '}}'] ?? '');
-                return $value !== '' ? $m[2] : '';
-            },
-            $html
-        );
-    }
-
     private function _renderGenericA4Html(object $h, array $items, object $org): string {
+
         $cur   = '₹ ';
         $dec   = 2;
         $e     = fn($v) => htmlspecialchars((string)($v ?? ''), ENT_QUOTES);
-        $fmt   = function($date) { if (!$date) return '—'; $d = date_create($date); return $d ? date_format($d, 'd M Y') : $date; };
+        try { $CI = &get_instance(); $_printFmt = $CI->pageData['JwtData']->GenSettings->PrintDateFormat ?? 'd M Y'; } catch (Exception $_) { $_printFmt = 'd M Y'; }
+        $fmt   = function(string $date) use ($_printFmt): string { if (!$date) return '—'; $d = date_create($date); return $d ? date_format($d, $_printFmt) : $date; };
         $label = strtoupper($h->TransType ?? 'Document');
         $partyLabel = in_array($label, ['PURCHASE ORDER', 'PURCHASE BILL']) ? 'Vendor' : 'Customer';
 
@@ -1941,13 +1944,23 @@ class Transactions_model extends MY_Model {
         try {
             $CI        = &get_instance();
             $_printFmt = $CI->pageData['JwtData']->GenSettings->PrintDateFormat ?? 'd M Y';
+            $_timezone = $CI->pageData['JwtData']->User->Timezone               ?? 'UTC';
         } catch (Exception $_) {
             $_printFmt = 'd M Y';
+            $_timezone = 'UTC';
         }
         $fmt = function(string $date) use ($_printFmt): string {
             if (!$date) return '—';
             $d = date_create($date);
             return $d ? date_format($d, $_printFmt) : $date;
+        };
+        $fmtTime = function(string $dt) use ($_timezone): string {
+            if (!$dt) return '';
+            try {
+                $d = new DateTime($dt, new DateTimeZone('UTC'));
+                $d->setTimezone(new DateTimeZone($_timezone));
+                return $d->format('h:i A');
+            } catch (Exception $_) { return ''; }
         };
 
         $direction  = ($p->PartyType === 'C') ? 'Payment Received' : 'Payment Made';
@@ -2098,7 +2111,7 @@ class Transactions_model extends MY_Model {
                 '{{SIGNATURE_SPACE}}'    => $signatureSpaceHtml,
                 /** Misc */
                 '{{NOTES}}'              => $e($p->Notes ?? ''),
-                '{{DOC_TIME}}'           => (!empty($p->CreatedOn) && ($theme->ShowTime ?? 0)) ? date('h:i A', strtotime($p->CreatedOn)) : '',
+                '{{DOC_TIME}}'           => (!empty($p->CreatedOn) && ($theme->ShowTime ?? 0)) ? $fmtTime($p->CreatedOn) : '',
                 '{{FOOTER_TEXT}}'        => $e($theme->FooterText ?? 'Thank you for your business!'),
                 '{{CURRENCY}}'           => $cur,
                 '{{PAYMENTS_REF}}'       => $payRefText,

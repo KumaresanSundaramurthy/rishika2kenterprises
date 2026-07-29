@@ -497,24 +497,32 @@ class Users extends MY_Controller {
 <p>Regards,<br>' . $fromName . '</p>
 </body></html>';
 
-            $this->load->library('email');
-            $this->email->initialize([
-                'protocol'    => 'smtp',
-                'smtp_host'   => getenv('MAIL_HOST')    ?: 'smtp-relay.brevo.com',
-                'smtp_port'   => (int)(getenv('MAIL_PORT') ?: 587),
-                'smtp_user'   => getenv('MAIL_USERNAME') ?: '',
-                'smtp_pass'   => getenv('MAIL_PASSWORD') ?: '',
-                'smtp_crypto' => 'tls',
-                'mailtype'    => 'html',
-                'charset'     => 'utf-8',
-                'newline'     => "\r\n",
+            $apiKey  = getenv('BREVO_API_KEY');
+            $payload = json_encode([
+                'sender'      => ['name' => $fromName, 'email' => $fromEmail],
+                'to'          => [['email' => $email, 'name' => $firstName]],
+                'subject'     => 'Set Your Password — ' . $fromName,
+                'htmlContent' => $htmlBody,
             ]);
-            $this->email->clear();
-            $this->email->from($fromEmail, $fromName);
-            $this->email->to($email);
-            $this->email->subject('Set Your Password — ' . $fromName);
-            $this->email->message($htmlBody);
-            $this->email->send(false);
+            $ch = curl_init('https://api.brevo.com/v3/smtp/email');
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST           => true,
+                CURLOPT_POSTFIELDS     => $payload,
+                CURLOPT_HTTPHEADER     => [
+                    'accept: application/json',
+                    'api-key: ' . $apiKey,
+                    'content-type: application/json',
+                ],
+                CURLOPT_TIMEOUT        => 30,
+            ]);
+            $response = curl_exec($ch);
+            $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlErr  = curl_error($ch);
+            curl_close($ch);
+            if ($curlErr || $httpCode < 200 || $httpCode >= 300) {
+                throw new Exception($curlErr ?: 'Brevo API error HTTP ' . $httpCode . ': ' . $response);
+            }
         } catch (Throwable $e) {
             log_message('error', 'Users::_sendPasswordSetupEmail — ' . $e->getMessage());
         }

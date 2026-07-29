@@ -93,66 +93,74 @@ class Communicationservice {
             $contacts = $this->_getContacts($recipientType, $uids, $orgUID);
             if (empty($contacts)) throw new Exception('No valid recipients found.');
 
+            $apiKey = getenv('BREVO_API_KEY');
+            if (!$apiKey) throw new Exception('BREVO_API_KEY is not configured.');
+
             $fromEmail = getenv('MAIL_FROM_EMAIL') ?: getenv('MAIL_USERNAME');
             $fromName  = getenv('MAIL_FROM_NAME')  ?: 'R2K Enterprises';
 
-            // Wrap body in a full HTML document so email clients render it correctly.
-            // Quill outputs fragments like <p>text</p> — without <html><body> some
-            // SMTP relays (Brevo) treat the content as plain text, stripping all formatting.
             $htmlBody = $this->_wrapHtmlEmail($htmlMessage);
 
-            $this->CI->load->library('email');
-            $this->CI->email->initialize([
-                'protocol'    => 'smtp',
-                'smtp_host'   => getenv('MAIL_HOST')     ?: 'smtp-relay.brevo.com',
-                'smtp_port'   => (int)(getenv('MAIL_PORT') ?: 587),
-                'smtp_user'   => getenv('MAIL_USERNAME')  ?: '',
-                'smtp_pass'   => getenv('MAIL_PASSWORD')  ?: '',
-                'smtp_crypto' => getenv('MAIL_CRYPTO') ?: 'tls',
-                'mailtype'    => 'html',
-                'charset'     => 'utf-8',
-                'newline'     => "\r\n",
-            ]);
+            // Build Brevo attachment array (base64-encoded file content)
+            $apiAttachments = [];
+            foreach ($attachments as $filePath) {
+                if (!is_file($filePath)) continue;
+                $apiAttachments[] = [
+                    'content' => base64_encode((string) file_get_contents($filePath)),
+                    'name'    => basename($filePath),
+                ];
+            }
 
             $sent = 0; $failed = 0; $logs = [];
 
             foreach ($contacts as $c) {
                 if (empty($c->EmailAddress)) { $failed++; continue; }
 
-                $this->CI->email->clear();
-                $this->CI->email->from($fromEmail, $fromName);
-                $this->CI->email->to($c->EmailAddress, $c->Name ?? '');
-                $this->CI->email->subject($subject);
-                $this->CI->email->message($htmlBody);
-
-                foreach ($attachments as $filePath) {
-                    if (is_file($filePath)) {
-                        $this->CI->email->attach($filePath);
-                    }
+                $payload = [
+                    'sender'      => ['name' => $fromName, 'email' => $fromEmail],
+                    'to'          => [['email' => $c->EmailAddress, 'name' => $c->Name ?? '']],
+                    'subject'     => $subject,
+                    'htmlContent' => $htmlBody,
+                ];
+                if (!empty($apiAttachments)) {
+                    $payload['attachment'] = $apiAttachments;
                 }
 
-                $ok     = $this->CI->email->send(false);
+                $ch = curl_init('https://api.brevo.com/v3/smtp/email');
+                curl_setopt_array($ch, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_POST           => true,
+                    CURLOPT_POSTFIELDS     => json_encode($payload),
+                    CURLOPT_HTTPHEADER     => [
+                        'accept: application/json',
+                        'api-key: ' . $apiKey,
+                        'content-type: application/json',
+                    ],
+                    CURLOPT_TIMEOUT        => 30,
+                ]);
+                $response = curl_exec($ch);
+                $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                $curlErr  = curl_error($ch);
+                curl_close($ch);
+
+                $ok     = ($httpCode >= 200 && $httpCode < 300) && !$curlErr;
                 $status = $ok ? 'Sent' : 'Failed';
                 $ok ? $sent++ : $failed++;
 
                 $result           = new stdClass();
                 $result->Error    = !$ok;
-                $result->Response = $ok ? null : $this->CI->email->print_debugger(['headers']);
+                $result->Response = $ok ? null : ($curlErr ?: $response);
 
-                $logs[] = $this->_buildLog($orgUID, 'Email', 'brevo_smtp', $recipientType, $c, $htmlMessage, $subject, $status, $result, $sentBy);
+                $logs[] = $this->_buildLog($orgUID, 'Email', 'brevo_api', $recipientType, $c, $htmlMessage, $subject, $status, $result, $sentBy);
             }
 
             $this->_saveLogs($logs);
 
             if ($sent === 0 && $failed > 0) {
-                // print_debugger([]) = server SMTP errors only; no headers/subject/body appended
-                $raw       = strip_tags($this->CI->email->print_debugger([]));
-                $debugInfo = trim(preg_replace('/\s+/', ' ', $raw));
                 $this->EndReturnData->Error   = TRUE;
                 $this->EndReturnData->Sent    = 0;
                 $this->EndReturnData->Failed  = $failed;
-                $this->EndReturnData->Message = "Email delivery failed for all {$failed} recipient(s)."
-                    . ($debugInfo ? ' ' . substr($debugInfo, 0, 220) : ' Please verify your SMTP settings.');
+                $this->EndReturnData->Message = "Email delivery failed for all {$failed} recipient(s). Please check your Brevo API key and sender address configuration.";
                 return $this->EndReturnData;
             }
 

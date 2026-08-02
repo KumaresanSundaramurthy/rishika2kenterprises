@@ -192,6 +192,7 @@ $this->load->view('common/transactions/header'); ?>
 <script src="/js/transactions/a4_print.js"></script>
 <script src="/js/transactions/filter_bar.js"></script>
 <script src="/js/transactions/col_filter.js"></script>
+<script src="/js/common/pagecheckbox.js"></script>
 <script src="/js/transactions/salesorders.js"></script>
 
 <script>

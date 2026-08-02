@@ -1,5 +1,5 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
-// Shared product section (search bar, bill table, notes/terms, summary) for all CREATE forms.
+// Shared product section (search bar, bill table, notes/terms, summary) for all transaction forms.
 // Required (from controller pageData): $JwtData
 // Optional variables (pass via load->view second arg):
 //   $transProductSectionTitle  — default: 'Product &amp; Services Details'
@@ -9,6 +9,8 @@
 //   $transTermsContent         — default: '' (pre-filled text, e.g. from clone)
 //   $transShowDropzone         — default: false (set true for quotations)
 //   $transShowChargesBreakdown — default: false (set true for quotations)
+//   $transEditItems            — edit-mode items array; rows pre-rendered server-side so they are
+//                                visible immediately on page paint (JS only registers state, no DOM build)
 $_secTitle  = isset($transProductSectionTitle) ? $transProductSectionTitle : 'Product &amp; Services Details';
 $_notesPh   = isset($transNotesPlaceholder)    ? $transNotesPlaceholder    : t('lbl_notes_placeholder', 'Enter your notes, say thanks, or anything else');
 $_termsPh   = isset($transTermsPlaceholder)    ? $transTermsPlaceholder    : t('lbl_terms_placeholder', 'Enter your business terms & Condition');
@@ -19,6 +21,7 @@ $_chargesBd   = !empty($transShowChargesBreakdown);
 $_hideAddProd    = !empty($transHideAddProduct);
 $_hideSearchCard = !empty($transHideProductSearch);
 $_paymentVars    = isset($transPaymentVars) ? $transPaymentVars : null;
+$_editItems      = isset($transEditItems)   ? $transEditItems   : [];
 ?>
 <div class="card-header modal-header-center-sticky p-1 mb-3 d-flex align-items-center justify-content-between">
     <!-- Left: title + add button -->
@@ -108,6 +111,119 @@ $_paymentVars    = isset($transPaymentVars) ? $transPaymentVars : null;
                     </tr>
                 </thead>
                 <tbody id="billTableBody">
+                    <?php if (!empty($_editItems)): ?>
+                    <?php
+                        // Pre-render edit items so they appear on first paint; JS registers billManager state only.
+                        // Inline styles on drag-handle and description cells match what formationTableBillItems generates.
+                        $INTEGER_ONLY_UOMS_PHP = ['PCS', 'NOS', 'UNT', 'BOX', 'PAC', 'EACH', 'SET', 'BTL', 'BAG', 'CASE', 'PRS', 'SLOT', 'PKTS', 'DOZ'];
+                        $preCur    = $JwtData->GenSettings->CurrenySymbol ?? '₹';
+                        $preDec    = (int)($JwtData->GenSettings->DecimalPoints   ?? 2);
+                        $preQtyMax = (int)($JwtData->GenSettings->QtyMaxLength    ?? 7);
+                        $prePrcMax = (int)($JwtData->GenSettings->PriceMaxLength  ?? 10);
+                        $preShowDesc = !empty($JwtData->TransSettings->ShowProductDescription);
+                        $preRowIdx   = 0;
+                    ?>
+                    <?php foreach ($_editItems as $_ei): ?>
+                    <?php
+                        $prePid    = (int)($_ei->ProductUID ?? 0);
+                        $preName   = htmlspecialchars($_ei->ProductName ?? '');
+                        $preDesc   = $_ei->Description       ?? '';
+                        $preUnit   = $_ei->PrimaryUnitName   ?? '';
+                        $preQty    = (float)($_ei->Quantity      ?? 1);
+                        $preUP     = (float)($_ei->UnitPrice     ?? 0);
+                        $preSP     = (float)($_ei->SellingPrice  ?? 0);
+                        $preDisc   = (float)($_ei->Discount      ?? 0);
+                        $preLT     = (float)($_ei->TaxableAmount ?? 0);
+                        $preTax    = (float)($_ei->TaxAmount     ?? 0);
+                        $preNet    = (float)($_ei->NetAmount     ?? 0);
+                        $preTaxPct = (float)($_ei->TaxPercentage ?? 0);
+                        $preIsInt  = in_array(strtoupper($preUnit), $INTEGER_ONLY_UOMS_PHP);
+                        $preDiscCls = $preDisc ? '' : ' d-none';
+                        $preRowIdx++;
+                        if ($preDisc > 0) {
+                            $preSPTot   = round($preSP * $preQty, $preDec);
+                            $preEffSPTot = round($preSPTot - round($preSPTot * ($preDisc / 100), $preDec), $preDec);
+                            $preEffSP   = $preQty > 0 ? round($preEffSPTot / $preQty, $preDec) : $preSP;
+                            $preEffUP   = $preTaxPct > 0 ? round($preEffSP / (1 + $preTaxPct / 100), 8) : $preEffSP;
+                        } else {
+                            $preEffSP = $preSP;
+                            $preEffUP = $preUP;
+                        }
+                    ?>
+                    <tr data-id="<?php echo $prePid; ?>">
+                        <td class="drag-handle" style="width:20px;padding:4px 2px;vertical-align:middle;text-align:center;cursor:grab;" title="Drag to reorder">
+                            <i class="bx bx-grid-vertical" style="font-size:1.1rem;color:#c0c7cf;"></i>
+                        </td>
+                        <td>
+                            <div class="text-primary fw-semibold"><?php echo $preName; ?></div>
+                            <div class="transtext-small text-muted">#<span id="sequenceId_<?php echo $prePid; ?>"><?php echo $preRowIdx; ?></span>
+                                <span style="font-weight:600;color:#495057;">Stock:</span> <span class="text-warning fw-semibold">0</span> <span style="font-weight:600;color:#495057;"><?php echo htmlspecialchars($preUnit); ?></span>
+                            </div>
+                            <?php if ($preShowDesc && $preDesc): ?>
+                            <div class="bill-desc-wrap d-flex align-items-start gap-1 mt-1">
+                                <button type="button" class="btn p-0 editable-description" data-id="<?php echo $prePid; ?>"
+                                        title="Edit description"
+                                        style="flex-shrink:0;color:#8592a3;font-size:12px;line-height:1;margin-top:2px;"><i class="bx bx-edit-alt"></i></button>
+                                <span class="bill-desc-text transtext-small text-muted"
+                                      style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-style:italic;line-height:1.4;word-break:break-word;"
+                                      title="<?php echo htmlspecialchars($preDesc); ?>"><?php echo htmlspecialchars($preDesc); ?></span>
+                            </div>
+                            <?php elseif ($preShowDesc): ?>
+                            <div class="bill-desc-wrap d-flex align-items-start gap-1 mt-1">
+                                <button type="button" class="btn p-0 editable-description" data-id="<?php echo $prePid; ?>"
+                                        title="Add description"
+                                        style="flex-shrink:0;color:#adb5bd;font-size:12px;line-height:1;margin-top:2px;"><i class="bx bx-plus-circle"></i></button>
+                                <span class="bill-desc-text transtext-small" style="color:#adb5bd;font-style:italic;">Add description</span>
+                            </div>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <div class="input-group input-group-merge input-group-sm">
+                                <?php if ($preIsInt): ?>
+                                <input type="text" inputmode="numeric" class="form-control form-control-sm updateAllBillAmounts" name="bm_<?php echo $prePid; ?>_qty" id="bm_<?php echo $prePid; ?>_qty" min="0" placeholder="Quantity" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); handleOnlyNumbers(this)" maxlength="<?php echo $preQtyMax; ?>" pattern="[0-9]*" value="<?php echo smartDecimal($preQty); ?>" onpaste="pasteOnlyNumbers(event)" ondrop="dropOnlyNumbers(event)">
+                                <?php else: ?>
+                                <input type="text" inputmode="decimal" class="form-control form-control-sm updateAllBillAmounts" name="bm_<?php echo $prePid; ?>_qty" id="bm_<?php echo $prePid; ?>_qty" min="0" placeholder="Quantity" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $preQtyMax; ?>, <?php echo $preDec; ?>)" maxlength="<?php echo $preQtyMax; ?>" pattern="^\d{1,<?php echo $preQtyMax; ?>}(\.\d{0,<?php echo $preDec; ?>})?$" onpaste="handlePricePaste(event, <?php echo $preQtyMax; ?>, <?php echo $preDec; ?>)" ondrop="handlePriceDrop(event, <?php echo $preQtyMax; ?>, <?php echo $preDec; ?>)" value="<?php echo smartDecimal($preQty); ?>">
+                                <?php endif; ?>
+                                <input type="text" readonly class="form-control form-control-sm" value="<?php echo htmlspecialchars($preUnit); ?>">
+                            </div>
+                        </td>
+                        <td>
+                            <div class="input-group input-group-merge">
+                                <span class="input-group-text"><?php echo htmlspecialchars($preCur); ?></span>
+                                <input type="text" inputmode="decimal" class="form-control form-control-sm updateAllBillAmounts" name="bm_<?php echo $prePid; ?>_unitPrice" id="bm_<?php echo $prePid; ?>_unitPrice" min="0" placeholder="Unit Price" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $prePrcMax; ?>, 8)" maxlength="<?php echo $prePrcMax + 9; ?>" pattern="^\d{1,<?php echo $prePrcMax; ?>}(\.\d{0,8})?$" onpaste="handlePricePaste(event, <?php echo $prePrcMax; ?>, 8)" ondrop="handlePriceDrop(event, <?php echo $prePrcMax; ?>, 8)" value="<?php echo smartDecimal($preUP, 8); ?>">
+                            </div>
+                            <div class="transtext-small text-muted text-warning bm_efft_<?php echo $prePid; ?>_price<?php echo $preDiscCls; ?>">aft disc: <span id="bm_<?php echo $prePid; ?>_aftdisc_unitPrice"><?php echo smartDecimal($preEffUP, 8); ?></span></div>
+                        </td>
+                        <td>
+                            <div class="input-group input-group-merge">
+                                <span class="input-group-text"><?php echo htmlspecialchars($preCur); ?></span>
+                                <input type="text" inputmode="decimal" class="form-control form-control-sm updateAllBillAmounts" name="bm_<?php echo $prePid; ?>_sellingPrice" id="bm_<?php echo $prePid; ?>_sellingPrice" min="0" placeholder="Tax Price" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $prePrcMax; ?>, <?php echo $preDec; ?>)" maxlength="<?php echo $prePrcMax; ?>" pattern="^\d{1,<?php echo $prePrcMax; ?>}(\.\d{0,<?php echo $preDec; ?>})?$" onpaste="handlePricePaste(event, <?php echo $prePrcMax; ?>, <?php echo $preDec; ?>)" ondrop="handlePriceDrop(event, <?php echo $prePrcMax; ?>, <?php echo $preDec; ?>)" value="<?php echo smartDecimal($preSP, $preDec); ?>">
+                            </div>
+                            <div class="transtext-small text-muted text-warning bm_efft_<?php echo $prePid; ?>_price<?php echo $preDiscCls; ?>">aft disc: <span id="bm_<?php echo $prePid; ?>_aftdisc_sellingPrice"><?php echo smartDecimal($preEffSP, $preDec); ?></span></div>
+                        </td>
+                        <td>
+                            <div class="input-group input-group-merge w-75">
+                                <input class="form-control form-control-sm updateAllBillAmounts" type="text" inputmode="decimal" id="bm_<?php echo $prePid; ?>_discount" name="bm_<?php echo $prePid; ?>_discount" min="0" step="any" placeholder="Discount" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $prePrcMax; ?>, <?php echo $preDec; ?>)" maxlength="<?php echo $prePrcMax; ?>" pattern="^\d{1,<?php echo $prePrcMax; ?>}(\.\d{0,<?php echo $preDec; ?>})?$" onpaste="handlePricePaste(event, <?php echo $prePrcMax; ?>, <?php echo $preDec; ?>)" ondrop="handlePriceDrop(event, <?php echo $prePrcMax; ?>, <?php echo $preDec; ?>)" value="<?php echo $preDisc ?: 0; ?>">
+                                <select class="form-select form-select-sm px-2 w-auto discTypeActionBillAmounts" id="bm_<?php echo $prePid; ?>_discountType" name="bm_<?php echo $prePid; ?>_discountType">
+                                    <option value="Percentage" selected>%</option>
+                                    <option value="Amount"><?php echo htmlspecialchars($preCur); ?></option>
+                                </select>
+                            </div>
+                        </td>
+                        <td class="align-middle">
+                            <div class="d-flex align-items-center justify-content-between h-100">
+                                <div class="flex-shrink-0 me-3">
+                                    <button type="button" class="btn btn-sm btn-outline-danger deleteBillItem" data-id="<?php echo $prePid; ?>" title="Remove item"><i class="bx bx-trash"></i></button>
+                                </div>
+                                <div class="text-end flex-grow-1">
+                                    <div class="text-primary fw-semibold"><?php echo htmlspecialchars($preCur); ?> <span id="bm_<?php echo $prePid; ?>_netamount"><?php echo smartDecimal($preNet, $preDec, true); ?></span></div>
+                                    <div class="transtext-small text-muted"><span id="bm_<?php echo $prePid; ?>_tot_unit_amount"><?php echo smartDecimal($preLT, $preDec, true); ?></span> + <span id="bm_<?php echo $prePid; ?>_taxAmount"><?php echo smartDecimal($preTax, $preDec, true); ?></span> (<?php echo $preTaxPct; ?>%)</div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                    <?php else: ?>
                     <tr class="text-center text-muted">
                         <td colspan="7">
                             <div class="py-4">
@@ -117,6 +233,7 @@ $_paymentVars    = isset($transPaymentVars) ? $transPaymentVars : null;
                             </div>
                         </td>
                     </tr>
+                    <?php endif; ?>
                 </tbody>
                 <tfoot class="table-light trans-table-light">
                     <tr>

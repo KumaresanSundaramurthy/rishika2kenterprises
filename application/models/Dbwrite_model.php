@@ -632,7 +632,6 @@ class Dbwrite_model extends CI_Model {
 
         $insOk = $this->WriteDB->insert('Products.StockLedgerTbl', [
             'OrgUID'             => $orgUID,
-            'BranchUID'          => $branchUID,
             'ProductUID'         => $productUID,
             'TransUID'           => $transUID,
             'TransProdUID'       => $transProdUID,

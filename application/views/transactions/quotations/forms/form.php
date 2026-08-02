@@ -285,6 +285,7 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                                 'transShowChargesBreakdown' => true,
                                 'transSignatureUID'         => $isEdit ? (int)($QuotData->SignatureUID ?? 0) : 0,
                                 'transSignatures'           => $JwtData->User->Signatures ?? [],
+                                'transEditItems'            => $isEdit ? ($QuotItems ?? []) : [],
                             ]); ?>
 
                             <!-- ── Inline full-width summary (below both columns) ── -->
@@ -374,7 +375,7 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
 <script src="/js/transactions/quotations.js"></script>
 <script src="/js/transactions/transactions.js"></script>
 <?php $this->load->view('common/transactions/pricelist_select_modal'); ?>
-<script>var R2K_HAS_PRICE_LISTS = <?php echo $HasPriceLists ? 'true' : 'false'; ?>;</script>
+<script>var R2K_HAS_PRICE_LISTS = <?php echo ($HasPriceLists ?? false) ? 'true' : 'false'; ?>;</script>
 <script src="/js/transactions/pricelist_trans.js"></script>
 <script src="/js/transactions/transprefix.js"></script>
 <script src="/js/transactions/modaladdress.js"></script>

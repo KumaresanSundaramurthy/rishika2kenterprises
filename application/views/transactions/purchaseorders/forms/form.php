@@ -223,6 +223,7 @@ $editPrefixSeg = ($isEdit && $isDraftEdit) ? buildPOPrefixSegment($editPrefixCon
                                 'transTermsContent'     => $isEdit ? ($POData->TermsConditions ?? '') : ($JwtData->TransSettings->TermsAndConditions ?? ''),
                                 'transShowDropzone'     => true,
                                 'transSignatureUID'     => $isEdit ? (int)($POData->SignatureUID ?? 0) : 0,
+                                'transEditItems'        => $isEdit ? ($POItems ?? []) : [],
                             ]); ?>
 
                             <!-- ── Inline full-width summary ── -->

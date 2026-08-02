@@ -166,6 +166,7 @@ $this->load->view('common/transactions/header'); ?>
 <script src="/js/common/party_filter.js"></script>
 <script src="/js/transactions/viewmodal.js"></script>
 <script src="/js/transactions/a4_print.js"></script>
+<script src="/js/common/pagecheckbox.js"></script>
 <script src="/js/transactions/proformainvoices.js"></script>
 
 <script>

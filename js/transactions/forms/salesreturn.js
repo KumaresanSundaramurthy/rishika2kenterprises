@@ -294,12 +294,10 @@ $(function () {
         $('#extDiscountType').val(_editData.extraDiscType || '').trigger('change');
         $('#globalDiscount').val(_editData.globalDiscPercent || 0).trigger('input');
 
-        if (typeof billManager !== 'undefined' && typeof formationTableBillItems === 'function' && _editItems.length > 0) {
-            $(document).one('billmanager:ready', function () {
-                _isPopulating = true;
-                formationTableBillItems(_editItems);
-                _isPopulating = false;
-            });
+        if (typeof billManager !== 'undefined' && Array.isArray(_editItems) && _editItems.length > 0) {
+            billManager.batchAdd(_editItems, null);
+            $('#btnClearCart').removeClass('d-none');
+            if (_editItems.length >= 2) { $('#chkReverseOrder').closest('.form-check-inline').removeClass('d-none'); }
         }
     }
 

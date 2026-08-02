@@ -76,10 +76,10 @@ $(function () {
             billManager.isInterState = (_custState.trim().toLowerCase() !== _orgState.trim().toLowerCase());
         }
 
-        if (typeof billManager !== 'undefined' && typeof formationTableBillItems === 'function'
-                && Array.isArray(_editItems) && _editItems.length > 0) {
-            $('#billTableBody').empty();
-            billManager.batchAdd(_editItems, formationTableBillItems);
+        if (typeof billManager !== 'undefined' && Array.isArray(_editItems) && _editItems.length > 0) {
+            billManager.batchAdd(_editItems, null);
+            $('#btnClearCart').removeClass('d-none');
+            if (_editItems.length >= 2) { $('#chkReverseOrder').closest('.form-check-inline').removeClass('d-none'); }
         }
     }
 

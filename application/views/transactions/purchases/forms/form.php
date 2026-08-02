@@ -328,6 +328,7 @@ if ($isEdit) {
                                     'JwtData'          => $JwtData,
                                     'paymentPartyType' => 'V',
                                 ] : null,
+                                'transEditItems'        => $isEdit ? ($PurchItems ?? []) : [],
                             ]); ?>
 
                             <!-- ── Inline full-width summary ── -->

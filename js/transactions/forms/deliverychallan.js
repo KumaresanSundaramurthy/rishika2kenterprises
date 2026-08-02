@@ -175,15 +175,10 @@ $(function () {
             billManager.setInterState(_custState.trim().toLowerCase() !== _orgState.trim().toLowerCase());
         }
 
-        if (typeof billManager !== 'undefined' && typeof formationTableBillItems === 'function'
-                && Array.isArray(_editItems) && _editItems.length > 0) {
-            $('#billTableBody').empty();
-            _editItems.forEach(function (item) {
-                var added = billManager.addItem(item, item.quantity);
-                if (added !== false) formationTableBillItems(billManager.getItemById(item.id));
-            });
-            if (typeof updateItemTaxBreakdown === 'function') updateItemTaxBreakdown();
-            billManager.updateSummary();
+        if (typeof billManager !== 'undefined' && Array.isArray(_editItems) && _editItems.length > 0) {
+            billManager.batchAdd(_editItems, null);
+            $('#btnClearCart').removeClass('d-none');
+            if (_editItems.length >= 2) { $('#chkReverseOrder').closest('.form-check-inline').removeClass('d-none'); }
         }
 
     } else if (_fromSO && _fromSO.uid > 0) {

@@ -1287,9 +1287,9 @@ class BillManager {
      * updateItemTaxBreakdown on every add.  Runs both exactly once at the end.
      * Use this instead of a forEach + addItem loop on the edit page.
      *
-     * @param {Array}    items       Array of item objects (same shape as addItem expects)
-     * @param {Function} onEachItem  Called with the stored item after each add;
-     *                               use it to call formationTableBillItems(item)
+     * @param {Array}           items       Array of item objects (same shape as addItem expects)
+     * @param {Function|null}   onEachItem  Called with the stored item after each add; pass null
+     *                                      when DOM rows are already pre-rendered by PHP (edit pages)
      * @returns {void}
      */
     batchAdd(items, onEachItem) {

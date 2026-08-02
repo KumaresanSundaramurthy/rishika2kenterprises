@@ -550,6 +550,7 @@ var _transFormData = <?php echo json_encode([
         'extraDiscAmount'   => (float)($InvData->ExtraDiscAmount ?? 0),
         'extraDiscType'     => $InvData->ExtraDiscType ?? '',
         'globalDiscPercent' => (float)($InvData->GlobalDiscPercent ?? 0),
+        'paidAmount'        => (float)($InvData->PaidAmount ?? 0),
         'attachments'       => $InvAttachments ?? [],
         'items'             => array_map(function($item) {
             return [

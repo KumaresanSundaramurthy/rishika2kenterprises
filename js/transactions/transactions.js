@@ -1122,7 +1122,8 @@ class BillManager {
             displayRoundOff = '-' + displayRoundOff;
         }
         $('.bill_rndoff_amt').text(displayRoundOff);
-        
+
+        $(document).trigger('r2k:billTotalsUpdated', [this.summary]);
     }
 
     updateTaxBreakupUI() {

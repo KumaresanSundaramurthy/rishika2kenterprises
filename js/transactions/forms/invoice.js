@@ -22,6 +22,7 @@ var _isPopulating = false;
 var _editData         = _isEdit ? (_cfg.editData || {}) : {};
 var _custState        = _isEdit ? (_editData.custState || '') : '';
 var _editItems        = _isEdit ? (_editData.items     || []) : [];
+var _paidAmount       = _isEdit ? (_editData.paidAmount || 0) : 0;
 var _fromSO           = !_isEdit ? (_cfg.fromSO           || null) : null;
 var _fromSOItems      = !_isEdit ? (_cfg.fromSOItems       || [])  : [];
 var _fromQuotation    = !_isEdit ? (_cfg.fromQuotation     || null) : null;
@@ -108,6 +109,37 @@ $(function () {
             if (_editItems.length >= 2) { $('#chkReverseOrder').closest('.form-check-inline').removeClass('d-none'); }
         }
 
+        if (_paidAmount > 0) {
+            var $_paidWarn = $('<div id="r2kPaidAmtWarn" class="r2k-paid-warn-header d-none">' +
+                '<i class="bx bx-error-circle"></i><span id="r2kPaidAmtWarnMsg"></span>' +
+            '</div>');
+            $('#transHeaderInfo').after($_paidWarn);
+
+            /**
+             * Shows or hides the paid-amount warning based on the current grand total.
+             * @returns {void}
+             */
+            function _checkPaidAmountGuard() {
+                var bm         = typeof billManager !== 'undefined' ? billManager : null;
+                var grandTotal = bm && bm.summary && bm.summary.totals ? (bm.summary.totals.grandTotal || 0) : 0;
+                var cur        = genSettings.CurrenySymbol || '₹';
+                var dec        = genSettings.DecimalPoints || 2;
+                if (grandTotal < _paidAmount) {
+                    var shortfall = smartDecimal(Math.abs(_paidAmount - grandTotal), dec, true);
+                    $('#r2kPaidAmtWarnMsg').text(
+                        'Total (' + cur + ' ' + smartDecimal(grandTotal, dec, true) + ') is below the paid amount (' +
+                        cur + ' ' + smartDecimal(_paidAmount, dec, true) + '). Needs ' + cur + ' ' + shortfall + ' more.'
+                    );
+                    $('#r2kPaidAmtWarn').removeClass('d-none');
+                } else {
+                    $('#r2kPaidAmtWarn').addClass('d-none');
+                }
+            }
+
+            $(document).on('r2k:billTotalsUpdated', _checkPaidAmountGuard);
+            _checkPaidAmountGuard();
+        }
+
     } else {
         var _sourceData  = _fromSO || _fromQuotation || _fromChallan;
         var _sourceItems = _fromSO ? _fromSOItems : (_fromQuotation ? _fromQuotItems : _fromChallanItems);
@@ -157,6 +189,20 @@ $(function () {
 
             var items = typeof billManager !== 'undefined' ? billManager.getAllItems() : [];
             if (!items || items.length === 0) return showFormError('Please add at least one product.');
+
+            if (_isEdit && _paidAmount > 0) {
+                var bm = typeof billManager !== 'undefined' ? billManager : null;
+                var newTotal = bm && bm.summary && bm.summary.totals ? (bm.summary.totals.grandTotal || 0) : 0;
+                if (newTotal < _paidAmount) {
+                    var cur = genSettings.CurrenySymbol || '₹';
+                    var dec = genSettings.DecimalPoints || 2;
+                    return showFormError(
+                        'Cannot save: invoice total (' + cur + ' ' + smartDecimal(newTotal, dec, true) +
+                        ') is below the already paid amount (' + cur + ' ' + smartDecimal(_paidAmount, dec, true) +
+                        '). Please increase the total or adjust the payment first.'
+                    );
+                }
+            }
 
             if (!_isEdit) {
                 for (var i = 0; i < items.length; i++) {

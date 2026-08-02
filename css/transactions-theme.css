@@ -498,3 +498,34 @@
 }
 :root[data-theme="dark"]  .trans-type-readonly { background-color: #3a3f50; color: #cdd0e0; }
 :root[data-theme="light"] .trans-type-readonly { background-color: #e9ecef; color: inherit; }
+
+/* ── Paid-amount guard — header warning strip ─────────────────────────────── */
+.r2k-paid-warn-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 6px;
+    background: rgba(255, 193, 7, .13);
+    border: 1px solid rgba(255, 193, 7, .45);
+    font-size: .74rem;
+    font-weight: 500;
+    color: #856404;
+    line-height: 1.35;
+    flex-shrink: 1;
+    min-width: 0;
+}
+.r2k-paid-warn-header .bx {
+    color: #c98a00;
+    font-size: .95rem;
+    flex-shrink: 0;
+}
+@media (prefers-color-scheme: dark) {
+    .r2k-paid-warn-header { background: rgba(255,193,7,.1); border-color: rgba(255,193,7,.3); color: #ffc720; }
+    .r2k-paid-warn-header .bx { color: #ffc720; }
+}
+:root[data-theme="dark"]  .r2k-paid-warn-header { background: rgba(255,193,7,.1); border-color: rgba(255,193,7,.3); color: #ffc720; }
+:root[data-theme="dark"]  .r2k-paid-warn-header .bx { color: #ffc720; }
+:root[data-theme="light"] .r2k-paid-warn-header { background: rgba(255,193,7,.13); border-color: rgba(255,193,7,.45); color: #856404; }
+:root[data-theme="light"] .r2k-paid-warn-header .bx { color: #c98a00; }
+:root[data-theme="light"] .trans-type-readonly { background-color: #e9ecef; color: inherit; }

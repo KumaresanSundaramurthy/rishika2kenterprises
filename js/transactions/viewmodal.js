@@ -391,6 +391,15 @@
             html += '</div>';
         }
 
+        // ── Cancellation Reason ────────────────────────────────────────────────
+        if (h.DocStatus === 'Cancelled' && h.CancelReason) {
+            html += '<div class="vtm-section-notes">' +
+                '<div class="vtm-notes-label text-danger">' +
+                '<i class="bx bx-x-circle me-1"></i>Cancellation Reason</div>' +
+                '<div class="vtm-notes-text">' + _escNl(h.CancelReason) + '</div>' +
+                '</div>';
+        }
+
         // ── Payment Details ────────────────────────────────────────────────────
         if (hasPayments) {
             var payments  = resp.Payments  || [];

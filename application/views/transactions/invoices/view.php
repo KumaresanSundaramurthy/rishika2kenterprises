@@ -719,6 +719,13 @@ $(function () {
             baseHtml += _buildPaymentActionHtml(_invCancelSetting);
         }
 
+        baseHtml += '<div class="mt-3 text-start">' +
+            '<label class="form-label fw-semibold small mb-1">Reason for cancellation ' +
+            '<span class="text-muted fw-normal">(optional)</span></label>' +
+            '<textarea class="form-control form-control-sm" id="swalCancelReason" rows="2" ' +
+            'maxlength="500" placeholder="e.g. Customer requested cancellation, duplicate entry…"></textarea>' +
+            '</div>';
+
         Swal.fire({
             title             : 'Cancel Invoice?',
             html              : baseHtml,
@@ -765,6 +772,8 @@ $(function () {
                 }
             }
 
+            var cancelReason = $.trim($('#swalCancelReason').val() || '');
+
             $.ajax({
                 url   : '/invoices/updateInvoiceStatus',
                 method: 'POST',
@@ -772,6 +781,7 @@ $(function () {
                     TransUID           : uid,
                     Status             : 'Cancelled',
                     CancelPaymentAction: cancelPaymentAction,
+                    CancelReason       : cancelReason,
                     [CsrfName]         : CsrfToken
                 },
                 success: function (resp) {

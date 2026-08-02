@@ -922,6 +922,10 @@ class Invoices extends MY_Controller {
             $updateData = ['DocStatus' => $newStatus, 'UpdatedBy' => $userUID];
             if ($newStatus === 'Cancelled') {
                 $updateData['IsCancelled'] = 1;
+                $cancelReason = trim(getPostValue($PostData, 'CancelReason') ?? '');
+                if ($cancelReason !== '') {
+                    $updateData['CancelReason'] = $cancelReason;
+                }
             }
             $resp = $this->dbwrite_model->updateData(
                 'Transaction', 'TransactionsTbl',

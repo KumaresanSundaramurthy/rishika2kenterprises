@@ -275,7 +275,7 @@ if (!function_exists('_allPmtModeBadge')) {
                         data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="bx bx-dots-vertical-rounded fs-5"></i>
                 </button>
-                <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:.82rem;min-width:180px;">
+                <ul class="dropdown-menu dropdown-menu-end r2k-action-menu">
                     <li>
                         <button class="dropdown-item pmtA4Print"
                                 data-payment-uid="<?php echo (int)$row->PaymentUID; ?>">

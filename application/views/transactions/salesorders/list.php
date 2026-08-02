@@ -266,7 +266,7 @@ if (!empty($DataLists)):
                     <button class="trans-actions-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="bx bx-dots-vertical-rounded fs-5"></i>
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:.82rem;min-width:160px;">
+                    <ul class="dropdown-menu dropdown-menu-end r2k-action-menu">
 
                         <?php $hasPrinted = false; ?>
 

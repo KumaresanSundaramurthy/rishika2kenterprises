@@ -1,9 +1,9 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 
 class Vendors extends MY_Controller {
 
     public $pageData = array();
-    private $EndReturnData;
+    protected $EndReturnData;
 
     public function __construct() {
         parent::__construct();

@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php
 $isEdit      = isset($InvData);
 $isDraftEdit = $isEdit && ($InvData->DocStatus === 'Draft');
@@ -562,6 +562,8 @@ var _transFormData = <?php echo json_encode([
                 'taxAmount'        => (float)$item->TaxAmount,
                 'sellingPrice'     => (float)$item->SellingPrice,
                 'purchasePrice'    => (float)($item->PurchasePrice ?? 0),
+                'mrp'             => (float)($item->MRP ?? 0),
+                'purchasePriceIsIncl' => (bool)($item->IsPurchasePriceIncl ?? 1),
                 'availableQuantity'=> 0,
                 'hsnCode'          => '',
                 'categoryUID'      => $item->CategoryUID ? (int)$item->CategoryUID : null,
@@ -600,6 +602,8 @@ var _transFormData = <?php echo json_encode([
             'sellingPrice'     => (float) $item->SellingPrice,
             'taxAmount'        => (float) $item->TaxAmount,
             'purchasePrice'    => (float) ($item->PurchasePrice ?? 0),
+            'mrp'             => (float)($item->MRP ?? 0),
+            'purchasePriceIsIncl' => (bool)($item->IsPurchasePriceIncl ?? 1),
             'availableQuantity'=> 0,
             'hsnCode'          => '',
             'categoryUID'      => $item->CategoryUID ? (int)$item->CategoryUID : null,
@@ -637,6 +641,8 @@ var _transFormData = <?php echo json_encode([
             'sellingPrice'     => (float) $item->SellingPrice,
             'taxAmount'        => (float) $item->TaxAmount,
             'purchasePrice'    => (float) ($item->PurchasePrice ?? 0),
+            'mrp'             => (float)($item->MRP ?? 0),
+            'purchasePriceIsIncl' => (bool)($item->IsPurchasePriceIncl ?? 1),
             'availableQuantity'=> 0,
             'hsnCode'          => '',
             'categoryUID'      => $item->CategoryUID ? (int)$item->CategoryUID : null,
@@ -675,6 +681,8 @@ var _transFormData = <?php echo json_encode([
             'sellingPrice'     => (float) $item->SellingPrice,
             'taxAmount'        => (float) $item->TaxAmount,
             'purchasePrice'    => (float) ($item->PurchasePrice ?? 0),
+            'mrp'             => (float)($item->MRP ?? 0),
+            'purchasePriceIsIncl' => (bool)($item->IsPurchasePriceIncl ?? 1),
             'availableQuantity'=> 0,
             'hsnCode'          => $item->HSNCode ?? '',
             'categoryUID'      => $item->CategoryUID ? (int)$item->CategoryUID : null,

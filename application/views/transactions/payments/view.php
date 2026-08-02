@@ -24,7 +24,7 @@
                     $bankIn  = (float)($stats->BankIn  ?? 0);
                     $bankOut = (float)($stats->BankOut ?? 0);
 
-                    function allPmtFmt($val, $sym, $dec) {
+                    function allPmtFmt(float $val, string $sym, int $dec): string {
                         return $sym . ' ' . number_format((float)$val, $dec, '.', ',');
                     }
                     ?>
@@ -451,7 +451,7 @@ $(function () {
             confirmButtonText: 'Yes, Cancel it',
             confirmButtonColor: '#f59e0b',
         }).then(function (result) {
-            if (result.isConfirmed) { _doPaymentCancel(paymentUID, $row); }
+            if (result.isConfirmed) { _doPaymentAction(paymentUID, $row, 'cancel'); }
         });
     });
 
@@ -467,7 +467,7 @@ $(function () {
             confirmButtonText: 'Yes, Cancel it',
             confirmButtonColor: '#f59e0b',
         }).then(function (result) {
-            if (result.isConfirmed) { _doPaymentCancel(paymentUID, $row); }
+            if (result.isConfirmed) { _doPaymentAction(paymentUID, $row, 'cancel'); }
         });
     });
 
@@ -483,7 +483,7 @@ $(function () {
             confirmButtonText: 'Delete',
             confirmButtonColor: '#d33',
         }).then(function (result) {
-            if (result.isConfirmed) { _doPaymentCancel(paymentUID, $row); }
+            if (result.isConfirmed) { _doPaymentAction(paymentUID, $row, 'delete'); }
         });
     });
 
@@ -565,17 +565,24 @@ $(function () {
 });
 
 // ── Shared helper: cancel / delete a payment ─────────────────────────────
-function _doPaymentCancel(paymentUID, $row) {
+/**
+ * @param {number} paymentUID
+ * @param {jQuery} $row
+ * @param {string} action  'cancel' | 'delete'
+ * @returns {void}
+ */
+function _doPaymentAction(paymentUID, $row, action) {
     $.ajax({
         url   : '/payments/deletePayment',
         method: 'POST',
-        data  : { PaymentUID: paymentUID, [CsrfName]: CsrfToken },
+        data  : { PaymentUID: paymentUID, Action: action, [CsrfName]: CsrfToken },
         success: function (resp) {
             if (!resp.Error) {
+                var msg = resp.Message;
                 $row.fadeOut(300, function () { $(this).remove(); });
-                // Refresh stats to reflect the change
-                _allPmtPage.loadStats();
-                Swal.fire({ icon: 'success', text: resp.Message, timer: 1800, showConfirmButton: false });
+                _allPmtPage.loadData(1).done(function () {
+                    showToastNotification(msg, 'success');
+                });
             } else {
                 Swal.fire('Error', resp.Message, 'error');
             }

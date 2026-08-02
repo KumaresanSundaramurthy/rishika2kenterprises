@@ -1,8 +1,8 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Transactions extends MY_Controller {
 
-    private $EndReturnData;
+    protected $EndReturnData;
 
     public function __construct() {
         parent::__construct();
@@ -667,7 +667,9 @@ class Transactions extends MY_Controller {
                     'taxAmount' => (float) $taxAmount,
                     'sellingPrice' => (float) smartDecimal($sellingPrice, $GeneralSettings->DecimalPoints, true),
                     'purchasePrice'     => (float) smartDecimal($value->PurchasePrice, $GeneralSettings->DecimalPoints, true),
+                    'mrp'               => (float) smartDecimal($value->MRP, $GeneralSettings->DecimalPoints, true),
                     'purchasePriceTaxUID' => (int)($value->PurchasePriceProductTaxUID ?? 0),
+                    'purchasePriceIsIncl' => ((int)($value->PurchasePriceProductTaxUID ?? 1)) === 1,
                     "availableQuantity" => (float) $value->AvailableQuantity,
                     "hsnCode" => $value->HSNSACCode,
                     "category" => $value->CatgName,

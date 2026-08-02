@@ -1,9 +1,9 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Settings extends MY_Controller {
 
     public  $pageData = [];
-    private $EndReturnData;
+    protected $EndReturnData;
 
     /** Returns [ModuleUID => Name] map from Modules.ModuleTbl where IsThermalPrint = 1 */
     private function getThermalTransTypes() {

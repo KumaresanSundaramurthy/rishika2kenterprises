@@ -795,6 +795,7 @@ class Transactions_model extends MY_Model {
                 'product.SellingPrice AS UnitPrice',
                 'product.SellingPrice AS SellingPrice',
                 'product.PurchasePrice AS PurchasePrice',
+                'product.MRP AS MRP',
                 'product.PurchasePriceProductTaxUID AS PurchasePriceProductTaxUID',
                 'product.TaxPercentage AS TaxPercentage',
                 'product.CGST AS CGST',
@@ -994,6 +995,7 @@ class Transactions_model extends MY_Model {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select([
                 'P.PaymentUID',
+                'P.PaymentDate',
                 'P.Amount',
                 'P.ReferenceNo',
                 'P.Notes',
@@ -1009,7 +1011,7 @@ class Transactions_model extends MY_Model {
             $this->ReadDb->from('Transaction.PaymentsTbl AS P');
             $this->ReadDb->join('Global.PaymentTypesTbl AS PT', 'PT.PaymentTypeUID = P.PaymentTypeUID', 'LEFT');
             $this->ReadDb->join('Organisation.OrgBankAccountsTbl AS BA', 'BA.BankAccountUID = P.BankAccountUID', 'LEFT');
-            $this->ReadDb->where(['P.TransUID' => $transUID, 'P.OrgUID' => $orgUID, 'P.IsDeleted' => 0]);
+            $this->ReadDb->where(['P.TransUID' => $transUID, 'P.OrgUID' => $orgUID, 'P.IsDeleted' => 0, 'P.IsActive' => 1, 'P.IsCancelled' => 0]);
             $this->ReadDb->order_by('P.PaymentUID', 'ASC');
             $query = $this->ReadDb->get();
             if (!$query) return [];

@@ -1,9 +1,9 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Payments extends MY_Controller {
 
     public $pageData = array();
-    private $EndReturnData;
+    protected $EndReturnData;
     protected $pageModuleUID;
 
     public function __construct() {
@@ -338,12 +338,18 @@ class Payments extends MY_Controller {
                 }
             }
 
+            $action = getPostValue($PostData, 'Action') === 'cancel' ? 'cancel' : 'delete';
+
             $this->dbwrite_model->startTransaction();
 
-            // 2. Cancel the payment — IsCancelled = 1 (cancel rule, not delete)
+            // 2. Mark payment based on action: cancel → IsCancelled = 1, delete → IsDeleted = 1
+            $updateFields = $action === 'cancel'
+                ? ['IsCancelled' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID]
+                : ['IsDeleted'   => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID];
+
             $resp = $this->dbwrite_model->updateData(
                 'Transaction', 'PaymentsTbl',
-                ['IsCancelled' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
+                $updateFields,
                 ['PaymentUID' => $paymentUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
             );
             if ($resp->Error) throw new Exception($resp->Message);
@@ -405,7 +411,7 @@ class Payments extends MY_Controller {
                         (int) $payment->PartyUID, 'Customer', (float) $payment->Amount, 'Debit', $transUID
                     );
                 } catch (Exception $ledgerEx) {
-                    log_message('error', 'Ledger reversal failed after payment cancel PaymentUID=' . $paymentUID . ': ' . $ledgerEx->getMessage());
+                    log_message('error', 'Ledger reversal failed after payment delete PaymentUID=' . $paymentUID . ': ' . $ledgerEx->getMessage());
                 }
             }
 
@@ -419,16 +425,18 @@ class Payments extends MY_Controller {
                         $this->EndReturnData->CustomerBalanceType = $balResult['type'];
                     }
                 } catch (Exception $balEx) {
-                    log_message('error', 'Customer balance recalc failed after payment cancel PaymentUID=' . $paymentUID . ': ' . $balEx->getMessage());
+                    log_message('error', 'Customer balance recalc failed after payment delete PaymentUID=' . $paymentUID . ': ' . $balEx->getMessage());
                 }
             }
 
             $this->EndReturnData->Error   = FALSE;
-            $this->EndReturnData->Message = 'Payment cancelled.';
+            $this->EndReturnData->Message = $action === 'cancel' ? 'Payment cancelled.' : 'Payment deleted.';
+            $auditAction = $action === 'cancel' ? 'CANCEL_PAYMENT' : 'DELETE_PAYMENT';
+            $auditDesc   = $action === 'cancel' ? 'Cancelled payment #' . $paymentUID : 'Deleted payment #' . $paymentUID;
             $this->auditlog->log(
                 (int) $orgUID, (int) $userUID,
-                'DELETE_PAYMENT', 'Payment', (int) $paymentUID, '',
-                ['TransUID' => $transUID], 'Cancelled payment #' . $paymentUID, 'Payments', 'PAYMENT'
+                $auditAction, 'Payment', (int) $paymentUID, '',
+                ['TransUID' => $transUID], $auditDesc, 'Payments', 'PAYMENT'
             );
 
         } catch (Exception $e) {

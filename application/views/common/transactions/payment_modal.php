@@ -89,15 +89,15 @@ $rpBtnLabel    = $rpBtnLabel    ?? 'Record Payment';
                     </div>
                     <div class="row g-3">
 
-                        <div class="col-5">
+                        <div class="col-7">
                             <label class="rp-field-label"><span class="text-danger">*</span> Amount</label>
-                            <div class="input-group input-group-sm">
+                            <div class="input-group rp-amount-group">
                                 <span class="input-group-text bg-white fw-semibold" id="rpCurrencySymbol">₹</span>
                                 <input type="number" class="form-control" id="rpAmount" step="any" min="0.01" placeholder="0.00">
                             </div>
                         </div>
 
-                        <div class="col-7">
+                        <div class="col-5">
                             <label class="rp-field-label">Payment Date</label>
                             <div class="input-group input-group-sm input-group-merge">
                                 <span class="input-group-text bg-white"><i class="bx bx-calendar"></i></span>
@@ -139,16 +139,16 @@ $rpBtnLabel    = $rpBtnLabel    ?? 'Record Payment';
 
                         <!-- Attachments -->
                         <div class="col-12">
-                            <label class="rp-field-label">
-                                Attachments <span class="fw-normal text-muted">(max 3 files &bull; 3 MB each)</span>
-                            </label>
-                            <div id="rpAttachDropzone" class="comm-attach-dropzone dropzone needsclick dz-clickable">
-                                <div class="dz-message needsclick">
-                                    <i class="bx bx-cloud-upload comm-attach-icon"></i>
-                                    <div class="comm-attach-hint">Drag &amp; drop or <span class="text-primary">browse</span></div>
-                                    <div class="comm-attach-sub">PDF, JPG, PNG &bull; Max 3 files, 3 MB each</div>
+                            <label class="rp-field-label">Attachments</label>
+                            <div id="payAttachZone" class="prod-attach-zone" onclick="_attachZoneTrigger('Payment', event)">
+                                <div id="payAttachEmpty" class="prod-attach-empty">
+                                    <i class="bx bx-upload" id="payAttachIcon" style="font-size:1.4rem;color:#9ca3af;display:block;margin-bottom:3px;"></i>
+                                    <div id="payAttachLabel" style="font-size:.78rem;font-weight:600;color:#6b7280;">Drag &amp; drop files here</div>
                                 </div>
                             </div>
+                            <div id="payAttachList" class="prod-attach-list mt-2" style="display:none;"></div>
+                            <div id="payAttachHint" style="font-size:.7rem;color:#9ca3af;margin-top:4px;"></div>
+                            <input type="file" id="payAttachInput" multiple style="display:none;">
                         </div>
 
                     </div>
@@ -294,7 +294,6 @@ $pdtLinkedLabel = $pdtLinkedLabel ?? 'Linked Document';
     var _payTypes   = [];
     var _bankAccts  = [];
     var _fpInstance = null;
-    var _rpDropzone = null;
     var _currency   = '<?php echo addslashes($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>';
     var _rpDec      = <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>;
 
@@ -361,7 +360,7 @@ $pdtLinkedLabel = $pdtLinkedLabel ?? 'Linked Document';
         $('#rpNotes').val('');
         $('#rpBankAccount').val('');
 
-        if (_rpDropzone) { _rpDropzone.removeAllFiles(true); }
+        if (typeof _attachResetState === 'function') { _attachResetState('Payment'); }
         _renderPaymentTypes();
         new bootstrap.Modal(document.getElementById('recordPaymentModal')).show();
     };
@@ -376,49 +375,28 @@ $pdtLinkedLabel = $pdtLinkedLabel ?? 'Linked Document';
                 _fpInstance = flatpickr('#rpPaymentDate', {
                     dateFormat   : 'Y-m-d',
                     altInput     : true,
-                    altFormat    : 'd M Y',
+                    altFormat    : _transFormDateFormat,
                     maxDate      : 'today',
                     disableMobile: true,
                     defaultDate  : 'today',
-                    appendTo     : document.querySelector('#recordPaymentModal .modal-dialog'),
                 });
             } else {
                 _fpInstance.setDate(new Date(), false);
             }
-            if (!_rpDropzone && typeof Dropzone !== 'undefined') {
-                Dropzone.autoDiscover = false;
-                _rpDropzone = new Dropzone('#rpAttachDropzone', {
-                    url              : '#',
-                    autoProcessQueue : false,
-                    maxFiles         : 3,
-                    maxFilesize      : 3,
-                    acceptedFiles    : '.pdf,.jpg,.jpeg,.png',
-                    parallelUploads  : 3,
-                    clickable        : true,
-                    previewTemplate  : '<div class="dz-preview dz-file-preview"><div class="dz-details"><div class="dz-filename"><span data-dz-name></span></div><div class="dz-size"><span data-dz-size></span></div></div><div class="dz-error-message"><span data-dz-errormessage></span></div><a class="dz-remove" href="javascript:undefined;" data-dz-remove>Remove</a></div>',
-                    init: function () {
-                        this.on('maxfilesexceeded', function (file) {
-                            this.removeFile(file);
-                            Swal.fire({ icon: 'warning', text: 'Maximum 3 attachments allowed.' });
-                        });
-                        this.on('error', function (file) {
-                            if (file.size > 3 * 1024 * 1024) {
-                                this.removeFile(file);
-                                Swal.fire({ icon: 'warning', text: 'Each file must be 3 MB or smaller.' });
-                            }
-                        });
-                    }
-                });
-            }
+            if (typeof _attachInit === 'function') { _attachInit('Payment'); }
         });
 
         // Payment type pill toggle
-        // Cap amount at pending balance on every keystroke
-        $(document).on('input', '#rpAmount', function () {
+        // On blur: cap to pending max then format with smartDecimal
+        $(document).on('blur', '#rpAmount', function () {
             var max = parseFloat($(this).attr('max')) || 0;
             var val = parseFloat($(this).val())       || 0;
-            if (max > 0 && val > max) {
-                $(this).val(max.toFixed(_rpDec));
+            if (max > 0 && val > max) { val = max; }
+            if (val > 0) {
+                var formatted = (typeof smartDecimal === 'function')
+                    ? smartDecimal(val, _rpDec, true)
+                    : val.toFixed(_rpDec);
+                $(this).val(formatted);
             }
         });
 
@@ -469,7 +447,7 @@ $pdtLinkedLabel = $pdtLinkedLabel ?? 'Linked Document';
             fd.append('RowLimit',       typeof RowLimit  !== 'undefined' ? RowLimit  : 10);
             fd.append('Filter',         typeof Filter    !== 'undefined' ? JSON.stringify(Filter) : '{}');
             fd.append(CsrfName,         CsrfToken);
-            if (_rpDropzone) { _rpDropzone.files.forEach(function (f) { fd.append('PaymentFiles[]', f); }); }
+            (_attachState && _attachState['Payment'] ? (_attachState['Payment'].newFiles || []) : []).forEach(function (f) { fd.append('PaymentFiles[]', f, f.name); });
 
             $.ajax({
                 url         : submitUrl,
@@ -484,7 +462,7 @@ $pdtLinkedLabel = $pdtLinkedLabel ?? 'Linked Document';
                     } else {
                         var _rpModalInst = bootstrap.Modal.getInstance(document.getElementById('recordPaymentModal'));
                         if (_rpModalInst) _rpModalInst.hide();
-                        if (_rpDropzone) { _rpDropzone.removeAllFiles(true); }
+                        if (typeof _attachResetState === 'function') { _attachResetState('Payment'); }
                         if (resp.RecordHtmlData) {
                             $(ModuleTable + ' tbody').html(resp.RecordHtmlData);
                             $(ModulePag).html(resp.Pagination || '');

@@ -1,9 +1,9 @@
-<?php
+﻿<?php
 defined('BASEPATH') or exit('No direct script access allowed');
 
 class Barcodeconfig extends MY_Controller {
 
-    private $EndReturnData;
+    protected $EndReturnData;
 
     public function __construct() {
         parent::__construct();

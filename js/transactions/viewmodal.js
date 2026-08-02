@@ -418,7 +418,7 @@
                         : '—';
                     payRows +=
                     '<tr>' +
-                        '<td>' + _fmtDate(p.CreatedOn) + '</td>' +
+                        '<td>' + _fmtDate(p.PaymentDate || p.CreatedOn) + '</td>' +
                         '<td><span class="badge bg-light text-dark border vtm-pay-mode">' + _esc(p.PaymentTypeName || '—') + '</span></td>' +
                         '<td class="vtm-item-sub">' + bankInfo + '</td>' +
                         '<td class="text-muted vtm-item-sub">' + _esc(p.ReferenceNo || '—') + '</td>' +

@@ -1,9 +1,9 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Purchases extends MY_Controller {
 
     public $pageData = array();
-    private $EndReturnData;
+    protected $EndReturnData;
     protected $pageModuleUID;
 
     public function __construct() {
@@ -904,12 +904,14 @@ class Purchases extends MY_Controller {
             if ($existing->DocStatus === 'Draft')                          throw new Exception('Cannot record payment for a Draft purchase.');
             if (in_array($existing->DocStatus, ['Cancelled', 'Rejected'])) throw new Exception('Purchase is cancelled.');
 
-            $payments    = $this->transactions_model->getTransactionPayments($transUID, $orgUID);
-            $alreadyPaid = array_sum(array_column((array) $payments, 'Amount'));
+            if (!$this->dbwrite_model->lockTransactionRow($transUID, $orgUID)) {
+                throw new Exception('Purchase not found.');
+            }
+            $alreadyPaid = $this->dbwrite_model->sumTransactionPayments($transUID, $orgUID);
             $pending     = max(0, round((float)$existing->NetAmount - $alreadyPaid, $this->_decimals()));
 
             if ($amount > $pending + 0.01) {
-                throw new Exception('Amount (' . $amount . ') exceeds pending balance (' . $pending . ').');
+                throw new Exception('Amount (' . $amount . ') exceeds remaining balance (' . $pending . '). A concurrent payment may have just been recorded.');
             }
 
             $newTotalPaid = $alreadyPaid + $amount;

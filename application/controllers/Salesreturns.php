@@ -1,9 +1,9 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Salesreturns extends MY_Controller {
 
     public $pageData = array();
-    private $EndReturnData;
+    protected $EndReturnData;
     protected $pageModuleUID;
 
     public function __construct() {
@@ -108,12 +108,12 @@ class Salesreturns extends MY_Controller {
 
             if (!$isDraft) {
                 $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items, $this->_branchUID());
-                $this->_syncProductCacheFromItems($items);
             }
 
             $this->dbwrite_model->commitTransaction();
 
             if (!$isDraft) {
+                $this->_syncProductCacheFromItems($items); // after commit — ReadDB now sees updated stock
                 try {
                     $this->load->library('accountledger');
                     $this->accountledger->postSaleReturnJournal(
@@ -283,7 +283,6 @@ class Salesreturns extends MY_Controller {
             $wasNonDraft = ($existing->DocStatus !== 'Draft');
             if ($wasNonDraft) {
                 $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
-                $this->_syncProductCacheByTransUID($transUID);
             }
 
             if ($existing->DocStatus === 'Draft' && !$isDraft
@@ -304,7 +303,6 @@ class Salesreturns extends MY_Controller {
                 $this->_insertTransItems($newTransUID, $amounts['financialYear'], $orgUID, $userUID, $items);
                 if (!$isDraft) {
                     $this->dbwrite_model->saveStockMovements($newTransUID, $this->pageModuleUID, $orgUID, $userUID, $items, $this->_branchUID());
-                    $this->_syncProductCacheFromItems($items);
                 }
                 $this->dbwrite_model->deleteInTransaction('Transaction', 'TransactionsTbl', ['TransUID' => $transUID]);
                 $this->dbwrite_model->deleteInTransaction('Transaction', 'TransDetailTbl',  ['TransUID' => $transUID]);
@@ -325,13 +323,13 @@ class Salesreturns extends MY_Controller {
                 $this->_updateTransItems($transUID, $items, $orgUID, $amounts['financialYear'], $userUID);
                 if (!$isDraft) {
                     $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items, $this->_branchUID());
-                    $this->_syncProductCacheFromItems($items);
                 }
             }
 
             $activeTransUID = $newTransUID ?? $transUID;
             $this->_saveTransCharges($activeTransUID, $orgUID, $userUID, $PostData);
             $this->dbwrite_model->commitTransaction();
+            if (!$isDraft) { $this->_syncProductCacheByTransUID($activeTransUID); } // after commit — ReadDB now sees updated stock
             $this->_saveAttachments($activeTransUID);
             $this->_softDeleteAttachments($this->input->post('RemovedAttachIDs') ?? '');
             $this->cachehelper->touchCustomer($customerUID);
@@ -398,7 +396,6 @@ class Salesreturns extends MY_Controller {
             $this->dbwrite_model->startTransaction();
 
             $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
-            $this->_syncProductCacheByTransUID($transUID);
 
             $this->dbwrite_model->updateData(
                 'Transaction', 'PaymentsTbl',
@@ -428,6 +425,7 @@ class Salesreturns extends MY_Controller {
             $deleteResp = $this->dbwrite_model->updateData('Transaction', 'TransactionsTbl', $deleteData, ['TransUID' => $transUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
             if ($deleteResp->Error) throw new Exception($deleteResp->Message);
             $this->dbwrite_model->commitTransaction();
+            $this->_syncProductCacheByTransUID($transUID); // after commit — ReadDB now sees reverted stock
 
             $this->_recalcCustomerBalance($orgUID, (int)$existing->PartyUID, $userUID);
 
@@ -701,7 +699,6 @@ class Salesreturns extends MY_Controller {
 
                 // Reverse stock that came in when the SR was approved
                 $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
-                $this->_syncProductCacheByTransUID($transUID);
 
                 // Reset SR payment counters
                 $this->dbwrite_model->updateTransIsFullyPaid($transUID, 0, 0, 0, $userUID);
@@ -737,6 +734,7 @@ class Salesreturns extends MY_Controller {
             // Commit BEFORE recalculating balance so ReadDB sees DocStatus='Cancelled'
             // and getCustomerTotalReturned correctly excludes the cancelled SR.
             $this->dbwrite_model->commitTransaction();
+            if ($newStatus === 'Cancelled') { $this->_syncProductCacheByTransUID($transUID); } // after commit — ReadDB now sees reverted stock
 
             if ($newStatus === 'Cancelled') {
                 $balResult = $this->_recalcCustomerBalance($orgUID, (int)$existing->PartyUID, $userUID);
@@ -983,11 +981,14 @@ class Salesreturns extends MY_Controller {
             if ($existing->DocStatus === 'Draft')                          throw new Exception('Cannot record payment for a Draft.');
             if (in_array($existing->DocStatus, ['Cancelled', 'Rejected'])) throw new Exception('Sales Return is cancelled.');
 
-            $alreadyPaid = $this->transactions_model->getSumPaidForTransaction($transUID, $orgUID);
+            if (!$this->dbwrite_model->lockTransactionRow($transUID, $orgUID)) {
+                throw new Exception('Sales Return not found.');
+            }
+            $alreadyPaid = $this->dbwrite_model->sumTransactionPayments($transUID, $orgUID);
             $pending     = max(0, round((float)$existing->NetAmount - $alreadyPaid, $this->_decimals()));
 
             if ($amount > $pending + 0.01) {
-                throw new Exception('Amount exceeds pending balance (' . $pending . ').');
+                throw new Exception('Amount exceeds remaining balance (' . $pending . '). A concurrent payment may have just been recorded.');
             }
 
             $newTotalPaid = $alreadyPaid + $amount;

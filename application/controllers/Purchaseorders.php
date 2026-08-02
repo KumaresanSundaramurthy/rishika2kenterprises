@@ -1,9 +1,9 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Purchaseorders extends MY_Controller {
 
     public $pageData = array();
-    private $EndReturnData;
+    protected $EndReturnData;
     protected $pageModuleUID;
 
     public function __construct() {

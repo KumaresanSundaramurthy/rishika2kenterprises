@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 /**
  * @property object $inventory_model
@@ -12,7 +12,7 @@ class Inventory extends MY_Controller {
 
     public  $pageData      = [];
     /** @var object|null */
-    private $EndReturnData;
+    protected $EndReturnData;
     protected $pageModuleUID = 117;
 
     public function __construct() {

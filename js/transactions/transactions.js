@@ -1879,7 +1879,7 @@ $(document).ready(function () {
         var pp      = parseFloat(item.purchasePrice) || 0;
         if (pp <= 0) return;
         var tax     = item.taxPercent || 0;
-        var taxIncl = item.purchasePriceTaxUID === 1;
+        var taxIncl = item.purchasePriceIsIncl !== false;
         var effPPInc = taxIncl ? pp : pp * (1 + tax / 100);
         var effPPEx  = (taxIncl && tax > 0) ? pp / (1 + tax / 100) : pp;
         var cur = parseFloat($(this).val()) || 0;
@@ -1921,7 +1921,7 @@ $(document).ready(function () {
         var pp      = parseFloat(item.purchasePrice) || 0;
         if (pp <= 0) return;
         var tax     = item.taxPercent || 0;
-        var taxIncl = item.purchasePriceTaxUID === 1;
+        var taxIncl = item.purchasePriceIsIncl !== false;
 
         // Normalise effective purchase price to match the field's tax basis
         var effPP = isSelling

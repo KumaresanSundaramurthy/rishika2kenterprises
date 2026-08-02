@@ -1,8 +1,8 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 
 class Services extends CI_Controller {
 
-    private $EndReturnData;
+    protected $EndReturnData;
 
     public function __construct() {
         parent::__construct();

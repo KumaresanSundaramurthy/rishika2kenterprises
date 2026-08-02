@@ -1244,7 +1244,8 @@ class MY_Controller extends CI_Controller {
                 'Discount'          => (float) ($item['discount']        ?? 0),
                 'UnitPrice'         => $unitPrice,
                 'SellingPrice'      => (float) ($item['sellingPrice']    ?? $unitPrice),
-                'PurchasePrice'     => (float) ($item['purchasePrice']   ?? 0),
+                'PurchasePrice'       => (float) ($item['purchasePrice']   ?? 0),
+                'IsPurchasePriceIncl' => ($item['purchasePriceIsIncl'] ?? true) ? 1 : 0,
                 'MRP'               => (float) ($item['mrp']             ?? 0),
                 'DistributionMode'  => !empty($item['isComposite']) ? ($item['distributionMode'] ?? null) : null,
                 'TaxableAmount'     => (float) ($item['line_total']      ?? 0),
@@ -1329,8 +1330,6 @@ class MY_Controller extends CI_Controller {
                 'Discount'        => (float) ($item['discount']        ?? 0),
                 'UnitPrice'       => $unitPrice,
                 'SellingPrice'    => (float) ($item['sellingPrice']    ?? $unitPrice),
-                'PurchasePrice'   => (float) ($item['purchasePrice']   ?? 0),
-                'MRP'             => (float) ($item['mrp']             ?? 0),
                 'DistributionMode'=> !empty($item['isComposite']) ? ($item['distributionMode'] ?? null) : null,
                 'TaxableAmount'   => (float) ($item['line_total']      ?? 0),
                 'CgstAmount'      => (float) ($item['cgstAmount']      ?? 0),
@@ -1352,6 +1351,9 @@ class MY_Controller extends CI_Controller {
                     'FinancialYear'      => $financialYear,
                     'TransUID'           => $transUID,
                     'ProductUID'         => $productUID,
+                    'PurchasePrice'       => (float) ($item['purchasePrice']   ?? 0),
+                    'IsPurchasePriceIncl' => ($item['purchasePriceIsIncl'] ?? true) ? 1 : 0,
+                    'MRP'                => (float) ($item['mrp']             ?? 0),
                     'QuantityConverted'  => 0,
                     'IsActive'           => 1,
                     'IsDeleted'          => 0,
@@ -1541,7 +1543,8 @@ class MY_Controller extends CI_Controller {
     protected function _buildListResponse(string $viewPath, string $paginationUrl): void {
         $pageNo       = max(1, (int) $this->input->post('PageNo'));
         $limit        = (int) $this->input->post('RowLimit') ?: 10;
-        $filter       = $this->input->post('Filter') ?: [];
+        $rawFilter    = $this->input->post('Filter');
+        $filter       = is_array($rawFilter) ? $rawFilter : (is_string($rawFilter) && $rawFilter !== '' ? (json_decode($rawFilter, true) ?? []) : []);
         $offset       = ($pageNo - 1) * $limit;
         $allData      = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, 0);
         $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $filter);
@@ -1563,7 +1566,8 @@ class MY_Controller extends CI_Controller {
         $genSettings  = $this->pageData['JwtData']->GenSettings ?? new stdClass();
         $limit        = max(1, (int) ($genSettings->RowLimit ?? 10));
         $pageNo       = max(1, (int) $this->input->post('CurrentPage'));
-        $filter       = $this->input->post('Filter') ?: [];
+        $rawFilter    = $this->input->post('Filter');
+        $filter       = is_array($rawFilter) ? $rawFilter : (is_string($rawFilter) && $rawFilter !== '' ? (json_decode($rawFilter, true) ?? []) : []);
         $offset       = ($pageNo - 1) * $limit;
         $orgUID       = (int) $this->pageData['JwtData']->Org->OrgUID;
         $allData      = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, 0);

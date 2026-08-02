@@ -587,7 +587,6 @@ function _buildPurchDetailHtml(resp) {
         return ['BankAccountUID' => (int)$b->BankAccountUID, 'BankName' => (string)$b->BankName, 'AccountName' => (string)$b->AccountName, 'IsDefault' => (int)$b->IsDefault];
     }, array_filter($BankAccounts ?? [], function($b) { return !(int)$b->IsCash; })))); ?>;
     var _fpInstance = null;
-    var _rpDropzone = null;
     var _currency   = '<?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>';
     var _vDec       = <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>;
 
@@ -629,33 +628,15 @@ function _buildPurchDetailHtml(resp) {
             _fpInstance = flatpickr('#rpPaymentDate', {
                 dateFormat   : 'Y-m-d',
                 altInput     : true,
-                altFormat    : 'd M Y',
+                altFormat    : _transFormDateFormat,
                 maxDate      : 'today',
                 disableMobile: true,
                 defaultDate  : 'today',
-                appendTo: document.querySelector('#recordPaymentModal .modal-dialog'),
+                static       : true,
+                position     : 'below left',
             });
         } else {
             _fpInstance.setDate(new Date(), false);
-        }
-        if (!_rpDropzone && typeof Dropzone !== 'undefined') {
-            Dropzone.autoDiscover = false;
-            _rpDropzone = new Dropzone('#rpAttachDropzone', {
-                url              : '#',
-                autoProcessQueue : false,
-                maxFiles         : 3,
-                maxFilesize      : 3,
-                acceptedFiles    : '.pdf,.jpg,.jpeg,.png',
-                parallelUploads  : 3,
-                clickable        : true,
-                previewTemplate  : '<div class="dz-preview dz-file-preview"><div class="dz-details"><div class="dz-filename"><span data-dz-name></span></div><div class="dz-size"><span data-dz-size></span></div></div><div class="dz-error-message"><span data-dz-errormessage></span></div><a class="dz-remove" href="javascript:undefined;" data-dz-remove>Remove</a></div>',
-                init: function () {
-                    this.on('maxfilesexceeded', function (file) { this.removeFile(file); Swal.fire({ icon: 'warning', text: 'Maximum 3 attachments allowed.' }); });
-                    this.on('error', function (file, msg) {
-                        if (file.size > 3 * 1024 * 1024) { this.removeFile(file); Swal.fire({ icon: 'warning', text: 'Each file must be 3 MB or smaller.' }); }
-                    });
-                }
-            });
         }
     });
 
@@ -681,7 +662,7 @@ function _buildPurchDetailHtml(resp) {
         $('#rpNotes').val('');
         $('#rpBankAccount').val('');
 
-        if (_rpDropzone) { _rpDropzone.removeAllFiles(true); }
+        if (typeof _attachResetState === 'function') { _attachResetState('Payment'); }
         renderPaymentTypes();
         $('#recordPaymentModal').modal('show');
     });
@@ -723,7 +704,7 @@ function _buildPurchDetailHtml(resp) {
         fd.append('RowLimit',       RowLimit || 10);
         fd.append('Filter',         JSON.stringify(Filter || {}));
         fd.append(CsrfName,         CsrfToken);
-        if (_rpDropzone) { _rpDropzone.files.forEach(function(file) { fd.append('PaymentFiles[]', file); }); }
+        (_attachState && _attachState['Payment'] ? (_attachState['Payment'].newFiles || []) : []).forEach(function (f) { fd.append('PaymentFiles[]', f, f.name); });
 
         $.ajax({
             url         : '/purchases/recordPurchasePayment',

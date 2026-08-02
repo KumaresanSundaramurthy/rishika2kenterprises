@@ -3,7 +3,7 @@
 class Invoices extends MY_Controller {
 
     public $pageData = array();
-    private $EndReturnData;
+    protected $EndReturnData;
     protected $pageModuleUID;
 
     public function __construct() {
@@ -111,7 +111,6 @@ class Invoices extends MY_Controller {
 
             if (!$isDraft) {
                 $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items, $this->_branchUID());
-                $this->_syncProductCacheFromItems($items);
             }
 
             // Record payment DB rows inside the transaction; ledger entries applied after commit
@@ -237,6 +236,8 @@ class Invoices extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
+            if (!$isDraft) { $this->_syncProductCacheFromItems($items); }
+
             if (!$isDraft) {
                 $this->_recalcCustomerBalance($orgUID, $customerUID, $userUID);
             }
@@ -359,7 +360,6 @@ class Invoices extends MY_Controller {
             // Reverse stock if existing doc was already non-draft (edit of live invoice)
             if ($wasNonDraft) {
                 $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
-                $this->_syncProductCacheByTransUID($transUID);
             }
 
             if ($existing->DocStatus === 'Draft' && !$isDraft
@@ -387,7 +387,6 @@ class Invoices extends MY_Controller {
 
                 if (!$isDraft) {
                     $this->dbwrite_model->saveStockMovements($newTransUID, $this->pageModuleUID, $orgUID, $userUID, $items, $this->_branchUID());
-                    $this->_syncProductCacheFromItems($items);
                 }
 
                 $this->dbwrite_model->deleteInTransaction('Transaction', 'TransactionsTbl', ['TransUID' => $transUID]);
@@ -416,7 +415,6 @@ class Invoices extends MY_Controller {
 
                 if (!$isDraft) {
                     $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items, $this->_branchUID());
-                    $this->_syncProductCacheFromItems($items);
                 }
             }
 
@@ -435,6 +433,8 @@ class Invoices extends MY_Controller {
             }
 
             $this->dbwrite_model->commitTransaction();
+
+            if (!$isDraft) { $this->_syncProductCacheByTransUID($activeTransUID); }
 
             try { $this->load->library('auditlog'); $this->auditlog->log($orgUID, $userUID, 'UPDATE_INVOICE', 'Invoice', $activeTransUID, $uniqueNumber ?? ($existing->UniqueNumber ?? 'Draft'), ['status' => $computedStatus, 'netAmount' => $netAmount, 'customerUID' => $customerUID], ($isDraft ? 'Updated draft invoice' : 'Updated invoice') . ' ' . ($uniqueNumber ?? ($existing->UniqueNumber ?? 'Draft')), 'Invoices', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData); } catch (Exception $auditEx) { log_message('error', 'Audit log failed: ' . $auditEx->getMessage()); }
 
@@ -520,13 +520,16 @@ class Invoices extends MY_Controller {
             if ($existing->DocStatus === 'Draft')                               throw new Exception('Cannot record payment for a Draft invoice.');
             if (in_array($existing->DocStatus, ['Cancelled', 'Rejected']))      throw new Exception('Invoice is cancelled.');
 
-            // Get total already paid
-            $payments    = $this->transactions_model->getTransactionPayments($transUID, $orgUID);
-            $alreadyPaid = array_sum(array_column((array) $payments, 'Amount'));
+            // Lock the row so concurrent requests block here until we commit;
+            // then re-read the paid total on WriteDB to get the authoritative current value.
+            if (!$this->dbwrite_model->lockTransactionRow($transUID, $orgUID)) {
+                throw new Exception('Invoice not found.');
+            }
+            $alreadyPaid = $this->dbwrite_model->sumTransactionPayments($transUID, $orgUID);
             $pending     = max(0, round((float)$existing->NetAmount - $alreadyPaid, $this->_decimals()));
 
             if ($amount > $pending + 0.01) {
-                throw new Exception('Amount (' . $amount . ') exceeds pending balance (' . $pending . ').');
+                throw new Exception('Amount (' . $amount . ') exceeds remaining balance (' . $pending . '). A concurrent payment may have just been recorded.');
             }
 
             $newTotalPaid = $alreadyPaid + $amount;
@@ -611,7 +614,6 @@ class Invoices extends MY_Controller {
                 "Recorded payment â‚¹{$amount} for invoice " . ($existing->UniqueNumber ?? "#{$transUID}"), 'Invoices',
                 'PAYMENT'
             );
-            $this->EndReturnData->IsFullyPaid = $isFullyPaid;
             $this->_recalcCustomerBalance($orgUID, $existing->PartyUID, $userUID);
 
             $this->_buildPaymentListResponse('transactions/invoices/list', '/transactions/getPageDetails/103');
@@ -650,13 +652,14 @@ class Invoices extends MY_Controller {
 
             // Reverse stock movements (no-op if it was a draft)
             $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
-            $this->_syncProductCacheByTransUID($transUID);
 
             $this->dbwrite_model->softDeleteTransactionItems($transUID, $userUID);
 
             $this->dbwrite_model->softDeleteTransaction($transUID, $orgUID, $userUID);
 
             $this->dbwrite_model->commitTransaction();
+
+            $this->_syncProductCacheByTransUID($transUID); // after commit — ReadDB now sees reverted stock
 
             // Reverse customer ledger AFTER commit â€” runs in auto-commit mode so
             // any audit-log failure cannot roll back the already-committed delete.

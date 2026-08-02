@@ -1,9 +1,9 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Designations extends MY_Controller {
 
     public  $pageData = [];
-    private $EndReturnData;
+    protected $EndReturnData;
 
     public function __construct() { parent::__construct(); }
 

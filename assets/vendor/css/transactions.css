@@ -567,7 +567,7 @@ tr:hover .inv-row-action {
     color: #dee2e6;
 }
 .rp-summary-section {
-    padding: 14px 20px;
+    padding: 8px 20px;
     border-bottom: 1px solid #e9ecef;
 }
 .rp-form-section {
@@ -577,7 +577,7 @@ tr:hover .inv-row-action {
     display: flex;
     align-items: center;
     gap: .5rem;
-    padding: 4px 0 10px;
+    padding: 4px 0 6px;
 }
 .rp-section-icon {
     font-size: 1.05rem;
@@ -601,7 +601,7 @@ tr:hover .inv-row-action {
     border: 1px solid #e9ecef;
     border-left: 3px solid;
     border-radius: 6px;
-    padding: 10px 12px;
+    padding: 6px 10px;
 }
 .rp-summary-card--paid {
     border-left-color: #198754;
@@ -615,14 +615,31 @@ tr:hover .inv-row-action {
     text-transform: uppercase;
     letter-spacing: .4px;
     color: #6c757d;
-    margin-bottom: 5px;
+    margin-bottom: 2px;
 }
 .rp-summary-card-value {
-    font-size: 1.1rem;
+    font-size: .95rem;
     font-weight: 800;
 }
 .rp-val-paid { color: #198754; }
 .rp-val-due  { color: #dc3545; }
+/* ── Amount field — oversized to signal importance ───────────────── */
+.rp-amount-group .input-group-text {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #344563;
+    padding: 0 12px;
+    min-width: 42px;
+}
+.rp-amount-group .form-control {
+    font-size: 1.45rem;
+    font-weight: 700;
+    color: #344563;
+    height: 52px;
+    letter-spacing: .01em;
+}
+.rp-amount-group .form-control::placeholder { font-weight: 400; color: #adb5bd; }
+
 .rp-field-label {
     font-size: .78rem;
     font-weight: 600;
@@ -854,13 +871,11 @@ tr:hover .inv-row-action {
     font-size: 1.8rem;
 }
 
-/* ── Record Payment modal — flatpickr calendar positioning ──────── */
-/* Allow the calendar to overflow the modal-dialog without clipping  */
-#recordPaymentModal .modal-dialog {
-    overflow: visible;
-}
-#recordPaymentModal .flatpickr-calendar {
-    z-index: 1080 !important;
+/* ── Record Payment modal — flatpickr calendar z-index ──────────── */
+/* Calendar appends to <body>; needs to float above the modal (z-index 1055) */
+#recordPaymentModal ~ * .flatpickr-calendar,
+.flatpickr-calendar.open {
+    z-index: 99999 !important;
 }
 
 /* ── Expenses modal — attachment dropzone (modal card context) ───── */

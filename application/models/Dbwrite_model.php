@@ -59,6 +59,43 @@ class Dbwrite_model extends CI_Model {
         $this->WriteDB->trans_rollback();
     }
 
+    /**
+     * Acquires an exclusive row-level lock on the transaction row for the duration of
+     * the current WriteDB transaction. Must be called inside startTransaction() and before
+     * reading the paid total — blocks any concurrent request trying to lock the same row,
+     * so the balance check that follows always sees fully committed data.
+     *
+     * @param int $transUID
+     * @param int $orgUID
+     * @return bool true if the row was found and locked; false if not found
+     */
+    public function lockTransactionRow(int $transUID, int $orgUID): bool {
+        $query = $this->WriteDB->query(
+            'SELECT TransUID FROM Transaction.TransactionsTbl WHERE TransUID = ? AND OrgUID = ? LIMIT 1 FOR UPDATE',
+            [$transUID, $orgUID]
+        );
+        return $query && $query->num_rows() > 0;
+    }
+
+    /**
+     * Returns the SUM of active, non-cancelled payments for a transaction using the
+     * WriteDB connection (same transaction as the caller's INSERT). Must be called
+     * after lockTransactionRow() so the result reflects any concurrent commits.
+     *
+     * @param int $transUID
+     * @param int $orgUID
+     * @return float
+     */
+    public function sumTransactionPayments(int $transUID, int $orgUID): float {
+        $query = $this->WriteDB->query(
+            'SELECT COALESCE(SUM(Amount), 0) AS TotalPaid FROM Transaction.PaymentsTbl WHERE TransUID = ? AND OrgUID = ? AND IsDeleted = 0 AND IsActive = 1 AND IsCancelled = 0',
+            [$transUID, $orgUID]
+        );
+        if (!$query) return 0.0;
+        $row = $query->row();
+        return $row ? (float) $row->TotalPaid : 0.0;
+    }
+
     // Disable/enable FK checks on the write connection.
     // Use when inserting into a child table whose parent row was inserted
     // in the same open transaction — InnoDB lock wait timeout would occur otherwise.

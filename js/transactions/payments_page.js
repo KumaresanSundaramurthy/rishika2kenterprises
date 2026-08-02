@@ -77,7 +77,7 @@ var PaymentsPage = (function () {
         var self = this;
         var f    = self.getFilter();
 
-        $.ajax({
+        var jqXHR = $.ajax({
             url    : '/payments/getPaymentsPageDetails/' + pageNo,
             method : 'POST',
             data   : { RowLimit: self._limit, Filter: f, [CsrfName]: CsrfToken },
@@ -102,6 +102,7 @@ var PaymentsPage = (function () {
         });
 
         if (self._showStats) { self.loadStats(f); }
+        return jqXHR;
     };
 
     // ── Fetch and render live balance stats ───────────────────────────────────

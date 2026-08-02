@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 /**
  * PackingLists — standalone controller for packing list documents.
@@ -17,7 +17,7 @@
 class Packinglists extends MY_Controller {
 
     /** @var object|null */
-    private $EndReturnData;
+    protected $EndReturnData;
     /** @var int — no dedicated sidebar module; auth inherited from source transaction */
     protected $pageModuleUID = 119;
 

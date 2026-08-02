@@ -1,9 +1,9 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Rental extends MY_Controller {
 
     public  $pageData      = [];
-    private $EndReturnData;
+    protected $EndReturnData;
     protected $pageModuleUID = 116;
 
     public function __construct() {

@@ -15,7 +15,7 @@
  *
  * Data shape returned to onSuccess (mirrors searchTransProducts server response):
  *   [{ id, text, itemName, productType, unitPrice, taxAmount, sellingPrice,
- *      purchasePrice, purchasePriceTaxUID, availableQuantity, hsnCode, category,
+ *      purchasePrice, purchasePriceTaxUID, purchasePriceIsIncl, availableQuantity, hsnCode, category,
  *      categoryUID, categoryName, partNumber, taxPercent, taxDetailsUID,
  *      cgstPercent, sgstPercent, igstPercent, discount, discountType,
  *      discountTypeUID, primaryUnit, description, isComboItem, comboItemCount,
@@ -61,6 +61,7 @@ window.ProductAppend = (function () {
                 sellingPrice        : sellingPrice,
                 purchasePrice       : parseFloat(p.PurchasePrice     || 0),
                 purchasePriceTaxUID : purTaxUID,
+                purchasePriceIsIncl : purTaxUID === 0 || purTaxUID === 1,
                 availableQuantity   : parseFloat(p.AvailableQuantity || 0),
                 hsnCode             : p.HSNSACCode            || '',
                 category            : p.CategoryName          || '',

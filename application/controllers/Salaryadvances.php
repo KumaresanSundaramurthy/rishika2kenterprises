@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 /**
  * @property object $attendance_model
@@ -11,7 +11,7 @@ class Salaryadvances extends MY_Controller {
 
     public  $pageData     = [];
     /** @var object|null */
-    private $EndReturnData;
+    protected $EndReturnData;
 
     public function __construct() { parent::__construct(); }
 

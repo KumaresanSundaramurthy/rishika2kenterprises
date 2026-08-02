@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var object|null $DCData */      $DCData      = $DCData      ?? null;
 /** @var object      $JwtData */
 /** @var array       $DCItems */     $DCItems      = $DCItems      ?? [];
@@ -584,6 +584,8 @@ var _transFormData = <?php echo json_encode([
                 'taxAmount'        => (float)  $item->TaxAmount,
                 'sellingPrice'     => (float)  $item->SellingPrice,
                 'purchasePrice'    => (float)($item->PurchasePrice ?? 0),
+                'mrp'             => (float)($item->MRP ?? 0),
+                'purchasePriceIsIncl' => (bool)($item->IsPurchasePriceIncl ?? 1),
                 'availableQuantity'=> 0,
                 'hsnCode'          => '',
                 'categoryUID'      => $item->CategoryUID ? (int)$item->CategoryUID : null,

@@ -449,6 +449,16 @@ function _attachRender(entityType) {
             fileIcon.className = 'attach-file-icon';
             fileIcon.innerHTML = _attachFileIcon(file.type || file.name);
             item.appendChild(fileIcon);
+            // Open blob URL in new tab so unsaved files can be previewed before saving
+            (function (f) {
+                item.style.cursor = 'pointer';
+                item.addEventListener('click', function (e) {
+                    if (e.target.closest('.attach-remove')) { return; }
+                    var blobUrl = URL.createObjectURL(f);
+                    window.open(blobUrl, '_blank', 'noopener');
+                    setTimeout(function () { URL.revokeObjectURL(blobUrl); }, 60000);
+                });
+            })(file);
         }
 
         var nm = document.createElement('span');

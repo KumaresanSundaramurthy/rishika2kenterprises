@@ -1473,7 +1473,9 @@ let _descEditorQuill = null;
 $(document).ready(function () {
     'use strict'
 
-    $('#billTableBody').html(emptyTableTrInfo);
+    if ($('#billTableBody tr[data-id]').length === 0) {
+        $('#billTableBody').html(emptyTableTrInfo);
+    }
 
     // Signal additional_charges.js that BillingManager is ready
     $(document).trigger('billManagerReady');

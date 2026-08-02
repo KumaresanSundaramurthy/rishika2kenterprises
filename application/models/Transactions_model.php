@@ -14,6 +14,27 @@ class Transactions_model extends MY_Model {
 
     public function getReadDb(): object { return $this->ReadDb; }
 
+    /**
+     * Returns distinct ProductUIDs for all line items of a transaction.
+     * No IsDeleted filter — must find products even after soft-delete (delete flow).
+     *
+     * @param  int   $transUID
+     * @return int[]
+     */
+    public function getProductUIDsByTransUID(int $transUID): array {
+        try {
+            $query = $this->ReadDb->query(
+                'SELECT DISTINCT ProductUID FROM `Transaction`.`TransProductsTbl` WHERE TransUID = ?',
+                [(int)$transUID]
+            );
+            if (!$query) return [];
+            return array_map('intval', array_column($query->result_array(), 'ProductUID'));
+        } catch (Throwable $e) {
+            log_message('error', 'getProductUIDsByTransUID failed for TransUID=' . $transUID . ': ' . $e->getMessage());
+            return [];
+        }
+    }
+
     public function getTransactionPageList(int $limit, int $offset, int $ModuleUID, array $filter, bool $isCount = false): mixed {
 
         try {

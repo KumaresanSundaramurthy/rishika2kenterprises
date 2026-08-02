@@ -346,7 +346,7 @@ if (!empty($DataLists)):
                     <button class="trans-actions-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" data-bs-trigger="hover" title="More actions">
                         <i class="bx bx-dots-vertical-rounded fs-5"></i>
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:.82rem;min-width:160px;">
+                    <ul class="dropdown-menu dropdown-menu-end r2k-action-menu">
 
                         <?php if ($showPending): ?>
                         <li>
@@ -429,7 +429,7 @@ if (!empty($DataLists)):
                         <?php endif; ?>
 
                         <?php if (!$isCancelled): ?>
-                        <li><hr class="dropdown-divider my-1"></li>
+                        <?php if (!$isDraft): ?><li><hr class="dropdown-divider my-1"></li><?php endif; ?>
                         <li>
                             <button class="dropdown-item text-warning cancelInvoice"
                                     data-uid="<?php echo (int)$list->TransUID; ?>"

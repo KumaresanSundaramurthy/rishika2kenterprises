@@ -953,3 +953,12 @@ tr:hover .inv-row-action {
 #expenseModal .flatpickr-calendar {
     z-index: 1080 !important;
 }
+
+/* ── More-actions dropdown — matches date filter panel style ─────── */
+.r2k-action-menu {
+    font-size: .82rem;
+    min-width: 160px;
+    border-radius: 12px;
+    border: 1px solid #c4c6f8;
+    box-shadow: 0 8px 32px rgba(105, 108, 255, .18);
+}

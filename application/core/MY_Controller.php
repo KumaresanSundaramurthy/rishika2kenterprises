@@ -63,7 +63,6 @@ class MY_Controller extends CI_Controller {
     // Call after reverseStockMovements — looks up affected products from TransProductsTbl and syncs each.
     protected function _syncProductCacheByTransUID(int $transUID): void {
         try {
-            // DB query lives in MY_Model — controller only orchestrates
             $this->load->model('transactions_model');
             $uids = $this->transactions_model->getProductUIDsByTransUID($transUID);
             foreach ($uids as $uid) {

@@ -25,11 +25,6 @@
 
                     <input type="hidden" name="OrgUID" id="OrgUID" value="<?php echo isset($EditOrgData->OrgUID) ? $EditOrgData->OrgUID : ''; ?>" />
 
-                    <div class="d-none updateFormAlert alert alert-danger alert-dismissible fade show p-3 m-3 mb-0" role="alert">
-                        <span class="alert-message"></span>
-                        <button type="button" class="btn-close" aria-label="Close"></button>
-                    </div>
-
                     <div class="card mb-3">
                         <div class="card-header modal-header-center-sticky d-flex justify-content-between align-items-center p-2">
                             <h5 class="modal-title">Organisation Details</h5>
@@ -566,7 +561,6 @@ $(function() {
     $('#OrganisationForm').submit(function(e) {
         e.preventDefault();
 
-        $('.updateFormAlert').addClass('d-none');
         var formData = new FormData($('#OrganisationForm')[0]);
         formData.append('imageChange', imageChange);
 

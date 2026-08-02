@@ -63,7 +63,7 @@ $d       = $FormData;
             <div class="mb-3 col-md-4">
                 <label for="VM_DebitCreditAmount" class="form-label">Opening Balance</label>
                 <div class="input-group input-group-merge">
-                    <span class="input-group-text">₹</span>
+                    <span class="input-group-text"><?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?></span>
                     <input type="number" class="form-control" name="DebitCreditAmount" id="VM_DebitCreditAmount"
                         min="0" placeholder="Debit / Credit Amount" maxlength="6" pattern="[0-9]*"
                         onkeypress="return (event.charCode!=8 && event.charCode==0 || (event.charCode>=48 && event.charCode<=57))"
@@ -118,7 +118,7 @@ $d       = $FormData;
                 <div class="mb-3">
                     <label for="VM_GSTIN" class="form-label">GSTIN</label>
                     <div class="input-group">
-                        <input type="text" class="form-control" placeholder="GSTIN" name="GSTIN" id="VM_GSTIN"
+                        <input type="text" class="form-control text-uppercase" placeholder="GSTIN" name="GSTIN" id="VM_GSTIN"
                             value="<?php echo htmlspecialchars($d->GSTIN ?? ''); ?>" />
                         <button class="btn btn-outline-primary" type="button" id="GSTIN_Fetch">Fetch</button>
                     </div>

@@ -1,5 +1,52 @@
 // ── List page AJAX functions ──────────────────────────────────────────────
 
+// ── Select-all (Pattern 3) state ─────────────────────────────────────────
+var _vendSelectAllMode = false;
+var _vendTotalRecords  = 0;
+var _vendPageCount     = 0;
+
+/**
+ * @returns {void}
+ */
+function _vendUpdateSelectAllBanner() {
+    var $banner = $('#vendSelectAllBanner');
+    var $msg    = $('#vendSelectAllMsg');
+    var $link   = $('#vendSelectAllLink');
+    var $clear  = $('#vendSelectAllClear');
+
+    if (!_vendPageCount || !$(ModuleHeader).prop('checked')) {
+        $banner.addClass('d-none');
+        return;
+    }
+
+    if (_vendSelectAllMode) {
+        $msg.text('All ' + _vendTotalRecords + ' vendors are selected.');
+        $link.addClass('d-none');
+        $clear.removeClass('d-none');
+    } else {
+        $msg.text('All ' + _vendPageCount + ' vendors on this page are selected.');
+        $clear.addClass('d-none');
+        if (_vendTotalRecords > _vendPageCount) {
+            $link.text('Select all ' + _vendTotalRecords + ' vendors?').removeClass('d-none');
+        } else {
+            $link.addClass('d-none');
+            $banner.addClass('d-none');
+            return;
+        }
+    }
+    $banner.removeClass('d-none');
+}
+
+/**
+ * @returns {void}
+ */
+function _vendClearSelectAll() {
+    _vendSelectAllMode = false;
+    $('#vendSelectAllBanner').addClass('d-none');
+    $('#vendSelectAllLink').removeClass('d-none');
+    $('#vendSelectAllClear').addClass('d-none');
+}
+
 /**
  * @param {string} tableSelector
  * @param {string} paginationSelector
@@ -40,11 +87,14 @@ function getVendorsDetails(PageNo, RowLimit, Filter) {
                 $(ModulePag).html(response.Pagination);
                 $(ModuleTable + ' tbody').html(response.RecordHtmlData);
                 $('#vendStickyPagination .VendorsPagination').html(response.Pagination);
-                $(window).trigger('scroll');
-                var cnt = response.TotalCount || 0;
+                _vendTotalRecords = parseInt(response.TotalCount) || 0;
+                _vendPageCount    = $(ModuleTable + ' tbody ' + ModuleRow).length;
+                var cnt = _vendTotalRecords;
                 $('.vend-tab .trans-tab-count').text(cnt > 0 ? cnt : '').toggleClass('d-none', cnt === 0);
+                $(window).trigger('scroll');
             }
             executeTablePagnCommonFunc(response, false);
+            _vendUpdateSelectAllBanner();
         },
         error: function () {
             ajaxLoading(1);
@@ -68,6 +118,8 @@ function addVendorData(formdata) {
                 showAlertMessageSwal('error', '', response.Message);
             } else {
                 showToastNotification(response.Message, 'success');
+                _vendorIsDirty      = false;
+                _vendorIsCreateMode = false;
                 $('#VendorFormModal').modal('hide');
                 hideUIBlock();
                 ajaxLoading(0);
@@ -92,6 +144,8 @@ function editVendorData(formdata) {
                 showAlertMessageSwal('error', '', response.Message);
             } else {
                 showToastNotification(response.Message, 'success');
+                _vendorIsDirty      = false;
+                _vendorIsCreateMode = false;
                 $('#VendorFormModal').modal('hide');
                 hideUIBlock();
                 ajaxLoading(0);
@@ -179,17 +233,21 @@ function deleteVendor(DeleteId) {
 
 // ── Delete multiple vendors ───────────────────────────────────────────────
 function deleteMultipleVendors() {
+    var postData = _vendSelectAllMode
+        ? { SelectAll: 1, Filter: JSON.stringify(Filter), [CsrfName]: CsrfToken }
+        : { 'VendorUIDs[]': SelectedUIDs, [CsrfName]: CsrfToken };
     $.ajax({
         url   : '/vendors/deleteMultipleVendors',
         method: 'POST',
         cache : false,
-        data  : { 'VendorUIDs[]': SelectedUIDs, [CsrfName]: CsrfToken },
+        data  : postData,
         success: function (response) {
             if (response.Error) {
                 showAlertMessageSwal('error', '', response.Message);
             } else {
                 showToastNotification(response.Message, 'success');
                 SelectedUIDs = [];
+                _vendClearSelectAll();
                 hideUIBlock();
                 ajaxLoading(0);
                 getVendorsDetails(PageNo, RowLimit, Filter);
@@ -200,7 +258,9 @@ function deleteMultipleVendors() {
 
 // ── Add / Edit / Clone modal ──────────────────────────────────────────────
 
-var _editVendorUID = 0;
+var _editVendorUID       = 0;
+var _vendorIsDirty       = false;
+var _vendorIsCreateMode  = false;
 
 function _smartDecimalV(val) {
     var n = parseFloat(val);
@@ -271,6 +331,8 @@ function openVendorModal(type, uid) {
         _ensureSalVendor(function () {
             _applyDefaultSalutationVendor();
             $('#VendorFormModal').modal('show');
+            _vendorIsCreateMode = true;
+            _vendorIsDirty      = false;
         });
         return;
     }
@@ -295,6 +357,8 @@ function openVendorModal(type, uid) {
 }
 
 function _resetVendorModal() {
+    _vendorIsCreateMode = false;
+    _vendorIsDirty      = false;
     _editVendorUID = 0; delBankDataFlag = 0; delBankData = [];
     $('#VendorModalForm')[0].reset();
     $('#VendorUID').val('');
@@ -545,4 +609,31 @@ $(function () {
     initializeFlatPickr('#VM_CPDateOfBirth', '#VendorFormModal');
     // Bind attachment zone listeners once (shared attachments.js)
     if (typeof _attachBindListeners === 'function') _attachBindListeners('Vendor');
+});
+
+// ── Dirty-tracking listener ───────────────────────────────────────────────
+$(document).on('input change', '#VendorModalForm input, #VendorModalForm textarea, #VendorModalForm select', function () {
+    if (_vendorIsCreateMode) _vendorIsDirty = true;
+});
+
+// ── Unsaved-changes guard ─────────────────────────────────────────────────
+$(document).on('hide.bs.modal', '#VendorFormModal', function (e) {
+    if (!_vendorIsDirty || !_vendorIsCreateMode) return;
+    e.preventDefault();
+    Swal.fire({
+        title             : t('swal_unsaved_title',   'Unsaved Changes'),
+        text              : t('swal_unsaved_msg',     'Your changes will be lost if you close now.'),
+        icon              : 'warning',
+        showCancelButton  : true,
+        confirmButtonText : t('swal_unsaved_confirm', 'Close Anyway'),
+        cancelButtonText  : t('swal_unsaved_cancel',  'Stay'),
+        confirmButtonColor: '#d33',
+        cancelButtonColor : '#3085d6',
+    }).then(function (result) {
+        if (result.isConfirmed) {
+            _vendorIsDirty      = false;
+            _vendorIsCreateMode = false;
+            $('#VendorFormModal').modal('hide');
+        }
+    });
 });

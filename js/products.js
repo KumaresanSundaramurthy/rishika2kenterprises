@@ -1,5 +1,52 @@
 var _prodPageRefreshing = false;
 
+// ── Select-all (Pattern 3) state — Items tab only ─────────────────────────
+var _prodSelectAllMode = false;
+var _prodTotalRecords  = 0;
+var _prodPageCount     = 0;
+
+/**
+ * @returns {void}
+ */
+function _prodUpdateSelectAllBanner() {
+    var $banner = $('#prodSelectAllBanner');
+    var $msg    = $('#prodSelectAllMsg');
+    var $link   = $('#prodSelectAllLink');
+    var $clear  = $('#prodSelectAllClear');
+
+    if (!_prodPageCount || !$(ProdHeader).prop('checked')) {
+        $banner.addClass('d-none');
+        return;
+    }
+
+    if (_prodSelectAllMode) {
+        $msg.text('All ' + _prodTotalRecords + ' items are selected.');
+        $link.addClass('d-none');
+        $clear.removeClass('d-none');
+    } else {
+        $msg.text('All ' + _prodPageCount + ' items on this page are selected.');
+        $clear.addClass('d-none');
+        if (_prodTotalRecords > _prodPageCount) {
+            $link.text('Select all ' + _prodTotalRecords + ' items?').removeClass('d-none');
+        } else {
+            $link.addClass('d-none');
+            $banner.addClass('d-none');
+            return;
+        }
+    }
+    $banner.removeClass('d-none');
+}
+
+/**
+ * @returns {void}
+ */
+function _prodClearSelectAll() {
+    _prodSelectAllMode = false;
+    $('#prodSelectAllBanner').addClass('d-none');
+    $('#prodSelectAllLink').removeClass('d-none');
+    $('#prodSelectAllClear').addClass('d-none');
+}
+
 /**
  * Show a spinner row in the given table tbody and optionally hide pagination.
  * @param {string} tableSelector
@@ -80,11 +127,14 @@ function getProductDetails(PageNo, RowLimit, Filter) {
             } else {
                 $(ProdPag).html(response.Pagination);
                 $(ProdTable + ' tbody').html(response.List);
+                _prodTotalRecords = parseInt(response.TotalCount) || 0;
+                _prodPageCount    = $(ProdTable + ' tbody ' + ProdRow).length;
                 if (typeof response.TotalCount !== 'undefined') {
                     updateProductCount(response.TotalCount);
                 }
             }
             executeProdPagnFunc(response, false);
+            _prodUpdateSelectAllBanner();
         },
         error: function () {
             ajaxLoading(1);
@@ -187,29 +237,43 @@ function deleteProduct(ProductUID) {
 }
 
 function deleteMultipleProduct() {
-    $.ajax({
-        url: '/products/deleteBulkProduct',
-        method: "POST",
-        cache: false,
-        data: {
+    var isGroups = ActiveTabId === 'Groups';
+    var postData;
+    if (!isGroups && _prodSelectAllMode) {
+        postData = {
+            SelectAll   : 1,
+            Filter      : JSON.stringify(Filter),
+            IsComposite : 0,
+            ModuleId    : ItemModuleId,
+            [CsrfName]  : CsrfToken,
+        };
+    } else {
+        postData = {
             RowLimit    : RowLimit,
             PageNo      : PageNo,
             Filter      : Filter,
             ProductUIDs : SelectedUIDs,
-            IsComposite : ActiveTabId === 'Groups' ? 1 : 0,
+            IsComposite : isGroups ? 1 : 0,
             ModuleId    : ItemModuleId,
             [CsrfName]  : CsrfToken,
-        },
+        };
+    }
+    $.ajax({
+        url: '/products/deleteBulkProduct',
+        method: "POST",
+        cache: false,
+        data: postData,
         success: function (response) {
             if (response.Error) {
                 showToastNotification(response.Message, 'error');
             } else {
                 SelectedUIDs = [];
+                _prodClearSelectAll();
                 showToastNotification(response.Message, 'success');
                 hideUIBlock();
                 ajaxLoading(0);
                 _prodPageRefreshing = true;
-                if (ActiveTabId === 'Groups') {
+                if (isGroups) {
                     getGroupDetails(PageNo, RowLimit, Filter);
                 } else {
                     getProductDetails(PageNo, RowLimit, Filter);
@@ -377,8 +441,7 @@ function addCategoryDetails(formdata, onSuccess) {
         enctype: 'multipart/form-data',
         success: function (response) {
             if (response.Error) {
-                $('.catgFormAlert').removeClass('d-none');
-                inlineMessageAlert('.catgFormAlert', 'danger', response.Message, false, false);
+                showToastNotification(response.Message || 'Failed to save category.', 'error');
                 $('#CatgSaveButton').prop('disabled', false).text('Save');
             } else {
                 $('#categoryForm').trigger('reset');
@@ -442,8 +505,7 @@ function editCategoryDetails(formdata, onSuccess) {
         enctype: 'multipart/form-data',
         success: function (response) {
             if (response.Error) {
-                $('.catgFormAlert').removeClass('d-none');
-                inlineMessageAlert('.catgFormAlert', 'danger', response.Message, false, false);
+                showToastNotification(response.Message || 'Failed to update category.', 'error');
                 $('#CatgSaveButton').prop('disabled', false).text('Update');
             } else {
                 $('#categoryForm').trigger('reset');
@@ -613,8 +675,7 @@ function addBrandDetails(formdata, onSuccess) {
         enctype: 'multipart/form-data',
         success: function (response) {
             if (response.Error) {
-                $('.brandFormAlert').removeClass('d-none');
-                inlineMessageAlert('.brandFormAlert', 'danger', response.Message, false, false);
+                showToastNotification(response.Message || 'Failed to save brand.', 'error');
                 $('#BrandSaveButton').prop('disabled', false).text('Save');
             } else {
                 $('#brandForm').trigger('reset');
@@ -645,8 +706,7 @@ function editBrandDetails(formdata, onSuccess) {
         enctype: 'multipart/form-data',
         success: function (response) {
             if (response.Error) {
-                $('.brandFormAlert').removeClass('d-none');
-                inlineMessageAlert('.brandFormAlert', 'danger', response.Message, false, false);
+                showToastNotification(response.Message || 'Failed to update brand.', 'error');
                 $('#BrandSaveButton').prop('disabled', false).text('Update');
             } else {
                 $('#brandForm').trigger('reset');

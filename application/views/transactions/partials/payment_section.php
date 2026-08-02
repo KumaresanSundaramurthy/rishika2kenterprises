@@ -656,11 +656,11 @@ document.addEventListener('click', function(e) {
                 totalApplied += amt;
                 html += '<div style="padding:2px 0;">' +
                     '<span style="font-weight:600;">' + invNum + '</span>' +
-                    ' &rarr; <span style="font-weight:700;">' + _oaCur + ' ' + amt.toFixed(2) + '</span>' +
+                    ' &rarr; <span style="font-weight:700;">' + _oaCur + ' ' + amt.toFixed(_psDecimal) + '</span>' +
                 '</div>';
             });
             html += '<div style="margin-top:5px;padding-top:5px;border-top:1px solid #86efac;font-weight:700;">' +
-                'Total Applied: ' + _oaCur + ' ' + totalApplied.toFixed(2) + '</div>';
+                'Total Applied: ' + _oaCur + ' ' + totalApplied.toFixed(_psDecimal) + '</div>';
             document.getElementById('onAccountAppliedRecords').innerHTML = html;
             document.getElementById('onAccountAppliedInfo').classList.remove('d-none');
             document.getElementById('onAccountInfoCard').classList.add('d-none');

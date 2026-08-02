@@ -11,7 +11,7 @@ $this->load->view('common/transactions/header'); ?>
             <div class="content-wrapper apex-content">
                 <?php $this->load->view('common/apex/page_header', [
                     'pageTitle'       => $PageTitle       ?? 'Sales Returns',
-                    'pageDescription' => $PageDescription ?? 'Manage goods returned by customers',
+                    'pageDescription' => $PageDescription ?? '',
                 ]); ?>
                 <?php
                 $initTab    = $InitTab    ?? 'All';
@@ -84,7 +84,13 @@ $this->load->view('common/transactions/header'); ?>
                             <a href="javascript:void(0);" id="srPartyFilterTrigger" class="apex-filter-btn<?php echo in_array('srPartyFilterTrigger', $visibleFilters) ? '' : ' d-none'; ?>" title="Filter by Customer"><i class="bx bx-store me-1"></i>Customer</a>
                             <?php $this->load->view('common/transactions/date_filter_btn'); ?>
                             <div class="apex-filter-spacer"></div>
-                            <a href="javascript:void(0);" class="apex-filter-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
+                            <a href="javascript:void(0);" class="apex-filter-btn pageRefresh" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('page_refresh', 'Page Refresh'); ?>"><i class="bx bx-refresh"></i></a>
+                            <div class="btn-group d-none" id="ActionsDD-Div">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bx bx-slider-alt"></i></button>
+                                <ul class="dropdown-menu dropdown-menu-end r2k-export-menu r2k-actions-menu">
+                                    <li class="d-none" id="DeleteOption"><a class="dropdown-item text-danger" href="javascript:void(0);" id="btnDelete"><i class="bx bx-trash me-2"></i><?php echo t('delete', 'Delete'); ?></a></li>
+                                </ul>
+                            </div>
                             <?php $this->load->view('common/partials/export_btn'); ?>
                             <a href="/salesreturns/create" class="btn btn-sm btn-primary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('create_sales_return', 'Create Sales Return'); ?>"><i class="bx bx-plus me-1"></i><?php echo t('lbl_new', 'New'); ?></a>
                         </div>
@@ -99,6 +105,13 @@ $this->load->view('common/transactions/header'); ?>
                                 <li class="nav-item"><a class="nav-link<?php echo $initTab === 'Draft' ? ' active' : ''; ?> sr-status-tab" data-status="Draft" data-url-tab="drafts" href="javascript:void(0);">Drafts <span class="trans-tab-count ms-1<?php echo ($initTab !== 'Draft' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'Draft' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
                             </ul>
                             <?php $this->load->view('common/transactions/filter_notice'); ?>
+                        </div>
+
+                        <!-- Select-all banner -->
+                        <div id="srSelectAllBanner" class="r2k-select-all-banner d-none">
+                            <span id="srSelectAllMsg"></span>
+                            <a href="javascript:void(0);" id="srSelectAllLink" class="ms-2"></a>
+                            <a href="javascript:void(0);" id="srSelectAllClear" class="ms-2 d-none">Clear selection</a>
                         </div>
 
                         <!-- Table -->
@@ -454,6 +467,7 @@ $(function () {
 
     $(document).on('click', '.sr-status-tab', function (e) {
         e.preventDefault();
+        SelectedUIDs = []; _srClearSelectAll(); MultipleDeleteOption();
         _resetSrFilters();
         $('.sr-status-tab').removeClass('active');
         $(this).addClass('active');
@@ -515,7 +529,7 @@ $(function () {
     $(document).on('click', '.srPagination .page-link', function (e) {
         e.preventDefault();
         var match = ($(this).attr('href') || '').match(/\/(\d+)$/);
-        if (match) { PageNo = parseInt(match[1]); getSalesReturnsDetails(); }
+        if (match) { PageNo = parseInt(match[1]); _srClearSelectAll(); getSalesReturnsDetails(); }
     });
 
     // ── Cancel Sales Return ─────────────────────────────────────────────────────
@@ -738,8 +752,6 @@ $(function () {
     });
 
 
-    $(document).on('change', '.srHeaderCheck', function () { $('.srCheck').prop('checked', $(this).is(':checked')); });
-
     // ── Refund Payment (Sales Return) ──────────────────────
     $(document).on('click', '.srReceivePayment', function (e) {
         e.preventDefault();
@@ -769,6 +781,58 @@ $(function () {
         $('#rpBankAccount').val('');
         bootstrap.Modal.getOrCreateInstance(document.getElementById('recordPaymentModal')).show();
     });
+
+    // ── Checkbox / select-all wiring ─────────────────────────────────────
+    basePageHeaderFunc(ModuleHeader, ModuleTable, ModuleRow);
+
+    $(ModuleHeader).on('click', function () {
+        _srUpdateSelectAllBanner();
+    });
+
+    $(document).on('change', ModuleRow, function () {
+        onClickOfCheckbox(this, ModuleTable, ModuleHeader, ModuleRow);
+        _srUpdateSelectAllBanner();
+        MultipleDeleteOption();
+    });
+
+    $(document).on('click', '#srSelectAllLink', function (e) {
+        e.preventDefault();
+        _srSelectAllMode = true;
+        _srUpdateSelectAllBanner();
+    });
+
+    $(document).on('click', '#srSelectAllClear', function (e) {
+        e.preventDefault();
+        SelectedUIDs = [];
+        unSelectTableRecords(ModuleTable, ModuleRow);
+        $(ModuleHeader).prop('checked', false).prop('indeterminate', false);
+        _srClearSelectAll();
+        MultipleDeleteOption();
+    });
+
+    // ── Bulk delete ───────────────────────────────────────────────────────
+    $('#btnDelete').on('click', function () {
+        var count = _srSelectAllMode ? _srTotalRecords : SelectedUIDs.length;
+        Swal.fire({
+            title: 'Delete ' + count + ' sales return' + (count === 1 ? '' : 's') + '?',
+            text : 'This cannot be undone.',
+            icon : 'warning', showCancelButton: true,
+            confirmButtonText: 'Delete', confirmButtonColor: '#d33',
+        }).then(function (r) {
+            if (!r.isConfirmed) return;
+            deleteMultipleSalesReturns();
+        });
+    });
+
+    // ── syncDD: show/hide ActionsDD-Div when DeleteOption visibility changes ──
+    (function syncDD() {
+        var $div = $('#ActionsDD-Div');
+        var $del = $('#DeleteOption');
+        if (!$div.length || !$del.length) return;
+        new MutationObserver(function () {
+            $div.toggleClass('d-none', $del.hasClass('d-none'));
+        }).observe($del[0], { attributes: true, attributeFilter: ['class'] });
+    })();
 
 });
 

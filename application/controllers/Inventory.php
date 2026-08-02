@@ -36,6 +36,7 @@ class Inventory extends MY_Controller {
             $limit = (int)($GeneralSettings->RowLimit ?? 10);
 
             $filter = $this->input->post('Filter') ?: [];
+            $filter['BranchUID'] = $this->_branchUID();
 
             $listData   = $this->inventory_model->getInventoryList($orgUID, $filter, $limit, 0);
             $totalCount = $this->inventory_model->getInventoryCount($orgUID, $filter);
@@ -74,6 +75,7 @@ class Inventory extends MY_Controller {
             $limit  = (int)($this->input->post('RowLimit') ?: 10);
             $offset = ($pageNo - 1) * $limit;
             $filter = $this->input->post('Filter') ?: [];
+            $filter['BranchUID'] = $this->_branchUID();
 
             $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
 
@@ -106,8 +108,9 @@ class Inventory extends MY_Controller {
 
         $this->EndReturnData = new stdClass();
         try {
-            $orgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
-            $userUID = (int) $this->pageData['JwtData']->User->UserUID;
+            $orgUID    = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $userUID   = (int) $this->pageData['JwtData']->User->UserUID;
+            $branchUID = $this->_branchUID();
 
             $productUID = (int)   $this->input->post('ProductUID');
             $qty        = (float) $this->input->post('Qty');
@@ -126,6 +129,7 @@ class Inventory extends MY_Controller {
 
             $adjData = [
                 'OrgUID'      => $orgUID,
+                'BranchUID'   => $branchUID,
                 'ProductUID'  => $productUID,
                 'ModuleUID'   => 118,
                 'AdjType'     => 'IN',
@@ -145,7 +149,7 @@ class Inventory extends MY_Controller {
 
             $adjUID = (int) $insertResp->ID;
             if ($adjUID <= 0) throw new Exception('Failed to retrieve adjustment ID after insert.');
-            $this->dbwrite_model->applyManualStockAdjustment($adjUID, $orgUID, $userUID, $productUID, $qty, $price, 'IN');
+            $this->dbwrite_model->applyManualStockAdjustment($adjUID, $orgUID, $userUID, $productUID, $qty, $price, 'IN', $branchUID);
 
             $this->dbwrite_model->commitTransaction();
 
@@ -182,8 +186,9 @@ class Inventory extends MY_Controller {
 
         $this->EndReturnData = new stdClass();
         try {
-            $orgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
-            $userUID = (int) $this->pageData['JwtData']->User->UserUID;
+            $orgUID    = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $userUID   = (int) $this->pageData['JwtData']->User->UserUID;
+            $branchUID = $this->_branchUID();
 
             $productUID = (int)   $this->input->post('ProductUID');
             $qty        = (float) $this->input->post('Qty');
@@ -202,6 +207,7 @@ class Inventory extends MY_Controller {
 
             $adjData = [
                 'OrgUID'      => $orgUID,
+                'BranchUID'   => $branchUID,
                 'ProductUID'  => $productUID,
                 'ModuleUID'   => 118,
                 'AdjType'     => 'OUT',
@@ -221,7 +227,7 @@ class Inventory extends MY_Controller {
 
             $adjUID = (int) $insertResp->ID;
             if ($adjUID <= 0) throw new Exception('Failed to retrieve adjustment ID after insert.');
-            $this->dbwrite_model->applyManualStockAdjustment($adjUID, $orgUID, $userUID, $productUID, $qty, $price, 'OUT');
+            $this->dbwrite_model->applyManualStockAdjustment($adjUID, $orgUID, $userUID, $productUID, $qty, $price, 'OUT', $branchUID);
 
             $this->dbwrite_model->commitTransaction();
 
@@ -388,7 +394,7 @@ class Inventory extends MY_Controller {
 
             if ($productUID <= 0) throw new Exception('Invalid product.');
 
-            $timeline = $this->inventory_model->getStockTimeline($productUID, $orgUID);
+            $timeline = $this->inventory_model->getStockTimeline($productUID, $orgUID, $this->_branchUID());
 
             $this->EndReturnData->Error    = FALSE;
             $this->EndReturnData->Timeline = $timeline;

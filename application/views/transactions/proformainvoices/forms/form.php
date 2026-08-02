@@ -137,10 +137,10 @@ if (!empty($DispatchAddress)) {
                             </div>
                             <div class="d-flex align-items-center gap-2">
                                 <?php if (!$isEdit || $isDraftEdit): ?>
-                                <button type="submit" name="action" value="draft" class="btn btn-sm btn-outline-secondary"><i class="bx bx-save me-1"></i><?php echo t('btn_save_draft', 'Save as Draft'); ?></button>
+                                <button type="submit" name="action" value="draft" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_save_draft', 'Save and continue editing later'); ?>"><i class="bx bx-save me-1"></i><?php echo t('btn_save_draft', 'Save as Draft'); ?></button>
                                 <?php endif; ?>
                                 <div class="btn-group">
-                                    <button type="submit" name="action" value="save" class="btn btn-sm btn-primary px-3">
+                                    <button type="submit" name="action" value="save" class="btn btn-sm btn-primary px-3" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_save', 'Save transaction'); ?>">
                                         <i class="bx bx-check me-1"></i>Save
                                     </button>
                                     <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2" data-bs-toggle="dropdown" aria-expanded="false">
@@ -153,7 +153,7 @@ if (!empty($DispatchAddress)) {
                                         <li><button type="submit" class="dropdown-item py-1" name="action" value="save_thermal"><i class="bx bx-receipt text-success me-2"></i><?php echo t('btn_save_thermal', 'Save & Print Thermal'); ?></button></li>
                                     </ul>
                                 </div>
-                                <a href="<?php echo $_closeUrl; ?>" class="btn btn-sm btn-outline-danger px-3<?php echo $_hideNav ? ' d-none' : ''; ?>"><i class="bx bx-x me-1"></i>Close</a>
+                                <a href="<?php echo $_closeUrl; ?>" class="btn btn-sm btn-outline-danger px-3<?php echo $_hideNav ? ' d-none' : ''; ?>" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_close', 'Return to list'); ?>"><i class="bx bx-x me-1"></i>Close</a>
                             </div>
                         </div>
 
@@ -201,7 +201,7 @@ if (!empty($DispatchAddress)) {
                                     <div class="d-flex align-items-center justify-content-between mb-1">
                                         <label for="customerSearch" class="trans-field-label mb-0">Select Customer <span class="text-danger">*</span></label>
                                         <?php if (!$isEdit): ?>
-                                        <button type="button" id="addTransCustomer" class="trans-add-btn btn btn-outline-primary btn-sm" style="font-size:.72rem;white-space:nowrap;"><i class="bx bx-plus-circle me-1"></i><?php echo t('btn_add_customer', 'Add Customer'); ?></button>
+                                        <button type="button" id="addTransCustomer" class="trans-add-btn btn btn-outline-primary btn-sm" style="font-size:.72rem;white-space:nowrap;" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_create_customer', 'Create Customer'); ?>"><i class="bx bx-plus-circle me-1"></i><?php echo t('btn_add_customer', 'Add Customer'); ?></button>
                                         <?php endif; ?>
                                     </div>
                                     <div class="input-group input-group-sm input-group-merge customer-search-group" id="customerGroup_customerSearch">
@@ -259,7 +259,7 @@ if (!empty($DispatchAddress)) {
                                 </div>
                                 <div class="d-flex align-items-center gap-2">
                                     <?php if (!$isEdit || $isDraftEdit): ?>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="inlineDraftBtn"><i class="bx bx-save me-1"></i><?php echo t('btn_save_draft', 'Save as Draft'); ?></button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="inlineDraftBtn" data-bs-toggle="tooltip" data-bs-placement="top" title="<?php echo t('tooltip_save_draft', 'Save and continue editing later'); ?>"><i class="bx bx-save me-1"></i><?php echo t('btn_save_draft', 'Save as Draft'); ?></button>
                                     <?php endif; ?>
                                     <div class="btn-group">
                                         <button type="button" class="btn btn-sm btn-primary px-3" id="inlineSaveBtn">
@@ -293,10 +293,10 @@ if (!empty($DispatchAddress)) {
                         </div>
                         <div class="d-flex align-items-center gap-2">
                             <?php if (!$isEdit || $isDraftEdit): ?>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" id="stickyDraftBtn"><i class="bx bx-save me-1"></i><?php echo t('btn_save_draft', 'Save as Draft'); ?></button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="stickyDraftBtn" data-bs-toggle="tooltip" data-bs-placement="top" title="<?php echo t('tooltip_save_draft', 'Save and continue editing later'); ?>"><i class="bx bx-save me-1"></i><?php echo t('btn_save_draft', 'Save as Draft'); ?></button>
                             <?php endif; ?>
                             <div class="btn-group">
-                                <button type="button" class="btn btn-sm btn-primary px-3" id="stickySaveBtn">
+                                <button type="button" class="btn btn-sm btn-primary px-3" id="stickySaveBtn" data-bs-toggle="tooltip" data-bs-placement="top" title="<?php echo t('tooltip_save', 'Save transaction'); ?>">
                                     <i class="bx bx-check me-1"></i>Save
                                 </button>
                                 <?php if (!$isEdit || $isDraftEdit): ?>
@@ -336,6 +336,8 @@ if (!empty($DispatchAddress)) {
 <script src="/js/common/customer_form.js"></script>
 <script src="/js/transactions/proformainvoices.js"></script>
 <script src="/js/transactions/transactions.js"></script>
+<?php $this->load->view('common/transactions/pricelist_select_modal'); ?>
+<script>var R2K_HAS_PRICE_LISTS = <?php echo $HasPriceLists ? 'true' : 'false'; ?>;</script>
 <script src="/js/transactions/pricelist_trans.js"></script>
 <script src="/js/transactions/transprefix.js"></script>
 <script src="/js/transactions/modaladdress.js"></script>

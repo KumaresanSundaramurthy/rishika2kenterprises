@@ -1,8 +1,10 @@
 'use strict';
 (function () {
 
-  var currentPage = 1;
-  var filterData  = {};
+  var currentPage        = 1;
+  var filterData         = {};
+  var _desigIsDirty      = false;
+  var _desigIsCreateMode = false;
 
   function loadPage(page, filter) {
     currentPage = page || 1;
@@ -16,6 +18,8 @@
   }
 
   function _resetModal() {
+    _desigIsCreateMode = false;
+    _desigIsDirty      = false;
     $('#desigUID').val(0);
     $('#desigName').val('').removeClass('is-invalid');
     $('#desigDesc').val('');
@@ -26,6 +30,8 @@
     _resetModal();
     $('#desigModalTitle').text('New Designation');
     $('#desigModal').modal('show');
+    _desigIsCreateMode = true;
+    _desigIsDirty      = false;
   });
 
   // Edit
@@ -62,6 +68,8 @@
       $btn.prop('disabled', false);
       if (!r.Error) {
         showToastNotification(r.Message || 'Saved.', 'success');
+        _desigIsDirty      = false;
+        _desigIsCreateMode = false;
         $('#desigModal').modal('hide');
         loadPage(currentPage);
       } else {
@@ -103,6 +111,33 @@
     e.preventDefault();
     var pg = $(this).data('page');
     if (pg) loadPage(pg);
+  });
+
+  // ── Dirty-tracking listener ─────────────────────────────────────────────
+  $(document).on('input change', '#desigName, #desigDesc', function () {
+    if (_desigIsCreateMode) _desigIsDirty = true;
+  });
+
+  // ── Unsaved-changes guard ───────────────────────────────────────────────
+  $(document).on('hide.bs.modal', '#desigModal', function (e) {
+    if (!_desigIsDirty || !_desigIsCreateMode) return;
+    e.preventDefault();
+    Swal.fire({
+      title             : t('swal_unsaved_title',   'Unsaved Changes'),
+      text              : t('swal_unsaved_msg',     'Your changes will be lost if you close now.'),
+      icon              : 'warning',
+      showCancelButton  : true,
+      confirmButtonText : t('swal_unsaved_confirm', 'Close Anyway'),
+      cancelButtonText  : t('swal_unsaved_cancel',  'Stay'),
+      confirmButtonColor: '#d33',
+      cancelButtonColor : '#3085d6',
+    }).then(function (result) {
+      if (result.isConfirmed) {
+        _desigIsDirty      = false;
+        _desigIsCreateMode = false;
+        $('#desigModal').modal('hide');
+      }
+    });
   });
 
 })();

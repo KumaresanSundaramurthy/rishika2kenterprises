@@ -22,6 +22,9 @@
     var _pfImgData     = '';
     var _pfInitDone    = false;
     var _pfOrigHsnCode = '';
+    var _isDirty       = false;
+    var _isCreateMode  = false;
+    var _isPopulating  = false;
 
     window.ProductForm = { open: openProductModal };
 
@@ -45,19 +48,27 @@
                 // Case A: all 6 keys were in Upstash — populate first, then show modal.
                 // User sees the form already fully loaded on open.
                 onReady: function (data) {
+                    _isPopulating = true;
                     DropdownCache.populateProductModal(data);
                     _pfApplyDefaults();
+                    _isPopulating = false;
                     $('#ProductFormModal').modal('show');
+                    _isCreateMode = true;
+                    _isDirty      = false;
                     setTimeout(function () { $('#ItemName').focus(); }, 300);
                 },
 
                 // Case B: some/none in Upstash — show modal now, populate whatever was found.
                 onPartial: function (foundData) {
                     if (Object.keys(foundData).length > 0) {
+                        _isPopulating = true;
                         DropdownCache.populateProductModal(foundData);
                         _pfApplyDefaults();
+                        _isPopulating = false;
                     }
                     $('#ProductFormModal').modal('show');
+                    _isCreateMode = true;
+                    _isDirty      = false;
                     setTimeout(function () { $('#ItemName').focus(); }, 300);
                 },
 
@@ -65,8 +76,10 @@
                 // populateProductModal's "no options yet" guards prevent double-populating
                 // the fields that were already filled in onPartial.
                 onMissingReady: function (allData) {
+                    _isPopulating = true;
                     DropdownCache.populateProductModal(allData);
                     _pfApplyDefaults();
+                    _isPopulating = false;
                 }
             });
         }
@@ -219,6 +232,8 @@
 
     // ── Reset form to blank / defaults ────────────────────────────────────
     function _resetProductModal() {
+        _isCreateMode = false;
+        _isDirty      = false;
         _pfImgData     = '';
         _pfOrigHsnCode = '';
         $('#AddEditItemForm')[0].reset();
@@ -243,7 +258,6 @@
         if (typeof quill        !== 'undefined') { quill.setContents([]); }
         // Reset state only — listeners are already bound from _pfInit, never re-bind
         if (typeof _attachResetState === 'function') _attachResetState('Product');
-        $('.addEditFormAlert').addClass('d-none');
     }
 
     // ── Load for edit/clone ───────────────────────────────────────────────
@@ -345,10 +359,9 @@
     // ── Modal events ──────────────────────────────────────────────────────
     $(document).on('shown.bs.modal', '#ProductFormModal', function () {
         $('#AddEditItemForm #ItemName').trigger('focus');
-        $('.addEditFormAlert').addClass('d-none');
     });
 
-    $(document).on('hide.bs.modal', '#ProductFormModal', function () {
+    $(document).on('hidden.bs.modal', '#ProductFormModal', function () {
         _resetProductModal();
     });
 
@@ -487,11 +500,12 @@
             success: function (response) {
                 $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i>Save');
                 if (response.Error) {
-                    $('.addEditFormAlert').removeClass('d-none');
-                    Swal.fire({ icon: 'error', title: 'Oops...', text: response.Message });
+                    showToastNotification(response.Message || 'Failed to save product.', 'error');
                     return;
                 }
                 // Attachments were uploaded as part of this same request — no extra round trip
+                _isDirty      = false;
+                _isCreateMode = false;
                 showToastNotification(response.Message, 'success');
                 $('#ProductFormModal').modal('hide');
                 if (typeof _onSaveSuccess === 'function') _onSaveSuccess(response);
@@ -502,6 +516,33 @@
             }
         });
     }
+
+    // ── Dirty-tracking: flag changes while in create mode ────────────────────
+    $(document).on('input change', '#AddEditItemForm input, #AddEditItemForm textarea, #AddEditItemForm select', function () {
+        if (_isCreateMode && !_isPopulating) _isDirty = true;
+    });
+
+    // ── Unsaved-changes guard ─────────────────────────────────────────────────
+    $(document).on('hide.bs.modal', '#ProductFormModal', function (e) {
+        if (!_isDirty || !_isCreateMode) return;
+        e.preventDefault();
+        Swal.fire({
+            title             : t('swal_unsaved_title',   'Unsaved Changes'),
+            text              : t('swal_unsaved_msg',     'Your changes will be lost if you close now.'),
+            icon              : 'warning',
+            showCancelButton  : true,
+            confirmButtonText : t('swal_unsaved_confirm', 'Close Anyway'),
+            cancelButtonText  : t('swal_unsaved_cancel',  'Stay'),
+            confirmButtonColor: '#d33',
+            cancelButtonColor : '#3085d6',
+        }).then(function (result) {
+            if (result.isConfirmed) {
+                _isDirty      = false;
+                _isCreateMode = false;
+                $('#ProductFormModal').modal('hide');
+            }
+        });
+    });
 
 })(window, jQuery);
 

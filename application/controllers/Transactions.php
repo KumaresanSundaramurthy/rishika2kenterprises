@@ -444,6 +444,17 @@ class Transactions extends MY_Controller {
                 $this->load->model('organisation_model');
                 $orgInfo                          = $this->organisation_model->getOrgInfoCached($orgUID);
                 $this->EndReturnData->OrgInfo     = $orgInfo->Data ?? null;
+
+                // AmountInWords — for email template token replacement
+                $header->AmountInWords = function_exists('print_number_to_words')
+                    ? print_number_to_words((float)($header->NetAmount ?? 0))
+                    : '';
+
+                // Permissions — separate object so callers (viewTransModal, future modals) can gate UI actions
+                $_nonEditableStatuses = ['Converted', 'Cancelled', 'Rejected'];
+                $permissions          = new stdClass();
+                $permissions->CanEdit = !in_array($header->DocStatus ?? '', $_nonEditableStatuses);
+                $this->EndReturnData->Permissions = $permissions;
             }
 
         } catch (Exception $e) {
@@ -687,7 +698,192 @@ class Transactions extends MY_Controller {
         }
 
         $this->globalservice->sendJsonResponse($this->EndReturnData);
-        
+
+    }
+
+    // ── Bulk delete transactions ─────────────────────────────────────────────
+    public function deleteMultipleTransactions(int $moduleUID = 0): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $validModules = [101, 102, 103, 104, 105, 106, 108, 112, 113];
+            if (!in_array($moduleUID, $validModules, true)) throw new Exception('Module not supported for bulk delete.');
+
+            $orgUID  = (int)$this->pageData['JwtData']->Org->OrgUID;
+            $userUID = (int)$this->pageData['JwtData']->User->UserUID;
+
+            $this->load->model(['transactions_model', 'dbwrite_model']);
+
+            $selectAll = (int)$this->input->post('SelectAll');
+            if ($selectAll === 1) {
+                $filter = $this->input->post('Filter') ?: [];
+                if (!is_array($filter)) $filter = (array)json_decode($filter, true);
+                $filter['BranchUID'] = $this->_branchUID();
+                $transUIDs = $this->transactions_model->getTransactionUIDsByFilter($orgUID, $moduleUID, $filter);
+            } else {
+                $raw       = $this->input->post('TransUIDs');
+                $transUIDs = is_array($raw)
+                    ? array_values(array_filter(array_map('intval', $raw), fn($u) => $u > 0))
+                    : [];
+            }
+
+            if (empty($transUIDs)) throw new Exception('No records selected.');
+
+            $deleted = 0;
+            $errors  = [];
+            foreach ($transUIDs as $transUID) {
+                try {
+                    $this->_deleteSingleTransaction((int)$transUID, $orgUID, $userUID, $moduleUID);
+                    $deleted++;
+                } catch (Throwable $e) {
+                    $errors[] = '#' . $transUID . ': ' . $e->getMessage();
+                }
+            }
+
+            if ($deleted === 0) throw new Exception(implode('; ', $errors) ?: 'No records deleted.');
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = $deleted . ' record(s) deleted.' .
+                (!empty($errors) ? ' Skipped: ' . implode('; ', $errors) : '');
+            $this->auditlog->log(
+                $orgUID, $userUID,
+                'BULK_DELETE_TRANSACTION', 'Transaction', $moduleUID, '',
+                [], 'Bulk deleted ' . $deleted . ' transaction(s) for module ' . $moduleUID,
+                'Transactions', 'TRANSACTION'
+            );
+
+        } catch (Throwable $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    /**
+     * @param int $transUID
+     * @param int $orgUID
+     * @param int $userUID
+     * @param int $moduleUID
+     * @return void
+     * @throws Exception
+     */
+    private function _deleteSingleTransaction(int $transUID, int $orgUID, int $userUID, int $moduleUID): void {
+
+        $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $moduleUID);
+        if (!$existing) throw new Exception("Transaction #$transUID not found.");
+
+        // Sales Returns: pre-checks before any write
+        if ($moduleUID === 106) {
+            $creditApplied = $this->transactions_model->getSRCreditApplied($existing->UniqueNumber ?? '');
+            if ($creditApplied > 0) {
+                throw new Exception('SR has credit applied to invoices. Reverse allocations first.');
+            }
+            $readDb = $this->load->database('ReadDB', TRUE);
+            $readDb->db_debug = FALSE;
+            $readDb->from('Transaction.TransCreditNoteTbl');
+            $readDb->where([
+                'SourceTransUID'  => $transUID,
+                'SourceModuleUID' => 106,
+                'IsDeleted'       => 0,
+                'IsCancelled'     => 0,
+                'Status'          => 'Applied',
+            ]);
+            if ($readDb->get()->num_rows() > 0) {
+                throw new Exception('SR credit note is applied to an invoice. Reverse it first.');
+            }
+        }
+
+        $this->dbwrite_model->startTransaction();
+
+        // Stock reversal (Invoices, Purchases, Sales Returns, Purchase Returns)
+        $stockModules = [103, 105, 106, 108];
+        if (in_array($moduleUID, $stockModules, true)) {
+            $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
+            $this->_syncProductCacheByTransUID($transUID);
+        } elseif ($moduleUID === 112) {
+            // Delivery Challans: only reverse stock if goods were dispatched
+            $status = $existing->DocStatus ?? '';
+            if (in_array($status, ['Dispatched', 'Delivered', 'Partially Returned', 'Converted'], true)) {
+                $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
+                $this->_syncProductCacheByTransUID($transUID);
+            }
+        }
+
+        // Sales Returns: delete linked payments + pending credit notes
+        if ($moduleUID === 106) {
+            $this->dbwrite_model->updateData(
+                'Transaction', 'PaymentsTbl',
+                ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
+                ['TransUID' => $transUID, 'IsDeleted' => 0]
+            );
+            $wdb = $this->dbwrite_model->getWriteDb();
+            $wdb->db_debug = FALSE;
+            $wdb->where([
+                'SourceTransUID'  => $transUID,
+                'SourceModuleUID' => 106,
+                'Status'          => 'Pending',
+                'IsCancelled'     => 0,
+                'IsDeleted'       => 0,
+            ])->update('Transaction.TransCreditNoteTbl', [
+                'IsDeleted' => 1,
+                'UpdatedBy' => $userUID,
+            ]);
+        }
+
+        $this->dbwrite_model->softDeleteTransactionItems($transUID, $userUID);
+        $this->dbwrite_model->softDeleteTransaction($transUID, $orgUID, $userUID);
+        $this->dbwrite_model->commitTransaction();
+
+        // Post-commit ledger operations (all non-fatal)
+
+        if ($moduleUID === 103 && ($existing->DocStatus ?? '') !== 'Draft'
+            && ($existing->PartyType ?? '') === 'C' && ($existing->PartyUID ?? 0) > 0) {
+            try {
+                $this->load->library('accountledger');
+                $netAmount   = (float)($existing->NetAmount ?? 0);
+                $payments    = $this->transactions_model->getTransactionPayments($transUID, $orgUID);
+                $alreadyPaid = array_sum(array_column((array)$payments, 'Amount'));
+                $remaining   = max(0, round($netAmount - $alreadyPaid, $this->_decimals()));
+                if ($remaining > 0) {
+                    $this->accountledger->applyLedgerEntry($existing->PartyUID, 'Customer', $remaining, 'Credit', $transUID);
+                }
+                $this->accountledger->reverseJournal('Invoice', $transUID, $userUID);
+            } catch (Throwable $e) {
+                log_message('error', 'Bulk inv delete ledger #' . $transUID . ': ' . $e->getMessage());
+            }
+        }
+
+        if ($moduleUID === 105 && ($existing->DocStatus ?? '') !== 'Draft'
+            && ($existing->PartyType ?? '') === 'S' && ($existing->PartyUID ?? 0) > 0) {
+            try {
+                $this->load->library('accountledger');
+                $this->accountledger->applyLedgerEntry($existing->PartyUID, 'Vendor', (float)($existing->NetAmount ?? 0), 'Debit', $transUID);
+                $this->accountledger->reverseJournal('Purchase', $transUID, $userUID);
+            } catch (Throwable $e) {
+                log_message('error', 'Bulk purch delete ledger #' . $transUID . ': ' . $e->getMessage());
+            }
+            $this->_recalcVendorBalance($orgUID, (int)$existing->PartyUID, $userUID);
+        }
+
+        if ($moduleUID === 106 && ($existing->PartyUID ?? 0) > 0) {
+            $this->_recalcCustomerBalance($orgUID, (int)$existing->PartyUID, $userUID);
+            try {
+                $this->load->library('accountledger');
+                $this->accountledger->reverseJournal('SalesReturn', $transUID, $userUID);
+            } catch (Throwable $e) {
+                log_message('error', 'Bulk SR delete ledger #' . $transUID . ': ' . $e->getMessage());
+            }
+        }
+
+        if ($moduleUID === 108 && ($existing->PartyUID ?? 0) > 0) {
+            $this->_recalcVendorBalance($orgUID, (int)$existing->PartyUID, $userUID);
+            try {
+                $this->load->library('accountledger');
+                $this->accountledger->reverseJournal('PurchaseReturn', $transUID, $userUID);
+            } catch (Throwable $e) {
+                log_message('error', 'Bulk PR delete ledger #' . $transUID . ': ' . $e->getMessage());
+            }
+        }
     }
 
 }

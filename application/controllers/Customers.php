@@ -67,8 +67,9 @@ class Customers extends MY_Controller {
 
             if ($initTab !== 'Groups') {
                 $pageData = $this->_fetchTableData(1, $limit);
-                $this->pageData['ModRowData']    = $pageData->RecordHtmlData;
-                $this->pageData['ModPagination'] = $pageData->Pagination;
+                $this->pageData['ModRowData']      = $pageData->RecordHtmlData;
+                $this->pageData['ModPagination']   = $pageData->Pagination;
+                $this->pageData['InitTotalCount']  = $pageData->TotalCount ?? 0;
             } else {
                 $grpFilter = strlen($initSearch) >= 3 ? ['SearchAllData' => $initSearch] : [];
                 $grpPage   = $this->_fetchGroupsTableData(1, $limit, $grpFilter);
@@ -880,12 +881,21 @@ class Customers extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $CustomerUIDs = $this->input->post('CustomerUIDs[]');
-            if (empty($CustomerUIDs)) throw new Exception('Customer Information is Missing to Delete');
+            $this->load->model('customers_model');
+            $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
+            $selectAll = (int)($this->input->post('SelectAll') ?? 0);
 
-            if (!is_array($CustomerUIDs)) $CustomerUIDs = [$CustomerUIDs];
-            $CustomerUIDs = array_filter(array_map('intval', $CustomerUIDs));
-            if (empty($CustomerUIDs)) throw new Exception('Invalid customer IDs provided');
+            if ($selectAll) {
+                $filter       = json_decode($this->input->post('Filter') ?? '{}', true) ?: [];
+                $CustomerUIDs = $this->customers_model->getCustomerUIDsByFilter($orgUID, $filter);
+                if (empty($CustomerUIDs)) throw new Exception('No customers found matching the current filter.');
+            } else {
+                $CustomerUIDs = $this->input->post('CustomerUIDs[]');
+                if (empty($CustomerUIDs)) throw new Exception('Customer Information is Missing to Delete');
+                if (!is_array($CustomerUIDs)) $CustomerUIDs = [$CustomerUIDs];
+                $CustomerUIDs = array_filter(array_map('intval', $CustomerUIDs));
+                if (empty($CustomerUIDs)) throw new Exception('Invalid customer IDs provided');
+            }
 
             $this->load->model('dbwrite_model');
             $this->dbwrite_model->startTransaction();

@@ -35,8 +35,7 @@ function applyLang(newLang) {
         });
     });
     window._appLang = newPack;
-    $('#apexLangBtn .apex-lang-flag').text(newLang === 'ta' ? '🇮🇳' : '🇬🇧');
-    $('#apexLangBtn .apex-lang-name').text(newLang === 'ta' ? 'தமிழ்' : 'English');
+    $('#apexLangBtn .apex-lang-label').text(newLang === 'ta' ? 'த' : 'En');
     $('.apex-lang-option').removeClass('active');
     $('.apex-lang-option[data-lang="' + newLang + '"]').addClass('active');
     document.documentElement.lang = newLang;
@@ -1016,14 +1015,10 @@ function resetUserPassword(formData) {
 
             $('#ResetPasswordSubBtn').removeAttr('disabled');
             if (response.Error) {
-                $('#ChangePasswordAlert').removeClass('d-none');
-                inlineMessageAlert('#ChangePasswordAlert', 'danger', response.Message, false, false);
+                showToastNotification(response.Message, 'error');
             } else {
-
-                $('#ChangePasswordAlert').addClass('d-none');
                 $('#ChangePasswordModal').modal('hide');
                 window.location.replace('/logout');
-
             }
 
         }
@@ -2007,6 +2002,34 @@ $(function () {
         }, 'json').fail(function () {
             ajaxLoading(1);
         });
+    });
+});
+
+// ── Branch Switcher (navbar) ─────────────────────────────────────────────────
+$(document).on('click', '.nb-branch-item', function () {
+    var uid  = parseInt($(this).data('branch-uid'), 10);
+    var name = $(this).data('branch-name') || '';
+    if (!uid || $(this).hasClass('active')) return;
+
+    ajaxLoading(1);
+    $.ajax({
+        url   : '/branches/switchBranch',
+        method: 'POST',
+        data  : { BranchUID: uid },
+        success: function (res) {
+            if (res.Error) {
+                ajaxLoading(0);
+                toastr.error(res.Message || 'Failed to switch branch.');
+                return;
+            }
+            toastr.success(res.Message || ('Switched to ' + name));
+            // Reload current page so all data reflects the new branch
+            window.location.reload();
+        },
+        error: function () {
+            ajaxLoading(0);
+            toastr.error('Failed to switch branch. Please try again.');
+        }
     });
 });
 

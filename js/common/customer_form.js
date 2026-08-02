@@ -20,6 +20,8 @@
     var _bodyLoaded          = false;
     var _customerTypesCache  = null;
     var _customerGroupsCache = null;
+    var _isDirty             = false;   // true when user has changed a field in create mode
+    var _isCreateMode        = false;   // true only while form is open in add mode
 
     // ── Public API ────────────────────────────────────────────────────────────
     window.CustomerForm = {
@@ -237,6 +239,8 @@
                         _applyDefaultSalutation();
                         _applyDefaultCustomerType();
                         $('#CustomerFormModal').modal('show');
+                        _isCreateMode = true;
+                        _isDirty      = false;
                     });
                 });
             });
@@ -271,6 +275,8 @@
 
     // ── Reset modal to a clean add state ──────────────────────────────────────
     function _resetCustomerModal() {
+        _isCreateMode = false;
+        _isDirty      = false;
         _editUID = 0;
         if (typeof delBankDataFlag !== 'undefined') delBankDataFlag = 0;
         if (typeof delBankData     !== 'undefined') delBankData     = [];
@@ -403,6 +409,24 @@
         if (typeof _updateCopyButtons === 'function') _updateCopyButtons();
     }
 
+    // ── Portal access: require a valid email before allowing the checkbox ────────
+    $(document).on('change', '#CM_AllowPortalAccess', function () {
+        if (!$(this).is(':checked')) return;
+        var email = $.trim($('#CM_EmailAddress').val());
+        var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!email) {
+            $(this).prop('checked', false);
+            showToastNotification('Please enter an email address before enabling portal access.', 'error');
+            $('#CM_EmailAddress').trigger('focus');
+            return;
+        }
+        if (!emailRegex.test(email)) {
+            $(this).prop('checked', false);
+            showToastNotification('The email address is invalid. Please correct it before enabling portal access.', 'error');
+            $('#CM_EmailAddress').trigger('focus');
+        }
+    });
+
     // ── Save button click ─────────────────────────────────────────────────────
     $(document).on('click', '#CustomerFormSaveBtn', function () {
         $('#CustomerModalForm').submit();
@@ -502,6 +526,8 @@
                 showAlertMessageSwal('error', '', response.Message);
                 return;
             }
+            _isDirty      = false;
+            _isCreateMode = false;
             showToastNotification(response.Message, 'success');
             $('#CustomerFormModal').modal('hide');
             if (typeof _onSaveSuccess === 'function') {
@@ -521,6 +547,33 @@
         } else {
             $.ajax({ url: '/customers/addCustomerData', method: 'POST', data: formData, cache: false, processData: false, contentType: false, success: onDone });
         }
+    });
+
+    // ── Dirty-tracking: flag any user change while in create mode ────────────
+    $(document).on('input change', '#CustomerModalForm input, #CustomerModalForm textarea, #CustomerModalForm select', function () {
+        if (_isCreateMode) _isDirty = true;
+    });
+
+    // ── Unsaved-changes guard: intercept close in create mode only ────────────
+    $(document).on('hide.bs.modal', '#CustomerFormModal', function (e) {
+        if (!_isDirty || !_isCreateMode) return;
+        e.preventDefault();
+        Swal.fire({
+            title             : t('swal_unsaved_title',   'Unsaved Changes'),
+            text              : t('swal_unsaved_msg',     'Your changes will be lost if you close now.'),
+            icon              : 'warning',
+            showCancelButton  : true,
+            confirmButtonText : t('swal_unsaved_confirm', 'Close Anyway'),
+            cancelButtonText  : t('swal_unsaved_cancel',  'Stay'),
+            confirmButtonColor: '#d33',
+            cancelButtonColor : '#3085d6',
+        }).then(function (result) {
+            if (result.isConfirmed) {
+                _isDirty      = false;
+                _isCreateMode = false;
+                $('#CustomerFormModal').modal('hide');
+            }
+        });
     });
 
     // ── Helper ────────────────────────────────────────────────────────────────

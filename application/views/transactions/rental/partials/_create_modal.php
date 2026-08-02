@@ -108,11 +108,11 @@
 
                                 <div class="d-flex justify-content-between py-1 border-bottom">
                                     <span class="text-muted" style="font-size:.82rem;">Rental Charge</span>
-                                    <span id="rntSummaryRentalCharge" style="font-size:.82rem;font-weight:600;">₹ 0.00</span>
+                                    <span id="rntSummaryRentalCharge" style="font-size:.82rem;font-weight:600;"><?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?> 0.00</span>
                                 </div>
                                 <div class="d-flex justify-content-between py-2">
                                     <span class="fw-semibold">Grand Total</span>
-                                    <span id="rntSummaryGrandTotal" style="font-weight:700;font-size:1rem;color:#7c3aed;">₹ 0.00</span>
+                                    <span id="rntSummaryGrandTotal" style="font-weight:700;font-size:1rem;color:#7c3aed;"><?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?> 0.00</span>
                                 </div>
 
                                 <hr class="my-2">
@@ -147,7 +147,7 @@
 
                                 <div class="d-flex justify-content-between">
                                     <span class="text-muted" style="font-size:.82rem;">Balance After Deposit</span>
-                                    <span id="rntSummaryBalance" style="font-size:.82rem;font-weight:600;color:#dc2626;">₹ 0.00</span>
+                                    <span id="rntSummaryBalance" style="font-size:.82rem;font-weight:600;color:#dc2626;"><?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?> 0.00</span>
                                 </div>
 
                             </div>

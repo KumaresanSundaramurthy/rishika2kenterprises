@@ -272,7 +272,7 @@ class Deliverychallans extends MY_Controller {
 
             // Reduce AvailableQty for all modes (Non-Returnable / Returnable / Job Work)
             if (!$isDraft) {
-                $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items);
+                $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items, $this->_branchUID());
                 $this->_syncProductCacheFromItems($items);
             }
 
@@ -407,7 +407,7 @@ class Deliverychallans extends MY_Controller {
                     $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
                     $this->_syncProductCacheByTransUID($transUID);
                 }
-                $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items);
+                $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items, $this->_branchUID());
                 $this->_syncProductCacheFromItems($items);
             }
 
@@ -805,7 +805,8 @@ class Deliverychallans extends MY_Controller {
                     $userUID,
                     (int)$item->ProductUID,
                     (float)$returnQty,
-                    $transProdUID
+                    $transProdUID,
+                    $this->_branchUID()
                 );
 
                 $anyReturn = true;

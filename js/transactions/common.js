@@ -38,6 +38,12 @@ function loadTransactionList(config, pageNo, rowLimit, filter) {
     rowLimit = rowLimit || RowLimit;
     filter   = filter   || Filter;
     $(config.tabCountClass).text('').addClass('d-none');
+    ajaxLoading(0);
+    $(ModuleTable + ' tbody').html(
+        '<tr><td colspan="99" class="text-center py-4">' +
+        '<span class="spinner-border spinner-border-sm text-primary" role="status"></span>' +
+        '</td></tr>'
+    );
     $.ajax({
         url:    config.url + pageNo,
         method: 'POST',
@@ -50,6 +56,7 @@ function loadTransactionList(config, pageNo, rowLimit, filter) {
             [CsrfName]: CsrfToken,
         },
         success: function (response) {
+            ajaxLoading(1);
             if (response.Error) {
                 $(ModuleTable + ' tbody').html('');
                 $(ModulePag).html('<div class="alert alert-danger m-2"><strong>' + response.Message + '</strong></div>');
@@ -70,6 +77,7 @@ function loadTransactionList(config, pageNo, rowLimit, filter) {
             }
         },
         error: function () {
+            ajaxLoading(1);
             $(ModulePag).html('<div class="alert alert-danger m-2">' + config.errorMessage + '</div>');
         }
     });

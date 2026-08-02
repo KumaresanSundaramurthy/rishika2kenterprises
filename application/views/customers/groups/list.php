@@ -91,11 +91,11 @@ if (!empty($DataLists)):
         </td>
         <td>
             <div class="d-flex align-items-center gap-1">
-                <button type="button" class="btn btn-icon btn-sm text-info grp-view-btn" data-uid="<?php echo $uid; ?>" title="View Detail"><i class="bx bx-show fs-5"></i></button>
-                <button type="button" class="btn btn-icon btn-sm text-warning grp-edit-btn" data-uid="<?php echo $uid; ?>" title="Edit"><i class="bx bx-edit fs-5"></i></button>
+                <button type="button" class="btn btn-icon btn-sm text-info grp-view-btn" data-uid="<?php echo $uid; ?>" title="View Detail"><i class="bx bx-show"></i></button>
+                <button type="button" class="btn btn-icon btn-sm text-warning grp-edit-btn" data-uid="<?php echo $uid; ?>" title="Edit"><i class="bx bx-edit"></i></button>
                 <div class="dropdown">
                     <button type="button" class="btn btn-icon btn-sm text-secondary" data-bs-toggle="dropdown" aria-expanded="false" title="More options">
-                        <i class="bx bx-dots-vertical-rounded fs-5"></i>
+                        <i class="bx bx-dots-vertical-rounded"></i>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="min-width:140px;font-size:.82rem;">
                         <li>

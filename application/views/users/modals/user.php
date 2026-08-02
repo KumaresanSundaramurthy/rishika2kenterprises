@@ -4,6 +4,7 @@ if (!isset($RolesList))       { $RolesList       = []; }
 if (!isset($DepartmentList))  { $DepartmentList  = []; }
 if (!isset($DesignationList)) { $DesignationList = []; }
 if (!isset($CanSeeSalary))    { $CanSeeSalary    = false; }
+if (!isset($BranchesList))    { $BranchesList    = []; }
 ?>
 
 <div class="modal fade" id="userModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true">
@@ -59,6 +60,11 @@ if (!isset($CanSeeSalary))    { $CanSeeSalary    = false; }
                     <li class="nav-item">
                         <a class="nav-link px-3 py-2" data-bs-toggle="tab" data-bs-target="#tabLogin" href="#">
                             <i class="bx bx-lock me-1"></i>Login Access
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link px-3 py-2" data-bs-toggle="tab" data-bs-target="#tabBranchAccess" href="#">
+                            <i class="bx bx-buildings me-1"></i>Branch Access
                         </a>
                     </li>
                     <li class="nav-item d-none" id="attachTabNavItem">
@@ -351,7 +357,46 @@ if (!isset($CanSeeSalary))    { $CanSeeSalary    = false; }
 
                     </div>
 
-                    <!-- ══ TAB 6: Attachments ════════════════════════════════ -->
+                    <!-- ══ TAB 6: Branch Access ══════════════════════════════ -->
+                    <div class="tab-pane fade p-4" id="tabBranchAccess">
+                        <?php if (empty($BranchesList)): ?>
+                        <div class="text-muted text-center py-4" style="font-size:.83rem;">
+                            <i class="bx bx-buildings me-1"></i>No active branches found. Add branches in <strong>Settings &gt; Branches</strong> first.
+                        </div>
+                        <?php else: ?>
+                        <div class="text-muted mb-3" style="font-size:.78rem;">
+                            <i class="bx bx-info-circle me-1"></i>Select which branches this staff member can access. Mark one branch as the default login branch.
+                        </div>
+                        <div id="branchAccessList">
+                            <?php foreach ($BranchesList as $b): ?>
+                            <div class="d-flex align-items-center gap-3 py-2 border-bottom branch-access-row" data-branch-uid="<?php echo (int)$b->BranchUID; ?>">
+                                <div class="form-check mb-0">
+                                    <input class="form-check-input branch-access-chk" type="checkbox"
+                                           id="branchChk_<?php echo (int)$b->BranchUID; ?>"
+                                           value="<?php echo (int)$b->BranchUID; ?>">
+                                </div>
+                                <div class="flex-grow-1">
+                                    <label class="form-check-label mb-0" for="branchChk_<?php echo (int)$b->BranchUID; ?>" style="font-size:.85rem; font-weight:500; cursor:pointer;">
+                                        <?php echo htmlspecialchars($b->Name); ?>
+                                    </label>
+                                    <div class="text-muted" style="font-size:.74rem;"><?php echo htmlspecialchars($b->BranchCode); ?></div>
+                                </div>
+                                <?php if ($b->IsHeadOffice): ?>
+                                <span class="badge bg-label-primary" style="font-size:.7rem;">Head Office</span>
+                                <?php endif; ?>
+                                <div class="branch-default-wrap d-flex align-items-center gap-2 d-none">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary branch-set-default py-0 px-2" style="font-size:.74rem;" data-branch-uid="<?php echo (int)$b->BranchUID; ?>">
+                                        Set Default
+                                    </button>
+                                    <span class="badge bg-success branch-default-badge d-none" style="font-size:.7rem;">Default</span>
+                                </div>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+
+                    <!-- ══ TAB 7: Attachments ════════════════════════════════ -->
                     <div class="tab-pane fade p-4" id="tabAttachments">
 
                         <!-- Upload row -->

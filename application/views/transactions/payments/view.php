@@ -10,7 +10,7 @@
             <div class="content-wrapper apex-content">
                 <?php $this->load->view('common/apex/page_header', [
                     'pageTitle'       => $PageTitle       ?? 'Payments',
-                    'pageDescription' => $PageDescription ?? 'Track payments received and made',
+                    'pageDescription' => $PageDescription ?? '',
                 ]); ?>
                 <div class="container-xxl flex-grow-1">
 

@@ -10,7 +10,7 @@ $this->load->view('common/transactions/header'); ?>
             <div class="content-wrapper apex-content">
                 <?php $this->load->view('common/apex/page_header', [
                     'pageTitle'       => $PageTitle       ?? 'Proforma Invoices',
-                    'pageDescription' => $PageDescription ?? 'Create proforma invoices for customers',
+                    'pageDescription' => $PageDescription ?? '',
                 ]); ?>
                 <?php
                 $initTab    = $InitTab    ?? 'All';
@@ -85,7 +85,13 @@ $this->load->view('common/transactions/header'); ?>
                             </a>
                             <?php $this->load->view('common/transactions/date_filter_btn'); ?>
                             <div class="apex-filter-spacer"></div>
-                            <a href="javascript:void(0);" class="apex-filter-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
+                            <a href="javascript:void(0);" class="apex-filter-btn pageRefresh" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('page_refresh', 'Page Refresh'); ?>"><i class="bx bx-refresh"></i></a>
+                            <div class="btn-group d-none" id="ActionsDD-Div">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bx bx-slider-alt"></i></button>
+                                <ul class="dropdown-menu dropdown-menu-end r2k-export-menu r2k-actions-menu">
+                                    <li class="d-none" id="DeleteOption"><a class="dropdown-item text-danger" href="javascript:void(0);" id="btnDelete"><i class="bx bx-trash me-2"></i><?php echo t('delete', 'Delete'); ?></a></li>
+                                </ul>
+                            </div>
                             <?php $this->load->view('common/partials/export_btn'); ?>
                             <a href="/proforma/create" class="btn btn-sm btn-primary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('create_proforma', 'Create Pro Forma'); ?>"><i class="bx bx-plus me-1"></i><?php echo t('lbl_new', 'New'); ?></a>
                         </div>
@@ -101,6 +107,13 @@ $this->load->view('common/transactions/header'); ?>
                                 <li class="nav-item"><a class="nav-link<?php echo $initTab === 'Draft' ? ' active' : ''; ?> pf-status-tab" data-status="Draft" data-url-tab="drafts" href="javascript:void(0);">Drafts <span class="pf-tab-count trans-tab-count ms-1<?php echo ($initTab !== 'Draft' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'Draft' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
                             </ul>
                             <?php $this->load->view('common/transactions/filter_notice'); ?>
+                        </div>
+
+                        <!-- Select-all banner -->
+                        <div id="pfSelectAllBanner" class="r2k-select-all-banner d-none">
+                            <span id="pfSelectAllMsg"></span>
+                            <a href="javascript:void(0);" id="pfSelectAllLink" class="ms-2"></a>
+                            <a href="javascript:void(0);" id="pfSelectAllClear" class="ms-2 d-none">Clear selection</a>
                         </div>
 
                         <!-- Table -->
@@ -222,6 +235,7 @@ $(function () {
 
     $(document).on('click', '.pf-status-tab', function (e) {
         e.preventDefault();
+        SelectedUIDs = []; _pfClearSelectAll(); MultipleDeleteOption();
         _resetPfFilters();
         $('.pf-status-tab').removeClass('active');
         $(this).addClass('active');
@@ -282,7 +296,7 @@ $(function () {
     $(document).on('click', '.pfPagination .page-link', function (e) {
         e.preventDefault();
         var match = ($(this).attr('href') || '').match(/\/(\d+)$/);
-        if (match) { PageNo = parseInt(match[1]); getProFormaInvoicesDetails(); }
+        if (match) { PageNo = parseInt(match[1]); _pfClearSelectAll(); getProFormaInvoicesDetails(); }
     });
 
     function _actionPostData(extra) {
@@ -414,7 +428,57 @@ $(function () {
         window.location.href = $(this).attr('href') + '?' + params.toString();
     });
 
-    $(document).on('change', '.pfHeaderCheck', function () { $('.pfCheck').prop('checked', $(this).is(':checked')); });
+    // ── Checkbox / select-all wiring ─────────────────────────────────────
+    basePageHeaderFunc(ModuleHeader, ModuleTable, ModuleRow);
+
+    $(ModuleHeader).on('click', function () {
+        _pfUpdateSelectAllBanner();
+    });
+
+    $(document).on('change', ModuleRow, function () {
+        onClickOfCheckbox(this, ModuleTable, ModuleHeader, ModuleRow);
+        _pfUpdateSelectAllBanner();
+        MultipleDeleteOption();
+    });
+
+    $(document).on('click', '#pfSelectAllLink', function (e) {
+        e.preventDefault();
+        _pfSelectAllMode = true;
+        _pfUpdateSelectAllBanner();
+    });
+
+    $(document).on('click', '#pfSelectAllClear', function (e) {
+        e.preventDefault();
+        SelectedUIDs = [];
+        unSelectTableRecords(ModuleTable, ModuleRow);
+        $(ModuleHeader).prop('checked', false).prop('indeterminate', false);
+        _pfClearSelectAll();
+        MultipleDeleteOption();
+    });
+
+    // ── Bulk delete ───────────────────────────────────────────────────────
+    $('#btnDelete').on('click', function () {
+        var count = _pfSelectAllMode ? _pfTotalRecords : SelectedUIDs.length;
+        Swal.fire({
+            title: 'Delete ' + count + ' proforma invoice' + (count === 1 ? '' : 's') + '?',
+            text : 'This cannot be undone.',
+            icon : 'warning', showCancelButton: true,
+            confirmButtonText: 'Delete', confirmButtonColor: '#d33',
+        }).then(function (r) {
+            if (!r.isConfirmed) return;
+            deleteMultipleProformaInvoices();
+        });
+    });
+
+    // ── syncDD: show/hide ActionsDD-Div when DeleteOption visibility changes ──
+    (function syncDD() {
+        var $div = $('#ActionsDD-Div');
+        var $del = $('#DeleteOption');
+        if (!$div.length || !$del.length) return;
+        new MutationObserver(function () {
+            $div.toggleClass('d-none', $del.hasClass('d-none'));
+        }).observe($del[0], { attributes: true, attributeFilter: ['class'] });
+    })();
 
 });
 

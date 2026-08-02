@@ -66,7 +66,7 @@ $dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
             <div class="mb-3 col-md-4">
                 <label for="CM_DebitCreditAmount" class="form-label">Opening Balance</label>
                 <div class="input-group input-group-merge">
-                    <span class="input-group-text">₹</span>
+                    <span class="input-group-text"><?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?></span>
                     <input type="number" class="form-control" name="DebitCreditAmount" id="CM_DebitCreditAmount"
                         min="0" placeholder="Debit / Credit Amount" maxlength="6" pattern="[0-9]*"
                         onkeypress="return (event.charCode!=8 && event.charCode==0 || (event.charCode>=48 && event.charCode<=57))"
@@ -112,6 +112,17 @@ $dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
                     <option value="">— No Group —</option>
                 </select>
             </div>
+            <div class="col-md-12">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="CM_AllowPortalAccess"
+                           name="AllowPortalAccess" value="1"
+                           <?php echo ($isEdit && !empty($d->AllowPortalAccess)) ? 'checked' : ''; ?>>
+                    <label class="form-check-label fw-semibold" for="CM_AllowPortalAccess">
+                        Allow Customer Portal Access
+                    </label>
+                    <div class="form-text">When enabled, this customer can log in to the portal using their registered email address.</div>
+                </div>
+            </div>
         </div>
         <hr>
 
@@ -123,7 +134,7 @@ $dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
             <div class="mb-3 col-md-4">
                 <label for="CM_GSTIN" class="form-label">GSTIN</label>
                 <div class="input-group">
-                    <input type="text" class="form-control" placeholder="GSTIN" name="GSTIN" id="CM_GSTIN"
+                    <input type="text" class="form-control text-uppercase" placeholder="GSTIN" name="GSTIN" id="CM_GSTIN"
                         value="<?php echo htmlspecialchars($d->GSTIN ?? ''); ?>" />
                     <button class="btn btn-outline-primary" type="button" id="GSTIN_Fetch">Fetch</button>
                 </div>
@@ -293,17 +304,6 @@ $dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
                                 <option value="<?php echo htmlspecialchars($email); ?>" selected><?php echo htmlspecialchars($email); ?></option>
                             <?php endforeach; endif; ?>
                         </select>
-                    </div>
-                    <div class="col-md-12">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="CM_AllowPortalAccess"
-                                   name="AllowPortalAccess" value="1"
-                                   <?php echo ($isEdit && !empty($d->AllowPortalAccess)) ? 'checked' : ''; ?>>
-                            <label class="form-check-label fw-semibold" for="CM_AllowPortalAccess">
-                                Allow Customer Portal Access
-                            </label>
-                            <div class="form-text">When enabled, this customer can log in to the portal using their registered email address.</div>
-                        </div>
                     </div>
                 </div>
             </div>

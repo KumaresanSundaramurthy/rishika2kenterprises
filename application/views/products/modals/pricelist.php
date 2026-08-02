@@ -23,7 +23,6 @@
             </div>
 
             <input type="hidden" id="PLUID" value="0">
-            <div class="alert d-none mx-3 mt-3 mb-0 plFormAlert" role="alert"></div>
 
             <div class="modal-body modal-body-scrollable flex-grow-1 overflow-auto">
                 <div class="card-body p-2 mb-3">

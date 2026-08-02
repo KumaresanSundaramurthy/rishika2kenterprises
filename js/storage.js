@@ -27,7 +27,12 @@ function getStorageDetails(PageNo, RowLimit, Filter) {
     });
 }
 
+var _storageIsDirty      = false;
+var _storageIsCreateMode = false;
+
 function formOpenCloseDefActions() {
+    _storageIsCreateMode = false;
+    _storageIsDirty      = false;
     $('#storageForm').trigger('reset');
     $('#StorageModalTitle').text('Add Storage');
     $('.storageButtonName').text('Save');
@@ -48,9 +53,10 @@ function addStorageData(formdata) {
         enctype: 'multipart/form-data',
         success: function (response) {
             if (response.Error) {
-                $('.storageFormAlert').removeClass('d-none');
-                inlineMessageAlert('.storageFormAlert', 'danger', response.Message, false, false);
+                showToastNotification(response.Message || 'Failed to save storage.', 'error');
             } else {
+                _storageIsDirty      = false;
+                _storageIsCreateMode = false;
                 formOpenCloseDefActions();
                 $('#storageModal').modal('hide');
                 executeTablePagnCommonFunc(response, true);
@@ -70,8 +76,7 @@ function updateStorageData(formdata) {
         enctype: 'multipart/form-data',
         success: function (response) {
             if (response.Error) {
-                $('.storageFormAlert').removeClass('d-none');
-                inlineMessageAlert('.storageFormAlert', 'danger', response.Message, false, false);
+                showToastNotification(response.Message || 'Failed to update storage.', 'error');
             } else {
                 formOpenCloseDefActions();
                 $('#storageModal').modal('hide');
@@ -156,3 +161,38 @@ function applyStorageTypeFilter() {
 function closeStorageTypeFilter() {
     $('#storageTypeFilterBox').hide();
 }
+
+// ── Arm on open (add mode only) ───────────────────────────────────────────
+$(document).on('shown.bs.modal', '#storageModal', function () {
+    if (parseInt($('#StorageUID').val(), 10) === 0) {
+        _storageIsCreateMode = true;
+        _storageIsDirty      = false;
+    }
+});
+
+// ── Dirty-tracking listener ───────────────────────────────────────────────
+$(document).on('input change', '#storageForm input, #storageForm textarea, #storageForm select', function () {
+    if (_storageIsCreateMode) _storageIsDirty = true;
+});
+
+// ── Unsaved-changes guard ─────────────────────────────────────────────────
+$(document).on('hide.bs.modal', '#storageModal', function (e) {
+    if (!_storageIsDirty || !_storageIsCreateMode) return;
+    e.preventDefault();
+    Swal.fire({
+        title             : t('swal_unsaved_title',   'Unsaved Changes'),
+        text              : t('swal_unsaved_msg',     'Your changes will be lost if you close now.'),
+        icon              : 'warning',
+        showCancelButton  : true,
+        confirmButtonText : t('swal_unsaved_confirm', 'Close Anyway'),
+        cancelButtonText  : t('swal_unsaved_cancel',  'Stay'),
+        confirmButtonColor: '#d33',
+        cancelButtonColor : '#3085d6',
+    }).then(function (result) {
+        if (result.isConfirmed) {
+            _storageIsDirty      = false;
+            _storageIsCreateMode = false;
+            $('#storageModal').modal('hide');
+        }
+    });
+});

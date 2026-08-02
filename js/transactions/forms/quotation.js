@@ -34,7 +34,7 @@ $(function () {
     var _qCur = _cfg.currency || '₹';
     window._showOnAccountBanner = function (total) {
         if ((parseFloat(total) || 0) > 0) {
-            $('#onAccountTotal').text(_qCur + ' ' + parseFloat(total).toFixed(2));
+            $('#onAccountTotal').text(_qCur + ' ' + parseFloat(total).toFixed(typeof decimalPlaces !== 'undefined' ? decimalPlaces : 2));
             $('#onAccountIndicator').removeClass('d-none');
         } else {
             $('#onAccountIndicator').addClass('d-none');

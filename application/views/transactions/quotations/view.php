@@ -11,7 +11,7 @@ $this->load->view('common/transactions/header'); ?>
             <div class="content-wrapper apex-content">
                 <?php $this->load->view('common/apex/page_header', [
                     'pageTitle'       => $PageTitle       ?? 'Quotations',
-                    'pageDescription' => $PageDescription ?? 'Create and send sales quotations to customers',
+                    'pageDescription' => $PageDescription ?? '',
                 ]); ?>
                 <?php
                 $initTab    = $InitTab    ?? 'All';
@@ -92,7 +92,13 @@ $this->load->view('common/transactions/header'); ?>
                             <a href="javascript:void(0);" id="quotPartyFilterTrigger" class="apex-filter-btn<?php echo in_array('quotPartyFilterTrigger', $visibleFilters) ? '' : ' d-none'; ?>" title="Filter by Customer"><i class="bx bx-store me-1"></i>Customer</a>
                             <?php $this->load->view('common/transactions/date_filter_btn'); ?>
                             <div class="apex-filter-spacer"></div>
-                            <a href="javascript:void(0);" class="apex-filter-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
+                            <a href="javascript:void(0);" class="apex-filter-btn pageRefresh" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('page_refresh', 'Page Refresh'); ?>"><i class="bx bx-refresh"></i></a>
+                            <div class="btn-group d-none" id="ActionsDD-Div">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bx bx-slider-alt"></i></button>
+                                <ul class="dropdown-menu dropdown-menu-end r2k-export-menu r2k-actions-menu">
+                                    <li class="d-none" id="DeleteOption"><a class="dropdown-item text-danger" href="javascript:void(0);" id="btnDelete"><i class="bx bx-trash me-2"></i><?php echo t('delete', 'Delete'); ?></a></li>
+                                </ul>
+                            </div>
                             <?php $this->load->view('common/partials/export_btn'); ?>
                             <a href="/quotations/create" class="btn btn-sm btn-primary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('create_quotation', 'Create Quotation'); ?>"><i class="bx bx-plus me-1"></i><?php echo t('lbl_new', 'New'); ?></a>
                         </div>
@@ -100,14 +106,30 @@ $this->load->view('common/transactions/header'); ?>
                         <!-- ── Tabs Row ──────────────────────────────────── -->
                         <div class="apex-tabs-row">
                             <ul class="nav trans-status-tabs" id="quotStatusTabs" role="tablist" data-trans-path="/quotations">
-                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'All' ? 'active' : ''; ?> quot-status-tab" data-status="All" data-url-tab="all" href="javascript:void(0);">All <span class="trans-tab-count ms-1<?php echo ($initTab !== 'All' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'All' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
-                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'Open' ? 'active' : ''; ?> quot-status-tab" data-status="Open" data-url-tab="open" href="javascript:void(0);">Pending <span class="trans-tab-count ms-1<?php echo ($initTab !== 'Open' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'Open' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
-                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'Accepted' ? 'active' : ''; ?> quot-status-tab" data-status="Accepted" data-url-tab="accepted" href="javascript:void(0);">Accepted <span class="trans-tab-count ms-1<?php echo ($initTab !== 'Accepted' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'Accepted' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
-                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'Converted' ? 'active' : ''; ?> quot-status-tab" data-status="Converted" data-url-tab="converted" href="javascript:void(0);">Converted <span class="trans-tab-count ms-1<?php echo ($initTab !== 'Converted' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'Converted' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
-                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'Cancelled' ? 'active' : ''; ?> quot-status-tab" data-status="Cancelled" data-url-tab="cancelled" href="javascript:void(0);">Cancelled <span class="trans-tab-count ms-1<?php echo ($initTab !== 'Cancelled' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'Cancelled' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
-                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'Draft' ? 'active' : ''; ?> quot-status-tab" data-status="Draft" data-url-tab="draft" href="javascript:void(0);">Drafts <span class="trans-tab-count ms-1<?php echo ($initTab !== 'Draft' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'Draft' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
+                                <?php
+                                $tabs = [
+                                    ['label' => 'All',       'status' => 'All',       'urlTab' => 'all'],
+                                    ['label' => 'Pending',   'status' => 'Open',      'urlTab' => 'open'],
+                                    ['label' => 'Accepted',  'status' => 'Accepted',  'urlTab' => 'accepted'],
+                                    ['label' => 'Converted', 'status' => 'Converted', 'urlTab' => 'converted'],
+                                    ['label' => 'Cancelled', 'status' => 'Cancelled', 'urlTab' => 'cancelled'],
+                                    ['label' => 'Drafts',    'status' => 'Draft',     'urlTab' => 'draft'],
+                                ];
+                                foreach ($tabs as $tab):
+                                    $isActive = ($initTab === $tab['status']);
+                                    $tc       = $isActive ? $ModAllCount : 0;
+                                ?>
+                                <li class="nav-item"><a class="nav-link <?php echo $isActive ? 'active' : ''; ?> quot-status-tab" data-status="<?php echo $tab['status']; ?>" data-url-tab="<?php echo $tab['urlTab']; ?>" href="javascript:void(0);"><?php echo $tab['label']; ?> <span class="trans-tab-count ms-1<?php echo $tc == 0 ? ' d-none' : ''; ?>"><?php echo $tc ?: ''; ?></span></a></li>
+                                <?php endforeach; ?>
                             </ul>
                             <?php $this->load->view('common/transactions/filter_notice'); ?>
+                        </div>
+
+                        <!-- Select-all banner -->
+                        <div id="quotSelectAllBanner" class="r2k-select-all-banner d-none">
+                            <span id="quotSelectAllMsg"></span>
+                            <a href="javascript:void(0);" id="quotSelectAllLink" class="ms-2"></a>
+                            <a href="javascript:void(0);" id="quotSelectAllClear" class="ms-2 d-none">Clear selection</a>
                         </div>
                     </div>
 
@@ -315,6 +337,7 @@ $(function () {
     // ── Status tabs ─────────────────────────────────────────
     $(document).on('click', '.quot-status-tab', function (e) {
         e.preventDefault();
+        SelectedUIDs = []; _quotClearSelectAll(); MultipleDeleteOption();
         var status = $(this).data('status') || 'All';
         $('.quot-status-tab').removeClass('active');
         $(this).addClass('active');
@@ -405,7 +428,7 @@ $(function () {
     $(document).on('click', '.quotPagination .page-link', function (e) {
         e.preventDefault();
         var match = ($(this).attr('href') || '').match(/\/(\d+)$/);
-        if (match) { PageNo = parseInt(match[1]); getQuotationsDetails(); }
+        if (match) { PageNo = parseInt(match[1]); _quotClearSelectAll(); getQuotationsDetails(); }
     });
 
     function _resetQuotFilters() {
@@ -509,10 +532,57 @@ $(function () {
         });
     });
 
-    $(document).on('change', '.quotHeaderCheck', function () {
-        $('.quotationCheck').prop('checked', $(this).is(':checked'));
+    // ── Checkbox / select-all wiring ─────────────────────────────────────
+    basePageHeaderFunc(ModuleHeader, ModuleTable, ModuleRow);
+
+    $(ModuleHeader).on('click', function () {
+        _quotUpdateSelectAllBanner();
     });
 
+    $(document).on('change', ModuleRow, function () {
+        onClickOfCheckbox(this, ModuleTable, ModuleHeader, ModuleRow);
+        _quotUpdateSelectAllBanner();
+        MultipleDeleteOption();
+    });
+
+    $(document).on('click', '#quotSelectAllLink', function (e) {
+        e.preventDefault();
+        _quotSelectAllMode = true;
+        _quotUpdateSelectAllBanner();
+    });
+
+    $(document).on('click', '#quotSelectAllClear', function (e) {
+        e.preventDefault();
+        SelectedUIDs = [];
+        unSelectTableRecords(ModuleTable, ModuleRow);
+        $(ModuleHeader).prop('checked', false).prop('indeterminate', false);
+        _quotClearSelectAll();
+        MultipleDeleteOption();
+    });
+
+    // ── Bulk delete ───────────────────────────────────────────────────────
+    $('#btnDelete').on('click', function () {
+        var count = _quotSelectAllMode ? _quotTotalRecords : SelectedUIDs.length;
+        Swal.fire({
+            title: 'Delete ' + count + ' quotation' + (count === 1 ? '' : 's') + '?',
+            text : 'This cannot be undone.',
+            icon : 'warning', showCancelButton: true,
+            confirmButtonText: 'Delete', confirmButtonColor: '#d33',
+        }).then(function (r) {
+            if (!r.isConfirmed) return;
+            deleteMultipleQuotations();
+        });
+    });
+
+    // ── syncDD: show/hide ActionsDD-Div when DeleteOption visibility changes ──
+    (function syncDD() {
+        var $div = $('#ActionsDD-Div');
+        var $del = $('#DeleteOption');
+        if (!$div.length || !$del.length) return;
+        new MutationObserver(function () {
+            $div.toggleClass('d-none', $del.hasClass('d-none'));
+        }).observe($del[0], { attributes: true, attributeFilter: ['class'] });
+    })();
 
 });
 

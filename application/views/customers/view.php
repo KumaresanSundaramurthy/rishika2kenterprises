@@ -117,18 +117,15 @@
                                 <i class="bx bx-user"></i> Customer
                             </a>
                             <div class="apex-filter-spacer"></div>
-                            <a href="javascript:void(0);" class="apex-icon-btn PageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
                             <!-- Customer-only controls -->
-                            <a href="javascript:void(0);" class="apex-icon-btn cust-only-ctrl<?php echo $initIsGroups ? ' d-none' : ''; ?>" id="btnSyncCustomersCache" title="Sync Cache"><i class="bx bx-planet"></i></a>
+                            <a href="javascript:void(0);" class="apex-filter-btn cust-only-ctrl<?php echo $initIsGroups ? ' d-none' : ''; ?>" id="btnSyncCustomersCache" title="Sync Cache"><i class="bx bx-planet"></i></a>
+                            <a href="javascript:void(0);" class="apex-filter-btn PageRefresh" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('page_refresh', 'Page Refresh'); ?>"><i class="bx bx-refresh"></i></a>
                             <div class="btn-group d-none cust-only-ctrl" id="ActionsDD-Div">
-                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="actionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="bx bx-slider-alt"></i>
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="actionsDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="<?php echo t('lbl_actions', 'Actions'); ?>">
+                                    <i class="bx bx-menu"></i>
                                 </button>
-                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="actionsDropdown">
-                                    <li class="d-none" id="CloneOption"><a class="dropdown-item" href="javascript:void(0);" id="btnClone"><i class="bx bx-duplicate me-1"></i><?php echo t('act_clone', 'Clone'); ?></a></li>
-                                    <li class="d-none" id="DeleteOption"><a class="dropdown-item text-danger" href="javascript:void(0);" id="btnDelete"><i class="bx bx-trash me-1"></i><?php echo t('delete', 'Delete'); ?></a></li>
-                                    <li class="d-none" id="BulkSmsOption"><a class="dropdown-item" href="javascript:void(0);" id="btnBulkSms"><i class="bx bx-message-rounded me-1 text-info"></i><?php echo t('act_send_sms', 'Send SMS'); ?></a></li>
-                                    <li class="d-none" id="BulkEmailOption"><a class="dropdown-item" href="javascript:void(0);" id="btnBulkEmail"><i class="bx bx-envelope me-1 text-primary"></i><?php echo t('act_send_email', 'Send Email'); ?></a></li>
+                                <ul class="dropdown-menu dropdown-menu-end r2k-export-menu r2k-actions-menu" aria-labelledby="actionsDropdown">
+                                    <li class="d-none" id="DeleteOption"><a class="dropdown-item text-danger" href="javascript:void(0);" id="btnDelete"><i class="bx bx-trash me-2"></i><?php echo t('delete', 'Delete'); ?></a></li>
                                 </ul>
                             </div>
                             <div class="cust-only-ctrl<?php echo $initIsGroups ? ' d-none' : ''; ?>">
@@ -148,7 +145,7 @@
                         <!-- Tabs Row -->
                         <div class="apex-tabs-row">
                             <ul class="nav trans-status-tabs" id="custStatusTabs" role="tablist" data-trans-path="/customers">
-                                <li class="nav-item"><a class="nav-link<?php echo ($InitTab ?? 'All') === 'All' ? ' active' : ''; ?> cust-tab" data-status="All" data-url-tab="all" href="javascript:void(0);">All <span class="trans-tab-count<?php echo (!$initIsGroups && ($CustStats->TotalCount ?? 0) > 0) ? '' : ' d-none'; ?>"><?php echo ($CustStats->TotalCount ?? 0) > 0 ? $CustStats->TotalCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link<?php echo ($InitTab ?? 'All') === 'All' ? ' active' : ''; ?> cust-tab" data-status="All" data-url-tab="all" href="javascript:void(0);"><?php echo t('tab_all_customers', 'All Customers'); ?> <span class="trans-tab-count<?php echo (!$initIsGroups && ($CustStats->TotalCount ?? 0) > 0) ? '' : ' d-none'; ?>"><?php echo (!$initIsGroups && ($CustStats->TotalCount ?? 0) > 0) ? $CustStats->TotalCount : ''; ?></span></a></li>
                                 <li class="nav-item">
                                     <?php $grpTotal = ($InitTab ?? 'All') === 'Groups' ? (int)($GrpTotal ?? 0) : 0; ?>
                                     <a class="nav-link grp-view-tab<?php echo ($InitTab ?? 'All') === 'Groups' ? ' active' : ''; ?>" href="javascript:void(0);" id="groupsViewTab" data-status="Groups" data-url-tab="groups">
@@ -172,6 +169,13 @@
 
                         <!-- Customer table section -->
                         <div id="custTableSection"<?php echo ($InitTab ?? 'All') === 'Groups' ? ' style="display:none;"' : ''; ?>>
+                        <!-- Select-all banner (Pattern 3) -->
+                        <div id="custSelectAllBanner" class="r2k-select-all-banner d-none">
+                            <i class="bx bx-info-circle"></i>
+                            <span id="custSelectAllMsg"></span>
+                            <a href="javascript:void(0);" id="custSelectAllLink" class="r2k-sal-link"></a>
+                            <a href="javascript:void(0);" id="custSelectAllClear" class="r2k-sal-clear d-none"><?php echo t('lbl_clear_selection', 'Clear selection'); ?></a>
+                        </div>
                         <div class="table-responsive">
                             <table class="table trans-table MainviewTable mb-0" id="CustomersTable">
                                 <thead class="r2k-thead">
@@ -228,7 +232,7 @@
                                             <th class="text-center" style="width:100px;"><?php echo t('col_actions', 'Actions'); ?></th>
                                         </tr>
                                     </thead>
-                                    <tbody id="GroupsTableBody">
+                                    <tbody id="GroupsTableBody" class="r2k-tbody table-border-bottom-0">
                                         <?php if ($isGroupsTab && !empty($GrpRowData)): ?>
                                             <?php echo $GrpRowData; ?>
                                         <?php elseif ($isGroupsTab): ?>
@@ -603,24 +607,65 @@ $(function () {
     $('#SearchDetails').val(_custInitSearch || '');
     $(ModuleRow).prop('checked', false).trigger('change');
 
-    // Auto-show/hide the Actions gear button based on whether any option is visible
+    // Auto-show/hide the Actions button based on whether DeleteOption is visible
     (function () {
         var $dd = $('#ActionsDD-Div');
         function syncDD() {
-            var anyVisible = $('#CloneOption, #DeleteOption, #BulkSmsOption, #BulkEmailOption')
-                .filter(function () { return !$(this).hasClass('d-none'); }).length > 0;
-            $dd.toggleClass('d-none', !anyVisible);
+            $dd.toggleClass('d-none', $('#DeleteOption').hasClass('d-none'));
         }
-        var observer = new MutationObserver(syncDD);
-        ['CloneOption', 'DeleteOption', 'BulkSmsOption', 'BulkEmailOption'].forEach(function (id) {
-            var el = document.getElementById(id);
-            if (el) observer.observe(el, { attributes: true, attributeFilter: ['class'] });
-        });
+        var el = document.getElementById('DeleteOption');
+        if (el) new MutationObserver(syncDD).observe(el, { attributes: true, attributeFilter: ['class'] });
     })();
+
+    // Seed initial total from server-side render
+    _custTotalRecords = <?php echo (int)($InitTotalCount ?? 0); ?>;
+    _custPageCount    = $(ModuleTable + ' tbody ' + ModuleRow).length;
 
     basePaginationFunc(ModulePag, getCustomersDetails);
     baseRefreshPageFunc('.PageRefresh', getCustomersDetails);
     basePageHeaderFunc(ModuleHeader, ModuleTable, ModuleRow);
+
+    // ── Select-all banner (Pattern 3) ──────────────────────────────────────
+    // After header checkbox — show banner when all page rows selected
+    $(ModuleHeader).on('click', function () {
+        if ($(this).prop('checked')) {
+            _custUpdateSelectAllBanner();
+        } else {
+            _custClearSelectAll();
+        }
+    });
+
+    // Individual row uncheck → exit select-all mode
+    $(document).on('click', ModuleRow, function () {
+        if (!$(this).prop('checked')) {
+            _custClearSelectAll();
+        }
+    });
+
+    // Pagination → clear select-all mode
+    $(ModulePag).on('click', 'a', function () {
+        _custClearSelectAll();
+    });
+
+    // "Select all N customers?" link
+    $(document).on('click', '#custSelectAllLink', function () {
+        _custSelectAllMode = true;
+        _custUpdateSelectAllBanner();
+        MultipleDeleteOption();
+        _updateBulkCommOptions();
+    });
+
+    // "Clear selection" link
+    $(document).on('click', '#custSelectAllClear', function () {
+        _custSelectAllMode = false;
+        SelectedUIDs       = [];
+        unSelectTableRecords(ModuleTable, ModuleRow);
+        $(ModuleHeader).prop('checked', false);
+        _custClearSelectAll();
+        MultipleDeleteOption();
+        _updateBulkCommOptions();
+    });
+    // ── End select-all banner ───────────────────────────────────────────────
 
     // ── Sync customers to Upstash cache ───────────────────────────────────────
     $(document).on('click', '#btnSyncCustomersCache', function () {
@@ -710,6 +755,14 @@ $(function () {
 
             _pushTabUrl('All', '');
 
+            // Clear group checkbox selections so Actions dropdown doesn't linger
+            SelectedUIDs = [];
+            $('.grpHeaderCheck').prop('checked', false).prop('indeterminate', false);
+            $('#GroupsTable tbody .grpCheck').prop('checked', false).closest('tr').removeClass('row-sel');
+            $(ModuleHeader).prop('checked', false);
+            $('#ActionsDD-Div').addClass('d-none');
+            _custClearSelectAll();
+
             // Option B: if page loaded directly on ?tab=groups, customer table was empty — reload now
             if (!_custDataLoaded) {
                 _custDataLoaded = true;
@@ -774,13 +827,7 @@ $(function () {
     });
     $(document).on('click', ModuleRow, function () {
         onClickOfCheckbox($(this), ModuleTable, ModuleHeader, ModuleRow);
-        $('#CloneOption').addClass('d-none');
-        if (SelectedUIDs.length === 1) $('#CloneOption').removeClass('d-none');
         MultipleDeleteOption();
-    });
-    $('#btnClone').on('click', function (e) {
-        e.preventDefault();
-        if (SelectedUIDs.length === 1) CustomerForm.open('clone', SelectedUIDs[0], { onSaveSuccess: _custPageSaveSuccess });
     });
 
     // ── Delete single ──
@@ -800,15 +847,67 @@ $(function () {
     // ── Delete bulk ──
     $('#btnDelete').on('click', function (e) {
         e.preventDefault();
-        if (!SelectedUIDs.length) return;
+        if (!_custSelectAllMode && !SelectedUIDs.length) return;
+        if (_inGroupsMode) {
+            var grpCount = SelectedUIDs.length;
+            Swal.fire({
+                title: 'Delete ' + grpCount + ' group(s)?',
+                text : 'Members will be unlinked. This cannot be undone.',
+                icon : 'warning', showCancelButton: true,
+                confirmButtonColor: '#dc2626', cancelButtonColor: '#64748b',
+                confirmButtonText: 'Yes, delete',
+            }).then(function (r) { if (r.isConfirmed) _deleteMultipleGroups(); });
+            return;
+        }
+        var deleteCount = _custSelectAllMode ? _custTotalRecords : SelectedUIDs.length;
+        var titleText   = _custSelectAllMode
+            ? 'Delete ALL ' + deleteCount + ' customers?'
+            : 'Delete ' + deleteCount + ' customer(s)?';
         Swal.fire({
-            title: 'Delete ' + SelectedUIDs.length + ' customer(s)?',
+            title: titleText,
             text: 'This action cannot be undone.',
             icon: 'warning', showCancelButton: true,
             confirmButtonColor: '#dc2626', cancelButtonColor: '#64748b',
             confirmButtonText: 'Yes, delete all',
         }).then(function (r) { if (r.isConfirmed) deleteMultipleCustomers(); });
     });
+
+    function _deleteMultipleGroups() {
+        var uids = SelectedUIDs.slice();
+        var idx  = 0;
+        var successCount = 0;
+        var failCount    = 0;
+        ajaxLoading(0);
+        function _next() {
+            if (idx >= uids.length) {
+                ajaxLoading(1);
+                SelectedUIDs = [];
+                $('.grpHeaderCheck').prop('checked', false).prop('indeterminate', false);
+                $('#GroupsTable tbody .grpCheck').prop('checked', false).closest('tr').removeClass('row-sel');
+                MultipleDeleteOption();
+                if (failCount > 0) {
+                    showToastNotification(failCount + ' group(s) could not be deleted.', 'error');
+                } else {
+                    showToastNotification(successCount + ' group(s) deleted successfully.', 'success');
+                }
+                _grpReload(_grpPageNo);
+                return;
+            }
+            var uid = uids[idx++];
+            $.ajax({
+                url   : '/customers/deleteGroup',
+                method: 'POST',
+                data  : { GroupUID: uid, [CsrfName]: CsrfToken },
+                success: function (res) {
+                    CsrfToken = res.NewCsrfToken || CsrfToken;
+                    if (res.Error) { failCount++; } else { successCount++; }
+                    _next();
+                },
+                error: function () { failCount++; _next(); }
+            });
+        }
+        _next();
+    }
 
     // ── Name sort ──
     $(document).on('click', '.cust-name-sortable', function (e) {
@@ -1030,6 +1129,12 @@ $(function () {
         delete Filter['SearchAllData'];
         delete _grpFilter['SearchAllData'];
 
+        // Clear customer selections before leaving the All tab
+        SelectedUIDs = [];
+        unSelectTableRecords(ModuleTable, ModuleRow);
+        $(ModuleHeader).prop('checked', false);
+        _custClearSelectAll();
+
         $('.cust-tab').removeClass('active');
         $('.grp-view-tab').addClass('active');
         $('.cust-only-ctrl').addClass('d-none');
@@ -1114,15 +1219,31 @@ $(function () {
 
     // ── Groups header checkbox ──
     $(document).on('change', '.grpHeaderCheck', function () {
-        $('#GroupsTable tbody .grpRowCheck').prop('checked', $(this).is(':checked'))
-            .closest('tr').toggleClass('row-sel', $(this).is(':checked'));
+        var isChecked = $(this).is(':checked');
+        $('#GroupsTable tbody .grpCheck').prop('checked', isChecked)
+            .closest('tr').toggleClass('row-sel', isChecked);
+        SelectedUIDs = [];
+        if (isChecked) {
+            $('#GroupsTable tbody .grpCheck').each(function () {
+                var uid = parseInt($(this).val());
+                if (uid) SelectedUIDs.push(uid);
+            });
+        }
+        MultipleDeleteOption();
     });
-    $(document).on('change', '.grpRowCheck', function () {
+    $(document).on('change', '.grpCheck', function () {
         $(this).closest('tr').toggleClass('row-sel', $(this).is(':checked'));
-        var total   = $('#GroupsTable tbody .grpRowCheck').length;
-        var checked = $('#GroupsTable tbody .grpRowCheck:checked').length;
+        var total   = $('#GroupsTable tbody .grpCheck').length;
+        var checked = $('#GroupsTable tbody .grpCheck:checked').length;
         $('.grpHeaderCheck').prop('checked', total > 0 && checked === total)
                             .prop('indeterminate', checked > 0 && checked < total);
+        var uid = parseInt($(this).val());
+        if ($(this).is(':checked')) {
+            if (SelectedUIDs.indexOf(uid) === -1) SelectedUIDs.push(uid);
+        } else {
+            SelectedUIDs = SelectedUIDs.filter(function (id) { return id !== uid; });
+        }
+        MultipleDeleteOption();
     });
 
     // ── Group status toggle ──

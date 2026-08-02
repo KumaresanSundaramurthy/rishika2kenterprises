@@ -34,8 +34,6 @@ $_defTaxDetailUID = (int)($_ps->DefaultTaxDetailUID    ?? 0); // null → no def
             <input type="hidden" name="ProductUID" id="HProductUID" value="0" />
             <input type="hidden" name="<?= $this->security->get_csrf_token_name() ?>" value="<?= $this->security->get_csrf_hash() ?>">
 
-            <div class="d-none col-lg-12 px-5 mt-3 addEditFormAlert" role="alert"></div>
-            
             <div class="modal-body modal-body-scrollable flex-grow-1 overflow-auto">
                 <div class="card-body p-2 mb-3">
 

@@ -10,10 +10,7 @@ $this->load->view('common/transactions/header'); ?>
             <div class="content-wrapper apex-content">
                 <?php $this->load->view('common/apex/page_header', [
                     'pageTitle'       => $PageTitle       ?? 'Activity Log',
-                    'pageDescription' => $PageDescription ?? 'Full audit trail of all user actions',
-                    'pageIcon'        => $PageIcon        ?? 'bx-history',
-                    'pageIconBg'      => $PageIconBg      ?? '#ede9fe',
-                    'pageIconColor'   => $PageIconColor   ?? '#7c3aed',
+                    'pageDescription' => $PageDescription ?? '',
                 ]); ?>
 
                 <div class="container-xxl flex-grow-1">

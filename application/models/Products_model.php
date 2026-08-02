@@ -108,6 +108,33 @@ class Products_model extends CI_Model {
 
     }
 
+    public function getProductUIDsByFilter(int $orgUID, array $filter = []): array {
+
+        try {
+            $this->ReadDb->db_debug = FALSE;
+
+            $filterResult = $this->itemFilterFormation((object)['TableAliasName' => 'Products'], $filter);
+            $searchQuery  = 'Products.IsComposite = 0';
+            if ($filterResult->SearchDirectQuery) {
+                $searchQuery .= ' AND (' . $filterResult->SearchDirectQuery . ')';
+            }
+
+            $this->ReadDb->select('Products.ProductUID');
+            $this->ReadDb->from('Products.ProductTbl as Products');
+            $this->ReadDb->where(['Products.IsDeleted' => 0, 'Products.OrgUID' => $orgUID]);
+            $this->ReadDb->where($searchQuery, null, false);
+
+            $q = $this->ReadDb->get();
+            if (!$q) return [];
+
+            return array_column($q->result_array(), 'ProductUID');
+
+        } catch (Exception $e) {
+            return [];
+        }
+
+    }
+
     public function getProductsDetails(array $FilterArray = [], string $OrderBy = 'ASC', array $whereInCondition = []): array {
 
         $this->EndReturnData = new StdClass();

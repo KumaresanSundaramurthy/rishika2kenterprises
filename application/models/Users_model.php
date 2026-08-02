@@ -580,4 +580,21 @@ class Users_model extends CI_Model {
             $this->ReadDb->group_end();
         }
     }
+
+    // ── Branch access assignments for a user ──────────────────────────────────
+    public function getUserBranchAccess(int $userUID, int $orgUID): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $q = $this->ReadDb->query(
+                'SELECT BranchUID, BIT_COUNT(IsDefault) AS IsDefault
+                 FROM Users.UserBranchAccessTbl
+                 WHERE UserUID = ? AND OrgUID = ? AND IsActive = 1',
+                [(int)$userUID, (int)$orgUID]
+            );
+            return $q ? $q->result() : [];
+        } catch (Exception $e) {
+            log_message('error', 'Users_model::getUserBranchAccess — ' . $e->getMessage());
+            return [];
+        }
+    }
 }

@@ -57,31 +57,24 @@ $(function() {
         $('#ChangePasswordModal').modal('show');
         $('#ChangePasswordModal #ResetPasswordForm').trigger('reset');
         $('#ResetPasswordSubBtn').removeAttr('disabled');
-        $('#ChangePasswordAlert').html('');
-        $('#ChangePasswordAlert').addClass('d-none');
     });
 
     $('#ResetPasswordForm').submit(function(e) {
         e.preventDefault();
-        
-        $('#ChangePasswordAlert').html('');
-        $('#ChangePasswordAlert').addClass('d-none');
 
-        var newPassword = $('#NewPassword').val();        
+        var newPassword = $('#NewPassword').val();
         var confirmPassword = $('#ConfirmPassword').val();
         if (newPassword !== confirmPassword) {
-            inlineMessageAlert('#ChangePasswordAlert', 'danger', 'Passwords do not match!', false, false);
-            $('#ChangePasswordAlert').removeClass('d-none');
+            showToastNotification('Passwords do not match!', 'error');
             return false;
         }
 
         var oldPassword = $('#OldPassword').val();
         if(oldPassword === newPassword) {
-            inlineMessageAlert('#ChangePasswordAlert', 'danger', 'Old & New Passwords are same!', false, false);
-            $('#ChangePasswordAlert').removeClass('d-none');
+            showToastNotification('Old & New Passwords are same!', 'error');
             return false;
         }
-        
+
         resetUserPassword($('#ResetPasswordForm').serializeArray());
 
     });

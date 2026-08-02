@@ -846,11 +846,20 @@ class Vendors extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $VendorUIDs = $this->input->post('VendorUIDs[]');
-            if (empty($VendorUIDs)) throw new Exception('Vendor Information is Missing to Delete');
-
-            if (!is_array($VendorUIDs)) $VendorUIDs = [$VendorUIDs];
-            $VendorUIDs = array_filter(array_map('intval', $VendorUIDs));
+            $selectAll = (int) $this->input->post('SelectAll');
+            if ($selectAll === 1) {
+                $orgUID    = (int) $this->pageData['JwtData']->Org->OrgUID;
+                $rawFilter = $this->input->post('Filter');
+                $filter    = (!empty($rawFilter) && is_string($rawFilter)) ? (array) json_decode($rawFilter, true) : [];
+                $this->load->model('vendors_model');
+                $VendorUIDs = $this->vendors_model->getVendorUIDsByFilter($orgUID, $filter);
+                $VendorUIDs = array_filter(array_map('intval', $VendorUIDs));
+            } else {
+                $VendorUIDs = $this->input->post('VendorUIDs[]');
+                if (empty($VendorUIDs)) throw new Exception('Vendor Information is Missing to Delete');
+                if (!is_array($VendorUIDs)) $VendorUIDs = [$VendorUIDs];
+                $VendorUIDs = array_filter(array_map('intval', $VendorUIDs));
+            }
             if (empty($VendorUIDs)) throw new Exception('Invalid vendor IDs provided');
 
             $this->load->model('dbwrite_model');

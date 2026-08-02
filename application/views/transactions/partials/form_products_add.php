@@ -25,7 +25,7 @@ $_paymentVars    = isset($transPaymentVars) ? $transPaymentVars : null;
     <div class="d-flex align-items-center gap-2">
         <h5 class="modal-title mb-0"><i class="bx bx-cart-add me-1"></i> <?php echo $_secTitle; ?></h5>
         <?php if (!$_hideAddProd): ?>
-        <button type="button" class="trans-add-btn btn btn-outline-primary" id="addTransProduct"><i class="bx bx-plus-circle me-1"></i> Product</button>
+        <button type="button" class="trans-add-btn btn btn-outline-primary" id="addTransProduct" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_create_product', 'Create Product'); ?>"><i class="bx bx-plus-circle me-1"></i><?php echo t('btn_add_product', 'Product'); ?></button>
         <?php endif; ?>
     </div>
     <!-- Right: controls -->

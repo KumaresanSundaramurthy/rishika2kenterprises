@@ -80,10 +80,6 @@
                             <!-- ═══ LEFT: Settings Form ═══ -->
                             <div class="thermal-form-panel" id="thermalFormPanel">
 
-                                <div class="d-none thermalFormAlert alert alert-danger mx-3 mt-3 mb-0 p-2" role="alert">
-                                    <span class="alert-message"></span>
-                                </div>
-
                                 <!-- Transaction Type (Add mode only) -->
                                 <div id="thermalTransTypeRow" class="px-3 py-3 border-bottom bg-body-tertiary">
                                     <label class="form-label fw-semibold mb-1 small">Transaction Type <span class="text-danger">*</span></label>
@@ -611,7 +607,6 @@ window.addEventListener('load', function() {
         $('#ThermalOrgNameFontSize').val(16);
         $('#ThermalCompanyNameFontSize').val(14);
         $('#ThermalProductInfoFontSize').val(12);
-        $('.thermalFormAlert').addClass('d-none');
         updateThermalPreview();
     }
 

@@ -111,21 +111,18 @@
                             <a href="javascript:void(0);" id="brandProductFilter" class="apex-filter-btn <?php echo $ActiveTabData == 'brand' ? '' : 'd-none'; ?>" title="Filter by Product"><i class="bx bx-package me-1"></i>Product</a>
                             <a href="javascript:void(0);" id="lastUpdatedFilter" class="apex-filter-btn" title="Filter by Last Updated"><i class="bx bx-user me-1"></i>Last Updated</a>
                             <div class="apex-filter-spacer"></div>
-                            <a href="javascript:void(0);" class="apex-icon-btn PageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
-                            <a href="javascript:void(0);" class="apex-icon-btn <?php echo ($ActiveTabData == 'item' || $ActiveTabData == 'group') ? '' : 'd-none'; ?>" id="btnSyncProductsCache" title="Sync Items Cache"><i class="bx bx-planet"></i></a>
-                            <a href="javascript:void(0);" class="apex-icon-btn <?php echo $ActiveTabData == 'category' ? '' : 'd-none'; ?>" id="btnSyncCategoriesCache" title="Sync Categories Cache"><i class="bx bx-planet"></i></a>
-                            <a href="javascript:void(0);" class="apex-icon-btn <?php echo $ActiveTabData == 'pricelist' ? '' : 'd-none'; ?>" id="btnSyncPriceListCache" title="Sync Price List Cache"><i class="bx bx-planet"></i></a>
-                            <a href="javascript:void(0);" class="apex-icon-btn <?php echo $ActiveTabData == 'brand' ? '' : 'd-none'; ?>" id="btnSyncBrandsCache" title="Sync Brands Cache"><i class="bx bx-planet"></i></a>
+                            <a href="javascript:void(0);" class="apex-filter-btn PageRefresh" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('page_refresh', 'Page Refresh'); ?>"><i class="bx bx-refresh"></i></a>
+                            <a href="javascript:void(0);" class="apex-filter-btn <?php echo ($ActiveTabData == 'item' || $ActiveTabData == 'group') ? '' : 'd-none'; ?>" id="btnSyncProductsCache" title="Sync Items Cache"><i class="bx bx-planet"></i></a>
+                            <a href="javascript:void(0);" class="apex-filter-btn <?php echo $ActiveTabData == 'category' ? '' : 'd-none'; ?>" id="btnSyncCategoriesCache" title="Sync Categories Cache"><i class="bx bx-planet"></i></a>
+                            <a href="javascript:void(0);" class="apex-filter-btn <?php echo $ActiveTabData == 'pricelist' ? '' : 'd-none'; ?>" id="btnSyncPriceListCache" title="Sync Price List Cache"><i class="bx bx-planet"></i></a>
+                            <a href="javascript:void(0);" class="apex-filter-btn <?php echo $ActiveTabData == 'brand' ? '' : 'd-none'; ?>" id="btnSyncBrandsCache" title="Sync Brands Cache"><i class="bx bx-planet"></i></a>
                             <div class="btn-group d-none" id="ActionsDD-Div">
-                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="actionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="bx bx-slider-alt"></i>
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="actionsDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="<?php echo t('lbl_actions', 'Actions'); ?>">
+                                    <i class="bx bx-menu"></i>
                                 </button>
-                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="actionsDropdown">
-                                    <li class="d-none" id="CloneOption">
-                                        <a class="dropdown-item" href="javascript:void(0);" id="btnClone"><i class="bx bx-duplicate me-1"></i><?php echo t('act_clone', 'Clone'); ?></a>
-                                    </li>
+                                <ul class="dropdown-menu dropdown-menu-end r2k-export-menu r2k-actions-menu" aria-labelledby="actionsDropdown">
                                     <li class="d-none" id="DeleteOption">
-                                        <a class="dropdown-item text-danger" href="javascript:void(0);" id="btnDelete"><i class="bx bx-trash me-1"></i><?php echo t('delete', 'Delete'); ?></a>
+                                        <a class="dropdown-item text-danger" href="javascript:void(0);" id="btnDelete"><i class="bx bx-trash me-2"></i><?php echo t('delete', 'Delete'); ?></a>
                                     </li>
                                 </ul>
                             </div>
@@ -176,6 +173,13 @@
                         <div class="tab-content p-0">
 
                                     <div class="tab-pane fade <?php echo $ActiveTabData == 'item' ? 'show active' : ''; ?>" id="NavItemPage" role="tabpanel">
+
+                                        <!-- Select-all banner -->
+                                        <div id="prodSelectAllBanner" class="r2k-select-all-banner d-none">
+                                            <span id="prodSelectAllMsg"></span>
+                                            <a href="javascript:void(0);" id="prodSelectAllLink" class="ms-2"></a>
+                                            <a href="javascript:void(0);" id="prodSelectAllClear" class="ms-2 d-none">Clear selection</a>
+                                        </div>
 
                                         <div class="table-responsive text-nowrap h-100 tablecard">
                                             <table class="table trans-table table-hover" id="ProductsTable">
@@ -622,15 +626,10 @@ $(function() {
     (function () {
         var $dd = $('#ActionsDD-Div');
         function syncDD() {
-            var anyVisible = $('#CloneOption,#DeleteOption')
-                .filter(function () { return !$(this).hasClass('d-none'); }).length > 0;
-            $dd.toggleClass('d-none', !anyVisible);
+            $dd.toggleClass('d-none', $('#DeleteOption').hasClass('d-none'));
         }
-        var observer = new MutationObserver(syncDD);
-        ['CloneOption', 'DeleteOption'].forEach(function (id) {
-            var el = document.getElementById(id);
-            if (el) observer.observe(el, { attributes: true, attributeFilter: ['class'] });
-        });
+        var el = document.getElementById('DeleteOption');
+        if (el) new MutationObserver(syncDD).observe(el, { attributes: true, attributeFilter: ['class'] });
     })();
 
     $('#SearchDetails').val(_prodInitSearch || '');
@@ -648,6 +647,7 @@ $(function() {
         var TabValue = $(this).data('id');
         if (TabValue) {
             SelectedUIDs = [];
+            _prodClearSelectAll();
             ActiveTabId = TabValue;
             ActiveTabModuleId = $(this).data('moduleid');
             $('.trans-tab-count').addClass('d-none');
@@ -684,7 +684,7 @@ $(function() {
                 if (itemLen == 0) {
                     getProductDetails(PageNo, RowLimit, Filter);
                 } else {
-                    $(ProdHeader).prop('checked', false);
+                    $(ProdHeader).prop('checked', false).prop('indeterminate', false);
                     unSelectTableRecords(ProdTable, ProdRow);
                     updateProductCount(parseInt($('#productTotalCount').text(), 10) || 0);
                 }
@@ -695,7 +695,7 @@ $(function() {
                 if (grpLen == 0) {
                     getGroupDetails(PageNo, RowLimit, Filter);
                 } else {
-                    $(GroupHeader).prop('checked', false);
+                    $(GroupHeader).prop('checked', false).prop('indeterminate', false);
                     unSelectTableRecords(GroupTable, ProdRow);
                     updateGroupCount(parseInt($('#groupTotalCount').text(), 10) || 0);
                 }
@@ -705,7 +705,7 @@ $(function() {
                 if (plLen == 0) {
                     getPriceListDetails(PageNo, RowLimit, Filter);
                 } else {
-                    $(PLHeader).prop('checked', false);
+                    $(PLHeader).prop('checked', false).prop('indeterminate', false);
                     unSelectTableRecords(PLTable, PLRow);
                     _updatePLCount(parseInt($('#priceListTotalCount').text(), 10) || 0);
                 }
@@ -717,7 +717,7 @@ $(function() {
                     _catgListDirty = false;
                     getCategoriesDetails(PageNo, RowLimit, Filter);
                 } else {
-                    $(CatgHeader).prop('checked', false);
+                    $(CatgHeader).prop('checked', false).prop('indeterminate', false);
                     unSelectTableRecords(CatgTable, CatgRow);
                     updateCategoryCount(parseInt($('#categoryTotalCount').text(), 10) || 0);
                 }
@@ -729,7 +729,7 @@ $(function() {
                     _brandListDirty = false;
                     getBrandsDetails(PageNo, RowLimit, Filter);
                 } else {
-                    $(BrandHeader).prop('checked', false);
+                    $(BrandHeader).prop('checked', false).prop('indeterminate', false);
                     unSelectTableRecords(BrandTable, BrandRow);
                     updateBrandCount(parseInt($('#brandTotalCount').text(), 10) || 0);
                 }
@@ -770,10 +770,11 @@ $(function() {
 
     $('#btnDelete').click(function(e) {
         e.preventDefault();
-        if (SelectedUIDs.length > 0) {
+        if (SelectedUIDs.length > 0 || (ActiveTabId === 'Item' && _prodSelectAllMode)) {
             let DeleteContent;
             if (ActiveTabId == 'Item' || ActiveTabId == 'Groups') {
-                DeleteContent = 'Do you want to delete all the selected product?';
+                var delCount = (ActiveTabId === 'Item' && _prodSelectAllMode) ? _prodTotalRecords : SelectedUIDs.length;
+                DeleteContent = 'Do you want to delete ' + delCount + ' selected product(s)?';
             } else if (ActiveTabId == 'Categories') {
                 DeleteContent = 'Do you want to delete all the selected category?';
             } else if (ActiveTabId == 'Brands') {
@@ -1058,7 +1059,7 @@ $(function() {
         ProductForm.open('add', null, { onSaveSuccess: _prodPageSaveSuccess });
     });
     
-    basePaginationFunc(ProdPag, getProductDetails);
+    basePaginationFunc(ProdPag, function (pg, rl, f) { _prodClearSelectAll(); getProductDetails(pg, rl, f); });
     basePaginationFunc(GroupPag, getGroupDetails);
     baseRefreshPageFunc('.PageRefresh', showProductPageDetails);
     // Override Page Refresh: set overlay flag so getXDetails uses full overlay instead of spinner
@@ -1070,30 +1071,47 @@ $(function() {
     });
     
     basePageHeaderFunc(ProdHeader, ProdTable, ProdRow);
+    $(ProdHeader).on('click', function () { _prodUpdateSelectAllBanner(); });
     basePageHeaderFunc(GroupHeader, GroupTable, ProdRow);
 
-    $(document).on('click', ProdRow, function() {
-        var activeTbl = (ActiveTabId === 'Groups') ? GroupTable : ProdTable;
-        var activeHdr = (ActiveTabId === 'Groups') ? GroupHeader : ProdHeader;
-        onClickOfCheckbox($(this), activeTbl, activeHdr, ProdRow);
-        $('#CloneOption').addClass('d-none');
-        if (SelectedUIDs.length == 1 && (ActiveTabId === 'Item' || ActiveTabId === 'Groups')) {
-            $('#CloneOption').removeClass('d-none');
-        }
+    // ── Banner interactions (Items tab) ──
+    $(document).on('click', '#prodSelectAllLink', function (e) {
+        e.preventDefault();
+        _prodSelectAllMode = true;
+        _prodUpdateSelectAllBanner();
+    });
+    $(document).on('click', '#prodSelectAllClear', function (e) {
+        e.preventDefault();
+        SelectedUIDs = [];
+        unSelectTableRecords(ProdTable, ProdRow);
+        $(ProdHeader).prop('checked', false).prop('indeterminate', false);
+        _prodClearSelectAll();
         MultipleDeleteOption();
     });
 
-    $(document).on('click', CatgRow, function() {
+    $(document).on('change', ProdRow, function() {
+        $(this).closest('tr').toggleClass('row-sel', $(this).is(':checked'));
+        var activeTbl = (ActiveTabId === 'Groups') ? GroupTable : ProdTable;
+        var activeHdr = (ActiveTabId === 'Groups') ? GroupHeader : ProdHeader;
+        onClickOfCheckbox($(this), activeTbl, activeHdr, ProdRow);
+        if (ActiveTabId === 'Item') _prodClearSelectAll();
+        MultipleDeleteOption();
+    });
+
+    $(document).on('change', CatgRow, function() {
+        $(this).closest('tr').toggleClass('row-sel', $(this).is(':checked'));
         onClickOfCheckbox($(this), CatgTable, CatgHeader, CatgRow);
         MultipleDeleteOption();
     });
 
-    $(document).on('click', BrandRow, function() {
+    $(document).on('change', BrandRow, function() {
+        $(this).closest('tr').toggleClass('row-sel', $(this).is(':checked'));
         onClickOfCheckbox($(this), BrandTable, BrandHeader, BrandRow);
         MultipleDeleteOption();
     });
 
-    $(document).on('click', PLRow, function() {
+    $(document).on('change', PLRow, function() {
+        $(this).closest('tr').toggleClass('row-sel', $(this).is(':checked'));
         onClickOfCheckbox($(this), PLTable, PLHeader, PLRow);
         MultipleDeleteOption();
     });
@@ -1117,54 +1135,6 @@ $(function() {
         if (uid) { retrieveProductDetails(uid, true); }
     });
 
-    $('#btnClone').click(function(e) {
-        e.preventDefault();
-        if (SelectedUIDs.length !== 1) return;
-        var getSelectedId = SelectedUIDs[0];
-        if (ActiveTabId == 'Item') {
-            $(ProdTable + ' tbody ' + ProdRow).prop('checked', false);
-            SelectedUIDs = [];
-            retrieveProductDetails(getSelectedId, true);
-        } else if (ActiveTabId == 'Groups') {
-            $(GroupTable + ' tbody ' + ProdRow).prop('checked', false);
-            SelectedUIDs = [];
-            retrieveProductDetails(getSelectedId, true);
-        } else if (ActiveTabId == 'Categories') {
-            var $editBtn = $(CatgTable + ' tbody .editCategory[data-uid="' + getSelectedId + '"]');
-            var srcName  = $editBtn.data('name') ? atob($editBtn.data('name')) : '';
-            var srcDesc  = $editBtn.data('description') ? atob($editBtn.data('description')) : '';
-            $(CatgTable + ' tbody ' + CatgRow).prop('checked', false);
-            SelectedUIDs = [];
-            $('#categoryForm').trigger('reset');
-            $('#CatgModalTitle').text('Add Category');
-            $('#CatgSaveButton').text('Save');
-            $('#CategoryUID').val(0);
-            $('#CategoryName').val('Copy of ' + srcName);
-            $('#CategoryDescription').val(srcDesc);
-            $('.catgFormAlert').addClass('d-none');
-            if (typeof _attachBindListeners === 'function') _attachBindListeners('Category');
-            if (typeof _attachResetState    === 'function') _attachResetState('Category');
-            $('#categoryModal').modal('show');
-        } else if (ActiveTabId == 'Brands') {
-            var $editBrandBtn = $(BrandTable + ' tbody .editBrand[data-uid="' + getSelectedId + '"]');
-            var srcBrandName  = $editBrandBtn.data('name') ? atob($editBrandBtn.data('name')) : '';
-            var srcBrandCode  = $editBrandBtn.data('code') ? atob($editBrandBtn.data('code')) : '';
-            var srcBrandDesc  = $editBrandBtn.data('description') ? atob($editBrandBtn.data('description')) : '';
-            $(BrandTable + ' tbody ' + BrandRow).prop('checked', false);
-            SelectedUIDs = [];
-            $('#brandForm').trigger('reset');
-            $('#BrandModalTitle').text('Add Brand');
-            $('#BrandSaveButton').text('Save');
-            $('#BrandUID').val(0);
-            $('#BrandName').val('Copy of ' + srcBrandName);
-            $('#BrandCode').val(srcBrandCode);
-            $('#BrandDescription').val(srcBrandDesc);
-            $('.brandFormAlert').addClass('d-none');
-            if (typeof _attachBindListeners === 'function') _attachBindListeners('Brand');
-            if (typeof _attachResetState    === 'function') _attachResetState('Brand');
-            $('#brandModal').modal('show');
-        }
-    });
 
     $(document).on('click', '.DeleteProduct', function(e) {
         e.preventDefault();
@@ -1196,7 +1166,6 @@ $(function() {
         $('#CategoryUID').val(0);
         $('#CategoryName').val('');
         $('#CategoryDescription').val('');
-        $('.catgFormAlert').addClass('d-none');
         // Bind listeners once (no-op if already bound), then reset attachment state
         if (typeof _attachBindListeners === 'function') _attachBindListeners('Category');
         if (typeof _attachResetState    === 'function') _attachResetState('Category');
@@ -1205,7 +1174,6 @@ $(function() {
 
     $('#categoryModal').on('shown.bs.modal', function() {
         $('#CategoryName').trigger('focus');
-        $('.catgFormAlert').addClass('d-none');
     });
 
     $('#categoryModal').on('hide.bs.modal', function() {
@@ -1341,12 +1309,6 @@ $(function() {
         })
         : null;
 
-    $(document).on('click', CatgRow, function() {
-        onClickOfCheckbox($(this), CatgTable, CatgHeader, CatgRow);
-        $('#CloneOption').addClass('d-none');
-        if (SelectedUIDs.length == 1) { $('#CloneOption').removeClass('d-none'); }
-        MultipleDeleteOption();
-    });
 
     $(document).on('click', '.editCategory', function(e) {
         e.preventDefault();
@@ -1456,6 +1418,8 @@ $(function() {
     });
 
     // ── Brands Page ─────────────────────────────────────────────────────────────
+    var _brandIsDirty      = false;
+    var _brandIsCreateMode = false;
 
     $(document).on('click', '.addBrand', function(e) {
         e.preventDefault();
@@ -1466,33 +1430,47 @@ $(function() {
         $('#BrandName').val('');
         $('#BrandCode').val('');
         $('#BrandDescription').val('');
-        $('.brandFormAlert').addClass('d-none');
         if (typeof _attachBindListeners === 'function') _attachBindListeners('Brand');
         if (typeof _attachResetState    === 'function') _attachResetState('Brand');
         $('#brandModal').modal('show');
+        _brandIsCreateMode = true;
+        _brandIsDirty      = false;
     });
 
     $('#brandModal').on('shown.bs.modal', function() {
         $('#BrandName').trigger('focus');
-        $('.brandFormAlert').addClass('d-none');
     });
 
-    $('#brandModal').on('hide.bs.modal', function() {
+    $('#brandModal').on('hide.bs.modal', function(e) {
+        if (_brandIsDirty && _brandIsCreateMode) {
+            e.preventDefault();
+            Swal.fire({
+                title             : t('swal_unsaved_title',   'Unsaved Changes'),
+                text              : t('swal_unsaved_msg',     'Your changes will be lost if you close now.'),
+                icon              : 'warning',
+                showCancelButton  : true,
+                confirmButtonText : t('swal_unsaved_confirm', 'Close Anyway'),
+                cancelButtonText  : t('swal_unsaved_cancel',  'Stay'),
+                confirmButtonColor: '#d33',
+                cancelButtonColor : '#3085d6',
+            }).then(function (result) {
+                if (result.isConfirmed) {
+                    _brandIsDirty      = false;
+                    _brandIsCreateMode = false;
+                    $('#brandModal').modal('hide');
+                }
+            });
+            return;
+        }
+        _brandIsCreateMode = false;
+        _brandIsDirty      = false;
         formOpenCloseDefActions();
     });
 
-    $(document).on('click', BrandRow, function() {
-        onClickOfCheckbox($(this), BrandTable, BrandHeader, BrandRow);
-        $('#CloneOption').addClass('d-none');
-        if (SelectedUIDs.length == 1) { $('#CloneOption').removeClass('d-none'); }
-        MultipleDeleteOption();
+    $(document).on('input change', '#brandForm input, #brandForm textarea, #brandForm select', function () {
+        if (_brandIsCreateMode) _brandIsDirty = true;
     });
 
-    $(document).on('click', PLRow, function() {
-        onClickOfCheckbox($(this), PLTable, PLHeader, PLRow);
-        $('#CloneOption').addClass('d-none');
-        MultipleDeleteOption();
-    });
 
     $(document).on('click', '.editBrand', function(e) {
         e.preventDefault();
@@ -1556,6 +1534,8 @@ $(function() {
 
         var onDone = function() {
             $btn.prop('disabled', false).text(BrandUID ? 'Update' : 'Save');
+            _brandIsDirty      = false;
+            _brandIsCreateMode = false;
             $('#brandModal').modal('hide');
         };
 
@@ -2310,7 +2290,6 @@ function openPriceListModal() {
     $('#PLRulesLoading').addClass('d-none');
     _syncRulesEmpty();
     _plRuleSeq = 0;
-    $('.plFormAlert').addClass('d-none');
     _initPLDatePickers();
     $('#priceListModal').modal('show');
 
@@ -2691,7 +2670,6 @@ function savePriceListForm() {
     };
 
     function _submitPL() {
-        $('.plFormAlert').addClass('d-none');
         var $btn = $('#priceListModal .btn-primary').first().prop('disabled', true).text('Saving…');
         $.ajax({
             url: '/products/savePriceList', method: 'POST', data: payload, cache: false,

@@ -107,17 +107,16 @@
                             <a href="javascript:void(0);" id="vendGrpTypeFilterBtn" class="apex-filter-btn vgrp-only-ctrl<?php echo $initIsGroups ? '' : ' d-none'; ?>" title="Filter by Group Type"><i class="bx bx-category me-1"></i>Group Type</a>
                             <a href="javascript:void(0);" id="vendGrpPartyFilterBtn" class="apex-filter-btn vgrp-only-ctrl<?php echo $initIsGroups ? '' : ' d-none'; ?>" title="Filter by Vendor"><i class="bx bx-store me-1"></i>Vendor</a>
                             <div class="apex-filter-spacer"></div>
-                            <a href="javascript:void(0);" class="apex-icon-btn PageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
-                            <a href="javascript:void(0);" class="apex-icon-btn vend-only-ctrl<?php echo $initIsGroups ? ' d-none' : ''; ?>" id="btnSyncVendorsCache" title="Sync Cache"><i class="bx bx-planet"></i></a>
+                            <a href="javascript:void(0);" class="apex-filter-btn vend-only-ctrl<?php echo $initIsGroups ? ' d-none' : ''; ?>" id="btnSyncVendorsCache" title="Sync Cache"><i class="bx bx-planet"></i></a>
+                            <a href="javascript:void(0);" class="apex-filter-btn PageRefresh" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('page_refresh', 'Page Refresh'); ?>"><i class="bx bx-refresh"></i></a>
                             <div class="btn-group d-none vend-only-ctrl" id="ActionsDD-Div">
                                 <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="actionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                                     <i class="bx bx-slider-alt"></i>
                                 </button>
-                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="actionsDropdown">
-                                    <li class="d-none" id="CloneOption"><a class="dropdown-item" href="javascript:void(0);" id="btnClone"><i class="bx bx-duplicate me-1"></i><?php echo t('act_clone', 'Clone'); ?></a></li>
-                                    <li class="d-none" id="DeleteOption"><a class="dropdown-item text-danger" href="javascript:void(0);" id="btnDelete"><i class="bx bx-trash me-1"></i><?php echo t('delete', 'Delete'); ?></a></li>
-                                    <li class="d-none" id="BulkSmsOption"><a class="dropdown-item" href="javascript:void(0);" id="btnBulkSms"><i class="bx bx-message-rounded me-1 text-info"></i><?php echo t('act_send_sms', 'Send SMS'); ?></a></li>
-                                    <li class="d-none" id="BulkEmailOption"><a class="dropdown-item" href="javascript:void(0);" id="btnBulkEmail"><i class="bx bx-envelope me-1 text-primary"></i><?php echo t('act_send_email', 'Send Email'); ?></a></li>
+                                <ul class="dropdown-menu dropdown-menu-end r2k-export-menu r2k-actions-menu" aria-labelledby="actionsDropdown">
+                                    <li class="d-none" id="DeleteOption"><a class="dropdown-item text-danger" href="javascript:void(0);" id="btnDelete"><i class="bx bx-trash me-2"></i><?php echo t('delete', 'Delete'); ?></a></li>
+                                    <li class="d-none" id="BulkSmsOption"><a class="dropdown-item" href="javascript:void(0);" id="btnBulkSms"><i class="bx bx-message-rounded me-2 text-info"></i><?php echo t('act_send_sms', 'Send SMS'); ?></a></li>
+                                    <li class="d-none" id="BulkEmailOption"><a class="dropdown-item" href="javascript:void(0);" id="btnBulkEmail"><i class="bx bx-envelope me-2 text-primary"></i><?php echo t('act_send_email', 'Send Email'); ?></a></li>
                                 </ul>
                             </div>
                             <div class="vend-only-ctrl<?php echo $initIsGroups ? ' d-none' : ''; ?>">
@@ -137,7 +136,7 @@
                         <!-- Tabs Row -->
                         <div class="apex-tabs-row">
                             <ul class="nav trans-status-tabs" id="vendStatusTabs" role="tablist" data-trans-path="/vendors">
-                                <li class="nav-item"><a class="nav-link<?php echo ($InitTab ?? 'All') === 'All' ? ' active' : ''; ?> vend-tab" data-status="All" data-url-tab="all" href="javascript:void(0);"> All <span class="trans-tab-count<?php echo (!$initIsGroups && ($VendStats->TotalCount ?? 0) > 0) ? '' : ' d-none'; ?>"><?php echo ($VendStats->TotalCount ?? 0) > 0 ? $VendStats->TotalCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link<?php echo ($InitTab ?? 'All') === 'All' ? ' active' : ''; ?> vend-tab" data-status="All" data-url-tab="all" href="javascript:void(0);"> All <span class="trans-tab-count<?php echo (!$initIsGroups && ($VendStats->TotalCount ?? 0) > 0) ? '' : ' d-none'; ?>"><?php echo (!$initIsGroups && ($VendStats->TotalCount ?? 0) > 0) ? $VendStats->TotalCount : ''; ?></span></a></li>
                                 <li class="nav-item">
                                     <?php $grpTotal = ($InitTab ?? 'All') === 'Groups' ? (int)($GrpTotal ?? 0) : 0; ?>
                                     <a class="nav-link vgrp-view-tab<?php echo ($InitTab ?? 'All') === 'Groups' ? ' active' : ''; ?>" href="javascript:void(0);" id="vendGroupsViewTab" data-status="Groups" data-url-tab="groups">
@@ -157,6 +156,13 @@
                                     <span class="text-muted"><?php echo t('col_members', 'Members'); ?>: <strong class="vg-stat-members text-body"><?php echo $vGrpS ? (int)($vGrpS->TotalMembers ?? 0) : '—'; ?></strong></span>
                                 </li>
                             </ul>
+                        </div>
+
+                        <!-- Select-all banner -->
+                        <div id="vendSelectAllBanner" class="r2k-select-all-banner d-none">
+                            <span id="vendSelectAllMsg"></span>
+                            <a href="javascript:void(0);" id="vendSelectAllLink" class="ms-2"></a>
+                            <a href="javascript:void(0);" id="vendSelectAllClear" class="ms-2 d-none">Clear selection</a>
                         </div>
 
                         <!-- Vendor table section -->
@@ -216,7 +222,7 @@
                                             <th style="width:100px;"><?php echo t('col_actions', 'Actions'); ?></th>
                                         </tr>
                                     </thead>
-                                    <tbody id="VendorGroupsTableBody">
+                                    <tbody id="VendorGroupsTableBody" class="r2k-tbody table-border-bottom-0">
                                         <?php if ($isVendGroupsTab && !empty($GrpRowData)): ?>
                                             <?php echo $GrpRowData; ?>
                                         <?php elseif ($isVendGroupsTab): ?>
@@ -612,8 +618,26 @@ $(function() {
     if (_vendInitSearch) { $('#SearchDetails').closest('.r2k-search-wrap').addClass('is-expanded r2k-search-active'); }
     $(ModuleRow).prop('checked', false).trigger('change');
 
-    basePaginationFunc(ModulePag, getVendorsDetails);
+    basePaginationFunc(ModulePag, function (pg, rl, f) {
+        _vendClearSelectAll();
+        getVendorsDetails(pg, rl, f);
+    });
     baseRefreshPageFunc('.PageRefresh', getVendorsDetails);
+
+    // ── Banner interactions ──
+    $(document).on('click', '#vendSelectAllLink', function (e) {
+        e.preventDefault();
+        _vendSelectAllMode = true;
+        _vendUpdateSelectAllBanner();
+    });
+    $(document).on('click', '#vendSelectAllClear', function (e) {
+        e.preventDefault();
+        SelectedUIDs = [];
+        unSelectTableRecords(ModuleTable, ModuleRow);
+        $(ModuleHeader).prop('checked', false).prop('indeterminate', false);
+        _vendClearSelectAll();
+        MultipleDeleteOption();
+    });
 
     // ── Sync vendors to Upstash cache ───────────────────────────────────────
     $(document).on('click', '#btnSyncVendorsCache', function () {
@@ -640,6 +664,7 @@ $(function() {
     });
     // ────────────────────────────────────────────────────────────────────────
     basePageHeaderFunc(ModuleHeader, ModuleTable, ModuleRow);
+    $(ModuleHeader).on('click', function () { _vendUpdateSelectAllBanner(); });
 
     $(document).on('click', '#btnCreateVendorHeader', function () { openVendorModal('add'); });
 
@@ -647,12 +672,12 @@ $(function() {
     (function () {
         var $dd = $('#ActionsDD-Div');
         function syncDD() {
-            var anyVisible = $('#CloneOption, #DeleteOption, #BulkSmsOption, #BulkEmailOption')
+            var anyVisible = $('#DeleteOption, #BulkSmsOption, #BulkEmailOption')
                 .filter(function () { return !$(this).hasClass('d-none'); }).length > 0;
             $dd.toggleClass('d-none', !anyVisible);
         }
         var observer = new MutationObserver(syncDD);
-        ['CloneOption', 'DeleteOption', 'BulkSmsOption', 'BulkEmailOption'].forEach(function (id) {
+        ['DeleteOption', 'BulkSmsOption', 'BulkEmailOption'].forEach(function (id) {
             var el = document.getElementById(id);
             if (el) observer.observe(el, { attributes: true, attributeFilter: ['class'] });
         });
@@ -708,6 +733,12 @@ $(function() {
             $('#vgrpTabCount').text('').addClass('d-none');
             var $vAllBadge = $('.vend-tab .trans-tab-count');
             if ($vAllBadge.text().trim()) { $vAllBadge.removeClass('d-none'); }
+            SelectedUIDs = [];
+            $('.vgrpHeaderCheck').prop('checked', false).prop('indeterminate', false);
+            $('#VendorGroupsTableBody .vgrpCheck').prop('checked', false).closest('tr').removeClass('row-sel');
+            $(ModuleHeader).prop('checked', false);
+            $('#ActionsDD-Div').addClass('d-none');
+            _vendClearSelectAll();
             _pushTabUrl('All', '');
             // Option B: if page loaded directly on ?tab=groups, vendor table was empty — reload now
             if (!_vendDataLoaded) {
@@ -762,15 +793,11 @@ $(function() {
     });
 
     // ── Row checkbox ──
-    $(document).on('click', ModuleRow, function () {
+    $(document).on('change', ModuleRow, function () {
+        $(this).closest('tr').toggleClass('row-sel', $(this).is(':checked'));
         onClickOfCheckbox($(this), ModuleTable, ModuleHeader, ModuleRow);
-        $('#CloneOption').addClass('d-none');
-        if (SelectedUIDs.length === 1) $('#CloneOption').removeClass('d-none');
+        _vendClearSelectAll();
         MultipleDeleteOption();
-    });
-    $('#btnClone').on('click', function (e) {
-        e.preventDefault();
-        if (SelectedUIDs.length === 1) openVendorModal('clone', SelectedUIDs[0]);
     });
 
     // ── Delete single ──
@@ -789,9 +816,20 @@ $(function() {
     // ── Delete bulk ──
     $('#btnDelete').on('click', function (e) {
         e.preventDefault();
-        if (!SelectedUIDs.length) return;
+        if (!_vendSelectAllMode && !SelectedUIDs.length) return;
+        if (_inVgrpMode) {
+            var grpCount = SelectedUIDs.length;
+            Swal.fire({
+                title: 'Delete ' + grpCount + ' group(s)?', text: 'Members will be unlinked. This cannot be undone.',
+                icon: 'warning', showCancelButton: true,
+                confirmButtonColor: '#dc2626', cancelButtonColor: '#64748b',
+                confirmButtonText: 'Yes, delete all',
+            }).then(function (r) { if (r.isConfirmed) _deleteMultipleVendorGroups(); });
+            return;
+        }
+        var count = _vendSelectAllMode ? _vendTotalRecords : SelectedUIDs.length;
         Swal.fire({
-            title: 'Delete ' + SelectedUIDs.length + ' vendor(s)?', text: 'This action cannot be undone.',
+            title: 'Delete ' + count + ' vendor(s)?', text: 'This action cannot be undone.',
             icon: 'warning', showCancelButton: true,
             confirmButtonColor: '#dc2626', cancelButtonColor: '#64748b',
             confirmButtonText: 'Yes, delete all',
@@ -934,6 +972,10 @@ $(function() {
     $(document).on('click', '.vgrp-view-tab', function (e) {
         e.preventDefault();
         if (_inVgrpMode) return;
+        SelectedUIDs = [];
+        unSelectTableRecords(ModuleTable, ModuleRow);
+        $(ModuleHeader).prop('checked', false);
+        _vendClearSelectAll();
         _inVgrpMode = true;
         $('.vend-tab').removeClass('active');
         $('.vgrp-view-tab').addClass('active');
@@ -1004,9 +1046,77 @@ $(function() {
     // ── Groups pagination ──
     $(document).on('click', '#VendorGroupsPagination .pagination .page-link', function (e) {
         e.preventDefault();
+        SelectedUIDs = [];
+        $('.vgrpHeaderCheck').prop('checked', false).prop('indeterminate', false);
+        $('#VendorGroupsTableBody .vgrpCheck').prop('checked', false).closest('tr').removeClass('row-sel');
+        MultipleDeleteOption();
         var pg = parseInt($(this).data('page'), 10);
         if (!isNaN(pg) && pg !== _vgrpPageNo) _vgrpReload(pg);
     });
+
+    // ── Groups header checkbox ──
+    $(document).on('change', '.vgrpHeaderCheck', function () {
+        var isChecked = $(this).is(':checked');
+        $('#VendorGroupsTableBody .vgrpCheck').prop('checked', isChecked)
+            .closest('tr').toggleClass('row-sel', isChecked);
+        SelectedUIDs = [];
+        if (isChecked) {
+            $('#VendorGroupsTableBody .vgrpCheck').each(function () {
+                var uid = parseInt($(this).val());
+                if (uid) SelectedUIDs.push(uid);
+            });
+        }
+        MultipleDeleteOption();
+    });
+
+    // ── Groups row checkbox ──
+    $(document).on('change', '.vgrpCheck', function () {
+        $(this).closest('tr').toggleClass('row-sel', $(this).is(':checked'));
+        var total   = $('#VendorGroupsTableBody .vgrpCheck').length;
+        var checked = $('#VendorGroupsTableBody .vgrpCheck:checked').length;
+        $('.vgrpHeaderCheck').prop('checked', total > 0 && checked === total)
+                             .prop('indeterminate', checked > 0 && checked < total);
+        var uid = parseInt($(this).val());
+        if ($(this).is(':checked')) {
+            if (SelectedUIDs.indexOf(uid) === -1) SelectedUIDs.push(uid);
+        } else {
+            SelectedUIDs = SelectedUIDs.filter(function (id) { return id !== uid; });
+        }
+        MultipleDeleteOption();
+    });
+
+    // ── Delete multiple groups ──
+    /**
+     * @returns {void}
+     */
+    function _deleteMultipleVendorGroups() {
+        if (!SelectedUIDs.length) return;
+        var uids = SelectedUIDs.slice();
+        var idx  = 0;
+        ajaxLoading(0);
+        function _next() {
+            if (idx >= uids.length) {
+                ajaxLoading(1);
+                SelectedUIDs = [];
+                $('.vgrpHeaderCheck').prop('checked', false).prop('indeterminate', false);
+                MultipleDeleteOption();
+                _vgrpReload(_vgrpPageNo);
+                return;
+            }
+            $.ajax({
+                url   : '/vendors/deleteGroup',
+                method: 'POST',
+                data  : { GroupUID: uids[idx], [CsrfName]: CsrfToken },
+                success: function (res) {
+                    CsrfToken = res.NewCsrfToken || CsrfToken;
+                    idx++;
+                    _next();
+                },
+                error: function () { idx++; _next(); }
+            });
+        }
+        _next();
+    }
 
     // ── New Group button ──
     $(document).on('click', '#btnNewVendorGroup, .vbtn-new-group', function () {

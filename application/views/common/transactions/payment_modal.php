@@ -295,7 +295,7 @@ $pdtLinkedLabel = $pdtLinkedLabel ?? 'Linked Document';
     var _bankAccts  = [];
     var _fpInstance = null;
     var _rpDropzone = null;
-    var _currency   = '₹';
+    var _currency   = '<?php echo addslashes($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>';
     var _rpDec      = <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>;
 
     function _rpEsc(s) { return $('<span>').text(s || '').html(); }
@@ -350,7 +350,7 @@ $pdtLinkedLabel = $pdtLinkedLabel ?? 'Linked Document';
         }
 
         var cur = _currency;
-        var dec = 2;
+        var dec = _rpDec;
         var fmt = function (v) { return cur + ' ' + parseFloat(v || 0).toFixed(dec); };
         $('#rpTotalCard').text(fmt(cfg.total));
         $('#rpPaidCard').text(fmt(cfg.paid));

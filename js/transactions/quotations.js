@@ -66,12 +66,89 @@ function _quotFetchPdfAjax(recordUID, moduleUID, filename, onSuccess) {
     });
 }
 
+// ── Select-all (Pattern 3) state ────────────────────────────────────────────
+var _quotSelectAllMode = false;
+var _quotTotalRecords  = 0;
+var _quotPageCount     = 0;
+
+/**
+ * @returns {void}
+ */
+function _quotUpdateSelectAllBanner() {
+    var $banner = $('#quotSelectAllBanner');
+    var $msg    = $('#quotSelectAllMsg');
+    var $link   = $('#quotSelectAllLink');
+    var $clear  = $('#quotSelectAllClear');
+
+    if (!_quotPageCount || !$(ModuleHeader).prop('checked')) {
+        $banner.addClass('d-none');
+        return;
+    }
+
+    if (_quotSelectAllMode) {
+        $msg.text('All ' + _quotTotalRecords + ' quotations are selected.');
+        $link.addClass('d-none');
+        $clear.removeClass('d-none');
+    } else {
+        $msg.text('All ' + _quotPageCount + ' quotations on this page are selected.');
+        $clear.addClass('d-none');
+        if (_quotTotalRecords > _quotPageCount) {
+            $link.text('Select all ' + _quotTotalRecords + ' quotations?').removeClass('d-none');
+        } else {
+            $link.addClass('d-none');
+            $banner.addClass('d-none');
+            return;
+        }
+    }
+    $banner.removeClass('d-none');
+}
+
+/**
+ * @returns {void}
+ */
+function _quotClearSelectAll() {
+    _quotSelectAllMode = false;
+    $('#quotSelectAllBanner').addClass('d-none');
+    $('#quotSelectAllLink').removeClass('d-none');
+    $('#quotSelectAllClear').addClass('d-none');
+}
+
+/**
+ * @returns {void}
+ */
+function deleteMultipleQuotations() {
+    var postData = _quotSelectAllMode
+        ? { SelectAll: 1, Filter: JSON.stringify(Filter), [CsrfName]: CsrfToken }
+        : { 'TransUIDs[]': SelectedUIDs, [CsrfName]: CsrfToken };
+    $.ajax({
+        url   : '/transactions/deleteMultipleTransactions/101',
+        method: 'POST',
+        cache : false,
+        data  : postData,
+        success: function (response) {
+            if (response.Error) {
+                showAlertMessageSwal('error', '', response.Message);
+            } else {
+                showToastNotification(response.Message, 'success');
+                SelectedUIDs = [];
+                _quotClearSelectAll();
+                hideUIBlock();
+                ajaxLoading(0);
+                getQuotationsDetails(PageNo, RowLimit, Filter);
+            }
+        }
+    });
+}
+
 var _quotConfig = {
     url:            '/transactions/getPageDetails/101/',
     tabCountClass:  '.trans-tab-count',
     statusTabClass: '.quot-status-tab',
     errorMessage:   'Failed to load quotations.',
     onSuccess: function (response) {
+        _quotTotalRecords = parseInt(response.TotalCount) || 0;
+        _quotPageCount    = $(ModuleTable + ' tbody ' + ModuleRow).length;
+        _quotUpdateSelectAllBanner();
         if (response.SummaryStats) updateQuotStatCards(response.SummaryStats);
     }
 };
@@ -91,6 +168,7 @@ function getQuotationsDetails(pageNo, rowLimit, filter, afterLoad) {
 }
 
 function updateQuotStatCards(stats) {
+    if (!stats || Object.keys(stats).length === 0) return;
     var cur = (typeof currencySymbol !== 'undefined') ? currencySymbol : '₹';
     var dec = (typeof JwtData !== 'undefined' && JwtData.GenSettings) ? (JwtData.GenSettings.DecimalPoints || 2) : 2;
 
@@ -116,20 +194,4 @@ function updateQuotStatCards(stats) {
     $('[data-stat-filter="Converted"] .trans-stat-amount').text(fmt(amt('Converted')));
     $('[data-stat-filter="Draft"] .trans-stat-count').text(cnt('Draft').toLocaleString('en-IN'));
 
-    // Update inactive tab badges — active tab badge is set by loadTransactionList
-    var tabCounts = {
-        'All'      : cntAll,
-        'Open'     : cnt('Pending'),
-        'Accepted' : cnt('Accepted'),
-        'Converted': cnt('Converted'),
-        'Cancelled': cnt('Cancelled') + cnt('Rejected'),
-        'Draft'    : cnt('Draft'),
-    };
-    $.each(tabCounts, function (dataStatus, count) {
-        var $tab = $('.quot-status-tab[data-status="' + dataStatus + '"]');
-        if ($tab.hasClass('active')) { return; }
-        var $badge = $tab.find('.trans-tab-count');
-        if (count > 0) { $badge.text(count).removeClass('d-none'); }
-        else           { $badge.text('').addClass('d-none'); }
-    });
 }

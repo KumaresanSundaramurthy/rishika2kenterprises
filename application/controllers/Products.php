@@ -792,19 +792,24 @@ class Products extends MY_Controller {
         $this->EndReturnData = new stdClass();
 		try {
 
-            $ProductUIDs = $this->input->post('ProductUIDs[]');
-            if(empty($ProductUIDs)) {
-                throw new Exception('No products selected for deletion');
+            $selectAll = (int) $this->input->post('SelectAll');
+            if ($selectAll === 1) {
+                $orgUID    = (int) $this->pageData['JwtData']->Org->OrgUID;
+                $rawFilter = $this->input->post('Filter');
+                $filter    = (!empty($rawFilter) && is_string($rawFilter)) ? (array) json_decode($rawFilter, true) : [];
+                $this->load->model('products_model');
+                $ProductUIDs = $this->products_model->getProductUIDsByFilter($orgUID, $filter);
+                $ProductUIDs = array_filter(array_map('intval', $ProductUIDs), fn($id) => $id > 0);
+            } else {
+                $ProductUIDs = $this->input->post('ProductUIDs[]');
+                if(empty($ProductUIDs)) {
+                    throw new Exception('No products selected for deletion');
+                }
+                if (!is_array($ProductUIDs)) {
+                    $ProductUIDs = [$ProductUIDs];
+                }
+                $ProductUIDs = array_filter(array_map('intval', $ProductUIDs), fn($id) => $id > 0);
             }
-
-            // Validate and sanitize IDs
-            if (!is_array($ProductUIDs)) {
-                $ProductUIDs = [$ProductUIDs];
-            }
-            $ProductUIDs = array_map('intval', $ProductUIDs);
-            $ProductUIDs = array_filter($ProductUIDs, function($id) {
-                return $id > 0;
-            });
 
             if (empty($ProductUIDs)) {
                 throw new Exception('Invalid product IDs provided');
@@ -2797,6 +2802,7 @@ class Products extends MY_Controller {
             }
 
             $this->upstashservice->set($cacheKey, $current, 0);
+            $this->upstashservice->set($this->redisservice->orgKey('has-price-lists'), !empty($current), 0);
         } catch (Exception $e) {
             log_message('error', '_upsertOnePriceListCache: ' . $e->getMessage());
         }
@@ -2814,6 +2820,7 @@ class Products extends MY_Controller {
 
             $filtered = array_values(array_filter($current, fn($pl) => (int)($pl['PriceListUID'] ?? 0) !== $plUID));
             $this->upstashservice->set($cacheKey, $filtered, 0);
+            $this->upstashservice->set($this->redisservice->orgKey('has-price-lists'), !empty($filtered), 0);
         } catch (Exception $e) {
             log_message('error', '_removeOnePriceListCache: ' . $e->getMessage());
         }
@@ -2830,6 +2837,7 @@ class Products extends MY_Controller {
             $lists    = $this->pricelists_model->getAllForCache($orgUID);
             $cacheKey = $this->redisservice->orgKey('price-lists');
             $this->upstashservice->set($cacheKey, $lists, 0);
+            $this->upstashservice->set($this->redisservice->orgKey('has-price-lists'), !empty($lists), 0);
         } catch (Exception $e) {
             log_message('error', '_syncPriceListCache: ' . $e->getMessage());
         }
@@ -2846,7 +2854,9 @@ class Products extends MY_Controller {
             $lists    = $this->pricelists_model->getAllForCache($orgUID);
             $cacheKey = $this->redisservice->orgKey('price-lists');
             $this->upstashservice->set($cacheKey, $lists, 0);
+            $this->upstashservice->set($this->redisservice->orgKey('has-price-lists'), !empty($lists), 0);
             $this->EndReturnData->Error   = false;
+            $this->EndReturnData->Lists   = $lists;
             $this->EndReturnData->Message = count($lists) . ' price list(s) synced to cache.';
         } catch (Exception $e) {
             $this->EndReturnData->Error   = true;

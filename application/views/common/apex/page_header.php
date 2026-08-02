@@ -123,20 +123,17 @@ foreach ($_qaMenus as $_qaMM) {
         <div class="apex-lang-wrap" id="apexLangWrap">
             <button class="apex-lang-trigger" id="apexLangBtn" type="button"
                     title="<?php echo t('lbl_language', 'Language'); ?>">
-                <span class="apex-lang-flag"><?php echo $_apexLang === 'ta' ? '🇮🇳' : '🇬🇧'; ?></span>
-                <span class="apex-lang-name"><?php echo $_apexLang === 'ta' ? 'தமிழ்' : 'English'; ?></span>
+                <span class="apex-lang-label"><?php echo $_apexLang === 'ta' ? 'த' : 'En'; ?></span>
                 <i class="bx bx-chevron-down apex-lang-caret"></i>
             </button>
             <div class="apex-lang-dropdown" id="apexLangDropdown">
                 <button class="apex-lang-option<?php echo $_apexLang === 'en' ? ' active' : ''; ?>"
                         data-lang="en" type="button">
-                    <span class="apex-lang-opt-flag">🇬🇧</span>
                     <span class="apex-lang-opt-name">English</span>
                     <i class="bx bx-check apex-lang-check"></i>
                 </button>
                 <button class="apex-lang-option<?php echo $_apexLang === 'ta' ? ' active' : ''; ?>"
                         data-lang="ta" type="button">
-                    <span class="apex-lang-opt-flag">🇮🇳</span>
                     <span class="apex-lang-opt-name">தமிழ்</span>
                     <i class="bx bx-check apex-lang-check"></i>
                 </button>

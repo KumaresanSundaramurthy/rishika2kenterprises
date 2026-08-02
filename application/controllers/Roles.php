@@ -75,12 +75,12 @@ class Roles extends MY_Controller {
                 }
             }
 
-            $this->redisservice->setUserCache('menus',       $userUID, $menus,       $loginExpiry, $orgShortCode, $orgToken);
-            $this->redisservice->setUserCache('submenus',    $userUID, $submenus,    $loginExpiry, $orgShortCode, $orgToken);
-            $this->redisservice->setUserCache('modules',     $userUID, $modules,     $loginExpiry, $orgShortCode, $orgToken);
-            $this->redisservice->setUserCache('permissions', $userUID, $permissions, $loginExpiry, $orgShortCode, $orgToken);
+            $this->redisservice->setUserCache('menus',       $userUID, $menus,       $loginExpiry, $orgToken);
+            $this->redisservice->setUserCache('submenus',    $userUID, $submenus,    $loginExpiry, $orgToken);
+            $this->redisservice->setUserCache('modules',     $userUID, $modules,     $loginExpiry, $orgToken);
+            $this->redisservice->setUserCache('permissions', $userUID, $permissions, $loginExpiry, $orgToken);
             if ($userInfo) {
-                $this->redisservice->setUserCache('userinfo', $userUID, $userInfo, $loginExpiry, $orgShortCode, $orgToken);
+                $this->redisservice->setUserCache('userinfo', $userUID, $userInfo, $loginExpiry, $orgToken);
             }
 
             // Rebuild JWT payload (User + Permissions) in Redis

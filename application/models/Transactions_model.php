@@ -102,8 +102,9 @@ class Transactions_model extends MY_Model {
 
             return $query->result();
 
-        } catch (Exception $e) {
-            return [];
+        } catch (Throwable $e) {
+            log_message('error', 'getTransactionPageList: ' . $e->getMessage());
+            return $isCount ? 0 : [];
         }
 
     }
@@ -120,12 +121,17 @@ class Transactions_model extends MY_Model {
         try {
             $this->ReadDb->db_debug = FALSE;
 
-            $params    = [(int)$moduleUID, (int)$orgUID];
-            $dateWhere = '';
+            $params      = [(int)$moduleUID, (int)$orgUID];
+            $dateWhere   = '';
+            $branchWhere = '';
             if (!empty($filter['DateFrom']) && !empty($filter['DateTo'])) {
                 $dateWhere = " AND Ts.TransDate >= ? AND Ts.TransDate <= ?";
                 $params[]  = $filter['DateFrom'];
                 $params[]  = $filter['DateTo'];
+            }
+            if (!empty($filter['BranchUID'])) {
+                $branchWhere = " AND Ts.BranchUID = ?";
+                $params[]    = (int)$filter['BranchUID'];
             }
 
             // Compute payment status from actual PaymentsTbl amounts so stats
@@ -147,7 +153,7 @@ class Transactions_model extends MY_Model {
                     WHERE  IsDeleted = 0 AND IsActive = 1
                     GROUP  BY TransUID
                 ) AS PaidSum ON PaidSum.TransUID = Ts.TransUID
-                WHERE Ts.ModuleUID = ? AND Ts.OrgUID = ? AND Ts.IsDeleted = 0 $dateWhere
+                WHERE Ts.ModuleUID = ? AND Ts.OrgUID = ? AND Ts.IsDeleted = 0 $dateWhere $branchWhere
                 GROUP BY ComputedStatus
             ";
             $query = $this->ReadDb->query($sql, $params);
@@ -213,6 +219,13 @@ class Transactions_model extends MY_Model {
         if (empty($filter)) {
             $this->ReadDb->where_not_in('Ts.DocStatus', ['Draft', 'Rejected', 'Cancelled']);
             return;
+        }
+
+        if (!empty($filter['OrgUID'])) {
+            $this->ReadDb->where('Ts.OrgUID', (int)$filter['OrgUID']);
+        }
+        if (!empty($filter['BranchUID'])) {
+            $this->ReadDb->where('Ts.BranchUID', (int)$filter['BranchUID']);
         }
 
         if (!empty($filter['Name'])) {
@@ -367,6 +380,7 @@ class Transactions_model extends MY_Model {
             'COALESCE(Cust.Area, Vend.Area) AS PartyArea',
             'COALESCE(Cust.CountryCode, Vend.CountryCode) AS PartyCountryCode',
             'COALESCE(Cust.MobileNumber, Vend.MobileNumber) AS PartyMobile',
+            'COALESCE(Cust.EmailAddress, Vend.EmailAddress) AS PartyEmail',
             'COALESCE(Cust.GSTIN, Vend.GSTIN) AS PartyGSTIN',
             'BillAddr.Line1 AS BillLine1', 'BillAddr.Line2 AS BillLine2',
             'BillAddr.CityText AS BillCity', 'BillAddr.StateText AS BillState', 'BillAddr.Pincode AS BillPincode',
@@ -1440,15 +1454,17 @@ class Transactions_model extends MY_Model {
         }
 
         // ── Helpers ──────────────────────────────────────────────────
-        $cur = '₹ ';
-        $dec = 2;
         $e   = fn($v) => htmlspecialchars((string)($v ?? ''), ENT_QUOTES);
         // Read print formats and org timezone from GenSettings JWT
         try {
             $CI          = &get_instance();
+            $cur         = ($CI->pageData['JwtData']->GenSettings->CurrenySymbol  ?? '₹') . ' ';
+            $dec         = (int)($CI->pageData['JwtData']->GenSettings->DecimalPoints ?? 2);
             $_printFmt   = $CI->pageData['JwtData']->GenSettings->PrintDateFormat ?? 'd M Y';
             $_timezone   = $CI->pageData['JwtData']->User->Timezone               ?? 'UTC';
         } catch (Exception $_) {
+            $cur         = '₹ ';
+            $dec         = 2;
             $_printFmt   = 'd M Y';
             $_timezone   = 'UTC';
         }
@@ -1769,8 +1785,14 @@ class Transactions_model extends MY_Model {
     }
 
     private function _processLoops(string $html, array $items): string {
-        $cur = '₹ ';
-        $dec = 2;
+        try {
+            $CI  = &get_instance();
+            $cur = ($CI->pageData['JwtData']->GenSettings->CurrenySymbol  ?? '₹') . ' ';
+            $dec = (int)($CI->pageData['JwtData']->GenSettings->DecimalPoints ?? 2);
+        } catch (Exception $_) {
+            $cur = '₹ ';
+            $dec = 2;
+        }
         $e   = fn($v) => htmlspecialchars((string)($v ?? ''), ENT_QUOTES);
 
         return preg_replace_callback(
@@ -1812,8 +1834,14 @@ class Transactions_model extends MY_Model {
     }
 
     private function _processHsnSummary(string $html, array $items): string {
-        $cur = '₹ ';
-        $dec = 2;
+        try {
+            $CI  = &get_instance();
+            $cur = ($CI->pageData['JwtData']->GenSettings->CurrenySymbol  ?? '₹') . ' ';
+            $dec = (int)($CI->pageData['JwtData']->GenSettings->DecimalPoints ?? 2);
+        } catch (Exception $_) {
+            $cur = '₹ ';
+            $dec = 2;
+        }
         $e   = fn($v) => htmlspecialchars((string)($v ?? ''), ENT_QUOTES);
 
         return preg_replace_callback(
@@ -1946,17 +1974,17 @@ class Transactions_model extends MY_Model {
         $e      = fn($v) => htmlspecialchars((string)($v ?? ''), ENT_QUOTES);
         $fmt    = function($d) { if (!$d) return '—'; $dt = date_create($d); return $dt ? date_format($dt, 'd M Y') : $d; };
         $cur    = $org->CurrenySymbol ?? '₹';
-        $dec    = 2;
-        $fmtAmt = fn($v) => number_format((float)$v, $dec, '.', ',');
-
         try {
             $CI        = &get_instance();
+            $dec       = (int)($CI->pageData['JwtData']->GenSettings->DecimalPoints ?? 2);
             $_printFmt = $CI->pageData['JwtData']->GenSettings->PrintDateFormat ?? 'd M Y';
             $_timezone = $CI->pageData['JwtData']->User->Timezone               ?? 'UTC';
         } catch (Exception $_) {
+            $dec       = 2;
             $_printFmt = 'd M Y';
             $_timezone = 'UTC';
         }
+        $fmtAmt = fn($v) => number_format((float)$v, $dec, '.', ',');
         $fmt = function(string $date) use ($_printFmt): string {
             if (!$date) return '—';
             $d = date_create($date);
@@ -3230,6 +3258,33 @@ class Transactions_model extends MY_Model {
 
         } catch (Exception $e) {
             log_message('error', 'getDayBookEntries: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * @param int   $orgUID
+     * @param int   $moduleUID
+     * @param array $filter
+     * @return array<int>
+     */
+    public function getTransactionUIDsByFilter(int $orgUID, int $moduleUID, array $filter = []): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('Ts.TransUID');
+            $this->ReadDb->from('Transaction.TransactionsTbl as Ts');
+            if (!empty($filter['Name'])) {
+                $this->ReadDb->join('Customers.CustomerTbl as Cust', "Cust.CustomerUID = Ts.PartyUID AND Ts.PartyType = 'C'", 'LEFT');
+                $this->ReadDb->join('Vendors.VendorTbl as Vend',     "Vend.VendorUID   = Ts.PartyUID AND Ts.PartyType = 'S'", 'LEFT');
+            }
+            $filter['OrgUID'] = $orgUID;
+            $this->ReadDb->where(['Ts.IsDeleted' => 0, 'Ts.IsActive' => 1, 'Ts.ModuleUID' => $moduleUID]);
+            $this->applyFilters($filter, true);
+            $query = $this->ReadDb->get();
+            if (!$query) return [];
+            return array_column($query->result_array(), 'TransUID');
+        } catch (Exception $e) {
+            log_message('error', 'getTransactionUIDsByFilter: ' . $e->getMessage());
             return [];
         }
     }

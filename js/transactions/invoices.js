@@ -2,6 +2,80 @@
 // Shared utilities (loadTransactionList, debounce, initTooltips) are in common.js
 // Date helpers (getDateRange, formatDate) are in /js/common/datefilter.js
 
+// ── Select-all (Pattern 3) state ────────────────────────────────────────────
+var _invSelectAllMode = false;
+var _invTotalRecords  = 0;
+var _invPageCount     = 0;
+
+/**
+ * @returns {void}
+ */
+function _invUpdateSelectAllBanner() {
+    var $banner = $('#invSelectAllBanner');
+    var $msg    = $('#invSelectAllMsg');
+    var $link   = $('#invSelectAllLink');
+    var $clear  = $('#invSelectAllClear');
+
+    if (!_invPageCount || !$(ModuleHeader).prop('checked')) {
+        $banner.addClass('d-none');
+        return;
+    }
+
+    if (_invSelectAllMode) {
+        $msg.text('All ' + _invTotalRecords + ' invoices are selected.');
+        $link.addClass('d-none');
+        $clear.removeClass('d-none');
+    } else {
+        $msg.text('All ' + _invPageCount + ' invoices on this page are selected.');
+        $clear.addClass('d-none');
+        if (_invTotalRecords > _invPageCount) {
+            $link.text('Select all ' + _invTotalRecords + ' invoices?').removeClass('d-none');
+        } else {
+            $link.addClass('d-none');
+            $banner.addClass('d-none');
+            return;
+        }
+    }
+    $banner.removeClass('d-none');
+}
+
+/**
+ * @returns {void}
+ */
+function _invClearSelectAll() {
+    _invSelectAllMode = false;
+    $('#invSelectAllBanner').addClass('d-none');
+    $('#invSelectAllLink').removeClass('d-none');
+    $('#invSelectAllClear').addClass('d-none');
+}
+
+/**
+ * @returns {void}
+ */
+function deleteMultipleInvoices() {
+    var postData = _invSelectAllMode
+        ? { SelectAll: 1, Filter: JSON.stringify(Filter), [CsrfName]: CsrfToken }
+        : { 'TransUIDs[]': SelectedUIDs, [CsrfName]: CsrfToken };
+    $.ajax({
+        url   : '/transactions/deleteMultipleTransactions/103',
+        method: 'POST',
+        cache : false,
+        data  : postData,
+        success: function (response) {
+            if (response.Error) {
+                showAlertMessageSwal('error', '', response.Message);
+            } else {
+                showToastNotification(response.Message, 'success');
+                SelectedUIDs = [];
+                _invClearSelectAll();
+                hideUIBlock();
+                ajaxLoading(0);
+                getInvoicesDetails(PageNo, RowLimit, Filter);
+            }
+        }
+    });
+}
+
 // -- WhatsApp link handler ---------------------------------------------------
 $(document).on('click', '.inv-wa-link', function (e) {
     e.preventDefault();
@@ -47,6 +121,9 @@ function getInvoicesDetails(pageNo, rowLimit, filter, afterLoad) {
         statusTabClass: '.inv-status-tab',
         errorMessage:   'Failed to load invoices.',
         onSuccess:      function (resp) {
+            _invTotalRecords = parseInt(resp.TotalCount) || 0;
+            _invPageCount    = $(ModuleTable + ' tbody ' + ModuleRow).length;
+            _invUpdateSelectAllBanner();
             if (typeof updateSummaryStats === 'function' && resp.SummaryStats) updateSummaryStats(resp.SummaryStats);
             if (typeof afterLoad === 'function') afterLoad(resp);
         },

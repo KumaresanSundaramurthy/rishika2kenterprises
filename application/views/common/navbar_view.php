@@ -137,9 +137,74 @@
 .nb-qc-item i { font-size: .95rem; color: #64748b; flex-shrink: 0; transition: color .12s; }
 .nb-qc-item:hover i { color: #2563eb; }
 
-/* Language switcher icon */
-.nav-lang-btn { display: flex; align-items: center; gap: 4px; padding: 0 8px !important; }
-.nav-lang-badge { font-size: .68rem; font-weight: 700; letter-spacing: .5px; line-height: 1; }
+/* ── Language Switcher ── */
+.apex-lang-wrap { position: relative; display: flex; align-items: center; }
+.apex-lang-btn {
+    display: flex; align-items: center; gap: 3px;
+    padding: 5px 9px;
+    background: none;
+    border: 1px solid #e2e8f0;
+    border-radius: 7px;
+    cursor: pointer;
+    font-size: .8rem; font-weight: 700; color: #334155; line-height: 1;
+    transition: background .12s, border-color .12s;
+}
+.apex-lang-btn:hover { background: #f1f5f9; border-color: #cbd5e1; }
+.apex-lang-wrap.open .apex-lang-btn { background: #eff6ff; border-color: #93c5fd; color: #2563eb; }
+.apex-lang-chevron { font-size: .75rem; transition: transform .18s; color: #94a3b8; }
+.apex-lang-wrap.open .apex-lang-chevron { transform: rotate(180deg); }
+.apex-lang-dropdown {
+    display: none; position: absolute;
+    top: calc(100% + 6px); right: 0;
+    background: #fff; border: 1px solid #e2e8f0;
+    border-radius: 10px; box-shadow: 0 8px 28px rgba(0,0,0,.12);
+    min-width: 115px; padding: 5px; z-index: 1050;
+}
+.apex-lang-wrap.open .apex-lang-dropdown { display: block; }
+.apex-lang-option {
+    display: flex; align-items: center; width: 100%;
+    padding: 7px 12px; background: none; border: none;
+    border-radius: 7px; font-size: .83rem; font-weight: 500;
+    color: #334155; cursor: pointer; text-align: left;
+    transition: background .1s, color .1s;
+}
+.apex-lang-option:hover { background: #f1f5f9; color: #2563eb; }
+.apex-lang-option.active { color: #2563eb; font-weight: 700; background: #eff6ff; }
+
+/* ── Branch Switcher ── */
+.nb-branch-btn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 5px 10px;
+    border-radius: 8px;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    font-size: .78rem; font-weight: 600; color: #334155;
+    cursor: pointer; transition: background .15s, border-color .15s;
+    white-space: nowrap; max-width: 160px;
+}
+.nb-branch-btn:hover { background: #e8f0fe; border-color: #bfdbfe; color: #2563eb; }
+.nb-branch-btn i.bx-store-alt { font-size: .9rem; color: #64748b; flex-shrink: 0; }
+.nb-branch-btn .nb-branch-name { overflow: hidden; text-overflow: ellipsis; }
+.nb-branch-btn i.bx-chevron-down { font-size: .8rem; color: #94a3b8; flex-shrink: 0; }
+.nb-branch-dropdown {
+    min-width: 200px;
+    border-radius: 10px !important;
+    box-shadow: 0 8px 28px rgba(0,0,0,.12) !important;
+    border: 1px solid #e2e8f0 !important;
+    padding: 6px 0;
+    margin-top: 6px !important;
+}
+.nb-branch-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 14px; font-size: .82rem; font-weight: 500; color: #334155;
+    cursor: pointer; transition: background .12s; white-space: nowrap;
+    text-decoration: none !important;
+}
+.nb-branch-item:hover { background: #eff6ff; color: #2563eb; }
+.nb-branch-item.active { background: #dbeafe; color: #2563eb; font-weight: 700; }
+.nb-branch-item .nb-bcode { font-size: .68rem; color: #94a3b8; margin-left: auto; }
+.nb-branch-item.active .nb-bcode { color: #93c5fd; }
+.nb-branch-divider { font-size: .65rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: .5px; padding: 6px 14px 3px; pointer-events: none; }
 
 /* User dropdown — org + last login info block */
 .nav-user-info-block { padding: .45rem .9rem .5rem; pointer-events: none; }
@@ -241,18 +306,52 @@
                 </div>
             </li>
 
+            <!-- Branch Switcher — only shown when user has access to more than one branch -->
+            <?php
+            $_accessibleBranches = $JwtData->Org->AccessibleBranches ?? [];
+            $_activeBranchUID    = (int)($JwtData->Org->BranchUID    ?? 0);
+            $_activeBranchName   = $JwtData->Org->BranchName ?? '';
+            $_activeBranchCode   = $JwtData->Org->BranchCode ?? '';
+            if (count($_accessibleBranches) > 1):
+            ?>
+            <li class="nav-item d-flex align-items-center">
+                <div class="dropdown">
+                    <button class="nb-branch-btn" data-bs-toggle="dropdown" data-bs-auto-close="true" aria-expanded="false"
+                        data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_switch_branch', 'Switch Branch'); ?>">
+                        <i class="bx bx-store-alt"></i>
+                        <span class="nb-branch-name"><?php echo htmlspecialchars($_activeBranchName); ?></span>
+                        <i class="bx bx-chevron-down"></i>
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-end nb-branch-dropdown">
+                        <div class="nb-branch-divider"><?php echo t('lbl_branches', 'Branches'); ?></div>
+                        <?php foreach ($_accessibleBranches as $_br): ?>
+                        <a href="javascript:void(0);"
+                           class="nb-branch-item <?php echo ((int)$_br->BranchUID === $_activeBranchUID) ? 'active' : ''; ?>"
+                           data-branch-uid="<?php echo (int)$_br->BranchUID; ?>"
+                           data-branch-name="<?php echo htmlspecialchars($_br->BranchName ?? ''); ?>">
+                            <i class="bx bx-map-pin" style="font-size:.85rem;color:#94a3b8;flex-shrink:0;"></i>
+                            <?php echo htmlspecialchars($_br->BranchName ?? ''); ?>
+                            <span class="nb-bcode"><?php echo htmlspecialchars($_br->BranchCode ?? ''); ?></span>
+                        </a>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </li>
+            <?php endif; ?>
+
             <!-- Language Switcher -->
             <?php $_navLang = $JwtData->User->UILanguage ?? 'en'; ?>
-            <li class="nav-item">
-                <a class="nav-link nav-lang-btn LangToggleBtn"
-                   href="javascript:void(0);"
-                   data-switch-to="<?php echo $_navLang === 'ta' ? 'en' : 'ta'; ?>"
-                   data-bs-toggle="tooltip"
-                   data-bs-placement="bottom"
-                   title="<?php echo $_navLang === 'ta' ? 'Switch to English' : 'தமிழுக்கு மாறு'; ?>">
-                    <i class="bx bx-globe icon-base icon-md"></i>
-                    <span class="nav-lang-badge"><?php echo strtoupper($_navLang); ?></span>
-                </a>
+            <li class="nav-item d-flex align-items-center">
+                <div id="apexLangWrap" class="apex-lang-wrap">
+                    <button type="button" id="apexLangBtn" class="apex-lang-btn">
+                        <span class="apex-lang-label"><?php echo $_navLang === 'ta' ? 'த' : 'En'; ?></span>
+                        <i class="bx bx-chevron-down apex-lang-chevron"></i>
+                    </button>
+                    <div id="apexLangDropdown" class="apex-lang-dropdown">
+                        <button type="button" class="apex-lang-option<?php echo $_navLang === 'en' ? ' active' : ''; ?>" data-lang="en">English</button>
+                        <button type="button" class="apex-lang-option<?php echo $_navLang === 'ta' ? ' active' : ''; ?>" data-lang="ta">தமிழ்</button>
+                    </div>
+                </div>
             </li>
 
             <!-- Style Switcher -->

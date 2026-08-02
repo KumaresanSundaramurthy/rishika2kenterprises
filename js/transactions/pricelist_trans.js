@@ -65,9 +65,23 @@ function _plApplyCustDiscount(custData) {
  * Called once on DOMContentLoaded.
  */
 function _plLoad() {
+    if (typeof R2K_HAS_PRICE_LISTS === 'undefined' || !R2K_HAS_PRICE_LISTS) return;
     if (typeof UpstashService === 'undefined' || !UpstashService.isEnabled()) return;
     UpstashService.get(UpstashService.orgKey('price-lists')).then(function (data) {
-        if (!Array.isArray(data) || !data.length) return;
+        if (!Array.isArray(data) || !data.length) {
+            // Flag says lists exist but cache is empty — self-heal from DB
+            $.ajax({
+                url:    '/products/syncPriceListCache',
+                method: 'POST',
+                data:   { [CsrfName]: CsrfToken },
+                success: function (resp) {
+                    if (!resp.Error && Array.isArray(resp.Lists) && resp.Lists.length) {
+                        _plAllLists = resp.Lists.filter(function (pl) { return pl.Status === 1; });
+                    }
+                }
+            });
+            return;
+        }
         // Already sorted Priority DESC by PHP; keep that order
         _plAllLists = data.filter(function (pl) { return pl.Status === 1; });
     }).catch(function () {});
@@ -396,8 +410,6 @@ function _plCheckAutoDiscount() {
  * @param {object} custData
  */
 function _plShowSelectModal(matches, custData) {
-    $('#plSelectModal').remove();
-
     var cur         = (typeof currency !== 'undefined' ? currency : '₹');
     var custTypeUID = parseInt(custData.customerTypeUID || 0, 10);
 
@@ -609,41 +621,16 @@ function _plShowSelectModal(matches, custData) {
 
     var cards = matches.map(_buildCard).join('');
 
-    var html = '';
-    html += '<div class="modal fade" id="plSelectModal" tabindex="-1" data-bs-backdrop="static">';
-    html += '<div class="modal-dialog modal-dialog-centered" style="max-width:720px;">';
-    html += '<div class="modal-content" style="border:none;border-radius:10px;">';
+    $('#plSelectMeta').text(
+        matches.length + ' price list' + (matches.length > 1 ? 's' : '') +
+        ' match this customer — top priority applies first'
+    );
+    $('#plSelectCards').html(cards);
 
-    // vtm banner header
-    html += '<div class="vtm-banner" style="--vtm-color:#696cff;--vtm-bg:#f0efff;--vtm-icon-bg:rgba(105,108,255,.13);border-radius:10px 10px 0 0;">';
-    html += '<div class="vtm-banner-inner">';
-    html += '<div class="vtm-banner-left">';
-    html += '<div class="vtm-banner-icon"><i class="bx bx-purchase-tag"></i></div>';
-    html += '<div>';
-    html += '<div class="vtm-doc-number">Select Price List</div>';
-    html += '<div class="vtm-doc-meta">' + matches.length + ' price list' + (matches.length > 1 ? 's' : '') + ' match this customer &mdash; top priority applies first</div>';
-    html += '</div></div>';
-    html += '<div class="vtm-banner-right">';
-    html += '<button type="button" class="vtm-close-btn" data-bs-dismiss="modal" aria-label="Close"><i class="bx bx-x"></i></button>';
-    html += '</div></div></div>';
-
-    // scrollable cards area
-    html += '<div style="padding:16px;display:flex;flex-direction:column;gap:10px;max-height:60vh;overflow-y:auto;">';
-    html += cards;
-    html += '</div>';
-
-    // footer
-    html += '<div style="padding:12px 16px;border-top:1px solid #e9ecef;background:#fafafa;border-radius:0 0 10px 10px;">';
-    html += '<button type="button" class="btn btn-outline-secondary w-100" id="plSelectNone" style="font-size:.85rem;">Continue Without Price List</button>';
-    html += '</div>';
-
-    html += '</div></div></div>';
-
-    $('body').append(html);
     var $modal = $('#plSelectModal');
     $modal.modal('show');
 
-    $modal.on('click', '.pl-card-apply-btn', function (e) {
+    $modal.off('click.plcard').on('click.plcard', '.pl-card-apply-btn', function (e) {
         e.stopPropagation();
         var idx = parseInt($(this).data('pl-idx'), 10);
         $modal.modal('hide');
@@ -653,7 +640,7 @@ function _plShowSelectModal(matches, custData) {
         _plShowChip(_plActivePriceList);
     });
 
-    $modal.on('click', '.pl-select-card', function () {
+    $modal.off('click.plselect').on('click.plselect', '.pl-select-card', function () {
         var idx = parseInt($(this).data('pl-idx'), 10);
         $modal.modal('hide');
         _plActivePriceList = matches[idx];
@@ -662,12 +649,10 @@ function _plShowSelectModal(matches, custData) {
         _plShowChip(_plActivePriceList);
     });
 
-    $modal.on('click', '#plSelectNone', function () {
+    $modal.off('click.plnone').on('click.plnone', '#plSelectNone', function () {
         $modal.modal('hide');
         _plApplyCustDiscount(custData);
     });
-
-    $modal.on('hidden.bs.modal', function () { $modal.remove(); });
 }
 
 // ── Chip UI ──────────────────────────────────────────────────────────────────
@@ -771,6 +756,12 @@ function _plTransResolve(custData) {
     if (_plActivePriceList) {
         _plActivePriceList = null;
         _plHideChip();
+    }
+
+    // Org has no active price lists — skip all price list logic.
+    if (typeof R2K_HAS_PRICE_LISTS === 'undefined' || !R2K_HAS_PRICE_LISTS) {
+        _plApplyCustDiscount(custData);
+        return;
     }
 
     // If price list data hasn't loaded (Upstash unavailable or no lists configured),

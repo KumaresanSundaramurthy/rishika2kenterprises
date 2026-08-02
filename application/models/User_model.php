@@ -30,6 +30,8 @@ class User_model extends CI_Model {
                 'Roles.Name as UserRoleName',
                 'Org.OrgUID as UserOrgUID',
                 'User.BranchUID as BranchUID',
+                'Branch.Name as BranchName',
+                'Branch.BranchCode as BranchCode',
                 'Org.Logo as UserOrgLogo',
                 'Org.CountryCode as UserOrgCCode',
                 'Org.CountryISO2 as UserOrgCISO2',
@@ -52,6 +54,7 @@ class User_model extends CI_Model {
             $this->ReadDb->from('Users.UserTbl as User');
             $this->ReadDb->join('UserRole.RolesTbl as Roles', 'Roles.RoleUID = User.RoleUID', 'left');
             $this->ReadDb->join('Organisation.OrganisationTbl as Org', 'Org.OrgUID = User.OrgUID', 'left');
+            $this->ReadDb->join('Organisation.BranchesTbl as Branch', 'Branch.BranchUID = User.BranchUID', 'left');
             $this->ReadDb->join('Global.TimezoneTbl as Timezone', 'Timezone.TimezoneUID = Org.TimezoneUID', 'left');
             $this->ReadDb->group_start();
             $this->ReadDb->where('User.UserName', $identifier);

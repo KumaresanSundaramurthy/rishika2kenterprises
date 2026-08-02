@@ -44,6 +44,8 @@ class Users extends MY_Controller {
             $this->pageData['NextEmpCode']     = $this->users_model->getNextEmployeeCode($orgUID);
             $this->pageData['StaffStats']      = $this->users_model->getUserStats($orgUID);
             $this->pageData['CanSeeSalary']    = $this->_canSeeSalary();
+            $this->load->model('branches_model');
+            $this->pageData['BranchesList'] = $this->branches_model->getBranchList($orgUID);
 
             $this->load->view('users/view', $this->pageData);
 
@@ -104,9 +106,10 @@ class Users extends MY_Controller {
                 unset($user->BasicSalary, $user->Allowances, $user->Incentives, $user->FixedDeductions);
             }
 
-            $this->EndReturnData->Error       = FALSE;
-            $this->EndReturnData->Data        = $user;
-            $this->EndReturnData->Attachments = $this->users_model->getUserAttachments($userUID, $orgUID);
+            $this->EndReturnData->Error        = FALSE;
+            $this->EndReturnData->Data         = $user;
+            $this->EndReturnData->Attachments  = $this->users_model->getUserAttachments($userUID, $orgUID);
+            $this->EndReturnData->BranchAccess = $this->users_model->getUserBranchAccess($userUID, $orgUID);
 
         } catch (Throwable $e) {
             $this->EndReturnData->Error   = TRUE;
@@ -386,6 +389,15 @@ class Users extends MY_Controller {
                     $addrData['CreatedBy'] = $JwtData->User->UserUID;
                     $addrData['CreatedOn'] = $now;
                     $this->dbwrite_model->insertData('Users', 'UserAddressTbl', $addrData);
+                }
+            }
+
+            // ── Sync branch access assignments ─────────────────────────────────────
+            $branchAccessJson = trim($PostData['BranchAccessJson'] ?? '');
+            if ($branchAccessJson !== '') {
+                $branches = json_decode($branchAccessJson, true) ?: [];
+                if (!empty($branches)) {
+                    $this->dbwrite_model->syncUserBranchAccess($UserUID, (int)$JwtData->Org->OrgUID, $branches, $JwtData->User->UserUID, $now);
                 }
             }
 

@@ -33,6 +33,7 @@ $lang['log_out']           = 'Log Out';
 $lang['change_password']   = 'Change Password';
 $lang['last_login']        = 'Last login';
 $lang['settings']          = 'Settings';
+$lang['page_refresh']      = 'Page Refresh';
 
 // Theme
 $lang['theme_light']       = 'Light';
@@ -133,8 +134,9 @@ $lang['btn_save_draft']        = 'Save as Draft';
 $lang['btn_save_a4']           = 'Save & Print A4';
 $lang['btn_save_a5']           = 'Save & Print A5';
 $lang['btn_save_thermal']      = 'Save & Print Thermal';
-$lang['btn_add_customer']      = 'Add Customer';
-$lang['btn_add_vendor']        = 'Add Vendor';
+$lang['btn_add_customer']      = 'Customer';
+$lang['btn_add_vendor']        = 'Vendor';
+$lang['btn_add_product']       = 'Product';
 $lang['btn_save']              = 'Save';
 $lang['btn_update']            = 'Update';
 
@@ -510,3 +512,7 @@ $lang['col_holiday_name']        = 'Holiday Name';
 $lang['col_holiday_date']        = 'Holiday Date';
 $lang['col_holiday_type']        = 'Holiday Type';
 $lang['toast_lang_changed']      = 'Language has been changed successfully';
+$lang['swal_unsaved_title']      = 'Unsaved Changes';
+$lang['swal_unsaved_msg']        = 'Your changes will be lost if you close now.';
+$lang['swal_unsaved_confirm']    = 'Close Anyway';
+$lang['swal_unsaved_cancel']     = 'Stay';

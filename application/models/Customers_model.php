@@ -249,6 +249,47 @@ class Customers_model extends CI_Model {
 
     }
 
+    public function getCustomerUIDsByFilter(int $orgUID, array $filter = []): array {
+        $this->ReadDb->db_debug = FALSE;
+        $this->ReadDb->select('Customers.CustomerUID');
+        $this->ReadDb->from('Customers.CustomerTbl as Customers');
+        $baseWhere = ['Customers.IsDeleted' => 0, 'Customers.OrgUID' => $orgUID];
+        if (isset($filter['IsActive'])) {
+            $baseWhere['Customers.IsActive'] = (int) $filter['IsActive'];
+        }
+        $this->ReadDb->where($baseWhere);
+        if (!empty($filter['SearchAllData'])) {
+            $s = $filter['SearchAllData'];
+            $this->ReadDb->group_start();
+            $this->ReadDb->or_like('Customers.Name', $s, 'both');
+            $this->ReadDb->or_like('Customers.Area', $s, 'both');
+            $this->ReadDb->or_like('Customers.MobileNumber', $s, 'both');
+            $this->ReadDb->or_like('Customers.ContactPerson', $s, 'both');
+            $this->ReadDb->group_end();
+        }
+        if (!empty($filter['Tags'])) {
+            $tags = is_array($filter['Tags']) ? $filter['Tags'] : [$filter['Tags']];
+            $this->ReadDb->group_start();
+            foreach ($tags as $tag) { $this->ReadDb->or_like('Customers.Tags', $tag, 'both'); }
+            $this->ReadDb->group_end();
+        }
+        if (!empty($filter['CustomerTypeUIDs'])) {
+            $typeUIDs = array_filter(array_map('intval', (array)$filter['CustomerTypeUIDs']));
+            if (!empty($typeUIDs)) $this->ReadDb->where_in('Customers.CustomerTypeUID', $typeUIDs);
+        }
+        if (!empty($filter['BalanceType'])) {
+            $balType = ($filter['BalanceType'] === 'Credit') ? 'Credit' : 'Debit';
+            $this->ReadDb->where("Customers.CustomerUID IN (
+                SELECT CustomerUID FROM Customers.CustOpeningBalanceTbl
+                WHERE OrgUID = {$orgUID} AND PendingBalType = '{$balType}'
+                  AND PendingBalance > 0 AND IsDeleted = 0
+            )", null, false);
+        }
+        $query = $this->ReadDb->get();
+        if (!$query) return [];
+        return array_column($query->result_array(), 'CustomerUID');
+    }
+
     public function getCustomerListPaginated(int $orgUID, int $limit, int $offset, array $filter = []): object {
 
         try {

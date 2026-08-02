@@ -1,19 +1,28 @@
-// ── GSTIN Fetch — shared across Customer & Vendor add/edit forms ──────────
+// ── GSTIN Fetch — shared across Customer, Vendor, and Transaction forms ──────
+
+// Uppercase the actual input value as the user types, preserving cursor position
+$(document).on('input', '[name="GSTIN"]', function () {
+    var pos = this.selectionStart;
+    this.value = this.value.toUpperCase();
+    this.setSelectionRange(pos, pos);
+});
 
 $(document).on('click', '#GSTIN_Fetch', function () {
 
-    var gstin = $.trim($('#GSTIN').val()).toUpperCase();
+    var $btn        = $(this);
+    var $form       = $btn.closest('form');
+    var $gstinInput = $form.find('[name="GSTIN"]');
+    var gstin       = $.trim($gstinInput.val()).toUpperCase();
 
     if (!gstin) {
-        Swal.fire({ icon: 'warning', text: t('swal_gstin_enter', 'Please enter a GSTIN number first.') });
+        showToastNotification(t('toast_gstin_enter', 'Please enter a GSTIN number first.'), 'error');
         return;
     }
     if (gstin.length !== 15) {
-        Swal.fire({ icon: 'warning', text: t('swal_gstin_15chars', 'GSTIN must be exactly 15 characters.') });
+        showToastNotification(t('toast_gstin_15chars', 'GSTIN must be exactly 15 characters.'), 'error');
         return;
     }
 
-    var $btn = $(this);
     $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Fetching...');
 
     $.ajax({
@@ -21,51 +30,40 @@ $(document).on('click', '#GSTIN_Fetch', function () {
         method: 'GET',
         data  : { gstin: gstin },
         success: function (resp) {
+
             $btn.prop('disabled', false).html('Fetch');
 
             if (resp.Error) {
-                Swal.fire({ icon: 'error', title: t('swal_gstin_failed', 'GSTIN Lookup Failed'), text: resp.Message });
+                showToastNotification(resp.Message || t('toast_gstin_failed', 'GSTIN lookup failed. Please try again.'), 'error');
                 return;
             }
 
-            // ── Auto-fill fields ──────────────────────────────────────────
+            // ── Auto-fill fields ──────────────────────────────────────────────
+            var $nameField    = $form.find('[name="Name"]');
+            var $companyField = $form.find('[name="CompanyName"]');
 
-            // Company Name ← Trade Name
-            if (resp.TradeName) $('#CompanyName').val(resp.TradeName);
-
-            // Name ← Legal Name (fill only if empty)
-            if (resp.LegalName && !$.trim($('#Name').val())) {
-                $('#Name').val(resp.LegalName);
+            if (resp.TradeName && $companyField.length) $companyField.val(resp.TradeName);
+            if (resp.LegalName && $nameField.length && !$.trim($nameField.val())) {
+                $nameField.val(resp.LegalName);
             }
-
-            // GSTIN status badge
-            var statusText = resp.Status ? ' (' + resp.Status + ')' : '';
 
             // Billing address — open address modal and pre-fill from GSTIN data
             if (resp.AddressLine1 || resp.City || resp.Pincode) {
                 openAddressModal(1);
-
-                // Wait for modal to render and states to load
                 setTimeout(function () {
                     if (resp.AddressLine1) $('#ModalAddrLine1').val(resp.AddressLine1);
                     if (resp.AddressLine2) $('#ModalAddrLine2').val(resp.AddressLine2);
                     if (resp.Pincode)      $('#ModalAddrPincode').val(resp.Pincode);
-
-                    // State — match by name
                     if (resp.StateName) {
                         var $stateOpt = $('#ModalAddrState option').filter(function () {
                             return $(this).text().trim().toLowerCase() === resp.StateName.trim().toLowerCase();
                         });
-                        if ($stateOpt.length) {
-                            $('#ModalAddrState').val($stateOpt.val()).trigger('change');
-                        }
+                        if ($stateOpt.length) $('#ModalAddrState').val($stateOpt.val()).trigger('change');
                     }
-
-                    // City — match by name after state change triggers city load
                     if (resp.City) {
                         setTimeout(function () {
                             var cityLower = resp.City.trim().toLowerCase();
-                            var $cityOpt = $('#ModalAddrCity option').filter(function () {
+                            var $cityOpt  = $('#ModalAddrCity option').filter(function () {
                                 return $(this).text().trim().toLowerCase() === cityLower
                                     || $(this).text().trim().toLowerCase().indexOf(cityLower) === 0;
                             });
@@ -78,20 +76,14 @@ $(document).on('click', '#GSTIN_Fetch', function () {
                 }, 400);
             }
 
-            // Success toast
-            Swal.fire({
-                icon : 'success',
-                title: t('swal_gstin_fetched', 'GSTIN Details Fetched'),
-                html : '<b>' + (resp.LegalName || '') + '</b>' +
-                       (resp.TradeName ? '<br><small class="text-muted">' + t('lbl_trade_name', 'Trade Name') + ': ' + resp.TradeName + '</small>' : '') +
-                       (resp.Status ? '<br><small class="text-muted">' + t('lbl_gstin_status', 'GST Status') + ': ' + resp.Status + '</small>' : ''),
-                timer: 2500,
-                showConfirmButton: false,
-            });
+            var successMsg = t('toast_gstin_fetched', 'GSTIN details fetched successfully');
+            if (resp.LegalName) successMsg += ' — ' + resp.LegalName;
+            if (resp.Status)    successMsg += ' (' + resp.Status + ')';
+            showToastNotification(successMsg, 'success');
         },
         error: function () {
             $btn.prop('disabled', false).html('Fetch');
-            Swal.fire({ icon: 'error', text: t('swal_network_error', 'Network error. Please try again.') });
+            showToastNotification(t('swal_network_error', 'Network error. Please try again.'), 'error');
         }
     });
 

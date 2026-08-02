@@ -124,13 +124,14 @@ class Expenses_model extends CI_Model {
     }
 
     // ── Summary stats for stat cards ─────────────────────────────────────────
-    public function getExpenseSummaryStats(int $orgUID): array {
+    public function getExpenseSummaryStats(int $orgUID, int $branchUID = 0): array {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('e.DocStatus, COUNT(*) AS cnt, SUM(e.NetAmount) AS total');
             $this->ReadDb->from('Transaction.ExpensesTbl e');
             $this->ReadDb->where('e.OrgUID',    $orgUID);
             $this->ReadDb->where('e.IsDeleted', 0);
+            if ($branchUID > 0) { $this->ReadDb->where('e.BranchUID', $branchUID); }
             $this->ReadDb->group_by('e.DocStatus');
             $query  = $this->ReadDb->get();
             $rows   = $query ? $query->result() : [];
@@ -422,6 +423,9 @@ class Expenses_model extends CI_Model {
 
     // ── Private filter helper ────────────────────────────────────────────────
     private function _applyFilters(array $filter): void {
+        if (!empty($filter['BranchUID'])) {
+            $this->ReadDb->where('e.BranchUID', (int)$filter['BranchUID']);
+        }
         // StatusList (multi-select) overrides single Status tab
         $statusList = (!empty($filter['StatusList']) && is_array($filter['StatusList']))
             ? array_values(array_filter($filter['StatusList'], function($s) { return !empty(trim($s)); }))
@@ -468,6 +472,31 @@ class Expenses_model extends CI_Model {
             if (!empty($uids)) {
                 $this->ReadDb->where_in('e.UpdatedBy', $uids);
             }
+        }
+    }
+
+    /**
+     * @param int   $orgUID
+     * @param array $filter
+     * @return array<int>
+     */
+    public function getExpenseUIDsByFilter(int $orgUID, array $filter = []): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('e.ExpenseUID');
+            $this->ReadDb->from('Transaction.ExpensesTbl e');
+            if (!empty($filter['Name'])) {
+                $this->ReadDb->join('Transaction.ExpenseCategoryTbl ec', 'ec.CategoryUID = e.CategoryUID AND ec.IsDeleted = 0', 'LEFT');
+            }
+            $this->ReadDb->where('e.OrgUID',    $orgUID);
+            $this->ReadDb->where('e.IsDeleted', 0);
+            $this->_applyFilters($filter);
+            $query = $this->ReadDb->get();
+            if (!$query) return [];
+            return array_column($query->result_array(), 'ExpenseUID');
+        } catch (Exception $e) {
+            log_message('error', 'getExpenseUIDsByFilter: ' . $e->getMessage());
+            return [];
         }
     }
 }

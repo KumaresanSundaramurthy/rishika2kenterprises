@@ -191,6 +191,25 @@
 .vtm-pay-pill-due i,
 .vtm-pay-pill-due span     { color: #842029; }
 
+/* ── viewTransModal Action Panel ─────────────────────────────────────────── */
+.vtm-action-panel          { margin-top: 10px; }
+.vtm-ap-label              { font-size: .68rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #adb5bd; min-width: 110px; flex-shrink: 0; }
+.vtm-aph-row               { display: flex; align-items: center; gap: 10px; }
+.vtm-aph-row + .vtm-aph-row { margin-top: 6px; }
+.vtm-aph-btns              { display: flex; gap: 6px; flex-wrap: wrap; }
+.vtm-ap-btn                { display: flex; align-items: center; gap: 8px; border: 1px solid #e9ecef; border-radius: 6px; padding: 6px 10px; background: #fff; cursor: pointer; font-size: .77rem; font-weight: 600; color: var(--ap-color, #495057); transition: background .14s, border-color .14s; }
+.vtm-ap-btn i              { font-size: .95rem; flex-shrink: 0; color: var(--ap-color, #495057); }
+.vtm-ap-btn:hover          { background: #f4f6fb; border-color: var(--ap-color, #adb5bd); }
+.vtm-ap-btn--email         { --ap-color: #0d6efd; }
+.vtm-ap-btn--sms           { --ap-color: #0097a7; }
+.vtm-ap-btn--whatsapp      { --ap-color: #1da851; }
+.vtm-ap-btn--print         { --ap-color: #495057; }
+.vtm-ap-btn--download      { --ap-color: #dc3545; }
+.vtm-ap-btn--thermal       { --ap-color: #6f42c1; }
+
+[data-theme="dark"] .vtm-ap-btn           { background: #2a2d3e; border-color: #3a3d52; }
+[data-theme="dark"] .vtm-ap-btn:hover     { background: #32364a; border-color: var(--ap-color, #6c757d); }
+
 /* ═══════════════════════════════════════════════════════════════════════════
    PAGE HEADER v2  —  icon pill + bold title + New button
    ═══════════════════════════════════════════════════════════════════════════ */

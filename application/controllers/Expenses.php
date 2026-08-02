@@ -92,10 +92,11 @@ class Expenses extends MY_Controller {
             $this->pageData['SavedDateLabel'] = $datePref['label'];
 
             $filter = ['Status' => 'All', 'DateFrom' => $datePref['from'], 'DateTo' => $datePref['to']];
+            $filter['BranchUID'] = $this->_branchUID();
 
             $allData      = $this->expenses_model->getExpenseList($orgUID, $filter, $limit, 0);
             $allDataCount = $this->expenses_model->getExpenseCount($orgUID, $filter);
-            $summaryStats = $this->expenses_model->getExpenseSummaryStats($orgUID);
+            $summaryStats = $this->expenses_model->getExpenseSummaryStats($orgUID, $this->_branchUID());
 
             $this->pageData['ModRowData']    = $this->load->view('transactions/expenses/list', [
                 'DataLists'    => $allData,
@@ -133,6 +134,7 @@ class Expenses extends MY_Controller {
             $limit  = (int)($this->input->post('RowLimit') ?: 10);
             $offset = ($pageNo - 1) * $limit;
             $filter = $this->input->post('Filter') ?: [];
+            $filter['BranchUID'] = $this->_branchUID();
 
             $orgUID = $this->pageData['JwtData']->Org->OrgUID;
 
@@ -151,7 +153,7 @@ class Expenses extends MY_Controller {
             $this->EndReturnData->TotalCount     = $allDataCount;
 
             if ((int)$this->input->post('ShowStats') === 1) {
-                $this->EndReturnData->SummaryStats = $this->expenses_model->getExpenseSummaryStats($orgUID);
+                $this->EndReturnData->SummaryStats = $this->expenses_model->getExpenseSummaryStats($orgUID, $this->_branchUID());
             }
 
         } catch (Throwable $e) {
@@ -1040,6 +1042,7 @@ class Expenses extends MY_Controller {
 
         $filterRaw = $this->input->post('Filter');
         $filter = is_array($filterRaw) ? $filterRaw : (($filterRaw && ($decoded = json_decode($filterRaw, true))) ? $decoded : ['Status' => 'All']);
+        $filter['BranchUID'] = $this->_branchUID();
         $limit  = (int)($this->input->post('RowLimit') ?: ($GeneralSettings->RowLimit ?? 10));
 
         $allData  = $this->expenses_model->getExpenseList($orgUID, $filter, $limit, 0);
@@ -1056,7 +1059,7 @@ class Expenses extends MY_Controller {
         $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml('/expenses/getPageDetails', $allCount, 1, $limit);
 
         if ((int)$this->input->post('ShowStats') === 1) {
-            $this->EndReturnData->SummaryStats = $this->expenses_model->getExpenseSummaryStats($orgUID);
+            $this->EndReturnData->SummaryStats = $this->expenses_model->getExpenseSummaryStats($orgUID, $this->_branchUID());
         }
     }
 
@@ -1373,5 +1376,83 @@ class Expenses extends MY_Controller {
             'paymentDate'  => $paymentDate,
             'payTransYear' => $payTransYear,
         ];
+    }
+
+    // ── Bulk delete expenses ─────────────────────────────────────────────────
+    public function deleteMultipleExpenses(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID  = (int)$this->pageData['JwtData']->Org->OrgUID;
+            $userUID = (int)$this->pageData['JwtData']->User->UserUID;
+
+            $selectAll = (int)$this->input->post('SelectAll');
+            if ($selectAll === 1) {
+                $filter = $this->input->post('Filter') ?: [];
+                if (!is_array($filter)) $filter = (array)json_decode($filter, true);
+                $filter['BranchUID'] = $this->_branchUID();
+                $expenseUIDs = $this->expenses_model->getExpenseUIDsByFilter($orgUID, $filter);
+            } else {
+                $raw         = $this->input->post('ExpenseUIDs');
+                $expenseUIDs = is_array($raw)
+                    ? array_values(array_filter(array_map('intval', $raw), fn($u) => $u > 0))
+                    : [];
+            }
+
+            if (empty($expenseUIDs)) throw new Exception('No records selected.');
+
+            $deleted = 0;
+            $errors  = [];
+            foreach ($expenseUIDs as $expenseUID) {
+                try {
+                    $existing = $this->expenses_model->getExpenseById((int)$expenseUID, $orgUID);
+                    if (!$existing) { $errors[] = '#' . $expenseUID . ': not found'; continue; }
+                    if ($existing->DocStatus === 'Cancelled') { $errors[] = '#' . $expenseUID . ': already cancelled'; continue; }
+
+                    $deleteData             = $this->globalservice->baseDeleteArrayDetails();
+                    $deleteData['IsActive'] = 0;
+                    $resp = $this->dbwrite_model->updateData(
+                        'Transaction', 'ExpensesTbl', $deleteData,
+                        ['ExpenseUID' => (int)$expenseUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
+                    );
+                    if ($resp->Error) throw new Exception($resp->Message);
+
+                    if (!empty($existing->PaymentUID)) {
+                        $this->dbwrite_model->updateData(
+                            'Transaction', 'PaymentsTbl',
+                            ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
+                            ['PaymentUID' => (int)$existing->PaymentUID, 'OrgUID' => $orgUID]
+                        );
+                    }
+
+                    try {
+                        $this->load->library('accountledger');
+                        $this->accountledger->reverseJournal('Expense', (int)$expenseUID, $userUID);
+                    } catch (Throwable $ledgerEx) {
+                        log_message('error', 'Bulk expense delete ledger #' . $expenseUID . ': ' . $ledgerEx->getMessage());
+                    }
+
+                    $deleted++;
+                } catch (Throwable $e) {
+                    $errors[] = '#' . $expenseUID . ': ' . $e->getMessage();
+                }
+            }
+
+            if ($deleted === 0) throw new Exception(implode('; ', $errors) ?: 'No records deleted.');
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = $deleted . ' expense(s) deleted.' .
+                (!empty($errors) ? ' Skipped: ' . implode('; ', $errors) : '');
+            $this->auditlog->log(
+                $orgUID, $userUID,
+                'BULK_DELETE_EXPENSE', 'Expense', 0, '',
+                [], 'Bulk deleted ' . $deleted . ' expense(s)', 'Expenses', 'TRANSACTION'
+            );
+
+        } catch (Throwable $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 }

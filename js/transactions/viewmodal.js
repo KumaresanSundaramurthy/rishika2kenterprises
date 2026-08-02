@@ -148,6 +148,67 @@
         '</div>';
     }
 
+    // ── Action panel helpers ───────────────────────────────────────────────────
+    /**
+     * @param {string} action
+     * @param {string} icon   - boxicons class (without 'bx ')
+     * @param {string} label
+     * @returns {string}
+     */
+    function _apBtn(action, icon, label) {
+        return '<button type="button" class="vtm-ap-btn vtm-ap-btn--' + action + '" data-vtm-action="' + action + '">' +
+            '<i class="bx ' + icon + '"></i><span>' + _esc(label) + '</span></button>';
+    }
+
+    /**
+     * @param {object} h - transaction header
+     * @returns {string}
+     */
+    function _buildActionPanel(h) {
+        var hasMobile = !!(String(h.PartyMobile || '').trim());
+        var hasEmail  = !!(String(h.PartyEmail  || '').trim());
+
+        var commBtns = '';
+        if (hasEmail)  commBtns += _apBtn('email',    'bx-envelope',    t('vm_act_email',    'Email'));
+        if (hasMobile) commBtns += _apBtn('sms',      'bx-message-dots', t('act_send_sms',   'Send SMS'));
+        if (hasMobile) commBtns += _apBtn('whatsapp', 'bxl-whatsapp',   'WhatsApp');
+
+        var docBtns =
+            _apBtn('print',    'bx-printer',  t('vm_act_print',    'Print')) +
+            _apBtn('download', 'bx-download', t('vm_act_download', 'Download PDF')) +
+            _apBtn('thermal',  'bx-receipt',  t('vm_act_thermal',  'Thermal'));
+
+        return '<div class="vtm-action-panel"' +
+            ' data-vtm-uid="'          + _esc(String(h.TransUID         || 0))    + '"' +
+            ' data-vtm-module="'       + _esc(String(h.ModuleUID        || 0))    + '"' +
+            ' data-vtm-party-uid="'    + _esc(String(h.PartyUID         || 0))    + '"' +
+            ' data-vtm-party-type="'   + _esc(String(h.PartyType        || 'C'))  + '"' +
+            ' data-vtm-party-name="'   + _esc(String(h.PartyName        || ''))   + '"' +
+            ' data-vtm-email="'        + _esc(String(h.PartyEmail       || ''))   + '"' +
+            ' data-vtm-mobile="'       + _esc(String(h.PartyMobile      || ''))   + '"' +
+            ' data-vtm-cc="'           + _esc(String(h.PartyCountryCode || '91')) + '"' +
+            ' data-vtm-doc="'          + _esc(String(h.UniqueNumber     || ''))   + '"' +
+            ' data-vtm-transtype="'    + _esc(String(h.TransType        || ''))   + '"' +
+            ' data-vtm-token="'        + _esc(String(h.TransToken       || ''))   + '"' +
+            ' data-vtm-net-amount="'   + _esc(String(h.NetAmount        || 0))    + '"' +
+            ' data-vtm-paid-amount="'  + _esc(String(h.PaidAmount       || 0))    + '"' +
+            ' data-vtm-doc-date="'     + _esc(String(h.TransDate        || ''))   + '"' +
+            ' data-vtm-validity="'     + _esc(String(h.ValidityDate     || ''))   + '"' +
+            ' data-vtm-doc-status="'   + _esc(String(h.DocStatus        || ''))   + '"' +
+            ' data-vtm-amount-words="' + _esc(String(h.AmountInWords    || ''))   + '">' +
+            (commBtns
+                ? '<div class="vtm-aph-row">' +
+                      '<div class="vtm-ap-label">' + t('vm_ap_communication', 'Communication') + '</div>' +
+                      '<div class="vtm-aph-btns">' + commBtns + '</div>' +
+                  '</div>'
+                : '') +
+            '<div class="vtm-aph-row">' +
+                '<div class="vtm-ap-label">' + t('vm_ap_print', 'Print') + '</div>' +
+                '<div class="vtm-aph-btns">' + docBtns + '</div>' +
+            '</div>' +
+        '</div>';
+    }
+
     // ── main builder (body only — banner already shown) ────────────────────────
     window._buildTransDetailHtml = function (resp, opts) {
         opts = opts || {};
@@ -203,6 +264,7 @@
         html += '<div class="vtm-section">' +
             _secHdr('bx-user-circle', partyLabel + ' Details', 'text-info') +
             '<div class="row g-2">' + partyCols + '</div>' +
+            _buildActionPanel(h) +
         '</div>';
 
         // ── Products / Services ────────────────────────────────────────────────
@@ -530,6 +592,93 @@
         '</div>';
     }
 
+    // ── Action panel click handler ─────────────────────────────────────────────
+    $(document).on('click', '#viewTransModal [data-vtm-action]', function () {
+        var action    = String($(this).data('vtm-action') || '');
+        var $p        = $(this).closest('.vtm-action-panel');
+        var uid       = parseInt($p.data('vtm-uid'),        10) || 0;
+        var moduleUID = parseInt($p.data('vtm-module'),     10) || 0;
+        var partyUID  = parseInt($p.data('vtm-party-uid'), 10) || 0;
+        var rawType   = String($p.data('vtm-party-type')   || 'C');
+        var partyType = rawType === 'S' ? 'Vendor' : 'Customer';
+        var partyName = String($p.data('vtm-party-name')   || '');
+        var email     = String($p.data('vtm-email')        || '');
+        var mobile    = String($p.data('vtm-mobile')       || '');
+        var cc        = String($p.data('vtm-cc')           || '91');
+        var docNum    = String($p.data('vtm-doc')          || '');
+        var transType = String($p.data('vtm-transtype')    || 'Document');
+
+        var commRowData = {
+            partyName:    partyName,
+            docNumber:    docNum,
+            docType:      transType,
+            netAmount:    parseFloat($p.data('vtm-net-amount')   || 0),
+            paidAmount:   parseFloat($p.data('vtm-paid-amount')  || 0),
+            docDate:      String($p.data('vtm-doc-date')         || ''),
+            validityDate: String($p.data('vtm-validity')         || ''),
+            docStatus:    String($p.data('vtm-doc-status')       || ''),
+            transToken:   String($p.data('vtm-token')            || ''),
+            amountWords:  String($p.data('vtm-amount-words')     || ''),
+            pdfPath:      '',
+        };
+
+        switch (action) {
+            case 'email':
+            case 'sms': {
+                var commType2 = action === 'email' ? 'Email' : 'SMS';
+                $('#viewTransModal').modal('hide');
+                $('#SendCommModal').one('hidden.bs.modal.vtm', function () {
+                    $('#viewTransModal').modal('show');
+                });
+                openCommModal(commType2, partyType, [partyUID], [partyName], [mobile], [email],
+                    { moduleUID: moduleUID, recordUID: uid, rowData: commRowData });
+                break;
+            }
+
+            case 'whatsapp': {
+                var mob   = mobile.replace(/[^0-9+]/g, '');
+                var cCode = cc.replace(/[^0-9]/g, '');
+                var waNum = mob.startsWith('+') ? mob.replace('+', '') : (cCode + mob);
+                var msg   = 'Dear ' + partyName + ',\n\nPlease find your ' + transType +
+                            ' details:\n' + docNum + '\n\nThank you for your business!';
+                window.open('https://wa.me/' + waNum + '?text=' + encodeURIComponent(msg), '_blank');
+                break;
+            }
+
+            case 'print':
+                if (typeof openA4PrintByUID === 'function') {
+                    $('#viewTransModal').modal('hide');
+                    openA4PrintByUID(uid, moduleUID, 'a4', function () {
+                        $('#viewTransModal').modal('show');
+                    });
+                }
+                break;
+
+            case 'download': {
+                var form = document.createElement('form');
+                form.method = 'POST'; form.action = '/transactions/downloadA4Pdf';
+                var dlFields = { TransUID: uid, ModuleUID: moduleUID, PaperSize: 'A4' };
+                dlFields[CsrfName] = CsrfToken;
+                Object.keys(dlFields).forEach(function (k) {
+                    var inp = document.createElement('input');
+                    inp.type = 'hidden'; inp.name = k; inp.value = dlFields[k];
+                    form.appendChild(inp);
+                });
+                document.body.appendChild(form); form.submit(); document.body.removeChild(form);
+                break;
+            }
+
+            case 'thermal':
+                if (typeof openThermalPrintByUID === 'function') {
+                    $('#viewTransModal').modal('hide');
+                    openThermalPrintByUID(uid, moduleUID, function () {
+                        $('#viewTransModal').modal('show');
+                    });
+                }
+                break;
+        }
+    });
+
     // ── Click handler ──────────────────────────────────────────────────────────
     $(document).on('click', '.viewTransaction', function () {
         var uid       = $(this).data('uid');
@@ -544,8 +693,8 @@
         $modal[0].style.setProperty('--vtm-bg',    cfg.typeBg);
         $modal[0].style.setProperty('--vtm-icon-bg', cfg.typeColor + '22');
 
-        // Set edit href
-        $('#viewTransEditBtn').attr('href', cfg.editPath + uid);
+        // Set edit href; hide Edit button by default until Permissions.CanEdit confirmed by AJAX
+        $('#viewTransEditBtn').attr('href', cfg.editPath + uid).data('hide-edit', true);
 
         // Build instant header from data attrs embedded in the row link
         var quickHeader = {
@@ -577,6 +726,10 @@
                 return;
             }
             window[cfg.dataKey] = resp;
+
+            // Apply edit-button visibility from server Permissions before rebuilding the banner
+            var canEdit = resp.Permissions && resp.Permissions.CanEdit === true;
+            $('#viewTransEditBtn').data('hide-edit', !canEdit);
 
             // Replace quick header with full data (adds PlaceOfSupply, Reference, ValidityDate)
             $hdr.html(_buildBannerHtml(resp.Header || {}, cfg)).removeClass('d-none');

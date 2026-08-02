@@ -42,11 +42,12 @@ class Dashboard_model extends CI_Model {
     }
 
     // ── Today's sales total & invoice count ──────────────────────────────────
-    public function getTodaySales(int $orgUID): array {
+    public function getTodaySales(int $orgUID, int $branchUID = 0): array {
         try {
             $this->ReadDb->select('COALESCE(SUM(NetAmount), 0) AS total, COUNT(*) AS count');
             $this->ReadDb->from('Transaction.TransactionsTbl');
             $this->ReadDb->where(['OrgUID' => (int)$orgUID, 'ModuleUID' => 103, 'IsDeleted' => 0]);
+            if ($branchUID > 0) { $this->ReadDb->where('BranchUID', $branchUID); }
             $this->ReadDb->where('DATE(TransDate)', date('Y-m-d'));
             $this->ReadDb->where_not_in('DocStatus', ['Draft', 'Cancelled', 'Rejected']);
             $row = $this->_row();
@@ -55,7 +56,7 @@ class Dashboard_model extends CI_Model {
     }
 
     // ── This month vs last month sales ───────────────────────────────────────
-    public function getMonthlySalesComparison(int $orgUID): array {
+    public function getMonthlySalesComparison(int $orgUID, int $branchUID = 0): array {
         try {
             $thisStart = date('Y-m-01');
             $lastStart = date('Y-m-01', strtotime('first day of last month'));
@@ -66,6 +67,7 @@ class Dashboard_model extends CI_Model {
             ");
             $this->ReadDb->from('Transaction.TransactionsTbl');
             $this->ReadDb->where(['OrgUID' => (int)$orgUID, 'ModuleUID' => 103, 'IsDeleted' => 0]);
+            if ($branchUID > 0) { $this->ReadDb->where('BranchUID', $branchUID); }
             $this->ReadDb->where_not_in('DocStatus', ['Draft', 'Cancelled', 'Rejected']);
             $this->ReadDb->where('TransDate >=', $lastStart);
             $row = $this->_row();
@@ -77,11 +79,12 @@ class Dashboard_model extends CI_Model {
     }
 
     // ── Sales chart: last 30 days grouped by date ────────────────────────────
-    public function getSalesChartData(int $orgUID): array {
+    public function getSalesChartData(int $orgUID, int $branchUID = 0): array {
         try {
             $this->ReadDb->select('DATE(TransDate) AS sale_date, COALESCE(SUM(NetAmount), 0) AS total');
             $this->ReadDb->from('Transaction.TransactionsTbl');
             $this->ReadDb->where(['OrgUID' => (int)$orgUID, 'ModuleUID' => 103, 'IsDeleted' => 0]);
+            if ($branchUID > 0) { $this->ReadDb->where('BranchUID', $branchUID); }
             $this->ReadDb->where('TransDate >=', date('Y-m-d', strtotime('-29 days')));
             $this->ReadDb->where_not_in('DocStatus', ['Draft', 'Cancelled', 'Rejected']);
             $this->ReadDb->group_by('DATE(TransDate)');
@@ -91,13 +94,14 @@ class Dashboard_model extends CI_Model {
     }
 
     // ── Overdue invoices: past ValidityDate, still has balance ───────────────
-    public function getOverdueInvoices(int $orgUID): array {
+    public function getOverdueInvoices(int $orgUID, int $branchUID = 0): array {
         try {
             $this->ReadDb->select('T.TransUID, T.UniqueNumber, T.NetAmount, T.BalanceAmount, T.TransDate, D.ValidityDate, COALESCE(C.Name,"") AS PartyName');
             $this->ReadDb->from('Transaction.TransactionsTbl T');
             $this->ReadDb->join('Transaction.TransDetailTbl D', 'D.TransUID = T.TransUID AND D.FinancialYear = YEAR(T.TransDate)', 'left');
             $this->ReadDb->join('Customers.CustomerTbl C', 'C.CustomerUID = T.PartyUID', 'left');
             $this->ReadDb->where(['T.OrgUID' => (int)$orgUID, 'T.ModuleUID' => 103, 'T.IsDeleted' => 0]);
+            if ($branchUID > 0) { $this->ReadDb->where('T.BranchUID', $branchUID); }
             $this->ReadDb->where_in('T.DocStatus', ['Issued', 'Partial']);
             $this->ReadDb->where('D.ValidityDate <', date('Y-m-d'));
             $this->ReadDb->where('D.ValidityDate IS NOT NULL', null, false);
@@ -123,13 +127,14 @@ class Dashboard_model extends CI_Model {
     }
 
     // ── Recent 10 transactions across all modules ────────────────────────────
-    public function getRecentTransactions(int $orgUID): array {
+    public function getRecentTransactions(int $orgUID, int $branchUID = 0): array {
         try {
             $this->ReadDb->select('T.UniqueNumber, T.TransType, T.NetAmount, T.DocStatus, T.TransDate, T.ModuleUID, COALESCE(C.Name, V.Name, "") AS PartyName');
             $this->ReadDb->from('Transaction.TransactionsTbl T');
             $this->ReadDb->join('Customers.CustomerTbl C', "C.CustomerUID = T.PartyUID AND T.PartyType = 'C'", 'left');
             $this->ReadDb->join('Vendors.VendorTbl V', "V.VendorUID = T.PartyUID AND T.PartyType = 'S'", 'left');
             $this->ReadDb->where(['T.OrgUID' => (int)$orgUID, 'T.IsDeleted' => 0]);
+            if ($branchUID > 0) { $this->ReadDb->where('T.BranchUID', $branchUID); }
             $this->ReadDb->where_not_in('T.DocStatus', ['Draft', 'Cancelled', 'Rejected']);
             $this->ReadDb->order_by('T.TransUID', 'DESC');
             $this->ReadDb->limit(10);

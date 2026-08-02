@@ -181,7 +181,7 @@ class Purchases extends MY_Controller {
             $this->_insertTransItems($transUID, $financialYear, $orgUID, $userUID, $items);
 
             if (!$isDraft) {
-                $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items);
+                $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items, $this->_branchUID());
             }
 
             // Save payment records and update balance
@@ -352,7 +352,7 @@ class Purchases extends MY_Controller {
                 $this->_insertTransItems($newTransUID, $amounts['financialYear'], $orgUID, $userUID, $items);
 
                 if (!$isDraft) {
-                    $this->dbwrite_model->saveStockMovements($newTransUID, $this->pageModuleUID, $orgUID, $userUID, $items);
+                    $this->dbwrite_model->saveStockMovements($newTransUID, $this->pageModuleUID, $orgUID, $userUID, $items, $this->_branchUID());
                 }
 
                 $this->dbwrite_model->deleteInTransaction('Transaction', 'TransactionsTbl', ['TransUID' => $transUID]);
@@ -380,7 +380,7 @@ class Purchases extends MY_Controller {
                 $this->_updateTransItems($transUID, $items, $orgUID, $amounts['financialYear'], $userUID);
 
                 if (!$isDraft) {
-                    $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items);
+                    $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items, $this->_branchUID());
                 }
             }
 

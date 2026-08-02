@@ -397,7 +397,7 @@ class Dbwrite_model extends CI_Model {
      * @param int    $userUID    User performing the action
      * @param array  $items      Items array from form (each has 'id', 'quantity', 'unitPrice', 'productType')
      */
-    public function saveStockMovements($transUID, $moduleUID, $orgUID, $userUID, array $items) {
+    public function saveStockMovements($transUID, $moduleUID, $orgUID, $userUID, array $items, int $branchUID = 0) {
 
         $movementType = self::$stockMovementMap[$moduleUID] ?? null;
         if (!$movementType) return; // module does not affect stock
@@ -532,7 +532,7 @@ class Dbwrite_model extends CI_Model {
                         $cd           = $compDetails[$componentUID] ?? null;
 
                         // Record stock movement for this component
-                        $this->_applyStockMovement($transUID, $moduleUID, $orgUID, $userUID, $componentUID, $componentQty, $unitCost, $movementType, $transProdUID, $sellingPrice, $taxAmount);
+                        $this->_applyStockMovement($transUID, $moduleUID, $orgUID, $userUID, $componentUID, $componentQty, $unitCost, $movementType, $transProdUID, $sellingPrice, $taxAmount, null, $branchUID);
 
                         // Insert BOM snapshot — full component details frozen at transaction time
                         if ($transProdUID !== null && $cd !== null) {
@@ -604,13 +604,13 @@ class Dbwrite_model extends CI_Model {
                     }
                 }
             } else {
-                $this->_applyStockMovement($transUID, $moduleUID, $orgUID, $userUID, $productUID, $qty, $unitCost, $movementType, $transProdUID, $sellingPrice, $taxAmount, $prodData);
+                $this->_applyStockMovement($transUID, $moduleUID, $orgUID, $userUID, $productUID, $qty, $unitCost, $movementType, $transProdUID, $sellingPrice, $taxAmount, $prodData, $branchUID);
             }
         }
 
     }
 
-    private function _applyStockMovement($transUID, $moduleUID, $orgUID, $userUID, $productUID, $qty, $unitCost, $movementType, $transProdUID = null, $sellingPrice = null, $taxAmount = null, $snap = null) {
+    private function _applyStockMovement($transUID, $moduleUID, $orgUID, $userUID, $productUID, $qty, $unitCost, $movementType, $transProdUID = null, $sellingPrice = null, $taxAmount = null, $snap = null, int $branchUID = 0) {
 
         $this->WriteDB->db_debug = FALSE;
 
@@ -632,6 +632,7 @@ class Dbwrite_model extends CI_Model {
 
         $insOk = $this->WriteDB->insert('Products.StockLedgerTbl', [
             'OrgUID'             => $orgUID,
+            'BranchUID'          => $branchUID,
             'ProductUID'         => $productUID,
             'TransUID'           => $transUID,
             'TransProdUID'       => $transProdUID,
@@ -722,10 +723,10 @@ class Dbwrite_model extends CI_Model {
         );
     }
 
-    public function applyManualStockAdjustment($adjUID, $orgUID, $userUID, $productUID, $qty, $unitCost, $adjType) {
+    public function applyManualStockAdjustment($adjUID, $orgUID, $userUID, $productUID, $qty, $unitCost, $adjType, int $branchUID = 0) {
 
         $movementType = ($adjType === 'IN') ? 'IN' : 'OUT';
-        $this->_applyStockMovement((int)$adjUID, 118, (int)$orgUID, (int)$userUID, (int)$productUID, (float)$qty, (float)$unitCost, $movementType);
+        $this->_applyStockMovement((int)$adjUID, 118, (int)$orgUID, (int)$userUID, (int)$productUID, (float)$qty, (float)$unitCost, $movementType, null, null, null, null, $branchUID);
 
     }
 
@@ -742,8 +743,8 @@ class Dbwrite_model extends CI_Model {
      * @param float $qty          Quantity being returned (positive)
      * @param int   $transProdUID FK into TransProductsTbl
      */
-    public function applyDCReturnStockMovement(int $transUID, int $moduleUID, int $orgUID, int $userUID, int $productUID, float $qty, int $transProdUID): void {
-        $this->_applyStockMovement($transUID, $moduleUID, $orgUID, $userUID, $productUID, $qty, 0.0, 'IN', $transProdUID);
+    public function applyDCReturnStockMovement(int $transUID, int $moduleUID, int $orgUID, int $userUID, int $productUID, float $qty, int $transProdUID, int $branchUID = 0): void {
+        $this->_applyStockMovement($transUID, $moduleUID, $orgUID, $userUID, $productUID, $qty, 0.0, 'IN', $transProdUID, null, null, null, $branchUID);
     }
 
     /**
@@ -1166,6 +1167,26 @@ class Dbwrite_model extends CI_Model {
             'ConvertedBy'     => (int) $userUID,
         ]);
 
+    }
+
+    // ── Sync user→branch access assignments (wipe + re-insert) ───────────────
+    public function syncUserBranchAccess(int $userUID, int $orgUID, array $branches, int $callerUID, string $now): void {
+        $this->WriteDB->db_debug = FALSE;
+        $this->WriteDB->query(
+            'DELETE FROM Users.UserBranchAccessTbl WHERE UserUID = ? AND OrgUID = ?',
+            [(int)$userUID, (int)$orgUID]
+        );
+        foreach ($branches as $b) {
+            $branchUID = (int)($b['BranchUID'] ?? 0);
+            if ($branchUID <= 0) continue;
+            $this->WriteDB->insert('Users.UserBranchAccessTbl', [
+                'UserUID'   => $userUID,
+                'OrgUID'    => $orgUID,
+                'BranchUID' => $branchUID,
+                'IsDefault' => (int)($b['IsDefault'] ?? 0),
+                'IsActive'  => 1,
+            ]);
+        }
     }
 
 }

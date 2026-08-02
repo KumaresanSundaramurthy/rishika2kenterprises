@@ -327,6 +327,50 @@ class Vendors_model extends CI_Model {
 
     }
 
+    public function getVendorUIDsByFilter(int $orgUID, array $filter = []): array {
+
+        try {
+            $this->ReadDb->db_debug = FALSE;
+
+            $this->ReadDb->select('Vendors.VendorUID');
+            $this->ReadDb->from('Vendors.VendorTbl as Vendors');
+            $this->ReadDb->where(['Vendors.IsDeleted' => 0, 'Vendors.OrgUID' => $orgUID]);
+
+            if (!empty($filter['SearchAllData'])) {
+                $s = $filter['SearchAllData'];
+                $this->ReadDb->group_start();
+                $this->ReadDb->or_like('Vendors.Name', $s, 'both');
+                $this->ReadDb->or_like('Vendors.Area', $s, 'both');
+                $this->ReadDb->or_like('Vendors.MobileNumber', $s, 'both');
+                $this->ReadDb->or_like('Vendors.ContactPerson', $s, 'both');
+                $this->ReadDb->group_end();
+            }
+            if (isset($filter['IsActive']) && $filter['IsActive'] !== '') {
+                $this->ReadDb->where('Vendors.IsActive', (int) $filter['IsActive']);
+            }
+            if (!empty($filter['BalanceType'])) {
+                $balType = ($filter['BalanceType'] === 'Credit') ? 'Credit' : 'Debit';
+                $this->ReadDb->where(
+                    "Vendors.VendorUID IN (SELECT VendorUID FROM Vendors.VendOpeningBalanceTbl WHERE OrgUID = {$orgUID} AND PendingBalType = '{$balType}' AND PendingBalance > 0 AND IsDeleted = 0)",
+                    null, false
+                );
+            }
+            if (!empty($filter['UpdatedByUIDs'])) {
+                $uids = array_filter(array_map('intval', (array)$filter['UpdatedByUIDs']));
+                if (!empty($uids)) $this->ReadDb->where_in('Vendors.UpdatedBy', $uids);
+            }
+
+            $q = $this->ReadDb->get();
+            if (!$q) return [];
+
+            return array_column($q->result_array(), 'VendorUID');
+
+        } catch (Exception $e) {
+            return [];
+        }
+
+    }
+
     public function getVendorStats(int $OrgUID): object {
 
         try {

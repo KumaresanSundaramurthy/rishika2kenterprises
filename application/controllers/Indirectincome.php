@@ -31,10 +31,11 @@ class Indirectincome extends MY_Controller {
             $this->pageData['SavedDateLabel'] = $datePref['label'];
 
             $filter = ['Status' => 'All', 'DateFrom' => $datePref['from'], 'DateTo' => $datePref['to']];
+            $filter['BranchUID'] = $this->_branchUID();
 
             $allData      = $this->indirectincome_model->getIncomeList($orgUID, $filter, $limit, 0);
             $allDataCount = $this->indirectincome_model->getIncomeCount($orgUID, $filter);
-            $summaryStats = $this->indirectincome_model->getIncomeSummaryStats($orgUID);
+            $summaryStats = $this->indirectincome_model->getIncomeSummaryStats($orgUID, $this->_branchUID());
 
             $this->pageData['ModRowData']    = $this->load->view('transactions/indirectincome/list', [
                 'DataLists'    => $allData,
@@ -72,6 +73,7 @@ class Indirectincome extends MY_Controller {
             $limit  = (int)($this->input->post('RowLimit') ?: 10);
             $offset = ($pageNo - 1) * $limit;
             $filter = $this->input->post('Filter') ?: [];
+            $filter['BranchUID'] = $this->_branchUID();
 
             $orgUID = $this->pageData['JwtData']->Org->OrgUID;
 
@@ -88,7 +90,7 @@ class Indirectincome extends MY_Controller {
             $this->EndReturnData->RecordHtmlData = $rowHtml;
             $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml('/indirectincome/getPageDetails', $allDataCount, $pageNo, $limit);
             $this->EndReturnData->TotalCount     = $allDataCount;
-            $this->EndReturnData->SummaryStats   = $this->indirectincome_model->getIncomeSummaryStats($orgUID);
+            $this->EndReturnData->SummaryStats   = $this->indirectincome_model->getIncomeSummaryStats($orgUID, $this->_branchUID());
 
         } catch (Throwable $e) {
             $this->EndReturnData->Error   = TRUE;
@@ -889,6 +891,7 @@ class Indirectincome extends MY_Controller {
 
         $filterRaw = $this->input->post('Filter');
         $filter = is_array($filterRaw) ? $filterRaw : (($filterRaw && ($decoded = json_decode($filterRaw, true))) ? $decoded : ['Status' => 'All']);
+        $filter['BranchUID'] = $this->_branchUID();
         $limit  = (int)($this->input->post('RowLimit') ?: ($GeneralSettings->RowLimit ?? 10));
 
         $allData  = $this->indirectincome_model->getIncomeList($orgUID, $filter, $limit, 0);
@@ -903,7 +906,7 @@ class Indirectincome extends MY_Controller {
         $this->EndReturnData->RecordHtmlData = $rowHtml;
         $this->EndReturnData->TotalCount     = $allCount;
         $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml('/indirectincome/getPageDetails', $allCount, 1, $limit);
-        $this->EndReturnData->SummaryStats   = $this->indirectincome_model->getIncomeSummaryStats($orgUID);
+        $this->EndReturnData->SummaryStats   = $this->indirectincome_model->getIncomeSummaryStats($orgUID, $this->_branchUID());
     }
 
     // Validates POST, computes amounts, returns data array for IndirectIncomeTbl only
@@ -1024,5 +1027,83 @@ class Indirectincome extends MY_Controller {
             ]);
             if ($ledgerResp->Error) throw new Exception('Ledger entry failed: ' . $ledgerResp->Message);
         }
+    }
+
+    // ── Bulk delete indirect incomes ─────────────────────────────────────────
+    public function deleteMultipleIncomes(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID  = (int)$this->pageData['JwtData']->Org->OrgUID;
+            $userUID = (int)$this->pageData['JwtData']->User->UserUID;
+
+            $selectAll = (int)$this->input->post('SelectAll');
+            if ($selectAll === 1) {
+                $filter = $this->input->post('Filter') ?: [];
+                if (!is_array($filter)) $filter = (array)json_decode($filter, true);
+                $filter['BranchUID'] = $this->_branchUID();
+                $incomeUIDs = $this->indirectincome_model->getIncomeUIDsByFilter($orgUID, $filter);
+            } else {
+                $raw        = $this->input->post('IncomeUIDs');
+                $incomeUIDs = is_array($raw)
+                    ? array_values(array_filter(array_map('intval', $raw), fn($u) => $u > 0))
+                    : [];
+            }
+
+            if (empty($incomeUIDs)) throw new Exception('No records selected.');
+
+            $deleted = 0;
+            $errors  = [];
+            foreach ($incomeUIDs as $incomeUID) {
+                try {
+                    $existing = $this->indirectincome_model->getIncomeById((int)$incomeUID, $orgUID);
+                    if (!$existing) { $errors[] = '#' . $incomeUID . ': not found'; continue; }
+                    if ($existing->DocStatus === 'Cancelled') { $errors[] = '#' . $incomeUID . ': already cancelled'; continue; }
+
+                    $deleteData             = $this->globalservice->baseDeleteArrayDetails();
+                    $deleteData['IsActive'] = 0;
+                    $resp = $this->dbwrite_model->updateData(
+                        'Transaction', 'IndirectIncomeTbl', $deleteData,
+                        ['IncomeUID' => (int)$incomeUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
+                    );
+                    if ($resp->Error) throw new Exception($resp->Message);
+
+                    if (!empty($existing->PaymentUID)) {
+                        $this->dbwrite_model->updateData(
+                            'Transaction', 'PaymentsTbl',
+                            ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
+                            ['PaymentUID' => (int)$existing->PaymentUID, 'OrgUID' => $orgUID]
+                        );
+                    }
+
+                    try {
+                        $this->load->library('accountledger');
+                        $this->accountledger->reverseJournal('IndirectIncome', (int)$incomeUID, $userUID);
+                    } catch (Throwable $ledgerEx) {
+                        log_message('error', 'Bulk income delete ledger #' . $incomeUID . ': ' . $ledgerEx->getMessage());
+                    }
+
+                    $deleted++;
+                } catch (Throwable $e) {
+                    $errors[] = '#' . $incomeUID . ': ' . $e->getMessage();
+                }
+            }
+
+            if ($deleted === 0) throw new Exception(implode('; ', $errors) ?: 'No records deleted.');
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = $deleted . ' income record(s) deleted.' .
+                (!empty($errors) ? ' Skipped: ' . implode('; ', $errors) : '');
+            $this->auditlog->log(
+                $orgUID, $userUID,
+                'BULK_DELETE_INCOME', 'IndirectIncome', 0, '',
+                [], 'Bulk deleted ' . $deleted . ' income record(s)', 'IndirectIncome', 'TRANSACTION'
+            );
+
+        } catch (Throwable $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 }

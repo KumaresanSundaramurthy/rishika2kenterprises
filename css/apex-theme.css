@@ -778,6 +778,33 @@
     box-shadow: 0 8px 24px rgba(105,108,255,0.18), 0 2px 8px rgba(0,0,0,0.08) !important;
     padding: 6px 0 !important;
 }
+/* Actions (bulk) dropdown — same box style, compact width */
+.r2k-actions-menu {
+    min-width: 150px;
+    font-size: .83rem;
+}
+/* Select-all banner strip (Pattern 3 bulk selection) */
+.r2k-select-all-banner {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #eef2ff;
+    border: 1px solid #c4c6f8;
+    border-radius: 7px;
+    padding: 6px 14px;
+    font-size: .82rem;
+    color: #3d3f60;
+    margin-bottom: 8px;
+}
+.r2k-select-all-banner i { font-size: .9rem; color: #696cff; flex-shrink: 0; }
+.r2k-sal-link { font-weight: 700; color: #696cff; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; white-space: nowrap; }
+.r2k-sal-link:hover { color: #4a4fcf; }
+.r2k-sal-clear { font-weight: 600; color: #dc3545; cursor: pointer; margin-left: auto; white-space: nowrap; }
+.r2k-sal-clear:hover { color: #a71d2a; }
+[data-theme="dark"] .r2k-select-all-banner { background: #1e2040; border-color: #3a3d6a; color: #b0b4d8; }
+[data-theme="dark"] .r2k-sal-link { color: #9396ff; }
+[data-theme="dark"] .r2k-sal-link:hover { color: #b0b2ff; }
+[data-theme="dark"] .r2k-sal-clear { color: #f06070; }
 /* Date filter button adapts to apex style when inside filter row */
 .apex-filter-row .r2k-dd-btn {
     font-size: 0.8rem;
@@ -984,11 +1011,11 @@ tr:hover .apex-party-actions {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     border-radius: 8px;
     border: none;
-    background: #2563eb;
+    background: #696cff;
     color: #fff;
     cursor: pointer;
     transition: background .12s, box-shadow .12s, transform .1s;
@@ -1152,16 +1179,12 @@ tr:hover .apex-party-actions {
     background: #ededff;
     border-color: #696cff;
 }
-.apex-lang-flag {
-    /* font-size: 1rem; */
-    line-height: 1;
-    flex-shrink: 0;
-}
-.apex-lang-name {
+.apex-lang-label {
     font-size: 0.76rem;
-    font-weight: 600;
+    font-weight: 700;
     color: #334155;
     white-space: nowrap;
+    letter-spacing: 0.2px;
 }
 .apex-lang-caret {
     font-size: 0.85rem;
@@ -1212,11 +1235,6 @@ tr:hover .apex-party-actions {
 .apex-lang-option.active {
     background: #f0f0ff;
 }
-.apex-lang-opt-flag {
-    font-size: 1.1rem;
-    line-height: 1;
-    flex-shrink: 0;
-}
 .apex-lang-opt-name {
     flex: 1;
     font-size: 0.85rem;
@@ -1245,8 +1263,8 @@ tr:hover .apex-party-actions {
 .dark-layout .apex-lang-trigger:hover {
     background: #273445;
 }
-[data-theme="dark"] .apex-lang-name,
-.dark-layout .apex-lang-name {
+[data-theme="dark"] .apex-lang-label,
+.dark-layout .apex-lang-label {
     color: #94a3b8;
 }
 [data-theme="dark"] .apex-lang-dropdown,
@@ -1729,5 +1747,15 @@ tr:hover .apex-party-actions {
     content: "/";
     transform: scaleX(-1);
     display: inline-block;
+}
+
+/* ── Select2 multiple / tags: show placeholder when field is empty ─── */
+/* Select2 sets style="width:0.75em" on the search input, which is too
+   narrow to render placeholder text. When the search <li> is the only
+   child (no tags selected yet), override to full width so the placeholder
+   is visible. Once tags are added, :only-child no longer matches and
+   Select2's dynamic width takes over normally.                          */
+.select2-selection--multiple .select2-search--inline:only-child .select2-search__field {
+    width: 100% !important;
 }
 

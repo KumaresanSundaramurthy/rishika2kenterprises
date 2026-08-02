@@ -10,20 +10,21 @@ class Dashboard extends MY_Controller {
 
     public function index() {
         try {
-            $orgUID  = (int)$this->pageData['JwtData']->Org->OrgUID;
-            $gs      = $this->pageData['JwtData']->GenSettings ?? new stdClass();
+            $orgUID    = (int)$this->pageData['JwtData']->Org->OrgUID;
+            $branchUID = $this->_branchUID();
+            $gs        = $this->pageData['JwtData']->GenSettings ?? new stdClass();
 
             $this->load->model('dashboard_model');
 
             // All queries run in parallel conceptually — each is a single aggregate query
-            $this->pageData['TotalReceivable']  = $this->dashboard_model->getTotalReceivable($orgUID);
-            $this->pageData['TotalPayable']     = $this->dashboard_model->getTotalPayable($orgUID);
-            $this->pageData['TodaySales']       = $this->dashboard_model->getTodaySales($orgUID);
-            $this->pageData['MonthlyComparison']= $this->dashboard_model->getMonthlySalesComparison($orgUID);
-            $this->pageData['SalesChartData']   = $this->dashboard_model->getSalesChartData($orgUID);
-            $this->pageData['OverdueInvoices']  = $this->dashboard_model->getOverdueInvoices($orgUID);
-            $this->pageData['TopCustomers']     = $this->dashboard_model->getTopCustomers($orgUID);
-            $this->pageData['RecentTransactions']= $this->dashboard_model->getRecentTransactions($orgUID);
+            $this->pageData['TotalReceivable']   = $this->dashboard_model->getTotalReceivable($orgUID);
+            $this->pageData['TotalPayable']      = $this->dashboard_model->getTotalPayable($orgUID);
+            $this->pageData['TodaySales']        = $this->dashboard_model->getTodaySales($orgUID, $branchUID);
+            $this->pageData['MonthlyComparison'] = $this->dashboard_model->getMonthlySalesComparison($orgUID, $branchUID);
+            $this->pageData['SalesChartData']    = $this->dashboard_model->getSalesChartData($orgUID, $branchUID);
+            $this->pageData['OverdueInvoices']   = $this->dashboard_model->getOverdueInvoices($orgUID, $branchUID);
+            $this->pageData['TopCustomers']      = $this->dashboard_model->getTopCustomers($orgUID);
+            $this->pageData['RecentTransactions']= $this->dashboard_model->getRecentTransactions($orgUID, $branchUID);
 
             $this->pageData['PageTitle']   = 'Dashboard';
             // Use org timezone for Last Updated timestamp

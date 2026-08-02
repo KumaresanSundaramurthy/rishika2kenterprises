@@ -11,6 +11,10 @@ var _rntRowIdx = 0;
 // ── In-memory cart of machine rows {idx: {ProductUID, ItemName, Qty, RentalType, rates...}} ──
 var _rntMachines = {};
 
+// ── Unsaved-changes tracking ──────────────────────────────────────────────────
+var _rntIsDirty = false;
+var _rtnIsDirty = false;
+
 // ── Pagination ────────────────────────────────────────────────────────────────
 function rntLoadPage(pageNo) {
     var $body = $('#rntTableBody');
@@ -160,6 +164,7 @@ function rntOpenCreate() {
     }
 
     new bootstrap.Modal(document.getElementById('rntCreateModal')).show();
+    _rntIsDirty = false;
 }
 
 // ── Add machine row ───────────────────────────────────────────────────────────
@@ -310,6 +315,7 @@ function rntSubmitCreate() {
             if (r.Error) {
                 Swal.fire({ icon: 'error', text: r.Message });
             } else {
+                _rntIsDirty = false;
                 bootstrap.Modal.getInstance(document.getElementById('rntCreateModal')).hide();
                 Swal.fire({ icon: 'success', title: 'Rental Created', text: r.Message, timer: 2000, showConfirmButton: false });
                 if (r.RecordHtmlData) { $('#rntTableBody').html(r.RecordHtmlData); $('.rntPagination').html(r.Pagination); }
@@ -384,6 +390,7 @@ function rntOpenReturn(rentalUID, rentalNum, itemUID, itemName, itemStatus) {
     }
 
     new bootstrap.Modal(document.getElementById('rntReturnModal')).show();
+    _rtnIsDirty = false;
 }
 
 // Auto-calculate hours when return time is set
@@ -456,6 +463,7 @@ function rntSubmitReturn() {
             if (r.Error) {
                 Swal.fire({ icon: 'error', text: r.Message });
             } else {
+                _rtnIsDirty = false;
                 bootstrap.Modal.getInstance(document.getElementById('rntReturnModal')).hide();
                 Swal.fire({ icon: 'success', title: 'Return Recorded', text: r.Message, timer: 2000, showConfirmButton: false });
                 if (r.RecordHtmlData) { $('#rntTableBody').html(r.RecordHtmlData); $('.rntPagination').html(r.Pagination); }
@@ -562,6 +570,58 @@ $(document).ready(function () {
 
     // Return submit button
     $(document).on('click', '#rtnSubmitBtn', rntSubmitReturn);
+
+    // ── Dirty-tracking: create modal ─────────────────────────────────────────
+    $(document).on('input change', '#rntCustomerUID, #rntNotes, #rntDepositCollected, #rntDepositPayType, #rntDepositBankUID, .rntMachineQty, .rntMachineType', function () {
+        _rntIsDirty = true;
+    });
+
+    // ── Unsaved-changes guard: create modal ──────────────────────────────────
+    $(document).on('hide.bs.modal', '#rntCreateModal', function (e) {
+        if (!_rntIsDirty) return;
+        e.preventDefault();
+        Swal.fire({
+            title             : t('swal_unsaved_title',   'Unsaved Changes'),
+            text              : t('swal_unsaved_msg',     'Your changes will be lost if you close now.'),
+            icon              : 'warning',
+            showCancelButton  : true,
+            confirmButtonText : t('swal_unsaved_confirm', 'Close Anyway'),
+            cancelButtonText  : t('swal_unsaved_cancel',  'Stay'),
+            confirmButtonColor: '#d33',
+            cancelButtonColor : '#3085d6',
+        }).then(function (result) {
+            if (result.isConfirmed) {
+                _rntIsDirty = false;
+                bootstrap.Modal.getInstance(document.getElementById('rntCreateModal')).hide();
+            }
+        });
+    });
+
+    // ── Dirty-tracking: return modal ─────────────────────────────────────────
+    $(document).on('input change', '#rtnReturnedQty, #rtnDamagedQty, #rtnExtraHourCharge, #rtnLateCharge, #rtnDamageCharge, #rtnReturnNotes, #rtnActualReturnDateTime', function () {
+        _rtnIsDirty = true;
+    });
+
+    // ── Unsaved-changes guard: return modal ──────────────────────────────────
+    $(document).on('hide.bs.modal', '#rntReturnModal', function (e) {
+        if (!_rtnIsDirty) return;
+        e.preventDefault();
+        Swal.fire({
+            title             : t('swal_unsaved_title',   'Unsaved Changes'),
+            text              : t('swal_unsaved_msg',     'Your changes will be lost if you close now.'),
+            icon              : 'warning',
+            showCancelButton  : true,
+            confirmButtonText : t('swal_unsaved_confirm', 'Close Anyway'),
+            cancelButtonText  : t('swal_unsaved_cancel',  'Stay'),
+            confirmButtonColor: '#d33',
+            cancelButtonColor : '#3085d6',
+        }).then(function (result) {
+            if (result.isConfirmed) {
+                _rtnIsDirty = false;
+                bootstrap.Modal.getInstance(document.getElementById('rntReturnModal')).hide();
+            }
+        });
+    });
 
 });
 

@@ -11,7 +11,7 @@ $this->load->view('common/transactions/header'); ?>
 
                 <?php $this->load->view('common/apex/page_header', [
                     'pageTitle'       => $PageTitle       ?? 'Packing Lists',
-                    'pageDescription' => $PageDescription ?? 'All packing lists across transactions',
+                    'pageDescription' => $PageDescription ?? '',
                 ]); ?>
 
                 <?php
@@ -46,7 +46,7 @@ $this->load->view('common/transactions/header'); ?>
                                 <i class="bx bx-x r2k-clear d-none"></i>
                             </div>
                             <div class="apex-filter-spacer"></div>
-                            <a href="javascript:void(0);" class="apex-filter-btn pageRefresh" title="Refresh">
+                            <a href="javascript:void(0);" class="apex-filter-btn pageRefresh" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('page_refresh', 'Page Refresh'); ?>">
                                 <i class="bx bx-refresh"></i>
                             </a>
                         </div>

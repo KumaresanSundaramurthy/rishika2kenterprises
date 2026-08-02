@@ -10,7 +10,7 @@ $this->load->view('common/transactions/header'); ?>
             <div class="content-wrapper apex-content">
                 <?php $this->load->view('common/apex/page_header', [
                     'pageTitle'       => $PageTitle       ?? 'Inventory',
-                    'pageDescription' => $PageDescription ?? 'Stock levels · Adjustments · History',
+                    'pageDescription' => $PageDescription ?? '',
                 ]); ?>
                 <?php
                 $stats    = $Stats ?? null;

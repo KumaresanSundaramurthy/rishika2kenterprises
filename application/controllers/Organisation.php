@@ -1,16 +1,18 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed');
 
-class Organisation extends CI_Controller {
+class Organisation extends MY_Controller {
 
-    public $pageData = array();
-    private $EndReturnData;
+    public    $pageData      = array();
+    protected $pageModuleUID = 1;
+    private   $EndReturnData;
 
     public function __construct() {
         parent::__construct();
-
     }
 
     public function index() {
+
+        $this->_loadPageTitle($this->pageModuleUID);
 
         // Ensure view-required keys always exist so footer_script.php never crashes
         // OrgBussType / OrgIndusType / OrgBusRegType removed — lazy-loaded by JS via globalKey

@@ -178,6 +178,14 @@ $route['settings/saveAdditionalCharge']         = 'settings/saveAdditionalCharge
 $route['settings/deleteAdditionalCharge']       = 'settings/deleteAdditionalCharge';
 $route['settings/getAdditionalChargesCache']    = 'settings/getAdditionalChargesCache';
 
+// Branches
+$route['settings/branches']                          = 'branches/index';
+$route['settings/branches/getPageDetails/(:num)']    = 'branches/getPageDetails/$1';
+$route['settings/branches/getPageDetails']           = 'branches/getPageDetails';
+$route['settings/branches/save']                     = 'branches/save';
+$route['settings/branches/delete']                   = 'branches/delete';
+$route['settings/branches/getList']                  = 'branches/getList';
+
 // Roles
 $route['settings/roles']                         = 'roles/index';
 $route['settings/roles/getRolesList']            = 'roles/getRolesList';

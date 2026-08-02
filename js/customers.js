@@ -22,6 +22,53 @@ function _smartDecimal(val) {
     return n === 0 ? '0' : String(parseFloat(n.toFixed(6)));
 }
 
+// ── Select-all (Pattern 3) state ──────────────────────────────────────────
+var _custSelectAllMode = false;
+var _custTotalRecords  = 0;
+var _custPageCount     = 0;
+
+/**
+ * @returns {void}
+ */
+function _custUpdateSelectAllBanner() {
+    var $banner = $('#custSelectAllBanner');
+    var $msg    = $('#custSelectAllMsg');
+    var $link   = $('#custSelectAllLink');
+    var $clear  = $('#custSelectAllClear');
+
+    if (!_custPageCount || !$(ModuleHeader).prop('checked')) {
+        $banner.addClass('d-none');
+        return;
+    }
+
+    if (_custSelectAllMode) {
+        $msg.text('All ' + _custTotalRecords + ' customers are selected.');
+        $link.addClass('d-none');
+        $clear.removeClass('d-none');
+    } else {
+        $msg.text('All ' + _custPageCount + ' customers on this page are selected.');
+        $clear.addClass('d-none');
+        if (_custTotalRecords > _custPageCount) {
+            $link.text('Select all ' + _custTotalRecords + ' customers?').removeClass('d-none');
+        } else {
+            $link.addClass('d-none');
+            $banner.addClass('d-none');
+            return;
+        }
+    }
+    $banner.removeClass('d-none');
+}
+
+/**
+ * @returns {void}
+ */
+function _custClearSelectAll() {
+    _custSelectAllMode = false;
+    $('#custSelectAllBanner').addClass('d-none');
+    $('#custSelectAllLink').removeClass('d-none');
+    $('#custSelectAllClear').addClass('d-none');
+}
+
 function getCustomersDetails(PageNo, RowLimit, Filter) {
     ajaxLoading(0);
     showTabSpinner(ModuleTable, ModulePag);
@@ -40,6 +87,10 @@ function getCustomersDetails(PageNo, RowLimit, Filter) {
                 $(ModulePag).html(response.Pagination);
                 $(ModuleTable + ' tbody').html(response.RecordHtmlData);
                 $('#custStickyPagination .CustomersPagination').html(response.Pagination);
+                _custTotalRecords = parseInt(response.TotalCount) || 0;
+                _custPageCount    = $(ModuleTable + ' tbody ' + ModuleRow).length;
+                var cnt = _custTotalRecords;
+                $('.cust-tab .trans-tab-count').text(cnt > 0 ? cnt : '').toggleClass('d-none', cnt === 0);
                 $(window).trigger('scroll');
             }
             executeTablePagnCommonFunc(response, false);
@@ -71,17 +122,21 @@ function deleteCustomer(DeleteId) {
 }
 
 function deleteMultipleCustomers() {
+    var postData = _custSelectAllMode
+        ? { SelectAll: 1, Filter: JSON.stringify(Filter), ModuleId: ModuleId, [CsrfName]: CsrfToken }
+        : { CustomerUIDs: SelectedUIDs, ModuleId: ModuleId, [CsrfName]: CsrfToken };
     $.ajax({
         url: '/customers/deleteBulkCustomers',
         method: 'POST',
         cache: false,
-        data: { CustomerUIDs: SelectedUIDs, ModuleId: ModuleId },
+        data: postData,
         success: function (response) {
             if (response.Error) {
                 showAlertMessageSwal('error', '', response.Message);
             } else {
                 showToastNotification(response.Message, 'success');
                 SelectedUIDs = [];
+                _custClearSelectAll();
                 hideUIBlock();
                 ajaxLoading(0);
                 getCustomersDetails(PageNo, RowLimit, Filter);

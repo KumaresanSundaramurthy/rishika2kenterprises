@@ -1,9 +1,11 @@
 'use strict';
 (function () {
 
-  var currentPage = 1;
-  var filterData  = {};
-  var _fpAdvDate  = null;
+  var currentPage       = 1;
+  var filterData        = {};
+  var _fpAdvDate        = null;
+  var _advIsDirty       = false;
+  var _advIsCreateMode  = false;
   var _advFpCfg   = {
     dateFormat : 'Y-m-d',
     altInput   : true,
@@ -83,6 +85,8 @@
     $('#advModalTitle').text('New Salary Advance');
     $('#advModalMeta').text('Submit a new advance request');
     $('#advanceModal').modal('show');
+    _advIsCreateMode = true;
+    _advIsDirty      = false;
   });
 
   // ── Edit Advance ──────────────────────────────────────────────────────────
@@ -124,6 +128,8 @@
       $btn.prop('disabled', false);
       $spinner.addClass('d-none'); $icon.removeClass('d-none');
       if (!r.Error) {
+        _advIsDirty      = false;
+        _advIsCreateMode = false;
         $('#advanceModal').modal('hide');
         _applyResponse(r);
         showToastNotification(r.Message || 'Saved.', 'success');
@@ -229,6 +235,33 @@
     e.preventDefault();
     var pg = parseInt($(this).data('page'));
     if (pg && pg !== currentPage) loadPage(pg);
+  });
+
+  // ── Dirty-tracking listener ─────────────────────────────────────────────
+  $(document).on('input change', '#advEmployee, #advDate, #advAmount, #advRemarks', function () {
+    if (_advIsCreateMode) _advIsDirty = true;
+  });
+
+  // ── Unsaved-changes guard ───────────────────────────────────────────────
+  $(document).on('hide.bs.modal', '#advanceModal', function (e) {
+    if (!_advIsDirty || !_advIsCreateMode) return;
+    e.preventDefault();
+    Swal.fire({
+      title             : t('swal_unsaved_title',   'Unsaved Changes'),
+      text              : t('swal_unsaved_msg',     'Your changes will be lost if you close now.'),
+      icon              : 'warning',
+      showCancelButton  : true,
+      confirmButtonText : t('swal_unsaved_confirm', 'Close Anyway'),
+      cancelButtonText  : t('swal_unsaved_cancel',  'Stay'),
+      confirmButtonColor: '#d33',
+      cancelButtonColor : '#3085d6',
+    }).then(function (result) {
+      if (result.isConfirmed) {
+        _advIsDirty      = false;
+        _advIsCreateMode = false;
+        $('#advanceModal').modal('hide');
+      }
+    });
   });
 
 })();

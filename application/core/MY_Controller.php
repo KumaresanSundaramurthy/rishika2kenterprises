@@ -114,6 +114,7 @@ class MY_Controller extends CI_Controller {
      * @return bool  true = found, false = module not configured in ModuleTbl
      */
     protected function _loadPageTitle($moduleUID = null) {
+        
         $modules = (array)($this->redisservice->getUserCache('modules') ?? []);
 
         // Cache miss — don't block; title stays empty
@@ -135,7 +136,24 @@ class MY_Controller extends CI_Controller {
             }
         }
 
-        if (!$found) return false;
+        // Cache stale — module added after last login; fall back to direct DB query
+        if (!$found) {
+            $this->load->model('login_model');
+            $dbResult = $this->login_model->getModuleDetails($this->_orgUID());
+            if ($dbResult->Error === FALSE && !empty($dbResult->Data)) {
+                if ($moduleUID !== null) {
+                    foreach ($dbResult->Data as $m) {
+                        if ((int)$m->ModuleUID === (int)$moduleUID) { $found = $m; break; }
+                    }
+                } else {
+                    $controllerName = strtolower($this->router->fetch_class());
+                    foreach ($dbResult->Data as $m) {
+                        if ($m->ControllerName === $controllerName) { $found = $m; break; }
+                    }
+                }
+            }
+            if (!$found) return false;
+        }
 
         $this->pageData['PageTitle']       = !empty($found->DisplayName) ? $found->DisplayName : ($found->Name ?? '');
         $this->pageData['PageIcon']        = $found->Icon      ?? '';
@@ -404,6 +422,8 @@ class MY_Controller extends CI_Controller {
                                             ?: '';
         $this->pageData['CustomerCacheKey'] = $this->redisservice->orgKey('customers');
         $this->pageData['VendorCacheKey']   = $this->redisservice->orgKey('vendors');
+        $hasPLFlag = $this->upstashservice->get($this->redisservice->orgKey('has-price-lists'));
+        $this->pageData['HasPriceLists']    = ($hasPLFlag === true);
     }
 
     // ── Cache guard ─────────────────────────────────────────────────────────
@@ -853,6 +873,8 @@ class MY_Controller extends CI_Controller {
      */
     private function _fetchAndRenderTransList(int $limit, int $offset, array $filter, string $viewPath, array $extraViewData = []): array
     {
+        $filter['OrgUID']    = $this->_orgUID();
+        $filter['BranchUID'] = $this->_branchUID();
         $this->load->model('transactions_model');
         $data  = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, 0);
         $count = $this->transactions_model->getTransactionCount($this->pageModuleUID, $filter);
@@ -874,6 +896,7 @@ class MY_Controller extends CI_Controller {
     {
         if (!($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1)) { return []; }
         $this->load->model('transactions_model');
+        $filter['BranchUID'] = $this->_branchUID();
         return $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $orgUID, $filter);
     }
 
@@ -1006,6 +1029,7 @@ class MY_Controller extends CI_Controller {
             : NULL;
         $data = [
             'OrgUID'            => $orgUID,
+            'BranchUID'         => $this->_branchUID(),
             'ModuleUID'         => (int) $amounts['moduleUID'],
             'PrefixUID'         => $amounts['prefixUID'],
             'UniqueNumber'      => $amounts['uniqueNumber'],
@@ -1146,6 +1170,7 @@ class MY_Controller extends CI_Controller {
             : NULL;
         return [
             'OrgUID'            => $orgUID,
+            'BranchUID'         => $this->_branchUID(),
             'ModuleUID'         => (int) $amounts['moduleUID'],
             'PartyType'         => $cfg['PartyType'],
             'PartyUID'          => (int) $cfg['PartyUID'],

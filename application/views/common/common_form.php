@@ -52,7 +52,6 @@
                         <input type="password" class="form-control" name="ConfirmPassword" id="ConfirmPassword" required maxlength="20" autocomplete="off" placeholder="Confirm Password">
                     </div>
                 </div>
-                <div id="ChangePasswordAlert" class="d-none"></div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Discard</button>

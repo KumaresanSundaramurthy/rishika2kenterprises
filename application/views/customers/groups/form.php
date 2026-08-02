@@ -274,7 +274,7 @@ $pageHead = $isEdit ? 'Edit Customer Group' : 'Create Customer Group';
                 '<td class="fw-semibold" style="font-size:.85rem;">' + _esc(m.name) + '</td>' +
                 '<td style="font-size:.8rem;">' + _esc(m.area || '—') + '</td>' +
                 '<td style="font-size:.8rem;">' + _esc(m.mobile || '—') + '</td>' +
-                '<td class="text-end" style="font-size:.8rem;color:' + balCol + ';">' + parseFloat(m.balance).toFixed(2) + '</td>' +
+                '<td class="text-end" style="font-size:.8rem;color:' + balCol + ';">' + parseFloat(m.balance).toFixed(typeof decimalPlaces !== 'undefined' ? decimalPlaces : 2) + '</td>' +
                 '<td class="text-center"><button type="button" class="btn btn-sm btn-icon ' + (isPri ? 'btn-warning' : 'btn-outline-secondary') + ' cg-set-primary" data-uid="' + m.uid + '" title="Set as primary"><i class="bx bx-star"></i></button></td>' +
                 '<td><button type="button" class="btn btn-sm btn-icon btn-outline-danger cg-remove-member" data-uid="' + m.uid + '" title="Remove"><i class="bx bx-x"></i></button></td>' +
             '</tr>';

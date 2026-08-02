@@ -10,10 +10,7 @@ $this->load->view('common/transactions/header'); ?>
             <div class="content-wrapper apex-content">
                 <?php $this->load->view('common/apex/page_header', [
                     'pageTitle'       => $PageTitle       ?? 'My Drive',
-                    'pageDescription' => $PageDescription ?? 'Your personal cloud storage space',
-                    'pageIcon'        => $PageIcon        ?? 'bx-cloud',
-                    'pageIconBg'      => $PageIconBg      ?? '#e0f2fe',
-                    'pageIconColor'   => $PageIconColor   ?? '#0369a1',
+                    'pageDescription' => $PageDescription ?? '',
                 ]); ?>
 
                 <div class="container-xxl flex-grow-1">

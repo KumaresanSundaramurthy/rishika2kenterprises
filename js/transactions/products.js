@@ -294,8 +294,7 @@ function editProductData(formdata) {
         enctype: 'multipart/form-data',
         success: function (response) {
             if (response.Error) {
-                $('.addEditFormAlert').removeClass('d-none');
-                inlineMessageAlert('.addEditFormAlert', 'danger', response.Message, false, false);
+                showToastNotification(response.Message || 'Failed to save product.', 'error');
             } else {
                 quill.setContents([]);
                 $('#AddEditItemForm').trigger('reset');

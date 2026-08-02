@@ -191,10 +191,6 @@
 
                         <div class="modal-body">
 
-                            <div class="d-none transferFormAlert alert alert-danger mb-3 p-2" role="alert">
-                                <span class="alert-message"></span>
-                            </div>
-
                             <div class="row g-3">
 
                                 <div class="col-12">
@@ -319,7 +315,7 @@ window.addEventListener('load', function() {
             // Toggle visibility on repeat clicks
             $val.css('text-decoration', $val.css('text-decoration') === 'none' ? 'line-through' : 'none');
             if ($val.css('text-decoration') !== 'none') {
-                $val.css('color', '#aaa').text('₹ ••••••');
+                $val.css('color', '#aaa').text(currencySymbol + ' ••••••');
             } else {
                 $val.css('color', $row.data('color')).text($row.data('display'));
             }
@@ -341,7 +337,7 @@ window.addEventListener('load', function() {
                 var isNeg  = bal < 0;
                 var color  = isNeg ? '#dc3545' : '#28a745';
                 var sign   = isNeg ? '' : '+';
-                var fmt    = '₹ ' + sign + bal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                var fmt    = 'currencySymbol + ' ' + sign + bal.toLocaleString('en-IN', { minimumFractionDigits: decimalPlaces, maximumFractionDigits: decimalPlaces });
                 $val.text(fmt).css({ 'color': color, 'text-decoration': 'none' });
                 $row.data('loaded', true).data('display', fmt).data('color', color);
             },
@@ -590,11 +586,10 @@ window.addEventListener('load', function() {
                 CsrfToken = resp.NewCsrfToken || CsrfToken;
                 $btn.prop('disabled', false).html('<i class="bx bx-transfer me-1"></i>Transfer');
                 if (resp.Error) {
-                    $('.transferFormAlert .alert-message').text(resp.Message);
-                    $('.transferFormAlert').removeClass('d-none');
+                    showToastNotification(resp.Message || 'Transfer failed.', 'error');
                 } else {
                     $('#transferFundsModal').modal('hide');
-                    Swal.fire({ icon:'success', title:'Done', text:resp.Message, timer:1500, showConfirmButton:false });
+                    showToastNotification(resp.Message || 'Transfer successful.', 'success');
                 }
             },
             error: function() {
@@ -608,7 +603,6 @@ window.addEventListener('load', function() {
         $('#TransferFromBank,#TransferToBank').val('');
         $('#TransferAmount,#TransferReferenceNo,#TransferNotes').val('');
         $('#TransferDate').val('<?php echo date("Y-m-d"); ?>');
-        $('.transferFormAlert').addClass('d-none');
     }
 
     $('#transferFundsModal').on('hidden.bs.modal', function() { resetTransferModal(); });

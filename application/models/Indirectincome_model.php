@@ -117,13 +117,14 @@ class Indirectincome_model extends CI_Model {
     }
 
     // ── Summary stats for stat cards ─────────────────────────────────────────
-    public function getIncomeSummaryStats(int $orgUID): array {
+    public function getIncomeSummaryStats(int $orgUID, int $branchUID = 0): array {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('i.DocStatus, COUNT(*) AS cnt, SUM(i.NetAmount) AS total');
             $this->ReadDb->from('Transaction.IndirectIncomeTbl i');
             $this->ReadDb->where('i.OrgUID',    $orgUID);
             $this->ReadDb->where('i.IsDeleted', 0);
+            if ($branchUID > 0) { $this->ReadDb->where('i.BranchUID', $branchUID); }
             $this->ReadDb->group_by('i.DocStatus');
             $query  = $this->ReadDb->get();
             $rows   = $query ? $query->result() : [];
@@ -303,6 +304,9 @@ class Indirectincome_model extends CI_Model {
 
     // ── Private filter helper ────────────────────────────────────────────────
     private function _applyFilters(array $filter): void {
+        if (!empty($filter['BranchUID'])) {
+            $this->ReadDb->where('i.BranchUID', (int)$filter['BranchUID']);
+        }
         // StatusList (multi-select) overrides single Status tab
         $statusList = (!empty($filter['StatusList']) && is_array($filter['StatusList']))
             ? array_values(array_filter($filter['StatusList'], function($s) { return !empty(trim($s)); }))
@@ -341,6 +345,31 @@ class Indirectincome_model extends CI_Model {
             if (!empty($uids)) {
                 $this->ReadDb->where_in('i.UpdatedBy', $uids);
             }
+        }
+    }
+
+    /**
+     * @param int   $orgUID
+     * @param array $filter
+     * @return array<int>
+     */
+    public function getIncomeUIDsByFilter(int $orgUID, array $filter = []): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('i.IncomeUID');
+            $this->ReadDb->from('Transaction.IndirectIncomeTbl i');
+            if (!empty($filter['Name'])) {
+                $this->ReadDb->join('Transaction.IndirectIncomeCategoryTbl ic', 'ic.CategoryUID = i.CategoryUID AND ic.IsDeleted = 0', 'LEFT');
+            }
+            $this->ReadDb->where('i.OrgUID',    $orgUID);
+            $this->ReadDb->where('i.IsDeleted', 0);
+            $this->_applyFilters($filter);
+            $query = $this->ReadDb->get();
+            if (!$query) return [];
+            return array_column($query->result_array(), 'IncomeUID');
+        } catch (Exception $e) {
+            log_message('error', 'getIncomeUIDsByFilter: ' . $e->getMessage());
+            return [];
         }
     }
 }

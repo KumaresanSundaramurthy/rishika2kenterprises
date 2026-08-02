@@ -42,7 +42,9 @@ class Login_model extends CI_Model {
             // Org — organisation-level fields
             $JwtOrgData = [];
             $JwtOrgData['OrgUID']       = $UserData->UserOrgUID;
-            $JwtOrgData['BranchUID']    = $UserData->UserOrgUID;
+            $JwtOrgData['BranchUID']    = $UserData->BranchUID;
+            $JwtOrgData['BranchName']   = $UserData->BranchName  ?? '';
+            $JwtOrgData['BranchCode']   = $UserData->BranchCode  ?? '';
             $JwtOrgData['OrgCCode']     = $UserData->UserOrgCCode;
             $JwtOrgData['OrgCISO2']     = $UserData->UserOrgCISO2;
             $JwtOrgData['OrgLogo']      = $UserData->UserOrgLogo;
@@ -88,7 +90,19 @@ class Login_model extends CI_Model {
             // Attachment config — loaded once at login, lives in JWT/Redis for session lifetime
             $AttachCfg = $this->getAttachCfg();
 
+            // Branches the user can switch to (populated from UserBranchAccessTbl)
+            $JwtOrgData['AccessibleBranches'] = $this->_loadAccessibleBranches((int)$UserData->UserUID, (int)$UserData->UserOrgUID);
+
             $jwtPayload = array('User' => $JwtUserData, 'Org' => $JwtOrgData, 'UserMainModule' => $MainModule, 'UserSubModule' => $SubModule, 'Permissions' => $Permissions, 'GenSettings' => $GeneralSettings, 'ProdSettings' => $ProductSettings, 'TransSettings' => $TransSettings, 'ModuleInfo' => $ModuleInfo, 'AttachCfg' => $AttachCfg);
+
+            try {
+                $plResult  = $this->ReadDb->query('SELECT COUNT(*) AS cnt FROM Products.PriceListTbl WHERE OrgUID = ? AND Status = 1 AND IsDeleted = 0', [(int)$UserData->UserOrgUID]);
+                $plRow     = $plResult ? $plResult->row() : null;
+                $plFlagKey = $this->redisservice->orgKey('has-price-lists', $UserData->OrgToken ?? '');
+                $this->upstashservice->set($plFlagKey, ($plRow && (int)$plRow->cnt > 0), 0);
+            } catch (Throwable $e) {
+                log_message('error', 'formatJWTPayload has-price-lists: ' . $e->getMessage());
+            }
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Message = 'Success';
@@ -421,6 +435,25 @@ class Login_model extends CI_Model {
             }
             return $cfg;
         } catch (Exception $e) {
+            return [];
+        }
+    }
+
+    private function _loadAccessibleBranches(int $userUID, int $orgUID): array {
+        try {
+            $query = $this->ReadDb->query(
+                'SELECT b.BranchUID, b.Name AS BranchName, b.BranchCode,
+                        BIT_COUNT(uba.IsDefault) AS IsDefault
+                 FROM Users.UserBranchAccessTbl uba
+                 JOIN Organisation.BranchesTbl b ON b.BranchUID = uba.BranchUID
+                 WHERE uba.UserUID = ? AND uba.OrgUID = ?
+                   AND uba.IsActive = 1 AND b.IsActive = 1 AND b.IsDeleted = 0
+                 ORDER BY uba.IsDefault DESC, b.Name ASC',
+                [$userUID, $orgUID]
+            );
+            return $query ? $query->result() : [];
+        } catch (Throwable $e) {
+            log_message('error', '_loadAccessibleBranches: ' . $e->getMessage());
             return [];
         }
     }

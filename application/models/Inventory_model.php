@@ -44,6 +44,7 @@ class Inventory_model extends CI_Model {
     public function getInventoryList(int $orgUID, array $filter, int $limit, int $offset): array {
 
         $this->ReadDb->db_debug = FALSE;
+        $branchUID = (int)($filter['BranchUID'] ?? 0);
 
         $this->ReadDb->select([
             'p.ProductUID',
@@ -64,7 +65,15 @@ class Inventory_model extends CI_Model {
         ]);
         $this->ReadDb->select("CONCAT(IFNULL(usr.FirstName,''), ' ', IFNULL(usr.LastName,'')) AS UpdatedByName", FALSE);
         $this->ReadDb->from('Products.ProductTbl p');
-        $this->ReadDb->join('Products.ProductStockTbl ps', 'ps.ProductUID = p.ProductUID', 'left');
+        if ($branchUID > 0) {
+            $sub = "(SELECT ProductUID, SUM(CASE WHEN MovementType='IN' THEN Quantity ELSE -Quantity END) AS AvailableQty"
+                 . " FROM Products.StockLedgerTbl"
+                 . " WHERE OrgUID = {$orgUID} AND BranchUID = {$branchUID} AND IsDeleted = 0"
+                 . " GROUP BY ProductUID) ps";
+            $this->ReadDb->join($sub, 'ps.ProductUID = p.ProductUID', 'left', false);
+        } else {
+            $this->ReadDb->join('Products.ProductStockTbl ps', 'ps.ProductUID = p.ProductUID', 'left');
+        }
         $this->ReadDb->join('Products.CategoryTbl c', 'c.CategoryUID = p.CategoryUID AND c.IsDeleted = 0', 'left');
         $this->ReadDb->join('Global.PrimaryUnitTbl u', 'u.PrimaryUnitUID = p.PrimaryUnitUID', 'left');
         $this->ReadDb->join('Users.UserTbl usr', 'usr.UserUID = p.UpdatedBy', 'left');
@@ -88,9 +97,18 @@ class Inventory_model extends CI_Model {
     public function getInventoryCount(int $orgUID, array $filter): int {
 
         $this->ReadDb->db_debug = FALSE;
+        $branchUID = (int)($filter['BranchUID'] ?? 0);
         $this->ReadDb->select('COUNT(*) AS cnt');
         $this->ReadDb->from('Products.ProductTbl p');
-        $this->ReadDb->join('Products.ProductStockTbl ps', 'ps.ProductUID = p.ProductUID', 'left');
+        if ($branchUID > 0) {
+            $sub = "(SELECT ProductUID, SUM(CASE WHEN MovementType='IN' THEN Quantity ELSE -Quantity END) AS AvailableQty"
+                 . " FROM Products.StockLedgerTbl"
+                 . " WHERE OrgUID = {$orgUID} AND BranchUID = {$branchUID} AND IsDeleted = 0"
+                 . " GROUP BY ProductUID) ps";
+            $this->ReadDb->join($sub, 'ps.ProductUID = p.ProductUID', 'left', false);
+        } else {
+            $this->ReadDb->join('Products.ProductStockTbl ps', 'ps.ProductUID = p.ProductUID', 'left');
+        }
         $this->ReadDb->join('Products.CategoryTbl c', 'c.CategoryUID = p.CategoryUID AND c.IsDeleted = 0', 'left');
         $this->ReadDb->where(['p.OrgUID' => (int)$orgUID, 'p.IsDeleted' => 0, 'p.IsActive' => 1]);
         $this->ReadDb->where('NOT EXISTS (SELECT 1 FROM Products.ProductBOMTbl b WHERE b.ParentProductUID = p.ProductUID AND b.IsDeleted = 0)', null, false);
@@ -169,7 +187,7 @@ class Inventory_model extends CI_Model {
 
     // ── Full stock timeline for a product ────────────────────────────────────
 
-    public function getStockTimeline(int $productUID, int $orgUID): array {
+    public function getStockTimeline(int $productUID, int $orgUID, int $branchUID = 0): array {
 
         $this->ReadDb->db_debug = FALSE;
         $sql = "
@@ -222,10 +240,11 @@ class Inventory_model extends CI_Model {
                       AND sa2.Qty        = sl.Quantity
                 )
             WHERE sl.ProductUID = ? AND sl.OrgUID = ? AND sl.IsDeleted = 0
+              AND (? = 0 OR sl.BranchUID = ?)
             ORDER BY sl.LedgerUID DESC
             LIMIT 200
         ";
-        $query = $this->ReadDb->query($sql, [(int)$productUID, (int)$orgUID]);
+        $query = $this->ReadDb->query($sql, [(int)$productUID, (int)$orgUID, (int)$branchUID, (int)$branchUID]);
         $error = $this->ReadDb->error();
         if ($error['code']) throw new Exception($error['message']);
         return $query->result();

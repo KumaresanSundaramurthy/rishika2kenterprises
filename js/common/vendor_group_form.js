@@ -14,6 +14,8 @@
     // ── State ────────────────────────────────────────────────────────────────
     var _editGroupUID    = 0;
     var _onSaveSuccess   = null;
+    var _isDirty         = false;
+    var _isCreateMode    = false;
     var _members         = [];
     var _primaryUID      = 0;
     var _countriesCache  = null;
@@ -44,6 +46,8 @@
             _initCC(iso2);
             _buildGroupTypeSelect('');
             $('#VendorGroupFormModal').modal('show');
+            _isCreateMode = true;
+            _isDirty      = false;
             return;
         }
 
@@ -63,6 +67,8 @@
 
     // ── Reset ─────────────────────────────────────────────────────────────────
     function _reset() {
+        _isCreateMode = false;
+        _isDirty      = false;
         var $form = $('#VGroupModalForm');
         if ($form.length) $form[0].reset();
         $('#VGroupUID').val('');
@@ -607,6 +613,8 @@
                 $btn.prop('disabled', false);
                 CsrfToken = res.NewCsrfToken || CsrfToken;
                 if (res.Error) { showToastNotification(res.Message, 'error'); return; }
+                _isDirty      = false;
+                _isCreateMode = false;
                 showToastNotification(res.Message, 'success');
                 $('#VendorGroupFormModal').modal('hide');
                 if (typeof _onSaveSuccess === 'function') _onSaveSuccess(res);
@@ -620,6 +628,33 @@
     });
 
     $(document).on('input', '#VG_GroupName', function () { $(this).removeClass('is-invalid'); });
+
+    // ── Dirty-tracking: flag changes while in create mode ────────────────────
+    $(document).on('input change', '#VGroupModalForm input, #VGroupModalForm textarea, #VGroupModalForm select', function () {
+        if (_isCreateMode) _isDirty = true;
+    });
+
+    // ── Unsaved-changes guard (bypass during address modal swap) ─────────────
+    $(document).on('hide.bs.modal', '#VendorGroupFormModal', function (e) {
+        if (!_isDirty || !_isCreateMode || _vgAddrOpened) return;
+        e.preventDefault();
+        Swal.fire({
+            title             : t('swal_unsaved_title',   'Unsaved Changes'),
+            text              : t('swal_unsaved_msg',     'Your changes will be lost if you close now.'),
+            icon              : 'warning',
+            showCancelButton  : true,
+            confirmButtonText : t('swal_unsaved_confirm', 'Close Anyway'),
+            cancelButtonText  : t('swal_unsaved_cancel',  'Stay'),
+            confirmButtonColor: '#d33',
+            cancelButtonColor : '#3085d6',
+        }).then(function (result) {
+            if (result.isConfirmed) {
+                _isDirty      = false;
+                _isCreateMode = false;
+                $('#VendorGroupFormModal').modal('hide');
+            }
+        });
+    });
 
     // ── HTML escape ───────────────────────────────────────────────────────────
     function _esc(s) {

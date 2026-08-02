@@ -12,7 +12,7 @@ $this->load->view('common/transactions/header'); ?>
             <div class="content-wrapper apex-content">
                 <?php $this->load->view('common/apex/page_header', [
                     'pageTitle'       => $PageTitle       ?? 'Sales Invoices',
-                    'pageDescription' => $PageDescription ?? 'Create and manage customer invoices',
+                    'pageDescription' => $PageDescription ?? '',
                 ]); ?>
 
             <?php
@@ -98,7 +98,13 @@ $this->load->view('common/transactions/header'); ?>
                             <div class="apex-filter-spacer"></div>
 
                             <!-- Fixed right: actions -->
-                            <a href="javascript:void(0);" class="apex-filter-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
+                            <a href="javascript:void(0);" class="apex-filter-btn pageRefresh" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('page_refresh', 'Page Refresh'); ?>"><i class="bx bx-refresh"></i></a>
+                            <div class="btn-group d-none" id="ActionsDD-Div">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bx bx-slider-alt"></i></button>
+                                <ul class="dropdown-menu dropdown-menu-end r2k-export-menu r2k-actions-menu">
+                                    <li class="d-none" id="DeleteOption"><a class="dropdown-item text-danger" href="javascript:void(0);" id="btnDelete"><i class="bx bx-trash me-2"></i><?php echo t('delete', 'Delete'); ?></a></li>
+                                </ul>
+                            </div>
                             <?php $this->load->view('common/partials/export_btn'); ?>
                             <a href="/invoices/create" class="btn btn-sm btn-primary flex-shrink-0" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('create_invoice', 'Create Invoice'); ?>"><i class="bx bx-plus me-1"></i><?php echo t('lbl_new', 'New'); ?></a>
                         </div>
@@ -114,6 +120,13 @@ $this->load->view('common/transactions/header'); ?>
                                 <li class="nav-item"><a class="nav-link <?php echo $initTab === 'CreditNotes' ? 'active' : ''; ?> inv-status-tab inv-cn-tab" data-status="CreditNotes" data-url-tab="creditnotes" href="javascript:void(0);">Credit Notes <span class="trans-tab-count ms-1 d-none"></span></a></li>
                             </ul>
                             <?php $this->load->view('common/transactions/filter_notice'); ?>
+                        </div>
+
+                        <!-- Select-all banner -->
+                        <div id="invSelectAllBanner" class="r2k-select-all-banner d-none">
+                            <span id="invSelectAllMsg"></span>
+                            <a href="javascript:void(0);" id="invSelectAllLink" class="ms-2"></a>
+                            <a href="javascript:void(0);" id="invSelectAllClear" class="ms-2 d-none">Clear selection</a>
                         </div>
 
                         <!-- Invoice Table (hidden when Credit Notes tab is active) -->
@@ -434,6 +447,7 @@ $(function () {
     // ── Status tabs ─────────────────────────────────────────
     $(document).on('click', '.inv-status-tab', function (e) {
         e.preventDefault();
+        SelectedUIDs = []; _invClearSelectAll(); MultipleDeleteOption();
         var status = $(this).data('status') || 'All';
         $('.inv-status-tab').removeClass('active');
         $(this).addClass('active');
@@ -532,7 +546,7 @@ $(function () {
     $(document).on('click', '.invPagination .page-link', function (e) {
         e.preventDefault();
         var match = ($(this).attr('href') || '').match(/\/(\d+)$/);
-        if (match) { PageNo = parseInt(match[1]); getInvoicesDetails(); }
+        if (match) { PageNo = parseInt(match[1]); _invClearSelectAll(); getInvoicesDetails(); }
     });
 
     // ── Delete ──────────────────────────────────────────────
@@ -635,6 +649,58 @@ $(function () {
 
         return html;
     }
+
+    // ── Checkbox / select-all wiring ─────────────────────────────────────
+    basePageHeaderFunc(ModuleHeader, ModuleTable, ModuleRow);
+
+    $(ModuleHeader).on('click', function () {
+        _invUpdateSelectAllBanner();
+    });
+
+    $(document).on('change', ModuleRow, function () {
+        onClickOfCheckbox(this, ModuleTable, ModuleHeader, ModuleRow);
+        _invUpdateSelectAllBanner();
+        MultipleDeleteOption();
+    });
+
+    $(document).on('click', '#invSelectAllLink', function (e) {
+        e.preventDefault();
+        _invSelectAllMode = true;
+        _invUpdateSelectAllBanner();
+    });
+
+    $(document).on('click', '#invSelectAllClear', function (e) {
+        e.preventDefault();
+        SelectedUIDs = [];
+        unSelectTableRecords(ModuleTable, ModuleRow);
+        $(ModuleHeader).prop('checked', false).prop('indeterminate', false);
+        _invClearSelectAll();
+        MultipleDeleteOption();
+    });
+
+    // ── Bulk delete ───────────────────────────────────────────────────────
+    $('#btnDelete').on('click', function () {
+        var count = _invSelectAllMode ? _invTotalRecords : SelectedUIDs.length;
+        Swal.fire({
+            title: 'Delete ' + count + ' invoice' + (count === 1 ? '' : 's') + '?',
+            text : 'This cannot be undone.',
+            icon : 'warning', showCancelButton: true,
+            confirmButtonText: 'Delete', confirmButtonColor: '#d33',
+        }).then(function (r) {
+            if (!r.isConfirmed) return;
+            deleteMultipleInvoices();
+        });
+    });
+
+    // ── syncDD: show/hide ActionsDD-Div when DeleteOption visibility changes ──
+    (function syncDD() {
+        var $div = $('#ActionsDD-Div');
+        var $del = $('#DeleteOption');
+        if (!$div.length || !$del.length) return;
+        new MutationObserver(function () {
+            $div.toggleClass('d-none', $del.hasClass('d-none'));
+        }).observe($del[0], { attributes: true, attributeFilter: ['class'] });
+    })();
 
     $(document).on('click', '.cancelInvoice', function () {
         var uid        = $(this).attr('data-uid');
@@ -810,11 +876,11 @@ function updateInvoiceRow(invoice, payments, paidTotal) {
     if (!$row.length) return;
     
     // Update paid amount
-    $row.find('.inv-paid-amt').text('₹' + parseFloat(paidTotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
-    
+    $row.find('.inv-paid-amt').text(currencySymbol + parseFloat(paidTotal || 0).toLocaleString('en-IN', { minimumFractionDigits: decimalPlaces, maximumFractionDigits: decimalPlaces }));
+
     // Update balance amount
     var balance = parseFloat(invoice.BalanceAmount || 0);
-    $row.find('.inv-balance-amt').text('₹' + balance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+    $row.find('.inv-balance-amt').text(currencySymbol + balance.toLocaleString('en-IN', { minimumFractionDigits: decimalPlaces, maximumFractionDigits: decimalPlaces }));
     
     // Update status badge
     var statusBadge = '';

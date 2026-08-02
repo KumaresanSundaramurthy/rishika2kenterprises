@@ -72,7 +72,7 @@ if ($isEdit) {
             <div class="content-wrapper apex-content">
                 <?php $this->load->view('common/apex/page_header', [
                     'pageTitle'       => $PageTitle       ?? 'Expenses',
-                    'pageDescription' => $PageDescription ?? 'Track and manage business expenses',
+                    'pageDescription' => $PageDescription ?? '',
                 ]); ?>
 
                 <form id="expenseForm" action="<?php echo $formAction; ?>" method="post" autocomplete="off">
@@ -1440,6 +1440,7 @@ $(function () {
                 }
                 window._r2kRedirecting = true;
                 sessionStorage.setItem('pendingToast', JSON.stringify({ message: resp.Message, type: 'success' }));
+                _isDirty = false;
                 window.location.href = resp.RedirectURL || '/expenses';
             },
             error: function () {
@@ -1458,6 +1459,38 @@ $(function () {
     <?php else: ?>
     if (typeof _attachResetState === 'function') _attachResetState('Transaction');
     <?php endif; ?>
+
+    // ── Unsaved-changes guard ─────────────────────────────────────────────────
+    var _isDirty = false;
+    $(document).on('input change', function (e) {
+        var t = e.target;
+        if (t && t.type !== 'hidden' && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT')) {
+            _isDirty = true;
+        }
+    });
+    $(window).on('beforeunload', function (e) {
+        if (_isDirty) { e.preventDefault(); e.returnValue = ''; }
+    });
+    $(document).on('click', 'a.btn-outline-danger', function (e) {
+        if (!_isDirty) return;
+        e.preventDefault();
+        var href = $(this).attr('href');
+        Swal.fire({
+            title             : t('swal_unsaved_title',   'Unsaved Changes'),
+            text              : t('swal_unsaved_msg',     'Your changes will be lost if you close now.'),
+            icon              : 'warning',
+            showCancelButton  : true,
+            confirmButtonText : t('swal_unsaved_confirm', 'Close Anyway'),
+            cancelButtonText  : t('swal_unsaved_cancel',  'Stay'),
+            confirmButtonColor: '#d33',
+            cancelButtonColor : '#3085d6',
+        }).then(function (result) {
+            if (result.isConfirmed) {
+                _isDirty = false;
+                window.location.href = href;
+            }
+        });
+    });
 
 });
 </script>

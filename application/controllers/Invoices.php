@@ -110,7 +110,7 @@ class Invoices extends MY_Controller {
             $this->_insertTransItems($transUID, $financialYear, $orgUID, $userUID, $items);
 
             if (!$isDraft) {
-                $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items);
+                $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items, $this->_branchUID());
                 $this->_syncProductCacheFromItems($items);
             }
 
@@ -386,7 +386,7 @@ class Invoices extends MY_Controller {
                 $this->_insertTransItems($newTransUID, $amounts['financialYear'], $orgUID, $userUID, $items);
 
                 if (!$isDraft) {
-                    $this->dbwrite_model->saveStockMovements($newTransUID, $this->pageModuleUID, $orgUID, $userUID, $items);
+                    $this->dbwrite_model->saveStockMovements($newTransUID, $this->pageModuleUID, $orgUID, $userUID, $items, $this->_branchUID());
                     $this->_syncProductCacheFromItems($items);
                 }
 
@@ -415,7 +415,7 @@ class Invoices extends MY_Controller {
                 $this->_updateTransItems($transUID, $items, $orgUID, $amounts['financialYear'], $userUID);
 
                 if (!$isDraft) {
-                    $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items);
+                    $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items, $this->_branchUID());
                     $this->_syncProductCacheFromItems($items);
                 }
             }

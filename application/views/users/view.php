@@ -17,7 +17,7 @@ $stats = $StaffStats ?? null;
             <div class="content-wrapper apex-content">
                 <?php $this->load->view('common/apex/page_header', [
                     'pageTitle'       => $PageTitle ?? 'Staff',
-                    'pageDescription' => $PageDescription ?? 'Manage employees and system users',
+                    'pageDescription' => $PageDescription ?? '',
                 ]); ?>
                 <div class="container-xxl flex-grow-1 container-p-y pt-2">
 
@@ -269,7 +269,12 @@ $(function () {
     });
 
     // ── Open modal (Add) ───────────────────────────────────────────────
+    var _userIsDirty      = false;
+    var _userIsCreateMode = false;
+
     function _resetModal() {
+        _userIsCreateMode = false;
+        _userIsDirty      = false;
         var $m = $('#userModal');
         $m.find('input[type=text], input[type=email], input[type=number]').val('');
         $('#UserModalUID').val(0);
@@ -307,6 +312,11 @@ $(function () {
         $('#userAttachFile').val('');
         $('#userAttachFileName').text('No file chosen');
         $('#btnUploadAttach').addClass('d-none');
+        // Branch access — clear all selections
+        $('.branch-access-chk').prop('checked', false);
+        $('.branch-default-wrap').addClass('d-none');
+        $('.branch-default-badge').addClass('d-none');
+        $('.branch-set-default').removeClass('d-none');
         // Go to first tab
         $('#staffFormTabs a[data-bs-target="#tabPersonal"]').tab('show');
     }
@@ -315,6 +325,8 @@ $(function () {
         _resetModal();
         $('#userModalTitle').text('Add Staff');
         $('#userModal').modal('show');
+        _userIsCreateMode = true;
+        _userIsDirty      = false;
     }
 
     $(document).on('click', '#addStaffBtn, #addStaffBtnEmpty', _openAddModal);
@@ -392,6 +404,19 @@ $(function () {
                 $('#attachTabNavItem').removeClass('d-none');
                 _renderUserAttachments(resp.Attachments || []);
 
+                // Branch access — check assigned branches
+                (resp.BranchAccess || []).forEach(function(ba) {
+                    var $chk = $('#branchChk_' + parseInt(ba.BranchUID));
+                    if (!$chk.length) return;
+                    $chk.prop('checked', true);
+                    var $row = $chk.closest('.branch-access-row');
+                    $row.find('.branch-default-wrap').removeClass('d-none');
+                    if (parseInt(ba.IsDefault) === 1) {
+                        $row.find('.branch-default-badge').removeClass('d-none');
+                        $row.find('.branch-set-default').addClass('d-none');
+                    }
+                });
+
                 $('#userModal').modal('show');
             }
         });
@@ -400,6 +425,26 @@ $(function () {
     // ── Toggle login section visibility ────────────────────────────────
     $(document).on('change', '#UserHasLoginAccess', function () {
         $('#loginAccessSection').toggle($(this).is(':checked'));
+    });
+
+    // ── Branch access: show/hide default button on checkbox change ─────
+    $(document).on('change', '.branch-access-chk', function () {
+        var $row = $(this).closest('.branch-access-row');
+        if ($(this).is(':checked')) {
+            $row.find('.branch-default-wrap').removeClass('d-none');
+        } else {
+            $row.find('.branch-default-wrap').addClass('d-none');
+            $row.find('.branch-default-badge').addClass('d-none');
+            $row.find('.branch-set-default').removeClass('d-none');
+        }
+    });
+
+    // ── Branch access: set one branch as default ───────────────────────
+    $(document).on('click', '.branch-set-default', function () {
+        $('.branch-default-badge').addClass('d-none');
+        $('.branch-set-default').removeClass('d-none');
+        $(this).addClass('d-none');
+        $(this).closest('.branch-default-wrap').find('.branch-default-badge').removeClass('d-none');
     });
 
     // ── Save ───────────────────────────────────────────────────────────
@@ -469,6 +514,16 @@ $(function () {
         if (typeof delAddrData !== 'undefined' && delAddrData.length > 0) {
             fd.append('DelAddrUIDs', delAddrData.join(','));
         }
+        // Branch access
+        var branchAccess = [];
+        var hasDefaultBranch = false;
+        $('.branch-access-chk:checked').each(function() {
+            var isDef = $(this).closest('.branch-access-row').find('.branch-default-badge').not('.d-none').length > 0 ? 1 : 0;
+            if (isDef) hasDefaultBranch = true;
+            branchAccess.push({ BranchUID: parseInt($(this).val()), IsDefault: isDef });
+        });
+        if (branchAccess.length > 0 && !hasDefaultBranch) { branchAccess[0].IsDefault = 1; }
+        fd.append('BranchAccessJson', JSON.stringify(branchAccess));
         fd.append('Filter',   JSON.stringify(Filter));
         fd.append('RowLimit', RowLimit);
         fd.append(CsrfName, CsrfToken);
@@ -482,6 +537,8 @@ $(function () {
                 $('#saveUserSpinner').addClass('d-none');
                 $('#saveUserIcon').removeClass('d-none');
                 if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
+                _userIsDirty      = false;
+                _userIsCreateMode = false;
                 $('#userModal').modal('hide');
                 _renderList(resp);
                 showToastNotification(resp.Message, 'success');
@@ -624,6 +681,33 @@ $(function () {
                 if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
                 _renderUserAttachments(resp.Attachments || []);
                 showToastNotification('Attachment deleted.', 'success');
+            }
+        });
+    });
+
+    // ── Dirty-tracking listener ─────────────────────────────────────────────
+    $(document).on('input change', '#userModal input, #userModal textarea, #userModal select', function () {
+        if (_userIsCreateMode) _userIsDirty = true;
+    });
+
+    // ── Unsaved-changes guard ───────────────────────────────────────────────
+    $(document).on('hide.bs.modal', '#userModal', function (e) {
+        if (!_userIsDirty || !_userIsCreateMode) return;
+        e.preventDefault();
+        Swal.fire({
+            title             : t('swal_unsaved_title',   'Unsaved Changes'),
+            text              : t('swal_unsaved_msg',     'Your changes will be lost if you close now.'),
+            icon              : 'warning',
+            showCancelButton  : true,
+            confirmButtonText : t('swal_unsaved_confirm', 'Close Anyway'),
+            cancelButtonText  : t('swal_unsaved_cancel',  'Stay'),
+            confirmButtonColor: '#d33',
+            cancelButtonColor : '#3085d6',
+        }).then(function (result) {
+            if (result.isConfirmed) {
+                _userIsDirty      = false;
+                _userIsCreateMode = false;
+                $('#userModal').modal('hide');
             }
         });
     });

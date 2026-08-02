@@ -10,7 +10,7 @@ $this->load->view('common/transactions/header'); ?>
             <div class="content-wrapper apex-content">
                 <?php $this->load->view('common/apex/page_header', [
                     'pageTitle'       => $PageTitle       ?? 'Indirect Income',
-                    'pageDescription' => $PageDescription ?? 'Record and manage indirect income entries',
+                    'pageDescription' => $PageDescription ?? '',
                 ]); ?>
                 <?php
                 $stats   = $SummaryStats ?? [];
@@ -96,6 +96,12 @@ $this->load->view('common/transactions/header'); ?>
                             <?php $this->load->view('common/transactions/date_filter_btn'); ?>
                             <div class="apex-filter-spacer"></div>
                             <a href="javascript:void(0);" class="apex-icon-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
+                            <div class="btn-group d-none" id="ActionsDD-Div">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bx bx-slider-alt"></i></button>
+                                <ul class="dropdown-menu dropdown-menu-end r2k-export-menu r2k-actions-menu">
+                                    <li class="d-none" id="DeleteOption"><a class="dropdown-item text-danger" href="javascript:void(0);" id="btnDelete"><i class="bx bx-trash me-2"></i>Delete</a></li>
+                                </ul>
+                            </div>
                             <button type="button" class="btn btn-sm btn-outline-secondary" id="incManageCatBtn">
                                 <i class="bx bx-category me-1"></i>Categories
                             </button>
@@ -112,6 +118,13 @@ $this->load->view('common/transactions/header'); ?>
                                 <li class="nav-item"><a class="nav-link inc-status-tab"        data-status="Received"  href="javascript:void(0);">Received  <span class="inc-tab-count trans-tab-count ms-1 d-none"></span></a></li>
                                 <li class="nav-item"><a class="nav-link inc-status-tab"        data-status="Cancelled" href="javascript:void(0);">Cancelled <span class="inc-tab-count trans-tab-count ms-1 d-none"></span></a></li>
                             </ul>
+                        </div>
+
+                        <!-- Select-all banner -->
+                        <div id="incSelectAllBanner" class="r2k-select-all-banner d-none">
+                            <span id="incSelectAllMsg"></span>
+                            <a href="javascript:void(0);" id="incSelectAllLink" class="ms-2"></a>
+                            <a href="javascript:void(0);" id="incSelectAllClear" class="ms-2 d-none">Clear selection</a>
                         </div>
 
                         <!-- Table -->
@@ -685,6 +698,7 @@ $(function () {
     // ── Status tab click ─────────────────────────────────────
     $(document).on('click', '.inc-status-tab', function (e) {
         e.preventDefault();
+        SelectedUIDs = []; _incClearSelectAll(); MultipleDeleteOption();
         var status = $(this).data('status') || 'All';
         $('.inc-status-tab').removeClass('active');
         $(this).addClass('active');
@@ -741,11 +755,7 @@ $(function () {
     $(document).on('click', '.incPagination .page-link', function (e) {
         e.preventDefault();
         var match = ($(this).attr('href') || '').match(/\/(\d+)$/);
-        if (match) { PageNo = parseInt(match[1]); getIncomeDetails(); }
-    });
-
-    $(document).on('change', '.incHeaderCheck', function () {
-        $('.incCheck').prop('checked', $(this).is(':checked'));
+        if (match) { PageNo = parseInt(match[1]); _incClearSelectAll(); getIncomeDetails(); }
     });
 
     // ── Payment history panel ────────────────────────────────────────────────
@@ -876,7 +886,15 @@ $(function () {
         return new Date().toISOString().slice(0, 10);
     }
 
+    var _imIsDirty          = false;
+    var _imIsCreateMode     = false;
+    var _imCatSwapping      = false;
+    var _incCatIsDirty      = false;
+    var _incCatIsCreateMode = false;
+
     function _resetIncModal() {
+        _imIsCreateMode = false;
+        _imIsDirty      = false;
         _incIsEdit = false;
         $('#imUID').val('0');
         $('#incModalTitle').text('Add Income');
@@ -946,6 +964,8 @@ $(function () {
     $(document).on('click', '#addIncomeBtn', function () {
         _resetIncModal();
         new bootstrap.Modal(document.getElementById('incomeModal')).show();
+        _imIsCreateMode = true;
+        _imIsDirty      = false;
         setTimeout(function () { $('#imAmount').focus(); }, 400);
     });
 
@@ -998,6 +1018,9 @@ $(function () {
         var addCatEl   = document.getElementById('addIncomeCategoryModal');
         var incInst    = bootstrap.Modal.getInstance(incModalEl);
         incModalEl.addEventListener('hidden.bs.modal', function () {
+            _imCatSwapping = false;
+            _incCatIsCreateMode = true;
+            _incCatIsDirty      = false;
             var catInst = new bootstrap.Modal(addCatEl);
             addCatEl.addEventListener('hidden.bs.modal', function () {
                 new bootstrap.Modal(incModalEl).show();
@@ -1005,6 +1028,7 @@ $(function () {
             catInst.show();
             setTimeout(function () { $('#newIncomeCategoryName').focus(); }, 350);
         }, { once: true });
+        _imCatSwapping = true;
         if (incInst) incInst.hide();
     });
 
@@ -1045,6 +1069,8 @@ $(function () {
                 if (typeof _rebuildIncCatFilterList === 'function') _rebuildIncCatFilterList();
                 var $mgr = document.getElementById('incCatManagerModal');
                 if ($mgr && bootstrap.Modal.getInstance($mgr)) _loadIncCatMgr(1);
+                _incCatIsDirty      = false;
+                _incCatIsCreateMode = false;
                 bootstrap.Modal.getInstance(document.getElementById('addIncomeCategoryModal')).hide();
                 showToastNotification(resp.Message || (isEdit ? 'Category updated.' : 'Category added.'), 'success');
             }
@@ -1080,6 +1106,8 @@ $(function () {
         $('#newIncomeCategoryName').val('').removeClass('is-invalid');
         $('#incCatSaveError').hide();
         new bootstrap.Modal(document.getElementById('addIncomeCategoryModal')).show();
+        _incCatIsCreateMode = true;
+        _incCatIsDirty      = false;
         setTimeout(function () { $('#newIncomeCategoryName').focus(); }, 350);
     });
 
@@ -1098,6 +1126,8 @@ $(function () {
         $('#newIncomeCategoryName').val($(this).data('name')).removeClass('is-invalid');
         $('#incCatSaveError').hide();
         new bootstrap.Modal(document.getElementById('addIncomeCategoryModal')).show();
+        _incCatIsCreateMode = false;
+        _incCatIsDirty      = false;
         setTimeout(function () { $('#newIncomeCategoryName').focus(); }, 350);
     });
 
@@ -1167,6 +1197,8 @@ $(function () {
             success: function (resp) {
                 $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i>Save');
                 if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
+                _imIsDirty      = false;
+                _imIsCreateMode = false;
                 bootstrap.Modal.getInstance(document.getElementById('incomeModal')).hide();
                 _renderList(resp);
                 showToastNotification(resp.Message, 'success');
@@ -1310,6 +1342,112 @@ $(function () {
     if (window.location.search.indexOf('action=create') !== -1) {
         $('#addIncomeBtn').trigger('click');
     }
+
+    // ── Income modal dirty-tracking ─────────────────────────────────────────
+    $(document).on('input change', '#imAmount, #imDate, #imCategory, #imNotes, #imPmtTypeUID, #imBankUID, #imPmtDate, #imPmtNotes, #imMarkReceivedBtn, .inc-pmt-pill', function () {
+        if (_imIsCreateMode) _imIsDirty = true;
+    });
+
+    // ── Income modal unsaved-changes guard ──────────────────────────────────
+    $(document).on('hide.bs.modal', '#incomeModal', function (e) {
+        if (!_imIsDirty || !_imIsCreateMode || _imCatSwapping) return;
+        e.preventDefault();
+        Swal.fire({
+            title             : t('swal_unsaved_title',   'Unsaved Changes'),
+            text              : t('swal_unsaved_msg',     'Your changes will be lost if you close now.'),
+            icon              : 'warning',
+            showCancelButton  : true,
+            confirmButtonText : t('swal_unsaved_confirm', 'Close Anyway'),
+            cancelButtonText  : t('swal_unsaved_cancel',  'Stay'),
+            confirmButtonColor: '#d33',
+            cancelButtonColor : '#3085d6',
+        }).then(function (result) {
+            if (result.isConfirmed) {
+                _imIsDirty      = false;
+                _imIsCreateMode = false;
+                bootstrap.Modal.getInstance(document.getElementById('incomeModal')).hide();
+            }
+        });
+    });
+
+    // ── Income Category modal dirty-tracking ────────────────────────────────
+    $(document).on('input', '#newIncomeCategoryName', function () {
+        if (_incCatIsCreateMode) _incCatIsDirty = true;
+    });
+
+    // ── Income Category modal unsaved-changes guard ─────────────────────────
+    $(document).on('hide.bs.modal', '#addIncomeCategoryModal', function (e) {
+        if (!_incCatIsDirty || !_incCatIsCreateMode) return;
+        e.preventDefault();
+        Swal.fire({
+            title             : t('swal_unsaved_title',   'Unsaved Changes'),
+            text              : t('swal_unsaved_msg',     'Your changes will be lost if you close now.'),
+            icon              : 'warning',
+            showCancelButton  : true,
+            confirmButtonText : t('swal_unsaved_confirm', 'Close Anyway'),
+            cancelButtonText  : t('swal_unsaved_cancel',  'Stay'),
+            confirmButtonColor: '#d33',
+            cancelButtonColor : '#3085d6',
+        }).then(function (result) {
+            if (result.isConfirmed) {
+                _incCatIsDirty      = false;
+                _incCatIsCreateMode = false;
+                bootstrap.Modal.getInstance(document.getElementById('addIncomeCategoryModal')).hide();
+            }
+        });
+    });
+
+    // ── Checkbox / select-all wiring ─────────────────────────────────────
+    basePageHeaderFunc(ModuleHeader, ModuleTable, ModuleRow);
+
+    $(ModuleHeader).on('click', function () {
+        _incUpdateSelectAllBanner();
+    });
+
+    $(document).on('change', ModuleRow, function () {
+        onClickOfCheckbox(this, ModuleTable, ModuleHeader, ModuleRow);
+        _incUpdateSelectAllBanner();
+        MultipleDeleteOption();
+    });
+
+    $(document).on('click', '#incSelectAllLink', function (e) {
+        e.preventDefault();
+        _incSelectAllMode = true;
+        _incUpdateSelectAllBanner();
+    });
+
+    $(document).on('click', '#incSelectAllClear', function (e) {
+        e.preventDefault();
+        SelectedUIDs = [];
+        unSelectTableRecords(ModuleTable, ModuleRow);
+        $(ModuleHeader).prop('checked', false).prop('indeterminate', false);
+        _incClearSelectAll();
+        MultipleDeleteOption();
+    });
+
+    // ── Bulk delete ───────────────────────────────────────────────────────
+    $('#btnDelete').on('click', function () {
+        var count = _incSelectAllMode ? _incTotalRecords : SelectedUIDs.length;
+        Swal.fire({
+            title: 'Delete ' + count + ' income record' + (count === 1 ? '' : 's') + '?',
+            text : 'This cannot be undone.',
+            icon : 'warning', showCancelButton: true,
+            confirmButtonText: 'Delete', confirmButtonColor: '#d33',
+        }).then(function (r) {
+            if (!r.isConfirmed) return;
+            deleteMultipleIncomes();
+        });
+    });
+
+    // ── syncDD: show/hide ActionsDD-Div when DeleteOption visibility changes ──
+    (function syncDD() {
+        var $div = $('#ActionsDD-Div');
+        var $del = $('#DeleteOption');
+        if (!$div.length || !$del.length) return;
+        new MutationObserver(function () {
+            $div.toggleClass('d-none', $del.hasClass('d-none'));
+        }).observe($del[0], { attributes: true, attributeFilter: ['class'] });
+    })();
 
 });
 </script>

@@ -1,8 +1,10 @@
 'use strict';
 (function () {
 
-  var currentPage = 1;
-  var filterData  = {};
+  var currentPage       = 1;
+  var filterData        = {};
+  var _deptIsDirty      = false;
+  var _deptIsCreateMode = false;
 
   function loadPage(page, filter) {
     currentPage = page || 1;
@@ -16,6 +18,8 @@
   }
 
   function _resetModal() {
+    _deptIsCreateMode = false;
+    _deptIsDirty      = false;
     $('#deptUID').val(0);
     $('#deptIsSystem').val(0);
     $('#deptName').val('').removeClass('is-invalid').prop('readonly', false).removeClass('bg-light');
@@ -27,6 +31,8 @@
     _resetModal();
     $('#deptModalTitle').text('New Department');
     $('#deptModal').modal('show');
+    _deptIsCreateMode = true;
+    _deptIsDirty      = false;
   });
 
   // Edit
@@ -77,6 +83,8 @@
           $('#DeptTableBody').html(r.RecordHtmlData);
           $('#DepartmentsPagination').html(r.Pagination);
         }
+        _deptIsDirty      = false;
+        _deptIsCreateMode = false;
         $('#deptModal').modal('hide');
         showToastNotification(r.Message || 'Saved.', 'success');
       } else {
@@ -119,6 +127,33 @@
     e.preventDefault();
     var pg = $(this).data('page');
     if (pg) loadPage(pg);
+  });
+
+  // ── Dirty-tracking listener ─────────────────────────────────────────────
+  $(document).on('input change', '#deptName, #deptDesc', function () {
+    if (_deptIsCreateMode) _deptIsDirty = true;
+  });
+
+  // ── Unsaved-changes guard ───────────────────────────────────────────────
+  $(document).on('hide.bs.modal', '#deptModal', function (e) {
+    if (!_deptIsDirty || !_deptIsCreateMode) return;
+    e.preventDefault();
+    Swal.fire({
+      title             : t('swal_unsaved_title',   'Unsaved Changes'),
+      text              : t('swal_unsaved_msg',     'Your changes will be lost if you close now.'),
+      icon              : 'warning',
+      showCancelButton  : true,
+      confirmButtonText : t('swal_unsaved_confirm', 'Close Anyway'),
+      cancelButtonText  : t('swal_unsaved_cancel',  'Stay'),
+      confirmButtonColor: '#d33',
+      cancelButtonColor : '#3085d6',
+    }).then(function (result) {
+      if (result.isConfirmed) {
+        _deptIsDirty      = false;
+        _deptIsCreateMode = false;
+        $('#deptModal').modal('hide');
+      }
+    });
   });
 
 })();

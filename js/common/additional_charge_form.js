@@ -20,6 +20,8 @@
     'use strict';
 
     var _nameManuallyEdited = false;
+    var _acIsDirty          = false;
+    var _acIsCreateMode     = false;
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -52,6 +54,8 @@
      * @returns {void}
      */
     function resetModal() {
+        _acIsCreateMode = false;
+        _acIsDirty      = false;
         $('#acChargeUID').val('0');
         $('#acIsSystem').val('0');
         $('#acName').val('').prop('disabled', false);
@@ -127,6 +131,10 @@
         }
 
         $('#additionalChargeModal').modal('show');
+        if (!charge) {
+            _acIsCreateMode = true;
+            _acIsDirty      = false;
+        }
     });
 
     // ── Save ─────────────────────────────────────────────────────────────────
@@ -181,6 +189,8 @@
                     showToastNotification(resp.Message, 'error');
                     return;
                 }
+                _acIsDirty      = false;
+                _acIsCreateMode = false;
                 $('#additionalChargeModal').modal('hide');
                 showToastNotification(resp.Message, 'success');
                 $(document).trigger('acFormSaved', [resp]);
@@ -197,6 +207,33 @@
     $(document).on('hidden.bs.modal', '#additionalChargeModal', function () {
         resetModal();
         _nameManuallyEdited = false;
+    });
+
+    // ── Dirty-tracking listener ───────────────────────────────────────────────
+    $(document).on('input change', '#acName, #acDisplayName, #acDefaultTaxUID, #acDescription, #acShowByDefault, #acSortOrder', function () {
+        if (_acIsCreateMode) _acIsDirty = true;
+    });
+
+    // ── Unsaved-changes guard ─────────────────────────────────────────────────
+    $(document).on('hide.bs.modal', '#additionalChargeModal', function (e) {
+        if (!_acIsDirty || !_acIsCreateMode) return;
+        e.preventDefault();
+        Swal.fire({
+            title             : t('swal_unsaved_title',   'Unsaved Changes'),
+            text              : t('swal_unsaved_msg',     'Your changes will be lost if you close now.'),
+            icon              : 'warning',
+            showCancelButton  : true,
+            confirmButtonText : t('swal_unsaved_confirm', 'Close Anyway'),
+            cancelButtonText  : t('swal_unsaved_cancel',  'Stay'),
+            confirmButtonColor: '#d33',
+            cancelButtonColor : '#3085d6',
+        }).then(function (result) {
+            if (result.isConfirmed) {
+                _acIsDirty      = false;
+                _acIsCreateMode = false;
+                $('#additionalChargeModal').modal('hide');
+            }
+        });
     });
 
 }(jQuery));

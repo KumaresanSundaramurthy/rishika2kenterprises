@@ -2,13 +2,92 @@
 // Shared utilities (loadTransactionList, debounce, initTooltips) are in common.js
 // Date helpers (getDateRange, formatDate) are in /js/common/datefilter.js
 
+// ── Select-all (Pattern 3) state ────────────────────────────────────────────
+var _purchSelectAllMode = false;
+var _purchTotalRecords  = 0;
+var _purchPageCount     = 0;
+
+/**
+ * @returns {void}
+ */
+function _purchUpdateSelectAllBanner() {
+    var $banner = $('#purchSelectAllBanner');
+    var $msg    = $('#purchSelectAllMsg');
+    var $link   = $('#purchSelectAllLink');
+    var $clear  = $('#purchSelectAllClear');
+
+    if (!_purchPageCount || !$(ModuleHeader).prop('checked')) {
+        $banner.addClass('d-none');
+        return;
+    }
+
+    if (_purchSelectAllMode) {
+        $msg.text('All ' + _purchTotalRecords + ' purchases are selected.');
+        $link.addClass('d-none');
+        $clear.removeClass('d-none');
+    } else {
+        $msg.text('All ' + _purchPageCount + ' purchases on this page are selected.');
+        $clear.addClass('d-none');
+        if (_purchTotalRecords > _purchPageCount) {
+            $link.text('Select all ' + _purchTotalRecords + ' purchases?').removeClass('d-none');
+        } else {
+            $link.addClass('d-none');
+            $banner.addClass('d-none');
+            return;
+        }
+    }
+    $banner.removeClass('d-none');
+}
+
+/**
+ * @returns {void}
+ */
+function _purchClearSelectAll() {
+    _purchSelectAllMode = false;
+    $('#purchSelectAllBanner').addClass('d-none');
+    $('#purchSelectAllLink').removeClass('d-none');
+    $('#purchSelectAllClear').addClass('d-none');
+}
+
+/**
+ * @returns {void}
+ */
+function deleteMultiplePurchases() {
+    var postData = _purchSelectAllMode
+        ? { SelectAll: 1, Filter: JSON.stringify(Filter), [CsrfName]: CsrfToken }
+        : { 'TransUIDs[]': SelectedUIDs, [CsrfName]: CsrfToken };
+    $.ajax({
+        url   : '/transactions/deleteMultipleTransactions/105',
+        method: 'POST',
+        cache : false,
+        data  : postData,
+        success: function (response) {
+            if (response.Error) {
+                showAlertMessageSwal('error', '', response.Message);
+            } else {
+                showToastNotification(response.Message, 'success');
+                SelectedUIDs = [];
+                _purchClearSelectAll();
+                hideUIBlock();
+                ajaxLoading(0);
+                getPurchasesDetails(PageNo, RowLimit, Filter);
+            }
+        }
+    });
+}
+
 function getPurchasesDetails(pageNo, rowLimit, filter, afterLoad) {
     loadTransactionList({
         url:            '/transactions/getPageDetails/105/',
         tabCountClass:  '.purch-tab-count',
         statusTabClass: '.purch-status-tab',
         errorMessage:   'Failed to load purchase bills.',
-        onSuccess:      function(resp) { if (typeof afterLoad === 'function') afterLoad(resp); },
+        onSuccess:      function(resp) {
+            _purchTotalRecords = parseInt(resp.TotalCount) || 0;
+            _purchPageCount    = $(ModuleTable + ' tbody ' + ModuleRow).length;
+            _purchUpdateSelectAllBanner();
+            if (typeof afterLoad === 'function') afterLoad(resp);
+        },
     }, pageNo, rowLimit, filter);
 }
 

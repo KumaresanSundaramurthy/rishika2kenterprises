@@ -15,6 +15,8 @@ var _custCacheKey      = _cfg.custCacheKey  || '';
 var _returnTab         = _cfg.returnTab     || '';
 var _returnPage        = _cfg.returnPage    || 1;
 let imgData;
+var _isDirty      = false;
+var _isPopulating = false;
 
 // Derived locals
 var _editData           = _isEdit ? (_cfg.editData || {}) : {};
@@ -26,6 +28,7 @@ var _fromQuotItems      = !_isEdit ? (_cfg.fromQuotItems      || [])   : [];
 
 $(function () {
     'use strict';
+    _isPopulating = true;
 
     searchCustomers('customerSearch');
     transDatePickr('#transDate_disp',   '#transDate',    false, false, true,  true,  '');
@@ -35,7 +38,7 @@ $(function () {
         var _soCur = _cfg.currency || '₹';
         window._showOnAccountBanner = function (total) {
             if ((parseFloat(total) || 0) > 0) {
-                $('#onAccountTotal').text(_soCur + ' ' + parseFloat(total).toFixed(2));
+                $('#onAccountTotal').text(_soCur + ' ' + parseFloat(total).toFixed(typeof decimalPlaces !== 'undefined' ? decimalPlaces : 2));
                 $('#onAccountIndicator').removeClass('d-none');
             } else {
                 $('#onAccountIndicator').addClass('d-none');
@@ -131,6 +134,8 @@ $(function () {
             }
         }
     }
+
+    _isPopulating = false;
 
     var _formId = _cfg.formId || 'soForm';
     var $form   = $('#' + _formId);
@@ -244,6 +249,7 @@ $(function () {
                     } else {
                         $(document).one('ajaxStop', function () { showUIBlock(); });
                         _setPendingToast('_soPendingToast', response.Message, 'success');
+                        _isDirty = false;
                         window.location.href = _buildReturnUrl('/salesorders');
                     }
                 },
@@ -259,6 +265,43 @@ $(function () {
             $(this).addClass('active-submit');
         });
     }
+
+    // ── Unsaved-changes guard ─────────────────────────────────────────────────
+    $(document).on('input change', function (e) {
+        if (_isPopulating) return;
+        var t = e.target;
+        if (t && t.type !== 'hidden' && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT')) {
+            _isDirty = true;
+        }
+    });
+    $(window).on('beforeunload', function (e) {
+        if (_isDirty) { e.preventDefault(); e.returnValue = ''; }
+    });
+    $(document).on('click', 'a.btn-outline-danger, a[href="javascript:history.back()"]', function (e) {
+        if (!_isDirty) return;
+        e.preventDefault();
+        var $a = $(this);
+        Swal.fire({
+            title             : t('swal_unsaved_title',   'Unsaved Changes'),
+            text              : t('swal_unsaved_msg',     'Your changes will be lost if you close now.'),
+            icon              : 'warning',
+            showCancelButton  : true,
+            confirmButtonText : t('swal_unsaved_confirm', 'Close Anyway'),
+            cancelButtonText  : t('swal_unsaved_cancel',  'Stay'),
+            confirmButtonColor: '#d33',
+            cancelButtonColor : '#3085d6',
+        }).then(function (result) {
+            if (result.isConfirmed) {
+                _isDirty = false;
+                var href = $a.attr('href');
+                if (!href || href === 'javascript:history.back()') {
+                    history.back();
+                } else {
+                    window.location.href = href;
+                }
+            }
+        });
+    });
 
 });
 

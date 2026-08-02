@@ -1,8 +1,10 @@
 'use strict';
 (function () {
 
-  var currentPage = 1;
-  var filterData  = { Year: new Date().getFullYear() };
+  var currentPage          = 1;
+  var filterData           = { Year: new Date().getFullYear() };
+  var _holidayIsDirty      = false;
+  var _holidayIsCreateMode = false;
 
   function loadPage(page, filter) {
     currentPage = page || 1;
@@ -24,6 +26,8 @@
   }
 
   function _resetModal() {
+    _holidayIsCreateMode = false;
+    _holidayIsDirty      = false;
     $('#holidayUID').val(0);
     $('#holidayName').val('').removeClass('is-invalid');
     if (fpDate) { fpDate.clear(); } else { $('#holidayDate').val(''); }
@@ -43,6 +47,8 @@
     _resetModal();
     $('#holidayModalTitle').text('Add Holiday');
     $('#holidayModal').modal('show');
+    _holidayIsCreateMode = true;
+    _holidayIsDirty      = false;
   });
 
   // Edit
@@ -89,6 +95,8 @@
       $spinner.remove();
       $btn.prop('disabled', false);
       if (!r.Error) {
+        _holidayIsDirty      = false;
+        _holidayIsCreateMode = false;
         $('#holidayModal').modal('hide');
         $('#HolidayTableBody').html(r.RecordHtmlData);
         $('#HolidaysPagination').html(r.Pagination);
@@ -142,6 +150,33 @@
     e.preventDefault();
     var pg = $(this).data('page');
     if (pg) loadPage(pg);
+  });
+
+  // ── Dirty-tracking listener ─────────────────────────────────────────────
+  $(document).on('input change', '#holidayName, #holidayDate, #holidayIsOptional, #holidayDesc', function () {
+    if (_holidayIsCreateMode) _holidayIsDirty = true;
+  });
+
+  // ── Unsaved-changes guard ───────────────────────────────────────────────
+  $(document).on('hide.bs.modal', '#holidayModal', function (e) {
+    if (!_holidayIsDirty || !_holidayIsCreateMode) return;
+    e.preventDefault();
+    Swal.fire({
+      title             : t('swal_unsaved_title',   'Unsaved Changes'),
+      text              : t('swal_unsaved_msg',     'Your changes will be lost if you close now.'),
+      icon              : 'warning',
+      showCancelButton  : true,
+      confirmButtonText : t('swal_unsaved_confirm', 'Close Anyway'),
+      cancelButtonText  : t('swal_unsaved_cancel',  'Stay'),
+      confirmButtonColor: '#d33',
+      cancelButtonColor : '#3085d6',
+    }).then(function (result) {
+      if (result.isConfirmed) {
+        _holidayIsDirty      = false;
+        _holidayIsCreateMode = false;
+        $('#holidayModal').modal('hide');
+      }
+    });
   });
 
 })();

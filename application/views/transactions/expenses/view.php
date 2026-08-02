@@ -10,7 +10,7 @@ $this->load->view('common/transactions/header'); ?>
             <div class="content-wrapper apex-content">
                 <?php $this->load->view('common/apex/page_header', [
                     'pageTitle'       => $PageTitle       ?? 'Expenses',
-                    'pageDescription' => $PageDescription ?? 'Track and manage business expenses',
+                    'pageDescription' => $PageDescription ?? '',
                 ]); ?>
                 <?php
                 $stats   = $SummaryStats ?? [];
@@ -99,6 +99,12 @@ $this->load->view('common/transactions/header'); ?>
                             <?php $this->load->view('common/transactions/date_filter_btn'); ?>
                             <div class="apex-filter-spacer"></div>
                             <a href="javascript:void(0);" class="apex-icon-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
+                            <div class="btn-group d-none" id="ActionsDD-Div">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bx bx-slider-alt"></i></button>
+                                <ul class="dropdown-menu dropdown-menu-end r2k-export-menu r2k-actions-menu">
+                                    <li class="d-none" id="DeleteOption"><a class="dropdown-item text-danger" href="javascript:void(0);" id="btnDelete"><i class="bx bx-trash me-2"></i>Delete</a></li>
+                                </ul>
+                            </div>
                             <button type="button" class="btn btn-sm btn-outline-secondary" id="expManageCatBtn">
                                 <i class="bx bx-category me-1"></i>Categories
                             </button>
@@ -115,6 +121,13 @@ $this->load->view('common/transactions/header'); ?>
                                 <li class="nav-item"><a class="nav-link exp-status-tab"        data-status="Paid"      href="javascript:void(0);">Paid      <span class="exp-tab-count trans-tab-count ms-1 d-none"></span></a></li>
                                 <li class="nav-item"><a class="nav-link exp-status-tab"        data-status="Cancelled" href="javascript:void(0);">Cancelled <span class="exp-tab-count trans-tab-count ms-1 d-none"></span></a></li>
                             </ul>
+                        </div>
+
+                        <!-- Select-all banner -->
+                        <div id="expSelectAllBanner" class="r2k-select-all-banner d-none">
+                            <span id="expSelectAllMsg"></span>
+                            <a href="javascript:void(0);" id="expSelectAllLink" class="ms-2"></a>
+                            <a href="javascript:void(0);" id="expSelectAllClear" class="ms-2 d-none">Clear selection</a>
                         </div>
 
                         <!-- Table -->
@@ -671,6 +684,7 @@ $(function () {
     // ── Status tab click ─────────────────────────────────────
     $(document).on('click', '.exp-status-tab', function (e) {
         e.preventDefault();
+        SelectedUIDs = []; _expClearSelectAll(); MultipleDeleteOption();
         var status = $(this).data('status') || 'All';
         $('.exp-status-tab').removeClass('active');
         $(this).addClass('active');
@@ -737,11 +751,7 @@ $(function () {
     $(document).on('click', '.expPagination .page-link', function (e) {
         e.preventDefault();
         var match = ($(this).attr('href') || '').match(/\/(\d+)$/);
-        if (match) { PageNo = parseInt(match[1]); getExpensesDetails(); }
-    });
-
-    $(document).on('change', '.expHeaderCheck', function () {
-        $('.expCheck').prop('checked', $(this).is(':checked'));
+        if (match) { PageNo = parseInt(match[1]); _expClearSelectAll(); getExpensesDetails(); }
     });
 
     // ── Row actions ──────────────────────────────────────────
@@ -1188,9 +1198,15 @@ $(function () {
     });
 
     // Add Category (nested)
+    var _expCatIsDirty      = false;
+    var _expCatIsCreateMode = false;
+
     $('#emAddCategoryBtn').on('click', function () {
+        $('#catModalUID').val('0');
         $('#newCategoryName').val('').removeClass('is-invalid');
         new bootstrap.Modal(document.getElementById('addCategoryModal')).show();
+        _expCatIsCreateMode = true;
+        _expCatIsDirty      = false;
         setTimeout(function () { $('#newCategoryName').focus(); }, 350);
     });
 
@@ -1221,6 +1237,8 @@ $(function () {
                 }
                 _expCatData.sort(function (a, b) { return a.name.localeCompare(b.name); });
                 _rebuildExpCatFilter();
+                _expCatIsDirty      = false;
+                _expCatIsCreateMode = false;
                 bootstrap.Modal.getInstance(document.getElementById('addCategoryModal')).hide();
                 var toastMsg = resp.Message || (isEdit ? 'Category updated.' : 'Category added.');
                 var $mgr = document.getElementById('expCatManagerModal');
@@ -1287,6 +1305,8 @@ $(function () {
         $('#catModalUID').val('0');
         $('#newCategoryName').val('').removeClass('is-invalid');
         new bootstrap.Modal(document.getElementById('addCategoryModal')).show();
+        _expCatIsCreateMode = true;
+        _expCatIsDirty      = false;
         setTimeout(function () { $('#newCategoryName').focus(); }, 350);
     });
 
@@ -1307,6 +1327,8 @@ $(function () {
         $('#catModalUID').val($(this).data('uid'));
         $('#newCategoryName').val($(this).data('name')).removeClass('is-invalid');
         new bootstrap.Modal(document.getElementById('addCategoryModal')).show();
+        _expCatIsCreateMode = false;
+        _expCatIsDirty      = false;
         setTimeout(function () { $('#newCategoryName').focus(); }, 350);
     });
 
@@ -1395,6 +1417,85 @@ $(function () {
             width: '100%',
         });
     }
+
+    // ── Expense Category dirty-tracking ────────────────────────────────────
+    $(document).on('input', '#newCategoryName', function () {
+        if (_expCatIsCreateMode) _expCatIsDirty = true;
+    });
+
+    // ── Expense Category unsaved-changes guard ──────────────────────────────
+    $(document).on('hide.bs.modal', '#addCategoryModal', function (e) {
+        if (!_expCatIsDirty || !_expCatIsCreateMode) return;
+        e.preventDefault();
+        Swal.fire({
+            title             : t('swal_unsaved_title',   'Unsaved Changes'),
+            text              : t('swal_unsaved_msg',     'Your changes will be lost if you close now.'),
+            icon              : 'warning',
+            showCancelButton  : true,
+            confirmButtonText : t('swal_unsaved_confirm', 'Close Anyway'),
+            cancelButtonText  : t('swal_unsaved_cancel',  'Stay'),
+            confirmButtonColor: '#d33',
+            cancelButtonColor : '#3085d6',
+        }).then(function (result) {
+            if (result.isConfirmed) {
+                _expCatIsDirty      = false;
+                _expCatIsCreateMode = false;
+                bootstrap.Modal.getInstance(document.getElementById('addCategoryModal')).hide();
+            }
+        });
+    });
+
+    // ── Checkbox / select-all wiring ─────────────────────────────────────
+    basePageHeaderFunc(ModuleHeader, ModuleTable, ModuleRow);
+
+    $(ModuleHeader).on('click', function () {
+        _expUpdateSelectAllBanner();
+    });
+
+    $(document).on('change', ModuleRow, function () {
+        onClickOfCheckbox(this, ModuleTable, ModuleHeader, ModuleRow);
+        _expUpdateSelectAllBanner();
+        MultipleDeleteOption();
+    });
+
+    $(document).on('click', '#expSelectAllLink', function (e) {
+        e.preventDefault();
+        _expSelectAllMode = true;
+        _expUpdateSelectAllBanner();
+    });
+
+    $(document).on('click', '#expSelectAllClear', function (e) {
+        e.preventDefault();
+        SelectedUIDs = [];
+        unSelectTableRecords(ModuleTable, ModuleRow);
+        $(ModuleHeader).prop('checked', false).prop('indeterminate', false);
+        _expClearSelectAll();
+        MultipleDeleteOption();
+    });
+
+    // ── Bulk delete ───────────────────────────────────────────────────────
+    $('#btnDelete').on('click', function () {
+        var count = _expSelectAllMode ? _expTotalRecords : SelectedUIDs.length;
+        Swal.fire({
+            title: 'Delete ' + count + ' expense' + (count === 1 ? '' : 's') + '?',
+            text : 'This cannot be undone.',
+            icon : 'warning', showCancelButton: true,
+            confirmButtonText: 'Delete', confirmButtonColor: '#d33',
+        }).then(function (r) {
+            if (!r.isConfirmed) return;
+            deleteMultipleExpenses();
+        });
+    });
+
+    // ── syncDD: show/hide ActionsDD-Div when DeleteOption visibility changes ──
+    (function syncDD() {
+        var $div = $('#ActionsDD-Div');
+        var $del = $('#DeleteOption');
+        if (!$div.length || !$del.length) return;
+        new MutationObserver(function () {
+            $div.toggleClass('d-none', $del.hasClass('d-none'));
+        }).observe($del[0], { attributes: true, attributeFilter: ['class'] });
+    })();
 
 });
 </script>

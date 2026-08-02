@@ -1,7 +1,9 @@
 // ──────────────────────────────────────────────────
 // Combo item search — via ProductAppend (Upstash → AJAX fallback)
 // ──────────────────────────────────────────────────
-var _comboItemsCache = null; // null = not loaded yet
+var _comboItemsCache    = null; // null = not loaded yet
+var _comboIsDirty       = false;
+var _comboIsCreateMode  = false;
 
 function _loadComboItemsCache() {
     if (_comboItemsCache !== null) return Promise.resolve(_comboItemsCache);
@@ -99,6 +101,8 @@ $(document).ready(function () {
             if (defTax)       { $('#ComboSellingTaxOption,#ComboPurchaseTaxOption').val(defTax).trigger('change'); }
             if (defTaxDetail) { $('#ComboTaxPercentage').val(defTaxDetail).trigger('change'); }
             $('#comboItemModal').modal('show');
+            _comboIsCreateMode = true;
+            _comboIsDirty      = false;
         });
     });
 
@@ -112,11 +116,11 @@ $(document).ready(function () {
         var qty      = parseFloat($('#ComboItemQty').val()) || 1;
 
         if (!itemUID) {
-            inlineMessageAlert('.comboFormAlert', 'warning', 'Please select an item to add.', true, false);
+            showToastNotification('Please select an item to add.', 'warning');
             return;
         }
         if (qty <= 0) {
-            inlineMessageAlert('.comboFormAlert', 'warning', 'Quantity must be at least 1.', true, false);
+            showToastNotification('Quantity must be at least 1.', 'warning');
             return;
         }
 
@@ -126,7 +130,7 @@ $(document).ready(function () {
             if ($(this).data('uid') == itemUID) { exists = true; return false; }
         });
         if (exists) {
-            inlineMessageAlert('.comboFormAlert', 'warning', 'This item is already added.', true, false);
+            showToastNotification('This item is already added.', 'warning');
             return;
         }
 
@@ -169,7 +173,7 @@ $(document).ready(function () {
 
         var componentCount = $('#ComboComponentsBody tr[data-uid]').length;
         if (componentCount < 2) {
-            inlineMessageAlert('.comboFormAlert', 'danger', 'A combo item must have at least 2 component items.', false, false);
+            showToastNotification('A combo item must have at least 2 component items.', 'error');
             return;
         }
 
@@ -389,6 +393,8 @@ function loadComboTaxSelect2() {
 // Clear the whole combo form
 // ──────────────────────────────────────────────────
 function clearComboForm() {
+    _comboIsCreateMode = false;
+    _comboIsDirty      = false;
     $('#AddEditComboForm')[0].reset();
     $('#HComboUID').val(0);
     $('#ComboTaxPercentage').val('').trigger('change');
@@ -397,7 +403,6 @@ function clearComboForm() {
     $('#ComboComponentsBody tr[data-uid]').remove();
     $('#ComboComponentEmptyRow').show();
     $('#ComboComponentsData').val('[]');
-    $('.comboFormAlert').addClass('d-none');
 }
 
 // ──────────────────────────────────────────────────
@@ -459,9 +464,10 @@ function addComboItemData(formData) {
         enctype: 'multipart/form-data',
         success: function (response) {
             if (response.Error) {
-                $('.comboFormAlert').removeClass('d-none');
-                inlineMessageAlert('.comboFormAlert', 'danger', response.Message, false, false);
+                showToastNotification(response.Message || 'Failed to save combo.', 'error');
             } else {
+                _comboIsDirty      = false;
+                _comboIsCreateMode = false;
                 $('#comboItemModal').modal('hide');
                 showToastNotification(response.Message, 'success');
                 clearComboForm();
@@ -487,8 +493,7 @@ function editComboItemData(formData) {
         enctype: 'multipart/form-data',
         success: function (response) {
             if (response.Error) {
-                $('.comboFormAlert').removeClass('d-none');
-                inlineMessageAlert('.comboFormAlert', 'danger', response.Message, false, false);
+                showToastNotification(response.Message || 'Failed to update combo.', 'error');
             } else {
                 $('#comboItemModal').modal('hide');
                 showToastNotification(response.Message, 'success');
@@ -500,3 +505,30 @@ function editComboItemData(formData) {
         }
     });
 }
+
+// ── Dirty-tracking listener ───────────────────────────────────────────────
+$(document).on('input change', '#AddEditComboForm input, #AddEditComboForm textarea, #AddEditComboForm select', function () {
+    if (_comboIsCreateMode) _comboIsDirty = true;
+});
+
+// ── Unsaved-changes guard ─────────────────────────────────────────────────
+$(document).on('hide.bs.modal', '#comboItemModal', function (e) {
+    if (!_comboIsDirty || !_comboIsCreateMode) return;
+    e.preventDefault();
+    Swal.fire({
+        title             : t('swal_unsaved_title',   'Unsaved Changes'),
+        text              : t('swal_unsaved_msg',     'Your changes will be lost if you close now.'),
+        icon              : 'warning',
+        showCancelButton  : true,
+        confirmButtonText : t('swal_unsaved_confirm', 'Close Anyway'),
+        cancelButtonText  : t('swal_unsaved_cancel',  'Stay'),
+        confirmButtonColor: '#d33',
+        cancelButtonColor : '#3085d6',
+    }).then(function (result) {
+        if (result.isConfirmed) {
+            _comboIsDirty      = false;
+            _comboIsCreateMode = false;
+            $('#comboItemModal').modal('hide');
+        }
+    });
+});

@@ -81,7 +81,7 @@
                 <!-- Total -->
                 <div class="d-flex justify-content-between align-items-center p-2 rounded mb-2" style="background:#f8fafc;border:1px solid #e2e8f0;">
                     <span class="text-muted" style="font-size:.82rem;">Total Extra Charges</span>
-                    <span id="rtnTotalExtraCharges" style="font-weight:700;color:#dc2626;font-size:.9rem;">₹ 0.00</span>
+                    <span id="rtnTotalExtraCharges" style="font-weight:700;color:#dc2626;font-size:.9rem;"><?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?> 0.00</span>
                 </div>
 
                 <!-- Notes -->

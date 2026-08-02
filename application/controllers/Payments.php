@@ -160,6 +160,7 @@ class Payments extends MY_Controller {
             $this->load->model('transactions_model');
             $paymentData = [
                 'OrgUID'            => $orgUID,
+                'BranchUID'         => $this->_branchUID(),
                 'TransUID'          => $transUID,
                 'ModuleUID'         => $moduleUID > 0 ? $moduleUID : $this->pageModuleUID,
                 'PartyType'         => $partyType,

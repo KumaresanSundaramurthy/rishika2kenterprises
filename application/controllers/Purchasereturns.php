@@ -98,7 +98,7 @@ class Purchasereturns extends MY_Controller {
             $this->_insertTransItems($transUID, $financialYear, $orgUID, $userUID, $items);
 
             if (!$isDraft) {
-                $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items);
+                $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items, $this->_branchUID());
                 $this->_syncProductCacheFromItems($items);
             }
 
@@ -255,7 +255,7 @@ class Purchasereturns extends MY_Controller {
                 $this->dbwrite_model->updateData('Transaction', 'TransProductsTbl', ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID], ['TransUID' => $transUID, 'IsDeleted' => 0]);
                 $this->_insertTransItems($newTransUID, $amounts['financialYear'], $orgUID, $userUID, $items);
                 if (!$isDraft) {
-                    $this->dbwrite_model->saveStockMovements($newTransUID, $this->pageModuleUID, $orgUID, $userUID, $items);
+                    $this->dbwrite_model->saveStockMovements($newTransUID, $this->pageModuleUID, $orgUID, $userUID, $items, $this->_branchUID());
                     $this->_syncProductCacheFromItems($items);
                 }
                 $this->dbwrite_model->deleteInTransaction('Transaction', 'TransactionsTbl', ['TransUID' => $transUID]);
@@ -276,7 +276,7 @@ class Purchasereturns extends MY_Controller {
                 $this->dbwrite_model->updateData('Transaction', 'TransDetailTbl', $commonDetail, ['FinancialYear' => $amounts['financialYear'], 'TransUID' => $transUID]);
                 $this->_updateTransItems($transUID, $items, $orgUID, $amounts['financialYear'], $userUID);
                 if (!$isDraft) {
-                    $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items);
+                    $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items, $this->_branchUID());
                     $this->_syncProductCacheFromItems($items);
                 }
             }

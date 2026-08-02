@@ -1,6 +1,80 @@
 // Sales Returns module JS
 'use strict';
 
+// ── Select-all (Pattern 3) state ────────────────────────────────────────────
+var _srSelectAllMode = false;
+var _srTotalRecords  = 0;
+var _srPageCount     = 0;
+
+/**
+ * @returns {void}
+ */
+function _srUpdateSelectAllBanner() {
+    var $banner = $('#srSelectAllBanner');
+    var $msg    = $('#srSelectAllMsg');
+    var $link   = $('#srSelectAllLink');
+    var $clear  = $('#srSelectAllClear');
+
+    if (!_srPageCount || !$(ModuleHeader).prop('checked')) {
+        $banner.addClass('d-none');
+        return;
+    }
+
+    if (_srSelectAllMode) {
+        $msg.text('All ' + _srTotalRecords + ' sales returns are selected.');
+        $link.addClass('d-none');
+        $clear.removeClass('d-none');
+    } else {
+        $msg.text('All ' + _srPageCount + ' sales returns on this page are selected.');
+        $clear.addClass('d-none');
+        if (_srTotalRecords > _srPageCount) {
+            $link.text('Select all ' + _srTotalRecords + ' sales returns?').removeClass('d-none');
+        } else {
+            $link.addClass('d-none');
+            $banner.addClass('d-none');
+            return;
+        }
+    }
+    $banner.removeClass('d-none');
+}
+
+/**
+ * @returns {void}
+ */
+function _srClearSelectAll() {
+    _srSelectAllMode = false;
+    $('#srSelectAllBanner').addClass('d-none');
+    $('#srSelectAllLink').removeClass('d-none');
+    $('#srSelectAllClear').addClass('d-none');
+}
+
+/**
+ * @returns {void}
+ */
+function deleteMultipleSalesReturns() {
+    var postData = _srSelectAllMode
+        ? { SelectAll: 1, Filter: JSON.stringify(Filter), [CsrfName]: CsrfToken }
+        : { 'TransUIDs[]': SelectedUIDs, [CsrfName]: CsrfToken };
+    $.ajax({
+        url   : '/transactions/deleteMultipleTransactions/106',
+        method: 'POST',
+        cache : false,
+        data  : postData,
+        success: function (response) {
+            if (response.Error) {
+                showAlertMessageSwal('error', '', response.Message);
+            } else {
+                showToastNotification(response.Message, 'success');
+                SelectedUIDs = [];
+                _srClearSelectAll();
+                hideUIBlock();
+                ajaxLoading(0);
+                getSalesReturnsDetails(PageNo, RowLimit, Filter);
+            }
+        }
+    });
+}
+
 function getSalesReturnsDetails(pageNo, rowLimit, filter, afterLoad) {
     loadTransactionList({
         url:            '/transactions/getPageDetails/106/',
@@ -8,6 +82,9 @@ function getSalesReturnsDetails(pageNo, rowLimit, filter, afterLoad) {
         statusTabClass: '.sr-status-tab',
         errorMessage:   'Failed to load sales returns.',
         onSuccess:      function (resp) {
+            _srTotalRecords = parseInt(resp.TotalCount) || 0;
+            _srPageCount    = $(ModuleTable + ' tbody ' + ModuleRow).length;
+            _srUpdateSelectAllBanner();
             if (typeof updateSummaryStats === 'function' && resp.SummaryStats) updateSummaryStats(resp.SummaryStats);
             if (typeof afterLoad === 'function') afterLoad(resp);
         },

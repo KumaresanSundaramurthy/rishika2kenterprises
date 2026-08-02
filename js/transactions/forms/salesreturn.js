@@ -14,6 +14,8 @@ var _custCacheKey      = _cfg.custCacheKey  || '';
 var _returnTab         = _cfg.returnTab  || '';
 var _returnPage        = _cfg.returnPage || 1;
 let imgData;
+var _isDirty      = false;
+var _isPopulating = false;
 
 // Derived locals
 var _orgDateFmt    = _cfg.listDateFormat || 'd M Y';
@@ -23,6 +25,7 @@ var _editItems     = _isEdit ? (_editData.items || []) : [];
 
 $(function () {
     'use strict';
+    _isPopulating = true;
 
     window._custSearchHideCreate = true;
     searchCustomers('customerSearch');
@@ -63,7 +66,7 @@ $(function () {
                         var fmt = _orgDateFmt || 'd M Y';
                         return fmt.replace('Y', d[0]).replace('m', d[1]).replace('d', d[2]).replace('M', _months[parseInt(d[1], 10) - 1]);
                     }());
-                    var label = inv.UniqueNumber + ' | ' + dateLabel + ' | ₹' + parseFloat(inv.NetAmount).toFixed(2);
+                    var label = inv.UniqueNumber + ' | ' + dateLabel + ' | ' + currencySymbol + parseFloat(inv.NetAmount).toFixed(decimalPlaces);
                     opts += '<option value="' + inv.TransUID + '">' + label + '</option>';
                 });
                 $inv.html(opts).prop('disabled', false);
@@ -293,12 +296,16 @@ $(function () {
 
         if (typeof billManager !== 'undefined' && typeof formationTableBillItems === 'function' && _editItems.length > 0) {
             $(document).one('billmanager:ready', function () {
+                _isPopulating = true;
                 formationTableBillItems(_editItems);
+                _isPopulating = false;
             });
         }
     }
 
     // ── Form submit ──────────────────────────────────────────────────────────
+    _isPopulating = false;
+
     var _formId = _cfg.formId || 'srForm';
     var $form   = $('#' + _formId);
     if ($form.length) {
@@ -416,6 +423,7 @@ $(function () {
                     } else {
                         $(document).one('ajaxStop', function () { showUIBlock(); });
                         _setPendingToast('_srPendingToast', response.Message, 'success');
+                        _isDirty = false;
                         window.location.href = _buildReturnUrl('/salesreturns');
                     }
                 },
@@ -431,6 +439,44 @@ $(function () {
             $(this).addClass('active-submit');
         });
     }
+
+    // ── Unsaved-changes guard ─────────────────────────────────────────────────
+    $(document).on('input change', function (e) {
+        if (_isPopulating) return;
+        var t = e.target;
+        if (t && t.type !== 'hidden' && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT')) {
+            _isDirty = true;
+        }
+    });
+    $(window).on('beforeunload', function (e) {
+        if (_isDirty) { e.preventDefault(); e.returnValue = ''; }
+    });
+    $(document).on('click', 'a.btn-outline-danger, a[href="javascript:history.back()"]', function (e) {
+        if (!_isDirty) return;
+        e.preventDefault();
+        var $a = $(this);
+        Swal.fire({
+            title             : t('swal_unsaved_title',   'Unsaved Changes'),
+            text              : t('swal_unsaved_msg',     'Your changes will be lost if you close now.'),
+            icon              : 'warning',
+            showCancelButton  : true,
+            confirmButtonText : t('swal_unsaved_confirm', 'Close Anyway'),
+            cancelButtonText  : t('swal_unsaved_cancel',  'Stay'),
+            confirmButtonColor: '#d33',
+            cancelButtonColor : '#3085d6',
+        }).then(function (result) {
+            if (result.isConfirmed) {
+                _isDirty = false;
+                var href = $a.attr('href');
+                if (!href || href === 'javascript:history.back()') {
+                    history.back();
+                } else {
+                    window.location.href = href;
+                }
+            }
+        });
+    });
+
 });
 
 // ── Sticky bottom bar — total sync + button delegation ────────────────────────

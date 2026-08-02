@@ -655,7 +655,7 @@
                 cfg.label,
                 e.SerialNumber || '',
                 e.PaymentMode  || '',
-                (parseFloat(e.Amount) || 0).toFixed(2),
+                (parseFloat(e.Amount) || 0).toFixed(typeof decimalPlaces !== 'undefined' ? decimalPlaces : 2),
             ]);
         });
         return rows.map(function (row) {

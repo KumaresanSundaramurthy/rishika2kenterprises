@@ -46,7 +46,7 @@
                          style="background:#fffbf0;border:1px dashed #f59e0b;cursor:pointer;"
                          data-uid="<?php echo (int)$bank->BankAccountUID; ?>" title="Click to reveal balance">
                         <span class="text-muted" style="font-size:0.75rem;"><i class="bx bx-wallet me-1" style="color:#f59e0b;"></i><?php echo t('lbl_current_balance', 'Current Balance'); ?></span>
-                        <span class="bank-balance-val" style="font-size:0.82rem;font-weight:600;text-decoration:line-through;color:#aaa;">₹ ••••••</span>
+                        <span class="bank-balance-val" style="font-size:0.82rem;font-weight:600;text-decoration:line-through;color:#aaa;"><?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?> ••••••</span>
                     </div>
                 </div>
                 <div class="card-footer bg-transparent py-2 px-3">
@@ -121,7 +121,7 @@
                          style="background:#f0f4ff;border:1px dashed #696cff;cursor:pointer;"
                          data-uid="<?php echo (int)$bank->BankAccountUID; ?>" title="Click to reveal balance">
                         <span class="text-muted" style="font-size:0.75rem;"><i class="bx bx-wallet me-1" style="color:#696cff;"></i><?php echo t('lbl_current_balance', 'Current Balance'); ?></span>
-                        <span class="bank-balance-val" style="font-size:0.82rem;font-weight:600;text-decoration:line-through;color:#aaa;">₹ ••••••</span>
+                        <span class="bank-balance-val" style="font-size:0.82rem;font-weight:600;text-decoration:line-through;color:#aaa;"><?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?> ••••••</span>
                     </div>
                 </div>
 

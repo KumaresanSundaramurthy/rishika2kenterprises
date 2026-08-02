@@ -29,10 +29,10 @@ function allTableHeadersCheckbox(thisField, TableId, TableRow) {
     }).get().length;
     if (tabRowCount > 0) {
         if (!isCurrentlyChecked) {
-            $headerCheckbox.prop('checked', false);
+            $headerCheckbox.prop('checked', false).prop('indeterminate', false);
             unSelectTableRecords(TableId, TableRow);
         } else {
-            $headerCheckbox.prop('checked', true);
+            $headerCheckbox.prop('checked', true).prop('indeterminate', false);
             selectTableRecords(TableId, TableRow);
         }
     }
@@ -42,7 +42,7 @@ function allTableHeadersCheckbox(thisField, TableId, TableRow) {
 function unSelectTableRecords(TableName, FieldName) {
     $(TableName + ' tbody ' + FieldName).each(function () {
         const val = parseInt($(this).val());
-        $(this).prop('checked', false);
+        $(this).prop('checked', false).closest('tr').removeClass('row-sel');
         SelectedUIDs = SelectedUIDs.filter(function (item) {
             return item !== val;
         });
@@ -82,13 +82,15 @@ function onClickOfCheckbox($this, TableId, HeaderField, TableRow) {
 }
 
 function headerCheckboxTrueFalse(TableId, HeaderField, TableRow) {
-    let tabRowCount = $(TableId+' '+TableRow).map(function() {
-        return parseInt($(this).val(), 10);
-    }).get().length;
-    if(SelectedUIDs.length > 0 && SelectedUIDs.length === tabRowCount) {
-        $(HeaderField).prop('checked', true);
+    var $rows        = $(TableId + ' tbody ' + TableRow);
+    var total        = $rows.length;
+    var checkedCount = $rows.filter(':checked').length;
+    if (total > 0 && checkedCount === total) {
+        $(HeaderField).prop('checked', true).prop('indeterminate', false);
+    } else if (checkedCount > 0) {
+        $(HeaderField).prop('checked', false).prop('indeterminate', true);
     } else {
-        $(HeaderField).prop('checked', false);
+        $(HeaderField).prop('checked', false).prop('indeterminate', false);
     }
 }
 

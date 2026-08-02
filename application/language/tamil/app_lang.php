@@ -33,6 +33,7 @@ $lang['log_out']           = 'வெளியேறு';
 $lang['change_password']   = 'கடவுச்சொல் மாற்று';
 $lang['last_login']        = 'கடைசி உள்நுழைவு';
 $lang['settings']          = 'அமைப்புகள்';
+$lang['page_refresh']      = 'பக்கப் புதுப்பிப்பு';
 
 // Theme
 $lang['theme_light']       = 'வெளிச்சம்';
@@ -133,8 +134,9 @@ $lang['btn_save_draft']        = 'வரைவாக சேமி';
 $lang['btn_save_a4']           = 'சேமி & A4 அச்சிடு';
 $lang['btn_save_a5']           = 'சேமி & A5 அச்சிடு';
 $lang['btn_save_thermal']      = 'சேமி & தெர்மல் அச்சிடு';
-$lang['btn_add_customer']      = 'வாடிக்கையாளர் சேர்';
-$lang['btn_add_vendor']        = 'வழங்குனர் சேர்';
+$lang['btn_add_customer']      = 'வாடிக்கையாளர்';
+$lang['btn_add_vendor']        = 'வழங்குனர்';
+$lang['btn_add_product']       = 'பொருள்';
 $lang['btn_save']              = 'சேமி';
 $lang['btn_update']            = 'புதுப்பி';
 
@@ -510,3 +512,7 @@ $lang['col_holiday_name']        = 'விடுமுறை பெயர்';
 $lang['col_holiday_date']        = 'விடுமுறை தேதி';
 $lang['col_holiday_type']        = 'விடுமுறை வகை';
 $lang['toast_lang_changed']      = 'மொழி வெற்றிகரமாக மாற்றப்பட்டது';
+$lang['swal_unsaved_title']      = 'சேமிக்காத மாற்றங்கள்';
+$lang['swal_unsaved_msg']        = 'இப்போது மூடினால் உங்கள் மாற்றங்கள் இழக்கப்படும்.';
+$lang['swal_unsaved_confirm']    = 'மூடு';
+$lang['swal_unsaved_cancel']     = 'தொடர்';

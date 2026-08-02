@@ -89,7 +89,7 @@ $dcDate      = !empty($dc->TransDate) ? date($_fmt, strtotime($dc->TransDate)) :
                                 <button class="btn btn-sm btn-primary px-3" id="btnSave" onclick="savePL()">
                                     <i class="bx bx-check me-1"></i>Save
                                 </button>
-                                <button type="button" class="btn btn-sm btn-outline-danger px-3" onclick="history.back()">
+                                <button type="button" class="btn btn-sm btn-outline-danger px-3" id="plCloseBtn">
                                     <i class="bx bx-x me-1"></i>Close
                                 </button>
                             </div>
@@ -355,4 +355,36 @@ function savePL() {
 
 // Calculate totals on page load
 updateTotals();
+
+// ── Unsaved-changes guard ─────────────────────────────────────────────────────
+var _isDirty = false;
+$(document).ready(function () {
+    $(document).on('input change', function (e) {
+        var t = e.target;
+        if (t && t.type !== 'hidden' && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT')) {
+            _isDirty = true;
+        }
+    });
+    $(window).on('beforeunload', function (e) {
+        if (_isDirty) { e.preventDefault(); e.returnValue = ''; }
+    });
+    $('#plCloseBtn').on('click', function () {
+        if (!_isDirty) { history.back(); return; }
+        Swal.fire({
+            title             : t('swal_unsaved_title',   'Unsaved Changes'),
+            text              : t('swal_unsaved_msg',     'Your changes will be lost if you close now.'),
+            icon              : 'warning',
+            showCancelButton  : true,
+            confirmButtonText : t('swal_unsaved_confirm', 'Close Anyway'),
+            cancelButtonText  : t('swal_unsaved_cancel',  'Stay'),
+            confirmButtonColor: '#d33',
+            cancelButtonColor : '#3085d6',
+        }).then(function (result) {
+            if (result.isConfirmed) {
+                _isDirty = false;
+                history.back();
+            }
+        });
+    });
+});
 </script>

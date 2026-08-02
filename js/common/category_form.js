@@ -15,6 +15,7 @@
     'use strict';
 
     var _onSaveSuccess = null;
+    var _isDirty       = false;
 
     window.CategoryForm = { open: openCategoryModal };
 
@@ -31,11 +32,13 @@
         }
 
         $('#CategoryFormModal').modal('show');
+        _isDirty = false;
         setTimeout(function () { $('#CF_CategoryName').focus(); }, 300);
     }
 
     // ── Reset ─────────────────────────────────────────────────────────────────
     function _resetForm() {
+        _isDirty = false;
         var $form = $('#CFCategoryForm');
         if ($form.length) $form[0].reset();
         $('#CF_CategoryUID').val('0');
@@ -76,6 +79,7 @@
                     showAlertMessageSwal('error', '', response.Message);
                     return;
                 }
+                _isDirty = false;
                 showToastNotification(response.Message, 'success');
                 $('#CategoryFormModal').modal('hide');
                 if (typeof _onSaveSuccess === 'function') {
@@ -85,6 +89,32 @@
             error: function () {
                 $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i>Save');
                 showAlertMessageSwal('error', '', 'Failed to save category.');
+            }
+        });
+    });
+
+    // ── Dirty-tracking: flag any change after form opens ─────────────────────
+    $(document).on('input change', '#CFCategoryForm input, #CFCategoryForm textarea, #CFCategoryForm select', function () {
+        _isDirty = true;
+    });
+
+    // ── Unsaved-changes guard ─────────────────────────────────────────────────
+    $(document).on('hide.bs.modal', '#CategoryFormModal', function (e) {
+        if (!_isDirty) return;
+        e.preventDefault();
+        Swal.fire({
+            title             : t('swal_unsaved_title',   'Unsaved Changes'),
+            text              : t('swal_unsaved_msg',     'Your changes will be lost if you close now.'),
+            icon              : 'warning',
+            showCancelButton  : true,
+            confirmButtonText : t('swal_unsaved_confirm', 'Close Anyway'),
+            cancelButtonText  : t('swal_unsaved_cancel',  'Stay'),
+            confirmButtonColor: '#d33',
+            cancelButtonColor : '#3085d6',
+        }).then(function (result) {
+            if (result.isConfirmed) {
+                _isDirty = false;
+                $('#CategoryFormModal').modal('hide');
             }
         });
     });

@@ -2931,7 +2931,8 @@ $(function () {
         }
         var html = '';
         _expList.forEach(function (r) {
-            var amt = r.Amount ? (typeof currencySymbol !== 'undefined' ? currencySymbol : '₹') + ' ' + parseFloat(r.Amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—';
+            var _pDec = (typeof decimalPlaces !== 'undefined') ? decimalPlaces : 2;
+            var amt = r.Amount ? (typeof currencySymbol !== 'undefined' ? currencySymbol : '₹') + ' ' + parseFloat(r.Amount).toLocaleString('en-IN', { minimumFractionDigits: _pDec, maximumFractionDigits: _pDec }) : '—';
             html += '<tr>';
             html += '<td style="white-space:nowrap;">' + _fmtExpDate(r.ExpenseDate) + '</td>';
             html += '<td>' + (r.ReimbursementType || '—') + '</td>';

@@ -8,6 +8,7 @@
 ─────────────────────────────────────────────────────────────────────────── -->
 <!-- z-index 2000 ensures this sits above any other open modal (Bootstrap default is 1055) -->
 <!-- data-bs-backdrop="false" prevents a second backdrop from appearing over the parent modal -->
+<!-- Usage (JS): openPdfPreview(url, name, isBlob)  — included here so it loads with imagepreview_modal everywhere -->
 <div class="modal fade" id="imagePreviewModal" tabindex="-1" aria-hidden="true"
      data-bs-backdrop="false" style="z-index:2000;">
     <div class="modal-dialog modal-dialog-centered" style="max-width:min(92vw,860px);">
@@ -43,6 +44,33 @@
                 </button>
 
             </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- ── PDF Preview Modal ─────────────────────────────────────────────────────
+     Usage (JS):  openPdfPreview(url, name, isBlob)
+     isBlob = true when url is a blob: URL (revoked on modal close)
+─────────────────────────────────────────────────────────────────────────── -->
+<div class="modal fade" id="pdfPreviewModal" tabindex="-1" aria-hidden="true"
+     data-bs-backdrop="false" style="z-index:2000;">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:min(96vw,960px);">
+        <div class="modal-content border-0 shadow-lg" style="background:#1e293b;border-radius:14px;overflow:hidden;">
+
+            <!-- Header bar -->
+            <div class="d-flex align-items-center gap-2 px-3 flex-shrink-0" style="background:rgba(0,0,0,.55);height:46px;">
+                <i class="bx bxs-file-pdf" style="font-size:1.1rem;color:#f87171;flex-shrink:0;"></i>
+                <span id="pdfPreviewTitle" style="font-size:.88rem;font-weight:600;color:#e2e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;">PDF Preview</span>
+                <button type="button" data-bs-dismiss="modal" aria-label="Close"
+                    style="flex-shrink:0;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:6px;color:#fff;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+                    <i class="bx bx-x" style="font-size:1.3rem;line-height:1;"></i>
+                </button>
+            </div>
+
+            <!-- PDF iframe -->
+            <iframe id="pdfPreviewFrame" src="" title="PDF Preview"
+                style="width:100%;height:80vh;border:none;display:block;background:#fff;"></iframe>
 
         </div>
     </div>

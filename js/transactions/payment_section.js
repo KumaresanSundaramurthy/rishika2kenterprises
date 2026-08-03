@@ -389,6 +389,32 @@ $(function() {
         $('#paymentAttachmentsList').append(html);
     }
 
+    // Preview on click of the file-info area
+    $(document).on('click', '#paymentAttachmentsList .file-info', function () {
+        var index = parseInt($(this).closest('.uploaded-file-item').data('index'));
+        var file  = _paymentAttachments[index];
+        if (!file) return;
+
+        var ext     = file.name.split('.').pop().toLowerCase();
+        var isImage = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'].indexOf(ext) !== -1;
+        var isPdf   = ext === 'pdf';
+
+        if (isImage) {
+            var blobUrl = URL.createObjectURL(file);
+            if (typeof openImageGallery === 'function') {
+                openImageGallery([{ url: blobUrl, name: file.name }], 0);
+            }
+        } else if (isPdf) {
+            var pdfUrl = URL.createObjectURL(file);
+            if (typeof openPdfPreview === 'function') {
+                openPdfPreview(pdfUrl, file.name, true);
+            } else {
+                window.open(pdfUrl, '_blank', 'noopener');
+                setTimeout(function () { URL.revokeObjectURL(pdfUrl); }, 60000);
+            }
+        }
+    });
+
     // Remove attachment
     $(document).on('click', '.file-remove-btn', function() {
         var index = parseInt($(this).data('index'));

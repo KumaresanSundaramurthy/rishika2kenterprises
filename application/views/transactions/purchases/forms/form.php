@@ -455,6 +455,7 @@ if ($isEdit) {
 </div>
 
 <?php $this->load->view('transactions/partials/additional_charges_modal'); ?>
+<?php $this->load->view('common/imagepreview_modal'); ?>
 <?php $this->load->view('common/transactions/footer'); ?>
 
 <script src="/js/transactions/purchases.js"></script>

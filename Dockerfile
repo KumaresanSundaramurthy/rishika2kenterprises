@@ -25,15 +25,16 @@ WORKDIR /var/www/html
 # Install PHP dependencies
 RUN COMPOSER_MEMORY_LIMIT=-1 composer install --no-dev --optimize-autoloader --no-interaction
 
-# Copy nginx config
+# Copy nginx config and remove apt's default site to avoid conflicting server blocks
 COPY nginx/default.conf /etc/nginx/conf.d/default.conf
+RUN rm -f /etc/nginx/sites-enabled/default /etc/nginx/sites-available/default
 
 # Supervisor config to run php-fpm + nginx
 RUN mkdir -p /etc/supervisor/conf.d
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-# PHP upload limits
-RUN echo "upload_max_filesize = 50M\npost_max_size = 50M" > /usr/local/etc/php/conf.d/upload.ini
+# PHP upload limits (printf interprets \n correctly; echo does not in /bin/sh)
+RUN printf "upload_max_filesize = 50M\npost_max_size = 50M\n" > /usr/local/etc/php/conf.d/upload.ini
 
 # Permissions
 RUN chown -R www-data:www-data /var/www/html

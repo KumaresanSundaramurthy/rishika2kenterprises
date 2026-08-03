@@ -387,13 +387,20 @@ function _attachRender(entityType) {
             fileIcon.innerHTML = _attachFileIcon(att.FileType || att.FileName);
             item.appendChild(fileIcon);
             if (att.Url) {
-                (function (url) {
+                (function (url, a) {
                     item.style.cursor = 'pointer';
                     item.addEventListener('click', function (e) {
                         if (e.target.closest('.attach-remove')) return;
-                        window.open(url, '_blank', 'noopener');
+                        var ft    = (a.FileType || '').toLowerCase();
+                        var fn    = (a.FileName || '').toLowerCase();
+                        var isPdf = ft === 'application/pdf' || fn.slice(-4) === '.pdf';
+                        if (isPdf && typeof openPdfPreview === 'function') {
+                            openPdfPreview(url, a.FileName, false);
+                        } else {
+                            window.open(url, '_blank', 'noopener');
+                        }
                     });
-                })(att.Url);
+                })(att.Url, att);
             }
         }
 
@@ -449,14 +456,18 @@ function _attachRender(entityType) {
             fileIcon.className = 'attach-file-icon';
             fileIcon.innerHTML = _attachFileIcon(file.type || file.name);
             item.appendChild(fileIcon);
-            // Open blob URL in new tab so unsaved files can be previewed before saving
             (function (f) {
                 item.style.cursor = 'pointer';
                 item.addEventListener('click', function (e) {
                     if (e.target.closest('.attach-remove')) { return; }
                     var blobUrl = URL.createObjectURL(f);
-                    window.open(blobUrl, '_blank', 'noopener');
-                    setTimeout(function () { URL.revokeObjectURL(blobUrl); }, 60000);
+                    var isPdf   = f.type === 'application/pdf' || f.name.toLowerCase().slice(-4) === '.pdf';
+                    if (isPdf && typeof openPdfPreview === 'function') {
+                        openPdfPreview(blobUrl, f.name, true);
+                    } else {
+                        window.open(blobUrl, '_blank', 'noopener');
+                        setTimeout(function () { URL.revokeObjectURL(blobUrl); }, 60000);
+                    }
                 });
             })(file);
         }

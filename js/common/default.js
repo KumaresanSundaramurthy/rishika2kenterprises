@@ -450,7 +450,36 @@ $(document).ready(function () {
         window._imgGallery = null;
     });
 
+    $('#pdfPreviewModal').on('hidden.bs.modal', function () {
+        document.getElementById('pdfPreviewFrame').src = '';
+        if (window._pdfPreviewBlobUrl) {
+            URL.revokeObjectURL(window._pdfPreviewBlobUrl);
+            window._pdfPreviewBlobUrl = null;
+        }
+    });
+
 });
+
+// ── PDF Preview Modal ─────────────────────────────────────────────────────────
+window._pdfPreviewBlobUrl = null;
+
+/**
+ * @param {string} url     - CDN/blob URL of the PDF
+ * @param {string} name    - filename shown in the header
+ * @param {boolean} isBlob - true if url is a blob: URL (will be revoked on close)
+ * @returns {void}
+ */
+function openPdfPreview(url, name, isBlob) {
+    var frame = document.getElementById('pdfPreviewFrame');
+    var title = document.getElementById('pdfPreviewTitle');
+    if (title) title.textContent = name || 'PDF Preview';
+    if (frame) frame.src = url;
+    window._pdfPreviewBlobUrl = isBlob ? url : null;
+    var modal = document.getElementById('pdfPreviewModal');
+    if (!modal) { window.open(url, '_blank', 'noopener'); return; }
+    modal.style.zIndex = '2000';
+    bootstrap.Modal.getOrCreateInstance(modal, { backdrop: false, keyboard: true }).show();
+}
 
 // ── Common Image Gallery ──────────────────────────────────────────────────────
 // images: [{url, name}]  startIndex: 0-based

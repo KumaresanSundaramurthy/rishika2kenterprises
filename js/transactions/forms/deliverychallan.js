@@ -170,6 +170,9 @@ $(function () {
         $('#extraDiscount').val(_editData.extraDiscAmount || 0);
         var $extDT = $('#extDiscountType');
         if ($extDT.children('option').length) {
+            if (typeof billManager !== 'undefined' && billManager && billManager.summary && billManager.summary.extra) {
+                billManager.summary.extra.discountType = (_editData.extraDiscType || '').toLowerCase();
+            }
             $extDT.val(_editData.extraDiscType || '').trigger('change');
         } else {
             $extDT.data('r2kPendingVal', _editData.extraDiscType || '');

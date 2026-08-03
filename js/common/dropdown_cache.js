@@ -166,6 +166,12 @@ window.DropdownCache = (function ($) {
         // Restore a value that was stored before options were available (edit mode).
         var pending = $sel.data('r2kPendingVal');
         if (pending != null) {
+            // Pre-sync billManager discount type BEFORE triggering change so the
+            // change handler's setExtraDiscountType() sees oldType === newType and
+            // skips value conversion (the stored value is already in the correct unit).
+            if (typeof billManager !== 'undefined' && billManager && billManager.summary && billManager.summary.extra) {
+                billManager.summary.extra.discountType = pending.toLowerCase();
+            }
             $sel.val(pending).trigger('change');
             $sel.removeData('r2kPendingVal');
         }

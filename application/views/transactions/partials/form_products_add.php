@@ -385,7 +385,7 @@ $_editItems      = isset($transEditItems)   ? $transEditItems   : [];
                         <div class="input-group input-group-merge w-70">
                             <select class="form-select form-select-sm" id="extDiscountType" name="extDiscountType">
                             </select>
-                            <input class="form-control form-control-sm ps-1 w-30" type="text" inputmode="decimal" id="extraDiscount" name="extraDiscount" min="0" step="0.01" placeholder="Extra Discount" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" maxlength="<?php echo $JwtData->GenSettings->PriceMaxLength; ?>" value="0">
+                            <input class="form-control form-control-sm ps-1 w-30 text-end" type="text" inputmode="decimal" id="extraDiscount" name="extraDiscount" min="0" step="0.01" placeholder="Extra Discount" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" maxlength="<?php echo $JwtData->GenSettings->PriceMaxLength; ?>" value="0">
                         </div>
                     </div>
                     <div class="d-flex align-items-center justify-content-end mt-2 d-none" id="shippingRow">

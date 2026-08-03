@@ -163,6 +163,12 @@ window.DropdownCache = (function ($) {
             html += '<option value="' + _esc(d.Name) + '">' + _esc(d.Symbol) + '</option>';
         });
         $sel.html(html);
+        // Restore a value that was stored before options were available (edit mode).
+        var pending = $sel.data('r2kPendingVal');
+        if (pending != null) {
+            $sel.val(pending).trigger('change');
+            $sel.removeData('r2kPendingVal');
+        }
     }
 
     function _populateAdditionalChargesTax(taxDetails) {

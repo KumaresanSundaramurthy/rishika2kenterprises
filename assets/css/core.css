@@ -311,8 +311,10 @@
 
 .gpo-wrap {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 14px;
 }
 
 .gpo-spinner {
@@ -365,6 +367,37 @@
   border-radius: 50%;
   object-fit: contain;
   filter: drop-shadow(0 0 7px rgba(105, 108, 255, .5));
+}
+
+/* ── Progress bar (below spinner) ──────────────────────────────────── */
+.gpo-progress-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gpo-progress-track {
+  width: 200px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(105, 108, 255, .15);
+  overflow: hidden;
+}
+
+.gpo-progress-bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #8b5cf6 0%, #696cff 60%, #818cf8 100%);
+  border-radius: 2px;
+  transition: width 50ms linear;
+}
+
+.gpo-progress-pct {
+  font-size: 11px;
+  font-weight: 600;
+  color: #696cff;
+  min-width: 30px;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ── Sticky pagination bar (Customer list page) ─────────────────────── */

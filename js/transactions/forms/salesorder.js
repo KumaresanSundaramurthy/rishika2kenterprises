@@ -68,7 +68,12 @@ $(function () {
         }
 
         $('#extraDiscount').val(_editData.extraDiscAmount || 0);
-        $('#extDiscountType').val(_editData.extraDiscType || '').trigger('change');
+        var $extDT = $('#extDiscountType');
+        if ($extDT.children('option').length) {
+            $extDT.val(_editData.extraDiscType || '').trigger('change');
+        } else {
+            $extDT.data('r2kPendingVal', _editData.extraDiscType || '');
+        }
         $('#globalDiscount').val(_editData.globalDiscPercent || 0).trigger('input');
 
         if (typeof billManager !== 'undefined' && _orgState && _custState) {

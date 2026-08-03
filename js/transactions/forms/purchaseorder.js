@@ -71,8 +71,11 @@ $(function () {
         if (_editData.extraDiscAmount > 0) {
             $('#extraDiscount').val(_editData.extraDiscAmount);
         }
-        if (_editData.extraDiscType) {
-            $('#extDiscountType').val(_editData.extraDiscType);
+        var $extDT = $('#extDiscountType');
+        if ($extDT.children('option').length) {
+            if (_editData.extraDiscType) { $extDT.val(_editData.extraDiscType); }
+        } else {
+            $extDT.data('r2kPendingVal', _editData.extraDiscType || '');
         }
     }
 

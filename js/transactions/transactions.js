@@ -4229,6 +4229,11 @@ $(function () {
     if ($sel.length && $sel.val() === 'Without_GST') {
         _applyGstMode('Without_GST');
     }
+    // Warm the dropdown cache on page load so #extDiscountType options
+    // are available before the user interacts with Extra Discount.
+    if (typeof DropdownCache !== 'undefined') {
+        DropdownCache.init();
+    }
 });
 
 // ── Save & Print support ──────────────────────────────────────────────────

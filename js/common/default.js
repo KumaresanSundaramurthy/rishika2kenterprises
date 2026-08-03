@@ -673,47 +673,119 @@ function isDate(currVal) {
 }
 /*---------------END Date validation------------*/
 
+/* ── Processing overlay: simulated progress bar ─────────────────────── */
+var _gpoHideTimer = null;
+
+/**
+ * Simulated progress bar controller (Method 3).
+ * Eases 0 → ~85 % while request is in-flight; jumps to 100 % on complete.
+ */
+var _gpoSim = (function () {
+    var _timer   = null;
+    var _current = 0;
+    var _stopped = true;
+
+    /**
+     * @param {number} pct
+     * @returns {void}
+     */
+    function _setBar(pct) {
+        var bar = document.getElementById('gpoProgressBar');
+        var lbl = document.getElementById('gpoProgressPct');
+        if (bar) bar.style.width = pct.toFixed(1) + '%';
+        if (lbl) lbl.textContent  = Math.round(pct) + '%';
+    }
+
+    return {
+        /**
+         * Start simulated ease-out animation.
+         * @param {number} [fromPct]
+         * @returns {void}
+         */
+        start: function (fromPct) {
+            _stopped = false;
+            _current = fromPct || 0;
+            _setBar(_current);
+            clearInterval(_timer);
+            _timer = setInterval(function () {
+                if (_stopped) return;
+                _current += (85 - _current) * 0.06;
+                if (_current >= 84.9) _current = 84.9;
+                _setBar(_current);
+            }, 50);
+        },
+        /**
+         * Jump bar to 100 % and stop the interval.
+         * @returns {void}
+         */
+        complete: function () {
+            _stopped = true;
+            clearInterval(_timer);
+            _setBar(100);
+        },
+        /**
+         * Reset bar to 0 % without animating.
+         * @returns {void}
+         */
+        reset: function () {
+            _stopped = true;
+            clearInterval(_timer);
+            _current = 0;
+            _setBar(0);
+        },
+        /**
+         * Directly set bar to an arbitrary percentage (used by XHR upload phase).
+         * @param {number} pct
+         * @returns {void}
+         */
+        setBar: _setBar
+    };
+}());
+
+/** @returns {void} */
 function showUIBlock() {
+    clearTimeout(_gpoHideTimer);
 
     if (!document.getElementById('globalProcOverlay')) {
-
         var d = document.createElement('div');
-
         d.id = 'globalProcOverlay';
-
         d.innerHTML = ''
             + '<div class="gpo-wrap">'
                 + '<div class="gpo-spinner">'
                     + '<img class="gpo-logo" src="/images/logo/favicon_io/android-chrome-512x512-1.png">'
                 + '</div>'
+                + '<div class="gpo-progress-wrap">'
+                    + '<div class="gpo-progress-track">'
+                        + '<div class="gpo-progress-bar" id="gpoProgressBar"></div>'
+                    + '</div>'
+                    + '<span class="gpo-progress-pct" id="gpoProgressPct">0%</span>'
+                + '</div>'
             + '</div>';
-
         document.body.appendChild(d);
     }
 
-    // var lbl = document.getElementById('globalProcLabel');
-
-    // if (lbl) {
-    //     lbl.textContent = label || 'PROCESSING';
-    // }
-
-    document.getElementById('globalProcOverlay')
-        .classList.add('proc-on');
-}
-
-
-/* HIDE FUNCTION */
-function hideUIBlock() {
-
-    var overlay = document.getElementById('globalProcOverlay');
-
-    if (overlay) {
-        overlay.classList.remove('proc-on');
+    _gpoSim.reset();
+    if (!window._gpoUsingManualProgress) {
+        _gpoSim.start(0);
     }
 
+    document.getElementById('globalProcOverlay').classList.add('proc-on');
+}
+
+/** @returns {void} */
+function hideUIBlock() {
+    _gpoSim.complete();
+    clearTimeout(_gpoHideTimer);
+    _gpoHideTimer = setTimeout(function () {
+        var overlay = document.getElementById('globalProcOverlay');
+        if (overlay) overlay.classList.remove('proc-on');
+        _gpoSim.reset();
+    }, 300);
 }
 
 window._r2kRedirecting = false;
+
+window._gpoUsingManualProgress = false;
 
 jQuery(document).ajaxStart(function () {
     if (AjaxLoading == 1) {
@@ -722,6 +794,93 @@ jQuery(document).ajaxStart(function () {
 }).ajaxStop(function () {
     if (!window._r2kRedirecting) hideUIBlock();
 });
+
+/**
+ * Check whether a FormData object contains at least one non-empty File entry.
+ *
+ * @param {FormData} formData
+ * @returns {boolean}
+ */
+function _gpoHasFiles(formData) {
+    if (!(formData instanceof FormData)) return false;
+    var found = false;
+    formData.forEach(function (val) {
+        if (val instanceof File && val.size > 0) found = true;
+    });
+    return found;
+}
+
+/**
+ * AJAX wrapper that auto-detects file uploads and applies the appropriate
+ * progress method:
+ *   - No files → Method 3 (simulated) via standard $.ajax
+ *   - With files → Hybrid (Method 1 real XHR upload % → Method 3 simulated server %)
+ *
+ * Caller must append CsrfName/CsrfToken to formData before calling.
+ *
+ * @param {FormData} formData
+ * @param {{ url: string, method?: string, success?: function, error?: function }} opts
+ * @returns {void}
+ */
+function r2kAjaxWithProgress(formData, opts) {
+    var hasFiles = _gpoHasFiles(formData);
+
+    if (!hasFiles) {
+        ajaxLoading(1);
+        $.ajax({
+            url        : opts.url,
+            method     : opts.method || 'POST',
+            data       : formData,
+            processData: false,
+            contentType: false,
+            success: function (resp) {
+                ajaxLoading(0);
+                if (opts.success) opts.success(resp);
+            },
+            error: function () {
+                ajaxLoading(0);
+                if (opts.error) opts.error();
+            }
+        });
+        return;
+    }
+
+    // Has files — native XHR for real upload % (Phase 1) + simulated server % (Phase 2)
+    window._gpoUsingManualProgress = true;
+    showUIBlock();
+
+    var xhr = new XMLHttpRequest();
+
+    xhr.upload.addEventListener('progress', function (e) {
+        if (!e.lengthComputable) return;
+        _gpoSim.setBar((e.loaded / e.total) * 60);
+    });
+
+    xhr.upload.addEventListener('load', function () {
+        _gpoSim.start(60);
+    });
+
+    xhr.addEventListener('load', function () {
+        window._gpoUsingManualProgress = false;
+        hideUIBlock();
+        var resp = null;
+        try { resp = JSON.parse(xhr.responseText); } catch (e) { resp = null; }
+        if (xhr.status >= 200 && xhr.status < 300 && opts.success) {
+            opts.success(resp);
+        } else if (opts.error) {
+            opts.error();
+        }
+    });
+
+    xhr.addEventListener('error', function () {
+        window._gpoUsingManualProgress = false;
+        hideUIBlock();
+        if (opts.error) opts.error();
+    });
+
+    xhr.open(opts.method || 'POST', opts.url);
+    xhr.send(formData);
+}
 
 function showOneDropzoneImgDetails(dropzoneInstance, imageUrl, fileName, fileSize) {
 

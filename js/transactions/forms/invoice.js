@@ -177,7 +177,7 @@ $(function () {
             e.preventDefault();
 
             var $btn     = $('button[type="submit"][name="action"]:focus, button[type="submit"][name="action"].active-submit', $form);
-            var action   = $btn.val() || 'save';
+            var action   = _resolveFormAction($btn.val() || 'save');
             var csrfName = $form.data('csrf');
             var csrfVal  = $form.data('csrf-value');
 
@@ -360,6 +360,15 @@ $(function () {
                     if (response.Error) {
                         setFormLoading('#' + _formId, false);
                         showFormError(response.Message);
+                    } else if (_pendingPrintFormat) {
+                        var _fmt = _pendingPrintFormat;
+                        _pendingPrintFormat = null;
+                        _isDirty = false;
+                        clearTransactionForm(_formModuleUID);
+                        _setPendingToast('_invPendingToast', response.Message || (_isEdit ? 'Invoice updated successfully.' : 'Invoice created successfully.'), 'success');
+                        _openTransactionPrint(response.TransUID, _formModuleUID, _fmt, function () {
+                            window.location.href = _buildReturnUrl('/invoices');
+                        });
                     } else {
                         _showSavedAndGo(_isEdit ? 'Invoice Updated' : 'Invoice Saved', response.Message || (_isEdit ? 'Invoice updated successfully.' : 'Invoice created successfully.'));
                     }

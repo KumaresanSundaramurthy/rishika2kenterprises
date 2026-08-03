@@ -504,6 +504,7 @@ if ($isEdit) {
 </div>
 
 <?php $this->load->view('transactions/partials/additional_charges_modal'); ?>
+<?php $this->load->view('common/transactions/print_modals'); ?>
 <?php $this->load->view('common/imagepreview_modal'); ?>
 <?php $this->load->view('common/transactions/footer'); ?>
 
@@ -523,6 +524,7 @@ if ($isEdit) {
 <script src="/js/transactions/payment_section.js"></script>
 <?php endif; ?>
 <script src="/js/transactions/attachments.js"></script>
+<script src="/js/transactions/a4_print.js"></script>
 <?php $this->load->view('transactions/partials/additional_charges_data'); ?>
 
 <script>

@@ -271,6 +271,13 @@ $(function() {
         var balance = billTotal - totalPaid;
         var excess  = totalPaid - billTotal;
 
+        // If bill total changed after "Mark as fully paid" was checked, uncheck it.
+        // Don't trigger('change') here — that calls updatePaymentSummary() again.
+        if ($('#isFullyPaid').is(':checked') && Math.abs(totalPaid - billTotal) > 0.005) {
+            $('#isFullyPaid').prop('checked', false);
+            $('#PaymentIsFullyPaid').val(0);
+        }
+
         $('#payBillTotal').text(_currSymbol + ' ' + billTotal.toFixed(_dec));
         $('#payTotalPaid').text(_currSymbol + ' ' + totalPaid.toFixed(_dec));
 

@@ -4210,11 +4210,15 @@ function _applyGstMode(mode) {
                 '#inlineSummaryBar .text-muted, #stickyBottomBar .text-muted { display: none !important; }',
                 '#totalTaxSummaryRow { display: none !important; }',
                 '#taxBreakupPanel { display: none !important; }',
-                '#additionalChargesBox th:nth-child(2), #additionalChargesBox td:nth-child(2) { display: none !important; }',
-                '#additionalChargesBox th:nth-child(3), #additionalChargesBox td:nth-child(3) { display: none !important; }',
+                '#additionalChargesTable th:nth-child(2), #additionalChargesTable td:nth-child(2) { display: none !important; }',
             ].join('\n');
             document.head.appendChild(_gstModeStyle);
         }
+        $('#additionalChargesBody .ac-charge-row').each(function () {
+            var $sel = $(this).find('.ac-tax-select');
+            $(this).data('ac-saved-tax', $sel.val());
+            $sel.val(0).trigger('change');
+        });
         $('#billTable tfoot tr td:nth-child(2)').attr('colspan', 3);
         if (typeof billManager !== 'undefined') {
             billManager.getAllItems().forEach(function (item) {
@@ -4238,6 +4242,13 @@ function _applyGstMode(mode) {
         }
     } else {
         if (_gstModeStyle) { _gstModeStyle.parentNode.removeChild(_gstModeStyle); _gstModeStyle = null; }
+        $('#additionalChargesBody .ac-charge-row').each(function () {
+            var saved = $(this).data('ac-saved-tax');
+            if (saved !== undefined) {
+                $(this).find('.ac-tax-select').val(saved).trigger('change');
+                $(this).removeData('ac-saved-tax');
+            }
+        });
         $('#billTable tfoot tr td:nth-child(2)').attr('colspan', 4);
         if (typeof billManager !== 'undefined') {
             billManager.getAllItems().forEach(function (item) {

@@ -1635,6 +1635,12 @@ class MY_Controller extends CI_Controller {
         $payPrefix     = !empty($payPrefixData->Data) ? $payPrefixData->Data[0] : null;
         $payPrefixUID  = $payPrefix ? (int) $payPrefix->PrefixUID : null;
 
+        // Per-year next-payment-number tracker.
+        // getNextPaymentNumber reads via ReadDb which cannot see uncommitted inserts
+        // from earlier loop iterations (same open transaction). Calling it once per
+        // fiscal year and incrementing locally prevents duplicate-key collisions in
+        // split-payment scenarios.
+        $payNumTracker   = [];
         $firstPaymentUID = null;
         foreach ($rows as $idx => $row) {
             $paymentTypeUID = (int)   ($row['paymentTypeUID'] ?? 0);
@@ -1653,7 +1659,16 @@ class MY_Controller extends CI_Controller {
                 $rowExcess = round($totalPaid - $billTotal, 4);
             }
 
-            $paymentNumber = $payPrefixUID ? $this->transactions_model->getNextPaymentNumber($payPrefixUID, $orgUID, $rowTransYear) : 0;
+            if ($payPrefixUID) {
+                if (!isset($payNumTracker[$rowTransYear])) {
+                    $payNumTracker[$rowTransYear] = $this->transactions_model->getNextPaymentNumber($payPrefixUID, $orgUID, $rowTransYear);
+                } else {
+                    $payNumTracker[$rowTransYear]++;
+                }
+                $paymentNumber = $payNumTracker[$rowTransYear];
+            } else {
+                $paymentNumber = 0;
+            }
             $payUniqueNum  = ($payPrefix && $paymentNumber > 0) ? $this->_buildPaymentUniqueNumber($payPrefix, $rowDate, $paymentNumber) : null;
             $receiptToken  = $this->transactions_model->_generateReceiptToken();
 

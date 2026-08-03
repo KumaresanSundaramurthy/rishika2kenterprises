@@ -141,8 +141,7 @@
 }
 
 /* When dropdown is open: hide trigger placeholder text so only dropdown search is visible */
-.vendor-search-group .select2-container--open .select2-selection--single,
-.customer-search-group .select2-container--open .select2-selection--single {
+.vendor-search-group .select2-container--open .select2-selection--single {
     border-bottom-color: transparent !important;
     border-bottom-left-radius: 0 !important;
     border-bottom-right-radius: 0 !important;
@@ -155,13 +154,13 @@
 .customer-search-group .select2-container--open .select2-selection__clear {
     display: none !important;
 }
-.vendor-search-group .select2-dropdown--below,
-.customer-search-group .select2-dropdown--below {
+.vendor-search-group .select2-dropdown--below {
     border-top: none !important;
     border-top-left-radius: 0 !important;
     border-top-right-radius: 0 !important;
     margin-top: 0 !important;
 }
+/* customer-search-group: inherits .transactionPage margin-top: -38px (combobox overlap) */
 
 .trans-theme .form-control, .trans-table-light .form-control,
 .trans-theme .input-group-text, .trans-table-light .input-group-text,

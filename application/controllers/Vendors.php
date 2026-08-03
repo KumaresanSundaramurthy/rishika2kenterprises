@@ -75,14 +75,15 @@ class Vendors extends MY_Controller {
             $this->load->model('vendors_model');
             $orgUID = $this->pageData['JwtData']->Org->OrgUID;
 
+            $allFilter = strlen($initSearch) >= 3 ? ['SearchAllData' => $initSearch] : [];
             if ($initTab !== 'Groups') {
-                $pageData = $this->_fetchTableData(1, $limit);
+                $pageData = $this->_fetchTableData(1, $limit, $allFilter);
                 $this->pageData['ModRowData']    = $pageData->RecordHtmlData;
                 $this->pageData['ModPagination'] = $pageData->Pagination;
             } else {
                 $this->pageData['ModRowData']    = '';
                 $this->pageData['ModPagination'] = '';
-                $grpFilter = strlen($initSearch) >= 3 ? ['SearchAllData' => $initSearch] : [];
+                $grpFilter = $allFilter;
                 $grpPage   = $this->_fetchVendorGroupsTableData(1, $limit, $grpFilter);
                 $this->pageData['GrpRowData']    = $grpPage->RecordHtmlData;
                 $this->pageData['GrpPagination'] = $grpPage->Pagination;

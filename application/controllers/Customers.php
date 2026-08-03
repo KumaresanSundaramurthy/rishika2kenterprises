@@ -65,13 +65,14 @@ class Customers extends MY_Controller {
             $this->pageData['GrpStats']      = null;
             $this->pageData['GrpTotal']      = 0;
 
+            $allFilter = strlen($initSearch) >= 3 ? ['SearchAllData' => $initSearch] : [];
             if ($initTab !== 'Groups') {
-                $pageData = $this->_fetchTableData(1, $limit);
+                $pageData = $this->_fetchTableData(1, $limit, $allFilter);
                 $this->pageData['ModRowData']      = $pageData->RecordHtmlData;
                 $this->pageData['ModPagination']   = $pageData->Pagination;
                 $this->pageData['InitTotalCount']  = $pageData->TotalCount ?? 0;
             } else {
-                $grpFilter = strlen($initSearch) >= 3 ? ['SearchAllData' => $initSearch] : [];
+                $grpFilter = $allFilter;
                 $grpPage   = $this->_fetchGroupsTableData(1, $limit, $grpFilter);
                 $this->pageData['GrpRowData']    = $grpPage->RecordHtmlData;
                 $this->pageData['GrpPagination'] = $grpPage->Pagination;

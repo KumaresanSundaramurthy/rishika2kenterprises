@@ -616,6 +616,7 @@ $(function() {
 
     $('#SearchDetails').val(_vendInitSearch || '');
     if (_vendInitSearch) { $('#SearchDetails').closest('.r2k-search-wrap').addClass('is-expanded r2k-search-active'); }
+    if (_vendInitSearch && _vendInitSearch.length >= 3) { Filter['SearchAllData'] = _vendInitSearch; }
     $(ModuleRow).prop('checked', false).trigger('change');
 
     basePaginationFunc(ModulePag, function (pg, rl, f) {

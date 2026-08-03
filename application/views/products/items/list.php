@@ -131,7 +131,7 @@ if (!empty($DataLists)) {
                         <?php echo $row->IsActive == 1 ? 'Active' : 'In-Active'; ?>
                         <i class="bx bx-chevron-down" style="font-size:.65rem;"></i>
                     </span>
-                    <ul class="dropdown-menu shadow-sm" style="min-width:150px;font-size:.82rem;">
+                    <ul class="dropdown-menu r2k-action-menu">
                         <li>
                             <button class="dropdown-item prod-status-toggle"
                                     data-uid="<?php echo $uid; ?>"
@@ -229,7 +229,7 @@ if (!empty($DataLists)) {
                         <button class="trans-actions-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bx bx-dots-vertical-rounded fs-5"></i>
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:.82rem;min-width:185px;">
+                        <ul class="dropdown-menu dropdown-menu-end r2k-action-menu">
 
                             <?php if (!$row->IsComposite && !empty($row->PartNumber)): ?>
                             <li><span class="dropdown-header text-uppercase" style="font-size:.68rem;letter-spacing:.4px;color:#adb5bd;padding:4px 12px 2px;">Print Label</span></li>

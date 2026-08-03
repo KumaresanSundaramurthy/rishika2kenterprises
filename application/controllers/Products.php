@@ -156,8 +156,12 @@ class Products extends MY_Controller {
             $OrgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
             $this->pageData['ProductTotalCount'] = 0;
             $this->pageData['ModTotalCount']     = 0;
+            $initFilter = $initSearch !== '' ? ['SearchAllData' => $initSearch] : [];
             if ($activeTab === 'item') {
-                $tableData = $this->products_model->getProductListPaginated($OrgUID, $limit, 0, 'Products.IsComposite = 0');
+                $fr        = $this->products_model->itemFilterFormation((object)['TableAliasName' => 'Products'], $initFilter);
+                $baseQuery = 'Products.IsComposite = 0';
+                $sqry      = $fr->SearchDirectQuery ? $baseQuery . ' AND (' . $fr->SearchDirectQuery . ')' : $baseQuery;
+                $tableData = $this->products_model->getProductListPaginated($OrgUID, $limit, 0, $sqry);
                 $this->pageData['ModRowData'] = $this->load->view('products/items/list', [
                     'DataLists' => $tableData->rows,
                     'StartFrom' => 0,
@@ -167,7 +171,10 @@ class Products extends MY_Controller {
                 $this->pageData['ProductTotalCount'] = $tableData->totalCount;
                 $this->pageData['ModTotalCount']     = $tableData->totalCount;
             } elseif ($activeTab === 'group') {
-                $tableData = $this->products_model->getProductListPaginated($OrgUID, $limit, 0, 'Products.IsComposite = 1');
+                $fr        = $this->products_model->itemFilterFormation((object)['TableAliasName' => 'Products'], $initFilter);
+                $baseQuery = 'Products.IsComposite = 1';
+                $sqry      = $fr->SearchDirectQuery ? $baseQuery . ' AND (' . $fr->SearchDirectQuery . ')' : $baseQuery;
+                $tableData = $this->products_model->getProductListPaginated($OrgUID, $limit, 0, $sqry);
                 $this->pageData['ModRowData'] = $this->load->view('products/items/list', [
                     'DataLists' => $tableData->rows,
                     'StartFrom' => 0,
@@ -179,7 +186,7 @@ class Products extends MY_Controller {
                 $this->pageData['ModTotalCount'] = $tableData->totalCount;
             } elseif ($activeTab === 'pricelist') {
                 $this->load->model('pricelists_model');
-                $tableData = $this->pricelists_model->getPriceListPaginated($OrgUID, $limit, 0, $initSearch !== '' ? ['SearchAllData' => $initSearch] : []);
+                $tableData = $this->pricelists_model->getPriceListPaginated($OrgUID, $limit, 0, $initFilter);
                 $this->pageData['ModRowData'] = $this->load->view('products/pricelists/list', [
                     'DataLists' => $tableData->rows,
                     'StartFrom' => 0,
@@ -188,7 +195,8 @@ class Products extends MY_Controller {
                 $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/products/getPriceListData', $tableData->totalCount, 1, $limit);
                 $this->pageData['ModTotalCount'] = $tableData->totalCount;
             } elseif ($activeTab === 'category') {
-                $tableData = $this->products_model->getCategoryListPaginated($OrgUID, $limit, 0);
+                $fr        = $this->products_model->catgFilterFormation((object)['TableAliasName' => 'Category'], $initFilter);
+                $tableData = $this->products_model->getCategoryListPaginated($OrgUID, $limit, 0, $fr->SearchDirectQuery);
                 $this->pageData['ModRowData'] = $this->load->view('products/categories/list', [
                     'DataLists' => $tableData->rows,
                     'StartFrom' => 0,
@@ -197,7 +205,8 @@ class Products extends MY_Controller {
                 $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/products/getCategoryList', $tableData->totalCount, 1, $limit);
                 $this->pageData['ModTotalCount'] = $tableData->totalCount;
             } elseif ($activeTab === 'brand') {
-                $tableData = $this->products_model->getBrandListPaginated($OrgUID, $limit, 0);
+                $fr        = $this->products_model->brandFilterFormation((object)['TableAliasName' => 'Brand'], $initFilter);
+                $tableData = $this->products_model->getBrandListPaginated($OrgUID, $limit, 0, $fr->SearchDirectQuery);
                 $this->pageData['ModRowData'] = $this->load->view('products/brands/list', [
                     'DataLists' => $tableData->rows,
                     'StartFrom' => 0,

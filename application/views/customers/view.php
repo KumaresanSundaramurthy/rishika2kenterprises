@@ -605,6 +605,7 @@ $(function () {
     var _custDataLoaded = (_custInitTab !== 'Groups'); // false when page loaded with ?tab=groups (Option B)
 
     $('#SearchDetails').val(_custInitSearch || '');
+    if (_custInitSearch && _custInitSearch.length >= 3) { Filter['SearchAllData'] = _custInitSearch; }
     $(ModuleRow).prop('checked', false).trigger('change');
 
     // Auto-show/hide the Actions button based on whether DeleteOption is visible

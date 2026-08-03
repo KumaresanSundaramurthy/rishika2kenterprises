@@ -105,6 +105,7 @@
                             <?php endif; ?>
                             <?php $this->load->view('common/transactions/date_filter_btn'); ?>
                             <div class="apex-filter-spacer"></div>
+                            <a href="javascript:void(0);" id="allPmtRefresh" class="apex-filter-btn pageRefresh" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('page_refresh', 'Page Refresh'); ?>"><i class="bx bx-refresh"></i></a>
                         </div>
 
                         <!-- Tabs Row -->
@@ -383,6 +384,12 @@ $(function () {
             if (tt2) { tt2.dispose(); new bootstrap.Tooltip($th[0]); }
         }
         _allPmtPage.loadData(1);
+    });
+
+    // ── Refresh ───────────────────────────────────────────────────────────────
+    $('#allPmtRefresh').on('click', function () {
+        ajaxLoading(0);
+        _allPmtPage.loadData(_allPmtPage._pageNo);
     });
 
     // ── View payment detail (reads from data-* on <tr>) ─────────────────────

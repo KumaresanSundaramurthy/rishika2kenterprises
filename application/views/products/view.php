@@ -639,7 +639,6 @@ $(function() {
         Filter['SearchAllData'] = _prodInitSearch;
         $('#clearSearch').removeClass('d-none');
         PageNo = 0;
-        showProductPageDetails();
     }
 
     $('.TabPane').click(function(e) {
@@ -1062,11 +1061,9 @@ $(function() {
     basePaginationFunc(ProdPag, function (pg, rl, f) { _prodClearSelectAll(); getProductDetails(pg, rl, f); });
     basePaginationFunc(GroupPag, getGroupDetails);
     baseRefreshPageFunc('.PageRefresh', showProductPageDetails);
-    // Override Page Refresh: set overlay flag so getXDetails uses full overlay instead of spinner
     $('.PageRefresh').off('click').on('click', function(e) {
         e.preventDefault();
         SelectedUIDs = [];
-        _prodPageRefreshing = true;
         showProductPageDetails();
     });
     

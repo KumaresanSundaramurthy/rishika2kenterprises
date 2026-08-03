@@ -1737,6 +1737,7 @@ class Transactions_model extends MY_Model {
             '{{TOTALS_BLOCK}}'         => $totals,
             '{{NOTES_TERMS}}'          => $notesPart . $termsPart,
             '{{FOOTER_TEXT}}'          => $e($theme->FooterText ?? 'Thank you for your business!'),
+            '{{TRANS_NOTES}}'          => nl2br($e($h->Notes ?? 'Thank you for your business!')),
             '{{TERMS_CONDITIONS}}'     => nl2br($e($h->TermsConditions ?? '')),
             '{{HSN_TAX_TABLE}}'        => '',
             /** Summary Totals */

@@ -58,7 +58,7 @@ if (!empty($DataLists)):
                                 <?php echo $isActive ? 'Active' : 'In-Active'; ?>
                                 <i class="bx bx-chevron-down" style="font-size:.65rem;"></i>
                             </span>
-                            <ul class="dropdown-menu shadow-sm" style="min-width:150px;font-size:.82rem;">
+                            <ul class="dropdown-menu r2k-action-menu">
                                 <li>
                                     <button class="dropdown-item vend-status-toggle"
                                             data-uid="<?php echo $uid; ?>"
@@ -156,7 +156,7 @@ if (!empty($DataLists)):
                     <button class="trans-actions-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="bx bx-dots-vertical-rounded fs-5"></i>
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:.82rem;min-width:170px;">
+                    <ul class="dropdown-menu dropdown-menu-end r2k-action-menu">
 
                         <li>
                             <button class="dropdown-item vend-clone-btn" data-uid="<?php echo $uid; ?>">

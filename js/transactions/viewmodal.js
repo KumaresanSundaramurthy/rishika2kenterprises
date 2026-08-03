@@ -304,8 +304,7 @@
                     (item.HSNCode    ? '<div class="vtm-item-sub">HSN: '  + _esc(item.HSNCode)    + '</div>' : '') +
                 '</td>' +
                 '<td class="text-center">' +
-                    '<span class="fw-500">' + _fmtQty(item.Quantity) + '</span>' +
-                    '<br><span class="vtm-item-sub">' + _esc(item.PrimaryUnitName) + '</span>' +
+                    '<span class="fw-500 text-nowrap">' + _fmtQty(item.Quantity) + ' <span class="vtm-item-sub">' + _esc(item.PrimaryUnitName) + '</span></span>' +
                 '</td>' +
                 '<td class="text-end">' + _n(item.UnitPrice) + '</td>' +
                 '<td class="text-end">' + discCell + '</td>' +

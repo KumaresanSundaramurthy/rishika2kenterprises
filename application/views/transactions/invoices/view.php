@@ -575,11 +575,13 @@ $(function () {
             confirmButtonText: 'Delete', confirmButtonColor: '#d33',
         }).then(function (r) {
             if (!r.isConfirmed) return;
+            ajaxLoading(1);
             $.ajax({
                 url   : '/invoices/deleteInvoice',
                 method: 'POST',
                 data  : _actionPostData({ TransUID: uid }),
                 success: function (resp) {
+                    ajaxLoading(0);
                     if (resp.Error) { Swal.fire({ icon:'error', text:resp.Message }); return; }
                     showToastNotification(resp.Message || 'Deleted.', 'success');
                     if (PageNo > 1 && (resp.TotalCount || 0) <= (PageNo - 1) * RowLimit) {

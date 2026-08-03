@@ -395,6 +395,7 @@ class Deliverychallans extends MY_Controller {
             $this->dbwrite_model->commitTransaction();
             $this->cachehelper->touchCustomer($customerUID);
             $this->_saveAttachments($transUID);
+            $this->_softDeleteAttachments($this->input->post('RemovedAttachIDs') ?? '');
             $this->transactions_model->generateAndStorePdf($transUID, $orgUID, $this->pageModuleUID);
 
             // Stock movement after commit — handle 3 transitions:

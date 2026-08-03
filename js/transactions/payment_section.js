@@ -179,6 +179,33 @@ $(function() {
         var parts = val.split('.');
         if (parts.length > 2) val = parts[0] + '.' + parts.slice(1).join('');
         $(this).val(val);
+
+        // When "Mark as fully paid" is checked, cap this row so the running total
+        // can never exceed the bill amount (accounting for On Account credits too).
+        if ($('#isFullyPaid').is(':checked')) {
+            var billTotal  = getBillTotal();
+            var onAccTotal = 0;
+            try {
+                var oaRaw = $('#OnAccountApplyJson').val() || '';
+                if (oaRaw) {
+                    (JSON.parse(oaRaw) || []).forEach(function(item) {
+                        onAccTotal += parseFloat(item.ApplyAmount) || 0;
+                    });
+                }
+            } catch(e) {}
+            var maxPayable = billTotal - onAccTotal;
+            var $current   = $(this);
+            var otherTotal = 0;
+            $('#paymentRowsBody tr').each(function() {
+                var $inp = $(this).find('.pay-amount-inp');
+                if (!$inp.is($current)) otherTotal += parseFloat($inp.val()) || 0;
+            });
+            var maxForThis = Math.max(0, maxPayable - otherTotal);
+            if ((parseFloat(val) || 0) > maxForThis) {
+                $(this).val(maxForThis.toFixed(_dec));
+            }
+        }
+
         updatePaymentSummary();
     });
 
@@ -265,8 +292,9 @@ $(function() {
 
     /* ── serialize → hidden input (called before submit) ──── */
     window.serializePaymentRows = function() {
-        var rows = [];
-        var today = new Date().toISOString().split('T')[0];
+        var rows     = [];
+        var rowTotal = 0;
+        var today    = new Date().toISOString().split('T')[0];
 
         $('#paymentRowsBody tr').each(function() {
             var $tr            = $(this);
@@ -279,6 +307,7 @@ $(function() {
             $tr.find('.pay-amount-inp').css('border', '');
 
             if (amount <= 0) return; // skip empty rows silently — no payment entered
+            rowTotal += amount;
 
             rows.push({
                 paymentTypeUID : paymentTypeUID,
@@ -289,6 +318,45 @@ $(function() {
                 paymentDate    : paymentDate,
             });
         });
+
+        // "Mark as fully paid" validation — total must be within ₹1 of bill amount
+        if ($('#isFullyPaid').is(':checked')) {
+            var billTotal  = getBillTotal();
+            var onAccTotal = 0;
+            try {
+                var oaRaw = $('#OnAccountApplyJson').val() || '';
+                if (oaRaw) {
+                    (JSON.parse(oaRaw) || []).forEach(function(item) {
+                        onAccTotal += parseFloat(item.ApplyAmount) || 0;
+                    });
+                }
+            } catch(e) {}
+            var totalPaid = rowTotal + onAccTotal;
+            var diff      = totalPaid - billTotal;
+
+            if (diff < -1) {
+                showToastNotification(
+                    t('toast_fully_paid_short',
+                      'Total paid ({paid}) is {short} short of the bill amount ({bill}). Please complete the full payment to mark as fully paid.')
+                        .replace('{paid}',  _currSymbol + ' ' + totalPaid.toFixed(_dec))
+                        .replace('{short}', _currSymbol + ' ' + Math.abs(diff).toFixed(_dec))
+                        .replace('{bill}',  _currSymbol + ' ' + billTotal.toFixed(_dec)),
+                    'error'
+                );
+                return false;
+            }
+            if (diff > 1) {
+                showToastNotification(
+                    t('toast_fully_paid_excess',
+                      'Total paid ({paid}) exceeds the bill amount ({bill}) by {excess}. Please reduce the payment amount.')
+                        .replace('{paid}',   _currSymbol + ' ' + totalPaid.toFixed(_dec))
+                        .replace('{bill}',   _currSymbol + ' ' + billTotal.toFixed(_dec))
+                        .replace('{excess}', _currSymbol + ' ' + diff.toFixed(_dec)),
+                    'error'
+                );
+                return false;
+            }
+        }
 
         $('#PaymentRowsJson').val(rows.length > 0 ? JSON.stringify(rows) : '');
         return true;

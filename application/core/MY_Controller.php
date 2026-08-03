@@ -472,13 +472,16 @@ class MY_Controller extends CI_Controller {
         $this->load->model('transactions_model');
         $sortOffset = $this->transactions_model->getMaxAttachmentSortOrder((int)$uid, (int)$orgUID, $sourceType) + 1;
 
+        $orgToken    = strtolower(preg_replace('/[^a-zA-Z0-9_-]/', '', $this->pageData['JwtData']->Org->OrgToken ?? ''));
+        if (empty($orgToken)) $orgToken = 'org-' . $orgUID;
+
         $count = count($files['name']);
         for ($i = 0; $i < $count; $i++) {
             if ($files['error'][$i] !== UPLOAD_ERR_OK || empty($files['name'][$i])) continue;
 
             $origName    = basename($files['name'][$i]);
             $safeName    = time() . '_' . $i . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $origName);
-            $storagePath = $folder . '/' . $uid . '/' . $safeName;
+            $storagePath = $orgToken . '/' . $folder . '/' . $uid . '/' . $safeName;
 
             $uploadResult = $this->fileupload->fileUpload('file', $storagePath, $files['tmp_name'][$i]);
             if ($uploadResult->Error) continue;
@@ -620,6 +623,9 @@ class MY_Controller extends CI_Controller {
         $this->load->library('fileupload');
         $this->load->model('dbwrite_model');
 
+        $orgToken = strtolower(preg_replace('/[^a-zA-Z0-9_-]/', '', $this->pageData['JwtData']->Org->OrgToken ?? ''));
+        if (empty($orgToken)) $orgToken = 'org-' . $orgUID;
+
         $allowed = [
             'application/pdf',
             'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
@@ -637,7 +643,7 @@ class MY_Controller extends CI_Controller {
 
             $origName    = basename($files['name'][$i]);
             $safeName    = time() . '_' . $i . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $origName);
-            $storagePath = 'payments/' . $paymentUID . '/' . $safeName;
+            $storagePath = $orgToken . '/payments/' . $paymentUID . '/' . $safeName;
 
             $uploadResult = $this->fileupload->fileUpload('file', $storagePath, $files['tmp_name'][$i]);
             if ($uploadResult->Error) continue;
@@ -1680,7 +1686,7 @@ class MY_Controller extends CI_Controller {
                 'UpdatedBy'         => $userUID,
             ];
 
-            $resp = $this->dbwrite_model->insertBatchInTransaction('Transaction', 'PaymentsTbl', [$paymentData]);
+            $resp = $this->dbwrite_model->insertData('Transaction', 'PaymentsTbl', $paymentData);
             if ($resp->Error) throw new Exception('Payment save failed: ' . $resp->Message);
             if ($idx === 0) $firstPaymentUID = $resp->ID ?? null;
 

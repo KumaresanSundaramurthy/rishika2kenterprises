@@ -439,7 +439,10 @@ $(function () {
             }
         } catch (e) {}
 
-        var paid    = _r2(rowsPaid + oaPaid);
+        // On edit the payment section is hidden; seed paid from the already-recorded DB amount.
+        var dbPaid = (_isEdit && _cfg.editData) ? (parseFloat(_cfg.editData.paidAmount) || 0) : 0;
+
+        var paid    = _r2(rowsPaid + oaPaid + dbPaid);
         var balance = grand > 0 ? Math.max(0, _r2(grand - paid)) : 0;
         var excess  = grand > 0 ? Math.max(0, _r2(paid - grand)) : 0;
 

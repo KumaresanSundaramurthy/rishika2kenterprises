@@ -301,6 +301,8 @@ class Proformainvoices extends MY_Controller {
             $this->dbwrite_model->commitTransaction();
             $this->cachehelper->touchCustomer($customerUID);
             $this->transactions_model->generateAndStorePdf($transUID, $orgUID, $this->pageModuleUID);
+            $this->_saveAttachments($transUID);
+            $this->_softDeleteAttachments($this->input->post('RemovedAttachIDs') ?? '');
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Pro Forma Invoice updated successfully.';

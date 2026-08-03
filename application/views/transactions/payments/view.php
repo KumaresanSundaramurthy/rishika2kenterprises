@@ -579,11 +579,13 @@ $(function () {
  * @returns {void}
  */
 function _doPaymentAction(paymentUID, $row, action) {
+    ajaxLoading(1);
     $.ajax({
         url   : '/payments/deletePayment',
         method: 'POST',
         data  : { PaymentUID: paymentUID, Action: action, [CsrfName]: CsrfToken },
         success: function (resp) {
+            ajaxLoading(0);
             if (!resp.Error) {
                 var msg = resp.Message;
                 $row.fadeOut(300, function () { $(this).remove(); });
@@ -593,6 +595,9 @@ function _doPaymentAction(paymentUID, $row, action) {
             } else {
                 Swal.fire('Error', resp.Message, 'error');
             }
+        },
+        error: function () {
+            ajaxLoading(0);
         }
     });
 }

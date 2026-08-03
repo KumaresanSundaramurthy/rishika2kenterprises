@@ -65,7 +65,6 @@ function _plApplyCustDiscount(custData) {
  * Called once on DOMContentLoaded.
  */
 function _plLoad() {
-    if (typeof R2K_HAS_PRICE_LISTS === 'undefined' || !R2K_HAS_PRICE_LISTS) return;
     if (typeof UpstashService === 'undefined' || !UpstashService.isEnabled()) return;
     UpstashService.get(UpstashService.orgKey('price-lists')).then(function (data) {
         if (!Array.isArray(data) || !data.length) {
@@ -756,12 +755,6 @@ function _plTransResolve(custData) {
     if (_plActivePriceList) {
         _plActivePriceList = null;
         _plHideChip();
-    }
-
-    // Org has no active price lists — skip all price list logic.
-    if (typeof R2K_HAS_PRICE_LISTS === 'undefined' || !R2K_HAS_PRICE_LISTS) {
-        _plApplyCustDiscount(custData);
-        return;
     }
 
     // If price list data hasn't loaded (Upstash unavailable or no lists configured),

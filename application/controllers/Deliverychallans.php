@@ -100,7 +100,7 @@ class Deliverychallans extends MY_Controller {
         }
     }
 
-    // â"€â"€ Edit form â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+    //â"€â"€ Edit form â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
     public function edit($transUID = 0) {
         try {
             $transUID = (int) $transUID;
@@ -147,7 +147,7 @@ class Deliverychallans extends MY_Controller {
             $this->pageData['IsEditMode']         = true;
 
             $this->_getDispatchAddresses($orgUID);
-            
+
             $this->pageData['fltStorageData']  = [];
             if (!empty($this->pageData['JwtData']->GenSettings->EnableStorage)) {
                 $this->load->model('storage_model');
@@ -160,7 +160,7 @@ class Deliverychallans extends MY_Controller {
         }
     }
 
-    // â"€â"€ Save new challan â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+    //â"€â"€ Save new challan â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
     public function addDeliveryChallan() {
         $this->EndReturnData = new stdClass();
         $ErrorInForm = '';

@@ -337,17 +337,23 @@ $(function () {
             confirmButtonText: 'Delete', confirmButtonColor: '#d33',
         }).then(function (r) {
             if (!r.isConfirmed) return;
+            ajaxLoading(1);
             $.ajax({
                 url   : '/payments/deletePayment',
                 method: 'POST',
                 data  : { PaymentUID: paymentUID, [CsrfName]: CsrfToken },
                 success: function (resp) {
+                    ajaxLoading(0);
                     if (!resp.Error) {
                         $row.fadeOut(300, function () { $(this).remove(); });
                         Swal.fire({ icon: 'success', text: 'Payment deleted.', timer: 1500, showConfirmButton: false });
                     } else {
                         Swal.fire('Error', resp.Message, 'error');
                     }
+                },
+                error: function () {
+                    ajaxLoading(0);
+                    Swal.fire('Error', 'Server error. Please try again.', 'error');
                 }
             });
         });

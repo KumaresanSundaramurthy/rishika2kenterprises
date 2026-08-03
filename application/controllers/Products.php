@@ -2811,7 +2811,6 @@ class Products extends MY_Controller {
             }
 
             $this->upstashservice->set($cacheKey, $current, 0);
-            $this->upstashservice->set($this->redisservice->orgKey('has-price-lists'), !empty($current), 0);
         } catch (Exception $e) {
             log_message('error', '_upsertOnePriceListCache: ' . $e->getMessage());
         }
@@ -2829,7 +2828,6 @@ class Products extends MY_Controller {
 
             $filtered = array_values(array_filter($current, fn($pl) => (int)($pl['PriceListUID'] ?? 0) !== $plUID));
             $this->upstashservice->set($cacheKey, $filtered, 0);
-            $this->upstashservice->set($this->redisservice->orgKey('has-price-lists'), !empty($filtered), 0);
         } catch (Exception $e) {
             log_message('error', '_removeOnePriceListCache: ' . $e->getMessage());
         }
@@ -2846,7 +2844,6 @@ class Products extends MY_Controller {
             $lists    = $this->pricelists_model->getAllForCache($orgUID);
             $cacheKey = $this->redisservice->orgKey('price-lists');
             $this->upstashservice->set($cacheKey, $lists, 0);
-            $this->upstashservice->set($this->redisservice->orgKey('has-price-lists'), !empty($lists), 0);
         } catch (Exception $e) {
             log_message('error', '_syncPriceListCache: ' . $e->getMessage());
         }
@@ -2863,7 +2860,6 @@ class Products extends MY_Controller {
             $lists    = $this->pricelists_model->getAllForCache($orgUID);
             $cacheKey = $this->redisservice->orgKey('price-lists');
             $this->upstashservice->set($cacheKey, $lists, 0);
-            $this->upstashservice->set($this->redisservice->orgKey('has-price-lists'), !empty($lists), 0);
             $this->EndReturnData->Error   = false;
             $this->EndReturnData->Lists   = $lists;
             $this->EndReturnData->Message = count($lists) . ' price list(s) synced to cache.';

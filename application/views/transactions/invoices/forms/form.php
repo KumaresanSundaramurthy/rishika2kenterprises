@@ -514,7 +514,6 @@ if ($isEdit) {
 <script src="/js/transactions/invoices.js"></script>
 <script src="/js/transactions/transactions.js"></script>
 <?php $this->load->view('common/transactions/pricelist_select_modal'); ?>
-<script>var R2K_HAS_PRICE_LISTS = <?php echo ($HasPriceLists ?? false) ? 'true' : 'false'; ?>;</script>
 <script src="/js/transactions/pricelist_trans.js"></script>
 <script src="/js/transactions/transprefix.js"></script>
 <script src="/js/transactions/modaladdress.js"></script>

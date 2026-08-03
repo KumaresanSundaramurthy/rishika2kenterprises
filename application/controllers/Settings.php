@@ -357,8 +357,14 @@ class Settings extends MY_Controller {
                 $belowPurchasePriceAction = 'warn';
             }
 
+            $validDocTypes          = ['regular', 'without_tax'];
+            $defaultTransactionType = getPostValue($post, 'DefaultTransactionType');
+            if (!in_array($defaultTransactionType, $validDocTypes)) {
+                $defaultTransactionType = 'regular';
+            }
+
             $this->load->model('dbwrite_model');
-            $this->dbwrite_model->upsertTransactionSettings($orgUID, $invoiceCancelAction, $srCancelAction, $salesReturnItemMethod, $termsAndConditions, $hideNavOnTransForm, $purchaseShowSignature, $purchaseShowTerms, $prCancelAction, $purchaseReturnItemMethod, $showProductDescription, $userUID, $dcDefaultReturnDays, $quotValidityDays, $showTransactionStats, $comboPriceDistribution, $belowPurchasePriceAction);
+            $this->dbwrite_model->upsertTransactionSettings($orgUID, $invoiceCancelAction, $srCancelAction, $salesReturnItemMethod, $termsAndConditions, $hideNavOnTransForm, $purchaseShowSignature, $purchaseShowTerms, $prCancelAction, $purchaseReturnItemMethod, $showProductDescription, $userUID, $dcDefaultReturnDays, $quotValidityDays, $showTransactionStats, $comboPriceDistribution, $belowPurchasePriceAction, $defaultTransactionType);
 
             // Patch only TransSettings in JWT payload
             $this->load->model('login_model');

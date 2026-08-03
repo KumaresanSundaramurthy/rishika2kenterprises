@@ -161,7 +161,11 @@ if ($isEdit) {
                                 <div class="d-flex align-items-center gap-2">
                                     <span class="text-muted" style="font-size:.78rem;white-space:nowrap;">Type</span>
                                     <?php if ($isEdit && !$isDraftEdit): ?>
-                                    <?php $_srType = $SRData->DocType ?? 'Regular'; ?>
+                                    <?php
+                                    $_tsSetting = strtolower($JwtData->TransSettings->DefaultTransactionType ?? 'regular');
+                                    $_tsDefault = ($_tsSetting === 'without_tax') ? 'Without_GST' : 'Regular';
+                                    $_srType    = !empty($SRData->DocType) ? $SRData->DocType : $_tsDefault;
+                                    ?>
                                     <span class="trans-type-readonly"><?php echo $_srType === 'Without_GST' ? 'Without GST' : 'Regular'; ?></span>
                                     <input type="hidden" name="returnType" value="<?php echo htmlspecialchars($_srType); ?>" />
                                     <?php else: ?>

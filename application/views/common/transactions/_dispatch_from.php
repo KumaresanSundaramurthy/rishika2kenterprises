@@ -25,7 +25,8 @@ $_trigText = htmlspecialchars(implode(' · ', $_trigParts)) ?: 'Select Address';
     <input type="hidden" id="dispatchFrom" name="dispatchFrom"
            value="<?php echo $_defAddr ? (int)$_defAddr->OrgAddressUID : ''; ?>" required>
     <button type="button" class="r2k-dispatch-btn dropdown-toggle" data-bs-toggle="dropdown"
-            aria-expanded="false">
+            aria-expanded="false"
+            title="<?php echo $_trigText; ?>">
         <span class="r2k-dispatch-val"><?php echo $_trigText; ?></span>
     </button>
     <div class="dropdown-menu r2k-dispatch-menu p-1">

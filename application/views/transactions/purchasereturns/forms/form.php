@@ -171,7 +171,11 @@ if ($isEdit) {
                                 <div class="d-flex align-items-center gap-2">
                                     <span class="text-muted" style="font-size:.78rem;white-space:nowrap;">Type</span>
                                     <?php if ($isEdit && !$isDraftEdit): ?>
-                                    <?php $_prType = $PRData->DocType ?? 'Regular'; ?>
+                                    <?php
+                                    $_tsSetting = strtolower($JwtData->TransSettings->DefaultTransactionType ?? 'regular');
+                                    $_tsDefault = ($_tsSetting === 'without_tax') ? 'Without_GST' : 'Regular';
+                                    $_prType    = !empty($PRData->DocType) ? $PRData->DocType : $_tsDefault;
+                                    ?>
                                     <span class="trans-type-readonly"><?php echo $_prType === 'Without_GST' ? 'Without GST' : 'Regular'; ?></span>
                                     <input type="hidden" name="purchaseType" value="<?php echo htmlspecialchars($_prType); ?>" />
                                     <?php else: ?>

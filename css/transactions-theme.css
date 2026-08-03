@@ -452,6 +452,8 @@
     margin-left: 2px;
 }
 .pl-active-chip .pl-chip-x:hover { opacity: 1; }
+.pl-chip-none                     { background: #f1f3f5; border-color: #adb5bd; color: #6c757d; }
+.pl-chip-none:hover               { background: #e9ecef; }
 
 /* Blue tint on the unit-price input cell when price is sourced from price list */
 .pl-price-tinted .form-control {
@@ -471,8 +473,10 @@
 }
 .pl-row-indicator i { font-size: 11px; line-height: 1; }
 @media (prefers-color-scheme: dark) {
-    .pl-active-chip         { background: #1a3a5c; border-color: #4285f4; color: #7ab4ff; }
-    .pl-active-chip:hover   { background: #1e4a7a; }
+    .pl-active-chip               { background: #1a3a5c; border-color: #4285f4; color: #7ab4ff; }
+    .pl-active-chip:hover         { background: #1e4a7a; }
+    .pl-active-chip.pl-chip-none  { background: #2a2a3a; border-color: #6c757d; color: #adb5bd; }
+    .pl-active-chip.pl-chip-none:hover { background: #333347; }
     .pl-price-tinted .form-control { background: #0d1a2e !important; border-color: #4285f4 !important; color: #7ab4ff !important; }
     .pl-row-indicator { color: #7ab4ff; }
 }

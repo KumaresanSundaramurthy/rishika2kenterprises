@@ -46,7 +46,9 @@ if ($isEdit && !empty($PFData->ValidityDate)) {
     $_validityDisp = format_datedisplay($PFData->ValidityDate, $_fmt);
 }
 
-$_invoiceType = $isEdit ? ($PFData->DocType ?? 'Regular') : 'Regular';
+$_tsSetting   = strtolower($JwtData->TransSettings->DefaultTransactionType ?? 'regular');
+$_tsDefault   = ($_tsSetting === 'without_tax') ? 'Without_GST' : 'Regular';
+$_invoiceType = $isEdit ? ($PFData->DocType ?? 'Regular') : $_tsDefault;
 $_notesVal    = $isEdit ? ($PFData->Notes ?? '') : '';
 $_termsVal    = $isEdit ? ($PFData->TermsConditions ?? '') : ($JwtData->TransSettings->TermsAndConditions ?? '');
 

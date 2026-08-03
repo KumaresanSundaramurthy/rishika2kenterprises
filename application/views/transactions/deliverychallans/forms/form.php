@@ -244,7 +244,9 @@ if (!empty($DispatchAddress)) {
 
                             <!-- ── Toolbar: Type · Mode · Dispatch From ───────────────── -->
                             <?php
-                            $_dcInvType = $isEdit ? ($DCData->InvoiceType ?? 'Regular') : 'Regular';
+                            $_tsSetting = strtolower($JwtData->TransSettings->DefaultTransactionType ?? 'regular');
+                            $_tsDefault = ($_tsSetting === 'without_tax') ? 'Without_GST' : 'Regular';
+                            $_dcInvType = $isEdit ? ($DCData->InvoiceType ?? 'Regular') : $_tsDefault;
                             $_dcInvTypeLabel = $_dcInvType === 'Without_GST' ? 'Without GST' : 'Regular';
                             $_modeLabel = $_challanType;
                             // Find saved dispatch address for display

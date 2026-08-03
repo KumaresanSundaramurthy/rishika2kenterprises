@@ -177,13 +177,17 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                                 <div class="d-flex align-items-center gap-2">
                                     <span class="text-muted" style="font-size:.78rem;white-space:nowrap;">Type</span>
                                     <?php if ($isEdit): ?>
-                                    <?php $_quotType = $QuotData->DocType ?? 'Regular'; ?>
+                                    <?php
+                                    $_tsSetting = strtolower($JwtData->TransSettings->DefaultTransactionType ?? 'regular');
+                                    $_tsDefault = ($_tsSetting === 'without_tax') ? 'Without_GST' : 'Regular';
+                                    $_quotType  = !empty($QuotData->DocType) ? $QuotData->DocType : $_tsDefault;
+                                    ?>
                                     <span class="trans-type-readonly"><?php echo $_quotType === 'Without_GST' ? 'Without GST' : 'Regular'; ?></span>
                                     <input type="hidden" name="quotationType" value="<?php echo htmlspecialchars($_quotType); ?>" />
                                     <?php else: ?>
                                     <select id="quotationType" name="quotationType" class="form-select form-select-sm border-0 bg-transparent fw-semibold trans-gst-type-select" style="min-width:110px;cursor:pointer;" required>
-                                        <option value="Regular" selected>Regular</option>
-                                        <option value="Without_GST">Without GST</option>
+                                        <option value="Regular"     <?php echo $_quotType !== 'Without_GST' ? 'selected' : ''; ?>>Regular</option>
+                                        <option value="Without_GST" <?php echo $_quotType === 'Without_GST' ? 'selected' : ''; ?>>Without GST</option>
                                     </select>
                                     <?php endif; ?>
                                 </div>

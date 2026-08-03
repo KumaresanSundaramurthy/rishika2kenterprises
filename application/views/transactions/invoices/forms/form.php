@@ -176,17 +176,16 @@ if ($isEdit) {
                                 <?php if (!$isEdit): ?>
                                     <button type="submit" name="action" value="draft" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_save_draft', 'Save and continue editing later'); ?>"><i class="bx bx-save me-1"></i><?php echo t('btn_save_draft', 'Save as Draft'); ?></button>
                                     <div class="btn-group">
-                                        <button type="submit" name="action" value="save" class="btn btn-sm btn-primary px-3" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_save', 'Save transaction'); ?>"><i class="bx bx-check me-1"></i>Save</button>
-                                        <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2" data-bs-toggle="dropdown" aria-expanded="false">
-                                            <span class="visually-hidden">Save options</span>
+                                        <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="bx bx-printer me-1"></i><?php echo t('btn_save_print', 'Save &amp; Print'); ?>
                                         </button>
-                                        <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:195px;font-size:.82rem;">
-                                            <li><span class="dropdown-header py-1" style="font-size:.65rem;letter-spacing:.4px;">SAVE &amp; PRINT</span></li>
+                                        <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:175px;font-size:.82rem;">
                                             <li><button type="submit" class="dropdown-item py-1" name="action" value="save_a4"><i class="bx bx-file text-primary me-2"></i><?php echo t('btn_save_a4', 'Save & Print A4'); ?></button></li>
                                             <li><button type="submit" class="dropdown-item py-1" name="action" value="save_a5"><i class="bx bx-file-blank text-info me-2"></i><?php echo t('btn_save_a5', 'Save & Print A5'); ?></button></li>
                                             <li><button type="submit" class="dropdown-item py-1" name="action" value="save_thermal"><i class="bx bx-receipt text-success me-2"></i><?php echo t('btn_save_thermal', 'Save & Print Thermal'); ?></button></li>
                                         </ul>
                                     </div>
+                                    <button type="submit" name="action" value="save" class="btn btn-sm btn-primary px-3" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_save', 'Save transaction'); ?>"><i class="bx bx-check me-1"></i>Save</button>
                                 <?php else: ?>
                                     <?php if ($isDraftEdit): ?>
                                     <button type="submit" name="action" value="draft" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_save_draft', 'Save and continue editing later'); ?>"><i class="bx bx-save me-1"></i><?php echo t('btn_save_draft', 'Save as Draft'); ?></button>
@@ -201,7 +200,9 @@ if ($isEdit) {
                         <div class="card-body card-body-form-static p-3">
 
                             <?php
-                            $_invType  = $InvData->DocType ?? 'Regular';
+                            $_tsSetting = strtolower($JwtData->TransSettings->DefaultTransactionType ?? 'regular');
+                            $_tsDefault = ($_tsSetting === 'without_tax') ? 'Without_GST' : 'Regular';
+                            $_invType   = !empty($InvData->DocType) ? $InvData->DocType : $_tsDefault;
                             ?>
 
                             <!-- ── Toolbar: Type & Dispatch From ─────────────────────────────── -->
@@ -213,7 +214,9 @@ if ($isEdit) {
                                     <input type="hidden" name="invoiceType" value="<?php echo htmlspecialchars($_invType); ?>" />
                                     <?php else: ?>
                                     <select class="form-select form-select-sm border-0 bg-transparent fw-semibold trans-gst-type-select"
-                                            id="invoiceType" name="invoiceType" style="min-width:110px;cursor:pointer;" required>
+                                            id="invoiceType" name="invoiceType" style="min-width:110px;cursor:pointer;" required
+                                            data-bs-toggle="tooltip" data-bs-placement="bottom"
+                                            title="<?php echo $_invType === 'Without_GST' ? 'Without GST' : 'Regular'; ?>">
                                         <option value="Regular"     <?php echo $_invType !== 'Without_GST' ? 'selected' : ''; ?>>Regular</option>
                                         <option value="Without_GST" <?php echo $_invType === 'Without_GST' ? 'selected' : ''; ?>>Without GST</option>
                                     </select>
@@ -381,24 +384,21 @@ if ($isEdit) {
                                     <button type="button" class="btn btn-sm btn-outline-secondary" id="inlineDraftBtn">
                                         <i class="bx bx-save me-1"></i><?php echo t('btn_save_draft', 'Save as Draft'); ?>
                                     </button>
-                                    <?php endif; ?>
                                     <div class="btn-group">
-                                        <button type="button" class="btn btn-sm btn-primary px-3" id="inlineSaveBtn">
-                                            <i class="bx bx-check me-1"></i>Save
-                                        </button>
-                                        <?php if (!$isEdit || $isDraftEdit): ?>
-                                        <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2"
+                                        <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle"
                                                 data-bs-toggle="dropdown" aria-expanded="false">
-                                            <span class="visually-hidden">Save options</span>
+                                            <i class="bx bx-printer me-1"></i><?php echo t('btn_save_print', 'Save &amp; Print'); ?>
                                         </button>
-                                        <ul class="dropdown-menu dropdown-menu-end shadow dropup" style="min-width:195px;font-size:.82rem;">
-                                            <li><span class="dropdown-header py-1" style="font-size:.65rem;letter-spacing:.4px;">SAVE &amp; PRINT</span></li>
+                                        <ul class="dropdown-menu dropdown-menu-end shadow dropup" style="min-width:175px;font-size:.82rem;">
                                             <li><button type="button" class="dropdown-item py-1" data-inline-action="save_a4"><i class="bx bx-file text-primary me-2"></i><?php echo t('btn_save_a4', 'Save & Print A4'); ?></button></li>
                                             <li><button type="button" class="dropdown-item py-1" data-inline-action="save_a5"><i class="bx bx-file-blank text-info me-2"></i><?php echo t('btn_save_a5', 'Save & Print A5'); ?></button></li>
                                             <li><button type="button" class="dropdown-item py-1" data-inline-action="save_thermal"><i class="bx bx-receipt text-success me-2"></i><?php echo t('btn_save_thermal', 'Save & Print Thermal'); ?></button></li>
                                         </ul>
-                                        <?php endif; ?>
                                     </div>
+                                    <?php endif; ?>
+                                    <button type="button" class="btn btn-sm btn-primary px-3" id="inlineSaveBtn">
+                                        <i class="bx bx-check me-1"></i>Save
+                                    </button>
                                 </div>
                             </div>
 
@@ -467,25 +467,21 @@ if ($isEdit) {
                             <button type="button" class="btn btn-sm btn-outline-secondary" id="stickyDraftBtn" data-bs-toggle="tooltip" data-bs-placement="top" title="<?php echo t('tooltip_save_draft', 'Save and continue editing later'); ?>">
                                 <i class="bx bx-save me-1"></i><?php echo t('btn_save_draft', 'Save as Draft'); ?>
                             </button>
-                            <?php endif; ?>
-
                             <div class="btn-group">
-                                <button type="button" class="btn btn-sm btn-primary px-3" id="stickySaveBtn" data-bs-toggle="tooltip" data-bs-placement="top" title="<?php echo t('tooltip_save', 'Save transaction'); ?>">
-                                    <i class="bx bx-check me-1"></i>Save
-                                </button>
-                                <?php if (!$isEdit || $isDraftEdit): ?>
-                                <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2"
+                                <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle"
                                         data-bs-toggle="dropdown" aria-expanded="false">
-                                    <span class="visually-hidden">Save options</span>
+                                    <i class="bx bx-printer me-1"></i><?php echo t('btn_save_print', 'Save &amp; Print'); ?>
                                 </button>
-                                <ul class="dropdown-menu dropdown-menu-end shadow dropup" style="min-width:195px;font-size:.82rem;">
-                                    <li><span class="dropdown-header py-1" style="font-size:.65rem;letter-spacing:.4px;">SAVE &amp; PRINT</span></li>
+                                <ul class="dropdown-menu dropdown-menu-end shadow dropup" style="min-width:175px;font-size:.82rem;">
                                     <li><button type="button" class="dropdown-item py-1" data-sticky-action="save_a4"><i class="bx bx-file text-primary me-2"></i><?php echo t('btn_save_a4', 'Save & Print A4'); ?></button></li>
                                     <li><button type="button" class="dropdown-item py-1" data-sticky-action="save_a5"><i class="bx bx-file-blank text-info me-2"></i><?php echo t('btn_save_a5', 'Save & Print A5'); ?></button></li>
                                     <li><button type="button" class="dropdown-item py-1" data-sticky-action="save_thermal"><i class="bx bx-receipt text-success me-2"></i><?php echo t('btn_save_thermal', 'Save & Print Thermal'); ?></button></li>
                                 </ul>
-                                <?php endif; ?>
                             </div>
+                            <?php endif; ?>
+                            <button type="button" class="btn btn-sm btn-primary px-3" id="stickySaveBtn" data-bs-toggle="tooltip" data-bs-placement="top" title="<?php echo t('tooltip_save', 'Save transaction'); ?>">
+                                <i class="bx bx-check me-1"></i>Save
+                            </button>
                         </div>
                     </div>
 

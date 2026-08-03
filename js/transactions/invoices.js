@@ -238,3 +238,28 @@ function getInvoicesDetails(pageNo, rowLimit, filter, afterLoad) {
         return html;
     }
 }());
+
+// ── Auto-print after Save & Print from the invoice form ───────────────────────
+(function () {
+    var raw = null;
+    try { raw = sessionStorage.getItem('r2k_pendingPrint'); } catch (e) {}
+    if (!raw) return;
+    try { sessionStorage.removeItem('r2k_pendingPrint'); } catch (e) {}
+    var data = null;
+    try { data = JSON.parse(raw); } catch (e) {}
+    if (!data || !data.transUID || !data.moduleUID) return;
+    $(function () {
+        setTimeout(function () {
+            var fmt = data.format || 'a4';
+            if (fmt === 'thermal') {
+                if (typeof openThermalPrintByUID === 'function') {
+                    openThermalPrintByUID(data.transUID, data.moduleUID, null);
+                }
+            } else {
+                if (typeof openA4PrintByUID === 'function') {
+                    openA4PrintByUID(data.transUID, data.moduleUID, fmt, null);
+                }
+            }
+        }, 600);
+    });
+}());

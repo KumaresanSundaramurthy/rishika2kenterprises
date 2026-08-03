@@ -236,10 +236,9 @@ $(function() {
         $('#PaymentIsFullyPaid').val($(this).is(':checked') ? 1 : 0);
         if ($(this).is(':checked')) {
             var billTotal = getBillTotal();
-            if (billTotal > 0) {
-                var $rows = $('#paymentRowsBody tr');
+            var $rows = $('#paymentRowsBody tr');
+            if (billTotal > 0 && $rows.length === 1) {
                 $rows.first().find('.pay-amount-inp').val(billTotal.toFixed(_dec));
-                $rows.not(':first').find('.pay-amount-inp').val('0');
             }
         }
         updatePaymentSummary();

@@ -1610,7 +1610,17 @@ $(document).ready(function () {
             if (!$item.length) return;
 
             $('#dispatchFrom').val(uid);
-            $grp.find('.r2k-dispatch-val').text($item.data('trig'));
+            var newTrig = $item.data('trig') || '';
+            $grp.find('.r2k-dispatch-val').text(newTrig);
+
+            // Update dispatch-from tooltip to the newly selected address
+            var dispBtn = $grp.find('.r2k-dispatch-btn')[0];
+            if (dispBtn) {
+                dispBtn.setAttribute('data-bs-original-title', newTrig);
+                var dispTip = bootstrap.Tooltip.getInstance(dispBtn);
+                if (dispTip) dispTip.update();
+            }
+
             $grp.find('.r2k-dispatch-item').each(function () {
                 var $i    = $(this);
                 var isSel = parseInt($i.data('uid'), 10) === uid;
@@ -1626,7 +1636,22 @@ $(document).ready(function () {
             var dropdown = $btn ? bootstrap.Dropdown.getInstance($btn) : null;
             if (dropdown) dropdown.hide();
         });
+
+        // Init tooltip on the dispatch button programmatically — can't use
+        // data-bs-toggle="tooltip" because the button already uses data-bs-toggle="dropdown"
+        var _dispBtnEl = $grp.find('.r2k-dispatch-btn')[0];
+        if (_dispBtnEl) {
+            new bootstrap.Tooltip(_dispBtnEl, { placement: 'bottom', trigger: 'hover focus' });
+        }
     }());
+
+    // ── Type select tooltip — update label on change ─────────────────────────
+    $(document).on('change', '.trans-gst-type-select', function () {
+        var label = $(this).find(':selected').text();
+        this.setAttribute('data-bs-original-title', label);
+        var tip = bootstrap.Tooltip.getInstance(this);
+        if (tip) tip.update();
+    });
 
     (function () {
         var $el         = $('#prodCategory');

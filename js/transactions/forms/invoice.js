@@ -364,11 +364,15 @@ $(function () {
                         var _fmt = _pendingPrintFormat;
                         _pendingPrintFormat = null;
                         _isDirty = false;
-                        clearTransactionForm(_formModuleUID);
                         _setPendingToast('_invPendingToast', response.Message || (_isEdit ? 'Invoice updated successfully.' : 'Invoice created successfully.'), 'success');
-                        _openTransactionPrint(response.TransUID, _formModuleUID, _fmt, function () {
-                            window.location.href = _buildReturnUrl('/invoices');
-                        });
+                        try {
+                            sessionStorage.setItem('r2k_pendingPrint', JSON.stringify({
+                                transUID  : response.TransUID,
+                                moduleUID : _formModuleUID,
+                                format    : _fmt
+                            }));
+                        } catch (e) {}
+                        window.location.href = _buildReturnUrl('/invoices');
                     } else {
                         _showSavedAndGo(_isEdit ? 'Invoice Updated' : 'Invoice Saved', response.Message || (_isEdit ? 'Invoice updated successfully.' : 'Invoice created successfully.'));
                     }

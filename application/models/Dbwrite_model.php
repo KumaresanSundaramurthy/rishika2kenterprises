@@ -1132,11 +1132,11 @@ class Dbwrite_model extends CI_Model {
         return true;
     }
 
-    public function upsertTransactionSettings(int $orgUID, string $invoiceCancelAction, string $srCancelAction, string $srItemMethod, string $termsAndConditions, int $hideNav, int $purchaseShowSignature, int $purchaseShowTerms, string $prCancelAction, string $prItemMethod, int $showProductDescription, int $userUID, int $dcDefaultReturnDays = 7, int $quotValidityDays = 7, int $showTransactionStats = 1, string $comboPriceDistribution = 'ratio', string $belowPurchasePriceAction = 'warn'): bool {
+    public function upsertTransactionSettings(int $orgUID, string $invoiceCancelAction, string $srCancelAction, string $srItemMethod, string $termsAndConditions, int $hideNav, int $purchaseShowSignature, int $purchaseShowTerms, string $prCancelAction, string $prItemMethod, int $showProductDescription, int $userUID, int $dcDefaultReturnDays = 7, int $quotValidityDays = 7, int $showTransactionStats = 1, string $comboPriceDistribution = 'ratio', string $belowPurchasePriceAction = 'warn', string $defaultTransactionType = 'regular'): bool {
         $this->WriteDB->db_debug = FALSE;
         $sql = "INSERT INTO Settings.TransactionSettingsTbl
-                    (OrgUID, InvoiceCancelAction, SalesReturnCancelAction, SalesReturnItemMethod, TermsAndConditions, HideNavOnTransForm, PurchaseShowSignature, PurchaseShowTerms, PurchaseReturnCancelAction, PurchaseReturnItemMethod, ShowProductDescription, DCDefaultReturnDays, QuotValidityDays, ShowTransactionStats, ComboPriceDistribution, BelowPurchasePriceAction, UpdatedBy)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (OrgUID, InvoiceCancelAction, SalesReturnCancelAction, SalesReturnItemMethod, TermsAndConditions, HideNavOnTransForm, PurchaseShowSignature, PurchaseShowTerms, PurchaseReturnCancelAction, PurchaseReturnItemMethod, ShowProductDescription, DCDefaultReturnDays, QuotValidityDays, ShowTransactionStats, ComboPriceDistribution, BelowPurchasePriceAction, DefaultTransactionType, UpdatedBy)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON DUPLICATE KEY UPDATE
                     InvoiceCancelAction        = VALUES(InvoiceCancelAction),
                     SalesReturnCancelAction    = VALUES(SalesReturnCancelAction),
@@ -1153,12 +1153,13 @@ class Dbwrite_model extends CI_Model {
                     ShowTransactionStats       = VALUES(ShowTransactionStats),
                     ComboPriceDistribution     = VALUES(ComboPriceDistribution),
                     BelowPurchasePriceAction   = VALUES(BelowPurchasePriceAction),
+                    DefaultTransactionType     = VALUES(DefaultTransactionType),
                     UpdatedBy                  = VALUES(UpdatedBy)";
         $ok = $this->WriteDB->query($sql, [
             $orgUID, $invoiceCancelAction, $srCancelAction,
             $srItemMethod, $termsAndConditions, $hideNav, $purchaseShowSignature, $purchaseShowTerms,
             $prCancelAction, $prItemMethod, $showProductDescription, $dcDefaultReturnDays, $quotValidityDays,
-            $showTransactionStats, $comboPriceDistribution, $belowPurchasePriceAction, $userUID,
+            $showTransactionStats, $comboPriceDistribution, $belowPurchasePriceAction, $defaultTransactionType, $userUID,
         ]);
         if (!$ok) {
             $err = $this->WriteDB->error();

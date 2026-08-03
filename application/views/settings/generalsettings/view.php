@@ -549,6 +549,7 @@
                                             $tgsShowDesc    = isset($tgs->ShowProductDescription) ? (int)$tgs->ShowProductDescription : 1;
                                             $tgsShowStats   = isset($tgs->ShowTransactionStats)   ? (int)$tgs->ShowTransactionStats   : 1;
                                             $tgsComboDist   = $tgs->ComboPriceDistribution ?? 'ratio';
+                                            $tgsDefaultType = strtolower($tgs->DefaultTransactionType ?? 'regular');
                                             ?>
                                             <div class="tab-pane fade show active" id="tab-txn-general" role="tabpanel" aria-labelledby="tab-txn-general-tab">
 
@@ -556,6 +557,15 @@
                                                 <p class="text-muted small mb-4">Configure default content that applies across all transaction types.</p>
 
                                                 <div class="row g-3">
+
+                                                    <div class="col-12">
+                                                        <label class="form-label fw-semibold" for="txn_DefaultTransactionType">Default Transaction Type</label>
+                                                        <p class="text-muted small mb-2">Pre-selected type when opening any new transaction form (Invoice, Sales Order, Purchase, etc.). Can still be changed per transaction.</p>
+                                                        <select class="form-select" id="txn_DefaultTransactionType" name="DefaultTransactionType">
+                                                            <option value="regular"     <?php echo $tgsDefaultType !== 'without_tax' ? 'selected' : ''; ?>>Regular (with GST)</option>
+                                                            <option value="without_tax" <?php echo $tgsDefaultType === 'without_tax' ? 'selected' : ''; ?>>Without GST</option>
+                                                        </select>
+                                                    </div>
 
                                                     <div class="col-12">
                                                         <label class="form-label fw-semibold">Transaction Form Navigation</label>
@@ -1268,6 +1278,7 @@ $(document).ready(function () {
                 ShowTransactionStats       : $('#txn_ShowTransactionStats').is(':checked')   ? 1 : 0,
                 ComboPriceDistribution     : $('input[name="ComboPriceDistribution"]:checked').val() || 'ratio',
                 BelowPurchasePriceAction   : $('input[name="BelowPurchasePriceAction"]:checked').val() || 'warn',
+                DefaultTransactionType     : $('#txn_DefaultTransactionType').val() || 'regular',
                 InvoiceCancelAction        : $('input[name="InvoiceCancelAction"]:checked').val()        || 'ask',
                 SalesReturnCancelAction    : $('input[name="SalesReturnCancelAction"]:checked').val()    || 'ask',
                 SalesReturnItemMethod      : $('input[name="SalesReturnItemMethod"]:checked').val()      || 'Manual',
@@ -1277,6 +1288,7 @@ $(document).ready(function () {
                 PurchaseShowTerms          : $('#purch_ShowTerms').is(':checked')    ? 1 : 0,
                 DCDefaultReturnDays        : $('#dc_DefaultReturnDays').val(),
                 QuotValidityDays           : $('#quot_ValidityDays').val(),
+                DefaultTransactionType     : $('#txn_DefaultTransactionType').val() || 'regular',
                 [CsrfName]                 : CsrfToken,
             },
             success: function (resp) {
@@ -1394,6 +1406,7 @@ $(document).ready(function () {
                 PurchaseShowTerms          : $('#purch_ShowTerms').is(':checked')    ? 1 : 0,
                 DCDefaultReturnDays        : $('#dc_DefaultReturnDays').val(),
                 QuotValidityDays           : $('#quot_ValidityDays').val(),
+                DefaultTransactionType     : $('#txn_DefaultTransactionType').val() || 'regular',
                 [CsrfName]                 : CsrfToken,
             },
             success: function (resp) {
@@ -1443,6 +1456,7 @@ $(document).ready(function () {
                 PurchaseShowTerms          : $('#purch_ShowTerms').is(':checked')    ? 1 : 0,
                 DCDefaultReturnDays        : $('#dc_DefaultReturnDays').val(),
                 QuotValidityDays           : $('#quot_ValidityDays').val(),
+                DefaultTransactionType     : $('#txn_DefaultTransactionType').val() || 'regular',
                 [CsrfName]                 : CsrfToken,
             },
             success: function (resp) {
@@ -1484,6 +1498,7 @@ $(document).ready(function () {
                 ComboPriceDistribution     : $('input[name="ComboPriceDistribution"]:checked').val() || 'ratio',
                 DCDefaultReturnDays        : $('#dc_DefaultReturnDays').val(),
                 QuotValidityDays           : $('#quot_ValidityDays').val(),
+                DefaultTransactionType     : $('#txn_DefaultTransactionType').val() || 'regular',
                 [CsrfName]                 : CsrfToken,
             },
             success: function (resp) {
@@ -1526,6 +1541,7 @@ $(document).ready(function () {
                 ShowProductDescription     : $('#txn_ShowProductDescription').is(':checked') ? 1 : 0,
                 ShowTransactionStats       : $('#txn_ShowTransactionStats').is(':checked')   ? 1 : 0,
                 ComboPriceDistribution     : $('input[name="ComboPriceDistribution"]:checked').val() || 'ratio',
+                DefaultTransactionType     : $('#txn_DefaultTransactionType').val() || 'regular',
                 [CsrfName]                 : CsrfToken,
             },
             success: function (resp) {
@@ -1573,6 +1589,7 @@ $(document).ready(function () {
                 PurchaseShowTerms          : $('#purch_ShowTerms').is(':checked')    ? 1 : 0,
                 DCDefaultReturnDays        : $('#dc_DefaultReturnDays').val(),
                 QuotValidityDays           : $('#quot_ValidityDays').val(),
+                DefaultTransactionType     : $('#txn_DefaultTransactionType').val() || 'regular',
                 [CsrfName]                 : CsrfToken,
             },
             success: function (resp) {
@@ -1620,6 +1637,7 @@ $(document).ready(function () {
                 ShowProductDescription     : $('#txn_ShowProductDescription').is(':checked') ? 1 : 0,
                 ShowTransactionStats       : $('#txn_ShowTransactionStats').is(':checked')   ? 1 : 0,
                 ComboPriceDistribution     : $('input[name="ComboPriceDistribution"]:checked').val() || 'ratio',
+                DefaultTransactionType     : $('#txn_DefaultTransactionType').val() || 'regular',
                 [CsrfName]                 : CsrfToken,
             },
             success: function (resp) {

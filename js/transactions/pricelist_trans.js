@@ -650,7 +650,11 @@ function _plShowSelectModal(matches, custData) {
 
     $modal.off('click.plnone').on('click.plnone', '#plSelectNone', function () {
         $modal.modal('hide');
+        var savedCustData = _plCurrentCustData || custData;
+        _plRevert();
+        _plCurrentCustData = savedCustData;
         _plApplyCustDiscount(custData);
+        _plShowNoneChip();
     });
 }
 
@@ -684,6 +688,21 @@ function _plShowChip(pl) {
 function _plHideChip() {
     var $wrap = $('#plChipWrap');
     if ($wrap.length) $wrap.addClass('d-none').empty();
+}
+
+/**
+ * Show a muted "No Price List Applied" chip when the user explicitly chose
+ * to skip all price lists. Clicking reopens the price list modal.
+ * @returns {void}
+ */
+function _plShowNoneChip() {
+    var $wrap = $('#plChipWrap');
+    if (!$wrap.length) return;
+    var h = '<span class="pl-active-chip pl-chip-none" title="Click to select a price list" onclick="_plChangeChipClick()">';
+    h += '<i class="bx bx-purchase-tag"></i>';
+    h += '<span>No Price List Applied</span>';
+    h += '</span>';
+    $wrap.html(h).removeClass('d-none');
 }
 
 // Edit mode: chip is locked — show error instead of allowing change

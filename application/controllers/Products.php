@@ -538,13 +538,18 @@ class Products extends MY_Controller {
             // Build product data object from POST + TaxDetails — no extra DB query needed
             $sellingPrice  = (float) getPostValue($PostData, 'SellingPrice', '', 0);
             $taxPercent    = (float) ($TaxDetails->Percentage ?? 0);
-            $taxAmount     = round($sellingPrice * $taxPercent / 100, $this->_decimals());
+            $taxOptSell    = (int) getPostValue($PostData, 'SellingTaxOption');
+            // SellingTaxOption=1 → entered price is tax-inclusive; back-calc ex-tax unit price
+            $unitPriceResp = ($taxOptSell === 1 && $taxPercent > 0)
+                ? $sellingPrice / (1 + $taxPercent / 100)
+                : $sellingPrice;
+            $taxAmount     = round($unitPriceResp * $taxPercent / 100, $this->_decimals());
             $this->EndReturnData->Product = [
                 'id'               => $ProductUID,
                 'text'             => getPostValue($PostData, 'ItemName'),
                 'itemName'         => getPostValue($PostData, 'ItemName'),
                 'productType'      => getPostValue($PostData, 'ProductType', '', 'Product'),
-                'unitPrice'        => $sellingPrice,
+                'unitPrice'        => $unitPriceResp,
                 'taxAmount'        => $taxAmount,
                 'sellingPrice'     => $sellingPrice,
                 'purchasePrice'    => (float) getPostValue($PostData, 'PurchasePrice', '', 0),

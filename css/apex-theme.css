@@ -1759,3 +1759,36 @@ tr:hover .apex-party-actions {
     width: 100% !important;
 }
 
+/* ── Country picker overlay ────────────────────────────────────────── */
+.country-code-hint  { font-size: .72rem; color: #696cff; margin-top: 3px; }
+.country-code-trigger,
+.country-code-trigger:hover { cursor: pointer; }
+
+#cpOverlay  { display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(0,0,0,.35); align-items: center; justify-content: center; }
+#cpBox      { background: #fff; border-radius: 10px; width: 320px; max-height: 80vh; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,.18); overflow: hidden; }
+#cpHeader   { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid #e9ecef; }
+#cpTitle    { font-size: .9rem; font-weight: 600; color: #333; }
+#cpClose    { background: none; border: none; font-size: 1.3rem; line-height: 1; color: #888; cursor: pointer; padding: 0 4px; }
+#cpClose:hover { color: #333; }
+#cpBody     { display: flex; flex-direction: column; padding: 10px; gap: 8px; overflow: hidden; }
+#cpSearch   { border: 1px solid #dee2e6; border-radius: 6px; padding: 6px 10px; font-size: .85rem; width: 100%; outline: none; }
+#cpSearch:focus { border-color: #696cff; box-shadow: 0 0 0 2px rgba(105,108,255,.15); }
+#cpList     { overflow-y: auto; max-height: 340px; display: flex; flex-direction: column; gap: 2px; }
+.cp-item    { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border: none; border-radius: 6px; background: transparent; font-size: .85rem; cursor: pointer; text-align: left; width: 100%; transition: background .1s; }
+.cp-item:hover, .cp-item:focus { background: #f0edff; outline: none; }
+.cp-active  { background: #e8f5e9; color: #2e7d32; font-weight: 600; }
+.cp-emoji   { font-size: 1.1rem; min-width: 22px; }
+.cp-name    { flex: 1; }
+.cp-code    { font-size: .78rem; color: #888; white-space: nowrap; }
+.cp-empty, .cp-loading { text-align: center; padding: 20px 0; color: #888; font-size: .85rem; }
+
+@media (prefers-color-scheme: dark) {
+    #cpBox    { background: #2b2c40; }
+    #cpHeader { border-color: #3b3d56; }
+    #cpTitle  { color: #d0d0d8; }
+    #cpSearch { background: #1e1e2d; border-color: #3b3d56; color: #d0d0d8; }
+    .cp-item  { color: #d0d0d8; }
+    .cp-item:hover, .cp-item:focus { background: #3a3b55; }
+    .cp-code  { color: #888; }
+}
+

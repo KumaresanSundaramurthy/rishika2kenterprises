@@ -258,8 +258,44 @@ $(function () {
                     }
                 }
                 if (!serializePaymentRows()) return showFormError('Please enter a valid amount for every payment row.');
+
+                var _paidTotal = 0;
+                $('#paymentRowsBody tr').each(function () {
+                    _paidTotal += parseFloat($(this).find('.pay-amount-inp').val()) || 0;
+                });
+                try {
+                    var _oaRaw = $('#OnAccountApplyJson').val();
+                    if (_oaRaw) {
+                        (JSON.parse(_oaRaw) || []).forEach(function (oa) {
+                            _paidTotal += parseFloat(oa.ApplyAmount) || 0;
+                        });
+                    }
+                } catch (e) {}
+
+                var _overAmt = _paidTotal - netAmount;
+                if (_overAmt > 0.005) {
+                    var _cur = genSettings.CurrenySymbol || '₹';
+                    var _dec = genSettings.DecimalPoints || 2;
+                    Swal.fire({
+                        title             : 'Payment is More Than Bill Amount',
+                        html              : 'You are collecting <b>' + _cur + ' ' + smartDecimal(_paidTotal, _dec, true) + '</b> ' +
+                                            'but the invoice total is only <b>' + _cur + ' ' + smartDecimal(netAmount, _dec, true) + '</b>.<br><br>' +
+                                            'The extra <b>' + _cur + ' ' + smartDecimal(_overAmt, _dec, true) + '</b> will be saved as advance for this customer.',
+                        icon              : 'warning',
+                        showCancelButton  : true,
+                        confirmButtonText : 'Yes, Proceed',
+                        cancelButtonText  : 'Go Back',
+                        confirmButtonColor: '#696cff',
+                        reverseButtons    : true,
+                    }).then(function (result) {
+                        if (result.isConfirmed) _doSubmit();
+                    });
+                    return;
+                }
             }
 
+            _doSubmit();
+            function _doSubmit() {
             var fd = new FormData();
             fd.append(csrfName, csrfVal);
             if (_isEdit) fd.append('TransUID', parseInt($('input[name="TransUID"]').val(), 10));
@@ -333,6 +369,7 @@ $(function () {
                     showFormError('Server error. Please try again.');
                 }
             });
+            }
         });
 
         $form.on('click', 'button[type="submit"][name="action"]', function () {

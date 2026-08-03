@@ -1561,6 +1561,9 @@ $(document).ready(function () {
             $('#chkReverseOrder').closest('.form-check-inline').addClass('d-none');
             // Reset reverse checkbox state
             $('#chkReverseOrder').prop('checked', false);
+            if ($('#isFullyPaid').is(':checked')) {
+                $('#isFullyPaid').prop('checked', false).trigger('change');
+            }
         });
     });
 
@@ -2114,6 +2117,9 @@ $(document).ready(function () {
             if (removed) {
                 $row.remove();
                 renumberTableRows();
+                if ($('#isFullyPaid').is(':checked')) {
+                    $('#isFullyPaid').prop('checked', false).trigger('change');
+                }
             }
         });
     });
@@ -2727,6 +2733,7 @@ function searchCustomers(key) {
         $("#customerAddressBox").addClass('d-none').find('span').text('');
         $("#custTypeIndicator").addClass('d-none').empty();
         if (typeof billManager !== 'undefined') billManager.setInterState(false);
+        _setForeignGstMode(false);
         if (typeof _showOnAccountBanner === 'function') _showOnAccountBanner(0, [], 0);
         if (typeof _plTransClear === 'function') _plTransClear();
     }).on('select2:close', function () {
@@ -2749,16 +2756,19 @@ function _showCustTypeIndicator(data) {
         typeClass = 'cust-type-foreign';
         typeIcon  = 'bx-globe';
         if (typeof billManager !== 'undefined') billManager.setInterState(true);
+        _setForeignGstMode(true);
     } else if (hasAddress && orgState !== '' && custState !== orgState) {
         typeLabel = 'Inter-State Customer';
         typeClass = 'cust-type-interstate';
         typeIcon  = 'bx-transfer';
         if (typeof billManager !== 'undefined') billManager.setInterState(true);
+        _setForeignGstMode(false);
     } else {
         typeLabel = 'Intra-State Customer';
         typeClass = 'cust-type-intrastate';
         typeIcon  = 'bx-map-pin';
         if (typeof billManager !== 'undefined') billManager.setInterState(false);
+        _setForeignGstMode(false);
     }
 
     $box.html('<span class="cust-type-badge ' + typeClass + '"><i class="bx ' + typeIcon + '"></i> ' + typeLabel + '</span>').removeClass('d-none');
@@ -3119,6 +3129,9 @@ function pushBillItems(productData, qty) {
         billManager.addItem(productData, qty);
         var item = billManager.getItemById(productData.id);
         formationTableBillItems(item);
+        if ($('#isFullyPaid').is(':checked')) {
+            $('#isFullyPaid').prop('checked', false).trigger('change');
+        }
         if (typeof _plTransApplyToNewRow === 'function') _plTransApplyToNewRow(productData.id);
         if (item && item.isComposite) {
             _fetchAndAttachBOM(item);
@@ -4153,7 +4166,31 @@ $(document).on('click', '#comboBOMSubmitBtn', function() {
 });
 
 // ── Without GST mode — common for all transaction forms ──────────────────────
-var _gstModeStyle = null;
+var _gstModeStyle      = null;
+var _gstBeforeForeign  = null; // saved Type value before foreign-customer lock
+
+/**
+ * Lock the GST Type dropdown to Without_GST for foreign customers, or restore it.
+ * Uses CSS pointer-events (not disabled) so the value still submits with the form.
+ * @param {boolean} isForeign
+ * @returns {void}
+ */
+function _setForeignGstMode(isForeign) {
+    var $sel = $('.trans-gst-type-select');
+    if (!$sel.length) return;
+    if (isForeign) {
+        if (_gstBeforeForeign === null) {
+            _gstBeforeForeign = $sel.val() || 'Regular';
+        }
+        $sel.val('Without_GST').trigger('change').addClass('gst-type-foreign-locked');
+    } else {
+        if (_gstBeforeForeign !== null) {
+            var prev = _gstBeforeForeign;
+            _gstBeforeForeign = null;
+            $sel.removeClass('gst-type-foreign-locked').val(prev).trigger('change');
+        }
+    }
+}
 
 /**
  * @param {string} mode - 'Regular' or 'Without_GST'

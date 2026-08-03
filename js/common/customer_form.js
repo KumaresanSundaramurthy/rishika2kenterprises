@@ -35,6 +35,30 @@
             _bodyLoaded = true;
             _initModalPlugins();
         }
+
+        // Direct binding for country picker — stopPropagation prevents the
+        // document-level delegated handler in country_picker.js from also firing.
+        $('#CM_CountryCodeBtn').on('click', function (e) {
+            e.stopPropagation();
+            if (typeof CountryPicker === 'undefined') return;
+            CountryPicker.open({
+                currentISO2 : $('#CM_CountryISO2').val() || '',
+                /**
+                 * @param {string} iso2
+                 * @param {string} code
+                 * @returns {void}
+                 */
+                onSelect    : function (iso2, code) {
+                    $('#CM_CountryCode').val(code);
+                    $('#CM_CountryISO2').val(iso2);
+                    $('#CM_CountryCodeBtn').text(code);
+                    var $hint = $('#CM_CountryHint');
+                    if ($hint.length) {
+                        $hint.html('Click <strong>' + $('<span>').text(code).html() + '</strong> to change country');
+                    }
+                }
+            });
+        });
     });
 
     // ── Open ──────────────────────────────────────────────────────────────────

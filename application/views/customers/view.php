@@ -566,6 +566,7 @@ document.addEventListener('DOMContentLoaded', function () {
 <script src="<?php echo _assetV('/js/common/gstin_fetch.js'); ?>"></script>
 <link rel="stylesheet" href="<?php echo _assetV('/assets/vendor/css/attachments.css'); ?>">
 <script src="<?php echo _assetV('/js/common/attachments.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/common/country_picker.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/common/customer_form.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/common/customer_group_form.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/transactions/col_filter.js'); ?>"></script>

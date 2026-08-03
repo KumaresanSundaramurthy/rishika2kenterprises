@@ -32,6 +32,9 @@ COPY nginx/default.conf /etc/nginx/conf.d/default.conf
 RUN mkdir -p /etc/supervisor/conf.d
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
+# PHP upload limits
+RUN echo "upload_max_filesize = 50M\npost_max_size = 50M" > /usr/local/etc/php/conf.d/upload.ini
+
 # Permissions
 RUN chown -R www-data:www-data /var/www/html
 

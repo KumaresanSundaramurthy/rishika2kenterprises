@@ -620,7 +620,14 @@ class MY_Controller extends CI_Controller {
         $this->load->library('fileupload');
         $this->load->model('dbwrite_model');
 
-        $allowed = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+        $allowed = [
+            'application/pdf',
+            'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/vnd.ms-excel',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ];
         $count   = min(count($files['name']), 3);
 
         for ($i = 0; $i < $count; $i++) {

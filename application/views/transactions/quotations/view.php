@@ -266,7 +266,13 @@ $(function () {
     PageNo = _initPage;
     Filter['Status'] = _quotInitTab;
     if (_quotInitSearch) { Filter.Name = _quotInitSearch; }
-    initExport({ moduleUID: 101, getFilters: function () { return Filter; } });
+    initExport({ moduleUID: 101, getFilters: function () {
+        return $.extend({}, Filter,
+            tfb                 ? tfb.getState()                 : {},
+            quotCreatedByFilter ? quotCreatedByFilter.getState() : {},
+            quotPartyFilter     ? quotPartyFilter.getState()     : {}
+        );
+    } });
     _applyTabFilters(_quotInitTab, _quotTabFilterMap, _allQuotFilterEls);
 
     // ── Filter bar ──────────────────────────────────────────────────────

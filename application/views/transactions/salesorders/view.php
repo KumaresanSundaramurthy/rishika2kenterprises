@@ -237,7 +237,13 @@ $(function () {
     PageNo = _initPage;
     Filter['Status'] = _soInitTab;
     if (_soInitSearch) { Filter.Name = _soInitSearch; }
-    initExport({ moduleUID: 102, getFilters: function () { return Filter; } });
+    initExport({ moduleUID: 102, getFilters: function () {
+        return $.extend({}, Filter,
+            tfb               ? tfb.getState()               : {},
+            soCreatedByFilter ? soCreatedByFilter.getState() : {},
+            soPartyFilter     ? soPartyFilter.getState()     : {}
+        );
+    } });
     _applyTabFilters(_soInitTab, _soTabFilterMap, _allSoFilterEls);
 
     // ── Filter bar ──────────────────────────────────────────────────────

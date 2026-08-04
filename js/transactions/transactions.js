@@ -1932,6 +1932,8 @@ $(document).ready(function () {
     // Below-purchase-price check — fires after the cleanup handler above
     // Covers both _sellingPrice (inclusive) and _unitPrice (ex-tax) fields.
     // Excluded automatically on purchase pages via _productPurchaseMode.
+    // Exempt products (orgunitprice < purchase price by design) always allow entry
+    // and show a non-blocking auto-close toast instead of the mode action.
     $(document).on('blur', '.updateAllBillAmounts', function () {
         if (window._productPurchaseMode) return;
         var fieldName = $(this).attr('name') || '';
@@ -1951,23 +1953,36 @@ $(document).ready(function () {
         var tax     = item.taxPercent || 0;
         var taxIncl = item.purchasePriceIsIncl !== false;
 
+        // ex-tax purchase price — used for exempt check and unit price comparison
+        var effPPEx = (taxIncl && tax > 0) ? pp / (1 + tax / 100) : pp;
+
+        // A product is exempt when its original unit price (from master on create,
+        // or from saved transaction on edit) is already below the purchase price.
+        var origUnit = parseFloat(item.orgunitprice) || 0;
+        var isExempt = origUnit > 0 && origUnit < effPPEx;
+
         // Normalise effective purchase price to match the field's tax basis
         var effPP = isSelling
-            ? (taxIncl ? pp : pp * (1 + tax / 100))            // inclusive basis for selling price
-            : ((taxIncl && tax > 0) ? pp / (1 + tax / 100) : pp); // ex-tax basis for unit price
+            ? (taxIncl ? pp : pp * (1 + tax / 100))   // inclusive basis for selling price
+            : effPPEx;                                  // ex-tax basis for unit price
 
         var entered = parseFloat($(this).val()) || 0;
         var curr    = (genSettings && genSettings.CurrenySymbol) ? genSettings.CurrenySymbol : '₹';
 
         if (entered < effPP) {
-            showBelowPurchaseToast(effPP, entered, curr);
-            if (window._belowPurchasePriceAction === 'strict') {
-                if (isSelling) {
-                    var lastS = (_lastValidSellingPrices[rowId] != null) ? _lastValidSellingPrices[rowId] : effPP;
-                    $(this).val(smartDecimal(lastS, genSettings.DecimalPoints)).trigger('input');
-                } else {
-                    var lastU = (_lastValidUnitPrices[rowId] != null) ? _lastValidUnitPrices[rowId] : effPP;
-                    $(this).val(smartDecimal(lastU, genSettings.DecimalPoints)).trigger('input');
+            if (isExempt) {
+                // Exempt product — allow entry, auto-close informational toast only
+                showToastNotification(t('toast_exempt_below_purchase', 'Note: This product\'s selling price is set below its purchase price.'), 'warning');
+            } else {
+                showBelowPurchaseToast(effPP, entered, curr);
+                if (window._belowPurchasePriceAction === 'strict') {
+                    if (isSelling) {
+                        var lastS = (_lastValidSellingPrices[rowId] != null) ? _lastValidSellingPrices[rowId] : effPP;
+                        $(this).val(smartDecimal(lastS, genSettings.DecimalPoints)).trigger('input');
+                    } else {
+                        var lastU = (_lastValidUnitPrices[rowId] != null) ? _lastValidUnitPrices[rowId] : effPP;
+                        $(this).val(smartDecimal(lastU, genSettings.DecimalPoints)).trigger('input');
+                    }
                 }
             }
         } else {

@@ -255,7 +255,12 @@ $(function () {
     PageNo = _initPage;
     Filter['Status'] = _poInitTab;
     if (_poInitSearch) { Filter.Name = _poInitSearch; }
-    initExport({ moduleUID: 104, getFilters: function () { return Filter; } });
+    initExport({ moduleUID: 104, getFilters: function () {
+        return $.extend({}, Filter,
+            poCreatedByFilter ? poCreatedByFilter.getState() : {},
+            poPartyFilter     ? poPartyFilter.getState()     : {}
+        );
+    } });
     _applyTabFilters(_poInitTab, _poTabFilterMap, _allPoFilterEls);
 
     var tfb = null; // TransFilterBar not used for PO (all options disabled)

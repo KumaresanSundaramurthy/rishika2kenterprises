@@ -370,7 +370,14 @@ $(function () {
     PageNo = _initPage;
     Filter['Status'] = _srInitTab;
     if (_srInitSearch) { Filter.Name = _srInitSearch; }
-    initExport({ moduleUID: 106, getFilters: function () { return Filter; } });
+    initExport({ moduleUID: 106, getFilters: function () {
+        return $.extend({}, Filter,
+            payStatusFilter   ? payStatusFilter.getState()   : {},
+            payModeFilter     ? payModeFilter.getState()     : {},
+            srCreatedByFilter ? srCreatedByFilter.getState() : {},
+            srPartyFilter     ? srPartyFilter.getState()     : {}
+        );
+    } });
 
     // ── Column-level Payment Status filter ──────────────────────────────
     var payStatusFilter = new TransColFilter({

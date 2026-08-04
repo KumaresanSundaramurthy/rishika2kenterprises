@@ -335,7 +335,13 @@ $(function () {
     PageNo = _initPage;
     Filter['Status'] = _prInitTab;
     if (_prInitSearch) { Filter.Name = _prInitSearch; }
-    initExport({ moduleUID: 108, getFilters: function () { return Filter; } });
+    initExport({ moduleUID: 108, getFilters: function () {
+        return $.extend({}, Filter,
+            tfb               ? tfb.getState()               : {},
+            prCreatedByFilter ? prCreatedByFilter.getState() : {},
+            prPartyFilter     ? prPartyFilter.getState()     : {}
+        );
+    } });
 
     // ── Filter bar ──────────────────────────────────────────────────────
     var tfb = (typeof TransFilterBar !== 'undefined')

@@ -315,7 +315,15 @@ $(function () {
     PageNo = _initPage;
     Filter['Status'] = _invInitTab === 'CreditNotes' ? 'All' : _invInitTab;
     if (_invInitSearch) { Filter.Name = _invInitSearch; }
-    initExport({ moduleUID: 103, getFilters: function () { return Filter; } });
+    initExport({ moduleUID: 103, getFilters: function () {
+        return $.extend({}, Filter,
+            tfb                ? tfb.getState()                : {},
+            payStatusFilter    ? payStatusFilter.getState()    : {},
+            payModeFilter      ? payModeFilter.getState()      : {},
+            invCreatedByFilter ? invCreatedByFilter.getState() : {},
+            invPartyFilter     ? invPartyFilter.getState()     : {}
+        );
+    } });
 
     // ── Filter bar (mode / customer / user pills) ────────────────────────
     var tfb = (typeof TransFilterBar !== 'undefined') ? new TransFilterBar({ onChange: function () { PageNo = 1; getInvoicesDetails(); } }) : null;

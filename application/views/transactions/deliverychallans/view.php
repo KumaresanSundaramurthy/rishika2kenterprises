@@ -252,7 +252,11 @@ $(function () {
     PageNo = _initPage;
     Filter['Status'] = _dcInitTab;
     if (_dcInitSearch) { Filter.Name = _dcInitSearch; }
-    initExport({ moduleUID: 112, getFilters: function () { return Filter; } });
+    initExport({ moduleUID: 112, getFilters: function () {
+        return $.extend({}, Filter,
+            dcPartyFilter ? dcPartyFilter.getState() : {}
+        );
+    } });
     _applyTabFilters(_dcInitTab, _dcTabFilterMap, _allDcFilterEls);
 
     var dcPartyFilter = new TransPartyColFilter({

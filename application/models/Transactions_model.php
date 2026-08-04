@@ -334,20 +334,11 @@ class Transactions_model extends MY_Model {
         }
 
         if (!empty($filter['PaymentMode'])) {
-            // For count queries, PayInfo is not yet joined — add a minimal join here.
-            if ($isCountQuery) {
-                $this->ReadDb->join(
-                    "(SELECT P.TransUID, GROUP_CONCAT(PT.Name ORDER BY P.PaymentUID SEPARATOR ',') AS PaymentModes
-                      FROM Transaction.PaymentsTbl P
-                      JOIN Global.PaymentTypesTbl PT ON PT.PaymentTypeUID = P.PaymentTypeUID
-                      WHERE P.IsDeleted = 0 AND P.IsActive = 1
-                      GROUP BY P.TransUID) AS PayInfo",
-                    'PayInfo.TransUID = Ts.TransUID',
-                    'LEFT'
-                );
-            }
             $safe = $this->ReadDb->escape_str($filter['PaymentMode']);
-            $this->ReadDb->where("FIND_IN_SET('" . $safe . "', IFNULL(PayInfo.PaymentModes, '')) > 0");
+            $this->ReadDb->where(
+                "EXISTS (SELECT 1 FROM Transaction.PaymentsTbl _P JOIN Global.PaymentTypesTbl _PT ON _PT.PaymentTypeUID = _P.PaymentTypeUID WHERE _P.TransUID = Ts.TransUID AND _PT.Name = '" . $safe . "' AND _P.IsDeleted = 0 AND _P.IsActive = 1)",
+                null, false
+            );
         }
 
         if (!empty($filter['PartyUID'])) {
@@ -1120,7 +1111,7 @@ class Transactions_model extends MY_Model {
                 "CONCAT(CUser.FirstName, ' ', CUser.LastName) AS CreatedBy",
                 'Ts.UpdatedOn',
                 'IFNULL(PaidSum.PaidAmount, 0) AS PaidAmount',
-                "GROUP_CONCAT(DISTINCT PT.Name ORDER BY P.PaymentUID ASC SEPARATOR ', ') AS PaymentModes",
+                "IFNULL(PayInfo.PaymentModes, '') AS PaymentModes",
             ]);
             $this->ReadDb->from('Transaction.TransactionsTbl AS Ts');
             $this->ReadDb->join('Customers.CustomerTbl AS Cust',   'Cust.CustomerUID = Ts.PartyUID AND Ts.PartyType = \'C\'', 'LEFT');
@@ -1132,11 +1123,12 @@ class Transactions_model extends MY_Model {
                 '(SELECT TransUID, SUM(Amount) AS PaidAmount FROM Transaction.PaymentsTbl WHERE IsDeleted = 0 AND IsActive = 1 GROUP BY TransUID) AS PaidSum',
                 'PaidSum.TransUID = Ts.TransUID', 'LEFT'
             );
-            $this->ReadDb->join('Transaction.PaymentsTbl AS P',        'P.TransUID = Ts.TransUID AND P.IsDeleted = 0 AND P.IsActive = 1', 'LEFT');
-            $this->ReadDb->join('Global.PaymentTypesTbl AS PT',        'PT.PaymentTypeUID = P.PaymentTypeUID', 'LEFT');
+            $this->ReadDb->join(
+                "(SELECT P.TransUID, GROUP_CONCAT(DISTINCT PT.Name ORDER BY P.PaymentUID ASC SEPARATOR ', ') AS PaymentModes FROM Transaction.PaymentsTbl P JOIN Global.PaymentTypesTbl PT ON PT.PaymentTypeUID = P.PaymentTypeUID WHERE P.IsDeleted = 0 AND P.IsActive = 1 GROUP BY P.TransUID) AS PayInfo",
+                'PayInfo.TransUID = Ts.TransUID', 'LEFT'
+            );
             $this->ReadDb->where(['Ts.IsDeleted' => 0, 'Ts.IsActive' => 1, 'Ts.ModuleUID' => (int)$moduleUID, 'Ts.OrgUID' => $orgUID]);
             $this->applyFilters($filter);
-            $this->ReadDb->group_by('Ts.TransUID');
             $this->ReadDb->order_by('Ts.TransDate', 'DESC');
             $query = $this->ReadDb->get();
             return ($query) ? $query->result() : [];

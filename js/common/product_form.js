@@ -414,6 +414,21 @@
         else if (txt.includes('without')) { $m.find('#SellingPriceWTaxHelp').removeClass('d-none'); }
     });
 
+    /**
+     * @param {number} selling
+     * @param {string} sellingTaxText  - selected option label, e.g. "With Tax"
+     * @param {number} purchase
+     * @param {string} purchaseTaxText
+     * @param {number} taxPct          - tax rate 0–100
+     * @returns {boolean} true if selling is effectively below purchase after normalising to inclusive
+     */
+    function _isBelowPurchasePrice(selling, sellingTaxText, purchase, purchaseTaxText, taxPct) {
+        var factor   = 1 + (taxPct / 100);
+        var sellInc  = sellingTaxText.toLowerCase().indexOf('with tax')  !== -1 ? selling  : selling  * factor;
+        var purchInc = purchaseTaxText.toLowerCase().indexOf('with tax') !== -1 ? purchase : purchase * factor;
+        return sellInc < purchInc;
+    }
+
     // ── Form submit ───────────────────────────────────────────────────────
     $(document).on('submit', '#AddEditItemForm', function (e) {
         e.preventDefault();
@@ -461,28 +476,68 @@
             }
         }
 
-        if (productUID > 0) {
-            var currentHsn = $.trim($('#HSNCode').val());
-            var hsnChanged = ($.trim(_pfOrigHsnCode) !== currentHsn);
-            var message    = hsnChanged
-                ? 'You have updated the HSN/SAC code. This change will be reflected in all future transactions. Do you want to save?'
-                : 'Your changes will be saved and updated. Do you want to continue?';
+        /**
+         * @param {boolean} skipConfirm - when true, skips the "Confirm Update" Swal on edit (merged into price warning)
+         * @returns {void}
+         */
+        function _doSaveFlow(skipConfirm) {
+            if (productUID > 0) {
+                if (skipConfirm) { _doProductSave(formData, productUID); return; }
+                var currentHsn = $.trim($('#HSNCode').val());
+                var hsnChanged = ($.trim(_pfOrigHsnCode) !== currentHsn);
+                var message    = hsnChanged
+                    ? 'You have updated the HSN/SAC code. This change will be reflected in all future transactions. Do you want to save?'
+                    : 'Your changes will be saved and updated. Do you want to continue?';
+                Swal.fire({
+                    icon              : 'warning',
+                    title             : t('swal_confirm_update', 'Confirm Update'),
+                    text              : message,
+                    showCancelButton  : true,
+                    confirmButtonText : t('btn_yes_save', 'Yes, Save'),
+                    cancelButtonText  : t('btn_cancel', 'Cancel')
+                }).then(function (result) {
+                    if (result.isConfirmed) { _doProductSave(formData, productUID); }
+                });
+            } else {
+                _doProductSave(formData, productUID);
+            }
+        }
 
+        var _sp = parseFloat($('#SellingPrice').val())  || 0;
+        var _pp = parseFloat($('#PurchasePrice').val()) || 0;
+        if (_sp > 0 && _pp > 0 && _isBelowPurchasePrice(
+                _sp, $('#SellingTaxOption option:selected').text(),
+                _pp, $('#PurchaseTaxOption option:selected').text(),
+                parseFloat($('#TaxPercentage option:selected').data('left')) || 0)) {
+            var _swalTitle, _swalText, _swalOk, _swalCancel;
+            if (productUID > 0) {
+                var _chsn    = $.trim($('#HSNCode').val());
+                var _hsnNote = ($.trim(_pfOrigHsnCode) !== _chsn)
+                    ? ' Also, the HSN/SAC code change will be reflected in all future transactions.'
+                    : '';
+                _swalTitle  = t('swal_confirm_update',     'Confirm Update');
+                _swalText   = t('swal_below_purchase_msg', 'The selling price is lower than the purchase price. Do you want to proceed anyway?') + _hsnNote;
+                _swalOk     = t('btn_yes_save', 'Yes, Save');
+                _swalCancel = t('btn_cancel',   'Cancel');
+            } else {
+                _swalTitle  = t('swal_below_purchase_title', 'Selling Price Alert');
+                _swalText   = t('swal_below_purchase_msg',   'The selling price is lower than the purchase price. Do you want to proceed anyway?');
+                _swalOk     = t('btn_proceed', 'Proceed');
+                _swalCancel = t('btn_back',    'Back');
+            }
             Swal.fire({
                 icon              : 'warning',
-                title             : t('swal_confirm_update', 'Confirm Update'),
-                text              : message,
+                title             : _swalTitle,
+                text              : _swalText,
                 showCancelButton  : true,
-                confirmButtonText : t('btn_yes_save', 'Yes, Save'),
-                cancelButtonText  : t('btn_cancel', 'Cancel')
-            }).then(function (result) {
-                if (result.isConfirmed) {
-                    _doProductSave(formData, productUID);
-                }
+                confirmButtonText : _swalOk,
+                cancelButtonText  : _swalCancel
+            }).then(function (res) {
+                if (res.isConfirmed) { _doSaveFlow(productUID > 0); }
             });
-        } else {
-            _doProductSave(formData, productUID);
+            return;
         }
+        _doSaveFlow(false);
     });
 
     function _doProductSave(formData, productUID) {

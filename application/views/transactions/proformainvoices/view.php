@@ -192,7 +192,11 @@ $(function () {
     PageNo = _initPage;
     Filter['Status'] = _pfInitTab;
     if (_pfInitSearch) { Filter.Name = _pfInitSearch; }
-    initExport({ moduleUID: 113, getFilters: function () { return Filter; } });
+    initExport({ moduleUID: 113, getFilters: function () {
+        return $.extend({}, Filter,
+            pfPartyFilter ? pfPartyFilter.getState() : {}
+        );
+    } });
     _applyTabFilters(_pfInitTab, _pfTabFilterMap, _allPfFilterEls);
 
     var pfPartyFilter = new TransPartyColFilter({

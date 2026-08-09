@@ -44,6 +44,12 @@
 
     <?php $this->load->view('common/footer_script'); ?>
 
+    <!-- AI Business Assistant widget (authenticated pages only) -->
+    <?php if (isset($JwtData)): ?>
+    <?php $this->load->view('common/ai_assistant_widget'); ?>
+    <script type="text/javascript" src="<?php echo _assetV('/js/core/ai_assistant.js'); ?>"></script>
+    <?php endif; ?>
+
 </body>
 
 </html>

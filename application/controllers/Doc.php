@@ -67,22 +67,30 @@ class Doc extends CI_Controller {
 
         $docLabel  = self::$MODULE_LABELS[$stub->ModuleUID] ?? ($stub->TransType ?? 'Document');
         $docNumber = htmlspecialchars($stub->UniqueNumber ?? '—', ENT_QUOTES, 'UTF-8');
-        $orgName   = htmlspecialchars($orgInfo->Data->BrandName ?? $orgInfo->Data->Name ?? '', ENT_QUOTES, 'UTF-8');
         $pdfUrl    = base_url('doc/pdf/' . $token);
 
-        $paidAmt    = (float)($stub->PaidAmount ?? 0);
-        $netAmt     = (float)($stub->NetAmount  ?? 0);
-        $pendingAmt = max(0, round($netAmt - $paidAmt, $this->_decimals()));
+        $paidAmt    = (float)($stub->PaidAmount    ?? 0);
+        $netAmt     = (float)($stub->NetAmount    ?? 0);
+        $pendingAmt = max(0.0, round((float)($stub->BalanceAmount ?? ($netAmt - $paidAmt)), 2));
 
         if ($netAmt <= 0) {
             $payBadge = '';
         } elseif ($paidAmt <= 0) {
-            $payBadge = '<span style="background:#fef3c7;color:#92400e;padding:2px 9px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.3px;">PENDING</span>';
+            $payBadge = '<span class="dab-badge dab-badge-pending">PENDING</span>';
         } elseif ($pendingAmt <= 0.01) {
-            $payBadge = '<span style="background:#d1fae5;color:#065f46;padding:2px 9px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.3px;">PAID</span>';
+            $payBadge = '<span class="dab-badge dab-badge-paid">PAID</span>';
         } else {
-            $payBadge = '<span style="background:#dbeafe;color:#1e40af;padding:2px 9px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.3px;">PARTIAL</span>';
+            $payBadge = '<span class="dab-badge dab-badge-partial">PARTIAL</span>';
         }
+
+        // Razorpay Pay button: only for invoices with a pending balance and configured keys
+        $showPayBtn  = ((int)$stub->ModuleUID === 103)
+            && ($pendingAmt > 0.01)
+            && !in_array($stub->DocStatus, ['Cancelled', 'Rejected', 'Draft'], true)
+            && !empty(getenv('RAZORPAY_KEY_ID'));
+        $pendingFmt  = '&#8377;' . number_format($pendingAmt, 2);
+        $createUrl   = base_url('razorpay/createOrder/'   . $token);
+        $verifyUrl   = base_url('razorpay/verifyAndRecord/' . $token);
 
         $css = <<<CSS
 <style id="doc-viewer-bar-css">
@@ -107,10 +115,24 @@ class Doc extends CI_Controller {
 #doc-action-bar .dab-btn:hover{ opacity:.82; }
 #doc-action-bar .dab-btn-print{ background:#f59e0b;color:#1a1a1a; }
 #doc-action-bar .dab-btn-pdf  { background:#3b82f6;color:#fff; }
+#doc-action-bar .dab-btn-pay  { background:#10b981;color:#fff;box-shadow:0 0 0 2px rgba(16,185,129,.35); }
+#doc-action-bar .dab-btn-pay:disabled{ opacity:.6;cursor:not-allowed; }
 #doc-action-bar .dab-org{ font-size:11px;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;display:none; }
+.dab-badge{ padding:2px 9px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.3px; }
+.dab-badge-pending{ background:#fef3c7;color:#92400e; }
+.dab-badge-paid   { background:#d1fae5;color:#065f46; }
+.dab-badge-partial{ background:#dbeafe;color:#1e40af; }
+#docPaySuccess{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:#065f46;color:#d1fae5;padding:14px 24px;border-radius:10px;
+  font-family:'Segoe UI',Arial,sans-serif;font-size:14px;font-weight:600;
+  box-shadow:0 4px 20px rgba(0,0,0,.35);display:none;
+  align-items:center;gap:14px;z-index:999999;
+}
+#docPaySuccess a{ color:#6ee7b7;font-weight:700;text-decoration:underline; }
 body { padding-top:52px !important; }
 @media print{
-  #doc-action-bar{ display:none !important; }
+  #doc-action-bar,#docPaySuccess{ display:none !important; }
   body{ padding-top:0 !important; }
 }
 @media(max-width:520px){
@@ -121,32 +143,96 @@ body { padding-top:52px !important; }
 </style>
 CSS;
 
-        $bar = <<<HTML
-<div id="doc-action-bar">
-  <div class="dab-info">
-    <div class="dab-type">{$docLabel}</div>
-    <div class="dab-num">{$docNumber} {$payBadge}</div>
-  </div>
-  <div class="dab-btns">
-    <button class="dab-btn dab-btn-print" onclick="window.print()" title="Print this document">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>
-      </svg>
-      Print
-    </button>
-    <a class="dab-btn dab-btn-pdf" href="{$pdfUrl}" target="_blank" rel="noopener" title="Download as PDF">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-      </svg>
-      Download PDF
-    </a>
-  </div>
-</div>
-HTML;
+        // Build action-bar HTML; pay button added only when applicable
+        $payBtnHtml = '';
+        if ($showPayBtn) {
+            $payBtnHtml = '<button class="dab-btn dab-btn-pay" id="docPayBtn" onclick="docOpenPayment()" title="Pay this invoice online">'
+                . '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">'
+                . '<rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>'
+                . '</svg> Pay ' . $pendingFmt . '</button>';
+        }
 
-        // Inject bar CSS into <head> and bar HTML immediately after <body ...>
+        $bar = '<div id="doc-action-bar">'
+            . '<div class="dab-info">'
+            . '<div class="dab-type">' . $docLabel . '</div>'
+            . '<div class="dab-num">' . $docNumber . ' ' . $payBadge . '</div>'
+            . '</div>'
+            . '<div class="dab-btns">'
+            . '<button class="dab-btn dab-btn-print" onclick="window.print()" title="Print this document">'
+            . '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">'
+            . '<polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>'
+            . '</svg> Print</button>'
+            . '<a class="dab-btn dab-btn-pdf" href="' . $pdfUrl . '" target="_blank" rel="noopener" title="Download as PDF">'
+            . '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">'
+            . '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>'
+            . '</svg> Download PDF</a>'
+            . $payBtnHtml
+            . '</div></div>';
+
+        // Success toast (hidden; shown after payment)
+        $successToast = '<div id="docPaySuccess">'
+            . '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>'
+            . '<span>Payment successful! </span>'
+            . '<a id="docPayReceiptLink" href="#" target="_blank" rel="noopener" style="display:none">View Receipt</a>'
+            . '</div>';
+
+        // Razorpay JS — injected only when pay button is shown
+        $rpScript = '';
+        if ($showPayBtn) {
+            $rpScript = '<script src="https://checkout.razorpay.com/v1/checkout.js"></script>'
+                . '<script>'
+                . 'function docOpenPayment(){'
+                .   'var btn=document.getElementById("docPayBtn");'
+                .   'btn.disabled=true;btn.textContent="Loading…";'
+                .   'fetch("' . $createUrl . '",{method:"POST"})'
+                .   '.then(function(r){return r.json();})'
+                .   '.then(function(d){'
+                .     'if(d.Error){alert(d.Message||"Could not initiate payment.");btn.disabled=false;btn.innerHTML=\'Pay ' . $pendingFmt . '\';return;}'
+                .     'var rzp=new Razorpay({'
+                .       'key:d.key_id,'
+                .       'amount:d.amount,'
+                .       'currency:d.currency,'
+                .       'name:d.name,'
+                .       'description:d.description,'
+                .       'order_id:d.order_id,'
+                .       'prefill:d.prefill,'
+                .       'notes:d.notes,'
+                .       'theme:{color:"#10b981"},'
+                .       'modal:{ondismiss:function(){btn.disabled=false;btn.innerHTML=\'Pay ' . $pendingFmt . '\';}},'
+                .       'handler:function(resp){'
+                .         'btn.disabled=true;btn.textContent="Verifying…";'
+                .         'var fd=new FormData();'
+                .         'fd.append("razorpay_order_id",resp.razorpay_order_id);'
+                .         'fd.append("razorpay_payment_id",resp.razorpay_payment_id);'
+                .         'fd.append("razorpay_signature",resp.razorpay_signature);'
+                .         'fetch("' . $verifyUrl . '",{method:"POST",body:fd})'
+                .         '.then(function(r){return r.json();})'
+                .         '.then(function(v){'
+                .           'if(v.Error){alert("Payment verification failed: "+(v.Message||""));btn.disabled=false;btn.innerHTML=\'Pay ' . $pendingFmt . '\';return;}'
+                .           'btn.style.display="none";'
+                .           'var toast=document.getElementById("docPaySuccess");'
+                .           'toast.style.display="flex";'
+                .           'if(v.ReceiptUrl){'
+                .             'var rl=document.getElementById("docPayReceiptLink");'
+                .             'rl.href=v.ReceiptUrl;rl.style.display="inline";'
+                .           '}'
+                .         '})'
+                .         '.catch(function(){btn.disabled=false;btn.innerHTML=\'Pay ' . $pendingFmt . '\';alert("Network error during verification.");});'
+                .       '}'
+                .     '});'
+                .     'rzp.open();'
+                .   '})'
+                .   '.catch(function(){btn.disabled=false;btn.innerHTML=\'Pay ' . $pendingFmt . '\';alert("Network error. Please try again.");});'
+                . '}'
+                . '</script>';
+        }
+
+        // Inject CSS into <head>, bar + success toast after <body>, and Razorpay JS before </body>
         $finalHtml = str_replace('</head>', $css . '</head>', $printHtml);
-        $finalHtml = preg_replace('/<body([^>]*)>/i', '<body$1>' . $bar, $finalHtml, 1);
+        $finalHtml = preg_replace('/<body([^>]*)>/i', '<body$1>' . $bar . $successToast, $finalHtml, 1);
+        if ($rpScript !== '') {
+            $finalHtml = str_replace('</body>', $rpScript . '</body>', $finalHtml);
+        }
 
         $this->output
             ->set_status_header(200)

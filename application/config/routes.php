@@ -62,6 +62,10 @@ $route['doc/pdf/(:any)'] = 'doc/pdf/$1';
 $route['doc/(:any)']     = 'doc/view/$1';
 $route['invoice/(:any)'] = 'doc/view/$1';   // alias — matches email share links
 
+// Razorpay — public payment endpoints (no JWT; secured by HMAC-SHA256 signature)
+$route['razorpay/createOrder/(:any)']    = 'razorpay/createOrder/$1';
+$route['razorpay/verifyAndRecord/(:any)'] = 'razorpay/verifyAndRecord/$1';
+
 // Cache API (authenticated)
 $route['cache/get']     = 'cache/get';
 $route['cache/set']     = 'cache/set';
@@ -665,3 +669,6 @@ $route['todos/delete']                        = 'todos/delete';
 $route['todos/getStats']                      = 'todos/getStats';
 $route['todos/getBadgeCount']                 = 'todos/getBadgeCount';
 $route['todos/getLinkedTodos']                = 'todos/getLinkedTodos';
+
+// ── AI Business Assistant ────────────────────────────────────────────────────
+$route['assistant/chat'] = 'assistant/chat';

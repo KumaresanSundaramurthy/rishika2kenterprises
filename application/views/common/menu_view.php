@@ -55,7 +55,11 @@
             <a href="/todos" class="menu-link">
                 <i class="menu-icon tf-icons bx bx-task"></i>
                 <div data-i18n="My Tasks">My Tasks</div>
-                <span class="badge bg-primary badge-notifications rounded-pill ms-auto" id="navTodoBadge" style="display:none"></span>
+                <?php
+                    $_navBadge = (int)($CI->pageData['NavTodoBadge'] ?? 0);
+                    $_navBadgeText = $_navBadge > 0 ? ($_navBadge > 99 ? '99+' : $_navBadge) : '';
+                ?>
+                <span class="badge bg-primary badge-notifications rounded-pill ms-auto<?php echo $_navBadge > 0 ? '' : ' d-none'; ?>" id="navTodoBadge"><?php echo $_navBadgeText; ?></span>
             </a>
         </li>
 

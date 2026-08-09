@@ -247,19 +247,6 @@ $(function() {
 
     }
 
-    // ── Todo nav badge count ──────────────────────────────────────────────
-    (function () {
-        var badge = document.getElementById('navTodoBadge');
-        if (!badge) return;
-        $.post('/todos/getBadgeCount', { [CsrfName]: CsrfToken }, function (res) {
-            if (!res || res.Error) return;
-            var count = parseInt(res.Count, 10) || 0;
-            if (count > 0) {
-                badge.textContent = count > 99 ? '99+' : count;
-                badge.style.display = '';
-            }
-        });
-    }());
 
     // ── Party hover card ──────────────────────────────────────────────────
     (function () {

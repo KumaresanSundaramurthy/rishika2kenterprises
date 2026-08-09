@@ -744,6 +744,351 @@ class Accountledger_model extends CI_Model {
         }
     }
 
+    // ── Profit & Loss ────────────────────────────────────────────────────────
+
+    public function getPandLRows(string $dateFrom, string $dateTo): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $orgUID = $this->_orgUID();
+            $this->ReadDb->select([
+                'ca.LedgerUID', 'ca.LedgerCode', 'ca.LedgerName', 'ca.LedgerType',
+                "IFNULL(SUM(CASE WHEN je.TransactionType='Debit'  THEN je.Amount ELSE 0 END),0) AS PeriodDebit",
+                "IFNULL(SUM(CASE WHEN je.TransactionType='Credit' THEN je.Amount ELSE 0 END),0) AS PeriodCredit",
+            ]);
+            $this->ReadDb->from('Accounting.ChartOfAccounts ca');
+            $this->ReadDb->join(
+                'Accounting.JournalEntries je',
+                'je.LedgerUID = ca.LedgerUID AND je.IsDeleted = 0',
+                'left'
+            );
+            $this->ReadDb->join(
+                'Accounting.GeneralJournal gj',
+                "gj.JournalUID = je.JournalUID AND gj.IsDeleted = 0" .
+                " AND gj.JournalDate >= '{$dateFrom}' AND gj.JournalDate <= '{$dateTo}'" .
+                ($orgUID > 0 ? " AND gj.OrgUID = {$orgUID}" : ''),
+                'left'
+            );
+            $this->ReadDb->where_in('ca.LedgerType', ['Income', 'Expense']);
+            $this->ReadDb->where('ca.IsDeleted', 0);
+            $this->ReadDb->where('ca.IsActive',  1);
+            if ($orgUID > 0) $this->ReadDb->where('ca.OrgUID', $orgUID);
+            $this->ReadDb->group_by('ca.LedgerUID');
+            $this->ReadDb->order_by('ca.LedgerType', 'ASC');
+            $this->ReadDb->order_by('ca.LedgerName',  'ASC');
+            $query = $this->ReadDb->get();
+            return $query ? $query->result() : [];
+        } catch (Exception $e) {
+            log_message('error', 'getPandLRows: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    // ── Balance Sheet ─────────────────────────────────────────────────────────
+
+    public function getBalanceSheetRows(string $asOfDate): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $orgUID = $this->_orgUID();
+            $bsTypes = ['Asset', 'Liability', 'Bank', 'Cash', 'Customer', 'Vendor', 'Employee'];
+            $this->ReadDb->select([
+                'ca.LedgerUID', 'ca.LedgerCode', 'ca.LedgerName', 'ca.LedgerType',
+                'ca.OpeningBalance', 'ca.OpeningBalanceType',
+                "IFNULL(SUM(CASE WHEN je.TransactionType='Debit'  THEN je.Amount ELSE 0 END),0) AS PeriodDebit",
+                "IFNULL(SUM(CASE WHEN je.TransactionType='Credit' THEN je.Amount ELSE 0 END),0) AS PeriodCredit",
+            ]);
+            $this->ReadDb->from('Accounting.ChartOfAccounts ca');
+            $this->ReadDb->join(
+                'Accounting.JournalEntries je',
+                'je.LedgerUID = ca.LedgerUID AND je.IsDeleted = 0',
+                'left'
+            );
+            $this->ReadDb->join(
+                'Accounting.GeneralJournal gj',
+                "gj.JournalUID = je.JournalUID AND gj.IsDeleted = 0" .
+                " AND gj.JournalDate <= '{$asOfDate}'" .
+                ($orgUID > 0 ? " AND gj.OrgUID = {$orgUID}" : ''),
+                'left'
+            );
+            $this->ReadDb->where_in('ca.LedgerType', $bsTypes);
+            $this->ReadDb->where('ca.IsDeleted', 0);
+            if ($orgUID > 0) $this->ReadDb->where('ca.OrgUID', $orgUID);
+            $this->ReadDb->group_by('ca.LedgerUID');
+            $this->ReadDb->order_by('ca.LedgerType', 'ASC');
+            $this->ReadDb->order_by('ca.LedgerName',  'ASC');
+            $query = $this->ReadDb->get();
+            return $query ? $query->result() : [];
+        } catch (Exception $e) {
+            log_message('error', 'getBalanceSheetRows: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    // ── Cash Flow Statement ───────────────────────────────────────────────────
+
+    public function getCashFlowBalances(string $dateFrom, string $dateTo): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $orgUID = $this->_orgUID();
+            $this->ReadDb->select([
+                'ca.LedgerUID', 'ca.LedgerName', 'ca.LedgerType',
+                'ca.OpeningBalance', 'ca.OpeningBalanceType',
+                "IFNULL(SUM(CASE WHEN gj.JournalDate < '{$dateFrom}' AND je.TransactionType='Debit'  THEN je.Amount ELSE 0 END),0) AS PreDr",
+                "IFNULL(SUM(CASE WHEN gj.JournalDate < '{$dateFrom}' AND je.TransactionType='Credit' THEN je.Amount ELSE 0 END),0) AS PreCr",
+                "IFNULL(SUM(CASE WHEN gj.JournalDate >= '{$dateFrom}' AND gj.JournalDate <= '{$dateTo}' AND je.TransactionType='Debit'  THEN je.Amount ELSE 0 END),0) AS PeriodDr",
+                "IFNULL(SUM(CASE WHEN gj.JournalDate >= '{$dateFrom}' AND gj.JournalDate <= '{$dateTo}' AND je.TransactionType='Credit' THEN je.Amount ELSE 0 END),0) AS PeriodCr",
+            ]);
+            $this->ReadDb->from('Accounting.ChartOfAccounts ca');
+            $this->ReadDb->join('Accounting.JournalEntries je', 'je.LedgerUID = ca.LedgerUID AND je.IsDeleted = 0', 'left');
+            $this->ReadDb->join('Accounting.GeneralJournal gj',
+                'gj.JournalUID = je.JournalUID AND gj.IsDeleted = 0' .
+                ($orgUID > 0 ? " AND gj.OrgUID = {$orgUID}" : ''), 'left');
+            $this->ReadDb->where_in('ca.LedgerType', ['Bank', 'Cash']);
+            $this->ReadDb->where('ca.IsDeleted', 0);
+            if ($orgUID > 0) $this->ReadDb->where('ca.OrgUID', $orgUID);
+            $this->ReadDb->group_by('ca.LedgerUID');
+            $this->ReadDb->order_by('ca.LedgerType', 'DESC'); // Cash before Bank
+            $this->ReadDb->order_by('ca.LedgerName', 'ASC');
+            $query = $this->ReadDb->get();
+            return $query ? $query->result() : [];
+        } catch (Exception $e) {
+            log_message('error', 'getCashFlowBalances: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function getCashFlowCategoryRows(string $dateFrom, string $dateTo): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $orgUID = $this->_orgUID();
+            $this->ReadDb->select([
+                'je.LedgerUID AS CashLedgerUID',
+                'gj.ReferenceType',
+                'je.TransactionType',
+                "SUM(je.Amount) AS Total",
+            ]);
+            $this->ReadDb->from('Accounting.JournalEntries je');
+            $this->ReadDb->join('Accounting.ChartOfAccounts ca', 'ca.LedgerUID = je.LedgerUID AND ca.IsDeleted = 0');
+            $this->ReadDb->join('Accounting.GeneralJournal gj',
+                "gj.JournalUID = je.JournalUID AND gj.IsDeleted = 0" .
+                " AND gj.JournalDate >= '{$dateFrom}' AND gj.JournalDate <= '{$dateTo}'" .
+                ($orgUID > 0 ? " AND gj.OrgUID = {$orgUID}" : ''));
+            $this->ReadDb->where_in('ca.LedgerType', ['Bank', 'Cash']);
+            $this->ReadDb->where('je.IsDeleted', 0);
+            if ($orgUID > 0) $this->ReadDb->where('ca.OrgUID', $orgUID);
+            $this->ReadDb->group_by(['je.LedgerUID', 'gj.ReferenceType', 'je.TransactionType']);
+            $query = $this->ReadDb->get();
+            return $query ? $query->result() : [];
+        } catch (Exception $e) {
+            log_message('error', 'getCashFlowCategoryRows: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    // ── Budget vs Actual ──────────────────────────────────────────────────────
+    // NOTE: Requires Accounting.Budgets table:
+    //   BudgetUID INT AUTO_INCREMENT PK,
+    //   OrgUID INT, LedgerUID INT, FinancialYear SMALLINT,
+    //   Month TINYINT DEFAULT 0 (0=annual),
+    //   BudgetedAmount DECIMAL(18,4), CreatedBy INT,
+    //   CreatedAt DATETIME, UpdatedBy INT, UpdatedAt DATETIME,
+    //   IsDeleted TINYINT DEFAULT 0,
+    //   UNIQUE KEY (OrgUID, LedgerUID, FinancialYear, Month)
+
+    public function getBudgetVsActualRows(int $fy, string $dateFrom, string $dateTo): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $orgUID = $this->_orgUID();
+            $this->ReadDb->select([
+                'ca.LedgerUID', 'ca.LedgerCode', 'ca.LedgerName', 'ca.LedgerType',
+                "IFNULL(b.BudgetedAmount, 0) AS BudgetedAmount",
+                "IFNULL(SUM(CASE WHEN je.TransactionType='Debit'  THEN je.Amount ELSE 0 END),0) AS PeriodDr",
+                "IFNULL(SUM(CASE WHEN je.TransactionType='Credit' THEN je.Amount ELSE 0 END),0) AS PeriodCr",
+            ]);
+            $this->ReadDb->from('Accounting.ChartOfAccounts ca');
+            $this->ReadDb->join('Accounting.Budgets b',
+                "b.LedgerUID = ca.LedgerUID AND b.OrgUID = ca.OrgUID" .
+                " AND b.FinancialYear = {$fy} AND b.Month = 0 AND b.IsDeleted = 0", 'left');
+            $this->ReadDb->join('Accounting.JournalEntries je', 'je.LedgerUID = ca.LedgerUID AND je.IsDeleted = 0', 'left');
+            $this->ReadDb->join('Accounting.GeneralJournal gj',
+                "gj.JournalUID = je.JournalUID AND gj.IsDeleted = 0" .
+                " AND gj.JournalDate >= '{$dateFrom}' AND gj.JournalDate <= '{$dateTo}'" .
+                ($orgUID > 0 ? " AND gj.OrgUID = {$orgUID}" : ''), 'left');
+            $this->ReadDb->where_in('ca.LedgerType', ['Income', 'Expense']);
+            $this->ReadDb->where('ca.IsDeleted', 0);
+            $this->ReadDb->where('ca.IsActive', 1);
+            if ($orgUID > 0) $this->ReadDb->where('ca.OrgUID', $orgUID);
+            $this->ReadDb->group_by('ca.LedgerUID');
+            $this->ReadDb->order_by('ca.LedgerType', 'ASC');
+            $this->ReadDb->order_by('ca.LedgerName', 'ASC');
+            $query = $this->ReadDb->get();
+            return $query ? $query->result() : [];
+        } catch (Exception $e) {
+            log_message('error', 'getBudgetVsActualRows: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function saveBudgetAmount(int $ledgerUID, int $fy, float $amount, int $userUID): bool {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $orgUID  = $this->_orgUID();
+            $existing = $this->ReadDb
+                ->select('BudgetUID')
+                ->where('OrgUID', $orgUID)
+                ->where('LedgerUID', $ledgerUID)
+                ->where('FinancialYear', $fy)
+                ->where('Month', 0)
+                ->where('IsDeleted', 0)
+                ->get('Accounting.Budgets')
+                ->row();
+            $now = date('Y-m-d H:i:s');
+            if ($existing) {
+                $res = $this->dbwrite_model->updateData('Accounting', 'Budgets',
+                    ['BudgetedAmount' => $amount, 'UpdatedBy' => $userUID, 'UpdatedAt' => $now],
+                    ['BudgetUID' => (int)$existing->BudgetUID, 'OrgUID' => $orgUID]);
+            } else {
+                $res = $this->dbwrite_model->insertData('Accounting', 'Budgets', [
+                    'OrgUID' => $orgUID, 'LedgerUID' => $ledgerUID,
+                    'FinancialYear' => $fy, 'Month' => 0,
+                    'BudgetedAmount' => $amount, 'CreatedBy' => $userUID,
+                    'CreatedAt' => $now, 'IsDeleted' => 0,
+                ]);
+            }
+            return !$res->Error;
+        } catch (Exception $e) {
+            log_message('error', 'saveBudgetAmount: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    // ── Aged Receivables ──────────────────────────────────────────────────────
+
+    public function getAgedReceivablesRows(string $asOfDate): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $orgUID = $this->_orgUID();
+            $d30 = date('Y-m-d', strtotime($asOfDate . ' -30 days'));
+            $d60 = date('Y-m-d', strtotime($asOfDate . ' -60 days'));
+            $d90 = date('Y-m-d', strtotime($asOfDate . ' -90 days'));
+            $this->ReadDb->select([
+                'ca.LedgerUID', 'ca.LedgerCode', 'ca.LedgerName',
+                'ca.OpeningBalance', 'ca.OpeningBalanceType',
+                "IFNULL(SUM(CASE WHEN je.TransactionType='Debit'  THEN je.Amount ELSE 0 END),0) AS TotalDr",
+                "IFNULL(SUM(CASE WHEN je.TransactionType='Credit' THEN je.Amount ELSE 0 END),0) AS TotalCr",
+                "IFNULL(SUM(CASE WHEN je.TransactionType='Debit' AND gj.JournalDate >= '{$d30}'                                    THEN je.Amount ELSE 0 END),0) AS DrBand0_30",
+                "IFNULL(SUM(CASE WHEN je.TransactionType='Debit' AND gj.JournalDate >= '{$d60}' AND gj.JournalDate < '{$d30}'      THEN je.Amount ELSE 0 END),0) AS DrBand31_60",
+                "IFNULL(SUM(CASE WHEN je.TransactionType='Debit' AND gj.JournalDate >= '{$d90}' AND gj.JournalDate < '{$d60}'      THEN je.Amount ELSE 0 END),0) AS DrBand61_90",
+                "IFNULL(SUM(CASE WHEN je.TransactionType='Debit' AND gj.JournalDate < '{$d90}'                                     THEN je.Amount ELSE 0 END),0) AS DrBand90plus",
+            ]);
+            $this->ReadDb->from('Accounting.ChartOfAccounts ca');
+            $this->ReadDb->join('Accounting.JournalEntries je', 'je.LedgerUID = ca.LedgerUID AND je.IsDeleted = 0', 'left');
+            $this->ReadDb->join('Accounting.GeneralJournal gj',
+                "gj.JournalUID = je.JournalUID AND gj.IsDeleted = 0 AND gj.JournalDate <= '{$asOfDate}'" .
+                ($orgUID > 0 ? " AND gj.OrgUID = {$orgUID}" : ''), 'left');
+            $this->ReadDb->where('ca.LedgerType', 'Customer');
+            $this->ReadDb->where('ca.IsDeleted', 0);
+            if ($orgUID > 0) $this->ReadDb->where('ca.OrgUID', $orgUID);
+            $this->ReadDb->group_by('ca.LedgerUID');
+            $this->ReadDb->order_by('ca.LedgerName', 'ASC');
+            $query = $this->ReadDb->get();
+            return $query ? $query->result() : [];
+        } catch (Exception $e) {
+            log_message('error', 'getAgedReceivablesRows: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    // ── Aged Payables ─────────────────────────────────────────────────────────
+
+    public function getAgedPayablesRows(string $asOfDate): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $orgUID = $this->_orgUID();
+            $d30 = date('Y-m-d', strtotime($asOfDate . ' -30 days'));
+            $d60 = date('Y-m-d', strtotime($asOfDate . ' -60 days'));
+            $d90 = date('Y-m-d', strtotime($asOfDate . ' -90 days'));
+            $this->ReadDb->select([
+                'ca.LedgerUID', 'ca.LedgerCode', 'ca.LedgerName',
+                'ca.OpeningBalance', 'ca.OpeningBalanceType',
+                "IFNULL(SUM(CASE WHEN je.TransactionType='Debit'  THEN je.Amount ELSE 0 END),0) AS TotalDr",
+                "IFNULL(SUM(CASE WHEN je.TransactionType='Credit' THEN je.Amount ELSE 0 END),0) AS TotalCr",
+                "IFNULL(SUM(CASE WHEN je.TransactionType='Credit' AND gj.JournalDate >= '{$d30}'                                   THEN je.Amount ELSE 0 END),0) AS CrBand0_30",
+                "IFNULL(SUM(CASE WHEN je.TransactionType='Credit' AND gj.JournalDate >= '{$d60}' AND gj.JournalDate < '{$d30}'     THEN je.Amount ELSE 0 END),0) AS CrBand31_60",
+                "IFNULL(SUM(CASE WHEN je.TransactionType='Credit' AND gj.JournalDate >= '{$d90}' AND gj.JournalDate < '{$d60}'     THEN je.Amount ELSE 0 END),0) AS CrBand61_90",
+                "IFNULL(SUM(CASE WHEN je.TransactionType='Credit' AND gj.JournalDate < '{$d90}'                                    THEN je.Amount ELSE 0 END),0) AS CrBand90plus",
+            ]);
+            $this->ReadDb->from('Accounting.ChartOfAccounts ca');
+            $this->ReadDb->join('Accounting.JournalEntries je', 'je.LedgerUID = ca.LedgerUID AND je.IsDeleted = 0', 'left');
+            $this->ReadDb->join('Accounting.GeneralJournal gj',
+                "gj.JournalUID = je.JournalUID AND gj.IsDeleted = 0 AND gj.JournalDate <= '{$asOfDate}'" .
+                ($orgUID > 0 ? " AND gj.OrgUID = {$orgUID}" : ''), 'left');
+            $this->ReadDb->where('ca.LedgerType', 'Vendor');
+            $this->ReadDb->where('ca.IsDeleted', 0);
+            if ($orgUID > 0) $this->ReadDb->where('ca.OrgUID', $orgUID);
+            $this->ReadDb->group_by('ca.LedgerUID');
+            $this->ReadDb->order_by('ca.LedgerName', 'ASC');
+            $query = $this->ReadDb->get();
+            return $query ? $query->result() : [];
+        } catch (Exception $e) {
+            log_message('error', 'getAgedPayablesRows: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    // ── Day Book ─────────────────────────────────────────────────────────────
+
+    public function getDayBookRows(string $dateFrom, string $dateTo, bool $cashBankOnly = false, int $ledgerUID = 0): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $orgUID = $this->_orgUID();
+            $this->ReadDb->select([
+                'gj.JournalDate', 'gj.JournalUID', 'gj.JournalNo', 'gj.ReferenceType', 'gj.ReferenceNo', 'gj.Narration',
+                'ca.LedgerUID', 'ca.LedgerName', 'ca.LedgerType', 'ca.LedgerCode',
+                'je.EntryUID', 'je.TransactionType', 'je.Amount', 'je.Particulars',
+            ]);
+            $this->ReadDb->from('Accounting.GeneralJournal gj');
+            $this->ReadDb->join('Accounting.JournalEntries je', 'je.JournalUID = gj.JournalUID AND je.IsDeleted = 0');
+            $this->ReadDb->join('Accounting.ChartOfAccounts ca', 'ca.LedgerUID = je.LedgerUID AND ca.IsDeleted = 0');
+            $this->ReadDb->where('gj.IsDeleted', 0);
+            $this->ReadDb->where("gj.JournalDate >=", $dateFrom);
+            $this->ReadDb->where("gj.JournalDate <=", $dateTo);
+            if ($orgUID > 0) $this->ReadDb->where('gj.OrgUID', $orgUID);
+            if ($ledgerUID > 0) {
+                $this->ReadDb->where('ca.LedgerUID', $ledgerUID);
+            } elseif ($cashBankOnly) {
+                $this->ReadDb->where_in('ca.LedgerType', ['Bank', 'Cash']);
+            }
+            $this->ReadDb->order_by('gj.JournalDate', 'ASC');
+            $this->ReadDb->order_by('gj.JournalUID',  'ASC');
+            $this->ReadDb->order_by('FIELD(je.TransactionType,\'Debit\',\'Credit\')', NULL, FALSE);
+            $query = $this->ReadDb->get();
+            return $query ? $query->result() : [];
+        } catch (Exception $e) {
+            log_message('error', 'getDayBookRows: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function getCashBankLedgers(): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $orgUID = $this->_orgUID();
+            $this->ReadDb->select('LedgerUID, LedgerCode, LedgerName, LedgerType');
+            $this->ReadDb->from('Accounting.ChartOfAccounts');
+            $this->ReadDb->where_in('LedgerType', ['Bank', 'Cash']);
+            $this->ReadDb->where('IsDeleted', 0);
+            $this->ReadDb->where('IsActive', 1);
+            if ($orgUID > 0) $this->ReadDb->where('OrgUID', $orgUID);
+            $this->ReadDb->order_by('LedgerType', 'ASC');
+            $this->ReadDb->order_by('LedgerName',  'ASC');
+            $query = $this->ReadDb->get();
+            return $query ? $query->result() : [];
+        } catch (Exception $e) {
+            log_message('error', 'getCashBankLedgers: ' . $e->getMessage());
+            return [];
+        }
+    }
+
     // ── Period Lock ───────────────────────────────────────────────────────────
 
     public function getPeriodLock(): ?object {

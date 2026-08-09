@@ -846,93 +846,357 @@ select.finput option{background:var(--card);color:var(--text)}
 <!-- Toast -->
 <div class="toast" id="toast"><span id="toastMsg"></span></div>
 
+<!-- Three.js + globe.gl -->
+<script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
 <script src="https://unpkg.com/globe.gl@2.30.0/dist/globe.gl.min.js"></script>
 <script>
-// ── Globe Animation (WebGL · photorealistic Earth via globe.gl) ───────────────
+// ── Photo-realistic Globe: day/night GLSL shader + NASA city lights + clouds ──
 (function () {
+  'use strict';
   var container = document.getElementById('globe-canvas');
-  if (!container || typeof Globe === 'undefined') return;
+  if (!container || typeof Globe === 'undefined' || typeof THREE === 'undefined') return;
 
-  var size = container.offsetWidth || 640;
+  var size    = container.offsetWidth || 640;
+  var GLOBE_R = 100;
 
+  // India + subcontinent + regional neighbours
   var cities = [
-    { lat: 13.1,  lng: 80.3,   name: 'Chennai',       india: true  },
-    { lat: 28.6,  lng: 77.2,   name: 'Delhi',          india: true  },
-    { lat: 19.1,  lng: 72.9,   name: 'Mumbai',         india: true  },
-    { lat: 12.9,  lng: 77.6,   name: 'Bangalore',      india: true  },
-    { lat: 22.6,  lng: 88.4,   name: 'Kolkata',        india: true  },
-    { lat: 25.2,  lng: 55.3,   name: 'Dubai',          india: false },
-    { lat: 1.3,   lng: 103.8,  name: 'Singapore',      india: false },
-    { lat: 51.5,  lng: -0.1,   name: 'London',         india: false },
-    { lat: 48.9,  lng: 2.4,    name: 'Paris',          india: false },
-    { lat: 40.7,  lng: -74.0,  name: 'New York',       india: false },
-    { lat: 37.8,  lng: -122.4, name: 'San Francisco',  india: false },
-    { lat: 35.7,  lng: 139.7,  name: 'Tokyo',          india: false },
-    { lat: 31.2,  lng: 121.5,  name: 'Shanghai',       india: false },
-    { lat: -33.9, lng: 151.2,  name: 'Sydney',         india: false },
-    { lat: -23.5, lng: -46.6,  name: 'São Paulo',      india: false },
-    { lat: 55.8,  lng: 37.6,   name: 'Moscow',         india: false },
+    { lat: 13.1,  lng: 80.3,  india: true  },  // Chennai
+    { lat: 28.6,  lng: 77.2,  india: true  },  // Delhi
+    { lat: 19.1,  lng: 72.9,  india: true  },  // Mumbai
+    { lat: 12.9,  lng: 77.6,  india: true  },  // Bangalore
+    { lat: 22.6,  lng: 88.4,  india: true  },  // Kolkata
+    { lat: 17.4,  lng: 78.5,  india: true  },  // Hyderabad
+    { lat: 23.0,  lng: 72.6,  india: true  },  // Ahmedabad
+    { lat: 9.9,   lng: 78.1,  india: true  },  // Madurai
+    { lat: 10.5,  lng: 76.2,  india: true  },  // Coimbatore
+    { lat: 6.9,   lng: 79.9,  india: false },  // Colombo
+    { lat: 7.9,   lng: 80.6,  india: false },  // Kandy
+    { lat: 23.7,  lng: 90.4,  india: false },  // Dhaka
+    { lat: 27.7,  lng: 85.3,  india: false },  // Kathmandu
+    { lat: 24.9,  lng: 67.0,  india: false },  // Karachi
+    { lat: 33.7,  lng: 73.1,  india: false },  // Islamabad
+    { lat: 1.3,   lng: 103.8, india: false },  // Singapore
+    { lat: 13.8,  lng: 100.5, india: false },  // Bangkok
+    { lat: 3.1,   lng: 101.7, india: false },  // Kuala Lumpur
+    { lat: 16.9,  lng: 96.2,  india: false },  // Yangon
+    { lat: 25.2,  lng: 55.3,  india: false },  // Dubai
+    { lat: 24.7,  lng: 46.7,  india: false },  // Riyadh
+    { lat: 51.5,  lng: -0.1,  india: false },  // London
+    { lat: 40.7,  lng: -74.0, india: false },  // New York
+    { lat: 35.7,  lng: 139.7, india: false },  // Tokyo
+    { lat: -33.9, lng: 151.2, india: false },  // Sydney
   ];
 
+  // All arcs originate from Indian cities
   var arcsData = [
-    { sLat: 13.1,  sLng: 80.3,  eLat: 51.5,   eLng: -0.1  },
-    { sLat: 28.6,  sLng: 77.2,  eLat: 40.7,   eLng: -74.0 },
-    { sLat: 19.1,  sLng: 72.9,  eLat: 25.2,   eLng: 55.3  },
-    { sLat: 13.1,  sLng: 80.3,  eLat: 1.3,    eLng: 103.8 },
-    { sLat: 28.6,  sLng: 77.2,  eLat: 35.7,   eLng: 139.7 },
-    { sLat: 19.1,  sLng: 72.9,  eLat: -33.9,  eLng: 151.2 },
-    { sLat: 12.9,  sLng: 77.6,  eLat: 37.8,   eLng: -122.4},
-    { sLat: 22.6,  sLng: 88.4,  eLat: -23.5,  eLng: -46.6 },
-    { sLat: 13.1,  sLng: 80.3,  eLat: 55.8,   eLng: 37.6  },
-    { sLat: 28.6,  sLng: 77.2,  eLat: 48.9,   eLng: 2.4   },
-    { sLat: 19.1,  sLng: 72.9,  eLat: 31.2,   eLng: 121.5 },
+    { sLat: 13.1,  sLng: 80.3,  eLat: 6.9,   eLng: 79.9   },  // Chennai->Colombo
+    { sLat: 13.1,  sLng: 80.3,  eLat: 1.3,   eLng: 103.8  },  // Chennai->Singapore
+    { sLat: 13.1,  sLng: 80.3,  eLat: 25.2,  eLng: 55.3   },  // Chennai->Dubai
+    { sLat: 13.1,  sLng: 80.3,  eLat: 51.5,  eLng: -0.1   },  // Chennai->London
+    { sLat: 13.1,  sLng: 80.3,  eLat: -33.9, eLng: 151.2  },  // Chennai->Sydney
+    { sLat: 19.1,  sLng: 72.9,  eLat: 24.9,  eLng: 67.0   },  // Mumbai->Karachi
+    { sLat: 19.1,  sLng: 72.9,  eLat: 24.7,  eLng: 46.7   },  // Mumbai->Riyadh
+    { sLat: 19.1,  sLng: 72.9,  eLat: 40.7,  eLng: -74.0  },  // Mumbai->New York
+    { sLat: 28.6,  sLng: 77.2,  eLat: 27.7,  eLng: 85.3   },  // Delhi->Kathmandu
+    { sLat: 28.6,  sLng: 77.2,  eLat: 33.7,  eLng: 73.1   },  // Delhi->Islamabad
+    { sLat: 28.6,  sLng: 77.2,  eLat: 51.5,  eLng: -0.1   },  // Delhi->London
+    { sLat: 22.6,  sLng: 88.4,  eLat: 23.7,  eLng: 90.4   },  // Kolkata->Dhaka
+    { sLat: 22.6,  sLng: 88.4,  eLat: 16.9,  eLng: 96.2   },  // Kolkata->Yangon
+    { sLat: 22.6,  sLng: 88.4,  eLat: 35.7,  eLng: 139.7  },  // Kolkata->Tokyo
+    { sLat: 12.9,  sLng: 77.6,  eLat: 13.8,  eLng: 100.5  },  // Bangalore->Bangkok
+    { sLat: 12.9,  sLng: 77.6,  eLat: 3.1,   eLng: 101.7  },  // Bangalore->KL
   ];
 
-  var globe = Globe({
-      animateIn: true,
-      rendererConfig: { antialias: true, alpha: true }
-    })
-    .width(size)
-    .height(size)
+  // Shared sun direction (world-space unit vector) — mutated in-place so the
+  // shader uniform updates automatically without a second assignment.
+  var _sunDir    = new THREE.Vector3(1, 0, 0);
+  var _shaderMat = null;
+
+  var globe = Globe({ animateIn: true, rendererConfig: { antialias: true, alpha: true } })
+    .width(size).height(size)
     .backgroundColor('rgba(0,0,0,0)')
-    .showGraticules(false)
     .showAtmosphere(true)
-    .atmosphereColor('rgba(80,150,255,1)')
+    .atmosphereColor('rgba(100,175,255,1)')
     .atmosphereAltitude(0.28)
     .globeImageUrl('//unpkg.com/three-globe/example/img/earth-blue-marble.jpg')
-    .bumpImageUrl('//unpkg.com/three-globe/example/img/earth-topology.png')
     .pointsData(cities)
-    .pointLat('lat')
-    .pointLng('lng')
+    .pointLat('lat').pointLng('lng')
     .pointColor(function (d) { return d.india ? '#f59e0b' : '#93c5fd'; })
     .pointAltitude(0.008)
-    .pointRadius(function (d) { return d.india ? 0.65 : 0.4; })
+    .pointRadius(function (d) { return d.india ? 0.7 : 0.38; })
     .pointResolution(12)
     .arcsData(arcsData)
-    .arcStartLat('sLat')
-    .arcStartLng('sLng')
-    .arcEndLat('eLat')
-    .arcEndLng('eLng')
+    .arcStartLat('sLat').arcStartLng('sLng')
+    .arcEndLat('eLat').arcEndLng('eLng')
     .arcColor(function () {
-      return ['rgba(245,158,11,0)', 'rgba(245,158,11,0.9)', 'rgba(147,197,253,0.9)', 'rgba(147,197,253,0)'];
+      return ['rgba(245,158,11,0)', 'rgba(245,158,11,0.95)', 'rgba(147,197,253,0.95)', 'rgba(147,197,253,0)'];
     })
-    .arcDashLength(0.35)
-    .arcDashGap(0.15)
+    .arcDashLength(0.38).arcDashGap(0.14)
     .arcDashInitialGap(function () { return Math.random(); })
-    .arcDashAnimateTime(2000)
-    .arcStroke(0.4)
-    .arcAltitudeAutoScale(0.38)
+    .arcDashAnimateTime(2400).arcStroke(0.45).arcAltitudeAutoScale(0.32)
     (container);
 
   var controls = globe.controls();
   controls.autoRotate      = true;
-  controls.autoRotateSpeed = 1.0;
+  controls.autoRotateSpeed = 0.25;
   controls.enableZoom      = false;
   controls.enableDamping   = true;
-  controls.dampingFactor   = 0.1;
+  controls.dampingFactor   = 0.08;
 
-  // Start focused on India
-  globe.pointOfView({ lat: 20, lng: 80, altitude: 1.8 }, 0);
+  // Centre on India / Bay of Bengal — slow rotation keeps India prominent
+  globe.pointOfView({ lat: 12, lng: 82, altitude: 1.75 }, 0);
+
+  var scene  = globe.scene();
+  var camera = globe.camera();
+
+  // Procedural star field — no texture, fully GPU-rendered.
+  // 6 000 background stars with realistic BAFGKM spectral colour distribution
+  // and inverse-square magnitude weighting (mostly dim specks, a few bright).
+  // 4 000 extra stars concentrated along the Milky Way galactic band (tilted
+  // ~63° from equatorial), producing the visible dense stripe of deep space.
+  // Each star is rendered as a soft glowing disc via a custom fragment shader.
+  (function () {
+    var STARS = 6000, MW = 4000, TOTAL = STARS + MW;
+    var R     = GLOBE_R * 185;
+    var pos   = new Float32Array(TOTAL * 3);
+    var col   = new Float32Array(TOTAL * 3);
+    var sz    = new Float32Array(TOTAL);
+
+    // Spectral class colours + cumulative probability (BAFGKM, realistic ratio)
+    var SC = [
+      [0.60, 0.70, 1.00],   // B  – hot blue-white
+      [0.85, 0.90, 1.00],   // A  – white
+      [1.00, 0.97, 0.88],   // F  – pale yellow
+      [1.00, 0.93, 0.75],   // G  – yellow (Sun-type)
+      [1.00, 0.82, 0.58],   // K  – orange
+      [1.00, 0.62, 0.38],   // M  – red-orange (most common)
+    ];
+    var CP = [0.002, 0.009, 0.044, 0.162, 0.382, 1.0];
+
+    function rndSphere(i) {
+      var th = 2 * Math.PI * Math.random();
+      var ph = Math.acos(2 * Math.random() - 1);
+      pos[i]   = R * Math.sin(ph) * Math.cos(th);
+      pos[i+1] = R * Math.sin(ph) * Math.sin(th);
+      pos[i+2] = R * Math.cos(ph);
+    }
+    function rndColor(i) {
+      var r = Math.random(), s = SC[5];
+      for (var k = 0; k < CP.length; k++) { if (r < CP[k]) { s = SC[k]; break; } }
+      var j = 0.05;
+      col[i]   = Math.min(1, s[0] + (Math.random()-0.5)*j);
+      col[i+1] = Math.min(1, s[1] + (Math.random()-0.5)*j);
+      col[i+2] = Math.min(1, s[2] + (Math.random()-0.5)*j);
+    }
+    function rndSize() {
+      var x = Math.random();
+      if (x < 0.003) return 2.6 + Math.random() * 0.5;   // very bright (rare)
+      if (x < 0.018) return 1.6 + Math.random() * 0.6;   // bright
+      if (x < 0.10)  return 0.9 + Math.random() * 0.5;   // medium
+      return 0.35 + Math.random() * 0.45;                 // dim (majority)
+    }
+
+    for (var i = 0; i < STARS; i++) { rndSphere(i*3); rndColor(i*3); sz[i] = rndSize(); }
+
+    // Milky Way band: galactic plane tilted ~63° from equatorial plane,
+    // stars concentrated within ±10° core + ±25° halo for natural gradient.
+    var TILT = 63 * Math.PI / 180, cosT = Math.cos(TILT), sinT = Math.sin(TILT);
+    for (var j = 0; j < MW; j++) {
+      var gLon = Math.random() * 2 * Math.PI;
+      var bLim = Math.random() < 0.6 ? 0.175 : 0.44;   // narrow core vs wide halo
+      var gLat = (Math.random() * 2 - 1) * bLim;
+      var xg = Math.cos(gLat) * Math.cos(gLon);
+      var yg = Math.cos(gLat) * Math.sin(gLon);
+      var zg = Math.sin(gLat);
+      var base = (STARS + j) * 3;
+      pos[base]   = xg * R;
+      pos[base+1] = (yg * cosT - zg * sinT) * R;
+      pos[base+2] = (yg * sinT + zg * cosT) * R;
+      var b = 0.55 + Math.random() * 0.35;    // dim warm-white, varying brightness
+      col[base]   = b;
+      col[base+1] = b * (0.87 + Math.random() * 0.10);
+      col[base+2] = b * (0.72 + Math.random() * 0.16);
+      sz[STARS+j] = 0.28 + Math.random() * 0.38;
+    }
+
+    var geom = new THREE.BufferGeometry();
+    geom.setAttribute('position',  new THREE.BufferAttribute(pos, 3));
+    geom.setAttribute('starColor', new THREE.BufferAttribute(col, 3));
+    geom.setAttribute('starSize',  new THREE.BufferAttribute(sz, 1));
+
+    // Fragment shader renders each point as a soft glowing disc:
+    // bright hard core + faint diffuse halo, discard outside unit circle.
+    scene.add(new THREE.Points(geom, new THREE.ShaderMaterial({
+      uniforms: {},
+      vertexShader: [
+        'attribute vec3  starColor;',
+        'attribute float starSize;',
+        'varying   vec3  vColor;',
+        'varying   float vAlpha;',
+        'void main(){',
+        '  vColor       = starColor;',
+        '  vAlpha       = clamp(starSize / 2.2, 0.3, 1.0);',
+        '  gl_PointSize = starSize;',
+        '  gl_Position  = projectionMatrix * modelViewMatrix * vec4(position,1.0);',
+        '}'
+      ].join('\n'),
+      fragmentShader: [
+        'varying vec3  vColor;',
+        'varying float vAlpha;',
+        'void main(){',
+        '  vec2  c = 2.0 * gl_PointCoord - 1.0;',
+        '  float r = dot(c, c);',
+        '  if (r > 1.0) discard;',
+        '  float core = smoothstep(1.0, 0.0,  r);',
+        '  float halo = smoothstep(1.0, 0.25, r) * 0.28;',
+        '  gl_FragColor = vec4(vColor, (core + halo) * vAlpha);',
+        '}'
+      ].join('\n'),
+      transparent: true,
+      depthWrite:  false,
+      blending:    THREE.AdditiveBlending
+    })));
+  })();
+
+  // ── Sun direction ─────────────────────────────────────────────────────────────
+  // Computes the real sub-solar point in UTC, mutates _sunDir in place (so the
+  // ShaderMaterial uniform stays current without an extra assignment), and also
+  // moves the scene directional light so the atmosphere glow tracks the sun.
+  function _calcSunDir() {
+    var now       = new Date();
+    var dayOfYear = Math.round(
+      (Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) -
+       Date.UTC(now.getUTCFullYear(), 0, 0)) / 86400000
+    );
+    var decl  = -23.45 * Math.cos(2 * Math.PI * (dayOfYear + 10) / 365);
+    var hourA = (12 - now.getUTCHours() - now.getUTCMinutes() / 60) * 15;
+    var phi   = (90 - decl) * Math.PI / 180;
+    var theta = hourA       * Math.PI / 180;
+    _sunDir.set(
+      Math.sin(phi) * Math.sin(theta),
+      Math.cos(phi),
+      -Math.sin(phi) * Math.cos(theta)
+    ).normalize();
+    var d = GLOBE_R * 5;
+    scene.traverse(function (obj) {
+      if (obj.isDirectionalLight) {
+        obj.position.set(_sunDir.x * d, _sunDir.y * d, _sunDir.z * d);
+      }
+    });
+  }
+  _calcSunDir();
+  setInterval(_calcSunDir, 60000);
+
+  // ── Day / Night GLSL shader ───────────────────────────────────────────────────
+  // Loads the NASA Blue Marble (day) + NASA Black Marble (city lights at night).
+  // The fragment shader blends them using the real sun direction:
+  //   • day side  → Blue Marble with gentle limb-darkening toward the horizon
+  //   • night side → city-light texture boosted 3× so metropolises glow clearly
+  //   • terminator → smooth 30° twilight band via smoothstep
+  // Day/Night + Ocean Specular Shader
+  // uDay   = NASA Blue Marble      uNight = NASA Black Marble (city lights)
+  // uWater = ocean mask (white=ocean) — drives Blinn-Phong specular so the
+  //          Indian Ocean and Pacific shimmer as the globe rotates.
+  // uCamPos shares camera.position by reference so specular tracks the orbit.
+  var _loader = new THREE.TextureLoader();
+  _loader.setCrossOrigin('anonymous');
+
+  var _loadedCount = 0, _dayTex = null, _nightTex = null, _waterTex = null;
+  function _onShaderTex() {
+    if (++_loadedCount < 3) return;
+    [_dayTex, _nightTex, _waterTex].forEach(function (t) { t.anisotropy = 4; });
+
+    _shaderMat = new THREE.ShaderMaterial({
+      uniforms: {
+        uDay:    { value: _dayTex   },
+        uNight:  { value: _nightTex },
+        uWater:  { value: _waterTex },
+        uSunDir: { value: _sunDir          },
+        uCamPos: { value: camera.position  }
+      },
+      vertexShader: [
+        'varying vec2 vUv;',
+        'varying vec3 vWorldNormal;',
+        'varying vec3 vWorldPos;',
+        'void main(){',
+        '  vUv          = uv;',
+        '  vWorldNormal = normalize(mat3(modelMatrix) * normal);',
+        '  vWorldPos    = (modelMatrix * vec4(position, 1.0)).xyz;',
+        '  gl_Position  = projectionMatrix * modelViewMatrix * vec4(position, 1.0);',
+        '}'
+      ].join('\n'),
+      fragmentShader: [
+        'uniform sampler2D uDay;',
+        'uniform sampler2D uNight;',
+        'uniform sampler2D uWater;',
+        'uniform vec3 uSunDir;',
+        'uniform vec3 uCamPos;',
+        'varying vec2 vUv;',
+        'varying vec3 vWorldNormal;',
+        'varying vec3 vWorldPos;',
+        'void main(){',
+        '  float cosA   = dot(vWorldNormal, uSunDir);',
+        '  float dayMix = smoothstep(-0.12, 0.18, cosA);',
+        '  vec3  day    = texture2D(uDay,   vUv).rgb;',
+        '  vec3  night  = texture2D(uNight, vUv).rgb * 3.0;',
+        '  float ocean  = texture2D(uWater, vUv).r;',
+        '  day  *= 0.55 + 0.45 * smoothstep(0.0, 0.28, cosA);',
+        '  vec3  viewDir = normalize(uCamPos - vWorldPos);',
+        '  vec3  halfDir = normalize(uSunDir + viewDir);',
+        '  float spec    = pow(max(dot(vWorldNormal, halfDir), 0.0), 90.0);',
+        '  day  += vec3(spec * 0.85, spec * 0.9, spec) * ocean * 0.5 * dayMix;',
+        '  gl_FragColor  = vec4(mix(night, day, dayMix), 1.0);',
+        '}'
+      ].join('\n')
+    });
+
+    if (typeof globe.globeMaterial === 'function') {
+      globe.globeMaterial(_shaderMat);
+    } else {
+      scene.traverse(function (obj) {
+        if (obj.isMesh && obj.geometry && obj.geometry.parameters &&
+            obj.geometry.parameters.widthSegments >= 50) {
+          obj.material = _shaderMat;
+        }
+      });
+    }
+  }
+
+  _loader.load('//unpkg.com/three-globe/example/img/earth-blue-marble.jpg',
+    function (t) { _dayTex   = t; _onShaderTex(); });
+  _loader.load('https://cdn.jsdelivr.net/gh/turban/webgl-earth@master/images/5_night_8k.jpg',
+    function (t) { _nightTex = t; _onShaderTex(); });
+  _loader.load('//unpkg.com/three-globe/example/img/earth-water.png',
+    function (t) { _waterTex = t; _onShaderTex(); });
+
+  // ── Cloud layer ───────────────────────────────────────────────────────────────
+  var _clouds = null, _cloudRafId = null;
+
+  _loader.load(
+    'https://cdn.jsdelivr.net/gh/turban/webgl-earth@master/images/fair_clouds_4k.jpg',
+    function (t) {
+      _clouds = new THREE.Mesh(
+        new THREE.SphereGeometry(GLOBE_R * 1.006, 64, 64),
+        new THREE.MeshPhongMaterial({
+          map: t, transparent: true, opacity: 0.5,
+          blending: THREE.AdditiveBlending, depthWrite: false
+        })
+      );
+      scene.add(_clouds);
+      _startClouds();
+    }
+  );
+
+  function _tickClouds()  { if (_clouds) _clouds.rotation.y += 0.00013; _cloudRafId = requestAnimationFrame(_tickClouds); }
+  function _startClouds() { if (!_cloudRafId) _cloudRafId = requestAnimationFrame(_tickClouds); }
+  function _stopClouds()  { cancelAnimationFrame(_cloudRafId); _cloudRafId = null; }
+
+  // ── Tab visibility guard ──────────────────────────────────────────────────────
+  document.addEventListener('visibilitychange', function () {
+    controls.autoRotate = !document.hidden;
+    if (document.hidden) { _stopClouds(); } else { _startClouds(); }
+  });
 })();
 
 // ── Navbar scroll ─────────────────────────────────────────────────────────────

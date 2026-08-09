@@ -17,6 +17,57 @@
 .rj-row-due td { background-color: #fef9ee !important; }
 :root[data-theme="dark"] .rj-row-due td { background-color: #2d1f04 !important; }
 
+/* ── Profit & Loss + Balance Sheet statements ────────────────────────────── */
+.pl-tbl, .bs-tbl { font-size: .82rem; }
+.pl-tbl thead, .bs-tbl thead { position: sticky; top: 0; z-index: 1; }
+
+.pl-section-head th { padding: 8px 12px; font-size: .78rem; letter-spacing: .04em; text-transform: uppercase; }
+.income-head  th { background: #14532d; color: #fff; }
+.expense-head th { background: #7f1d1d; color: #fff; }
+.pl-col-head th  { background: #f8f9fa; font-size: .75rem; color: #6c757d; }
+
+.pl-subtotal td, .bs-group-subtotal td {
+    background: #f8f9fa;
+    border-top: 2px solid #dee2e6 !important;
+    font-size: .78rem;
+    padding: 6px 12px;
+}
+.income-subtotal td  { background: #f0fdf4 !important; }
+.expense-subtotal td { background: #fff5f5 !important; }
+
+.pl-net td { padding: 14px 16px; border-top: 3px double #dee2e6 !important; }
+.pl-net-profit td { background: #f0fdf4; }
+.pl-net-loss td   { background: #fff5f5; }
+
+.bs-group-head td   { font-size: .78rem; }
+.bs-group-subtotal td { background: #f8f9fa; font-size: .78rem; padding: 5px 12px; border-top: 1px solid #dee2e6 !important; }
+
+.bs-balanced   { background: #f0fdf4; color: #14532d; font-size: .83rem; font-weight: 600; }
+.bs-unbalanced { background: #fef2f2; color: #7f1d1d; font-size: .83rem; font-weight: 600; }
+
+.pl-sum-icon { width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+:root[data-theme="dark"] .pl-col-head th  { background: #2a2f3a; }
+:root[data-theme="dark"] .pl-subtotal td  { background: #2a2f3a !important; }
+:root[data-theme="dark"] .income-subtotal td  { background: #052e16 !important; }
+:root[data-theme="dark"] .expense-subtotal td { background: #2d0000 !important; }
+:root[data-theme="dark"] .pl-net-profit td   { background: #052e16 !important; }
+:root[data-theme="dark"] .pl-net-loss td     { background: #2d0000 !important; }
+:root[data-theme="dark"] .bs-group-head td   { background: #1a2744 !important; }
+:root[data-theme="dark"] .bs-group-subtotal td { background: #2a2f3a !important; }
+:root[data-theme="dark"] .bs-balanced   { background: #052e16; color: #4ade80; }
+:root[data-theme="dark"] .bs-unbalanced { background: #2d0000; color: #f87171; }
+
+/* Print — hide everything except the statement */
+@media print {
+    .layout-navbar, .layout-menu, .apex-filter-row, .card:not(.print-card),
+    .apex-stats-strip, #plSummaryRow, #bsSummaryRow, .apex-pagination-wrap,
+    .btn, .content-footer, .apex-page-header { display: none !important; }
+    .pl-statement, .bs-statement { padding: 20px; }
+    .pl-print-header { margin-bottom: 20px; }
+    body { background: white !important; }
+}
+
 /* Period Lock — status icon */
 .pl-status-icon { width: 52px; height: 52px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .pl-icon-locked { background: #fef3c7; color: #d97706; }
@@ -1970,3 +2021,369 @@ tr:hover .apex-party-actions {
 :root[data-theme="dark"] .cp-note-editor-wrap .ql-toolbar  { border-bottom-color: #444564; }
 
 
+
+/* ═══════════════════════════════════════════════════════════
+   TIER 2: AGED RECEIVABLES / AGED PAYABLES
+   ═══════════════════════════════════════════════════════════ */
+
+/* Summary icons */
+.aged-sum-icon           { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.aged-icon-total         { background: #dbeafe; color: #1d4ed8; }
+.aged-icon-current       { background: #dcfce7; color: #15803d; }
+.aged-icon-warn          { background: #fef9c3; color: #92400e; }
+.aged-icon-overdue       { background: #fee2e2; color: #dc2626; }
+
+.aged-val-total          { color: #1d4ed8; }
+.aged-val-current        { color: #15803d; }
+.aged-val-warn           { color: #92400e; }
+.aged-val-overdue        { color: #dc2626; }
+
+/* Aging bar */
+.aged-bar-wrap           { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: #f1f5f9; }
+.aged-bar-seg            { height: 100%; transition: width .3s; }
+.aged-bar-current        { background: #22c55e; }
+.aged-bar-warn1          { background: #facc15; }
+.aged-bar-warn2          { background: #f97316; }
+.aged-bar-overdue        { background: #ef4444; }
+
+/* Legend */
+.aged-legend             { }
+.aged-legend-item        { font-size: .77rem; display: flex; align-items: center; gap: 5px; }
+.aged-dot                { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+/* Table */
+.aged-tbl                { margin-bottom: 0; }
+.aged-thead              { background: #1d4ed8; color: #fff; }
+.aged-thead-ap           { background: #92400e; }
+.aged-tfoot              { background: #eff6ff; font-weight: 700; }
+.aged-tfoot-ap           { background: #fef3c7; }
+.aged-dash               { opacity: .4; font-size: .75rem; }
+
+/* Column tinting */
+.aged-col-current        { background: rgba(34,197,94,.06); }
+.aged-col-warn1          { background: rgba(250,204,21,.08); }
+.aged-col-warn2          { background: rgba(249,115,22,.08); }
+.aged-col-overdue        { background: rgba(239,68,68,.08); }
+
+/* Print */
+@media print {
+    .aged-bar-wrap, .aged-legend { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+    .aged-bar-wrap              { background: #2d3748; }
+    .aged-tfoot                 { background: #1e3a5f; }
+    .aged-tfoot-ap              { background: #3b1f00; }
+    .aged-col-current           { background: rgba(34,197,94,.10); }
+    .aged-col-warn1             { background: rgba(250,204,21,.10); }
+    .aged-col-warn2             { background: rgba(249,115,22,.10); }
+    .aged-col-overdue           { background: rgba(239,68,68,.10); }
+}
+:root[data-theme="dark"] .aged-bar-wrap              { background: #2d3748; }
+:root[data-theme="dark"] .aged-tfoot                 { background: #1e3a5f; }
+:root[data-theme="dark"] .aged-tfoot-ap              { background: #3b1f00; }
+:root[data-theme="dark"] .aged-col-current           { background: rgba(34,197,94,.10); }
+:root[data-theme="dark"] .aged-col-warn1             { background: rgba(250,204,21,.10); }
+:root[data-theme="dark"] .aged-col-warn2             { background: rgba(249,115,22,.10); }
+:root[data-theme="dark"] .aged-col-overdue           { background: rgba(239,68,68,.10); }
+
+/* ═══════════════════════════════════════════════════════════
+   TIER 2: DAY BOOK
+   ═══════════════════════════════════════════════════════════ */
+
+.db-date-group           { border-bottom: 1px solid #e9ecef; }
+.db-date-header          { background: #f8f9fa; padding: 7px 14px; font-size: .82rem; border-bottom: 1px solid #dee2e6; }
+.db-daily-totals         { font-size: .78rem; }
+.db-tbl                  { }
+.db-tbl-head th          { font-size: .74rem; text-transform: uppercase; letter-spacing: .04em; background: #f1f5f9; color: #475569; border-bottom: 2px solid #cbd5e1; }
+.db-entry-row            { }
+.db-row-dr td            { border-left: 3px solid #bbf7d0; }
+.db-row-cr td            { border-left: 3px solid #fecaca; }
+.db-journal-cell         { vertical-align: top; padding-top: 10px !important; background: #fcfcff; }
+.db-ref-badge            { font-size: .65rem; }
+.db-amt                  { font-variant-numeric: tabular-nums; }
+.db-daily-total td       { background: #f8fafc; font-size: .8rem; padding: 6px 12px; }
+.db-grand-total          { background: #e2e8f0; border-top: 2px solid #94a3b8; font-variant-numeric: tabular-nums; }
+
+/* Print */
+@media print {
+    .db-date-header, .db-tbl-head th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .db-grand-total, #dbSummaryBar   { display: none !important; }
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+    .db-date-header          { background: #2d3748; border-bottom-color: #444564; }
+    .db-tbl-head th          { background: #22293a; color: #94a3b8; border-bottom-color: #444564; }
+    .db-journal-cell         { background: #1e2535; }
+    .db-row-dr td            { border-left-color: #166534; }
+    .db-row-cr td            { border-left-color: #7f1d1d; }
+    .db-daily-total td       { background: #1e293b; }
+    .db-grand-total          { background: #1e2535; border-top-color: #444564; }
+    .db-date-group           { border-bottom-color: #444564; }
+}
+:root[data-theme="dark"] .db-date-header   { background: #2d3748; border-bottom-color: #444564; }
+:root[data-theme="dark"] .db-tbl-head th   { background: #22293a; color: #94a3b8; border-bottom-color: #444564; }
+:root[data-theme="dark"] .db-journal-cell  { background: #1e2535; }
+:root[data-theme="dark"] .db-row-dr td     { border-left-color: #166534; }
+:root[data-theme="dark"] .db-row-cr td     { border-left-color: #7f1d1d; }
+:root[data-theme="dark"] .db-daily-total td{ background: #1e293b; }
+:root[data-theme="dark"] .db-grand-total   { background: #1e2535; border-top-color: #444564; }
+:root[data-theme="dark"] .db-date-group    { border-bottom-color: #444564; }
+
+/* ═══════════════════════════════════════════════════════════
+   TIER 3: CASH FLOW STATEMENT
+   ═══════════════════════════════════════════════════════════ */
+
+/* Summary icons */
+.cf-sum-icon       { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.cf-icon-open      { background: #f0fdf4; color: #059669; }
+.cf-icon-in        { background: #dcfce7; color: #15803d; }
+.cf-icon-out       { background: #fee2e2; color: #dc2626; }
+.cf-icon-close     { background: #ecfdf5; color: #059669; }
+
+/* Account block */
+.cf-account-block  { border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+.cf-account-header { background: #f8fafc; padding: 10px 14px; border-bottom: 1px solid #e2e8f0; }
+
+/* Table */
+.cf-tbl            { margin: 0; }
+.cf-section-head td{ font-size: .73rem; text-transform: uppercase; letter-spacing: .05em; padding: 5px 12px; }
+.cf-inflow-head td { background: #f0fdf4; color: #15803d; }
+.cf-outflow-head td{ background: #fef2f2; color: #dc2626; }
+.cf-entry-row td   { padding: 4px 12px; }
+.cf-subtotal td    { border-top: 1px solid #e2e8f0; padding: 5px 12px; font-size: .78rem; }
+.cf-inflow-subtotal td  { background: #f0fdf4; }
+.cf-outflow-subtotal td { background: #fef2f2; }
+.cf-balance-row td { background: #f8fafc; font-size: .82rem; padding: 8px 12px; border-top: 2px solid #cbd5e1; }
+.cf-closing-row td { border-top: 2px solid #94a3b8 !important; }
+
+/* Consolidated */
+.cf-consolidated        { border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+.cf-consolidated-head   { background: #1e293b; color: #fff; padding: 8px 14px; font-weight: 600; font-size: .82rem; }
+.cf-grand-net td        { padding: 8px 12px; }
+.cf-net-pos td          { background: #f0fdf4; color: #059669; }
+.cf-net-neg td          { background: #fef2f2; color: #dc2626; }
+.cf-grand-closing td    { background: #f1f5f9; padding: 8px 12px; border-top: 2px solid #94a3b8; }
+
+/* Print */
+@media print {
+    .cf-account-block, .cf-consolidated { break-inside: avoid; }
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+    .cf-account-block     { border-color: #444564; }
+    .cf-account-header    { background: #2d3748; border-bottom-color: #444564; }
+    .cf-balance-row td    { background: #1e293b; border-top-color: #444564; }
+    .cf-inflow-head td    { background: #14532d; color: #86efac; }
+    .cf-outflow-head td   { background: #450a0a; color: #fca5a5; }
+    .cf-inflow-subtotal td  { background: #14532d20; }
+    .cf-outflow-subtotal td { background: #450a0a20; }
+    .cf-consolidated      { border-color: #444564; }
+    .cf-consolidated-head { background: #0f172a; }
+    .cf-grand-closing td  { background: #1e293b; border-top-color: #444564; }
+    .cf-net-pos td        { background: #14532d20; }
+    .cf-net-neg td        { background: #450a0a20; }
+}
+:root[data-theme="dark"] .cf-account-block     { border-color: #444564; }
+:root[data-theme="dark"] .cf-account-header    { background: #2d3748; border-bottom-color: #444564; }
+:root[data-theme="dark"] .cf-balance-row td    { background: #1e293b; border-top-color: #444564; }
+:root[data-theme="dark"] .cf-inflow-head td    { background: #14532d; color: #86efac; }
+:root[data-theme="dark"] .cf-outflow-head td   { background: #450a0a; color: #fca5a5; }
+:root[data-theme="dark"] .cf-inflow-subtotal td  { background: rgba(20,83,45,.15); }
+:root[data-theme="dark"] .cf-outflow-subtotal td { background: rgba(69,10,10,.15); }
+:root[data-theme="dark"] .cf-consolidated      { border-color: #444564; }
+:root[data-theme="dark"] .cf-consolidated-head { background: #0f172a; }
+:root[data-theme="dark"] .cf-grand-closing td  { background: #1e293b; border-top-color: #444564; }
+:root[data-theme="dark"] .cf-net-pos td        { background: rgba(20,83,45,.2); }
+:root[data-theme="dark"] .cf-net-neg td        { background: rgba(69,10,10,.2); }
+
+/* ═══════════════════════════════════════════════════════════
+   TIER 3: BUDGET VS ACTUAL
+   ═══════════════════════════════════════════════════════════ */
+
+/* Summary icons */
+.bva-sum-icon      { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.bva-icon-income   { background: #dcfce7; color: #16a34a; }
+.bva-icon-expense  { background: #fee2e2; color: #dc2626; }
+.bva-icon-net      { background: #dcfce7; color: #16a34a; }
+.bva-icon-var      { background: #dcfce7; color: #16a34a; }
+
+/* Section headers */
+.bva-section-head  { }
+.bva-income-head   { background: #166534; color: #fff; }
+.bva-expense-head  { background: #7f1d1d; color: #fff; }
+.bva-col-head th   { background: #f8fafc; font-size: .73rem; text-transform: uppercase; letter-spacing: .04em; color: #475569; }
+.bva-col-budget    { background: #fefce8 !important; }
+
+/* Budget editable cell */
+.bva-budget-cell   { cursor: pointer; transition: background .15s; }
+.bva-budget-cell:hover { background: #fefce8 !important; outline: 1px dashed #a16207; }
+.bva-budget-input  { width: 100%; border: 1px solid #a16207; border-radius: 4px; padding: 2px 6px; font-size: .82rem; text-align: right; outline: none; }
+.bva-dash          { opacity: .4; }
+
+/* Progress bar */
+.bva-mini-bar-wrap { height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; width: 100%; }
+.bva-mini-bar      { height: 100%; border-radius: 3px; transition: width .3s; }
+.bva-pct-badge     { font-size: .65rem; }
+
+/* Footer rows */
+.bva-tfoot         { font-weight: 700; }
+.bva-income-tfoot  { background: #f0fdf4; }
+.bva-expense-tfoot { background: #fef2f2; }
+
+/* Net row */
+.bva-net-row td    { padding: 10px 12px; }
+.bva-net-profit    { background: #f0fdf4; }
+.bva-net-loss      { background: #fef2f2; }
+
+/* Table */
+.bva-tbl           { margin-bottom: 0; }
+
+/* Print */
+@media print {
+    .bva-budget-cell { cursor: default; }
+    .bva-budget-cell:hover { background: inherit !important; outline: none; }
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+    .bva-col-head th   { background: #22293a; color: #94a3b8; }
+    .bva-col-budget    { background: #2d2a00 !important; }
+    .bva-income-head   { background: #14532d; }
+    .bva-expense-head  { background: #450a0a; }
+    .bva-income-tfoot  { background: rgba(20,83,45,.15); }
+    .bva-expense-tfoot { background: rgba(69,10,10,.15); }
+    .bva-net-profit    { background: rgba(20,83,45,.15); }
+    .bva-net-loss      { background: rgba(69,10,10,.15); }
+    .bva-mini-bar-wrap { background: #2d3748; }
+    .bva-budget-cell:hover { background: #2d2a00 !important; }
+}
+:root[data-theme="dark"] .bva-col-head th    { background: #22293a; color: #94a3b8; }
+:root[data-theme="dark"] .bva-col-budget     { background: #2d2a00 !important; }
+:root[data-theme="dark"] .bva-income-head    { background: #14532d; }
+:root[data-theme="dark"] .bva-expense-head   { background: #450a0a; }
+:root[data-theme="dark"] .bva-income-tfoot   { background: rgba(20,83,45,.15); }
+:root[data-theme="dark"] .bva-expense-tfoot  { background: rgba(69,10,10,.15); }
+:root[data-theme="dark"] .bva-net-profit     { background: rgba(20,83,45,.15); }
+:root[data-theme="dark"] .bva-net-loss       { background: rgba(69,10,10,.15); }
+:root[data-theme="dark"] .bva-mini-bar-wrap  { background: #2d3748; }
+:root[data-theme="dark"] .bva-budget-cell:hover { background: #2d2a00 !important; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TIER 4 — Comparative P&L
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Summary cards */
+.comp-sum-icon { width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center; }
+.comp-icon-inc  { background:#dcfce7;color:#15803d; }
+.comp-icon-exp  { background:#fee2e2;color:#b91c1c; }
+.comp-icon-net  { background:#dbeafe;color:#1d4ed8; }
+.comp-icon-var  { background:#f3e8ff;color:#7c3aed; }
+
+/* Table */
+.comp-tbl { font-size:.82rem;margin-bottom:0; }
+.comp-section-head th { font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;padding:5px 8px; }
+.comp-income-head  th { background:#f0fdf4;color:#15803d; }
+.comp-expense-head th { background:#fff1f2;color:#b91c1c; }
+.comp-col-head th { background:#f8fafc;font-size:.72rem;font-weight:600;padding:5px 8px;color:#64748b; }
+.comp-row:hover td { background:#f8fafc; }
+.comp-p1-val { color:#1d4ed8 !important; }
+.comp-p2-val { color:#64748b; }
+.comp-pct { font-size:.78rem; }
+.comp-dash { color:#cbd5e1; }
+.comp-tfoot td { font-size:.84rem;font-weight:700;border-top:2px solid #e2e8f0;background:#f8fafc;padding:7px 8px; }
+.comp-income-tfoot td { background:#f0fdf4; }
+.comp-expense-tfoot td { background:#fff1f2; }
+.comp-net-row td { font-size:.88rem;font-weight:700;border-top:2px solid #e2e8f0;padding:9px 8px; }
+.comp-net-profit td { background:#f0fdf4; }
+.comp-net-loss   td { background:#fff1f2; }
+.comp-footnote { font-size:.75rem;padding:6px 2px; }
+
+@media (prefers-color-scheme: dark) {
+    .comp-col-head th     { background:#1e293b;color:#94a3b8; }
+    .comp-income-head th  { background:#052e16;color:#4ade80; }
+    .comp-expense-head th { background:#450a0a;color:#f87171; }
+    .comp-row:hover td    { background:#1e293b; }
+    .comp-p1-val          { color:#93c5fd !important; }
+    .comp-p2-val          { color:#94a3b8; }
+    .comp-tfoot td        { background:#1e293b;border-color:#334155; }
+    .comp-income-tfoot td { background:#052e16; }
+    .comp-expense-tfoot td{ background:#450a0a; }
+    .comp-net-profit td   { background:#052e16; }
+    .comp-net-loss td     { background:#450a0a; }
+    .comp-dash            { color:#475569; }
+}
+:root[data-theme="dark"] .comp-col-head th      { background:#1e293b;color:#94a3b8; }
+:root[data-theme="dark"] .comp-income-head th   { background:#052e16;color:#4ade80; }
+:root[data-theme="dark"] .comp-expense-head th  { background:#450a0a;color:#f87171; }
+:root[data-theme="dark"] .comp-row:hover td     { background:#1e293b; }
+:root[data-theme="dark"] .comp-p1-val           { color:#93c5fd !important; }
+:root[data-theme="dark"] .comp-p2-val           { color:#94a3b8; }
+:root[data-theme="dark"] .comp-tfoot td         { background:#1e293b;border-color:#334155; }
+:root[data-theme="dark"] .comp-income-tfoot td  { background:#052e16; }
+:root[data-theme="dark"] .comp-expense-tfoot td { background:#450a0a; }
+:root[data-theme="dark"] .comp-net-profit td    { background:#052e16; }
+:root[data-theme="dark"] .comp-net-loss td      { background:#450a0a; }
+:root[data-theme="dark"] .comp-dash             { color:#475569; }
+:root[data-theme="light"] .comp-col-head th     { background:#f8fafc;color:#64748b; }
+:root[data-theme="light"] .comp-income-head th  { background:#f0fdf4;color:#15803d; }
+:root[data-theme="light"] .comp-expense-head th { background:#fff1f2;color:#b91c1c; }
+:root[data-theme="light"] .comp-net-profit td   { background:#f0fdf4; }
+:root[data-theme="light"] .comp-net-loss td     { background:#fff1f2; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TIER 4 — Financial Ratios Dashboard
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.ratio-summary-card { border:none;box-shadow:0 1px 4px rgba(0,0,0,.06); }
+.ratio-group-head { font-size:.78rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:8px 12px; }
+.ratio-liquidity-head  { background:#eff6ff;color:#1d4ed8;border-bottom:2px solid #bfdbfe; }
+.ratio-profit-head     { background:#f0fdf4;color:#15803d;border-bottom:2px solid #bbf7d0; }
+.ratio-activity-head   { background:#fff7ed;color:#c2410c;border-bottom:2px solid #fed7aa; }
+.ratio-leverage-head   { background:#faf5ff;color:#7c3aed;border-bottom:2px solid #e9d5ff; }
+
+.ratio-tbl { margin-bottom:0; }
+.ratio-col-head th { font-size:.7rem;font-weight:600;color:#94a3b8;padding:5px 10px;background:#f8fafc;text-transform:uppercase;letter-spacing:.04em; }
+.ratio-bench-col { width:80px;font-size:.72rem; }
+.ratio-explain-col { font-size:.72rem;color:#94a3b8; }
+.ratio-name { font-size:.82rem;font-weight:500; }
+.ratio-bench { font-size:.75rem;color:#94a3b8; }
+.ratio-explain { font-size:.72rem;color:#94a3b8;max-width:180px; }
+.ratio-number { font-size:.88rem;font-weight:700;font-variant-numeric:tabular-nums; }
+.ratio-na { font-size:.8rem;color:#94a3b8;font-style:italic; }
+
+/* Badges */
+.ratio-badge { display:inline-block;font-size:.68rem;padding:2px 7px;border-radius:20px;font-weight:600; }
+.ratio-badge-good { background:#dcfce7;color:#15803d; }
+.ratio-badge-warn { background:#fef9c3;color:#a16207; }
+.ratio-badge-bad  { background:#fee2e2;color:#b91c1c; }
+
+.ratio-footnote { font-size:.75rem;padding:4px 2px; }
+
+@media (prefers-color-scheme: dark) {
+    .ratio-col-head th     { background:#1e293b;color:#64748b; }
+    .ratio-liquidity-head  { background:#1e3a5f;color:#93c5fd;border-color:#1d4ed8; }
+    .ratio-profit-head     { background:#052e16;color:#4ade80;border-color:#166534; }
+    .ratio-activity-head   { background:#431407;color:#fb923c;border-color:#c2410c; }
+    .ratio-leverage-head   { background:#2e1065;color:#c4b5fd;border-color:#7c3aed; }
+    .ratio-badge-good      { background:#052e16;color:#4ade80; }
+    .ratio-badge-warn      { background:#422006;color:#fcd34d; }
+    .ratio-badge-bad       { background:#450a0a;color:#f87171; }
+    .ratio-bench           { color:#64748b; }
+    .ratio-explain         { color:#64748b; }
+}
+:root[data-theme="dark"] .ratio-col-head th    { background:#1e293b;color:#64748b; }
+:root[data-theme="dark"] .ratio-liquidity-head { background:#1e3a5f;color:#93c5fd;border-color:#1d4ed8; }
+:root[data-theme="dark"] .ratio-profit-head    { background:#052e16;color:#4ade80;border-color:#166534; }
+:root[data-theme="dark"] .ratio-activity-head  { background:#431407;color:#fb923c;border-color:#c2410c; }
+:root[data-theme="dark"] .ratio-leverage-head  { background:#2e1065;color:#c4b5fd;border-color:#7c3aed; }
+:root[data-theme="dark"] .ratio-badge-good     { background:#052e16;color:#4ade80; }
+:root[data-theme="dark"] .ratio-badge-warn     { background:#422006;color:#fcd34d; }
+:root[data-theme="dark"] .ratio-badge-bad      { background:#450a0a;color:#f87171; }
+:root[data-theme="light"] .ratio-col-head th   { background:#f8fafc;color:#94a3b8; }
+:root[data-theme="light"] .ratio-badge-good    { background:#dcfce7;color:#15803d; }
+:root[data-theme="light"] .ratio-badge-warn    { background:#fef9c3;color:#a16207; }
+:root[data-theme="light"] .ratio-badge-bad     { background:#fee2e2;color:#b91c1c; }

@@ -637,6 +637,167 @@ class Accounting extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
+    // ── Profit & Loss — page ─────────────────────────────────────────────────
+    public function profitloss(): void {
+        if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
+        $this->load->view('accounting/profit_loss/view', $this->pageData);
+    }
+
+    // ── Profit & Loss — AJAX load statement ──────────────────────────────────
+    public function getPandLAjax(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $dateFrom = $this->input->post('DateFrom') ?: date('Y-01-01');
+            $dateTo   = $this->input->post('DateTo')   ?: date('Y-m-d');
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateFrom) ||
+                !preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateTo)) {
+                throw new Exception('Invalid date format.');
+            }
+            if ($dateFrom > $dateTo) throw new Exception('From date cannot be after To date.');
+
+            $rows = $this->accountledger_model->getPandLRows($dateFrom, $dateTo);
+
+            $income  = [];
+            $expense = [];
+            $totalIncome = $totalExpense = 0.0;
+
+            foreach ($rows as $r) {
+                $dr  = (float)$r->PeriodDebit;
+                $cr  = (float)$r->PeriodCredit;
+                if ($r->LedgerType === 'Income') {
+                    $net = $cr - $dr;
+                    $totalIncome += $net;
+                    $income[] = $r;
+                    $r->NetAmount = $net;
+                } else {
+                    $net = $dr - $cr;
+                    $totalExpense += $net;
+                    $expense[] = $r;
+                    $r->NetAmount = $net;
+                }
+            }
+            usort($income,  fn($a, $b) => $b->NetAmount <=> $a->NetAmount);
+            usort($expense, fn($a, $b) => $b->NetAmount <=> $a->NetAmount);
+
+            $netProfit = $totalIncome - $totalExpense;
+            $JwtData   = $this->pageData['JwtData'];
+            $html = $this->load->view('accounting/profit_loss/statement', [
+                'Income'       => $income,
+                'Expense'      => $expense,
+                'TotalIncome'  => $totalIncome,
+                'TotalExpense' => $totalExpense,
+                'NetProfit'    => $netProfit,
+                'DateFrom'     => $dateFrom,
+                'DateTo'       => $dateTo,
+                'JwtData'      => $JwtData,
+            ], TRUE);
+
+            $this->EndReturnData->Error        = FALSE;
+            $this->EndReturnData->Html         = $html;
+            $this->EndReturnData->TotalIncome  = $totalIncome;
+            $this->EndReturnData->TotalExpense = $totalExpense;
+            $this->EndReturnData->NetProfit    = $netProfit;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    // ── Balance Sheet — page ──────────────────────────────────────────────────
+    public function balancesheet(): void {
+        if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
+        $this->load->view('accounting/balance_sheet/view', $this->pageData);
+    }
+
+    // ── Balance Sheet — AJAX load statement ───────────────────────────────────
+    public function getBalanceSheetAjax(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $asOfDate = $this->input->post('AsOfDate') ?: date('Y-m-d');
+            $pnlFrom  = $this->input->post('PnlFrom')  ?: date('Y-01-01');
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $asOfDate) ||
+                !preg_match('/^\d{4}-\d{2}-\d{2}$/', $pnlFrom)) {
+                throw new Exception('Invalid date format.');
+            }
+            if ($pnlFrom > $asOfDate) throw new Exception('P&L From date cannot be after the Balance Sheet date.');
+
+            // ── Balance Sheet rows ──────────────────────────────────────────
+            $bsRows = $this->accountledger_model->getBalanceSheetRows($asOfDate);
+
+            $assetGroups = [
+                'Bank'      => ['label' => 'Bank Accounts',         'items' => [], 'total' => 0.0],
+                'Cash'      => ['label' => 'Cash Accounts',         'items' => [], 'total' => 0.0],
+                'Customer'  => ['label' => 'Trade Receivables',     'items' => [], 'total' => 0.0],
+                'Asset'     => ['label' => 'Fixed & Other Assets',  'items' => [], 'total' => 0.0],
+            ];
+            $liabGroups = [
+                'Vendor'    => ['label' => 'Trade Payables',          'items' => [], 'total' => 0.0],
+                'Liability' => ['label' => 'Liabilities & Capital',   'items' => [], 'total' => 0.0],
+                'Employee'  => ['label' => 'Employee Payables',       'items' => [], 'total' => 0.0],
+            ];
+            $totalAssets = $totalLiabilities = 0.0;
+
+            foreach ($bsRows as $r) {
+                $ob     = (float)$r->OpeningBalance;
+                $obType = $r->OpeningBalanceType ?? 'Debit';
+                $dr     = (float)$r->PeriodDebit;
+                $cr     = (float)$r->PeriodCredit;
+
+                list($cb, $cbType) = $this->_calcBalance($ob, $obType, $dr, $cr);
+                $r->ClosingBalance     = round($cb, 4);
+                $r->ClosingBalanceType = $cbType;
+
+                $type = $r->LedgerType;
+                if (isset($assetGroups[$type])) {
+                    $contrib = ($cbType === 'Debit') ? $cb : -$cb;
+                    $assetGroups[$type]['items'][] = $r;
+                    $assetGroups[$type]['total']  += $contrib;
+                    $totalAssets += $contrib;
+                } elseif (isset($liabGroups[$type])) {
+                    $contrib = ($cbType === 'Credit') ? $cb : -$cb;
+                    $liabGroups[$type]['items'][] = $r;
+                    $liabGroups[$type]['total']  += $contrib;
+                    $totalLiabilities += $contrib;
+                }
+            }
+
+            // ── Net Profit from P&L (period start → asOfDate) ──────────────
+            $pnlRows = $this->accountledger_model->getPandLRows($pnlFrom, $asOfDate);
+            $totalIncome = $totalExpense = 0.0;
+            foreach ($pnlRows as $r) {
+                $dr = (float)$r->PeriodDebit;
+                $cr = (float)$r->PeriodCredit;
+                if ($r->LedgerType === 'Income')  $totalIncome  += ($cr - $dr);
+                else                               $totalExpense += ($dr - $cr);
+            }
+            $netProfit = $totalIncome - $totalExpense;
+
+            $JwtData = $this->pageData['JwtData'];
+            $html = $this->load->view('accounting/balance_sheet/statement', [
+                'AssetGroups'      => $assetGroups,
+                'LiabGroups'       => $liabGroups,
+                'TotalAssets'      => $totalAssets,
+                'TotalLiabilities' => $totalLiabilities,
+                'NetProfit'        => $netProfit,
+                'AsOfDate'         => $asOfDate,
+                'PnlFrom'          => $pnlFrom,
+                'JwtData'          => $JwtData,
+            ], TRUE);
+
+            $this->EndReturnData->Error             = FALSE;
+            $this->EndReturnData->Html              = $html;
+            $this->EndReturnData->TotalAssets       = $totalAssets;
+            $this->EndReturnData->TotalLiabilities  = $totalLiabilities;
+            $this->EndReturnData->NetProfit         = $netProfit;
+            $this->EndReturnData->IsBalanced        = abs($totalAssets - $totalLiabilities - $netProfit) < 0.01;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
     // ── Recurring Journals — page ─────────────────────────────────────────────
     public function recurringjournals(): void {
         if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
@@ -1102,6 +1263,627 @@ class Accounting extends MY_Controller {
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Period lock removed. All periods are now open for posting.';
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    // ── Comparative P&L — page ───────────────────────────────────────────────
+    public function comparativepnl(): void {
+        if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
+        $this->load->view('accounting/comparative_pnl/view', $this->pageData);
+    }
+
+    // ── Comparative P&L — AJAX statement ─────────────────────────────────────
+    public function getComparativePnLAjax(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $JwtData  = $this->pageData['JwtData'];
+            $p1From   = trim($this->input->post('P1From')   ?? '');
+            $p1To     = trim($this->input->post('P1To')     ?? '');
+            $p2From   = trim($this->input->post('P2From')   ?? '');
+            $p2To     = trim($this->input->post('P2To')     ?? '');
+            $p1Label  = substr(htmlspecialchars(trim($this->input->post('P1Label') ?? 'Period 1'), ENT_QUOTES), 0, 40);
+            $p2Label  = substr(htmlspecialchars(trim($this->input->post('P2Label') ?? 'Period 2'), ENT_QUOTES), 0, 40);
+
+            foreach ([$p1From, $p1To, $p2From, $p2To] as $d) {
+                if (!$d || !strtotime($d)) throw new Exception('One or more dates are invalid.');
+            }
+            $p1From = date('Y-m-d', strtotime($p1From));
+            $p1To   = date('Y-m-d', strtotime($p1To));
+            $p2From = date('Y-m-d', strtotime($p2From));
+            $p2To   = date('Y-m-d', strtotime($p2To));
+
+            $p1Rows = $this->accountledger_model->getPandLRows($p1From, $p1To);
+            $p2Rows = $this->accountledger_model->getPandLRows($p2From, $p2To);
+
+            $p1 = [];
+            $p2 = [];
+            foreach ($p1Rows as $r) $p1[(int)$r->LedgerUID] = $r;
+            foreach ($p2Rows as $r) $p2[(int)$r->LedgerUID] = $r;
+
+            $allUIDs = array_unique(array_merge(array_keys($p1), array_keys($p2)));
+            $income  = [];
+            $expense = [];
+
+            foreach ($allUIDs as $uid) {
+                $r1   = isset($p1[$uid]) ? $p1[$uid] : null;
+                $r2   = isset($p2[$uid]) ? $p2[$uid] : null;
+                $meta = $r1 ?: $r2;
+                $type = $meta->LedgerType;
+
+                if ($type === 'Income') {
+                    $net1 = $r1 ? ((float)$r1->PeriodCredit - (float)$r1->PeriodDebit) : 0.0;
+                    $net2 = $r2 ? ((float)$r2->PeriodCredit - (float)$r2->PeriodDebit) : 0.0;
+                } else {
+                    $net1 = $r1 ? ((float)$r1->PeriodDebit - (float)$r1->PeriodCredit) : 0.0;
+                    $net2 = $r2 ? ((float)$r2->PeriodDebit - (float)$r2->PeriodCredit) : 0.0;
+                }
+                $variance  = $net2 - $net1;
+                $pctChange = (abs($net1) > 0.005) ? round(($variance / abs($net1)) * 100, 1) : null;
+
+                $item = (object)[
+                    'LedgerUID'  => $uid,
+                    'LedgerName' => $meta->LedgerName,
+                    'LedgerCode' => $meta->LedgerCode ?? '',
+                    'LedgerType' => $type,
+                    'Net1'       => $net1,
+                    'Net2'       => $net2,
+                    'Variance'   => $variance,
+                    'PctChange'  => $pctChange,
+                ];
+                if ($type === 'Income') $income[]  = $item;
+                else                    $expense[] = $item;
+            }
+
+            usort($income,  function ($a, $b) { return strcmp($a->LedgerName, $b->LedgerName); });
+            usort($expense, function ($a, $b) { return strcmp($a->LedgerName, $b->LedgerName); });
+
+            $inc1 = array_sum(array_map(function ($r) { return $r->Net1; }, $income));
+            $inc2 = array_sum(array_map(function ($r) { return $r->Net2; }, $income));
+            $exp1 = array_sum(array_map(function ($r) { return $r->Net1; }, $expense));
+            $exp2 = array_sum(array_map(function ($r) { return $r->Net2; }, $expense));
+
+            $totals = [
+                'income1'  => $inc1, 'income2'  => $inc2,
+                'expense1' => $exp1, 'expense2' => $exp2,
+                'net1'     => $inc1 - $exp1, 'net2' => $inc2 - $exp2,
+                'incVar'   => $inc2 - $inc1, 'expVar' => $exp2 - $exp1, 'netVar' => ($inc2 - $exp2) - ($inc1 - $exp1),
+                'incPct'   => abs($inc1) > 0.005 ? round((($inc2 - $inc1) / abs($inc1)) * 100, 1) : null,
+                'expPct'   => abs($exp1) > 0.005 ? round((($exp2 - $exp1) / abs($exp1)) * 100, 1) : null,
+                'netPct'   => abs($inc1 - $exp1) > 0.005 ? round(((($inc2 - $exp2) - ($inc1 - $exp1)) / abs($inc1 - $exp1)) * 100, 1) : null,
+            ];
+
+            $html = $this->load->view('accounting/comparative_pnl/statement', [
+                'Income'  => $income,  'Expense' => $expense,
+                'Totals'  => $totals,
+                'P1From'  => $p1From,  'P1To'    => $p1To,
+                'P2From'  => $p2From,  'P2To'    => $p2To,
+                'P1Label' => $p1Label, 'P2Label' => $p2Label,
+                'JwtData' => $JwtData,
+            ], TRUE);
+
+            $this->EndReturnData->Error  = FALSE;
+            $this->EndReturnData->Html   = $html;
+            $this->EndReturnData->Totals = $totals;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    // ── Financial Ratios — page ───────────────────────────────────────────────
+    public function ratios(): void {
+        if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
+        $this->load->view('accounting/ratios/view', $this->pageData);
+    }
+
+    // ── Financial Ratios — AJAX dashboard ────────────────────────────────────
+    public function getRatiosAjax(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $JwtData  = $this->pageData['JwtData'];
+            $asOfDate = trim($this->input->post('AsOfDate') ?? '');
+            $pnlFrom  = trim($this->input->post('PnlFrom')  ?? '');
+            $pnlTo    = trim($this->input->post('PnlTo')    ?? '');
+
+            foreach ([$asOfDate, $pnlFrom, $pnlTo] as $d) {
+                if (!$d || !strtotime($d)) throw new Exception('Invalid date provided.');
+            }
+            $asOfDate = date('Y-m-d', strtotime($asOfDate));
+            $pnlFrom  = date('Y-m-d', strtotime($pnlFrom));
+            $pnlTo    = date('Y-m-d', strtotime($pnlTo));
+
+            $bsRows = $this->accountledger_model->getBalanceSheetRows($asOfDate);
+            $plRows = $this->accountledger_model->getPandLRows($pnlFrom, $pnlTo);
+
+            // Process Balance Sheet (mirrors getBalanceSheetAjax logic)
+            $totalAssets      = 0.0;
+            $totalLiab        = 0.0;
+            $totalReceivables = 0.0;
+            $totalPayables    = 0.0;
+            $bankCash         = 0.0;
+
+            foreach ($bsRows as $r) {
+                list($cb, $cbType) = $this->_calcBalance(
+                    (float)$r->OpeningBalance, $r->OpeningBalanceType,
+                    (float)$r->PeriodDebit,    (float)$r->PeriodCredit
+                );
+                if (in_array($r->LedgerType, ['Asset', 'Bank', 'Cash', 'Customer'])) {
+                    $v = ($cbType === 'Debit') ? $cb : -$cb;
+                    $totalAssets += $v;
+                    if ($r->LedgerType === 'Customer')                         $totalReceivables += max(0.0, $v);
+                    if (in_array($r->LedgerType, ['Bank', 'Cash']))            $bankCash         += max(0.0, $v);
+                } else {
+                    $v = ($cbType === 'Credit') ? $cb : -$cb;
+                    $totalLiab += $v;
+                    if ($r->LedgerType === 'Vendor')                           $totalPayables += max(0.0, $v);
+                }
+            }
+
+            // Process P&L
+            $totalIncome  = 0.0;
+            $totalExpense = 0.0;
+            foreach ($plRows as $r) {
+                if ($r->LedgerType === 'Income')  $totalIncome  += max(0.0, (float)$r->PeriodCredit - (float)$r->PeriodDebit);
+                else                              $totalExpense += max(0.0, (float)$r->PeriodDebit  - (float)$r->PeriodCredit);
+            }
+            $netProfit = $totalIncome - $totalExpense;
+            $equity    = $totalAssets - $totalLiab;
+
+            $ratios = (object)[
+                'totalAssets'      => $totalAssets,
+                'totalLiab'        => $totalLiab,
+                'equity'           => $equity,
+                'bankCash'         => $bankCash,
+                'totalReceivables' => $totalReceivables,
+                'totalPayables'    => $totalPayables,
+                'totalIncome'      => $totalIncome,
+                'totalExpense'     => $totalExpense,
+                'netProfit'        => $netProfit,
+                // Liquidity
+                'currentRatio'    => $totalLiab > 0.005 ? round($totalAssets / $totalLiab, 2)                     : null,
+                'quickRatio'      => $totalLiab > 0.005 ? round(($bankCash + $totalReceivables) / $totalLiab, 2) : null,
+                'cashRatio'       => $totalLiab > 0.005 ? round($bankCash / $totalLiab, 2)                       : null,
+                // Profitability
+                'netProfitMargin' => $totalIncome > 0.005  ? round(($netProfit / $totalIncome)  * 100, 1) : null,
+                'roa'             => $totalAssets > 0.005  ? round(($netProfit / $totalAssets)  * 100, 1) : null,
+                'roe'             => $equity > 0.005       ? round(($netProfit / $equity)        * 100, 1) : null,
+                // Activity
+                'receivablesDays' => ($totalIncome > 0.005 && $totalReceivables > 0.005) ? round(($totalReceivables / $totalIncome)  * 365, 0) : null,
+                'payablesDays'    => ($totalExpense > 0.005 && $totalPayables  > 0.005)  ? round(($totalPayables  / $totalExpense) * 365, 0) : null,
+                // Leverage
+                'debtToEquity'    => $equity > 0.005 ? round($totalLiab / $equity, 2)          : null,
+                'equityRatio'     => $totalAssets > 0.005 ? round(($equity / $totalAssets) * 100, 1) : null,
+            ];
+
+            $html = $this->load->view('accounting/ratios/dashboard', [
+                'Ratios'  => $ratios,
+                'AsOfDate'=> $asOfDate,
+                'PnlFrom' => $pnlFrom,
+                'PnlTo'   => $pnlTo,
+                'JwtData' => $JwtData,
+            ], TRUE);
+
+            $this->EndReturnData->Error  = FALSE;
+            $this->EndReturnData->Html   = $html;
+            $this->EndReturnData->Ratios = $ratios;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    // ── Cash Flow Statement — page ────────────────────────────────────────────
+    public function cashflow(): void {
+        if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
+        $this->load->view('accounting/cash_flow/view', $this->pageData);
+    }
+
+    // ── Cash Flow Statement — AJAX statement ─────────────────────────────────
+    public function getCashFlowAjax(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $JwtData  = $this->pageData['JwtData'];
+            $dateFrom = trim($this->input->post('DateFrom') ?? '');
+            $dateTo   = trim($this->input->post('DateTo')   ?? '');
+            if (!$dateFrom || !strtotime($dateFrom)) throw new Exception('Invalid from date.');
+            if (!$dateTo   || !strtotime($dateTo))   throw new Exception('Invalid to date.');
+            $dateFrom = date('Y-m-d', strtotime($dateFrom));
+            $dateTo   = date('Y-m-d', strtotime($dateTo));
+            if ($dateTo < $dateFrom) throw new Exception('To date must be on or after from date.');
+
+            $balRows = $this->accountledger_model->getCashFlowBalances($dateFrom, $dateTo);
+            $catRows = $this->accountledger_model->getCashFlowCategoryRows($dateFrom, $dateTo);
+
+            // Index category rows: [ledgerUID][refType][transType] = total
+            $categories = [];
+            foreach ($catRows as $r) {
+                $categories[(int)$r->CashLedgerUID][$r->ReferenceType][$r->TransactionType] = (float)$r->Total;
+            }
+
+            $accounts        = [];
+            $grandOpeningBal = 0.0;
+            $grandPeriodDr   = 0.0;
+            $grandPeriodCr   = 0.0;
+
+            foreach ($balRows as $row) {
+                $obDr       = ($row->OpeningBalanceType === 'Debit')  ? (float)$row->OpeningBalance : 0.0;
+                $obCr       = ($row->OpeningBalanceType === 'Credit') ? (float)$row->OpeningBalance : 0.0;
+                $openingBal = $obDr + (float)$row->PreDr - $obCr - (float)$row->PreCr;
+                $periodDr   = (float)$row->PeriodDr;
+                $periodCr   = (float)$row->PeriodCr;
+                $closingBal = $openingBal + $periodDr - $periodCr;
+
+                $inflows  = [];
+                $outflows = [];
+                $lid      = (int)$row->LedgerUID;
+                if (isset($categories[$lid])) {
+                    foreach ($categories[$lid] as $refType => $typeData) {
+                        if (isset($typeData['Debit']))  $inflows[$refType]  = $typeData['Debit'];
+                        if (isset($typeData['Credit'])) $outflows[$refType] = $typeData['Credit'];
+                    }
+                }
+
+                $accounts[] = (object)[
+                    'LedgerUID'   => $lid,
+                    'LedgerName'  => $row->LedgerName,
+                    'LedgerType'  => $row->LedgerType,
+                    'OpeningBal'  => $openingBal,
+                    'PeriodDr'    => $periodDr,
+                    'PeriodCr'    => $periodCr,
+                    'ClosingBal'  => $closingBal,
+                    'NetChange'   => $periodDr - $periodCr,
+                    'Inflows'     => $inflows,
+                    'Outflows'    => $outflows,
+                ];
+                $grandOpeningBal += $openingBal;
+                $grandPeriodDr   += $periodDr;
+                $grandPeriodCr   += $periodCr;
+            }
+
+            $grandClosing = $grandOpeningBal + $grandPeriodDr - $grandPeriodCr;
+
+            $html = $this->load->view('accounting/cash_flow/statement', [
+                'Accounts'        => $accounts,
+                'GrandOpeningBal' => $grandOpeningBal,
+                'GrandPeriodDr'   => $grandPeriodDr,
+                'GrandPeriodCr'   => $grandPeriodCr,
+                'GrandClosingBal' => $grandClosing,
+                'DateFrom'        => $dateFrom,
+                'DateTo'          => $dateTo,
+                'JwtData'         => $JwtData,
+            ], TRUE);
+
+            $this->EndReturnData->Error          = FALSE;
+            $this->EndReturnData->Html           = $html;
+            $this->EndReturnData->GrandOpeningBal= $grandOpeningBal;
+            $this->EndReturnData->GrandPeriodDr  = $grandPeriodDr;
+            $this->EndReturnData->GrandPeriodCr  = $grandPeriodCr;
+            $this->EndReturnData->GrandClosingBal= $grandClosing;
+            $this->EndReturnData->NetChange      = $grandPeriodDr - $grandPeriodCr;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    // ── Budget vs Actual — page ───────────────────────────────────────────────
+    public function budgetvactual(): void {
+        if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
+        $this->load->view('accounting/budget_vs_actual/view', $this->pageData);
+    }
+
+    // ── Budget vs Actual — AJAX report ────────────────────────────────────────
+    public function getBudgetVActualAjax(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $JwtData  = $this->pageData['JwtData'];
+            $fy       = (int)($this->input->post('FY')       ?? date('Y'));
+            $dateFrom = trim($this->input->post('DateFrom')   ?? '');
+            $dateTo   = trim($this->input->post('DateTo')     ?? '');
+            if (!$dateFrom || !strtotime($dateFrom)) throw new Exception('Invalid from date.');
+            if (!$dateTo   || !strtotime($dateTo))   throw new Exception('Invalid to date.');
+            $dateFrom = date('Y-m-d', strtotime($dateFrom));
+            $dateTo   = date('Y-m-d', strtotime($dateTo));
+
+            $rawRows = $this->accountledger_model->getBudgetVsActualRows($fy, $dateFrom, $dateTo);
+
+            $income  = [];
+            $expense = [];
+            $totals  = ['budgetIncome' => 0.0, 'actualIncome' => 0.0, 'budgetExpense' => 0.0, 'actualExpense' => 0.0];
+
+            foreach ($rawRows as $row) {
+                $budgeted = (float)$row->BudgetedAmount;
+                if ($row->LedgerType === 'Income') {
+                    $actual   = (float)$row->PeriodCr - (float)$row->PeriodDr;
+                    $variance = $actual - $budgeted;
+                    $pct      = ($budgeted > 0.005) ? round(($actual / $budgeted) * 100, 1) : null;
+                    $income[] = (object)['LedgerUID' => $row->LedgerUID, 'LedgerCode' => $row->LedgerCode, 'LedgerName' => $row->LedgerName,
+                                         'Budgeted' => $budgeted, 'Actual' => $actual, 'Variance' => $variance, 'Pct' => $pct];
+                    $totals['budgetIncome'] += $budgeted;
+                    $totals['actualIncome'] += $actual;
+                } else {
+                    $actual   = (float)$row->PeriodDr - (float)$row->PeriodCr;
+                    $variance = $budgeted - $actual; // positive = saved
+                    $pct      = ($budgeted > 0.005) ? round(($actual / $budgeted) * 100, 1) : null;
+                    $expense[]= (object)['LedgerUID' => $row->LedgerUID, 'LedgerCode' => $row->LedgerCode, 'LedgerName' => $row->LedgerName,
+                                         'Budgeted' => $budgeted, 'Actual' => $actual, 'Variance' => $variance, 'Pct' => $pct];
+                    $totals['budgetExpense'] += $budgeted;
+                    $totals['actualExpense'] += $actual;
+                }
+            }
+
+            $totals['budgetNet'] = $totals['budgetIncome'] - $totals['budgetExpense'];
+            $totals['actualNet'] = $totals['actualIncome'] - $totals['actualExpense'];
+            $totals['netVariance'] = $totals['actualNet'] - $totals['budgetNet'];
+
+            $html = $this->load->view('accounting/budget_vs_actual/report', [
+                'Income'   => $income,
+                'Expense'  => $expense,
+                'Totals'   => $totals,
+                'FY'       => $fy,
+                'DateFrom' => $dateFrom,
+                'DateTo'   => $dateTo,
+                'JwtData'  => $JwtData,
+            ], TRUE);
+
+            $this->EndReturnData->Error  = FALSE;
+            $this->EndReturnData->Html   = $html;
+            $this->EndReturnData->Totals = $totals;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    // ── Budget vs Actual — save budget amount ─────────────────────────────────
+    public function saveBudgetAmount(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $userUID  = (int)$this->pageData['JwtData']->User->UserUID;
+            $ledgerUID= (int)($this->input->post('LedgerUID') ?? 0);
+            $fy       = (int)($this->input->post('FY')        ?? 0);
+            $amount   = (float)($this->input->post('Amount')  ?? 0);
+            if (!$ledgerUID || !$fy) throw new Exception('Invalid parameters.');
+            if ($amount < 0) throw new Exception('Budget amount cannot be negative.');
+
+            $ok = $this->accountledger_model->saveBudgetAmount($ledgerUID, $fy, $amount, $userUID);
+            if (!$ok) throw new Exception('Failed to save budget. Ensure the Accounting.Budgets table exists.');
+
+            $this->EndReturnData->Error  = FALSE;
+            $this->EndReturnData->Amount = $amount;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    // ── Aged Receivables — page ───────────────────────────────────────────────
+    public function agedreceivables(): void {
+        if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
+        $this->load->view('accounting/aged_receivables/view', $this->pageData);
+    }
+
+    // ── Aged Receivables — AJAX statement ────────────────────────────────────
+    public function getAgedReceivablesAjax(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $JwtData  = $this->pageData['JwtData'];
+            $asOfDate = trim($this->input->post('AsOfDate') ?? '');
+            if (!$asOfDate || !strtotime($asOfDate)) throw new Exception('Invalid as-of date.');
+            $asOfDate = date('Y-m-d', strtotime($asOfDate));
+
+            $rawRows = $this->accountledger_model->getAgedReceivablesRows($asOfDate);
+
+            $result        = [];
+            $totals        = ['outstanding' => 0.0, '0to30' => 0.0, '31to60' => 0.0, '61to90' => 0.0, '90plus' => 0.0];
+
+            foreach ($rawRows as $row) {
+                $obDr = ($row->OpeningBalanceType === 'Debit')  ? (float)$row->OpeningBalance : 0.0;
+                $obCr = ($row->OpeningBalanceType === 'Credit') ? (float)$row->OpeningBalance : 0.0;
+                $netOutstanding = $obDr + (float)$row->TotalDr - $obCr - (float)$row->TotalCr;
+                if ($netOutstanding < 0.005) continue;
+
+                // FIFO: apply payments (Cr entries + OB Cr) to oldest invoices first
+                $bands = [
+                    '90plus' => (float)$row->DrBand90plus + $obDr,
+                    '61to90' => (float)$row->DrBand61_90,
+                    '31to60' => (float)$row->DrBand31_60,
+                    '0to30'  => (float)$row->DrBand0_30,
+                ];
+                $payments = $obCr + (float)$row->TotalCr;
+                $aged = [];
+                foreach (['90plus', '61to90', '31to60', '0to30'] as $b) {
+                    $paid       = min($payments, $bands[$b]);
+                    $payments  -= $paid;
+                    $aged[$b]   = max(0.0, $bands[$b] - $paid);
+                }
+
+                $result[]                    = (object)[
+                    'LedgerUID'      => $row->LedgerUID,
+                    'LedgerName'     => $row->LedgerName,
+                    'LedgerCode'     => $row->LedgerCode,
+                    'NetOutstanding' => $netOutstanding,
+                    'Band0to30'      => $aged['0to30'],
+                    'Band31to60'     => $aged['31to60'],
+                    'Band61to90'     => $aged['61to90'],
+                    'Band90plus'     => $aged['90plus'],
+                ];
+                $totals['outstanding'] += $netOutstanding;
+                $totals['0to30']       += $aged['0to30'];
+                $totals['31to60']      += $aged['31to60'];
+                $totals['61to90']      += $aged['61to90'];
+                $totals['90plus']      += $aged['90plus'];
+            }
+
+            $html = $this->load->view('accounting/aged_receivables/statement', [
+                'Rows'    => $result,
+                'Totals'  => $totals,
+                'AsOfDate'=> $asOfDate,
+                'JwtData' => $JwtData,
+            ], TRUE);
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Html    = $html;
+            $this->EndReturnData->Totals  = $totals;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    // ── Aged Payables — page ──────────────────────────────────────────────────
+    public function agedpayables(): void {
+        if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
+        $this->load->view('accounting/aged_payables/view', $this->pageData);
+    }
+
+    // ── Aged Payables — AJAX statement ───────────────────────────────────────
+    public function getAgedPayablesAjax(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $JwtData  = $this->pageData['JwtData'];
+            $asOfDate = trim($this->input->post('AsOfDate') ?? '');
+            if (!$asOfDate || !strtotime($asOfDate)) throw new Exception('Invalid as-of date.');
+            $asOfDate = date('Y-m-d', strtotime($asOfDate));
+
+            $rawRows = $this->accountledger_model->getAgedPayablesRows($asOfDate);
+
+            $result = [];
+            $totals = ['outstanding' => 0.0, '0to30' => 0.0, '31to60' => 0.0, '61to90' => 0.0, '90plus' => 0.0];
+
+            foreach ($rawRows as $row) {
+                $obDr = ($row->OpeningBalanceType === 'Debit')  ? (float)$row->OpeningBalance : 0.0;
+                $obCr = ($row->OpeningBalanceType === 'Credit') ? (float)$row->OpeningBalance : 0.0;
+                // For vendors: outstanding = amount WE owe THEM (Cr balance)
+                $netOutstanding = $obCr + (float)$row->TotalCr - $obDr - (float)$row->TotalDr;
+                if ($netOutstanding < 0.005) continue;
+
+                // FIFO: apply payments (Dr entries + OB Dr) to oldest bills (Cr) first
+                $bands = [
+                    '90plus' => (float)$row->CrBand90plus + $obCr,
+                    '61to90' => (float)$row->CrBand61_90,
+                    '31to60' => (float)$row->CrBand31_60,
+                    '0to30'  => (float)$row->CrBand0_30,
+                ];
+                $payments = $obDr + (float)$row->TotalDr;
+                $aged = [];
+                foreach (['90plus', '61to90', '31to60', '0to30'] as $b) {
+                    $paid      = min($payments, $bands[$b]);
+                    $payments -= $paid;
+                    $aged[$b]  = max(0.0, $bands[$b] - $paid);
+                }
+
+                $result[] = (object)[
+                    'LedgerUID'      => $row->LedgerUID,
+                    'LedgerName'     => $row->LedgerName,
+                    'LedgerCode'     => $row->LedgerCode,
+                    'NetOutstanding' => $netOutstanding,
+                    'Band0to30'      => $aged['0to30'],
+                    'Band31to60'     => $aged['31to60'],
+                    'Band61to90'     => $aged['61to90'],
+                    'Band90plus'     => $aged['90plus'],
+                ];
+                $totals['outstanding'] += $netOutstanding;
+                $totals['0to30']       += $aged['0to30'];
+                $totals['31to60']      += $aged['31to60'];
+                $totals['61to90']      += $aged['61to90'];
+                $totals['90plus']      += $aged['90plus'];
+            }
+
+            $html = $this->load->view('accounting/aged_payables/statement', [
+                'Rows'    => $result,
+                'Totals'  => $totals,
+                'AsOfDate'=> $asOfDate,
+                'JwtData' => $JwtData,
+            ], TRUE);
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Html    = $html;
+            $this->EndReturnData->Totals  = $totals;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    // ── Day Book — page ───────────────────────────────────────────────────────
+    public function daybook(): void {
+        if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
+        $this->pageData['CashBankLedgers'] = $this->accountledger_model->getCashBankLedgers();
+        $this->load->view('accounting/day_book/view', $this->pageData);
+    }
+
+    // ── Day Book — AJAX entries ───────────────────────────────────────────────
+    public function getDayBookAjax(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $JwtData      = $this->pageData['JwtData'];
+            $dateFrom     = trim($this->input->post('DateFrom') ?? '');
+            $dateTo       = trim($this->input->post('DateTo')   ?? '');
+            $cashBankOnly = (bool)(int)($this->input->post('CashBankOnly') ?? 0);
+            $ledgerUID    = (int)($this->input->post('LedgerUID') ?? 0);
+
+            if (!$dateFrom || !strtotime($dateFrom)) throw new Exception('Invalid from date.');
+            if (!$dateTo   || !strtotime($dateTo))   throw new Exception('Invalid to date.');
+            $dateFrom = date('Y-m-d', strtotime($dateFrom));
+            $dateTo   = date('Y-m-d', strtotime($dateTo));
+            if ($dateTo < $dateFrom) throw new Exception('To date must be on or after from date.');
+
+            $rows = $this->accountledger_model->getDayBookRows($dateFrom, $dateTo, $cashBankOnly, $ledgerUID);
+
+            // Group flat rows into days → journals → entries
+            $days = [];
+            foreach ($rows as $row) {
+                $date = $row->JournalDate;
+                $jid  = (int)$row->JournalUID;
+                if (!isset($days[$date])) {
+                    $days[$date] = ['date' => $date, 'journals' => [], 'dailyDr' => 0.0, 'dailyCr' => 0.0];
+                }
+                if (!isset($days[$date]['journals'][$jid])) {
+                    $days[$date]['journals'][$jid] = [
+                        'JournalNo'     => $row->JournalNo,
+                        'ReferenceType' => $row->ReferenceType,
+                        'ReferenceNo'   => $row->ReferenceNo,
+                        'Narration'     => $row->Narration,
+                        'entries'       => [],
+                    ];
+                }
+                $days[$date]['journals'][$jid]['entries'][] = $row;
+                if ($row->TransactionType === 'Debit') {
+                    $days[$date]['dailyDr'] += (float)$row->Amount;
+                } else {
+                    $days[$date]['dailyCr'] += (float)$row->Amount;
+                }
+            }
+
+            $grandDr = array_sum(array_column($days, 'dailyDr'));
+            $grandCr = array_sum(array_column($days, 'dailyCr'));
+
+            $html = $this->load->view('accounting/day_book/entries', [
+                'Days'     => $days,
+                'GrandDr'  => $grandDr,
+                'GrandCr'  => $grandCr,
+                'DateFrom' => $dateFrom,
+                'DateTo'   => $dateTo,
+                'JwtData'  => $JwtData,
+            ], TRUE);
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Html    = $html;
+            $this->EndReturnData->GrandDr = $grandDr;
+            $this->EndReturnData->GrandCr = $grandCr;
+            $this->EndReturnData->DayCount= count($days);
         } catch (Exception $e) {
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();

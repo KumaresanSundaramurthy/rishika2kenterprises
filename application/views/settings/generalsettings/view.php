@@ -254,7 +254,10 @@
                                                 </div>
 
                                                 <!-- ── Input Limits ── -->
-                                                <?php $gsMaxShip = (int)($gs->MaxShippingAddr ?? 3); ?>
+                                                <?php
+                                                $gsEnableAI  = ($gs->EnableAIAssistant ?? 'No') === 'Yes';
+                                                $gsMaxShip = (int)($gs->MaxShippingAddr ?? 3);
+                                                ?>
                                                 <p class="text-muted fw-semibold mb-2" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;">Input Limits</p>
                                                 <div class="row g-3 mb-4">
                                                     <div class="col-md-6">
@@ -315,6 +318,15 @@
                                                             <label class="form-check-label fw-semibold" for="gs_StatsDefaultOpen">Stats Panel Open by Default</label>
                                                         </div>
                                                         <div class="form-text ms-4 ps-2">When enabled, the summary stats panel is expanded by default on all list pages. Users can still collapse or expand it per session.</div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <div class="form-check form-switch">
+                                                            <input class="form-check-input" type="checkbox" role="switch"
+                                                                   id="gs_EnableAIAssistant" name="EnableAIAssistant"
+                                                                   <?php echo $gsEnableAI ? 'checked' : ''; ?>>
+                                                            <label class="form-check-label fw-semibold" for="gs_EnableAIAssistant">Enable AI Business Assistant</label>
+                                                        </div>
+                                                        <div class="form-text ms-4 ps-2">When enabled, an AI chat widget appears on all pages allowing users to ask questions about sales, receivables, stock, and more. Requires a Gemini API key to be configured.</div>
                                                     </div>
                                                 </div>
 
@@ -1181,22 +1193,29 @@ $(document).ready(function () {
             url    : '/settings/updateGeneralSettings',
             method : 'POST',
             data   : {
-                CurrenySymbol   : currency,
-                DecimalPoints   : $('#gs_DecimalPoints').val(),
-                RowLimit        : $('#gs_RowLimit').val(),
-                FYStartMonth    : $('#gs_FYStartMonth').val(),
-                SerialNoDisplay : $('#gs_SerialNoDisplay').is(':checked') ? 1 : 0,
-                MaxShippingAddr : $('#gs_MaxShippingAddr').val(),
-                FormDateFormat      : $('#FormDateFormat').val(),
-                ListDateFormat      : $('#ListDateFormat').val(),
-                PrintDateFormat     : $('#PrintDateFormat').val(),
-                FormDateTimeFormat  : $('#FormDateTimeFormat').val(),
-                ListDateTimeFormat  : $('#ListDateTimeFormat').val(),
-                PrintDateTimeFormat : $('#PrintDateTimeFormat').val(),
-                EmpCodePrefix    : empPrefix,
-                EmpCodeSeparator : $('#gs_EmpCodeSeparator').val(),
-                EmpCodeDigits    : $('#gs_EmpCodeDigits').val(),
-                [CsrfName]      : CsrfToken,
+                CurrenySymbol          : currency,
+                DecimalPoints          : $('#gs_DecimalPoints').val(),
+                RowLimit               : $('#gs_RowLimit').val(),
+                FYStartMonth           : $('#gs_FYStartMonth').val(),
+                DefaultSalutationUID   : $('#gs_DefaultSalutationUID').val(),
+                SerialNoDisplay        : $('#gs_SerialNoDisplay').is(':checked')    ? 1 : 0,
+                EnableStorage          : $('#gs_EnableStorage').is(':checked')      ? 1 : 0,
+                MandatoryStorage       : $('#gs_MandatoryStorage').is(':checked')   ? 1 : 0,
+                StatsDefaultOpen       : $('#gs_StatsDefaultOpen').is(':checked')   ? 1 : 0,
+                EnableAIAssistant      : $('#gs_EnableAIAssistant').is(':checked')  ? 1 : 0,
+                MaxShippingAddr        : $('#gs_MaxShippingAddr').val(),
+                QtyMaxLength           : $('#gs_QtyMaxLength').val(),
+                PriceMaxLength         : $('#gs_PriceMaxLength').val(),
+                FormDateFormat         : $('#FormDateFormat').val(),
+                ListDateFormat         : $('#ListDateFormat').val(),
+                PrintDateFormat        : $('#PrintDateFormat').val(),
+                FormDateTimeFormat     : $('#FormDateTimeFormat').val(),
+                ListDateTimeFormat     : $('#ListDateTimeFormat').val(),
+                PrintDateTimeFormat    : $('#PrintDateTimeFormat').val(),
+                EmpCodePrefix          : empPrefix,
+                EmpCodeSeparator       : $('#gs_EmpCodeSeparator').val(),
+                EmpCodeDigits          : $('#gs_EmpCodeDigits').val(),
+                [CsrfName]             : CsrfToken,
             },
             success: function (resp) {
                 showToastNotification(resp.Message, resp.Error ? 'error' : 'success');

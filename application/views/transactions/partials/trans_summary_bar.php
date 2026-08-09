@@ -11,15 +11,17 @@
  *                             'split'   = draft, save+split-dropdown
  *   string $_barShowPrint     'draft_or_create' (default) = !$isEdit || $isDraftEdit
  *                             'create_only'               = !$isEdit (QT only)
- *   bool   $_barUseDcClasses  true = use dc-* CSS classes (delivery challan only)
- *
- * Uses $isEdit, $isDraftEdit, $JwtData from the parent view scope.
+ *   bool   $_barUseDcClasses   true = use dc-* CSS classes (delivery challan only)
+ *   bool   $_barIsEdit         true when editing an existing transaction
+ *   bool   $_barIsDraftEdit    true when editing a Draft-status transaction
  */
 $_bSticky    = $_barIsSticky     ?? false;
 $_bSections  = $_barSections     ?? '1';
 $_bBtnLayout = $_barButtonLayout ?? 'split';
 $_bShowPrint = $_barShowPrint    ?? 'draft_or_create';
 $_bDcCls     = $_barUseDcClasses ?? false;
+$_bIsEdit    = $_barIsEdit       ?? false;
+$_bIsDraft   = $_barIsDraftEdit  ?? false;
 
 $_bCur       = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '&#8377;');
 $_bId        = $_bSticky ? 'stickyBottomBar' : 'inlineSummaryBar';
@@ -41,7 +43,7 @@ if ($_bDcCls) {
 }
 
 // Print-dropdown visibility condition
-$_bShowPrintBtn = ($_bShowPrint === 'create_only') ? !$isEdit : (!$isEdit || $isDraftEdit);
+$_bShowPrintBtn = ($_bShowPrint === 'create_only') ? !$_bIsEdit : (!$_bIsEdit || $_bIsDraft);
 ?>
 <!-- ── <?php echo $_bSticky ? 'Sticky bottom' : 'Inline'; ?> summary bar ── -->
 <div id="<?php echo $_bId; ?>" class="<?php echo $_bWrapCls; ?>"<?php if ($_bWrapStyle): ?> style="<?php echo $_bWrapStyle; ?>"<?php endif; ?>>
@@ -98,7 +100,7 @@ $_bShowPrintBtn = ($_bShowPrint === 'create_only') ? !$isEdit : (!$isEdit || $is
     <!-- Action buttons -->
     <div class="d-flex align-items-center gap-2">
 
-        <?php if (!$isEdit || $isDraftEdit): ?>
+        <?php if (!$_bIsEdit || $_bIsDraft): ?>
         <button type="button" class="btn btn-sm btn-outline-secondary" id="<?php echo $_bDraftId; ?>"
                 data-bs-toggle="tooltip" data-bs-placement="top"
                 title="<?php echo t('tooltip_save_draft', 'Save and continue editing later'); ?>">

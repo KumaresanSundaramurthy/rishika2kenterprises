@@ -3,10 +3,10 @@
 // Gemini Flash API key — get a free key at https://aistudio.google.com/app/apikey
 // Free tier: 15 requests/minute, 1 million tokens/day, no credit card required
 // Paste your key below between the single quotes:
-$config['gemini_api_key'] = '';
+$config['gemini_api_key'] = $_ENV['GEMINI_API_KEY'];
 
-// Model — gemini-1.5-flash is fast and cheap; change to gemini-1.5-pro for richer answers
-$config['gemini_model'] = 'gemini-1.5-flash';
+// Model — confirmed working via live API test
+$config['gemini_model'] = 'gemini-3.6-flash';
 
 // Max tokens Gemini is allowed to generate per response (keep low for cost control)
 $config['gemini_max_output_tokens'] = 400;

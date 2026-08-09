@@ -126,7 +126,7 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                             $_quotType  = !empty($QuotData->DocType ?? '') ? $QuotData->DocType : $_tsDefault;
                             ?>
                             <!-- ── Toolbar: Type & Dispatch From ─────────────────────────── -->
-                            <?php $this->load->view('transactions/partials/trans_toolbar_type', ['_tbTypeValue' => $_quotType, '_tbFieldId' => 'quotationType', '_tbFieldName' => 'quotationType', '_tbEditGuardStrict' => false, '_tbDispatchLabel' => 'Dispatch From', '_tbShowOnAccount' => true, '_tbOnAccountGuard' => false, '_tbOaSrStyle' => false]); ?>
+                            <?php $this->load->view('transactions/partials/trans_toolbar_type', ['_tbTypeValue' => $_quotType, '_tbFieldId' => 'quotationType', '_tbFieldName' => 'quotationType', '_tbEditGuardStrict' => false, '_tbDispatchLabel' => 'Dispatch From', '_tbShowOnAccount' => true, '_tbOnAccountGuard' => false, '_tbOaSrStyle' => false, '_tbIsEdit' => $isEdit, '_tbIsDraftEdit' => $isDraftEdit]); ?>
 
                             <!-- ── Row 1: Customer | Quotation Date | Validity Days | Validity Date | Reference ── -->
                             <div class="row g-2 align-items-end mb-2">
@@ -211,12 +211,12 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                                 'transEditItems'            => $isEdit ? ($QuotItems ?? []) : [],
                             ]); ?>
 
-                            <?php $this->load->view('transactions/partials/trans_summary_bar', ['_barIsSticky' => false, '_barSections' => '1', '_barButtonLayout' => 'split', '_barShowPrint' => 'create_only', '_barUseDcClasses' => false]); ?>
+                            <?php $this->load->view('transactions/partials/trans_summary_bar', ['_barIsSticky' => false, '_barSections' => '1', '_barButtonLayout' => 'split', '_barShowPrint' => 'create_only', '_barUseDcClasses' => false, '_barIsEdit' => $isEdit, '_barIsDraftEdit' => $isDraftEdit]); ?>
 
                         </div>
                     </div>
 
-                    <?php $this->load->view('transactions/partials/trans_summary_bar', ['_barIsSticky' => true, '_barSections' => '1', '_barButtonLayout' => 'split', '_barShowPrint' => 'create_only', '_barUseDcClasses' => false]); ?>
+                    <?php $this->load->view('transactions/partials/trans_summary_bar', ['_barIsSticky' => true, '_barSections' => '1', '_barButtonLayout' => 'split', '_barShowPrint' => 'create_only', '_barUseDcClasses' => false, '_barIsEdit' => $isEdit, '_barIsDraftEdit' => $isDraftEdit]); ?>
 
                     <?php echo form_close(); ?>
 

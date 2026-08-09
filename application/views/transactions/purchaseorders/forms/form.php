@@ -77,7 +77,7 @@ $editPrefixSeg    = $_prefix['seg'];
                                     <?php endif; ?>
                                 </div>
                             </div>
-                            <?php $this->load->view('transactions/partials/trans_form_header_btns', ['_hBtnLayout' => 'split', '_hDcMenu' => false, '_hEditSavePx3' => false]); ?>
+                            <?php $this->load->view('transactions/partials/trans_form_header_btns', ['_hBtnLayout' => 'split', '_hDcMenu' => false, '_hEditSavePx3' => false, '_hIsEdit' => $isEdit, '_hIsDraftEdit' => $isDraftEdit, '_hCloseUrl' => $_closeUrl]); ?>
                         </div>
 
                         <div class="card-body card-body-form-static p-3">
@@ -88,7 +88,7 @@ $editPrefixSeg    = $_prefix['seg'];
                             $_poType    = !empty($POData->DocType ?? '') ? $POData->DocType : $_tsDefault;
                             ?>
                             <!-- ── Toolbar: Type & Deliver To ──────────────────────────────── -->
-                            <?php $this->load->view('transactions/partials/trans_toolbar_type', ['_tbTypeValue' => $_poType, '_tbFieldId' => 'poType', '_tbFieldName' => 'poType', '_tbEditGuardStrict' => true, '_tbDispatchLabel' => 'Deliver To', '_tbShowOnAccount' => false]); ?>
+                            <?php $this->load->view('transactions/partials/trans_toolbar_type', ['_tbTypeValue' => $_poType, '_tbFieldId' => 'poType', '_tbFieldName' => 'poType', '_tbEditGuardStrict' => true, '_tbDispatchLabel' => 'Deliver To', '_tbShowOnAccount' => false, '_tbIsEdit' => $isEdit, '_tbIsDraftEdit' => $isDraftEdit]); ?>
 
                             <!-- ── Row 1: Vendor | PO Date | Expected Delivery Date | Reference ── -->
                             <div class="row g-2 align-items-end mb-2">
@@ -158,12 +158,12 @@ $editPrefixSeg    = $_prefix['seg'];
                                 'transEditItems'        => $isEdit ? ($POItems ?? []) : [],
                             ]); ?>
 
-                            <?php $this->load->view('transactions/partials/trans_summary_bar', ['_barIsSticky' => false, '_barSections' => '1', '_barButtonLayout' => 'split', '_barShowPrint' => 'draft_or_create', '_barUseDcClasses' => false]); ?>
+                            <?php $this->load->view('transactions/partials/trans_summary_bar', ['_barIsSticky' => false, '_barSections' => '1', '_barButtonLayout' => 'split', '_barShowPrint' => 'draft_or_create', '_barUseDcClasses' => false, '_barIsEdit' => $isEdit, '_barIsDraftEdit' => $isDraftEdit]); ?>
 
                         </div>
                     </div>
 
-                    <?php $this->load->view('transactions/partials/trans_summary_bar', ['_barIsSticky' => true, '_barSections' => '1', '_barButtonLayout' => 'split', '_barShowPrint' => 'draft_or_create', '_barUseDcClasses' => false]); ?>
+                    <?php $this->load->view('transactions/partials/trans_summary_bar', ['_barIsSticky' => true, '_barSections' => '1', '_barButtonLayout' => 'split', '_barShowPrint' => 'draft_or_create', '_barUseDcClasses' => false, '_barIsEdit' => $isEdit, '_barIsDraftEdit' => $isDraftEdit]); ?>
 
                     <?php echo form_close(); ?>
 

@@ -9,11 +9,16 @@
  *   bool   $_hDcMenu      true = dc-save-menu class + no inline style on dropdown (DC only)
  *   bool   $_hEditSavePx3 true = add px-3 to edit-mode save btn (SR only; default false)
  *
- * Uses $isEdit, $isDraftEdit, $JwtData, $_closeUrl from parent view scope.
+ *   bool   $_hIsEdit       true when editing an existing transaction
+ *   bool   $_hIsDraftEdit  true when editing a Draft-status transaction
+ *   string $_hCloseUrl     URL for the Close button (back to list)
  */
-$_hLayout  = $_hBtnLayout    ?? 'split';
-$_hDcMenu  = $_hDcMenu       ?? false;
-$_hSavePx3 = $_hEditSavePx3  ?? false;
+$_hLayout   = $_hBtnLayout    ?? 'split';
+$_hDcMenu   = $_hDcMenu       ?? false;
+$_hSavePx3  = $_hEditSavePx3  ?? false;
+$_hIsEdit   = $_hIsEdit       ?? false;
+$_hIsDraft  = $_hIsDraftEdit  ?? false;
+$_hCloseUrl = $_hCloseUrl     ?? '#';
 $_hHideNav = (int)($JwtData->TransSettings->HideNavOnTransForm ?? 0);
 $_hMenuCls = 'dropdown-menu dropdown-menu-end shadow' . ($_hDcMenu ? ' dc-save-menu' : '');
 $_hMenuSty = $_hDcMenu ? '' : 'min-width:195px;font-size:.82rem;';
@@ -23,7 +28,7 @@ $_hHdrSty  = $_hDcMenu ? '' : 'font-size:.65rem;letter-spacing:.4px;';
 
 <?php if ($_hLayout === 'always_split'): ?>
 
-    <?php if (!$isEdit || $isDraftEdit): ?>
+    <?php if (!$_hIsEdit || $_hIsDraft): ?>
     <button type="submit" name="action" value="draft" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_save_draft', 'Save and continue editing later'); ?>"><i class="bx bx-save me-1"></i><?php echo t('btn_save_draft', 'Save as Draft'); ?></button>
     <?php endif; ?>
     <div class="btn-group">
@@ -43,7 +48,7 @@ $_hHdrSty  = $_hDcMenu ? '' : 'font-size:.65rem;letter-spacing:.4px;';
 
 <?php elseif ($_hLayout === 'invoice'): ?>
 
-    <?php if (!$isEdit): ?>
+    <?php if (!$_hIsEdit): ?>
     <button type="submit" name="action" value="draft" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_save_draft', 'Save and continue editing later'); ?>"><i class="bx bx-save me-1"></i><?php echo t('btn_save_draft', 'Save as Draft'); ?></button>
     <div class="btn-group">
         <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
@@ -57,7 +62,7 @@ $_hHdrSty  = $_hDcMenu ? '' : 'font-size:.65rem;letter-spacing:.4px;';
     </div>
     <button type="submit" name="action" value="save" class="btn btn-sm btn-primary px-3" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_save', 'Save transaction'); ?>"><i class="bx bx-check me-1"></i>Save</button>
     <?php else: ?>
-    <?php if ($isDraftEdit): ?>
+    <?php if ($_hIsDraft): ?>
     <button type="submit" name="action" value="draft" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_save_draft', 'Save and continue editing later'); ?>"><i class="bx bx-save me-1"></i><?php echo t('btn_save_draft', 'Save as Draft'); ?></button>
     <?php endif; ?>
     <button type="submit" name="action" value="save" class="btn btn-sm btn-primary px-3" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_save', 'Save transaction'); ?>"><i class="bx bx-check me-1"></i>Save</button>
@@ -65,7 +70,7 @@ $_hHdrSty  = $_hDcMenu ? '' : 'font-size:.65rem;letter-spacing:.4px;';
 
 <?php else: /* split — PUR/PR/PO/SR */ ?>
 
-    <?php if (!$isEdit): ?>
+    <?php if (!$_hIsEdit): ?>
     <button type="submit" name="action" value="draft" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_save_draft', 'Save and continue editing later'); ?>"><i class="bx bx-save me-1"></i><?php echo t('btn_save_draft', 'Save as Draft'); ?></button>
     <div class="btn-group">
         <button type="submit" name="action" value="save" class="btn btn-sm btn-primary px-3" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_save', 'Save transaction'); ?>"><i class="bx bx-check me-1"></i>Save</button>
@@ -79,7 +84,7 @@ $_hHdrSty  = $_hDcMenu ? '' : 'font-size:.65rem;letter-spacing:.4px;';
             <li><button type="submit" class="dropdown-item py-1" name="action" value="save_thermal"><i class="bx bx-receipt text-success me-2"></i><?php echo t('btn_save_thermal', 'Save & Print Thermal'); ?></button></li>
         </ul>
     </div>
-    <?php elseif ($isDraftEdit): ?>
+    <?php elseif ($_hIsDraft): ?>
     <button type="submit" name="action" value="draft" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_save_draft', 'Save and continue editing later'); ?>"><i class="bx bx-save me-1"></i><?php echo t('btn_save_draft', 'Save as Draft'); ?></button>
     <button type="submit" name="action" value="save" class="btn btn-sm btn-primary<?php echo $_hSavePx3 ? ' px-3' : ''; ?>" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_save', 'Save transaction'); ?>"><i class="bx bx-check me-1"></i>Save</button>
     <?php else: ?>
@@ -88,5 +93,5 @@ $_hHdrSty  = $_hDcMenu ? '' : 'font-size:.65rem;letter-spacing:.4px;';
 
 <?php endif; ?>
 
-    <a href="<?php echo $_closeUrl; ?>" class="btn btn-sm btn-outline-danger px-3<?php echo $_hHideNav ? ' d-none' : ''; ?>" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_close', 'Return to list'); ?>"><i class="bx bx-x me-1"></i>Close</a>
+    <a href="<?php echo $_hCloseUrl; ?>" class="btn btn-sm btn-outline-danger px-3<?php echo $_hHideNav ? ' d-none' : ''; ?>" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_close', 'Return to list'); ?>"><i class="bx bx-x me-1"></i>Close</a>
 </div>

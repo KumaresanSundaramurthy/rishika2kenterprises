@@ -127,7 +127,7 @@ $_addrLines = buildDispatchAddressLines($DispatchAddress ?? null);
                             $_soType    = !empty($SOData->DocType ?? '') ? $SOData->DocType : $_tsDefault;
                             ?>
                             <!-- ── Toolbar: Type & Dispatch From ─────────────────────────── -->
-                            <?php $this->load->view('transactions/partials/trans_toolbar_type', ['_tbTypeValue' => $_soType, '_tbFieldId' => 'orderType', '_tbFieldName' => 'orderType', '_tbEditGuardStrict' => false, '_tbDispatchLabel' => 'Dispatch From', '_tbShowOnAccount' => true, '_tbOnAccountGuard' => true, '_tbOaSrStyle' => false]); ?>
+                            <?php $this->load->view('transactions/partials/trans_toolbar_type', ['_tbTypeValue' => $_soType, '_tbFieldId' => 'orderType', '_tbFieldName' => 'orderType', '_tbEditGuardStrict' => false, '_tbDispatchLabel' => 'Dispatch From', '_tbShowOnAccount' => true, '_tbOnAccountGuard' => true, '_tbOaSrStyle' => false, '_tbIsEdit' => $isEdit, '_tbIsDraftEdit' => $isDraftEdit]); ?>
 
                             <!-- ── Row 1: Customer | Order Date | Expected Delivery Date | Reference ── -->
                             <div class="row g-2 align-items-end mb-2">
@@ -190,12 +190,12 @@ $_addrLines = buildDispatchAddressLines($DispatchAddress ?? null);
                                 'transEditItems'        => $isEdit ? ($SOItems ?? []) : [],
                             ]); ?>
 
-                            <?php $this->load->view('transactions/partials/trans_summary_bar', ['_barIsSticky' => false, '_barSections' => '1', '_barButtonLayout' => 'split', '_barShowPrint' => 'draft_or_create', '_barUseDcClasses' => false]); ?>
+                            <?php $this->load->view('transactions/partials/trans_summary_bar', ['_barIsSticky' => false, '_barSections' => '1', '_barButtonLayout' => 'split', '_barShowPrint' => 'draft_or_create', '_barUseDcClasses' => false, '_barIsEdit' => $isEdit, '_barIsDraftEdit' => $isDraftEdit]); ?>
 
                         </div>
                     </div>
 
-                    <?php $this->load->view('transactions/partials/trans_summary_bar', ['_barIsSticky' => true, '_barSections' => '1', '_barButtonLayout' => 'split', '_barShowPrint' => 'draft_or_create', '_barUseDcClasses' => false]); ?>
+                    <?php $this->load->view('transactions/partials/trans_summary_bar', ['_barIsSticky' => true, '_barSections' => '1', '_barButtonLayout' => 'split', '_barShowPrint' => 'draft_or_create', '_barUseDcClasses' => false, '_barIsEdit' => $isEdit, '_barIsDraftEdit' => $isDraftEdit]); ?>
 
                     <?php echo form_close(); ?>
 

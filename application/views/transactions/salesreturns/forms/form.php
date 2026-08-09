@@ -92,7 +92,7 @@ if ($isEdit) {
                                     <?php endif; ?>
                                 </div>
                             </div>
-                            <?php $this->load->view('transactions/partials/trans_form_header_btns', ['_hBtnLayout' => 'split', '_hDcMenu' => false, '_hEditSavePx3' => true]); ?>
+                            <?php $this->load->view('transactions/partials/trans_form_header_btns', ['_hBtnLayout' => 'split', '_hDcMenu' => false, '_hEditSavePx3' => true, '_hIsEdit' => $isEdit, '_hIsDraftEdit' => $isDraftEdit, '_hCloseUrl' => $_closeUrl]); ?>
                         </div>
 
                         <div class="card-body card-body-form-static p-3">
@@ -103,7 +103,7 @@ if ($isEdit) {
                             $_srType    = !empty($SRData->DocType ?? '') ? $SRData->DocType : $_tsDefault;
                             ?>
                             <!-- ── Toolbar: Type & Accepted At ─────────────────────────────── -->
-                            <?php $this->load->view('transactions/partials/trans_toolbar_type', ['_tbTypeValue' => $_srType, '_tbFieldId' => 'invoiceType', '_tbFieldName' => 'returnType', '_tbEditGuardStrict' => true, '_tbDispatchLabel' => 'Accepted At', '_tbShowOnAccount' => true, '_tbOnAccountGuard' => false, '_tbOaSrStyle' => true]); ?>
+                            <?php $this->load->view('transactions/partials/trans_toolbar_type', ['_tbTypeValue' => $_srType, '_tbFieldId' => 'invoiceType', '_tbFieldName' => 'returnType', '_tbEditGuardStrict' => true, '_tbDispatchLabel' => 'Accepted At', '_tbShowOnAccount' => true, '_tbOnAccountGuard' => false, '_tbOaSrStyle' => true, '_tbIsEdit' => $isEdit, '_tbIsDraftEdit' => $isDraftEdit]); ?>
 
                             <!-- ── Row 1: Customer | From Invoice | Return Date | Reference ── -->
                             <div class="row g-2 align-items-end mb-2">
@@ -179,12 +179,12 @@ if ($isEdit) {
                                 'transEditItems'           => $isEdit ? ($SRItems ?? []) : [],
                             ]); ?>
 
-                            <?php $this->load->view('transactions/partials/trans_summary_bar', ['_barIsSticky' => false, '_barSections' => 'full4', '_barButtonLayout' => 'split', '_barShowPrint' => 'draft_or_create', '_barUseDcClasses' => false]); ?>
+                            <?php $this->load->view('transactions/partials/trans_summary_bar', ['_barIsSticky' => false, '_barSections' => 'full4', '_barButtonLayout' => 'split', '_barShowPrint' => 'draft_or_create', '_barUseDcClasses' => false, '_barIsEdit' => $isEdit, '_barIsDraftEdit' => $isDraftEdit]); ?>
 
                         </div>
                     </div>
 
-                    <?php $this->load->view('transactions/partials/trans_summary_bar', ['_barIsSticky' => true, '_barSections' => 'full4', '_barButtonLayout' => 'split', '_barShowPrint' => 'draft_or_create', '_barUseDcClasses' => false]); ?>
+                    <?php $this->load->view('transactions/partials/trans_summary_bar', ['_barIsSticky' => true, '_barSections' => 'full4', '_barButtonLayout' => 'split', '_barShowPrint' => 'draft_or_create', '_barUseDcClasses' => false, '_barIsEdit' => $isEdit, '_barIsDraftEdit' => $isDraftEdit]); ?>
 
                     <?php echo form_close(); ?>
 

@@ -173,7 +173,8 @@ class Settings extends MY_Controller {
             $enableStorage    = getPostValue($post, 'EnableStorage')    ? 1 : 0;
             $mandatoryStorage = getPostValue($post, 'MandatoryStorage') ? 1 : 0;
             if (!$enableStorage) $mandatoryStorage = 0;
-            $statsDefaultOpen = getPostValue($post, 'StatsDefaultOpen') ? 1 : 0;
+            $statsDefaultOpen   = getPostValue($post, 'StatsDefaultOpen')   ? 1 : 0;
+            $enableAIAssistant  = getPostValue($post, 'EnableAIAssistant') ? 'Yes' : 'No';
 
             // Validate date/datetime formats before building $data
             $validFormats   = ['d-m-Y', 'd/m/Y', 'Y-m-d', 'Y/m/d', 'd.m.Y', 'm/d/Y', 'd M Y'];
@@ -221,6 +222,7 @@ class Settings extends MY_Controller {
                 'PrintDateTimeFormat'  => $printDtFormat,
                 'DefaultSalutationUID' => $defaultSalutationUID,
                 'StatsDefaultOpen'     => $statsDefaultOpen,
+                'EnableAIAssistant'    => $enableAIAssistant,
                 'EmpCodePrefix'        => $empCodePrefix,
                 'EmpCodeSeparator'     => $empCodeSeparator,
                 'EmpCodeDigits'        => $empCodeDigits,
@@ -234,7 +236,10 @@ class Settings extends MY_Controller {
             );
             if ($resp->Error) throw new Exception($resp->Message);
 
-            // Patch GenSettings in JWT — now includes date formats since they're in OrgSettingsTbl
+            // Patch GenSettings in Redis with fresh DB data.
+            // Also directly set EnableAIAssistant on the cached object to bypass the
+            // in-request memo (static $memo in getCache returns the login-time value,
+            // which may predate the EnableAIAssistant column being added to the table).
             $this->load->model('login_model');
             $freshSettings = $this->login_model->getOrgGeneralSettings($orgUID);
             $jwtKey        = $this->pageData['JwtUserKey'] ?? null;
@@ -242,6 +247,10 @@ class Settings extends MY_Controller {
             if ($redisPayload && !$redisPayload->Error && !empty($redisPayload->Value)) {
                 if (!$freshSettings->Error && !empty($freshSettings->Data)) {
                     $redisPayload->Value->GenSettings = $freshSettings->Data[0];
+                }
+                // Guarantee the new field is correct regardless of DB re-read freshness
+                if (isset($redisPayload->Value->GenSettings)) {
+                    $redisPayload->Value->GenSettings->EnableAIAssistant = $enableAIAssistant;
                 }
                 $this->redisservice->setCache($jwtKey, $redisPayload->Value, $redisPayload->TTL);
             }

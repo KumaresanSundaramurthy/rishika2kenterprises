@@ -13,7 +13,8 @@
  *   bool   $_tbOnAccountGuard  true = wrap on-account in if(!$isEdit) — INV/SO; false = always — QT/PF/SR
  *   bool   $_tbOaSrStyle       true = use SR alternate IDs and omit d-flex on inner badge div
  *
- * Uses $isEdit, $isDraftEdit, $DispatchAddresses from parent view scope.
+ *   bool   $_tbIsEdit          true when editing an existing transaction
+ *   bool   $_tbIsDraftEdit     true when editing a Draft-status transaction
  */
 $_tbType       = $_tbTypeValue       ?? 'Regular';
 $_tbId         = $_tbFieldId         ?? 'invoiceType';
@@ -23,7 +24,9 @@ $_tbDispLabel  = $_tbDispatchLabel   ?? 'Dispatch From';
 $_tbOa         = $_tbShowOnAccount   ?? false;
 $_tbOaGuard    = $_tbOnAccountGuard  ?? true;
 $_tbOaSr       = $_tbOaSrStyle       ?? false;
-$_tbReadonly   = $_tbStrict ? ($isEdit && !$isDraftEdit) : $isEdit;
+$_tbIsEdit     = $_tbIsEdit          ?? false;
+$_tbIsDraft    = $_tbIsDraftEdit     ?? false;
+$_tbReadonly   = $_tbStrict ? ($_tbIsEdit && !$_tbIsDraft) : $_tbIsEdit;
 $_tbOaBadgeId  = $_tbOaSr ? 'srOnAccountBadge' : 'onAccountIndicator';
 $_tbOaAmtId    = $_tbOaSr ? 'srOnAccountAmt'   : 'onAccountTotal';
 $_tbOaInnerCls = $_tbOaSr ? 'd-none' : 'd-none d-flex align-items-center gap-1';
@@ -49,7 +52,7 @@ $_tbOaInnerCls = $_tbOaSr ? 'd-none' : 'd-none d-flex align-items-center gap-1';
     </div>
     <?php endif; ?>
     <?php if ($_tbOa): ?>
-    <?php if (!$_tbOaGuard || !$isEdit): ?>
+    <?php if (!$_tbOaGuard || !$_tbIsEdit): ?>
     <div class="ms-auto d-flex align-items-center gap-2">
         <div id="custTypeIndicator" class="d-none"></div>
         <div id="plChipWrap" class="d-none"></div>

@@ -248,6 +248,7 @@
             <?php $this->load->view('common/settings_modal'); ?>
             <?php $this->load->view('common/modals/send_communication'); ?>
             <?php $this->load->view('common/modals/vendor_group_form'); ?>
+            <?php $this->load->view('common/modals/vendor_profile_modal'); ?>
 
             <!-- Vendor Add / Edit / Clone Modal -->
             <div class="modal fade" id="VendorFormModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true" style="padding:0!important;">
@@ -1267,6 +1268,151 @@ $(function() {
         $('#btnCreateVendorHeader').trigger('click');
         return true;
     };
+
+    // ── Vendor Profile Modal ────────────────────────────────────────────────
+    var _vpCurrentUID = 0;
+    var _vpTabLoaded  = {};
+
+    /**
+     * Opens the vendor profile modal and loads the overview tab.
+     * @param {number} uid
+     * @returns {void}
+     */
+    window.openVendorProfile = function (uid) {
+        _vpCurrentUID = uid;
+        _vpTabLoaded  = {};
+        $('#vpTabContent .vp-tab-pane').empty().removeClass('d-block').addClass('d-none');
+        $('#vpTabContent_overview').removeClass('d-none').addClass('d-block');
+        $('#vpTabNav .vp-tab-link').removeClass('active');
+        $('#vpTab_overview').addClass('active');
+        $('#vendorProfileModal').modal('show');
+        _loadVPTab('overview');
+    };
+
+    /**
+     * Loads a vendor profile tab via AJAX (cached after first load).
+     * @param {string} tab
+     * @returns {void}
+     */
+    function _loadVPTab(tab) {
+        var $pane = $('#vpTabContent_' + tab);
+        if (_vpTabLoaded[tab]) return;
+
+        $pane.html(
+            '<div class="d-flex justify-content-center align-items-center py-5">' +
+            '<div class="spinner-border text-warning" role="status"></div></div>'
+        );
+
+        ajaxLoading(0);
+        $.ajax({
+            url     : '/vendors/getVendorProfileTab/' + _vpCurrentUID + '/' + tab,
+            type    : 'GET',
+            success : function (res) {
+                if (!res || res.Error) {
+                    $pane.html('<div class="alert alert-danger m-4">' + (res && res.Message ? res.Message : 'Failed to load.') + '</div>');
+                    return;
+                }
+                $pane.html(res.Html);
+                _vpTabLoaded[tab] = true;
+                if (tab === 'notes') { _initVPNotes(); }
+            },
+            error   : function () {
+                $pane.html('<div class="alert alert-danger m-4">An error occurred. Please try again.</div>');
+            },
+            complete: function () { ajaxLoading(1); }
+        });
+    }
+
+    /**
+     * Wires the notes-tab save button; safe to call multiple times (uses .off first).
+     * @returns {void}
+     */
+    function _initVPNotes() {
+        $(document).off('click', '#vpNoteSaveBtn').on('click', '#vpNoteSaveBtn', function () {
+            var note = '';
+            if (window._vpNoteQuill) {
+                note = window._vpNoteQuill.getText().trim()
+                    ? window._vpNoteQuill.root.innerHTML
+                    : '';
+            }
+            if (!note.trim()) return;
+            var $btn = $(this).prop('disabled', true).text('Saving…');
+            ajaxLoading(0);
+            $.ajax({
+                url  : '/vendors/saveVendorNote',
+                type : 'POST',
+                data : {
+                    VendorUID : _vpCurrentUID,
+                    Note      : note,
+                    <?php echo $this->security->get_csrf_token_name(); ?> : '<?php echo $this->security->get_csrf_hash(); ?>'
+                },
+                success: function (res) {
+                    if (res && !res.Error) {
+                        _vpTabLoaded['notes'] = false;
+                        _loadVPTab('notes');
+                    } else {
+                        showToastNotification(res && res.Message ? res.Message : 'Failed to save note.', 'error');
+                        $btn.prop('disabled', false).html('<i class="bx bx-save me-1"></i>Save Note');
+                    }
+                },
+                error  : function () {
+                    showToastNotification('Error saving note.', 'error');
+                    $btn.prop('disabled', false).html('<i class="bx bx-save me-1"></i>Save Note');
+                },
+                complete: function () { ajaxLoading(1); }
+            });
+        });
+    }
+
+    // Tab link clicks
+    $(document).on('click', '.vp-tab-link', function () {
+        var tab = $(this).data('tab');
+        $('#vpTabNav .vp-tab-link').removeClass('active');
+        $(this).addClass('active');
+        $('#vpTabContent .vp-tab-pane').removeClass('d-block').addClass('d-none');
+        $('#vpTabContent_' + tab).removeClass('d-none').addClass('d-block');
+        _loadVPTab(tab);
+    });
+
+    // Open from vendor name link in the list
+    $(document).on('click', '.vend-profile-link', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        openVendorProfile(parseInt($(this).data('uid'), 10));
+    });
+
+    // Edit button inside modal — close modal, then open the edit form
+    $(document).on('click', '#vpBtnEdit', function () {
+        var uid = $(this).data('uid') || _vpCurrentUID;
+        $('#vendorProfileModal').modal('hide');
+        setTimeout(function () {
+            $('[data-vendoruid="' + uid + '"].EditVendor').first().trigger('click');
+        }, 350);
+    });
+
+    // Transaction dropdown items in vendor modal header
+    $(document).on('click', '.vp-tx-dd-item', function () {
+        var route = $(this).data('route');
+        if (route && _vpCurrentUID) {
+            window.open(route + '?party=' + _vpCurrentUID, '_blank', 'noopener');
+        }
+    });
+
+    // + New button inside each vendor transaction accordion section
+    $(document).on('click', '.vp-tx-new-btn', function (e) {
+        e.stopPropagation();
+        var route = $(this).data('route');
+        if (route && _vpCurrentUID) {
+            window.open(route + '?party=' + _vpCurrentUID, '_blank', 'noopener');
+        }
+    });
+
+    // Reset state when modal is fully hidden
+    $('#vendorProfileModal').on('hidden.bs.modal', function () {
+        _vpTabLoaded  = {};
+        _vpCurrentUID = 0;
+        $('#vpTabContent .vp-tab-pane').empty();
+    });
 
 });
 </script>

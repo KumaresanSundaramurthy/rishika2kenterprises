@@ -575,3 +575,6 @@ function _showSavedAndGo(title, msg) {
     _isDirty = false;
     window.location.href = _buildReturnUrl('/invoices');
 }
+
+// ── Auto-Draft ────────────────────────────────────────────────────────────────
+if (!_isEdit) AutoDraft.initFromCfg(_cfg, '#customerSearch', 'invForm');

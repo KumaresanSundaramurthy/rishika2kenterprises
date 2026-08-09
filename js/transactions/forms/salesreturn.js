@@ -616,3 +616,6 @@ $(function () {
         });
     });
 }());
+
+// ── Auto-Draft ────────────────────────────────────────────────────────────────
+if (!_isEdit) AutoDraft.initFromCfg(_cfg, '#customerSearch', 'srForm');

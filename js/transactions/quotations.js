@@ -45,6 +45,13 @@ $(document).on('comm:switchedToEmail', function (e, moduleUID, recordUID) {
     });
 });
 
+/**
+ * @param {number}   recordUID
+ * @param {number}   moduleUID
+ * @param {string}   filename
+ * @param {Function} onSuccess
+ * @returns {void}
+ */
 function _quotFetchPdfAjax(recordUID, moduleUID, filename, onSuccess) {
     $.ajax({
         url   : '/transactions/getTransactionPdfBase64',
@@ -71,72 +78,19 @@ var _quotSelectAllMode = false;
 var _quotTotalRecords  = 0;
 var _quotPageCount     = 0;
 
-/**
- * @returns {void}
- */
+/** @returns {void} */
 function _quotUpdateSelectAllBanner() {
-    var $banner = $('#quotSelectAllBanner');
-    var $msg    = $('#quotSelectAllMsg');
-    var $link   = $('#quotSelectAllLink');
-    var $clear  = $('#quotSelectAllClear');
-
-    if (!_quotPageCount || !$(ModuleHeader).prop('checked')) {
-        $banner.addClass('d-none');
-        return;
-    }
-
-    if (_quotSelectAllMode) {
-        $msg.text('All ' + _quotTotalRecords + ' quotations are selected.');
-        $link.addClass('d-none');
-        $clear.removeClass('d-none');
-    } else {
-        $msg.text('All ' + _quotPageCount + ' quotations on this page are selected.');
-        $clear.addClass('d-none');
-        if (_quotTotalRecords > _quotPageCount) {
-            $link.text('Select all ' + _quotTotalRecords + ' quotations?').removeClass('d-none');
-        } else {
-            $link.addClass('d-none');
-            $banner.addClass('d-none');
-            return;
-        }
-    }
-    $banner.removeClass('d-none');
+    updateTransSelectAllBanner(_quotSelectAllMode, _quotTotalRecords, _quotPageCount, 'quot', 'quotations');
 }
-
-/**
- * @returns {void}
- */
+/** @returns {void} */
 function _quotClearSelectAll() {
     _quotSelectAllMode = false;
-    $('#quotSelectAllBanner').addClass('d-none');
-    $('#quotSelectAllLink').removeClass('d-none');
-    $('#quotSelectAllClear').addClass('d-none');
+    clearTransSelectAllDom('quot');
 }
-
-/**
- * @returns {void}
- */
+/** @returns {void} */
 function deleteMultipleQuotations() {
-    var postData = _quotSelectAllMode
-        ? { SelectAll: 1, Filter: JSON.stringify(Filter), [CsrfName]: CsrfToken }
-        : { 'TransUIDs[]': SelectedUIDs, [CsrfName]: CsrfToken };
-    $.ajax({
-        url   : '/transactions/deleteMultipleTransactions/101',
-        method: 'POST',
-        cache : false,
-        data  : postData,
-        success: function (response) {
-            if (response.Error) {
-                showAlertMessageSwal('error', '', response.Message);
-            } else {
-                showToastNotification(response.Message, 'success');
-                SelectedUIDs = [];
-                _quotClearSelectAll();
-                hideUIBlock();
-                ajaxLoading(0);
-                getQuotationsDetails(PageNo, RowLimit, Filter);
-            }
-        }
+    deleteMultipleTrans(101, _quotSelectAllMode, _quotClearSelectAll, function () {
+        getQuotationsDetails(PageNo, RowLimit, Filter);
     });
 }
 
@@ -153,10 +107,17 @@ var _quotConfig = {
     }
 };
 
+/**
+ * @param {number}        pageNo
+ * @param {number}        rowLimit
+ * @param {Object}        filter
+ * @param {Function}      [afterLoad]
+ * @returns {void}
+ */
 function getQuotationsDetails(pageNo, rowLimit, filter, afterLoad) {
     if (typeof afterLoad === 'function') {
         var _cfg = $.extend({}, _quotConfig, {
-            onSuccess: function(resp) {
+            onSuccess: function (resp) {
                 if (_quotConfig.onSuccess) _quotConfig.onSuccess(resp);
                 afterLoad(resp);
             }
@@ -167,6 +128,10 @@ function getQuotationsDetails(pageNo, rowLimit, filter, afterLoad) {
     }
 }
 
+/**
+ * @param {Object} stats
+ * @returns {void}
+ */
 function updateQuotStatCards(stats) {
     if (!stats || Object.keys(stats).length === 0) return;
     var cur = (typeof currencySymbol !== 'undefined') ? currencySymbol : '₹';
@@ -193,5 +158,4 @@ function updateQuotStatCards(stats) {
     $('[data-stat-filter="Converted"] .trans-stat-count').text(cnt('Converted').toLocaleString('en-IN'));
     $('[data-stat-filter="Converted"] .trans-stat-amount').text(fmt(amt('Converted')));
     $('[data-stat-filter="Draft"] .trans-stat-count').text(cnt('Draft').toLocaleString('en-IN'));
-
 }

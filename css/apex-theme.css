@@ -3,6 +3,27 @@
  * Global UI theme applied page-by-page. Not transaction-specific.
  */
 
+/* Manual Journal badge — purple variant matching the accounting module theme */
+.bg-label-purple {
+    background-color: #ede9ff !important;
+    color: #7c3aed !important;
+}
+
+/* Bank Reconciliation — cleared row highlight */
+.recon-row-cleared td { background-color: #f0fdf4 !important; }
+:root[data-theme="dark"] .recon-row-cleared td { background-color: #052e16 !important; }
+
+/* Recurring Journals — due / overdue row highlight */
+.rj-row-due td { background-color: #fef9ee !important; }
+:root[data-theme="dark"] .rj-row-due td { background-color: #2d1f04 !important; }
+
+/* Period Lock — status icon */
+.pl-status-icon { width: 52px; height: 52px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.pl-icon-locked { background: #fef3c7; color: #d97706; }
+.pl-icon-open   { background: #dcfce7; color: #16a34a; }
+:root[data-theme="dark"] .pl-icon-locked { background: #2d1f04; color: #fbbf24; }
+:root[data-theme="dark"] .pl-icon-open   { background: #052e16; color: #4ade80; }
+
 /* ── All modals open from the top (never vertically centered) ────────────────
    Override Bootstrap's flex centering so every modal dialog sits at the top.
    This applies project-wide — do not use modal-dialog-centered anywhere. */
@@ -1791,4 +1812,161 @@ tr:hover .apex-party-actions {
     .cp-item:hover, .cp-item:focus { background: #3a3b55; }
     .cp-code  { color: #888; }
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   Customer / Vendor Profile Modal
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Equal top & bottom modal margin — dialog fills viewport minus 2.5rem on each side */
+.profile-modal-dialog {
+    --bs-modal-margin : 2.5rem;
+    margin-top        : 2.5rem;
+    margin-bottom     : 2.5rem;
+    height            : calc(100vh - 5rem);
+    max-height        : calc(100vh - 5rem);
+}
+
+.cust-profile-link { cursor: pointer; }
+.vend-profile-link { cursor: pointer; }
+.prod-profile-link { cursor: pointer; }
+
+/* ── Product Profile Modal ──────────────────────────────────────────────── */
+.pp-vtm-banner      { --vtm-color:#10b981; --vtm-bg:#ecfdf5; --vtm-icon-bg:rgba(16,185,129,.18); }
+
+/* Modal-content fills dialog height; banner + tabs are fixed; body scrolls */
+.pp-modal-content   { display: flex; flex-direction: column; height: 100%; max-height: 100%; overflow: hidden; }
+.pp-tab-nav-wrap    { flex-shrink: 0; background: #fff; overflow-x: auto; white-space: nowrap; }
+#ppTabContent       { flex: 1 1 0; min-height: 0; overflow-y: auto; }
+.pp-avatar-img      { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; display: block; }
+
+/* Quick stat cards */
+.pp-stat-card        { border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; height: 100%; }
+.pp-stat-icon        { font-size: 1.3rem; margin-bottom: 2px; }
+.pp-stat-val         { font-size: 1.02rem; font-weight: 700; line-height: 1.2; word-break: break-all; }
+.pp-stat-label       { font-size: .72rem; font-weight: 500; text-transform: uppercase; letter-spacing: .04em; opacity: .75; }
+.pp-stat-green       { background: #ecfdf5; color: #065f46; }
+.pp-stat-blue        { background: #eff6ff; color: #1e40af; }
+.pp-stat-purple      { background: #f5f3ff; color: #5b21b6; }
+.pp-stat-teal        { background: #f0fdfa; color: #0f766e; }
+.pp-stat-red         { background: #fef2f2; color: #991b1b; }
+
+/* Detail cards */
+.pp-detail-card      { background: var(--bs-card-bg, #fff); border: 1px solid var(--bs-border-color, #dee2e6); border-radius: 8px; padding: 14px 16px; }
+.pp-detail-title     { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #6c757d; margin-bottom: 10px; }
+.pp-detail-grid      { display: flex; flex-direction: column; gap: 8px; }
+.pp-detail-row       { display: flex; align-items: baseline; gap: 8px; }
+.pp-detail-key       { font-size: .78rem; color: #6c757d; flex: 0 0 120px; }
+.pp-detail-val       { font-size: .83rem; flex: 1; }
+.pp-tax-label        { font-size: .7rem; color: #6c757d; margin-left: 4px; }
+.pp-desc-text        { font-size: .82rem; color: #555; line-height: 1.6; }
+
+/* Top customers */
+.pp-top-customers    { display: flex; flex-direction: column; gap: 6px; }
+.pp-tc-row           { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--bs-border-color, #dee2e6); }
+.pp-tc-row:last-child { border-bottom: none; }
+.pp-tc-rank          { flex: 0 0 22px; font-size: .8rem; font-weight: 700; color: #10b981; }
+.pp-tc-name          { flex: 1; font-size: .82rem; font-weight: 500; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pp-tc-qty           { flex-shrink: 0; font-size: .78rem; font-weight: 600; color: #374151; text-align: right; }
+.pp-tc-txcount       { display: block; font-size: .7rem; color: #6c757d; font-weight: 400; }
+
+/* Transactions tab */
+.pp-tx-filter-bar    { border-bottom: 1px solid var(--bs-border-color, #dee2e6); padding-bottom: 10px; }
+.pp-tx-filter        { font-size: .8rem; }
+.pp-tx-count-label   { font-size: .78rem; }
+.pp-tx-table-wrap    { max-height: 420px; overflow-y: auto; }
+.pp-tx-table         { font-size: .82rem; }
+.pp-module-badge     { font-size: .68rem; }
+.pp-tx-footer        { font-size: .73rem; }
+.pp-dir-in           { color: #10b981; font-weight: 600; }
+.pp-dir-out          { color: #ef4444; font-weight: 600; }
+
+/* Stock movement tab */
+.pp-stock-summary-card  { background: var(--bs-card-bg, #fff); border: 1px solid var(--bs-border-color, #dee2e6); border-radius: 8px; padding: 10px 16px; min-width: 120px; }
+.pp-stock-summary-label { font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; color: #6c757d; margin-bottom: 2px; }
+.pp-stock-summary-val   { font-size: .95rem; font-weight: 700; }
+.pp-stock-summary-green { border-left: 3px solid #10b981; }
+.pp-stock-summary-red   { border-left: 3px solid #ef4444; }
+.pp-stock-summary-blue  { border-left: 3px solid #3b82f6; }
+.pp-stock-summary-purple{ border-left: 3px solid #8b5cf6; }
+.pp-stock-opening-row   { background: #f8f9fa; }
+.pp-stock-in            { background: rgba(16,185,129,.06); }
+.pp-stock-out           { background: rgba(239,68,68,.06); }
+.pp-stock-table         { font-size: .82rem; }
+
+/* History timeline */
+.pp-history-timeline { position: relative; padding-left: 20px; }
+.pp-history-timeline::before { content: ''; position: absolute; left: 6px; top: 8px; bottom: 8px; width: 2px; background: var(--bs-border-color, #dee2e6); }
+.pp-history-item     { position: relative; margin-bottom: 20px; }
+.pp-history-dot      { position: absolute; left: -18px; top: 4px; width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.pp-history-body     { background: var(--bs-card-bg, #fff); border: 1px solid var(--bs-border-color, #dee2e6); border-radius: 8px; padding: 10px 12px; }
+.pp-history-badge    { font-size: .65rem; }
+.pp-history-user     { font-size: .78rem; font-weight: 500; }
+.pp-history-time     { font-size: .75rem; color: #6c757d; white-space: nowrap; }
+.pp-history-summary  { font-size: .8rem; color: #374151; margin-top: 4px; }
+.pp-history-meta     { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+.pp-meta-badge       { font-size: .63rem; }
+.pp-history-ip       { font-size: .7rem; color: #9ca3af; font-family: monospace; }
+.pp-diff-table       { font-size: .78rem; }
+.pp-diff-old         { text-decoration: line-through; opacity: .75; }
+.pp-diff-new         { font-weight: 500; }
+.pp-empty-icon       { font-size: 2.2rem; opacity: .35; }
+.cp-qa-btn         { font-size: .78rem; }
+.cp-qa-sep         { width: 1px; height: 18px; background: rgba(0,0,0,.15); align-self: center; flex-shrink: 0; }
+
+/* Transaction accordion header — flex layout to hold title + "+ New" button */
+.cp-tx-acc-header                  { display: flex; align-items: center; }
+.cp-tx-acc-header .accordion-header { flex: 1 1 auto; min-width: 0; }
+.cp-tx-new-btn                     { flex-shrink: 0; margin-right: .6rem; font-size: .73rem; }
+.cp-avatar-initials {
+    font-size: 1.15rem; font-weight: 800; color: var(--vtm-color);
+    display: block; line-height: 1.5; letter-spacing: .5px;
+    min-width: 1.6rem; text-align: center;
+}
+
+/* Statement tab controls */
+.cp-stmt-label     { font-size: .75rem; }
+.cp-stmt-input     { font-size: .82rem; }
+.cp-stmt-btn       { font-size: .82rem; }
+.cp-stmt-table     { font-size: .82rem; }
+.cp-stmt-badge-dr  { font-size: .65rem; }
+.cp-stmt-badge-bal { font-size: .65rem; }
+
+/* Statement letterhead — screen display */
+.stmt-header       { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 8px; }
+.stmt-header-left  { flex: 1; min-width: 160px; }
+.stmt-logo         { max-height: 52px; max-width: 140px; object-fit: contain; display: block; margin-bottom: 6px; }
+.stmt-org-name     { font-size: .9rem; font-weight: 700; color: #333; }
+.stmt-org-addr,
+.stmt-org-gstin    { font-size: .73rem; color: #888; }
+.stmt-header-right { text-align: right; }
+.stmt-title        { font-size: .95rem; font-weight: 700; color: #444; }
+.stmt-period       { font-size: .75rem; color: #666; margin-top: 3px; }
+.stmt-divider      { border: none; border-top: 1.5px solid #dee2e6; margin: 12px 0; }
+.stmt-bill-to      { background: #f8f9fa; border-radius: 6px; padding: 10px 14px; margin-bottom: 14px; display: inline-block; }
+.stmt-bill-label   { font-size: .65rem; text-transform: uppercase; letter-spacing: .05em; color: #888; margin-bottom: 3px; }
+.stmt-cust-name    { font-size: .85rem; font-weight: 700; }
+.stmt-cust-meta    { font-size: .75rem; color: #666; margin-top: 2px; }
+
+/* Notes tab */
+.cp-note-empty  { font-size: .85rem; }
+.cp-note-avatar { font-size: .7rem; }
+.cp-note-user   { font-size: .82rem; }
+.cp-note-time   { font-size: .72rem; }
+.cp-note-html   { font-size: .83rem; word-break: break-word; }
+.cp-note-html p { margin-bottom: .2rem; }
+.cp-note-html ul,
+.cp-note-html ol { margin-bottom: .2rem; padding-left: 1.25rem; }
+
+/* Quill editor wrapper — border + constrained height (3–4 lines) */
+.cp-note-editor-wrap                { border: 1px solid #d9dee3; border-radius: .375rem; overflow: hidden; }
+.cp-note-editor-wrap .ql-toolbar   { border: none; border-bottom: 1px solid #d9dee3; padding: 4px 8px; }
+.cp-note-editor-wrap .ql-container { border: none; }
+.cp-note-editor-wrap .ql-editor    { min-height: unset; height: 82px; overflow-y: auto; font-size: .85rem; padding: 8px 12px; }
+@media (prefers-color-scheme: dark) {
+    .cp-note-editor-wrap              { border-color: #444564; }
+    .cp-note-editor-wrap .ql-toolbar { border-bottom-color: #444564; }
+}
+:root[data-theme="dark"] .cp-note-editor-wrap              { border-color: #444564; }
+:root[data-theme="dark"] .cp-note-editor-wrap .ql-toolbar  { border-bottom-color: #444564; }
+
 

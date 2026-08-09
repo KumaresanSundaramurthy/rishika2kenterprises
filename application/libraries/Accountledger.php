@@ -548,6 +548,15 @@ Class Accountledger {
 
     private function _createJournalHeader($journalDate, $fy, $refType, $refID, $refNo, $narration, $createdBy) {
         $orgUID = $this->_orgUID();
+
+        // Period lock enforcement — block posting to any locked period
+        $this->CI->load->model('accountledger_model');
+        $lock = $this->CI->accountledger_model->getPeriodLock();
+        if ($lock && $journalDate <= $lock->LockedUpTo) {
+            $lockDisplay = date('d M Y', strtotime($lock->LockedUpTo));
+            throw new Exception("Cannot post to a locked period. Books are locked up to {$lockDisplay}.");
+        }
+
         $tmpNo  = 'TMP-' . $orgUID . '-' . microtime(true) . '-' . $refID;
         $resp   = $this->CI->dbwrite_model->insertData('Accounting', 'GeneralJournal', [
             'OrgUID'        => $orgUID,
@@ -1199,6 +1208,94 @@ Class Accountledger {
             $this->postPaymentJournal(
                 'made', (int)$pmt->PaymentUID, $pmt->PaymentDate, (int)$pmt->TransYear,
                 (float)$pmt->Amount, $vendorUID, 'Vendor', $userUID
+            );
+        }
+    }
+
+    // Manual Journal Entry: post an arbitrary double-entry journal created by the user
+    /**
+     * @param string $date      Journal date (Y-m-d)
+     * @param int    $fy        Financial year (e.g. 2026)
+     * @param string $narration Free-text narration
+     * @param array  $lines     [['LedgerUID'=>int,'Type'=>'Debit'|'Credit','Amount'=>float,'Particulars'=>string], ...]
+     * @param int    $createdBy User UID
+     * @return int  The new JournalUID
+     */
+    public function postManualJournal(string $date, int $fy, string $narration, array $lines, int $createdBy, string $referenceType = 'Manual'): int {
+        if (empty($lines)) throw new Exception('At least one journal line is required.');
+
+        $allowedTypes = ['Manual', 'Recurring'];
+        if (!in_array($referenceType, $allowedTypes, true)) $referenceType = 'Manual';
+
+        $orgUID    = $this->_orgUID();
+        $jUID      = $this->_createJournalHeader($date, $fy, $referenceType, 0, null, $narration, $createdBy);
+        $journalNo = 'JRN-' . $fy . '-' . str_pad($jUID, 7, '0', STR_PAD_LEFT);
+
+        // Back-fill the self-referencing ReferenceID and the final JournalNo
+        $this->CI->dbwrite_model->updateData(
+            'Accounting', 'GeneralJournal',
+            ['ReferenceID' => $jUID, 'ReferenceNo' => $journalNo],
+            ['JournalUID' => $jUID, 'OrgUID' => $orgUID]
+        );
+
+        foreach ($lines as $line) {
+            $ledgerUID   = (int)($line['LedgerUID']   ?? 0);
+            $type        = in_array($line['Type'] ?? '', ['Debit', 'Credit']) ? $line['Type'] : null;
+            $amount      = (float)($line['Amount']    ?? 0);
+            $particulars = trim($line['Particulars']  ?? '');
+            if (!$ledgerUID || !$type || $amount <= 0) continue;
+            $this->_addJournalLine($jUID, $ledgerUID, $type, $amount, $particulars ?: $narration, $date, $fy, $createdBy);
+        }
+
+        return $jUID;
+    }
+
+    /**
+     * Soft-delete a Manual journal and post a compensating reversal entry so
+     * running ledger balances remain correct.
+     * @param int $journalUID  JournalUID of the Manual entry to reverse
+     * @param int $createdBy   User UID performing the delete
+     * @return void
+     */
+    public function reverseManualJournal(int $journalUID, int $createdBy): void {
+        $this->CI->load->model('accountledger_model');
+        $orgUID = $this->_orgUID();
+
+        $header = $this->CI->accountledger_model->getJournalWithEntries($journalUID);
+        if (!$header || $header->ReferenceType !== 'Manual' || (int)$header->IsDeleted === 1) {
+            throw new Exception('Journal not found or cannot be deleted.');
+        }
+
+        $fy      = (int)$header->FinancialYear;
+        $revDate = date('Y-m-d');
+        $entries = $header->Lines ?? [];
+
+        // Soft-delete original journal header and all its lines
+        $this->CI->dbwrite_model->updateData('Accounting', 'GeneralJournal',
+            ['IsDeleted' => 1],
+            ['OrgUID' => $orgUID, 'JournalUID' => $journalUID]
+        );
+        $this->CI->dbwrite_model->updateData('Accounting', 'JournalEntries',
+            ['IsDeleted' => 1, 'UpdatedBy' => $createdBy],
+            ['OrgUID' => $orgUID, 'JournalUID' => $journalUID, 'IsDeleted' => 0]
+        );
+
+        if (empty($entries)) return;
+
+        // Create a compensating reversal journal so running balances net to zero
+        $revUID = $this->_createJournalHeader(
+            $revDate, $fy, 'Reversal-Manual', $journalUID,
+            'REV-' . $header->JournalNo,
+            'Reversal of ' . $header->JournalNo . ': ' . $header->Narration,
+            $createdBy
+        );
+
+        foreach ($entries as $entry) {
+            $counterType = ($entry->TransactionType === 'Debit') ? 'Credit' : 'Debit';
+            $this->_addJournalLine(
+                $revUID, (int)$entry->LedgerUID, $counterType, (float)$entry->Amount,
+                'Reversal: ' . ($entry->Particulars ?? ''),
+                $revDate, $fy, $createdBy
             );
         }
     }

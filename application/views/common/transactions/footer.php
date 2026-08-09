@@ -61,6 +61,7 @@
     <script type="text/javascript" src="<?php echo _assetV('/js/common/datefilter.js'); ?>"></script>
     <script type="text/javascript" src="<?php echo _assetV('/js/common/export.js'); ?>"></script>
     <script type="text/javascript" src="<?php echo _assetV('/js/core/pending_toast.js'); ?>"></script>
+    <script type="text/javascript" src="<?php echo _assetV('/js/core/autoDraft.js'); ?>"></script>
     <script type="text/javascript" src="<?php echo _assetV('/js/transactions/common.js'); ?>"></script>
     <script type="text/javascript" src="<?php echo _assetV('/js/transactions/thermal_print.js'); ?>"></script>
     <link rel="stylesheet" href="<?php echo _assetV('/assets/vendor/css/attachments.css'); ?>">

@@ -324,7 +324,7 @@ var _dbListFmt    = '<?php echo addslashes($_listFmt); ?>';
 var _dbFormFmt    = '<?php echo addslashes($_formFmt); ?>';
 
 /* Globals required by viewmodal.js */
-var ajaxLoading(0);
+ajaxLoading(0);
 var CsrfName    = '<?php echo $this->security->get_csrf_token_name(); ?>';
 var CsrfToken   = '<?php echo $this->security->get_csrf_hash(); ?>';
 var CDN_URL     = '<?php echo getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN'); ?>';

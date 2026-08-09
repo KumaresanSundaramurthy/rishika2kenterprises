@@ -7,82 +7,36 @@ var _purchSelectAllMode = false;
 var _purchTotalRecords  = 0;
 var _purchPageCount     = 0;
 
-/**
- * @returns {void}
- */
+/** @returns {void} */
 function _purchUpdateSelectAllBanner() {
-    var $banner = $('#purchSelectAllBanner');
-    var $msg    = $('#purchSelectAllMsg');
-    var $link   = $('#purchSelectAllLink');
-    var $clear  = $('#purchSelectAllClear');
-
-    if (!_purchPageCount || !$(ModuleHeader).prop('checked')) {
-        $banner.addClass('d-none');
-        return;
-    }
-
-    if (_purchSelectAllMode) {
-        $msg.text('All ' + _purchTotalRecords + ' purchases are selected.');
-        $link.addClass('d-none');
-        $clear.removeClass('d-none');
-    } else {
-        $msg.text('All ' + _purchPageCount + ' purchases on this page are selected.');
-        $clear.addClass('d-none');
-        if (_purchTotalRecords > _purchPageCount) {
-            $link.text('Select all ' + _purchTotalRecords + ' purchases?').removeClass('d-none');
-        } else {
-            $link.addClass('d-none');
-            $banner.addClass('d-none');
-            return;
-        }
-    }
-    $banner.removeClass('d-none');
+    updateTransSelectAllBanner(_purchSelectAllMode, _purchTotalRecords, _purchPageCount, 'purch', 'purchases');
 }
-
-/**
- * @returns {void}
- */
+/** @returns {void} */
 function _purchClearSelectAll() {
     _purchSelectAllMode = false;
-    $('#purchSelectAllBanner').addClass('d-none');
-    $('#purchSelectAllLink').removeClass('d-none');
-    $('#purchSelectAllClear').addClass('d-none');
+    clearTransSelectAllDom('purch');
 }
-
-/**
- * @returns {void}
- */
+/** @returns {void} */
 function deleteMultiplePurchases() {
-    var postData = _purchSelectAllMode
-        ? { SelectAll: 1, Filter: JSON.stringify(Filter), [CsrfName]: CsrfToken }
-        : { 'TransUIDs[]': SelectedUIDs, [CsrfName]: CsrfToken };
-    $.ajax({
-        url   : '/transactions/deleteMultipleTransactions/105',
-        method: 'POST',
-        cache : false,
-        data  : postData,
-        success: function (response) {
-            if (response.Error) {
-                showAlertMessageSwal('error', '', response.Message);
-            } else {
-                showToastNotification(response.Message, 'success');
-                SelectedUIDs = [];
-                _purchClearSelectAll();
-                hideUIBlock();
-                ajaxLoading(0);
-                getPurchasesDetails(PageNo, RowLimit, Filter);
-            }
-        }
+    deleteMultipleTrans(105, _purchSelectAllMode, _purchClearSelectAll, function () {
+        getPurchasesDetails(PageNo, RowLimit, Filter);
     });
 }
 
+/**
+ * @param {number}        pageNo
+ * @param {number}        rowLimit
+ * @param {Object}        filter
+ * @param {Function}      [afterLoad]
+ * @returns {void}
+ */
 function getPurchasesDetails(pageNo, rowLimit, filter, afterLoad) {
     loadTransactionList({
         url:            '/transactions/getPageDetails/105/',
         tabCountClass:  '.purch-tab-count',
         statusTabClass: '.purch-status-tab',
         errorMessage:   'Failed to load purchase bills.',
-        onSuccess:      function(resp) {
+        onSuccess:      function (resp) {
             _purchTotalRecords = parseInt(resp.TotalCount) || 0;
             _purchPageCount    = $(ModuleTable + ' tbody ' + ModuleRow).length;
             _purchUpdateSelectAllBanner();
@@ -130,92 +84,4 @@ $(document).on('comm:switchedToEmail', function (e, moduleUID, recordUID) {
 });
 
 // ── Payment Details Panel ─────────────────────────────────────────────────────
-(function () {
-    var $panel  = $('#payDetailPanel');
-    var $body   = $('#payDetailBody');
-    var $title  = $('#payPanelTitle');
-    var openUID = null;
-
-    function openPanel($trigger) {
-        var transUID = $trigger.data('trans-uid');
-        var transNum = $trigger.data('trans-num') || '';
-
-        var rect   = $trigger[0].getBoundingClientRect();
-        var panelW = 290;
-        var left   = rect.left;
-        var top    = rect.bottom + 6;
-        if (left + panelW + 16 > window.innerWidth) left = window.innerWidth - panelW - 16;
-
-        $title.text(transNum ? 'Payments — ' + transNum : 'Payments');
-        $body.html('<div class="text-center py-3"><span class="spinner-border spinner-border-sm text-primary"></span></div>');
-        $panel.css({ top: top, left: left }).show();
-        openUID = transUID;
-        ajaxLoading(0);
-
-        $.ajax({
-            url  : '/payments/getPaymentsByTransaction',
-            type : 'GET',
-            data : { TransUID: transUID },
-            success: function (resp) {
-                ajaxLoading(1);
-                if (resp && !resp.Error && resp.Payments && resp.Payments.length) {
-                    $body.html(buildPaymentHtml(resp.Payments));
-                } else {
-                    $body.html('<p class="text-muted mb-0" style="font-size:.8rem;">' + t('toast_no_payments', 'No payments found.') + '</p>');
-                }
-            },
-            error: function () {
-                ajaxLoading(1);
-                $body.html('<p class="text-danger mb-0" style="font-size:.8rem;">' + t('toast_payments_failed', 'Failed to load payments.') + '</p>');
-            }
-        });
-    }
-
-    function closePanel() { $panel.hide(); openUID = null; }
-
-    $(document).on('click', '.pay-mode-clickable', function (e) {
-        if ($(e.target).closest('.transPayAttachBtn').length) return;
-        e.stopPropagation();
-        var transUID = $(this).data('trans-uid');
-        if (openUID === transUID) { closePanel(); return; }
-        openPanel($(this));
-    });
-
-    $(document).on('click', '#payPanelClose', function (e) { e.stopPropagation(); closePanel(); });
-
-    $(document).on('click', function (e) {
-        if ($panel.is(':visible') && !$(e.target).closest('#payDetailPanel, .pay-mode-clickable').length) closePanel();
-    });
-
-    $(document).on('keydown', function (e) { if (e.key === 'Escape') closePanel(); });
-
-    function buildPaymentHtml(payments) {
-        var html = '';
-        payments.forEach(function (p, i) {
-            if (i > 0) html += '<hr style="margin:8px 0;border-color:#f0f0f0;">';
-            var amt  = parseFloat(p.Amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-            var mode = p.PaymentTypeName || '—';
-            var ref  = p.ReferenceNo || '';
-            var date = '';
-            if (p.CreatedOn) {
-                var d = new Date(p.CreatedOn.replace(' ', 'T'));
-                date  = ('0' + d.getDate()).slice(-2) + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + d.getFullYear();
-            }
-            html += '<div class="d-flex justify-content-between align-items-start gap-2">';
-            html += '  <div style="min-width:0;">';
-            html += '    <div style="font-size:.83rem;font-weight:600;color:#6f42c1;">&#8377;' + amt + '</div>';
-            html += '    <div style="font-size:.75rem;color:#566a7f;">' + mode + '</div>';
-            if (date || ref) {
-                html += '  <div style="font-size:.72rem;color:#aaa;margin-top:1px;">';
-                if (date) html += date;
-                if (date && ref) html += '&nbsp;&nbsp;';
-                if (ref)  html += ref;
-                html += '  </div>';
-            }
-            html += '  </div>';
-            html += '  <a href="/payments" class="btn btn-icon btn-sm" style="color:#6f42c1;flex-shrink:0;" title="' + t('vm_view_payments', 'View Payments') + '"><i class="bx bx-show fs-6"></i></a>';
-            html += '</div>';
-        });
-        return html;
-    }
-}());
+initTransPaymentPanel('', '#6f42c1');

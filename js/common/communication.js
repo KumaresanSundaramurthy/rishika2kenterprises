@@ -1,4 +1,4 @@
-﻿/**
+/**
  * communication.js -- shared Send SMS / Send Email modal logic
  */
 

@@ -101,7 +101,9 @@ if (!empty($DataLists)) {
                     </div>
 
                     <div>
-                        <div class="text-dark fw-semibold"><?php echo htmlspecialchars($row->ItemName); ?><?php echo $comboBadge; ?></div>
+                        <a href="javascript:void(0);" class="prod-profile-link text-dark fw-semibold text-decoration-none"
+                           data-uid="<?php echo $uid; ?>"
+                           title="View Profile"><?php echo htmlspecialchars($row->ItemName); ?></a><?php echo $comboBadge; ?>
                         <div class="d-flex align-items-center gap-2 mt-1" style="font-size:0.75rem;">
                             <?php if (!$hideType) echo $typeBadge; ?>
                             <?php if (!empty($row->HSNSACCode)): ?>

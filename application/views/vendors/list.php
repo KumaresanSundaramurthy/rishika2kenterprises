@@ -50,7 +50,9 @@ if (!empty($DataLists)):
                     <?php endif; ?>
                 </div>
                 <div>
-                    <div class="fw-semibold"><?php echo r2k_party_name($list->Name ?? '', $list->MobileNumber ?? '', $list->CountryCode ?? '', $list->Area ?? '', !empty($list->Image) ? $cdnUrl . $list->Image : ''); ?></div>
+                    <a href="javascript:void(0);" class="vend-profile-link fw-semibold text-body text-decoration-none"
+                       data-uid="<?php echo $uid; ?>"
+                       title="View Profile"><?php echo r2k_party_name($list->Name ?? '', $list->MobileNumber ?? '', $list->CountryCode ?? '', $list->Area ?? '', !empty($list->Image) ? $cdnUrl . $list->Image : ''); ?></a>
                     <?php $isActive = (int)($list->IsActive ?? 1); ?>
                     <div class="mt-1">
                         <div class="dropdown d-inline-block">

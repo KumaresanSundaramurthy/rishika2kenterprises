@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
+<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Products extends MY_Controller {
 
@@ -2893,4 +2893,94 @@ class Products extends MY_Controller {
         ];
     }
 
+    /**
+     * Serves a single tab for the product profile modal via AJAX GET.
+     * Supported tabs: overview, transactions, stock, history.
+     *
+     * @param  int    $uid
+     * @param  string $tab
+     * @return void
+     */
+    public function getProductProfileTab(int $uid = 0, string $tab = 'overview'): void
+    {
+        $this->EndReturnData = new stdClass();
+        try {
+            $uid    = (int) $uid;
+            $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
+            if ($uid <= 0) throw new Exception('Invalid product ID.');
+
+            $tab     = preg_replace('/[^a-z]/', '', strtolower($tab));
+            $JwtData = $this->pageData['JwtData'];
+            $cur     = $JwtData->GenSettings->CurrenySymbol ?? '₹';
+            $dec     = (int) ($JwtData->GenSettings->DecimalPoints ?? 2);
+            $dateFmt = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
+
+            $html = '';
+
+            switch ($tab) {
+
+                case 'overview':
+                    $prod = $this->products_model->getProductProfile($uid, $orgUID);
+                    if (!$prod) throw new Exception('Product not found.');
+                    $topCustomers = $this->products_model->getProductTopCustomers($uid, $orgUID);
+                    $html = $this->load->view('products/modals/profile_overview', [
+                        'Prod'        => $prod,
+                        'TopCustomers'=> $topCustomers,
+                        'JwtData'     => $JwtData,
+                        'Cur'         => $cur,
+                        'Dec'         => $dec,
+                        'DateFormat'  => $dateFmt,
+                        'ProductUID'  => $uid,
+                    ], TRUE);
+                    break;
+
+                case 'transactions':
+                    $rows = $this->products_model->getProductTransactionHistory($uid, $orgUID);
+                    $html = $this->load->view('products/modals/profile_transactions', [
+                        'Rows'       => $rows,
+                        'JwtData'    => $JwtData,
+                        'Cur'        => $cur,
+                        'Dec'        => $dec,
+                        'DateFormat' => $dateFmt,
+                        'ProductUID' => $uid,
+                    ], TRUE);
+                    break;
+
+                case 'stock':
+                    $prod  = $this->products_model->getProductProfile($uid, $orgUID);
+                    $moves = $this->products_model->getProductStockMovements($uid, $orgUID);
+                    $html  = $this->load->view('products/modals/profile_stock', [
+                        'Prod'       => $prod,
+                        'Moves'      => $moves,
+                        'JwtData'    => $JwtData,
+                        'Cur'        => $cur,
+                        'Dec'        => $dec,
+                        'DateFormat' => $dateFmt,
+                        'ProductUID' => $uid,
+                    ], TRUE);
+                    break;
+
+                case 'history':
+                    $rows = $this->products_model->getProductAuditHistory($uid, $orgUID);
+                    $html = $this->load->view('products/modals/profile_history', [
+                        'Rows'       => $rows,
+                        'JwtData'    => $JwtData,
+                        'DateFormat' => $dateFmt,
+                        'ProductUID' => $uid,
+                    ], TRUE);
+                    break;
+
+                default:
+                    throw new Exception('Unknown tab.');
+            }
+
+            $this->EndReturnData->Error = false;
+            $this->EndReturnData->Html  = $html;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
 }

@@ -1,74 +1,22 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php
 $isEdit      = isset($QuotData);
 $isDraftEdit = $isEdit && ($QuotData->DocStatus === 'Draft');
 $transUID    = $isEdit ? (int)$QuotData->TransUID : 0;
 $formId      = 'quotationForm';
 $formAction  = $isEdit ? 'quotations/updateQuotation' : 'quotations/addQuotation';
-$_posCode    = $isEdit ? ($QuotData->PlaceOfSupplyCode  ?? '') : ($JwtData->Org->StateCode  ?? '');
-$_posName    = $isEdit ? ($QuotData->PlaceOfSupplyName  ?? '') : ($JwtData->Org->StateName  ?? '');
+extract(initTransFormCommon($isEdit, $QuotData ?? null, '/quotations', $JwtData));
 
-$_returnTab  = $this->input->get('returnTab')  ?: 'All';
-$_returnPage = (int)($this->input->get('returnPage') ?: 1);
-$_closeUrl   = trans_build_close_url('/quotations', $_returnTab, $_returnPage);
+$_prefix          = resolveTransPrefix($isEdit, $isDraftEdit, $PrefixData ?? [], $isEdit ? (int)($QuotData->PrefixUID ?? 0) : 0, $isEdit ? (int)($QuotData->TransNumber ?? 0) : 0, $NextNumberMap ?? []);
+$editPrefixConfig = $_prefix['config'];
+$editTransNumber  = $_prefix['transNumber'];
+$editPrefixSeg    = $_prefix['seg'];
 
-if ($isEdit && !function_exists('buildQuotPrefixSegment')) {
-    function buildQuotPrefixSegment($cfg) {
-        if (!$cfg) return '';
-        $sep   = $cfg->Separator ?? '-';
-        $parts = [$cfg->Name];
-        if (!empty($cfg->IncludeShortName) && !empty($cfg->ShortName)) {
-            $parts[] = strtoupper($cfg->ShortName);
-        }
-        if (!empty($cfg->IncludeFiscalYear)) {
-            $m  = (int)date('m');
-            $yr = (int)date('Y');
-            $fy = $m >= 4 ? $yr : $yr - 1;
-            $parts[] = ($cfg->FiscalYearFormat ?? 'SHORT') === 'LONG'
-                ? $fy . '-' . ($fy + 1)
-                : str_pad($fy % 100, 2, '0', STR_PAD_LEFT) . '-' . str_pad(($fy + 1) % 100, 2, '0', STR_PAD_LEFT);
-        }
-        return implode($sep, $parts) . $sep;
-    }
-}
+$_addrLines = buildDispatchAddressLines($DispatchAddress ?? null);
 
-$editPrefixConfig = null;
-if ($isEdit && !empty($PrefixData)) {
-    foreach ($PrefixData as $_pd) {
-        if ((int)$_pd->PrefixUID === (int)$QuotData->PrefixUID) {
-            $editPrefixConfig = $_pd;
-            break;
-        }
-    }
-    if (!$editPrefixConfig) $editPrefixConfig = $PrefixData[0];
-}
-$editTransNumber = $isEdit ? ($isDraftEdit ? (int)($NextNumberMap[(int)($editPrefixConfig->PrefixUID ?? 0)] ?? 1) : (int)$QuotData->TransNumber) : 0;
-$editPrefixSeg   = ($isEdit && $isDraftEdit) ? buildQuotPrefixSegment($editPrefixConfig) : '';
-
-$_addrLines = [];
-if (!empty($DispatchAddress)) {
-    $_addrLines = array_filter([
-        htmlspecialchars($DispatchAddress->Line1 ?? ''),
-        htmlspecialchars($DispatchAddress->Line2 ?? ''),
-    ]);
-    $_cityPin = trim(implode(' - ', array_filter([
-        htmlspecialchars($DispatchAddress->CityText ?? ''),
-        htmlspecialchars($DispatchAddress->Pincode  ?? ''),
-    ])));
-    if ($_cityPin) $_addrLines[] = $_cityPin;
-    if (!empty($DispatchAddress->StateText)) $_addrLines[] = htmlspecialchars($DispatchAddress->StateText);
-}
-
-$_notesVal = '';
-$_jwtTerms = $JwtData->TransSettings->TermsAndConditions ?? '';
-$_termsVal = $_jwtTerms;
-if (!$isEdit) {
-    $_notesVal = !empty($CloneData->Notes) ? $CloneData->Notes : '';
-    $_termsVal = !empty($CloneData->TermsConditions) ? $CloneData->TermsConditions : $_jwtTerms;
-} else {
-    $_notesVal = $QuotData->Notes ?? '';
-    $_termsVal = $QuotData->TermsConditions ?? '';
-}
+$_nt       = resolveTransNotesTerms($isEdit, $QuotData ?? null, $JwtData, $isEdit ? [] : [$CloneData ?? null]);
+$_notesVal = $_nt['notesVal'];
+$_termsVal = $_nt['termsVal'];
 
 $_savedCharges = [];
 if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
@@ -172,42 +120,13 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
 
                         <div class="card-body card-body-form-static p-3">
 
+                            <?php
+                            $_tsSetting = strtolower($JwtData->TransSettings->DefaultTransactionType ?? 'regular');
+                            $_tsDefault = ($_tsSetting === 'without_tax') ? 'Without_GST' : 'Regular';
+                            $_quotType  = !empty($QuotData->DocType ?? '') ? $QuotData->DocType : $_tsDefault;
+                            ?>
                             <!-- ── Toolbar: Type & Dispatch From ─────────────────────────── -->
-                            <div class="d-flex align-items-center gap-4 mb-3 pb-2 border-bottom">
-                                <div class="d-flex align-items-center gap-2">
-                                    <span class="text-muted" style="font-size:.78rem;white-space:nowrap;">Type</span>
-                                    <?php if ($isEdit): ?>
-                                    <?php
-                                    $_tsSetting = strtolower($JwtData->TransSettings->DefaultTransactionType ?? 'regular');
-                                    $_tsDefault = ($_tsSetting === 'without_tax') ? 'Without_GST' : 'Regular';
-                                    $_quotType  = !empty($QuotData->DocType) ? $QuotData->DocType : $_tsDefault;
-                                    ?>
-                                    <span class="trans-type-readonly"><?php echo $_quotType === 'Without_GST' ? 'Without GST' : 'Regular'; ?></span>
-                                    <input type="hidden" name="quotationType" value="<?php echo htmlspecialchars($_quotType); ?>" />
-                                    <?php else: ?>
-                                    <select id="quotationType" name="quotationType" class="form-select form-select-sm border-0 bg-transparent fw-semibold trans-gst-type-select" style="min-width:110px;cursor:pointer;" required>
-                                        <option value="Regular"     <?php echo $_quotType !== 'Without_GST' ? 'selected' : ''; ?>>Regular</option>
-                                        <option value="Without_GST" <?php echo $_quotType === 'Without_GST' ? 'selected' : ''; ?>>Without GST</option>
-                                    </select>
-                                    <?php endif; ?>
-                                </div>
-                                <?php if (!empty($DispatchAddresses)): ?>
-                                <div class="d-flex align-items-center gap-2 dispatch-from-grp" style="max-width:360px;">
-                                    <span class="text-muted" style="font-size:.78rem;white-space:nowrap;">Dispatch From</span>
-                                    <?php $this->load->view('common/transactions/_dispatch_from'); ?>
-                                </div>
-                                <?php endif; ?>
-                                <div class="ms-auto d-flex align-items-center gap-2">
-                                    <div id="custTypeIndicator" class="d-none"></div>
-                                    <div id="plChipWrap" class="d-none"></div>
-                                    <!-- On Account indicator — info only, no payment action in quotation -->
-                                    <div id="onAccountIndicator" class="d-none d-flex align-items-center gap-1"
-                                         style="font-size:.78rem;color:#856404;background:#fff8e1;border:1px solid #ffc107;padding:3px 12px;border-radius:20px;white-space:nowrap;">
-                                        <i class="bx bx-wallet" style="font-size:.88rem;"></i>
-                                        On Account: <strong id="onAccountTotal" style="margin-left:3px;"></strong>
-                                    </div>
-                                </div>
-                            </div>
+                            <?php $this->load->view('transactions/partials/trans_toolbar_type', ['_tbTypeValue' => $_quotType, '_tbFieldId' => 'quotationType', '_tbFieldName' => 'quotationType', '_tbEditGuardStrict' => false, '_tbDispatchLabel' => 'Dispatch From', '_tbShowOnAccount' => true, '_tbOnAccountGuard' => false, '_tbOaSrStyle' => false]); ?>
 
                             <!-- ── Row 1: Customer | Quotation Date | Validity Days | Validity Date | Reference ── -->
                             <div class="row g-2 align-items-end mb-2">
@@ -292,67 +211,12 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                                 'transEditItems'            => $isEdit ? ($QuotItems ?? []) : [],
                             ]); ?>
 
-                            <!-- ── Inline full-width summary (below both columns) ── -->
-                            <?php $qCur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>
-                            <div id="inlineSummaryBar" class="sticky-bottom-bar mt-3" style="padding:10px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;border-radius:8px;">
-                                <div class="d-flex align-items-stretch gap-0">
-                                    <div style="padding-right:20px;">
-                                        <div class="fw-bold" style="font-size:.95rem;">TOTAL &nbsp;<span style="color:#0d6efd;" id="inlineGrandTotal"><?php echo $qCur; ?> 0.00</span></div>
-                                        <div class="text-muted" style="font-size:.74rem;">Includes Total Tax &nbsp;<span id="inlineTotalTax">0.00</span></div>
-                                    </div>
-                                </div>
-                                <div class="d-flex align-items-center gap-2">
-                                    <?php if (!$isEdit || $isDraftEdit): ?>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="inlineDraftBtn" data-bs-toggle="tooltip" data-bs-placement="top" title="<?php echo t('tooltip_save_draft', 'Save and continue editing later'); ?>"><i class="bx bx-save me-1"></i><?php echo t('btn_save_draft', 'Save as Draft'); ?></button>
-                                    <?php endif; ?>
-                                    <div class="btn-group">
-                                        <button type="button" class="btn btn-sm btn-primary px-3" id="inlineSaveBtn">
-                                            <i class="bx bx-check me-1"></i>Save
-                                        </button>
-                                        <?php if (!$isEdit): ?>
-                                        <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2" data-bs-toggle="dropdown" aria-expanded="false"><span class="visually-hidden">Save options</span></button>
-                                        <ul class="dropdown-menu dropdown-menu-end shadow dropup" style="min-width:195px;font-size:.82rem;">
-                                            <li><span class="dropdown-header py-1" style="font-size:.65rem;letter-spacing:.4px;">SAVE &amp; PRINT</span></li>
-                                            <li><button type="button" class="dropdown-item py-1" data-inline-action="save_a4"><i class="bx bx-file text-primary me-2"></i><?php echo t('btn_save_a4', 'Save & Print A4'); ?></button></li>
-                                            <li><button type="button" class="dropdown-item py-1" data-inline-action="save_a5"><i class="bx bx-file-blank text-info me-2"></i><?php echo t('btn_save_a5', 'Save & Print A5'); ?></button></li>
-                                            <li><button type="button" class="dropdown-item py-1" data-inline-action="save_thermal"><i class="bx bx-receipt text-success me-2"></i><?php echo t('btn_save_thermal', 'Save & Print Thermal'); ?></button></li>
-                                        </ul>
-                                        <?php endif; ?>
-                                    </div>
-                                </div>
-                            </div>
+                            <?php $this->load->view('transactions/partials/trans_summary_bar', ['_barIsSticky' => false, '_barSections' => '1', '_barButtonLayout' => 'split', '_barShowPrint' => 'create_only', '_barUseDcClasses' => false]); ?>
 
                         </div>
                     </div>
 
-                    <!-- ── Sticky bottom summary bar ── -->
-                    <div id="stickyBottomBar" class="sticky-bottom-bar" style="position:fixed;bottom:0;right:0;z-index:1040;padding:10px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
-                        <div class="d-flex align-items-stretch gap-0">
-                            <div style="padding-right:20px;">
-                                <div class="fw-bold" style="font-size:.95rem;">TOTAL &nbsp;<span style="color:#0d6efd;" id="stickyGrandTotal"><?php echo $qCur; ?> 0.00</span></div>
-                                <div class="text-muted" style="font-size:.74rem;">Includes Total Tax &nbsp;<span id="stickyTotalTax">0.00</span></div>
-                            </div>
-                        </div>
-                        <div class="d-flex align-items-center gap-2">
-                            <?php if (!$isEdit || $isDraftEdit): ?>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" id="stickyDraftBtn" data-bs-toggle="tooltip" data-bs-placement="top" title="<?php echo t('tooltip_save_draft', 'Save and continue editing later'); ?>"><i class="bx bx-save me-1"></i><?php echo t('btn_save_draft', 'Save as Draft'); ?></button>
-                            <?php endif; ?>
-                            <div class="btn-group">
-                                <button type="button" class="btn btn-sm btn-primary px-3" id="stickySaveBtn" data-bs-toggle="tooltip" data-bs-placement="top" title="<?php echo t('tooltip_save', 'Save transaction'); ?>">
-                                    <i class="bx bx-check me-1"></i>Save
-                                </button>
-                                <?php if (!$isEdit): ?>
-                                <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2" data-bs-toggle="dropdown" aria-expanded="false"><span class="visually-hidden">Save options</span></button>
-                                <ul class="dropdown-menu dropdown-menu-end shadow dropup" style="min-width:195px;font-size:.82rem;">
-                                    <li><span class="dropdown-header py-1" style="font-size:.65rem;letter-spacing:.4px;">SAVE &amp; PRINT</span></li>
-                                    <li><button type="button" class="dropdown-item py-1" data-sticky-action="save_a4"><i class="bx bx-file text-primary me-2"></i><?php echo t('btn_save_a4', 'Save & Print A4'); ?></button></li>
-                                    <li><button type="button" class="dropdown-item py-1" data-sticky-action="save_a5"><i class="bx bx-file-blank text-info me-2"></i><?php echo t('btn_save_a5', 'Save & Print A5'); ?></button></li>
-                                    <li><button type="button" class="dropdown-item py-1" data-sticky-action="save_thermal"><i class="bx bx-receipt text-success me-2"></i><?php echo t('btn_save_thermal', 'Save & Print Thermal'); ?></button></li>
-                                </ul>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                    </div>
+                    <?php $this->load->view('transactions/partials/trans_summary_bar', ['_barIsSticky' => true, '_barSections' => '1', '_barButtonLayout' => 'split', '_barShowPrint' => 'create_only', '_barUseDcClasses' => false]); ?>
 
                     <?php echo form_close(); ?>
 
@@ -398,6 +262,7 @@ var _transFormData = <?php echo json_encode([
     'enableStorage'=> (bool)$JwtData->GenSettings->EnableStorage,
     'formId'       => $formId,
     'formAction'   => $formAction,
+    'updateAction' => 'quotations/updateQuotation',
     'orgState'     => $DispatchAddress->StateText ?? '',
     'upstashUrl'   => $UpstashReadUrl   ?? '',
     'upstashToken' => $UpstashReadToken ?? '',

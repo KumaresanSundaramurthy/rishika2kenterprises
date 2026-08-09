@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var object|null $DCData */      $DCData      = $DCData      ?? null;
 /** @var object      $JwtData */
 /** @var array       $DCItems */     $DCItems      = $DCItems      ?? [];
@@ -12,45 +12,12 @@ $isDraftEdit = $isEdit && ($DCData->DocStatus === 'Draft');
 $transUID    = $isEdit ? (int)$DCData->TransUID : 0;
 $formId      = 'dcForm';
 $formAction  = $isEdit ? 'deliverychallan/updateDeliveryChallan' : 'deliverychallan/addDeliveryChallan';
-$_posCode    = $isEdit ? ($DCData->PlaceOfSupplyCode  ?? '') : ($JwtData->Org->StateCode  ?? '');
-$_posName    = $isEdit ? ($DCData->PlaceOfSupplyName  ?? '') : ($JwtData->Org->StateName  ?? '');
+extract(initTransFormCommon($isEdit, $DCData ?? null, '/deliverychallan', $JwtData));
 
-$_returnTab  = $this->input->get('returnTab')  ?: 'All';
-$_returnPage = (int)($this->input->get('returnPage') ?: 1);
-$_closeUrl   = trans_build_close_url('/deliverychallan', $_returnTab, $_returnPage);
-
-if ($isEdit && !function_exists('buildDCPrefixSegment')) {
-    function buildDCPrefixSegment(?object $cfg): string {
-        if (!$cfg) return '';
-        $sep   = $cfg->Separator ?? '-';
-        $parts = [$cfg->Name];
-        if (!empty($cfg->IncludeShortName) && !empty($cfg->ShortName)) {
-            $parts[] = strtoupper($cfg->ShortName);
-        }
-        if (!empty($cfg->IncludeFiscalYear)) {
-            $m  = (int)date('m');
-            $yr = (int)date('Y');
-            $fy = $m >= 4 ? $yr : $yr - 1;
-            $parts[] = ($cfg->FiscalYearFormat ?? 'SHORT') === 'LONG'
-                ? $fy . '-' . ($fy + 1)
-                : str_pad($fy % 100, 2, '0', STR_PAD_LEFT) . '-' . str_pad(($fy + 1) % 100, 2, '0', STR_PAD_LEFT);
-        }
-        return implode($sep, $parts) . $sep;
-    }
-}
-
-$editPrefixConfig = null;
-if ($isEdit && !empty($PrefixData)) {
-    foreach ($PrefixData as $_pd) {
-        if ((int)$_pd->PrefixUID === (int)$DCData->PrefixUID) {
-            $editPrefixConfig = $_pd;
-            break;
-        }
-    }
-    if (!$editPrefixConfig) $editPrefixConfig = $PrefixData[0];
-}
-$editTransNumber = $isEdit ? ($isDraftEdit ? (int)($NextNumberMap[(int)($editPrefixConfig->PrefixUID ?? 0)] ?? 1) : (int)$DCData->TransNumber) : 0;
-$editPrefixSeg   = ($isEdit && $isDraftEdit) ? buildDCPrefixSegment($editPrefixConfig) : '';
+$_prefix          = resolveTransPrefix($isEdit, $isDraftEdit, $PrefixData ?? [], $isEdit ? (int)($DCData->PrefixUID ?? 0) : 0, $isEdit ? (int)($DCData->TransNumber ?? 0) : 0, $NextNumberMap ?? []);
+$editPrefixConfig = $_prefix['config'];
+$editTransNumber  = $_prefix['transNumber'];
+$editPrefixSeg    = $_prefix['seg'];
 
 // Challan type
 $_challanType = 'Non-Returnable';
@@ -89,31 +56,11 @@ if ($isEdit && !empty($DCData->DeliveryByDate)) {
     $_deliveryByDisp = format_datedisplay(date('Y-m-d'), $_fmt);
 }
 
-// Notes / Terms
-$_notesVal = '';
-$_jwtTerms = $JwtData->TransSettings->TermsAndConditions ?? '';
-$_termsVal = '';
-if (!$isEdit) {
-    $_termsVal = $_jwtTerms;
-} else {
-    $_notesVal = $DCData->Notes ?? '';
-    $_termsVal = $DCData->TermsConditions ?? '';
-}
+$_nt       = resolveTransNotesTerms($isEdit, $DCData ?? null, $JwtData);
+$_notesVal = $_nt['notesVal'];
+$_termsVal = $_nt['termsVal'];
 
-// Dispatch address
-$_addrLines = [];
-if (!empty($DispatchAddress)) {
-    $_addrLines = array_filter([
-        htmlspecialchars($DispatchAddress->Line1 ?? ''),
-        htmlspecialchars($DispatchAddress->Line2 ?? ''),
-    ]);
-    $_cityPin = trim(implode(' - ', array_filter([
-        htmlspecialchars($DispatchAddress->CityText ?? ''),
-        htmlspecialchars($DispatchAddress->Pincode  ?? ''),
-    ])));
-    if ($_cityPin) $_addrLines[] = $_cityPin;
-    if (!empty($DispatchAddress->StateText)) $_addrLines[] = htmlspecialchars($DispatchAddress->StateText);
-}
+$_addrLines = buildDispatchAddressLines($DispatchAddress ?? null);
 ?>
 
 <?php $this->load->view('common/transactions/header'); ?>
@@ -218,26 +165,7 @@ if (!empty($DispatchAddress)) {
                                     </div>
                                 </div>
                             </div>
-                            <div class="d-flex align-items-center gap-2">
-                                <?php if (!$isEdit || $isDraftEdit): ?>
-                                <button type="submit" name="action" value="draft" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_save_draft', 'Save and continue editing later'); ?>"><i class="bx bx-save me-1"></i><?php echo t('btn_save_draft', 'Save as Draft'); ?></button>
-                                <?php endif; ?>
-                                <div class="btn-group">
-                                    <button type="submit" name="action" value="save" class="btn btn-sm btn-primary px-3" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_save', 'Save transaction'); ?>">
-                                        <i class="bx bx-check me-1"></i>Save
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <span class="visually-hidden">Save options</span>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-end shadow dc-save-menu">
-                                        <li><span class="dropdown-header py-1">SAVE &amp; PRINT</span></li>
-                                        <li><button type="submit" class="dropdown-item py-1" name="action" value="save_a4"><i class="bx bx-file text-primary me-2"></i><?php echo t('btn_save_a4', 'Save & Print A4'); ?></button></li>
-                                        <li><button type="submit" class="dropdown-item py-1" name="action" value="save_a5"><i class="bx bx-file-blank text-info me-2"></i><?php echo t('btn_save_a5', 'Save & Print A5'); ?></button></li>
-                                        <li><button type="submit" class="dropdown-item py-1" name="action" value="save_thermal"><i class="bx bx-receipt text-success me-2"></i><?php echo t('btn_save_thermal', 'Save & Print Thermal'); ?></button></li>
-                                    </ul>
-                                </div>
-                                <a href="<?php echo $_closeUrl; ?>" class="btn btn-sm btn-outline-danger px-3<?php echo $_hideNav ? ' d-none' : ''; ?>" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_close', 'Return to list'); ?>"><i class="bx bx-x me-1"></i>Close</a>
-                            </div>
+                            <?php $this->load->view('transactions/partials/trans_form_header_btns', ['_hBtnLayout' => 'always_split', '_hDcMenu' => true, '_hEditSavePx3' => false]); ?>
                         </div>
 
                         <div class="card-body card-body-form-static p-4">
@@ -434,71 +362,12 @@ if (!empty($DispatchAddress)) {
                                 'transEditItems'        => $isEdit ? ($DCItems ?? []) : [],
                             ]); ?>
 
-                            <!-- ── Inline full-width summary ── -->
-                            <?php $cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>
-                            <div id="inlineSummaryBar" class="sticky-bottom-bar mt-3 dc-summary-bar">
-                                <div class="d-flex align-items-stretch gap-0">
-                                    <div class="dc-bar-left">
-                                        <div class="fw-bold dc-bar-total">TOTAL &nbsp;<span class="dc-bar-grand" id="inlineGrandTotal"><?php echo $cur; ?> 0.00</span></div>
-                                        <div class="text-muted dc-bar-tax">Includes Total Tax &nbsp;<span id="inlineTotalTax">0.00</span></div>
-                                    </div>
-                                </div>
-                                <div class="d-flex align-items-center gap-2">
-                                    <?php if (!$isEdit || $isDraftEdit): ?>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="inlineDraftBtn" data-bs-toggle="tooltip" data-bs-placement="top" title="<?php echo t('tooltip_save_draft', 'Save and continue editing later'); ?>"><i class="bx bx-save me-1"></i><?php echo t('btn_save_draft', 'Save as Draft'); ?></button>
-                                    <?php endif; ?>
-                                    <div class="btn-group">
-                                        <button type="button" class="btn btn-sm btn-primary px-3" id="inlineSaveBtn">
-                                            <i class="bx bx-check me-1"></i>Save
-                                        </button>
-                                        <?php if (!$isEdit || $isDraftEdit): ?>
-                                        <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2" data-bs-toggle="dropdown" aria-expanded="false">
-                                            <span class="visually-hidden">Save options</span>
-                                        </button>
-                                        <ul class="dropdown-menu dropdown-menu-end shadow dropup dc-save-menu">
-                                            <li><span class="dropdown-header py-1">SAVE &amp; PRINT</span></li>
-                                            <li><button type="button" class="dropdown-item py-1" data-inline-action="save_a4"><i class="bx bx-file text-primary me-2"></i><?php echo t('btn_save_a4', 'Save & Print A4'); ?></button></li>
-                                            <li><button type="button" class="dropdown-item py-1" data-inline-action="save_a5"><i class="bx bx-file-blank text-info me-2"></i><?php echo t('btn_save_a5', 'Save & Print A5'); ?></button></li>
-                                            <li><button type="button" class="dropdown-item py-1" data-inline-action="save_thermal"><i class="bx bx-receipt text-success me-2"></i><?php echo t('btn_save_thermal', 'Save & Print Thermal'); ?></button></li>
-                                        </ul>
-                                        <?php endif; ?>
-                                    </div>
-                                </div>
-                            </div>
+                            <?php $this->load->view('transactions/partials/trans_summary_bar', ['_barIsSticky' => false, '_barSections' => '1', '_barButtonLayout' => 'split', '_barShowPrint' => 'draft_or_create', '_barUseDcClasses' => true]); ?>
 
                         </div>
                     </div>
 
-                    <!-- ── Sticky bottom summary bar ── -->
-                    <div id="stickyBottomBar" class="sticky-bottom-bar dc-summary-bar dc-sticky-bar">
-                        <div class="d-flex align-items-stretch gap-0">
-                            <div class="dc-bar-left">
-                                <div class="fw-bold dc-bar-total">TOTAL &nbsp;<span class="dc-bar-grand" id="stickyGrandTotal"><?php echo $cur; ?> 0.00</span></div>
-                                <div class="text-muted dc-bar-tax">Includes Total Tax &nbsp;<span id="stickyTotalTax">0.00</span></div>
-                            </div>
-                        </div>
-                        <div class="d-flex align-items-center gap-2">
-                            <?php if (!$isEdit || $isDraftEdit): ?>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" id="stickyDraftBtn" data-bs-toggle="tooltip" data-bs-placement="top" title="<?php echo t('tooltip_save_draft', 'Save and continue editing later'); ?>"><i class="bx bx-save me-1"></i><?php echo t('btn_save_draft', 'Save as Draft'); ?></button>
-                            <?php endif; ?>
-                            <div class="btn-group">
-                                <button type="button" class="btn btn-sm btn-primary px-3" id="stickySaveBtn" data-bs-toggle="tooltip" data-bs-placement="top" title="<?php echo t('tooltip_save', 'Save transaction'); ?>">
-                                    <i class="bx bx-check me-1"></i>Save
-                                </button>
-                                <?php if (!$isEdit || $isDraftEdit): ?>
-                                <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <span class="visually-hidden">Save options</span>
-                                </button>
-                                <ul class="dropdown-menu dropdown-menu-end shadow dropup dc-save-menu">
-                                    <li><span class="dropdown-header py-1">SAVE &amp; PRINT</span></li>
-                                    <li><button type="button" class="dropdown-item py-1" data-sticky-action="save_a4"><i class="bx bx-file text-primary me-2"></i><?php echo t('btn_save_a4', 'Save & Print A4'); ?></button></li>
-                                    <li><button type="button" class="dropdown-item py-1" data-sticky-action="save_a5"><i class="bx bx-file-blank text-info me-2"></i><?php echo t('btn_save_a5', 'Save & Print A5'); ?></button></li>
-                                    <li><button type="button" class="dropdown-item py-1" data-sticky-action="save_thermal"><i class="bx bx-receipt text-success me-2"></i><?php echo t('btn_save_thermal', 'Save & Print Thermal'); ?></button></li>
-                                </ul>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                    </div>
+                    <?php $this->load->view('transactions/partials/trans_summary_bar', ['_barIsSticky' => true, '_barSections' => '1', '_barButtonLayout' => 'split', '_barShowPrint' => 'draft_or_create', '_barUseDcClasses' => true]); ?>
 
                     <?php echo form_close(); ?>
 
@@ -541,6 +410,7 @@ var _transFormData = <?php echo json_encode([
     'enableStorage'=> (bool)$JwtData->GenSettings->EnableStorage,
     'formId'       => $formId,
     'formAction'   => $formAction,
+    'updateAction' => 'deliverychallan/updateDeliveryChallan',
     'upstashUrl'   => $UpstashReadUrl   ?? '',
     'upstashToken' => $UpstashReadToken ?? '',
     'custCacheKey' => $CustomerCacheKey ?? '',

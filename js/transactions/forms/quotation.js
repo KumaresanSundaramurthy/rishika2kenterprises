@@ -366,3 +366,6 @@ $(function () {
         if (card) card.style.marginBottom = '70px';
     });
 }());
+
+// ── Auto-Draft ────────────────────────────────────────────────────────────────
+if (!_isEdit) AutoDraft.initFromCfg(_cfg, '#customerSearch', 'quotationForm');

@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 
 class Vendors extends MY_Controller {
 
@@ -1766,6 +1766,218 @@ class Vendors extends MY_Controller {
         } catch (Exception $e) {
             log_message('error', '_syncVendorPrimaryImage failed: ' . $e->getMessage());
         }
+    }
+
+    // ── Vendor Profile Modal ───────────────────────────────────────────────
+
+    /**
+     * Loads a single vendor profile tab and returns rendered HTML.
+     *
+     * @param int    $uid
+     * @param string $tab  overview|transactions|statement|notes
+     * @return void
+     */
+    public function getVendorProfileTab(int $uid = 0, string $tab = 'overview'): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $uid     = (int) $uid;
+            $orgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $userUID = (int) $this->pageData['JwtData']->User->UserUID;
+            if ($uid <= 0) throw new Exception('Invalid vendor ID.');
+
+            $this->load->model('vendors_model');
+            $vendData = $this->vendors_model->getVendors(['Vendors.VendorUID' => $uid]);
+            if (empty($vendData)) throw new Exception('Vendor not found.');
+            $vend = $vendData[0];
+
+            $JwtData    = $this->pageData['JwtData'];
+            $cur        = $JwtData->GenSettings->CurrenySymbol ?? '₹';
+            $dec        = (int) ($JwtData->GenSettings->DecimalPoints ?? 2);
+            $dateFormat = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
+
+            $html = '';
+            $tab  = preg_replace('/[^a-z]/', '', strtolower($tab));
+
+            switch ($tab) {
+
+                case 'overview':
+                    $addrInfo    = $this->vendors_model->getVendorAddress(['VendAddress.VendorUID' => $uid]);
+                    $billingAddr = null; $shippingAddr = null;
+                    foreach ($addrInfo as $a) {
+                        if ($a->AddressType === 'Billing')  $billingAddr  = $a;
+                        if ($a->AddressType === 'Shipping') $shippingAddr = $a;
+                    }
+                    $summary      = $this->vendors_model->getVendorFinancialSummary($orgUID, $uid);
+                    $totalPaid    = $this->vendors_model->getVendorTotalPaid($orgUID, $uid);
+                    $closingBal   = (float) ($vend->ClosingBalance ?? 0);
+                    $closingType  = $vend->ClosingBalanceType ?? 'Credit';
+                    $monthlyPurch = $this->vendors_model->getVendorMonthlyPurchaseData($orgUID, $uid);
+                    $groupMember  = $this->vendors_model->getVendorGroupMembership($orgUID, $uid);
+                    $openingBal   = $this->vendors_model->getVendorOpeningBalance($orgUID, $uid);
+
+                    $html = $this->load->view('vendors/modals/profile_overview', [
+                        'Vend'            => $vend,
+                        'BillingAddr'     => $billingAddr,
+                        'ShippingAddr'    => $shippingAddr,
+                        'TotalPurchased'  => $summary['TotalPurchased'],
+                        'TotalPaid'       => $totalPaid,
+                        'TotalReturned'   => $summary['TotalReturned'],
+                        'DaysSinceLastTx' => $summary['DaysSinceLastTx'],
+                        'ClosingBalance'  => $closingBal,
+                        'ClosingBalType'  => $closingType,
+                        'MonthlyPurchase' => $monthlyPurch,
+                        'GroupMembership' => $groupMember,
+                        'OpeningBal'      => $openingBal,
+                        'JwtData'         => $JwtData,
+                        'Cur'             => $cur,
+                        'Dec'             => $dec,
+                        'DateFormat'      => $dateFormat,
+                    ], TRUE);
+                    break;
+
+                case 'transactions':
+                    $modules = [
+                        ['uid' => 105, 'label' => 'Purchases',        'icon' => 'bx-package'],
+                        ['uid' => 104, 'label' => 'Purchase Orders',   'icon' => 'bx-cart-alt'],
+                        ['uid' => 108, 'label' => 'Purchase Returns',  'icon' => 'bx-undo'],
+                        ['uid' => 109, 'label' => 'Debit Notes',       'icon' => 'bx-file-blank'],
+                    ];
+                    $txData = [];
+                    foreach ($modules as $m) {
+                        $txData[] = [
+                            'module' => $m,
+                            'rows'   => $this->vendors_model->getVendorRecentTransactions($orgUID, $uid, $m['uid'], 5),
+                        ];
+                    }
+
+                    $html = $this->load->view('vendors/modals/profile_transactions', [
+                        'TxData'     => $txData,
+                        'JwtData'    => $JwtData,
+                        'Cur'        => $cur,
+                        'Dec'        => $dec,
+                        'DateFormat' => $dateFormat,
+                        'VendorUID'  => $uid,
+                    ], TRUE);
+                    break;
+
+                case 'statement':
+                    $fromDate   = date('Y-m-01');
+                    $toDate     = date('Y-m-t');
+                    $statement  = $this->vendors_model->getVendorStatementData($orgUID, $uid, $fromDate, $toDate);
+                    $openingBal = $this->vendors_model->getVendorOpeningBalance($orgUID, $uid);
+                    $this->load->model('organisation_model');
+                    $orgResult  = $this->organisation_model->getOrgInfoCached($orgUID);
+
+                    $html = $this->load->view('vendors/modals/profile_statement', [
+                        'Vend'        => $vend,
+                        'Statement'   => $statement,
+                        'OpeningBal'  => $openingBal,
+                        'FromDate'    => $fromDate,
+                        'ToDate'      => $toDate,
+                        'JwtData'     => $JwtData,
+                        'Cur'         => $cur,
+                        'Dec'         => $dec,
+                        'DateFormat'  => $dateFormat,
+                        'VendorUID'   => $uid,
+                        'OrgInfo'     => $orgResult->Data ?? null,
+                    ], TRUE);
+                    break;
+
+                case 'notes':
+                    $notes = $this->vendors_model->getVendorNotes($orgUID, $uid);
+                    $html  = $this->load->view('vendors/modals/profile_notes', [
+                        'Notes'      => $notes,
+                        'JwtData'    => $JwtData,
+                        'DateFormat' => $dateFormat,
+                        'VendorUID'  => $uid,
+                    ], TRUE);
+                    break;
+
+                default:
+                    throw new Exception('Unknown tab.');
+            }
+
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Html  = $html;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    /**
+     * Refreshes the vendor statement tab with a custom date range (called from JS date filters).
+     *
+     * @return void
+     */
+    public function getVendorStatementTab(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID    = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $vendorUID = (int) $this->input->post('VendorUID');
+            $fromDate  = $this->input->post('FromDate') ?: date('Y-m-01');
+            $toDate    = $this->input->post('ToDate')   ?: date('Y-m-t');
+            if ($vendorUID <= 0) throw new Exception('Invalid vendor.');
+
+            $this->load->model('vendors_model');
+            $this->load->model('organisation_model');
+            $vendData = $this->vendors_model->getVendors(['Vendors.VendorUID' => $vendorUID]);
+            if (empty($vendData)) throw new Exception('Vendor not found.');
+
+            $JwtData    = $this->pageData['JwtData'];
+            $statement  = $this->vendors_model->getVendorStatementData($orgUID, $vendorUID, $fromDate, $toDate);
+            $openingBal = $this->vendors_model->getVendorOpeningBalance($orgUID, $vendorUID);
+            $orgResult  = $this->organisation_model->getOrgInfoCached($orgUID);
+
+            $html = $this->load->view('vendors/modals/profile_statement', [
+                'Vend'        => $vendData[0],
+                'Statement'   => $statement,
+                'OpeningBal'  => $openingBal,
+                'FromDate'    => $fromDate,
+                'ToDate'      => $toDate,
+                'JwtData'     => $JwtData,
+                'Cur'         => $JwtData->GenSettings->CurrenySymbol ?? '₹',
+                'Dec'         => (int) ($JwtData->GenSettings->DecimalPoints ?? 2),
+                'DateFormat'  => $JwtData->GenSettings->ListDateFormat ?? 'd M Y',
+                'VendorUID'   => $vendorUID,
+                'OrgInfo'     => $orgResult->Data ?? null,
+            ], TRUE);
+
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Html  = $html;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    /**
+     * Saves an internal note for a vendor.
+     *
+     * @return void
+     */
+    public function saveVendorNote(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID    = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $userUID   = (int) $this->pageData['JwtData']->User->UserUID;
+            $vendorUID = (int) $this->input->post('VendorUID');
+            $note      = trim($this->input->post('Note') ?? '');
+            if ($vendorUID <= 0) throw new Exception('Invalid vendor.');
+            if (empty($note))    throw new Exception('Note cannot be empty.');
+
+            $this->load->model('vendors_model');
+            $this->vendors_model->saveVendorNote($orgUID, $vendorUID, $note, $userUID);
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Note saved.';
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
 }

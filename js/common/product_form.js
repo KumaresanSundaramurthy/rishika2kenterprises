@@ -486,15 +486,19 @@
                 var currentHsn = $.trim($('#HSNCode').val());
                 var hsnChanged = ($.trim(_pfOrigHsnCode) !== currentHsn);
                 var message    = hsnChanged
-                    ? 'You have updated the HSN/SAC code. This change will be reflected in all future transactions. Do you want to save?'
-                    : 'Your changes will be saved and updated. Do you want to continue?';
+                    ? 'You have updated the HSN/SAC code. This change will be reflected in all future transactions.'
+                    : 'Your changes will be saved and applied to the product.';
                 Swal.fire({
-                    icon              : 'warning',
-                    title             : t('swal_confirm_update', 'Confirm Update'),
-                    text              : message,
+                    title             : t('swal_confirm_update', 'Update Item'),
+                    html              : '<div class="alert alert-info d-flex align-items-start gap-2 text-start mb-0" style="font-size:.875rem;">'
+                                      + '<i class="bx bx-info-circle fs-5 mt-1 flex-shrink-0"></i>'
+                                      + '<span>Note: ' + message + '</span>'
+                                      + '</div>',
                     showCancelButton  : true,
-                    confirmButtonText : t('btn_yes_save', 'Yes, Save'),
-                    cancelButtonText  : t('btn_cancel', 'Cancel')
+                    confirmButtonText : t('btn_save_changes', 'Save Changes'),
+                    cancelButtonText  : t('btn_cancel', 'Cancel'),
+                    confirmButtonColor : '#696cff',
+                    reverseButtons    : true
                 }).then(function (result) {
                     if (result.isConfirmed) { _doProductSave(formData, productUID); }
                 });

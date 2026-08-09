@@ -6,82 +6,36 @@ var _dcSelectAllMode = false;
 var _dcTotalRecords  = 0;
 var _dcPageCount     = 0;
 
-/**
- * @returns {void}
- */
+/** @returns {void} */
 function _dcUpdateSelectAllBanner() {
-    var $banner = $('#dcSelectAllBanner');
-    var $msg    = $('#dcSelectAllMsg');
-    var $link   = $('#dcSelectAllLink');
-    var $clear  = $('#dcSelectAllClear');
-
-    if (!_dcPageCount || !$(ModuleHeader).prop('checked')) {
-        $banner.addClass('d-none');
-        return;
-    }
-
-    if (_dcSelectAllMode) {
-        $msg.text('All ' + _dcTotalRecords + ' delivery challans are selected.');
-        $link.addClass('d-none');
-        $clear.removeClass('d-none');
-    } else {
-        $msg.text('All ' + _dcPageCount + ' delivery challans on this page are selected.');
-        $clear.addClass('d-none');
-        if (_dcTotalRecords > _dcPageCount) {
-            $link.text('Select all ' + _dcTotalRecords + ' delivery challans?').removeClass('d-none');
-        } else {
-            $link.addClass('d-none');
-            $banner.addClass('d-none');
-            return;
-        }
-    }
-    $banner.removeClass('d-none');
+    updateTransSelectAllBanner(_dcSelectAllMode, _dcTotalRecords, _dcPageCount, 'dc', 'delivery challans');
 }
-
-/**
- * @returns {void}
- */
+/** @returns {void} */
 function _dcClearSelectAll() {
     _dcSelectAllMode = false;
-    $('#dcSelectAllBanner').addClass('d-none');
-    $('#dcSelectAllLink').removeClass('d-none');
-    $('#dcSelectAllClear').addClass('d-none');
+    clearTransSelectAllDom('dc');
 }
-
-/**
- * @returns {void}
- */
+/** @returns {void} */
 function deleteMultipleDeliveryChallans() {
-    var postData = _dcSelectAllMode
-        ? { SelectAll: 1, Filter: JSON.stringify(Filter), [CsrfName]: CsrfToken }
-        : { 'TransUIDs[]': SelectedUIDs, [CsrfName]: CsrfToken };
-    $.ajax({
-        url   : '/transactions/deleteMultipleTransactions/112',
-        method: 'POST',
-        cache : false,
-        data  : postData,
-        success: function (response) {
-            if (response.Error) {
-                showAlertMessageSwal('error', '', response.Message);
-            } else {
-                showToastNotification(response.Message, 'success');
-                SelectedUIDs = [];
-                _dcClearSelectAll();
-                hideUIBlock();
-                ajaxLoading(0);
-                getDeliveryChallansDetails(PageNo, RowLimit, Filter);
-            }
-        }
+    deleteMultipleTrans(112, _dcSelectAllMode, _dcClearSelectAll, function () {
+        getDeliveryChallansDetails(PageNo, RowLimit, Filter);
     });
 }
 
+/**
+ * @param {number}        pageNo
+ * @param {number}        rowLimit
+ * @param {Object}        filter
+ * @param {Function}      [afterLoad]
+ * @returns {void}
+ */
 function getDeliveryChallansDetails(pageNo, rowLimit, filter, afterLoad) {
     loadTransactionList({
         url:            '/transactions/getPageDetails/112/',
         tabCountClass:  '.dc-tab-count',
         statusTabClass: '.dc-status-tab',
         errorMessage:   'Failed to load delivery challans.',
-        onSuccess:      function(resp) {
+        onSuccess:      function (resp) {
             _dcTotalRecords = parseInt(resp.TotalCount) || 0;
             _dcPageCount    = $(ModuleTable + ' tbody ' + ModuleRow).length;
             _dcUpdateSelectAllBanner();

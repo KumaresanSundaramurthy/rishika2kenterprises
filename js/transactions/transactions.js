@@ -1978,10 +1978,10 @@ $(document).ready(function () {
                 if (window._belowPurchasePriceAction === 'strict') {
                     if (isSelling) {
                         var lastS = (_lastValidSellingPrices[rowId] != null) ? _lastValidSellingPrices[rowId] : effPP;
-                        $(this).val(smartDecimal(lastS, genSettings.DecimalPoints)).trigger('input');
+                        billManager.updateItem(rowId, 'sellingPrice', lastS);
                     } else {
                         var lastU = (_lastValidUnitPrices[rowId] != null) ? _lastValidUnitPrices[rowId] : effPP;
-                        $(this).val(smartDecimal(lastU, genSettings.DecimalPoints)).trigger('input');
+                        billManager.updateItem(rowId, 'unitPrice', lastU);
                     }
                 }
             }

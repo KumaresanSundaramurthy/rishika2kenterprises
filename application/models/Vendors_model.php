@@ -1213,4 +1213,205 @@ class Vendors_model extends CI_Model {
             return $row ? $row->FilePath : null;
         } catch (Exception $e) { return null; }
     }
+
+    // ── Vendor Profile Modal methods ───────────────────────────────────────
+
+    /**
+     * Monthly purchase totals for the last 6 months (bar chart on overview).
+     *
+     * @param int $orgUID
+     * @param int $vendorUID
+     * @return array
+     */
+    public function getVendorMonthlyPurchaseData(int $orgUID, int $vendorUID): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select(
+                "DATE_FORMAT(TransDate, '%b %Y') AS MonthLabel,
+                 DATE_FORMAT(TransDate, '%Y-%m') AS MonthKey,
+                 COALESCE(SUM(NetAmount), 0) AS Total"
+            );
+            $this->ReadDb->from('`Transaction`.TransactionsTbl');
+            $this->ReadDb->where([
+                'OrgUID'    => $orgUID,
+                'PartyUID'  => $vendorUID,
+                'PartyType' => 'V',
+                'ModuleUID' => 105,
+                'IsDeleted' => 0,
+            ]);
+            $this->ReadDb->where_not_in('DocStatus', ['Draft', 'Cancelled', 'Rejected']);
+            $this->ReadDb->where('TransDate >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)', null, false);
+            $this->ReadDb->group_by("DATE_FORMAT(TransDate, '%Y-%m'), DATE_FORMAT(TransDate, '%b %Y')");
+            $this->ReadDb->order_by('MonthKey', 'ASC');
+            $query = $this->ReadDb->get();
+            return $query ? $query->result_array() : [];
+        } catch (Exception $e) {
+            log_message('error', 'getVendorMonthlyPurchaseData: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Returns the most recent N transactions for a vendor in a given module.
+     *
+     * @param int $orgUID
+     * @param int $vendorUID
+     * @param int $moduleUID
+     * @param int $limit
+     * @return array
+     */
+    public function getVendorRecentTransactions(int $orgUID, int $vendorUID, int $moduleUID, int $limit = 5): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select([
+                'Ts.TransUID', 'Ts.TransNumber AS TransNo', 'Ts.TransDate AS DocDate',
+                'Ts.NetAmount', 'Ts.DocStatus', 'Ts.BalanceAmount',
+            ]);
+            $this->ReadDb->from('`Transaction`.TransactionsTbl Ts');
+            $this->ReadDb->where([
+                'Ts.OrgUID'    => $orgUID,
+                'Ts.PartyUID'  => $vendorUID,
+                'Ts.PartyType' => 'V',
+                'Ts.ModuleUID' => $moduleUID,
+                'Ts.IsDeleted' => 0,
+            ]);
+            $this->ReadDb->order_by('Ts.TransUID', 'DESC');
+            $this->ReadDb->limit($limit);
+            $query = $this->ReadDb->get();
+            return $query ? $query->result_array() : [];
+        } catch (Exception $e) {
+            log_message('error', 'getVendorRecentTransactions: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Payables statement: purchases (credit), payments-out (debit), purchase returns (debit).
+     *
+     * @param int    $orgUID
+     * @param int    $vendorUID
+     * @param string $fromDate  Y-m-d
+     * @param string $toDate    Y-m-d
+     * @return array
+     */
+    public function getVendorStatementData(int $orgUID, int $vendorUID, string $fromDate, string $toDate): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+
+            // Purchases (credit — we owe vendor)
+            $this->ReadDb->select("'Purchase' AS TxType, TransNumber AS RefNo, TransDate AS TxDate, 0 AS Debit, NetAmount AS Credit, DocStatus");
+            $this->ReadDb->from('`Transaction`.TransactionsTbl');
+            $this->ReadDb->where(['OrgUID' => $orgUID, 'PartyUID' => $vendorUID, 'PartyType' => 'V', 'ModuleUID' => 105, 'IsDeleted' => 0]);
+            $this->ReadDb->where_not_in('DocStatus', ['Cancelled', 'Rejected']);
+            $this->ReadDb->where("TransDate BETWEEN '{$fromDate}' AND '{$toDate}'", null, false);
+            $q = $this->ReadDb->get();
+            $purchases = $q ? $q->result_array() : [];
+
+            // Payments to vendor (debit — we pay off what we owe)
+            $this->ReadDb->select("'Payment' AS TxType, '' AS RefNo, DATE(PaymentDate) AS TxDate, Amount AS Debit, 0 AS Credit, 'Paid' AS DocStatus");
+            $this->ReadDb->from('`Transaction`.PaymentsTbl');
+            $this->ReadDb->where(['OrgUID' => $orgUID, 'PartyUID' => $vendorUID, 'PartyType' => 'V', 'IsDeleted' => 0, 'IsCancelled' => 0]);
+            $this->ReadDb->where("DATE(PaymentDate) BETWEEN '{$fromDate}' AND '{$toDate}'", null, false);
+            $q = $this->ReadDb->get();
+            $payments = $q ? $q->result_array() : [];
+
+            // Purchase Returns (debit — vendor credits us back)
+            $this->ReadDb->select("'Return' AS TxType, TransNumber AS RefNo, TransDate AS TxDate, NetAmount AS Debit, 0 AS Credit, DocStatus");
+            $this->ReadDb->from('`Transaction`.TransactionsTbl');
+            $this->ReadDb->where(['OrgUID' => $orgUID, 'PartyUID' => $vendorUID, 'PartyType' => 'V', 'IsDeleted' => 0]);
+            $this->ReadDb->where_in('ModuleUID', [108, 109]);
+            $this->ReadDb->where_not_in('DocStatus', ['Cancelled', 'Rejected']);
+            $this->ReadDb->where("TransDate BETWEEN '{$fromDate}' AND '{$toDate}'", null, false);
+            $q = $this->ReadDb->get();
+            $returns = $q ? $q->result_array() : [];
+
+            $all = array_merge($purchases, $payments, $returns);
+            usort($all, function (array $a, array $b): int { return strcmp($a['TxDate'], $b['TxDate']); });
+            return $all;
+        } catch (Exception $e) {
+            log_message('error', 'getVendorStatementData: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Returns internal notes for a vendor (requires VendorNotesTbl).
+     *
+     * @param int $orgUID
+     * @param int $vendorUID
+     * @return array
+     */
+    public function getVendorNotes(int $orgUID, int $vendorUID): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('N.NoteUID, N.Note, N.CreatedOn, CONCAT(U.FirstName, \' \', U.LastName) AS UserName');
+            $this->ReadDb->from('Vendors.VendorNotesTbl N');
+            $this->ReadDb->join('Users.UserTbl U', 'U.UserUID = N.UserUID', 'left');
+            $this->ReadDb->where(['N.OrgUID' => $orgUID, 'N.VendorUID' => $vendorUID, 'N.IsDeleted' => 0]);
+            $this->ReadDb->order_by('N.NoteUID', 'DESC');
+            $query = $this->ReadDb->get();
+            return $query ? $query->result_array() : [];
+        } catch (Exception $e) {
+            log_message('error', 'getVendorNotes: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Inserts an internal note for a vendor.
+     *
+     * @param int    $orgUID
+     * @param int    $vendorUID
+     * @param string $note
+     * @param int    $userUID
+     * @return void
+     */
+    public function saveVendorNote(int $orgUID, int $vendorUID, string $note, int $userUID): void {
+        $this->load->model('dbwrite_model');
+        $res = $this->dbwrite_model->insertData('Vendors', 'VendorNotesTbl', [
+            'OrgUID'     => $orgUID,
+            'VendorUID'  => $vendorUID,
+            'Note'       => $note,
+            'UserUID'    => $userUID,
+            'IsDeleted'  => 0,
+            'CreatedOn'  => date('Y-m-d H:i:s'),
+        ]);
+        if ($res->Error) throw new Exception($res->Message ?? 'Note insert failed.');
+    }
+
+    /**
+     * Aggregate summary for the vendor overview tab.
+     *
+     * @param int $orgUID
+     * @param int $vendorUID
+     * @return array{TotalPurchased:float,TotalReturned:float,DaysSinceLastTx:int|null}
+     */
+    public function getVendorFinancialSummary(int $orgUID, int $vendorUID): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $result = $this->ReadDb->query(
+                "SELECT
+                    COALESCE(SUM(CASE WHEN ModuleUID = 105
+                        AND DocStatus NOT IN ('Draft','Cancelled','Rejected')
+                        THEN NetAmount ELSE 0 END), 0)                         AS TotalPurchased,
+                    COALESCE(SUM(CASE WHEN ModuleUID IN (108, 109)
+                        AND DocStatus NOT IN ('Cancelled','Rejected')
+                        THEN NetAmount ELSE 0 END), 0)                         AS TotalReturned,
+                    DATEDIFF(CURDATE(), MAX(CASE WHEN DocStatus NOT IN ('Draft','Cancelled','Rejected')
+                        THEN TransDate END))                                    AS DaysSinceLastTx
+                 FROM `Transaction`.TransactionsTbl
+                 WHERE OrgUID = ? AND PartyUID = ? AND PartyType = 'V' AND IsDeleted = 0",
+                [$orgUID, $vendorUID]
+            );
+            $row = $result ? $result->row() : null;
+            return [
+                'TotalPurchased'   => (float) ($row->TotalPurchased   ?? 0),
+                'TotalReturned'    => (float) ($row->TotalReturned    ?? 0),
+                'DaysSinceLastTx'  => isset($row->DaysSinceLastTx) ? (int) $row->DaysSinceLastTx : null,
+            ];
+        } catch (Exception $e) {
+            log_message('error', 'getVendorFinancialSummary: ' . $e->getMessage());
+            return ['TotalPurchased' => 0.0, 'TotalReturned' => 0.0, 'DaysSinceLastTx' => null];
+        }
+    }
 }

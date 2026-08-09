@@ -257,6 +257,7 @@
 
             <?php $this->load->view('common/modals/customer_form'); ?>
             <?php $this->load->view('common/modals/customer_group_form'); ?>
+            <?php $this->load->view('common/modals/customer_profile_modal'); ?>
             <?php $this->load->view('common/footer_desc'); ?>
         </div>
 
@@ -1398,6 +1399,144 @@ $(function () {
         $('#btnCreateCustomerHeader').trigger('click');
         return true;
     };
+
+    // ── Customer Profile Modal ──────────────────────────────────────────────
+    var _cpCurrentUID  = 0;
+    var _cpTabLoaded   = {};
+
+    /**
+     * Opens the customer profile modal and loads the overview tab.
+     * @param {number} uid
+     */
+    window.openCustomerProfile = function (uid) {
+        _cpCurrentUID = uid;
+        _cpTabLoaded  = {};
+        $('#cpTabContent .cp-tab-pane').empty().removeClass('d-block').addClass('d-none');
+        $('#cpTabContent_overview').removeClass('d-none').addClass('d-block');
+        $('#cpTabNav .cp-tab-link').removeClass('active');
+        $('#cpTab_overview').addClass('active');
+        $('#customerProfileModal').modal('show');
+        _loadCPTab('overview');
+    };
+
+    /**
+     * Loads a profile tab via AJAX (only on first click, cached thereafter).
+     * @param {string} tab
+     */
+    function _loadCPTab(tab) {
+        var $pane = $('#cpTabContent_' + tab);
+        if (_cpTabLoaded[tab]) return;
+
+        $pane.html(
+            '<div class="d-flex justify-content-center align-items-center py-5">' +
+            '<div class="spinner-border text-primary" role="status"></div></div>'
+        );
+
+        ajaxLoading(0); // suppress full-page overlay; inline spinner is used inside the modal
+        $.ajax({
+            url     : '/customers/getCustomerProfileTab/' + _cpCurrentUID + '/' + tab,
+            type    : 'GET',
+            success : function (res) {
+                if (!res || res.Error) {
+                    $pane.html('<div class="alert alert-danger m-4">' + (res && res.Message ? res.Message : 'Failed to load.') + '</div>');
+                    return;
+                }
+                $pane.html(res.Html);
+                _cpTabLoaded[tab] = true;
+
+                // Notes tab — wire up the save button after DOM is ready
+                if (tab === 'notes') { _initCPNotes(); }
+            },
+            error   : function () {
+                $pane.html('<div class="alert alert-danger m-4">An error occurred. Please try again.</div>');
+            },
+            complete: function () { ajaxLoading(1); } // restore so page-level AJAX keeps the overlay
+        });
+    }
+
+    // Tab link clicks
+    $(document).on('click', '.cp-tab-link', function () {
+        var tab = $(this).data('tab');
+        $('#cpTabNav .cp-tab-link').removeClass('active');
+        $(this).addClass('active');
+        $('#cpTabContent .cp-tab-pane').removeClass('d-block').addClass('d-none');
+        $('#cpTabContent_' + tab).removeClass('d-none').addClass('d-block');
+        _loadCPTab(tab);
+    });
+
+    // Open from customer name link in the list
+    $(document).on('click', '.cust-profile-link', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        openCustomerProfile(parseInt($(this).data('uid'), 10));
+    });
+
+    // Edit button inside modal — close modal, then open edit form
+    $(document).on('click', '#cpBtnEdit', function () {
+        $('#customerProfileModal').modal('hide');
+        setTimeout(function () {
+            $('[data-uid="' + _cpCurrentUID + '"].cust-edit-btn').first().trigger('click');
+        }, 350);
+    });
+
+    // Transaction dropdown items in modal header
+    $(document).on('click', '.cp-tx-dd-item', function () {
+        var route = $(this).data('route');
+        if (route && _cpCurrentUID) {
+            window.open(route + '?party=' + _cpCurrentUID, '_blank', 'noopener');
+        }
+    });
+
+    // + New button inside each transaction accordion section
+    $(document).on('click', '.cp-tx-new-btn', function (e) {
+        e.stopPropagation();
+        var route = $(this).data('route');
+        if (route && _cpCurrentUID) {
+            window.open(route + '?party=' + _cpCurrentUID, '_blank', 'noopener');
+        }
+    });
+
+    // Reset state when modal is fully hidden
+    $('#customerProfileModal').on('hidden.bs.modal', function () {
+        _cpTabLoaded  = {};
+        _cpCurrentUID = 0;
+        $('#cpTabContent .cp-tab-pane').empty();
+    });
+
+    // ── Notes tab helpers ───────────────────────────────────────────────────
+    function _initCPNotes() {
+        $(document).off('click', '#cpSaveNoteBtn').on('click', '#cpSaveNoteBtn', function () {
+            // Read content directly from the Quill instance exposed by profile_notes.php
+            var note = '';
+            if (window._cpNoteQuill) {
+                note = window._cpNoteQuill.getText().trim()
+                    ? window._cpNoteQuill.root.innerHTML
+                    : '';
+            }
+            if (!note.trim()) return;
+            var $btn = $(this).prop('disabled', true).text('Saving…');
+            ajaxLoading(0);
+            $.ajax({
+                url  : '/customers/saveCustomerNote',
+                type : 'POST',
+                data : { CustomerUID: _cpCurrentUID, Note: note, <?php echo $this->security->get_csrf_token_name(); ?>: '<?php echo $this->security->get_csrf_hash(); ?>' },
+                success: function (res) {
+                    if (res && !res.Error) {
+                        _cpTabLoaded['notes'] = false;
+                        _loadCPTab('notes'); // reload tab — new Quill instance created fresh
+                    } else {
+                        showToastNotification(res && res.Message ? res.Message : 'Failed to save note.', 'error');
+                        $btn.prop('disabled', false).html('<i class="bx bx-save me-1"></i>Add Note');
+                    }
+                },
+                error  : function () {
+                    showToastNotification('Error saving note.', 'error');
+                    $btn.prop('disabled', false).html('<i class="bx bx-save me-1"></i>Add Note');
+                },
+                complete: function () { ajaxLoading(1); }
+            });
+        });
+    }
 
 });
 </script>

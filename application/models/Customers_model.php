@@ -1281,4 +1281,408 @@ class Customers_model extends CI_Model {
             return $row ? $row->FilePath : null;
         } catch (Exception $e) { return null; }
     }
+
+    // ── Customer Profile Modal methods ─────────────────────────────────────
+
+    /**
+     * Returns last 6 months of invoice totals per month for the sales bar chart.
+     * @return array [['MonthLabel'=>'Aug 2026','MonthKey'=>'2026-08','Total'=>float], ...]
+     */
+    public function getMonthlySalesData(int $orgUID, int $customerUID): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select(
+                "DATE_FORMAT(TransDate, '%b %Y') AS MonthLabel,
+                 DATE_FORMAT(TransDate, '%Y-%m') AS MonthKey,
+                 COALESCE(SUM(NetAmount), 0) AS Total"
+            );
+            $this->ReadDb->from('`Transaction`.TransactionsTbl');
+            $this->ReadDb->where([
+                'OrgUID'    => $orgUID,
+                'PartyUID'  => $customerUID,
+                'PartyType' => 'C',
+                'ModuleUID' => 103,
+                'IsDeleted' => 0,
+            ]);
+            $this->ReadDb->where_not_in('DocStatus', ['Draft', 'Cancelled', 'Rejected']);
+            $this->ReadDb->where('TransDate >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)', null, false);
+            $this->ReadDb->group_by("DATE_FORMAT(TransDate, '%Y-%m'), DATE_FORMAT(TransDate, '%b %Y')");
+            $this->ReadDb->order_by('MonthKey', 'ASC');
+            $query = $this->ReadDb->get();
+            return $query ? $query->result_array() : [];
+        } catch (Exception $e) {
+            log_message('error', 'getMonthlySalesData: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Returns the most recent N transactions for a customer in a given module.
+     */
+    public function getCustomerRecentTransactions(int $orgUID, int $customerUID, int $moduleUID, int $limit = 5): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select([
+                'Ts.TransUID', 'Ts.TransNumber AS TransNo', 'Ts.TransDate AS DocDate', 'Ts.NetAmount',
+                'Ts.DocStatus', 'Ts.BalanceAmount',
+            ]);
+            $this->ReadDb->from('`Transaction`.TransactionsTbl Ts');
+            $this->ReadDb->where([
+                'Ts.OrgUID'    => $orgUID,
+                'Ts.PartyUID'  => $customerUID,
+                'Ts.PartyType' => 'C',
+                'Ts.ModuleUID' => $moduleUID,
+                'Ts.IsDeleted' => 0,
+            ]);
+            $this->ReadDb->order_by('Ts.TransUID', 'DESC');
+            $this->ReadDb->limit($limit);
+            $query = $this->ReadDb->get();
+            return $query ? $query->result_array() : [];
+        } catch (Exception $e) {
+            log_message('error', 'getCustomerRecentTransactions: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Returns ledger rows (invoices + payments + returns) for statement tab.
+     */
+    public function getCustomerStatementData(int $orgUID, int $customerUID, string $fromDate, string $toDate): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            // Invoices (debit)
+            $this->ReadDb->select("'Invoice' AS TxType, TransNumber AS RefNo, TransDate AS TxDate, NetAmount AS Debit, 0 AS Credit, DocStatus");
+            $this->ReadDb->from('`Transaction`.TransactionsTbl');
+            $this->ReadDb->where(['OrgUID' => $orgUID, 'PartyUID' => $customerUID, 'PartyType' => 'C', 'ModuleUID' => 103, 'IsDeleted' => 0]);
+            $this->ReadDb->where_not_in('DocStatus', ['Cancelled', 'Rejected']);
+            $this->ReadDb->where("TransDate BETWEEN '{$fromDate}' AND '{$toDate}'", null, false);
+            $q = $this->ReadDb->get();
+            $invoices = $q ? $q->result_array() : [];
+
+            // Receipts (credit)
+            $this->ReadDb->select("'Receipt' AS TxType, '' AS RefNo, DATE(PaymentDate) AS TxDate, 0 AS Debit, Amount AS Credit, 'Paid' AS DocStatus");
+            $this->ReadDb->from('`Transaction`.PaymentsTbl');
+            $this->ReadDb->where(['OrgUID' => $orgUID, 'PartyUID' => $customerUID, 'PartyType' => 'C', 'PaymentDirection' => 'In', 'IsDeleted' => 0, 'IsCancelled' => 0, 'IsTransferredToCreditNote' => 0]);
+            $this->ReadDb->where("DATE(PaymentDate) BETWEEN '{$fromDate}' AND '{$toDate}'", null, false);
+            $q = $this->ReadDb->get();
+            $receipts = $q ? $q->result_array() : [];
+
+            // Sales Returns (credit)
+            $this->ReadDb->select("'Return' AS TxType, TransNumber AS RefNo, TransDate AS TxDate, 0 AS Debit, NetAmount AS Credit, DocStatus");
+            $this->ReadDb->from('`Transaction`.TransactionsTbl');
+            $this->ReadDb->where(['OrgUID' => $orgUID, 'PartyUID' => $customerUID, 'PartyType' => 'C', 'IsDeleted' => 0]);
+            $this->ReadDb->where_in('ModuleUID', [106]);
+            $this->ReadDb->where_not_in('DocStatus', ['Cancelled', 'Rejected']);
+            $this->ReadDb->where("TransDate BETWEEN '{$fromDate}' AND '{$toDate}'", null, false);
+            $q = $this->ReadDb->get();
+            $returns = $q ? $q->result_array() : [];
+
+            $all = array_merge($invoices, $receipts, $returns);
+            usort($all, function ($a, $b) { return strcmp($a['TxDate'], $b['TxDate']); });
+            return $all;
+        } catch (Exception $e) {
+            log_message('error', 'getCustomerStatementData: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Returns internal notes for a customer (requires CustomerNotesTbl).
+     */
+    public function getCustomerNotes(int $orgUID, int $customerUID): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('N.NoteUID, N.Note, N.CreatedOn, CONCAT(U.FirstName, \' \', U.LastName) AS UserName');
+            $this->ReadDb->from('Customers.CustomerNotesTbl N');
+            $this->ReadDb->join('Users.UserTbl U', 'U.UserUID = N.UserUID', 'left');
+            $this->ReadDb->where(['N.OrgUID' => $orgUID, 'N.CustomerUID' => $customerUID, 'N.IsDeleted' => 0]);
+            $this->ReadDb->order_by('N.NoteUID', 'DESC');
+            $query = $this->ReadDb->get();
+            return $query ? $query->result_array() : [];
+        } catch (Exception $e) {
+            log_message('error', 'getCustomerNotes: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Inserts an internal note for a customer.
+     */
+    public function saveCustomerNote(int $orgUID, int $customerUID, string $note, int $userUID): void {
+        $this->load->model('dbwrite_model');
+        $res = $this->dbwrite_model->insertData('Customers', 'CustomerNotesTbl', [
+            'OrgUID'      => $orgUID,
+            'CustomerUID' => $customerUID,
+            'Note'        => $note,
+            'UserUID'     => $userUID,
+            'IsDeleted'   => 0,
+            'CreatedOn'   => date('Y-m-d H:i:s'),
+        ]);
+        if ($res->Error) throw new Exception($res->Message ?? 'Note insert failed.');
+    }
+
+    // ── Innovative additions for Customer Profile ──────────────────────────
+
+    /**
+     * Single-query aggregation that replaces getCustomerTotalInvoiced, getCustomerTotalReturned,
+     * getCustomerHealthData, and getCustomerAgeing — all in one pass over TransactionsTbl.
+     * @return array{TotalInvoiced:float,TotalReturned:float,HealthData:array,Ageing:array}
+     */
+    public function getCustomerFinancialSummary(int $orgUID, int $customerUID): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $result = $this->ReadDb->query(
+                "SELECT
+                    COALESCE(SUM(CASE WHEN ModuleUID = 103
+                        AND DocStatus NOT IN ('Draft','Cancelled','Rejected')
+                        THEN NetAmount ELSE 0 END), 0)                          AS TotalInvoiced,
+                    COALESCE(SUM(CASE WHEN ModuleUID = 103
+                        AND DocStatus NOT IN ('Draft','Cancelled','Rejected')
+                        THEN (NetAmount - BalanceAmount) ELSE 0 END), 0)        AS TotalCollected,
+                    COALESCE(SUM(CASE WHEN ModuleUID IN (106, 107)
+                        AND DocStatus NOT IN ('Cancelled','Rejected')
+                        THEN COALESCE(BalanceAmount, NetAmount) ELSE 0 END), 0) AS TotalReturned,
+                    COALESCE(SUM(CASE WHEN ModuleUID = 103
+                        AND DocStatus IN ('Issued','Partial')
+                        AND BalanceAmount > 0
+                        AND TransDate < DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                        THEN 1 ELSE 0 END), 0)                                  AS OverdueCount,
+                    MAX(CASE WHEN DocStatus NOT IN ('Draft','Cancelled','Rejected')
+                        THEN TransDate ELSE NULL END)                           AS LastTxDate,
+                    COALESCE(SUM(CASE WHEN ModuleUID = 103
+                        AND DocStatus IN ('Issued','Partial') AND BalanceAmount > 0
+                        AND DATEDIFF(CURDATE(), TransDate) BETWEEN 0  AND 30
+                        THEN BalanceAmount ELSE 0 END), 0)                      AS Bucket_0_30,
+                    COALESCE(SUM(CASE WHEN ModuleUID = 103
+                        AND DocStatus IN ('Issued','Partial') AND BalanceAmount > 0
+                        AND DATEDIFF(CURDATE(), TransDate) BETWEEN 31 AND 60
+                        THEN BalanceAmount ELSE 0 END), 0)                      AS Bucket_31_60,
+                    COALESCE(SUM(CASE WHEN ModuleUID = 103
+                        AND DocStatus IN ('Issued','Partial') AND BalanceAmount > 0
+                        AND DATEDIFF(CURDATE(), TransDate) BETWEEN 61 AND 90
+                        THEN BalanceAmount ELSE 0 END), 0)                      AS Bucket_61_90,
+                    COALESCE(SUM(CASE WHEN ModuleUID = 103
+                        AND DocStatus IN ('Issued','Partial') AND BalanceAmount > 0
+                        AND DATEDIFF(CURDATE(), TransDate) > 90
+                        THEN BalanceAmount ELSE 0 END), 0)                      AS Bucket_90Plus
+                 FROM `Transaction`.TransactionsTbl
+                 WHERE OrgUID = ? AND PartyUID = ? AND PartyType = 'C' AND IsDeleted = 0",
+                [(int)$orgUID, (int)$customerUID]
+            );
+            $row = $result ? $result->row() : null;
+
+            $totalInvoiced   = (float) ($row->TotalInvoiced  ?? 0);
+            $totalCollected  = (float) ($row->TotalCollected ?? 0);
+            $overdueCount    = (int)   ($row->OverdueCount   ?? 0);
+            $lastTxDate      = $row->LastTxDate ?? null;
+            $daysSinceLastTx = $lastTxDate
+                ? (int) floor((time() - strtotime($lastTxDate)) / 86400)
+                : null;
+            $collectionRate  = $totalInvoiced > 0
+                ? round(($totalCollected / $totalInvoiced) * 100, 1)
+                : 100.0;
+
+            if ($collectionRate >= 90.0 && $overdueCount === 0) {
+                $healthScore = 'Good Payer'; $healthColor = 'success';
+            } elseif ($overdueCount >= 3 || $collectionRate < 50.0) {
+                $healthScore = 'At Risk';    $healthColor = 'danger';
+            } else {
+                $healthScore = 'Slow Payer'; $healthColor = 'warning';
+            }
+
+            return [
+                'TotalInvoiced' => $totalInvoiced,
+                'TotalReturned' => (float) ($row->TotalReturned ?? 0),
+                'HealthData'    => [
+                    'CollectionRate'  => $collectionRate,
+                    'OverdueCount'    => $overdueCount,
+                    'HealthScore'     => $healthScore,
+                    'HealthColor'     => $healthColor,
+                    'LastTxDate'      => $lastTxDate,
+                    'DaysSinceLastTx' => $daysSinceLastTx,
+                ],
+                'Ageing' => [
+                    'Bucket_0_30'  => (float) ($row->Bucket_0_30  ?? 0),
+                    'Bucket_31_60' => (float) ($row->Bucket_31_60 ?? 0),
+                    'Bucket_61_90' => (float) ($row->Bucket_61_90 ?? 0),
+                    'Bucket_90Plus'=> (float) ($row->Bucket_90Plus ?? 0),
+                ],
+            ];
+        } catch (Exception $e) {
+            log_message('error', 'getCustomerFinancialSummary: ' . $e->getMessage());
+            return [
+                'TotalInvoiced' => 0.0,
+                'TotalReturned' => 0.0,
+                'HealthData'    => [
+                    'CollectionRate' => 100.0, 'OverdueCount' => 0,
+                    'HealthScore'    => 'Good Payer', 'HealthColor' => 'success',
+                    'LastTxDate'     => null, 'DaysSinceLastTx' => null,
+                ],
+                'Ageing'        => ['Bucket_0_30' => 0.0, 'Bucket_31_60' => 0.0, 'Bucket_61_90' => 0.0, 'Bucket_90Plus' => 0.0],
+            ];
+        }
+    }
+
+    /**
+     * Returns health metrics: collection rate, overdue count, last tx date, health score.
+     * @return array{CollectionRate:float,OverdueCount:int,HealthScore:string,HealthColor:string,LastTxDate:string|null,DaysSinceLastTx:int|null}
+     * @deprecated Use getCustomerFinancialSummary()['HealthData'] — kept for direct calls outside overview tab.
+     */
+    public function getCustomerHealthData(int $orgUID, int $customerUID): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+
+            $finResult = $this->ReadDb->query(
+                "SELECT
+                    COALESCE(SUM(NetAmount), 0)                 AS TotalInvoiced,
+                    COALESCE(SUM(NetAmount - BalanceAmount), 0) AS TotalCollected
+                 FROM `Transaction`.TransactionsTbl
+                 WHERE OrgUID = ? AND PartyUID = ? AND PartyType = 'C'
+                 AND ModuleUID = 103 AND IsDeleted = 0
+                 AND DocStatus NOT IN ('Draft','Cancelled','Rejected')",
+                [(int)$orgUID, (int)$customerUID]
+            );
+            $finRow         = $finResult ? $finResult->row() : null;
+            $totalInvoiced  = (float) ($finRow->TotalInvoiced  ?? 0);
+            $totalCollected = (float) ($finRow->TotalCollected ?? 0);
+            $collectionRate = $totalInvoiced > 0
+                ? round(($totalCollected / $totalInvoiced) * 100, 1)
+                : 100.0;
+
+            $overdueResult = $this->ReadDb->query(
+                "SELECT COUNT(*) AS OverdueCount
+                 FROM `Transaction`.TransactionsTbl
+                 WHERE OrgUID = ? AND PartyUID = ? AND PartyType = 'C'
+                 AND ModuleUID = 103 AND IsDeleted = 0
+                 AND DocStatus IN ('Issued','Partial')
+                 AND BalanceAmount > 0
+                 AND TransDate < DATE_SUB(CURDATE(), INTERVAL 30 DAY)",
+                [(int)$orgUID, (int)$customerUID]
+            );
+            $overdueCount = (int) ($overdueResult ? ($overdueResult->row()->OverdueCount ?? 0) : 0);
+
+            $lastTxResult = $this->ReadDb->query(
+                "SELECT MAX(TransDate) AS LastTxDate
+                 FROM `Transaction`.TransactionsTbl
+                 WHERE OrgUID = ? AND PartyUID = ? AND PartyType = 'C' AND IsDeleted = 0
+                 AND DocStatus NOT IN ('Draft','Cancelled','Rejected')",
+                [(int)$orgUID, (int)$customerUID]
+            );
+            $lastTxDate      = $lastTxResult ? ($lastTxResult->row()->LastTxDate ?? null) : null;
+            $daysSinceLastTx = $lastTxDate
+                ? (int) floor((time() - strtotime($lastTxDate)) / 86400)
+                : null;
+
+            if ($collectionRate >= 90.0 && $overdueCount === 0) {
+                $healthScore = 'Good Payer';
+                $healthColor = 'success';
+            } elseif ($overdueCount >= 3 || $collectionRate < 50.0) {
+                $healthScore = 'At Risk';
+                $healthColor = 'danger';
+            } else {
+                $healthScore = 'Slow Payer';
+                $healthColor = 'warning';
+            }
+
+            return [
+                'CollectionRate'  => $collectionRate,
+                'OverdueCount'    => $overdueCount,
+                'HealthScore'     => $healthScore,
+                'HealthColor'     => $healthColor,
+                'LastTxDate'      => $lastTxDate,
+                'DaysSinceLastTx' => $daysSinceLastTx,
+            ];
+        } catch (Exception $e) {
+            log_message('error', 'getCustomerHealthData: ' . $e->getMessage());
+            return [
+                'CollectionRate'  => 100.0,
+                'OverdueCount'    => 0,
+                'HealthScore'     => 'Good Payer',
+                'HealthColor'     => 'success',
+                'LastTxDate'      => null,
+                'DaysSinceLastTx' => null,
+            ];
+        }
+    }
+
+    /**
+     * Returns outstanding invoice amounts bucketed by age (0-30, 31-60, 61-90, 90+ days).
+     * @return array{Bucket_0_30:float,Bucket_31_60:float,Bucket_61_90:float,Bucket_90Plus:float}
+     */
+    public function getCustomerAgeing(int $orgUID, int $customerUID): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $result = $this->ReadDb->query(
+                "SELECT
+                    COALESCE(SUM(CASE WHEN DATEDIFF(CURDATE(), TransDate) BETWEEN 0  AND 30 THEN BalanceAmount ELSE 0 END), 0) AS Bucket_0_30,
+                    COALESCE(SUM(CASE WHEN DATEDIFF(CURDATE(), TransDate) BETWEEN 31 AND 60 THEN BalanceAmount ELSE 0 END), 0) AS Bucket_31_60,
+                    COALESCE(SUM(CASE WHEN DATEDIFF(CURDATE(), TransDate) BETWEEN 61 AND 90 THEN BalanceAmount ELSE 0 END), 0) AS Bucket_61_90,
+                    COALESCE(SUM(CASE WHEN DATEDIFF(CURDATE(), TransDate) > 90             THEN BalanceAmount ELSE 0 END), 0) AS Bucket_90Plus
+                 FROM `Transaction`.TransactionsTbl
+                 WHERE OrgUID = ? AND PartyUID = ? AND PartyType = 'C'
+                 AND ModuleUID = 103 AND IsDeleted = 0
+                 AND DocStatus IN ('Issued','Partial')
+                 AND BalanceAmount > 0",
+                [(int)$orgUID, (int)$customerUID]
+            );
+            $row = $result ? $result->row() : null;
+            return [
+                'Bucket_0_30'  => (float) ($row->Bucket_0_30  ?? 0),
+                'Bucket_31_60' => (float) ($row->Bucket_31_60 ?? 0),
+                'Bucket_61_90' => (float) ($row->Bucket_61_90 ?? 0),
+                'Bucket_90Plus'=> (float) ($row->Bucket_90Plus ?? 0),
+            ];
+        } catch (Exception $e) {
+            log_message('error', 'getCustomerAgeing: ' . $e->getMessage());
+            return ['Bucket_0_30' => 0.0, 'Bucket_31_60' => 0.0, 'Bucket_61_90' => 0.0, 'Bucket_90Plus' => 0.0];
+        }
+    }
+
+    /**
+     * Returns lifetime revenue, estimated COGS (current purchase price × qty), gross profit and margin %.
+     * Pass $revenue from getCustomerFinancialSummary()['TotalInvoiced'] to skip the redundant revenue SELECT.
+     * Note: COGS uses current ProductTbl.PurchasePrice — not the price at the time of the invoice.
+     * @return array{Revenue:float,COGS:float,Profit:float,Margin:float}
+     */
+    public function getCustomerProfitability(int $orgUID, int $customerUID, float $revenue = -1.0): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+
+            if ($revenue < 0.0) {
+                $revResult = $this->ReadDb->query(
+                    "SELECT COALESCE(SUM(NetAmount), 0) AS Revenue
+                     FROM `Transaction`.TransactionsTbl
+                     WHERE OrgUID = ? AND PartyUID = ? AND PartyType = 'C'
+                     AND ModuleUID = 103 AND IsDeleted = 0
+                     AND DocStatus NOT IN ('Draft','Cancelled','Rejected')",
+                    [(int)$orgUID, (int)$customerUID]
+                );
+                $revenue = (float) ($revResult ? $revResult->row()->Revenue : 0);
+            }
+
+            $cogsResult = $this->ReadDb->query(
+                "SELECT COALESCE(SUM(Tp.Quantity * P.PurchasePrice), 0) AS COGS
+                 FROM `Transaction`.TransactionsTbl Ts
+                 JOIN `Transaction`.TransProductsTbl Tp ON Tp.TransUID = Ts.TransUID AND Tp.IsDeleted = 0
+                 LEFT JOIN `Products`.ProductTbl P ON P.ProductUID = Tp.ProductUID AND P.IsDeleted = 0
+                 WHERE Ts.OrgUID = ? AND Ts.PartyUID = ? AND Ts.PartyType = 'C'
+                 AND Ts.ModuleUID = 103 AND Ts.IsDeleted = 0
+                 AND Ts.DocStatus NOT IN ('Draft','Cancelled','Rejected')",
+                [(int)$orgUID, (int)$customerUID]
+            );
+            $cogs   = (float) ($cogsResult ? $cogsResult->row()->COGS : 0);
+            $profit = $revenue - $cogs;
+            $margin = $revenue > 0 ? round(($profit / $revenue) * 100, 1) : 0.0;
+
+            return [
+                'Revenue' => $revenue,
+                'COGS'    => $cogs,
+                'Profit'  => $profit,
+                'Margin'  => $margin,
+            ];
+        } catch (Exception $e) {
+            log_message('error', 'getCustomerProfitability: ' . $e->getMessage());
+            return ['Revenue' => 0.0, 'COGS' => 0.0, 'Profit' => 0.0, 'Margin' => 0.0];
+        }
+    }
 }

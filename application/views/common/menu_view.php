@@ -50,6 +50,15 @@
             </a>
         </li>
 
+        <!-- My Tasks -->
+        <li class="menu-item <?php echo $ControllerName == "Todos" ? 'active' : ''; ?>">
+            <a href="/todos" class="menu-link">
+                <i class="menu-icon tf-icons bx bx-task"></i>
+                <div data-i18n="My Tasks">My Tasks</div>
+                <span class="badge bg-primary badge-notifications rounded-pill ms-auto" id="navTodoBadge" style="display:none"></span>
+            </a>
+        </li>
+
         <?php if (count($UserMainModule) > 0) {
             $lastSettings    = count($UserMainModule) - 1;
             $menuActiveFound = false; // ensure only ONE main menu item is ever highlighted

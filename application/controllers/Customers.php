@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
+<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Customers extends MY_Controller {
 
@@ -1378,6 +1378,230 @@ class Customers extends MY_Controller {
 
         $this->globalservice->sendJsonResponse($this->EndReturnData);
 
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // Customer Profile Modal
+    // ══════════════════════════════════════════════════════════════════
+
+    /**
+     * Serves a single tab for the customer profile modal via AJAX.
+     * Supported tabs: overview, transactions, statement, notes.
+     * @param int    $uid
+     * @param string $tab
+     */
+    public function getCustomerProfileTab(int $uid = 0, string $tab = 'overview'): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $uid    = (int) $uid;
+            $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $userUID = (int) $this->pageData['JwtData']->User->UserUID;
+            if ($uid <= 0) throw new Exception('Invalid customer ID.');
+
+            $this->load->model('customers_model');
+            $custData = $this->customers_model->getCustomers(['Customers.CustomerUID' => $uid]);
+            if (empty($custData)) throw new Exception('Customer not found.');
+            $cust = $custData[0];
+
+            $JwtData    = $this->pageData['JwtData'];
+            $cur        = $JwtData->GenSettings->CurrenySymbol ?? '₹';
+            $dec        = (int) ($JwtData->GenSettings->DecimalPoints ?? 2);
+            $dateFormat = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
+
+            $html = '';
+            $tab  = preg_replace('/[^a-z]/', '', strtolower($tab));
+
+            switch ($tab) {
+
+                case 'overview':
+                    $addrInfo = $this->customers_model->getCustomerAddress(['CustAddress.CustomerUID' => $uid]);
+                    $billingAddr = null; $shippingAddr = null;
+                    foreach ($addrInfo as $a) {
+                        if ($a->AddressType === 'Billing')  $billingAddr  = $a;
+                        if ($a->AddressType === 'Shipping') $shippingAddr = $a;
+                    }
+
+                    // Single query replaces: getCustomerTotalInvoiced, getCustomerTotalReturned,
+                    // getCustomerHealthData (3 queries), and getCustomerAgeing.
+                    $financialSummary = $this->customers_model->getCustomerFinancialSummary($orgUID, $uid);
+                    $totalInvoiced    = $financialSummary['TotalInvoiced'];
+                    $totalReturned    = $financialSummary['TotalReturned'];
+                    $healthData       = $financialSummary['HealthData'];
+                    $ageing           = $financialSummary['Ageing'];
+
+                    $totalReceived    = $this->customers_model->getCustomerTotalReceived($orgUID, $uid);
+                    $closingBalance   = (float) ($cust->ClosingBalance ?? 0);
+                    $closingBalType   = $cust->ClosingBalanceType ?? 'Debit';
+                    $monthlySales     = $this->customers_model->getMonthlySalesData($orgUID, $uid);
+                    $groupMembership  = $this->customers_model->getCustomerGroupMembership($orgUID, $uid);
+                    $openingBal       = $this->customers_model->getCustomerOpeningBalance($orgUID, $uid);
+                    // Pass TotalInvoiced as revenue to skip the redundant revenue SELECT inside profitability.
+                    $profitability    = $this->customers_model->getCustomerProfitability($orgUID, $uid, $totalInvoiced);
+
+                    $html = $this->load->view('customers/modals/profile_overview', [
+                        'Cust'             => $cust,
+                        'BillingAddr'      => $billingAddr,
+                        'ShippingAddr'     => $shippingAddr,
+                        'TotalInvoiced'    => $totalInvoiced,
+                        'TotalReceived'    => $totalReceived,
+                        'TotalReturned'    => $totalReturned,
+                        'ClosingBalance'   => $closingBalance,
+                        'ClosingBalType'   => $closingBalType,
+                        'MonthlySales'     => $monthlySales,
+                        'GroupMembership'  => $groupMembership,
+                        'OpeningBal'       => $openingBal,
+                        'HealthData'       => $healthData,
+                        'Ageing'           => $ageing,
+                        'Profitability'    => $profitability,
+                        'JwtData'          => $JwtData,
+                        'Cur'              => $cur,
+                        'Dec'              => $dec,
+                        'DateFormat'       => $dateFormat,
+                    ], TRUE);
+                    break;
+
+                case 'transactions':
+                    $modules = [
+                        ['uid' => 103, 'label' => 'Invoices',         'icon' => 'bx-receipt'],
+                        ['uid' => 102, 'label' => 'Sales Orders',      'icon' => 'bx-cart-alt'],
+                        ['uid' => 101, 'label' => 'Quotations',        'icon' => 'bx-file-blank'],
+                        ['uid' => 112, 'label' => 'Delivery Challans', 'icon' => 'bx-package'],
+                        ['uid' => 106, 'label' => 'Sales Returns',     'icon' => 'bx-undo'],
+                        ['uid' => 113, 'label' => 'Proforma Invoices', 'icon' => 'bx-copy-alt'],
+                    ];
+                    $txData = [];
+                    foreach ($modules as $m) {
+                        $txData[] = [
+                            'module' => $m,
+                            'rows'   => $this->customers_model->getCustomerRecentTransactions($orgUID, $uid, $m['uid'], 5),
+                        ];
+                    }
+
+                    $html = $this->load->view('customers/modals/profile_transactions', [
+                        'TxData'      => $txData,
+                        'JwtData'     => $JwtData,
+                        'Cur'         => $cur,
+                        'Dec'         => $dec,
+                        'DateFormat'  => $dateFormat,
+                        'CustomerUID' => $uid,
+                    ], TRUE);
+                    break;
+
+                case 'statement':
+                    $fromDate   = date('Y-m-01');
+                    $toDate     = date('Y-m-t');
+                    $statement  = $this->customers_model->getCustomerStatementData($orgUID, $uid, $fromDate, $toDate);
+                    $openingBal = $this->customers_model->getCustomerOpeningBalance($orgUID, $uid);
+                    $this->load->model('organisation_model');
+                    $orgResult  = $this->organisation_model->getOrgInfoCached($orgUID);
+
+                    $html = $this->load->view('customers/modals/profile_statement', [
+                        'Cust'        => $cust,
+                        'Statement'   => $statement,
+                        'OpeningBal'  => $openingBal,
+                        'FromDate'    => $fromDate,
+                        'ToDate'      => $toDate,
+                        'JwtData'     => $JwtData,
+                        'Cur'         => $cur,
+                        'Dec'         => $dec,
+                        'DateFormat'  => $dateFormat,
+                        'CustomerUID' => $uid,
+                        'OrgInfo'     => $orgResult->Data ?? null,
+                    ], TRUE);
+                    break;
+
+                case 'notes':
+                    $notes = $this->customers_model->getCustomerNotes($orgUID, $uid);
+                    $html  = $this->load->view('customers/modals/profile_notes', [
+                        'Notes'       => $notes,
+                        'JwtData'     => $JwtData,
+                        'DateFormat'  => $dateFormat,
+                        'CustomerUID' => $uid,
+                    ], TRUE);
+                    break;
+
+                default:
+                    throw new Exception('Unknown tab.');
+            }
+
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Html  = $html;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    /**
+     * Saves an internal note for a customer.
+     */
+    public function saveCustomerNote(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID      = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $userUID     = (int) $this->pageData['JwtData']->User->UserUID;
+            $customerUID = (int) $this->input->post('CustomerUID');
+            $note        = trim($this->input->post('Note') ?? '');
+            if ($customerUID <= 0) throw new Exception('Invalid customer.');
+            if (empty($note))      throw new Exception('Note cannot be empty.');
+
+            $this->load->model('customers_model');
+            $this->customers_model->saveCustomerNote($orgUID, $customerUID, $note, $userUID);
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Note saved.';
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    /**
+     * Refreshes the statement tab with a custom date range (called from JS date filters).
+     */
+    public function getCustomerStatementTab(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID      = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $customerUID = (int) $this->input->post('CustomerUID');
+            $fromDate    = $this->input->post('FromDate') ?: date('Y-m-01');
+            $toDate      = $this->input->post('ToDate')   ?: date('Y-m-t');
+            if ($customerUID <= 0) throw new Exception('Invalid customer.');
+
+            $this->load->model('customers_model');
+            $this->load->model('organisation_model');
+            $custData = $this->customers_model->getCustomers(['Customers.CustomerUID' => $customerUID]);
+            if (empty($custData)) throw new Exception('Customer not found.');
+
+            $JwtData    = $this->pageData['JwtData'];
+            $statement  = $this->customers_model->getCustomerStatementData($orgUID, $customerUID, $fromDate, $toDate);
+            $openingBal = $this->customers_model->getCustomerOpeningBalance($orgUID, $customerUID);
+            $orgResult  = $this->organisation_model->getOrgInfoCached($orgUID);
+
+            $html = $this->load->view('customers/modals/profile_statement', [
+                'Cust'        => $custData[0],
+                'Statement'   => $statement,
+                'OpeningBal'  => $openingBal,
+                'FromDate'    => $fromDate,
+                'ToDate'      => $toDate,
+                'JwtData'     => $JwtData,
+                'Cur'         => $JwtData->GenSettings->CurrenySymbol ?? '₹',
+                'Dec'         => (int) ($JwtData->GenSettings->DecimalPoints ?? 2),
+                'DateFormat'  => $JwtData->GenSettings->ListDateFormat ?? 'd M Y',
+                'CustomerUID' => $customerUID,
+                'OrgInfo'     => $orgResult->Data ?? null,
+            ], TRUE);
+
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Html  = $html;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
     // ══════════════════════════════════════════════════════════════════

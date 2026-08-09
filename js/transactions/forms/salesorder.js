@@ -384,3 +384,6 @@ $(function () {
     if (_totEl) new MutationObserver(_sync).observe(_totEl, { childList: true, subtree: true, characterData: true });
     _sync();
 }());
+
+// ── Auto-Draft ────────────────────────────────────────────────────────────────
+if (!_isEdit) AutoDraft.initFromCfg(_cfg, '#customerSearch', 'soForm');

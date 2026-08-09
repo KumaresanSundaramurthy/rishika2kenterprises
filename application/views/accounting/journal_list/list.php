@@ -5,16 +5,19 @@ $dateFmt = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
 $dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 
 $refBadge = [
-    'Invoice'        => ['bg-label-primary',   'bx-receipt'],
-    'Purchase'       => ['bg-label-warning',   'bx-cart'],
-    'Payment-In'     => ['bg-label-success',   'bx-money'],
-    'Payment-Out'    => ['bg-label-success',   'bx-money'],
-    'SalesReturn'    => ['bg-label-info',      'bx-undo'],
-    'PurchaseReturn' => ['bg-label-info',      'bx-undo'],
-    'Expense'        => ['bg-label-warning',   'bx-wallet'],
-    'IndirectIncome' => ['bg-label-success',   'bx-trending-up'],
-    'Reversal-Invoice' => ['bg-label-danger',  'bx-undo'],
-    'Reversal-Purchase' => ['bg-label-danger', 'bx-undo'],
+    'Invoice'          => ['bg-label-primary',  'bx-receipt'],
+    'Purchase'         => ['bg-label-warning',  'bx-cart'],
+    'Payment-In'       => ['bg-label-success',  'bx-money'],
+    'Payment-Out'      => ['bg-label-success',  'bx-money'],
+    'SalesReturn'      => ['bg-label-info',     'bx-undo'],
+    'PurchaseReturn'   => ['bg-label-info',     'bx-undo'],
+    'Expense'          => ['bg-label-warning',  'bx-wallet'],
+    'IndirectIncome'   => ['bg-label-success',  'bx-trending-up'],
+    'Reversal-Invoice' => ['bg-label-danger',   'bx-undo'],
+    'Reversal-Purchase'=> ['bg-label-danger',   'bx-undo'],
+    'Reversal-Manual'  => ['bg-label-danger',   'bx-undo'],
+    'Manual'           => ['bg-label-purple',   'bx-pencil'],
+    'Recurring'        => ['bg-label-info',    'bx-repeat'],
 ];
 
 if (!empty($DataLists)):
@@ -47,9 +50,17 @@ if (!empty($DataLists)):
         <span class="badge bg-label-secondary" style="font-size:.7rem;"><?php echo (int)($row->LineCount ?? 0); ?></span>
     </td>
     <td class="text-center">
-        <button class="btn btn-icon btn-sm text-warning jl-view-btn" data-uid="<?php echo $uid; ?>" title="View Details">
+        <button class="btn btn-icon btn-sm text-warning jl-view-btn" data-uid="<?php echo $uid; ?>" title="<?php echo t('tooltip_view_details', 'View Details'); ?>">
             <i class="bx bx-show"></i>
         </button>
+        <?php if ($ref === 'Manual'): ?>
+        <button class="btn btn-icon btn-sm text-danger jl-delete-manual-btn"
+                data-uid="<?php echo $uid; ?>"
+                data-num="<?php echo htmlspecialchars($row->JournalNo ?? ''); ?>"
+                title="<?php echo t('tooltip_delete_manual', 'Delete (posts reversal)'); ?>">
+            <i class="bx bx-trash-alt"></i>
+        </button>
+        <?php endif; ?>
     </td>
 </tr>
 <?php endforeach; else: ?>

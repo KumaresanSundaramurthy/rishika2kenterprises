@@ -1,60 +1,24 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php
 $isEdit      = isset($SRData);
 $isDraftEdit = $isEdit && ($SRData->DocStatus === 'Draft');
 $transUID    = $isEdit ? (int)$SRData->TransUID : 0;
 $formId      = 'srForm';
 $formAction  = $isEdit ? 'salesreturns/updateSalesReturn' : 'salesreturns/addSalesReturn';
-$_posCode    = $isEdit ? ($SRData->PlaceOfSupplyCode  ?? '') : ($JwtData->Org->StateCode  ?? '');
-$_posName    = $isEdit ? ($SRData->PlaceOfSupplyName  ?? '') : ($JwtData->Org->StateName  ?? '');
+extract(initTransFormCommon($isEdit, $SRData ?? null, '/salesreturns', $JwtData));
+$_srMethod = $JwtData->TransSettings->SalesReturnItemMethod ?? 'Manual';
 
-$_returnTab  = $this->input->get('returnTab')  ?: 'All';
-$_returnPage = (int)($this->input->get('returnPage') ?: 1);
-$_closeUrl   = trans_build_close_url('/salesreturns', $_returnTab, $_returnPage);
-$_srMethod   = $JwtData->TransSettings->SalesReturnItemMethod ?? 'Manual';
-
-if ($isEdit && !function_exists('buildSRPrefixSegment')) {
-    function buildSRPrefixSegment($cfg) {
-        if (!$cfg) return '';
-        $sep   = $cfg->Separator ?? '-';
-        $parts = [$cfg->Name];
-        if (!empty($cfg->IncludeShortName) && !empty($cfg->ShortName)) {
-            $parts[] = strtoupper($cfg->ShortName);
-        }
-        if (!empty($cfg->IncludeFiscalYear)) {
-            $m  = (int)date('m');
-            $yr = (int)date('Y');
-            $fy = $m >= 4 ? $yr : $yr - 1;
-            $parts[] = ($cfg->FiscalYearFormat ?? 'SHORT') === 'LONG'
-                ? $fy . '-' . ($fy + 1)
-                : str_pad($fy % 100, 2, '0', STR_PAD_LEFT) . '-' . str_pad(($fy + 1) % 100, 2, '0', STR_PAD_LEFT);
-        }
-        return implode($sep, $parts) . $sep;
-    }
-}
-
-$editPrefixConfig = null;
-if ($isEdit && !empty($PrefixData)) {
-    foreach ($PrefixData as $_pd) {
-        if ((int)$_pd->PrefixUID === (int)$SRData->PrefixUID) {
-            $editPrefixConfig = $_pd;
-            break;
-        }
-    }
-    if (!$editPrefixConfig) $editPrefixConfig = $PrefixData[0];
-}
-$editTransNumber = $isEdit ? ($isDraftEdit ? (int)($NextNumberMap[(int)($editPrefixConfig->PrefixUID ?? 0)] ?? 1) : (int)$SRData->TransNumber) : 0;
-$editPrefixSeg   = ($isEdit && $isDraftEdit) ? buildSRPrefixSegment($editPrefixConfig) : '';
+$_prefix          = resolveTransPrefix($isEdit, $isDraftEdit, $PrefixData ?? [], $isEdit ? (int)($SRData->PrefixUID ?? 0) : 0, $isEdit ? (int)($SRData->TransNumber ?? 0) : 0, $NextNumberMap ?? []);
+$editPrefixConfig = $_prefix['config'];
+$editTransNumber  = $_prefix['transNumber'];
+$editPrefixSeg    = $_prefix['seg'];
 ?>
 
 <?php
 if ($isEdit) {
-    $hNetAmt   = (float)($SRData->NetAmount  ?? 0);
-    $hCurrency = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '&#8377;');
-    $hDecimals = $JwtData->GenSettings->DecimalPoints ?? 2;
-    $hStatus   = $SRData->DocStatus ?? '';
-    $hStatusMap = ['Issued' => 'primary', 'Draft' => 'secondary', 'Cancelled' => 'danger', 'Rejected' => 'secondary'];
-    $hStatusClr = $hStatusMap[$hStatus] ?? 'secondary';
+    $_b        = calcTransStatusBadge($SRData, ['Issued' => 'primary', 'Draft' => 'secondary', 'Cancelled' => 'danger', 'Rejected' => 'secondary'], $JwtData);
+    $hNetAmt   = $_b['netAmt'];   $hDecimals = $_b['decimals']; $hCurrency = $_b['currency'];
+    $hStatus   = $_b['status'];   $hStatusClr = $_b['statusClr'];
 }
 ?>
 
@@ -128,71 +92,18 @@ if ($isEdit) {
                                     <?php endif; ?>
                                 </div>
                             </div>
-                            <div class="d-flex align-items-center gap-2">
-                                <?php if (!$isEdit): ?>
-                                    <button type="submit" name="action" value="draft" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_save_draft', 'Save and continue editing later'); ?>"><i class="bx bx-save me-1"></i><?php echo t('btn_save_draft', 'Save as Draft'); ?></button>
-                                    <div class="btn-group">
-                                        <button type="submit" name="action" value="save" class="btn btn-sm btn-primary px-3" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_save', 'Save transaction'); ?>"><i class="bx bx-check me-1"></i>Save</button>
-                                        <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2" data-bs-toggle="dropdown" aria-expanded="false">
-                                            <span class="visually-hidden">Save options</span>
-                                        </button>
-                                        <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:195px;font-size:.82rem;">
-                                            <li><span class="dropdown-header py-1" style="font-size:.65rem;letter-spacing:.4px;">SAVE &amp; PRINT</span></li>
-                                            <li><button type="submit" class="dropdown-item py-1" name="action" value="save_a4"><i class="bx bx-file text-primary me-2"></i><?php echo t('btn_save_a4', 'Save & Print A4'); ?></button></li>
-                                            <li><button type="submit" class="dropdown-item py-1" name="action" value="save_a5"><i class="bx bx-file-blank text-info me-2"></i><?php echo t('btn_save_a5', 'Save & Print A5'); ?></button></li>
-                                            <li><button type="submit" class="dropdown-item py-1" name="action" value="save_thermal"><i class="bx bx-receipt text-success me-2"></i><?php echo t('btn_save_thermal', 'Save & Print Thermal'); ?></button></li>
-                                        </ul>
-                                    </div>
-                                <?php else: ?>
-                                    <?php if ($isDraftEdit): ?>
-                                    <button type="submit" name="action" value="draft" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_save_draft', 'Save and continue editing later'); ?>"><i class="bx bx-save me-1"></i><?php echo t('btn_save_draft', 'Save as Draft'); ?></button>
-                                    <?php endif; ?>
-                                    <button type="submit" name="action" value="save" class="btn btn-sm btn-primary px-3" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_save', 'Save transaction'); ?>"><i class="bx bx-check me-1"></i>Save</button>
-                                <?php endif; ?>
-                                <?php $_hideNav = (int)($JwtData->TransSettings->HideNavOnTransForm ?? 0); ?>
-                                <a href="<?php echo $_closeUrl; ?>" class="btn btn-sm btn-outline-danger px-3<?php echo $_hideNav ? ' d-none' : ''; ?>" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_close', 'Return to list'); ?>"><i class="bx bx-x me-1"></i>Close</a>
-                            </div>
+                            <?php $this->load->view('transactions/partials/trans_form_header_btns', ['_hBtnLayout' => 'split', '_hDcMenu' => false, '_hEditSavePx3' => true]); ?>
                         </div>
 
                         <div class="card-body card-body-form-static p-3">
 
+                            <?php
+                            $_tsSetting = strtolower($JwtData->TransSettings->DefaultTransactionType ?? 'regular');
+                            $_tsDefault = ($_tsSetting === 'without_tax') ? 'Without_GST' : 'Regular';
+                            $_srType    = !empty($SRData->DocType ?? '') ? $SRData->DocType : $_tsDefault;
+                            ?>
                             <!-- ── Toolbar: Type & Accepted At ─────────────────────────────── -->
-                            <div class="d-flex align-items-center gap-4 mb-3 pb-2 border-bottom">
-                                <div class="d-flex align-items-center gap-2">
-                                    <span class="text-muted" style="font-size:.78rem;white-space:nowrap;">Type</span>
-                                    <?php if ($isEdit && !$isDraftEdit): ?>
-                                    <?php
-                                    $_tsSetting = strtolower($JwtData->TransSettings->DefaultTransactionType ?? 'regular');
-                                    $_tsDefault = ($_tsSetting === 'without_tax') ? 'Without_GST' : 'Regular';
-                                    $_srType    = !empty($SRData->DocType) ? $SRData->DocType : $_tsDefault;
-                                    ?>
-                                    <span class="trans-type-readonly"><?php echo $_srType === 'Without_GST' ? 'Without GST' : 'Regular'; ?></span>
-                                    <input type="hidden" name="returnType" value="<?php echo htmlspecialchars($_srType); ?>" />
-                                    <?php else: ?>
-                                    <select class="form-select form-select-sm border-0 bg-transparent fw-semibold trans-gst-type-select"
-                                            id="invoiceType" name="returnType" style="min-width:110px;cursor:pointer;">
-                                        <option value="Regular"     <?php echo ($SRData->DocType ?? '') !== 'Without_GST' ? 'selected' : ''; ?>>Regular</option>
-                                        <option value="Without_GST" <?php echo ($SRData->DocType ?? '') === 'Without_GST' ? 'selected' : ''; ?>>Without GST</option>
-                                    </select>
-                                    <?php endif; ?>
-                                </div>
-                                <?php if (!empty($DispatchAddresses)): ?>
-                                <div class="d-flex align-items-center gap-2 dispatch-from-grp" style="max-width:360px;">
-                                    <span class="text-muted" style="font-size:.78rem;white-space:nowrap;">Accepted At</span>
-                                    <?php $this->load->view('common/transactions/_dispatch_from'); ?>
-                                </div>
-                                <?php endif; ?>
-                                <div class="ms-auto d-flex align-items-center gap-2">
-                                    <div id="custTypeIndicator" class="d-none"></div>
-                                    <div id="plChipWrap" class="d-none"></div>
-                                    <div id="srOnAccountBadge" class="d-none"
-                                         style="font-size:.78rem;color:#856404;background:#fff8e1;border:1px solid #ffc107;padding:3px 12px;border-radius:20px;white-space:nowrap;">
-                                        <i class="bx bx-wallet" style="font-size:.88rem;"></i>
-                                        On Account: <strong id="srOnAccountAmt" style="margin-left:3px;"></strong>
-                                    </div>
-
-                                </div>
-                            </div>
+                            <?php $this->load->view('transactions/partials/trans_toolbar_type', ['_tbTypeValue' => $_srType, '_tbFieldId' => 'invoiceType', '_tbFieldName' => 'returnType', '_tbEditGuardStrict' => true, '_tbDispatchLabel' => 'Accepted At', '_tbShowOnAccount' => true, '_tbOnAccountGuard' => false, '_tbOaSrStyle' => true]); ?>
 
                             <!-- ── Row 1: Customer | From Invoice | Return Date | Reference ── -->
                             <div class="row g-2 align-items-end mb-2">
@@ -268,113 +179,12 @@ if ($isEdit) {
                                 'transEditItems'           => $isEdit ? ($SRItems ?? []) : [],
                             ]); ?>
 
-                            <!-- ── Inline full-width summary ────────────────────────────────── -->
-                            <?php $cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>
-                            <div id="inlineSummaryBar" class="sticky-bottom-bar mt-3" style="padding:10px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;border-radius:8px;">
-                                <div class="d-flex align-items-stretch gap-0">
-                                    <div style="padding-right:20px;">
-                                        <div class="fw-bold" style="font-size:.95rem;">TOTAL &nbsp;<span style="color:#0d6efd;" id="inlineGrandTotal"><?php echo $cur; ?> 0.00</span></div>
-                                        <div class="text-muted" style="font-size:.74rem;">Includes Total Tax &nbsp;<span id="inlineTotalTax">0.00</span></div>
-                                    </div>
-                                    <div id="inlinePaidGroup" class="d-none d-flex align-items-stretch">
-                                        <div style="width:1px;background:#c5dcff;margin:0 20px;flex-shrink:0;"></div>
-                                        <div>
-                                            <div style="font-size:.74rem;color:#198754;font-weight:600;"><i class="bx bx-check-circle me-1"></i>Total Paid</div>
-                                            <div class="fw-bold" style="font-size:.92rem;color:#198754;"><span id="inlineTotalPaid"><?php echo $cur; ?> 0.00</span></div>
-                                        </div>
-                                    </div>
-                                    <div id="inlineBalanceGroup" class="d-none d-flex align-items-stretch">
-                                        <div style="width:1px;background:#c5dcff;margin:0 20px;flex-shrink:0;"></div>
-                                        <div>
-                                            <div style="font-size:.74rem;color:#dc3545;font-weight:600;"><i class="bx bx-wallet me-1"></i>Balance</div>
-                                            <div class="fw-bold" style="font-size:.92rem;color:#dc3545;"><span id="inlineBalanceAmt"><?php echo $cur; ?> 0.00</span></div>
-                                        </div>
-                                    </div>
-                                    <div id="inlineExcessGroup" class="d-none d-flex align-items-stretch">
-                                        <div style="width:1px;background:#c5dcff;margin:0 20px;flex-shrink:0;"></div>
-                                        <div>
-                                            <div style="font-size:.74rem;color:#f59e0b;font-weight:600;"><i class="bx bx-error-circle me-1"></i>Excess</div>
-                                            <div class="fw-bold" style="font-size:.92rem;color:#f59e0b;"><span id="inlineExcessAmt"><?php echo $cur; ?> 0.00</span></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="d-flex align-items-center gap-2">
-                                    <?php if (!$isEdit || $isDraftEdit): ?>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="inlineDraftBtn" data-bs-toggle="tooltip" data-bs-placement="top" title="<?php echo t('tooltip_save_draft', 'Save and continue editing later'); ?>"><i class="bx bx-save me-1"></i><?php echo t('btn_save_draft', 'Save as Draft'); ?></button>
-                                    <?php endif; ?>
-                                    <div class="btn-group">
-                                        <button type="button" class="btn btn-sm btn-primary px-3" id="inlineSaveBtn">
-                                            <i class="bx bx-check me-1"></i>Save
-                                        </button>
-                                        <?php if (!$isEdit || $isDraftEdit): ?>
-                                        <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2" data-bs-toggle="dropdown" aria-expanded="false">
-                                            <span class="visually-hidden">Save options</span>
-                                        </button>
-                                        <ul class="dropdown-menu dropdown-menu-end shadow dropup" style="min-width:195px;font-size:.82rem;">
-                                            <li><span class="dropdown-header py-1" style="font-size:.65rem;letter-spacing:.4px;">SAVE &amp; PRINT</span></li>
-                                            <li><button type="button" class="dropdown-item py-1" data-inline-action="save_a4"><i class="bx bx-file text-primary me-2"></i><?php echo t('btn_save_a4', 'Save & Print A4'); ?></button></li>
-                                            <li><button type="button" class="dropdown-item py-1" data-inline-action="save_a5"><i class="bx bx-file-blank text-info me-2"></i><?php echo t('btn_save_a5', 'Save & Print A5'); ?></button></li>
-                                            <li><button type="button" class="dropdown-item py-1" data-inline-action="save_thermal"><i class="bx bx-receipt text-success me-2"></i><?php echo t('btn_save_thermal', 'Save & Print Thermal'); ?></button></li>
-                                        </ul>
-                                        <?php endif; ?>
-                                    </div>
-                                </div>
-                            </div>
+                            <?php $this->load->view('transactions/partials/trans_summary_bar', ['_barIsSticky' => false, '_barSections' => 'full4', '_barButtonLayout' => 'split', '_barShowPrint' => 'draft_or_create', '_barUseDcClasses' => false]); ?>
 
                         </div>
                     </div>
 
-                    <!-- ── Sticky bottom summary bar ────────────────────────────────── -->
-                    <div id="stickyBottomBar" class="sticky-bottom-bar" style="position:fixed;bottom:0;right:0;z-index:1040;padding:10px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
-                        <div class="d-flex align-items-stretch gap-0">
-                            <div style="padding-right:20px;">
-                                <div class="fw-bold" style="font-size:.95rem;">TOTAL &nbsp;<span style="color:#0d6efd;" id="stickyGrandTotal"><?php echo $cur; ?> 0.00</span></div>
-                                <div class="text-muted" style="font-size:.74rem;">Includes Total Tax &nbsp;<span id="stickyTotalTax">0.00</span></div>
-                            </div>
-                            <div id="stickyPaidGroup" class="d-none d-flex align-items-stretch">
-                                <div style="width:1px;background:#c5dcff;margin:0 20px;flex-shrink:0;"></div>
-                                <div>
-                                    <div style="font-size:.74rem;color:#198754;font-weight:600;"><i class="bx bx-check-circle me-1"></i>Total Paid</div>
-                                    <div class="fw-bold" style="font-size:.92rem;color:#198754;"><span id="stickyTotalPaid"><?php echo $cur; ?> 0.00</span></div>
-                                </div>
-                            </div>
-                            <div id="stickyBalanceGroup" class="d-none d-flex align-items-stretch">
-                                <div style="width:1px;background:#c5dcff;margin:0 20px;flex-shrink:0;"></div>
-                                <div>
-                                    <div style="font-size:.74rem;color:#dc3545;font-weight:600;"><i class="bx bx-wallet me-1"></i>Balance</div>
-                                    <div class="fw-bold" style="font-size:.92rem;color:#dc3545;"><span id="stickyBalanceAmt"><?php echo $cur; ?> 0.00</span></div>
-                                </div>
-                            </div>
-                            <div id="stickyExcessGroup" class="d-none d-flex align-items-stretch">
-                                <div style="width:1px;background:#c5dcff;margin:0 20px;flex-shrink:0;"></div>
-                                <div>
-                                    <div style="font-size:.74rem;color:#f59e0b;font-weight:600;"><i class="bx bx-error-circle me-1"></i>Excess</div>
-                                    <div class="fw-bold" style="font-size:.92rem;color:#f59e0b;"><span id="stickyExcessAmt"><?php echo $cur; ?> 0.00</span></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="d-flex align-items-center gap-2">
-                            <?php if (!$isEdit || $isDraftEdit): ?>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" id="stickyDraftBtn" data-bs-toggle="tooltip" data-bs-placement="top" title="<?php echo t('tooltip_save_draft', 'Save and continue editing later'); ?>"><i class="bx bx-save me-1"></i><?php echo t('btn_save_draft', 'Save as Draft'); ?></button>
-                            <?php endif; ?>
-                            <div class="btn-group">
-                                <button type="button" class="btn btn-sm btn-primary px-3" id="stickySaveBtn" data-bs-toggle="tooltip" data-bs-placement="top" title="<?php echo t('tooltip_save', 'Save transaction'); ?>">
-                                    <i class="bx bx-check me-1"></i>Save
-                                </button>
-                                <?php if (!$isEdit || $isDraftEdit): ?>
-                                <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <span class="visually-hidden">Save options</span>
-                                </button>
-                                <ul class="dropdown-menu dropdown-menu-end shadow dropup" style="min-width:195px;font-size:.82rem;">
-                                    <li><span class="dropdown-header py-1" style="font-size:.65rem;letter-spacing:.4px;">SAVE &amp; PRINT</span></li>
-                                    <li><button type="button" class="dropdown-item py-1" data-sticky-action="save_a4"><i class="bx bx-file text-primary me-2"></i><?php echo t('btn_save_a4', 'Save & Print A4'); ?></button></li>
-                                    <li><button type="button" class="dropdown-item py-1" data-sticky-action="save_a5"><i class="bx bx-file-blank text-info me-2"></i><?php echo t('btn_save_a5', 'Save & Print A5'); ?></button></li>
-                                    <li><button type="button" class="dropdown-item py-1" data-sticky-action="save_thermal"><i class="bx bx-receipt text-success me-2"></i><?php echo t('btn_save_thermal', 'Save & Print Thermal'); ?></button></li>
-                                </ul>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                    </div>
+                    <?php $this->load->view('transactions/partials/trans_summary_bar', ['_barIsSticky' => true, '_barSections' => 'full4', '_barButtonLayout' => 'split', '_barShowPrint' => 'draft_or_create', '_barUseDcClasses' => false]); ?>
 
                     <?php echo form_close(); ?>
 
@@ -421,6 +231,7 @@ var _transFormData = <?php echo json_encode([
     'enableStorage'  => (bool)$JwtData->GenSettings->EnableStorage,
     'formId'         => $formId,
     'formAction'     => $formAction,
+    'updateAction'   => 'salesreturns/updateSalesReturn',
     'upstashUrl'     => $UpstashReadUrl   ?? '',
     'upstashToken'   => $UpstashReadToken ?? '',
     'custCacheKey'   => $CustomerCacheKey ?? '',

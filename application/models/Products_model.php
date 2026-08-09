@@ -1235,4 +1235,220 @@ class Products_model extends CI_Model {
         }
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // Product Profile Modal
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Returns full product details plus live quick-stats for the profile overview tab.
+     *
+     * @param  int $productUID
+     * @param  int $orgUID
+     * @return object|null
+     */
+    public function getProductProfile(int $productUID, int $orgUID): ?object
+    {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+
+            $this->ReadDb->select([
+                'P.ProductUID', 'P.ItemName', 'P.PartNumber', 'P.SKU', 'P.ProductType',
+                'P.IsComposite', 'P.Description', 'P.SellingPrice', 'P.PurchasePrice',
+                'P.MRP', 'P.TaxPercentage', 'P.LowStockAlertAt', 'P.OpeningQuantity',
+                'P.IsRentable', 'P.NotForSale', 'P.HSNSACCode', 'P.CreatedOn', 'P.UpdatedOn',
+                'Cat.Name AS CategoryName',
+                'SelTax.Name AS SellingTaxType',
+                'PurTax.Name AS PurchaseTaxType',
+                'Unit.ShortName AS UnitShortName',
+                'COALESCE(PS.AvailableQty, 0) AS AvailableQty',
+            ]);
+            $this->ReadDb->from('Products.ProductTbl AS P');
+            $this->ReadDb->join('Products.CategoryTbl AS Cat', 'Cat.CategoryUID = P.CategoryUID', 'LEFT');
+            $this->ReadDb->join('Products.ProductStockTbl AS PS', 'PS.ProductUID = P.ProductUID', 'LEFT');
+            $this->ReadDb->join('Global.ProductTaxTbl AS SelTax', 'SelTax.ProductTaxUID = P.SellingProductTaxUID', 'LEFT');
+            $this->ReadDb->join('Global.ProductTaxTbl AS PurTax', 'PurTax.ProductTaxUID = P.PurchasePriceProductTaxUID', 'LEFT');
+            $this->ReadDb->join('Global.PrimaryUnitTbl AS Unit', 'Unit.PrimaryUnitUID = P.PrimaryUnitUID', 'LEFT');
+            $this->ReadDb->where(['P.ProductUID' => $productUID, 'P.OrgUID' => $orgUID, 'P.IsDeleted' => 0]);
+            $q   = $this->ReadDb->get();
+            $row = $q ? $q->row() : null;
+            if (!$row) return null;
+
+            // Quick stats: single aggregation over all confirmed transactions
+            $stats = $this->ReadDb->query(
+                "SELECT
+                    COALESCE(SUM(CASE WHEN Ts.ModuleUID IN (103,112) AND Ts.DocStatus NOT IN ('Draft','Cancelled') THEN Tp.Quantity ELSE 0 END), 0) AS TotalUnitsSold,
+                    COALESCE(SUM(CASE WHEN Ts.ModuleUID IN (103,112) AND Ts.DocStatus NOT IN ('Draft','Cancelled') THEN Tp.UnitPrice * Tp.Quantity ELSE 0 END), 0) AS TotalRevenue,
+                    COALESCE(SUM(CASE WHEN Ts.ModuleUID = 105 AND Ts.DocStatus NOT IN ('Draft','Cancelled') THEN Tp.Quantity ELSE 0 END), 0) AS TotalUnitsPurchased,
+                    COUNT(DISTINCT CASE WHEN Ts.ModuleUID IN (103,112) AND Ts.DocStatus NOT IN ('Draft','Cancelled') THEN Ts.TransUID ELSE NULL END) AS SalesTxCount
+                 FROM Transaction.TransProductsTbl AS Tp
+                 JOIN Transaction.TransactionsTbl AS Ts ON Ts.TransUID = Tp.TransUID AND Ts.IsDeleted = 0
+                 WHERE Tp.ProductUID = ? AND Tp.OrgUID = ? AND Tp.IsDeleted = 0",
+                [(int) $productUID, (int) $orgUID]
+            );
+            if ($stats) {
+                $sr = $stats->row();
+                $row->TotalUnitsSold      = (float) ($sr->TotalUnitsSold      ?? 0);
+                $row->TotalRevenue        = (float) ($sr->TotalRevenue        ?? 0);
+                $row->TotalUnitsPurchased = (float) ($sr->TotalUnitsPurchased ?? 0);
+                $row->SalesTxCount        = (int)   ($sr->SalesTxCount        ?? 0);
+            }
+
+            // First product image (CDN-resolved URL)
+            $cdnUrl = rtrim(getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN'), '/');
+            $imgQ = $this->ReadDb->query(
+                "SELECT FilePath FROM Products.EntityAttachmentsTbl
+                  WHERE EntityType = 'Product' AND EntityUID = ? AND OrgUID = ? AND IsDeleted = 0
+                  ORDER BY SortOrder ASC LIMIT 1",
+                [(int) $productUID, (int) $orgUID]
+            );
+            if ($imgQ && $imgQ->num_rows() > 0) {
+                $row->ImageUrl = $cdnUrl . '/' . ltrim($imgQ->row()->FilePath, '/');
+            } else {
+                $row->ImageUrl = null;
+            }
+
+            return $row;
+        } catch (Throwable $e) {
+            log_message('error', 'getProductProfile failed for UID=' . $productUID . ': ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Returns top 5 customers by quantity purchased for a product (confirmed invoices + delivery challans).
+     *
+     * @param  int $productUID
+     * @param  int $orgUID
+     * @return array
+     */
+    public function getProductTopCustomers(int $productUID, int $orgUID): array
+    {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $q = $this->ReadDb->query(
+                "SELECT
+                    COALESCE(Cust.DisplayName, Cust.CompanyName) AS CustomerName,
+                    COUNT(DISTINCT Ts.TransUID) AS TxCount,
+                    SUM(Tp.Quantity) AS TotalQty
+                 FROM Transaction.TransProductsTbl AS Tp
+                 JOIN Transaction.TransactionsTbl AS Ts
+                      ON Ts.TransUID = Tp.TransUID AND Ts.ModuleUID IN (103,112)
+                         AND Ts.DocStatus NOT IN ('Draft','Cancelled') AND Ts.IsDeleted = 0
+                 JOIN Customers.CustomerTbl AS Cust ON Cust.CustomerUID = Ts.PartyUID
+                 WHERE Tp.ProductUID = ? AND Tp.OrgUID = ? AND Tp.IsDeleted = 0
+                 GROUP BY Cust.CustomerUID
+                 ORDER BY TotalQty DESC
+                 LIMIT 5",
+                [(int) $productUID, (int) $orgUID]
+            );
+            return $q ? $q->result_array() : [];
+        } catch (Throwable $e) {
+            return [];
+        }
+    }
+
+    /**
+     * Returns all transactions containing this product, newest first, capped at 200 rows.
+     *
+     * @param  int $productUID
+     * @param  int $orgUID
+     * @return array
+     */
+    public function getProductTransactionHistory(int $productUID, int $orgUID): array
+    {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $q = $this->ReadDb->query(
+                "SELECT
+                    Ts.TransUID, Ts.UniqueNumber, Ts.TransDate, Ts.ModuleUID, Ts.DocStatus,
+                    Ts.PartyType,
+                    COALESCE(Cust.DisplayName, Cust.CompanyName) AS CustomerName,
+                    COALESCE(Vend.DisplayName, Vend.CompanyName) AS VendorName,
+                    Tp.Quantity, Tp.UnitPrice,
+                    (Tp.Quantity * Tp.UnitPrice) AS LineAmount
+                 FROM Transaction.TransProductsTbl AS Tp
+                 JOIN Transaction.TransactionsTbl AS Ts
+                      ON Ts.TransUID = Tp.TransUID AND Ts.IsDeleted = 0 AND Ts.IsActive = 1
+                 LEFT JOIN Customers.CustomerTbl AS Cust
+                      ON Cust.CustomerUID = Ts.PartyUID AND Ts.PartyType = 'C'
+                 LEFT JOIN Vendors.VendorTbl AS Vend
+                      ON Vend.VendorUID = Ts.PartyUID AND Ts.PartyType = 'S'
+                 WHERE Tp.ProductUID = ? AND Tp.OrgUID = ? AND Tp.IsDeleted = 0
+                 ORDER BY Ts.TransDate DESC, Ts.TransUID DESC
+                 LIMIT 200",
+                [(int) $productUID, (int) $orgUID]
+            );
+            return $q ? $q->result_array() : [];
+        } catch (Throwable $e) {
+            log_message('error', 'getProductTransactionHistory failed: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Returns confirmed stock-affecting transactions in chronological order for the running stock ledger.
+     * Stock IN: 105 Purchases, 106 Sales Returns. Stock OUT: 103 Invoices, 108 Purchase Returns, 112 Delivery Challans.
+     *
+     * @param  int $productUID
+     * @param  int $orgUID
+     * @return array
+     */
+    public function getProductStockMovements(int $productUID, int $orgUID): array
+    {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $q = $this->ReadDb->query(
+                "SELECT
+                    Ts.TransUID, Ts.UniqueNumber, Ts.TransDate, Ts.ModuleUID, Ts.DocStatus,
+                    Ts.PartyType,
+                    COALESCE(Cust.DisplayName, Cust.CompanyName) AS CustomerName,
+                    COALESCE(Vend.DisplayName, Vend.CompanyName) AS VendorName,
+                    Tp.Quantity
+                 FROM Transaction.TransProductsTbl AS Tp
+                 JOIN Transaction.TransactionsTbl AS Ts
+                      ON Ts.TransUID = Tp.TransUID AND Ts.IsDeleted = 0 AND Ts.IsActive = 1
+                         AND Ts.ModuleUID IN (103,105,106,108,112)
+                         AND Ts.DocStatus NOT IN ('Draft','Cancelled')
+                 LEFT JOIN Customers.CustomerTbl AS Cust
+                      ON Cust.CustomerUID = Ts.PartyUID AND Ts.PartyType = 'C'
+                 LEFT JOIN Vendors.VendorTbl AS Vend
+                      ON Vend.VendorUID = Ts.PartyUID AND Ts.PartyType = 'S'
+                 WHERE Tp.ProductUID = ? AND Tp.OrgUID = ? AND Tp.IsDeleted = 0
+                 ORDER BY Ts.TransDate ASC, Ts.TransUID ASC",
+                [(int) $productUID, (int) $orgUID]
+            );
+            return $q ? $q->result_array() : [];
+        } catch (Throwable $e) {
+            log_message('error', 'getProductStockMovements failed: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Returns audit log entries for a product from Security.UserAuditLogTbl, newest first.
+     *
+     * @param  int $productUID
+     * @param  int $orgUID
+     * @return array
+     */
+    public function getProductAuditHistory(int $productUID, int $orgUID): array
+    {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $q = $this->ReadDb->query(
+                "SELECT Action, EntityType, Module, EntityRef, Summary,
+                        UserName, IPAddress, Source, DeviceType, AuditCategory,
+                        OldValues, NewValues, CreatedAt
+                 FROM Security.UserAuditLogTbl
+                 WHERE EntityType = 'Product' AND EntityUID = ? AND OrgUID = ?
+                 ORDER BY CreatedAt DESC
+                 LIMIT 100",
+                [(int) $productUID, (int) $orgUID]
+            );
+            return $q ? $q->result_array() : [];
+        } catch (Throwable $e) {
+            log_message('error', 'getProductAuditHistory failed: ' . $e->getMessage());
+            return [];
+        }
+    }
 }

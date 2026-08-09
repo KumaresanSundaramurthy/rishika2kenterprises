@@ -397,6 +397,7 @@
             <!-- Content wrapper -->
 
             <?php $this->load->view('common/imagepreview_modal'); ?>
+            <?php $this->load->view('common/modals/product_profile_modal'); ?>
 
             <?php $this->load->view('common/modals/product_form'); ?>
             <?php $this->load->view('common/modals/category_form'); ?>
@@ -2935,5 +2936,113 @@ $(document).on('click', '#btnSyncPriceListCache', function () {
             showToastNotification('Sync failed. Please try again.', 'error');
         }
     });
+});
+
+// ── Product Profile Modal ──────────────────────────────────────────────────
+var _ppCurrentUID = 0;
+var _ppTabLoaded  = {};
+
+/**
+ * Opens the product profile modal and loads the overview tab.
+ * @param {number} uid - ProductUID
+ * @returns {void}
+ */
+window.openProductProfile = function (uid) {
+    _ppCurrentUID = uid;
+    _ppTabLoaded  = {};
+    $('#ppTabContent .pp-tab-pane').empty().removeClass('d-block').addClass('d-none');
+    $('#ppTabContent_overview').removeClass('d-none').addClass('d-block');
+    $('#ppTabNav .pp-tab-link').removeClass('active');
+    $('#ppTab_overview').addClass('active');
+    $('#productProfileModal').modal('show');
+    _loadPPTab('overview');
+};
+
+/**
+ * Loads a product profile tab via AJAX (fetched once, cached thereafter).
+ * @param {string} tab - Tab name: overview | transactions | stock | history
+ * @returns {void}
+ */
+function _loadPPTab(tab) {
+    var $pane = $('#ppTabContent_' + tab);
+    if (_ppTabLoaded[tab]) return;
+
+    $pane.html(
+        '<div class="d-flex justify-content-center align-items-center py-5">' +
+        '<div class="spinner-border text-success" role="status"></div></div>'
+    );
+
+    ajaxLoading(0);
+    $.ajax({
+        url      : '/products/getProductProfileTab/' + _ppCurrentUID + '/' + tab,
+        type     : 'GET',
+        dataType : 'json',
+        success: function (res) {
+            if (!res || res.Error) {
+                $pane.html('<div class="alert alert-danger m-4">' + (res && res.Message ? res.Message : 'Failed to load.') + '</div>');
+                return;
+            }
+            $pane.html(res.Html);
+            _ppTabLoaded[tab] = true;
+        },
+        error: function () {
+            $pane.html('<div class="alert alert-danger m-4">An error occurred. Please try again.</div>');
+        }
+    });
+}
+
+// Tab click handler
+$(document).on('click', '.pp-tab-link', function () {
+    var tab = $(this).data('tab');
+    $('#ppTabNav .pp-tab-link').removeClass('active');
+    $(this).addClass('active');
+    $('#ppTabContent .pp-tab-pane').removeClass('d-block').addClass('d-none');
+    $('#ppTabContent_' + tab).removeClass('d-none').addClass('d-block');
+    _loadPPTab(tab);
+});
+
+// Open from product name link in the list
+$(document).on('click', '.prod-profile-link', function (e) {
+    e.preventDefault();
+    var uid = parseInt($(this).data('uid'), 10);
+    if (uid > 0) window.openProductProfile(uid);
+});
+
+// Edit button inside modal — close modal, then open edit form
+$(document).on('click', '#ppBtnEdit', function () {
+    var uid = $(this).data('uid');
+    $('#productProfileModal').modal('hide');
+    setTimeout(function () {
+        $('[data-uid="' + uid + '"].editItem').first().trigger('click');
+    }, 350);
+});
+
+// Transaction tab: client-side module + status filter
+$(document).on('change', '#ppTxModuleFilter, #ppTxStatusFilter', function () {
+    var moduleVal = $('#ppTxModuleFilter').val();
+    var statusVal = $('#ppTxStatusFilter').val();
+    var $rows     = $('#ppTxTable tbody tr');
+    var visible   = 0;
+    $rows.each(function () {
+        var $tr        = $(this);
+        var rowModule  = $tr.data('module') ? String($tr.data('module')) : '';
+        var rowStatus  = $tr.data('status') || '';
+        var matchMod   = !moduleVal || rowModule === moduleVal;
+        var matchStat  = !statusVal || rowStatus === statusVal;
+        if (matchMod && matchStat) {
+            $tr.show();
+            visible++;
+        } else {
+            $tr.hide();
+        }
+    });
+    $('#ppTxVisibleCount').text(visible + ' record' + (visible !== 1 ? 's' : ''));
+});
+
+// Reset modal state when fully hidden
+$('#productProfileModal').on('hidden.bs.modal', function () {
+    _ppTabLoaded  = {};
+    _ppCurrentUID = 0;
+    $('#ppTabContent .pp-tab-pane').empty();
 });
 </script>

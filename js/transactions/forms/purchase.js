@@ -378,3 +378,6 @@ $(function () {
     if (_payRows) new MutationObserver(_sync).observe(_payRows, { childList: true, subtree: true, characterData: true });
     _sync();
 }());
+
+// ── Auto-Draft ────────────────────────────────────────────────────────────────
+if (!_isEdit) AutoDraft.initFromCfg(_cfg, '#vendorSearch', 'purchForm');

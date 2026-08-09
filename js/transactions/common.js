@@ -3,6 +3,7 @@
 //           and page globals: PageNo, RowLimit, Filter, ModuleId,
 //           ModuleTable, ModulePag, CsrfName, CsrfToken
 
+/** @returns {void} */
 function initTooltips() {
     // MutationObserver in default.js auto-inits newly added tooltip elements,
     // so this is a no-op safety call for pages that invoke it explicitly after AJAX.
@@ -13,6 +14,11 @@ function initTooltips() {
     });
 }
 
+/**
+ * @param {Function} fn
+ * @param {number}   delay
+ * @returns {Function}
+ */
 function debounce(fn, delay) {
     var t;
     return function () {
@@ -25,13 +31,16 @@ function debounce(fn, delay) {
 /**
  * Generic transaction list AJAX loader.
  *
- * config = {
- *   url            {string}   base URL — pageNo is appended  e.g. '/quotations/getQuotationsPageDetails/'
- *   tabCountClass  {string}   badge selector                 e.g. '.quot-tab-count'
- *   statusTabClass {string}   status tab selector            e.g. '.quot-status-tab'
- *   errorMessage   {string}   message shown on AJAX failure
- *   onSuccess      {function} optional extra callback(response)
- * }
+ * @param {Object}        config                  - Loader configuration
+ * @param {string}        config.url              - Base URL; pageNo is appended
+ * @param {string}        config.tabCountClass    - Count badge selector, e.g. '.quot-tab-count'
+ * @param {string}        config.statusTabClass   - Status tab selector, e.g. '.quot-status-tab'
+ * @param {string}        config.errorMessage     - User-facing message on AJAX failure
+ * @param {Function}      [config.onSuccess]      - Called with the raw response on success
+ * @param {number}        [pageNo]
+ * @param {number}        [rowLimit]
+ * @param {Object}        [filter]
+ * @returns {void}
  */
 function loadTransactionList(config, pageNo, rowLimit, filter) {
     pageNo   = pageNo   || PageNo;
@@ -83,7 +92,12 @@ function loadTransactionList(config, pageNo, rowLimit, filter) {
     });
 }
 
-/** @deprecated Use _pushTabUrl (now in default.js). Kept as alias for transaction pages. */
+/**
+ * @deprecated Use _pushTabUrl (now in default.js). Kept as alias for transaction pages.
+ * @param {string} status
+ * @param {string} search
+ * @returns {void}
+ */
 function _updateTransTabUrl(status, search) { _pushTabUrl(status, search); }
 
 /**
@@ -136,4 +150,187 @@ function _applyTabFilters(status, filterMap, allFilterEls, afterCb) {
         if ($el.length) { $el.toggleClass('d-none', show.indexOf(id) === -1); }
     });
     if (afterCb) { setTimeout(afterCb, 50); }
+}
+
+// ── Select-all shared helpers ─────────────────────────────────────────────────
+
+/**
+ * Updates the select-all banner text and visibility for a transaction list page.
+ * @param {boolean} selectAllMode
+ * @param {number}  totalRecords
+ * @param {number}  pageCount
+ * @param {string}  prefix   DOM ID prefix, e.g. 'inv', 'purch', 'so'
+ * @param {string}  label    Plural noun for the module, e.g. 'invoices', 'purchases'
+ * @returns {void}
+ */
+function updateTransSelectAllBanner(selectAllMode, totalRecords, pageCount, prefix, label) {
+    var $banner = $('#' + prefix + 'SelectAllBanner');
+    var $msg    = $('#' + prefix + 'SelectAllMsg');
+    var $link   = $('#' + prefix + 'SelectAllLink');
+    var $clear  = $('#' + prefix + 'SelectAllClear');
+
+    if (!pageCount || !$(ModuleHeader).prop('checked')) {
+        $banner.addClass('d-none');
+        return;
+    }
+    if (selectAllMode) {
+        $msg.text('All ' + totalRecords + ' ' + label + ' are selected.');
+        $link.addClass('d-none');
+        $clear.removeClass('d-none');
+    } else {
+        $msg.text('All ' + pageCount + ' ' + label + ' on this page are selected.');
+        $clear.addClass('d-none');
+        if (totalRecords > pageCount) {
+            $link.text('Select all ' + totalRecords + ' ' + label + '?').removeClass('d-none');
+        } else {
+            $link.addClass('d-none');
+            $banner.addClass('d-none');
+            return;
+        }
+    }
+    $banner.removeClass('d-none');
+}
+
+/**
+ * Hides the select-all banner and resets its link/clear buttons.
+ * Does NOT reset the caller's mode variable — do that before calling.
+ * @param {string} prefix  DOM ID prefix, e.g. 'inv', 'purch', 'so'
+ * @returns {void}
+ */
+function clearTransSelectAllDom(prefix) {
+    $('#' + prefix + 'SelectAllBanner').addClass('d-none');
+    $('#' + prefix + 'SelectAllLink').removeClass('d-none');
+    $('#' + prefix + 'SelectAllClear').addClass('d-none');
+}
+
+/**
+ * Generic bulk-delete handler for transaction list pages.
+ * @param {number}   moduleUID     Module UID for the delete endpoint (e.g. 103)
+ * @param {boolean}  selectAllMode Whether "select all records" mode is active
+ * @param {Function} onClear       Called on success to reset select-all state
+ * @param {Function} onRefresh     Called after onClear to reload the list
+ * @returns {void}
+ */
+function deleteMultipleTrans(moduleUID, selectAllMode, onClear, onRefresh) {
+    var postData = selectAllMode
+        ? { SelectAll: 1, Filter: JSON.stringify(Filter), [CsrfName]: CsrfToken }
+        : { 'TransUIDs[]': SelectedUIDs, [CsrfName]: CsrfToken };
+    $.ajax({
+        url   : '/transactions/deleteMultipleTransactions/' + moduleUID,
+        method: 'POST',
+        cache : false,
+        data  : postData,
+        success: function (response) {
+            if (response.Error) {
+                showAlertMessageSwal('error', '', response.Message);
+            } else {
+                showToastNotification(response.Message, 'success');
+                SelectedUIDs = [];
+                if (typeof onClear   === 'function') onClear();
+                hideUIBlock();
+                ajaxLoading(0);
+                if (typeof onRefresh === 'function') onRefresh();
+            }
+        }
+    });
+}
+
+// ── Payment panel shared helpers ──────────────────────────────────────────────
+
+/**
+ * Wires up the floating payment-details panel used on invoice/purchase/return list pages.
+ * Call once from the module JS file at global scope.
+ * @param {string} spinnerCls  Bootstrap text-colour class for the loading spinner (e.g. 'text-primary', '')
+ * @param {string} accentHex   CSS hex colour for amount text and the view-payments link (e.g. '#696cff')
+ * @returns {void}
+ */
+function initTransPaymentPanel(spinnerCls, accentHex) {
+    var $panel = $('#payDetailPanel');
+    if (!$panel.length) return;
+    var $body   = $('#payDetailBody');
+    var $title  = $('#payPanelTitle');
+    var openUID = null;
+
+    function openPanel($trigger) {
+        var transUID = $trigger.data('trans-uid');
+        var transNum = $trigger.data('trans-num') || '';
+        var rect     = $trigger[0].getBoundingClientRect();
+        var panelW   = 290;
+        var left     = rect.left;
+        var top      = rect.bottom + 6;
+        if (left + panelW + 16 > window.innerWidth) left = window.innerWidth - panelW - 16;
+        $title.text(transNum ? 'Payments — ' + transNum : 'Payments');
+        $body.html('<div class="text-center py-3"><span class="spinner-border spinner-border-sm' + (spinnerCls ? ' ' + spinnerCls : '') + '"></span></div>');
+        $panel.css({ top: top, left: left }).show();
+        openUID = transUID;
+        ajaxLoading(0);
+        $.ajax({
+            url    : '/payments/getPaymentsByTransaction',
+            type   : 'GET',
+            data   : { TransUID: transUID },
+            success: function (resp) {
+                ajaxLoading(1);
+                if (resp && !resp.Error && resp.Payments && resp.Payments.length) {
+                    $body.html(_buildPaymentPanelHtml(resp.Payments, accentHex));
+                } else {
+                    $body.html('<p class="text-muted mb-0" style="font-size:.8rem;">' + t('toast_no_payments', 'No payments found.') + '</p>');
+                }
+            },
+            error: function () {
+                ajaxLoading(1);
+                $body.html('<p class="text-danger mb-0" style="font-size:.8rem;">' + t('toast_payments_failed', 'Failed to load payments.') + '</p>');
+            }
+        });
+    }
+
+    function closePanel() { $panel.hide(); openUID = null; }
+
+    $(document).on('click', '.pay-mode-clickable', function (e) {
+        if ($(e.target).closest('.transPayAttachBtn').length) return;
+        e.stopPropagation();
+        var transUID = $(this).data('trans-uid');
+        if (openUID === transUID) { closePanel(); return; }
+        openPanel($(this));
+    });
+    $(document).on('click', '#payPanelClose', function (e) { e.stopPropagation(); closePanel(); });
+    $(document).on('click', function (e) {
+        if ($panel.is(':visible') && !$(e.target).closest('#payDetailPanel, .pay-mode-clickable').length) closePanel();
+    });
+    $(document).on('keydown', function (e) { if (e.key === 'Escape') closePanel(); });
+}
+
+/**
+ * Builds the HTML for one or more payment entries inside the payment panel.
+ * @param {Array}  payments   Array of payment objects from the API
+ * @param {string} accentHex  CSS hex colour for amount text and the view-payments link
+ * @returns {string}
+ */
+function _buildPaymentPanelHtml(payments, accentHex) {
+    var html = '';
+    payments.forEach(function (p, i) {
+        if (i > 0) html += '<hr style="margin:8px 0;border-color:#f0f0f0;">';
+        var amt  = parseFloat(p.Amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        var mode = p.PaymentTypeName || '—';
+        var ref  = p.ReferenceNo || '';
+        var date = '';
+        if (p.CreatedOn) {
+            var d = new Date(p.CreatedOn.replace(' ', 'T'));
+            date  = ('0' + d.getDate()).slice(-2) + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + d.getFullYear();
+        }
+        html += '<div class="d-flex justify-content-between align-items-start gap-2">';
+        html += '  <div style="min-width:0;">';
+        html += '    <div style="font-size:.83rem;font-weight:600;color:' + accentHex + ';">&#8377;' + amt + '</div>';
+        html += '    <div style="font-size:.75rem;color:#566a7f;">' + mode + '</div>';
+        if (date || ref) {
+            html += '  <div style="font-size:.72rem;color:#aaa;margin-top:1px;">';
+            if (date) html += date;
+            if (date && ref) html += '&nbsp;&nbsp;';
+            if (ref)  html += ref;
+            html += '  </div>';
+        }
+        html += '  </div>';
+        html += '  <a href="/payments" class="btn btn-icon btn-sm" style="color:' + accentHex + ';flex-shrink:0;" title="' + t('vm_view_payments', 'View Payments') + '"><i class="bx bx-show fs-6"></i></a>';
+        html += '</div>';
+    });
+    return html;
 }

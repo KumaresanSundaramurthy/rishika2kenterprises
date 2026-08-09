@@ -1,80 +1,33 @@
 // Sales Returns module JS
-'use strict';
 
 // ── Select-all (Pattern 3) state ────────────────────────────────────────────
 var _srSelectAllMode = false;
 var _srTotalRecords  = 0;
 var _srPageCount     = 0;
 
-/**
- * @returns {void}
- */
+/** @returns {void} */
 function _srUpdateSelectAllBanner() {
-    var $banner = $('#srSelectAllBanner');
-    var $msg    = $('#srSelectAllMsg');
-    var $link   = $('#srSelectAllLink');
-    var $clear  = $('#srSelectAllClear');
-
-    if (!_srPageCount || !$(ModuleHeader).prop('checked')) {
-        $banner.addClass('d-none');
-        return;
-    }
-
-    if (_srSelectAllMode) {
-        $msg.text('All ' + _srTotalRecords + ' sales returns are selected.');
-        $link.addClass('d-none');
-        $clear.removeClass('d-none');
-    } else {
-        $msg.text('All ' + _srPageCount + ' sales returns on this page are selected.');
-        $clear.addClass('d-none');
-        if (_srTotalRecords > _srPageCount) {
-            $link.text('Select all ' + _srTotalRecords + ' sales returns?').removeClass('d-none');
-        } else {
-            $link.addClass('d-none');
-            $banner.addClass('d-none');
-            return;
-        }
-    }
-    $banner.removeClass('d-none');
+    updateTransSelectAllBanner(_srSelectAllMode, _srTotalRecords, _srPageCount, 'sr', 'sales returns');
 }
-
-/**
- * @returns {void}
- */
+/** @returns {void} */
 function _srClearSelectAll() {
     _srSelectAllMode = false;
-    $('#srSelectAllBanner').addClass('d-none');
-    $('#srSelectAllLink').removeClass('d-none');
-    $('#srSelectAllClear').addClass('d-none');
+    clearTransSelectAllDom('sr');
 }
-
-/**
- * @returns {void}
- */
+/** @returns {void} */
 function deleteMultipleSalesReturns() {
-    var postData = _srSelectAllMode
-        ? { SelectAll: 1, Filter: JSON.stringify(Filter), [CsrfName]: CsrfToken }
-        : { 'TransUIDs[]': SelectedUIDs, [CsrfName]: CsrfToken };
-    $.ajax({
-        url   : '/transactions/deleteMultipleTransactions/106',
-        method: 'POST',
-        cache : false,
-        data  : postData,
-        success: function (response) {
-            if (response.Error) {
-                showAlertMessageSwal('error', '', response.Message);
-            } else {
-                showToastNotification(response.Message, 'success');
-                SelectedUIDs = [];
-                _srClearSelectAll();
-                hideUIBlock();
-                ajaxLoading(0);
-                getSalesReturnsDetails(PageNo, RowLimit, Filter);
-            }
-        }
+    deleteMultipleTrans(106, _srSelectAllMode, _srClearSelectAll, function () {
+        getSalesReturnsDetails(PageNo, RowLimit, Filter);
     });
 }
 
+/**
+ * @param {number}        pageNo
+ * @param {number}        rowLimit
+ * @param {Object}        filter
+ * @param {Function}      [afterLoad]
+ * @returns {void}
+ */
 function getSalesReturnsDetails(pageNo, rowLimit, filter, afterLoad) {
     loadTransactionList({
         url:            '/transactions/getPageDetails/106/',
@@ -91,87 +44,5 @@ function getSalesReturnsDetails(pageNo, rowLimit, filter, afterLoad) {
     }, pageNo, rowLimit, filter);
 }
 
-// Payment Details Panel
-(function () {
-    var $panel  = $('#payDetailPanel');
-    var $body   = $('#payDetailBody');
-    var $title  = $('#payPanelTitle');
-    var openUID = null;
-
-    function openPanel($trigger) {
-        var transUID = $trigger.data('trans-uid');
-        var transNum = $trigger.data('trans-num') || '';
-        var rect     = $trigger[0].getBoundingClientRect();
-        var panelW   = 290;
-        var left     = rect.left;
-        var top      = rect.bottom + 6;
-        if (left + panelW + 16 > window.innerWidth) left = window.innerWidth - panelW - 16;
-        $title.text(transNum ? 'Payments — ' + transNum : 'Payments');
-        $body.html('<div class="text-center py-3"><span class="spinner-border spinner-border-sm text-success"></span></div>');
-        $panel.css({ top: top, left: left }).show();
-        openUID = transUID;
-        ajaxLoading(0);
-        $.ajax({
-            url    : '/payments/getPaymentsByTransaction',
-            type   : 'GET',
-            data   : { TransUID: transUID },
-            success: function (resp) {
-                ajaxLoading(1);
-                if (resp && !resp.Error && resp.Payments && resp.Payments.length) {
-                    $body.html(buildPaymentHtml(resp.Payments));
-                } else {
-                    $body.html('<p class="text-muted mb-0" style="font-size:.8rem;">' + t('toast_no_payments', 'No payments found.') + '</p>');
-                }
-            },
-            error: function () {
-                ajaxLoading(1);
-                $body.html('<p class="text-danger mb-0" style="font-size:.8rem;">' + t('toast_payments_failed', 'Failed to load payments.') + '</p>');
-            }
-        });
-    }
-
-    function closePanel() { $panel.hide(); openUID = null; }
-
-    $(document).on('click', '.pay-mode-clickable', function (e) {
-        if ($(e.target).closest('.transPayAttachBtn').length) return;
-        e.stopPropagation();
-        var transUID = $(this).data('trans-uid');
-        if (openUID === transUID) { closePanel(); return; }
-        openPanel($(this));
-    });
-    $(document).on('click', '#payPanelClose', function (e) { e.stopPropagation(); closePanel(); });
-    $(document).on('click', function (e) {
-        if ($panel.is(':visible') && !$(e.target).closest('#payDetailPanel, .pay-mode-clickable').length) closePanel();
-    });
-    $(document).on('keydown', function (e) { if (e.key === 'Escape') closePanel(); });
-
-    function buildPaymentHtml(payments) {
-        var html = '';
-        payments.forEach(function (p, i) {
-            if (i > 0) html += '<hr style="margin:8px 0;border-color:#f0f0f0;">';
-            var amt  = parseFloat(p.Amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-            var mode = p.PaymentTypeName || '—';
-            var ref  = p.ReferenceNo || '';
-            var date = '';
-            if (p.CreatedOn) {
-                var d = new Date(p.CreatedOn.replace(' ', 'T'));
-                date  = ('0' + d.getDate()).slice(-2) + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + d.getFullYear();
-            }
-            html += '<div class="d-flex justify-content-between align-items-start gap-2">';
-            html += '  <div style="min-width:0;">';
-            html += '    <div style="font-size:.83rem;font-weight:600;color:#198754;">&#8377;' + amt + '</div>';
-            html += '    <div style="font-size:.75rem;color:#566a7f;">' + mode + '</div>';
-            if (date || ref) {
-                html += '  <div style="font-size:.72rem;color:#aaa;margin-top:1px;">';
-                if (date) html += date;
-                if (date && ref) html += '&nbsp;&nbsp;';
-                if (ref)  html += ref;
-                html += '  </div>';
-            }
-            html += '  </div>';
-            html += '  <a href="/payments" class="btn btn-icon btn-sm" style="color:#198754;flex-shrink:0;" title="' + t('vm_view_payments', 'View Payments') + '"><i class="bx bx-show fs-6"></i></a>';
-            html += '</div>';
-        });
-        return html;
-    }
-}());
+// ── Payment Details Panel ─────────────────────────────────────────────────────
+initTransPaymentPanel('text-success', '#198754');

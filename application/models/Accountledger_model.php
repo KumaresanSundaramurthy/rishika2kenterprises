@@ -363,7 +363,8 @@ class Accountledger_model extends CI_Model {
                 SUM(ReferenceType = 'Purchase')       AS PurchaseCount,
                 SUM(ReferenceType LIKE 'Payment%')    AS PaymentCount,
                 SUM(ReferenceType LIKE 'Reversal%')   AS ReversalCount,
-                SUM(ReferenceType NOT IN ('Invoice','Purchase') AND ReferenceType NOT LIKE 'Payment%' AND ReferenceType NOT LIKE 'Reversal%') AS OtherCount
+                SUM(ReferenceType = 'Manual')         AS ManualCount,
+                SUM(ReferenceType NOT IN ('Invoice','Purchase','Manual') AND ReferenceType NOT LIKE 'Payment%' AND ReferenceType NOT LIKE 'Reversal%') AS OtherCount
             ");
             $this->ReadDb->from('Accounting.GeneralJournal');
             $this->ReadDb->where('IsDeleted', 0);
@@ -390,7 +391,7 @@ class Accountledger_model extends CI_Model {
 
             // Lines with ledger name — scoped to this org
             $this->ReadDb->select([
-                'je.EntryUID', 'je.TransactionType', 'je.Amount', 'je.Particulars',
+                'je.EntryUID', 'je.LedgerUID', 'je.TransactionType', 'je.Amount', 'je.Particulars',
                 'ca.LedgerCode', 'ca.LedgerName', 'ca.LedgerType',
             ]);
             $this->ReadDb->from('Accounting.JournalEntries je');
@@ -547,6 +548,239 @@ class Accountledger_model extends CI_Model {
             return $query ? $query->result() : [];
         } catch (Exception $e) {
             log_message('error', 'Accountledger_model: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    // ── Bank Reconciliation ──────────────────────────────────────────────────
+
+    public function getBankAndCashLedgers(): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $orgUID = $this->_orgUID();
+            $this->ReadDb->select('LedgerUID, LedgerCode, LedgerName, LedgerType, OpeningBalance, OpeningBalanceType');
+            $this->ReadDb->from('Accounting.ChartOfAccounts');
+            $this->ReadDb->where('IsDeleted', 0);
+            $this->ReadDb->where('IsActive',  1);
+            $this->ReadDb->where_in('LedgerType', ['Bank', 'Cash']);
+            if ($orgUID > 0) $this->ReadDb->where('OrgUID', $orgUID);
+            $this->ReadDb->order_by('LedgerType', 'ASC');
+            $this->ReadDb->order_by('LedgerName', 'ASC');
+            $query = $this->ReadDb->get();
+            return $query ? $query->result() : [];
+        } catch (Exception $e) {
+            log_message('error', 'getBankAndCashLedgers: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function getBankReconEntries(int $ledgerUID, ?string $dateFrom, ?string $dateTo): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $orgUID = $this->_orgUID();
+            $this->ReadDb->select([
+                'je.EntryUID', 'je.IsReconciled', 'je.TransactionType', 'je.Amount', 'je.Particulars',
+                'gj.JournalUID', 'gj.JournalNo', 'gj.JournalDate',
+                'gj.ReferenceType', 'gj.ReferenceNo', 'gj.Narration',
+            ]);
+            $this->ReadDb->from('Accounting.JournalEntries je');
+            $this->ReadDb->join('Accounting.GeneralJournal gj',
+                'gj.JournalUID = je.JournalUID AND gj.IsDeleted = 0');
+            $this->ReadDb->where('je.LedgerUID', $ledgerUID);
+            $this->ReadDb->where('je.IsDeleted', 0);
+            if ($orgUID > 0) $this->ReadDb->where('je.OrgUID', $orgUID);
+            if ($dateFrom) $this->ReadDb->where('gj.JournalDate >=', $dateFrom);
+            if ($dateTo)   $this->ReadDb->where('gj.JournalDate <=', $dateTo);
+            $this->ReadDb->order_by('gj.JournalDate', 'ASC');
+            $this->ReadDb->order_by('gj.JournalUID',  'ASC');
+            $this->ReadDb->order_by('je.EntryUID',    'ASC');
+            $query = $this->ReadDb->get();
+            return $query ? $query->result() : [];
+        } catch (Exception $e) {
+            log_message('error', 'getBankReconEntries: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function bulkUpdateReconStatus(array $entryUIDs, int $isReconciled, int $orgUID): void {
+        if (empty($entryUIDs)) return;
+        try {
+            $WriteDb = $this->load->database('WriteDB', TRUE);
+            $WriteDb->db_debug = FALSE;
+            $WriteDb->where('OrgUID', $orgUID);
+            $WriteDb->where_in('EntryUID', $entryUIDs);
+            $WriteDb->update('Accounting.JournalEntries', ['IsReconciled' => (int)$isReconciled]);
+        } catch (Exception $e) {
+            log_message('error', 'bulkUpdateReconStatus: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    // ── Recurring Journals ───────────────────────────────────────────────────
+
+    public function getRecurringJournalList(int $limit, int $offset, array $filter = []): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $orgUID = $this->_orgUID();
+            $this->ReadDb->select('*');
+            $this->ReadDb->from('Accounting.RecurringJournals');
+            $this->ReadDb->where('IsDeleted', 0);
+            if ($orgUID > 0) $this->ReadDb->where('OrgUID', $orgUID);
+            if (isset($filter['IsActive']) && $filter['IsActive'] !== '') {
+                $this->ReadDb->where('IsActive', (int)$filter['IsActive']);
+            }
+            if (!empty($filter['Due'])) {
+                $this->ReadDb->where('NextRunDate <=', date('Y-m-d'));
+                $this->ReadDb->where('IsActive', 1);
+            }
+            if (!empty($filter['SearchAllData'])) {
+                $s = $this->ReadDb->escape_like_str($filter['SearchAllData']);
+                $this->ReadDb->where("(Title LIKE '%{$s}%' OR Narration LIKE '%{$s}%')", null, false);
+            }
+            $this->ReadDb->order_by('IsActive', 'DESC');
+            $this->ReadDb->order_by('NextRunDate', 'ASC');
+            $this->ReadDb->limit($limit, $offset);
+            $query = $this->ReadDb->get();
+            return $query ? $query->result() : [];
+        } catch (Exception $e) {
+            log_message('error', 'getRecurringJournalList: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function getRecurringJournalCount(array $filter = []): int {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $orgUID = $this->_orgUID();
+            $this->ReadDb->select('COUNT(*) AS cnt');
+            $this->ReadDb->from('Accounting.RecurringJournals');
+            $this->ReadDb->where('IsDeleted', 0);
+            if ($orgUID > 0) $this->ReadDb->where('OrgUID', $orgUID);
+            if (isset($filter['IsActive']) && $filter['IsActive'] !== '') {
+                $this->ReadDb->where('IsActive', (int)$filter['IsActive']);
+            }
+            if (!empty($filter['Due'])) {
+                $this->ReadDb->where('NextRunDate <=', date('Y-m-d'));
+                $this->ReadDb->where('IsActive', 1);
+            }
+            if (!empty($filter['SearchAllData'])) {
+                $s = $this->ReadDb->escape_like_str($filter['SearchAllData']);
+                $this->ReadDb->where("(Title LIKE '%{$s}%' OR Narration LIKE '%{$s}%')", null, false);
+            }
+            $row = $this->ReadDb->get()->row();
+            return (int)($row->cnt ?? 0);
+        } catch (Exception $e) {
+            return 0;
+        }
+    }
+
+    public function getRecurringJournalStats(): object {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $orgUID  = $this->_orgUID();
+            $today   = date('Y-m-d');
+            $this->ReadDb->select("
+                COUNT(*) AS TotalCount,
+                SUM(IsActive = 1) AS ActiveCount,
+                SUM(IsActive = 0) AS PausedCount,
+                SUM(IsActive = 1 AND NextRunDate <= '{$today}') AS DueCount
+            ");
+            $this->ReadDb->from('Accounting.RecurringJournals');
+            $this->ReadDb->where('IsDeleted', 0);
+            if ($orgUID > 0) $this->ReadDb->where('OrgUID', $orgUID);
+            $row = $this->ReadDb->get()->row();
+            return $row ?? new stdClass();
+        } catch (Exception $e) {
+            return new stdClass();
+        }
+    }
+
+    public function getRecurringJournalById(int $recurUID): ?object {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $orgUID = $this->_orgUID();
+            $this->ReadDb->select('*');
+            $this->ReadDb->from('Accounting.RecurringJournals');
+            $this->ReadDb->where('RecurUID', $recurUID);
+            $this->ReadDb->where('IsDeleted', 0);
+            if ($orgUID > 0) $this->ReadDb->where('OrgUID', $orgUID);
+            $this->ReadDb->limit(1);
+            $header = $this->ReadDb->get()->row();
+            if (!$header) return null;
+
+            $this->ReadDb->select('rjl.*, ca.LedgerName, ca.LedgerCode, ca.LedgerType');
+            $this->ReadDb->from('Accounting.RecurringJournalLines rjl');
+            $this->ReadDb->join('Accounting.ChartOfAccounts ca', 'ca.LedgerUID = rjl.LedgerUID', 'left');
+            $this->ReadDb->where('rjl.RecurUID', $recurUID);
+            if ($orgUID > 0) $this->ReadDb->where('rjl.OrgUID', $orgUID);
+            $this->ReadDb->order_by('rjl.SortOrder', 'ASC');
+            $this->ReadDb->order_by('rjl.LineUID',   'ASC');
+            $header->Lines = $this->ReadDb->get()->result();
+
+            return $header;
+        } catch (Exception $e) {
+            log_message('error', 'getRecurringJournalById: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    public function getDueRecurringJournals(): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $orgUID = $this->_orgUID();
+            $today  = date('Y-m-d');
+            $this->ReadDb->select('*');
+            $this->ReadDb->from('Accounting.RecurringJournals');
+            $this->ReadDb->where('IsDeleted', 0);
+            $this->ReadDb->where('IsActive',  1);
+            $this->ReadDb->where('NextRunDate <=', $today);
+            if ($orgUID > 0) $this->ReadDb->where('OrgUID', $orgUID);
+            $this->ReadDb->order_by('NextRunDate', 'ASC');
+            $query = $this->ReadDb->get();
+            return $query ? $query->result() : [];
+        } catch (Exception $e) {
+            log_message('error', 'getDueRecurringJournals: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    // ── Period Lock ───────────────────────────────────────────────────────────
+
+    public function getPeriodLock(): ?object {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $orgUID = $this->_orgUID();
+            $this->ReadDb->select('*');
+            $this->ReadDb->from('Accounting.PeriodLock');
+            if ($orgUID > 0) $this->ReadDb->where('OrgUID', $orgUID);
+            $this->ReadDb->limit(1);
+            return $this->ReadDb->get()->row() ?? null;
+        } catch (Exception $e) {
+            log_message('error', 'getPeriodLock: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    public function getLedgersForJournalDropdown(string $search = '', int $limit = 50): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $orgUID = $this->_orgUID();
+            $this->ReadDb->select('LedgerUID, LedgerCode, LedgerName, LedgerType');
+            $this->ReadDb->from('Accounting.ChartOfAccounts');
+            $this->ReadDb->where('IsDeleted', 0);
+            $this->ReadDb->where('IsActive',  1);
+            if ($orgUID > 0) $this->ReadDb->where('OrgUID', $orgUID);
+            if ($search !== '') {
+                $s = $this->ReadDb->escape_like_str($search);
+                $this->ReadDb->where("(LedgerCode LIKE '%{$s}%' OR LedgerName LIKE '%{$s}%')", null, false);
+            }
+            $this->ReadDb->order_by('LedgerType', 'ASC');
+            $this->ReadDb->order_by('LedgerName', 'ASC');
+            $this->ReadDb->limit($limit);
+            $query = $this->ReadDb->get();
+            return $query ? $query->result() : [];
+        } catch (Exception $e) {
+            log_message('error', 'getLedgersForJournalDropdown: ' . $e->getMessage());
             return [];
         }
     }

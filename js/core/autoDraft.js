@@ -82,6 +82,7 @@
             ? '/' + (_cfg.updateUrl || '')
             : '/' + (_cfg.addUrl    || '');
 
+        ajaxLoading(0);
         setFormLoading(formSel, true, 'draft');
 
         $.ajax({

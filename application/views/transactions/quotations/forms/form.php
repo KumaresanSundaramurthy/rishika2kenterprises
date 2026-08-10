@@ -58,8 +58,6 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
 
                     <div class="card mb-3">
 
-                        <?php $_hideNav = (int)($JwtData->TransSettings->HideNavOnTransForm ?? 0); ?>
-                        <?php if (!$isEdit): ?>
                         <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between px-3 py-2 trans-header-static trans-theme modal-header-center-sticky">
                             <div class="d-flex align-items-center gap-3" id="transHeaderInfo">
                                 <?php $this->load->view('transactions/partials/form_back_button'); ?>
@@ -68,55 +66,35 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                                 </div>
                                 <div>
                                     <div class="d-flex align-items-center flex-wrap gap-2">
-                                        <span class="fw-bold" style="font-size:.92rem;">Create Quotation</span>
-                                        <?php if (!empty($CloneData)): ?>
-                                            <span class="badge text-bg-warning" style="font-size:.65rem;"><i class="bx bx-copy me-1"></i>Cloned from: <?php echo htmlspecialchars($CloneData->UniqueNumber ?? 'Draft'); ?></span>
+                                        <?php if (!$isEdit): ?>
+                                            <span class="fw-bold" style="font-size:.92rem;">Create Quotation</span>
+                                            <?php if (!empty($CloneData)): ?>
+                                                <span class="badge text-bg-warning" style="font-size:.65rem;"><i class="bx bx-copy me-1"></i>Cloned from: <?php echo htmlspecialchars($CloneData->UniqueNumber ?? 'Draft'); ?></span>
+                                            <?php endif; ?>
+                                            <?php $this->load->view('transactions/partials/form_prefix_add'); ?>
+                                        <?php else: ?>
+                                            <span class="fw-bold" style="font-size:.92rem;"><?php echo $isDraftEdit ? '' : 'Edit'; ?> Quotation</span>
+                                            <?php if (!$isDraftEdit && !empty($QuotData->UniqueNumber)): ?>
+                                                <span class="trans-form-doc-number"><?php echo htmlspecialchars($QuotData->UniqueNumber); ?></span>
+                                            <?php endif; ?>
+                                            <?php $this->load->view('transactions/partials/form_prefix_edit', [
+                                                '_editPrefixUID'  => (int)($QuotData->PrefixUID ?? 0),
+                                                'editTransNumber' => $editTransNumber,
+                                                'editPrefixSeg'   => $editPrefixSeg,
+                                                'isDraftEdit'     => $isDraftEdit,
+                                            ]); ?>
                                         <?php endif; ?>
-                                        <?php $this->load->view('transactions/partials/form_prefix_add'); ?>
                                     </div>
+                                    <?php if ($isEdit && !$isDraftEdit && !empty($QuotData->TransDate)): ?>
+                                    <div class="d-flex align-items-center gap-2 mt-1">
+                                        <span style="font-size:.7rem;color:#8592a3;">Quotation Date</span>
+                                        <span style="font-size:.78rem;color:#566a7f;"><?php echo htmlspecialchars(format_datedisplay($QuotData->TransDate)); ?></span>
+                                    </div>
+                                    <?php endif; ?>
                                 </div>
                             </div>
-                            <div class="d-flex align-items-center gap-2">
-                                <button type="submit" name="action" value="draft" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_save_draft', 'Save and continue editing later'); ?>"><i class="bx bx-save me-1"></i><?php echo t('btn_save_draft', 'Save as Draft'); ?></button>
-                                <div class="btn-group">
-                                    <button type="submit" name="action" value="save" class="btn btn-sm btn-primary px-3" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_save', 'Save transaction'); ?>"><i class="bx bx-check me-1"></i>Save</button>
-                                    <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <span class="visually-hidden">Save options</span>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:195px;font-size:.82rem;">
-                                        <li><span class="dropdown-header py-1" style="font-size:.65rem;letter-spacing:.4px;">SAVE &amp; PRINT</span></li>
-                                        <li><button type="submit" class="dropdown-item py-1" name="action" value="save_a4"><i class="bx bx-file text-primary me-2"></i><?php echo t('btn_save_a4', 'Save & Print A4'); ?></button></li>
-                                        <li><button type="submit" class="dropdown-item py-1" name="action" value="save_a5"><i class="bx bx-file-blank text-info me-2"></i><?php echo t('btn_save_a5', 'Save & Print A5'); ?></button></li>
-                                        <li><button type="submit" class="dropdown-item py-1" name="action" value="save_thermal"><i class="bx bx-receipt text-success me-2"></i><?php echo t('btn_save_thermal', 'Save & Print Thermal'); ?></button></li>
-                                    </ul>
-                                </div>
-                                <a href="<?php echo $_closeUrl; ?>" class="btn btn-sm btn-outline-danger px-3<?php echo $_hideNav ? ' d-none' : ''; ?>" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_close', 'Return to list'); ?>"><i class="bx bx-x me-1"></i>Close</a>
-                            </div>
+                            <?php $this->load->view('transactions/partials/trans_form_header_btns', ['_hBtnLayout' => 'invoice', '_hDcMenu' => false, '_hEditSavePx3' => false, '_hIsEdit' => $isEdit, '_hIsDraftEdit' => $isDraftEdit, '_hCloseUrl' => $_closeUrl]); ?>
                         </div>
-                        <?php else: ?>
-                        <div class="card-header bg-body-tertiary trans-header-static trans-theme modal-header-center-sticky d-flex justify-content-between align-items-center pb-3">
-                            <div class="d-flex flex-wrap align-items-center gap-3" id="transHeaderInfo">
-                                <?php $this->load->view('transactions/partials/form_back_button'); ?>
-                                <h5 class="modal-title mb-0 ms-2"><?php echo $isDraftEdit ? '' : 'Edit'; ?> Quotation</h5>
-                                <?php if (!$isDraftEdit && !empty($QuotData->UniqueNumber)): ?>
-                                    <span class="trans-form-doc-number"><?php echo htmlspecialchars($QuotData->UniqueNumber); ?></span>
-                                <?php endif; ?>
-                                <?php $this->load->view('transactions/partials/form_prefix_edit', [
-                                    '_editPrefixUID'  => (int)($QuotData->PrefixUID ?? 0),
-                                    'editTransNumber' => $editTransNumber,
-                                    'editPrefixSeg'   => $editPrefixSeg,
-                                    'isDraftEdit'     => $isDraftEdit,
-                                ]); ?>
-                            </div>
-                            <div class="d-flex align-items-center gap-2">
-                                <?php if ($isDraftEdit): ?>
-                                <button type="submit" name="action" value="draft" class="btn btn-outline-secondary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_save_draft', 'Save and continue editing later'); ?>"><i class="bx bx-save me-1"></i><?php echo t('btn_save_draft', 'Save as Draft'); ?></button>
-                                <?php endif; ?>
-                                <button type="submit" name="action" value="save" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_save', 'Save transaction'); ?>"><i class="bx bx-check me-1"></i>Save</button>
-                                <a href="<?php echo $_closeUrl; ?>" class="btn btn-label-danger<?php echo $_hideNav ? ' d-none' : ''; ?>" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_close', 'Return to list'); ?>">Close</a>
-                            </div>
-                        </div>
-                        <?php endif; ?>
 
                         <div class="card-body card-body-form-static p-3">
 

@@ -32,12 +32,46 @@ for ($i = 29; $i >= 0; $i--) {
     $chartValues[] = $chartMap[$d] ?? 0;
 }
 
-// KPI data for JS
+// Receivable trend (last 30 days — open invoice balance amounts)
+$recvMap = [];
+foreach ($ReceivableTrend ?? [] as $row) { $recvMap[$row->sale_date] = (float)$row->total; }
+$recvValues = [];
+for ($i = 29; $i >= 0; $i--) { $recvValues[] = $recvMap[date('Y-m-d', strtotime("-{$i} days"))] ?? 0; }
+
+// Payable trend (last 30 days — purchase bill amounts)
+$payMap = [];
+foreach ($PayableTrend ?? [] as $row) { $payMap[$row->sale_date] = (float)$row->total; }
+$payValues = [];
+for ($i = 29; $i >= 0; $i--) { $payValues[] = $payMap[date('Y-m-d', strtotime("-{$i} days"))] ?? 0; }
+
+// Monthly sales trend (last 12 months)
+$monthMap = [];
+foreach ($MonthlyTrend ?? [] as $row) { $monthMap[$row->sale_date] = (float)$row->total; }
+$monthLabels = []; $monthValues = [];
+for ($i = 11; $i >= 0; $i--) {
+    $d = date('Y-m-01', strtotime("-{$i} months"));
+    $monthLabels[] = date('M Y', strtotime($d));
+    $monthValues[] = $monthMap[$d] ?? 0;
+}
+
+// Purchase KPI summary
+$todayPurch   = $TodayPurchases ?? ['total' => 0, 'count' => 0];
+$monthlyPurch = $MonthlyPurchasesComparison ?? ['this_month' => 0, 'last_month' => 0];
+$purchPct     = dashPct($monthlyPurch['this_month'], $monthlyPurch['last_month']);
+$topVend      = $TopVendors ?? [];
+$pendCounts   = $PendingCounts ?? (object)['draft_count' => 0, 'open_invoices' => 0, 'open_pos' => 0, 'open_purchases' => 0];
+$expSummary   = $ExpenseSummary ?? [];
+$expTotal     = array_sum(array_map(fn($r) => (float)$r->total, $expSummary));
+$expMax       = count($expSummary) > 0 ? max(array_map(fn($r) => (float)$r->total, $expSummary)) : 1;
+$topProducts  = $TopProducts ?? [];
+$prodRevMax   = count($topProducts) > 0 ? max(array_map(fn($r) => (float)$r->revenue, $topProducts)) : 1;
+
+// KPI data for JS — each metric carries its own labels array
 $kpiData = [
-    'sales'       => ['values' => $chartValues, 'label' => 'Sales (Last 30 Days)',      'color' => '#0d6efd'],
-    'receivable'  => ['values' => $chartValues, 'label' => 'Receivable Trend',           'color' => '#198754'],
-    'payable'     => ['values' => $chartValues, 'label' => 'Payable Trend',              'color' => '#dc3545'],
-    'monthly'     => ['values' => $chartValues, 'label' => 'Monthly Sales Comparison',   'color' => '#f59e0b'],
+    'sales'      => ['values' => $chartValues, 'labels' => $chartLabels, 'label' => 'Sales — Last 30 Days',             'color' => '#0d6efd', 'link' => '/invoices'],
+    'monthly'    => ['values' => $monthValues, 'labels' => $monthLabels, 'label' => 'Monthly Sales — Last 12 Months',   'color' => '#f59e0b', 'link' => '/invoices'],
+    'receivable' => ['values' => $recvValues,  'labels' => $chartLabels, 'label' => 'Open Receivable — Last 30 Days',   'color' => '#198754', 'link' => '/invoices'],
+    'payable'    => ['values' => $payValues,   'labels' => $chartLabels, 'label' => 'Purchases — Last 30 Days',         'color' => '#dc3545', 'link' => '/purchases'],
 ];
 ?>
 
@@ -82,6 +116,65 @@ $kpiData = [
     display: inline-block; margin-right: 5px;
     transition: background .18s;
 }
+
+/* ── Info-only KPI cards (purchases — no chart switching) ── */
+.kpi-info {
+    border: 2px solid #e9ecef;
+    border-radius: 10px;
+}
+.kpi-info .kpi-icon-wrap { border-radius: 8px; padding: 6px 8px; }
+.kpi-info .kpi-value { font-size: 1.35rem; font-weight: 700; line-height: 1.2; }
+.kpi-info .kpi-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .4px; }
+.kpi-info .kpi-sub   { font-size: .72rem; margin-top: 3px; }
+
+/* ── Pending action strip ── */
+.pend-strip { font-size: .78rem; }
+.pend-badge { display: inline-flex; align-items: center; gap: 6px; }
+.pend-count {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 22px; height: 22px; border-radius: 50%;
+    font-size: .7rem; font-weight: 700; padding: 0 6px;
+}
+.pend-count-draft { background: #e9ecef; color: #495057; }
+.pend-count-inv   { background: #dbeafe; color: #1d4ed8; }
+.pend-count-po    { background: #fef3c7; color: #b45309; }
+.pend-count-purch { background: #ede9fe; color: #6d28d9; }
+.pend-lnk { color: #566a7f; text-decoration: none; }
+.pend-lnk:hover { color: #0d6efd; }
+
+/* ── View all link (chart card) ── */
+#chartViewAllLink { font-size: .75rem; }
+
+/* ── Purchase KPI info cards ── */
+.kpi-purch-icon   { background: #ede9fe; }
+.kpi-purch-ico    { font-size: 1.15rem; color: #7c3aed; }
+.kpi-purch-val    { color: #7c3aed; }
+.kpi-mpurch-icon  { background: #e0f2fe; }
+.kpi-mpurch-ico   { font-size: 1.15rem; color: #0284c7; }
+.kpi-mpurch-val   { color: #0284c7; }
+
+/* ── Pending strip label ── */
+.pend-strip-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .4px; }
+
+/* ── Top Vendors card ── */
+.vend-avatar { width: 32px; height: 32px; background: #fef3c7; color: #b45309; font-size: .72rem; font-weight: 700; }
+.vend-balance { font-size: .82rem; color: #dc3545; }
+
+/* ── Expense Summary card ── */
+.exp-cat-name  { font-size: .8rem; font-weight: 500; min-width: 100px; }
+.exp-cat-bar   { flex: 1; height: 6px; border-radius: 3px; background: #f0f0f0; overflow: hidden; }
+.exp-cat-fill  { height: 100%; border-radius: 3px; background: #dc3545; }
+.exp-cat-amt   { font-size: .78rem; font-weight: 600; min-width: 80px; text-align: right; color: #dc3545; }
+.exp-total-lbl { font-size: .72rem; text-transform: uppercase; letter-spacing: .4px; }
+.exp-total-val { font-size: 1.1rem; font-weight: 700; color: #dc3545; }
+
+/* ── Top Products card ── */
+.prod-rank     { width: 20px; font-size: .75rem; font-weight: 700; color: #adb5bd; flex-shrink: 0; }
+.prod-name     { font-size: .82rem; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prod-bar      { flex: 1; height: 5px; border-radius: 3px; background: #f0f0f0; overflow: hidden; }
+.prod-bar-fill { height: 100%; border-radius: 3px; background: #0d6efd; }
+.prod-qty      { font-size: .7rem; color: #6c757d; flex-shrink: 0; }
+.prod-rev      { font-size: .78rem; font-weight: 600; color: #0d6efd; min-width: 90px; text-align: right; flex-shrink: 0; }
 </style>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -126,10 +219,10 @@ $kpiData = [
                 <div class="container-xxl flex-grow-1">
 
                     <!-- ── KPI Tabs (21st.dev Line Charts 6 pattern) ──────── -->
-                    <div class="row g-3 mb-4">
+                    <div class="row g-3 mb-3">
 
-                        <!-- To Collect -->
-                        <div class="col-6 col-md-3">
+                        <!-- Today's Sales -->
+                        <div class="col-6 col-md-2">
                             <div class="card h-100 kpi-tab active"
                                  data-metric="sales"
                                  data-color="#0d6efd" data-rgb="13,110,253"
@@ -149,8 +242,8 @@ $kpiData = [
                             </div>
                         </div>
 
-                        <!-- This Month -->
-                        <div class="col-6 col-md-3">
+                        <!-- This Month Sales -->
+                        <div class="col-6 col-md-2">
                             <div class="card h-100 kpi-tab"
                                  data-metric="monthly"
                                  data-color="#f59e0b" data-rgb="245,158,11"
@@ -179,8 +272,8 @@ $kpiData = [
                             </div>
                         </div>
 
-                        <!-- Receivable -->
-                        <div class="col-6 col-md-3">
+                        <!-- To Collect (Receivable) -->
+                        <div class="col-6 col-md-2">
                             <div class="card h-100 kpi-tab"
                                  data-metric="receivable"
                                  data-color="#198754" data-rgb="25,135,84"
@@ -198,8 +291,8 @@ $kpiData = [
                             </div>
                         </div>
 
-                        <!-- Payable -->
-                        <div class="col-6 col-md-3">
+                        <!-- To Pay (Payable) -->
+                        <div class="col-6 col-md-2">
                             <div class="card h-100 kpi-tab"
                                  data-metric="payable"
                                  data-color="#dc3545" data-rgb="220,53,69"
@@ -217,6 +310,78 @@ $kpiData = [
                             </div>
                         </div>
 
+                        <!-- Today's Purchases (info card — no chart switch) -->
+                        <div class="col-6 col-md-2">
+                            <div class="card h-100 kpi-info">
+                                <div class="card-body py-3">
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <span class="text-muted kpi-label">Today Bought</span>
+                                        <div class="kpi-icon-wrap kpi-purch-icon">
+                                            <i class="bx bx-purchase-tag kpi-purch-ico"></i>
+                                        </div>
+                                    </div>
+                                    <div class="kpi-value kpi-purch-val"><?php echo dashFmt($todayPurch['total'], $cur, $dec); ?></div>
+                                    <div class="kpi-sub text-muted">
+                                        <?php echo (int)$todayPurch['count']; ?> bill<?php echo $todayPurch['count'] != 1 ? 's' : ''; ?> today
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- This Month Purchases (info card — no chart switch) -->
+                        <div class="col-6 col-md-2">
+                            <div class="card h-100 kpi-info">
+                                <div class="card-body py-3">
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <span class="text-muted kpi-label">Month Purchases</span>
+                                        <div class="kpi-icon-wrap kpi-mpurch-icon">
+                                            <i class="bx bx-store kpi-mpurch-ico"></i>
+                                        </div>
+                                    </div>
+                                    <div class="kpi-value kpi-mpurch-val"><?php echo dashFmt($monthlyPurch['this_month'], $cur, $dec); ?></div>
+                                    <div class="kpi-sub">
+                                        <?php if ($purchPct > 0): ?>
+                                            <span class="kpi-badge up"><i class="bx bx-up-arrow-alt"></i><?php echo $purchPct; ?>%</span>
+                                            <span class="text-muted ms-1">vs last month</span>
+                                        <?php elseif ($purchPct < 0): ?>
+                                            <span class="kpi-badge down"><i class="bx bx-down-arrow-alt"></i><?php echo abs($purchPct); ?>%</span>
+                                            <span class="text-muted ms-1">vs last month</span>
+                                        <?php else: ?>
+                                            <span class="kpi-badge flat">—</span>
+                                            <span class="text-muted ms-1">same as last month</span>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- ── Pending Actions Strip ──────────────────────────── -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-body py-2 px-3 d-flex align-items-center gap-4 flex-wrap pend-strip">
+                                    <span class="text-muted fw-semibold pend-strip-label">Pending Actions</span>
+                                    <div class="pend-badge">
+                                        <span class="pend-count pend-count-draft"><?php echo (int)$pendCounts->draft_count; ?></span>
+                                        <a href="/invoices?tab=Draft" class="pend-lnk">Drafts</a>
+                                    </div>
+                                    <div class="pend-badge">
+                                        <span class="pend-count pend-count-inv"><?php echo (int)$pendCounts->open_invoices; ?></span>
+                                        <a href="/invoices" class="pend-lnk">Open Invoices</a>
+                                    </div>
+                                    <div class="pend-badge">
+                                        <span class="pend-count pend-count-po"><?php echo (int)$pendCounts->open_pos; ?></span>
+                                        <a href="/purchaseorders" class="pend-lnk">Open POs</a>
+                                    </div>
+                                    <div class="pend-badge">
+                                        <span class="pend-count pend-count-purch"><?php echo (int)$pendCounts->open_purchases; ?></span>
+                                        <a href="/purchases" class="pend-lnk">Open Purchases</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- ── Chart (switches on KPI tap) + Overdue ─────────── -->
@@ -230,7 +395,7 @@ $kpiData = [
                                         <span class="chart-metric-dot" id="chartDot" style="background:#0d6efd;"></span>
                                         <span id="chartTitle">Sales — Last 30 Days</span>
                                     </span>
-                                    <a href="/invoices" class="btn btn-sm btn-outline-primary" style="font-size:.75rem;">View All</a>
+                                    <a href="/invoices" id="chartViewAllLink" class="btn btn-sm btn-outline-primary">View All</a>
                                 </div>
                                 <div class="card-body pt-2 pb-3" style="position:relative;">
                                     <!-- Dotted grid background (21st.dev pattern) -->
@@ -280,9 +445,9 @@ $kpiData = [
                     <!-- ── Top Customers + Recent Transactions ──────────── -->
                     <div class="row g-3">
 
-                        <!-- Top Customers -->
+                        <!-- Top Customers + Top Vendors (stacked) -->
                         <div class="col-md-4">
-                            <div class="card h-100">
+                            <div class="card">
                                 <div class="card-header d-flex align-items-center justify-content-between py-2">
                                     <span class="fw-semibold" style="font-size:.88rem;">Top Customers</span>
                                     <a href="/customers" class="btn btn-sm btn-outline-secondary" style="font-size:.72rem;">View All</a>
@@ -304,6 +469,34 @@ $kpiData = [
                                                 <?php endif; ?>
                                             </div>
                                             <div class="fw-bold text-end flex-shrink-0" style="font-size:.82rem;color:#198754;"><?php echo dashFmt($cust->PendingBalance, $cur, $dec); ?></div>
+                                        </div>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+
+                            <!-- Top Vendors -->
+                            <div class="card mt-3">
+                                <div class="card-header d-flex align-items-center justify-content-between py-2">
+                                    <span class="fw-semibold" style="font-size:.88rem;">Top Vendors</span>
+                                    <a href="/vendors" class="btn btn-sm btn-outline-secondary" style="font-size:.72rem;">View All</a>
+                                </div>
+                                <div class="card-body p-0">
+                                    <?php if (empty($topVend)): ?>
+                                        <div class="text-center text-muted py-4" style="font-size:.82rem;">No outstanding vendors</div>
+                                    <?php else: ?>
+                                        <?php foreach ($topVend as $vend): ?>
+                                        <div class="d-flex align-items-center gap-2 px-3 py-2" style="border-bottom:1px solid #f0f0f0;">
+                                            <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 vend-avatar">
+                                                <?php echo strtoupper(substr(trim($vend->Name ?? 'X'), 0, 1)); ?>
+                                            </div>
+                                            <div class="flex-grow-1 min-width-0">
+                                                <div style="font-size:.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?php echo htmlspecialchars($vend->Name ?? '—'); ?></div>
+                                                <?php if (!empty($vend->MobileNumber)): ?>
+                                                <div style="font-size:.7rem;color:#6c757d;"><?php echo htmlspecialchars($vend->MobileNumber); ?></div>
+                                                <?php endif; ?>
+                                            </div>
+                                            <div class="fw-bold text-end flex-shrink-0 vend-balance"><?php echo dashFmt($vend->PendingBalance, $cur, $dec); ?></div>
                                         </div>
                                         <?php endforeach; ?>
                                     <?php endif; ?>
@@ -361,6 +554,80 @@ $kpiData = [
 
                     </div>
 
+                    <!-- ── Expense Summary + Top Products ────────────────── -->
+                    <div class="row g-3 mt-1">
+
+                        <!-- Expense Summary -->
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-header d-flex align-items-center justify-content-between py-2">
+                                    <span class="fw-semibold" style="font-size:.88rem;"><i class="bx bx-wallet text-danger me-1"></i>Expenses — This Month</span>
+                                    <a href="/expenses" class="btn btn-sm btn-outline-secondary" style="font-size:.72rem;">View All</a>
+                                </div>
+                                <div class="card-body py-3">
+                                    <?php if (empty($expSummary)): ?>
+                                        <div class="text-center text-muted py-2" style="font-size:.82rem;">No expenses this month</div>
+                                    <?php else: ?>
+                                        <div class="d-flex align-items-center gap-3 mb-3">
+                                            <div>
+                                                <div class="exp-total-lbl text-muted">Total Spent</div>
+                                                <div class="exp-total-val"><?php echo dashFmt($expTotal, $cur, $dec); ?></div>
+                                            </div>
+                                            <div class="text-muted" style="font-size:.75rem;">| <?php echo count($expSummary); ?> categor<?php echo count($expSummary) == 1 ? 'y' : 'ies'; ?></div>
+                                        </div>
+                                        <div class="d-flex flex-column gap-2">
+                                            <?php foreach ($expSummary as $exp):
+                                                $pct = $expMax > 0 ? round(((float)$exp->total / $expMax) * 100) : 0;
+                                            ?>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="exp-cat-name"><?php echo htmlspecialchars($exp->category); ?></span>
+                                                <div class="exp-cat-bar">
+                                                    <div class="exp-cat-fill" style="width:<?php echo $pct; ?>%;"></div>
+                                                </div>
+                                                <span class="exp-cat-amt"><?php echo dashFmt((float)$exp->total, $cur, $dec); ?></span>
+                                            </div>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Top Products -->
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-header d-flex align-items-center justify-content-between py-2">
+                                    <span class="fw-semibold" style="font-size:.88rem;"><i class="bx bx-box text-primary me-1"></i>Top Products — This Month</span>
+                                    <a href="/products" class="btn btn-sm btn-outline-secondary" style="font-size:.72rem;">View All</a>
+                                </div>
+                                <div class="card-body py-3">
+                                    <?php if (empty($topProducts)): ?>
+                                        <div class="text-center text-muted py-2" style="font-size:.82rem;">No sales this month</div>
+                                    <?php else: ?>
+                                        <div class="d-flex flex-column gap-2">
+                                            <?php foreach ($topProducts as $i => $prod):
+                                                $pct = $prodRevMax > 0 ? round(((float)$prod->revenue / $prodRevMax) * 100) : 0;
+                                            ?>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="prod-rank"><?php echo $i + 1; ?></span>
+                                                <div class="flex-grow-1 min-width-0">
+                                                    <div class="prod-name"><?php echo htmlspecialchars($prod->ProductName ?? '—'); ?></div>
+                                                    <div class="prod-bar mt-1">
+                                                        <div class="prod-bar-fill" style="width:<?php echo $pct; ?>%;"></div>
+                                                    </div>
+                                                </div>
+                                                <span class="prod-qty"><?php echo number_format((float)$prod->qty_sold, 0); ?> qty</span>
+                                                <span class="prod-rev"><?php echo dashFmt((float)$prod->revenue, $cur, $dec); ?></span>
+                                            </div>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
                 </div>
             </div>
             <?php $this->load->view('common/footer_desc'); ?>
@@ -375,11 +642,10 @@ $kpiData = [
 (function () {
     'use strict';
 
-    var cur     = <?php echo json_encode($cur); ?>;
-    var dec     = <?php echo (int)$dec; ?>;
-    var labels  = <?php echo json_encode($chartLabels); ?>;
+    var cur  = <?php echo json_encode($cur); ?>;
+    var dec  = <?php echo (int)$dec; ?>;
 
-    // KPI metric datasets — extend here when backend provides per-metric series
+    // KPI metric datasets — each carries its own labels array for the axis
     var metrics = <?php echo json_encode($kpiData); ?>;
 
     // ── Build Chart ──────────────────────────────────────────────────────────
@@ -389,7 +655,7 @@ $kpiData = [
     var chart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: labels,
+            labels: metrics.sales.labels,
             datasets: [{
                 label: 'Sales',
                 data: metrics.sales.values,
@@ -457,16 +723,18 @@ $kpiData = [
             document.querySelectorAll('.kpi-tab').forEach(function (t) { t.classList.remove('active'); });
             this.classList.add('active');
 
-            // Update chart data + color
-            chart.data.datasets[0].data          = metrics[metric].values;
-            chart.data.datasets[0].borderColor    = color;
-            chart.data.datasets[0].backgroundColor= hexToRgba(color, .08);
-            chart.data.datasets[0].pointHoverBackgroundColor = color;
+            // Update chart labels, data, and color
+            chart.data.labels                                  = metrics[metric].labels;
+            chart.data.datasets[0].data                       = metrics[metric].values;
+            chart.data.datasets[0].borderColor                 = color;
+            chart.data.datasets[0].backgroundColor             = hexToRgba(color, .08);
+            chart.data.datasets[0].pointHoverBackgroundColor   = color;
             chart.update();
 
-            // Update chart header
-            document.getElementById('chartTitle').textContent = metrics[metric].label;
+            // Update chart header and view-all link
+            document.getElementById('chartTitle').textContent    = metrics[metric].label;
             document.getElementById('chartDot').style.background = color;
+            document.getElementById('chartViewAllLink').href      = metrics[metric].link;
         });
     });
 

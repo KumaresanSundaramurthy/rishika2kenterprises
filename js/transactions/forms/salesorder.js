@@ -241,6 +241,7 @@ $(function () {
             collectTransAttachData(formData);
             if (typeof _plTransInjectFormData === 'function') _plTransInjectFormData(formData);
 
+            ajaxLoading(1);
             setFormLoading('#' + _formId, true, action);
 
             $.ajax({
@@ -252,6 +253,7 @@ $(function () {
                 cache       : false,
                 success: function (response) {
                     if (response.Error) {
+                        ajaxLoading(0);
                         setFormLoading('#' + _formId, false);
                         showFormError(response.Message);
                     } else {
@@ -262,6 +264,7 @@ $(function () {
                     }
                 },
                 error: function () {
+                    ajaxLoading(0);
                     setFormLoading('#' + _formId, false);
                     showFormError('Server error. Please try again.');
                 }

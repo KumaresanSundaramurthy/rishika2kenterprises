@@ -141,7 +141,7 @@ class Oauth extends CI_Controller {
         $params = http_build_query([
             'client_id'     => getenv('FACEBOOK_APP_ID'),
             'redirect_uri'  => base_url('auth/facebook/callback'),
-            'scope'         => 'email',
+            'scope'         => 'public_profile,email',
             'state'         => $state,
             'response_type' => 'code',
         ]);

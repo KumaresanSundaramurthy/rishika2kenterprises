@@ -221,6 +221,12 @@ class Purchases extends MY_Controller {
             if (!$isDraft) {
                 $this->_syncProductCacheFromItems($items);
                 $this->_recalcVendorBalance($orgUID, $vendorUID, $userUID);
+                try {
+                    $this->load->model('purchasepricehistory_model');
+                    $this->purchasepricehistory_model->syncFromPurchase($orgUID, $userUID, $transUID, $transDate, $vendorUID, $items);
+                } catch (Exception $priceEx) {
+                    log_message('error', 'Purchase price log sync failed after create #' . $transUID . ': ' . $priceEx->getMessage());
+                }
             }
 
             $this->EndReturnData->Error    = FALSE;
@@ -425,6 +431,12 @@ class Purchases extends MY_Controller {
                 foreach ($items as $_item) { $u = (int)($_item['id'] ?? 0); if ($u > 0) $_cacheUIDs[$u] = true; }
                 foreach (array_keys($_cacheUIDs) as $_uid) { $this->cachehelper->upsertProduct($_uid); }
                 $this->_recalcVendorBalance($orgUID, $vendorUID, $userUID);
+                try {
+                    $this->load->model('purchasepricehistory_model');
+                    $this->purchasepricehistory_model->updateFromPurchase($orgUID, $userUID, $activeTransUID, $transUID, $amounts['transDate'], $vendorUID, $items);
+                } catch (Exception $priceEx) {
+                    log_message('error', 'Purchase price log sync failed after update #' . $activeTransUID . ': ' . $priceEx->getMessage());
+                }
             }
             $this->transactions_model->generateAndStorePdf($activeTransUID, $orgUID, $this->pageModuleUID);
 
@@ -496,6 +508,13 @@ class Purchases extends MY_Controller {
                     log_message('error', 'Ledger reversal failed after purchase delete: ' . $ledgerEx->getMessage());
                 }
                 $this->_recalcVendorBalance($orgUID, $existing->PartyUID, $userUID);
+            }
+
+            try {
+                $this->load->model('purchasepricehistory_model');
+                $this->purchasepricehistory_model->softDeleteByTransaction($orgUID, $transUID, $userUID);
+            } catch (Exception $priceEx) {
+                log_message('error', 'Purchase price log soft-delete failed after delete #' . $transUID . ': ' . $priceEx->getMessage());
             }
 
             $this->EndReturnData->Error   = FALSE;

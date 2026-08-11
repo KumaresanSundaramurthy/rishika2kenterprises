@@ -75,28 +75,32 @@ class Vendors extends MY_Controller {
             $this->load->model('vendors_model');
             $orgUID = $this->pageData['JwtData']->Org->OrgUID;
 
-            $allFilter = strlen($initSearch) >= 3 ? ['SearchAllData' => $initSearch] : [];
+            $allFilter  = strlen($initSearch) >= 3 ? ['SearchAllData' => $initSearch] : [];
+            $_showStats = (int)($this->pageData['JwtData']->GenSettings->ShowStats ?? 1)
+                       && (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
+
             if ($initTab !== 'Groups') {
                 $pageData = $this->_fetchTableData(1, $limit, $allFilter);
-                $this->pageData['ModRowData']    = $pageData->RecordHtmlData;
-                $this->pageData['ModPagination'] = $pageData->Pagination;
+                $this->pageData['ModRowData']     = $pageData->RecordHtmlData;
+                $this->pageData['ModPagination']  = $pageData->Pagination;
+                $this->pageData['InitTotalCount'] = $pageData->TotalCount;
             } else {
-                $this->pageData['ModRowData']    = '';
-                $this->pageData['ModPagination'] = '';
+                $this->pageData['ModRowData']     = '';
+                $this->pageData['ModPagination']  = '';
+                $this->pageData['InitTotalCount'] = 0;
                 $grpFilter = $allFilter;
                 $grpPage   = $this->_fetchVendorGroupsTableData(1, $limit, $grpFilter);
                 $this->pageData['GrpRowData']    = $grpPage->RecordHtmlData;
                 $this->pageData['GrpPagination'] = $grpPage->Pagination;
-                $_showStats = (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
                 $this->pageData['GrpStats']      = $_showStats ? $this->vendors_model->getVendorGroupStats($orgUID) : null;
                 $this->pageData['GrpTotal']      = $grpPage->TotalCount;
             }
 
             $this->pageData['InitTab']       = $initTab;
             $this->pageData['InitSearch']    = $initSearch;
-            $this->pageData['VendShowStats'] = (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
+            $this->pageData['VendShowStats'] = (int)$_showStats;
 
-            $this->pageData['VendStats'] = $this->vendors_model->getVendorStats($orgUID);
+            $this->pageData['VendStats'] = $_showStats ? $this->vendors_model->getVendorStats($orgUID) : null;
             $this->pageData['Tags']      = $this->vendors_model->getVendorTags($orgUID);
 
             $orgUsers = $this->_requireCache($this->redisservice->orgKey('org-users'));
@@ -312,6 +316,25 @@ class Vendors extends MY_Controller {
             $this->EndReturnData->VendorUID  = $VendorUID;
             $this->EndReturnData->VendorName = getPostValue($PostData, 'Name');
             $this->EndReturnData->VendorArea = getPostValue($PostData, 'Area');
+            $newBillLine1 = trim((string) getPostValue($PostData, 'BillAddrLine1', '', ''));
+            $newBillAddr  = [];
+            if ($newBillLine1 !== '') {
+                $newBillAddr = [[
+                    'AddressType' => 'Billing',
+                    'Line1'       => $newBillLine1,
+                    'Line2'       => trim((string) getPostValue($PostData, 'BillAddrLine2',     '', '')),
+                    'Pincode'     => trim((string) getPostValue($PostData, 'BillAddrPincode',   '', '')),
+                    'CityText'    => trim((string) getPostValue($PostData, 'BillAddrCityText',  '', '')),
+                    'StateText'   => trim((string) getPostValue($PostData, 'BillAddrStateText', '', '')),
+                ]];
+            }
+            $this->EndReturnData->Vendor = [
+                'VendorUID'    => (int) $VendorUID,
+                'Name'         => trim((string) getPostValue($PostData, 'Name',         '', '')),
+                'Area'         => trim((string) getPostValue($PostData, 'Area',         '', '')),
+                'MobileNumber' => trim((string) getPostValue($PostData, 'MobileNumber', '', '')),
+                'Address'      => $newBillAddr,
+            ];
 
         } catch (InvalidArgumentException $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -631,6 +654,25 @@ class Vendors extends MY_Controller {
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Updated Successfully';
+            $billLine1 = trim((string) getPostValue($PostData, 'BillAddrLine1', '', ''));
+            $billAddr  = [];
+            if ($billLine1 !== '') {
+                $billAddr = [[
+                    'AddressType' => 'Billing',
+                    'Line1'       => $billLine1,
+                    'Line2'       => trim((string) getPostValue($PostData, 'BillAddrLine2',     '', '')),
+                    'Pincode'     => trim((string) getPostValue($PostData, 'BillAddrPincode',   '', '')),
+                    'CityText'    => trim((string) getPostValue($PostData, 'BillAddrCityText',  '', '')),
+                    'StateText'   => trim((string) getPostValue($PostData, 'BillAddrStateText', '', '')),
+                ]];
+            }
+            $this->EndReturnData->Vendor = [
+                'VendorUID'    => (int) $VendorUID,
+                'Name'         => trim((string) getPostValue($PostData, 'Name',         '', '')),
+                'Area'         => trim((string) getPostValue($PostData, 'Area',         '', '')),
+                'MobileNumber' => trim((string) getPostValue($PostData, 'MobileNumber', '', '')),
+                'Address'      => $billAddr,
+            ];
             $this->auditlog->log(
                 (int) $orgUID, (int) $userUID,
                 'UPDATE_VENDOR', 'Vendor', (int) $VendorUID, (string) getPostValue($PostData, 'Name'),
@@ -735,8 +777,10 @@ class Vendors extends MY_Controller {
     public function getStats() {
         $this->EndReturnData = new stdClass();
         try {
+            $_showStats = (int)($this->pageData['JwtData']->GenSettings->ShowStats ?? 1)
+                       && (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
             $this->load->model('vendors_model');
-            $stats = $this->vendors_model->getVendorStats($this->pageData['JwtData']->Org->OrgUID);
+            $stats = $_showStats ? $this->vendors_model->getVendorStats($this->pageData['JwtData']->Org->OrgUID) : null;
             $this->EndReturnData->Error = false;
             $this->EndReturnData->Stats = $stats;
         } catch (Exception $e) {
@@ -1002,7 +1046,8 @@ class Vendors extends MY_Controller {
             $this->EndReturnData->RecordHtmlData = $pageData->RecordHtmlData;
             $this->EndReturnData->Pagination     = $pageData->Pagination;
             $this->EndReturnData->TotalCount     = $pageData->TotalCount;
-            $_showStats = (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
+            $_showStats = (int)($this->pageData['JwtData']->GenSettings->ShowStats ?? 1)
+                       && (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
             $this->EndReturnData->Stats = $_showStats ? $this->vendors_model->getVendorGroupStats($this->pageData['JwtData']->Org->OrgUID) : null;
         } catch (Exception $e) {
             $this->EndReturnData->Error   = true;
@@ -1052,7 +1097,7 @@ class Vendors extends MY_Controller {
                 'Mobile'            => trim($post['Mobile']            ?? '') ?: null,
                 'MobileCountryCode' => trim($post['MobileCountryCode'] ?? '') ?: null,
                 'Email'             => trim($post['Email']             ?? '') ?: null,
-                'GSTNo'             => trim($post['GSTNo']             ?? '') ?: null,
+                'GSTNo'             => strtoupper(trim($post['GSTIN']             ?? '')) ?: null,
                 'AddrLine1'         => trim($post['AddrLine1']         ?? '') ?: null,
                 'AddrLine2'         => trim($post['AddrLine2']         ?? '') ?: null,
                 'AddrCity'          => trim($post['AddrCity']          ?? '') ?: null,
@@ -1074,6 +1119,7 @@ class Vendors extends MY_Controller {
                 $this->vendors_model->assignVendorGroupMembers($orgUID, $groupUID, $memberUIDs, $primaryUID, $userUID);
             }
             $this->dbwrite_model->commitTransaction();
+            $this->cachehelper->upsertVendorGroup((int) $groupUID);
             $this->EndReturnData->Error    = false;
             $this->EndReturnData->Message  = 'Vendor Group created successfully.';
             $this->auditlog->log(
@@ -1085,14 +1131,6 @@ class Vendors extends MY_Controller {
                 $data
             );
             $this->EndReturnData->GroupUID = $groupUID;
-            $limit    = isset($this->pageData['Limit']) ? (int)$this->pageData['Limit'] : 25;
-            $pageData = $this->_fetchVendorGroupsTableData(1, $limit);
-            $this->load->model('vendors_model');
-            $this->EndReturnData->RecordHtmlData = $pageData->RecordHtmlData;
-            $this->EndReturnData->Pagination     = $pageData->Pagination;
-            $this->EndReturnData->TotalCount     = $pageData->TotalCount;
-            $_showStats = (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
-            $this->EndReturnData->Stats = $_showStats ? $this->vendors_model->getVendorGroupStats($orgUID) : null;
         } catch (InvalidArgumentException $e) {
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = true;
@@ -1126,7 +1164,7 @@ class Vendors extends MY_Controller {
                 'Mobile'            => trim($post['Mobile']            ?? '') ?: null,
                 'MobileCountryCode' => trim($post['MobileCountryCode'] ?? '') ?: null,
                 'Email'             => trim($post['Email']             ?? '') ?: null,
-                'GSTNo'             => trim($post['GSTNo']             ?? '') ?: null,
+                'GSTNo'             => strtoupper(trim($post['GSTIN']             ?? '')) ?: null,
                 'AddrLine1'         => trim($post['AddrLine1']         ?? '') ?: null,
                 'AddrLine2'         => trim($post['AddrLine2']         ?? '') ?: null,
                 'AddrCity'          => trim($post['AddrCity']          ?? '') ?: null,
@@ -1144,6 +1182,7 @@ class Vendors extends MY_Controller {
             $primaryUID = (int)($post['PrimaryUID'] ?? 0);
             $this->vendors_model->syncVendorGroupMembers($orgUID, $groupUID, $memberUIDs, $primaryUID, $userUID);
             $this->dbwrite_model->commitTransaction();
+            $this->cachehelper->upsertVendorGroup((int) $groupUID);
             $this->EndReturnData->Error    = false;
             $this->EndReturnData->Message  = 'Vendor Group updated successfully.';
             $this->auditlog->log(
@@ -1155,13 +1194,6 @@ class Vendors extends MY_Controller {
                 $data
             );
             $this->EndReturnData->GroupUID = $groupUID;
-            $limit    = isset($this->pageData['Limit']) ? (int)$this->pageData['Limit'] : 25;
-            $pageData = $this->_fetchVendorGroupsTableData(1, $limit);
-            $this->EndReturnData->RecordHtmlData = $pageData->RecordHtmlData;
-            $this->EndReturnData->Pagination     = $pageData->Pagination;
-            $this->EndReturnData->TotalCount     = $pageData->TotalCount;
-            $_showStats = (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
-            $this->EndReturnData->Stats = $_showStats ? $this->vendors_model->getVendorGroupStats($orgUID) : null;
         } catch (InvalidArgumentException $e) {
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = true;
@@ -1193,6 +1225,7 @@ class Vendors extends MY_Controller {
             );
             if ($resp->Error) throw new Exception($resp->Message);
             $this->dbwrite_model->commitTransaction();
+            $this->cachehelper->removeVendorGroup((int) $groupUID);
             $this->_initModule();
             $pageData = $this->_fetchVendorGroupsTableData($pageNo, $this->pageData['Limit']);
             $this->EndReturnData->Error          = false;
@@ -1207,7 +1240,8 @@ class Vendors extends MY_Controller {
             );
             $this->EndReturnData->RecordHtmlData = $pageData->RecordHtmlData;
             $this->EndReturnData->Pagination     = $pageData->Pagination;
-            $_showStats = (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
+            $_showStats = (int)($this->pageData['JwtData']->GenSettings->ShowStats ?? 1)
+                       && (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
             $this->EndReturnData->Stats = $_showStats ? $this->vendors_model->getVendorGroupStats($orgUID) : null;
         } catch (Exception $e) {
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
@@ -1233,6 +1267,11 @@ class Vendors extends MY_Controller {
                 ['GroupUID' => $groupUID, 'OrgUID' => $orgUID]
             );
             if ($resp->Error) throw new Exception($resp->Message);
+            if ($newStatus === 1) {
+                $this->cachehelper->upsertVendorGroup((int) $groupUID);
+            } else {
+                $this->cachehelper->removeVendorGroup((int) $groupUID);
+            }
             $this->_initModule();
             $pageData = $this->_fetchVendorGroupsTableData($pageNo, $this->pageData['Limit']);
             $this->load->model('vendors_model');
@@ -1248,7 +1287,8 @@ class Vendors extends MY_Controller {
             );
             $this->EndReturnData->RecordHtmlData = $pageData->RecordHtmlData;
             $this->EndReturnData->Pagination     = $pageData->Pagination;
-            $_showStats = (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
+            $_showStats = (int)($this->pageData['JwtData']->GenSettings->ShowStats ?? 1)
+                       && (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
             $this->EndReturnData->Stats = $_showStats ? $this->vendors_model->getVendorGroupStats($orgUID) : null;
         } catch (Exception $e) {
             $this->EndReturnData->Error   = true;
@@ -1264,6 +1304,38 @@ class Vendors extends MY_Controller {
             $this->load->model('vendors_model');
             $this->EndReturnData->Error  = false;
             $this->EndReturnData->Groups = $this->vendors_model->getActiveVendorGroupsForDropdown($orgUID);
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function syncVendorGroupsCache(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $this->load->model('vendors_model');
+            $groups = $this->vendors_model->getActiveVendorGroupsForDropdown($orgUID);
+            if (empty($groups)) throw new Exception('No active vendor groups found.');
+
+            $cacheKey = $this->redisservice->orgKey('vendor-groups');
+            $this->upstashservice->del($cacheKey);
+            $map = [];
+            foreach ($groups as $g) {
+                $uid            = (int) $g->GroupUID;
+                $map[(string) $uid] = json_encode([
+                    'GroupUID'  => $uid,
+                    'GroupName' => $g->GroupName ?? '',
+                    'GroupCode' => $g->GroupCode ?? '',
+                    'GroupType' => $g->GroupType ?? '',
+                ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            }
+            $this->upstashservice->hmset($cacheKey, $map);
+
+            $this->EndReturnData->Error   = false;
+            $this->EndReturnData->Message = count($groups) . ' group(s) synced to cache.';
+            $this->EndReturnData->Count   = count($groups);
         } catch (Exception $e) {
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();

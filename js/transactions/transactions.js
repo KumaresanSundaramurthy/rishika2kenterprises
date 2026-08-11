@@ -2495,6 +2495,7 @@ function searchCustomers(key) {
     var wrapId   = 'customerGroup_' + key;
     var custCache = null;
     var _syncDone = false;
+    var _selectedUID = 0;
 
     $el.select2({
         placeholder: "Search customer...",
@@ -2732,8 +2733,10 @@ function searchCustomers(key) {
                                      if (a.Pincode) _tLoc += ' – ' + a.Pincode;
                                      $('#customerAddressBox').find('span').text([_tLines, _tLoc].filter(Boolean).join(' · '));
                                      $('#customerAddressBox').removeClass('d-none');
+                                     $('#customerNoAddressBox').addClass('d-none');
                                  } else {
                                      $('#customerAddressBox').addClass('d-none').find('span').text('');
+                                     $('#customerNoAddressBox').removeClass('d-none');
                                  }
                              }
                          });
@@ -2747,6 +2750,8 @@ function searchCustomers(key) {
     $el.on('select2:select', function (e) {
         custCache = null; // free after selection
         var data = e.params.data;
+        _selectedUID = parseInt(data.id, 10) || 0;
+        $('#' + wrapId).addClass('party-has-selection');
 
         // On Account — show indicator + button from cached data immediately.
         // Records are fetched lazily only when user clicks the "On Account" button.
@@ -2764,13 +2769,18 @@ function searchCustomers(key) {
             if (data.address.Pincode) _sLoc += ' – ' + data.address.Pincode;
             $("#customerAddressBox").find('span').text([_sLines, _sLoc].filter(Boolean).join(' · '));
             $("#customerAddressBox").removeClass('d-none');
+            $('#customerNoAddressBox').addClass('d-none');
         } else {
             $("#customerAddressBox").addClass('d-none').find('span').text('');
+            $('#customerNoAddressBox').removeClass('d-none');
         }
         _showCustTypeIndicator(data);
         if (typeof _plTransResolve === 'function') _plTransResolve(data);
     }).on('select2:clear', function () {
+        _selectedUID = 0;
+        $('#' + wrapId).removeClass('party-has-selection');
         $("#customerAddressBox").addClass('d-none').find('span').text('');
+        $('#customerNoAddressBox').addClass('d-none');
         $("#custTypeIndicator").addClass('d-none').empty();
         if (typeof billManager !== 'undefined') billManager.setInterState(false);
         _setForeignGstMode(false);

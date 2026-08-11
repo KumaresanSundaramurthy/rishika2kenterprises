@@ -172,6 +172,6 @@
         });
     }
 
-    window.AutoDraft = { init: init, initFromCfg: initFromCfg };
+    window.AutoDraft = { init: init, initFromCfg: initFromCfg, getDraftUid: function () { return _draftUid; } };
 
 }(window));

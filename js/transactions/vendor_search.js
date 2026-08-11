@@ -7,6 +7,21 @@
  * Vendor Search Modal — popup table for searching / picking a vendor.
  */
 
+// ── Address line formatter (file scope — used by both Select2 and IIFE) ──────
+/**
+ * @param {{Line1:string,Line2:string,City:string,State:string,Pincode:string}} a
+ * @returns {string}
+ */
+function _buildVendAddrLine(a) {
+    var parts = [];
+    if (a.Line1)   parts.push(a.Line1.trim());
+    if (a.Line2)   parts.push(a.Line2.trim());
+    var cityState = [a.City, a.State].filter(Boolean).map(function (s) { return s.trim(); }).join(', ');
+    if (cityState) parts.push(cityState);
+    if (a.Pincode) parts.push(a.Pincode.trim());
+    return parts.join(', ');
+}
+
 // ── Vendor Select2 dropdown ───────────────────────────────────────────────────
 function searchVendors(key) {
     var $el         = $('#' + key);
@@ -15,7 +30,8 @@ function searchVendors(key) {
 
     if (!$el.closest('.vendor-search-group').length) {
         $el.wrap('<div class="input-group input-group-sm input-group-merge vendor-search-group" id="' + wrapId + '"></div>');
-        $('<span class="input-group-text p-2 cursor-pointer" id="openVendorSearchModal" style="background:#f0ebff;border-color:#d9d0ff;color:#6f42c1;"><i class="icon-base bx bx-search"></i></span>').insertBefore($el);
+        $('<span class="input-group-text p-2 cursor-pointer trans-party-search-btn party-search-icon" id="openVendorSearchModal"><i class="icon-base bx bx-search"></i></span>').insertBefore($el);
+        $('<span class="party-edit-icon" id="editVendorBtn" title="Edit Vendor"><i class="bx bx-edit-alt"></i></span>').insertAfter($el);
     }
 
     $el.select2({
@@ -89,7 +105,11 @@ function searchVendors(key) {
                                 map = raw;
                             }
                             vendorCache = Object.keys(map).map(function (uid) {
-                                var v = map[uid];
+                                var v       = map[uid];
+                                var billing = null;
+                                (v.Address || []).forEach(function (a) {
+                                    if (a && a.AddressType === 'Billing') billing = a;
+                                });
                                 return {
                                     id:          parseInt(v.VendorUID || uid, 10),
                                     text:        v.Area ? (v.Name + ' (' + v.Area + ')') : (v.Name || ''),
@@ -101,6 +121,14 @@ function searchVendors(key) {
                                     balance:     parseFloat(v.ClosingBalance || v.OpeningBalance || 0),
                                     balanceType: v.ClosingBalType   || v.OpeningBalType || 'Credit',
                                     lastTxAt:    v.LastTransactionAt || '',
+                                    address:     billing ? {
+                                        Line1:   billing.Line1     || '',
+                                        Line2:   billing.Line2     || '',
+                                        City:    billing.CityText  || '',
+                                        State:   billing.StateText || '',
+                                        Pincode: billing.Pincode   || '',
+                                    } : null,
+                                    state:       billing ? (billing.StateText || '') : '',
                                 };
                             });
                             vendorCache.sort(function (a, b) {
@@ -142,8 +170,28 @@ function searchVendors(key) {
             },
             cache: false
         }
-    }).on('select2:select', function () {
+    }).on('select2:select', function (e) {
         vendorCache = null;
+        var data    = e.params.data;
+        $('#' + wrapId).addClass('party-has-selection');
+
+        // Address + warning strips
+        var addrObj = data.address || null;
+        if (addrObj && addrObj.Line1) {
+            $('#vendorAddressBox').find('span').text(_buildVendAddrLine(addrObj));
+            $('#vendorAddressBox').removeClass('d-none');
+            $('#vendorNoAddressBox').addClass('d-none');
+            if (typeof billManager !== 'undefined' && typeof _orgState !== 'undefined') {
+                billManager.setInterState((addrObj.State || '').trim().toLowerCase() !== _orgState.trim().toLowerCase());
+            }
+        } else {
+            $('#vendorAddressBox').addClass('d-none').find('span').text('');
+            $('#vendorNoAddressBox').removeClass('d-none');
+        }
+    }).on('select2:clear', function () {
+        $('#' + wrapId).removeClass('party-has-selection');
+        $('#vendorAddressBox').addClass('d-none').find('span').text('');
+        $('#vendorNoAddressBox').addClass('d-none');
     }).on('select2:close', function () {
         ajaxLoading(1);
     });
@@ -158,7 +206,7 @@ function searchVendors(key) {
     var PAGE_SIZE   = 15;
     var vendCache   = null; // populated once from Upstash; null = not yet fetched
 
-    // ── Open modal ────────────────────────────────────────────────────────────
+    // ── Open search modal ─────────────────────────────────────────────────────
     $(document).on('click', '#openVendorSearchModal', function () {
         currentPage = 1;
         searchTerm  = '';
@@ -166,6 +214,18 @@ function searchVendors(key) {
         $('#vendSearchClear').addClass('d-none');
         $('#vendorSearchModal').modal('show');
         loadVendors();
+    });
+
+    // ── Edit selected vendor ──────────────────────────────────────────────────
+    $(document).on('click', '#editVendorBtn', function () {
+        var uid = parseInt($('#vendorSearch').val(), 10) || 0;
+        if (!uid) return;
+        if (typeof VendorForm === 'undefined') return;
+        VendorForm.open('edit', uid, {
+            onSaveSuccess: function (response) {
+                _refreshVendorUI(response.Vendor);
+            }
+        });
     });
 
     // ── Search input ──────────────────────────────────────────────────────────
@@ -208,16 +268,16 @@ function searchVendors(key) {
             $sel.val(vendUID);
         }
         $sel.trigger('change');
+        $sel.closest('.vendor-search-group').addClass('party-has-selection');
 
-        if (address) {
-            var addrHtml = '<div><strong>Billing Address:</strong></div>'
-                + '<div>' + (address.Line1 || '') + '</div>'
-                + '<div>' + (address.Line2 || '') + '</div>'
-                + '<div>' + [address.City, address.State].filter(Boolean).join(', ')
-                + (address.Pincode ? ' - ' + address.Pincode : '') + '</div>';
-            $('#vendorAddressBox').html(addrHtml).removeClass('d-none');
+        // Address + warning strips
+        if (address && address.Line1) {
+            $('#vendorAddressBox').find('span').text(_buildVendAddrLine(address));
+            $('#vendorAddressBox').removeClass('d-none');
+            $('#vendorNoAddressBox').addClass('d-none');
         } else {
-            $('#vendorAddressBox').addClass('d-none').empty();
+            $('#vendorAddressBox').addClass('d-none').find('span').text('');
+            $('#vendorNoAddressBox').removeClass('d-none');
         }
 
         if (typeof billManager !== 'undefined' && typeof _orgState !== 'undefined' && state) {
@@ -229,7 +289,6 @@ function searchVendors(key) {
 
     // ── Load (Upstash first, AJAX fallback) ───────────────────────────────────
     function loadVendors() {
-        // Cache hit — filter and paginate instantly, no network call
         if (vendCache) {
             _render(vendCache);
             return;
@@ -269,7 +328,6 @@ function searchVendors(key) {
                         };
                     });
 
-                    // Recent transactions first, then A–Z
                     vendCache.sort(function (a, b) {
                         if (a.lastTx && b.lastTx) return new Date(b.lastTx) - new Date(a.lastTx);
                         if (a.lastTx) return -1;
@@ -284,6 +342,70 @@ function searchVendors(key) {
             _fallbackAjax();
         }
     }
+
+    // ── Post-edit: refresh Select2 label + address strip ─────────────────────
+    /**
+     * @param {Object|null} v
+     * @returns {void}
+     */
+    function _refreshVendorUI(v) {
+        if (!v) return;
+        var uid  = parseInt(v.VendorUID, 10) || parseInt($('#vendorSearch').val(), 10) || 0;
+        var name = v.Name || '';
+        var area = v.Area || '';
+        var displayText = name;
+        if (area) displayText += ' (' + area + ')';
+
+        var $select = $('#vendorSearch');
+        var $opt    = $select.find('option[value="' + uid + '"]');
+        $opt.text(displayText);
+        var _s2d = $opt.data('data');
+        if (_s2d) {
+            _s2d.name = name;
+            _s2d.area = area;
+            $opt.data('data', _s2d);
+        }
+        $select.trigger('change'); // full Select2 re-render; restores × clear button
+
+        var addrObj = null;
+        if (v.Address && v.Address.length) {
+            var _pick = v.Address[0];
+            v.Address.forEach(function (a) { if (a.AddressType === 'Billing') _pick = a; });
+            if (_pick.Line1) addrObj = _pick;
+        }
+        if (addrObj) {
+            $('#vendorAddressBox').find('span').text(_buildVendAddrLine({
+                Line1:   addrObj.Line1     || '',
+                Line2:   addrObj.Line2     || '',
+                Pincode: addrObj.Pincode   || '',
+                City:    addrObj.CityText  || '',
+                State:   addrObj.StateText || '',
+            }));
+            $('#vendorAddressBox').removeClass('d-none');
+            $('#vendorNoAddressBox').addClass('d-none');
+            if (typeof billManager !== 'undefined' && typeof _orgState !== 'undefined') {
+                billManager.setInterState((addrObj.StateText || '').trim().toLowerCase() !== _orgState.trim().toLowerCase());
+            }
+        } else {
+            $('#vendorAddressBox').addClass('d-none').find('span').text('');
+            $('#vendorNoAddressBox').removeClass('d-none');
+        }
+
+        vendCache = null; // force refresh on next search modal open
+    }
+
+    // ── Inject no-address warning strip on DOM ready ──────────────────────────
+    $(function () {
+        var $ab = $('#vendorAddressBox');
+        if ($ab.length && !$('#vendorNoAddressBox').length) {
+            $ab.after(
+                '<div id="vendorNoAddressBox" class="trans-addr-warn d-none">' +
+                '<i class="bx bx-info-circle"></i>' +
+                '<span>This vendor has no address details. Click the <i class="bx bx-edit-alt"></i> edit icon above to add address information.</span>' +
+                '</div>'
+            );
+        }
+    });
 
     // ── Render from in-memory cache ───────────────────────────────────────────
     function _render(all) {
@@ -471,7 +593,47 @@ function searchVendors(key) {
     // ── Create vendor buttons ─────────────────────────────────────────────────
     function _openCreate() {
         $('#vendorSearchModal').modal('hide');
-        setTimeout(function () { $('#addTransVendor').trigger('click'); }, 300);
+        if (typeof VendorForm === 'undefined') return;
+        setTimeout(function () {
+            VendorForm.open('add', null, {
+                onSaveSuccess: function (response) {
+                    var v    = response.Vendor || {};
+                    var uid  = parseInt(v.VendorUID || response.VendorUID || 0, 10);
+                    var name = v.Name || response.VendorName || '';
+                    var area = v.Area || response.VendorArea || '';
+                    if (!uid) return;
+
+                    var displayText = area ? name + ' (' + area + ')' : name;
+                    var $select = $('#vendorSearch');
+                    if ($select.find('option[value="' + uid + '"]').length === 0) {
+                        $select.append(new Option(displayText, uid, true, true));
+                    } else {
+                        $select.val(uid);
+                    }
+                    $select.trigger('change');
+                    $select.closest('.vendor-search-group').addClass('party-has-selection');
+
+                    // Address strip
+                    var addrArr = v.Address || [];
+                    var billing = null;
+                    addrArr.forEach(function (a) { if (a.AddressType === 'Billing') billing = a; });
+                    if (billing && billing.Line1) {
+                        $('#vendorAddressBox').find('span').text(_buildVendAddrLine({
+                            Line1:   billing.Line1     || '',
+                            Line2:   billing.Line2     || '',
+                            City:    billing.CityText  || '',
+                            State:   billing.StateText || '',
+                            Pincode: billing.Pincode   || '',
+                        }));
+                        $('#vendorAddressBox').removeClass('d-none');
+                        $('#vendorNoAddressBox').addClass('d-none');
+                    } else {
+                        $('#vendorAddressBox').addClass('d-none').find('span').text('');
+                        $('#vendorNoAddressBox').removeClass('d-none');
+                    }
+                }
+            });
+        }, 300);
     }
     $(document).on('click', '#btnCreateVendorFromSearch', function () { _openCreate(); });
     $(document).on('click', '#vendSearchCreateBtn',       function () { _openCreate(); });

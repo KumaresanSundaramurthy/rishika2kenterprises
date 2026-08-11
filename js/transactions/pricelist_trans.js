@@ -679,7 +679,6 @@ function _plShowChip(pl) {
         h += '<span class="pl-active-chip" title="Click to change price list" onclick="_plChangeChipClick()">';
         h += '<i class="bx bx-purchase-tag"></i>';
         h += '<span>' + pl.Name + '</span>';
-        h += '<i class="bx bx-x pl-chip-x" onclick="event.stopPropagation();_plRemoveChipClick()"></i>';
         h += '</span>';
     }
     $wrap.html(h).removeClass('d-none');
@@ -771,9 +770,11 @@ function _plTransResolve(custData) {
     _plPriceSource       = {};
     _plOrigPrices        = {};
 
+    // Always show a chip baseline immediately — overridden below if a list is matched.
+    _plShowNoneChip();
+
     if (_plActivePriceList) {
         _plActivePriceList = null;
-        _plHideChip();
     }
 
     // If price list data hasn't loaded (Upstash unavailable or no lists configured),

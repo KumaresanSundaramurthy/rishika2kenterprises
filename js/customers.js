@@ -13,7 +13,7 @@ function showTabSpinner(tableSelector, paginationSelector) {
         '<span class="text-muted" style="font-size:.85rem;">Loading...</span>' +
         '</td></tr>'
     );
-    if (paginationSelector) $(paginationSelector).css('visibility', 'hidden');
+    if (paginationSelector) $(paginationSelector).empty();
 }
 
 function _smartDecimal(val) {
@@ -26,6 +26,7 @@ function _smartDecimal(val) {
 var _custSelectAllMode = false;
 var _custTotalRecords  = 0;
 var _custPageCount     = 0;
+var _custReqSeq        = 0;
 
 /**
  * @returns {void}
@@ -69,7 +70,8 @@ function _custClearSelectAll() {
     $('#custSelectAllClear').addClass('d-none');
 }
 
-function getCustomersDetails(PageNo, RowLimit, Filter) {
+function getCustomersDetails(PageNo, RowLimit, Filter, onDone) {
+    var reqSeq = ++_custReqSeq;
     ajaxLoading(0);
     showTabSpinner(ModuleTable, ModulePag);
     $.ajax({
@@ -78,8 +80,8 @@ function getCustomersDetails(PageNo, RowLimit, Filter) {
         cache: false,
         data: { RowLimit: RowLimit, Filter: Filter },
         success: function (response) {
+            if (reqSeq !== _custReqSeq) return;
             ajaxLoading(1);
-            $(ModulePag).css('visibility', '');
             if (response.Error) {
                 $(ModuleTable + ' tbody').html('');
                 $(ModulePag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
@@ -94,10 +96,11 @@ function getCustomersDetails(PageNo, RowLimit, Filter) {
                 $(window).trigger('scroll');
             }
             executeTablePagnCommonFunc(response, false);
+            if (typeof onDone === 'function') onDone();
         },
         error: function () {
+            if (reqSeq !== _custReqSeq) return;
             ajaxLoading(1);
-            $(ModulePag).css('visibility', '');
         },
     });
 }
@@ -175,10 +178,17 @@ function updateCustomerStats(stats) {
 }
 
 // ── Page-level callback: refresh list after any save ─────────────────────
+/**
+ * @param {Object} response
+ * @returns {void}
+ */
 function _custPageSaveSuccess(response) {
     hideUIBlock();
     ajaxLoading(0);
-    getCustomersDetails(PageNo, RowLimit, Filter);
+    var msg = response ? response.Message : '';
+    getCustomersDetails(PageNo, RowLimit, Filter, function () {
+        if (msg) showToastNotification(msg, 'success');
+    });
 }
 
 // ── Customer list image → open gallery from data-images (no AJAX) ────────────

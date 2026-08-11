@@ -173,7 +173,9 @@ class Settings extends MY_Controller {
             $enableStorage    = getPostValue($post, 'EnableStorage')    ? 1 : 0;
             $mandatoryStorage = getPostValue($post, 'MandatoryStorage') ? 1 : 0;
             if (!$enableStorage) $mandatoryStorage = 0;
+            $showStats          = getPostValue($post, 'ShowStats')          ? 1 : 0;
             $statsDefaultOpen   = getPostValue($post, 'StatsDefaultOpen')   ? 1 : 0;
+            if (!$showStats) $statsDefaultOpen = 0;
             $enableAIAssistant  = getPostValue($post, 'EnableAIAssistant') ? 'Yes' : 'No';
 
             // Validate date/datetime formats before building $data
@@ -221,6 +223,7 @@ class Settings extends MY_Controller {
                 'ListDateTimeFormat'   => $listDtFormat,
                 'PrintDateTimeFormat'  => $printDtFormat,
                 'DefaultSalutationUID' => $defaultSalutationUID,
+                'ShowStats'            => $showStats,
                 'StatsDefaultOpen'     => $statsDefaultOpen,
                 'EnableAIAssistant'    => $enableAIAssistant,
                 'EmpCodePrefix'        => $empCodePrefix,

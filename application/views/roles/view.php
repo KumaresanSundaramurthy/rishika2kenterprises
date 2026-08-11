@@ -605,7 +605,7 @@ $(function() {
         var fd = new FormData();
         fd.append(CsrfName, CsrfToken);
         $.ajax({
-            url: '/settings/roles/refreshTokens',
+            url: '/auth/refreshTokens',
             type: 'POST',
             data: fd,
             contentType: false,

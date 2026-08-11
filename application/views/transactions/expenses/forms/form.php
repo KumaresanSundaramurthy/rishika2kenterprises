@@ -141,10 +141,11 @@ if ($isEdit) {
                                                 <?php else: ?>
                                                 <label for="vendorSearch" class="form-label">Vendor <span class="text-danger">*</span></label>
                                                 <div class="input-group input-group-sm input-group-merge vendor-search-group" id="vendorGroup_vendorSearch">
-                                                    <span class="input-group-text p-2 cursor-pointer" id="openVendorSearchModal" style="background:#f0ebff;border-color:#d9d0ff;color:#6f42c1;"><i class="icon-base bx bx-search"></i></span>
+                                                    <span class="input-group-text p-2 cursor-pointer party-search-icon" id="openVendorSearchModal" style="background:#f0ebff;border-color:#d9d0ff;color:#6f42c1;"><i class="icon-base bx bx-search"></i></span>
                                                     <select class="form-select form-select-sm" id="vendorSearch" name="VendorUID">
                                                         <option value=""></option>
                                                     </select>
+                                                    <span class="party-edit-icon" id="editVendorBtn" title="Edit Vendor"><i class="bx bx-edit-alt"></i></span>
                                                 </div>
                                                 <?php endif; ?>
                                             </div>

@@ -46,12 +46,18 @@ $dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
             ?>
             <div class="mb-3 col-md-4">
                 <label class="form-label" for="CM_MobileNumber">Mobile Number </label>
-                <div class="input-group">
-                    <button type="button" id="CM_CountryCodeBtn"
-                        class="input-group-text fw-semibold country-code-trigger"
-                        data-code-target="#CM_CountryCode"
-                        data-iso2-target="#CM_CountryISO2"
-                        data-hint-target="#CM_CountryHint"><?php echo htmlspecialchars($activePhoneCode); ?></button>
+                <div class="input-group position-relative">
+                    <button type="button" class="btn btn-outline-secondary fw-semibold flex-shrink-0 r2k-cc-btn"
+                            id="CM_MobileCCBtn" tabindex="-1">
+                        <?php echo htmlspecialchars($activePhoneCode); ?>
+                    </button>
+                    <div id="CM_CCDropdown" class="r2k-cc-dropdown">
+                        <div class="p-2 border-bottom">
+                            <input type="text" class="form-control form-control-sm" id="CM_CCSearch"
+                                   placeholder="Search country..." autocomplete="off">
+                        </div>
+                        <div id="CM_CCList" class="r2k-cc-list"></div>
+                    </div>
                     <input type="hidden" name="CountryCode" id="CM_CountryCode" value="<?php echo htmlspecialchars($activePhoneCode); ?>" />
                     <input type="hidden" name="CountryISO2" id="CM_CountryISO2" value="<?php echo htmlspecialchars($activeISO2); ?>" />
                     <input type="number" id="CM_MobileNumber" name="MobileNumber" class="form-control"
@@ -59,9 +65,6 @@ $dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
                         onkeypress="return (event.charCode!=8 && event.charCode==0 || (event.charCode>=48 && event.charCode<=57))"
                         oninput="this.value=this.value.slice(0,this.maxLength)" pattern="[0-9]*"
                         value="<?php echo htmlspecialchars($d->MobileNumber ?? ''); ?>" />
-                </div>
-                <div id="CM_CountryHint" class="country-code-hint">
-                    Click <strong><?php echo htmlspecialchars($activePhoneCode); ?></strong> to change country
                 </div>
             </div>
             <div class="mb-3 col-md-4">
@@ -227,7 +230,12 @@ $dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
                         <i class="bx bx-copy-alt me-1"></i>Copy to Shipping
                     </button>
                 </div>
-                <div id="appendBillingAddress"></div>
+                <div id="appendBillingAddress">
+                    <div class="r2k-addr-empty">
+                        <i class="bx bx-map-alt r2k-addr-empty-icon"></i>
+                        <div class="r2k-addr-empty-text">No Billing Address added</div>
+                    </div>
+                </div>
             </div>
             <div class="mb-3 col-md-6">
                 <div class="d-flex justify-content-between align-items-center mb-2">
@@ -242,7 +250,12 @@ $dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
                         <i class="bx bx-copy-alt me-1"></i>Copy to Billing
                     </button>
                 </div>
-                <div id="appendShippingAddress"></div>
+                <div id="appendShippingAddress">
+                    <div class="r2k-addr-empty">
+                        <i class="bx bx-map-alt r2k-addr-empty-icon"></i>
+                        <div class="r2k-addr-empty-text">No Shipping Address added</div>
+                    </div>
+                </div>
             </div>
         </div>
 

@@ -18,7 +18,14 @@
     var _isCreateMode    = false;
     var _members         = [];
     var _primaryUID      = 0;
-    var _countriesCache  = null;
+    var _vgCCCfg = {
+        btn      : '#VG_MobileCCBtn',
+        dropdown : '#VG_CCDropdown',
+        search   : '#VG_CCSearch',
+        list     : '#VG_CCList',
+        codeInput: '#VG_MobileCountryCode',
+        iso2Input: '#VG_CountryISO2',
+    };
     var _groupTypesCache = null;
     var _vendCache       = null;
     var _vendAjaxMode    = false; // true when Upstash unavailable; use per-query AJAX
@@ -43,7 +50,7 @@
 
         if (type === 'add') {
             var iso2 = $('#VG_CountryISO2').val() || 'IN';
-            _initCC(iso2);
+            PhoneCCDropdown.setFromISO2(_vgCCCfg, iso2);
             _buildGroupTypeSelect('');
             $('#VendorGroupFormModal').modal('show');
             _isCreateMode = true;
@@ -86,43 +93,8 @@
         $('#VG_MemberSearch').val('');
         $('#VG_CCDropdown,#VG_MemberDropdown').hide();
         // Clear validation state
-        $('#VG_Email,#VG_Mobile').removeClass('is-invalid');
+        $('#VG_Email,#VG_Mobile,#VG_GSTNo').removeClass('is-invalid');
         $('#VG_MobileErr').hide();
-    }
-
-    // ── Country code init ─────────────────────────────────────────────────────
-    function _initCC(iso2) {
-        _loadCountries(function (countries) {
-            var found = countries.find(function (c) { return (c.iso2 || '').toUpperCase() === iso2.toUpperCase(); });
-            var code  = found ? '+' + String(found.phonecode) : $('#VG_MobileCountryCode').val() || '+91';
-            $('#VG_MobileCCBtn').text(code);
-            $('#VG_MobileCountryCode').val(code);
-        });
-    }
-
-    // ── Load all countries (Upstash → AJAX) ─────────────────────────────────
-    function _loadCountries(cb) {
-        if (_countriesCache) { cb(_countriesCache); return; }
-        if (!UpstashService.isEnabled()) { _fetchCountriesAjax(cb); return; }
-        UpstashService.get(UpstashService.orgKey('loc-countries')).then(function (data) {
-            if (Array.isArray(data) && data.length) {
-                _countriesCache = data;
-                cb(_countriesCache);
-            } else {
-                _fetchCountriesAjax(cb);
-            }
-        }).catch(function () { _fetchCountriesAjax(cb); });
-    }
-
-    function _fetchCountriesAjax(cb) {
-        $.ajax({
-            url: '/globally/getCountryInfo', dataType: 'json',
-            success: function (res) {
-                _countriesCache = (res && res.Data) ? res.Data : [];
-                cb(_countriesCache);
-            },
-            error: function () { _countriesCache = []; cb([]); }
-        });
     }
 
     // ── Group type select — load from Upstash cache → AJAX ───────────────────
@@ -183,7 +155,7 @@
             $('#VG_MobileCCBtn').text(mcc);
             $('#VG_MobileCountryCode').val(mcc);
         } else {
-            _initCC(iso2);
+            PhoneCCDropdown.setFromISO2(_vgCCCfg, iso2);
         }
 
         // Restore address
@@ -224,58 +196,8 @@
         _renderMembers();
     }
 
-    // ── Country-code dropdown ─────────────────────────────────────────────────
-    $(document).on('click', '#VG_MobileCCBtn', function (e) {
-        e.stopPropagation();
-        var open = $('#VG_CCDropdown').is(':visible');
-        $('#VG_CCDropdown').toggle(!open);
-        if (!open) {
-            $('#VG_CCSearch').val('').focus();
-            _renderCCList('');
-        }
-    });
-
-    $(document).on('input', '#VG_CCSearch', function () { _renderCCList($(this).val()); });
-
-    function _renderCCList(query) {
-        _loadCountries(function (countries) {
-            var q        = $.trim(query).toLowerCase();
-            var filtered = q
-                ? countries.filter(function (c) {
-                    return (c.name || '').toLowerCase().indexOf(q) >= 0
-                        || String(c.phonecode || '').indexOf(q) >= 0;
-                  })
-                : countries;
-
-            var html = filtered.map(function (c) {
-                return '<div class="vg-cc-item px-3 py-1" style="cursor:pointer;font-size:.84rem;line-height:1.8;" ' +
-                    'data-iso2="' + _esc(c.iso2) + '" data-code="+' + _esc(String(c.phonecode)) + '">' +
-                    _esc(c.name) + ' <span class="text-muted">(+' + _esc(String(c.phonecode)) + ')</span>' +
-                    '</div>';
-            }).join('');
-
-            $('#VG_CCList').html(html ||
-                '<div class="px-3 py-2 text-muted" style="font-size:.8rem;">No results</div>');
-        });
-    }
-
-    $(document).on('mouseenter', '.vg-cc-item', function () { $(this).css('background', '#f0f2ff'); });
-    $(document).on('mouseleave', '.vg-cc-item', function () { $(this).css('background', ''); });
-
-    $(document).on('click', '.vg-cc-item', function () {
-        var iso2 = $(this).data('iso2') || '';
-        var code = $(this).data('code') || '';
-        $('#VG_MobileCCBtn').text(code);
-        $('#VG_MobileCountryCode').val(code);
-        $('#VG_CountryISO2').val(iso2);
-        $('#VG_CCDropdown').hide();
-    });
-
-    $(document).on('click', function (e) {
-        if (!$(e.target).closest('#VG_MobileCCBtn,#VG_CCDropdown').length) {
-            $('#VG_CCDropdown').hide();
-        }
-    });
+    // ── CC dropdown — initialised via shared PhoneCCDropdown module ──────────
+    PhoneCCDropdown.init(_vgCCCfg);
 
     // ── Address click-box → modal SWAP (hide group modal, show address modal) ──
     // Bootstrap does not support stacked modals; swap is the only reliable fix.
@@ -552,11 +474,12 @@
         $('#VG_MemberInputs').html(inputs);
     }
 
-    // ── Validation ───────────────────────────────────────────────────────────
+    // ── Validation — uses shared globals validateGSTIN() + validateMobileNumber() from default.js ──
     function _validateForm() {
         var valid   = true;
         var emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+        // Email
         var email = $.trim($('#VG_Email').val());
         if (email && !emailRe.test(email)) {
             $('#VG_Email').addClass('is-invalid');
@@ -565,15 +488,31 @@
             $('#VG_Email').removeClass('is-invalid');
         }
 
-        var mobile   = $.trim($('#VG_Mobile').val()).replace(/\D/g, '');
-        var hasMobile = $.trim($('#VG_Mobile').val()).length > 0;
-        if (hasMobile && mobile.length < 7) {
-            $('#VG_Mobile').addClass('is-invalid');
-            $('#VG_MobileErr').show();
-            valid = false;
+        // Mobile — delegate to shared validateMobileNumber(value, numericCode)
+        var mobileRaw = $.trim($('#VG_Mobile').val());
+        if (mobileRaw.length > 0) {
+            var cc           = ($.trim($('#VG_MobileCountryCode').val()) || '+91').replace('+', '');
+            var mobileResult = validateMobileNumber(mobileRaw, cc);
+            if (!mobileResult.isValid) {
+                $('#VG_Mobile').addClass('is-invalid');
+                $('#VG_MobileErr').text(mobileResult.message).show();
+                valid = false;
+            } else {
+                $('#VG_Mobile').removeClass('is-invalid');
+                $('#VG_MobileErr').hide();
+            }
         } else {
             $('#VG_Mobile').removeClass('is-invalid');
             $('#VG_MobileErr').hide();
+        }
+
+        // GSTIN — delegate to shared validateGSTIN(value)
+        var gstinResult = validateGSTIN($.trim($('#VG_GSTNo').val()));
+        if (!gstinResult.isValid) {
+            $('#VG_GSTNo').addClass('is-invalid');
+            valid = false;
+        } else {
+            $('#VG_GSTNo').removeClass('is-invalid');
         }
 
         return valid;
@@ -581,10 +520,8 @@
 
     // Clear validation on user input
     $(document).on('input', '#VG_Email',  function () { $(this).removeClass('is-invalid'); });
-    $(document).on('input', '#VG_Mobile', function () {
-        $(this).removeClass('is-invalid');
-        $('#VG_MobileErr').hide();
-    });
+    $(document).on('input', '#VG_Mobile', function () { $(this).removeClass('is-invalid'); $('#VG_MobileErr').hide(); });
+    $(document).on('input', '#VG_GSTNo',  function () { $(this).removeClass('is-invalid'); });
 
     // ── Save ──────────────────────────────────────────────────────────────────
     $(document).on('click', '#VGroupSaveBtn', function () {
@@ -615,7 +552,6 @@
                 if (res.Error) { showToastNotification(res.Message, 'error'); return; }
                 _isDirty      = false;
                 _isCreateMode = false;
-                showToastNotification(res.Message, 'success');
                 $('#VendorGroupFormModal').modal('hide');
                 if (typeof _onSaveSuccess === 'function') _onSaveSuccess(res);
             },

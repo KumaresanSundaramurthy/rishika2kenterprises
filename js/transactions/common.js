@@ -42,11 +42,17 @@ function debounce(fn, delay) {
  * @param {Object}        [filter]
  * @returns {void}
  */
+var _listReqSeq = 0; // increments with every request; callbacks discard stale responses
+
 function loadTransactionList(config, pageNo, rowLimit, filter) {
     pageNo   = pageNo   || PageNo;
     rowLimit = rowLimit || RowLimit;
     filter   = filter   || Filter;
+
+    var reqSeq = ++_listReqSeq;
+
     $(config.tabCountClass).text('').addClass('d-none');
+    $(ModulePag).empty();
     ajaxLoading(0);
     $(ModuleTable + ' tbody').html(
         '<tr><td colspan="99" class="text-center py-4">' +
@@ -65,6 +71,7 @@ function loadTransactionList(config, pageNo, rowLimit, filter) {
             [CsrfName]: CsrfToken,
         },
         success: function (response) {
+            if (reqSeq !== _listReqSeq) return;
             ajaxLoading(1);
             if (response.Error) {
                 $(ModuleTable + ' tbody').html('');
@@ -86,6 +93,7 @@ function loadTransactionList(config, pageNo, rowLimit, filter) {
             }
         },
         error: function () {
+            if (reqSeq !== _listReqSeq) return;
             ajaxLoading(1);
             $(ModulePag).html('<div class="alert alert-danger m-2">' + config.errorMessage + '</div>');
         }

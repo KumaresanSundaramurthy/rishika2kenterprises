@@ -2522,3 +2522,49 @@ tr:hover .apex-party-actions {
 :root[data-theme="light"] .ai-bubble-model .ai-bubble { background:#eff6ff; color:#1e1b4b; }
 :root[data-theme="light"] .ai-textarea             { background:#fafafa; color:inherit; border-color:#d1d5db; }
 
+
+/* ── GSTIN Validated indicator ─────────────────────────────────────────────── */
+.gstin-validated-msg { display:none; font-size:.72rem; color:#16a34a; margin-top:4px; }
+.gstin-validated-msg.show { display:flex; align-items:center; gap:4px; }
+
+/* ── GSTIN Confirm Overlay ──────────────────────────────────────────────────── */
+.gstin-confirm-overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; z-index:9999; align-items:center; justify-content:center; background:rgba(0,0,0,.35); }
+.gstin-confirm-overlay.active { display:flex; }
+.gstin-confirm-dialog { max-width:440px; width:100%; margin:16px; }
+.gstin-confirm-content { background:#fff; border-radius:14px; overflow:hidden; box-shadow:0 24px 64px rgba(0,0,0,.28); border:1.5px solid #bbf7d0; }
+
+/* Header */
+.gstin-confirm-head { display:flex; align-items:center; gap:12px; padding:18px 20px; border-bottom:1px solid #e5e7eb; background:#f0fdf4; }
+.gstin-confirm-icon-box { width:44px; height:44px; background:#dcfce7; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; border:1px solid #bbf7d0; }
+.gstin-confirm-icon { color:#16a34a; font-size:1.3rem; }
+.gstin-confirm-head-text { flex:1; min-width:0; }
+.gstin-confirm-title { font-weight:700; font-size:1rem; color:#14532d; line-height:1.3; }
+.gstin-confirm-subtitle { font-size:.75rem; color:#4b7c59; margin-top:2px; }
+
+/* Body */
+.gstin-confirm-body { padding:18px 20px; }
+.gstin-confirm-card { background:#f9fafb; border-radius:10px; border:1px solid #e5e7eb; padding:4px 0; }
+.gstin-confirm-row { display:flex; justify-content:space-between; align-items:center; font-size:.84rem; padding:10px 14px; border-bottom:1px solid #e5e7eb; }
+.gstin-confirm-row:last-child { border-bottom:none; }
+.gstin-confirm-row-label { color:#6b7280; flex-shrink:0; margin-right:12px; }
+.gstin-confirm-row-value { font-weight:600; color:#111827; text-align:right; word-break:break-word; }
+
+/* Footer */
+.gstin-confirm-foot { display:flex; justify-content:flex-end; align-items:center; gap:8px; padding:14px 20px; border-top:1px solid #e5e7eb; background:#f9fafb; }
+
+/* ── Phone Country-Code Dropdown ─────────────────────────────────────────── */
+.r2k-cc-btn { border-top-right-radius:0 !important; border-bottom-right-radius:0 !important; min-width:60px; }
+.r2k-cc-dropdown { display:none; position:absolute; top:100%; left:0; min-width:280px; z-index:1100; background:#fff; border:1.5px solid #696cff; border-radius:8px; box-shadow:0 6px 20px rgba(0,0,0,.12); }
+.r2k-cc-list { max-height:180px; overflow-y:auto; }
+.r2k-cc-item { padding:6px 14px; font-size:.84rem; line-height:1.9; cursor:pointer; }
+.r2k-cc-item:hover { background:#f0f2ff; }
+.r2k-cc-no-results { padding:8px 14px; font-size:.8rem; color:#6b7280; }
+.r2k-form-err { display:none; }
+
+/* ── Address empty state ─────────────────────────────────────────────────── */
+.r2k-addr-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:1.25rem .75rem; border:1.5px dashed #d5d9e2; border-radius:8px; color:#9ca3af; text-align:center; }
+.r2k-addr-empty-icon { font-size:1.75rem; margin-bottom:.35rem; opacity:.7; }
+.r2k-addr-empty-text { font-size:.8rem; font-weight:600; }
+@media (prefers-color-scheme:dark) { .r2k-addr-empty { border-color:#374151; color:#6b7280; } }
+:root[data-theme="dark"]  .r2k-addr-empty { border-color:#374151; color:#6b7280; }
+:root[data-theme="light"] .r2k-addr-empty { border-color:#d5d9e2; color:#9ca3af; }

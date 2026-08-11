@@ -299,7 +299,7 @@ $_addrLines = buildDispatchAddressLines($DispatchAddress ?? null);
                                         <button type="button" id="addTransCustomer" class="trans-add-btn btn btn-outline-primary btn-sm" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_create_customer', 'Create Customer'); ?>"><i class="bx bx-plus-circle me-1"></i><?php echo t('btn_add_customer', 'Add Customer'); ?></button>
                                     </div>
                                     <div class="input-group input-group-sm input-group-merge customer-search-group" id="customerGroup_customerSearch">
-                                        <span class="input-group-text p-2 cursor-pointer dc-cust-search-icon" id="openCustomerSearchModal"><i class="icon-base bx bx-search"></i></span>
+                                        <span class="input-group-text p-2 cursor-pointer dc-cust-search-icon party-search-icon" id="openCustomerSearchModal"><i class="icon-base bx bx-search"></i></span>
                                         <select id="customerSearch" name="customerSearch" class="form-select form-select-sm">
                                             <?php if ($isDraftEdit && !empty($DCData->PartyUID)): ?>
                                             <?php
@@ -310,6 +310,7 @@ $_addrLines = buildDispatchAddressLines($DispatchAddress ?? null);
                                             <option value="<?php echo (int)$DCData->PartyUID; ?>" selected="selected"><?php echo htmlspecialchars($_draftCustLabel); ?></option>
                                             <?php endif; ?>
                                         </select>
+                                        <span class="party-edit-icon" id="editCustomerBtn" title="Edit Customer"><i class="bx bx-edit-alt"></i></span>
                                     </div>
                                     <?php endif; ?>
                                 </div>
@@ -390,6 +391,7 @@ $_addrLines = buildDispatchAddressLines($DispatchAddress ?? null);
 <script src="/js/common/address.js"></script>
 <script src="/js/common/bankdetails.js"></script>
 <script src="/js/common/gstin_fetch.js"></script>
+<script src="/js/common/phone_cc_dropdown.js"></script>
 <script src="/js/common/customer_form.js"></script>
 <script src="/js/transactions/deliverychallans.js"></script>
 <script src="/js/transactions/transactions.js"></script>

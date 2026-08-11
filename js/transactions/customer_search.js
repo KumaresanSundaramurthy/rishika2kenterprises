@@ -25,7 +25,7 @@
     var _cacheAttempted = false; // true after first Upstash HGETALL attempt completes
     var _cacheData      = null;  // null = miss/error; Array = hit (full customer list)
 
-    // ── Open ──────────────────────────────────────────────────────────────────
+    // ── Open search modal ─────────────────────────────────────────────────────
     $(document).on('click', '#openCustomerSearchModal', function () {
         _page = 1; _term = ''; _loading = false; _hasMore = false;
         $('#custSearchInput').val('');
@@ -33,6 +33,31 @@
         $('#btnCreateCustomerFromSearch').toggleClass('d-none', !!(window.R2K_CUST_HIDE_CREATE));
         _resetBody();
         $('#customerSearchModal').modal('show');
+    });
+
+    // ── Edit selected customer ────────────────────────────────────────────────
+    $(document).on('click', '#editCustomerBtn', function () {
+        var _uid = parseInt($('#customerSearch').val(), 10) || 0;
+        if (_uid > 0 && typeof CustomerForm !== 'undefined') {
+            CustomerForm.open('edit', _uid, {
+                onSaveSuccess: function (response) {
+                    _refreshCustomerUI((response && response.Customer) ? response.Customer : null);
+                }
+            });
+        }
+    });
+
+    // Inject no-address warning strip once after the address box
+    $(function () {
+        var $ab = $('#customerAddressBox');
+        if ($ab.length && !$('#customerNoAddressBox').length) {
+            $ab.after(
+                '<div id="customerNoAddressBox" class="trans-addr-warn d-none">' +
+                '<i class="bx bx-info-circle"></i>' +
+                '<span>This customer has no address details. Click the <i class="bx bx-edit-alt"></i> edit icon above to add address information.</span>' +
+                '</div>'
+            );
+        }
     });
 
     $('#customerSearchModal').on('shown.bs.modal', function () {
@@ -92,15 +117,18 @@
             $select.val(custUID);
         }
         $select.trigger('change');
+        $select.closest('.customer-search-group').addClass('party-has-selection');
 
         if (address) {
             $('#customerAddressBox').find('span').text(_buildAddrLine(address));
             $('#customerAddressBox').removeClass('d-none');
+            $('#customerNoAddressBox').addClass('d-none');
             if (typeof window._onCustStateSelected === 'function') {
                 window._onCustStateSelected((state || (address && address.State) || '').trim());
             }
         } else {
             $('#customerAddressBox').addClass('d-none').find('span').text('');
+            $('#customerNoAddressBox').removeClass('d-none');
         }
 
         if (typeof _showCustTypeIndicator === 'function') {
@@ -454,6 +482,75 @@
         var loc   = [a.City, a.State].filter(Boolean).join(', ');
         if (a.Pincode) loc += ' – ' + a.Pincode;
         return [lines, loc].filter(Boolean).join(' · ');
+    }
+
+    /**
+     * Refresh the transaction form after a successful customer edit.
+     * Updates the select2 label, address strip, and invalidates the session cache.
+     * @param {Object|null} c  Customer data from PHP response
+     * @returns {void}
+     */
+    function _refreshCustomerUI(c) {
+        if (!c) return;
+        var uid    = parseInt(c.CustomerUID, 10) || parseInt($('#customerSearch').val(), 10) || 0;
+        var name   = c.Name         || '';
+        var area   = c.Area         || '';
+        var mobile = c.MobileNumber || '';
+
+        var displayText = name;
+        if (area)   displayText += ', ' + area;
+        if (mobile) displayText += ' (' + mobile + ')';
+
+        // Update option text + select2 internal data cache (templateSelection reads d.name/area/mobile)
+        var $select = $('#customerSearch');
+        var $opt    = $select.find('option[value="' + uid + '"]');
+        $opt.text(displayText);
+        var _s2d = $opt.data('data');
+        if (_s2d) {
+            _s2d.name   = name;
+            _s2d.area   = area;
+            _s2d.mobile = mobile;
+            $opt.data('data', _s2d);
+        }
+        // Full select2 re-render: restores × clear button and applies templateSelection
+        $select.trigger('change');
+
+        // Resolve billing address from Address array
+        var addrObj = null;
+        if (c.Address && c.Address.length) {
+            var _pick = c.Address[0];
+            c.Address.forEach(function (a) { if (a.AddressType === 'Billing') _pick = a; });
+            if (_pick.Line1) addrObj = _pick;
+        }
+
+        if (addrObj) {
+            $('#customerAddressBox').find('span').text(_buildAddrLine({
+                Line1:   addrObj.Line1     || '',
+                Line2:   addrObj.Line2     || '',
+                Pincode: addrObj.Pincode   || '',
+                City:    addrObj.CityText  || '',
+                State:   addrObj.StateText || '',
+            }));
+            $('#customerAddressBox').removeClass('d-none');
+            $('#customerNoAddressBox').addClass('d-none');
+            if (typeof window._onCustStateSelected === 'function') {
+                window._onCustStateSelected((addrObj.StateText || '').trim());
+            }
+        } else {
+            $('#customerAddressBox').addClass('d-none').find('span').text('');
+            $('#customerNoAddressBox').removeClass('d-none');
+        }
+
+        if (typeof _showCustTypeIndicator === 'function') {
+            _showCustTypeIndicator({
+                countryISO2: c.CountryISO2 || 'IN',
+                address: addrObj ? { State: addrObj.StateText || '' } : null,
+            });
+        }
+
+        // Invalidate session cache so next Search modal open fetches fresh data
+        _cacheAttempted = false;
+        _cacheData      = null;
     }
 
 }(jQuery));

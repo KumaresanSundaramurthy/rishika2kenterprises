@@ -573,6 +573,7 @@
 <script src="<?php echo _assetV('/js/common/gstin_fetch.js'); ?>"></script>
 <link rel="stylesheet" href="<?php echo _assetV('/assets/vendor/css/attachments.css'); ?>">
 <script src="<?php echo _assetV('/js/common/attachments.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/common/phone_cc_dropdown.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/common/customer_form.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/common/category_form.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/common/product_form.js'); ?>"></script>

@@ -168,7 +168,9 @@ $(function () {
                 [csrfName]             : csrfVal,
             }, charges);
 
+            var _autoDraftUid = (!_isEdit && typeof AutoDraft !== 'undefined') ? AutoDraft.getDraftUid() : 0;
             if (_isEdit) postData.TransUID = parseInt($('input[name="TransUID"]').val(), 10);
+            else if (_autoDraftUid > 0) postData.TransUID = _autoDraftUid;
 
             var formData = new FormData();
             $.each(postData, function (k, v) { formData.append(k, v); });
@@ -179,7 +181,7 @@ $(function () {
             setFormLoading('#' + _formId, true, action);
 
             $.ajax({
-                url         : '/' + (_cfg.formAction || ''),
+                url         : '/' + (_autoDraftUid > 0 ? (_cfg.updateAction || _cfg.formAction || '') : (_cfg.formAction || '')),
                 method      : 'POST',
                 data        : formData,
                 processData : false,

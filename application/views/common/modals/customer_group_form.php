@@ -32,3 +32,5 @@
         </div>
     </div>
 </div>
+
+<?php $this->load->view('common/modals/gstin_confirm_modal'); ?>

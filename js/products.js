@@ -1,5 +1,12 @@
 var _prodPageRefreshing = false;
 
+// ── Request sequence counters — one per tab loader; stale responses are discarded ──
+var _prodReqSeq  = 0;
+var _grpReqSeq   = 0;
+var _plReqSeq    = 0;
+var _catgReqSeq  = 0;
+var _brandReqSeq = 0;
+
 // ── Select-all (Pattern 3) state — Items tab only ─────────────────────────
 var _prodSelectAllMode = false;
 var _prodTotalRecords  = 0;
@@ -61,7 +68,7 @@ function showTabSpinner(tableSelector, paginationSelector) {
         '<span class="text-muted" style="font-size:.85rem;">Loading...</span>' +
         '</td></tr>'
     );
-    if (paginationSelector) $(paginationSelector).css('visibility', 'hidden');
+    if (paginationSelector) $(paginationSelector).empty();
 }
 
 /**
@@ -102,6 +109,7 @@ function toggleProductStatus(ProductUID, IsActive) {
 }
 
 function getProductDetails(PageNo, RowLimit, Filter) {
+    var reqSeq = ++_prodReqSeq;
     var _overlay = _prodPageRefreshing;
     _prodPageRefreshing = false;
     if (!_overlay) {
@@ -119,8 +127,8 @@ function getProductDetails(PageNo, RowLimit, Filter) {
             [CsrfName]: CsrfToken,
         },
         success: function (response) {
+            if (reqSeq !== _prodReqSeq) return;
             ajaxLoading(1);
-            $(ProdPag).css('visibility', '');
             if (response.Error) {
                 $(ProdTable + ' tbody').html('');
                 $(ProdPag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
@@ -137,13 +145,14 @@ function getProductDetails(PageNo, RowLimit, Filter) {
             _prodUpdateSelectAllBanner();
         },
         error: function () {
+            if (reqSeq !== _prodReqSeq) return;
             ajaxLoading(1);
-            $(ProdPag).css('visibility', '');
         }
     });
 }
 
 function getGroupDetails(PageNo, RowLimit, Filter) {
+    var reqSeq = ++_grpReqSeq;
     var _overlay = _prodPageRefreshing;
     _prodPageRefreshing = false;
     if (!_overlay) {
@@ -161,8 +170,8 @@ function getGroupDetails(PageNo, RowLimit, Filter) {
             [CsrfName]: CsrfToken,
         },
         success: function (response) {
+            if (reqSeq !== _grpReqSeq) return;
             ajaxLoading(1);
-            $(GroupPag).css('visibility', '');
             if (response.Error) {
                 $(GroupTable + ' tbody').html('');
                 $(GroupPag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
@@ -176,8 +185,8 @@ function getGroupDetails(PageNo, RowLimit, Filter) {
             headerCheckboxTrueFalse(GroupTable, GroupHeader, ProdRow);
         },
         error: function () {
+            if (reqSeq !== _grpReqSeq) return;
             ajaxLoading(1);
-            $(GroupPag).css('visibility', '');
         }
     });
 }
@@ -362,6 +371,7 @@ function updateProductStats(stats) {
  * @param {*} Filter
  */
 function getPriceListDetails(PageNo, RowLimit, Filter) {
+    var reqSeq = ++_plReqSeq;
     var _overlay = _prodPageRefreshing;
     _prodPageRefreshing = false;
     if (!_overlay) {
@@ -374,8 +384,8 @@ function getPriceListDetails(PageNo, RowLimit, Filter) {
         cache: false,
         data: { RowLimit: RowLimit, PageNo: PageNo, Filter: Filter, [CsrfName]: CsrfToken },
         success: function (response) {
+            if (reqSeq !== _plReqSeq) return;
             ajaxLoading(1);
-            $(PLPag).css('visibility', '');
             if (response.Error) {
                 $(PLTable + ' tbody').html('');
                 $(PLPag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
@@ -384,13 +394,14 @@ function getPriceListDetails(PageNo, RowLimit, Filter) {
             }
         },
         error: function () {
+            if (reqSeq !== _plReqSeq) return;
             ajaxLoading(1);
-            $(PLPag).css('visibility', '');
         }
     });
 }
 
 function getCategoriesDetails(PageNo, RowLimit, Filter) {
+    var reqSeq = ++_catgReqSeq;
     var _overlay = _prodPageRefreshing;
     _prodPageRefreshing = false;
     if (!_overlay) {
@@ -408,8 +419,8 @@ function getCategoriesDetails(PageNo, RowLimit, Filter) {
             [CsrfName]: CsrfToken,
         },
         success: function (response) {
+            if (reqSeq !== _catgReqSeq) return;
             ajaxLoading(1);
-            $(CatgPag).css('visibility', '');
             if (response.Error) {
                 $(CatgTable + ' tbody').html('');
                 $(CatgPag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
@@ -424,8 +435,8 @@ function getCategoriesDetails(PageNo, RowLimit, Filter) {
             $(window).trigger('scroll');
         },
         error: function () {
+            if (reqSeq !== _catgReqSeq) return;
             ajaxLoading(1);
-            $(CatgPag).css('visibility', '');
         }
     });
 }
@@ -626,6 +637,7 @@ function updateBrandCount(count) {
  * @returns {void}
  */
 function getBrandsDetails(PageNo, RowLimit, Filter) {
+    var reqSeq = ++_brandReqSeq;
     var _overlay = _prodPageRefreshing;
     _prodPageRefreshing = false;
     if (!_overlay) {
@@ -638,8 +650,8 @@ function getBrandsDetails(PageNo, RowLimit, Filter) {
         cache: false,
         data: { RowLimit: RowLimit, PageNo: PageNo, Filter: Filter, [CsrfName]: CsrfToken },
         success: function (response) {
+            if (reqSeq !== _brandReqSeq) return;
             ajaxLoading(1);
-            $(BrandPag).css('visibility', '');
             if (response.Error) {
                 $(BrandTable + ' tbody').html('');
                 $(BrandPag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
@@ -653,8 +665,8 @@ function getBrandsDetails(PageNo, RowLimit, Filter) {
             }
         },
         error: function () {
+            if (reqSeq !== _brandReqSeq) return;
             ajaxLoading(1);
-            $(BrandPag).css('visibility', '');
         }
     });
 }

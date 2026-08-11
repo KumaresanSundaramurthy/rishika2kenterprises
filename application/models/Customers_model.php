@@ -61,6 +61,7 @@ class Customers_model extends CI_Model {
                 'Customers.Notes as Notes',
                 'Customers.Tags as Tags',
                 'Customers.CCEmails as CCEmails',
+                'Customers.AllowPortalAccess as AllowPortalAccess',
                 'Customers.CustomerTypeUID as CustomerTypeUID',
                 'COALESCE(CGM.GroupUID, NULL) as GroupUID',
                 'COALESCE(CGM.IsGroupPrimary, 0) as IsGroupPrimary',
@@ -1139,6 +1140,72 @@ class Customers_model extends CI_Model {
         }
     }
 
+    public function getCustomerGroupsForExport(int $orgUID, array $filter = []): array {
+        try {
+            $this->ReadDb->db_debug = false;
+            $this->ReadDb->select(
+                'CG.GroupUID, CG.GroupCode, CG.GroupName, CG.GroupType,
+                 CG.ContactPerson, CG.Mobile, CG.Email, CG.IsActive,
+                 COUNT(CGM.CustomerUID) AS MemberCount',
+                false
+            );
+            $this->ReadDb->from('Customers.CustomerGroupTbl CG');
+            $this->ReadDb->join('Customers.CustGroupMemberTbl CGM', 'CGM.GroupUID = CG.GroupUID AND CGM.OrgUID = CG.OrgUID AND CGM.IsDeleted = 0', 'left');
+            $this->ReadDb->where(['CG.OrgUID' => $orgUID, 'CG.IsDeleted' => 0]);
+            if (!empty($filter['SearchAllData'])) {
+                $s = $filter['SearchAllData'];
+                $this->ReadDb->group_start();
+                $this->ReadDb->like('CG.GroupName', $s);
+                $this->ReadDb->or_like('CG.GroupCode', $s);
+                $this->ReadDb->or_like('CG.GroupType', $s);
+                $this->ReadDb->or_like('CG.Mobile', $s);
+                $this->ReadDb->group_end();
+            }
+            if (isset($filter['IsActive']) && $filter['IsActive'] !== '') {
+                $this->ReadDb->where('CG.IsActive', (int)$filter['IsActive']);
+            }
+            if (!empty($filter['GroupType'])) {
+                $this->ReadDb->where_in('CG.GroupType', (array)$filter['GroupType']);
+            }
+            if (!empty($filter['CustomerUID'])) {
+                $cuid = (int)$filter['CustomerUID'];
+                $this->ReadDb->where("CG.GroupUID IN (SELECT GroupUID FROM Customers.CustGroupMemberTbl WHERE CustomerUID = {$cuid} AND OrgUID = {$orgUID} AND IsDeleted = 0)", null, false);
+            }
+            $this->ReadDb->group_by('CG.GroupUID');
+            $this->ReadDb->order_by('CG.GroupName', 'ASC');
+            $query = $this->ReadDb->get();
+            $rows  = $query ? $query->result() : [];
+
+            if (!empty($rows)) {
+                $groupUIDs    = array_map(fn($r) => (int)$r->GroupUID, $rows);
+                $placeholders = implode(',', array_fill(0, count($groupUIDs), '?'));
+                $balQuery     = $this->ReadDb->query(
+                    "SELECT CGM.GroupUID,
+                            COALESCE(SUM(CASE WHEN COB.PendingBalType = 'Debit'  AND COB.PendingBalance > 0 THEN COB.PendingBalance ELSE 0 END), 0) AS TotalReceivable,
+                            COALESCE(SUM(CASE WHEN COB.PendingBalType = 'Credit' AND COB.PendingBalance > 0 THEN COB.PendingBalance ELSE 0 END), 0) AS TotalPayable
+                     FROM Customers.CustGroupMemberTbl CGM
+                     JOIN Customers.CustOpeningBalanceTbl COB
+                          ON COB.CustomerUID = CGM.CustomerUID AND COB.OrgUID = CGM.OrgUID AND COB.IsDeleted = 0
+                     WHERE CGM.OrgUID = ? AND CGM.GroupUID IN ({$placeholders}) AND CGM.IsDeleted = 0
+                     GROUP BY CGM.GroupUID",
+                    array_merge([$orgUID], $groupUIDs)
+                );
+                $balMap = [];
+                if ($balQuery) {
+                    foreach ($balQuery->result() as $b) { $balMap[(int)$b->GroupUID] = $b; }
+                }
+                foreach ($rows as $row) {
+                    $b = $balMap[(int)$row->GroupUID] ?? null;
+                    $row->TotalReceivable = $b ? (float)$b->TotalReceivable : 0.0;
+                    $row->TotalPayable    = $b ? (float)$b->TotalPayable    : 0.0;
+                }
+            }
+            return $rows;
+        } catch (Exception $e) {
+            return [];
+        }
+    }
+
     public function getActiveGroupsForDropdown(int $orgUID): array {
         try {
             $this->ReadDb->db_debug = false;
@@ -1148,6 +1215,20 @@ class Customers_model extends CI_Model {
             $this->ReadDb->order_by('GroupName', 'ASC');
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
+        } catch (Exception $e) {
+            return [];
+        }
+    }
+
+    public function getActiveCustomerGroupsForDropdown(int $orgUID): array {
+        try {
+            $this->ReadDb->db_debug = false;
+            $this->ReadDb->select(['GroupUID', 'GroupName', 'GroupCode', 'GroupType']);
+            $this->ReadDb->from('Customers.CustomerGroupTbl');
+            $this->ReadDb->where(['OrgUID' => $orgUID, 'IsActive' => 1, 'IsDeleted' => 0]);
+            $this->ReadDb->order_by('GroupName', 'ASC');
+            $q = $this->ReadDb->get();
+            return $q ? $q->result() : [];
         } catch (Exception $e) {
             return [];
         }

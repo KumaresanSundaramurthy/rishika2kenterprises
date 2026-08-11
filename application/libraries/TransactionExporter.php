@@ -63,6 +63,16 @@ class TransactionExporter {
         'IPAddress'         => 'IP Address',
         'DeviceType'        => 'Device',
         'Summary'           => 'Summary',
+        // Customer Group columns
+        'GroupName'         => 'Group Name',
+        'GroupCode'         => 'Code',
+        'GroupType'         => 'Group Type',
+        'MemberCount'       => 'Members',
+        'ContactPerson'     => 'Contact Person',
+        'Mobile'            => 'Mobile',
+        'Email'             => 'Email',
+        'TotalReceivable'   => 'Receivable',
+        'TotalPayable'      => 'Payable',
         // Product columns
         'ItemName'          => 'Item Name',
         'CategoryName'      => 'Category',
@@ -198,6 +208,18 @@ class TransactionExporter {
             ],
         ],
 
+        // ── 204: Customer Groups ─────────────────────────────────────────────
+        204 => [
+            'title'  => 'Customer Groups',
+            'party'  => '',
+            'formats' => [
+                'csv'   => ['columns' => ['GroupName','GroupCode','GroupType','MemberCount','ContactPerson','Mobile','Email','TotalReceivable','TotalPayable','IsActiveLabel']],
+                'excel' => ['columns' => ['GroupName','GroupCode','GroupType','MemberCount','ContactPerson','Mobile','Email','TotalReceivable','TotalPayable','IsActiveLabel']],
+                'pdf'   => ['columns' => ['GroupName','GroupCode','GroupType','MemberCount','TotalReceivable','TotalPayable','IsActiveLabel']],
+                'print' => ['columns' => ['GroupName','GroupCode','GroupType','MemberCount','ContactPerson','Mobile','TotalReceivable','TotalPayable','IsActiveLabel']],
+            ],
+        ],
+
         // ── 202: Vendors ─────────────────────────────────────────────────────
         202 => [
             'title'  => 'Vendors',
@@ -237,7 +259,7 @@ class TransactionExporter {
     ];
 
     // ── Columns treated as money (right-aligned, formatted to 2dp) ───────────
-    private $moneyCols = ['SubTotal','DiscountAmount','CgstAmount','SgstAmount','IgstAmount','TaxAmount','RoundOff','NetAmount','PaidAmount','BalanceAmount','ClosingBalance','SellingPrice','PurchasePrice'];
+    private $moneyCols = ['SubTotal','DiscountAmount','CgstAmount','SgstAmount','IgstAmount','TaxAmount','RoundOff','NetAmount','PaidAmount','BalanceAmount','ClosingBalance','SellingPrice','PurchasePrice','TotalReceivable','TotalPayable'];
 
     // ── Date columns ─────────────────────────────────────────────────────────
     private $dateCols  = ['TransDate','ValidityDate','UpdatedOn'];
@@ -300,6 +322,9 @@ class TransactionExporter {
                 $rows   = $result->rows ?? [];
                 foreach ($rows as $r) { $r->CustName = $r->Name ?? ''; }
                 return $rows;
+            case 204:
+                $this->CI->load->model('customers_model');
+                return $this->CI->customers_model->getCustomerGroupsForExport($orgUID, $filters);
             case 202:
                 $this->CI->load->model('vendors_model');
                 $result = $this->CI->vendors_model->getVendorListPaginated($orgUID, 0, 0, $filters);

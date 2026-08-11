@@ -407,8 +407,7 @@ class Globally extends CI_Controller {
 
 
     // ── GET /globally/fetchGstinDetails?gstin=XXXX ──────────────────────────
-    // Fetches GSTIN details from free public API and returns structured data.
-    public function fetchGstinDetails() {
+    public function fetchGstinDetails(): void {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -419,13 +418,13 @@ class Globally extends CI_Controller {
                 throw new Exception('Please enter a valid 15-character GSTIN.');
             }
 
-            // Free public GSTIN lookup API (no key required)
-            $url = 'https://sheet.gstincheck.co.in/check/'.getenv('GSTIN_API_KEY').'/' . urlencode($gstin);
+            $url    = 'https://gstverify.co.in/api/v1/verify/' . urlencode($gstin);
+            $apiKey = getenv('GSTIN_API_KEY');
 
             $this->load->library('curlservice');
             $response = $this->curlservice->retrieve($url, 'GET', null, [
                 'Accept: application/json',
-                'User-Agent: Mozilla/5.0',
+                'X-API-Key: ' . $apiKey,
             ]);
 
             if (!$response || $response->Error) {
@@ -434,31 +433,68 @@ class Globally extends CI_Controller {
 
             $data = is_array($response->Data) ? $response->Data : json_decode(json_encode($response->Data ?? []), true);
 
-            if (empty($data) || ($data['flag'] ?? false) === false) {
-                throw new Exception('GSTIN not found or invalid. Please verify the number.');
+            if (empty($data) || ($data['success'] ?? false) !== true) {
+                $apiMsg = $data['message'] ?? $data['error'] ?? $data['msg'] ?? 'No details from API.';
+                throw new Exception($apiMsg ?: 'GSTIN not found or invalid. Please verify the number.');
             }
 
             $d = $data['data'] ?? [];
 
-            // Parse principal place of business address
-            $pradr = $d['pradr']['addr'] ?? [];
-            $addr  = array_filter([
-                $pradr['bnm']  ?? '',   // building name
-                $pradr['st']   ?? '',   // street
-                $pradr['loc']  ?? '',   // locality
-            ]);
+            // Parse address string: "123 Business Park, Mumbai — 400001"
+            $rawAddr   = trim($d['address'] ?? '');
+            $addrLine1 = $rawAddr;
+            $city      = '';
+            $pincode   = '';
 
-            $this->EndReturnData->Error       = false;
-            $this->EndReturnData->GSTIN       = $gstin;
-            $this->EndReturnData->LegalName   = $d['lgnm']  ?? '';   // Legal name
-            $this->EndReturnData->TradeName   = $d['tradeNam'] ?? ($d['lgnm'] ?? '');
-            $this->EndReturnData->Status      = $d['sts']   ?? '';   // Active / Cancelled
-            $this->EndReturnData->StateCode   = substr($gstin, 0, 2);
-            $this->EndReturnData->StateName   = $pradr['stcd'] ?? '';
-            $this->EndReturnData->City        = $pradr['dst']  ?? $pradr['loc'] ?? '';
-            $this->EndReturnData->Pincode     = $pradr['pncd'] ?? '';
-            $this->EndReturnData->AddressLine1 = implode(', ', $addr);
-            $this->EndReturnData->AddressLine2 = '';
+            if ($rawAddr !== '') {
+                // Split on em dash (—) to separate address+city from pincode
+                $dashPos = mb_strpos($rawAddr, '—');
+                if ($dashPos !== false) {
+                    $leftPart = trim(mb_substr($rawAddr, 0, $dashPos));
+                    $pincode  = trim(preg_replace('/\D/', '', mb_substr($rawAddr, $dashPos + 1)));
+
+                    // Last comma segment of left part = city
+                    $commaPos = strrpos($leftPart, ',');
+                    if ($commaPos !== false) {
+                        $city      = trim(substr($leftPart, $commaPos + 1));
+                        $addrLine1 = trim(substr($leftPart, 0, $commaPos));
+                    } else {
+                        $addrLine1 = $leftPart;
+                    }
+                }
+            }
+
+            $this->EndReturnData->Error            = false;
+            $this->EndReturnData->GSTIN            = $gstin;
+            $this->EndReturnData->LegalName        = $d['legal_name']   ?? '';
+            $this->EndReturnData->TradeName        = $d['trade_name']   ?? ($d['legal_name'] ?? '');
+            $this->EndReturnData->Status           = $d['status']       ?? '';
+            $this->EndReturnData->PAN              = $d['pan']          ?? '';
+            $this->EndReturnData->Constitution     = $d['constitution'] ?? '';
+            $this->EndReturnData->TaxpayerType     = $d['taxpayer_type']     ?? '';
+            $this->EndReturnData->RegistrationDate = $d['registration_date'] ?? '';
+            $this->EndReturnData->StateCode        = substr($gstin, 0, 2);
+            $this->EndReturnData->StateName        = $d['state']        ?? '';
+            $this->EndReturnData->City             = $city;
+            $this->EndReturnData->Pincode          = $pincode;
+            $this->EndReturnData->AddressLine1     = $addrLine1;
+            $this->EndReturnData->AddressLine2     = '';
+
+            // $this->EndReturnData->Error             = false;
+            // $this->EndReturnData->GSTIN             = '33ESZPK0894R1ZH';
+            // $this->EndReturnData->LegalName        = 'RISHIKA 2K ENTERPRISES';
+            // $this->EndReturnData->TradeName        = 'RISHIKA 2K ENTERPRISES';
+            // $this->EndReturnData->Status            = 'Active';
+            // $this->EndReturnData->PAN               = 'ESZPK0894R';
+            // $this->EndReturnData->Constitution      = 'Proprietorship';
+            // $this->EndReturnData->TaxpayerType      = 'Regular';
+            // $this->EndReturnData->RegistrationDate  = '04/08/2025';
+            // $this->EndReturnData->StateCode         = '33';
+            // $this->EndReturnData->StateName         = 'Tamil Nadu';
+            // $this->EndReturnData->City              = 'Tamil Nadu';
+            // $this->EndReturnData->Pincode           = '604205';
+            // $this->EndReturnData->AddressLine1      = 'Gingee To Villupuram Road,Palappattu,No 1/77,Viluppuram, Viluppuram';
+            // $this->EndReturnData->AddressLine2      = '';
 
         } catch (Exception $e) {
             $this->EndReturnData->Error   = true;

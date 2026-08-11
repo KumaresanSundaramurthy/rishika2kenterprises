@@ -65,7 +65,9 @@ class Customers extends MY_Controller {
             $this->pageData['GrpStats']      = null;
             $this->pageData['GrpTotal']      = 0;
 
-            $allFilter = strlen($initSearch) >= 3 ? ['SearchAllData' => $initSearch] : [];
+            $allFilter  = strlen($initSearch) >= 3 ? ['SearchAllData' => $initSearch] : [];
+            $_showStats = (int)($this->pageData['JwtData']->GenSettings->ShowStats ?? 1)
+                       && (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
             if ($initTab !== 'Groups') {
                 $pageData = $this->_fetchTableData(1, $limit, $allFilter);
                 $this->pageData['ModRowData']      = $pageData->RecordHtmlData;
@@ -76,7 +78,6 @@ class Customers extends MY_Controller {
                 $grpPage   = $this->_fetchGroupsTableData(1, $limit, $grpFilter);
                 $this->pageData['GrpRowData']    = $grpPage->RecordHtmlData;
                 $this->pageData['GrpPagination'] = $grpPage->Pagination;
-                $_showStats = (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
                 $this->pageData['GrpStats']      = $_showStats ? $this->customers_model->getGroupStats($orgUID) : null;
                 $this->pageData['GrpTotal']      = $grpPage->TotalCount;
             }
@@ -84,7 +85,7 @@ class Customers extends MY_Controller {
             $this->pageData['InitTab']    = $initTab;
             $this->pageData['InitSearch'] = $initSearch;
 
-            $this->pageData['CustStats']         = $this->customers_model->getCustomerStats($orgUID);
+            $this->pageData['CustStats']         = $_showStats ? $this->customers_model->getCustomerStats($orgUID) : null;
             $this->pageData['CustomerGroupList'] = [];
             $this->pageData['Tags']              = $this->customers_model->getCustomerTags($orgUID);
 
@@ -313,7 +314,8 @@ class Customers extends MY_Controller {
                     $pageData = $this->_fetchTableData(1, $this->pageData['Limit']);
                     $this->EndReturnData->List       = $pageData->RecordHtmlData;
                     $this->EndReturnData->Pagination = $pageData->Pagination;
-                    $this->EndReturnData->Stats      = $this->customers_model->getCustomerStats($this->pageData['JwtData']->Org->OrgUID);
+                    $_showStats = (int)($this->pageData['JwtData']->GenSettings->ShowStats ?? 1) && (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
+                    $this->EndReturnData->Stats      = $_showStats ? $this->customers_model->getCustomerStats($this->pageData['JwtData']->Org->OrgUID) : null;
                 } catch (Exception $e) {
                     // non-fatal — list refresh failed but customer was created successfully
                 }
@@ -491,6 +493,38 @@ class Customers extends MY_Controller {
 
         $this->globalservice->sendJsonResponse($this->EndReturnData);
 
+    }
+
+    public function syncCustomerGroupsCache(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $this->load->model('customers_model');
+            $groups = $this->customers_model->getActiveCustomerGroupsForDropdown($orgUID);
+            if (empty($groups)) throw new Exception('No active customer groups found.');
+
+            $cacheKey = $this->redisservice->orgKey('customer-groups');
+            $this->upstashservice->del($cacheKey);
+            $map = [];
+            foreach ($groups as $g) {
+                $uid       = (int) $g->GroupUID;
+                $map[(string) $uid] = json_encode([
+                    'GroupUID'  => $uid,
+                    'GroupName' => $g->GroupName ?? '',
+                    'GroupCode' => $g->GroupCode ?? '',
+                    'GroupType' => $g->GroupType ?? '',
+                ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            }
+            $this->upstashservice->hmset($cacheKey, $map);
+
+            $this->EndReturnData->Error   = false;
+            $this->EndReturnData->Message = count($groups) . ' group(s) synced to cache.';
+            $this->EndReturnData->Count   = count($groups);
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
     public function getCustomerForModal($uid = 0) {
@@ -690,6 +724,25 @@ class Customers extends MY_Controller {
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Updated Successfully';
+            $billLine1 = trim((string) getPostValue($PostData, 'BillAddrLine1', '', ''));
+            $billAddr  = [];
+            if ($billLine1 !== '') {
+                $billAddr = [[
+                    'AddressType' => 'Billing',
+                    'Line1'       => $billLine1,
+                    'Line2'       => trim((string) getPostValue($PostData, 'BillAddrLine2',     '', '')),
+                    'Pincode'     => trim((string) getPostValue($PostData, 'BillAddrPincode',   '', '')),
+                    'CityText'    => trim((string) getPostValue($PostData, 'BillAddrCityText',  '', '')),
+                    'StateText'   => trim((string) getPostValue($PostData, 'BillAddrStateText', '', '')),
+                ]];
+            }
+            $this->EndReturnData->Customer = [
+                'CustomerUID'  => (int) $CustomerUID,
+                'Name'         => trim((string) getPostValue($PostData, 'Name',         '', '')),
+                'Area'         => trim((string) getPostValue($PostData, 'Area',         '', '')),
+                'MobileNumber' => trim((string) getPostValue($PostData, 'MobileNumber', '', '')),
+                'Address'      => $billAddr,
+            ];
             $this->auditlog->log(
                 (int) $orgUID, (int) $userUID,
                 'UPDATE_CUSTOMER', 'Customer', (int) $CustomerUID, (string) $newName,
@@ -1679,7 +1732,7 @@ class Customers extends MY_Controller {
             $this->EndReturnData->RecordHtmlData = $pageData->RecordHtmlData;
             $this->EndReturnData->Pagination     = $pageData->Pagination;
             $this->EndReturnData->TotalCount     = $pageData->TotalCount;
-            $_showStats = (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
+            $_showStats = (int)($this->pageData['JwtData']->GenSettings->ShowStats ?? 1) && (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
             $this->EndReturnData->Stats = $_showStats ? $this->customers_model->getGroupStats($this->pageData['JwtData']->Org->OrgUID) : null;
         } catch (Exception $e) {
             $this->EndReturnData->Error   = true;
@@ -1738,7 +1791,8 @@ class Customers extends MY_Controller {
                 'Mobile'            => trim($post['Mobile']            ?? '') ?: null,
                 'MobileCountryCode' => trim($post['MobileCountryCode'] ?? '') ?: null,
                 'Email'             => trim($post['Email']             ?? '') ?: null,
-                'GSTNo'             => trim($post['GSTNo']             ?? '') ?: null,
+                'GSTNo'             => strtoupper(trim($post['GSTIN']             ?? '')) ?: null,
+                'GSTINValidated'    => (int)($post['GSTINValidated']   ?? 0),
                 'AddrLine1'         => trim($post['AddrLine1']         ?? '') ?: null,
                 'AddrLine2'         => trim($post['AddrLine2']         ?? '') ?: null,
                 'AddrCity'          => trim($post['AddrCity']          ?? '') ?: null,
@@ -1781,15 +1835,6 @@ class Customers extends MY_Controller {
                 return;
             }
 
-            // Groups tab context: return full list + stats for table refresh
-            $limit    = isset($this->pageData['Limit']) ? (int)$this->pageData['Limit'] : 25;
-            $pageData = $this->_fetchGroupsTableData(1, $limit);
-            $this->load->model('customers_model');
-            $this->EndReturnData->RecordHtmlData = $pageData->RecordHtmlData;
-            $this->EndReturnData->Pagination     = $pageData->Pagination;
-            $this->EndReturnData->TotalCount     = $pageData->TotalCount;
-            $_showStats = (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
-            $this->EndReturnData->Stats = $_showStats ? $this->customers_model->getGroupStats($orgUID) : null;
         } catch (InvalidArgumentException $e) {
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = true;
@@ -1842,7 +1887,8 @@ class Customers extends MY_Controller {
                 'Mobile'            => trim($post['Mobile']            ?? '') ?: null,
                 'MobileCountryCode' => trim($post['MobileCountryCode'] ?? '') ?: null,
                 'Email'             => trim($post['Email']             ?? '') ?: null,
-                'GSTNo'             => trim($post['GSTNo']             ?? '') ?: null,
+                'GSTNo'             => strtoupper(trim($post['GSTIN']             ?? '')) ?: null,
+                'GSTINValidated'    => (int)($post['GSTINValidated']   ?? 0),
                 'AddrLine1'         => trim($post['AddrLine1']         ?? '') ?: null,
                 'AddrLine2'         => trim($post['AddrLine2']         ?? '') ?: null,
                 'AddrCity'          => trim($post['AddrCity']          ?? '') ?: null,
@@ -1885,13 +1931,6 @@ class Customers extends MY_Controller {
                 return;
             }
 
-            // Groups tab context: full list + stats
-            $limit    = isset($this->pageData['Limit']) ? (int)$this->pageData['Limit'] : 25;
-            $pageData = $this->_fetchGroupsTableData(1, $limit);
-            $this->EndReturnData->RecordHtmlData = $pageData->RecordHtmlData;
-            $this->EndReturnData->Pagination     = $pageData->Pagination;
-            $this->EndReturnData->TotalCount     = $pageData->TotalCount;
-            $this->EndReturnData->Stats          = $this->customers_model->getGroupStats($orgUID);
         } catch (InvalidArgumentException $e) {
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = true;
@@ -1938,7 +1977,7 @@ class Customers extends MY_Controller {
             );
             $this->EndReturnData->RecordHtmlData = $pageData->RecordHtmlData;
             $this->EndReturnData->Pagination     = $pageData->Pagination;
-            $_showStats = (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
+            $_showStats = (int)($this->pageData['JwtData']->GenSettings->ShowStats ?? 1) && (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
             $this->EndReturnData->Stats = $_showStats ? $this->customers_model->getGroupStats($orgUID) : null;
         } catch (Exception $e) {
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
@@ -1984,7 +2023,7 @@ class Customers extends MY_Controller {
             );
             $this->EndReturnData->RecordHtmlData = $pageData->RecordHtmlData;
             $this->EndReturnData->Pagination     = $pageData->Pagination;
-            $_showStats = (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
+            $_showStats = (int)($this->pageData['JwtData']->GenSettings->ShowStats ?? 1) && (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
             $this->EndReturnData->Stats = $_showStats ? $this->customers_model->getGroupStats($orgUID) : null;
         } catch (Exception $e) {
             $this->EndReturnData->Error   = true;

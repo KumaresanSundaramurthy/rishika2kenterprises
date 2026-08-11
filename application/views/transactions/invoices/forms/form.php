@@ -141,8 +141,9 @@ if ($isEdit) {
                                             </button>
                                         </div>
                                         <div class="input-group input-group-sm input-group-merge customer-search-group" id="customerGroup_customerSearch">
-                                            <span class="input-group-text p-2 cursor-pointer" id="openCustomerSearchModal" style="background:#f0efff;border-color:#d9d8ff;color:#696cff;"><i class="icon-base bx bx-search"></i></span>
+                                            <span class="input-group-text p-2 cursor-pointer party-search-icon" id="openCustomerSearchModal" style="background:#f0efff;border-color:#d9d8ff;color:#696cff;"><i class="icon-base bx bx-search"></i></span>
                                             <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
+                                            <span class="party-edit-icon" id="editCustomerBtn" title="Edit Customer"><i class="bx bx-edit-alt"></i></span>
                                         </div>
                                     <?php endif; ?>
                                 </div>
@@ -234,6 +235,7 @@ if ($isEdit) {
 <script src="/js/common/address.js"></script>
 <script src="/js/common/bankdetails.js"></script>
 <script src="/js/common/gstin_fetch.js"></script>
+<script src="/js/common/phone_cc_dropdown.js"></script>
 <script src="/js/common/customer_form.js"></script>
 <script src="/js/transactions/invoices.js"></script>
 <script src="/js/transactions/transactions.js"></script>

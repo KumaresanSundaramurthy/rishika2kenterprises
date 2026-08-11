@@ -34,6 +34,8 @@ $lang['change_password']   = 'கடவுச்சொல் மாற்று'
 $lang['last_login']        = 'கடைசி உள்நுழைவு';
 $lang['settings']          = 'அமைப்புகள்';
 $lang['page_refresh']      = 'பக்கப் புதுப்பிப்பு';
+$lang['sync_cache']        = 'தற்காலிக சேமிப்பை ஒத்திசை';
+$lang['sync_groups_cache'] = 'குழு தற்காலிக சேமிப்பை ஒத்திசை';
 
 // Theme
 $lang['theme_light']       = 'வெளிச்சம்';

@@ -82,6 +82,7 @@ var PaymentsPage = (function () {
             method : 'POST',
             data   : { RowLimit: self._limit, Filter: f, [CsrfName]: CsrfToken },
             beforeSend: function () {
+                $('#allPmtPagination').empty();
                 $('#allPaymentsTableBody').html(
                     '<tr><td colspan="8" class="text-center py-4">' +
                     '<span class="spinner-border spinner-border-sm text-primary me-2"></span>' +

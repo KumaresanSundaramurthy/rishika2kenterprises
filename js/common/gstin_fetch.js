@@ -1,12 +1,27 @@
 // ── GSTIN Fetch — shared across Customer, Vendor, and Transaction forms ──────
+//
+// Pages that want confirmation-overlay + validated-text behaviour register:
+//   window.gstinFetchConfig = {
+//     skipAddress  : true,                          // skip openAddressModal auto-fill
+//     confirmRows  : function(resp) { return html; },
+//     onConfirm    : function(resp) { ... },        // fills page-specific fields; _doAutoFill NOT called
+//     onValidated  : function()     { ... },
+//   };
+//
+// Without gstinFetchConfig, _doAutoFill runs immediately (legacy behaviour for
+// customer / vendor / transaction forms).
 
-// Uppercase the actual input value as the user types, preserving cursor position
+var _gstinPendingResp = null;
+var _gstinPendingForm = null;
+
+// ── Uppercase GSTIN input as user types ──────────────────────────────────────
 $(document).on('input', '[name="GSTIN"]', function () {
     var pos = this.selectionStart;
     this.value = this.value.toUpperCase();
     this.setSelectionRange(pos, pos);
 });
 
+// ── Fetch button ─────────────────────────────────────────────────────────────
 $(document).on('click', '#GSTIN_Fetch', function () {
 
     var $btn        = $(this);
@@ -18,8 +33,9 @@ $(document).on('click', '#GSTIN_Fetch', function () {
         showToastNotification(t('toast_gstin_enter', 'Please enter a GSTIN number first.'), 'error');
         return;
     }
-    if (gstin.length !== 15) {
-        showToastNotification(t('toast_gstin_15chars', 'GSTIN must be exactly 15 characters.'), 'error');
+    var _gstinCheck = validateGSTIN(gstin);
+    if (!_gstinCheck.isValid) {
+        showToastNotification(_gstinCheck.message, 'error');
         return;
     }
 
@@ -38,48 +54,30 @@ $(document).on('click', '#GSTIN_Fetch', function () {
                 return;
             }
 
-            // ── Auto-fill fields ──────────────────────────────────────────────
-            var $nameField    = $form.find('[name="Name"]');
-            var $companyField = $form.find('[name="CompanyName"]');
-
-            if (resp.TradeName && $companyField.length) $companyField.val(resp.TradeName);
-            if (resp.LegalName && $nameField.length && !$.trim($nameField.val())) {
-                $nameField.val(resp.LegalName);
-            }
-
-            // Billing address — open address modal and pre-fill from GSTIN data
-            if (resp.AddressLine1 || resp.City || resp.Pincode) {
-                openAddressModal(1);
-                setTimeout(function () {
-                    if (resp.AddressLine1) $('#ModalAddrLine1').val(resp.AddressLine1);
-                    if (resp.AddressLine2) $('#ModalAddrLine2').val(resp.AddressLine2);
-                    if (resp.Pincode)      $('#ModalAddrPincode').val(resp.Pincode);
-                    if (resp.StateName) {
-                        var $stateOpt = $('#ModalAddrState option').filter(function () {
-                            return $(this).text().trim().toLowerCase() === resp.StateName.trim().toLowerCase();
-                        });
-                        if ($stateOpt.length) $('#ModalAddrState').val($stateOpt.val()).trigger('change');
-                    }
-                    if (resp.City) {
-                        setTimeout(function () {
-                            var cityLower = resp.City.trim().toLowerCase();
-                            var $cityOpt  = $('#ModalAddrCity option').filter(function () {
-                                return $(this).text().trim().toLowerCase() === cityLower
-                                    || $(this).text().trim().toLowerCase().indexOf(cityLower) === 0;
-                            });
-                            if ($cityOpt.length) {
-                                $('#ModalAddrCity').val($cityOpt.first().val());
-                                if ($('#ModalAddrCity').hasClass('select2')) $('#ModalAddrCity').trigger('change');
-                            }
-                        }, 600);
-                    }
-                }, 400);
-            }
-
             var successMsg = t('toast_gstin_fetched', 'GSTIN details fetched successfully');
             if (resp.LegalName) successMsg += ' — ' + resp.LegalName;
             if (resp.Status)    successMsg += ' (' + resp.Status + ')';
             showToastNotification(successMsg, 'success');
+
+            var cfg = (typeof window.gstinFetchConfig === 'object') ? window.gstinFetchConfig : null;
+
+            // Notify page that GSTIN was validated (always on success)
+            if (cfg && typeof cfg.onValidated === 'function') {
+                cfg.onValidated();
+            }
+
+            // Show confirmation overlay if configured; otherwise auto-fill immediately
+            if (cfg && typeof cfg.confirmRows === 'function') {
+                _gstinPendingResp = resp;
+                _gstinPendingForm = $form;
+                $('#gstin-confirm-rows').html(cfg.confirmRows(resp));
+                // Move to <body> to escape any parent stacking context, then show
+                $('#gstinConfirmOverlay').appendTo('body').addClass('active');
+                return;
+            }
+
+            // No config — auto-fill directly (customer / vendor / transaction forms)
+            _doAutoFill($form, resp, false);
         },
         error: function () {
             $btn.prop('disabled', false).html('Fetch');
@@ -88,3 +86,84 @@ $(document).on('click', '#GSTIN_Fetch', function () {
     });
 
 });
+
+// ── Confirm overlay — Accept ──────────────────────────────────────────────────
+$(document).on('click', '#gstin-confirm-accept', function () {
+    var resp  = _gstinPendingResp;
+    _hideGstinConfirm();
+
+    var cfg = (typeof window.gstinFetchConfig === 'object') ? window.gstinFetchConfig : null;
+    if (cfg) {
+        // Config path: only call page-specific handler — _doAutoFill is NOT called
+        if (typeof cfg.onConfirm === 'function') cfg.onConfirm(resp || {});
+    } else {
+        // Legacy path: auto-fill shared fields (customer / vendor / transaction forms)
+        if (resp && _gstinPendingForm) _doAutoFill(_gstinPendingForm, resp, false);
+    }
+});
+
+// ── Confirm overlay — Cancel ──────────────────────────────────────────────────
+$(document).on('click', '#gstin-confirm-cancel', function () {
+    _hideGstinConfirm();
+});
+
+/**
+ * @returns {void}
+ */
+function _hideGstinConfirm() {
+    $('#gstinConfirmOverlay').removeClass('active');
+    _gstinPendingResp = null;
+    _gstinPendingForm = null;
+}
+
+// ── Auto-fill shared fields (Name, CompanyName, PAN, Address) ────────────────
+/**
+ * @param {jQuery} $form
+ * @param {Object} resp
+ * @param {boolean} skipAddress
+ * @returns {void}
+ */
+function _doAutoFill($form, resp, skipAddress) {
+    var $nameField    = $form.find('[name="Name"]');
+    var $companyField = $form.find('[name="CompanyName"]');
+    var $panField     = $form.find('[name="PANNumber"]');
+
+    if (resp.TradeName && $companyField.length) $companyField.val(resp.TradeName);
+    if (resp.LegalName && $nameField.length && !$.trim($nameField.val())) {
+        $nameField.val(resp.LegalName);
+    }
+    if (resp.PAN && $panField.length && !$.trim($panField.val())) {
+        $panField.val(resp.PAN);
+    }
+
+    if (skipAddress) return;
+
+    // Billing address — open address modal and pre-fill from GSTIN data
+    if ((resp.AddressLine1 || resp.City || resp.Pincode) && typeof openAddressModal === 'function') {
+        openAddressModal(1);
+        setTimeout(function () {
+            if (resp.AddressLine1) $('#ModalAddrLine1').val(resp.AddressLine1);
+            if (resp.AddressLine2) $('#ModalAddrLine2').val(resp.AddressLine2);
+            if (resp.Pincode)      $('#ModalAddrPincode').val(resp.Pincode);
+            if (resp.StateName) {
+                var $stateOpt = $('#ModalAddrState option').filter(function () {
+                    return $(this).text().trim().toLowerCase() === resp.StateName.trim().toLowerCase();
+                });
+                if ($stateOpt.length) $('#ModalAddrState').val($stateOpt.val()).trigger('change');
+            }
+            if (resp.City) {
+                setTimeout(function () {
+                    var cityLower = resp.City.trim().toLowerCase();
+                    var $cityOpt  = $('#ModalAddrCity option').filter(function () {
+                        return $(this).text().trim().toLowerCase() === cityLower
+                            || $(this).text().trim().toLowerCase().indexOf(cityLower) === 0;
+                    });
+                    if ($cityOpt.length) {
+                        $('#ModalAddrCity').val($cityOpt.first().val());
+                        if ($('#ModalAddrCity').hasClass('select2')) $('#ModalAddrCity').trigger('change');
+                    }
+                }, 600);
+            }
+        }, 400);
+    }
+}

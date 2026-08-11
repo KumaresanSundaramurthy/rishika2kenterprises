@@ -176,7 +176,7 @@ if ($isEdit) {
                             <!-- Vendor address box -->
                             <div class="row g-2 mb-3">
                                 <div class="col-md-4">
-                                    <div id="vendorAddressBox" class="p-2 border border-secondary trans-border-dotted rounded small d-none"></div>
+                                    <div id="vendorAddressBox" class="trans-addr-strip d-none"><i class="bx bx-map-pin"></i><span></span></div>
                                 </div>
                             </div>
                             <hr class="mt-2 mb-3"/>
@@ -218,6 +218,7 @@ if ($isEdit) {
             <?php if ($_prMethod !== 'Manual'): ?>
             <?php $this->load->view('transactions/modals/purchase_items_select'); ?>
             <?php endif; ?>
+            <?php $this->load->view('common/modals/vendor_form'); ?>
             <?php $this->load->view('transactions/partials/form_common_modals'); ?>
 
         </div>
@@ -230,6 +231,8 @@ if ($isEdit) {
 <?php $this->load->view('common/transactions/footer'); ?>
 
 <script src="/js/transactions/purchasereturns.js"></script>
+<script src="/js/common/phone_cc_dropdown.js"></script>
+<script src="/js/common/vendor_form.js"></script>
 <script src="/js/transactions/vendor_search.js"></script>
 <script src="/js/transactions/transactions.js"></script>
 <script src="/js/transactions/transprefix.js"></script>

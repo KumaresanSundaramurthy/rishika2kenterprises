@@ -83,10 +83,13 @@ $pageHead = $isEdit ? 'Edit Customer Group' : 'Create Customer Group';
                                                value="<?php echo htmlspecialchars($d->Email ?? ''); ?>">
                                     </div>
                                     <div class="col-md-3">
-                                        <label class="form-label">GST No</label>
-                                        <input type="text" class="form-control" name="GSTNo"
-                                               maxlength="20" placeholder="27XXXXX..."
-                                               value="<?php echo htmlspecialchars($d->GSTNo ?? ''); ?>">
+                                        <label class="form-label">GSTIN</label>
+                                        <div class="input-group">
+                                            <input type="text" class="form-control text-uppercase" name="GSTIN"
+                                                   maxlength="15" placeholder="33XXXXX..."
+                                                   value="<?php echo htmlspecialchars($d->GSTNo ?? ''); ?>">
+                                            <button type="button" class="btn btn-outline-primary" id="GSTIN_Fetch">Fetch</button>
+                                        </div>
                                     </div>
                                     <div class="col-md-3">
                                         <label class="form-label">City</label>
@@ -200,6 +203,7 @@ $pageHead = $isEdit ? 'Edit Customer Group' : 'Create Customer Group';
                 </div>
             </div>
             <?php $this->load->view('common/footer'); ?>
+<script src="<?php echo _assetV('/js/common/gstin_fetch.js'); ?>"></script>
         </div>
     </div>
 </div>

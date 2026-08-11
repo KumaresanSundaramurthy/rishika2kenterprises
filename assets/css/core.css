@@ -93,6 +93,71 @@
     padding-right: 0.5rem !important;
 }
 
+/* ── Transaction form: full-width flush sticky header ─────────────────────── */
+
+/* Clip overflow from negative-margin header — 'clip' (unlike 'hidden') does NOT
+   create a scroll container, so position:sticky on the header still works. */
+.transactionPage {
+    overflow-x: clip;
+}
+
+/* Zero top gap so header sits flush at the content area top */
+.transactionPage .layout-page .container-p-y {
+    padding-block-start: 0 !important;
+}
+
+/* Remove only the card's top border — the extended header replaces it visually */
+.transactionPage form > .card {
+    border-top:               none !important;
+    border-top-left-radius:   0    !important;
+    border-top-right-radius:  0    !important;
+}
+
+/* Header only: break out of the container (0.5rem) and card border (1px) to full width */
+.transactionPage .trans-header-static {
+    top:           0 !important;
+    border-radius: 0 !important;
+    margin-left:   calc(-0.5rem - 1px) !important;
+    margin-right:  calc(-0.5rem - 1px) !important;
+}
+
+/* ── Party search/edit icon left↔right toggle ─────────────────────────────── */
+/* Hide entire search button when a party is selected */
+.party-has-selection .party-search-icon { display: none; }
+
+/* Restore left border + radius on the Select2 field once the search icon is gone.
+   input-group-merge applies margin-inline-start:-2px (logical property) to all
+   non-first-child containers, shifting the Select2 box left and hiding its border. */
+.customer-search-group.party-has-selection .select2-container,
+.vendor-search-group.party-has-selection   .select2-container {
+    margin-inline-start: 0 !important;
+}
+.customer-search-group.party-has-selection .select2-selection--single,
+.vendor-search-group.party-has-selection   .select2-selection--single {
+    border-inline-start:       1px solid #d9dee3 !important;
+    border-top-left-radius:    4px !important;
+    border-bottom-left-radius: 4px !important;
+}
+
+/* Edit icon: absolutely positioned over the right side of the Select2 field */
+.party-edit-icon {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 5;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    line-height: 1;
+    font-size: 1rem;
+    border-radius: 4px;
+    padding: 3px 5px;
+}
+.customer-search-group .party-edit-icon { color: #696cff; background: #f0efff; border: 1px solid #d9d8ff; }
+.vendor-search-group   .party-edit-icon { color: #6f42c1; background: #f0ebff; border: 1px solid #d9d0ff; }
+.party-has-selection   .party-edit-icon { display: flex;  }
+
 /* ── S.No column — shrink-to-content ─────────────────────────────────────── */
 .table-serialno { width: 1%; white-space: nowrap; }
 
@@ -781,5 +846,38 @@ input[type="number"] {
 .trans-addr-strip span {
     line-height: 1.5;
     word-break: break-word;
+}
+
+/* ── No-address warning strip (transaction forms) ────────────────────────── */
+.trans-addr-warn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+    padding: 7px 12px;
+    background: #fff8ec;
+    border: 1px solid #ffd666;
+    border-radius: 6px;
+    font-size: .8rem;
+    color: #7a5100;
+    width: 100%;
+    box-sizing: border-box;
+}
+.trans-addr-warn .bx-info-circle {
+    color: #f59e0b;
+    font-size: .9rem;
+    flex-shrink: 0;
+}
+.trans-addr-warn span .bx {
+    font-size: .85rem;
+    vertical-align: middle;
+    color: #7a5100;
+}
+
+/* ── Vendor / party search icon button (transaction forms) ───────────────── */
+.trans-party-search-btn {
+    background: #f0ebff !important;
+    border-color: #d9d0ff !important;
+    color: #6f42c1 !important;
 }
 

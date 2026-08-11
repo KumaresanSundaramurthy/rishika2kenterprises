@@ -21,7 +21,7 @@
                 $dec = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
                 ?>
 
-                <?php if ($JwtData->TransSettings->ShowTransactionStats ?? 1): ?>
+                <?php if (($JwtData->GenSettings->ShowStats ?? 1) && ($JwtData->TransSettings->ShowTransactionStats ?? 1)): ?>
                 <!-- ── Stats Strip ───────────────────────────────────────────── -->
                 <div class="apex-stats-strip">
                     <a href="javascript:void(0);" class="apex-stat-item active" data-status="All" data-stat-filter="All" style="--stat-color:#db2777">
@@ -118,7 +118,9 @@
                             </a>
                             <div class="apex-filter-spacer"></div>
                             <!-- Customer-only controls -->
-                            <a href="javascript:void(0);" class="apex-filter-btn cust-only-ctrl<?php echo $initIsGroups ? ' d-none' : ''; ?>" id="btnSyncCustomersCache" title="Sync Cache"><i class="bx bx-planet"></i></a>
+                            <a href="javascript:void(0);" class="apex-filter-btn cust-only-ctrl<?php echo $initIsGroups ? ' d-none' : ''; ?>" id="btnSyncCustomersCache" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('sync_cache', 'Sync Cache'); ?>"><i class="bx bx-planet"></i></a>
+                            <!-- Group-only sync -->
+                            <a href="javascript:void(0);" class="apex-filter-btn grp-only-ctrl<?php echo $initIsGroups ? '' : ' d-none'; ?>" id="btnSyncCustomerGroupsCache" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('sync_groups_cache', 'Sync Groups Cache'); ?>"><i class="bx bx-planet"></i></a>
                             <a href="javascript:void(0);" class="apex-filter-btn PageRefresh" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('page_refresh', 'Page Refresh'); ?>"><i class="bx bx-refresh"></i></a>
                             <div class="btn-group d-none cust-only-ctrl" id="ActionsDD-Div">
                                 <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="actionsDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="<?php echo t('lbl_actions', 'Actions'); ?>">
@@ -129,6 +131,9 @@
                                 </ul>
                             </div>
                             <div class="cust-only-ctrl<?php echo $initIsGroups ? ' d-none' : ''; ?>">
+                                <?php $this->load->view('common/partials/export_btn'); ?>
+                            </div>
+                            <div class="grp-only-ctrl<?php echo $initIsGroups ? '' : ' d-none'; ?>">
                                 <?php $this->load->view('common/partials/export_btn'); ?>
                             </div>
                             <a href="javascript:void(0);" class="btn btn-primary cust-only-ctrl<?php echo $initIsGroups ? ' d-none' : ''; ?>" id="btnCreateCustomerHeader"
@@ -145,7 +150,7 @@
                         <!-- Tabs Row -->
                         <div class="apex-tabs-row">
                             <ul class="nav trans-status-tabs" id="custStatusTabs" role="tablist" data-trans-path="/customers">
-                                <li class="nav-item"><a class="nav-link<?php echo ($InitTab ?? 'All') === 'All' ? ' active' : ''; ?> cust-tab" data-status="All" data-url-tab="all" href="javascript:void(0);"><?php echo t('tab_all_customers', 'All Customers'); ?> <span class="trans-tab-count<?php echo (!$initIsGroups && ($CustStats->TotalCount ?? 0) > 0) ? '' : ' d-none'; ?>"><?php echo (!$initIsGroups && ($CustStats->TotalCount ?? 0) > 0) ? $CustStats->TotalCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link<?php echo ($InitTab ?? 'All') === 'All' ? ' active' : ''; ?> cust-tab" data-status="All" data-url-tab="all" href="javascript:void(0);"><?php echo t('tab_all_customers', 'All Customers'); ?> <span class="trans-tab-count<?php echo (!$initIsGroups && ($InitTotalCount ?? 0) > 0) ? '' : ' d-none'; ?>"><?php echo (!$initIsGroups && ($InitTotalCount ?? 0) > 0) ? $InitTotalCount : ''; ?></span></a></li>
                                 <li class="nav-item">
                                     <?php $grpTotal = ($InitTab ?? 'All') === 'Groups' ? (int)($GrpTotal ?? 0) : 0; ?>
                                     <a class="nav-link grp-view-tab<?php echo ($InitTab ?? 'All') === 'Groups' ? ' active' : ''; ?>" href="javascript:void(0);" id="groupsViewTab" data-status="Groups" data-url-tab="groups">
@@ -568,6 +573,7 @@ document.addEventListener('DOMContentLoaded', function () {
 <link rel="stylesheet" href="<?php echo _assetV('/assets/vendor/css/attachments.css'); ?>">
 <script src="<?php echo _assetV('/js/common/attachments.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/common/country_picker.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/common/phone_cc_dropdown.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/common/customer_form.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/common/customer_group_form.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/transactions/col_filter.js'); ?>"></script>
@@ -676,6 +682,29 @@ $(function () {
         $btn.find('i').removeClass('bx-planet').addClass('bx-loader-alt bx-spin');
         $.ajax({
             url    : '/customers/syncCustomersCache',
+            method : 'POST',
+            data   : { [CsrfName]: CsrfToken },
+            success: function (resp) {
+                CsrfToken = resp.NewCsrfToken || CsrfToken;
+                $btn.find('i').removeClass('bx-loader-alt bx-spin').addClass('bx-planet');
+                if (resp.Error) {
+                    showToastNotification(resp.Message, 'error');
+                } else {
+                    showToastNotification(resp.Message, 'success');
+                }
+            },
+            error: function () {
+                $btn.find('i').removeClass('bx-loader-alt bx-spin').addClass('bx-planet');
+                showToastNotification('Sync failed. Please try again.', 'error');
+            }
+        });
+    });
+    // ── Sync customer groups to Upstash cache ────────────────────────────────
+    $(document).on('click', '#btnSyncCustomerGroupsCache', function () {
+        var $btn = $(this);
+        $btn.find('i').removeClass('bx-planet').addClass('bx-loader-alt bx-spin');
+        $.ajax({
+            url    : '/customers/syncCustomerGroupsCache',
             method : 'POST',
             data   : { [CsrfName]: CsrfToken },
             success: function (resp) {
@@ -1154,14 +1183,7 @@ $(function () {
 
     // ── Apply groups response data to DOM ──
     function _applyGrpData(res) {
-        _grpPageNo = 1;
-        $('#GroupsTableBody').html(res.RecordHtmlData);
-        $('#GroupsPagination').html(res.Pagination);
-        if (_custShowStats) { _updateGrpStats(res.Stats); }
-        var cnt = res.TotalCount || 0;
-        $('#grpTabCount').text(cnt > 0 ? cnt : '').toggleClass('d-none', cnt === 0);
-
-        // Refresh the Customer Group dropdown in the customer form so newly created/updated groups appear
+        _grpReload(1, res.Message);
         _refreshCustomerGroupDropdown();
     }
 
@@ -1169,20 +1191,23 @@ $(function () {
         if (typeof CustomerForm !== 'undefined' && CustomerForm.clearGroupsCache) {
             CustomerForm.clearGroupsCache();
         }
-        $.get('/customers/getGroupsForDropdown', function (res) {
-            if (res && !res.Error && res.Groups && res.Groups.length) {
-                var $sel = $('#CM_GroupUID');
-                var selected = $sel.val();
-                $sel.find('option:not([value=""])').remove();
-                $.each(res.Groups, function (_, g) {
-                    $sel.append(new Option(g.GroupName, g.GroupUID, false, String(g.GroupUID) === String(selected)));
-                });
-            }
-        });
+        if (typeof UpstashService === 'undefined' || !UpstashService.isEnabled()) { return; }
+        UpstashService.hgetall(UpstashService.orgKey('customer-groups')).then(function (map) {
+            if (!map || !Object.keys(map).length) { return; }
+            var groups = Object.values(map)
+                .map(function (v) { return typeof v === 'string' ? JSON.parse(v) : v; })
+                .sort(function (a, b) { return (a.GroupName || '').localeCompare(b.GroupName || ''); });
+            var $sel     = $('#CM_GroupUID');
+            var selected = $sel.val();
+            $sel.find('option:not([value=""])').remove();
+            groups.forEach(function (g) {
+                $sel.append(new Option(g.GroupName, g.GroupUID, false, String(g.GroupUID) === String(selected)));
+            });
+        }).catch(function () {});
     }
 
     // ── Groups AJAX reload ──
-    function _grpReload(page) {
+    function _grpReload(page, toastMsg) {
         _grpPageNo = page || 1;
         ajaxLoading(0);
         $('#GroupsTableBody').html('<tr><td colspan="9" class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary" role="status"></span></td></tr>');
@@ -1199,6 +1224,7 @@ $(function () {
                 if (_custShowStats) { _updateGrpStats(res.Stats); }
                 var cnt = res.TotalCount || 0;
                 $('#grpTabCount').text(cnt > 0 ? cnt : '').toggleClass('d-none', cnt === 0);
+                if (toastMsg) showToastNotification(toastMsg, 'success');
             },
             error: function () { ajaxLoading(1); }
         });
@@ -1367,7 +1393,10 @@ $(function () {
         }
     });
 
-    initExport({ moduleUID: 201, getFilters: function () { return Filter; } });
+    initExport({
+        getModuleUID: function () { return _inGroupsMode ? 204 : 201; },
+        getFilters  : function () { return _inGroupsMode ? _grpFilter : Filter; }
+    });
 
     // ── URL tab state init ───────────────────────────────────────────────────
     if (_custInitTab === 'Groups') {

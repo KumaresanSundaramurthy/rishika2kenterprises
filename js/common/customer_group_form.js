@@ -18,13 +18,21 @@
     var _isCreateMode    = false;
     var _members         = [];
     var _primaryUID      = 0;
-    var _countriesCache  = null;
+    var _cgCCCfg = {
+        btn      : '#CG_MobileCCBtn',
+        dropdown : '#CG_CCDropdown',
+        search   : '#CG_CCSearch',
+        list     : '#CG_CCList',
+        codeInput: '#CG_MobileCountryCode',
+        iso2Input: '#CG_CountryISO2',
+    };
     var _groupTypesCache = null;
     var _custCache       = null;
     var _custAjaxMode    = false; // true when Upstash unavailable; use per-query AJAX
     var _cgAddrActive    = false; // intercept #AddrSaveBtn for group context
     var _cgAddrOpened    = false; // swap flag: group modal was hidden to show address modal
     var _cgAddrData      = null;  // {Line1, Line2, Pincode, StateName, StateCode, CityName}
+    var _gstinValidated  = 0;     // 1 when GSTIN was successfully API-verified this session
 
     // ── Public API ───────────────────────────────────────────────────────────
     window.CustomerGroupForm = { open: _open };
@@ -38,6 +46,33 @@
         $('#CGroupModalTitle').text(type === 'edit' ? 'Edit Customer Group' : 'Create Customer Group');
         $('#CGroupSaveBtnLabel').text(type === 'edit' ? 'Update' : 'Save');
         $('#CGroupModalForm').data('mode', type);
+
+        // Register GSTIN fetch config for this page
+        window.gstinFetchConfig = {
+            /**
+             * @param {Object} resp
+             * @returns {string}
+             */
+            confirmRows : function (resp) {
+                return '<div class="gstin-confirm-row">' +
+                    '<span class="gstin-confirm-row-label">Group Name</span>' +
+                    '<span class="gstin-confirm-row-value">' + _esc(resp.LegalName || '') + '</span>' +
+                    '</div>';
+            },
+            /**
+             * @param {Object} resp
+             * @returns {void}
+             */
+            onConfirm : function (resp) {
+                if (resp.LegalName) $('#CG_GroupName').val(resp.LegalName);
+            },
+            /** @returns {void} */
+            onValidated : function () {
+                _gstinValidated = 1;
+                $('#CG_GSTINValidated').val('1');
+                $('#CG_GSTINValidatedMsg').addClass('show');
+            },
+        };
 
         _reset();
 
@@ -54,7 +89,7 @@
 
         if (type === 'add') {
             var iso2 = $('#CG_CountryISO2').val() || 'IN';
-            _initCC(iso2);
+            PhoneCCDropdown.setFromISO2(_cgCCCfg, iso2);
             _buildGroupTypeSelect('');
             $('#CustomerGroupFormModal').modal('show');
             _isCreateMode = true;
@@ -97,43 +132,12 @@
         $('#CG_MemberSearch').val('');
         $('#CG_CCDropdown,#CG_MemberDropdown').hide();
         // Clear validation state
-        $('#CG_Email,#CG_Mobile').removeClass('is-invalid');
+        $('#CG_Email,#CG_Mobile,#CG_GSTNo').removeClass('is-invalid');
         $('#CG_MobileErr').hide();
-    }
-
-    // ── Country code init — set button text from iso2 ─────────────────────────
-    function _initCC(iso2) {
-        _loadCountries(function (countries) {
-            var found = countries.find(function (c) { return (c.iso2 || '').toUpperCase() === iso2.toUpperCase(); });
-            var code  = found ? '+' + String(found.phonecode) : $('#CG_MobileCountryCode').val() || '+91';
-            $('#CG_MobileCCBtn').text(code);
-            $('#CG_MobileCountryCode').val(code);
-        });
-    }
-
-    // ── Load all countries (Upstash → AJAX) ─────────────────────────────────
-    function _loadCountries(cb) {
-        if (_countriesCache) { cb(_countriesCache); return; }
-        if (!UpstashService.isEnabled()) { _fetchCountriesAjax(cb); return; }
-        UpstashService.get(UpstashService.globalKey('loc-countries')).then(function (data) {
-            if (Array.isArray(data) && data.length) {
-                _countriesCache = data;
-                cb(_countriesCache);
-            } else {
-                _fetchCountriesAjax(cb);
-            }
-        }).catch(function () { _fetchCountriesAjax(cb); });
-    }
-
-    function _fetchCountriesAjax(cb) {
-        $.ajax({
-            url: '/globally/getCountryInfo', dataType: 'json',
-            success: function (res) {
-                _countriesCache = (res && res.Data) ? res.Data : [];
-                cb(_countriesCache);
-            },
-            error: function () { _countriesCache = []; cb([]); }
-        });
+        // Clear GSTIN validated state
+        _gstinValidated = 0;
+        $('#CG_GSTINValidated').val('0');
+        $('#CG_GSTINValidatedMsg').removeClass('show');
     }
 
     // ── Group type select — load from Upstash cache → AJAX ───────────────────
@@ -182,6 +186,17 @@
         $('#CG_GSTNo').val(d.GSTNo             || '');
         $('#CG_Notes').val(d.Notes             || '');
 
+        // Restore GSTIN validated state
+        if (parseInt(d.GSTINValidated || 0) === 1) {
+            _gstinValidated = 1;
+            $('#CG_GSTINValidated').val('1');
+            $('#CG_GSTINValidatedMsg').addClass('show');
+        } else {
+            _gstinValidated = 0;
+            $('#CG_GSTINValidated').val('0');
+            $('#CG_GSTINValidatedMsg').removeClass('show');
+        }
+
         _buildGroupTypeSelect(d.GroupType || '');
 
         // Mobile country code
@@ -191,7 +206,7 @@
             $('#CG_MobileCCBtn').text(mcc);
             $('#CG_MobileCountryCode').val(mcc);
         } else {
-            _initCC(iso2);
+            PhoneCCDropdown.setFromISO2(_cgCCCfg, iso2);
         }
 
         // Restore address
@@ -232,60 +247,8 @@
         _renderMembers();
     }
 
-    // ── Country-code dropdown — toggle ────────────────────────────────────────
-    $(document).on('click', '#CG_MobileCCBtn', function (e) {
-        e.stopPropagation();
-        var open = $('#CG_CCDropdown').is(':visible');
-        $('#CG_CCDropdown').toggle(!open);
-        if (!open) {
-            $('#CG_CCSearch').val('').focus();
-            _renderCCList('');
-        }
-    });
-
-    $(document).on('input', '#CG_CCSearch', function () { _renderCCList($(this).val()); });
-
-    function _renderCCList(query) {
-        _loadCountries(function (countries) {
-            var q        = $.trim(query).toLowerCase();
-            var filtered = q
-                ? countries.filter(function (c) {
-                    return (c.name || '').toLowerCase().indexOf(q) >= 0
-                        || String(c.phonecode || '').indexOf(q) >= 0;
-                  })
-                : countries;
-
-            var html = filtered.map(function (c) {
-                return '<div class="cg-cc-item px-3 py-1" style="cursor:pointer;font-size:.84rem;line-height:1.8;" ' +
-                    'data-iso2="' + _esc(c.iso2) + '" data-code="+' + _esc(String(c.phonecode)) + '">' +
-                    _esc(c.name) + ' <span class="text-muted">(+' + _esc(String(c.phonecode)) + ')</span>' +
-                    '</div>';
-            }).join('');
-
-            $('#CG_CCList').html(html ||
-                '<div class="px-3 py-2 text-muted" style="font-size:.8rem;">No results</div>');
-        });
-    }
-
-    // Hover highlight for CC items
-    $(document).on('mouseenter', '.cg-cc-item', function () { $(this).css('background', '#f0f2ff'); });
-    $(document).on('mouseleave', '.cg-cc-item', function () { $(this).css('background', ''); });
-
-    $(document).on('click', '.cg-cc-item', function () {
-        var iso2 = $(this).data('iso2') || '';
-        var code = $(this).data('code') || '';
-        $('#CG_MobileCCBtn').text(code);
-        $('#CG_MobileCountryCode').val(code);
-        $('#CG_CountryISO2').val(iso2);
-        $('#CG_CCDropdown').hide();
-    });
-
-    // Close CC dropdown on outside click
-    $(document).on('click', function (e) {
-        if (!$(e.target).closest('#CG_MobileCCBtn,#CG_CCDropdown').length) {
-            $('#CG_CCDropdown').hide();
-        }
-    });
+    // ── CC dropdown — initialised via shared PhoneCCDropdown module ──────────
+    PhoneCCDropdown.init(_cgCCCfg);
 
     // ── Address click-box → modal SWAP (hide group modal, show address modal) ──
     // Bootstrap does not support stacked modals; swap is the only reliable fix.
@@ -565,12 +528,13 @@
         $('#CG_MemberInputs').html(inputs);
     }
 
-    // ── Validation ───────────────────────────────────────────────────────────
+    // ── Validation — uses shared globals validateGSTIN() + validateMobileNumber() from default.js ──
     function _validateForm() {
-        var valid  = true;
+        var valid   = true;
         var emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-        var email  = $.trim($('#CG_Email').val());
+        // Email
+        var email = $.trim($('#CG_Email').val());
         if (email && !emailRe.test(email)) {
             $('#CG_Email').addClass('is-invalid');
             valid = false;
@@ -578,15 +542,31 @@
             $('#CG_Email').removeClass('is-invalid');
         }
 
-        var mobile = $.trim($('#CG_Mobile').val()).replace(/\D/g, '');
-        var hasMobile = $.trim($('#CG_Mobile').val()).length > 0;
-        if (hasMobile && mobile.length < 7) {
-            $('#CG_Mobile').addClass('is-invalid');
-            $('#CG_MobileErr').show();
-            valid = false;
+        // Mobile — delegate to shared validateMobileNumber(value, numericCode)
+        var mobileRaw = $.trim($('#CG_Mobile').val());
+        if (mobileRaw.length > 0) {
+            var cc         = ($.trim($('#CG_MobileCountryCode').val()) || '+91').replace('+', '');
+            var mobileResult = validateMobileNumber(mobileRaw, cc);
+            if (!mobileResult.isValid) {
+                $('#CG_Mobile').addClass('is-invalid');
+                $('#CG_MobileErr').text(mobileResult.message).show();
+                valid = false;
+            } else {
+                $('#CG_Mobile').removeClass('is-invalid');
+                $('#CG_MobileErr').hide();
+            }
         } else {
             $('#CG_Mobile').removeClass('is-invalid');
             $('#CG_MobileErr').hide();
+        }
+
+        // GSTIN — delegate to shared validateGSTIN(value)
+        var gstinResult = validateGSTIN($.trim($('#CG_GSTNo').val()));
+        if (!gstinResult.isValid) {
+            $('#CG_GSTNo').addClass('is-invalid');
+            valid = false;
+        } else {
+            $('#CG_GSTNo').removeClass('is-invalid');
         }
 
         return valid;
@@ -594,9 +574,14 @@
 
     // Clear validation on user input
     $(document).on('input', '#CG_Email',  function () { $(this).removeClass('is-invalid'); });
-    $(document).on('input', '#CG_Mobile', function () {
+    $(document).on('input', '#CG_Mobile', function () { $(this).removeClass('is-invalid'); $('#CG_MobileErr').hide(); });
+    $(document).on('input', '#CG_GSTNo',  function () {
         $(this).removeClass('is-invalid');
-        $('#CG_MobileErr').hide();
+        if (_gstinValidated) {
+            _gstinValidated = 0;
+            $('#CG_GSTINValidated').val('0');
+            $('#CG_GSTINValidatedMsg').removeClass('show');
+        }
     });
 
     // ── Save ──────────────────────────────────────────────────────────────────
@@ -630,7 +615,6 @@
                 if (res.Error) { showToastNotification(res.Message, 'error'); return; }
                 _isDirty      = false;
                 _isCreateMode = false;
-                showToastNotification(res.Message, 'success');
                 $('#CustomerGroupFormModal').modal('hide');
                 if (typeof _onSaveSuccess === 'function') _onSaveSuccess(res);
             },

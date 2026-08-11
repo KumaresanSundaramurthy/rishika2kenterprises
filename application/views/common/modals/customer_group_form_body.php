@@ -58,28 +58,24 @@ $_orgCISO2 = $CI->pageData['JwtData']->Org->OrgCISO2 ?? 'IN';
             <div class="mb-3 col-md-4">
                 <label class="form-label">Mobile</label>
                 <div class="input-group position-relative">
-                    <button type="button" class="btn btn-outline-secondary fw-semibold flex-shrink-0"
-                            id="CG_MobileCCBtn" tabindex="-1"
-                            style="border-top-right-radius:0;border-bottom-right-radius:0;min-width:60px;">
+                    <button type="button" class="btn btn-outline-secondary fw-semibold flex-shrink-0 r2k-cc-btn"
+                            id="CG_MobileCCBtn" tabindex="-1">
                         <?php echo htmlspecialchars($_orgCCode); ?>
                     </button>
                     <!-- Country-code dropdown panel -->
-                    <div id="CG_CCDropdown"
-                         style="display:none;position:absolute;top:100%;left:0;min-width:270px;z-index:9999;
-                                background:#fff;border:1px solid #dee2e6;border-radius:4px;
-                                box-shadow:0 4px 14px rgba(0,0,0,.12);">
+                    <div id="CG_CCDropdown" class="r2k-cc-dropdown">
                         <div class="p-2 border-bottom">
                             <input type="text" class="form-control form-control-sm" id="CG_CCSearch"
                                    placeholder="Search country..." autocomplete="off">
                         </div>
-                        <div id="CG_CCList" style="max-height:180px;overflow-y:auto;"></div>
+                        <div id="CG_CCList" class="r2k-cc-list"></div>
                     </div>
                     <input type="text" class="form-control" id="CG_Mobile" name="Mobile"
                            maxlength="15" placeholder="9999 000 000"
                            onkeypress="return (event.charCode!=8 && event.charCode==0 || (event.charCode>=48 && event.charCode<=57))"
                            oninput="this.value=this.value.slice(0,this.maxLength)">
                 </div>
-                <div class="text-danger small mt-1" id="CG_MobileErr" style="display:none;">Enter a valid mobile number (min 7 digits).</div>
+                <div class="text-danger small mt-1 r2k-form-err" id="CG_MobileErr">Enter a valid mobile number (min 7 digits).</div>
             </div>
 
             <div class="mb-3 col-md-4">
@@ -89,13 +85,18 @@ $_orgCISO2 = $CI->pageData['JwtData']->Org->OrgCISO2 ?? 'IN';
                 <div class="invalid-feedback">Enter a valid email address.</div>
             </div>
 
-            <div class="mb-3 col-md-6">
-                <label class="form-label">GST No</label>
+            <div class="mb-3 col-md-4">
+                <label class="form-label">GSTIN</label>
                 <div class="input-group">
-                    <input type="text" class="form-control" id="CG_GSTNo" name="GSTNo"
-                           maxlength="20" placeholder="27XXXXX...">
-                    <button type="button" class="btn btn-outline-secondary" id="CG_GSTFetchBtn">Fetch</button>
+                    <input type="text" class="form-control text-uppercase" id="CG_GSTNo" name="GSTIN"
+                           maxlength="15" placeholder="33XXXXX...">
+                    <button type="button" class="btn btn-outline-primary" id="GSTIN_Fetch">Fetch</button>
+                    <div class="invalid-feedback" id="CG_GSTErr">Enter a valid 15-character GSTIN (e.g. 33XXXXX...).</div>
                 </div>
+                <div id="CG_GSTINValidatedMsg" class="gstin-validated-msg">
+                    <i class="bx bx-check-circle"></i> GSTIN is validated
+                </div>
+                <input type="hidden" name="GSTINValidated" id="CG_GSTINValidated" value="0">
             </div>
 
             <!-- Address click-box — opens address modal -->

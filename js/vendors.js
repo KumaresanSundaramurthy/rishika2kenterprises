@@ -4,6 +4,7 @@
 var _vendSelectAllMode = false;
 var _vendTotalRecords  = 0;
 var _vendPageCount     = 0;
+var _vendReqSeq        = 0;
 
 /**
  * @returns {void}
@@ -60,10 +61,11 @@ function showTabSpinner(tableSelector, paginationSelector) {
         '<span class="text-muted" style="font-size:.85rem;">Loading...</span>' +
         '</td></tr>'
     );
-    if (paginationSelector) $(paginationSelector).css('visibility', 'hidden');
+    if (paginationSelector) $(paginationSelector).empty();
 }
 
-function getVendorsDetails(PageNo, RowLimit, Filter) {
+function getVendorsDetails(PageNo, RowLimit, Filter, onDone) {
+    var reqSeq = ++_vendReqSeq;
     ajaxLoading(0);
     showTabSpinner(ModuleTable, ModulePag);
     $.ajax({
@@ -78,8 +80,8 @@ function getVendorsDetails(PageNo, RowLimit, Filter) {
             [CsrfName]: CsrfToken,
         },
         success: function (response) {
+            if (reqSeq !== _vendReqSeq) return;
             ajaxLoading(1);
-            $(ModulePag).css('visibility', '');
             if (response.Error) {
                 $(ModuleTable + ' tbody').html('');
                 $(ModulePag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
@@ -95,65 +97,33 @@ function getVendorsDetails(PageNo, RowLimit, Filter) {
             }
             executeTablePagnCommonFunc(response, false);
             _vendUpdateSelectAllBanner();
+            if (typeof onDone === 'function') onDone();
         },
         error: function () {
+            if (reqSeq !== _vendReqSeq) return;
             ajaxLoading(1);
-            $(ModulePag).css('visibility', '');
         },
     });
 }
 
-function addVendorData(formdata) {
-    $.ajax({
-        url: '/vendors/addVendorData',
-        method: 'POST',
-        data: formdata,
-        cache: false,
-        processData: false,
-        contentType: false,
-        enctype: 'multipart/form-data',
-        success: function (response) {
-            $('#VendorFormSaveBtn').prop('disabled', false).html('<i class="bx bx-check me-1"></i>Save');
-            if (response.Error) {
-                showAlertMessageSwal('error', '', response.Message);
-            } else {
-                showToastNotification(response.Message, 'success');
-                _vendorIsDirty      = false;
-                _vendorIsCreateMode = false;
-                $('#VendorFormModal').modal('hide');
-                hideUIBlock();
-                ajaxLoading(0);
-                getVendorsDetails(PageNo, RowLimit, Filter);
-            }
-        }
+// ── Shared callback fired by VendorForm after any successful save ─────────────
+/**
+ * @param {Object} response
+ * @returns {void}
+ */
+function _onVendorFormSaved(response) {
+    hideUIBlock();
+    ajaxLoading(0);
+    var msg = response ? response.Message : '';
+    getVendorsDetails(PageNo, RowLimit, Filter, function () {
+        if (msg) showToastNotification(msg, 'success');
     });
 }
 
-function editVendorData(formdata) {
-    $.ajax({
-        url: '/vendors/updateVendorData',
-        method: 'POST',
-        data: formdata,
-        cache: false,
-        processData: false,
-        contentType: false,
-        enctype: 'multipart/form-data',
-        success: function (response) {
-            $('#VendorFormSaveBtn').prop('disabled', false).html('<i class="bx bx-check me-1"></i>Save');
-            if (response.Error) {
-                showAlertMessageSwal('error', '', response.Message);
-            } else {
-                showToastNotification(response.Message, 'success');
-                _vendorIsDirty      = false;
-                _vendorIsCreateMode = false;
-                $('#VendorFormModal').modal('hide');
-                hideUIBlock();
-                ajaxLoading(0);
-                getVendorsDetails(PageNo, RowLimit, Filter);
-            }
-        }
-    });
-}
+// ── Open VendorForm modal triggers ────────────────────────────────────────────
+$(document).on('click', '#btnCreateVendorHeader', function () {
+    VendorForm.open('add', null, { onSaveSuccess: _onVendorFormSaved });
+});
 
 function searchCustomers(key) {
     $('#' + key).select2({
@@ -256,251 +226,7 @@ function deleteMultipleVendors() {
     });
 }
 
-// ── Add / Edit / Clone modal ──────────────────────────────────────────────
 
-var _editVendorUID       = 0;
-var _vendorIsDirty       = false;
-var _vendorIsCreateMode  = false;
-
-function _smartDecimalV(val) {
-    var n = parseFloat(val);
-    if (isNaN(n)) return '0';
-    return n === 0 ? '0' : String(parseFloat(n.toFixed(6)));
-}
-
-// ── Salutation helpers (vendor) ───────────────────────────────────────────
-
-function _populateSalVendor(list) {
-    var $sel = $('#VM_SalutationUID');
-    var html = '<option value="">—</option>';
-    $.each(list, function (_, s) {
-        html += '<option value="' + parseInt(s.SalutationUID, 10) + '">' + $('<span>').text(s.SalutationName).html() + '</option>';
-    });
-    $sel.html(html);
-}
-
-function _applyDefaultSalutationVendor() {
-    var defaultUID = (typeof JwtData !== 'undefined' && JwtData.GenSettings && JwtData.GenSettings.DefaultSalutationUID)
-        ? parseInt(JwtData.GenSettings.DefaultSalutationUID, 10) : 0;
-    var $sel = $('#VM_SalutationUID');
-    if (defaultUID > 0) {
-        $sel.val(defaultUID);
-    } else {
-        var $first = $sel.find('option:not([value=""])').first();
-        if ($first.length) $sel.val($first.val());
-    }
-}
-
-function _fetchSalVendorFromServer(callback) {
-    $.ajax({
-        url: '/settings/getSalutationList', method: 'GET', cache: false,
-        success: function (resp) {
-            if (!resp.Error && resp.Data && resp.Data.length) {
-                _populateSalVendor(resp.Data);
-            }
-            callback();
-        },
-        error: function () { callback(); }
-    });
-}
-
-function _ensureSalVendor(callback) {
-    if ($('#VM_SalutationUID option').length > 1) { callback(); return; }
-    if (typeof UpstashService !== 'undefined' && UpstashService.isEnabled()) {
-        UpstashService.get(UpstashService.globalKey('salutation')).then(function (data) {
-            if (data && Array.isArray(data) && data.length > 0) {
-                _populateSalVendor(data);
-                callback();
-            } else {
-                _fetchSalVendorFromServer(callback);
-            }
-        }).catch(function () { _fetchSalVendorFromServer(callback); });
-    } else {
-        _fetchSalVendorFromServer(callback);
-    }
-}
-
-function openVendorModal(type, uid) {
-    var titles = { add: 'Create Vendor', edit: 'Update Vendor', clone: 'Clone Vendor' };
-    $('#VendorFormModalTitle').text(titles[type] || 'Vendor');
-    $('#VendorModalForm').data('mode', type);
-    _resetVendorModal();
-    if (type === 'add') {
-        $('#CustomerLinkingDiv').removeClass('d-none');
-        searchCustomers('VM_Customers');
-        _ensureSalVendor(function () {
-            _applyDefaultSalutationVendor();
-            $('#VendorFormModal').modal('show');
-            _vendorIsCreateMode = true;
-            _vendorIsDirty      = false;
-        });
-        return;
-    }
-    // edit / clone — fetch data first, show modal only after populated
-    $.ajax({
-        url: '/vendors/getVendorForModal/' + uid,
-        method: 'GET', cache: false,
-        success: function (response) {
-            if (response.Error) {
-                showAlertMessageSwal('error', '', response.Message || 'Failed to load vendor.');
-                return;
-            }
-            _ensureSalVendor(function () {
-                _populateVendorModal(type, response);
-                $('#VendorFormModal').modal('show');
-            });
-        },
-        error: function () {
-            showAlertMessageSwal('error', '', 'Failed to load vendor.');
-        }
-    });
-}
-
-function _resetVendorModal() {
-    _vendorIsCreateMode = false;
-    _vendorIsDirty      = false;
-    _editVendorUID = 0; delBankDataFlag = 0; delBankData = [];
-    $('#VendorModalForm')[0].reset();
-    $('#VendorUID').val('');
-    $('#bankDetailsBody').empty();
-    $('#appendBankDetails').addClass('d-none');
-    $('#bankDivider').addClass('d-none');
-    $('#bankEmptyState').removeClass('d-none');
-    resetAddrData();
-    $('#CustomerLinkingDiv').addClass('d-none');
-    $('#CustomerDiv').addClass('d-none');
-    $('#ResetCustomerLinking').addClass('d-none');
-    $('input[name="CustomerLinkingCheck"]').prop('checked', false);
-    // Reset attachment zone state (listeners stay bound via _initVendorPlugins)
-    if (typeof _attachResetState === 'function') _attachResetState('Vendor');
-    initializeFlatPickr('#VM_CPDateOfBirth', '#VendorFormModal');
-}
-
-function _populateVendorModal(type, response) {
-    var d = response.Data; var isClone = (type === 'clone');
-    _editVendorUID = isClone ? 0 : (d.VendorUID || 0);
-
-    // Load existing vendor attachments from response — no AJAX
-    if (!isClone && typeof _attachResetState === 'function') {
-        _attachResetState('Vendor');
-        if (response.Attachments && response.Attachments.length && _attachState['Vendor']) {
-            _attachState['Vendor'].existing = response.Attachments;
-            if (typeof _attachRender === 'function') _attachRender('Vendor');
-        }
-    }
-    $('#VM_SalutationUID').val(d.SalutationUID || '');
-    $('#VM_Name').val(d.Name || '');
-    $('#VM_Area').val(d.Area || '');
-    $('#VM_MobileNumber').val(d.MobileNumber || '');
-    $('#VM_CountryCode').val(d.CountryCode || '');
-    $('#VM_CountryISO2').val(d.CountryISO2 || '');
-    $('#VM_EmailAddress').val(d.EmailAddress || '');
-    $('#VM_DebitCreditAmount').val(_smartDecimalV(d.DebitCreditAmount));
-    $('#VM_DebitCreditCheck').val(d.DebitCreditType || 'Credit').trigger('change');
-    $('#VM_PANNumber').val(d.PANNumber || '');
-    $('#VM_ContactPerson').val(d.ContactPerson || '');
-    $('#VM_CPDateOfBirth').val(d.DateOfBirth || '');
-    $('#VM_GSTIN').val(d.GSTIN || '');
-    $('#VM_CompanyName').val(d.CompanyName || '');
-    $('#VM_Notes').val(d.Notes || '');
-    $('#CustomerLinkingDiv').addClass('d-none');
-    if (response.BankDetails && response.BankDetails.length) {
-        response.BankDetails.forEach(function (b) { appendBankRowToTable(b); });
-        $('#bankEmptyState').addClass('d-none');
-        $('#appendBankDetails').removeClass('d-none');
-        $('#bankDivider').removeClass('d-none');
-    }
-    if (response.BillingAddr) {
-        var ba = response.BillingAddr;
-        billingAddrData = { UID: isClone?0:(ba.VendAddressUID||0), Line1:ba.Line1||'', Line2:ba.Line2||'', Pincode:ba.Pincode||'', StateId:ba.State||'', StateName:ba.StateText||'', StateISO2:'', CityId:ba.City||'', CityName:ba.CityText||'' };
-        renderAddrSummary(1, billingAddrData);
-    }
-    if (response.ShippingAddr) {
-        var sa = response.ShippingAddr;
-        shippingAddrData = { UID: isClone?0:(sa.VendAddressUID||0), Line1:sa.Line1||'', Line2:sa.Line2||'', Pincode:sa.Pincode||'', StateId:sa.State||'', StateName:sa.StateText||'', StateISO2:'', CityId:sa.City||'', CityName:sa.CityText||'' };
-        renderAddrSummary(2, shippingAddrData);
-    }
-    _updateCopyButtons();
-}
-
-// ── Save button in modal header ───────────────────────────────────────────
-$(document).on('click', '#VendorFormSaveBtn', function () {
-    $('#VendorModalForm').submit();
-});
-
-// ── Modal form submit ─────────────────────────────────────────────────────
-$(document).on('submit', '#VendorModalForm', function (e) {
-    e.preventDefault();
-
-    var mode = $(this).data('mode');
-
-    var mobileValue      = $('#VM_MobileNumber').val();
-    var countryCode      = ($('#VM_CountryCode').val() || '91').replace('+', '');
-    var mobileValidation = validateMobileNumber(mobileValue, countryCode);
-    if (!mobileValidation.isValid) { showAlertMessageSwal('error', '', mobileValidation.message); return; }
-
-    var panValidation = validatePANNumber($('#VM_PANNumber').val());
-    if (!panValidation.isValid) { showAlertMessageSwal('error', '', panValidation.message); return; }
-
-    var gstinValidation = validateGSTIN($('#VM_GSTIN').val());
-    if (!gstinValidation.isValid) { showAlertMessageSwal('error', '', gstinValidation.message); return; }
-
-    var formData = new FormData($('#VendorModalForm')[0]);
-    if (mode === 'edit') { formData.set('VendorUID', _editVendorUID || 0); }
-    // Explicitly read the current select value — FormData from reset+programmatic .val() can be unreliable
-    formData.set('SalutationUID', $('#VM_SalutationUID').val() || '');
-
-    // Append new attachment files (multi-image zone replaces old Dropzone)
-    if (typeof _attachState !== 'undefined' && _attachState['Vendor']) {
-        (_attachState['Vendor'].newFiles || []).forEach(function(f) {
-            formData.append('VendAttachFiles[]', f, f.name);
-        });
-    }
-    var bankRecords = getBankRecordsFromTable();
-    var bankValid   = validateBankRecords(bankRecords);
-    if (!bankValid.ok) { showAlertMessageSwal('error', '', bankValid.msg); return; }
-    formData.append('BankDetailsJSON', JSON.stringify(bankRecords));
-    formData.append('BankDetailsCount', String(bankRecords.length));
-
-    if (delBankDataFlag) {
-        formData.append('delBankDataFlag', delBankDataFlag);
-        delBankData.forEach(function (id) { formData.append('delBankData[]', id); });
-    }
-
-    if (billingAddrData) {
-        formData.append('BillAddressUID',    billingAddrData.UID      || 0);
-        formData.append('BillAddrLine1',     billingAddrData.Line1    || '');
-        formData.append('BillAddrLine2',     billingAddrData.Line2    || '');
-        formData.append('BillAddrPincode',   billingAddrData.Pincode  || '');
-        formData.append('BillAddrState',     billingAddrData.StateId  || '');
-        formData.append('BillAddrStateText', billingAddrData.StateName|| '');
-        formData.append('BillAddrCity',      billingAddrData.CityId   || '');
-        formData.append('BillAddrCityText',  billingAddrData.CityName || '');
-    }
-    if (shippingAddrData) {
-        formData.append('ShipAddressUID',    shippingAddrData.UID      || 0);
-        formData.append('ShipAddrLine1',     shippingAddrData.Line1    || '');
-        formData.append('ShipAddrLine2',     shippingAddrData.Line2    || '');
-        formData.append('ShipAddrPincode',   shippingAddrData.Pincode  || '');
-        formData.append('ShipAddrState',     shippingAddrData.StateId  || '');
-        formData.append('ShipAddrStateText', shippingAddrData.StateName|| '');
-        formData.append('ShipAddrCity',      shippingAddrData.CityId   || '');
-        formData.append('ShipAddrCityText',  shippingAddrData.CityName || '');
-    }
-    if (delAddrDetailFlag) {
-        formData.append('delAddrDetailFlag', delAddrDetailFlag);
-        delAddrData.forEach(function (id) { formData.append('delAddrData[]', id); });
-    }
-
-    $('#VendorFormSaveBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
-
-    if (mode === 'edit') {
-        formData.append('PageNo', PageNo);
-        editVendorData(formData);
-    } else {
-        addVendorData(formData);
-    }
-});
 
 // ── Vendor list image → open gallery from data-images (no AJAX) ──────────────
 $(document).on('click', '.vend-list-img', function(e) {
@@ -514,13 +240,13 @@ $(document).on('click', '.vend-list-img', function(e) {
     if (src) openImageGallery([{ url: src, name: '' }], 0);
 });
 
-// ── Open modal triggers ───────────────────────────────────────────────────
+// ── Open VendorForm for edit / clone ─────────────────────────────────────
 $(document).on('click', '.vend-edit-btn', function () {
-    openVendorModal('edit', $(this).data('uid'));
+    VendorForm.open('edit', $(this).data('uid'), { onSaveSuccess: _onVendorFormSaved });
 });
 
 $(document).on('click', '.vend-clone-btn', function () {
-    openVendorModal('clone', $(this).data('uid'));
+    VendorForm.open('clone', $(this).data('uid'), { onSaveSuccess: _onVendorFormSaved });
 });
 
 // ── Customer linking (modal context) ─────────────────────────────────────
@@ -604,36 +330,3 @@ $(document).on('click', '#btnBulkEmail', function () {
     if (uids.length) openCommModal('Email', 'Vendor', uids, names, mobiles, emails);
 });
 
-// ── Init vendor modal plugins once on page load ───────────────────────────────
-$(function () {
-    initializeFlatPickr('#VM_CPDateOfBirth', '#VendorFormModal');
-    // Bind attachment zone listeners once (shared attachments.js)
-    if (typeof _attachBindListeners === 'function') _attachBindListeners('Vendor');
-});
-
-// ── Dirty-tracking listener ───────────────────────────────────────────────
-$(document).on('input change', '#VendorModalForm input, #VendorModalForm textarea, #VendorModalForm select', function () {
-    if (_vendorIsCreateMode) _vendorIsDirty = true;
-});
-
-// ── Unsaved-changes guard ─────────────────────────────────────────────────
-$(document).on('hide.bs.modal', '#VendorFormModal', function (e) {
-    if (!_vendorIsDirty || !_vendorIsCreateMode) return;
-    e.preventDefault();
-    Swal.fire({
-        title             : t('swal_unsaved_title',   'Unsaved Changes'),
-        text              : t('swal_unsaved_msg',     'Your changes will be lost if you close now.'),
-        icon              : 'warning',
-        showCancelButton  : true,
-        confirmButtonText : t('swal_unsaved_confirm', 'Close Anyway'),
-        cancelButtonText  : t('swal_unsaved_cancel',  'Stay'),
-        confirmButtonColor: '#d33',
-        cancelButtonColor : '#3085d6',
-    }).then(function (result) {
-        if (result.isConfirmed) {
-            _vendorIsDirty      = false;
-            _vendorIsCreateMode = false;
-            $('#VendorFormModal').modal('hide');
-        }
-    });
-});

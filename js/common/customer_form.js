@@ -30,35 +30,21 @@
     };
 
     // ── On DOM ready: body is pre-rendered server-side — just init plugins ────
+    var _cmCCCfg = {
+        btn      : '#CM_MobileCCBtn',
+        dropdown : '#CM_CCDropdown',
+        search   : '#CM_CCSearch',
+        list     : '#CM_CCList',
+        codeInput: '#CM_CountryCode',
+        iso2Input: '#CM_CountryISO2',
+    };
+
     $(function () {
         if ($('#CustomerFormModalBody').children().length > 0) {
             _bodyLoaded = true;
             _initModalPlugins();
         }
-
-        // Direct binding for country picker — stopPropagation prevents the
-        // document-level delegated handler in country_picker.js from also firing.
-        $('#CM_CountryCodeBtn').on('click', function (e) {
-            e.stopPropagation();
-            if (typeof CountryPicker === 'undefined') return;
-            CountryPicker.open({
-                currentISO2 : $('#CM_CountryISO2').val() || '',
-                /**
-                 * @param {string} iso2
-                 * @param {string} code
-                 * @returns {void}
-                 */
-                onSelect    : function (iso2, code) {
-                    $('#CM_CountryCode').val(code);
-                    $('#CM_CountryISO2').val(iso2);
-                    $('#CM_CountryCodeBtn').text(code);
-                    var $hint = $('#CM_CountryHint');
-                    if ($hint.length) {
-                        $hint.html('Click <strong>' + $('<span>').text(code).html() + '</strong> to change country');
-                    }
-                }
-            });
-        });
+        PhoneCCDropdown.init(_cmCCCfg);
     });
 
     // ── Open ──────────────────────────────────────────────────────────────────
@@ -348,6 +334,7 @@
         $('#CM_Name').val(d.Name || '');
         $('#CM_Area').val(d.Area || '');
         $('#CM_MobileNumber').val(d.MobileNumber || '');
+        $('#CM_MobileCCBtn').text(d.CountryCode || '');
         $('#CM_CountryCode').val(d.CountryCode || '');
         $('#CM_CountryISO2').val(d.CountryISO2 || '');
         $('#CM_EmailAddress').val(d.EmailAddress || '');
@@ -360,6 +347,7 @@
         $('#CM_CPDateOfBirth').val(d.DateOfBirth || '');
         $('#CM_CustomerTypeUID').val(d.CustomerTypeUID || '').trigger('change');
         $('#CM_GroupUID').val(d.GroupUID || '');
+        $('#CM_AllowPortalAccess').prop('checked', !!d.AllowPortalAccess);
         $('#CM_GSTIN').val(d.GSTIN || '');
         $('#CM_CompanyName').val(d.CompanyName || '');
         $('#CM_DiscountPercent').val(_smartDecimal(d.DiscountPercent));
@@ -552,7 +540,6 @@
             }
             _isDirty      = false;
             _isCreateMode = false;
-            showToastNotification(response.Message, 'success');
             $('#CustomerFormModal').modal('hide');
             if (typeof _onSaveSuccess === 'function') {
                 _onSaveSuccess(response);

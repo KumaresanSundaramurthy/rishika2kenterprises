@@ -96,81 +96,26 @@
                                             $gsFYMonth       = (int)($gs->FYStartMonth   ?? 4);
                                             $gsEnableStorage = !empty($gs->EnableStorage);
                                             $gsMandatory     = !empty($gs->MandatoryStorage);
+                                            $gsShowStats     = isset($gs->ShowStats)       ? !empty($gs->ShowStats)       : true;
                                             $gsStatsDefault  = isset($gs->StatsDefaultOpen) ? !empty($gs->StatsDefaultOpen) : true;
                                             $gsQtyMax        = (int)($gs->QtyMaxLength   ?? 6);
                                             $gsPriceMax      = (int)($gs->PriceMaxLength ?? 12);
                                             ?>
                                             <div class="tab-pane fade show active" id="tab-general" role="tabpanel" aria-labelledby="tab-general-tab">
 
-                                                <h6 class="fw-semibold mb-1">General Preferences</h6>
-                                                <p class="text-muted small mb-4">Configure your application's basic display and regional preferences.</p>
-
-                                                <!-- ── Display & Regional ── -->
-                                                <p class="text-muted fw-semibold mb-2" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;">Display &amp; Regional</p>
-                                                <div class="row g-3 mb-4">
-                                                    <div class="col-md-6">
-                                                        <label class="form-label">Currency Symbol <span class="text-danger">*</span></label>
-                                                        <input type="text" class="form-control" id="gs_CurrenySymbol" name="CurrenySymbol"
-                                                               placeholder="e.g. ₹" value="<?php echo $gsCurrency; ?>" maxlength="1" />
-                                                        <div class="form-text">Single character representing your country's currency (e.g. ₹ India, $ USA, € Europe).</div>
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <label class="form-label">Decimal Places</label>
-                                                        <select class="form-select" id="gs_DecimalPoints" name="DecimalPoints">
-                                                            <option value="0" <?php echo $gsDecimal === 0 ? 'selected' : ''; ?>>0 — No decimals (e.g. 100)</option>
-                                                            <option value="2" <?php echo $gsDecimal === 2 ? 'selected' : ''; ?>>2 — Standard (e.g. 100.00)</option>
-                                                            <option value="3" <?php echo $gsDecimal === 3 ? 'selected' : ''; ?>>3 — High precision (e.g. 100.000)</option>
-                                                        </select>
-                                                        <div class="form-text">Controls how prices, quantities, and totals are displayed throughout the app.</div>
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <label class="form-label">Rows Per Page</label>
-                                                        <select class="form-select" id="gs_RowLimit" name="RowLimit">
-                                                            <option value="10"  <?php echo $gsRowLimit === 10  ? 'selected' : ''; ?>>10</option>
-                                                            <option value="25"  <?php echo $gsRowLimit === 25  ? 'selected' : ''; ?>>25</option>
-                                                            <option value="50"  <?php echo $gsRowLimit === 50  ? 'selected' : ''; ?>>50</option>
-                                                            <option value="100" <?php echo $gsRowLimit === 100 ? 'selected' : ''; ?>>100</option>
-                                                        </select>
-                                                        <div class="form-text">Default number of records shown per page in all list/table views.</div>
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <label class="form-label">Financial Year Start Month</label>
-                                                        <select class="form-select" id="gs_FYStartMonth" name="FYStartMonth">
-                                                            <?php
-                                                            $months = [1=>'January',2=>'February',3=>'March',4=>'April',5=>'May',6=>'June',
-                                                                       7=>'July',8=>'August',9=>'September',10=>'October',11=>'November',12=>'December'];
-                                                            foreach ($months as $num => $name):
-                                                            ?>
-                                                            <option value="<?php echo $num; ?>" <?php echo $gsFYMonth === $num ? 'selected' : ''; ?>><?php echo $name; ?></option>
-                                                            <?php endforeach; ?>
-                                                        </select>
-                                                        <div class="form-text">Transaction sequence numbers (INV-001, PO-001 etc.) reset to 1 when the new FY begins.</div>
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <label class="form-label">Default Salutation</label>
-                                                        <select class="form-select" id="gs_DefaultSalutationUID" name="DefaultSalutationUID">
-                                                            <option value="">— None —</option>
-                                                            <?php
-                                                            $gsDefaultSal = (int)($gs->DefaultSalutationUID ?? 0);
-                                                            foreach ($SalutationList ?? [] as $sal):
-                                                            ?>
-                                                            <option value="<?php echo (int)$sal->SalutationUID; ?>" <?php echo $gsDefaultSal === (int)$sal->SalutationUID ? 'selected' : ''; ?>>
-                                                                <?php echo htmlspecialchars($sal->SalutationName); ?>
-                                                            </option>
-                                                            <?php endforeach; ?>
-                                                        </select>
-                                                        <div class="form-text">Default salutation pre-selected when creating a new customer or vendor.</div>
-                                                    </div>
-                                                </div>
-
-                                                <!-- ── Date & DateTime Formats ── -->
                                                 <?php
-                                                $formDateFormat     = $gs->FormDateFormat      ?? 'd-m-Y';
-                                                $listDateFormat     = $gs->ListDateFormat      ?? 'd-m-Y';
-                                                $printDateFormat    = $gs->PrintDateFormat     ?? 'd-m-Y';
-                                                $formDtFormat       = $gs->FormDateTimeFormat  ?? 'd-m-Y H:i';
-                                                $listDtFormat       = $gs->ListDateTimeFormat  ?? 'd-m-Y H:i';
-                                                $printDtFormat      = $gs->PrintDateTimeFormat ?? 'd-m-Y H:i';
+                                                // ── All derived variables for this tab ──────────────────
+                                                $gsEnableAI     = ($gs->EnableAIAssistant ?? 'No') === 'Yes';
+                                                $gsMaxShip      = (int)($gs->MaxShippingAddr ?? 3);
+                                                $gsEmpPrefix    = htmlspecialchars($gs->EmpCodePrefix    ?? 'EMP');
+                                                $gsEmpSeparator = $gs->EmpCodeSeparator ?? '-';
+                                                $gsEmpDigits    = (int)($gs->EmpCodeDigits ?? 4);
+                                                $formDateFormat  = $gs->FormDateFormat      ?? 'd-m-Y';
+                                                $listDateFormat  = $gs->ListDateFormat      ?? 'd-m-Y';
+                                                $printDateFormat = $gs->PrintDateFormat     ?? 'd-m-Y';
+                                                $formDtFormat    = $gs->FormDateTimeFormat  ?? 'd-m-Y H:i';
+                                                $listDtFormat    = $gs->ListDateTimeFormat  ?? 'd-m-Y H:i';
+                                                $printDtFormat   = $gs->PrintDateTimeFormat ?? 'd-m-Y H:i';
                                                 $dateFormatOptions = [
                                                     'd-m-Y' => '01-06-2026  (DD-MM-YYYY)',
                                                     'd/m/Y' => '01/06/2026  (DD/MM/YYYY)',
@@ -190,9 +135,128 @@
                                                     'Y-m-d h:i A' => '2026-06-01 02:30 PM (12hr)',
                                                     'd M Y h:i A' => '01 Jun 2026 02:30 PM (12hr)',
                                                 ];
+                                                // Current FY period for display
+                                                $fyNow    = (int)date('n');
+                                                $fyYear   = (int)date('Y');
+                                                if ($fyNow < $gsFYMonth) { $fyYear--; }
+                                                $fyEndMonth = $gsFYMonth - 1 ?: 12;
+                                                $fyEndYear  = ($gsFYMonth === 1) ? $fyYear : $fyYear + 1;
+                                                $fyEndDay   = (int)date('t', mktime(0, 0, 0, $fyEndMonth, 1, $fyEndYear));
+                                                $fyStartDate = date('d M Y', mktime(0, 0, 0, $gsFYMonth, 1, $fyYear));
+                                                $fyEndDate   = date('d M Y', mktime(0, 0, 0, $fyEndMonth, $fyEndDay, $fyEndYear));
+                                                $months = [1=>'January',2=>'February',3=>'March',4=>'April',5=>'May',6=>'June',
+                                                           7=>'July',8=>'August',9=>'September',10=>'October',11=>'November',12=>'December'];
+                                                $gsDefaultSal = (int)($gs->DefaultSalutationUID ?? 0);
                                                 ?>
-                                                <p class="text-muted fw-semibold mb-2 mt-1" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;">Date Formats</p>
-                                                <div class="row g-3 mb-4">
+
+                                                <h6 class="fw-semibold mb-1">General Preferences</h6>
+                                                <p class="text-muted small mb-3">Configure your application's basic display and regional preferences.</p>
+
+                                                <!-- ══════════════════════════════════════════════════
+                                                     SECTION 1 — Regional & Currency
+                                                ══════════════════════════════════════════════════ -->
+                                                <p class="text-muted fw-semibold mb-2" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;">Regional &amp; Currency</p>
+                                                <div class="row g-3 mb-3">
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Currency Symbol <span class="text-danger">*</span></label>
+                                                        <input type="text" class="form-control" id="gs_CurrenySymbol" name="CurrenySymbol"
+                                                               placeholder="e.g. ₹" value="<?php echo $gsCurrency; ?>" maxlength="1" />
+                                                        <div class="form-text">Single character representing your country's currency (e.g. ₹ India, $ USA, € Europe).</div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Decimal Places</label>
+                                                        <select class="form-select" id="gs_DecimalPoints" name="DecimalPoints">
+                                                            <option value="0" <?php echo $gsDecimal === 0 ? 'selected' : ''; ?>>0 — No decimals (e.g. 100)</option>
+                                                            <option value="2" <?php echo $gsDecimal === 2 ? 'selected' : ''; ?>>2 — Standard (e.g. 100.00)</option>
+                                                            <option value="3" <?php echo $gsDecimal === 3 ? 'selected' : ''; ?>>3 — High precision (e.g. 100.000)</option>
+                                                        </select>
+                                                        <div class="form-text">Controls how prices, quantities, and totals are displayed throughout the app.</div>
+                                                    </div>
+                                                </div>
+
+                                                <hr class="my-3">
+
+                                                <!-- ══════════════════════════════════════════════════
+                                                     SECTION 2 — Financial Year  (Critical)
+                                                ══════════════════════════════════════════════════ -->
+                                                <div class="border border-warning rounded p-3 mb-3" style="background:rgba(255,193,7,.07);">
+                                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                                        <i class="bx bx-calendar-alt" style="font-size:1.15rem;color:#b45309;"></i>
+                                                        <span class="fw-bold" style="font-size:.92rem;">Financial Year</span>
+                                                        <span class="badge bg-label-warning ms-1" style="font-size:.68rem;letter-spacing:.3px;">Critical Setting</span>
+                                                    </div>
+                                                    <p class="text-muted mb-3" style="font-size:.79rem;">
+                                                        The month from which your financial year begins. Transaction sequence numbers (INV-001, PO-001 etc.)
+                                                        reset to 1 when the new FY starts. <strong>Change this with caution</strong> — it affects
+                                                        reporting, invoice numbering, and accounting period boundaries across the entire application.
+                                                    </p>
+                                                    <div class="row g-3 align-items-center">
+                                                        <div class="col-md-5">
+                                                            <label class="form-label fw-semibold mb-1">Start Month <span class="text-danger">*</span></label>
+                                                            <select class="form-select" id="gs_FYStartMonth" name="FYStartMonth">
+                                                                <?php foreach ($months as $num => $name): ?>
+                                                                <option value="<?php echo $num; ?>" <?php echo $gsFYMonth === $num ? 'selected' : ''; ?>><?php echo $name; ?></option>
+                                                                <?php endforeach; ?>
+                                                            </select>
+                                                        </div>
+                                                        <div class="col-md-7">
+                                                            <div class="p-3 rounded border" style="background:rgba(255,255,255,.55);">
+                                                                <div class="text-muted mb-1" style="font-size:.71rem;font-weight:600;text-transform:uppercase;letter-spacing:.4px;">Current Financial Year</div>
+                                                                <div class="fw-bold" style="font-size:.95rem;color:#b45309;">
+                                                                    <?php echo $fyStartDate; ?> &nbsp;&rarr;&nbsp; <?php echo $fyEndDate; ?>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <hr class="my-3">
+
+                                                <!-- ══════════════════════════════════════════════════
+                                                     SECTION 3 — Display Preferences
+                                                ══════════════════════════════════════════════════ -->
+                                                <p class="text-muted fw-semibold mb-2" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;">Display Preferences</p>
+                                                <div class="row g-3 mb-3">
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Rows Per Page</label>
+                                                        <select class="form-select" id="gs_RowLimit" name="RowLimit">
+                                                            <option value="10"  <?php echo $gsRowLimit === 10  ? 'selected' : ''; ?>>10</option>
+                                                            <option value="25"  <?php echo $gsRowLimit === 25  ? 'selected' : ''; ?>>25</option>
+                                                            <option value="50"  <?php echo $gsRowLimit === 50  ? 'selected' : ''; ?>>50</option>
+                                                            <option value="100" <?php echo $gsRowLimit === 100 ? 'selected' : ''; ?>>100</option>
+                                                        </select>
+                                                        <div class="form-text">Default number of records shown per page in all list/table views.</div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Default Salutation</label>
+                                                        <select class="form-select" id="gs_DefaultSalutationUID" name="DefaultSalutationUID">
+                                                            <option value="">— None —</option>
+                                                            <?php foreach ($SalutationList ?? [] as $sal): ?>
+                                                            <option value="<?php echo (int)$sal->SalutationUID; ?>" <?php echo $gsDefaultSal === (int)$sal->SalutationUID ? 'selected' : ''; ?>>
+                                                                <?php echo htmlspecialchars($sal->SalutationName); ?>
+                                                            </option>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                        <div class="form-text">Default salutation pre-selected when creating a new customer or vendor.</div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <div class="form-check form-switch pt-1">
+                                                            <input class="form-check-input" type="checkbox" role="switch"
+                                                                   id="gs_SerialNoDisplay" name="SerialNoDisplay"
+                                                                   <?php echo $gsSerial ? 'checked' : ''; ?>>
+                                                            <label class="form-check-label fw-semibold" for="gs_SerialNoDisplay">Show Serial Number in Lists</label>
+                                                        </div>
+                                                        <div class="form-text ms-4 ps-2">Displays a row number (#1, #2…) as the first column in all list and table views for easy reference.</div>
+                                                    </div>
+                                                </div>
+
+                                                <hr class="my-3">
+
+                                                <!-- ══════════════════════════════════════════════════
+                                                     SECTION 4 — Date Formats
+                                                ══════════════════════════════════════════════════ -->
+                                                <p class="text-muted fw-semibold mb-2" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;">Date Formats</p>
+                                                <div class="row g-3 mb-3">
                                                     <div class="col-md-4">
                                                         <label class="form-label">Form Page</label>
                                                         <select class="form-select" id="FormDateFormat" name="FormDateFormat">
@@ -222,8 +286,11 @@
                                                     </div>
                                                 </div>
 
+                                                <!-- ══════════════════════════════════════════════════
+                                                     SECTION 5 — Date & Time Formats
+                                                ══════════════════════════════════════════════════ -->
                                                 <p class="text-muted fw-semibold mb-2" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;">Date &amp; Time Formats</p>
-                                                <div class="row g-3 mb-4">
+                                                <div class="row g-3 mb-3">
                                                     <div class="col-md-4">
                                                         <label class="form-label">Form Page</label>
                                                         <select class="form-select" id="FormDateTimeFormat" name="FormDateTimeFormat">
@@ -253,90 +320,112 @@
                                                     </div>
                                                 </div>
 
-                                                <!-- ── Input Limits ── -->
-                                                <?php
-                                                $gsEnableAI  = ($gs->EnableAIAssistant ?? 'No') === 'Yes';
-                                                $gsMaxShip = (int)($gs->MaxShippingAddr ?? 3);
-                                                ?>
+                                                <hr class="my-3">
+
+                                                <!-- ══════════════════════════════════════════════════
+                                                     SECTION 6 — Input Limits
+                                                ══════════════════════════════════════════════════ -->
                                                 <p class="text-muted fw-semibold mb-2" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;">Input Limits</p>
-                                                <div class="row g-3 mb-4">
-                                                    <div class="col-md-6">
+                                                <div class="row g-3 mb-3">
+                                                    <div class="col-md-4">
                                                         <label class="form-label">Quantity Max Length</label>
                                                         <input type="number" class="form-control" id="gs_QtyMaxLength" name="QtyMaxLength"
                                                                min="1" max="15" value="<?php echo $gsQtyMax; ?>" />
-                                                        <div class="form-text">Maximum number of digits allowed when entering a product quantity (e.g. 6 allows up to 999999). Includes decimal digits.</div>
+                                                        <div class="form-text">Maximum digits allowed when entering a product quantity (e.g. 6 allows up to 999,999). Includes decimal digits.</div>
                                                     </div>
-                                                    <div class="col-md-6">
+                                                    <div class="col-md-4">
                                                         <label class="form-label">Price Max Length</label>
                                                         <input type="number" class="form-control" id="gs_PriceMaxLength" name="PriceMaxLength"
                                                                min="1" max="20" value="<?php echo $gsPriceMax; ?>" />
-                                                        <div class="form-text">Maximum number of digits allowed when entering a price or amount (e.g. 12 allows up to ₹99,99,99,999.99). Includes decimal digits.</div>
+                                                        <div class="form-text">Maximum digits allowed when entering a price or amount (e.g. 12 allows up to ₹99,99,99,999.99). Includes decimal digits.</div>
                                                     </div>
-                                                    <div class="col-md-6">
+                                                    <div class="col-md-4">
                                                         <label class="form-label">Max Shipping Addresses</label>
                                                         <input type="number" class="form-control" id="gs_MaxShippingAddr" name="MaxShippingAddr"
                                                                min="1" max="5" value="<?php echo $gsMaxShip; ?>" />
-                                                        <div class="form-text">Maximum number of shipping addresses allowed per organisation (1–5).</div>
+                                                        <div class="form-text">Maximum shipping addresses allowed per organisation (1–5).</div>
                                                     </div>
                                                 </div>
 
-                                                <!-- ── Toggles ── -->
-                                                <p class="text-muted fw-semibold mb-2" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;">Features</p>
-                                                <div class="row g-3">
-                                                    <div class="col-md-6">
-                                                        <div class="form-check form-switch">
-                                                            <input class="form-check-input" type="checkbox" role="switch"
-                                                                   id="gs_SerialNoDisplay" name="SerialNoDisplay"
-                                                                   <?php echo $gsSerial ? 'checked' : ''; ?>>
-                                                            <label class="form-check-label fw-semibold" for="gs_SerialNoDisplay">Show Serial Number in Lists</label>
+                                                <hr class="my-3">
+
+                                                <!-- ══════════════════════════════════════════════════
+                                                     SECTION 7 — Features
+                                                ══════════════════════════════════════════════════ -->
+                                                <p class="text-muted fw-semibold mb-3" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;">Features</p>
+
+                                                <!-- Storage sub-group -->
+                                                <div class="border rounded p-3 mb-3">
+                                                    <div class="fw-semibold mb-3" style="font-size:.82rem;">Storage &amp; Warehouse</div>
+                                                    <div class="row g-3">
+                                                        <div class="col-md-6">
+                                                            <div class="form-check form-switch">
+                                                                <input class="form-check-input" type="checkbox" role="switch"
+                                                                       id="gs_EnableStorage" name="EnableStorage"
+                                                                       <?php echo $gsEnableStorage ? 'checked' : ''; ?>>
+                                                                <label class="form-check-label fw-semibold" for="gs_EnableStorage">Enable Storage / Warehouse</label>
+                                                            </div>
+                                                            <div class="form-text ms-4 ps-2">Activates warehouse or storage location tracking. Products can be assigned to specific storage locations and transactions can specify the source/destination store.</div>
                                                         </div>
-                                                        <div class="form-text ms-4 ps-2">Displays a row number (#1, #2…) as the first column in all list and table views for easy reference.</div>
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <div class="form-check form-switch">
-                                                            <input class="form-check-input" type="checkbox" role="switch"
-                                                                   id="gs_EnableStorage" name="EnableStorage"
-                                                                   <?php echo $gsEnableStorage ? 'checked' : ''; ?>>
-                                                            <label class="form-check-label fw-semibold" for="gs_EnableStorage">Enable Storage / Warehouse</label>
+                                                        <div class="col-md-6">
+                                                            <div class="form-check form-switch">
+                                                                <input class="form-check-input" type="checkbox" role="switch"
+                                                                       id="gs_MandatoryStorage" name="MandatoryStorage"
+                                                                       <?php echo $gsMandatory ? 'checked' : ''; ?>>
+                                                                <label class="form-check-label fw-semibold" for="gs_MandatoryStorage">Make Storage Selection Mandatory</label>
+                                                            </div>
+                                                            <div class="form-text ms-4 ps-2">Users must select a storage location before saving a transaction. Requires "Enable Storage" to be turned on. Ensures every stock movement is traceable to a specific location.</div>
                                                         </div>
-                                                        <div class="form-text ms-4 ps-2">Activates warehouse or storage location tracking. When enabled, products can be assigned to specific storage locations and transactions can specify the source/destination store.</div>
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <div class="form-check form-switch">
-                                                            <input class="form-check-input" type="checkbox" role="switch"
-                                                                   id="gs_MandatoryStorage" name="MandatoryStorage"
-                                                                   <?php echo $gsMandatory ? 'checked' : ''; ?>>
-                                                            <label class="form-check-label fw-semibold" for="gs_MandatoryStorage">Make Storage Selection Mandatory</label>
-                                                        </div>
-                                                        <div class="form-text ms-4 ps-2">When enabled, users must select a storage location before saving a transaction. Requires "Enable Storage" to be turned on. Ensures every stock movement is traceable to a specific location.</div>
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <div class="form-check form-switch">
-                                                            <input class="form-check-input" type="checkbox" role="switch"
-                                                                   id="gs_StatsDefaultOpen" name="StatsDefaultOpen"
-                                                                   <?php echo $gsStatsDefault ? 'checked' : ''; ?>>
-                                                            <label class="form-check-label fw-semibold" for="gs_StatsDefaultOpen">Stats Panel Open by Default</label>
-                                                        </div>
-                                                        <div class="form-text ms-4 ps-2">When enabled, the summary stats panel is expanded by default on all list pages. Users can still collapse or expand it per session.</div>
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <div class="form-check form-switch">
-                                                            <input class="form-check-input" type="checkbox" role="switch"
-                                                                   id="gs_EnableAIAssistant" name="EnableAIAssistant"
-                                                                   <?php echo $gsEnableAI ? 'checked' : ''; ?>>
-                                                            <label class="form-check-label fw-semibold" for="gs_EnableAIAssistant">Enable AI Business Assistant</label>
-                                                        </div>
-                                                        <div class="form-text ms-4 ps-2">When enabled, an AI chat widget appears on all pages allowing users to ask questions about sales, receivables, stock, and more. Requires a Gemini API key to be configured.</div>
                                                     </div>
                                                 </div>
 
-                                                <!-- ── HRMS ── -->
-                                                <?php
-                                                $gsEmpPrefix    = htmlspecialchars($gs->EmpCodePrefix    ?? 'EMP');
-                                                $gsEmpSeparator = $gs->EmpCodeSeparator ?? '-';
-                                                $gsEmpDigits    = (int)($gs->EmpCodeDigits ?? 4);
-                                                ?>
-                                                <p class="text-muted fw-semibold mb-2 mt-1" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;">HRMS</p>
+                                                <!-- Stats Panel sub-group -->
+                                                <div class="border rounded p-3 mb-3">
+                                                    <div class="fw-semibold mb-3" style="font-size:.82rem;">Stats Panel</div>
+                                                    <div class="row g-3">
+                                                        <div class="col-md-6">
+                                                            <div class="form-check form-switch">
+                                                                <input class="form-check-input" type="checkbox" role="switch"
+                                                                       id="gs_ShowStats" name="ShowStats"
+                                                                       <?php echo $gsShowStats ? 'checked' : ''; ?>>
+                                                                <label class="form-check-label fw-semibold" for="gs_ShowStats">Show Stats Panel</label>
+                                                            </div>
+                                                            <div class="form-text ms-4 ps-2">When disabled, the stats summary panel is permanently hidden for all users on all list pages.</div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <div class="form-check form-switch">
+                                                                <input class="form-check-input" type="checkbox" role="switch"
+                                                                       id="gs_StatsDefaultOpen" name="StatsDefaultOpen"
+                                                                       <?php echo $gsStatsDefault ? 'checked' : ''; ?>>
+                                                                <label class="form-check-label fw-semibold" for="gs_StatsDefaultOpen">Open by Default</label>
+                                                            </div>
+                                                            <div class="form-text ms-4 ps-2">When enabled, stats load expanded on every list page. Users can still collapse or expand per session. Requires "Show Stats Panel" to be turned on.</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- AI Assistant -->
+                                                <div class="border rounded p-3 mb-3">
+                                                    <div class="fw-semibold mb-3" style="font-size:.82rem;">AI Assistant</div>
+                                                    <div class="row g-3">
+                                                        <div class="col-md-6">
+                                                            <div class="form-check form-switch">
+                                                                <input class="form-check-input" type="checkbox" role="switch"
+                                                                       id="gs_EnableAIAssistant" name="EnableAIAssistant"
+                                                                       <?php echo $gsEnableAI ? 'checked' : ''; ?>>
+                                                                <label class="form-check-label fw-semibold" for="gs_EnableAIAssistant">Enable AI Business Assistant</label>
+                                                            </div>
+                                                            <div class="form-text ms-4 ps-2">When enabled, an AI chat widget appears on all pages allowing users to ask questions about sales, receivables, stock, and more. Requires a Gemini API key to be configured.</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <hr class="my-3">
+
+                                                <!-- ══════════════════════════════════════════════════
+                                                     SECTION 8 — HRMS
+                                                ══════════════════════════════════════════════════ -->
+                                                <p class="text-muted fw-semibold mb-2" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;">HRMS</p>
 
                                                 <div class="border rounded p-3 mb-4">
                                                     <div class="d-flex align-items-center gap-2 mb-1">
@@ -345,7 +434,7 @@
                                                     </div>
                                                     <p class="text-muted mb-3" style="font-size:.78rem;">Define how auto-generated employee codes are structured. The code is built as <strong>Prefix + Separator + Number</strong>.</p>
 
-                                                    <div class="row g-3 align-items-end">
+                                                    <div class="row g-3">
                                                         <div class="col-md-4">
                                                             <label class="form-label">Prefix <span class="text-danger">*</span></label>
                                                             <input type="text" class="form-control text-uppercase" id="gs_EmpCodePrefix" name="EmpCodePrefix"
@@ -1201,6 +1290,7 @@ $(document).ready(function () {
                 SerialNoDisplay        : $('#gs_SerialNoDisplay').is(':checked')    ? 1 : 0,
                 EnableStorage          : $('#gs_EnableStorage').is(':checked')      ? 1 : 0,
                 MandatoryStorage       : $('#gs_MandatoryStorage').is(':checked')   ? 1 : 0,
+                ShowStats              : $('#gs_ShowStats').is(':checked')          ? 1 : 0,
                 StatsDefaultOpen       : $('#gs_StatsDefaultOpen').is(':checked')   ? 1 : 0,
                 EnableAIAssistant      : $('#gs_EnableAIAssistant').is(':checked')  ? 1 : 0,
                 MaxShippingAddr        : $('#gs_MaxShippingAddr').val(),
@@ -1218,12 +1308,26 @@ $(document).ready(function () {
                 [CsrfName]             : CsrfToken,
             },
             success: function (resp) {
-                showToastNotification(resp.Message, resp.Error ? 'error' : 'success');
+                if (resp.Error) {
+                    showToastNotification(resp.Message, 'error');
+                    $btn.prop('disabled', false);
+                    $spinner.addClass('d-none');
+                    return;
+                }
+                // Settings saved — silently refresh tokens so new settings take effect
+                // on the next request without needing a page reload.
+                $.ajax({
+                    url    : '/auth/refreshTokens',
+                    method : 'POST',
+                    data   : { [CsrfName]: CsrfToken },
+                }).always(function () {
+                    showToastNotification(resp.Message, 'success');
+                    $btn.prop('disabled', false);
+                    $spinner.addClass('d-none');
+                });
             },
             error: function () {
                 showToastNotification('Request failed. Please try again.', 'error');
-            },
-            complete: function () {
                 $btn.prop('disabled', false);
                 $spinner.addClass('d-none');
             }

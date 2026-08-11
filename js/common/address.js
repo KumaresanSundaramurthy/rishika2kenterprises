@@ -10,13 +10,18 @@ var shippingAddrData  = null;
 var delAddrDetailFlag = 0;
 var delAddrData       = [];
 
+var _addrEmptyHtml = {
+    billing : '<div class="r2k-addr-empty"><i class="bx bx-map-alt r2k-addr-empty-icon"></i><div class="r2k-addr-empty-text">No Billing Address added</div></div>',
+    shipping: '<div class="r2k-addr-empty"><i class="bx bx-map-alt r2k-addr-empty-icon"></i><div class="r2k-addr-empty-text">No Shipping Address added</div></div>',
+};
+
 function resetAddrData() {
     billingAddrData   = null;
     shippingAddrData  = null;
     delAddrDetailFlag = 0;
     delAddrData       = [];
-    $('#appendBillingAddress').empty();
-    $('#appendShippingAddress').empty();
+    $('#appendBillingAddress').html(_addrEmptyHtml.billing);
+    $('#appendShippingAddress').html(_addrEmptyHtml.shipping);
     $('#addBillingAddress').removeClass('d-none');
     $('#addShippingAddress').removeClass('d-none');
     $('#copyToShippingBtn').addClass('d-none');
@@ -153,7 +158,9 @@ function csc_loadCities(selectId, countryISO2, stateISO2, selectedVal, selectedN
 
 // ── Open address modal ────────────────────────────────────────────────────────
 function openAddressModal(addrType) {
-    var iso2      = typeof OrgCountryISO2 !== 'undefined' ? OrgCountryISO2 : 'IN';
+    var iso2 = ($('#CM_CountryISO2').val() || $('#VM_CountryISO2').val() ||
+                (typeof OrgCountryISO2 !== 'undefined' ? OrgCountryISO2 : 'IN')).toUpperCase();
+    $('#addEditAddressModal').data('activeIso2', iso2);
     var isBilling = (addrType == 1);
     var existing  = isBilling ? billingAddrData : shippingAddrData;
 
@@ -224,7 +231,8 @@ function renderAddrSummary(addrType, data) {
 
 // ── Modal state change → load cities ─────────────────────────────────────────
 $(document).on('change', '#ModalAddrState', function () {
-    var iso2      = typeof OrgCountryISO2 !== 'undefined' ? OrgCountryISO2 : 'IN';
+    var iso2      = $('#addEditAddressModal').data('activeIso2') ||
+                    (typeof OrgCountryISO2 !== 'undefined' ? OrgCountryISO2 : 'IN');
     var stateISO2 = $(this).find('option:selected').data('iso2') || '';
     csc_loadCities('ModalAddrCity', iso2, stateISO2, '');
 });
@@ -281,7 +289,7 @@ $(document).on('click', '.deleteAddrBtn', function () {
     if (addrType === 1) { billingAddrData  = null; }
     else                { shippingAddrData = null; }
 
-    $('#' + divId).empty();
+    $('#' + divId).html(addrType === 1 ? _addrEmptyHtml.billing : _addrEmptyHtml.shipping);
     $('#' + addBtnId).removeClass('d-none');
     _updateCopyButtons();
 });

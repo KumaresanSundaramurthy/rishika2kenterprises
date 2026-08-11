@@ -297,8 +297,10 @@ $(function () {
             _doSubmit();
             function _doSubmit() {
             var fd = new FormData();
+            var _autoDraftUid = (!_isEdit && typeof AutoDraft !== 'undefined') ? AutoDraft.getDraftUid() : 0;
             fd.append(csrfName, csrfVal);
             if (_isEdit) fd.append('TransUID', parseInt($('input[name="TransUID"]').val(), 10));
+            else if (_autoDraftUid > 0) fd.append('TransUID', _autoDraftUid);
             fd.append('transPrefixSelect',      parseInt($('#transPrefixSelect').val(), 10) || 0);
             fd.append('transNumber',            $.trim($('#transNumber').val()));
             fd.append('transDate',              transDate);
@@ -351,7 +353,7 @@ $(function () {
             setFormLoading('#' + _formId, true, action);
 
             $.ajax({
-                url         : '/' + (_cfg.formAction || ''),
+                url         : '/' + (_autoDraftUid > 0 ? (_cfg.updateAction || _cfg.formAction || '') : (_cfg.formAction || '')),
                 method      : 'POST',
                 data        : fd,
                 processData : false,

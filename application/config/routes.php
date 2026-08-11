@@ -89,6 +89,7 @@ $route['auth/google']             = 'oauth/googleRedirect';
 $route['auth/google/callback']    = 'oauth/googleCallback';
 $route['auth/facebook']           = 'oauth/facebookRedirect';
 $route['auth/facebook/callback']  = 'oauth/facebookCallback';
+$route['auth/refreshTokens']      = 'auth/refreshTokens';
 $route['launch/sendEnquiry'] = 'launch/sendEnquiry';
 
 // Forgot / Reset password (public)
@@ -234,7 +235,6 @@ $route['settings/roles/getRolePermissions']      = 'roles/getRolePermissions';
 $route['settings/roles/saveRole']                = 'roles/saveRole';
 $route['settings/roles/saveRolePermissions']     = 'roles/saveRolePermissions';
 $route['settings/roles/deleteRole']              = 'roles/deleteRole';
-$route['settings/roles/refreshTokens']           = 'roles/refreshTokens';
 
 // Pro Forma Invoices
 $route['proforma']                                                 = 'proformainvoices/index';

@@ -479,6 +479,50 @@ class Cachehelper {
         } catch (Exception $e) {}
     }
 
+    // ── Vendor Group ─────────────────────────────────────────────────────────
+
+    /**
+     * Add or refresh a single vendor group entry in the org dropdown hash.
+     * Call after: create, update, status toggle to active.
+     */
+    public function upsertVendorGroup(int $groupUID): void {
+        try {
+            $CI     =& get_instance();
+            $orgUID = (int) $CI->pageData['JwtData']->Org->OrgUID;
+            $uid    = (int) $groupUID;
+            if ($uid <= 0) return;
+
+            $CI->load->model('vendors_model');
+            $groups = $CI->vendors_model->getActiveVendorGroupsForDropdown($orgUID);
+            $group  = null;
+            foreach ($groups as $g) {
+                if ((int) $g->GroupUID === $uid) { $group = $g; break; }
+            }
+            if (!$group) return;
+
+            $cacheKey = $CI->redisservice->orgKey('vendor-groups');
+            $CI->upstashservice->hset($cacheKey, (string) $uid, json_encode([
+                'GroupUID'  => $uid,
+                'GroupName' => $group->GroupName ?? '',
+                'GroupCode' => $group->GroupCode ?? '',
+                'GroupType' => $group->GroupType ?? '',
+            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        } catch (Exception $e) {}
+    }
+
+    /**
+     * Remove a vendor group from the org dropdown hash.
+     * Call after: delete, status toggle to inactive.
+     */
+    public function removeVendorGroup(int $groupUID): void {
+        try {
+            $CI       =& get_instance();
+            $uid      = (int) $groupUID;
+            $cacheKey = $CI->redisservice->orgKey('vendor-groups');
+            $CI->upstashservice->hdel($cacheKey, (string) $uid);
+        } catch (Exception $e) {}
+    }
+
     // ── Category ──────────────────────────────────────────────────────────────
 
     /**

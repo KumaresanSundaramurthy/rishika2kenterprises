@@ -34,6 +34,8 @@ $lang['change_password']   = 'Change Password';
 $lang['last_login']        = 'Last login';
 $lang['settings']          = 'Settings';
 $lang['page_refresh']      = 'Page Refresh';
+$lang['sync_cache']        = 'Sync Cache';
+$lang['sync_groups_cache'] = 'Sync Groups Cache';
 
 // Theme
 $lang['theme_light']       = 'Light';

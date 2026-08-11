@@ -9,12 +9,15 @@
  * dropdown with the four .r2k-export-btn items this file listens for.
  */
 function initExport(opts) {
-    opts       = opts || {};
-    var mid    = opts.moduleUID;
-    var getFlt = opts.getFilters || function () { return {}; };
+    opts        = opts || {};
+    var _getMid = opts.getModuleUID
+        ? opts.getModuleUID
+        : function () { return opts.moduleUID; };
+    var getFlt  = opts.getFilters || function () { return {}; };
 
     $(document).on('click', '.r2k-export-btn[data-format]', function () {
         var format = $(this).data('format');
+        var mid    = _getMid();
         var filter = getFlt();
 
         if (format === 'print') {

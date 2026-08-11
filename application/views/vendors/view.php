@@ -24,7 +24,7 @@
                 $dec = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
                 ?>
 
-                <?php if ($JwtData->TransSettings->ShowTransactionStats ?? 1): ?>
+                <?php if (($JwtData->GenSettings->ShowStats ?? 1) && ($JwtData->TransSettings->ShowTransactionStats ?? 1)): ?>
                 <!-- ── Stats Strip ───────────────────────────────────────────── -->
                 <div class="apex-stats-strip">
                     <a href="javascript:void(0);" class="apex-stat-item active" data-status="All" data-stat-filter="All" style="--stat-color:#ca8a04">
@@ -107,7 +107,9 @@
                             <a href="javascript:void(0);" id="vendGrpTypeFilterBtn" class="apex-filter-btn vgrp-only-ctrl<?php echo $initIsGroups ? '' : ' d-none'; ?>" title="Filter by Group Type"><i class="bx bx-category me-1"></i>Group Type</a>
                             <a href="javascript:void(0);" id="vendGrpPartyFilterBtn" class="apex-filter-btn vgrp-only-ctrl<?php echo $initIsGroups ? '' : ' d-none'; ?>" title="Filter by Vendor"><i class="bx bx-store me-1"></i>Vendor</a>
                             <div class="apex-filter-spacer"></div>
-                            <a href="javascript:void(0);" class="apex-filter-btn vend-only-ctrl<?php echo $initIsGroups ? ' d-none' : ''; ?>" id="btnSyncVendorsCache" title="Sync Cache"><i class="bx bx-planet"></i></a>
+                            <a href="javascript:void(0);" class="apex-filter-btn vend-only-ctrl<?php echo $initIsGroups ? ' d-none' : ''; ?>" id="btnSyncVendorsCache" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('sync_cache', 'Sync Cache'); ?>"><i class="bx bx-planet"></i></a>
+                            <!-- Group-only sync -->
+                            <a href="javascript:void(0);" class="apex-filter-btn vgrp-only-ctrl<?php echo $initIsGroups ? '' : ' d-none'; ?>" id="btnSyncVendorGroupsCache" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('sync_groups_cache', 'Sync Groups Cache'); ?>"><i class="bx bx-planet"></i></a>
                             <a href="javascript:void(0);" class="apex-filter-btn PageRefresh" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('page_refresh', 'Page Refresh'); ?>"><i class="bx bx-refresh"></i></a>
                             <div class="btn-group d-none vend-only-ctrl" id="ActionsDD-Div">
                                 <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="actionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
@@ -136,7 +138,7 @@
                         <!-- Tabs Row -->
                         <div class="apex-tabs-row">
                             <ul class="nav trans-status-tabs" id="vendStatusTabs" role="tablist" data-trans-path="/vendors">
-                                <li class="nav-item"><a class="nav-link<?php echo ($InitTab ?? 'All') === 'All' ? ' active' : ''; ?> vend-tab" data-status="All" data-url-tab="all" href="javascript:void(0);"> All <span class="trans-tab-count<?php echo (!$initIsGroups && ($VendStats->TotalCount ?? 0) > 0) ? '' : ' d-none'; ?>"><?php echo (!$initIsGroups && ($VendStats->TotalCount ?? 0) > 0) ? $VendStats->TotalCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link<?php echo ($InitTab ?? 'All') === 'All' ? ' active' : ''; ?> vend-tab" data-status="All" data-url-tab="all" href="javascript:void(0);"> All <span class="trans-tab-count<?php echo (!$initIsGroups && ($InitTotalCount ?? 0) > 0) ? '' : ' d-none'; ?>"><?php echo (!$initIsGroups && ($InitTotalCount ?? 0) > 0) ? $InitTotalCount : ''; ?></span></a></li>
                                 <li class="nav-item">
                                     <?php $grpTotal = ($InitTab ?? 'All') === 'Groups' ? (int)($GrpTotal ?? 0) : 0; ?>
                                     <a class="nav-link vgrp-view-tab<?php echo ($InitTab ?? 'All') === 'Groups' ? ' active' : ''; ?>" href="javascript:void(0);" id="vendGroupsViewTab" data-status="Groups" data-url-tab="groups">
@@ -144,7 +146,7 @@
                                     </a>
                                 </li>
                                 <?php
-                                $vShowStats   = (int)($JwtData->TransSettings->ShowTransactionStats ?? 1);
+                                $vShowStats   = (int)($JwtData->GenSettings->ShowStats ?? 1) && (int)($JwtData->TransSettings->ShowTransactionStats ?? 1);
                                 $vGrpStatsVis = ($InitTab ?? 'All') === 'Groups' && $vShowStats;
                                 $vGrpS        = $GrpStats ?? null;
                                 ?>
@@ -250,50 +252,7 @@
             <?php $this->load->view('common/modals/vendor_group_form'); ?>
             <?php $this->load->view('common/modals/vendor_profile_modal'); ?>
 
-            <!-- Vendor Add / Edit / Clone Modal -->
-            <div class="modal fade" id="VendorFormModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true" style="padding:0!important;">
-                <div class="modal-dialog modal-xl modal-dialog-scrollable" style="height:100vh;max-height:100vh;margin:0 auto;">
-                    <div class="modal-content h-100 d-flex flex-column">
-
-                        <div class="modal-header bg-white border-bottom d-flex align-items-center justify-content-between px-3 py-2 trans-theme">
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="modal-doc-icon bg-warning bg-opacity-10">
-                                    <i class="bx bx-store text-warning modal-doc-icon-inner"></i>
-                                </div>
-                                <div>
-                                    <h5 class="modal-title mb-0" id="VendorFormModalTitle">Vendor</h5>
-                                </div>
-                            </div>
-                            <div class="d-flex align-items-center gap-2">
-                                <button type="button" class="btn btn-sm btn-primary" id="VendorFormSaveBtn">
-                                    <i class="bx bx-check me-1"></i>Save
-                                </button>
-                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-dismiss="modal">
-                                    <i class="bx bx-x me-1"></i>Close
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="modal-body p-0 flex-grow-1 overflow-auto" id="VendorFormModalBody">
-                            <?php $this->load->view('vendors/forms/modal_body', [
-                                'FormMode'    => 'add',
-                                'FormData'    => null,
-                                'BankDetails' => [],
-                                'BillingAddr' => null,
-                                'ShippingAddr'=> null,
-                                'CountryInfo' => $CountryInfo,
-                                'OrgCCode'    => $OrgCCode,
-                                'OrgCISO2'    => $OrgCISO2,
-                                'JwtData'     => $JwtData,
-                            ]); ?>
-                        </div>
-
-                    </div>
-                </div>
-            </div>
-
-            <?php $this->load->view('common/form/bank_details'); ?>
-            <?php $this->load->view('common/form/address_form'); ?>
+            <?php $this->load->view('common/modals/vendor_form'); ?>
             <?php $this->load->view('common/footer_desc'); ?>
 
         </div>
@@ -404,6 +363,8 @@
 <script src="<?php echo _assetV('/js/common/party_filter.js'); ?>"></script>
 <link rel="stylesheet" href="<?php echo _assetV('/assets/vendor/css/attachments.css'); ?>">
 <script src="<?php echo _assetV('/js/common/attachments.js'); ?>"></script>
+<script src="/js/common/phone_cc_dropdown.js"></script>
+<script src="<?php echo _assetV('/js/common/vendor_form.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/vendors.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/common/pagecheckbox.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/common/communication.js'); ?>"></script>
@@ -610,7 +571,7 @@ var OrgCountryISO2 = <?php echo json_encode($OrgCISO2 ?? 'IN'); ?>;
 var VendShowUserFilter = <?php echo $showUserBtn ? 'true' : 'false'; ?>;
 var _vendInitTab    = <?php echo json_encode($InitTab    ?? 'All'); ?>;
 var _vendInitSearch = <?php echo json_encode($InitSearch ?? ''); ?>;
-var _vendShowStats  = <?php echo (int)($JwtData->TransSettings->ShowTransactionStats ?? 1); ?>;
+var _vendShowStats  = <?php echo (int)(($JwtData->GenSettings->ShowStats ?? 1) && ($JwtData->TransSettings->ShowTransactionStats ?? 1)); ?>;
 
 $(function() {
     'use strict'
@@ -664,11 +625,33 @@ $(function() {
             }
         });
     });
+    // ── Sync vendor groups to Upstash cache ──────────────────────────────────
+    $(document).on('click', '#btnSyncVendorGroupsCache', function () {
+        var $btn = $(this);
+        $btn.find('i').removeClass('bx-planet').addClass('bx-loader-alt bx-spin');
+        $.ajax({
+            url    : '/vendors/syncVendorGroupsCache',
+            method : 'POST',
+            data   : { [CsrfName]: CsrfToken },
+            success: function (resp) {
+                CsrfToken = resp.NewCsrfToken || CsrfToken;
+                $btn.find('i').removeClass('bx-loader-alt bx-spin').addClass('bx-planet');
+                if (resp.Error) {
+                    showToastNotification(resp.Message, 'error');
+                } else {
+                    showToastNotification(resp.Message, 'success');
+                }
+            },
+            error: function () {
+                $btn.find('i').removeClass('bx-loader-alt bx-spin').addClass('bx-planet');
+                showToastNotification('Sync failed. Please try again.', 'error');
+            }
+        });
+    });
     // ────────────────────────────────────────────────────────────────────────
     basePageHeaderFunc(ModuleHeader, ModuleTable, ModuleRow);
     $(ModuleHeader).on('click', function () { _vendUpdateSelectAllBanner(); });
 
-    $(document).on('click', '#btnCreateVendorHeader', function () { openVendorModal('add'); });
 
     // ── Auto-hide ActionsDD until options are visible ──
     (function () {
@@ -1006,16 +989,11 @@ $(function() {
 
     // ── Apply groups response data to DOM ──
     function _applyVgrpData(res) {
-        _vgrpPageNo = 1;
-        $('#VendorGroupsTableBody').html(res.RecordHtmlData);
-        $('#VendorGroupsPagination').html(res.Pagination);
-        if (_vendShowStats) { _updateVgrpStats(res.Stats); }
-        var cnt = res.TotalCount || 0;
-        $('#vgrpTabCount').text(cnt > 0 ? cnt : '').toggleClass('d-none', cnt === 0);
+        _vgrpReload(1, res.Message);
     }
 
     // ── Groups AJAX reload ──
-    function _vgrpReload(page) {
+    function _vgrpReload(page, toastMsg) {
         _vgrpPageNo = page || 1;
         ajaxLoading(0);
         $('#VendorGroupsTableBody').html('<tr><td colspan="9" class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary" role="status"></span></td></tr>');
@@ -1032,6 +1010,7 @@ $(function() {
                 if (_vendShowStats) { _updateVgrpStats(res.Stats); }
                 var cnt = res.TotalCount || 0;
                 $('#vgrpTabCount').text(cnt > 0 ? cnt : '').toggleClass('d-none', cnt === 0);
+                if (toastMsg) showToastNotification(toastMsg, 'success');
             },
             error: function () { ajaxLoading(1); }
         });

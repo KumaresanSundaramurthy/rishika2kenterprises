@@ -1183,7 +1183,8 @@ $(function () {
 
     // ── Apply groups response data to DOM ──
     function _applyGrpData(res) {
-        _grpReload(1, res.Message);
+        if (res && res.Message) showToastNotification(res.Message, 'success');
+        _grpReload(1);
         _refreshCustomerGroupDropdown();
     }
 

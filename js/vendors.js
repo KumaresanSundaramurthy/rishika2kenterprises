@@ -115,9 +115,8 @@ function _onVendorFormSaved(response) {
     hideUIBlock();
     ajaxLoading(0);
     var msg = response ? response.Message : '';
-    getVendorsDetails(PageNo, RowLimit, Filter, function () {
-        if (msg) showToastNotification(msg, 'success');
-    });
+    if (msg) showToastNotification(msg, 'success');
+    getVendorsDetails(PageNo, RowLimit, Filter);
 }
 
 // ── Open VendorForm modal triggers ────────────────────────────────────────────

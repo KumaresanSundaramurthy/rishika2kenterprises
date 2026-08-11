@@ -53,17 +53,6 @@ class Middleware {
 					$CI->pageData['JwtToken'] = $JwtEncoded;
 					$CI->pageData['JwtUserKey'] = $JwtData->key;
 
-					// Badge count — only on full page loads, not on AJAX calls
-					if (!$CI->input->is_ajax_request()) {
-						$_orgUID  = (int)($CI->pageData['JwtData']->Org->OrgUID  ?? 0);
-						$_userUID = (int)($CI->pageData['JwtData']->User->UserUID ?? 0);
-						if ($_orgUID > 0 && $_userUID > 0) {
-							$CI->load->model('todo_model');
-							$CI->pageData['NavTodoBadge'] = $CI->todo_model->getPendingBadgeCount($_orgUID, $_userUID);
-						} else {
-							$CI->pageData['NavTodoBadge'] = 0;
-						}
-					}
 
 					// ── Single-session enforcement ───────────────────────────
 					// Each login embeds a unique SessionToken in the Redis payload.

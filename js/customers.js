@@ -186,9 +186,8 @@ function _custPageSaveSuccess(response) {
     hideUIBlock();
     ajaxLoading(0);
     var msg = response ? response.Message : '';
-    getCustomersDetails(PageNo, RowLimit, Filter, function () {
-        if (msg) showToastNotification(msg, 'success');
-    });
+    if (msg) showToastNotification(msg, 'success');
+    getCustomersDetails(PageNo, RowLimit, Filter);
 }
 
 // ── Customer list image → open gallery from data-images (no AJAX) ────────────

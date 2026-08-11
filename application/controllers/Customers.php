@@ -99,6 +99,28 @@ class Customers extends MY_Controller {
             $this->pageData['ShowUserFilter'] = count($orgUsers) > 1;
 
             $this->_loadUpstashConfig();
+
+            // Always sync cache from DB — DB is the source of truth for the sequence.
+            try {
+                $_fyMonth  = (int) ($this->pageData['JwtData']->GenSettings->FYStartMonth ?? 4);
+                $_tz       = $this->pageData['JwtData']->User->Timezone ?? 'UTC';
+                $_settings = $this->customers_model->getOrInitCreditSettings(
+                    (int) $orgUID,
+                    (int) $this->pageData['JwtData']->User->UserUID,
+                    $_fyMonth,
+                    $_tz
+                );
+                if ($_settings && !empty($_settings->CustomerNextNumber)) {
+                    $_creditKey = $this->redisservice->orgKey('credit-settings');
+                    $this->upstashservice->set($_creditKey, [
+                        'cust_next_number' => $_settings->CustomerNextNumber,
+                        'gstin_points'     => (int) ($_settings->GstinPoints ?? 0),
+                    ], 86400);
+                }
+            } catch (Exception $_ce) {
+                log_message('error', 'credit-settings warm-up: ' . $_ce->getMessage());
+            }
+
             $this->load->view('customers/view', $this->pageData);
 
         } catch (Exception $e) {
@@ -186,6 +208,8 @@ class Customers extends MY_Controller {
             'DateOfBirth'       => getPostValue($postData, 'CPDateOfBirth'),
             'GSTIN'             => getPostValue($postData, 'GSTIN'),
             'CompanyName'       => getPostValue($postData, 'CompanyName'),
+            'WorkPhone'         => getPostValue($postData, 'WorkPhone'),
+            'LandlineNumber'    => getPostValue($postData, 'LandlineNumber'),
             'DiscountPercent'   => getPostValue($postData, 'DiscountPercent', '', 0),
             'CreditPeriod'      => getPostValue($postData, 'CreditPeriod', '', 30),
             'CreditLimit'       => getPostValue($postData, 'CreditLimit', '', 0),
@@ -193,6 +217,7 @@ class Customers extends MY_Controller {
             'Tags'              => getPostValue($postData, 'Tags', 'Comma'),
             'CCEmails'          => getPostValue($postData, 'CCEmails', 'Comma'),
             'AllowPortalAccess' => (int)(bool) getPostValue($postData, 'AllowPortalAccess'),
+            'GSTINValidated'    => (int)(bool) getPostValue($postData, 'GSTINValidated'),
             'CustomerTypeUID'   => (int) getPostValue($postData, 'CustomerTypeUID', '', 0),
             'SalutationUID'     => (int) trim(getPostValue($postData, 'SalutationUID') ?? '', '"\'') ?: null,
             'UpdatedBy'         => $this->pageData['JwtData']->User->UserUID,
@@ -278,6 +303,26 @@ class Customers extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
+            // Claim next customer number — 5-retry optimistic lock inside claimNextCustomerNumber.
+            // FY rollover is handled automatically: if financial year changed since last creation,
+            // the first customer of the new year gets e.g. C-270001 with no manual action needed.
+            $_cOrgUID   = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $_fyMonth   = (int) ($this->pageData['JwtData']->GenSettings->FYStartMonth ?? 4);
+            $_tz        = $this->pageData['JwtData']->User->Timezone ?? 'UTC';
+            $_creditKey = $this->redisservice->orgKey('credit-settings');
+            $_claimed   = $this->customers_model->claimNextCustomerNumber($_cOrgUID, $_fyMonth, $_tz);
+            if ($_claimed) {
+                $this->dbwrite_model->updateData('Customers', 'CustomerTbl',
+                    ['CustomerNumber' => $_claimed['claimed']],
+                    ['CustomerUID'    => (int) $CustomerUID]
+                );
+                $_freshCredit = $this->customers_model->getCreditSettings($_cOrgUID);
+                $this->upstashservice->set($_creditKey, [
+                    'cust_next_number' => $_claimed['next'],
+                    'gstin_points'     => (int) ($_freshCredit->GstinPoints ?? 0),
+                ], 86400);
+            }
+
             // Handle attachment uploads after commit
             $deleteUIDs = $this->input->post('CustAttachDeleteUIDs') ?: '';
             $this->_handleCustomerAttachments((int)$CustomerUID, (int)$this->pageData['JwtData']->Org->OrgUID, (int)$this->pageData['JwtData']->User->UserUID, $deleteUIDs);
@@ -324,9 +369,9 @@ class Customers extends MY_Controller {
         } catch (InvalidArgumentException $e) {
             $this->dbwrite_model->rollbackTransaction();
             if ($e->getMessage() === 'VALIDATION_ERROR') {
-                $this->EndReturnData->Error  = true;
-                $this->EndReturnData->Message = strip_tags($ErrorInForm);
-                $this->EndReturnData->Errors  = 'Please correct the highlighted errors.';
+                $this->EndReturnData->Error       = true;
+                $this->EndReturnData->Message     = 'Please correct the highlighted errors.';
+                $this->EndReturnData->FieldErrors = $this->formvalidation_model->getLastValidationErrors();
             } else {
                 throw $e;
             }
@@ -388,6 +433,46 @@ class Customers extends MY_Controller {
 
         } catch (Exception $e) {
             $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function getNextCustomerNumber(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID    = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $userUID   = (int) $this->pageData['JwtData']->User->UserUID;
+            $fyMonth   = (int) ($this->pageData['JwtData']->GenSettings->FYStartMonth ?? 4);
+            $tz        = $this->pageData['JwtData']->User->Timezone ?? 'UTC';
+            $creditKey = $this->redisservice->orgKey('credit-settings');
+
+            // Cache hit — return instantly, no DB call needed.
+            $cached = $this->upstashservice->get($creditKey);
+            if ($cached !== null && !empty($cached['cust_next_number'])) {
+                $this->EndReturnData->Error          = false;
+                $this->EndReturnData->CustomerNumber = $cached['cust_next_number'];
+                $this->globalservice->sendJsonResponse($this->EndReturnData);
+                return;
+            }
+
+            // Cache cold — getOrInitCreditSettings handles FY rollover and returns
+            // a row with the correct CustomerNextNumber already stored in DB.
+            $this->load->model('customers_model');
+            $settings = $this->customers_model->getOrInitCreditSettings($orgUID, $userUID, $fyMonth, $tz);
+            if (!$settings || empty($settings->CustomerNextNumber)) {
+                throw new Exception('Unable to load credit settings.');
+            }
+
+            $this->upstashservice->set($creditKey, [
+                'cust_next_number' => $settings->CustomerNextNumber,
+                'gstin_points'     => (int) ($settings->GstinPoints ?? 0),
+            ], 86400);
+
+            $this->EndReturnData->Error          = false;
+            $this->EndReturnData->CustomerNumber = $settings->CustomerNextNumber;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
@@ -755,9 +840,9 @@ class Customers extends MY_Controller {
         } catch (InvalidArgumentException $e) {
             $this->dbwrite_model->rollbackTransaction();
             if ($e->getMessage() === 'VALIDATION_ERROR') {
-                $this->EndReturnData->Error   = true;
-                $this->EndReturnData->Message = strip_tags($ErrorInForm);
-                $this->EndReturnData->Errors  = 'Please correct the highlighted errors.';
+                $this->EndReturnData->Error       = true;
+                $this->EndReturnData->Message     = 'Please correct the highlighted errors.';
+                $this->EndReturnData->FieldErrors = $this->formvalidation_model->getLastValidationErrors();
             } else {
                 throw $e;
             }

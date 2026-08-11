@@ -14,8 +14,8 @@
 var _gstinPendingResp = null;
 var _gstinPendingForm = null;
 
-// ── Uppercase GSTIN input as user types ──────────────────────────────────────
-$(document).on('input', '[name="GSTIN"]', function () {
+// ── Uppercase GSTIN & PAN inputs as user types ───────────────────────────────
+$(document).on('input', '[name="GSTIN"], [name="PANNumber"]', function () {
     var pos = this.selectionStart;
     this.value = this.value.toUpperCase();
     this.setSelectionRange(pos, pos);
@@ -39,20 +39,28 @@ $(document).on('click', '#GSTIN_Fetch', function () {
         return;
     }
 
-    $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Fetching...');
+    /**
+     * @returns {void}
+     */
+    function _doFetch() {
+        $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Fetching...');
 
-    $.ajax({
-        url   : '/globally/fetchGstinDetails',
-        method: 'GET',
-        data  : { gstin: gstin },
-        success: function (resp) {
+        $.ajax({
+            url   : '/globally/fetchGstinDetails',
+            method: 'GET',
+            data  : { gstin: gstin },
+            success: function (resp) {
 
-            $btn.prop('disabled', false).html('Fetch');
+                $btn.prop('disabled', false).html('Fetch');
 
-            if (resp.Error) {
-                showToastNotification(resp.Message || t('toast_gstin_failed', 'GSTIN lookup failed. Please try again.'), 'error');
-                return;
-            }
+                if (resp.Error) {
+                    if (resp.NoCreditPoints) {
+                        showPersistentToast(resp.Message, 'error');
+                    } else {
+                        showToastNotification(resp.Message || t('toast_gstin_failed', 'GSTIN lookup failed. Please try again.'), 'error');
+                    }
+                    return;
+                }
 
             var successMsg = t('toast_gstin_fetched', 'GSTIN details fetched successfully');
             if (resp.LegalName) successMsg += ' — ' + resp.LegalName;
@@ -83,7 +91,27 @@ $(document).on('click', '#GSTIN_Fetch', function () {
             $btn.prop('disabled', false).html('Fetch');
             showToastNotification(t('swal_network_error', 'Network error. Please try again.'), 'error');
         }
-    });
+        });
+    }
+
+    // Check gstin_points from cache before making the API call.
+    // If points are 0, show a persistent toast and abort — no AJAX call needed.
+    if (typeof UpstashService !== 'undefined' && UpstashService.isEnabled()) {
+        UpstashService.get(UpstashService.orgKey('credit-settings')).then(function (data) {
+            if (data && typeof data.gstin_points !== 'undefined' && parseInt(data.gstin_points, 10) <= 0) {
+                showPersistentToast(
+                    t('toast_no_gstin_credits', 'You don\'t have credit points to fetch GSTIN details. Please purchase more credits to get the information.'),
+                    'error'
+                );
+                return;
+            }
+            _doFetch();
+        }).catch(function () {
+            _doFetch();
+        });
+    } else {
+        _doFetch();
+    }
 
 });
 
@@ -111,7 +139,7 @@ $(document).on('click', '#gstin-confirm-cancel', function () {
  * @returns {void}
  */
 function _hideGstinConfirm() {
-    $('#gstinConfirmOverlay').removeClass('active');
+    $('[id="gstinConfirmOverlay"]').removeClass('active');
     _gstinPendingResp = null;
     _gstinPendingForm = null;
 }
@@ -167,3 +195,14 @@ function _doAutoFill($form, resp, skipAddress) {
         }, 400);
     }
 }
+
+// ── GSTIN Prefill hint — focus GSTIN field when "Enter GSTIN" is clicked ─────
+/**
+ * @returns {void}
+ */
+$(document).on('click', '#gstinPrefillBtn', function () {
+    var $gstin = $('[name="GSTIN"]:visible').first();
+    if (!$gstin.length) return;
+    $gstin[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(function () { $gstin.trigger('focus').trigger('select'); }, 150);
+});

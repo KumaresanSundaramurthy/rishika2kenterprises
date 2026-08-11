@@ -14,11 +14,12 @@
     'use strict';
 
     // ── Internal state ────────────────────────────────────────────────────────
-    var _editUID       = 0;
-    var _onSaveSuccess = null;
-    var _bodyLoaded    = false;
-    var _isDirty       = false;
-    var _isCreateMode  = false;
+    var _editUID        = 0;
+    var _onSaveSuccess  = null;
+    var _bodyLoaded     = false;
+    var _isDirty        = false;
+    var _isCreateMode   = false;
+    var _gstinValidated = 0;
 
     // ── Public API ────────────────────────────────────────────────────────────
     window.VendorForm = {
@@ -140,6 +141,64 @@
         $('#VendorModalForm').data('mode', type);
         _resetVendorModal();
 
+        // Register GSTIN fetch config for the vendor form
+        window.gstinFetchConfig = {
+            /**
+             * @param {Object} resp
+             * @returns {string}
+             */
+            confirmRows: function (resp) {
+                var rows = '';
+                var _row = function (label, val) {
+                    if (!val) return '';
+                    return '<div class="gstin-confirm-row">' +
+                        '<span class="gstin-confirm-row-label">' + label + '</span>' +
+                        '<span class="gstin-confirm-row-value">' + $('<span>').text(val).html() + '</span>' +
+                        '</div>';
+                };
+                rows += _row('Company Name', resp.TradeName || resp.LegalName || '');
+                rows += _row('PAN',          resp.PAN       || '');
+                rows += _row('State',        resp.StateName || '');
+                if (resp.AddressLine1 || resp.City || resp.Pincode) {
+                    var addr = [resp.AddressLine1, resp.City, resp.Pincode].filter(Boolean).join(', ');
+                    rows += _row('Address', addr);
+                }
+                return rows;
+            },
+            /** @returns {void} */
+            onValidated: function () {
+                _gstinValidated = 1;
+                $('#VM_GSTINValidated').val('1');
+                $('#VM_GSTINValidatedMsg').addClass('show');
+            },
+            /**
+             * @param {Object} resp
+             * @returns {void}
+             */
+            onConfirm: function (resp) {
+                if (resp.TradeName) $('#VM_CompanyName').val(resp.TradeName);
+                if (resp.LegalName && !$.trim($('#VM_Name').val())) $('#VM_Name').val(resp.LegalName);
+                if (resp.PAN       && !$.trim($('#VM_PANNumber').val())) $('#VM_PANNumber').val(resp.PAN);
+
+                // Directly populate billingAddrData and render summary — no address modal opened
+                if (resp.AddressLine1 || resp.City || resp.Pincode) {
+                    billingAddrData = {
+                        UID      : 0,
+                        Line1    : resp.AddressLine1 || '',
+                        Line2    : resp.AddressLine2 || '',
+                        Pincode  : resp.Pincode      || '',
+                        StateId  : '',
+                        StateName: resp.StateName    || '',
+                        StateISO2: '',
+                        CityId   : '',
+                        CityName : resp.City         || '',
+                    };
+                    if (typeof renderAddrSummary  === 'function') renderAddrSummary(1, billingAddrData);
+                    if (typeof _updateCopyButtons === 'function') _updateCopyButtons();
+                }
+            },
+        };
+
         if (type === 'add') {
             if (opts && opts.prefillName) {
                 var val = opts.prefillName;
@@ -156,6 +215,7 @@
                 $('#VendorFormModal').modal('show');
                 _isCreateMode = true;
                 _isDirty      = false;
+                _loadNextVendorNumber();
             });
             return;
         }
@@ -185,9 +245,13 @@
 
     // ── Reset modal to a clean add state ──────────────────────────────────────
     function _resetVendorModal() {
-        _isCreateMode = false;
-        _isDirty      = false;
-        _editUID = 0;
+        _isCreateMode   = false;
+        _isDirty        = false;
+        _editUID        = 0;
+        _gstinValidated = 0;
+        $('#VM_GSTINValidated').val('0');
+        $('#VM_GSTINValidatedMsg').removeClass('show');
+        $('#VM_VendorNumber').val('');
         if (typeof delBankDataFlag !== 'undefined') delBankDataFlag = 0;
         if (typeof delBankData     !== 'undefined') delBankData     = [];
 
@@ -209,6 +273,9 @@
         $('#CustomerDiv').addClass('d-none');
         $('#ResetCustomerLinking').addClass('d-none');
         $('input[name="CustomerLinkingCheck"]').prop('checked', false);
+
+        // Reset inline field errors
+        _clearFieldErrors();
 
         // Reset attachment zone state
         if (typeof _attachResetState === 'function') _attachResetState('Vendor');
@@ -238,6 +305,7 @@
         }
 
         $('#VendorUID').val(isClone ? '' : (d.VendorUID || ''));
+        $('#VM_VendorNumber').val(isClone ? '' : (d.VendorNumber || ''));
         // Hide customer linking in edit/clone mode
         $('#CustomerLinkingDiv').addClass('d-none');
         $('#VM_SalutationUID').val(d.SalutationUID || '');
@@ -253,7 +321,19 @@
         $('#VM_PANNumber').val(d.PANNumber || '');
         $('#VM_ContactPerson').val(d.ContactPerson || '');
         $('#VM_CPDateOfBirth').val(d.DateOfBirth || '');
+        $('#VM_WorkPhone').val(d.WorkPhone || '');
+        $('#VM_LandlineNumber').val(d.LandlineNumber || '');
         $('#VM_GSTIN').val(d.GSTIN || '');
+        // Restore GSTIN validated state
+        if (parseInt(d.GSTINValidated || 0, 10) === 1) {
+            _gstinValidated = 1;
+            $('#VM_GSTINValidated').val('1');
+            $('#VM_GSTINValidatedMsg').addClass('show');
+        } else {
+            _gstinValidated = 0;
+            $('#VM_GSTINValidated').val('0');
+            $('#VM_GSTINValidatedMsg').removeClass('show');
+        }
         $('#VM_CompanyName').val(d.CompanyName || '');
         $('#VM_Notes').val(d.Notes || '');
 
@@ -301,6 +381,43 @@
         if (typeof _updateCopyButtons === 'function') _updateCopyButtons();
     }
 
+    // ── Next vendor number ────────────────────────────────────────────────────
+    /**
+     * @returns {void}
+     */
+    function _loadNextVendorNumber() {
+        var $field = $('#VM_VendorNumber');
+        if (!$field.length) return;
+        if (typeof UpstashService !== 'undefined' && UpstashService.isEnabled()) {
+            UpstashService.get(UpstashService.orgKey('credit-settings')).then(function (data) {
+                if (data && data.vend_next_number) {
+                    $field.val(data.vend_next_number);
+                } else {
+                    _fetchVendorNumberFallback($field);
+                }
+            }).catch(function () { _fetchVendorNumberFallback($field); });
+        } else {
+            _fetchVendorNumberFallback($field);
+        }
+    }
+
+    /**
+     * @param {jQuery} $field
+     * @returns {void}
+     */
+    function _fetchVendorNumberFallback($field) {
+        $.ajax({
+            url   : '/vendors/getNextVendorNumber',
+            method: 'GET',
+            cache : false,
+            success: function (resp) {
+                if (!resp.Error && resp.VendorNumber) {
+                    $field.val(resp.VendorNumber);
+                }
+            }
+        });
+    }
+
     // ── Save button click ─────────────────────────────────────────────────────
     $(document).on('click', '#VendorFormSaveBtn', function () {
         $('#VendorModalForm').submit();
@@ -317,6 +434,11 @@
         if (typeof validateMobileNumber === 'function') {
             var mobileValidation = validateMobileNumber(mobileValue, countryCode);
             if (!mobileValidation.isValid) { showAlertMessageSwal('error', '', mobileValidation.message); return; }
+        }
+        var emailValue = $.trim($('#VM_EmailAddress').val());
+        if (emailValue && typeof validateEmail === 'function' && !validateEmail(emailValue)) {
+            showAlertMessageSwal('error', '', 'Invalid email address format. Please enter a valid email.');
+            return;
         }
         if (typeof validatePANNumber === 'function') {
             var panValidation = validatePANNumber($('#VM_PANNumber').val());
@@ -390,14 +512,20 @@
             }
         }
 
+        _clearFieldErrors();
         $('#VendorFormSaveBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
 
         var onDone = function (response) {
             $('#VendorFormSaveBtn').prop('disabled', false).html('<i class="bx bx-check me-1"></i>Save');
             if (response.Error) {
-                showAlertMessageSwal('error', '', response.Message);
+                if (response.FieldErrors && Object.keys(response.FieldErrors).length) {
+                    _showFieldErrors(response.FieldErrors);
+                } else {
+                    showAlertMessageSwal('error', '', response.Message || 'An error occurred. Please try again.');
+                }
                 return;
             }
+            _clearFieldErrors();
             _isDirty      = false;
             _isCreateMode = false;
             $('#VendorFormModal').modal('hide');
@@ -411,6 +539,15 @@
             $.ajax({ url: '/vendors/updateVendorData', method: 'POST', data: formData, cache: false, processData: false, contentType: false, success: onDone });
         } else {
             $.ajax({ url: '/vendors/addVendorData',    method: 'POST', data: formData, cache: false, processData: false, contentType: false, success: onDone });
+        }
+    });
+
+    // ── GSTIN edit: clear validated badge whenever the user changes the field ──
+    $(document).on('input', '#VM_GSTIN', function () {
+        if (_gstinValidated) {
+            _gstinValidated = 0;
+            $('#VM_GSTINValidated').val('0');
+            $('#VM_GSTINValidatedMsg').removeClass('show');
         }
     });
 
@@ -450,6 +587,36 @@
         var n = parseFloat(val);
         if (isNaN(n)) return '0';
         return n === 0 ? '0' : String(parseFloat(n.toFixed(6)));
+    }
+
+    /**
+     * Remove all inline field error messages from the vendor form.
+     * @returns {void}
+     */
+    function _clearFieldErrors() {
+        $('#VendorModalForm .r2k-field-error').remove();
+        $('#VendorModalForm .is-invalid').removeClass('is-invalid');
+    }
+
+    /**
+     * Display backend validation errors inline below their corresponding fields.
+     * Uses the #VM_FieldName ID convention (e.g. MobileNumber → #VM_MobileNumber).
+     * @param {Object} fieldErrors
+     * @returns {void}
+     */
+    function _showFieldErrors(fieldErrors) {
+        var firstField = null;
+        $.each(fieldErrors, function (field, msg) {
+            var $input = $('#VM_' + field);
+            if (!$input.length) return;
+            $input.addClass('is-invalid');
+            $input.closest('.mb-3').find('.r2k-field-error').remove();
+            $input.closest('.mb-3').append('<div class="r2k-field-error">' + $('<span>').text(msg).html() + '</div>');
+            if (!firstField) firstField = $input;
+        });
+        if (firstField) {
+            firstField[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
     }
 
 }(window, jQuery));

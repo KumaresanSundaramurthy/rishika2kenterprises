@@ -201,7 +201,10 @@ class Vendors extends MY_Controller {
             'ContactPerson'     => getPostValue($postData, 'ContactPerson'),
             'DateOfBirth'       => getPostValue($postData, 'CPDateOfBirth'),
             'GSTIN'             => getPostValue($postData, 'GSTIN'),
+            'GSTINValidated'    => (int)(bool) getPostValue($postData, 'GSTINValidated'),
             'CompanyName'       => getPostValue($postData, 'CompanyName'),
+            'WorkPhone'         => getPostValue($postData, 'WorkPhone'),
+            'LandlineNumber'    => getPostValue($postData, 'LandlineNumber'),
             'Notes'             => getPostValue($postData, 'Notes'),
             'SalutationUID'     => (int) trim(getPostValue($postData, 'SalutationUID') ?? '', '"\'') ?: null,
             'UpdatedBy'         => $this->pageData['JwtData']->User->UserUID,
@@ -296,6 +299,28 @@ class Vendors extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
+            // Claim next vendor number — 5-retry optimistic lock inside claimNextVendorNumber.
+            $_vOrgUID   = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $_fyMonth   = (int) ($this->pageData['JwtData']->GenSettings->FYStartMonth ?? 4);
+            $_tz        = $this->pageData['JwtData']->User->Timezone ?? 'UTC';
+            $_creditKey = $this->redisservice->orgKey('credit-settings');
+            $_vClaimed  = $this->vendors_model->claimNextVendorNumber($_vOrgUID, $_fyMonth, $_tz);
+            if ($_vClaimed) {
+                $this->dbwrite_model->updateData('Vendors', 'VendorTbl',
+                    ['VendorNumber' => $_vClaimed['claimed']],
+                    ['VendorUID'    => (int) $VendorUID]
+                );
+                $_currentCache = $this->upstashservice->get($_creditKey) ?: [];
+                $_freshCredit  = $this->vendors_model->getCreditSettings($_vOrgUID);
+                $this->upstashservice->set($_creditKey, array_merge(
+                    (array) $_currentCache,
+                    [
+                        'vend_next_number' => $_vClaimed['next'],
+                        'gstin_points'     => (int) ($_freshCredit->GstinPoints ?? 0),
+                    ]
+                ), 86400);
+            }
+
             // Handle attachment uploads after commit
             $orgUID  = (int)$this->pageData['JwtData']->Org->OrgUID;
             $userUID = (int)$this->pageData['JwtData']->User->UserUID;
@@ -339,9 +364,9 @@ class Vendors extends MY_Controller {
         } catch (InvalidArgumentException $e) {
             $this->dbwrite_model->rollbackTransaction();
             if ($e->getMessage() === 'VALIDATION_ERROR') {
-                $this->EndReturnData->Error   = true;
-                $this->EndReturnData->Message = strip_tags($ErrorInForm);
-                $this->EndReturnData->Errors  = 'Please correct the highlighted errors.';
+                $this->EndReturnData->Error       = true;
+                $this->EndReturnData->Message     = 'Please correct the highlighted errors.';
+                $this->EndReturnData->FieldErrors = $this->formvalidation_model->getLastValidationErrors();
             } else {
                 throw $e;
             }
@@ -402,6 +427,43 @@ class Vendors extends MY_Controller {
 
         } catch (Exception $e) {
             $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function getNextVendorNumber(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID    = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $fyMonth   = (int) ($this->pageData['JwtData']->GenSettings->FYStartMonth ?? 4);
+            $tz        = $this->pageData['JwtData']->User->Timezone ?? 'UTC';
+            $creditKey = $this->redisservice->orgKey('credit-settings');
+
+            $cached = $this->upstashservice->get($creditKey);
+            if ($cached !== null && !empty($cached['vend_next_number'])) {
+                $this->EndReturnData->Error        = false;
+                $this->EndReturnData->VendorNumber = $cached['vend_next_number'];
+                $this->globalservice->sendJsonResponse($this->EndReturnData);
+                return;
+            }
+
+            $this->load->model('vendors_model');
+            $settings = $this->vendors_model->getCreditSettings($orgUID);
+            if (!$settings || empty($settings->VendorNextNumber)) {
+                throw new Exception('Unable to load vendor credit settings.');
+            }
+
+            $currentCache = is_array($cached) ? $cached : [];
+            $this->upstashservice->set($creditKey, array_merge($currentCache, [
+                'vend_next_number' => $settings->VendorNextNumber,
+                'gstin_points'     => (int) ($settings->GstinPoints ?? 0),
+            ]), 86400);
+
+            $this->EndReturnData->Error        = false;
+            $this->EndReturnData->VendorNumber = $settings->VendorNextNumber;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
@@ -685,9 +747,9 @@ class Vendors extends MY_Controller {
         } catch (InvalidArgumentException $e) {
             $this->dbwrite_model->rollbackTransaction();
             if ($e->getMessage() === 'VALIDATION_ERROR') {
-                $this->EndReturnData->Error   = true;
-                $this->EndReturnData->Message = strip_tags($ErrorInForm);
-                $this->EndReturnData->Errors  = 'Please correct the highlighted errors.';
+                $this->EndReturnData->Error       = true;
+                $this->EndReturnData->Message     = 'Please correct the highlighted errors.';
+                $this->EndReturnData->FieldErrors = $this->formvalidation_model->getLastValidationErrors();
             } else {
                 throw $e;
             }

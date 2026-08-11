@@ -412,10 +412,24 @@ class Globally extends CI_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $gstin = strtoupper(trim($this->input->get('gstin') ?? ''));
+            $gstin  = strtoupper(trim($this->input->get('gstin') ?? ''));
+            $orgUID = (int) ($this->pageData['JwtData']->Org->OrgUID ?? 0);
 
             if (empty($gstin) || strlen($gstin) !== 15) {
                 throw new Exception('Please enter a valid 15-character GSTIN.');
+            }
+
+            // ── Credit check: reject immediately if GstinPoints is 0 ─────────
+            if ($orgUID > 0) {
+                $this->load->model('customers_model');
+                $creditRow = $this->customers_model->getCreditSettings($orgUID);
+                if ($creditRow !== null && (int) $creditRow->GstinPoints <= 0) {
+                    $this->EndReturnData->Error          = true;
+                    $this->EndReturnData->NoCreditPoints = true;
+                    $this->EndReturnData->Message        = 'You don\'t have credit points to fetch GSTIN details. Please purchase more credits to get the information.';
+                    $this->globalservice->sendJsonResponse($this->EndReturnData);
+                    return;
+                }
             }
 
             $url    = 'https://gstverify.co.in/api/v1/verify/' . urlencode($gstin);
@@ -436,6 +450,33 @@ class Globally extends CI_Controller {
             if (empty($data) || ($data['success'] ?? false) !== true) {
                 $apiMsg = $data['message'] ?? $data['error'] ?? $data['msg'] ?? 'No details from API.';
                 throw new Exception($apiMsg ?: 'GSTIN not found or invalid. Please verify the number.');
+            }
+
+            // ── Deduct 1 credit + refresh Upstash cache ───────────────────────
+            if ($orgUID > 0) {
+                try {
+                    $this->load->model('dbwrite_model');
+                    $db = $this->dbwrite_model->getWriteDb();
+                    $db->db_debug = FALSE;
+                    $db->set('GstinPoints', 'GstinPoints - 1', FALSE)
+                       ->set('UpdatedAt',   date('Y-m-d H:i:s'))
+                       ->where('OrgUID',        $orgUID)
+                       ->where('GstinPoints >',  0)
+                       ->update('Settings.OrgCreditSettingsTbl');
+
+                    $freshSettings = $this->customers_model->getCreditSettings($orgUID);
+                    if ($freshSettings) {
+                        $this->load->library('redisservice');
+                        $this->load->library('upstashservice');
+                        $this->upstashservice->set($this->redisservice->orgKey('credit-settings'), [
+                            'cust_next_number' => $freshSettings->CustomerNextNumber ?? '',
+                            'gstin_points'     => (int) ($freshSettings->GstinPoints ?? 0),
+                        ], 86400);
+                        $this->EndReturnData->GstinPoints = (int) ($freshSettings->GstinPoints ?? 0);
+                    }
+                } catch (Exception $_ce) {
+                    log_message('error', 'fetchGstinDetails deduct: ' . $_ce->getMessage());
+                }
             }
 
             $d = $data['data'] ?? [];

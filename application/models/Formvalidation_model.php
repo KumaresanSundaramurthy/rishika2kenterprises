@@ -118,7 +118,9 @@ class Formvalidation_model extends CI_Model {
 
         // GSTIN validation
         $dd['GSTIN'] = array('field' => 'GSTIN', 'label' => 'GSTIN', 'rules' => ['trim', 'xss_clean', 'max_length[15]', ['validate_gstin_number', [$this, 'validate_gstin_number']]]);
-        $dd['CompanyName'] = array('field' => 'CompanyName', 'label' => 'Company Name', 'rules' => 'trim|xss_clean|min_length[6]|max_length[100]');
+        $dd['CompanyName']    = array('field' => 'CompanyName',    'label' => 'Company Name',    'rules' => 'trim|xss_clean|min_length[6]|max_length[100]');
+        $dd['WorkPhone']      = array('field' => 'WorkPhone',      'label' => 'Work Phone',      'rules' => ['trim', 'xss_clean', ['validate_work_phone',      [$this, 'validate_work_phone']]]);
+        $dd['LandlineNumber'] = array('field' => 'LandlineNumber', 'label' => 'Landline Number', 'rules' => ['trim', 'xss_clean', ['validate_landline_number',  [$this, 'validate_landline_number']]]);
         // Upload Image
         $dd['UploadImage'] = array('field' => 'UploadImage', 'label' => 'Upload Image', 'rules' => [['checkImageType', [$this, 'checkImageType']]]);
 
@@ -145,6 +147,20 @@ class Formvalidation_model extends CI_Model {
             return '';
         }
 
+    }
+
+    /**
+     * Returns field-keyed error map from the last custValidateForm() run.
+     * Call only after custValidateForm() returned a non-empty string.
+     * @return array<string,string>
+     */
+    public function getLastValidationErrors(): array {
+        $raw = $this->form_validation->error_array();
+        $out = [];
+        foreach ($raw as $field => $msg) {
+            $out[$field] = strip_tags($msg);
+        }
+        return $out;
     }
 
     public function vendorValidateForm(array $data): string {
@@ -615,6 +631,52 @@ class Formvalidation_model extends CI_Model {
                 '971' => 'Invalid UAE mobile number.'
             ];
             $this->form_validation->set_message('validate_mobile_number', $messages[$countryCode] ?? 'Invalid mobile number.');
+            return false;
+        }
+        return true;
+    }
+
+    /* ================= WORK PHONE ================= */
+    public function validate_work_phone(mixed $phone): bool {
+        if (empty($phone)) return true;
+
+        $post        = $this->input->post();
+        $countryCode = isset($post['CountryCode']) ? str_replace('+', '', $post['CountryCode']) : '91';
+
+        $phone = preg_replace('/[^0-9]/', '', $phone);
+        $phone = ltrim($phone, '0');
+
+        $valid = false;
+        switch ($countryCode) {
+            case '91':  $valid = preg_match('/^[6-9]\d{9}$/', $phone); break;
+            case '1':   $valid = preg_match('/^\d{10}$/',     $phone); break;
+            case '44':  $valid = preg_match('/^\d{10,11}$/',  $phone); break;
+            case '61':  $valid = preg_match('/^\d{9}$/',      $phone); break;
+            case '971': $valid = preg_match('/^\d{9}$/',      $phone); break;
+            default:    $valid = preg_match('/^\d{5,15}$/',   $phone); break;
+        }
+
+        if (!$valid) {
+            $messages = [
+                '91'  => 'Invalid Work Phone for India. Must be 10 digits starting with 6–9.',
+                '1'   => 'Invalid Work Phone for US/Canada.',
+                '44'  => 'Invalid Work Phone for UK.',
+                '61'  => 'Invalid Work Phone for Australia.',
+                '971' => 'Invalid Work Phone for UAE.',
+            ];
+            $this->form_validation->set_message('validate_work_phone', $messages[$countryCode] ?? 'Invalid Work Phone number.');
+            return false;
+        }
+        return true;
+    }
+
+    /* ================= LANDLINE ================= */
+    public function validate_landline_number(mixed $landline): bool {
+        if (empty($landline)) return true;
+
+        $landline = trim($landline);
+        if (!preg_match('/^\d{1,15}$/', $landline)) {
+            $this->form_validation->set_message('validate_landline_number', 'Landline number must contain digits only (max 15).');
             return false;
         }
         return true;

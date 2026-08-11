@@ -17,6 +17,21 @@ $dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
     <input type="hidden" name="CustomerUID" id="CustomerUID" value="<?php echo (int)($d->CustomerUID ?? 0); ?>" />
     <?php endif; ?>
 
+    <?php if (!$isEdit && !$isClone): ?>
+    <div class="gstin-hint-strip" id="gstinPrefillHint">
+        <div class="gstin-hint-icon-wrap">
+            <i class="bx bx-id-card gstin-hint-icon"></i>
+        </div>
+        <div class="gstin-hint-body">
+            <div class="gstin-hint-title">Autofill from GSTIN</div>
+            <div class="gstin-hint-sub">Have the customer's GSTIN? Enter it below and click <strong>Fetch</strong> — business name, address &amp; tax category get filled automatically.</div>
+        </div>
+        <a href="javascript:void(0);" class="gstin-hint-cta" id="gstinPrefillBtn">
+            Enter GSTIN <i class="bx bx-chevron-right ms-1"></i>
+        </a>
+    </div>
+    <?php endif; ?>
+
     <div class="p-4">
 
         <!-- General Details -->
@@ -39,6 +54,13 @@ $dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
                 <label for="CM_Area" class="form-label">Area</label>
                 <input class="form-control" type="text" id="CM_Area" name="Area" placeholder="Area" maxlength="100"
                     value="<?php echo htmlspecialchars($d->Area ?? ''); ?>" />
+            </div>
+            <div class="mb-3 col-md-2">
+                <label for="CM_CustomerNumber" class="form-label">Customer Number</label>
+                <input class="form-control cust-num-field" type="text" id="CM_CustomerNumber" name="CustomerNumber"
+                    readonly tabindex="-1"
+                    placeholder="Auto-generated"
+                    value="<?php echo htmlspecialchars($d->CustomerNumber ?? ''); ?>" />
             </div>
             <?php
                 $activePhoneCode = (($isEdit || $isClone) && !empty($d->CountryCode)) ? $d->CountryCode : $OrgCCode;
@@ -90,7 +112,7 @@ $dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
             </div>
             <div class="mb-3 col-md-4">
                 <label for="CM_PANNumber" class="form-label">PAN Number</label>
-                <input class="form-control" type="text" id="CM_PANNumber" name="PANNumber" maxlength="10"
+                <input class="form-control text-uppercase" type="text" id="CM_PANNumber" name="PANNumber" maxlength="10"
                     placeholder="PAN Number"
                     value="<?php echo htmlspecialchars($d->PANNumber ?? ''); ?>" />
             </div>
@@ -148,12 +170,32 @@ $dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
                         value="<?php echo htmlspecialchars($d->GSTIN ?? ''); ?>" />
                     <button class="btn btn-outline-primary" type="button" id="GSTIN_Fetch">Fetch</button>
                 </div>
+                <div id="CM_GSTINValidatedMsg" class="gstin-validated-msg<?php echo ($isEdit && (int)($d->GSTINValidated ?? 0) === 1) ? ' show' : ''; ?>">
+                    <i class="bx bx-check-circle"></i> GSTIN is validated
+                </div>
+                <input type="hidden" name="GSTINValidated" id="CM_GSTINValidated" value="<?php echo ($isEdit) ? (int)($d->GSTINValidated ?? 0) : '0'; ?>" />
             </div>
             <div class="mb-3 col-md-4">
                 <label for="CM_CompanyName" class="form-label">Company Name</label>
                 <input class="form-control" type="text" id="CM_CompanyName" name="CompanyName"
                     placeholder="Company Name" maxlength="100"
                     value="<?php echo htmlspecialchars($d->CompanyName ?? ''); ?>" />
+            </div>
+            <div class="mb-3 col-md-4">
+                <label for="CM_WorkPhone" class="form-label">Work Phone <span class="r2k-field-hint">(Validated by mobile country code. Optional)</span></label>
+                <input type="number" class="form-control" id="CM_WorkPhone" name="WorkPhone"
+                    placeholder="Work phone number"
+                    onkeypress="return (event.charCode!=8 && event.charCode==0 || (event.charCode>=48 && event.charCode<=57))"
+                    oninput="this.value=this.value.slice(0,15)"
+                    value="<?php echo htmlspecialchars($d->WorkPhone ?? ''); ?>" />
+            </div>
+            <div class="mb-3 col-md-4">
+                <label for="CM_LandlineNumber" class="form-label">Landline Number <span class="r2k-field-hint">(Digits only, max 15. Optional)</span></label>
+                <input type="text" class="form-control" id="CM_LandlineNumber" name="LandlineNumber"
+                    placeholder="Landline number" maxlength="15"
+                    onkeypress="return (event.charCode!=8 && event.charCode==0 || (event.charCode>=48 && event.charCode<=57))"
+                    oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,15)"
+                    value="<?php echo htmlspecialchars($d->LandlineNumber ?? ''); ?>" />
             </div>
         </div>
         <hr>

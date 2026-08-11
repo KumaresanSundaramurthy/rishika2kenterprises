@@ -22,6 +22,7 @@
     var _customerGroupsCache = null;
     var _isDirty             = false;   // true when user has changed a field in create mode
     var _isCreateMode        = false;   // true only while form is open in add mode
+    var _gstinValidated      = 0;       // 1 when GSTIN was API-verified this session
 
     // ── Public API ────────────────────────────────────────────────────────────
     window.CustomerForm = {
@@ -237,6 +238,66 @@
         $('#CustomerModalForm').data('mode', type);
         _resetCustomerModal();
 
+        // Register GSTIN fetch config so the shared confirmation overlay shows
+        // Company Name, PAN, Status, and address before auto-filling the form.
+        window.gstinFetchConfig = {
+            /**
+             * @param {Object} resp
+             * @returns {string}
+             */
+            confirmRows: function (resp) {
+                var rows = '';
+                var _row = function (label, val) {
+                    if (!val) return '';
+                    return '<div class="gstin-confirm-row">' +
+                        '<span class="gstin-confirm-row-label">' + label + '</span>' +
+                        '<span class="gstin-confirm-row-value">' + $('<span>').text(val).html() + '</span>' +
+                        '</div>';
+                };
+                rows += _row('Company Name', resp.TradeName || resp.LegalName || '');
+                rows += _row('PAN',          resp.PAN       || '');
+                rows += _row('State',        resp.StateName || '');
+                if (resp.AddressLine1 || resp.City || resp.Pincode) {
+                    var addr = [resp.AddressLine1, resp.City, resp.Pincode].filter(Boolean).join(', ');
+                    rows += _row('Address', addr);
+                }
+                return rows;
+            },
+            /** @returns {void} */
+            onValidated: function () {
+                _gstinValidated = 1;
+                $('#CM_GSTINValidated').val('1');
+                $('#CM_GSTINValidatedMsg').addClass('show');
+            },
+            /**
+             * @param {Object} resp
+             * @returns {void}
+             */
+            onConfirm: function (resp) {
+                if (resp.TradeName) $('#CM_CompanyName').val(resp.TradeName);
+                if (resp.LegalName && !$.trim($('#CM_Name').val())) $('#CM_Name').val(resp.LegalName);
+                if (resp.PAN       && !$.trim($('#CM_PANNumber').val())) $('#CM_PANNumber').val(resp.PAN);
+
+                // Directly populate billingAddrData and render the summary card —
+                // no address modal is opened; the section updates instantly in place.
+                if (resp.AddressLine1 || resp.City || resp.Pincode) {
+                    billingAddrData = {
+                        UID      : 0,
+                        Line1    : resp.AddressLine1 || '',
+                        Line2    : resp.AddressLine2 || '',
+                        Pincode  : resp.Pincode      || '',
+                        StateId  : '',
+                        StateName: resp.StateName    || '',
+                        StateISO2: '',
+                        CityId   : '',
+                        CityName : resp.City         || '',
+                    };
+                    if (typeof renderAddrSummary   === 'function') renderAddrSummary(1, billingAddrData);
+                    if (typeof _updateCopyButtons  === 'function') _updateCopyButtons();
+                }
+            },
+        };
+
         if (type === 'add') {
             if (opts && opts.prefillName) {
                 var val = opts.prefillName;
@@ -251,6 +312,7 @@
                         $('#CustomerFormModal').modal('show');
                         _isCreateMode = true;
                         _isDirty      = false;
+                        _loadNextCustomerNumber();
                     });
                 });
             });
@@ -265,7 +327,7 @@
             cache : false,
             success: function (response) {
                 if (response.Error) {
-                    showAlertMessageSwal('error', '', response.Message || 'Failed to load customer.');
+                    showToastNotification(response.Message || 'Failed to load customer.', 'error');
                     return;
                 }
                 _ensureSalutations(function () {
@@ -283,11 +345,50 @@
         });
     }
 
+    // ── Next customer number — read from Upstash cache, AJAX fallback ─────────
+    /**
+     * @returns {void}
+     */
+    function _loadNextCustomerNumber() {
+        var $field = $('#CM_CustomerNumber');
+        if (!$field.length) return;
+        if (typeof UpstashService !== 'undefined' && UpstashService.isEnabled()) {
+            UpstashService.get(UpstashService.orgKey('credit-settings')).then(function (data) {
+                if (data && data.cust_next_number) {
+                    $field.val(data.cust_next_number);
+                } else {
+                    _fetchCustomerNumberFallback($field);
+                }
+            });
+        } else {
+            _fetchCustomerNumberFallback($field);
+        }
+    }
+
+    /**
+     * @param {jQuery} $field
+     * @returns {void}
+     */
+    function _fetchCustomerNumberFallback($field) {
+        $.ajax({
+            url   : '/customers/getNextCustomerNumber',
+            method: 'GET',
+            cache : false,
+            success: function (resp) {
+                if (!resp.Error && resp.CustomerNumber) {
+                    $field.val(resp.CustomerNumber);
+                }
+            }
+        });
+    }
+
     // ── Reset modal to a clean add state ──────────────────────────────────────
     function _resetCustomerModal() {
-        _isCreateMode = false;
-        _isDirty      = false;
-        _editUID = 0;
+        _isCreateMode   = false;
+        _isDirty        = false;
+        _editUID        = 0;
+        _gstinValidated = 0;
+        _clearFieldErrors();
         if (typeof delBankDataFlag !== 'undefined') delBankDataFlag = 0;
         if (typeof delBankData     !== 'undefined') delBankData     = [];
 
@@ -303,6 +404,10 @@
 
         // Reset address
         if (typeof resetAddrData === 'function') resetAddrData();
+
+        // Reset GSTIN validated tag
+        $('#CM_GSTINValidated').val('0');
+        $('#CM_GSTINValidatedMsg').removeClass('show');
 
         // Reset attachment zone state (listeners stay bound)
         if (typeof _attachResetState === 'function') _attachResetState('Customer');
@@ -330,6 +435,7 @@
             }
         }
 
+        $('#CM_CustomerNumber').val(d.CustomerNumber || '');
         $('#CM_SalutationUID').val(d.SalutationUID || '');
         $('#CM_Name').val(d.Name || '');
         $('#CM_Area').val(d.Area || '');
@@ -349,6 +455,16 @@
         $('#CM_GroupUID').val(d.GroupUID || '');
         $('#CM_AllowPortalAccess').prop('checked', !!d.AllowPortalAccess);
         $('#CM_GSTIN').val(d.GSTIN || '');
+        // Restore GSTIN validated state
+        if (parseInt(d.GSTINValidated || 0, 10) === 1) {
+            _gstinValidated = 1;
+            $('#CM_GSTINValidated').val('1');
+            $('#CM_GSTINValidatedMsg').addClass('show');
+        } else {
+            _gstinValidated = 0;
+            $('#CM_GSTINValidated').val('0');
+            $('#CM_GSTINValidatedMsg').removeClass('show');
+        }
         $('#CM_CompanyName').val(d.CompanyName || '');
         $('#CM_DiscountPercent').val(_smartDecimal(d.DiscountPercent));
         $('#CM_CreditPeriod').val(d.CreditPeriod || '30');
@@ -457,6 +573,11 @@
             var mobileValidation = validateMobileNumber(mobileValue, countryCode);
             if (!mobileValidation.isValid) { showAlertMessageSwal('error', '', mobileValidation.message); return; }
         }
+        var emailValue = $.trim($('#CM_EmailAddress').val());
+        if (emailValue && typeof validateEmail === 'function' && !validateEmail(emailValue)) {
+            showAlertMessageSwal('error', '', 'Invalid email address format. Please enter a valid email.');
+            return;
+        }
         if (typeof validatePANNumber === 'function') {
             var panValidation = validatePANNumber($('#CM_PANNumber').val());
             if (!panValidation.isValid) { showAlertMessageSwal('error', '', panValidation.message); return; }
@@ -530,14 +651,20 @@
             }
         }
 
+        _clearFieldErrors();
         $('#CustomerFormSaveBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
 
         var onDone = function (response) {
             $('#CustomerFormSaveBtn').prop('disabled', false).html('<i class="bx bx-check me-1"></i>Save');
             if (response.Error) {
-                showAlertMessageSwal('error', '', response.Message);
+                if (response.FieldErrors && Object.keys(response.FieldErrors).length) {
+                    _showFieldErrors(response.FieldErrors);
+                } else {
+                    showToastNotification(response.Message || 'An error occurred. Please try again.', 'error');
+                }
                 return;
             }
+            _clearFieldErrors();
             _isDirty      = false;
             _isCreateMode = false;
             $('#CustomerFormModal').modal('hide');
@@ -557,6 +684,15 @@
             $.ajax({ url: '/customers/updateCustomerData', method: 'POST', data: formData, cache: false, processData: false, contentType: false, success: onDone });
         } else {
             $.ajax({ url: '/customers/addCustomerData', method: 'POST', data: formData, cache: false, processData: false, contentType: false, success: onDone });
+        }
+    });
+
+    // ── GSTIN edit: clear validated badge whenever the user changes the field ──
+    $(document).on('input', '#CM_GSTIN', function () {
+        if (_gstinValidated) {
+            _gstinValidated = 0;
+            $('#CM_GSTINValidated').val('0');
+            $('#CM_GSTINValidatedMsg').removeClass('show');
         }
     });
 
@@ -592,6 +728,36 @@
         var n = parseFloat(val);
         if (isNaN(n)) return '0';
         return n === 0 ? '0' : String(parseFloat(n.toFixed(6)));
+    }
+
+    /**
+     * Remove all inline field error messages from the customer form.
+     * @returns {void}
+     */
+    function _clearFieldErrors() {
+        $('#CustomerModalForm .r2k-field-error').remove();
+        $('#CustomerModalForm .is-invalid').removeClass('is-invalid');
+    }
+
+    /**
+     * Display backend validation errors inline below their corresponding fields.
+     * Uses the #CM_FieldName ID convention (e.g. MobileNumber → #CM_MobileNumber).
+     * @param {Object} fieldErrors - map of field name → error message
+     * @returns {void}
+     */
+    function _showFieldErrors(fieldErrors) {
+        var firstField = null;
+        $.each(fieldErrors, function (field, msg) {
+            var $input = $('#CM_' + field);
+            if (!$input.length) return;
+            $input.addClass('is-invalid');
+            $input.closest('.mb-3').find('.r2k-field-error').remove();
+            $input.closest('.mb-3').append('<div class="r2k-field-error">' + $('<span>').text(msg).html() + '</div>');
+            if (!firstField) firstField = $input;
+        });
+        if (firstField) {
+            firstField[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
     }
 
 })(window, jQuery);

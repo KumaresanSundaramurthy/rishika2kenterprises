@@ -14,6 +14,21 @@ $d       = $FormData;
 
     <input type="hidden" name="VendorUID" id="VendorUID" value="0" />
 
+    <?php if (!$isEdit && !$isClone): ?>
+    <div class="gstin-hint-strip" id="gstinPrefillHint">
+        <div class="gstin-hint-icon-wrap">
+            <i class="bx bx-id-card gstin-hint-icon"></i>
+        </div>
+        <div class="gstin-hint-body">
+            <div class="gstin-hint-title">Autofill from GSTIN</div>
+            <div class="gstin-hint-sub">Have the vendor's GSTIN? Enter it below and click <strong>Fetch</strong> — business name, address &amp; tax category get filled automatically.</div>
+        </div>
+        <a href="javascript:void(0);" class="gstin-hint-cta" id="gstinPrefillBtn">
+            Enter GSTIN <i class="bx bx-chevron-right ms-1"></i>
+        </a>
+    </div>
+    <?php endif; ?>
+
     <div class="p-4">
 
         <!-- General Details -->
@@ -21,6 +36,13 @@ $d       = $FormData;
             <h5 class="modal-title mb-0">General Details</h5>
         </div>
         <div class="row">
+            <div class="mb-3 col-md-2">
+                <label for="VM_VendorNumber" class="form-label">Vendor Number</label>
+                <input class="form-control cust-num-field" type="text" id="VM_VendorNumber" name="VendorNumber"
+                    readonly tabindex="-1"
+                    placeholder="Auto-generated"
+                    value="<?php echo htmlspecialchars($d->VendorNumber ?? ''); ?>" />
+            </div>
             <div class="mb-3 col-md-2">
                 <label for="VM_SalutationUID" class="form-label">Salutation</label>
                 <select class="form-select" id="VM_SalutationUID" name="SalutationUID">
@@ -87,7 +109,7 @@ $d       = $FormData;
             </div>
             <div class="mb-3 col-md-4">
                 <label for="VM_PANNumber" class="form-label">PAN Number</label>
-                <input class="form-control" type="text" id="VM_PANNumber" name="PANNumber" maxlength="10"
+                <input class="form-control text-uppercase" type="text" id="VM_PANNumber" name="PANNumber" maxlength="10"
                     placeholder="PAN Number"
                     value="<?php echo htmlspecialchars($d->PANNumber ?? ''); ?>" />
             </div>
@@ -132,12 +154,34 @@ $d       = $FormData;
                             value="<?php echo htmlspecialchars($d->GSTIN ?? ''); ?>" />
                         <button class="btn btn-outline-primary" type="button" id="GSTIN_Fetch">Fetch</button>
                     </div>
+                    <div id="VM_GSTINValidatedMsg" class="gstin-validated-msg<?php echo ($isEdit && (int)($d->GSTINValidated ?? 0) === 1) ? ' show' : ''; ?>">
+                        <i class="bx bx-check-circle"></i> GSTIN is validated
+                    </div>
+                    <input type="hidden" name="GSTINValidated" id="VM_GSTINValidated" value="<?php echo $isEdit ? (int)($d->GSTINValidated ?? 0) : '0'; ?>" />
                 </div>
                 <div class="mb-3">
                     <label for="VM_CompanyName" class="form-label">Company Name</label>
                     <input class="form-control" type="text" id="VM_CompanyName" name="CompanyName"
                         placeholder="Company Name" maxlength="100"
                         value="<?php echo htmlspecialchars($d->CompanyName ?? ''); ?>" />
+                </div>
+                <div class="row">
+                    <div class="mb-3 col-md-6">
+                        <label for="VM_WorkPhone" class="form-label">Work Phone <span class="r2k-field-hint">(Optional)</span></label>
+                        <input type="number" class="form-control" id="VM_WorkPhone" name="WorkPhone"
+                            placeholder="Work phone number"
+                            onkeypress="return (event.charCode!=8 && event.charCode==0 || (event.charCode>=48 && event.charCode<=57))"
+                            oninput="this.value=this.value.slice(0,15)"
+                            value="<?php echo htmlspecialchars($d->WorkPhone ?? ''); ?>" />
+                    </div>
+                    <div class="mb-3 col-md-6">
+                        <label for="VM_LandlineNumber" class="form-label">Landline Number <span class="r2k-field-hint">(Optional)</span></label>
+                        <input type="text" class="form-control" id="VM_LandlineNumber" name="LandlineNumber"
+                            placeholder="Landline number" maxlength="15"
+                            onkeypress="return (event.charCode!=8 && event.charCode==0 || (event.charCode>=48 && event.charCode<=57))"
+                            oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,15)"
+                            value="<?php echo htmlspecialchars($d->LandlineNumber ?? ''); ?>" />
+                    </div>
                 </div>
                 <div class="mb-3">
                     <label for="VM_Notes" class="form-label">Notes</label>

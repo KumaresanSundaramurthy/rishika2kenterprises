@@ -49,6 +49,8 @@ class Customers_model extends CI_Model {
                 'Customers.EmailAddress as EmailAddress',
                 'Customers.GSTIN as GSTIN',
                 'Customers.CompanyName as CompanyName',
+                'Customers.WorkPhone as WorkPhone',
+                'Customers.LandlineNumber as LandlineNumber',
                 'Customers.DebitCreditType as DebitCreditType',
                 'Customers.DebitCreditAmount as DebitCreditAmount',
                 'Customers.Image as Image',
@@ -66,6 +68,7 @@ class Customers_model extends CI_Model {
                 'COALESCE(CGM.GroupUID, NULL) as GroupUID',
                 'COALESCE(CGM.IsGroupPrimary, 0) as IsGroupPrimary',
                 'Customers.CreatedOn as CreatedOn',
+                'Customers.CustomerNumber as CustomerNumber',
                 'Customers.UpdatedOn as UpdatedOn',
                 // Actual opening balance from CustOpeningBalanceTbl (source of truth)
                 'COALESCE(COB.OpeningBalance, Customers.DebitCreditAmount) as OpeningBalance',
@@ -354,6 +357,7 @@ class Customers_model extends CI_Model {
                 'Customers.MobileNumber AS MobileNumber',
                 'Customers.EmailAddress AS EmailAddress',
                 'Customers.GSTIN AS GSTIN',
+                'Customers.GSTINValidated AS GSTINValidated',
                 'Customers.CompanyName AS CompanyName',
                 'Customers.DebitCreditType AS DebitCreditType',
                 'Customers.DebitCreditAmount AS DebitCreditAmount',
@@ -1764,6 +1768,181 @@ class Customers_model extends CI_Model {
         } catch (Exception $e) {
             log_message('error', 'getCustomerProfitability: ' . $e->getMessage());
             return ['Revenue' => 0.0, 'COGS' => 0.0, 'Profit' => 0.0, 'Margin' => 0.0];
+        }
+    }
+
+    // ── Credit Settings (customer sequence numbers) ───────────────────────────
+
+    /**
+     * Returns 2-digit financial year start year based on org's FY start month and timezone.
+     * e.g. FYStartMonth=4 (April), date=Aug 2026 → FY starts 2026 → returns 26
+     *      FYStartMonth=4 (April), date=Feb 2026 → FY starts 2025 → returns 25
+     * @param int    $fyStartMonth  1–12, from GenSettings->FYStartMonth
+     * @param string $timezone      IANA timezone string, from JwtData->User->Timezone
+     * @return int
+     */
+    private function _calcFYYear(int $fyStartMonth, string $timezone): int {
+        try {
+            $now = new DateTime('now', new DateTimeZone($timezone ?: 'UTC'));
+        } catch (Exception $e) {
+            $now = new DateTime('now');
+        }
+        $month = (int) $now->format('n');
+        $year  = (int) $now->format('Y');
+        return (($month >= $fyStartMonth) ? $year : $year - 1) % 100;
+    }
+
+    /**
+     * @param int $orgUID
+     * @return object|null
+     */
+    public function getCreditSettings(int $orgUID): ?object {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            return $this->ReadDb->get_where('Settings.OrgCreditSettingsTbl', ['OrgUID' => $orgUID])->row() ?: null;
+        } catch (Exception $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Returns a credit-settings row guaranteed to reflect the current financial year.
+     * — No row: inserts fresh row with correct FY year and pre-formatted next numbers.
+     * — Row exists, FY year matches: returns as-is.
+     * — Row exists, FY year stale: corrects DB (seq=1, new year, new CustomerNextNumber)
+     *   using an optimistic WHERE so concurrent callers don't double-reset.
+     * @param int    $orgUID
+     * @param int    $userUID
+     * @param int    $fyStartMonth  from GenSettings->FYStartMonth
+     * @param string $timezone      from JwtData->User->Timezone
+     * @return object|null
+     */
+    public function getOrInitCreditSettings(int $orgUID, int $userUID, int $fyStartMonth = 4, string $timezone = 'UTC'): ?object {
+        $existing = $this->getCreditSettings($orgUID);
+        $fyYear2  = $this->_calcFYYear($fyStartMonth, $timezone);
+        $yrPad    = str_pad($fyYear2, 2, '0', STR_PAD_LEFT);
+
+        if ($existing) {
+            if ((int) $existing->CustomerSeqYear !== $fyYear2) {
+                // Financial year rolled over — reset Customer sequence for new FY.
+                // Optimistic WHERE on CustomerSeqYear: only one concurrent caller wins;
+                // losers fall through to getCreditSettings() and get the corrected row.
+                $this->load->model('dbwrite_model');
+                $db = $this->dbwrite_model->getWriteDb();
+                $db->db_debug = FALSE;
+                $db->where('OrgUID',          $orgUID)
+                   ->where('CustomerSeqYear', (int) $existing->CustomerSeqYear)
+                   ->update('Settings.OrgCreditSettingsTbl', [
+                       'CustomerSeq'        => 1,
+                       'CustomerSeqYear'    => $fyYear2,
+                       'CustomerNextNumber' => 'C-' . $yrPad . '0001',
+                       'UpdatedAt'          => date('Y-m-d H:i:s'),
+                   ]);
+                return $this->getCreditSettings($orgUID);
+            }
+            if (empty($existing->CustomerNextNumber)) {
+                // Row exists but CustomerNextNumber is NULL — column was added after row was
+                // created (ALTER TABLE migration). Backfill next number AND correct the year
+                // so claimNextCustomerNumber never sees a stale CustomerSeqYear mismatch.
+                $nextNum = 'C-' . $yrPad . str_pad((int) $existing->CustomerSeq, 4, '0', STR_PAD_LEFT);
+                $this->load->model('dbwrite_model');
+                $db = $this->dbwrite_model->getWriteDb();
+                $db->db_debug = FALSE;
+                $db->where('OrgUID', $orgUID)
+                   ->update('Settings.OrgCreditSettingsTbl', [
+                       'CustomerNextNumber' => $nextNum,
+                       'CustomerSeqYear'    => $fyYear2,
+                       'UpdatedAt'          => date('Y-m-d H:i:s'),
+                   ]);
+                return $this->getCreditSettings($orgUID);
+            }
+            return $existing;
+        }
+
+        // No row yet — insert with correct FY year and pre-formatted next numbers.
+        $this->load->model('dbwrite_model');
+        $this->dbwrite_model->insertData('Settings', 'OrgCreditSettingsTbl', [
+            'OrgUID'             => $orgUID,
+            'CustomerSeq'        => 1,
+            'CustomerSeqYear'    => $fyYear2,
+            'CustomerNextNumber' => 'C-' . $yrPad . '0001',
+            'VendorSeq'          => 1,
+            'VendorSeqYear'      => $fyYear2,
+            'VendorNextNumber'   => 'V-' . $yrPad . '0001',
+            'GstinPoints'        => 0,
+        ]);
+        return $this->getCreditSettings($orgUID);
+    }
+
+    /**
+     * Atomically claims the next customer number for $orgUID.
+     * Handles financial year rollover: if the stored FY year differs from the
+     * current FY year (calculated from $fyStartMonth + $timezone), seq resets to 1
+     * for the new year automatically — no manual intervention ever needed.
+     * Uses a 5-retry optimistic lock (WHERE CustomerSeq + CustomerSeqYear) so
+     * concurrent saves cannot produce duplicate numbers.
+     * Returns ['claimed' => 'C-260001', 'next' => 'C-260002'] on success, null on failure.
+     * @param int    $orgUID
+     * @param int    $fyStartMonth  from GenSettings->FYStartMonth
+     * @param string $timezone      from JwtData->User->Timezone
+     * @return array{claimed:string,next:string}|null
+     */
+    public function claimNextCustomerNumber(int $orgUID, int $fyStartMonth, string $timezone): ?array {
+        try {
+            $this->load->model('dbwrite_model');
+            $db = $this->dbwrite_model->getWriteDb();
+
+            for ($attempt = 1; $attempt <= 5; $attempt++) {
+                $row = $this->getCreditSettings($orgUID);
+                if (!$row) return null;
+
+                $currentFYYear = $this->_calcFYYear($fyStartMonth, $timezone);
+                $storedFYYear  = (int) $row->CustomerSeqYear;
+                $storedSeq     = (int) $row->CustomerSeq;
+                $yrPad         = str_pad($currentFYYear, 2, '0', STR_PAD_LEFT);
+
+                // Determine if this is a real 1-year FY rollover (e.g. 25→26, or 99→0)
+                // vs stale initialisation data (e.g. 93 stored when current year is 26).
+                // Only a difference of exactly 1 (mod 100) counts as a genuine rollover.
+                $isLegitRollover = ($storedFYYear === (($currentFYYear - 1 + 100) % 100));
+
+                if ($currentFYYear === $storedFYYear) {
+                    $claimedSeq = $storedSeq;
+                    $nextSeq    = $storedSeq + 1;
+                } elseif ($isLegitRollover) {
+                    // New financial year: first customer gets 0001
+                    $claimedSeq = 1;
+                    $nextSeq    = 2;
+                } else {
+                    // Stale year (e.g. 93 vs 26): treat as same-year continuation,
+                    // align year to current FY but keep the existing seq intact.
+                    $claimedSeq = $storedSeq;
+                    $nextSeq    = $storedSeq + 1;
+                }
+
+                $claimedNum = 'C-' . $yrPad . str_pad($claimedSeq, 4, '0', STR_PAD_LEFT);
+                $nextNum    = 'C-' . $yrPad . str_pad($nextSeq,    4, '0', STR_PAD_LEFT);
+
+                $db->db_debug = FALSE;
+                $db->where('OrgUID',          $orgUID)
+                   ->where('CustomerSeq',     $storedSeq)
+                   ->where('CustomerSeqYear', $storedFYYear)
+                   ->update('Settings.OrgCreditSettingsTbl', [
+                       'CustomerSeq'        => $nextSeq,
+                       'CustomerSeqYear'    => $currentFYYear,
+                       'CustomerNextNumber' => $nextNum,
+                       'UpdatedAt'          => date('Y-m-d H:i:s'),
+                   ]);
+
+                if ($db->affected_rows() === 1) {
+                    return ['claimed' => $claimedNum, 'next' => $nextNum];
+                }
+                // Lost optimistic race — retry with fresh row values
+            }
+            return null;
+        } catch (Exception $e) {
+            log_message('error', 'claimNextCustomerNumber: ' . $e->getMessage());
+            return null;
         }
     }
 }

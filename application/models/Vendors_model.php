@@ -227,7 +227,11 @@ class Vendors_model extends CI_Model {
                 'Vendors.MobileNumber AS MobileNumber',
                 'Vendors.EmailAddress AS EmailAddress',
                 'Vendors.GSTIN AS GSTIN',
+                'Vendors.GSTINValidated AS GSTINValidated',
+                'Vendors.VendorNumber AS VendorNumber',
                 'Vendors.CompanyName AS CompanyName',
+                'Vendors.WorkPhone AS WorkPhone',
+                'Vendors.LandlineNumber AS LandlineNumber',
                 'Vendors.DebitCreditType AS DebitCreditType',
                 'Vendors.DebitCreditAmount AS DebitCreditAmount',
                 'Vendors.Image AS Image',
@@ -1412,6 +1416,98 @@ class Vendors_model extends CI_Model {
         } catch (Exception $e) {
             log_message('error', 'getVendorFinancialSummary: ' . $e->getMessage());
             return ['TotalPurchased' => 0.0, 'TotalReturned' => 0.0, 'DaysSinceLastTx' => null];
+        }
+    }
+
+    // ── Vendor Number — sequence claim (mirrors claimNextCustomerNumber) ───────
+
+    /**
+     * @param int    $fyStartMonth
+     * @param string $timezone
+     * @return int  last 2 digits of the financial year (e.g. 26 for FY2026-27)
+     */
+    private function _calcFYYear(int $fyStartMonth, string $timezone): int {
+        try {
+            $now = new DateTime('now', new DateTimeZone($timezone ?: 'UTC'));
+        } catch (Exception $e) {
+            $now = new DateTime('now');
+        }
+        $month = (int) $now->format('n');
+        $year  = (int) $now->format('Y');
+        return (($month >= $fyStartMonth) ? $year : $year - 1) % 100;
+    }
+
+    /**
+     * @param int $orgUID
+     * @return object|null
+     */
+    public function getCreditSettings(int $orgUID): ?object {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            return $this->ReadDb->get_where('Settings.OrgCreditSettingsTbl', ['OrgUID' => $orgUID])->row() ?: null;
+        } catch (Exception $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Atomically claims the next vendor number for $orgUID.
+     * Mirrors claimNextCustomerNumber() — uses VendorSeq / VendorSeqYear / VendorNextNumber.
+     * Returns ['claimed' => 'V-260001', 'next' => 'V-260002'] on success, null on failure.
+     * @param int    $orgUID
+     * @param int    $fyStartMonth
+     * @param string $timezone
+     * @return array{claimed:string,next:string}|null
+     */
+    public function claimNextVendorNumber(int $orgUID, int $fyStartMonth, string $timezone): ?array {
+        try {
+            $this->load->model('dbwrite_model');
+            $db = $this->dbwrite_model->getWriteDb();
+
+            for ($attempt = 1; $attempt <= 5; $attempt++) {
+                $row = $this->getCreditSettings($orgUID);
+                if (!$row) return null;
+
+                $currentFYYear = $this->_calcFYYear($fyStartMonth, $timezone);
+                $storedFYYear  = (int) $row->VendorSeqYear;
+                $storedSeq     = (int) $row->VendorSeq;
+                $yrPad         = str_pad($currentFYYear, 2, '0', STR_PAD_LEFT);
+
+                $isLegitRollover = ($storedFYYear === (($currentFYYear - 1 + 100) % 100));
+
+                if ($currentFYYear === $storedFYYear) {
+                    $claimedSeq = $storedSeq;
+                    $nextSeq    = $storedSeq + 1;
+                } elseif ($isLegitRollover) {
+                    $claimedSeq = 1;
+                    $nextSeq    = 2;
+                } else {
+                    $claimedSeq = $storedSeq;
+                    $nextSeq    = $storedSeq + 1;
+                }
+
+                $claimedNum = 'V-' . $yrPad . str_pad($claimedSeq, 4, '0', STR_PAD_LEFT);
+                $nextNum    = 'V-' . $yrPad . str_pad($nextSeq,    4, '0', STR_PAD_LEFT);
+
+                $db->db_debug = FALSE;
+                $db->where('OrgUID',        $orgUID)
+                   ->where('VendorSeq',     $storedSeq)
+                   ->where('VendorSeqYear', $storedFYYear)
+                   ->update('Settings.OrgCreditSettingsTbl', [
+                       'VendorSeq'        => $nextSeq,
+                       'VendorSeqYear'    => $currentFYYear,
+                       'VendorNextNumber' => $nextNum,
+                       'UpdatedAt'        => date('Y-m-d H:i:s'),
+                   ]);
+
+                if ($db->affected_rows() === 1) {
+                    return ['claimed' => $claimedNum, 'next' => $nextNum];
+                }
+            }
+            return null;
+        } catch (Exception $e) {
+            log_message('error', 'claimNextVendorNumber: ' . $e->getMessage());
+            return null;
         }
     }
 }

@@ -2568,3 +2568,92 @@ tr:hover .apex-party-actions {
 @media (prefers-color-scheme:dark) { .r2k-addr-empty { border-color:#374151; color:#6b7280; } }
 :root[data-theme="dark"]  .r2k-addr-empty { border-color:#374151; color:#6b7280; }
 :root[data-theme="light"] .r2k-addr-empty { border-color:#d5d9e2; color:#9ca3af; }
+
+/* ── GSTIN Prefill Hint Strip ─────────────────────────────────────────────── */
+.gstin-hint-strip {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 20px;
+    background: #fffbeb;
+    border-bottom: 1px solid #fde68a;
+    border-left: 4px solid #f59e0b;
+}
+.gstin-hint-icon-wrap {
+    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
+    background: #fef3c7;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.gstin-hint-icon { font-size: 1.25rem; color: #d97706; }
+.gstin-hint-body { flex: 1; min-width: 0; }
+.gstin-hint-title { font-size: .79rem; font-weight: 700; color: #92400e; letter-spacing: .02em; line-height: 1.3; }
+.gstin-hint-sub   { font-size: .74rem; color: #b45309; margin-top: 2px; line-height: 1.45; }
+.gstin-hint-sub strong { font-weight: 700; }
+.gstin-hint-cta {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    font-size: .77rem;
+    font-weight: 700;
+    color: #d97706;
+    border: 1.5px solid #f59e0b;
+    border-radius: 6px;
+    padding: 5px 13px;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background .14s, color .14s, border-color .14s;
+}
+.gstin-hint-cta:hover { background: #f59e0b; color: #fff; border-color: #f59e0b; }
+
+@media (prefers-color-scheme:dark) {
+    .gstin-hint-strip     { background:#1e1608; border-bottom-color:#6b3800; border-left-color:#f59e0b; }
+    .gstin-hint-icon-wrap { background:#2e1e06; }
+    .gstin-hint-icon      { color:#fbbf24; }
+    .gstin-hint-title     { color:#fcd34d; }
+    .gstin-hint-sub       { color:#d4913a; }
+    .gstin-hint-cta       { color:#fbbf24; border-color:#d97706; }
+    .gstin-hint-cta:hover { background:#d97706; color:#1a1008; border-color:#d97706; }
+}
+:root[data-theme="dark"]  .gstin-hint-strip     { background:#1e1608; border-bottom-color:#6b3800; border-left-color:#f59e0b; }
+:root[data-theme="dark"]  .gstin-hint-icon-wrap { background:#2e1e06; }
+:root[data-theme="dark"]  .gstin-hint-icon      { color:#fbbf24; }
+:root[data-theme="dark"]  .gstin-hint-title     { color:#fcd34d; }
+:root[data-theme="dark"]  .gstin-hint-sub       { color:#d4913a; }
+:root[data-theme="dark"]  .gstin-hint-cta       { color:#fbbf24; border-color:#d97706; }
+:root[data-theme="dark"]  .gstin-hint-cta:hover { background:#d97706; color:#1a1008; border-color:#d97706; }
+:root[data-theme="light"] .gstin-hint-strip     { background:#fffbeb; border-bottom-color:#fde68a; border-left-color:#f59e0b; }
+:root[data-theme="light"] .gstin-hint-icon-wrap { background:#fef3c7; }
+:root[data-theme="light"] .gstin-hint-icon      { color:#d97706; }
+:root[data-theme="light"] .gstin-hint-title     { color:#92400e; }
+:root[data-theme="light"] .gstin-hint-sub       { color:#b45309; }
+:root[data-theme="light"] .gstin-hint-cta       { color:#d97706; border-color:#f59e0b; }
+:root[data-theme="light"] .gstin-hint-cta:hover { background:#f59e0b; color:#fff; border-color:#f59e0b; }
+
+/* Small hint text below form fields */
+.r2k-field-hint { font-size: .65rem; }
+
+/* Inline validation error shown below a field */
+.r2k-field-error {
+    font-size: .75rem;
+    color: #dc3545;
+    margin-top: .25rem;
+}
+
+/* Customer Number readonly field — subtle badge-style treatment */
+.cust-num-field {
+    font-weight: 600;
+    letter-spacing: .04em;
+    cursor: default;
+    background-color: var(--bs-secondary-bg, #f8f9fa);
+    color: var(--bs-secondary-color, #6c757d);
+}
+@media (prefers-color-scheme: dark) {
+    .cust-num-field { background-color: #2a2d31; color: #9aa0a6; }
+}
+:root[data-theme="dark"]  .cust-num-field { background-color: #2a2d31; color: #9aa0a6; }
+:root[data-theme="light"] .cust-num-field { background-color: #f8f9fa; color: #6c757d; }

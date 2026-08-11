@@ -147,7 +147,7 @@
                                 </li>
                                 <?php
                                 $vShowStats   = (int)($JwtData->GenSettings->ShowStats ?? 1) && (int)($JwtData->TransSettings->ShowTransactionStats ?? 1);
-                                $vGrpStatsVis = ($InitTab ?? 'All') === 'Groups' && $vShowStats;
+                                $vGrpStatsVis = ($InitTab ?? 'All') === 'Groups';
                                 $vGrpS        = $GrpStats ?? null;
                                 ?>
                                 <!-- Group stats — visible only in groups mode when stats are enabled -->
@@ -971,7 +971,7 @@ $(function() {
         $('#clearSearch').addClass('d-none');
         $('#vendTableSection').hide();
         $('#vgrpTableSection').show();
-        if (_vendShowStats) { $('#vgrpTabStats').removeClass('d-none').addClass('d-flex'); }
+        $('#vgrpTabStats').removeClass('d-none').addClass('d-flex');
         $('.vend-tab .trans-tab-count').addClass('d-none');
         _pushTabUrl('Groups', '');
         if (!_vgrpLoaded) { _vgrpLoaded = true; _vgrpReload(1); }
@@ -1007,7 +1007,7 @@ $(function() {
                 if (res.Error) { showToastNotification(res.Message, 'error'); return; }
                 $('#VendorGroupsTableBody').html(res.RecordHtmlData);
                 $('#VendorGroupsPagination').html(res.Pagination);
-                if (_vendShowStats) { _updateVgrpStats(res.Stats); }
+                _updateVgrpStats(res.Stats);
                 var cnt = res.TotalCount || 0;
                 $('#vgrpTabCount').text(cnt > 0 ? cnt : '').toggleClass('d-none', cnt === 0);
                 if (toastMsg) showToastNotification(toastMsg, 'success');
@@ -1173,7 +1173,7 @@ $(function() {
                     showToastNotification(res.Message, 'success');
                     $('#VendorGroupsTableBody').html(res.RecordHtmlData);
                     $('#VendorGroupsPagination').html(res.Pagination);
-                    if (_vendShowStats) { _updateVgrpStats(res.Stats); }
+                    _updateVgrpStats(res.Stats);
                 },
                 error: function () { showToastNotification('Failed to update status.', 'error'); }
             });
@@ -1205,7 +1205,7 @@ $(function() {
                     showToastNotification(res.Message, 'success');
                     $('#VendorGroupsTableBody').html(res.RecordHtmlData);
                     $('#VendorGroupsPagination').html(res.Pagination);
-                    if (_vendShowStats) { _updateVgrpStats(res.Stats); }
+                    _updateVgrpStats(res.Stats);
                     var cnt = res.TotalCount || 0;
                     $('#vgrpTabCount').text(cnt > 0 ? cnt : '').toggleClass('d-none', cnt === 0);
                 },

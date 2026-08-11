@@ -251,7 +251,8 @@
         _gstinValidated = 0;
         $('#VM_GSTINValidated').val('0');
         $('#VM_GSTINValidatedMsg').removeClass('show');
-        $('#VM_VendorNumber').val('');
+        $('#VM_VendorNumber').val('').attr('placeholder', 'Auto-generated');
+        $('#gstinPrefillHint').removeClass('d-none');
         if (typeof delBankDataFlag !== 'undefined') delBankDataFlag = 0;
         if (typeof delBankData     !== 'undefined') delBankData     = [];
 
@@ -305,8 +306,10 @@
         }
 
         $('#VendorUID').val(isClone ? '' : (d.VendorUID || ''));
-        $('#VM_VendorNumber').val(isClone ? '' : (d.VendorNumber || ''));
-        // Hide customer linking in edit/clone mode
+        var _vNum = isClone ? '' : (d.VendorNumber || '');
+        $('#VM_VendorNumber').val(_vNum).attr('placeholder', _vNum ? 'Auto-generated' : '—');
+        // Hide GSTIN hint banner and customer linking in edit/clone mode
+        $('#gstinPrefillHint').addClass('d-none');
         $('#CustomerLinkingDiv').addClass('d-none');
         $('#VM_SalutationUID').val(d.SalutationUID || '');
         $('#VM_Name').val(d.Name || '');

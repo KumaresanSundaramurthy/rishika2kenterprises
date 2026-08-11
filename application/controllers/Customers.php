@@ -78,7 +78,7 @@ class Customers extends MY_Controller {
                 $grpPage   = $this->_fetchGroupsTableData(1, $limit, $grpFilter);
                 $this->pageData['GrpRowData']    = $grpPage->RecordHtmlData;
                 $this->pageData['GrpPagination'] = $grpPage->Pagination;
-                $this->pageData['GrpStats']      = $_showStats ? $this->customers_model->getGroupStats($orgUID) : null;
+                $this->pageData['GrpStats']      = $this->customers_model->getGroupStats($orgUID);
                 $this->pageData['GrpTotal']      = $grpPage->TotalCount;
             }
 
@@ -1818,7 +1818,7 @@ class Customers extends MY_Controller {
             $this->EndReturnData->Pagination     = $pageData->Pagination;
             $this->EndReturnData->TotalCount     = $pageData->TotalCount;
             $_showStats = (int)($this->pageData['JwtData']->GenSettings->ShowStats ?? 1) && (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
-            $this->EndReturnData->Stats = $_showStats ? $this->customers_model->getGroupStats($this->pageData['JwtData']->Org->OrgUID) : null;
+            $this->EndReturnData->Stats = $this->customers_model->getGroupStats($this->pageData['JwtData']->Org->OrgUID);
         } catch (Exception $e) {
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
@@ -2063,7 +2063,7 @@ class Customers extends MY_Controller {
             $this->EndReturnData->RecordHtmlData = $pageData->RecordHtmlData;
             $this->EndReturnData->Pagination     = $pageData->Pagination;
             $_showStats = (int)($this->pageData['JwtData']->GenSettings->ShowStats ?? 1) && (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
-            $this->EndReturnData->Stats = $_showStats ? $this->customers_model->getGroupStats($orgUID) : null;
+            $this->EndReturnData->Stats = $this->customers_model->getGroupStats($orgUID);
         } catch (Exception $e) {
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = true;
@@ -2109,7 +2109,7 @@ class Customers extends MY_Controller {
             $this->EndReturnData->RecordHtmlData = $pageData->RecordHtmlData;
             $this->EndReturnData->Pagination     = $pageData->Pagination;
             $_showStats = (int)($this->pageData['JwtData']->GenSettings->ShowStats ?? 1) && (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
-            $this->EndReturnData->Stats = $_showStats ? $this->customers_model->getGroupStats($orgUID) : null;
+            $this->EndReturnData->Stats = $this->customers_model->getGroupStats($orgUID);
         } catch (Exception $e) {
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();

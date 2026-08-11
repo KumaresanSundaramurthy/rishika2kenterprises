@@ -1451,6 +1451,71 @@ class Vendors_model extends CI_Model {
     }
 
     /**
+     * Ensures OrgCreditSettingsTbl has a row for $orgUID with vendor columns initialized.
+     * Handles: no row, NULL vendor columns, and 0-year (unseeded) vendor columns.
+     * @param int    $orgUID
+     * @param int    $fyStartMonth
+     * @param string $timezone
+     * @return object|null
+     */
+    public function getOrInitVendorCreditSettings(int $orgUID, int $fyStartMonth, string $timezone): ?object {
+        try {
+            $existing  = $this->getCreditSettings($orgUID);
+            $fyYear2   = $this->_calcFYYear($fyStartMonth, $timezone);
+            $yrPad     = str_pad($fyYear2, 2, '0', STR_PAD_LEFT);
+            $this->load->model('dbwrite_model');
+
+            if (!$existing) {
+                $this->dbwrite_model->insertData('Settings', 'OrgCreditSettingsTbl', [
+                    'OrgUID'             => $orgUID,
+                    'CustomerSeq'        => 1,
+                    'CustomerSeqYear'    => $fyYear2,
+                    'CustomerNextNumber' => 'C-' . $yrPad . '0001',
+                    'VendorSeq'          => 1,
+                    'VendorSeqYear'      => $fyYear2,
+                    'VendorNextNumber'   => 'V-' . $yrPad . '0001',
+                    'GstinPoints'        => 0,
+                ]);
+                return $this->getCreditSettings($orgUID);
+            }
+
+            $vendorSeq  = $existing->VendorSeq     ?? null;
+            $vendorYear = $existing->VendorSeqYear  ?? null;
+            $needsInit  = ($vendorSeq === null || $vendorYear === null ||
+                           ((int) $vendorSeq === 0 && (int) $vendorYear === 0));
+            if ($needsInit) {
+                $db = $this->dbwrite_model->getWriteDb();
+                $db->db_debug = FALSE;
+                $db->where('OrgUID', $orgUID)
+                   ->update('Settings.OrgCreditSettingsTbl', [
+                       'VendorSeq'        => 1,
+                       'VendorSeqYear'    => $fyYear2,
+                       'VendorNextNumber' => 'V-' . $yrPad . '0001',
+                       'UpdatedAt'        => date('Y-m-d H:i:s'),
+                   ]);
+                return $this->getCreditSettings($orgUID);
+            }
+
+            if (empty($existing->VendorNextNumber)) {
+                $db = $this->dbwrite_model->getWriteDb();
+                $db->db_debug = FALSE;
+                $nextNum = 'V-' . $yrPad . str_pad((int) $vendorSeq, 4, '0', STR_PAD_LEFT);
+                $db->where('OrgUID', $orgUID)
+                   ->update('Settings.OrgCreditSettingsTbl', [
+                       'VendorNextNumber' => $nextNum,
+                       'UpdatedAt'        => date('Y-m-d H:i:s'),
+                   ]);
+                return $this->getCreditSettings($orgUID);
+            }
+
+            return $existing;
+        } catch (Exception $e) {
+            log_message('error', 'getOrInitVendorCreditSettings: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
      * Atomically claims the next vendor number for $orgUID.
      * Mirrors claimNextCustomerNumber() — uses VendorSeq / VendorSeqYear / VendorNextNumber.
      * Returns ['claimed' => 'V-260001', 'next' => 'V-260002'] on success, null on failure.
@@ -1465,7 +1530,9 @@ class Vendors_model extends CI_Model {
             $db = $this->dbwrite_model->getWriteDb();
 
             for ($attempt = 1; $attempt <= 5; $attempt++) {
-                $row = $this->getCreditSettings($orgUID);
+                $row = ($attempt === 1)
+                    ? $this->getOrInitVendorCreditSettings($orgUID, $fyStartMonth, $timezone)
+                    : $this->getCreditSettings($orgUID);
                 if (!$row) return null;
 
                 $currentFYYear = $this->_calcFYYear($fyStartMonth, $timezone);

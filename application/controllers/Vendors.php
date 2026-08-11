@@ -92,7 +92,7 @@ class Vendors extends MY_Controller {
                 $grpPage   = $this->_fetchVendorGroupsTableData(1, $limit, $grpFilter);
                 $this->pageData['GrpRowData']    = $grpPage->RecordHtmlData;
                 $this->pageData['GrpPagination'] = $grpPage->Pagination;
-                $this->pageData['GrpStats']      = $_showStats ? $this->vendors_model->getVendorGroupStats($orgUID) : null;
+                $this->pageData['GrpStats']      = $this->vendors_model->getVendorGroupStats($orgUID);
                 $this->pageData['GrpTotal']      = $grpPage->TotalCount;
             }
 
@@ -449,7 +449,7 @@ class Vendors extends MY_Controller {
             }
 
             $this->load->model('vendors_model');
-            $settings = $this->vendors_model->getCreditSettings($orgUID);
+            $settings = $this->vendors_model->getOrInitVendorCreditSettings($orgUID, $fyMonth, $tz);
             if (!$settings || empty($settings->VendorNextNumber)) {
                 throw new Exception('Unable to load vendor credit settings.');
             }
@@ -1110,7 +1110,7 @@ class Vendors extends MY_Controller {
             $this->EndReturnData->TotalCount     = $pageData->TotalCount;
             $_showStats = (int)($this->pageData['JwtData']->GenSettings->ShowStats ?? 1)
                        && (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
-            $this->EndReturnData->Stats = $_showStats ? $this->vendors_model->getVendorGroupStats($this->pageData['JwtData']->Org->OrgUID) : null;
+            $this->EndReturnData->Stats = $this->vendors_model->getVendorGroupStats($this->pageData['JwtData']->Org->OrgUID);
         } catch (Exception $e) {
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
@@ -1304,7 +1304,7 @@ class Vendors extends MY_Controller {
             $this->EndReturnData->Pagination     = $pageData->Pagination;
             $_showStats = (int)($this->pageData['JwtData']->GenSettings->ShowStats ?? 1)
                        && (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
-            $this->EndReturnData->Stats = $_showStats ? $this->vendors_model->getVendorGroupStats($orgUID) : null;
+            $this->EndReturnData->Stats = $this->vendors_model->getVendorGroupStats($orgUID);
         } catch (Exception $e) {
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = true;
@@ -1351,7 +1351,7 @@ class Vendors extends MY_Controller {
             $this->EndReturnData->Pagination     = $pageData->Pagination;
             $_showStats = (int)($this->pageData['JwtData']->GenSettings->ShowStats ?? 1)
                        && (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
-            $this->EndReturnData->Stats = $_showStats ? $this->vendors_model->getVendorGroupStats($orgUID) : null;
+            $this->EndReturnData->Stats = $this->vendors_model->getVendorGroupStats($orgUID);
         } catch (Exception $e) {
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();

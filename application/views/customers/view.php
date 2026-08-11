@@ -159,7 +159,7 @@
                                 </li>
                                 <?php
                                 $showStats    = (int)($JwtData->TransSettings->ShowTransactionStats ?? 1);
-                                $grpStatsVis  = ($InitTab ?? 'All') === 'Groups' && $showStats;
+                                $grpStatsVis  = ($InitTab ?? 'All') === 'Groups';
                                 $grpS         = $GrpStats ?? null;
                                 ?>
                                 <!-- Group stats — visible only in groups mode when stats are enabled -->
@@ -1173,7 +1173,7 @@ $(function () {
         $('.grp-only-ctrl').removeClass('d-none');
         $('#custTableSection').hide();
         $('#grpTableSection').show();
-        if (_custShowStats) { $('#grpTabStats').removeClass('d-none').addClass('d-flex'); }
+        $('#grpTabStats').removeClass('d-none').addClass('d-flex');
         $('.cust-tab .trans-tab-count').addClass('d-none');
 
         _pushTabUrl('Groups', '');
@@ -1222,7 +1222,7 @@ $(function () {
                 if (res.Error) { showToastNotification(res.Message, 'error'); return; }
                 $('#GroupsTableBody').html(res.RecordHtmlData);
                 $('#GroupsPagination').html(res.Pagination);
-                if (_custShowStats) { _updateGrpStats(res.Stats); }
+                _updateGrpStats(res.Stats);
                 var cnt = res.TotalCount || 0;
                 $('#grpTabCount').text(cnt > 0 ? cnt : '').toggleClass('d-none', cnt === 0);
                 if (toastMsg) showToastNotification(toastMsg, 'success');
@@ -1302,7 +1302,7 @@ $(function () {
                     showToastNotification(res.Message, 'success');
                     $('#GroupsTableBody').html(res.RecordHtmlData);
                     $('#GroupsPagination').html(res.Pagination);
-                    if (_custShowStats) { _updateGrpStats(res.Stats); }
+                    _updateGrpStats(res.Stats);
                     _refreshCustomerGroupDropdown();
                 },
                 error: function () { showToastNotification('Failed to update status.', 'error'); }
@@ -1335,7 +1335,7 @@ $(function () {
                     showToastNotification(res.Message, 'success');
                     $('#GroupsTableBody').html(res.RecordHtmlData);
                     $('#GroupsPagination').html(res.Pagination);
-                    if (_custShowStats) { _updateGrpStats(res.Stats); }
+                    _updateGrpStats(res.Stats);
                     var cnt = res.TotalCount || 0;
                     $('#grpTabCount').text(cnt > 0 ? cnt : '').toggleClass('d-none', cnt === 0);
                     _refreshCustomerGroupDropdown();

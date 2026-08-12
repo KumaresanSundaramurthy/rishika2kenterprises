@@ -1074,11 +1074,10 @@ class Dbwrite_model extends CI_Model {
     public function cancelTransactionChildRecords($transUID, $userUID) {
         $this->WriteDB->db_debug = FALSE;
         $flag = ['IsCancelled' => 1, 'UpdatedBy' => (int)$userUID];
-        $this->WriteDB->where('TransUID', (int)$transUID)->update('Transaction.TransDetailTbl',     $flag);
-        $this->WriteDB->where('TransUID', (int)$transUID)->update('Transaction.TransProductsTbl',   $flag);
-        $this->WriteDB->where('TransUID', (int)$transUID)->update('Transaction.TransProductBOMTbl', $flag);
-        // TransAttachmentsTbl has no IsCancelled column — soft-delete instead
-        $this->WriteDB->where('TransUID', (int)$transUID)->update('Transaction.TransAttachmentsTbl', ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => (int)$userUID]);
+        $this->WriteDB->where('TransUID', (int)$transUID)->update('Transaction.TransDetailTbl',      $flag);
+        $this->WriteDB->where('TransUID', (int)$transUID)->update('Transaction.TransProductsTbl',    $flag);
+        $this->WriteDB->where('TransUID', (int)$transUID)->update('Transaction.TransProductBOMTbl',  $flag);
+        $this->WriteDB->where('TransUID', (int)$transUID)->update('Transaction.TransAttachmentsTbl', $flag);
     }
 
     public function markPaymentsOnAccount($transUID, $orgUID, $userUID) {

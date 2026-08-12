@@ -245,6 +245,7 @@ class Invoices extends MY_Controller {
             $this->EndReturnData->Error    = FALSE;
             $this->EndReturnData->Message  = 'Invoice created successfully.';
             $this->EndReturnData->TransUID = $transUID;
+            $this->EndReturnData->Token    = $headerData['TransToken'];
 
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -471,6 +472,7 @@ class Invoices extends MY_Controller {
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Invoice updated successfully.';
+            $this->EndReturnData->Token   = $this->_getOrCreateTransToken($activeTransUID);
             $this->_saveAttachments($activeTransUID);
             $this->_softDeleteAttachments($this->input->post('RemovedAttachIDs') ?? '');
             if (!empty($firstPaymentUID)) $this->_savePaymentAttachments($firstPaymentUID);

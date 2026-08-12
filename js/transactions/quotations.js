@@ -159,3 +159,4 @@ function updateQuotStatCards(stats) {
     $('[data-stat-filter="Converted"] .trans-stat-amount').text(fmt(amt('Converted')));
     $('[data-stat-filter="Draft"] .trans-stat-count').text(cnt('Draft').toLocaleString('en-IN'));
 }
+

@@ -176,6 +176,9 @@ $(function () {
         $form.on('submit', function (e) {
             e.preventDefault();
 
+            if (typeof AutoDraft !== 'undefined') AutoDraft.cancel();
+            if (typeof AutoDraft !== 'undefined' && AutoDraft.isBusy()) return;
+
             var $btn     = $('button[type="submit"][name="action"]:focus, button[type="submit"][name="action"].active-submit', $form);
             var action   = _resolveFormAction($btn.val() || 'save');
             var csrfName = $form.data('csrf');
@@ -368,17 +371,15 @@ $(function () {
                         var _fmt = _pendingPrintFormat;
                         _pendingPrintFormat = null;
                         _isDirty = false;
+                        if (response.Token) {
+                            window.open('/flow/doc/' + response.Token + '?format=' + _fmt, '_blank');
+                        }
+                        window._r2kRedirecting = true;
+                        showUIBlock();
                         _setPendingToast('_invPendingToast', response.Message || (_isEdit ? 'Invoice updated successfully.' : 'Invoice created successfully.'), 'success');
-                        try {
-                            sessionStorage.setItem('r2k_pendingPrint', JSON.stringify({
-                                transUID  : response.TransUID,
-                                moduleUID : _formModuleUID,
-                                format    : _fmt
-                            }));
-                        } catch (e) {}
                         window.location.href = _buildReturnUrl('/invoices');
                     } else {
-                        _showSavedAndGo(_isEdit ? 'Invoice Updated' : 'Invoice Saved', response.Message || (_isEdit ? 'Invoice updated successfully.' : 'Invoice created successfully.'));
+                        _showSavedAndGo(_isEdit ? 'Invoice Updated' : 'Invoice Saved', response.Message || (_isEdit ? 'Invoice updated successfully.' : 'Invoice created successfully.'), action);
                     }
                 },
                 error: function () {
@@ -574,11 +575,12 @@ $(function () {
     });
 }());
 
-function _showSavedAndGo(title, msg) {
-    $(document).one('ajaxStop', function () { showUIBlock(); });
+function _showSavedAndGo(title, msg, action) {
+    window._r2kRedirecting = true;
+    showUIBlock();
     _setPendingToast('_invPendingToast', msg, 'success');
     _isDirty = false;
-    window.location.href = _buildReturnUrl('/invoices');
+    window.location.href = _buildReturnUrl('/invoices', action === 'draft' ? 'Draft' : '');
 }
 
 // ── Auto-Draft ────────────────────────────────────────────────────────────────

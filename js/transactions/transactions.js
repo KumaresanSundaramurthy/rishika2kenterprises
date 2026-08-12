@@ -3919,6 +3919,7 @@ function setFormLoading(formName, isLoading, action) {
     var $stickyDraft = $('#stickyDraftBtn');
     var $inlineSave  = $('#inlineSaveBtn');
     var $inlineDraft = $('#inlineDraftBtn');
+    var $printToggles = $('.r2k-save-print-toggle');
 
     if (isLoading) {
         // Top submit buttons — disable all, spinner on the active one
@@ -3930,6 +3931,9 @@ function setFormLoading(formName, isLoading, action) {
         [$stickySave, $stickyDraft, $inlineSave, $inlineDraft].forEach(function($btn) {
             if ($btn.length) $btn.data('orig-html', $btn.html()).prop('disabled', true);
         });
+
+        // Save & Print dropdown toggles — just disable (no spinner; other buttons already show it)
+        $printToggles.prop('disabled', true);
 
         // Spinner on the matching sticky/inline button
         if (action === 'draft') {
@@ -3953,6 +3957,9 @@ function setFormLoading(formName, isLoading, action) {
                 $btn.prop('disabled', false);
             }
         });
+
+        // Re-enable Save & Print dropdown toggles
+        $printToggles.prop('disabled', false);
     }
 }
 
@@ -4350,7 +4357,7 @@ var _moduleListUrls = {
  */
 function _resolveFormAction(action) {
     if (action && action.indexOf('save_') === 0) {
-        _pendingPrintFormat = action.replace('save_', ''); // 'a4', 'a5', 'thermal'
+        _pendingPrintFormat = action.replace('save_', '');
         return 'save';
     }
     _pendingPrintFormat = null;
@@ -4422,10 +4429,11 @@ function _openTransactionPrint(transUID, moduleUID, format, afterCloseCb) {
  * @param {string} baseUrl - Module base URL e.g. '/quotations'
  * @returns {string}
  */
-function _buildReturnUrl(baseUrl) {
+function _buildReturnUrl(baseUrl, overrideTab) {
     var params = new URLSearchParams();
-    if (typeof _returnTab  !== 'undefined' && _returnTab)      params.set('tab',  _returnTab);
-    if (typeof _returnPage !== 'undefined' && _returnPage > 1) params.set('page', _returnPage);
+    var tab = overrideTab || (typeof _returnTab !== 'undefined' ? _returnTab : '');
+    if (tab) params.set('tab', tab);
+    if (!overrideTab && typeof _returnPage !== 'undefined' && _returnPage > 1) params.set('page', _returnPage);
     var qs = params.toString();
     return baseUrl + (qs ? '?' + qs : '');
 }

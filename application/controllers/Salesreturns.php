@@ -203,6 +203,7 @@ class Salesreturns extends MY_Controller {
                 [], 'Created sales return ' . ($uniqueNumber ?? ''), 'SalesReturns', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
             );
             $this->EndReturnData->TransUID = $transUID;
+            $this->EndReturnData->Token    = $headerData['TransToken'];
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
@@ -336,6 +337,7 @@ class Salesreturns extends MY_Controller {
             $this->transactions_model->generateAndStorePdf($activeTransUID, $orgUID, $this->pageModuleUID);
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Sales Return updated successfully.';
+            $this->EndReturnData->Token   = $this->_getOrCreateTransToken($activeTransUID);
             $this->auditlog->log(
                 (int) $orgUID, (int) $userUID,
                 'UPDATE_SALES_RETURN', 'SalesReturn', (int) $activeTransUID, (string) ($uniqueNumber ?? $existing->UniqueNumber ?? ''),

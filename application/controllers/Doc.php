@@ -31,7 +31,7 @@ class Doc extends CI_Controller {
 
     public function view($token = '') {
         $token = trim($token);
-        if (strlen($token) !== 10) {
+        if (empty($token) || strlen($token) > 40 || !preg_match('/^[0-9a-f\-]+$/i', $token)) {
             $this->_showError('Invalid document link.');
             return;
         }
@@ -246,7 +246,7 @@ CSS;
 
     public function pdf($token = '') {
         $token = trim($token);
-        if (strlen($token) !== 10) {
+        if (empty($token) || strlen($token) > 40 || !preg_match('/^[0-9a-f\-]+$/i', $token)) {
             show_404();
             return;
         }

@@ -125,6 +125,7 @@ class Quotations extends MY_Controller {
                 [], 'Created quotation ' . ($uniqueNumber ?? ''), 'Quotations', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
             );
             $this->EndReturnData->TransUID = $transUID;
+            $this->EndReturnData->Token    = $headerData['TransToken'];
 
         } catch (InvalidArgumentException $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -298,6 +299,7 @@ class Quotations extends MY_Controller {
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Quotation updated successfully.';
+            $this->EndReturnData->Token   = $this->_getOrCreateTransToken($activeTransUID);
             $this->auditlog->log(
                 (int) $orgUID, (int) $userUID,
                 'UPDATE_QUOTATION', 'Quotation', (int) $activeTransUID, (string) ($uniqueNumber ?? $existing->UniqueNumber ?? ''),

@@ -149,7 +149,11 @@
             /** @returns {void} */
             trigger     : function () { _doSave(); },
             /** @returns {void} */
-            reset       : function () { _draftUid = 0; }
+            reset       : function () { _draftUid = 0; },
+            /** @returns {void} */
+            cancel      : function () { clearTimeout(_timer); _timer = null; },
+            /** @returns {boolean} */
+            isBusy      : function () { return _busy; }
         };
     }
 
@@ -172,6 +176,12 @@
         });
     }
 
-    window.AutoDraft = { init: init, initFromCfg: initFromCfg, getDraftUid: function () { return _draftUid; } };
+    window.AutoDraft = {
+        init        : init,
+        initFromCfg : initFromCfg,
+        getDraftUid : function () { return _draftUid; },
+        cancel      : function () { clearTimeout(_timer); _timer = null; },
+        isBusy      : function () { return _busy; }
+    };
 
 }(window));

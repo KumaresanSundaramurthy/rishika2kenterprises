@@ -57,3 +57,4 @@ $(document).on('click', '.duplicateDeliveryChallan', function () {
         window.location.href = '/deliverychallan/create?fromClone=' + uid;
     });
 });
+

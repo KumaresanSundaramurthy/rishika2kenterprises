@@ -284,6 +284,7 @@ class Deliverychallans extends MY_Controller {
                 [], 'Created delivery challan ' . ($uniqueNumber ?? ''), 'DeliveryChallans', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
             );
             $this->EndReturnData->TransUID = $transUID;
+            $this->EndReturnData->Token    = $headerData['TransToken'];
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
@@ -414,6 +415,7 @@ class Deliverychallans extends MY_Controller {
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Delivery challan updated successfully.';
+            $this->EndReturnData->Token   = $this->_getOrCreateTransToken($transUID);
             $this->auditlog->log(
                 (int) $orgUID, (int) $userUID,
                 'UPDATE_DELIVERY_CHALLAN', 'DeliveryChallan', (int) $transUID, (string) ($uniqueNumber ?? $existing->UniqueNumber ?? ''),

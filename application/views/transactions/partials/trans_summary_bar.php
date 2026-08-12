@@ -111,7 +111,7 @@ $_bShowPrintBtn = ($_bShowPrint === 'create_only') ? !$_bIsEdit : (!$_bIsEdit ||
         <?php if ($_bBtnLayout === 'invoice'): ?>
         <?php if ($_bShowPrintBtn): ?>
         <div class="btn-group">
-            <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle"
+            <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle r2k-save-print-toggle"
                     data-bs-toggle="dropdown" aria-expanded="false">
                 <i class="bx bx-printer me-1"></i><?php echo t('btn_save_print', 'Save &amp; Print'); ?>
             </button>
@@ -134,7 +134,7 @@ $_bShowPrintBtn = ($_bShowPrint === 'create_only') ? !$_bIsEdit : (!$_bIsEdit ||
                 <i class="bx bx-check me-1"></i>Save
             </button>
             <?php if ($_bShowPrintBtn): ?>
-            <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2"
+            <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2 r2k-save-print-toggle"
                     data-bs-toggle="dropdown" aria-expanded="false">
                 <span class="visually-hidden">Save options</span>
             </button>

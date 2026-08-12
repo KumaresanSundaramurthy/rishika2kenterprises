@@ -88,6 +88,9 @@ $(function () {
         $form.on('submit', function (e) {
             e.preventDefault();
 
+            if (typeof AutoDraft !== 'undefined') AutoDraft.cancel();
+            if (typeof AutoDraft !== 'undefined' && AutoDraft.isBusy()) return;
+
             var $btn     = $('button[type="submit"][name="action"]:focus, button[type="submit"][name="action"].active-submit', $form);
             var action   = $btn.val() || 'save';
             var csrfName = $form.data('csrf');
@@ -173,11 +176,23 @@ $(function () {
                         ajaxLoading(0);
                         setFormLoading('#' + _formId, false);
                         showFormError(response.Message);
+                    } else if (_pendingPrintFormat) {
+                        var _fmt = _pendingPrintFormat;
+                        _pendingPrintFormat = null;
+                        _isDirty = false;
+                        if (response.Token) {
+                            window.open('/flow/doc/' + response.Token + '?format=' + _fmt, '_blank');
+                        }
+                        window._r2kRedirecting = true;
+                        showUIBlock();
+                        _setPendingToast('_poPendingToast', response.Message, 'success');
+                        window.location.href = _buildReturnUrl('/purchaseorders');
                     } else {
-                        $(document).one('ajaxStop', function () { showUIBlock(); });
+                        window._r2kRedirecting = true;
+                        showUIBlock();
                         _setPendingToast('_poPendingToast', response.Message, 'success');
                         _isDirty = false;
-                        window.location.href = _buildReturnUrl('/purchaseorders');
+                        window.location.href = _buildReturnUrl('/purchaseorders', action === 'draft' ? 'Draft' : '');
                     }
                 },
                 error: function () {

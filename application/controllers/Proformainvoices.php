@@ -195,6 +195,7 @@ class Proformainvoices extends MY_Controller {
                 [], 'Created proforma invoice ' . ($uniqueNumber ?? ''), 'ProformaInvoices', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
             );
             $this->EndReturnData->TransUID = $transUID;
+            $this->EndReturnData->Token    = $headerData['TransToken'];
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
@@ -306,6 +307,7 @@ class Proformainvoices extends MY_Controller {
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Pro Forma Invoice updated successfully.';
+            $this->EndReturnData->Token   = $this->_getOrCreateTransToken($transUID);
             $this->auditlog->log(
                 (int) $orgUID, (int) $userUID,
                 'UPDATE_PROFORMA', 'ProformaInvoice', (int) $transUID, (string) ($uniqueNumber ?? $existing->UniqueNumber ?? ''),

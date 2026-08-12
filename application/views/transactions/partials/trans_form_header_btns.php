@@ -35,7 +35,7 @@ $_hHdrSty  = $_hDcMenu ? '' : 'font-size:.65rem;letter-spacing:.4px;';
         <button type="submit" name="action" value="save" class="btn btn-sm btn-primary px-3" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_save', 'Save transaction'); ?>">
             <i class="bx bx-check me-1"></i>Save
         </button>
-        <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2" data-bs-toggle="dropdown" aria-expanded="false">
+        <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2 r2k-save-print-toggle" data-bs-toggle="dropdown" aria-expanded="false">
             <span class="visually-hidden">Save options</span>
         </button>
         <ul class="<?php echo $_hMenuCls; ?>"<?php if ($_hMenuSty): ?> style="<?php echo $_hMenuSty; ?>"<?php endif; ?>>
@@ -51,7 +51,7 @@ $_hHdrSty  = $_hDcMenu ? '' : 'font-size:.65rem;letter-spacing:.4px;';
     <?php if (!$_hIsEdit): ?>
     <button type="submit" name="action" value="draft" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_save_draft', 'Save and continue editing later'); ?>"><i class="bx bx-save me-1"></i><?php echo t('btn_save_draft', 'Save as Draft'); ?></button>
     <div class="btn-group">
-        <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+        <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle r2k-save-print-toggle" data-bs-toggle="dropdown" aria-expanded="false">
             <i class="bx bx-printer me-1"></i><?php echo t('btn_save_print', 'Save &amp; Print'); ?>
         </button>
         <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:175px;font-size:.82rem;">
@@ -74,7 +74,7 @@ $_hHdrSty  = $_hDcMenu ? '' : 'font-size:.65rem;letter-spacing:.4px;';
     <button type="submit" name="action" value="draft" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_save_draft', 'Save and continue editing later'); ?>"><i class="bx bx-save me-1"></i><?php echo t('btn_save_draft', 'Save as Draft'); ?></button>
     <div class="btn-group">
         <button type="submit" name="action" value="save" class="btn btn-sm btn-primary px-3" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_save', 'Save transaction'); ?>"><i class="bx bx-check me-1"></i>Save</button>
-        <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2" data-bs-toggle="dropdown" aria-expanded="false">
+        <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2 r2k-save-print-toggle" data-bs-toggle="dropdown" aria-expanded="false">
             <span class="visually-hidden">Save options</span>
         </button>
         <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:195px;font-size:.82rem;">

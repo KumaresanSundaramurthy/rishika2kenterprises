@@ -44,3 +44,4 @@ function getSalesOrdersDetails(pageNo, rowLimit, filter, afterLoad) {
         },
     }, pageNo, rowLimit, filter);
 }
+

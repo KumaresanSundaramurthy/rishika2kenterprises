@@ -129,6 +129,7 @@ class Salesorders extends MY_Controller {
                 [], 'Created sales order ' . ($uniqueNumber ?? ''), 'SalesOrders', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
             );
             $this->EndReturnData->TransUID = $transUID;
+            $this->EndReturnData->Token    = $headerData['TransToken'];
 
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -278,6 +279,7 @@ class Salesorders extends MY_Controller {
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Sales order updated successfully.';
+            $this->EndReturnData->Token   = $this->_getOrCreateTransToken($activeTransUID);
             $this->auditlog->log(
                 (int) $orgUID, (int) $userUID,
                 'UPDATE_SALES_ORDER', 'SalesOrder', (int) $activeTransUID, (string) ($uniqueNumber ?? $existing->UniqueNumber ?? ''),

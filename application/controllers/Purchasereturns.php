@@ -159,6 +159,7 @@ class Purchasereturns extends MY_Controller {
                 [], 'Created purchase return ' . ($uniqueNumber ?? ''), 'PurchaseReturns', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
             );
             $this->EndReturnData->TransUID = $transUID;
+            $this->EndReturnData->Token    = $headerData['TransToken'];
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
@@ -288,6 +289,7 @@ class Purchasereturns extends MY_Controller {
             $this->transactions_model->generateAndStorePdf($activeTransUID, $orgUID, $this->pageModuleUID);
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Purchase Return updated successfully.';
+            $this->EndReturnData->Token   = $this->_getOrCreateTransToken($activeTransUID);
             $this->auditlog->log(
                 (int) $orgUID, (int) $userUID,
                 'UPDATE_PURCHASE_RETURN', 'PurchaseReturn', (int) $activeTransUID, (string) ($uniqueNumber ?? $existing->UniqueNumber ?? ''),

@@ -46,3 +46,4 @@ function getSalesReturnsDetails(pageNo, rowLimit, filter, afterLoad) {
 
 // ── Payment Details Panel ─────────────────────────────────────────────────────
 initTransPaymentPanel('text-success', '#198754');
+

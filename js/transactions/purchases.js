@@ -85,3 +85,4 @@ $(document).on('comm:switchedToEmail', function (e, moduleUID, recordUID) {
 
 // ── Payment Details Panel ─────────────────────────────────────────────────────
 initTransPaymentPanel('', '#6f42c1');
+

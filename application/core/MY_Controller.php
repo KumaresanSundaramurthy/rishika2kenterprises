@@ -1090,6 +1090,15 @@ class MY_Controller extends CI_Controller {
     }
 
     /**
+     * Returns the existing TransToken for a saved transaction, or generates and
+     * persists a new one if the row has none (legacy rows created before tokens).
+     */
+    protected function _getOrCreateTransToken(int $transUID): string {
+        $this->load->model('transactions_model');
+        return $this->transactions_model->getOrCreateTransToken($transUID);
+    }
+
+    /**
      * Builds the TransDetailTbl insert array.
      *
      * $cfg keys: PartyType, PartyUID, ValidityDatePostKey ('' = always NULL),

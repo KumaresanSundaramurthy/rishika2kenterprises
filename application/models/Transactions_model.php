@@ -356,6 +356,22 @@ class Transactions_model extends MY_Model {
 
     }
 
+    /** Returns the existing TransToken for a saved row, or generates and persists a new UUID4 (legacy rows). */
+    public function getOrCreateTransToken(int $transUID): string {
+        $row = $this->ReadDb->select('TransToken')
+            ->from('Transaction.TransactionsTbl')
+            ->where('TransUID', $transUID)->limit(1)->get()->row();
+        if (!empty($row->TransToken)) return $row->TransToken;
+        $token = generate_uuid4();
+        $this->load->model('dbwrite_model');
+        $this->dbwrite_model->updateData(
+            'Transaction', 'TransactionsTbl',
+            ['TransToken' => $token],
+            ['TransUID'   => $transUID]
+        );
+        return $token;
+    }
+
     /** Full transaction header row by TransToken + OrgUID (token-based edit URL). */
     public function getTransactionByToken(string $token, int $orgUID, int $moduleUID): ?object {
         $this->ReadDb->select([

@@ -58,9 +58,10 @@ $route['receipt/(:any)'] = 'receipt/index/$1';
 
 // Public document viewer — Invoice, Purchase, PO, SO, SR, PR, Quotation, etc.
 // PDF must be listed before the generic wildcard so doc/pdf/TOKEN routes correctly.
-$route['doc/pdf/(:any)'] = 'doc/pdf/$1';
-$route['doc/(:any)']     = 'doc/view/$1';
-$route['invoice/(:any)'] = 'doc/view/$1';   // alias — matches email share links
+$route['flow/doc/(:any)'] = 'doc/view/$1';  // canonical public share URL
+$route['doc/pdf/(:any)']  = 'doc/pdf/$1';
+$route['doc/(:any)']      = 'doc/view/$1';
+$route['invoice/(:any)']  = 'doc/view/$1';  // alias — matches email share links
 
 // Razorpay — public payment endpoints (no JWT; secured by HMAC-SHA256 signature)
 $route['razorpay/createOrder/(:any)']    = 'razorpay/createOrder/$1';

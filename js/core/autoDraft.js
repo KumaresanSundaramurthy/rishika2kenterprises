@@ -62,6 +62,9 @@
         payload.RoundOff              = extra.roundOff          || 0;
         payload.NetAmount             = totals.grandTotal       || 0;
         payload.Items                 = JSON.stringify(typeof billManager !== 'undefined' ? billManager.getAllItems() : []);
+        payload.placeOfSupplyCode     = String($('#placeOfSupplyCode').val()    || '').trim();
+        payload.placeOfSupplyName     = String($('#placeOfSupplyName').val()    || '').trim();
+        payload.isInterState          = String($('#isInterStateHidden').val()   || '').trim();
         payload.action                = 'draft';
 
         if (_draftUid > 0) payload.TransUID = _draftUid;

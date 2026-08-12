@@ -340,7 +340,8 @@ class Invoices extends MY_Controller {
             $updateHeader['IsFullyPaid']   = $newIsFullyPaid;
             $updateHeader['DocStatus']     = $computedStatus;
 
-            $isInterState      = $amounts['igstAmount'] > 0 ? 1 : ($amounts['cgstAmount'] > 0 || $amounts['sgstAmount'] > 0 ? 0 : NULL);
+            $rawIS             = getPostValue($PostData, 'isInterState');
+            $isInterState      = ($rawIS !== null && $rawIS !== '') ? (int)$rawIS : null;
             $_cc               = $this->transactions_model->getCustomerCountryCode($customerUID);
             $isForeignCustomer = $_cc !== NULL ? ($_cc === 'IN' ? 0 : 1) : NULL;
             $commonDetail = [

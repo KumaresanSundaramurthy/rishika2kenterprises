@@ -1862,9 +1862,8 @@ $(document).ready(function () {
 
         var getProdQty = $('#prodQuantity').val().trim();
         if (!hasValue(getProdQty)) {
-            $('#errorProdQty').html('<span class="icon">!</span>Please enter quantity.').fadeIn(150);
-            setTimeout(() => $('#errorProdQty').fadeOut(150), 2000);
-            return false;
+            getProdQty = '1';
+            $('#prodQuantity').val('1');
         }
 
         const uom = $('#searchProductInfo option:selected').data('primaryunit');
@@ -2783,6 +2782,7 @@ function searchCustomers(key) {
         $('#customerNoAddressBox').addClass('d-none');
         $("#custTypeIndicator").addClass('d-none').empty();
         if (typeof billManager !== 'undefined') billManager.setInterState(false);
+        $('#isInterStateHidden').val('');
         _setForeignGstMode(false);
         if (typeof _showOnAccountBanner === 'function') _showOnAccountBanner(0, [], 0);
         if (typeof _plTransClear === 'function') _plTransClear();
@@ -2806,18 +2806,21 @@ function _showCustTypeIndicator(data) {
         typeClass = 'cust-type-foreign';
         typeIcon  = 'bx-globe';
         if (typeof billManager !== 'undefined') billManager.setInterState(true);
+        $('#isInterStateHidden').val('1');
         _setForeignGstMode(true);
     } else if (hasAddress && orgState !== '' && custState !== orgState) {
         typeLabel = 'Inter-State Customer';
         typeClass = 'cust-type-interstate';
         typeIcon  = 'bx-transfer';
         if (typeof billManager !== 'undefined') billManager.setInterState(true);
+        $('#isInterStateHidden').val('1');
         _setForeignGstMode(false);
     } else {
         typeLabel = 'Intra-State Customer';
         typeClass = 'cust-type-intrastate';
         typeIcon  = 'bx-map-pin';
         if (typeof billManager !== 'undefined') billManager.setInterState(false);
+        $('#isInterStateHidden').val('0');
         _setForeignGstMode(false);
     }
 

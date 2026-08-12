@@ -312,9 +312,10 @@ $(function () {
             if (!_isEdit) {
                 fd.append('fromSalesOrderUID',  parseInt($('#fromSalesOrderUID').val(), 10) || 0);
                 fd.append('fromQuotationUID',   parseInt($('#fromQuotationUID').val(), 10)  || 0);
-                fd.append('placeOfSupplyCode',  $('#placeOfSupplyCode').val() || '');
-                fd.append('placeOfSupplyName',  $('#placeOfSupplyName').val() || '');
             }
+            fd.append('placeOfSupplyCode',      $('#placeOfSupplyCode').val() || '');
+            fd.append('placeOfSupplyName',      $('#placeOfSupplyName').val() || '');
+            fd.append('isInterState',           $('#isInterStateHidden').val());
             fd.append('invoiceType',            $('[name="invoiceType"]').val() || '');
             fd.append('dispatchFrom',           $('[name="dispatchFrom"]').val() || '');
             fd.append('referenceDetails',       $.trim($('#referenceDetails').val()));
@@ -376,10 +377,10 @@ $(function () {
                         }
                         window._r2kRedirecting = true;
                         showUIBlock();
-                        _setPendingToast('_invPendingToast', response.Message || (_isEdit ? 'Invoice updated successfully.' : 'Invoice created successfully.'), 'success');
+                        _setPendingToast('_invPendingToast', (_isEdit ? (response.Message || 'Invoice updated successfully.') : 'Invoice created successfully.'), 'success');
                         window.location.href = _buildReturnUrl('/invoices');
                     } else {
-                        _showSavedAndGo(_isEdit ? 'Invoice Updated' : 'Invoice Saved', response.Message || (_isEdit ? 'Invoice updated successfully.' : 'Invoice created successfully.'), action);
+                        _showSavedAndGo(_isEdit ? 'Invoice Updated' : 'Invoice Saved', (_isEdit ? (response.Message || 'Invoice updated successfully.') : 'Invoice created successfully.'), action);
                     }
                 },
                 error: function () {

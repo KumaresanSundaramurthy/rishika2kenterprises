@@ -215,8 +215,9 @@ if (!function_exists('initTransFormCommon')) {
         $returnTab   = $CI->input->get('returnTab')  ?: 'All';
         $returnPage  = (int)($CI->input->get('returnPage') ?: 1);
         return [
-            '_posCode'    => $isEdit ? ($transData->PlaceOfSupplyCode ?? '') : ($jwtData->Org->StateCode ?? ''),
-            '_posName'    => $isEdit ? ($transData->PlaceOfSupplyName ?? '') : ($jwtData->Org->StateName ?? ''),
+            '_posCode'      => $isEdit ? ($transData->PlaceOfSupplyCode ?? '') : ($jwtData->Org->StateCode ?? ''),
+            '_posName'      => $isEdit ? ($transData->PlaceOfSupplyName ?? '') : ($jwtData->Org->StateName ?? ''),
+            '_isInterState' => $isEdit && $transData !== null && $transData->IsInterState !== null ? (int)$transData->IsInterState : '',
             '_returnTab'  => $returnTab,
             '_returnPage' => $returnPage,
             '_closeUrl'   => trans_build_close_url($closeBase, $returnTab, $returnPage),

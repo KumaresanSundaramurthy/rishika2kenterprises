@@ -182,7 +182,9 @@ function searchVendors(key) {
             $('#vendorAddressBox').removeClass('d-none');
             $('#vendorNoAddressBox').addClass('d-none');
             if (typeof billManager !== 'undefined' && typeof _orgState !== 'undefined') {
-                billManager.setInterState((addrObj.State || '').trim().toLowerCase() !== _orgState.trim().toLowerCase());
+                var _vendIsInter = (addrObj.State || '').trim().toLowerCase() !== _orgState.trim().toLowerCase();
+                billManager.setInterState(_vendIsInter);
+                $('#isInterStateHidden').val(_vendIsInter ? '1' : '0');
             }
         } else {
             $('#vendorAddressBox').addClass('d-none').find('span').text('');
@@ -192,6 +194,7 @@ function searchVendors(key) {
         $('#' + wrapId).removeClass('party-has-selection');
         $('#vendorAddressBox').addClass('d-none').find('span').text('');
         $('#vendorNoAddressBox').addClass('d-none');
+        $('#isInterStateHidden').val('');
     }).on('select2:close', function () {
         ajaxLoading(1);
     });

@@ -335,6 +335,7 @@ $(function () {
                 transTermsCond         : $.trim($('#transTermsCond').val()),
                 placeOfSupplyCode      : $('#placeOfSupplyCode').val() || '',
                 placeOfSupplyName      : $('#placeOfSupplyName').val() || '',
+                isInterState           : $('#isInterStateHidden').val(),
                 extraDiscount          : extraDisc,
                 extDiscountType        : $('#extDiscountType').val() || '',
                 SubTotal               : subTotal,
@@ -390,12 +391,12 @@ $(function () {
                         }
                         window._r2kRedirecting = true;
                         showUIBlock();
-                        _setPendingToast('_dcPendingToast', response.Message, 'success');
+                        _setPendingToast('_dcPendingToast', _isEdit ? response.Message : 'Delivery Challan created successfully.', 'success');
                         window.location.href = _buildReturnUrl('/deliverychallan');
                     } else {
                         window._r2kRedirecting = true;
                         showUIBlock();
-                        _setPendingToast('_dcPendingToast', response.Message, 'success');
+                        _setPendingToast('_dcPendingToast', _isEdit ? response.Message : 'Delivery Challan created successfully.', 'success');
                         _isDirty = false;
                         window.location.href = _buildReturnUrl('/deliverychallan', action === 'draft' ? 'Draft' : '');
                     }

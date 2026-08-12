@@ -180,6 +180,7 @@ $(function () {
                 transNotes             : $.trim($('#transNotes').val()),
                 placeOfSupplyCode      : $('#placeOfSupplyCode').val() || '',
                 placeOfSupplyName      : $('#placeOfSupplyName').val() || '',
+                isInterState           : $('#isInterStateHidden').val(),
                 extraDiscount          : parseFloat($('#extraDiscount').val()) || 0,
                 extDiscountType        : $('#extDiscountType').val() || '',
                 SubTotal               : summary.items     ? (summary.items.taxableAmount     || 0) : 0,
@@ -233,12 +234,12 @@ $(function () {
                         }
                         window._r2kRedirecting = true;
                         showUIBlock();
-                        _setPendingToast('_purPendingToast', response.Message, 'success');
+                        _setPendingToast('_purPendingToast', _isEdit ? response.Message : 'Purchase Bill created successfully.', 'success');
                         window.location.href = _buildReturnUrl('/purchases');
                     } else {
                         window._r2kRedirecting = true;
                         showUIBlock();
-                        _setPendingToast('_purPendingToast', response.Message, 'success');
+                        _setPendingToast('_purPendingToast', _isEdit ? response.Message : 'Purchase Bill created successfully.', 'success');
                         _isDirty = false;
                         window.location.href = _buildReturnUrl('/purchases', action === 'draft' ? 'Draft' : '');
                     }

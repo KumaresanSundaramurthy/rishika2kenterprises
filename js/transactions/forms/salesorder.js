@@ -215,6 +215,7 @@ $(function () {
                 transTermsCond         : $.trim($('#transTermsCond').val()),
                 placeOfSupplyCode      : $('#placeOfSupplyCode').val() || '',
                 placeOfSupplyName      : $('#placeOfSupplyName').val() || '',
+                isInterState           : $('#isInterStateHidden').val(),
                 extraDiscount          : extraDisc,
                 extDiscountType        : $('#extDiscountType').val() || '',
                 SubTotal               : subTotal,
@@ -270,12 +271,12 @@ $(function () {
                         }
                         window._r2kRedirecting = true;
                         showUIBlock();
-                        _setPendingToast('_soPendingToast', response.Message, 'success');
+                        _setPendingToast('_soPendingToast', _isEdit ? response.Message : 'Sales Order created successfully.', 'success');
                         window.location.href = _buildReturnUrl('/salesorders');
                     } else {
                         window._r2kRedirecting = true;
                         showUIBlock();
-                        _setPendingToast('_soPendingToast', response.Message, 'success');
+                        _setPendingToast('_soPendingToast', _isEdit ? response.Message : 'Sales Order created successfully.', 'success');
                         _isDirty = false;
                         window.location.href = _buildReturnUrl('/salesorders', action === 'draft' ? 'Draft' : '');
                     }

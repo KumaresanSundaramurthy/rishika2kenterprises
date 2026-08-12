@@ -240,6 +240,7 @@ $(function () {
                 transTermsCond         : $.trim($('#transTermsCond').val()),
                 placeOfSupplyCode      : $('#placeOfSupplyCode').val() || '',
                 placeOfSupplyName      : $('#placeOfSupplyName').val() || '',
+                isInterState           : $('#isInterStateHidden').val(),
                 extraDiscount          : extraDiscount,
                 extDiscountType        : $('#extDiscountType').val() || '',
                 SubTotal               : subTotal,
@@ -293,12 +294,12 @@ $(function () {
                         }
                         window._r2kRedirecting = true;
                         showUIBlock();
-                        _setPendingToast('_quotPendingToast', response.Message, 'success');
+                        _setPendingToast('_quotPendingToast', _isEdit ? response.Message : 'Quotation created successfully.', 'success');
                         window.location.href = _buildReturnUrl('/quotations');
                     } else {
                         window._r2kRedirecting = true;
                         showUIBlock();
-                        _setPendingToast('_quotPendingToast', response.Message, 'success');
+                        _setPendingToast('_quotPendingToast', _isEdit ? response.Message : 'Quotation created successfully.', 'success');
                         window.location.href = _buildReturnUrl('/quotations', action === 'draft' ? 'Draft' : '');
                     }
                 },

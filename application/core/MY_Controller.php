@@ -1114,10 +1114,8 @@ class MY_Controller extends CI_Controller {
      * @return array
      */
     protected function _buildTransDetail(array $cfg, array $amounts, array $post, int $transUID): array {
-        $igst         = (float) $amounts['igstAmount'];
-        $cgst         = (float) $amounts['cgstAmount'];
-        $sgst         = (float) $amounts['sgstAmount'];
-        $isInterState = $igst > 0 ? 1 : ($cgst > 0 || $sgst > 0 ? 0 : NULL);
+        $rawIS        = getPostValue($post, 'isInterState');
+        $isInterState = ($rawIS !== null && $rawIS !== '') ? (int)$rawIS : null;
 
         $isForeignCustomer = NULL;
         if (($cfg['PartyType'] ?? '') === 'C' && !empty($cfg['PartyUID'])) {

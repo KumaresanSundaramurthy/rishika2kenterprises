@@ -153,6 +153,7 @@ $(function () {
                 transTermsCond         : $.trim($('#transTermsCond').val()),
                 placeOfSupplyCode      : $('#placeOfSupplyCode').val() || '',
                 placeOfSupplyName      : $('#placeOfSupplyName').val() || '',
+                isInterState           : $('#isInterStateHidden').val(),
                 extraDiscount          : extraDisc,
                 extDiscountType        : $('#extDiscountType').val() || '',
                 SubTotal               : subTotal,
@@ -204,12 +205,12 @@ $(function () {
                         }
                         window._r2kRedirecting = true;
                         showUIBlock();
-                        _setPendingToast('_pfPendingToast', response.Message, 'success');
+                        _setPendingToast('_pfPendingToast', _isEdit ? response.Message : 'Proforma Invoice created successfully.', 'success');
                         window.location.href = _buildReturnUrl('/proforma');
                     } else {
                         window._r2kRedirecting = true;
                         showUIBlock();
-                        _setPendingToast('_pfPendingToast', response.Message, 'success');
+                        _setPendingToast('_pfPendingToast', _isEdit ? response.Message : 'Proforma Invoice created successfully.', 'success');
                         _isDirty = false;
                         window.location.href = _buildReturnUrl('/proforma', action === 'draft' ? 'Draft' : '');
                     }

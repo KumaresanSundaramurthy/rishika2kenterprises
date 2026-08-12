@@ -311,7 +311,8 @@ class Purchases extends MY_Controller {
             $updateHeader = $this->_buildTransUpdateHeader($cfg, $amounts, $PostData, $orgUID, $userUID);
             $updateHeader['BalanceAmount'] = $newBalance;
 
-            $isInterState = $amounts['igstAmount'] > 0 ? 1 : ($amounts['cgstAmount'] > 0 || $amounts['sgstAmount'] > 0 ? 0 : NULL);
+            $rawIS        = getPostValue($PostData, 'isInterState');
+            $isInterState = ($rawIS !== null && $rawIS !== '') ? (int)$rawIS : null;
 
             $commonDetail = [
                 'ValidityDays'      => NULL,

@@ -942,6 +942,9 @@ class Invoices extends MY_Controller {
             if ($newStatus === 'Cancelled') {
                 $this->dbwrite_model->cancelTransactionChildRecords($transUID, $userUID);
 
+                // Reverse stock movements (no-op if the invoice was a draft)
+                $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
+
                 // Mark payments IsCancelled = 1 when "Mark Refund" is selected
                 $cancelPaymentAction = trim($this->input->post('CancelPaymentAction') ?? '');
                 if ($cancelPaymentAction === 'refund') {
@@ -953,6 +956,10 @@ class Invoices extends MY_Controller {
             }
 
             $this->dbwrite_model->commitTransaction();
+
+            if ($newStatus === 'Cancelled') {
+                $this->_syncProductCacheByTransUID($transUID); // after commit — ReadDB now sees reverted stock
+            }
 
             $this->EndReturnData->Error     = FALSE;
             $this->EndReturnData->Message   = 'Invoice cancelled successfully.';

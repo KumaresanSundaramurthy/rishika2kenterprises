@@ -1978,9 +1978,11 @@ $(document).ready(function () {
                     if (isSelling) {
                         var lastS = (_lastValidSellingPrices[rowId] != null) ? _lastValidSellingPrices[rowId] : effPP;
                         billManager.updateItem(rowId, 'sellingPrice', lastS);
+                        $(this).val(smartDecimal(lastS, genSettings ? genSettings.DecimalPoints : 2));
                     } else {
                         var lastU = (_lastValidUnitPrices[rowId] != null) ? _lastValidUnitPrices[rowId] : effPP;
                         billManager.updateItem(rowId, 'unitPrice', lastU);
+                        $(this).val(smartDecimal(lastU, 8));
                     }
                 }
             }

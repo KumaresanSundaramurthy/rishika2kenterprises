@@ -34,6 +34,7 @@ class Invoices extends MY_Controller {
             ]);
             $this->load->view('transactions/invoices/view', $this->pageData);
         } catch (Exception $e) {
+            notifyError('Invoices::index', $e);
             redirect('dashboard', 'refresh');
         }
     }

@@ -1073,11 +1073,19 @@ class Dbwrite_model extends CI_Model {
 
     public function cancelTransactionChildRecords($transUID, $userUID) {
         $this->WriteDB->db_debug = FALSE;
-        $flag = ['IsCancelled' => 1, 'UpdatedBy' => (int)$userUID];
-        $this->WriteDB->where('TransUID', (int)$transUID)->update('Transaction.TransDetailTbl',      $flag);
-        $this->WriteDB->where('TransUID', (int)$transUID)->update('Transaction.TransProductsTbl',    $flag);
-        $this->WriteDB->where('TransUID', (int)$transUID)->update('Transaction.TransProductBOMTbl',  $flag);
-        $this->WriteDB->where('TransUID', (int)$transUID)->update('Transaction.TransAttachmentsTbl', $flag);
+        $flag   = ['IsCancelled' => 1, 'UpdatedBy' => (int)$userUID];
+        $tables = [
+            'Transaction.TransProductsTbl',
+            'Transaction.TransProductBOMTbl',
+            'Transaction.TransAttachmentsTbl',
+        ];
+        foreach ($tables as $table) {
+            $ok = $this->WriteDB->where('TransUID', (int)$transUID)->update($table, $flag);
+            if ($ok === false) {
+                $err = $this->WriteDB->error();
+                log_message('error', "cancelTransactionChildRecords failed on {$table} (TransUID={$transUID}): " . ($err['message'] ?? 'unknown'));
+            }
+        }
     }
 
     public function markPaymentsOnAccount($transUID, $orgUID, $userUID) {

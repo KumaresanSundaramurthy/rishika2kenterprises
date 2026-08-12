@@ -40,7 +40,11 @@ class RedisService {
 
     // ─── Connection ──────────────────────────────────────────────────────────
 
-    private function connect() {
+    private function connect(): void {
+        // Suppress PHP-level warnings (stream_socket_client, getaddrinfo, etc.) that
+        // would otherwise leak the Redis host/port into the browser output before the
+        // exception is even thrown. Full details still go to the log below.
+        set_error_handler(static function (): bool { return true; });
         try {
             $scheme = getenv('REDIS_PROTOCOL') ?: 'redis';
             $params = [
@@ -59,7 +63,23 @@ class RedisService {
         } catch (Exception $e) {
             $this->connected = false;
             $this->log('ERROR', 'Connection failed: ' . $e->getMessage());
+        } finally {
+            restore_error_handler();
         }
+    }
+
+    /**
+     * Returns true when an exception indicates a network/host connection failure
+     * (as opposed to a normal cache miss or Redis command error).
+     */
+    private function _isConnectionError(Exception $e): bool {
+        if ($e instanceof \Predis\Connection\ConnectionException) return true;
+        $msg = $e->getMessage();
+        return strpos($msg, 'getaddrinfo')           !== false
+            || strpos($msg, 'php_network_getaddresses') !== false
+            || strpos($msg, 'Connection refused')    !== false
+            || strpos($msg, 'Connection timed out')  !== false
+            || strpos($msg, 'No route to host')      !== false;
     }
 
     public function isConnected() {
@@ -202,11 +222,13 @@ class RedisService {
                 $this->log('HIT', "GET {$resolvedKey}");
             }
         } catch (Exception $e) {
-            $result->Error   = true;
-            $result->Message = $e->getMessage();
-            $result->Key     = $resolvedKey;
-            $result->Value   = null;
-            $this->log('ERROR', "GET {$resolvedKey}: " . $e->getMessage());
+            $isConn                    = $this->_isConnectionError($e);
+            $result->Error             = true;
+            $result->IsConnectionError = $isConn;
+            $result->Message           = $isConn ? 'Service temporarily unavailable' : 'Cache error';
+            $result->Key               = $resolvedKey;
+            $result->Value             = null;
+            $this->log('ERROR', "GET {$resolvedKey}: " . $e->getMessage()); // full detail in log only
         }
         return $result;
     }

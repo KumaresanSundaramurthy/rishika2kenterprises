@@ -21,8 +21,10 @@ $_chargesBd   = !empty($transShowChargesBreakdown);
 $_hideAddProd    = !empty($transHideAddProduct);
 $_hideSearchCard = !empty($transHideProductSearch);
 $_paymentVars    = isset($transPaymentVars) ? $transPaymentVars : null;
-$_editItems      = isset($transEditItems)   ? $transEditItems   : [];
+$_editItems      = isset($transEditItems)     ? $transEditItems     : [];
+$_showCompliment = !empty($transShowCompliment);
 ?>
+<script>window._transShowCompliment = <?= $_showCompliment ? 'true' : 'false'; ?>;</script>
 <div class="card-header modal-header-center-sticky p-1 mb-3 d-flex align-items-center justify-content-between">
     <!-- Left: title + add button -->
     <div class="d-flex align-items-center gap-2">
@@ -127,10 +129,12 @@ $_editItems      = isset($transEditItems)   ? $transEditItems   : [];
                     <?php
                         $prePid    = (int)($_ei->ProductUID ?? 0);
                         $preName   = htmlspecialchars($_ei->ProductName ?? '');
-                        $preDesc   = $_ei->Description       ?? '';
-                        $preUnit   = $_ei->PrimaryUnitName   ?? '';
-                        $preQty    = (float)($_ei->Quantity      ?? 1);
-                        $preUP     = (float)($_ei->UnitPrice     ?? 0);
+                        $preDesc         = $_ei->Description       ?? '';
+                        $preUnit         = $_ei->PrimaryUnitName   ?? '';
+                        $preQty          = (float)($_ei->Quantity      ?? 1);
+                        $preUP           = (float)($_ei->UnitPrice     ?? 0);
+                        $preIsCompliment = !empty($_ei->IsCompliment);
+                        $preCompLocked   = $preIsCompliment && !empty($_ei->SourceTransProdUID);
                         $preSP     = (float)($_ei->SellingPrice  ?? 0);
                         $preDisc   = (float)($_ei->Discount      ?? 0);
                         $preLT     = (float)($_ei->TaxableAmount ?? 0);
@@ -155,7 +159,24 @@ $_editItems      = isset($transEditItems)   ? $transEditItems   : [];
                             <i class="bx bx-grid-vertical" style="font-size:1.1rem;color:#c0c7cf;"></i>
                         </td>
                         <td>
-                            <div class="text-primary fw-semibold"><?php echo $preName; ?></div>
+                            <div class="d-flex align-items-center justify-content-between">
+                                <span class="text-primary fw-semibold"><?php echo $preName; ?></span>
+                                <?php if ($_showCompliment): ?>
+                                <label class="compliment-inline-lbl d-inline-flex align-items-center gap-1 mb-0 ms-2"
+                                       style="cursor:<?php echo $preCompLocked ? 'not-allowed' : 'pointer'; ?>;flex-shrink:0;">
+                                    <input type="checkbox" class="form-check-input compliment-chk"
+                                           data-id="<?php echo $prePid; ?>"
+                                           <?php echo $preIsCompliment ? 'checked' : ''; ?>
+                                           <?php echo $preCompLocked   ? 'disabled' : ''; ?>
+                                           style="cursor:<?php echo $preCompLocked ? 'not-allowed' : 'pointer'; ?>;margin-top:0;width:0.85rem;height:0.85rem;"/>
+                                    <i class="bx bx-help-circle compliment-tip"
+                                       data-bs-toggle="tooltip" data-bs-placement="top"
+                                       title="<?php echo $preCompLocked ? t('tooltip_compliment_locked', 'Compliment locked (from invoice)') : t('tooltip_compliment', 'Compliment'); ?>"
+                                       style="font-size:1rem;color:#adb5bd;cursor:default;"></i>
+                                    <?php if ($preCompLocked): ?><i class="bx bx-lock-alt" style="font-size:0.7rem;color:#adb5bd;"></i><?php endif; ?>
+                                </label>
+                                <?php endif; ?>
+                            </div>
                             <div class="transtext-small text-muted">#<span id="sequenceId_<?php echo $prePid; ?>"><?php echo $preRowIdx; ?></span>
                                 <span style="font-weight:600;color:#495057;">Stock:</span> <span class="text-warning fw-semibold">0</span> <span style="font-weight:600;color:#495057;"><?php echo htmlspecialchars($preUnit); ?></span>
                             </div>

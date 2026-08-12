@@ -166,6 +166,7 @@ $_addrLines = buildDispatchAddressLines($DispatchAddress ?? null);
                                 'transSignatureUID'     => $isEdit ? (int)($SOData->SignatureUID ?? 0) : 0,
                                 'transSignatures'       => $JwtData->User->Signatures ?? [],
                                 'transEditItems'        => $isEdit ? ($SOItems ?? []) : [],
+                                'transShowCompliment'   => true,
                             ]); ?>
 
                             <?php $this->load->view('transactions/partials/trans_summary_bar', ['_barIsSticky' => false, '_barSections' => '1', '_barButtonLayout' => 'split', '_barShowPrint' => 'draft_or_create', '_barUseDcClasses' => false, '_barIsEdit' => $isEdit, '_barIsDraftEdit' => $isDraftEdit]); ?>
@@ -265,9 +266,11 @@ var _transFormData = <?php echo json_encode([
                 'discount'         => (float)$item->Discount,
                 'discountType'     => 'Percentage',
                 'discountTypeUID'  => $item->DiscountTypeUID ? (int)$item->DiscountTypeUID : null,
-                'discount_amount'  => (float)$item->DiscountAmount,
-                'line_total'       => (float)$item->TaxableAmount,
-                'net_total'        => (float)$item->NetAmount,
+                'discount_amount'       => (float)$item->DiscountAmount,
+                'line_total'           => (float)$item->TaxableAmount,
+                'net_total'            => (float)$item->NetAmount,
+                'isCompliment'         => (int)($item->IsCompliment ?? 0),
+                'catalogSellingPrice'  => (float)($item->CatalogSellingPrice ?? 0),
             ];
         }, $SOItems ?? []),
     ] : null,

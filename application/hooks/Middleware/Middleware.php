@@ -44,6 +44,21 @@ class Middleware {
 				$RedisData = $CI->redisservice->getCache($JwtData->key);
 				if($RedisData->Error) {
 
+					if (!empty($RedisData->IsConnectionError)) {
+						// Redis host unreachable — show friendly error, never expose host details
+						log_message('error', 'Middleware: Redis connection failed — showing service unavailable page');
+						if ($CI->input->is_ajax_request()) {
+							$CI->output
+								->set_status_header(503)
+								->set_content_type('application/json', 'utf-8')
+								->set_output(json_encode(['Error' => true, 'Message' => 'Service temporarily unavailable. Please try again in a few minutes.']))
+								->_display();
+							exit;
+						}
+						$CI->load->view('errors/service_unavailable');
+						exit;
+					}
+
 					$CI->session->set_flashdata('danger', 'Oops! Session expired. please try login.');
 					redirect('portal', 'refresh');
 

@@ -236,10 +236,12 @@ $(function () {
                 discount         : parseFloat(item.Discount)         || 0,
                 discountType     : 'Percentage',
                 discountTypeUID  : item.DiscountTypeUID ? parseInt(item.DiscountTypeUID) : null,
-                discount_amount  : parseFloat(item.DiscountAmount)   || 0,
+                discount_amount      : parseFloat(item.DiscountAmount)   || 0,
                 line_total           : parseFloat(item.TaxableAmount)    || 0,
                 net_total            : parseFloat(item.NetAmount)        || 0,
                 sourceTransProdUID   : parseInt(item.TransProdUID, 10)   || null,
+                isCompliment         : parseInt(item.IsCompliment, 10)   || 0,
+                catalogSellingPrice  : parseFloat(item.CatalogSellingPrice) || 0,
             };
 
             if (typeof billManager !== 'undefined' && typeof formationTableBillItems === 'function') {
@@ -248,6 +250,21 @@ $(function () {
                 if (result !== false) {
                     formationTableBillItems(billManager.getItemById(productData.id));
                     added++;
+                    // Lock the compliment checkbox for rows auto-populated from an invoice
+                    if (productData.isCompliment && productData.sourceTransProdUID) {
+                        var $chk = $('.compliment-chk[data-id="' + productData.id + '"]');
+                        $chk.prop('disabled', true).css('cursor', 'not-allowed');
+                        $chk.closest('label')
+                            .addClass('text-muted')
+                            .css('cursor', 'not-allowed')
+                            .attr('title', t('tooltip_compliment_locked', 'Compliment locked (from invoice)'));
+                        $chk.closest('label')
+                            .append('<i class="bx bx-lock-alt" style="font-size:0.7rem;color:#adb5bd;"></i>');
+                        // Seed _priceBeforeCompliment from catalog price
+                        if (typeof _priceBeforeCompliment !== 'undefined') {
+                            _priceBeforeCompliment[parseInt(productData.id, 10)] = productData.catalogSellingPrice || 0;
+                        }
+                    }
                 }
             }
         });

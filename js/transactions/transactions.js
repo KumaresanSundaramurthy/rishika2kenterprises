@@ -1,6 +1,8 @@
 // Keyed by product row id; updated each time a valid (≥ purchase price) selling price is blurred
-var _lastValidSellingPrices = {};
-var _lastValidUnitPrices    = {};
+var _lastValidSellingPrices  = {};
+var _lastValidUnitPrices     = {};
+// Selling price at the moment the compliment checkbox was ticked, keyed by row id
+var _priceBeforeCompliment   = {};
 
 class BillManager {
     
@@ -1312,6 +1314,16 @@ class BillManager {
 
         if (origTaxBreakdown) origTaxBreakdown();
         this.updateSummary();
+
+        // Seed _priceBeforeCompliment for edit-mode items that are already compliment
+        if (window._transShowCompliment) {
+            items.forEach(function (item) {
+                var rowId = parseInt(item.id, 10);
+                if (item.isCompliment && rowId > 0) {
+                    _priceBeforeCompliment[rowId] = parseFloat(item.catalogSellingPrice) || 0;
+                }
+            });
+        }
     }
 
     // =============================================
@@ -1903,6 +1915,7 @@ $(document).ready(function () {
         if (isNaN(rowId)) return;
         var item = billManager.getItemById(rowId);
         if (!item || item.isComposite) return;
+        if (item.isCompliment) return; // compliment items bypass purchase price check
         var pp      = parseFloat(item.purchasePrice) || 0;
         if (pp <= 0) return;
         var tax     = item.taxPercent || 0;
@@ -1946,6 +1959,7 @@ $(document).ready(function () {
 
         var item = billManager.getItemById(rowId);
         if (!item || item.isComposite) return;
+        if (item.isCompliment) return; // compliment items bypass purchase price check
 
         var pp      = parseFloat(item.purchasePrice) || 0;
         if (pp <= 0) return;
@@ -1969,26 +1983,54 @@ $(document).ready(function () {
         var curr    = (genSettings && genSettings.CurrenySymbol) ? genSettings.CurrenySymbol : '₹';
 
         if (entered < effPP) {
-            if (isExempt) {
-                // Exempt product — allow entry, auto-close informational toast only
+            if (window._belowPurchasePriceAction === 'strict') {
+                // Strict mode always blocks — exempt status is irrelevant
+                showBelowPurchaseToast(effPP, entered, curr);
+                if (isSelling) {
+                    var lastS = (_lastValidSellingPrices[rowId] != null) ? _lastValidSellingPrices[rowId] : effPP;
+                    billManager.updateItem(rowId, 'sellingPrice', lastS);
+                    $(this).val(smartDecimal(lastS, genSettings ? genSettings.DecimalPoints : 2));
+                } else {
+                    var lastU = (_lastValidUnitPrices[rowId] != null) ? _lastValidUnitPrices[rowId] : effPP;
+                    billManager.updateItem(rowId, 'unitPrice', lastU);
+                    $(this).val(smartDecimal(lastU, 8));
+                }
+            } else if (isExempt) {
+                // Exempt product in warn/allow mode — informational toast only, no block
                 showToastNotification(t('toast_exempt_below_purchase', 'Note: This product\'s selling price is set below its purchase price.'), 'warning');
             } else {
+                // Non-exempt product in warn/allow mode — show warning toast only
                 showBelowPurchaseToast(effPP, entered, curr);
-                if (window._belowPurchasePriceAction === 'strict') {
-                    if (isSelling) {
-                        var lastS = (_lastValidSellingPrices[rowId] != null) ? _lastValidSellingPrices[rowId] : effPP;
-                        billManager.updateItem(rowId, 'sellingPrice', lastS);
-                        $(this).val(smartDecimal(lastS, genSettings ? genSettings.DecimalPoints : 2));
-                    } else {
-                        var lastU = (_lastValidUnitPrices[rowId] != null) ? _lastValidUnitPrices[rowId] : effPP;
-                        billManager.updateItem(rowId, 'unitPrice', lastU);
-                        $(this).val(smartDecimal(lastU, 8));
-                    }
-                }
             }
         } else {
             if (isSelling) _lastValidSellingPrices[rowId] = entered;
             else           _lastValidUnitPrices[rowId]    = entered;
+        }
+    });
+
+    // Compliment checkbox — check: freeze price at 0; uncheck: restore previous price
+    $(document).on('change', '.compliment-chk', function () {
+        if (!window._transShowCompliment) return;
+        var rowId    = parseInt($(this).data('id'), 10);
+        if (isNaN(rowId)) return;
+        var item     = billManager.getItemById(rowId);
+        if (!item) return;
+        var isChecked = $(this).is(':checked');
+        var dec       = genSettings ? genSettings.DecimalPoints : 2;
+
+        if (isChecked) {
+            // Save current selling price before marking as compliment
+            _priceBeforeCompliment[rowId] = parseFloat($('#bm_' + rowId + '_sellingPrice').val()) || 0;
+            billManager.updateItem(rowId, 'isCompliment', true);
+        } else {
+            // Restore price: create mode uses saved price; edit mode without a saved price uses catalog price
+            var restorePrice = (_priceBeforeCompliment[rowId] != null)
+                ? _priceBeforeCompliment[rowId]
+                : (parseFloat(item.catalogSellingPrice) || parseFloat(item.orgselngprice) || 0);
+            delete _priceBeforeCompliment[rowId];
+            billManager.updateItem(rowId, 'isCompliment', false);
+            billManager.updateItem(rowId, 'sellingPrice', restorePrice);
+            $('#bm_' + rowId + '_sellingPrice').val(smartDecimal(restorePrice, dec));
         }
     });
 
@@ -3421,7 +3463,10 @@ function formationTableBillItems(productRow) {
                 <i class="bx bx-grid-vertical" style="font-size:1.1rem;color:#c0c7cf;"></i>
             </td>
             <td>
-                <div class="text-primary fw-semibold">${productRow.text}${comboBOMBtn}</div>
+                <div class="d-flex align-items-center justify-content-between">
+                    <span class="text-primary fw-semibold">${productRow.text}${comboBOMBtn}</span>
+                    ${window._transShowCompliment ? `<label class="compliment-inline-lbl d-inline-flex align-items-center gap-1 mb-0 ms-2" style="cursor:pointer;flex-shrink:0;"><input type="checkbox" class="form-check-input compliment-chk" data-id="${productRow.id}" ${productRow.isCompliment ? 'checked' : ''} style="cursor:pointer;margin-top:0;width:0.85rem;height:0.85rem;"/><i class="bx bx-help-circle compliment-tip" data-bs-toggle="tooltip" data-bs-placement="top" title="${t('tooltip_compliment', 'Compliment')}" style="font-size:1rem;color:#adb5bd;cursor:default;"></i></label>` : ''}
+                </div>
                 <div class="transtext-small text-muted">#<span id="sequenceId_${productRow.id}">${rowCount+1}</span>
                     ${productRow.productType === 'Service'
                         ? '<span class="text-muted">Service</span>'
@@ -3480,6 +3525,11 @@ function formationTableBillItems(productRow) {
         $('#billTableBody').html(tableData);
     } else {
         $('#billTableBody').append(tableData);
+    }
+    // Bootstrap tooltip on the compliment icon for this newly added row
+    if (window._transShowCompliment) {
+        var _tipEl = document.querySelector('#billTableBody tr[data-id="' + productRow.id + '"] .compliment-tip');
+        if (_tipEl) new bootstrap.Tooltip(_tipEl, { trigger: 'hover' });
     }
     // Update controls visibility after add
     var newCount = $('#billTableBody tr[data-id]').length;
@@ -4343,6 +4393,12 @@ $(function () {
     // are available before the user interacts with Extra Discount.
     if (typeof DropdownCache !== 'undefined') {
         DropdownCache.init();
+    }
+    // Bootstrap tooltips on PHP pre-rendered compliment icons (edit mode)
+    if (window._transShowCompliment) {
+        document.querySelectorAll('#billTableBody .compliment-tip').forEach(function (el) {
+            new bootstrap.Tooltip(el, { trigger: 'hover' });
+        });
     }
 });
 

@@ -1276,6 +1276,7 @@ class MY_Controller extends CI_Controller {
                 'NetAmount'         => (float) ($item['net_total']        ?? 0),
                 'QuantityConverted' => 0,
                 'IsActive'          => 1,
+                'IsCompliment'      => isset($item['isCompliment']) ? (int)$item['isCompliment'] : 0,
                 'IsDeleted'         => 0,
                 'CreatedBy'         => $userUID,
                 'UpdatedBy'         => $userUID,
@@ -1357,6 +1358,7 @@ class MY_Controller extends CI_Controller {
                 'TaxAmount'       => (float) ($item['taxAmount']       ?? 0),
                 'DiscountAmount'  => (float) ($item['discount_amount']  ?? 0),
                 'NetAmount'       => (float) ($item['net_total']        ?? 0),
+                'IsCompliment'    => isset($item['isCompliment']) ? (int)$item['isCompliment'] : 0,
                 'UpdatedBy'       => $userUID,
             ];
 

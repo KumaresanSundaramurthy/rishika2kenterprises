@@ -473,6 +473,7 @@ class Transactions_model extends MY_Model {
         $this->ReadDb->select([
             'Tprod.*',
             'Product.HSNSACCode AS HSNCode',
+            'Product.SellingPrice AS CatalogSellingPrice',
         ]);
         $this->ReadDb->from('Transaction.TransProductsTbl as Tprod');
         $this->ReadDb->join('Products.ProductTbl AS Product', 'Product.ProductUID = Tprod.ProductUID', 'LEFT');

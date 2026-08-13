@@ -179,19 +179,21 @@ $this->load->view('common/transactions/header'); ?>
                                             <th>Amount</th>
                                             <th>Status</th>
                                             <th>Created On</th>
+                                            <th style="width:56px"></th>
                                         </tr>
                                     </thead>
                                     <tbody id="cnTableBody" class="r2k-tbody table-border-bottom-0">
-                                        <tr><td colspan="7" class="text-center py-4 text-muted">Loading...</td></tr>
+                                        <tr><td colspan="8" class="text-center py-4 text-muted">Loading...</td></tr>
                                     </tbody>
                                 </table>
                             </div>
-                            <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center apex-pag-sticky" id="cnPagination"></div>
+                            <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center cnPagination apex-pag-sticky" id="cnPagination"></div>
                         </div>
 
                     </div>
 
                     <?php $this->load->view('common/transactions/print_modals'); ?>
+
 
 
                 </div>
@@ -430,7 +432,6 @@ $(function () {
 
     _applyTabFilters(_invInitTab || 'All', _invTabFilterMap, _allInvFilterEls);
     if (_invInitTab === 'CreditNotes') {
-        _cnPageNo = 1;
         if (_invInitSearch) { _cnSearch = _invInitSearch; }
         loadCreditNotes(1);
     }
@@ -934,77 +935,28 @@ function updateInvoiceRow(invoice, payments, paidTotal) {
 }
 
 // ── Credit Notes tab ─────────────────────────────────────────────────────────
-var _cnPageNo    = 1;
-var _cnRowLimit  = 10;
-var _cnStatus    = 'All';
-var _cnSearch    = '';
-var _cnLoading   = false;
-var _cnCdnUrl    = '<?php echo addslashes(getenv("FILE_UPLOAD") == "amazonaws" ? getenv("CDN_URL") : getenv("CFLARE_R2_CDN")); ?>';
+var _cnPageNo  = 1;
+var _cnStatus  = 'All';
+var _cnSearch  = '';
+var _cnLoading = false;
 
 /**
- * Formats a MySQL datetime/date string using the settings list date format.
- * @param {string} dtStr - 'YYYY-MM-DD' or 'YYYY-MM-DD HH:MM:SS'
- * @returns {string}
+ * Loads the CN tab via server-rendered HTML (same pattern as All tab).
+ * @param {number} pageNo
+ * @returns {void}
  */
-function _cnFormatDate(dtStr) {
-    if (!dtStr) return '—';
-    var datePart = String(dtStr).split(' ')[0];
-    return formatDateDisplay(datePart) || datePart;
-}
-
-/**
- * Returns a relative time string (e.g. "2 hrs ago") from a MySQL datetime string.
- * @param {string} dtStr - 'YYYY-MM-DD HH:MM:SS'
- * @returns {string}
- */
-function _cnTimeAgo(dtStr) {
-    if (!dtStr) return '';
-    var d = new Date(dtStr.replace(' ', 'T'));
-    if (isNaN(d)) return '';
-    var diff = Math.floor((Date.now() - d.getTime()) / 1000);
-    if (diff < 60)    return diff + ' sec ago';
-    if (diff < 3600)  return Math.floor(diff / 60) + ' min ago';
-    if (diff < 86400) return Math.floor(diff / 3600) + ' hr' + (Math.floor(diff / 3600) === 1 ? '' : 's') + ' ago';
-    var days = Math.floor(diff / 86400);
-    return days + ' day' + (days === 1 ? '' : 's') + ' ago';
-}
-
-/**
- * Builds party avatar HTML matching the PHP partyAvatar() pattern.
- * @param {string} name - Party display name
- * @param {string|null} image - Image path (relative, appended to CDN URL)
- * @returns {string}
- */
-function _cnPartyAvatar(name, image) {
-    if (image) {
-        return '<div class="avatar avatar-sm flex-shrink-0">'
-             + '<img src="' + _cnCdnUrl + image + '" class="rounded-circle cursor-pointer preview-image" style="width:32px;height:32px;object-fit:cover;" />'
-             + '</div>';
-    }
-    var initials = '?';
-    if (name) {
-        var parts = String(name).trim().split(/\s+/);
-        initials  = parts[0].charAt(0).toUpperCase();
-        if (parts.length > 1) initials += parts[parts.length - 1].charAt(0).toUpperCase();
-    }
-    return '<div class="avatar avatar-sm flex-shrink-0">'
-         + '<span class="avatar-initial rounded-circle bg-label-primary" style="font-size:.72rem;">' + initials + '</span>'
-         + '</div>';
-}
-
 function loadCreditNotes(pageNo) {
     if (_cnLoading) return;
     _cnLoading = true;
     pageNo = pageNo || _cnPageNo;
-    var $tbody = $('#cnTableBody');
-    $tbody.html('<tr><td colspan="7" class="text-center py-4"><i class="bx bx-loader-alt bx-spin me-1"></i> Loading...</td></tr>');
+    $('#cnTableBody').html('<tr><td colspan="8" class="text-center py-4"><i class="bx bx-loader-alt bx-spin me-1"></i> Loading...</td></tr>');
 
     $.ajax({
         url  : '/invoices/getCreditNotesList',
         type : 'POST',
         data : {
             PageNo   : pageNo,
-            RowLimit : _cnRowLimit,
+            RowLimit : RowLimit,
             Status   : _cnStatus,
             Search   : _cnSearch,
             [CsrfName]: CsrfToken,
@@ -1012,133 +964,103 @@ function loadCreditNotes(pageNo) {
         success: function (resp) {
             _cnLoading = false;
             if (resp.Error) {
-                $tbody.html('<tr><td colspan="7" class="text-center py-3 text-danger">' + (resp.Message || 'Error loading credit notes') + '</td></tr>');
+                $('#cnTableBody').html('<tr><td colspan="8" class="text-center py-3 text-danger">' + (resp.Message || 'Error loading credit notes') + '</td></tr>');
                 return;
             }
-            _cnPageNo = resp.PageNo || pageNo;
-            var rows  = resp.Data  || [];
-            var total = resp.TotalCount || 0;
-            var cur   = '<?php echo addslashes($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>';
-            var dec   = <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>;
-
-            // Update tab count badge regardless of whether rows are empty
+            _cnPageNo = pageNo;
+            $('#cnTableBody').html(resp.RecordHtmlData);
+            $('.cnPagination').html(resp.Pagination);
+            var total    = resp.TotalCount || 0;
             var $cnBadge = $('.inv-cn-tab .trans-tab-count');
-            if (total > 0) {
-                $cnBadge.text(total).removeClass('d-none');
-            } else {
-                $cnBadge.text('').addClass('d-none');
-            }
-
-            if (!rows.length) {
-                $tbody.html('<tr><td colspan="7" class="text-center py-4 text-muted">No credit notes found.</td></tr>');
-                $('#cnPagination').empty();
-                return;
-            }
-
-            var html = '';
-            $.each(rows, function (i, cn) {
-                var statusBadge = '';
-                if (cn.Status === 'Pending')   statusBadge = '<span class="badge bg-label-warning">Pending</span>';
-                if (cn.Status === 'Applied')   statusBadge = '<span class="badge bg-label-success">Applied</span>';
-                if (cn.Status === 'Refunded')  statusBadge = '<span class="badge bg-label-secondary">Refunded</span>';
-                if (cn.Status === 'Cancelled') statusBadge = '<span class="badge bg-label-danger">Cancelled</span>';
-
-                var amt         = parseFloat(cn.Amount || 0).toLocaleString('en-IN', { minimumFractionDigits: dec, maximumFractionDigits: dec });
-                var cnDateFmt   = cn.CreatedOn      ? _cnFormatDate(cn.CreatedOn)      : '—';
-                var srcDateFmt  = cn.SourceTransDate ? _cnFormatDate(cn.SourceTransDate) : '—';
-                var creatorName = cn.CreatorName    ? cn.CreatorName                   : '';
-                var timeAgoStr  = cn.CreatedOn      ? _cnTimeAgo(cn.CreatedOn)         : '';
-
-                // ── CN Number cell ────────────────────────────────────────────
-                var cnNumHtml = '<td>';
-                cnNumHtml += '<span class="fw-semibold trans-doc-number">' + (cn.CreditNoteNumber || '—') + '</span>';
-                if (cnDateFmt !== '—') cnNumHtml += '<div class="text-muted mt-1" style="font-size:.72rem;">' + cnDateFmt + '</div>';
-                if (creatorName)       cnNumHtml += '<div style="font-size:.68rem;color:#b0b7c3;">by ' + creatorName + '</div>';
-                cnNumHtml += '</td>';
-
-                // ── Customer cell ─────────────────────────────────────────────
-                var custHtml = '<td class="inv-party-td">';
-                if (cn.CustomerName) {
-                    custHtml += '<div class="d-flex align-items-center gap-2">';
-                    custHtml += _cnPartyAvatar(cn.CustomerName, cn.CustomerImage);
-                    custHtml += '<div>';
-                    custHtml += '<div class="trans-party-name fw-semibold">' + cn.CustomerName + '</div>';
-                    if (cn.CustomerArea) custHtml += '<div style="font-size:.7rem;color:#888;margin-top:1px;"><i class="bx bx-map" style="font-size:.72rem;"></i> ' + cn.CustomerArea + '</div>';
-                    if (cn.MobileNo)     custHtml += '<div style="font-size:.72rem;color:#888;">' + cn.MobileNo + '</div>';
-                    custHtml += '</div></div>';
-                } else {
-                    custHtml += '<span class="text-muted">—</span>';
-                }
-                custHtml += '</td>';
-
-                // ── Source SR cell (number as link + date below) ───────────────
-                var srHtml = '<td>';
-                if (cn.SourceTransUID > 0 && cn.SourceTransNumber) {
-                    srHtml += '<a href="javascript:void(0)" class="fw-semibold trans-doc-number viewTransaction"'
-                            + ' data-uid="'    + cn.SourceTransUID    + '"'
-                            + ' data-module="' + (cn.SourceModuleUID || 0) + '"'
-                            + (cn.SourceTransToken ? ' data-token="' + cn.SourceTransToken + '"' : '')
-                            + '>' + cn.SourceTransNumber + '</a>';
-                } else {
-                    srHtml += '<span class="fw-semibold">' + (cn.SourceTransNumber || '—') + '</span>';
-                }
-                if (srcDateFmt !== '—') srHtml += '<div class="text-muted mt-1" style="font-size:.72rem;">' + srcDateFmt + '</div>';
-                srHtml += '</td>';
-
-                // ── Created On cell (datetime + relative + by user) ────────────
-                var createdOnHtml = '<td>';
-                if (cn.CreatedOn) {
-                    var createdD   = new Date(cn.CreatedOn.replace(' ', 'T'));
-                    var createdFmt = isNaN(createdD) ? cn.CreatedOn
-                        : cnDateFmt + ' '
-                        + ('0' + createdD.getHours()).slice(-2) + ':'
-                        + ('0' + createdD.getMinutes()).slice(-2) + ' '
-                        + (createdD.getHours() >= 12 ? 'PM' : 'AM');
-                    createdOnHtml += '<div style="font-size:.8rem;">' + createdFmt + '</div>';
-                    if (timeAgoStr) createdOnHtml += '<div class="text-muted" style="font-size:.72rem;">' + timeAgoStr + '</div>';
-                    if (creatorName) createdOnHtml += '<div style="font-size:.68rem;color:#b0b7c3;">by ' + creatorName + '</div>';
-                } else {
-                    createdOnHtml += '<span class="text-muted">—</span>';
-                }
-                createdOnHtml += '</td>';
-
-                html += '<tr>';
-                html += '<td class="text-muted">' + ((_cnPageNo - 1) * _cnRowLimit + i + 1) + '</td>';
-                html += cnNumHtml;
-                html += custHtml;
-                html += srHtml;
-                html += '<td class="fw-semibold">' + cur + ' ' + amt + '</td>';
-                html += '<td>' + statusBadge + '</td>';
-                html += createdOnHtml;
-                html += '</tr>';
-            });
-            $tbody.html(html);
-
-            // Build simple pagination
-            var lastPage = Math.ceil(total / _cnRowLimit) || 1;
-            var pagHtml  = '';
-            if (lastPage > 1) {
-                pagHtml += '<div class="col-auto text-muted small">Showing ' + ((_cnPageNo - 1) * _cnRowLimit + 1) + '–' + Math.min(_cnPageNo * _cnRowLimit, total) + ' of ' + total + '</div>';
-                pagHtml += '<div class="col-auto"><ul class="pagination pagination-sm mb-0">';
-                pagHtml += '<li class="page-item' + (_cnPageNo <= 1 ? ' disabled' : '') + '"><a class="page-link cn-page-link" href="#" data-page="' + (_cnPageNo - 1) + '">&laquo;</a></li>';
-                for (var p = Math.max(1, _cnPageNo - 2); p <= Math.min(lastPage, _cnPageNo + 2); p++) {
-                    pagHtml += '<li class="page-item' + (p === _cnPageNo ? ' active' : '') + '"><a class="page-link cn-page-link" href="#" data-page="' + p + '">' + p + '</a></li>';
-                }
-                pagHtml += '<li class="page-item' + (_cnPageNo >= lastPage ? ' disabled' : '') + '"><a class="page-link cn-page-link" href="#" data-page="' + (_cnPageNo + 1) + '">&raquo;</a></li>';
-                pagHtml += '</ul></div>';
-            } else {
-                pagHtml = '<div class="col-auto text-muted small">' + total + ' record' + (total !== 1 ? 's' : '') + '</div>';
-            }
-            $('#cnPagination').html(pagHtml);
-
+            if (total > 0) { $cnBadge.text(total).removeClass('d-none'); } else { $cnBadge.text('').addClass('d-none'); }
+            initTooltips();
         },
         error: function () {
             _cnLoading = false;
-            $('#cnTableBody').html('<tr><td colspan="7" class="text-center py-3 text-danger">Request failed.</td></tr>');
+            $('#cnTableBody').html('<tr><td colspan="8" class="text-center py-3 text-danger">Request failed.</td></tr>');
         }
     });
 }
 
+// ── Cancel Credit Note ────────────────────────────────────────────────────────
+
+$(document).on('click', '.cn-cancel-btn', function () {
+    var uid    = $(this).data('uid');
+    var number = $(this).data('number');
+    var amount = $(this).data('amount');
+    var cur    = '<?php echo addslashes($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>';
+
+    var swalHtml = 'Cancel Credit Note <strong>' + number + '</strong>? This cannot be undone.'
+        + '<div class="mt-2 text-muted small">Linked payment of <strong>' + cur + ' ' + amount + '</strong> will also be cancelled and the customer balance will be updated.</div>'
+        + '<div class="mt-3 text-start">'
+        + '<label class="form-label fw-semibold small mb-1">Reason for cancellation <span class="text-muted fw-normal">(optional)</span></label>'
+        + '<textarea class="form-control form-control-sm" id="cnSwalCancelReason" rows="2" maxlength="500" placeholder="e.g. Customer requested cancellation, duplicate entry…"></textarea>'
+        + '</div>';
+
+    Swal.fire({
+        title             : 'Cancel Credit Note?',
+        html              : swalHtml,
+        icon              : 'warning',
+        showCancelButton  : true,
+        confirmButtonText : 'Yes, Cancel It',
+        confirmButtonColor: '#fd7e14',
+        didOpen: function () {
+            var $icon = $(Swal.getIcon());
+            $icon.css({ width: '3em', height: '3em', borderWidth: '2px' });
+            $icon.find('.swal2-icon-content').css({ fontSize: '1.5em' });
+        }
+    }).then(function (r) {
+        if (!r.isConfirmed) return;
+        var notes = $('#cnSwalCancelReason').val().trim();
+        ajaxLoading(1);
+        $.ajax({
+            url  : '/invoices/cancelCreditNote',
+            type : 'POST',
+            data : { CreditNoteUID: uid, Notes: notes, [CsrfName]: CsrfToken },
+            success: function (resp) {
+                ajaxLoading(0);
+                if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message || 'Failed to cancel Credit Note.' }); return; }
+                loadCreditNotes(_cnPageNo);
+            },
+            error: function () {
+                ajaxLoading(0);
+                Swal.fire({ icon: 'error', text: 'Request failed. Please try again.' });
+            }
+        });
+    });
+});
+
+// ── Delete Credit Note ────────────────────────────────────────────────────────
+
+$(document).on('click', '.cn-delete-btn', function () {
+    var uid    = $(this).data('uid');
+    var number = $(this).data('number');
+    var amount = $(this).data('amount');
+    var cur    = '<?php echo addslashes($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>';
+
+    if (!confirm(
+        'Delete Credit Note ' + number + '?\n\n' +
+        'This will also delete the linked payment of ' + cur + ' ' + amount + ' and revert the customer balance.\n\n' +
+        'This action cannot be undone.'
+    )) return;
+
+    var $item = $(this);
+    ajaxLoading(1);
+    $.ajax({
+        url  : '/invoices/deleteCreditNote',
+        type : 'POST',
+        data : { CreditNoteUID: uid, [CsrfName]: CsrfToken },
+        success: function (resp) {
+            ajaxLoading(0);
+            if (resp.Error) { alert(resp.Message || 'Failed to delete Credit Note.'); return; }
+            loadCreditNotes(_cnPageNo);
+        },
+        error: function () {
+            ajaxLoading(0);
+            alert('Request failed. Please try again.');
+        }
+    });
+});
 
 // ── CN Status filter panel (Pay Status box style) ────────────────────────────
 
@@ -1177,9 +1099,9 @@ $(document).on('click', '.cn-status-panel-opt', function (e) {
 });
 
 // CN pagination
-$(document).on('click', '.cn-page-link', function (e) {
+$(document).on('click', '.cnPagination .page-link', function (e) {
     e.preventDefault();
-    var page = parseInt($(this).data('page'));
-    if (page > 0) { _cnPageNo = page; loadCreditNotes(page); }
+    var match = ($(this).attr('href') || '').match(/\/(\d+)$/);
+    if (match) { _cnPageNo = parseInt(match[1]); loadCreditNotes(_cnPageNo); }
 });
 </script>

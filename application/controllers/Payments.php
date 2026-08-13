@@ -312,12 +312,21 @@ class Payments extends MY_Controller {
                 );
             }
 
+            // Guard 3 — Block if payment was transferred to a Credit Note (invoice cancellation flow)
+            if ((int)($payment->IsTransferredToCreditNote ?? 0) === 1) {
+                throw new Exception(
+                    'This payment has been converted to a Credit Note. ' .
+                    'To remove it, delete the linked Credit Note from the Credit Notes tab — ' .
+                    'that will automatically delete this payment and revert the customer balance.'
+                );
+            }
+
             $transUID     = (int) $payment->TransUID;
             $existingPaid = ($transUID > 0)
                 ? $this->transactions_model->getSumPaidForTransaction($transUID, $orgUID)
                 : 0;
 
-            // Guard 3 — SR payment: block if linked Credit Note is already Applied to an invoice
+            // Guard 4 — SR payment: block if linked Credit Note is already Applied to an invoice
             $srCN = null;
             if ($transUID > 0 && (int)($payment->ModuleUID ?? 0) === 106) {
                 $readDb = $this->load->database('ReadDB', TRUE);

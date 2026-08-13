@@ -27,8 +27,9 @@ class Customerbalance {
 
     // ── Credit Note: create when a paid/partial invoice is cancelled ──────────
 
-    public function createCreditNote($orgUID, $customerUID, $transUID, $userUID) {
+    public function createCreditNote(int $orgUID, int $customerUID, int $transUID, int $userUID, string $invoiceNumber = ''): ?array {
         try {
+            $this->CI->load->model('transactions_model');
             $this->CI->load->model('dbwrite_model');
 
             // Get total payments made against this invoice
@@ -37,22 +38,56 @@ class Customerbalance {
             $readDb->select('COALESCE(SUM(Amount), 0) AS paid');
             $readDb->from('Transaction.PaymentsTbl');
             $readDb->where([
-                'TransUID'         => (int)$transUID,
-                'PartyType'        => 'C',
-                'PaymentDirection' => 'In',
-                'IsDeleted'        => 0,
+                'TransUID'                  => $transUID,
+                'PartyType'                 => 'C',
+                'PaymentDirection'          => 'In',
+                'IsDeleted'                 => 0,
                 'IsTransferredToCreditNote' => 0,
             ]);
             $row       = $readDb->get()->row();
             $paidTotal = $row ? (float)$row->paid : 0.0;
 
-            if ($paidTotal <= 0) return null; // nothing to credit
+            if ($paidTotal <= 0) return null;
 
-            // Mark existing payments as transferred to credit note
+            // Prefix lookup for Credit Notes (ModuleUID = 107)
+            $prefixData = $this->CI->transactions_model->getTransactionsPrefixDetails([
+                'Prefix.OrgUID'    => $orgUID,
+                'Prefix.ModuleUID' => 107,
+            ]);
+            $prefix    = !empty($prefixData->Data) ? $prefixData->Data[0] : null;
+            $prefixUID = $prefix ? (int)$prefix->PrefixUID : null;
+
+            // Next sequential number (org-wide, never re-issues)
+            $seq = $this->CI->transactions_model->getNextCreditNoteNumber($orgUID);
+
+            // Build formatted CN number (same logic as all other transaction types)
+            $cnNumber = null;
+            if ($prefix) {
+                $date    = date('Y-m-d');
+                $sep     = $prefix->Separator ?? '-';
+                $parts   = [strtoupper($prefix->Name)];
+                if (!empty($prefix->IncludeShortName) && !empty($prefix->ShortName)) {
+                    $parts[] = strtoupper($prefix->ShortName);
+                }
+                if (!empty($prefix->IncludeFiscalYear)) {
+                    $m       = (int)date('m', strtotime($date));
+                    $yr      = (int)date('Y', strtotime($date));
+                    $fyStart = $m >= 4 ? $yr : $yr - 1;
+                    $parts[] = ($prefix->FiscalYearFormat ?? 'SHORT') === 'LONG'
+                        ? $fyStart . '-' . ($fyStart + 1)
+                        : str_pad($fyStart % 100, 2, '0', STR_PAD_LEFT) . '-' . str_pad(($fyStart + 1) % 100, 2, '0', STR_PAD_LEFT);
+                }
+                $pad     = (int)($prefix->NumberPadding ?? 1);
+                $parts[] = $pad > 1 ? str_pad($seq, $pad, '0', STR_PAD_LEFT) : (string)$seq;
+                $cnNumber = implode($sep, $parts);
+            }
+
             $writeDb = $this->CI->load->database('WriteDB', TRUE);
             $writeDb->db_debug = FALSE;
+
+            // Mark existing payments as transferred to credit note
             $writeDb->where([
-                'TransUID'                  => (int)$transUID,
+                'TransUID'                  => $transUID,
                 'PartyType'                 => 'C',
                 'PaymentDirection'          => 'In',
                 'IsDeleted'                 => 0,
@@ -60,25 +95,48 @@ class Customerbalance {
             ]);
             $writeDb->update('Transaction.PaymentsTbl', [
                 'IsTransferredToCreditNote' => 1,
-                'UpdatedBy'                 => (int)$userUID,
+                'UpdatedBy'                 => $userUID,
             ]);
 
             // Create the credit note record
             $writeDb->insert('Transaction.TransCreditNoteTbl', [
-                'OrgUID'         => (int)$orgUID,
-                'PartyUID'       => (int)$customerUID,
-                'PartyType'      => 'C',
-                'SourceTransUID' => (int)$transUID,
-                'Amount'         => $paidTotal,
-                'Status'         => 'Pending',
-                'Notes'          => 'Auto-created on invoice cancellation',
-                'CreatedBy'      => (int)$userUID,
-                'UpdatedBy'      => (int)$userUID,
-                'IsActive'       => 1,
-                'IsDeleted'      => 0,
+                'OrgUID'             => $orgUID,
+                'PartyUID'           => $customerUID,
+                'PartyType'          => 'C',
+                'SourceTransUID'     => $transUID,
+                'SourceTransNumber'  => $invoiceNumber,
+                'SourceModuleUID'    => 103,
+                'CreditNoteNumber'   => $cnNumber,
+                'CreditNoteToken'    => generate_uuid4(),
+                'CreditNoteSeq'      => $seq,
+                'CreditNoteType'     => 'Invoice',
+                'PrefixUID'          => $prefixUID,
+                'Amount'             => $paidTotal,
+                'Status'             => 'Pending',
+                'Notes'              => 'Auto-created on invoice cancellation',
+                'CreatedBy'          => $userUID,
+                'UpdatedBy'          => $userUID,
+                'IsActive'           => 1,
+                'IsDeleted'          => 0,
             ]);
 
-            return ['creditNoteUID' => (int)$writeDb->insert_id(), 'amount' => $paidTotal];
+            $creditNoteUID = (int)$writeDb->insert_id();
+
+            try {
+                $cnLabel = $cnNumber ?: '#' . $creditNoteUID;
+                $this->CI->load->library('auditlog');
+                $this->CI->auditlog->log(
+                    $orgUID, $userUID, 'CREATE_CREDIT_NOTE', 'CreditNote', $creditNoteUID,
+                    $cnNumber ?: '',
+                    ['amount' => $paidTotal, 'sourceTransUID' => $transUID, 'sourceTransNumber' => $invoiceNumber, 'type' => 'Invoice'],
+                    'Credit Note ' . $cnLabel . ' auto-created from cancelled Invoice ' . ($invoiceNumber ?: '#' . $transUID),
+                    'Invoices', 'TRANSACTION'
+                );
+            } catch (Exception $auditEx) {
+                log_message('error', 'Customerbalance::createCreditNote audit failed: ' . $auditEx->getMessage());
+            }
+
+            return ['creditNoteUID' => $creditNoteUID, 'amount' => $paidTotal];
 
         } catch (Exception $e) {
             log_message('error', 'Customerbalance::createCreditNote failed: ' . $e->getMessage());
@@ -174,6 +232,20 @@ class Customerbalance {
 
             $creditNoteUID = (int)$writeDb->insert_id();
             log_message('debug', '[CN-TRACE] INSERT OK — CreditNoteUID=' . $creditNoteUID . ' Number=' . $cnNumber . ' SR=' . $srUniqueNumber . ' Amount=' . $amount);
+
+            try {
+                $cnLabel = $cnNumber ?: '#' . $creditNoteUID;
+                $this->CI->load->library('auditlog');
+                $this->CI->auditlog->log(
+                    $orgUID, $userUID, 'CREATE_CREDIT_NOTE', 'CreditNote', $creditNoteUID,
+                    $cnNumber ?: '',
+                    ['amount' => $amount, 'sourceTransUID' => $srTransUID, 'sourceTransNumber' => $srUniqueNumber, 'type' => 'SalesReturn'],
+                    'Credit Note ' . $cnLabel . ' auto-created from Sales Return ' . $srUniqueNumber,
+                    'SalesReturns', 'TRANSACTION'
+                );
+            } catch (Exception $auditEx) {
+                log_message('error', 'Customerbalance::createSalesReturnCreditNote audit failed: ' . $auditEx->getMessage());
+            }
 
             return ['creditNoteUID' => $creditNoteUID, 'creditNoteNumber' => $cnNumber, 'amount' => $amount];
 
@@ -322,6 +394,21 @@ class Customerbalance {
             // Recalc balance
             $this->recalcAndSync($orgUID, $cn->PartyUID, $userUID);
 
+            try {
+                $cnNumber = $cn->CreditNoteNumber ?: '';
+                $cnLabel  = $cnNumber ?: '#' . $creditNoteUID;
+                $this->CI->load->library('auditlog');
+                $this->CI->auditlog->log(
+                    $orgUID, $userUID, 'APPLY_CREDIT_NOTE', 'CreditNote', (int)$creditNoteUID,
+                    $cnNumber,
+                    ['amount' => (float)$cn->Amount, 'targetTransUID' => $targetTransUID, 'paymentUID' => $paymentUID],
+                    'Credit Note ' . $cnLabel . ' applied to Invoice #' . $targetTransUID,
+                    'Invoices', 'TRANSACTION'
+                );
+            } catch (Exception $auditEx) {
+                log_message('error', 'Customerbalance::applyCreditNote audit failed: ' . $auditEx->getMessage());
+            }
+
             return ['paymentUID' => $paymentUID];
 
         } catch (Exception $e) {
@@ -365,6 +452,21 @@ class Customerbalance {
 
             // Recalc balance
             $this->recalcAndSync($orgUID, $cn->PartyUID, $userUID);
+
+            try {
+                $cnNumber = $cn->CreditNoteNumber ?: '';
+                $cnLabel  = $cnNumber ?: '#' . $creditNoteUID;
+                $this->CI->load->library('auditlog');
+                $this->CI->auditlog->log(
+                    $orgUID, $userUID, 'REFUND_CREDIT_NOTE', 'CreditNote', (int)$creditNoteUID,
+                    $cnNumber,
+                    ['amount' => (float)$cn->Amount, 'sourceTransUID' => (int)$cn->SourceTransUID],
+                    'Credit Note ' . $cnLabel . ' refunded to customer',
+                    'Invoices', 'TRANSACTION'
+                );
+            } catch (Exception $auditEx) {
+                log_message('error', 'Customerbalance::refundCreditNote audit failed: ' . $auditEx->getMessage());
+            }
 
             return true;
 

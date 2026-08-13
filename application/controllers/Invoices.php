@@ -712,7 +712,7 @@ class Invoices extends MY_Controller {
                 // For refund / cancel_only: no credit note â€” IsDeleted=1 alone is sufficient.
                 if ($cancelAction === 'credit_note') {
                     $this->customerbalance->createCreditNote(
-                        $orgUID, (int)$existing->PartyUID, $transUID, $userUID
+                        $orgUID, (int)$existing->PartyUID, $transUID, $userUID, $existing->UniqueNumber ?? ''
                     );
                 }
 
@@ -997,7 +997,7 @@ class Invoices extends MY_Controller {
                 } else {
                     // credit_note / ask â†’ create a Pending credit note for the paid portion
                     $cnResult = $this->customerbalance->createCreditNote(
-                        $orgUID, (int)$existing->PartyUID, $transUID, $userUID
+                        $orgUID, (int)$existing->PartyUID, $transUID, $userUID, $existing->UniqueNumber ?? ''
                     );
 
                     if ($cnResult) {
@@ -1300,6 +1300,163 @@ class Invoices extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
+    // ── Cancel a pending credit note + its linked payment (reversible flag only) ─────────────────
+
+    public function cancelCreditNote(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID        = $this->pageData['JwtData']->Org->OrgUID;
+            $userUID       = $this->pageData['JwtData']->User->UserUID;
+            $creditNoteUID = (int) $this->input->post('CreditNoteUID');
+            $notes         = trim($this->input->post('Notes') ?: '');
+
+            if ($creditNoteUID <= 0) throw new Exception('Invalid Credit Note.');
+
+            $readDb = $this->load->database('ReadDB', TRUE);
+            $readDb->db_debug = FALSE;
+            $readDb->from('Transaction.TransCreditNoteTbl');
+            $readDb->where(['CreditNoteUID' => $creditNoteUID, 'OrgUID' => (int)$orgUID, 'IsDeleted' => 0, 'IsCancelled' => 0]);
+            $cn = $readDb->get()->row();
+
+            if (!$cn) throw new Exception('Credit Note not found.');
+            if ($cn->Status !== 'Pending') throw new Exception('Only Pending Credit Notes can be cancelled. This Credit Note is ' . $cn->Status . '.');
+
+            $this->load->model('dbwrite_model');
+            $this->dbwrite_model->startTransaction();
+
+            $wdb = $this->dbwrite_model->getWriteDb();
+            $wdb->db_debug = FALSE;
+
+            // Cancel the linked payment
+            $wdb->where([
+                'TransUID'                  => (int)$cn->SourceTransUID,
+                'OrgUID'                    => (int)$orgUID,
+                'IsTransferredToCreditNote' => 1,
+                'IsDeleted'                 => 0,
+            ]);
+            $wdb->update('Transaction.PaymentsTbl', ['IsCancelled' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID]);
+
+            // Cancel the credit note
+            $cnUpdate = ['IsCancelled' => 1, 'IsActive' => 0, 'Status' => 'Cancelled', 'UpdatedBy' => $userUID];
+            if ($notes !== '') $cnUpdate['CancelReason'] = $notes;
+            $wdb->where(['CreditNoteUID' => $creditNoteUID, 'OrgUID' => (int)$orgUID]);
+            $wdb->update('Transaction.TransCreditNoteTbl', $cnUpdate);
+
+            $this->dbwrite_model->commitTransaction();
+
+            if ((int)($cn->PartyUID ?? 0) > 0) {
+                $this->load->library('customerbalance');
+                $balResult = $this->customerbalance->recalcAndSync($orgUID, (int)$cn->PartyUID, $userUID);
+                if ($balResult) {
+                    $this->EndReturnData->CustomerBalance     = $balResult['balance'];
+                    $this->EndReturnData->CustomerBalanceType = $balResult['type'];
+                }
+            }
+
+            try {
+                $cnNumber = $cn->CreditNoteNumber ?: '';
+                $cnLabel  = $cnNumber ?: '#' . $creditNoteUID;
+                $this->load->library('auditlog');
+                $this->auditlog->log(
+                    $orgUID, $userUID, 'CANCEL_CREDIT_NOTE', 'CreditNote', $creditNoteUID,
+                    $cnNumber,
+                    ['amount' => $cn->Amount, 'notes' => $notes],
+                    'Cancelled Credit Note ' . $cnLabel,
+                    'Invoices', 'TRANSACTION'
+                );
+            } catch (Exception $auditEx) {
+                log_message('error', 'Audit log failed: ' . $auditEx->getMessage());
+            }
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Credit Note cancelled successfully.';
+
+        } catch (Exception $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    // ── Delete a pending credit note + its linked payment ────────────────────────────────────────
+
+    public function deleteCreditNote(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID        = $this->pageData['JwtData']->Org->OrgUID;
+            $userUID       = $this->pageData['JwtData']->User->UserUID;
+            $creditNoteUID = (int) $this->input->post('CreditNoteUID');
+
+            if ($creditNoteUID <= 0) throw new Exception('Invalid Credit Note.');
+
+            $readDb = $this->load->database('ReadDB', TRUE);
+            $readDb->db_debug = FALSE;
+            $readDb->from('Transaction.TransCreditNoteTbl');
+            $readDb->where(['CreditNoteUID' => $creditNoteUID, 'OrgUID' => (int)$orgUID, 'IsDeleted' => 0]);
+            $cn = $readDb->get()->row();
+
+            if (!$cn) throw new Exception('Credit Note not found.');
+            if ($cn->Status !== 'Pending') throw new Exception('Only Pending Credit Notes can be deleted. This Credit Note is ' . $cn->Status . '.');
+
+            $this->load->model('dbwrite_model');
+            $this->dbwrite_model->startTransaction();
+
+            $wdb = $this->dbwrite_model->getWriteDb();
+            $wdb->db_debug = FALSE;
+
+            // Soft-delete the linked payment that funded this credit note
+            $wdb->where([
+                'TransUID'                  => (int)$cn->SourceTransUID,
+                'OrgUID'                    => (int)$orgUID,
+                'IsTransferredToCreditNote' => 1,
+                'IsDeleted'                 => 0,
+            ]);
+            $wdb->update('Transaction.PaymentsTbl', ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID]);
+
+            // Soft-delete the credit note
+            $wdb->where(['CreditNoteUID' => $creditNoteUID, 'OrgUID' => (int)$orgUID]);
+            $wdb->update('Transaction.TransCreditNoteTbl', ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID]);
+
+            $this->dbwrite_model->commitTransaction();
+
+            // Recalculate customer balance after commit
+            if ((int)($cn->PartyUID ?? 0) > 0) {
+                $this->load->library('customerbalance');
+                $balResult = $this->customerbalance->recalcAndSync($orgUID, (int)$cn->PartyUID, $userUID);
+                if ($balResult) {
+                    $this->EndReturnData->CustomerBalance     = $balResult['balance'];
+                    $this->EndReturnData->CustomerBalanceType = $balResult['type'];
+                }
+            }
+
+            try {
+                $cnNumber  = $cn->CreditNoteNumber  ?: '';
+                $cnSrcNum  = $cn->SourceTransNumber ?: '';
+                $cnLabel   = $cnNumber ?: '#' . $creditNoteUID;
+                $this->load->library('auditlog');
+                $this->auditlog->log(
+                    $orgUID, $userUID, 'DELETE_CREDIT_NOTE', 'CreditNote', $creditNoteUID,
+                    $cnNumber,
+                    ['amount' => $cn->Amount, 'sourceTransUID' => (int)$cn->SourceTransUID, 'sourceTransNumber' => $cnSrcNum],
+                    'Deleted Credit Note ' . $cnLabel . ' and linked payment',
+                    'Invoices', 'TRANSACTION'
+                );
+            } catch (Exception $auditEx) {
+                log_message('error', 'Audit log failed: ' . $auditEx->getMessage());
+            }
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Credit Note and linked payment deleted successfully.';
+
+        } catch (Exception $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
     // â”€â”€ Get pending credit notes for a customer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public function getCustomerCreditNotes() {
@@ -1339,7 +1496,7 @@ class Invoices extends MY_Controller {
             $readDb = $this->load->database('ReadDB', TRUE);
             $readDb->db_debug = FALSE;
 
-            $baseWhere = ['CN.OrgUID' => (int)$orgUID, 'CN.IsDeleted' => 0];
+            $baseWhere = ['CN.OrgUID' => (int)$orgUID, 'CN.IsDeleted' => 0, 'CN.IsCancelled' => 0];
             if ($status !== '' && $status !== 'All') {
                 $baseWhere['CN.Status'] = $status;
             }
@@ -1404,11 +1561,16 @@ class Invoices extends MY_Controller {
             }
             $rows = $dataResult->result();
 
-            $this->EndReturnData->Error      = FALSE;
-            $this->EndReturnData->Data       = $rows;
-            $this->EndReturnData->TotalCount = $totalCount;
-            $this->EndReturnData->PageNo     = $pageNo;
-            $this->EndReturnData->RowLimit   = $limit;
+            $this->EndReturnData->Error          = FALSE;
+            $this->EndReturnData->TotalCount     = $totalCount;
+            $this->EndReturnData->RecordHtmlData = $this->load->view(
+                'transactions/invoices/creditnotes_list',
+                ['DataLists' => $rows, 'SerialNumber' => $offset, 'JwtData' => $this->pageData['JwtData']],
+                true
+            );
+            $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml(
+                '/invoices/getCreditNotesList', $totalCount, $pageNo, $limit
+            );
 
         } catch (Exception $e) {
             $this->EndReturnData->Error   = TRUE;

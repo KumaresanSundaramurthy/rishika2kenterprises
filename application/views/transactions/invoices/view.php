@@ -183,11 +183,15 @@ $this->load->view('common/transactions/header'); ?>
                                         </tr>
                                     </thead>
                                     <tbody id="cnTableBody" class="r2k-tbody table-border-bottom-0">
-                                        <tr><td colspan="8" class="text-center py-4 text-muted">Loading...</td></tr>
+                                        <?php if ($initTab === 'CreditNotes' && $CnInitHtml !== ''): ?>
+                                            <?php echo $CnInitHtml; ?>
+                                        <?php else: ?>
+                                            <tr><td colspan="8" class="text-center py-4 text-muted">Loading...</td></tr>
+                                        <?php endif; ?>
                                     </tbody>
                                 </table>
                             </div>
-                            <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center cnPagination apex-pag-sticky" id="cnPagination"></div>
+                            <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center cnPagination apex-pag-sticky" id="cnPagination"><?php if ($initTab === 'CreditNotes' && $CnInitPagination !== '') { echo $CnInitPagination; } ?></div>
                         </div>
 
                     </div>
@@ -433,7 +437,13 @@ $(function () {
     _applyTabFilters(_invInitTab || 'All', _invTabFilterMap, _allInvFilterEls);
     if (_invInitTab === 'CreditNotes') {
         if (_invInitSearch) { _cnSearch = _invInitSearch; }
-        loadCreditNotes(1);
+        if (_cnPreloaded) {
+            if (_cnInitCount > 0) {
+                $('.inv-cn-tab .trans-tab-count').text(_cnInitCount).removeClass('d-none');
+            }
+        } else {
+            loadCreditNotes(1);
+        }
     }
 
     // ── Stat card click → filter by status ─────────────────
@@ -591,6 +601,7 @@ $(function () {
                 data  : _actionPostData({ TransUID: uid }),
                 success: function (resp) {
                     ajaxLoading(0);
+                    hideUIBlock();
                     if (resp.Error) { Swal.fire({ icon:'error', text:resp.Message }); return; }
                     showToastNotification(resp.Message || 'Deleted.', 'success');
                     if (PageNo > 1 && (resp.TotalCount || 0) <= (PageNo - 1) * RowLimit) {
@@ -785,6 +796,7 @@ $(function () {
 
             var cancelReason = $.trim($('#swalCancelReason').val() || '');
 
+            ajaxLoading(1);
             $.ajax({
                 url   : '/invoices/updateInvoiceStatus',
                 method: 'POST',
@@ -796,6 +808,8 @@ $(function () {
                     [CsrfName]         : CsrfToken
                 },
                 success: function (resp) {
+                    ajaxLoading(0);
+                    hideUIBlock();
                     if (resp.Error) {
                         Swal.fire({ icon: 'error', text: resp.Message });
                     } else {
@@ -811,12 +825,12 @@ $(function () {
                                    parseFloat(resp.CustomerBalance).toLocaleString('en-IN', { minimumFractionDigits: 2 }) +
                                    '</strong></small>';
                         }
-                        getInvoicesDetails(undefined, undefined, undefined, function () {
-                            Swal.fire({ icon: 'success', html: msg, timer: 3000, showConfirmButton: false });
-                        });
+                        showToastNotification(msg, 'success');
+                        getInvoicesDetails();
                     }
                 },
                 error: function () {
+                    ajaxLoading(0);
                     Swal.fire({ icon: 'error', text: 'Request failed. Please try again.' });
                 }
             });
@@ -935,10 +949,12 @@ function updateInvoiceRow(invoice, payments, paidTotal) {
 }
 
 // ── Credit Notes tab ─────────────────────────────────────────────────────────
-var _cnPageNo  = 1;
-var _cnStatus  = 'All';
-var _cnSearch  = '';
-var _cnLoading = false;
+var _cnPageNo     = 1;
+var _cnStatus     = 'All';
+var _cnSearch     = '';
+var _cnLoading    = false;
+var _cnPreloaded  = <?php echo json_encode($initTab === 'CreditNotes' && $CnInitHtml !== ''); ?>;
+var _cnInitCount  = <?php echo (int)($CnInitCount ?? 0); ?>;
 
 /**
  * Loads the CN tab via server-rendered HTML (same pattern as All tab).

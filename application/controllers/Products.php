@@ -2894,6 +2894,179 @@ class Products extends MY_Controller {
     }
 
     /**
+     * Recalculate product stock quantity from scratch using OpeningQuantity + StockLedgerTbl
+     * movements, then persist to ProductStockTbl and refresh Upstash cache.
+     *
+     * POST body:
+     *   ProductUID (int, optional) — omit or 0 to recalculate all products in the org.
+     */
+    public function recalcStock(): void {
+
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID     = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $productUID = (int) $this->input->post('ProductUID');
+
+            $this->load->model('products_model');
+            $this->load->model('dbwrite_model');
+
+            $readDb = $this->load->database('ReadDB', TRUE);
+            $readDb->db_debug = FALSE;
+
+            $wdb = $this->dbwrite_model->getWriteDb();
+            $wdb->db_debug = FALSE;
+
+            if ($productUID > 0) {
+                // ── Single product ─────────────────────────────────────────
+                $inv = $readDb->query(
+                    'SELECT OpeningQuantity
+                     FROM Products.ProductTbl
+                     WHERE ProductUID = ? AND OrgUID = ? AND IsDeleted = 0
+                     LIMIT 1',
+                    [$productUID, $orgUID]
+                )->row();
+
+                if (!$inv) throw new Exception('Product not found.');
+
+                $ledger = $readDb->query(
+                    'SELECT
+                         COALESCE(SUM(CASE WHEN MovementType = \'IN\'  THEN Quantity ELSE 0 END), 0) AS SumIn,
+                         COALESCE(SUM(CASE WHEN MovementType = \'OUT\' THEN Quantity ELSE 0 END), 0) AS SumOut
+                     FROM Products.StockLedgerTbl
+                     WHERE ProductUID = ? AND OrgUID = ? AND IsDeleted = 0',
+                    [$productUID, $orgUID]
+                )->row();
+
+                $openingQty = (float)($inv->OpeningQuantity ?? 0);
+                $sumIn      = (float)($ledger->SumIn  ?? 0);
+                $sumOut     = (float)($ledger->SumOut ?? 0);
+                $newQty     = round($openingQty + $sumIn - $sumOut, $this->_decimals());
+
+                $wdb->query(
+                    'UPDATE Products.ProductStockTbl SET AvailableQty = ? WHERE ProductUID = ? AND OrgUID = ?',
+                    [$newQty, $productUID, $orgUID]
+                );
+
+                // Refresh this product's entry in the org hash + invalidate individual key
+                $this->cachehelper->upsertProduct($productUID);
+
+                $this->EndReturnData->Error      = false;
+                $this->EndReturnData->Message    = 'Stock recalculated successfully.';
+                $this->EndReturnData->RecalcQty  = $newQty;
+                $this->EndReturnData->OpeningQty = $openingQty;
+                $this->EndReturnData->SumIn      = $sumIn;
+                $this->EndReturnData->SumOut     = $sumOut;
+
+            } else {
+                // ── All products for this org ──────────────────────────────
+                $rows = $readDb->query(
+                    'SELECT
+                         p.ProductUID,
+                         COALESCE(p.OpeningQuantity, 0) AS OpeningQty,
+                         COALESCE(SUM(CASE WHEN sl.MovementType = \'IN\'  THEN sl.Quantity ELSE 0 END), 0) AS SumIn,
+                         COALESCE(SUM(CASE WHEN sl.MovementType = \'OUT\' THEN sl.Quantity ELSE 0 END), 0) AS SumOut
+                     FROM Products.ProductTbl p
+                     LEFT JOIN Products.StockLedgerTbl sl
+                            ON sl.ProductUID = p.ProductUID
+                           AND sl.OrgUID    = p.OrgUID
+                           AND sl.IsDeleted = 0
+                     WHERE p.OrgUID = ? AND p.IsDeleted = 0
+                     GROUP BY p.ProductUID, p.OpeningQuantity',
+                    [$orgUID]
+                )->result();
+
+                if (empty($rows)) throw new Exception('No products found for this organisation.');
+
+                // Update ProductStockTbl for every product
+                foreach ($rows as $r) {
+                    $qty = round(
+                        (float)$r->OpeningQty + (float)$r->SumIn - (float)$r->SumOut,
+                        $this->_decimals()
+                    );
+                    $wdb->query(
+                        'UPDATE Products.ProductStockTbl SET AvailableQty = ? WHERE ProductUID = ? AND OrgUID = ?',
+                        [$qty, (int)$r->ProductUID, $orgUID]
+                    );
+                }
+
+                // Invalidate individual keyProduct entries so the next detail fetch hits DB
+                $individualKeys = array_map(
+                    fn($r) => Upstashservice::keyProduct((int)$r->ProductUID),
+                    $rows
+                );
+                if (!empty($individualKeys)) {
+                    $this->upstashservice->delMany($individualKeys);
+                }
+
+                // Rebuild the org products hash (same logic as syncProductsCache)
+                $products    = $this->products_model->getProductsForCache($orgUID);
+                $bomRows     = $this->products_model->getAllProductBOMsForSync($orgUID);
+                $bomByParent = [];
+                foreach ($bomRows as $b) {
+                    $pUID = (string)(int)$b->ParentProductUID;
+                    $bomByParent[$pUID][] = ['uid' => (int)$b->ChildProductUID, 'qty' => (float)$b->Quantity];
+                }
+                $cacheKey = $this->redisservice->orgKey('products');
+                $this->upstashservice->del($cacheKey);
+                $newMap = [];
+                foreach ($products as $prod) {
+                    if ((int)($prod->NotForSale ?? 0) === 1) continue;
+                    $uid         = (int)$prod->ProductUID;
+                    $isComposite = (int)($prod->IsComposite ?? 0);
+                    $entry = [
+                        'ProductUID'                  => $uid,
+                        'ItemName'                    => $prod->ItemName                   ?? '',
+                        'ProductType'                 => $prod->ProductType                ?? '',
+                        'CategoryUID'                 => (int)($prod->CategoryUID          ?? 0),
+                        'CategoryName'                => $prod->CategoryName               ?? '',
+                        'HSNSACCode'                  => $prod->HSNSACCode                 ?? '',
+                        'PartNumber'                  => $prod->PartNumber                 ?? '',
+                        'SKU'                         => $prod->SKU                        ?? '',
+                        'Description'                 => $prod->Description                ?? '',
+                        'PrimaryUnitUID'              => (int)($prod->PrimaryUnitUID       ?? 0),
+                        'PrimaryUnitName'             => $prod->PrimaryUnitName            ?? '',
+                        'MRP'                         => (float)($prod->MRP                ?? 0),
+                        'SellingPrice'                => (float)($prod->SellingPrice       ?? 0),
+                        'PurchasePrice'               => (float)($prod->PurchasePrice      ?? 0),
+                        'SellingProductTaxUID'        => (int)($prod->SellingProductTaxUID ?? 0),
+                        'PurchasePriceProductTaxUID'  => (int)($prod->PurchasePriceProductTaxUID ?? 0),
+                        'TaxDetailsUID'               => (int)($prod->TaxDetailsUID        ?? 0),
+                        'TaxPercentage'               => (float)($prod->TaxPercentage      ?? 0),
+                        'CGST'                        => (float)($prod->CGST               ?? 0),
+                        'SGST'                        => (float)($prod->SGST               ?? 0),
+                        'IGST'                        => (float)($prod->IGST               ?? 0),
+                        'AvailableQuantity'           => (float)($prod->AvailableQuantity  ?? 0),
+                        'Discount'                    => (float)($prod->Discount           ?? 0),
+                        'DiscountTypeUID'             => (int)($prod->DiscountTypeUID      ?? 0),
+                        'LowStockAlertAt'             => (float)($prod->LowStockAlertAt    ?? 0),
+                        'NotForSale'                  => (int)($prod->NotForSale           ?? 0),
+                        'IsComboItem'                 => (int)($prod->IsComboItem          ?? 0),
+                        'IsComposite'                 => $isComposite,
+                        'IsSerialTracked'             => (int)($prod->IsSerialTracked      ?? 0),
+                    ];
+                    if ($isComposite) {
+                        $entry['items'] = $bomByParent[(string)$uid] ?? [];
+                    }
+                    $newMap[(string)$uid] = $entry;
+                }
+                if (!empty($newMap)) {
+                    $this->upstashservice->hmset($cacheKey, $newMap);
+                }
+
+                $this->EndReturnData->Error   = false;
+                $this->EndReturnData->Message = count($rows) . ' product(s) stock recalculated and cache refreshed.';
+                $this->EndReturnData->Count   = count($rows);
+            }
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    /**
      * Serves a single tab for the product profile modal via AJAX GET.
      * Supported tabs: overview, transactions, stock, history.
      *

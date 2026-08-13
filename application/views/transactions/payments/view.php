@@ -447,7 +447,27 @@ $(function () {
     });
 
     // ── Cancel payment (In direction) ────────────────────────────────────────
+    function _cnPaymentError() {
+        Swal.fire({
+            icon : 'error',
+            title: 'Action Not Allowed',
+            text : 'This payment is linked to a Credit Note. To remove it, cancel or delete the Credit Note from the Invoice\'s Credit Notes tab — that will automatically handle this payment.',
+            confirmButtonColor: '#696cff',
+        });
+    }
+
+    function _oaPaymentError() {
+        Swal.fire({
+            icon : 'error',
+            title: 'Action Not Allowed',
+            text : 'This payment is held as an on-account credit for the customer (from a cancelled invoice). It cannot be cancelled or deleted directly — apply it to a new invoice to use the credit.',
+            confirmButtonColor: '#696cff',
+        });
+    }
+
     $(document).on('click', '.cancelPayment', function () {
+        if ($(this).data('is-cn') == '1') { _cnPaymentError(); return; }
+        if ($(this).data('is-oa') == '1') { _oaPaymentError(); return; }
         var paymentUID = $(this).data('payment-uid');
         var $row = $(this).closest('tr');
         Swal.fire({
@@ -464,6 +484,8 @@ $(function () {
 
     // ── Cancel payment (Out direction) ───────────────────────────────────────
     $(document).on('click', '.cancelPaymentOut', function () {
+        if ($(this).data('is-cn') == '1') { _cnPaymentError(); return; }
+        if ($(this).data('is-oa') == '1') { _oaPaymentError(); return; }
         var paymentUID = $(this).data('payment-uid');
         var $row = $(this).closest('tr');
         Swal.fire({
@@ -480,6 +502,8 @@ $(function () {
 
     // ── Delete payment ───────────────────────────────────────────────────────
     $(document).on('click', '.deletePayment, .deletePaymentOut', function () {
+        if ($(this).data('is-cn') == '1') { _cnPaymentError(); return; }
+        if ($(this).data('is-oa') == '1') { _oaPaymentError(); return; }
         var paymentUID = $(this).data('payment-uid');
         var $row = $(this).closest('tr');
         Swal.fire({

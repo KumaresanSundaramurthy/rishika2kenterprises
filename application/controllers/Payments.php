@@ -155,7 +155,51 @@ class Payments extends MY_Controller {
             if ($paymentTypeUID <= 0) throw new Exception('Please select a payment type.');
             if ($amount <= 0)    throw new Exception('Payment amount must be greater than 0.');
 
-            $excessAmount = $billTotal > 0 ? max(0, $amount - $billTotal) : 0;
+            // Lock the invoice row to serialise concurrent payment recordings.
+            // A second request reaching this point while the first is inside the
+            // transaction blocks here until the first commits or rolls back.
+            // After unblocking it sees the updated PaidAmount, so the
+            // overpayment check below catches the duplicate before the INSERT.
+            $freshNetAmount = $billTotal;
+            if ($transUID > 0) {
+                $wdb = $this->dbwrite_model->getWriteDb();
+                $wdb->db_debug = FALSE;
+                $invResult = $wdb->query(
+                    'SELECT NetAmount, PaidAmount, DocStatus, IsDeleted
+                     FROM Transaction.TransactionsTbl
+                     WHERE TransUID = ? AND OrgUID = ?
+                     FOR UPDATE',
+                    [$transUID, $orgUID]
+                );
+                $lockedInv = $invResult ? $invResult->row() : null;
+
+                if (!$lockedInv) {
+                    throw new Exception('Invoice not found.');
+                }
+                if ((int)($lockedInv->IsDeleted ?? 0) === 1) {
+                    throw new Exception('This invoice has been deleted and cannot accept payments.');
+                }
+                if (in_array($lockedInv->DocStatus, ['Cancelled', 'Rejected'], true)) {
+                    throw new Exception('This invoice is ' . $lockedInv->DocStatus . ' and cannot accept payments.');
+                }
+
+                $freshNetAmount  = (float)($lockedInv->NetAmount  ?? 0);
+                $freshPaidAmount = (float)($lockedInv->PaidAmount ?? 0);
+
+                if ($freshNetAmount > 0) {
+                    $totalAfterPayment = round($freshPaidAmount + $amount, $this->_decimals());
+                    if ($totalAfterPayment > round($freshNetAmount, $this->_decimals())) {
+                        $remaining = max(0, round($freshNetAmount - $freshPaidAmount, $this->_decimals()));
+                        throw new Exception(
+                            'Payment exceeds the invoice balance. ' .
+                            'Remaining: ' . number_format($remaining, $this->_decimals()) . '. ' .
+                            'Another payment may have been recorded simultaneously — please refresh and try again.'
+                        );
+                    }
+                }
+            }
+
+            $excessAmount = $freshNetAmount > 0 ? max(0, $amount - $freshNetAmount) : 0;
 
             $this->load->model('transactions_model');
             $paymentData = [
@@ -321,6 +365,14 @@ class Payments extends MY_Controller {
                 );
             }
 
+            // Guard 4 (On Account) — Block if payment is held as on-account customer credit
+            if ((int)($payment->IsOnAccount ?? 0) === 1) {
+                throw new Exception(
+                    'This payment is held as an on-account credit for the customer (from a cancelled invoice). ' .
+                    'It cannot be cancelled or deleted directly — apply it to a new invoice to use the credit.'
+                );
+            }
+
             $transUID     = (int) $payment->TransUID;
             $existingPaid = ($transUID > 0)
                 ? $this->transactions_model->getSumPaidForTransaction($transUID, $orgUID)
@@ -350,6 +402,44 @@ class Payments extends MY_Controller {
             $action = getPostValue($PostData, 'Action') === 'cancel' ? 'cancel' : 'delete';
 
             $this->dbwrite_model->startTransaction();
+
+            // Re-check payment state from WriteDB with FOR UPDATE — locks the row so
+            // concurrent delete/cancel requests queue up rather than racing each other.
+            // Any commit by the first request makes this row visible as already processed
+            // to every subsequent request waiting on the lock.
+            $wdb = $this->dbwrite_model->getWriteDb();
+            $wdb->db_debug = FALSE;
+            $freshResult = $wdb->query(
+                'SELECT IsDeleted, IsCancelled, IsTransferredToCreditNote, IsOnAccount
+                 FROM Transaction.PaymentsTbl
+                 WHERE PaymentUID = ? AND OrgUID = ?
+                 FOR UPDATE',
+                [$paymentUID, $orgUID]
+            );
+            $freshPayment = $freshResult ? $freshResult->row() : null;
+
+            if (!$freshPayment) {
+                throw new Exception('Payment record not found.');
+            }
+            if ((int)($freshPayment->IsDeleted ?? 0) === 1) {
+                throw new Exception('This payment has already been deleted by another user.');
+            }
+            if ((int)($freshPayment->IsCancelled ?? 0) === 1) {
+                throw new Exception('This payment has already been cancelled by another user.');
+            }
+            if ((int)($freshPayment->IsTransferredToCreditNote ?? 0) === 1) {
+                throw new Exception(
+                    'This payment has been converted to a Credit Note. ' .
+                    'To remove it, delete the linked Credit Note from the Credit Notes tab — ' .
+                    'that will automatically delete this payment and revert the customer balance.'
+                );
+            }
+            if ((int)($freshPayment->IsOnAccount ?? 0) === 1) {
+                throw new Exception(
+                    'This payment is held as an on-account credit for the customer (from a cancelled invoice). ' .
+                    'It cannot be cancelled or deleted directly — apply it to a new invoice to use the credit.'
+                );
+            }
 
             // 2. Mark payment based on action: cancel → IsCancelled = 1, delete → IsDeleted = 1
             $updateFields = $action === 'cancel'

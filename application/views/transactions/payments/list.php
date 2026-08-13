@@ -347,16 +347,24 @@ if (!function_exists('_allPmtModeBadge')) {
                     <?php endif; ?>
 
                     <li><hr class="dropdown-divider my-1"></li>
+                    <?php
+                        $isCN = (int)($row->IsTransferredToCreditNote ?? 0) === 1;
+                        $isOA = (int)($row->IsOnAccount               ?? 0) === 1;
+                    ?>
                     <?php if ($isIn): ?>
                     <li>
                         <button class="dropdown-item cancelPayment text-warning"
-                                data-payment-uid="<?php echo (int)$row->PaymentUID; ?>">
+                                data-payment-uid="<?php echo (int)$row->PaymentUID; ?>"
+                                data-is-cn="<?php echo $isCN ? '1' : '0'; ?>"
+                                data-is-oa="<?php echo $isOA ? '1' : '0'; ?>">
                             <i class="bx bx-x-circle me-2"></i><?php echo t('cancel', 'Cancel'); ?>
                         </button>
                     </li>
                     <li>
                         <button class="dropdown-item deletePayment text-danger"
-                                data-payment-uid="<?php echo (int)$row->PaymentUID; ?>">
+                                data-payment-uid="<?php echo (int)$row->PaymentUID; ?>"
+                                data-is-cn="<?php echo $isCN ? '1' : '0'; ?>"
+                                data-is-oa="<?php echo $isOA ? '1' : '0'; ?>">
                             <i class="bx bx-trash me-2"></i><?php echo t('delete', 'Delete'); ?>
                         </button>
                     </li>
@@ -365,14 +373,18 @@ if (!function_exists('_allPmtModeBadge')) {
                         <button class="dropdown-item cancelPaymentOut text-warning"
                                 data-payment-uid="<?php echo (int)$row->PaymentUID; ?>"
                                 data-num="<?php echo htmlspecialchars($row->PaymentUniqueNumber ?? ''); ?>"
-                                data-amount="<?php echo htmlspecialchars(number_format((float)$row->Amount, $dec)); ?>">
+                                data-amount="<?php echo htmlspecialchars(number_format((float)$row->Amount, $dec)); ?>"
+                                data-is-cn="<?php echo $isCN ? '1' : '0'; ?>"
+                                data-is-oa="<?php echo $isOA ? '1' : '0'; ?>">
                             <i class="bx bx-x-circle me-2"></i><?php echo t('cancel', 'Cancel'); ?>
                         </button>
                     </li>
                     <li>
                         <button class="dropdown-item deletePaymentOut text-danger"
                                 data-payment-uid="<?php echo (int)$row->PaymentUID; ?>"
-                                data-amount="<?php echo htmlspecialchars(number_format((float)$row->Amount, $dec)); ?>">
+                                data-amount="<?php echo htmlspecialchars(number_format((float)$row->Amount, $dec)); ?>"
+                                data-is-cn="<?php echo $isCN ? '1' : '0'; ?>"
+                                data-is-oa="<?php echo $isOA ? '1' : '0'; ?>">
                             <i class="bx bx-trash me-2"></i><?php echo t('delete', 'Delete'); ?>
                         </button>
                     </li>

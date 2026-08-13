@@ -32,6 +32,70 @@ class Invoices extends MY_Controller {
                 'skipListForTabs'   => ['CreditNotes'],
                 'listViewExtraData' => ['WhatsAppTemplate' => $templates['WhatsApp'] ?? null],
             ]);
+
+            $this->pageData['CnInitHtml']       = '';
+            $this->pageData['CnInitPagination'] = '';
+            $this->pageData['CnInitCount']      = 0;
+            if ($this->pageData['InitTab'] === 'CreditNotes') {
+                try {
+                    $cnSearch  = trim($this->input->get('search') ?: '');
+                    $cnLimit   = (int)($this->pageData['JwtData']->GenSettings->RowLimit ?? 10);
+                    $readDb    = $this->load->database('ReadDB', TRUE);
+                    $readDb->db_debug = FALSE;
+                    $baseWhere = ['CN.OrgUID' => $orgUID, 'CN.IsDeleted' => 0, 'CN.IsCancelled' => 0];
+
+                    $readDb->select('COUNT(*) AS total');
+                    $readDb->from('Transaction.TransCreditNoteTbl CN');
+                    $readDb->join('Customers.CustomerTbl C', 'C.CustomerUID = CN.PartyUID', 'left');
+                    $readDb->where($baseWhere);
+                    if ($cnSearch !== '') {
+                        $readDb->group_start();
+                        $readDb->like('CN.CreditNoteNumber', $cnSearch);
+                        $readDb->or_like('C.Name', $cnSearch);
+                        $readDb->or_like('CN.SourceTransNumber', $cnSearch);
+                        $readDb->group_end();
+                    }
+                    $cnTotal = (int)(($readDb->get()->row()->total) ?? 0);
+
+                    $readDb->select([
+                        'CN.CreditNoteUID', 'CN.CreditNoteNumber', 'CN.CreditNoteToken',
+                        'CN.CreditNoteType', 'CN.SourceTransUID', 'CN.SourceTransNumber',
+                        'CN.SourceModuleUID', 'CN.Amount', 'CN.Status', 'CN.Notes', 'CN.CreatedOn',
+                        'C.CustomerUID', 'C.Name AS CustomerName', 'C.MobileNumber AS MobileNo',
+                        'C.Area AS CustomerArea', 'C.Image AS CustomerImage',
+                        'T.TransDate AS SourceTransDate', 'T.TransToken AS SourceTransToken',
+                        "CONCAT(U.FirstName, ' ', U.LastName) AS CreatorName",
+                    ]);
+                    $readDb->from('Transaction.TransCreditNoteTbl CN');
+                    $readDb->join('Customers.CustomerTbl C',       'C.CustomerUID = CN.PartyUID',                        'left');
+                    $readDb->join('Transaction.TransactionsTbl T', 'T.TransUID = CN.SourceTransUID AND T.IsDeleted = 0', 'left');
+                    $readDb->join('Users.UserTbl U',               'U.UserUID = CN.CreatedBy',                          'left');
+                    $readDb->where($baseWhere);
+                    if ($cnSearch !== '') {
+                        $readDb->group_start();
+                        $readDb->like('CN.CreditNoteNumber', $cnSearch);
+                        $readDb->or_like('C.Name', $cnSearch);
+                        $readDb->or_like('CN.SourceTransNumber', $cnSearch);
+                        $readDb->group_end();
+                    }
+                    $readDb->order_by('CN.CreatedOn', 'DESC');
+                    $readDb->limit($cnLimit, 0);
+                    $cnRows = $readDb->get()->result();
+
+                    $this->pageData['CnInitHtml'] = $this->load->view(
+                        'transactions/invoices/creditnotes_list',
+                        ['DataLists' => $cnRows, 'SerialNumber' => 0, 'JwtData' => $this->pageData['JwtData']],
+                        true
+                    );
+                    $this->pageData['CnInitPagination'] = $this->globalservice->buildPagePaginationHtml(
+                        '/invoices/getCreditNotesList', $cnTotal, 1, $cnLimit
+                    );
+                    $this->pageData['CnInitCount'] = $cnTotal;
+                } catch (Exception $e) {
+                    // Fail silently — JS loadCreditNotes() fires as fallback
+                }
+            }
+
             $this->load->view('transactions/invoices/view', $this->pageData);
         } catch (Exception $e) {
             notifyError('Invoices::index', $e);

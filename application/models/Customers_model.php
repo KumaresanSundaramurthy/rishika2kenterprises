@@ -634,6 +634,7 @@ class Customers_model extends CI_Model {
                 'IsDeleted'                    => 0,
                 'IsTransferredToCreditNote'    => 0,   // exclude payments moved to credit note
                 'IsCancelled'                  => 0,   // exclude voided/reversed payments
+                'IsExcessApplied'              => 0,   // exclude advance allocation memo rows (no new cash)
             ]);
             $query = $this->ReadDb->get();
             if (!$query) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');

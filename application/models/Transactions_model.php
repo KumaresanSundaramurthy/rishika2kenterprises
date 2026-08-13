@@ -1055,7 +1055,7 @@ class Transactions_model extends MY_Model {
     /** Single payment row for pre-deletion checks (no joins). */
     public function getPaymentRow(int $paymentUID, int $orgUID): ?object {
         $this->ReadDb->db_debug = FALSE;
-        $this->ReadDb->select('PaymentUID, TransUID, ModuleUID, Amount, PartyType, PartyUID, IsOnAccount, OnAccountAppliedTransUID, OnAccountSourcePaymentUID, IsTransferredToCreditNote, IsCancelled');
+        $this->ReadDb->select('PaymentUID, TransUID, ModuleUID, Amount, PartyType, PartyUID, IsOnAccount, OnAccountAppliedTransUID, OnAccountSourcePaymentUID, IsTransferredToCreditNote, IsCancelled, IsExcessApplied, ExcessSourcePaymentUID, ExcessAmount');
         $this->ReadDb->from('Transaction.PaymentsTbl');
         $this->ReadDb->where(['PaymentUID' => $paymentUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
         $query = $this->ReadDb->get();
@@ -1226,6 +1226,8 @@ class Transactions_model extends MY_Model {
                 "CONCAT(CrUser.FirstName, ' ', CrUser.LastName) AS CreatedByName",
                 'P.IsTransferredToCreditNote',
                 'P.IsOnAccount',
+                'P.IsExcessApplied',
+                'P.ExcessSourcePaymentUID',
             ]);
             $this->ReadDb->from('Transaction.PaymentsTbl AS P');
             $this->ReadDb->join('Global.PaymentTypesTbl AS PT', 'PT.PaymentTypeUID = P.PaymentTypeUID', 'LEFT');

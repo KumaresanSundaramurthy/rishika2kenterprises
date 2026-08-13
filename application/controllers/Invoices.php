@@ -986,6 +986,48 @@ class Invoices extends MY_Controller {
                 throw new Exception("Cannot change status from {$current} to {$newStatus}.");
             }
 
+            // ── Advance payment guards (runs before the write transaction) ────────
+            if ($newStatus === 'Cancelled') {
+                $readDb = $this->load->database('ReadDB', TRUE);
+                $readDb->db_debug = FALSE;
+
+                // Guard A — Invoice 2 case: this invoice has an advance allocation row applied TO it
+                $advOnThis = $readDb->query(
+                    'SELECT p.PaymentUID, src.TransUID AS SourceTransUID
+                     FROM Transaction.PaymentsTbl p
+                     LEFT JOIN Transaction.PaymentsTbl src ON src.PaymentUID = p.ExcessSourcePaymentUID
+                     WHERE p.TransUID = ? AND p.OrgUID = ? AND p.IsExcessApplied = 1
+                       AND p.IsDeleted = 0 AND p.IsCancelled = 0
+                     LIMIT 1',
+                    [$transUID, $orgUID]
+                )->row();
+                if ($advOnThis) {
+                    throw new Exception(
+                        'This invoice has an advance payment applied to it (from a previous overpayment). ' .
+                        'Please go to the Payments module and delete that advance payment first, then cancel this invoice.'
+                    );
+                }
+
+                // Guard B — Invoice 1 case: a payment on this invoice has its excess applied elsewhere
+                $advFromThis = $readDb->query(
+                    'SELECT linked.TransUID AS LinkedTransUID
+                     FROM Transaction.PaymentsTbl src
+                     INNER JOIN Transaction.PaymentsTbl linked
+                             ON linked.ExcessSourcePaymentUID = src.PaymentUID
+                     WHERE src.TransUID = ? AND src.OrgUID = ?
+                       AND src.IsDeleted = 0 AND src.IsCancelled = 0
+                       AND linked.IsDeleted = 0 AND linked.IsCancelled = 0
+                     LIMIT 1',
+                    [$transUID, $orgUID]
+                )->row();
+                if ($advFromThis) {
+                    throw new Exception(
+                        'This invoice\'s payment has advance credit currently applied to another invoice. ' .
+                        'Please go to the Payments module and delete that advance payment first, then cancel this invoice.'
+                    );
+                }
+            }
+
             $this->dbwrite_model->startTransaction();
             $updateData = ['DocStatus' => $newStatus, 'UpdatedBy' => $userUID];
             if ($newStatus === 'Cancelled') {

@@ -699,9 +699,10 @@ class Invoices extends MY_Controller {
             if ($advanceAmount > 0 && $lockedSource !== null) {
                 // Payment number for advance memo:
                 // - advance-only (amount=0): cash row was skipped so the already-generated number is unused → use it
-                // - cash + advance: cash row consumed the first number → fetch next
+                // - cash + advance: cash row consumed the first number → pass it as floor so ReadDB
+                //   (which cannot see the uncommitted cash row) does not issue the same number again
                 if ($amount > 0) {
-                    $advPaymentNumber = $payPrefixUID ? $this->transactions_model->getNextPaymentNumber($payPrefixUID, $orgUID, $payTransYear) : 0;
+                    $advPaymentNumber = $payPrefixUID ? $this->transactions_model->getNextPaymentNumber($payPrefixUID, $orgUID, $payTransYear, $paymentNumber) : 0;
                     $advPayUniqueNum  = ($payPrefix && $advPaymentNumber > 0) ? $this->_buildPaymentUniqueNumber($payPrefix, $paymentDate, $advPaymentNumber) : null;
                 } else {
                     $advPaymentNumber = $paymentNumber;
@@ -750,7 +751,10 @@ class Invoices extends MY_Controller {
             $oaResp = null;
             if ($onAccountAmount > 0 && $lockedOnAccountSource !== null) {
                 if ($amount > 0 || $advanceAmount > 0) {
-                    $oaPaymentNumber = $payPrefixUID ? $this->transactions_model->getNextPaymentNumber($payPrefixUID, $orgUID, $payTransYear) : 0;
+                    // Pass the highest number used so far as the floor so ReadDB cannot
+                    // re-issue a number already consumed by an uncommitted row above
+                    $oaFloor         = max($paymentNumber, $advPaymentNumber ?? 0);
+                    $oaPaymentNumber = $payPrefixUID ? $this->transactions_model->getNextPaymentNumber($payPrefixUID, $orgUID, $payTransYear, $oaFloor) : 0;
                     $oaPayUniqueNum  = ($payPrefix && $oaPaymentNumber > 0) ? $this->_buildPaymentUniqueNumber($payPrefix, $paymentDate, $oaPaymentNumber) : null;
                 } else {
                     $oaPaymentNumber = $paymentNumber;

@@ -615,8 +615,13 @@ class Transactions_model extends MY_Model {
      * Returns the next sequential PaymentNumber for a given prefix + org + year.
      * Scans ALL rows (including soft-deleted) so a previously-used number is
      * never re-issued.
+     *
+     * @param int $minNumber  Floor: returned number will be strictly greater than
+     *                        this value. Pass the last number used within the same
+     *                        DB transaction so ReadDB (which cannot see uncommitted
+     *                        WriteDB rows) does not issue the same number twice.
      */
-    public function getNextPaymentNumber(int $prefixUID, int $orgUID, int $transYear): int {
+    public function getNextPaymentNumber(int $prefixUID, int $orgUID, int $transYear, int $minNumber = 0): int {
 
         try {
 
@@ -632,7 +637,8 @@ class Transactions_model extends MY_Model {
             ]);
             $query  = $this->ReadDb->get();
             $result = $query->row();
-            $next   = $result ? ((int)($result->MaxNumber ?? 0) + 1) : 1;
+            $dbMax  = $result ? (int)($result->MaxNumber ?? 0) : 0;
+            $next   = max($dbMax, $minNumber) + 1;
 
             // Safety loop: skip any number that still has an active row
             $maxAttempts = 100;

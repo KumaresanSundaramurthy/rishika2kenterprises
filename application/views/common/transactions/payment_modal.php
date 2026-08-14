@@ -81,6 +81,44 @@ $rpBtnLabel    = $rpBtnLabel    ?? 'Record Payment';
                     </div>
                 </div>
 
+                <!-- Available Credits Section -->
+                <div id="rpAdvanceSection" class="rp-advance-section" style="display:none;">
+
+                    <!-- State 1: Prompt -->
+                    <div id="rpAdvPrompt" class="rp-adv-prompt">
+                        <i class="bx bx-wallet-alt rp-adv-prompt-icon"></i>
+                        <span class="rp-adv-prompt-text">Credits (advance or on-account) may be available for this customer.</span>
+                        <button type="button" class="btn btn-sm rp-adv-check-btn" id="rpAdvCheckBtn">
+                            Check &amp; Apply
+                        </button>
+                    </div>
+
+                    <!-- State 2: Loading -->
+                    <div id="rpAdvLoading" class="rp-adv-loading" style="display:none;">
+                        <i class="bx bx-loader-alt bx-spin me-1"></i> Fetching available credits…
+                    </div>
+
+                    <!-- State 3: No balance -->
+                    <div id="rpAdvEmpty" class="rp-adv-empty" style="display:none;">
+                        <i class="bx bx-info-circle me-1"></i> No credits available for this customer.
+                    </div>
+
+                    <!-- State 4: Radio list -->
+                    <div id="rpAdvSources" style="display:none;">
+                        <div class="rp-section-header mb-1">
+                            <i class="bx bx-transfer rp-section-icon rp-section-icon--green"></i>
+                            <span class="rp-section-label rp-section-label--green">Select Credit to Apply</span>
+                        </div>
+                        <div id="rpAdvRadioList" class="rp-adv-radio-list"></div>
+                        <div class="rp-adv-cancel-row">
+                            <button type="button" class="btn btn-link btn-sm p-0 text-muted" id="rpAdvCancelBtn">
+                                <i class="bx bx-x me-1"></i>Don't apply credit
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+
                 <!-- Payment form -->
                 <div class="rp-form-section">
                     <div class="rp-section-header">
@@ -164,8 +202,13 @@ $rpBtnLabel    = $rpBtnLabel    ?? 'Record Payment';
                     </button>
                 </div>
 
-                <input type="hidden" id="rpTransUID"  value="">
-                <input type="hidden" id="rpSubmitUrl" value="">
+                <input type="hidden" id="rpTransUID"                value="">
+                <input type="hidden" id="rpSubmitUrl"              value="">
+                <input type="hidden" id="rpPartyUID"               value="">
+                <input type="hidden" id="rpAdvanceAmount"          value="">
+                <input type="hidden" id="rpExcessSourcePaymentUID" value="">
+                <input type="hidden" id="rpOnAccountAmount"          value="">
+                <input type="hidden" id="rpOnAccountSourcePaymentUID" value="">
 
             </div>
         </div>
@@ -291,11 +334,15 @@ $pdtLinkedLabel = $pdtLinkedLabel ?? 'Linked Document';
 (function () {
     'use strict';
 
-    var _payTypes   = [];
-    var _bankAccts  = [];
-    var _fpInstance = null;
-    var _currency   = '<?php echo addslashes($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>';
-    var _rpDec      = <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>;
+    var _payTypes        = [];
+    var _bankAccts       = [];
+    var _fpInstance      = null;
+    var _currency        = '<?php echo addslashes($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>';
+    var _rpDec           = <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>;
+    var _creditSources    = [];
+    var _totalCredit      = 0;
+    var _advanceApplied   = false;
+    var _rpOrigBalanceDue = 0;
 
     function _rpEsc(s) { return $('<span>').text(s || '').html(); }
 
@@ -335,10 +382,78 @@ $pdtLinkedLabel = $pdtLinkedLabel ?? 'Linked Document';
         }
     }
 
+    function _rpFmt(v) { return _currency + ' ' + parseFloat(v || 0).toFixed(_rpDec); }
+
+    // Switch the advance section between named states
+    function _rpAdvState(state) {
+        $('#rpAdvPrompt, #rpAdvLoading, #rpAdvEmpty, #rpAdvSources').hide();
+        if (state === 'prompt')  { $('#rpAdvPrompt').show(); }
+        if (state === 'loading') { $('#rpAdvLoading').show(); }
+        if (state === 'empty')   { $('#rpAdvEmpty').show(); }
+        if (state === 'sources') { $('#rpAdvSources').show(); }
+    }
+
+    function _rpBuildRadioList() {
+        var $list = $('#rpAdvRadioList').empty();
+        $.each(_creditSources, function (i, s) {
+            var creditAmt    = parseFloat(s.CreditAmount);
+            var creditType   = s.CreditType || 'advance';
+            var disabled     = creditAmt > _rpOrigBalanceDue;
+            var uid          = 'rpAdvRadio_' + s.PaymentUID;
+            var typeLabel    = creditType === 'on_account' ? 'On Account' : 'Advance Credit';
+            var typeBadgeCls = creditType === 'on_account' ? 'rp-adv-type-badge rp-adv-type-badge--oa' : 'rp-adv-type-badge rp-adv-type-badge--adv';
+            var refLabel     = s.InvoiceNumber ? _rpEsc(s.InvoiceNumber) : ('Payment #' + s.PaymentUID);
+            var $row         = $(
+                '<label class="rp-adv-radio-row' + (disabled ? ' rp-adv-radio-row--disabled' : '') + '" for="' + uid + '">' +
+                    '<input type="radio" id="' + uid + '" name="rpAdvRadio" value="' + s.PaymentUID + '"' +
+                        ' data-credit-amount="' + creditAmt + '"' +
+                        ' data-credit-type="' + creditType + '"' +
+                        (disabled ? ' disabled' : '') +
+                    '>' +
+                    '<div class="rp-adv-radio-body">' +
+                        '<div class="d-flex align-items-center gap-2 flex-wrap">' +
+                            '<span class="rp-adv-radio-label">' + refLabel + '</span>' +
+                            '<span class="' + typeBadgeCls + '">' + typeLabel + '</span>' +
+                        '</div>' +
+                        '<span class="rp-adv-radio-amount">' + _rpFmt(creditAmt) + ' available</span>' +
+                        (disabled ? '<span class="rp-adv-radio-badge">Exceeds balance due</span>' : '') +
+                    '</div>' +
+                '</label>'
+            );
+            $list.append($row);
+        });
+    }
+
+    function _rpClearAdvanceSelection() {
+        _advanceApplied = false;
+        $('#rpAdvanceAmount').val('');
+        $('#rpExcessSourcePaymentUID').val('');
+        $('#rpOnAccountAmount').val('');
+        $('#rpOnAccountSourcePaymentUID').val('');
+        $('input[name="rpAdvRadio"]').prop('checked', false);
+        $('#rpAmount')
+            .removeAttr('readonly')
+            .attr('max', _rpOrigBalanceDue)
+            .val(_rpOrigBalanceDue.toFixed(_rpDec));
+    }
+
+    function _resetAdvance() {
+        _creditSources  = [];
+        _totalCredit    = 0;
+        _advanceApplied = false;
+        $('#rpAdvanceSection').hide();
+        $('#rpAdvanceAmount').val('');
+        $('#rpExcessSourcePaymentUID').val('');
+        $('#rpOnAccountAmount').val('');
+        $('#rpOnAccountSourcePaymentUID').val('');
+        _rpAdvState('prompt');
+    }
+
     // Expose open-modal helper for all modules
     window.rpOpenModal = function (cfg) {
         $('#rpTransUID').val(cfg.transUID || 0);
         $('#rpSubmitUrl').val(cfg.submitUrl || '');
+        $('#rpPartyUID').val(cfg.partyUID  || 0);
         $('#rpDocNum').text(cfg.docNum || '—');
         $('#rpDocDate').text(cfg.docDate || '—');
         if (cfg.partyName) {
@@ -348,17 +463,24 @@ $pdtLinkedLabel = $pdtLinkedLabel ?? 'Linked Document';
             $('#rpPartyRow').hide();
         }
 
-        var cur = _currency;
-        var dec = _rpDec;
-        var fmt = function (v) { return cur + ' ' + parseFloat(v || 0).toFixed(dec); };
-        $('#rpTotalCard').text(fmt(cfg.total));
-        $('#rpPaidCard').text(fmt(cfg.paid));
-        $('#rpBalanceCard').text(fmt(cfg.pending));
-        $('#rpAmount').val(parseFloat(cfg.pending || 0).toFixed(dec)).attr('max', cfg.pending || 0);
-        $('#rpCurrencySymbol').text(cur);
+        _rpOrigBalanceDue = parseFloat(cfg.pending || 0);
+        $('#rpTotalCard').text(_rpFmt(cfg.total));
+        $('#rpPaidCard').text(_rpFmt(cfg.paid));
+        $('#rpBalanceCard').text(_rpFmt(cfg.pending));
+        $('#rpAmount').val(_rpOrigBalanceDue.toFixed(_rpDec)).attr('max', _rpOrigBalanceDue).removeAttr('readonly');
+        $('#rpCurrencySymbol').text(_currency);
         $('#rpReferenceNo').val('');
         $('#rpNotes').val('');
         $('#rpBankAccount').val('');
+
+        _resetAdvance();
+
+        // Show advance prompt for customer invoices (no AJAX yet — user must click "Check & Apply")
+        var partyUID = parseInt(cfg.partyUID, 10) || 0;
+        if (partyUID > 0) {
+            _rpAdvState('prompt');
+            $('#rpAdvanceSection').show();
+        }
 
         if (typeof _attachResetState === 'function') { _attachResetState('Payment'); }
         _renderPaymentTypes();
@@ -368,6 +490,11 @@ $pdtLinkedLabel = $pdtLinkedLabel ?? 'Linked Document';
     // All jQuery-dependent event bindings are deferred until DOMContentLoaded
     // because jQuery is loaded in the footer (after this script runs).
     document.addEventListener('DOMContentLoaded', function () {
+
+        // Reset advance state when modal is fully hidden
+        $('#recordPaymentModal').on('hidden.bs.modal', function () {
+            _resetAdvance();
+        });
 
         // Init flatpickr and dropzone when modal first opens; reset date on each open
         $('#recordPaymentModal').on('shown.bs.modal', function () {
@@ -384,6 +511,77 @@ $pdtLinkedLabel = $pdtLinkedLabel ?? 'Linked Document';
                 _fpInstance.setDate(new Date(), false);
             }
             if (typeof _attachInit === 'function') { _attachInit('Payment'); }
+        });
+
+        // Available credits: "Check & Apply" — use cached data on second click, AJAX only on first
+        $(document).on('click', '#rpAdvCheckBtn', function () {
+            var partyUID = parseInt($('#rpPartyUID').val(), 10);
+            if (!partyUID) return;
+            if (_creditSources.length > 0) {
+                _rpBuildRadioList();
+                _rpAdvState('sources');
+                return;
+            }
+            _rpAdvState('loading');
+            $.ajax({
+                url      : '/payments/getCustomerExcessBalance',
+                method   : 'GET',
+                data     : { PartyUID: partyUID },
+                dataType : 'json',
+                success  : function (resp) {
+                    if (resp.Error || !resp.Sources || !resp.Sources.length || parseFloat(resp.TotalCredit || 0) <= 0) {
+                        _rpAdvState('empty');
+                        return;
+                    }
+                    _creditSources = resp.Sources;
+                    _totalCredit   = parseFloat(resp.TotalCredit);
+                    _rpBuildRadioList();
+                    _rpAdvState('sources');
+                },
+                error: function () { _rpAdvState('empty'); }
+            });
+        });
+
+        // Credit selection — branch on type (advance vs on-account)
+        $(document).on('change', 'input[name="rpAdvRadio"]', function () {
+            var creditAmt  = parseFloat($(this).data('credit-amount')) || 0;
+            var creditType = $(this).data('credit-type') || 'advance';
+            var srcUID     = parseInt($(this).val(), 10) || 0;
+            var newMax     = Math.max(0, Math.round((_rpOrigBalanceDue - creditAmt) * Math.pow(10, _rpDec)) / Math.pow(10, _rpDec));
+
+            _advanceApplied = true;
+
+            // Clear both credit slots before setting the selected one
+            $('#rpAdvanceAmount').val('');
+            $('#rpExcessSourcePaymentUID').val('');
+            $('#rpOnAccountAmount').val('');
+            $('#rpOnAccountSourcePaymentUID').val('');
+
+            if (creditType === 'on_account') {
+                $('#rpOnAccountAmount').val(creditAmt.toFixed(_rpDec));
+                $('#rpOnAccountSourcePaymentUID').val(srcUID);
+            } else {
+                $('#rpAdvanceAmount').val(creditAmt.toFixed(_rpDec));
+                $('#rpExcessSourcePaymentUID').val(srcUID);
+            }
+
+            var $amt = $('#rpAmount').attr('max', newMax).val(newMax.toFixed(_rpDec));
+            if (newMax === 0) {
+                $amt.attr('readonly', true).val('0');
+            } else {
+                $amt.removeAttr('readonly');
+            }
+        });
+
+        // Guard: readonly Amount field must stay 0 even if user tries to type
+        $(document).on('input', '#rpAmount', function () {
+            if ($(this).is('[readonly]')) { $(this).val('0'); }
+        });
+
+        // Advance credit: "Don't apply advance" — back to prompt, clear selection
+        $(document).on('click', '#rpAdvCancelBtn', function () {
+            _rpClearAdvanceSelection();
+            _rpAdvState('prompt');
         });
 
         // Payment type pill toggle
@@ -410,43 +608,66 @@ $pdtLinkedLabel = $pdtLinkedLabel ?? 'Linked Document';
 
         // Generic submit handler — URL comes from #rpSubmitUrl
         $('#btnSubmitPayment').on('click', function () {
-            var transUID       = parseInt($('#rpTransUID').val(), 10);
-            var paymentTypeUID = parseInt($('#rpPaymentTypeUID').val(), 10);
-            var amount         = parseFloat($('#rpAmount').val()) || 0;
-            var paymentDate    = $('#rpPaymentDate').val() || new Date().toISOString().split('T')[0];
-            var bankAccountUID = parseInt($('#rpBankAccount').val(), 10) || 0;
-            var referenceNo    = $.trim($('#rpReferenceNo').val());
-            var notes          = $.trim($('#rpNotes').val());
-            var submitUrl      = $('#rpSubmitUrl').val();
+            var transUID               = parseInt($('#rpTransUID').val(), 10);
+            var paymentTypeUID         = parseInt($('#rpPaymentTypeUID').val(), 10);
+            var amount                 = parseFloat($('#rpAmount').val()) || 0;
+            var advanceAmount          = _advanceApplied ? (parseFloat($('#rpAdvanceAmount').val()) || 0) : 0;
+            var excessSourcePaymentUID = _advanceApplied ? (parseInt($('#rpExcessSourcePaymentUID').val(), 10) || 0) : 0;
+            var onAccountAmount        = _advanceApplied ? (parseFloat($('#rpOnAccountAmount').val()) || 0) : 0;
+            var onAccountSourceUID     = _advanceApplied ? (parseInt($('#rpOnAccountSourcePaymentUID').val(), 10) || 0) : 0;
+            var paymentDate            = $('#rpPaymentDate').val() || new Date().toISOString().split('T')[0];
+            var bankAccountUID         = parseInt($('#rpBankAccount').val(), 10) || 0;
+            var referenceNo            = $.trim($('#rpReferenceNo').val());
+            var notes                  = $.trim($('#rpNotes').val());
+            var submitUrl              = $('#rpSubmitUrl').val();
+            var maxAmount              = parseFloat($('#rpAmount').attr('max')) || 0;
 
-            var maxAmount = parseFloat($('#rpAmount').attr('max')) || 0;
+            if (!transUID) { Swal.fire({ icon: 'warning', text: 'Invalid record.' }); return; }
 
-            if (!transUID)       { Swal.fire({ icon: 'warning', text: 'Invalid record.' }); return; }
-            if (!paymentTypeUID) { Swal.fire({ icon: 'warning', text: 'Please select a payment type.' }); return; }
-            if (amount <= 0)     { Swal.fire({ icon: 'warning', text: 'Enter a valid amount.' }); return; }
-            if (maxAmount > 0 && amount > maxAmount) {
+            if (amount <= 0 && advanceAmount <= 0 && onAccountAmount <= 0) {
+                Swal.fire({ icon: 'warning', text: 'Enter a payment amount or select a credit to apply.' });
+                return;
+            }
+            if (amount > 0 && !paymentTypeUID) {
+                Swal.fire({ icon: 'warning', text: 'Please select a payment type.' });
+                return;
+            }
+            if (amount > 0 && maxAmount > 0 && amount > maxAmount) {
                 Swal.fire({ icon: 'warning', text: 'Amount cannot exceed the balance due (' + _currency + ' ' + maxAmount.toFixed(_rpDec) + ').' });
                 $('#rpAmount').val(maxAmount.toFixed(_rpDec)).focus();
                 return;
             }
+            if (_advanceApplied && advanceAmount <= 0 && onAccountAmount <= 0) {
+                Swal.fire({ icon: 'warning', text: 'Please select a credit source to apply.' });
+                return;
+            }
+            if (_advanceApplied && advanceAmount > 0 && !excessSourcePaymentUID) {
+                Swal.fire({ icon: 'warning', text: 'Please select the source payment for the advance credit.' });
+                return;
+            }
+            if (_advanceApplied && onAccountAmount > 0 && !onAccountSourceUID) {
+                Swal.fire({ icon: 'warning', text: 'Please select the source payment for the on-account credit.' });
+                return;
+            }
             var isCash = parseInt($('#rpIsCash').val(), 10);
-            if (!isCash && !bankAccountUID) { Swal.fire({ icon: 'warning', text: 'Please select a bank account.' }); return; }
+            if (amount > 0 && !isCash && !bankAccountUID) { Swal.fire({ icon: 'warning', text: 'Please select a bank account.' }); return; }
             if (!submitUrl) { Swal.fire({ icon: 'warning', text: 'Configuration error — please refresh.' }); return; }
 
             var $btn = $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Saving…');
 
             var fd = new FormData();
-            fd.append('TransUID',       transUID);
-            fd.append('PaymentTypeUID', paymentTypeUID);
-            fd.append('Amount',         amount);
-            fd.append('PaymentDate',    paymentDate);
-            fd.append('BankAccountUID', bankAccountUID || '');
-            fd.append('ReferenceNo',    referenceNo);
-            fd.append('Notes',          notes);
-            fd.append('CurrentPage',    typeof PageNo    !== 'undefined' ? PageNo    : 1);
-            fd.append('RowLimit',       typeof RowLimit  !== 'undefined' ? RowLimit  : 10);
-            fd.append('Filter',         typeof Filter    !== 'undefined' ? JSON.stringify(Filter) : '{}');
-            fd.append(CsrfName,         CsrfToken);
+            fd.append('TransUID',                 transUID);
+            fd.append('PaymentTypeUID',           paymentTypeUID || 0);
+            fd.append('Amount',                   amount);
+            fd.append('AdvanceAmount',            advanceAmount);
+            fd.append('ExcessSourcePaymentUID',   excessSourcePaymentUID || 0);
+            fd.append('OnAccountAmount',          onAccountAmount);
+            fd.append('OnAccountSourcePaymentUID', onAccountSourceUID || 0);
+            fd.append('PaymentDate',              paymentDate);
+            fd.append('BankAccountUID',           bankAccountUID || '');
+            fd.append('ReferenceNo',              referenceNo);
+            fd.append('Notes',                    notes);
+            fd.append(CsrfName, CsrfToken);
             (_attachState && _attachState['Payment'] ? (_attachState['Payment'].newFiles || []) : []).forEach(function (f) { fd.append('PaymentFiles[]', f, f.name); });
 
             $.ajax({
@@ -458,20 +679,26 @@ $pdtLinkedLabel = $pdtLinkedLabel ?? 'Linked Document';
                 success: function (resp) {
                     $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i> Record Payment');
                     if (resp.Error) {
-                        showToastNotification(resp.Message, 'error');
+                        if (resp.ErrorCode === 1001) {
+                            // Credit already consumed by another user — clear cache, back to prompt
+                            _creditSources = [];
+                            _rpClearAdvanceSelection();
+                            _rpAdvState('prompt');
+                            showToastNotification(resp.Message, 'error');
+                        } else if (resp.ErrorCode === 1002) {
+                            // Invoice already fully paid by another user
+                            Swal.fire({ icon: 'info', title: 'Already Paid', text: resp.Message });
+                        } else {
+                            showToastNotification(resp.Message, 'error');
+                        }
                     } else {
                         var _rpModalInst = bootstrap.Modal.getInstance(document.getElementById('recordPaymentModal'));
                         if (_rpModalInst) _rpModalInst.hide();
                         if (typeof _attachResetState === 'function') { _attachResetState('Payment'); }
-                        if (resp.RecordHtmlData) {
-                            $(ModuleTable + ' tbody').html(resp.RecordHtmlData);
-                            $(ModulePag).html(resp.Pagination || '');
-                            $('[data-bs-toggle="tooltip"]').each(function () {
-                                try { new bootstrap.Tooltip(this, { container: 'body' }); } catch (e) {}
-                            });
-                        }
-                        if (typeof window.rpAfterSuccess === 'function') window.rpAfterSuccess(resp);
                         showToastNotification(resp.Message, 'success');
+                        hideUIBlock();
+                        ajaxLoading(0);
+                        if (typeof window.rpAfterSuccess === 'function') window.rpAfterSuccess(resp);
                     }
                 },
                 error: function () {

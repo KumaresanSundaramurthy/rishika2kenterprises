@@ -35,18 +35,7 @@ $(function () {
     if (!_fromSO) {
         searchCustomers('customerSearch');
         if (!_isEdit || _isDraftEdit) {
-            var _dcOACur = _cfg.currency || '₹';
-            window._showOnAccountBanner = function (total) {
-                if ((parseFloat(total) || 0) > 0) {
-                    $('#onAccountTotal').text(_dcOACur + ' ' + parseFloat(total).toFixed(typeof decimalPlaces !== 'undefined' ? decimalPlaces : 2));
-                    $('#onAccountIndicator').removeClass('d-none');
-                } else {
-                    $('#onAccountIndicator').addClass('d-none');
-                }
-            };
-            $('#customerSearch').on('select2:clear change', function () {
-                if (!parseInt($(this).val(), 10)) $('#onAccountIndicator').addClass('d-none');
-            });
+            // Credits badges handled by shared _showOnAccountBanner in transactions.js
             // Pre-fill customer address box and state in draft-edit mode
             if (_isDraftEdit && _editData.custUID && _editData.custAddr) {
                 (function () {

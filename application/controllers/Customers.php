@@ -1460,6 +1460,71 @@ class Customers extends MY_Controller {
 
     }
 
+    /**
+     * Recalculate customer closing balance from scratch and sync to DB + Upstash.
+     *
+     * POST body:
+     *   CustomerUID (int, optional) — omit or 0 to recalculate ALL customers in the org.
+     */
+    public function recalcBalance(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID      = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $userUID     = (int) $this->pageData['JwtData']->User->UserUID;
+            $customerUID = (int) $this->input->post('CustomerUID');
+
+            $this->load->library('customerbalance');
+            $readDb = $this->load->database('ReadDB', TRUE);
+            $readDb->db_debug = FALSE;
+
+            if ($customerUID > 0) {
+                // ── Single customer ────────────────────────────────────────
+                $result = $this->customerbalance->recalcAndSync($orgUID, $customerUID, $userUID);
+                if (!$result) throw new Exception('Customer not found or recalculation failed.');
+
+                $this->EndReturnData->Error       = false;
+                $this->EndReturnData->Message     = 'Balance recalculated successfully.';
+                $this->EndReturnData->Balance     = $result['balance'];
+                $this->EndReturnData->BalanceType = $result['type'];
+
+            } else {
+                // ── All customers for this org ─────────────────────────────
+                $rows = $readDb->query(
+                    'SELECT CustomerUID FROM Customers.CustomerTbl
+                      WHERE OrgUID = ? AND IsDeleted = 0
+                      ORDER BY CustomerUID ASC',
+                    [$orgUID]
+                )->result();
+
+                if (empty($rows)) throw new Exception('No customers found for this organisation.');
+
+                $total   = count($rows);
+                $success = 0;
+                $failed  = 0;
+                foreach ($rows as $row) {
+                    $res = $this->customerbalance->recalcAndSync($orgUID, (int)$row->CustomerUID, $userUID);
+                    if ($res !== null) {
+                        $success++;
+                    } else {
+                        $failed++;
+                        log_message('error', 'recalcBalance: failed for CustomerUID=' . $row->CustomerUID);
+                    }
+                }
+
+                $this->EndReturnData->Error   = false;
+                $this->EndReturnData->Message = "Recalculated {$success} of {$total} customers." . ($failed > 0 ? " {$failed} failed — check logs." : '');
+                $this->EndReturnData->Total   = $total;
+                $this->EndReturnData->Success = $success;
+                $this->EndReturnData->Failed  = $failed;
+            }
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
     // Applies a specific On Account payment to the given invoice
     public function applyOnAccountPayment() {
 

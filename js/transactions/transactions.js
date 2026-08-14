@@ -2637,8 +2637,10 @@ function searchCustomers(key) {
                             contact:           c.ContactPerson    || '',
                             balance:           parseFloat(c.ClosingBalance    || 0),
                             balanceType:       c.ClosingBalType              || 'Debit',
-                            onAccountBalance:  parseFloat(c.OnAccountBalance || 0),
-                            onAccountRecords:  c.OnAccountRecords            || [],
+                            onAccountBalance:  parseFloat(c.OnAccountBalance  || 0),
+                            onAccountRecords:  c.OnAccountRecords             || [],
+                            advanceTotal:      parseFloat(c.AdvanceTotal      || 0),
+                            creditNoteTotal:   parseFloat(c.CreditNoteTotal   || 0),
                             lastTxAt:          c.LastTransactionAt || '',
                             countryISO2:       c.CountryISO2 || 'IN',
                             customerTypeUID:   parseInt(c.CustomerTypeUID || 0, 10),
@@ -2790,19 +2792,72 @@ function searchCustomers(key) {
         $('#' + wrapId).find('.select2-dropdown').off('mousedown.createCust');
     });
 
+    // Shared badge renderer — called by the default _showOnAccountBanner and by
+    // form-specific overrides (e.g. invoice.js) that need to show both badge types.
+    /**
+     * @param {number} oaTotal
+     * @param {number} advTotal
+     * @param {number} cnTotal
+     * @returns {void}
+     */
+    window._showCreditsBadges = function (oaTotal, advTotal, cnTotal) {
+        var dec = typeof decimalPlaces !== 'undefined' ? decimalPlaces : 2;
+        var cur = typeof CurrencySymbol !== 'undefined' && CurrencySymbol ? CurrencySymbol : '₹';
+
+        // Credits badge (On Account + Advance)
+        var credits = (parseFloat(oaTotal) || 0) + (parseFloat(advTotal) || 0);
+        var $cred   = $('#onAccountIndicator');
+        if ($cred.length) {
+            if (credits > 0) {
+                $('#onAccountTotal').text(cur + ' ' + credits.toFixed(dec));
+                $cred.removeClass('d-none');
+            } else {
+                $cred.addClass('d-none');
+            }
+        }
+
+        // Credit Notes badge
+        var cn    = parseFloat(cnTotal) || 0;
+        var $cnBd = $('#creditNoteBadge');
+        if ($cnBd.length) {
+            if (cn > 0) {
+                $('#creditNoteTotal').text(cur + ' ' + cn.toFixed(dec));
+                $cnBd.removeClass('d-none');
+            } else {
+                $cnBd.addClass('d-none');
+            }
+        }
+    };
+
+    // Default implementation — form-specific files may override after searchCustomers() returns.
+    if (typeof window._showOnAccountBanner !== 'function') {
+        /**
+         * @param {number} oaTotal
+         * @param {Array}  oaRecords
+         * @param {number} customerUID
+         * @param {number} advTotal
+         * @param {number} cnTotal
+         * @returns {void}
+         */
+        window._showOnAccountBanner = function (oaTotal, oaRecords, customerUID, advTotal, cnTotal) {
+            window._showCreditsBadges(oaTotal, advTotal, cnTotal);
+        };
+    }
+
     $el.on('select2:select', function (e) {
         custCache = null; // free after selection
         var data = e.params.data;
         _selectedUID = parseInt(data.id, 10) || 0;
         $('#' + wrapId).addClass('party-has-selection');
 
-        // On Account — show indicator + button from cached data immediately.
-        // Records are fetched lazily only when user clicks the "On Account" button.
+        // Credits — show both badges immediately from cached values.
         if (typeof _showOnAccountBanner === 'function') {
             _showOnAccountBanner(
                 data.onAccountBalance || 0,
                 data.onAccountRecords || [],
-                data.id                          // pass customerUID for lazy AJAX fallback
+                data.id,
+                data.advanceTotal    || 0,
+                data.creditNoteTotal || 0
             );
         }
 
@@ -2828,7 +2883,7 @@ function searchCustomers(key) {
         if (typeof billManager !== 'undefined') billManager.setInterState(false);
         $('#isInterStateHidden').val('');
         _setForeignGstMode(false);
-        if (typeof _showOnAccountBanner === 'function') _showOnAccountBanner(0, [], 0);
+        if (typeof _showOnAccountBanner === 'function') _showOnAccountBanner(0, [], 0, 0, 0);
         if (typeof _plTransClear === 'function') _plTransClear();
     }).on('select2:close', function () {
         ajaxLoading(1);

@@ -133,6 +133,7 @@ class Payments extends MY_Controller {
         try {
 
             $this->load->model('dbwrite_model');
+            $this->load->model('transactions_model');
             $this->dbwrite_model->startTransaction();
 
             $PostData = $this->input->post();
@@ -148,15 +149,18 @@ class Payments extends MY_Controller {
             $referenceNo           =         getPostValue($PostData, 'ReferenceNo') ?: NULL;
             $notes                 =         getPostValue($PostData, 'Notes') ?: NULL;
             $isFullyPaid           = (int)   getPostValue($PostData, 'IsFullyPaid') === 1 ? 1 : 0;
-            $partyType             =         getPostValue($PostData, 'PartyType') ?: 'C';
-            $partyUID              = (int)   getPostValue($PostData, 'PartyUID');
-            $advanceAmount         = (float) getPostValue($PostData, 'AdvanceAmount', 'Array', 0);
-            $excessSourcePaymentUID = (int)  getPostValue($PostData, 'ExcessSourcePaymentUID');
+            $partyType                 =         getPostValue($PostData, 'PartyType') ?: 'C';
+            $partyUID                  = (int)   getPostValue($PostData, 'PartyUID');
+            $advanceAmount             = (float) getPostValue($PostData, 'AdvanceAmount', 'Array', 0);
+            $excessSourcePaymentUID    = (int)   getPostValue($PostData, 'ExcessSourcePaymentUID');
+            $onAccountAmount           = (float) getPostValue($PostData, 'OnAccountAmount', 'Array', 0);
+            $onAccountSourcePaymentUID = (int)   getPostValue($PostData, 'OnAccountSourcePaymentUID');
 
             if ($transUID <= 0) throw new Exception('Invalid transaction.');
-            if ($amount <= 0 && $advanceAmount <= 0) throw new Exception('Payment amount must be greater than 0.');
+            if ($amount <= 0 && $advanceAmount <= 0 && $onAccountAmount <= 0) throw new Exception('Payment amount must be greater than 0.');
             if ($amount > 0 && $paymentTypeUID <= 0) throw new Exception('Please select a payment type.');
             if ($advanceAmount > 0 && $excessSourcePaymentUID <= 0) throw new Exception('Invalid advance payment source.');
+            if ($onAccountAmount > 0 && $onAccountSourcePaymentUID <= 0) throw new Exception('Invalid on-account payment source.');
 
             // Lock the invoice row to serialise concurrent payment recordings.
             // A second request reaching this point while the first is inside the
@@ -165,16 +169,7 @@ class Payments extends MY_Controller {
             // overpayment check below catches the duplicate before the INSERT.
             $freshNetAmount = $billTotal;
             if ($transUID > 0) {
-                $wdb = $this->dbwrite_model->getWriteDb();
-                $wdb->db_debug = FALSE;
-                $invResult = $wdb->query(
-                    'SELECT NetAmount, PaidAmount, DocStatus, IsDeleted
-                     FROM Transaction.TransactionsTbl
-                     WHERE TransUID = ? AND OrgUID = ?
-                     FOR UPDATE',
-                    [$transUID, $orgUID]
-                );
-                $lockedInv = $invResult ? $invResult->row() : null;
+                $lockedInv = $this->transactions_model->lockInvoiceForUpdate($transUID, $orgUID);
 
                 if (!$lockedInv) {
                     throw new Exception('Invoice not found.');
@@ -190,6 +185,12 @@ class Payments extends MY_Controller {
                 $freshPaidAmount = (float)($lockedInv->PaidAmount ?? 0);
 
                 if ($freshNetAmount > 0) {
+                    if ($freshPaidAmount >= $freshNetAmount) {
+                        throw new Exception(
+                            'This invoice has already been fully paid. No further payment is needed.',
+                            1002
+                        );
+                    }
                     $totalAfterPayment = round($freshPaidAmount + $amount, $this->_decimals());
                     if ($totalAfterPayment > round($freshNetAmount, $this->_decimals())) {
                         $remaining = max(0, round($freshNetAmount - $freshPaidAmount, $this->_decimals()));
@@ -204,21 +205,30 @@ class Payments extends MY_Controller {
 
             $excessAmount = $freshNetAmount > 0 ? max(0, $amount - $freshNetAmount) : 0;
 
+            // ── On Account allocation guard (race-condition safe) ───────────────
+            $lockedOnAccountSource = null;
+            if ($onAccountAmount > 0 && $onAccountSourcePaymentUID > 0) {
+                $lockedOnAccountSource = $this->transactions_model->lockOnAccountSourcePayment(
+                    $onAccountSourcePaymentUID, $orgUID, $partyUID
+                );
+                if (!$lockedOnAccountSource) throw new Exception('On-account payment source not found.', 1001);
+                $availableOnAccount = round((float)($lockedOnAccountSource->Amount ?? 0), $this->_decimals());
+                if ($availableOnAccount <= 0) throw new Exception('No on-account balance available — it may have been used by another user. Please refresh and try again.', 1001);
+                $onAccountAmount = round($onAccountAmount, $this->_decimals());
+                if ($onAccountAmount > $availableOnAccount) {
+                    throw new Exception('On-account amount (' . number_format($onAccountAmount, $this->_decimals()) . ') exceeds available balance (' . number_format($availableOnAccount, $this->_decimals()) . ').');
+                }
+            }
+
             // ── Advance allocation guard (race-condition safe) ──────────────────
-            // If the user is applying an advance credit from a previous overpayment,
-            // lock the source payment row with FOR UPDATE so concurrent requests
+            // Lock the source payment row with FOR UPDATE so concurrent requests
             // queue here. After the lock, re-read ExcessAmount to ensure the advance
             // is still available and hasn't been consumed by another user.
             $lockedSource = null;
             if ($advanceAmount > 0 && $excessSourcePaymentUID > 0) {
-                $srcResult = $wdb->query(
-                    'SELECT PaymentUID, ExcessAmount, IsDeleted, IsCancelled
-                     FROM Transaction.PaymentsTbl
-                     WHERE PaymentUID = ? AND OrgUID = ? AND PartyUID = ? AND PartyType = ?
-                     FOR UPDATE',
-                    [$excessSourcePaymentUID, $orgUID, $partyUID, $partyType]
+                $lockedSource = $this->transactions_model->lockExcessSourcePayment(
+                    $excessSourcePaymentUID, $orgUID, $partyUID, $partyType
                 );
-                $lockedSource = $srcResult ? $srcResult->row() : null;
 
                 if (!$lockedSource) {
                     throw new Exception('Advance payment source not found.');
@@ -231,15 +241,13 @@ class Payments extends MY_Controller {
                 }
                 $availableExcess = round((float)($lockedSource->ExcessAmount ?? 0), $this->_decimals());
                 if ($availableExcess <= 0) {
-                    throw new Exception('No advance balance available — it may have been used by another user. Please refresh and try again.');
+                    throw new Exception('No advance balance available — it may have been used by another user. Please refresh and try again.', 1001);
                 }
                 $advanceAmount = round($advanceAmount, $this->_decimals());
                 if ($advanceAmount > $availableExcess) {
                     throw new Exception('Advance amount (' . number_format($advanceAmount, $this->_decimals()) . ') exceeds available balance (' . number_format($availableExcess, $this->_decimals()) . ').');
                 }
             }
-
-            $this->load->model('transactions_model');
 
             // ── Insert fresh cash payment (if amount > 0) ──────────────────────
             $freshPaymentUID = null;
@@ -306,13 +314,41 @@ class Payments extends MY_Controller {
 
                 // Reduce ExcessAmount on the source payment by the advance used
                 $newExcess = round((float)$lockedSource->ExcessAmount - $advanceAmount, $this->_decimals());
-                $wdb->query(
-                    'UPDATE Transaction.PaymentsTbl SET ExcessAmount = ?, UpdatedBy = ? WHERE PaymentUID = ? AND OrgUID = ?',
-                    [$newExcess, $userUID, $excessSourcePaymentUID, $orgUID]
-                );
+                $this->transactions_model->reduceExcessAmount($excessSourcePaymentUID, $orgUID, $newExcess, $userUID);
             }
 
-            $resp = (object)['ID' => $freshPaymentUID ?? $advancePaymentUID];
+            // ── Insert on-account allocation memo row (if onAccountAmount > 0) ──
+            $onAccountPaymentUID = null;
+            if ($onAccountAmount > 0 && $lockedOnAccountSource !== null) {
+                $oaPaymentData = [
+                    'OrgUID'                    => $orgUID,
+                    'BranchUID'                 => $this->_branchUID(),
+                    'TransUID'                  => $transUID,
+                    'ModuleUID'                 => $moduleUID > 0 ? $moduleUID : $this->pageModuleUID,
+                    'PartyType'                 => $partyType,
+                    'PartyUID'                  => $partyUID,
+                    'PaymentTypeUID'            => $paymentTypeUID,
+                    'Amount'                    => $onAccountAmount,
+                    'Notes'                     => 'On-account credit from Payment #' . $onAccountSourcePaymentUID,
+                    'IsFullyPaid'               => $isFullyPaid,
+                    'ExcessAmount'              => 0,
+                    'IsExcessApplied'           => 0,
+                    'OnAccountSourcePaymentUID' => $onAccountSourcePaymentUID,
+                    'ReceiptToken'              => $this->transactions_model->_generateReceiptToken(),
+                    'IsActive'                  => 1,
+                    'IsDeleted'                 => 0,
+                    'CreatedBy'                 => $userUID,
+                    'UpdatedBy'                 => $userUID,
+                ];
+                $oaResp = $this->dbwrite_model->insertData('Transaction', 'PaymentsTbl', $oaPaymentData);
+                if ($oaResp->Error) throw new Exception($oaResp->Message);
+                $onAccountPaymentUID = $oaResp->ID;
+
+                $newOnAccountAmt = round((float)$lockedOnAccountSource->Amount - $onAccountAmount, $this->_decimals());
+                $this->transactions_model->reduceOnAccountAmount($onAccountSourcePaymentUID, $orgUID, $newOnAccountAmt, $userUID);
+            }
+
+            $resp = (object)['ID' => $freshPaymentUID ?? $advancePaymentUID ?? $onAccountPaymentUID];
             $this->dbwrite_model->commitTransaction();
 
             // Bank ledger entry only for real cash (not the advance memo row)
@@ -329,15 +365,18 @@ class Payments extends MY_Controller {
                 );
             }
 
-            $this->EndReturnData->Error          = false;
-            $this->EndReturnData->Message        = 'Payment recorded successfully.';
-            $this->EndReturnData->PaymentUID     = $freshPaymentUID;
-            $this->EndReturnData->AdvanceUID     = $advancePaymentUID;
-            $this->EndReturnData->AdvanceApplied = $advanceAmount > 0;
+            $this->EndReturnData->Error             = false;
+            $this->EndReturnData->Message           = 'Payment recorded successfully.';
+            $this->EndReturnData->PaymentUID        = $freshPaymentUID;
+            $this->EndReturnData->AdvanceUID        = $advancePaymentUID;
+            $this->EndReturnData->AdvanceApplied    = $advanceAmount > 0;
+            $this->EndReturnData->OnAccountUID      = $onAccountPaymentUID;
+            $this->EndReturnData->OnAccountApplied  = $onAccountAmount > 0;
 
-            $auditMeta = ['TransUID' => $transUID, 'Amount' => $amount, 'AdvanceAmount' => $advanceAmount];
+            $auditMeta = ['TransUID' => $transUID, 'Amount' => $amount, 'AdvanceAmount' => $advanceAmount, 'OnAccountAmount' => $onAccountAmount];
             $auditDesc = 'Recorded payment for transaction #' . $transUID
-                . ($advanceAmount > 0 ? ' (includes ₹' . $advanceAmount . ' advance from Payment #' . $excessSourcePaymentUID . ')' : '');
+                . ($advanceAmount > 0 ? ' (includes ₹' . $advanceAmount . ' advance from Payment #' . $excessSourcePaymentUID . ')' : '')
+                . ($onAccountAmount > 0 ? ' (includes ₹' . $onAccountAmount . ' on-account from Payment #' . $onAccountSourcePaymentUID . ')' : '');
             $this->auditlog->log(
                 (int)$orgUID, (int)$userUID,
                 'ADD_PAYMENT', 'Payment', (int)($freshPaymentUID ?? $advancePaymentUID), '',
@@ -346,8 +385,9 @@ class Payments extends MY_Controller {
 
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
-            $this->EndReturnData->Error   = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
+            $this->EndReturnData->Error     = TRUE;
+            $this->EndReturnData->Message   = $e->getMessage();
+            $this->EndReturnData->ErrorCode = $e->getCode() ?: 0;
         }
 
         $this->globalservice->sendJsonResponse($this->EndReturnData);
@@ -453,18 +493,10 @@ class Payments extends MY_Controller {
             // Guard — Block if this payment is itself a source whose advance is still in use
             if ((int)($payment->IsExcessApplied ?? 0) === 0 && (float)($payment->ExcessAmount ?? 0) == 0) {
                 // ExcessAmount may be 0 because advance was consumed — check for active links
-                $readDb = $this->load->database('ReadDB', TRUE);
-                $readDb->db_debug = FALSE;
-                $activeAdvLink = $readDb->query(
-                    'SELECT TransUID FROM Transaction.PaymentsTbl
-                     WHERE ExcessSourcePaymentUID = ? AND IsDeleted = 0 AND IsCancelled = 0
-                     LIMIT 1',
-                    [$paymentUID]
-                )->row();
+                $activeAdvLink = $this->transactions_model->getActiveAdvanceLink($paymentUID);
                 if ($activeAdvLink) {
                     throw new Exception(
-                        'This payment\'s advance credit is currently applied to another invoice. ' .
-                        'Please delete the advance payment from the Payments module for that invoice first.'
+                        'This payment has an advance credit used in another invoice. Remove that advance entry first, then delete this payment.'
                     );
                 }
             }
@@ -494,16 +526,7 @@ class Payments extends MY_Controller {
             // Guard 4 — SR payment: block if linked Credit Note is already Applied to an invoice
             $srCN = null;
             if ($transUID > 0 && (int)($payment->ModuleUID ?? 0) === 106) {
-                $readDb = $this->load->database('ReadDB', TRUE);
-                $readDb->db_debug = FALSE;
-                $readDb->from('Transaction.TransCreditNoteTbl');
-                $readDb->where([
-                    'SourceTransUID'  => $transUID,
-                    'SourceModuleUID' => 106,
-                    'IsDeleted'       => 0,
-                    'IsCancelled'     => 0,
-                ]);
-                $srCN = $readDb->get()->row();
+                $srCN = $this->transactions_model->getSRCreditNoteBySourceTrans($transUID);
                 if ($srCN && $srCN->Status === 'Applied') {
                     throw new Exception(
                         'This credit note has been applied to an invoice. ' .
@@ -520,16 +543,7 @@ class Payments extends MY_Controller {
             // concurrent delete/cancel requests queue up rather than racing each other.
             // Any commit by the first request makes this row visible as already processed
             // to every subsequent request waiting on the lock.
-            $wdb = $this->dbwrite_model->getWriteDb();
-            $wdb->db_debug = FALSE;
-            $freshResult = $wdb->query(
-                'SELECT IsDeleted, IsCancelled, IsTransferredToCreditNote, IsOnAccount
-                 FROM Transaction.PaymentsTbl
-                 WHERE PaymentUID = ? AND OrgUID = ?
-                 FOR UPDATE',
-                [$paymentUID, $orgUID]
-            );
-            $freshPayment = $freshResult ? $freshResult->row() : null;
+            $freshPayment = $this->transactions_model->lockPaymentForDelete($paymentUID, $orgUID);
 
             if (!$freshPayment) {
                 throw new Exception('Payment record not found.');
@@ -558,19 +572,10 @@ class Payments extends MY_Controller {
             if ((int)($freshPayment->IsExcessApplied ?? 0) === 1) {
                 $srcUID = (int)($payment->ExcessSourcePaymentUID ?? 0);
                 if ($srcUID > 0) {
-                    $srcResult = $wdb->query(
-                        'SELECT PaymentUID, ExcessAmount FROM Transaction.PaymentsTbl
-                         WHERE PaymentUID = ? AND OrgUID = ? AND IsDeleted = 0
-                         FOR UPDATE',
-                        [$srcUID, $orgUID]
-                    );
-                    $srcRow = $srcResult ? $srcResult->row() : null;
+                    $srcRow = $this->transactions_model->lockAndGetExcessSource($srcUID, $orgUID);
                     if ($srcRow) {
                         $restoredExcess = round((float)$srcRow->ExcessAmount + (float)$payment->Amount, $this->_decimals());
-                        $wdb->query(
-                            'UPDATE Transaction.PaymentsTbl SET ExcessAmount = ?, UpdatedBy = ? WHERE PaymentUID = ? AND OrgUID = ?',
-                            [$restoredExcess, $userUID, $srcUID, $orgUID]
-                        );
+                        $this->transactions_model->restoreExcessAmount($srcUID, $orgUID, $restoredExcess, $userUID);
                     }
                 }
             }
@@ -614,14 +619,7 @@ class Payments extends MY_Controller {
             // 3b. SR-specific: restore linked Credit Note amount when a payment is cancelled
             if ($srCN && $srCN->Status === 'Pending') {
                 $newCNAmount = round((float)$srCN->Amount + (float)$payment->Amount, $this->_decimals());
-                $wdb = $this->dbwrite_model->getWriteDb();
-                $wdb->db_debug = FALSE;
-                $wdb->where('CreditNoteUID', (int)$srCN->CreditNoteUID);
-                $wdb->update('Transaction.TransCreditNoteTbl', [
-                    'Amount'         => $newCNAmount,
-                    'PaymentCleared' => 0,
-                    'UpdatedBy'      => $userUID,
-                ]);
+                $this->transactions_model->updateSRCreditNoteAmount((int)$srCN->CreditNoteUID, $newCNAmount, $userUID);
             }
 
             // 3c. If this payment was created from an On Account source, restore the source
@@ -637,7 +635,11 @@ class Payments extends MY_Controller {
             $this->dbwrite_model->commitTransaction();
 
             // 4. Reverse customer ledger entry (non-fatal)
-            if ($transUID > 0 && $payment->PartyType === 'C' && (int)$payment->PartyUID > 0) {
+            // Skip for advance memo rows (IsExcessApplied = 1) and on-account applied rows
+            // (OnAccountSourcePaymentUID > 0) — neither carries real new cash.
+            if ($transUID > 0 && $payment->PartyType === 'C' && (int)$payment->PartyUID > 0
+                && (int)($payment->IsExcessApplied ?? 0) === 0
+                && (int)($payment->OnAccountSourcePaymentUID ?? 0) === 0) {
                 try {
                     $this->load->library('accountledger');
                     $this->accountledger->applyLedgerEntry(
@@ -682,6 +684,64 @@ class Payments extends MY_Controller {
 
     }
 
+    public function getCustomerCreditsDetail(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $partyUID = (int) $this->input->get_post('PartyUID');
+            $orgUID   = (int) $this->pageData['JwtData']->Org->OrgUID;
+
+            if ($partyUID <= 0) throw new Exception('Invalid customer.');
+
+            $this->load->model('transactions_model');
+            $rows = $this->transactions_model->getCustomerCreditsDetail($partyUID, $orgUID);
+
+            $onAccount = [];
+            $advance   = [];
+            foreach ($rows as $row) {
+                if ($row->CreditType === 'on_account') {
+                    $onAccount[] = $row;
+                } else {
+                    $advance[] = $row;
+                }
+            }
+
+            $dec = $this->_decimals();
+            $this->EndReturnData->Error          = false;
+            $this->EndReturnData->OnAccount      = $onAccount;
+            $this->EndReturnData->Advance        = $advance;
+            $this->EndReturnData->OnAccountTotal = round((float) array_sum(array_column($onAccount, 'Amount')), $dec);
+            $this->EndReturnData->AdvanceTotal   = round((float) array_sum(array_column($advance,   'Amount')), $dec);
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function getCustomerCreditNoteDetail(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $partyUID = (int) $this->input->get_post('PartyUID');
+            $orgUID   = (int) $this->pageData['JwtData']->Org->OrgUID;
+
+            if ($partyUID <= 0) throw new Exception('Invalid customer.');
+
+            $this->load->model('transactions_model');
+            $rows = $this->transactions_model->getCustomerCreditNoteDetail($partyUID, $orgUID);
+            $dec  = $this->_decimals();
+
+            $this->EndReturnData->Error       = false;
+            $this->EndReturnData->CreditNotes = $rows;
+            $this->EndReturnData->Total       = round((float) array_sum(array_column($rows, 'Amount')), $dec);
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
     public function getCustomerExcessBalance(): void {
 
         $this->EndReturnData = new stdClass();
@@ -692,26 +752,12 @@ class Payments extends MY_Controller {
 
             if ($partyUID <= 0) throw new Exception('Invalid customer.');
 
-            $readDb = $this->load->database('ReadDB', TRUE);
-            $readDb->db_debug = FALSE;
-            $readDb->select('PaymentUID, TransUID, Amount, ExcessAmount');
-            $readDb->from('Transaction.PaymentsTbl');
-            $readDb->where([
-                'OrgUID'           => $orgUID,
-                'PartyUID'         => $partyUID,
-                'PartyType'        => 'C',
-                'PaymentDirection' => 'In',
-                'IsDeleted'        => 0,
-                'IsCancelled'      => 0,
-                'IsExcessApplied'  => 0,
-            ]);
-            $readDb->where('ExcessAmount >', 0);
-            $rows = $readDb->get()->result();
-
-            $totalExcess = array_sum(array_column((array)$rows, 'ExcessAmount'));
+            $this->load->model('transactions_model');
+            $rows        = $this->transactions_model->getCustomerAvailableCredits($partyUID, $orgUID);
+            $totalCredit = array_sum(array_column((array)$rows, 'CreditAmount'));
 
             $this->EndReturnData->Error        = false;
-            $this->EndReturnData->TotalExcess  = round((float)$totalExcess, $this->_decimals());
+            $this->EndReturnData->TotalCredit  = round((float)$totalCredit, $this->_decimals());
             $this->EndReturnData->Sources      = $rows;
 
         } catch (Exception $e) {

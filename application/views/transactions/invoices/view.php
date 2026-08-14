@@ -585,8 +585,20 @@ $(function () {
     }
 
     $(document).on('click', '.deleteInvoice', function () {
-        var uid = $(this).data('uid');
-        var num = $(this).data('num') || '';
+        var uid        = $(this).data('uid');
+        var num        = $(this).data('num') || '';
+        var advanceIn  = parseInt($(this).data('advance-in')  || 0, 10);
+        var advanceOut = parseInt($(this).data('advance-out') || 0, 10);
+
+        if (advanceOut) {
+            Swal.fire({ icon: 'warning', title: 'Cannot Delete', text: 'This invoice has excess credit applied to another invoice. Delete that advance entry first, then try again.' });
+            return;
+        }
+        if (advanceIn) {
+            Swal.fire({ icon: 'warning', title: 'Cannot Delete', text: 'This invoice was paid using advance credit. Delete the advance payment entry first, then try again.' });
+            return;
+        }
+
         Swal.fire({
             title: 'Delete Invoice?',
             html : num ? 'Delete <strong>' + num + '</strong>? This cannot be undone.' : 'This cannot be undone.',
@@ -730,6 +742,17 @@ $(function () {
         var num        = $(this).attr('data-num') || '';
         var paidAmt    = parseFloat($(this).attr('data-paid') || 0);
         var hasPaid    = paidAmt > 0;
+        var advanceIn  = parseInt($(this).attr('data-advance-in')  || 0, 10);
+        var advanceOut = parseInt($(this).attr('data-advance-out') || 0, 10);
+
+        if (advanceOut) {
+            Swal.fire({ icon: 'warning', title: 'Cannot Cancel', text: 'This invoice has excess credit applied to another invoice. Delete that advance entry first, then try again.' });
+            return;
+        }
+        if (advanceIn) {
+            Swal.fire({ icon: 'warning', title: 'Cannot Cancel', text: 'This invoice was paid using advance credit. Delete the advance payment entry first, then try again.' });
+            return;
+        }
 
         var baseHtml = num
             ? 'Cancel invoice <strong>' + num + '</strong>? This cannot be undone.'
@@ -889,7 +912,7 @@ initRecordPaymentModal(
 );
 
 window.rpAfterSuccess = function (resp) {
-    if (resp.SummaryStats) updateSummaryStats(resp.SummaryStats);
+    getInvoicesDetails(PageNo, RowLimit, Filter);
 };
 
 // Open modal when "Receive Payment" clicked on an invoice row
@@ -900,6 +923,7 @@ $(document).on('click', '.invReceivePayment', function () {
         docNum    : $(this).data('num')   || '',
         docDate   : $(this).data('date')  || '',
         partyName : $(this).data('party') || '',
+        partyUID  : parseInt($(this).data('party-uid'), 10) || 0,
         total     : parseFloat($(this).data('total'))   || 0,
         paid      : parseFloat($(this).data('paid'))    || 0,
         pending   : parseFloat($(this).data('pending')) || 0,

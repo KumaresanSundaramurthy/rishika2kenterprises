@@ -936,6 +936,41 @@ class Customers_model extends CI_Model {
         }
     }
 
+    public function getCustomerAdvanceTotal(int $orgUID, int $customerUID): float {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $query = $this->ReadDb->query(
+                "SELECT COALESCE(SUM(ExcessAmount), 0) AS AdvanceTotal
+                   FROM `Transaction`.`PaymentsTbl`
+                  WHERE OrgUID = ? AND PartyUID = ? AND PartyType = 'C'
+                    AND PaymentDirection = 'In'
+                    AND IsExcessApplied = 0 AND ExcessAmount > 0
+                    AND IsDeleted = 0 AND IsCancelled = 0",
+                [(int)$orgUID, (int)$customerUID]
+            );
+            return $query ? (float)($query->row()->AdvanceTotal ?? 0) : 0.0;
+        } catch (Exception $e) {
+            return 0.0;
+        }
+    }
+
+    public function getCustomerCreditNoteTotal(int $orgUID, int $customerUID): float {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $query = $this->ReadDb->query(
+                "SELECT COALESCE(SUM(Amount), 0) AS CreditNoteTotal
+                   FROM `Transaction`.`TransCreditNoteTbl`
+                  WHERE OrgUID = ? AND PartyUID = ? AND PartyType = 'C'
+                    AND Status = 'Pending'
+                    AND IsDeleted = 0 AND IsCancelled = 0",
+                [(int)$orgUID, (int)$customerUID]
+            );
+            return $query ? (float)($query->row()->CreditNoteTotal ?? 0) : 0.0;
+        } catch (Exception $e) {
+            return 0.0;
+        }
+    }
+
     // ══════════════════════════════════════════════════════════════════
     // Customer Group methods
     // ══════════════════════════════════════════════════════════════════

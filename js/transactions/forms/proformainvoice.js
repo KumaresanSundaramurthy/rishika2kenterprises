@@ -33,21 +33,7 @@ $(function () {
     transDatePickr('#transDate_disp',    '#transDate',    false, false, true,  true,  '');
     transDatePickr('#validityDate_disp', '#validityDate', false, false, false, false, '#transDate');
 
-    // ── On-account banner (add mode only) ────────────────────────────────────
-    if (!_isEdit) {
-        var _pfCur = _cfg.currency || '₹';
-        window._showOnAccountBanner = function (total) {
-            if ((parseFloat(total) || 0) > 0) {
-                $('#onAccountTotal').text(_pfCur + ' ' + parseFloat(total).toFixed(typeof decimalPlaces !== 'undefined' ? decimalPlaces : 2));
-                $('#onAccountIndicator').removeClass('d-none');
-            } else {
-                $('#onAccountIndicator').addClass('d-none');
-            }
-        };
-        $('#customerSearch').on('select2:clear change', function () {
-            if (!parseInt($(this).val(), 10)) $('#onAccountIndicator').addClass('d-none');
-        });
-    }
+    // Credits badges handled by shared _showOnAccountBanner in transactions.js
 
     // ── Edit mode pre-fill ────────────────────────────────────────────────────
     if (_isEdit) {

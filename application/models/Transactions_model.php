@@ -88,6 +88,9 @@ class Transactions_model extends MY_Model {
                 '(SELECT COUNT(*) FROM Transaction.TransAttachmentsTbl AT WHERE AT.TransUID = Ts.TransUID AND AT.IsDeleted = 0 AND AT.IsActive = 1) AS AttachmentCount',
                 'Ts.PdfPath AS PdfPath',
                 'Ts.DocType AS DocType',
+                // Advance credit link flags — used for immediate frontend guards on delete/cancel
+                '(SELECT COUNT(*) FROM Transaction.PaymentsTbl adv WHERE adv.TransUID = Ts.TransUID AND adv.IsExcessApplied = 1 AND adv.IsDeleted = 0 AND adv.IsCancelled = 0) AS HasAdvanceIn',
+                '(SELECT COUNT(*) FROM Transaction.PaymentsTbl src INNER JOIN Transaction.PaymentsTbl memo ON memo.ExcessSourcePaymentUID = src.PaymentUID WHERE src.TransUID = Ts.TransUID AND src.IsDeleted = 0 AND src.IsCancelled = 0 AND memo.IsDeleted = 0 AND memo.IsCancelled = 0) AS HasAdvanceOut',
             ]);
             $this->ReadDb->from('Transaction.TransactionsTbl as Ts');
             $this->ReadDb->join('Customers.CustomerTbl as Cust', 'Cust.CustomerUID = Ts.PartyUID AND Ts.PartyType = \'C\'', 'LEFT');
@@ -3326,6 +3329,362 @@ class Transactions_model extends MY_Model {
         }
     }
 
+
+    // ── Payment DB Operations ─────────────────────────────────────────────────
+    // All raw queries related to payment recording and deletion live here so
+    // that Payments controller only handles request/response flow.
+
+    /**
+     * Locks an invoice row for update inside an active write transaction.
+     * Blocks concurrent payment requests until the transaction commits.
+     *
+     * @param  int     $transUID
+     * @param  int     $orgUID
+     * @return ?object Row with NetAmount, PaidAmount, DocStatus, IsDeleted; null if not found
+     */
+    public function lockInvoiceForUpdate(int $transUID, int $orgUID): ?object {
+        $this->load->model('dbwrite_model');
+        $wdb = $this->dbwrite_model->getWriteDb();
+        $wdb->db_debug = FALSE;
+        $result = $wdb->query(
+            'SELECT NetAmount, PaidAmount, DocStatus, IsDeleted
+             FROM Transaction.TransactionsTbl
+             WHERE TransUID = ? AND OrgUID = ?
+             FOR UPDATE',
+            [$transUID, $orgUID]
+        );
+        return $result ? $result->row() : null;
+    }
+
+    /**
+     * Locks the advance-source payment row for update.
+     * Prevents two concurrent requests from consuming the same ExcessAmount.
+     *
+     * @param  int    $paymentUID
+     * @param  int    $orgUID
+     * @param  int    $partyUID
+     * @param  string $partyType
+     * @return ?object Row with PaymentUID, ExcessAmount, IsDeleted, IsCancelled
+     */
+    public function lockExcessSourcePayment(int $paymentUID, int $orgUID, int $partyUID, string $partyType): ?object {
+        $this->load->model('dbwrite_model');
+        $wdb = $this->dbwrite_model->getWriteDb();
+        $wdb->db_debug = FALSE;
+        $result = $wdb->query(
+            'SELECT PaymentUID, ExcessAmount, IsDeleted, IsCancelled
+             FROM Transaction.PaymentsTbl
+             WHERE PaymentUID = ? AND OrgUID = ? AND PartyUID = ? AND PartyType = ?
+             FOR UPDATE',
+            [$paymentUID, $orgUID, $partyUID, $partyType]
+        );
+        return $result ? $result->row() : null;
+    }
+
+    /**
+     * Reduces ExcessAmount on a payment row after advance credit is consumed.
+     * Must be called inside an active write transaction.
+     *
+     * @param  int   $paymentUID
+     * @param  int   $orgUID
+     * @param  float $newExcess
+     * @param  int   $userUID
+     * @return void
+     */
+    public function reduceExcessAmount(int $paymentUID, int $orgUID, float $newExcess, int $userUID): void {
+        $this->load->model('dbwrite_model');
+        $wdb = $this->dbwrite_model->getWriteDb();
+        $wdb->db_debug = FALSE;
+        $wdb->query(
+            'UPDATE Transaction.PaymentsTbl SET ExcessAmount = ?, UpdatedBy = ? WHERE PaymentUID = ? AND OrgUID = ?',
+            [$newExcess, $userUID, $paymentUID, $orgUID]
+        );
+    }
+
+    /**
+     * Returns the first active advance-memo row that still links to this source payment.
+     * Used to block deletion of a payment whose advance credit is still in use.
+     *
+     * @param  int     $paymentUID  Source payment whose advance we're checking
+     * @return ?object Row with TransUID; null if no active link found
+     */
+    public function getActiveAdvanceLink(int $paymentUID): ?object {
+        $this->ReadDb->db_debug = FALSE;
+        $result = $this->ReadDb->query(
+            'SELECT TransUID FROM Transaction.PaymentsTbl
+             WHERE ExcessSourcePaymentUID = ? AND IsDeleted = 0 AND IsCancelled = 0
+             LIMIT 1',
+            [$paymentUID]
+        );
+        return $result ? $result->row() : null;
+    }
+
+    /**
+     * Fetches the Credit Note linked to a Sales Return transaction (for SR payment deletion guard).
+     *
+     * @param  int     $transUID  SourceTransUID in TransCreditNoteTbl
+     * @return ?object Credit note row with Status, Amount, CreditNoteUID; null if none
+     */
+    public function getSRCreditNoteBySourceTrans(int $transUID): ?object {
+        $this->ReadDb->db_debug = FALSE;
+        $this->ReadDb->from('Transaction.TransCreditNoteTbl');
+        $this->ReadDb->where([
+            'SourceTransUID'  => $transUID,
+            'SourceModuleUID' => 106,
+            'IsDeleted'       => 0,
+            'IsCancelled'     => 0,
+        ]);
+        return $this->ReadDb->get()->row() ?: null;
+    }
+
+    /**
+     * Locks a payment row for delete/cancel inside an active write transaction.
+     * Re-reads the latest state so concurrent requests see already-processed rows.
+     *
+     * @param  int     $paymentUID
+     * @param  int     $orgUID
+     * @return ?object Row with IsDeleted, IsCancelled, IsTransferredToCreditNote, IsOnAccount, IsExcessApplied
+     */
+    public function lockPaymentForDelete(int $paymentUID, int $orgUID): ?object {
+        $this->load->model('dbwrite_model');
+        $wdb = $this->dbwrite_model->getWriteDb();
+        $wdb->db_debug = FALSE;
+        $result = $wdb->query(
+            'SELECT IsDeleted, IsCancelled, IsTransferredToCreditNote, IsOnAccount, IsExcessApplied
+             FROM Transaction.PaymentsTbl
+             WHERE PaymentUID = ? AND OrgUID = ?
+             FOR UPDATE',
+            [$paymentUID, $orgUID]
+        );
+        return $result ? $result->row() : null;
+    }
+
+    /**
+     * Locks the advance-source payment row for the restore flow (deletion of advance memo row).
+     *
+     * @param  int     $srcUID
+     * @param  int     $orgUID
+     * @return ?object Row with PaymentUID, ExcessAmount; null if not found / already deleted
+     */
+    public function lockAndGetExcessSource(int $srcUID, int $orgUID): ?object {
+        $this->load->model('dbwrite_model');
+        $wdb = $this->dbwrite_model->getWriteDb();
+        $wdb->db_debug = FALSE;
+        $result = $wdb->query(
+            'SELECT PaymentUID, ExcessAmount FROM Transaction.PaymentsTbl
+             WHERE PaymentUID = ? AND OrgUID = ? AND IsDeleted = 0
+             FOR UPDATE',
+            [$srcUID, $orgUID]
+        );
+        return $result ? $result->row() : null;
+    }
+
+    /**
+     * Restores ExcessAmount on the advance-source payment when an advance memo row is deleted.
+     * Must be called inside an active write transaction after lockAndGetExcessSource().
+     *
+     * @param  int   $srcUID
+     * @param  int   $orgUID
+     * @param  float $restoredExcess
+     * @param  int   $userUID
+     * @return void
+     */
+    public function restoreExcessAmount(int $srcUID, int $orgUID, float $restoredExcess, int $userUID): void {
+        $this->load->model('dbwrite_model');
+        $wdb = $this->dbwrite_model->getWriteDb();
+        $wdb->db_debug = FALSE;
+        $wdb->query(
+            'UPDATE Transaction.PaymentsTbl SET ExcessAmount = ?, UpdatedBy = ? WHERE PaymentUID = ? AND OrgUID = ?',
+            [$restoredExcess, $userUID, $srcUID, $orgUID]
+        );
+    }
+
+    /**
+     * Updates the Amount and PaymentCleared fields on a Sales Return Credit Note row.
+     * Called when a payment against an SR is cancelled, to restore the credit note balance.
+     *
+     * @param  int   $creditNoteUID
+     * @param  float $newAmount
+     * @param  int   $userUID
+     * @return void
+     */
+    public function updateSRCreditNoteAmount(int $creditNoteUID, float $newAmount, int $userUID): void {
+        $this->load->model('dbwrite_model');
+        $wdb = $this->dbwrite_model->getWriteDb();
+        $wdb->db_debug = FALSE;
+        $wdb->where('CreditNoteUID', $creditNoteUID);
+        $wdb->update('Transaction.TransCreditNoteTbl', [
+            'Amount'         => $newAmount,
+            'PaymentCleared' => 0,
+            'UpdatedBy'      => $userUID,
+        ]);
+    }
+
+    /**
+     * Returns all payments for a customer that still carry unspent ExcessAmount.
+     * Used to populate the advance credit source list in the payment modal.
+     *
+     * @param  int   $partyUID
+     * @param  int   $orgUID
+     * @return array Array of objects with PaymentUID, TransUID, Amount, ExcessAmount
+     */
+    public function getCustomerExcessSources(int $partyUID, int $orgUID): array {
+        $this->ReadDb->db_debug = FALSE;
+        $this->ReadDb->select('PaymentUID, TransUID, Amount, ExcessAmount');
+        $this->ReadDb->from('Transaction.PaymentsTbl');
+        $this->ReadDb->where([
+            'OrgUID'           => $orgUID,
+            'PartyUID'         => $partyUID,
+            'PartyType'        => 'C',
+            'PaymentDirection' => 'In',
+            'IsDeleted'        => 0,
+            'IsCancelled'      => 0,
+            'IsExcessApplied'  => 0,
+        ]);
+        $this->ReadDb->where('ExcessAmount >', 0);
+        return $this->ReadDb->get()->result() ?: [];
+    }
+
+    /**
+     * Returns all available customer credits (advance + on-account) as a
+     * unified list with CreditType ('advance'|'on_account'), CreditAmount,
+     * and InvoiceNumber from the linked transaction where available.
+     *
+     * @param  int   $partyUID
+     * @param  int   $orgUID
+     * @return array
+     */
+    public function getCustomerAvailableCredits(int $partyUID, int $orgUID): array {
+        $this->ReadDb->db_debug = FALSE;
+        $sql = "
+            SELECT p.PaymentUID, p.TransUID, p.ExcessAmount AS CreditAmount,
+                   'advance' AS CreditType, t.UniqueNumber AS InvoiceNumber
+            FROM `Transaction`.`PaymentsTbl` p
+            LEFT JOIN `Transaction`.`TransactionsTbl` t ON t.TransUID = p.TransUID
+            WHERE p.OrgUID = ? AND p.PartyUID = ? AND p.PartyType = 'C'
+              AND p.PaymentDirection = 'In' AND p.IsDeleted = 0 AND p.IsCancelled = 0
+              AND p.IsExcessApplied = 0 AND p.ExcessAmount > 0
+
+            UNION ALL
+
+            SELECT p.PaymentUID, p.TransUID, p.Amount AS CreditAmount,
+                   'on_account' AS CreditType, t.UniqueNumber AS InvoiceNumber
+            FROM `Transaction`.`PaymentsTbl` p
+            LEFT JOIN `Transaction`.`TransactionsTbl` t ON t.TransUID = p.TransUID
+            WHERE p.OrgUID = ? AND p.PartyUID = ? AND p.PartyType = 'C'
+              AND p.IsOnAccount = 1 AND p.IsDeleted = 0 AND p.IsCancelled = 0
+              AND p.Amount > 0
+
+            ORDER BY CreditAmount DESC
+        ";
+        $query = $this->ReadDb->query($sql, [$orgUID, $partyUID, $orgUID, $partyUID]);
+        return $query ? $query->result() : [];
+    }
+
+    /**
+     * Returns all available customer credits (advance + on-account) for the
+     * credits detail modal. Each row includes CreditType, Amount, InvoiceNumber,
+     * and CreatedOn for display purposes.
+     *
+     * @param  int   $partyUID
+     * @param  int   $orgUID
+     * @return array
+     */
+    public function getCustomerCreditsDetail(int $partyUID, int $orgUID): array {
+        $this->ReadDb->db_debug = FALSE;
+        $sql = "
+            SELECT p.PaymentUID, p.Amount, 'on_account' AS CreditType,
+                   t.UniqueNumber AS InvoiceNumber,
+                   DATE_FORMAT(p.CreatedOn, '%Y-%m-%d') AS CreatedOn
+            FROM `Transaction`.`PaymentsTbl` p
+            LEFT JOIN `Transaction`.`TransactionsTbl` t ON t.TransUID = p.TransUID
+            WHERE p.OrgUID = ? AND p.PartyUID = ? AND p.PartyType = 'C'
+              AND p.IsOnAccount = 1 AND p.IsDeleted = 0 AND p.IsCancelled = 0
+              AND p.Amount > 0
+
+            UNION ALL
+
+            SELECT p.PaymentUID, p.ExcessAmount AS Amount, 'advance' AS CreditType,
+                   t.UniqueNumber AS InvoiceNumber,
+                   DATE_FORMAT(p.CreatedOn, '%Y-%m-%d') AS CreatedOn
+            FROM `Transaction`.`PaymentsTbl` p
+            LEFT JOIN `Transaction`.`TransactionsTbl` t ON t.TransUID = p.TransUID
+            WHERE p.OrgUID = ? AND p.PartyUID = ? AND p.PartyType = 'C'
+              AND p.PaymentDirection = 'In' AND p.IsDeleted = 0 AND p.IsCancelled = 0
+              AND p.IsExcessApplied = 0 AND p.ExcessAmount > 0
+
+            ORDER BY CreditType, CreatedOn ASC
+        ";
+        $query = $this->ReadDb->query($sql, [$orgUID, $partyUID, $orgUID, $partyUID]);
+        return $query ? $query->result() : [];
+    }
+
+    /**
+     * Returns pending credit note rows for a customer (informational modal).
+     *
+     * @param  int   $partyUID
+     * @param  int   $orgUID
+     * @return array
+     */
+    public function getCustomerCreditNoteDetail(int $partyUID, int $orgUID): array {
+        $this->ReadDb->db_debug = FALSE;
+        $sql = "
+            SELECT cn.CreditNoteNumber,
+                   DATE_FORMAT(cn.CreatedOn, '%Y-%m-%d') AS CreatedOn,
+                   cn.Amount
+            FROM `Transaction`.`TransCreditNoteTbl` cn
+            WHERE cn.OrgUID = ? AND cn.PartyUID = ? AND cn.PartyType = 'C'
+              AND cn.Status = 'Pending'
+              AND cn.IsDeleted = 0 AND cn.IsCancelled = 0
+            ORDER BY cn.CreatedOn ASC
+        ";
+        $query = $this->ReadDb->query($sql, [$orgUID, $partyUID]);
+        return $query ? $query->result() : [];
+    }
+
+    /**
+     * FOR UPDATE lock on an on-account source payment row.
+     * Must be called within an active write-DB transaction.
+     *
+     * @param  int     $paymentUID
+     * @param  int     $orgUID
+     * @param  int     $partyUID
+     * @return object|null
+     */
+    public function lockOnAccountSourcePayment(int $paymentUID, int $orgUID, int $partyUID): ?object {
+        $this->load->model('dbwrite_model');
+        $wdb = $this->dbwrite_model->getWriteDb();
+        $wdb->db_debug = FALSE;
+        $query = $wdb->query(
+            'SELECT PaymentUID, Amount FROM `Transaction`.`PaymentsTbl`
+              WHERE PaymentUID = ? AND OrgUID = ? AND PartyUID = ?
+                AND IsOnAccount = 1 AND IsDeleted = 0 AND IsCancelled = 0
+                AND Amount > 0
+              FOR UPDATE',
+            [$paymentUID, $orgUID, $partyUID]
+        );
+        if (!$query || !$query->num_rows()) return null;
+        return $query->row();
+    }
+
+    /**
+     * Reduce the Amount column on an on-account source payment.
+     * Must be called within an active write-DB transaction.
+     *
+     * @param  int   $paymentUID
+     * @param  int   $orgUID
+     * @param  float $newAmount
+     * @param  int   $userUID
+     * @return void
+     */
+    public function reduceOnAccountAmount(int $paymentUID, int $orgUID, float $newAmount, int $userUID): void {
+        $this->load->model('dbwrite_model');
+        $wdb = $this->dbwrite_model->getWriteDb();
+        $wdb->db_debug = FALSE;
+        $wdb->query(
+            'UPDATE `Transaction`.`PaymentsTbl` SET Amount = ?, UpdatedBy = ? WHERE PaymentUID = ? AND OrgUID = ?',
+            [$newAmount, $userUID, $paymentUID, $orgUID]
+        );
+    }
 
 }
 

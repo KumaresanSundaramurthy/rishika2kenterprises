@@ -1,6 +1,6 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
 /**
- * Toolbar: doc-type select/chip + optional dispatch-from + optional on-account indicator.
+ * Toolbar: doc-type select/chip + optional dispatch-from + optional credits indicator.
  *
  * Parameters:
  *   string $_tbTypeValue       Current doc type: 'Regular'|'Without_GST' (pre-computed in parent)
@@ -9,27 +9,24 @@
  *   bool   $_tbEditGuardStrict true  = use ($isEdit && !$isDraftEdit) for readonly chip (default)
  *                              false = use $isEdit only (SO/QT/PF lock type even in draftEdit)
  *   string $_tbDispatchLabel   dispatch-from label ('Dispatch From','Deliver To','Accepted At')
- *   bool   $_tbShowOnAccount   true = render ms-auto on-account block (customer modules only)
- *   bool   $_tbOnAccountGuard  true = wrap on-account in if(!$isEdit) — INV/SO; false = always — QT/PF/SR
- *   bool   $_tbOaSrStyle       true = use SR alternate IDs and omit d-flex on inner badge div
+ *   bool   $_tbShowOnAccount   true = render ms-auto credits block (customer modules only)
+ *   bool   $_tbOnAccountGuard  true = wrap credits block in if(!$isEdit) — INV/SO; false = always — QT/PF/SR
+ *   bool   $_tbOaSrStyle       true = use SR alternate single-badge layout (On Account only)
  *
  *   bool   $_tbIsEdit          true when editing an existing transaction
  *   bool   $_tbIsDraftEdit     true when editing a Draft-status transaction
  */
-$_tbType       = $_tbTypeValue       ?? 'Regular';
-$_tbId         = $_tbFieldId         ?? 'invoiceType';
-$_tbName       = $_tbFieldName       ?? $_tbId;
-$_tbStrict     = $_tbEditGuardStrict ?? true;
-$_tbDispLabel  = $_tbDispatchLabel   ?? 'Dispatch From';
-$_tbOa         = $_tbShowOnAccount   ?? false;
-$_tbOaGuard    = $_tbOnAccountGuard  ?? true;
-$_tbOaSr       = $_tbOaSrStyle       ?? false;
-$_tbIsEdit     = $_tbIsEdit          ?? false;
-$_tbIsDraft    = $_tbIsDraftEdit     ?? false;
-$_tbReadonly   = $_tbStrict ? ($_tbIsEdit && !$_tbIsDraft) : $_tbIsEdit;
-$_tbOaBadgeId  = $_tbOaSr ? 'srOnAccountBadge' : 'onAccountIndicator';
-$_tbOaAmtId    = $_tbOaSr ? 'srOnAccountAmt'   : 'onAccountTotal';
-$_tbOaInnerCls = $_tbOaSr ? 'd-none' : 'd-none d-flex align-items-center gap-1';
+$_tbType      = $_tbTypeValue       ?? 'Regular';
+$_tbId        = $_tbFieldId         ?? 'invoiceType';
+$_tbName      = $_tbFieldName       ?? $_tbId;
+$_tbStrict    = $_tbEditGuardStrict ?? true;
+$_tbDispLabel = $_tbDispatchLabel   ?? 'Dispatch From';
+$_tbOa        = $_tbShowOnAccount    ?? false;
+$_tbOaGuard   = $_tbOnAccountGuard   ?? true;
+$_tbOaSr      = $_tbOaSrStyle        ?? false;
+$_tbIsEdit    = $_tbIsEdit           ?? false;
+$_tbIsDraft   = $_tbIsDraftEdit      ?? false;
+$_tbReadonly  = $_tbStrict ? ($_tbIsEdit && !$_tbIsDraft) : $_tbIsEdit;
 ?>
 <div class="d-flex align-items-center gap-4 mb-3 pb-2 border-bottom">
     <div class="d-flex align-items-center gap-2">
@@ -56,11 +53,21 @@ $_tbOaInnerCls = $_tbOaSr ? 'd-none' : 'd-none d-flex align-items-center gap-1';
     <div class="ms-auto d-flex align-items-center gap-2">
         <div id="custTypeIndicator" class="d-none"></div>
         <div id="plChipWrap" class="d-none"></div>
-        <div id="<?php echo $_tbOaBadgeId; ?>" class="<?php echo $_tbOaInnerCls; ?>"
-             style="font-size:.78rem;color:#856404;background:#fff8e1;border:1px solid #ffc107;padding:3px 12px;border-radius:20px;white-space:nowrap;">
-            <i class="bx bx-wallet" style="font-size:.88rem;"></i>
-            On Account: <strong id="<?php echo $_tbOaAmtId; ?>" style="margin-left:3px;"></strong>
+        <?php if ($_tbOaSr): ?>
+        <div id="srOnAccountBadge" class="d-none trans-credits-badge">
+            <i class="bx bx-wallet trans-credits-badge__icon"></i>
+            On Account: <strong id="srOnAccountAmt" class="trans-credits-badge__amt"></strong>
         </div>
+        <?php else: ?>
+        <div id="onAccountIndicator" class="d-none trans-credits-badge">
+            <i class="bx bx-wallet trans-credits-badge__icon"></i>
+            Credits: <strong id="onAccountTotal" class="trans-credits-badge__amt"></strong>
+        </div>
+        <div id="creditNoteBadge" class="d-none trans-cn-badge">
+            <i class="bx bx-receipt"></i>
+            Credit Notes: <strong id="creditNoteTotal" class="trans-credits-badge__amt"></strong>
+        </div>
+        <?php endif; ?>
     </div>
     <?php endif; ?>
     <?php endif; ?>

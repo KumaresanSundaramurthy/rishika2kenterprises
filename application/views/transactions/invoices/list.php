@@ -327,6 +327,7 @@ if (!empty($DataLists)):
                         data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
                         data-date="<?php echo htmlspecialchars(format_datedisplay($list->TransDate ?? '')); ?>"
                         data-party="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
+                        data-party-uid="<?php echo (int)$list->PartyUID; ?>"
                         data-total="<?php echo $netAmt; ?>"
                         data-paid="<?php echo $paidAmt; ?>"
                         data-pending="<?php echo $pendingAmt; ?>"
@@ -355,6 +356,7 @@ if (!empty($DataLists)):
                                     data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
                                     data-date="<?php echo htmlspecialchars(format_datedisplay($list->TransDate ?? '')); ?>"
                                     data-party="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
+                                    data-party-uid="<?php echo (int)$list->PartyUID; ?>"
                                     data-total="<?php echo $netAmt; ?>"
                                     data-paid="<?php echo $paidAmt; ?>"
                                     data-pending="<?php echo $pendingAmt; ?>">
@@ -434,14 +436,18 @@ if (!empty($DataLists)):
                             <button class="dropdown-item text-warning cancelInvoice"
                                     data-uid="<?php echo (int)$list->TransUID; ?>"
                                     data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? 'Draft'); ?>"
-                                    data-paid="<?php echo $paidAmt; ?>">
+                                    data-paid="<?php echo $paidAmt; ?>"
+                                    data-advance-in="<?php echo (int)($list->HasAdvanceIn ?? 0); ?>"
+                                    data-advance-out="<?php echo (int)($list->HasAdvanceOut ?? 0); ?>">
                                 <i class="bx bx-x-circle me-2"></i><?php echo t('act_cancel_invoice', 'Cancel Invoice'); ?>
                             </button>
                         </li>
                         <li>
                             <button class="dropdown-item text-danger deleteInvoice"
                                     data-uid="<?php echo (int)$list->TransUID; ?>"
-                                    data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? 'Draft'); ?>">
+                                    data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? 'Draft'); ?>"
+                                    data-advance-in="<?php echo (int)($list->HasAdvanceIn ?? 0); ?>"
+                                    data-advance-out="<?php echo (int)($list->HasAdvanceOut ?? 0); ?>">
                                 <i class="bx bx-trash me-2"></i><?php echo t('delete', 'Delete'); ?>
                             </button>
                         </li>

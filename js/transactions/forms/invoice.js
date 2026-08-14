@@ -37,27 +37,75 @@ $(function () {
     searchCustomers('customerSearch');
 
     if (!_isEdit) {
-        var _cur = _cfg.currency || '₹';
-        var _oaCustomerUID = 0;
-
-        window._showOnAccountBanner = function (total, records, customerUID) {
-            _oaCustomerUID = parseInt(customerUID, 10) || 0;
-            if (total > 0) {
-                $('#onAccountTotal').text(_cur + ' ' + parseFloat(total).toFixed(typeof decimalPlaces !== 'undefined' ? decimalPlaces : 2));
-                $('#onAccountIndicator').removeClass('d-none');
-            } else {
-                $('#onAccountIndicator').addClass('d-none');
-            }
-            if (typeof window._loadOnAccountPanel === 'function') {
-                window._loadOnAccountPanel(records || [], _oaCustomerUID, total);
-            }
+        /**
+         * @param {number} oaTotal
+         * @param {Array}  oaRecords
+         * @param {number} customerUID
+         * @param {number} advTotal
+         * @param {number} cnTotal
+         * @returns {void}
+         */
+        window._showOnAccountBanner = function (oaTotal, oaRecords, customerUID, advTotal, cnTotal) {
+            window._showCreditsBadges(oaTotal, advTotal, cnTotal);
         };
 
-        $('#customerSearch').on('select2:clear change', function () {
-            if (!parseInt($(this).val(), 10)) {
-                $('#onAccountIndicator').addClass('d-none');
-                if (typeof window._clearOnAccountPanel === 'function') window._clearOnAccountPanel();
-            }
+        $(document).on('click', '#creditNoteBadge', function () {
+            var custUID = parseInt($('#customerSearch').val(), 10) || 0;
+            if (!custUID) return;
+            var modal    = bootstrap.Modal.getOrCreateInstance(document.getElementById('creditNoteDetailModal'));
+            var $loading = $('#cnDetailLoading');
+            var $content = $('#cnDetailContent');
+            $loading.removeClass('d-none');
+            $content.addClass('d-none');
+            $('#cnDetailSummary').text('');
+            modal.show();
+            var postData = { PartyUID: custUID };
+            if (typeof CsrfName !== 'undefined') postData[CsrfName] = CsrfToken;
+            var _prevAjax = (typeof AjaxLoading !== 'undefined') ? AjaxLoading : 1;
+            if (typeof ajaxLoading === 'function') ajaxLoading(0);
+            $.post('/payments/getCustomerCreditNoteDetail', postData, function (resp) {
+                if (typeof AjaxLoading !== 'undefined') AjaxLoading = _prevAjax;
+                $loading.addClass('d-none');
+                if (resp && !resp.Error) {
+                    _renderCreditNoteDetail(resp);
+                    $content.removeClass('d-none');
+                } else {
+                    $loading.html('<span class="text-danger small">Failed to load credit notes.</span>').removeClass('d-none');
+                }
+            }, 'json').fail(function () {
+                if (typeof AjaxLoading !== 'undefined') AjaxLoading = _prevAjax;
+                $loading.html('<span class="text-danger small">Server error. Please try again.</span>').removeClass('d-none');
+            });
+        });
+
+        $(document).on('click', '#onAccountIndicator', function () {
+            var custUID = parseInt($('#customerSearch').val(), 10) || 0;
+            if (!custUID) return;
+            var modal    = bootstrap.Modal.getOrCreateInstance(document.getElementById('creditsDetailModal'));
+            var $loading = $('#credDetailLoading');
+            var $content = $('#credDetailContent');
+            $loading.removeClass('d-none');
+            $content.addClass('d-none');
+            $('#credDetailSummary').text('');
+            modal.show();
+            var postData = { PartyUID: custUID };
+            if (typeof CsrfName !== 'undefined') postData[CsrfName] = CsrfToken;
+            // Suppress global overlay — modal has its own spinner
+            var _prevAjax = (typeof AjaxLoading !== 'undefined') ? AjaxLoading : 1;
+            if (typeof ajaxLoading === 'function') ajaxLoading(0);
+            $.post('/payments/getCustomerCreditsDetail', postData, function (resp) {
+                if (typeof AjaxLoading !== 'undefined') AjaxLoading = _prevAjax;
+                $loading.addClass('d-none');
+                if (resp && !resp.Error) {
+                    _renderCreditsDetail(resp);
+                    $content.removeClass('d-none');
+                } else {
+                    $loading.html('<span class="text-danger small">Failed to load credits.</span>').removeClass('d-none');
+                }
+            }, 'json').fail(function () {
+                if (typeof AjaxLoading !== 'undefined') AjaxLoading = _prevAjax;
+                $loading.html('<span class="text-danger small">Server error. Please try again.</span>').removeClass('d-none');
+            });
         });
     }
 
@@ -266,14 +314,6 @@ $(function () {
                 $('#paymentRowsBody tr').each(function () {
                     _paidTotal += parseFloat($(this).find('.pay-amount-inp').val()) || 0;
                 });
-                try {
-                    var _oaRaw = $('#OnAccountApplyJson').val();
-                    if (_oaRaw) {
-                        (JSON.parse(_oaRaw) || []).forEach(function (oa) {
-                            _paidTotal += parseFloat(oa.ApplyAmount) || 0;
-                        });
-                    }
-                } catch (e) {}
 
                 var _overAmt = _paidTotal - netAmount;
                 if (_overAmt > 0.005) {
@@ -344,7 +384,6 @@ $(function () {
                 fd.append('PaymentRows',        $('#PaymentRowsJson').val()    || '');
                 fd.append('IsFullyPaid',        $('#isFullyPaid').is(':checked') ? 1 : 0);
                 fd.append('RecordPayment',      action !== 'draft' ? 1 : 0);
-                fd.append('OnAccountApplyJson', $('#OnAccountApplyJson').val() || '');
                 if (typeof getPaymentAttachmentFiles === 'function') {
                     var paymentFiles = getPaymentAttachmentFiles();
                     if (paymentFiles && paymentFiles.length > 0) {
@@ -496,18 +535,10 @@ $(function () {
             rowsPaid += parseFloat(inp.value) || 0;
         });
 
-        var oaPaid = 0;
-        try {
-            var oaEl = document.getElementById('OnAccountApplyJson');
-            if (oaEl && oaEl.value) {
-                (JSON.parse(oaEl.value) || []).forEach(function (x) { oaPaid += parseFloat(x.ApplyAmount) || 0; });
-            }
-        } catch (e) {}
-
         // On edit the payment section is hidden; seed paid from the already-recorded DB amount.
         var dbPaid = (_isEdit && _cfg.editData) ? (parseFloat(_cfg.editData.paidAmount) || 0) : 0;
 
-        var paid    = _r2(rowsPaid + oaPaid + dbPaid);
+        var paid    = _r2(rowsPaid + dbPaid);
         var balance = grand > 0 ? Math.max(0, _r2(grand - paid)) : 0;
         var excess  = grand > 0 ? Math.max(0, _r2(paid - grand)) : 0;
 
@@ -544,11 +575,6 @@ $(function () {
             }
         });
 
-        var oaJsonEl = document.getElementById('OnAccountApplyJson');
-        if (oaJsonEl) {
-            new MutationObserver(_syncStickyTotals).observe(oaJsonEl, { attributes: true, attributeFilter: ['value'] });
-        }
-
         _syncStickyTotals();
         _syncStickyTotals();
 
@@ -582,6 +608,63 @@ function _showSavedAndGo(title, msg, action) {
     _setPendingToast('_invPendingToast', msg, 'success');
     _isDirty = false;
     window.location.href = _buildReturnUrl('/invoices', action === 'draft' ? 'Draft' : '');
+}
+
+/**
+ * Renders pending credit note rows into the credit note detail modal.
+ * @param {{CreditNotes: Array, Total: number}} resp
+ * @returns {void}
+ */
+function _renderCreditNoteDetail(resp) {
+    var cur = typeof CurrencySymbol !== 'undefined' ? CurrencySymbol : '₹';
+    var dec = typeof decimalPlaces  !== 'undefined' ? decimalPlaces  : 2;
+    var list = resp.CreditNotes || [];
+    var html = list.length
+        ? list.map(function (r) {
+            return '<tr>' +
+                '<td style="color:#5c2d91;font-weight:600;">' + (r.CreditNoteNumber || '—') + '</td>' +
+                '<td>' + (r.CreatedOn || '—') + '</td>' +
+                '<td class="text-end fw-semibold">' + cur + ' ' + parseFloat(r.Amount || 0).toFixed(dec) + '</td>' +
+            '</tr>';
+        }).join('')
+        : '<tr><td colspan="3" class="text-center text-muted py-2" style="font-size:.8rem;">No pending credit notes found.</td></tr>';
+    $('#cnDetailBody').html(html);
+    $('#cnDetailSummary').html('Total: <strong>' + cur + ' ' + parseFloat(resp.Total || 0).toFixed(dec) + '</strong>');
+}
+
+/**
+ * Renders On Account + Advance rows into the credits detail modal.
+ * @param {{OnAccount: Array, Advance: Array, OnAccountTotal: number, AdvanceTotal: number}} resp
+ * @returns {void}
+ */
+function _renderCreditsDetail(resp) {
+    var cur = typeof CurrencySymbol !== 'undefined' ? CurrencySymbol : '₹';
+    var dec = typeof decimalPlaces  !== 'undefined' ? decimalPlaces  : 2;
+
+    /**
+     * @param {Array} list
+     * @returns {string}
+     */
+    function _rows(list) {
+        if (!list || !list.length) {
+            return '<tr><td colspan="3" class="text-center text-muted py-2" style="font-size:.8rem;">No records found.</td></tr>';
+        }
+        return list.map(function (r) {
+            return '<tr>' +
+                '<td style="color:#0d6efd;font-weight:600;">' + (r.InvoiceNumber || '—') + '</td>' +
+                '<td>' + (r.CreatedOn || '—') + '</td>' +
+                '<td class="text-end fw-semibold">' + cur + ' ' + parseFloat(r.Amount || 0).toFixed(dec) + '</td>' +
+            '</tr>';
+        }).join('');
+    }
+
+    $('#credDetailOaBody').html(_rows(resp.OnAccount));
+    $('#credDetailAdvBody').html(_rows(resp.Advance));
+    $('#credOaTotal').text(cur + ' ' + parseFloat(resp.OnAccountTotal || 0).toFixed(dec));
+    $('#credAdvTotal').text(cur + ' ' + parseFloat(resp.AdvanceTotal  || 0).toFixed(dec));
+
+    var grand = (parseFloat(resp.OnAccountTotal || 0) + parseFloat(resp.AdvanceTotal || 0)).toFixed(dec);
+    $('#credDetailSummary').html('Total Credits: <strong>' + cur + ' ' + grand + '</strong>');
 }
 
 // ── Auto-Draft ────────────────────────────────────────────────────────────────

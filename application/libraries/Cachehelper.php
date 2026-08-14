@@ -62,7 +62,8 @@ class Cachehelper {
 
             // On Account = unapplied credits from cancelled invoices (Cancel Only)
             $onAccountRows    = $CI->customers_model->getCustomerOnAccountPayments($orgUID, $uid);
-            $onAccountBalance = round(array_sum(array_column($onAccountRows, 'Amount')), (int)($CI->pageData['JwtData']->GenSettings->DecimalPoints ?? 2));
+            $dec              = (int)($CI->pageData['JwtData']->GenSettings->DecimalPoints ?? 2);
+            $onAccountBalance = round(array_sum(array_column($onAccountRows, 'Amount')), $dec);
             // Cache full records for FIFO panel (no AJAX needed on invoice form)
             $onAccountRecords = array_map(function($r) {
                 return [
@@ -72,6 +73,11 @@ class Cachehelper {
                     'SourceInvoiceNumber' => $r['SourceInvoiceNumber'] ?? '—',
                 ];
             }, $onAccountRows);
+
+            // Advance = unused excess payments (overpayments not yet applied to any invoice)
+            $advanceTotal    = round($CI->customers_model->getCustomerAdvanceTotal($orgUID, $uid), $dec);
+            // Credit Notes = pending (unApplied) credit notes from SR or cancelled invoices
+            $creditNoteTotal = round($CI->customers_model->getCustomerCreditNoteTotal($orgUID, $uid), $dec);
 
             $cacheKey = $CI->redisservice->orgKey('customers');
 
@@ -97,6 +103,8 @@ class Cachehelper {
                 'ClosingBalType'   => $closingBalType,
                 'OnAccountBalance' => $onAccountBalance,
                 'OnAccountRecords' => $onAccountRecords,
+                'AdvanceTotal'    => $advanceTotal,
+                'CreditNoteTotal' => $creditNoteTotal,
                 'Area'            => $cust->Area  ?? '',
                 'Tags'            => $cust->Tags  ?? '',
                 'Notes'           => $cust->Notes ?? '',

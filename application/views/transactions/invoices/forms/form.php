@@ -437,4 +437,6 @@ var _transFormData = <?php echo json_encode([
     }, $ChallanItems ?? []) : [],
 ]); ?>;
 </script>
+<?php $this->load->view('common/transactions/credits_detail_modal'); ?>
+<?php $this->load->view('common/transactions/creditnote_detail_modal'); ?>
 <script src="/js/transactions/forms/invoice.js"></script>

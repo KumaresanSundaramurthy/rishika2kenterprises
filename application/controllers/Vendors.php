@@ -1582,6 +1582,71 @@ class Vendors extends MY_Controller {
 
     }
 
+    /**
+     * Recalculate vendor closing balance from scratch and sync to DB + Upstash.
+     *
+     * POST body:
+     *   VendorUID (int, optional) — omit or 0 to recalculate ALL vendors in the org.
+     */
+    public function recalcBalance(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID    = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $userUID   = (int) $this->pageData['JwtData']->User->UserUID;
+            $vendorUID = (int) $this->input->post('VendorUID');
+
+            $this->load->library('vendorbalance');
+            $readDb = $this->load->database('ReadDB', TRUE);
+            $readDb->db_debug = FALSE;
+
+            if ($vendorUID > 0) {
+                // ── Single vendor ──────────────────────────────────────────
+                $result = $this->vendorbalance->recalcAndSync($orgUID, $vendorUID, $userUID);
+                if (!$result) throw new Exception('Vendor not found or recalculation failed.');
+
+                $this->EndReturnData->Error       = false;
+                $this->EndReturnData->Message     = 'Balance recalculated successfully.';
+                $this->EndReturnData->Balance     = $result['balance'];
+                $this->EndReturnData->BalanceType = $result['type'];
+
+            } else {
+                // ── All vendors for this org ───────────────────────────────
+                $rows = $readDb->query(
+                    'SELECT VendorUID FROM Vendors.VendorTbl
+                      WHERE OrgUID = ? AND IsDeleted = 0
+                      ORDER BY VendorUID ASC',
+                    [$orgUID]
+                )->result();
+
+                if (empty($rows)) throw new Exception('No vendors found for this organisation.');
+
+                $total   = count($rows);
+                $success = 0;
+                $failed  = 0;
+                foreach ($rows as $row) {
+                    $res = $this->vendorbalance->recalcAndSync($orgUID, (int)$row->VendorUID, $userUID);
+                    if ($res !== null) {
+                        $success++;
+                    } else {
+                        $failed++;
+                        log_message('error', 'recalcBalance: failed for VendorUID=' . $row->VendorUID);
+                    }
+                }
+
+                $this->EndReturnData->Error   = false;
+                $this->EndReturnData->Message = "Recalculated {$success} of {$total} vendors." . ($failed > 0 ? " {$failed} failed — check logs." : '');
+                $this->EndReturnData->Total   = $total;
+                $this->EndReturnData->Success = $success;
+                $this->EndReturnData->Failed  = $failed;
+            }
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
     public function getVendorSearchList() {
 
         $this->EndReturnData = new stdClass();

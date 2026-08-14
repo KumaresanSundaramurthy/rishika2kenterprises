@@ -232,7 +232,7 @@ class Invoices extends MY_Controller {
 
                             if ($isFullyApplied) {
                                 $this->dbwrite_model->updateData('Transaction', 'PaymentsTbl',
-                                    ['IsOnAccount' => 0, 'OnAccountAppliedTransUID' => $transUID, 'UpdatedBy' => $userUID],
+                                    ['OnAccountAppliedTransUID' => $transUID, 'UpdatedBy' => $userUID],
                                     ['PaymentUID' => $sourceUID, 'OrgUID' => $orgUID]
                                 );
                             } else {
@@ -877,7 +877,7 @@ class Invoices extends MY_Controller {
             $readDb->db_debug = FALSE;
             $onAccountCheck = $readDb->query(
                 'SELECT PaymentUID FROM Transaction.PaymentsTbl
-                 WHERE TransUID = ? AND OrgUID = ? AND Source = \'OnAccount\'
+                 WHERE TransUID = ? AND OrgUID = ?
                    AND OnAccountSourcePaymentUID > 0
                    AND IsDeleted = 0 AND IsCancelled = 0
                  LIMIT 1',
@@ -1202,7 +1202,7 @@ class Invoices extends MY_Controller {
                 // Guard C — Invoice has an On-Account credit applied to it
                 $onAccountOnThis = $readDb->query(
                     'SELECT PaymentUID FROM Transaction.PaymentsTbl
-                     WHERE TransUID = ? AND OrgUID = ? AND Source = \'OnAccount\'
+                     WHERE TransUID = ? AND OrgUID = ?
                        AND OnAccountSourcePaymentUID > 0
                        AND IsDeleted = 0 AND IsCancelled = 0
                      LIMIT 1',

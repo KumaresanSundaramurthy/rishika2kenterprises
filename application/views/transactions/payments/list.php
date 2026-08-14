@@ -142,9 +142,29 @@ if (!function_exists('_allPmtModeBadge')) {
                 <?php echo htmlspecialchars($cur); ?>
                 <?php echo number_format((float)$row->Amount, $dec, '.', ','); ?>
             </div>
-            <?php if (!empty($row->IsOnAccount)): ?>
+            <?php
+                $oaSrc        = !empty($row->IsOnAccount);
+                $oaAppliedUID = (int)($row->OnAccountAppliedTransUID  ?? 0);
+                $oaSrcPmtUID  = (int)($row->OnAccountSourcePaymentUID ?? 0);
+                $isFromOA     = $oaSrcPmtUID > 0;
+            ?>
+            <?php if ($oaSrc && $oaAppliedUID > 0): ?>
+                <?php $appliedNum = htmlspecialchars($row->OnAccountAppliedTransNum ?? ''); ?>
+                <span title="Applied to <?php echo $appliedNum; ?>"
+                      style="font-size:.65rem;font-weight:600;padding:1px 6px;border-radius:8px;
+                             background:#d1e7dd;color:#0a3622;border:1px solid #a3cfbb;cursor:default;">
+                    Applied <?php if ($appliedNum): ?>&#8594; <?php echo $appliedNum; ?><?php endif; ?>
+                </span>
+            <?php elseif ($oaSrc): ?>
                 <span style="font-size:.65rem;font-weight:600;padding:1px 6px;border-radius:8px;
                              background:#fff3cd;color:#856404;border:1px solid #ffc107;">On Account</span>
+            <?php elseif ($isFromOA): ?>
+                <?php $srcNum = htmlspecialchars($row->OnAccountSourcePaymentNum ?? ''); ?>
+                <span title="Credit from <?php echo $srcNum; ?>"
+                      style="font-size:.65rem;font-weight:600;padding:1px 6px;border-radius:8px;
+                             background:#cfe2ff;color:#084298;border:1px solid #9ec5fe;cursor:default;">
+                    On-Account <?php if ($srcNum): ?>&#8592; <?php echo $srcNum; ?><?php endif; ?>
+                </span>
             <?php elseif (($row->ExcessAmount ?? 0) > 0): ?>
                 <div style="font-size:.7rem;color:#f59e0b;">
                     Excess: <?php echo htmlspecialchars($cur); ?> <?php echo number_format((float)$row->ExcessAmount, $dec); ?>

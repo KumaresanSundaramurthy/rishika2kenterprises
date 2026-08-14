@@ -585,10 +585,11 @@ $(function () {
     }
 
     $(document).on('click', '.deleteInvoice', function () {
-        var uid        = $(this).data('uid');
-        var num        = $(this).data('num') || '';
-        var advanceIn  = parseInt($(this).data('advance-in')  || 0, 10);
-        var advanceOut = parseInt($(this).data('advance-out') || 0, 10);
+        var uid          = $(this).data('uid');
+        var num          = $(this).data('num') || '';
+        var advanceIn    = parseInt($(this).data('advance-in')    || 0, 10);
+        var advanceOut   = parseInt($(this).data('advance-out')   || 0, 10);
+        var onAccountIn  = parseInt($(this).data('onaccount-in')  || 0, 10);
 
         if (advanceOut) {
             Swal.fire({ icon: 'warning', title: 'Cannot Delete', text: 'This invoice has excess credit applied to another invoice. Delete that advance entry first, then try again.' });
@@ -596,6 +597,10 @@ $(function () {
         }
         if (advanceIn) {
             Swal.fire({ icon: 'warning', title: 'Cannot Delete', text: 'This invoice was paid using advance credit. Delete the advance payment entry first, then try again.' });
+            return;
+        }
+        if (onAccountIn) {
+            Swal.fire({ icon: 'warning', title: 'Cannot Delete', text: 'This invoice has an On-Account credit applied to it. Delete the on-account payment entry first, then try again.' });
             return;
         }
 
@@ -738,12 +743,13 @@ $(function () {
     })();
 
     $(document).on('click', '.cancelInvoice', function () {
-        var uid        = $(this).attr('data-uid');
-        var num        = $(this).attr('data-num') || '';
-        var paidAmt    = parseFloat($(this).attr('data-paid') || 0);
-        var hasPaid    = paidAmt > 0;
-        var advanceIn  = parseInt($(this).attr('data-advance-in')  || 0, 10);
-        var advanceOut = parseInt($(this).attr('data-advance-out') || 0, 10);
+        var uid         = $(this).attr('data-uid');
+        var num         = $(this).attr('data-num') || '';
+        var paidAmt     = parseFloat($(this).attr('data-paid') || 0);
+        var hasPaid     = paidAmt > 0;
+        var advanceIn   = parseInt($(this).attr('data-advance-in')   || 0, 10);
+        var advanceOut  = parseInt($(this).attr('data-advance-out')  || 0, 10);
+        var onAccountIn = parseInt($(this).attr('data-onaccount-in') || 0, 10);
 
         if (advanceOut) {
             Swal.fire({ icon: 'warning', title: 'Cannot Cancel', text: 'This invoice has excess credit applied to another invoice. Delete that advance entry first, then try again.' });
@@ -751,6 +757,10 @@ $(function () {
         }
         if (advanceIn) {
             Swal.fire({ icon: 'warning', title: 'Cannot Cancel', text: 'This invoice was paid using advance credit. Delete the advance payment entry first, then try again.' });
+            return;
+        }
+        if (onAccountIn) {
+            Swal.fire({ icon: 'warning', title: 'Cannot Cancel', text: 'This invoice has an On-Account credit applied to it. Delete the on-account payment entry first, then try again.' });
             return;
         }
 

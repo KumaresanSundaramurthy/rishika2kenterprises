@@ -872,6 +872,24 @@ class Invoices extends MY_Controller {
             $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
             if (!$existing) throw new Exception('Invoice not found.');
 
+            // Guard — On-Account credit applied: block delete
+            $readDb = $this->load->database('ReadDB', TRUE);
+            $readDb->db_debug = FALSE;
+            $onAccountCheck = $readDb->query(
+                'SELECT PaymentUID FROM Transaction.PaymentsTbl
+                 WHERE TransUID = ? AND OrgUID = ? AND Source = \'OnAccount\'
+                   AND OnAccountSourcePaymentUID > 0
+                   AND IsDeleted = 0 AND IsCancelled = 0
+                 LIMIT 1',
+                [$transUID, $orgUID]
+            )->row();
+            if ($onAccountCheck) {
+                throw new Exception(
+                    'This invoice has an On-Account credit applied to it. ' .
+                    'Please delete the on-account payment entry first, then delete this invoice.'
+                );
+            }
+
             // Reverse stock movements (no-op if it was a draft)
             $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
 
@@ -1178,6 +1196,22 @@ class Invoices extends MY_Controller {
                     throw new Exception(
                         'This invoice\'s payment has advance credit currently applied to another invoice. ' .
                         'Please go to the Payments module and delete that advance payment first, then cancel this invoice.'
+                    );
+                }
+
+                // Guard C — Invoice has an On-Account credit applied to it
+                $onAccountOnThis = $readDb->query(
+                    'SELECT PaymentUID FROM Transaction.PaymentsTbl
+                     WHERE TransUID = ? AND OrgUID = ? AND Source = \'OnAccount\'
+                       AND OnAccountSourcePaymentUID > 0
+                       AND IsDeleted = 0 AND IsCancelled = 0
+                     LIMIT 1',
+                    [$transUID, $orgUID]
+                )->row();
+                if ($onAccountOnThis) {
+                    throw new Exception(
+                        'This invoice has an On-Account credit applied to it. ' .
+                        'Please delete the on-account payment entry first, then cancel this invoice.'
                     );
                 }
             }

@@ -91,6 +91,7 @@ class Transactions_model extends MY_Model {
                 // Advance credit link flags — used for immediate frontend guards on delete/cancel
                 '(SELECT COUNT(*) FROM Transaction.PaymentsTbl adv WHERE adv.TransUID = Ts.TransUID AND adv.IsExcessApplied = 1 AND adv.IsDeleted = 0 AND adv.IsCancelled = 0) AS HasAdvanceIn',
                 '(SELECT COUNT(*) FROM Transaction.PaymentsTbl src INNER JOIN Transaction.PaymentsTbl memo ON memo.ExcessSourcePaymentUID = src.PaymentUID WHERE src.TransUID = Ts.TransUID AND src.IsDeleted = 0 AND src.IsCancelled = 0 AND memo.IsDeleted = 0 AND memo.IsCancelled = 0) AS HasAdvanceOut',
+                '(SELECT COUNT(*) FROM Transaction.PaymentsTbl oa WHERE oa.TransUID = Ts.TransUID AND oa.Source = \'OnAccount\' AND oa.OnAccountSourcePaymentUID > 0 AND oa.IsDeleted = 0 AND oa.IsCancelled = 0) AS HasOnAccountIn',
             ]);
             $this->ReadDb->from('Transaction.TransactionsTbl as Ts');
             $this->ReadDb->join('Customers.CustomerTbl as Cust', 'Cust.CustomerUID = Ts.PartyUID AND Ts.PartyType = \'C\'', 'LEFT');

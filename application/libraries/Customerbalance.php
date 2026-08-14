@@ -42,6 +42,7 @@ class Customerbalance {
                 'PartyType'                 => 'C',
                 'PaymentDirection'          => 'In',
                 'IsDeleted'                 => 0,
+                'IsCancelled'               => 0,
                 'IsTransferredToCreditNote' => 0,
             ]);
             $row       = $readDb->get()->row();
@@ -91,6 +92,7 @@ class Customerbalance {
                 'PartyType'                 => 'C',
                 'PaymentDirection'          => 'In',
                 'IsDeleted'                 => 0,
+                'IsCancelled'               => 0,
                 'IsTransferredToCreditNote' => 0,
             ]);
             $writeDb->update('Transaction.PaymentsTbl', [

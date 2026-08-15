@@ -8,11 +8,16 @@ $(function() {
 
     if (!$('#paymentRowsBody').length) return; // partial not on this page
 
-    var _paymentTypes = JSON.parse($('#paymentTypeOptionsData').text() || '[]');
-    var _bankAccounts = JSON.parse($('#bankAccountOptionsData').text()  || '[]');
-    var _rowCount     = 0;
-    var _currSymbol   = window._paymentCurrSymbol || '₹';
-    var _dec          = window._psDecimal || 2;
+    var _paymentTypes  = JSON.parse($('#paymentTypeOptionsData').text() || '[]');
+    var _bankAccounts  = JSON.parse($('#bankAccountOptionsData').text()  || '[]');
+    var _rowCount      = 0;
+    var _currSymbol    = window._paymentCurrSymbol || '₹';
+    var _dec           = window._psDecimal || 2;
+    var _partyType     = window._paymentPartyType || 'C';
+
+    /* ── Credit Note state ───────────────────────────────────────── */
+    var _appliedCN     = null; // {uid, number, amount, type} or null
+    var _cnCustomerUID = 0;
 
     /* ── helpers ─────────────────────────────────── */
     function esc(str) {
@@ -181,7 +186,7 @@ $(function() {
         $(this).val(val);
 
         // When "Mark as fully paid" is checked, cap this row so the running total
-        // can never exceed the bill amount (accounting for On Account credits too).
+        // can never exceed the bill amount (accounting for On Account and credit note too).
         if ($('#isFullyPaid').is(':checked')) {
             var billTotal  = getBillTotal();
             var onAccTotal = 0;
@@ -193,7 +198,8 @@ $(function() {
                     });
                 }
             } catch(e) {}
-            var maxPayable = billTotal - onAccTotal;
+            var creditTotal = _appliedCN ? parseFloat(_appliedCN.amount) : 0;
+            var maxPayable  = billTotal - onAccTotal - creditTotal;
             var $current   = $(this);
             var otherTotal = 0;
             $('#paymentRowsBody tr').each(function() {
@@ -251,7 +257,8 @@ $(function() {
 
     function updatePaymentSummary() {
         var billTotal = getBillTotal();
-        var totalPaid = 0;
+        var creditAmt = _appliedCN ? parseFloat(_appliedCN.amount) : 0;
+        var totalPaid = creditAmt;
 
         $('#paymentRowsBody tr').each(function() {
             totalPaid += parseFloat($(this).find('.pay-amount-inp').val()) || 0;
@@ -266,6 +273,18 @@ $(function() {
                 });
             }
         } catch(e) {}
+
+        // Credit amount display line
+        if (creditAmt > 0) {
+            $('#cnCreditAmtWrap').removeClass('d-none');
+            $('#cnCreditAmt').text(_currSymbol + ' ' + creditAmt.toFixed(_dec));
+        } else {
+            $('#cnCreditAmtWrap').addClass('d-none');
+        }
+
+        // Disable Split Payment when already fully covered
+        var isCovered = billTotal > 0 && (totalPaid >= billTotal - 0.005);
+        $('#splitPaymentBtn').prop('disabled', isCovered);
 
         var balance = billTotal - totalPaid;
         var excess  = totalPaid - billTotal;
@@ -327,8 +346,8 @@ $(function() {
 
         // "Mark as fully paid" validation — total must be within ₹1 of bill amount
         if ($('#isFullyPaid').is(':checked')) {
-            var billTotal  = getBillTotal();
-            var onAccTotal = 0;
+            var billTotal   = getBillTotal();
+            var onAccTotal  = 0;
             try {
                 var oaRaw = $('#OnAccountApplyJson').val() || '';
                 if (oaRaw) {
@@ -337,8 +356,9 @@ $(function() {
                     });
                 }
             } catch(e) {}
-            var totalPaid = rowTotal + onAccTotal;
-            var diff      = totalPaid - billTotal;
+            var creditTotal = _appliedCN ? parseFloat(_appliedCN.amount) : 0;
+            var totalPaid   = rowTotal + onAccTotal + creditTotal;
+            var diff        = totalPaid - billTotal;
 
             if (diff < -1) {
                 showToastNotification(
@@ -530,5 +550,149 @@ $(function() {
     window.getPaymentAttachmentFiles = function() {
         return _paymentAttachments;
     };
+
+    /* ── Credit Note Banner & Modal ──────────────────────────────── */
+
+    function _clearCreditNote() {
+        _appliedCN = null;
+        $('#CreditNoteUIDInput').val('');
+        $('#cnAppliedStrip').addClass('d-none');
+        updatePaymentSummary();
+    }
+
+    // Expose banner control so invoice.js (which loads after us) can call it
+    // from its own _showOnAccountBanner override.
+    window._cnUpdateBanner = function(customerUID, cnTotal) {
+        _cnCustomerUID = parseInt(customerUID) || 0;
+        if (_cnCustomerUID > 0 && parseFloat(cnTotal) > 0) {
+            $('#cnBannerWrap').removeClass('d-none');
+        } else {
+            _clearCreditNote();
+            $('#cnBannerWrap').addClass('d-none');
+        }
+    };
+
+    // Banner click → AJAX → open modal
+    $(document).on('click', '#cnBannerBtn', function() {
+        if (_cnCustomerUID <= 0) return;
+        var billTotal = getBillTotal();
+        if (!_hasItems() || billTotal <= 0) {
+            showToastNotification('Please add items to the invoice first. A credit note can only be applied once the invoice has products and a total amount greater than zero.', 'error');
+            return;
+        }
+        $.ajax({
+            url    : '/invoices/getCustomerCreditNotes',
+            method : 'POST',
+            data   : { CustomerUID: _cnCustomerUID, [CsrfName]: CsrfToken },
+            success: function(resp) {
+                if (resp.Error) {
+                    showToastNotification('Could not load credit notes. Please try again.', 'error');
+                    return;
+                }
+                _openCnModal(resp.Data || [], billTotal);
+            },
+            error: function() {
+                showToastNotification('Failed to load credit notes.', 'error');
+            }
+        });
+    });
+
+    /**
+     * @param {Array}  cnList
+     * @param {number} billTotal
+     * @returns {void}
+     */
+    function _openCnModal(cnList, billTotal) {
+        var rows = '';
+        if (!cnList.length) {
+            rows = '<tr><td colspan="6" class="text-center text-muted py-4">No pending credit notes for this customer.</td></tr>';
+        } else {
+            cnList.forEach(function(cn) {
+                var amt      = parseFloat(cn.Amount);
+                var tooLarge = amt > billTotal + 0.005;
+                var disAttr  = tooLarge ? ' disabled' : '';
+                var rowCls   = tooLarge ? ' cn-row-disabled' : '';
+                var srcNum   = esc(cn.SourceInvoiceNumber || cn.SourceTransNumber || '—');
+                var type     = esc(cn.CreditNoteType || '');
+                var date     = (cn.CreatedOn || '').split(' ')[0];
+                rows += '<tr class="cn-modal-row' + rowCls + '">' +
+                    '<td class="text-center">' +
+                        '<input type="radio" name="cnSelectRadio" class="form-check-input"' +
+                        ' value="' + esc(String(cn.CreditNoteUID)) + '"' +
+                        ' data-amount="' + amt + '"' +
+                        ' data-number="' + esc(cn.CreditNoteNumber) + '"' +
+                        ' data-type="'   + type + '"' +
+                        disAttr + '>' +
+                    '</td>' +
+                    '<td><span class="fw-semibold text-success">' + esc(cn.CreditNoteNumber) + '</span></td>' +
+                    '<td>' + type + '</td>' +
+                    '<td class="text-muted small">' + srcNum + '</td>' +
+                    '<td class="text-end fw-semibold">' + _currSymbol + ' ' + amt.toFixed(_dec) +
+                        (tooLarge ? ' <span class="badge bg-label-danger ms-1" style="font-size:.65rem;">Exceeds invoice</span>' : '') +
+                    '</td>' +
+                    '<td class="text-muted small">' + esc(date) + '</td>' +
+                '</tr>';
+            });
+        }
+        $('#cnModalTableBody').html(rows);
+        $('#cnApplyBtn').prop('disabled', true);
+        var $modal = document.getElementById('cnSelectModal');
+        if ($modal) {
+            (bootstrap.Modal.getInstance($modal) || new bootstrap.Modal($modal)).show();
+        }
+    }
+
+    // Enable Apply button when a radio is chosen
+    $(document).on('change', 'input[name="cnSelectRadio"]', function() {
+        $('#cnApplyBtn').prop('disabled', false);
+    });
+
+    // Clicking a non-disabled row selects its radio
+    $(document).on('click', '#cnModalTableBody .cn-modal-row:not(.cn-row-disabled)', function(e) {
+        if (!$(e.target).is('input[type="radio"]')) {
+            $(this).find('input[type="radio"]').prop('checked', true).trigger('change');
+        }
+    });
+
+    // Apply selected credit note
+    $(document).on('click', '#cnApplyBtn', function() {
+        var $sel = $('input[name="cnSelectRadio"]:checked');
+        if (!$sel.length) return;
+
+        _appliedCN = {
+            uid   : parseInt($sel.val(), 10),
+            amount: parseFloat($sel.data('amount')),
+            number: String($sel.data('number') || ''),
+            type  : String($sel.data('type')   || '')
+        };
+        $('#CreditNoteUIDInput').val(_appliedCN.uid);
+
+        // Update strip label
+        var label = esc(_appliedCN.number) + (_appliedCN.type ? ' · ' + esc(_appliedCN.type) : '');
+        $('#cnAppliedLabel').html(label);
+        $('#cnAppliedAmt').text(_currSymbol + ' ' + _appliedCN.amount.toFixed(_dec));
+        $('#cnAppliedStrip').removeClass('d-none');
+
+        // Hide banner while credit is applied
+        $('#cnBannerWrap').addClass('d-none');
+
+        // Close modal
+        var $m = document.getElementById('cnSelectModal');
+        if ($m) {
+            var inst = bootstrap.Modal.getInstance($m);
+            if (inst) inst.hide();
+        }
+
+        updatePaymentSummary();
+    });
+
+    // Remove applied credit note
+    $(document).on('click', '#cnRemoveBtn', function() {
+        _clearCreditNote();
+        // Restore banner if customer still selected and has CNs
+        if (_cnCustomerUID > 0) {
+            $('#cnBannerWrap').removeClass('d-none');
+        }
+    });
 
 });

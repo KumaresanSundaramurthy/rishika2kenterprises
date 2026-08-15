@@ -355,45 +355,93 @@ class Customerbalance {
 
     // ── Credit Note: apply to a future invoice ────────────────────────────────
 
-    public function applyCreditNote($orgUID, $creditNoteUID, $targetTransUID, $userUID) {
+    public function applyCreditNote($orgUID, $creditNoteUID, $targetTransUID, $userUID, $moduleUID = 103) {
         try {
             $this->CI->load->model('dbwrite_model');
             $writeDb = $this->CI->load->database('WriteDB', TRUE);
             $writeDb->db_debug = FALSE;
+            $writeDb->query("SET SESSION sql_mode = ''");
 
             // Use WriteDB to fetch — ensures we always see the latest committed data
             $writeDb->from('Transaction.TransCreditNoteTbl');
             $writeDb->where(['CreditNoteUID' => (int)$creditNoteUID, 'Status' => 'Pending', 'IsDeleted' => 0]);
             $cn = $writeDb->get()->row();
+
             if (!$cn) throw new Exception('Credit note not found or already used.');
 
-            // Create a new payment record (In) against the target invoice
-            $writeDb->insert('Transaction.PaymentsTbl', [
+            // Generate payment unique number (same logic as _savePaymentRecord)
+            $this->CI->load->model('transactions_model');
+            $payDate     = date('Y-m-d');
+            $payTransYear = (int) date('Y');
+            $payPrefixData = $this->CI->transactions_model->getTransactionsPrefixDetails(['Prefix.OrgUID' => (int)$orgUID, 'Prefix.ModuleUID' => 110]);
+            $payPrefix   = !empty($payPrefixData->Data) ? $payPrefixData->Data[0] : null;
+            $payPrefixUID = $payPrefix ? (int)$payPrefix->PrefixUID : null;
+            $payNumber   = $payPrefixUID ? $this->CI->transactions_model->getNextPaymentNumber($payPrefixUID, (int)$orgUID, $payTransYear) : 0;
+            $payUnique   = null;
+            if ($payPrefix && $payNumber > 0) {
+                $sep   = $payPrefix->Separator ?? '-';
+                $parts = [strtoupper($payPrefix->Name)];
+                if (!empty($payPrefix->IncludeShortName) && !empty($payPrefix->ShortName)) {
+                    $parts[] = strtoupper($payPrefix->ShortName);
+                }
+                if (!empty($payPrefix->IncludeFiscalYear)) {
+                    $m   = (int) date('m', strtotime($payDate));
+                    $yr  = (int) date('Y', strtotime($payDate));
+                    $fy  = $m >= 4 ? $yr : $yr - 1;
+                    $parts[] = ($payPrefix->FiscalYearFormat ?? 'SHORT') === 'LONG'
+                        ? $fy . '-' . ($fy + 1)
+                        : str_pad($fy % 100, 2, '0', STR_PAD_LEFT) . '-' . str_pad(($fy + 1) % 100, 2, '0', STR_PAD_LEFT);
+                }
+                $pad     = (int)($payPrefix->NumberPadding ?? 1);
+                $parts[] = $pad > 1 ? str_pad($payNumber, $pad, '0', STR_PAD_LEFT) : (string)$payNumber;
+                $payUnique = implode($sep, $parts);
+            }
+
+            $insertData = [
                 'OrgUID'                    => (int)$orgUID,
+                'PaymentDate'               => $payDate,
+                'PaymentModuleUID'          => 110,
+                'PrefixUID'                 => $payPrefixUID,
+                'PaymentNumber'             => $payNumber,
+                'UniqueNumber'              => $payUnique,
+                'TransYear'                 => $payTransYear,
+                'ReceiptToken'              => generate_uuid4(),
                 'TransUID'                  => (int)$targetTransUID,
+                'ModuleUID'                 => (int)$moduleUID,
                 'PartyUID'                  => (int)$cn->PartyUID,
                 'PartyType'                 => 'C',
+                'PaymentTypeUID'            => 0,
                 'Amount'                    => (float)$cn->Amount,
                 'PaymentDirection'          => 'In',
-                'Source'                    => 'CreditNote',
+                'SourceType'                => 'CreditNote',
                 'IsTransferredToCreditNote' => 0,
                 'IsActive'                  => 1,
                 'IsDeleted'                 => 0,
                 'CreatedBy'                 => (int)$userUID,
                 'UpdatedBy'                 => (int)$userUID,
-            ]);
-            $paymentUID = (int)$writeDb->insert_id();
+            ];
+
+            $insertResult = $writeDb->insert('Transaction.PaymentsTbl', $insertData);
+            $dbError      = $writeDb->error();
+            $paymentUID   = (int)$writeDb->insert_id();
+
+            if (!$insertResult) {
+                throw new Exception('PaymentsTbl INSERT failed: ' . ($dbError['message'] ?? 'unknown error') . ' (code: ' . ($dbError['code'] ?? '?') . ')');
+            }
 
             // Mark credit note as Applied
             $writeDb->where('CreditNoteUID', (int)$creditNoteUID);
             $writeDb->update('Transaction.TransCreditNoteTbl', [
-                'Status'           => 'Applied',
-                'AppliedTransUID'  => (int)$targetTransUID,
-                'AppliedPaymentUID'=> $paymentUID,
-                'UpdatedBy'        => (int)$userUID,
+                'Status'            => 'Applied',
+                'AppliedTransUID'   => (int)$targetTransUID,
+                'AppliedPaymentUID' => $paymentUID,
+                'UpdatedBy'         => (int)$userUID,
             ]);
+            if ($writeDb->affected_rows() < 1) {
+                $updateErr = $writeDb->error();
+                log_message('error', 'Customerbalance::applyCreditNote — TransCreditNoteTbl STATUS UPDATE did not affect any rows. CreditNoteUID=' . $creditNoteUID . ' error=' . json_encode($updateErr));
+            }
 
-            // Recalc balance
             $this->recalcAndSync($orgUID, $cn->PartyUID, $userUID);
 
             try {

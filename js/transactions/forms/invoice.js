@@ -47,6 +47,9 @@ $(function () {
          */
         window._showOnAccountBanner = function (oaTotal, oaRecords, customerUID, advTotal, cnTotal) {
             window._showCreditsBadges(oaTotal, advTotal, cnTotal);
+            if (typeof window._cnUpdateBanner === 'function') {
+                window._cnUpdateBanner(customerUID, cnTotal);
+            }
         };
 
         $(document).on('click', '#creditNoteBadge', function () {
@@ -381,6 +384,7 @@ $(function () {
             $.each(charges, function (k, v) { fd.append(k, v); });
             collectTransAttachData(fd);
             if (!_isEdit) {
+                fd.append('CreditNoteUID',      parseInt($('#CreditNoteUIDInput').val(), 10) || 0);
                 fd.append('PaymentRows',        $('#PaymentRowsJson').val()    || '');
                 fd.append('IsFullyPaid',        $('#isFullyPaid').is(':checked') ? 1 : 0);
                 fd.append('RecordPayment',      action !== 'draft' ? 1 : 0);

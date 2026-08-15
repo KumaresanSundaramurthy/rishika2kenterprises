@@ -165,6 +165,9 @@ if (!function_exists('_allPmtModeBadge')) {
                              background:#cfe2ff;color:#084298;border:1px solid #9ec5fe;cursor:default;">
                     On-Account <?php if ($srcNum): ?>&#8592; <?php echo $srcNum; ?><?php endif; ?>
                 </span>
+            <?php elseif (($row->SourceType ?? '') === 'CreditNote'): ?>
+                <span style="font-size:.65rem;font-weight:600;padding:1px 6px;border-radius:8px;
+                             background:#f3e8ff;color:#6b21a8;border:1px solid #d8b4fe;">Credit Note</span>
             <?php elseif (($row->ExcessAmount ?? 0) > 0): ?>
                 <div style="font-size:.7rem;color:#f59e0b;">
                     Excess: <?php echo htmlspecialchars($cur); ?> <?php echo number_format((float)$row->ExcessAmount, $dec); ?>

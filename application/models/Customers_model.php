@@ -19,7 +19,7 @@ class Customers_model extends CI_Model {
             $result = $this->ReadDb->query(
                 "SELECT
                     COALESCE((SELECT SUM(Amount) FROM Transaction.TransCreditNoteTbl
-                              WHERE OrgUID=? AND PartyUID=? AND PartyType='C' AND Status='Pending' AND IsCancelled=0 AND IsDeleted=0 AND PaymentCleared=0), 0) AS CreditTotal,
+                              WHERE OrgUID=? AND PartyUID=? AND PartyType='C' AND Status IN ('Pending','Applied') AND IsCancelled=0 AND IsDeleted=0 AND PaymentCleared=0), 0) AS CreditTotal,
                     COALESCE((SELECT SUM(Amount) FROM Transaction.TransDebitNoteTbl
                               WHERE OrgUID=? AND PartyUID=? AND PartyType='C' AND Status='Pending' AND IsDeleted=0), 0) AS DebitTotal",
                 [(int)$orgUID, (int)$customerUID, (int)$orgUID, (int)$customerUID]
@@ -636,6 +636,9 @@ class Customers_model extends CI_Model {
                 'IsCancelled'                  => 0,   // exclude voided/reversed payments
                 'IsExcessApplied'              => 0,   // exclude advance allocation memo rows (no new cash)
             ]);
+            // CN payments are tracked via TransCreditNoteTbl in the balance formula — excluding
+            // them here prevents double-counting when TransCreditNoteTbl.Status lags behind.
+            $this->ReadDb->where("(SourceType IS NULL OR SourceType != 'CreditNote')", null, false);
             $query = $this->ReadDb->get();
             if (!$query) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
             return (float) $query->row()->total;

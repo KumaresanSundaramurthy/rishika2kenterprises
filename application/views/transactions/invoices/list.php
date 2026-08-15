@@ -439,7 +439,8 @@ if (!empty($DataLists)):
                                     data-paid="<?php echo $paidAmt; ?>"
                                     data-advance-in="<?php echo (int)($list->HasAdvanceIn ?? 0); ?>"
                                     data-advance-out="<?php echo (int)($list->HasAdvanceOut ?? 0); ?>"
-                                    data-onaccount-in="<?php echo (int)($list->HasOnAccountIn ?? 0); ?>">
+                                    data-onaccount-in="<?php echo (int)($list->HasOnAccountIn ?? 0); ?>"
+                                    data-creditnote-in="<?php echo (int)($list->HasCreditNoteIn ?? 0); ?>">
                                 <i class="bx bx-x-circle me-2"></i><?php echo t('act_cancel_invoice', 'Cancel Invoice'); ?>
                             </button>
                         </li>
@@ -449,7 +450,8 @@ if (!empty($DataLists)):
                                     data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? 'Draft'); ?>"
                                     data-advance-in="<?php echo (int)($list->HasAdvanceIn ?? 0); ?>"
                                     data-advance-out="<?php echo (int)($list->HasAdvanceOut ?? 0); ?>"
-                                    data-onaccount-in="<?php echo (int)($list->HasOnAccountIn ?? 0); ?>">
+                                    data-onaccount-in="<?php echo (int)($list->HasOnAccountIn ?? 0); ?>"
+                                    data-creditnote-in="<?php echo (int)($list->HasCreditNoteIn ?? 0); ?>">
                                 <i class="bx bx-trash me-2"></i><?php echo t('delete', 'Delete'); ?>
                             </button>
                         </li>

@@ -219,7 +219,7 @@ class Invoices extends MY_Controller {
                                 'PartyType'                 => 'C',
                                 'PaymentDirection'          => 'In',
                                 'Amount'                    => $applyAmount,
-                                'Source'                    => 'OnAccount',
+                                'SourceType'                => 'OnAccount',
                                 'IsOnAccount'               => 0,
                                 'OnAccountSourcePaymentUID' => $sourceUID,
                                 'IsTransferredToCreditNote' => 0,
@@ -249,6 +249,30 @@ class Invoices extends MY_Controller {
                             $this->_updateTransactionBalance($transUID, $netAmount, $paidAmountForLedger + $onAccountAppliedTotal, $userUID);
                             $paidAmountForLedger += $onAccountAppliedTotal;
                         }
+                    }
+                }
+            }
+
+            // Apply Credit Note to this invoice at creation time
+            if (!$isDraft) {
+                $cnUID = (int) getPostValue($PostData, 'CreditNoteUID');
+                if ($cnUID > 0) {
+                    try {
+                        $cnReadDb = $this->load->database('ReadDB', TRUE);
+                        $cnReadDb->db_debug = FALSE;
+                        $cnRow = $cnReadDb->query(
+                            'SELECT Amount FROM Transaction.TransCreditNoteTbl WHERE CreditNoteUID = ? AND OrgUID = ? AND Status = ? AND IsDeleted = 0',
+                            [$cnUID, $orgUID, 'Pending']
+                        )->row();
+                        if ($cnRow) {
+                            $cnApplyAmount = round((float)$cnRow->Amount, $this->_decimals());
+                            $this->load->library('customerbalance');
+                            $this->customerbalance->applyCreditNote($orgUID, $cnUID, $transUID, $userUID);
+                            $this->_updateTransactionBalance($transUID, $netAmount, $paidAmountForLedger + $cnApplyAmount, $userUID);
+                            $paidAmountForLedger += $cnApplyAmount;
+                        }
+                    } catch (Exception $cnEx) {
+                        log_message('error', 'createInvoice: credit note application failed: ' . $cnEx->getMessage());
                     }
                 }
             }
@@ -496,6 +520,39 @@ class Invoices extends MY_Controller {
                 $firstPaymentUID     = $payResult['firstPaymentUID'];
                 if ($paidAmountForLedger > 0) {
                     $this->_updateTransactionBalance($activeTransUID, $netAmount, $paidAmountForLedger, $userUID);
+                }
+            }
+
+            // Apply Credit Note to this invoice on finalise (draft→final or direct edit)
+            if (!$isDraft) {
+                $cnUID = (int) getPostValue($PostData, 'CreditNoteUID');
+                if ($cnUID > 0) {
+                    try {
+                        $cnReadDb = $this->load->database('ReadDB', TRUE);
+                        $cnReadDb->db_debug = FALSE;
+                        $alreadyApplied = $cnReadDb->query(
+                            'SELECT CreditNoteUID FROM Transaction.TransCreditNoteTbl
+                             WHERE CreditNoteUID = ? AND OrgUID = ? AND AppliedTransUID = ?
+                               AND Status = ? AND IsDeleted = 0 LIMIT 1',
+                            [$cnUID, $orgUID, $activeTransUID, 'Applied']
+                        )->row();
+                        if (!$alreadyApplied) {
+                            $cnRow = $cnReadDb->query(
+                                'SELECT Amount FROM Transaction.TransCreditNoteTbl
+                                 WHERE CreditNoteUID = ? AND OrgUID = ? AND Status = ? AND IsDeleted = 0',
+                                [$cnUID, $orgUID, 'Pending']
+                            )->row();
+                            if ($cnRow) {
+                                $cnApplyAmount = round((float)$cnRow->Amount, $this->_decimals());
+                                $this->load->library('customerbalance');
+                                $this->customerbalance->applyCreditNote($orgUID, $cnUID, $activeTransUID, $userUID);
+                                $this->_updateTransactionBalance($activeTransUID, $netAmount, $paidAmountForLedger + $cnApplyAmount, $userUID);
+                                $paidAmountForLedger += $cnApplyAmount;
+                            }
+                        }
+                    } catch (Exception $cnEx) {
+                        log_message('error', 'updateInvoice: credit note application failed: ' . $cnEx->getMessage());
+                    }
                 }
             }
 
@@ -894,6 +951,20 @@ class Invoices extends MY_Controller {
                 );
             }
 
+            // Guard — Credit Note applied: block delete
+            $cnCheck = $readDb->query(
+                'SELECT PaymentUID FROM Transaction.PaymentsTbl
+                 WHERE TransUID = ? AND SourceType = ? AND IsDeleted = 0 AND IsCancelled = 0
+                 LIMIT 1',
+                [$transUID, 'CreditNote']
+            )->row();
+            if ($cnCheck) {
+                throw new Exception(
+                    'This invoice has a Credit Note applied to it. ' .
+                    'Please remove the credit note payment entry first, then delete this invoice.'
+                );
+            }
+
             // Reverse stock movements (no-op if it was a draft)
             $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
 
@@ -1216,6 +1287,20 @@ class Invoices extends MY_Controller {
                     throw new Exception(
                         'This invoice has an On-Account credit applied to it. ' .
                         'Please delete the on-account payment entry first, then cancel this invoice.'
+                    );
+                }
+
+                // Guard D — Invoice has a Credit Note applied to it
+                $creditNoteOnThis = $readDb->query(
+                    'SELECT PaymentUID FROM Transaction.PaymentsTbl
+                     WHERE TransUID = ? AND SourceType = ? AND IsDeleted = 0 AND IsCancelled = 0
+                     LIMIT 1',
+                    [$transUID, 'CreditNote']
+                )->row();
+                if ($creditNoteOnThis) {
+                    throw new Exception(
+                        'This invoice has a Credit Note applied to it. ' .
+                        'Please remove the credit note payment entry first, then cancel this invoice.'
                     );
                 }
             }

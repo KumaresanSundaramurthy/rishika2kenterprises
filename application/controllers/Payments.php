@@ -632,14 +632,30 @@ class Payments extends MY_Controller {
                 }
             }
 
+            // 3d. Revert Credit Note back to Pending when its applied payment is removed
+            $appliedCNRow = $this->dbwrite_model->getWriteDb()->query(
+                'SELECT CreditNoteUID FROM Transaction.TransCreditNoteTbl
+                 WHERE AppliedPaymentUID = ? AND OrgUID = ? AND Status = ? AND IsDeleted = 0
+                 LIMIT 1',
+                [$paymentUID, $orgUID, 'Applied']
+            )->row();
+            if ($appliedCNRow) {
+                $this->dbwrite_model->updateData(
+                    'Transaction', 'TransCreditNoteTbl',
+                    ['Status' => 'Pending', 'AppliedTransUID' => 0, 'AppliedPaymentUID' => 0, 'UpdatedBy' => $userUID],
+                    ['CreditNoteUID' => (int)$appliedCNRow->CreditNoteUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
+                );
+            }
+
             $this->dbwrite_model->commitTransaction();
 
             // 4. Reverse customer ledger entry (non-fatal)
-            // Skip for advance memo rows (IsExcessApplied = 1) and on-account applied rows
-            // (OnAccountSourcePaymentUID > 0) — neither carries real new cash.
+            // Skip for advance memo rows (IsExcessApplied = 1), on-account applied rows
+            // (OnAccountSourcePaymentUID > 0), and credit note adjustments — none carry real new cash.
             if ($transUID > 0 && $payment->PartyType === 'C' && (int)$payment->PartyUID > 0
                 && (int)($payment->IsExcessApplied ?? 0) === 0
-                && (int)($payment->OnAccountSourcePaymentUID ?? 0) === 0) {
+                && (int)($payment->OnAccountSourcePaymentUID ?? 0) === 0
+                && !$appliedCNRow) {
                 try {
                     $this->load->library('accountledger');
                     $this->accountledger->applyLedgerEntry(

@@ -92,6 +92,7 @@ class Transactions_model extends MY_Model {
                 '(SELECT COUNT(*) FROM Transaction.PaymentsTbl adv WHERE adv.TransUID = Ts.TransUID AND adv.IsExcessApplied = 1 AND adv.IsDeleted = 0 AND adv.IsCancelled = 0) AS HasAdvanceIn',
                 '(SELECT COUNT(*) FROM Transaction.PaymentsTbl src INNER JOIN Transaction.PaymentsTbl memo ON memo.ExcessSourcePaymentUID = src.PaymentUID WHERE src.TransUID = Ts.TransUID AND src.IsDeleted = 0 AND src.IsCancelled = 0 AND memo.IsDeleted = 0 AND memo.IsCancelled = 0) AS HasAdvanceOut',
                 '(SELECT COUNT(*) FROM Transaction.PaymentsTbl oa WHERE oa.TransUID = Ts.TransUID AND oa.OnAccountSourcePaymentUID > 0 AND oa.IsDeleted = 0 AND oa.IsCancelled = 0) AS HasOnAccountIn',
+                '(SELECT COUNT(*) FROM Transaction.PaymentsTbl cnp WHERE cnp.TransUID = Ts.TransUID AND cnp.SourceType = \'CreditNote\' AND cnp.IsDeleted = 0 AND cnp.IsCancelled = 0) AS HasCreditNoteIn',
             ]);
             $this->ReadDb->from('Transaction.TransactionsTbl as Ts');
             $this->ReadDb->join('Customers.CustomerTbl as Cust', 'Cust.CustomerUID = Ts.PartyUID AND Ts.PartyType = \'C\'', 'LEFT');
@@ -1236,6 +1237,7 @@ class Transactions_model extends MY_Model {
                 "CONCAT(CrUser.FirstName, ' ', CrUser.LastName) AS CreatedByName",
                 'P.IsTransferredToCreditNote',
                 'P.IsOnAccount',
+                'P.SourceType',
                 'P.IsExcessApplied',
                 'P.ExcessSourcePaymentUID',
                 'P.OnAccountAppliedTransUID',

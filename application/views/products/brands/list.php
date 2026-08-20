@@ -39,7 +39,7 @@ if (!empty($DataLists)) {
                     <div>
                         <span class="fw-medium"><?php echo htmlspecialchars($row->BrandName); ?></span>
                         <?php if (!empty($row->BrandCode)): ?>
-                            <div class="text-muted" style="font-size:.76rem;"><?php echo htmlspecialchars($row->BrandCode); ?></div>
+                            <div class="text-muted r2k-item-subtext"><?php echo htmlspecialchars($row->BrandCode); ?></div>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -75,7 +75,7 @@ if (!empty($DataLists)) {
                         <button class="trans-actions-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bx bx-dots-vertical-rounded fs-5"></i>
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:.82rem;min-width:160px;">
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm r2k-actions-menu">
                             <li>
                                 <button class="dropdown-item text-danger DeleteBrand"
                                         data-branduid="<?php echo htmlspecialchars($row->BrandUID); ?>"
@@ -95,12 +95,12 @@ if (!empty($DataLists)) {
 
     <tr>
         <td colspan="6">
-            <div class="d-flex justify-content-center align-items-center" style="height: 57vh;">
-                <div class="d-flex flex-column align-items-center w-100" style="max-width: 500px; padding: 1rem;">
-                    <div class="w-100 mb-3" style="flex: 3; display: flex; justify-content: center; align-items: center;">
-                        <img src="/assets/img/elements/no-record-found.png" alt="No Records Found" class="img-fluid" style="max-height: 40vh;object-fit: contain;" />
+            <div class="r2k-list-empty">
+                <div class="r2k-list-empty-inner">
+                    <div class="r2k-list-empty-img">
+                        <img src="/assets/img/elements/no-record-found.png" alt="No Records Found" class="img-fluid" />
                     </div>
-                    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                    <div class="r2k-list-empty-action">
                         <span class="mb-2">Add a Brand Now</span>
                         <a href="javascript: void(0);" class="btn btn-primary px-3 addBrand">
                             <i class="bx bx-plus"></i> Create Brand

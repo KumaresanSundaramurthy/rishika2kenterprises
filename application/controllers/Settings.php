@@ -375,8 +375,16 @@ class Settings extends MY_Controller {
                 $defaultTransactionType = 'regular';
             }
 
+            $autoDraftSave = $this->input->post('AutoDraftSave') ? 1 : 0;
+
+            $validAutoUpdateOptions  = ['off', 'auto', 'manual'];
+            $autoUpdatePurchasePrice = getPostValue($post, 'AutoUpdatePurchasePrice');
+            if (!in_array($autoUpdatePurchasePrice, $validAutoUpdateOptions)) {
+                $autoUpdatePurchasePrice = 'off';
+            }
+
             $this->load->model('dbwrite_model');
-            $this->dbwrite_model->upsertTransactionSettings($orgUID, $invoiceCancelAction, $srCancelAction, $salesReturnItemMethod, $termsAndConditions, $hideNavOnTransForm, $purchaseShowSignature, $purchaseShowTerms, $prCancelAction, $purchaseReturnItemMethod, $showProductDescription, $userUID, $dcDefaultReturnDays, $quotValidityDays, $showTransactionStats, $comboPriceDistribution, $belowPurchasePriceAction, $defaultTransactionType);
+            $this->dbwrite_model->upsertTransactionSettings($orgUID, $invoiceCancelAction, $srCancelAction, $salesReturnItemMethod, $termsAndConditions, $hideNavOnTransForm, $purchaseShowSignature, $purchaseShowTerms, $prCancelAction, $purchaseReturnItemMethod, $showProductDescription, $userUID, $dcDefaultReturnDays, $quotValidityDays, $showTransactionStats, $comboPriceDistribution, $belowPurchasePriceAction, $defaultTransactionType, $autoDraftSave, $autoUpdatePurchasePrice);
 
             // Patch only TransSettings in JWT payload
             $this->load->model('login_model');

@@ -345,6 +345,7 @@ $(function () {
 
             var items = typeof billManager !== 'undefined' ? billManager.getAllItems() : [];
             if (!items || items.length === 0) return showFormError('Please add at least one product.');
+            if (typeof validateBrandItems === 'function' && !validateBrandItems()) return;
 
             var bm      = typeof billManager !== 'undefined' ? billManager : null;
             var summary = bm ? bm.summary : {};

@@ -243,7 +243,7 @@ class Formvalidation_model extends CI_Model {
 
         $dd['BrandUID'] = array('field' => 'BrandUID', 'label' => 'Brand UID', 'rules' => 'xss_clean|trim|numeric');
         $dd['Standard'] = array('field' => 'Standard', 'label' => 'Standard', 'rules' => 'xss_clean|trim|max_length[100]');
-        $dd['IsSizeApplicable'] = array('field' => 'IsSizeApplicable', 'label' => 'Is Size Applicable', 'rules' => ['trim', 'xss_clean', ['checkSizeRequired', [$this, 'checkSizeRequired']]]);
+        $dd['IsSizeApplicable'] = array('field' => 'IsSizeApplicable', 'label' => 'Is Size Applicable', 'rules' => 'trim|xss_clean');
 
         if($this->pageData['JwtData']->GenSettings->EnableStorage == 1) {
             if($this->pageData['JwtData']->GenSettings->MandatoryStorage == 1) {
@@ -737,15 +737,5 @@ class Formvalidation_model extends CI_Model {
         return true;
     }
 
-    /* ================= CHECK SIZE ================= */
-    public function checkSizeRequired(mixed $IsSizeApplicable): bool {
-        $SizeUID = $this->input->post('SizeUID', true) ?? NULL;
-        if ($IsSizeApplicable && empty($SizeUID)) {
-            $this->form_validation->set_message('checkSizeRequired', 'The Size field is required when Size Applicable is checked.');
-            return false;
-        }
-        return true;
-
-    }
 
 }

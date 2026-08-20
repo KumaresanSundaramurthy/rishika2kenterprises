@@ -10,6 +10,11 @@ class Vendors_model extends CI_Model {
         $this->ReadDb = $this->load->database('ReadDB', TRUE);
     }
 
+    /** Flush the ReadDb REPEATABLE READ snapshot so subsequent SELECTs see freshly committed data. */
+    public function commitReadDb(): void {
+        $this->ReadDb->simple_query('COMMIT');
+    }
+
     public function getVendors(array $FilterArray): array {
 
         $this->EndReturnData = new StdClass();
@@ -509,13 +514,42 @@ class Vendors_model extends CI_Model {
 
     public function updateVendorPendingBalance(int $orgUID, int $vendorUID, float $pendingBalance, string $pendingBalType, int $userUID): void {
         try {
-            $res = $this->dbwrite_model->updateData('Vendors', 'VendOpeningBalanceTbl', [
-                'PendingBalance' => (float)$pendingBalance,
-                'PendingBalType' => $pendingBalType,
-                'UpdatedBy'      => (int)$userUID,
-            ], ['OrgUID' => (int)$orgUID, 'VendorUID' => (int)$vendorUID, 'IsDeleted' => 0]);
-            if ($res->Error) throw new Exception($res->Message ?? 'Vendor pending balance update failed.');
+            // COMMIT on ReadDb so the existence check sees the latest WriteDb state.
+            $this->ReadDb->simple_query('COMMIT');
+            $existing = $this->ReadDb->query(
+                'SELECT VendBalUID FROM Vendors.VendOpeningBalanceTbl WHERE OrgUID = ? AND VendorUID = ? AND IsDeleted = 0 LIMIT 1',
+                [(int)$orgUID, (int)$vendorUID]
+            )->row();
+
+            if ($existing) {
+                log_message('debug', '[VBAL-FLOW] updateVendorPendingBalance UPDATE VendBalUID=' . $existing->VendBalUID . ' PendingBalance=' . $pendingBalance . ' PendingBalType=' . $pendingBalType);
+                $res = $this->dbwrite_model->updateData('Vendors', 'VendOpeningBalanceTbl', [
+                    'PendingBalance' => (float)$pendingBalance,
+                    'PendingBalType' => $pendingBalType,
+                    'UpdatedBy'      => (int)$userUID,
+                ], ['VendBalUID' => (int)$existing->VendBalUID]);
+                if ($res->Error) throw new Exception($res->Message ?? 'Vendor pending balance update failed.');
+                log_message('debug', '[VBAL-FLOW] updateVendorPendingBalance UPDATE OK');
+            } else {
+                log_message('debug', '[VBAL-FLOW] updateVendorPendingBalance INSERT new row — VendorUID=' . $vendorUID . ' PendingBalance=' . $pendingBalance . ' PendingBalType=' . $pendingBalType);
+                // No opening balance row yet — create one so PendingBalance is always persisted.
+                $res = $this->dbwrite_model->insertData('Vendors', 'VendOpeningBalanceTbl', [
+                    'OrgUID'         => (int)$orgUID,
+                    'VendorUID'      => (int)$vendorUID,
+                    'OpeningBalance' => 0.0,
+                    'OpeningBalType' => 'Credit',
+                    'PendingBalance' => (float)$pendingBalance,
+                    'PendingBalType' => $pendingBalType,
+                    'IsActive'       => 1,
+                    'IsDeleted'      => 0,
+                    'CreatedBy'      => (int)$userUID,
+                    'UpdatedBy'      => (int)$userUID,
+                ]);
+                if ($res->Error) throw new Exception($res->Message ?? 'Vendor pending balance insert failed.');
+                log_message('debug', '[VBAL-FLOW] updateVendorPendingBalance INSERT OK — new VendBalUID=' . ($res->ID ?? '?'));
+            }
         } catch (Exception $e) {
+            log_message('error', '[VBAL-FLOW] updateVendorPendingBalance EXCEPTION VendorUID=' . $vendorUID . ': ' . $e->getMessage());
             throw new Exception($e->getMessage());
         }
     }
@@ -534,7 +568,7 @@ class Vendors_model extends CI_Model {
             $this->ReadDb->where([
                 'T.OrgUID'    => (int)$orgUID,
                 'T.PartyUID'  => (int)$vendorUID,
-                'T.PartyType' => 'V',
+                'T.PartyType' => 'S',
                 'T.IsDeleted' => 0,
                 'T.ModuleUID' => 108,
             ]);
@@ -757,7 +791,7 @@ class Vendors_model extends CI_Model {
         }
     }
 
-    // Total net amount billed by vendor (Purchases, ModuleUID=105).
+    // Total net amount billed by vendor (Purchases, ModuleUID=105). PartyType='S' (Supplier).
     public function getVendorTotalPurchased(int $orgUID, int $vendorUID): float {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -766,7 +800,7 @@ class Vendors_model extends CI_Model {
             $this->ReadDb->where([
                 'OrgUID'    => (int)$orgUID,
                 'PartyUID'  => (int)$vendorUID,
-                'PartyType' => 'V',
+                'PartyType' => 'S',
                 'ModuleUID' => 105,
                 'IsDeleted' => 0,
             ]);
@@ -779,17 +813,18 @@ class Vendors_model extends CI_Model {
         }
     }
 
-    // Total amount paid out to vendor.
+    // Total amount paid out to vendor. PartyType='S' (Supplier).
     public function getVendorTotalPaid(int $orgUID, int $vendorUID): float {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('COALESCE(SUM(Amount), 0) AS total');
             $this->ReadDb->from('`Transaction`.PaymentsTbl');
             $this->ReadDb->where([
-                'OrgUID'    => (int)$orgUID,
-                'PartyUID'  => (int)$vendorUID,
-                'PartyType' => 'V',
-                'IsDeleted' => 0,
+                'OrgUID'       => (int)$orgUID,
+                'PartyUID'     => (int)$vendorUID,
+                'PartyType'    => 'S',
+                'IsCancelled'  => 0,
+                'IsDeleted'    => 0,
             ]);
             $query = $this->ReadDb->get();
             if (!$query) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
@@ -799,7 +834,7 @@ class Vendors_model extends CI_Model {
         }
     }
 
-    // Total net amount returned to vendor (Purchase Returns=108, Debit Notes=109).
+    // Total net amount returned to vendor (Purchase Returns=108, Debit Notes=109). PartyType='S'.
     public function getVendorTotalReturned(int $orgUID, int $vendorUID): float {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -808,7 +843,7 @@ class Vendors_model extends CI_Model {
             $this->ReadDb->where([
                 'OrgUID'    => (int)$orgUID,
                 'PartyUID'  => (int)$vendorUID,
-                'PartyType' => 'V',
+                'PartyType' => 'S',
                 'IsDeleted' => 0,
             ]);
             $this->ReadDb->where_in('ModuleUID', [108, 109]);

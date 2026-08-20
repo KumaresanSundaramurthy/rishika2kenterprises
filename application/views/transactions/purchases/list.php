@@ -327,8 +327,25 @@ if (!empty($DataLists)):
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end r2k-action-menu">
 
+                        <!-- Issue Payment — always first -->
+                        <?php if ($showPending): ?>
+                        <li>
+                            <button class="dropdown-item purchReceivePayment"
+                                    data-uid="<?php echo (int)$list->TransUID; ?>"
+                                    data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
+                                    data-date="<?php echo htmlspecialchars(format_datedisplay($list->TransDate ?? '')); ?>"
+                                    data-party="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
+                                    data-total="<?php echo $netAmt; ?>"
+                                    data-paid="<?php echo $paidAmt; ?>"
+                                    data-pending="<?php echo $pendingAmt; ?>">
+                                <i class="bx bx-money-withdraw me-2 text-success"></i><?php echo t('act_issue_payment', 'Issue Payment'); ?>
+                            </button>
+                        </li>
+                        <?php endif; ?>
+
                         <!-- Print section -->
                         <?php if (!$isDraft): ?>
+                        <?php if ($showPending): ?><li><hr class="dropdown-divider my-1"></li><?php endif; ?>
                         <li>
                             <button class="dropdown-item a4PrintTransaction" data-uid="<?php echo (int)$list->TransUID; ?>" data-module="<?php echo (int)$list->ModuleUID; ?>">
                                 <i class="bx bx-printer me-2 text-primary"></i><?php echo t('act_print_download', 'Print / Download'); ?>
@@ -344,29 +361,10 @@ if (!empty($DataLists)):
                                 <i class="bx bx-receipt me-2 text-dark"></i><?php echo t('act_thermal_print', 'Thermal Print'); ?>
                             </button>
                         </li>
-                        <li><hr class="dropdown-divider my-1"></li>
                         <?php endif; ?>
 
-                        <!-- Payment -->
-                        <?php if ($showPending): ?>
-                        <li>
-                            <button class="dropdown-item purchReceivePayment"
-                                    data-uid="<?php echo (int)$list->TransUID; ?>"
-                                    data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
-                                    data-date="<?php echo htmlspecialchars(format_datedisplay($list->TransDate ?? '')); ?>"
-                                    data-party="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
-                                    data-total="<?php echo $netAmt; ?>"
-                                    data-paid="<?php echo $paidAmt; ?>"
-                                    data-pending="<?php echo $pendingAmt; ?>">
-                                <i class="bx bx-money-withdraw me-2 text-success"></i><?php echo t('act_issue_payment', 'Issue Payment'); ?>
-                            </button>
-                        </li>
-                        <li><hr class="dropdown-divider my-1"></li>
-                        <?php endif; ?>
-
-                        <!-- Duplicate -->
-                        <?php if (!$isCancelled): ?>
-                        <?php if (!$isDraft && ($hasMobile || $hasEmail)): ?>
+                        <!-- Communication -->
+                        <?php if (!$isCancelled && !$isDraft && ($hasMobile || $hasEmail)): ?>
                         <li><hr class="dropdown-divider my-1"></li>
                         <?php if ($hasMobile): ?>
                         <li>
@@ -409,11 +407,10 @@ if (!empty($DataLists)):
                         </li>
                         <?php endif; ?>
                         <?php endif; ?>
-                        <?php endif; ?>
 
-                        <!-- Cancel & Delete — separate section -->
+                        <!-- Cancel & Delete -->
                         <?php if (!$isCancelled): ?>
-                        <li><hr class="dropdown-divider my-1"></li>
+                        <?php if ($showPending || !$isDraft): ?><li><hr class="dropdown-divider my-1"></li><?php endif; ?>
                         <?php if (!$isDraft): ?>
                         <li>
                             <button class="dropdown-item text-warning purch-status-update"

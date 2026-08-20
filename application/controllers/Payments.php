@@ -47,7 +47,8 @@ class Payments extends MY_Controller {
             ], TRUE);
             $this->pageData['ModPagination']  = $this->globalservice->buildPagePaginationHtml('/payments/getPaymentsPageDetails', $allDataCount, 1, $limit);
             $this->pageData['ModAllCount']    = $allDataCount;
-            $this->pageData['BalanceStats']   = $this->transactions_model->getPaymentsBalanceStats($orgUID);
+            $_showStats = (bool)($this->pageData['JwtData']->GenSettings->ShowStats ?? 1) && (bool)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
+            $this->pageData['BalanceStats']   = $_showStats ? $this->transactions_model->getPaymentsBalanceStats($orgUID) : null;
             $this->pageData['BankAccounts']   = $this->transactions_model->getOrgBankAccounts($orgUID);
             $this->pageData['PaymentTypes']   = $this->transactions_model->getPaymentTypesList();
             $this->pageData['SavedDateRange'] = $datePref['range'];
@@ -116,7 +117,9 @@ class Payments extends MY_Controller {
 
             $this->load->model('transactions_model');
             $this->EndReturnData->Error = FALSE;
-            $this->EndReturnData->Stats = $this->transactions_model->getPaymentsBalanceStats($orgUID, $filter);
+            if (($this->pageData['JwtData']->GenSettings->ShowStats ?? 1) && ($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1)) {
+                $this->EndReturnData->Stats = $this->transactions_model->getPaymentsBalanceStats($orgUID, $filter);
+            }
 
         } catch (Exception $e) {
             $this->EndReturnData->Error   = TRUE;

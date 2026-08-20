@@ -103,11 +103,17 @@ if (!empty($DataLists)) {
                     <div>
                         <a href="javascript:void(0);" class="prod-profile-link text-dark fw-semibold text-decoration-none"
                            data-uid="<?php echo $uid; ?>"
-                           title="View Profile"><?php echo htmlspecialchars($row->ItemName); ?></a><?php echo $comboBadge; ?>
-                        <div class="d-flex align-items-center gap-2 mt-1" style="font-size:0.75rem;">
+                           title="View Profile"><?php echo htmlspecialchars($row->ItemName); ?></a><?php echo $comboBadge; ?><?php if (!empty($row->IsBrandApplicable) || !empty($row->IsSizeApplicable)): ?>
+                        <i class="bx bx-grid-alt BrandStockModalBtn bsm-name-tag"
+                           data-uid="<?php echo $uid; ?>"
+                           data-name="<?php echo htmlspecialchars($row->ItemName, ENT_QUOTES); ?>"
+                           data-unit="<?php echo htmlspecialchars($row->PUShortName ?? '', ENT_QUOTES); ?>"
+                           title="Variant stock breakdown"></i>
+                        <?php endif; ?>
+                        <div class="d-flex align-items-center gap-2 mt-1 prod-item-meta">
                             <?php if (!$hideType) echo $typeBadge; ?>
                             <?php if (!empty($row->HSNSACCode)): ?>
-                                <span class="text-muted"><?php echo htmlspecialchars($row->HSNSACCode); ?></span>
+                                <span class="prod-hsn-code"><?php echo htmlspecialchars($row->HSNSACCode); ?></span>
                             <?php endif; ?>
                             <?php if (!$row->IsComposite && !empty($row->PartNumber)): ?>
                                 <button type="button" class="btn p-0 border-0 bg-transparent BarcodeOnlyBtn"

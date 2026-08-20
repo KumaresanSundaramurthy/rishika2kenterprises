@@ -452,6 +452,15 @@ $route['products/(:num)/clone'] = 'products/clone/$1';
 $route['products/getAttachments']  = 'products/getAttachments';
 $route['products/saveAttachments'] = 'products/saveAttachments';
 $route['products/deleteAttachment'] = 'products/deleteAttachment';
+$route['products/getSizes'] = 'products/getSizes';
+$route['products/addSize']  = 'products/addSize';
+$route['products/getSizeList']        = 'products/getSizeList';
+$route['products/addSizeDetails']     = 'products/addSizeDetails';
+$route['products/updateSizeDetails']  = 'products/updateSizeDetails';
+$route['products/deleteSizeDetails']  = 'products/deleteSizeDetails';
+$route['products/deleteBulkSize']     = 'products/deleteBulkSize';
+$route['products/syncSizesCache']                   = 'products/syncSizesCache';
+$route['products/getProductVariantsForPricelist']   = 'products/getProductVariantsForPricelist';
 
 // Inventory
 $route['inventory']                              = 'inventory/index';
@@ -469,6 +478,13 @@ $route['inventory/exportTimeline']               = 'inventory/exportTimeline';
 $route['inventory/updateAdj']                    = 'inventory/updateAdj';
 $route['inventory/deleteAdj']                    = 'inventory/deleteAdj';
 $route['inventory/updateLedgerRemarks']          = 'inventory/updateLedgerRemarks';
+
+// Purchase Price List
+$route['purchasepricelist']                              = 'purchasepricelist/index';
+$route['purchasepricelist/getPageDetails']               = 'purchasepricelist/getPageDetails';
+$route['purchasepricelist/getPageDetails/(:num)']        = 'purchasepricelist/getPageDetails/$1';
+$route['purchasepricelist/view/(:num)']                  = 'purchasepricelist/view/$1';
+$route['purchasepricelist/getDetailPageData/(:num)']     = 'purchasepricelist/getDetailPageData/$1';
 
 // Machine Rental
 $route['rental']                                     = 'rental/index';

@@ -482,6 +482,11 @@ var _transFormData = <?php echo json_encode([
                 'net_total'            => (float)  $item->NetAmount,
                 'isCompliment'         => (int)($item->IsCompliment ?? 0),
                 'catalogSellingPrice'  => (float)($item->CatalogSellingPrice ?? 0),
+                'brandUID'             => $item->BrandUID          ? (int)$item->BrandUID            : null,
+                'variantUID'           => $item->VariantUID         ? (int)$item->VariantUID          : null,
+                'variantLabel'         => $item->VariantLabel        ?? '',
+                'brandName'            => $item->BrandName         ?? '',
+                'IsBrandApplicable'    => (int)($item->IsBrandApplicable ?? 0),
             ];
         }, $DCItems ?? []),
     ] : null,

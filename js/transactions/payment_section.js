@@ -244,7 +244,18 @@ $(function() {
             var billTotal = getBillTotal();
             var $rows = $('#paymentRowsBody tr');
             if (billTotal > 0 && $rows.length === 1) {
-                $rows.first().find('.pay-amount-inp').val(billTotal.toFixed(_dec));
+                var creditAmt = _appliedCN ? parseFloat(_appliedCN.amount) : 0;
+                var onAcct = 0;
+                try {
+                    var oaJson = $('#OnAccountApplyJson').val() || '';
+                    if (oaJson) {
+                        (JSON.parse(oaJson) || []).forEach(function(item) {
+                            onAcct += parseFloat(item.ApplyAmount) || 0;
+                        });
+                    }
+                } catch(e) {}
+                var balance = Math.max(0, billTotal - creditAmt - onAcct);
+                $rows.first().find('.pay-amount-inp').val(balance.toFixed(_dec));
             }
         }
         updatePaymentSummary();
@@ -572,6 +583,24 @@ $(function() {
         }
     };
 
+    // Pre-populate a CN on draft edit (called by invoice.js _restoreEditIndicators)
+    window._cnPrePopulate = function(uid, number, amount, type) {
+        uid    = parseInt(uid)    || 0;
+        amount = parseFloat(amount) || 0;
+        if (!uid || !amount) return;
+        _appliedCN = { uid: uid, number: String(number || ''), amount: amount, type: String(type || '') };
+        $('#CreditNoteUIDInput').val(uid);
+        var label = esc(_appliedCN.number) + (_appliedCN.type ? ' · ' + esc(_appliedCN.type) : '');
+        $('#cnAppliedLabel').html(label);
+        $('#cnAppliedAmt').text(_currSymbol + ' ' + amount.toFixed(_dec));
+        $('#cnAppliedStrip').removeClass('d-none');
+        $('#cnBannerWrap').addClass('d-none');
+        updatePaymentSummary();
+    };
+
+    // Clear the applied CN and recalculate totals (called by invoice.js after CreditNoteConflict SweetAlert)
+    window._clearAppliedCN = function() { _clearCreditNote(); };
+
     // Banner click → AJAX → open modal
     $(document).on('click', '#cnBannerBtn', function() {
         if (_cnCustomerUID <= 0) return;
@@ -681,6 +710,37 @@ $(function() {
         if ($m) {
             var inst = bootstrap.Modal.getInstance($m);
             if (inst) inst.hide();
+        }
+
+        // If "Mark as fully paid" was checked when the CN is applied:
+        //   Single row  → recalculate balance and update the amount; checkbox stays checked.
+        //   Split rows  → we can't redistribute automatically, so clear all row amounts and
+        //                 uncheck; the user re-enters their split against the new balance.
+        if ($('#isFullyPaid').is(':checked')) {
+            var $rows = $('#paymentRowsBody tr');
+            if ($rows.length === 1) {
+                var billTotal = getBillTotal();
+                var creditAmt = _appliedCN ? parseFloat(_appliedCN.amount) : 0;
+                var onAcct = 0;
+                try {
+                    var oaJson = $('#OnAccountApplyJson').val() || '';
+                    if (oaJson) {
+                        (JSON.parse(oaJson) || []).forEach(function(item) {
+                            onAcct += parseFloat(item.ApplyAmount) || 0;
+                        });
+                    }
+                } catch(e) {}
+                var balance = Math.max(0, billTotal - creditAmt - onAcct);
+                $rows.first().find('.pay-amount-inp').val(balance.toFixed(_dec));
+            } else {
+                // Split rows — clear all amounts and uncheck so the user
+                // re-enters the split against the new balance.
+                $rows.each(function() {
+                    $(this).find('.pay-amount-inp').val('0');
+                });
+                $('#isFullyPaid').prop('checked', false);
+                $('#PaymentIsFullyPaid').val(0);
+            }
         }
 
         updatePaymentSummary();

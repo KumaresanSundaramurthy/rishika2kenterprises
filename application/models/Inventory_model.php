@@ -68,7 +68,7 @@ class Inventory_model extends CI_Model {
         if ($branchUID > 0) {
             $sub = "(SELECT ProductUID, SUM(CASE WHEN MovementType='IN' THEN Quantity ELSE -Quantity END) AS AvailableQty"
                  . " FROM Products.StockLedgerTbl"
-                 . " WHERE OrgUID = {$orgUID} AND BranchUID = {$branchUID} AND IsDeleted = 0"
+                 . " WHERE OrgUID = {$orgUID} AND IsDeleted = 0"
                  . " GROUP BY ProductUID) ps";
             $this->ReadDb->join($sub, 'ps.ProductUID = p.ProductUID', 'left', false);
         } else {
@@ -103,7 +103,7 @@ class Inventory_model extends CI_Model {
         if ($branchUID > 0) {
             $sub = "(SELECT ProductUID, SUM(CASE WHEN MovementType='IN' THEN Quantity ELSE -Quantity END) AS AvailableQty"
                  . " FROM Products.StockLedgerTbl"
-                 . " WHERE OrgUID = {$orgUID} AND BranchUID = {$branchUID} AND IsDeleted = 0"
+                 . " WHERE OrgUID = {$orgUID} AND IsDeleted = 0"
                  . " GROUP BY ProductUID) ps";
             $this->ReadDb->join($sub, 'ps.ProductUID = p.ProductUID', 'left', false);
         } else {
@@ -533,7 +533,7 @@ class Inventory_model extends CI_Model {
     public function getCategories(int $orgUID): array {
 
         $this->ReadDb->db_debug = FALSE;
-        $this->ReadDb->select('CategoryUID, Name');
+        $this->ReadDb->select('CategoryUID, Name AS CategoryName');
         $this->ReadDb->from('Products.CategoryTbl');
         $this->ReadDb->where(['OrgUID' => (int)$orgUID, 'IsDeleted' => 0, 'IsActive' => 1]);
         $this->ReadDb->order_by('Name', 'ASC');

@@ -52,7 +52,7 @@ class MY_Controller extends CI_Controller {
     protected function _syncProductCacheFromItems(array $items): void {
         $seen = [];
         foreach ($items as $item) {
-            $uid = (int)($item['id'] ?? 0);
+            $uid = isset($item['productUID']) ? (int)$item['productUID'] : (int)($item['id'] ?? 0);
             if ($uid > 0 && !isset($seen[$uid])) {
                 $seen[$uid] = true;
                 $this->cachehelper->upsertProduct($uid);
@@ -77,10 +77,12 @@ class MY_Controller extends CI_Controller {
 
     protected function _recalcVendorBalance(int $orgUID, int $vendorUID, int $userUID): void {
         try {
+            log_message('debug', '[VBAL-FLOW] _recalcVendorBalance CALLED — OrgUID=' . $orgUID . ' VendorUID=' . $vendorUID . ' UserUID=' . $userUID);
             $this->load->library('vendorbalance');
             $this->vendorbalance->recalcAndSync($orgUID, $vendorUID, $userUID);
+            log_message('debug', '[VBAL-FLOW] _recalcVendorBalance DONE — VendorUID=' . $vendorUID);
         } catch (Exception $e) {
-            log_message('error', 'Vendor balance recalc failed for VendorUID=' . $vendorUID . ': ' . $e->getMessage());
+            log_message('error', '[VBAL-FLOW] _recalcVendorBalance EXCEPTION VendorUID=' . $vendorUID . ': ' . $e->getMessage());
         }
     }
 
@@ -906,7 +908,7 @@ class MY_Controller extends CI_Controller {
      */
     private function _computeTransSummaryStats(int $orgUID, array $filter = []): array
     {
-        if (!($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1)) { return []; }
+        if (!($this->pageData['JwtData']->GenSettings->ShowStats ?? 1) || !($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1)) { return []; }
         $this->load->model('transactions_model');
         $filter['BranchUID'] = $this->_branchUID();
         return $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $orgUID, $filter);
@@ -1236,7 +1238,7 @@ class MY_Controller extends CI_Controller {
         $this->load->model('dbwrite_model');
         $rows = [];
         foreach ($items as $seq => $item) {
-            $productUID = isset($item['id'])       ? (int)   $item['id']       : 0;
+            $productUID = isset($item['productUID']) ? (int)$item['productUID'] : (isset($item['id']) ? (int)$item['id'] : 0);
             $qty        = isset($item['quantity'])  ? (float) $item['quantity']  : 0;
             $unitPrice  = isset($item['unitPrice']) ? (float) $item['unitPrice'] : 0;
             if ($productUID <= 0 || $qty <= 0) continue;
@@ -1277,6 +1279,9 @@ class MY_Controller extends CI_Controller {
                 'QuantityConverted' => 0,
                 'IsActive'          => 1,
                 'IsCompliment'      => isset($item['isCompliment']) ? (int)$item['isCompliment'] : 0,
+                'BrandUID'          => !empty($item['brandUID'])   ? (int)$item['brandUID']            : NULL,
+                'BrandName'         => !empty($item['brandName'])  ? substr($item['brandName'], 0, 150) : NULL,
+                'VariantUID'        => !empty($item['variantUID']) ? (int)$item['variantUID']           : NULL,
                 'IsDeleted'         => 0,
                 'CreatedBy'         => $userUID,
                 'UpdatedBy'         => $userUID,
@@ -1309,7 +1314,7 @@ class MY_Controller extends CI_Controller {
 
         $submittedProductUIDs = [];
         foreach ($items as $item) {
-            $pid = isset($item['id']) ? (int)$item['id'] : 0;
+            $pid = isset($item['productUID']) ? (int)$item['productUID'] : (isset($item['id']) ? (int)$item['id'] : 0);
             if ($pid > 0) $submittedProductUIDs[] = $pid;
         }
 
@@ -1326,7 +1331,7 @@ class MY_Controller extends CI_Controller {
 
         $newRows = [];
         foreach ($items as $seq => $item) {
-            $productUID = isset($item['id'])       ? (int)   $item['id']       : 0;
+            $productUID = isset($item['productUID']) ? (int)$item['productUID'] : (isset($item['id']) ? (int)$item['id'] : 0);
             $qty        = isset($item['quantity'])  ? (float) $item['quantity']  : 0;
             $unitPrice  = isset($item['unitPrice']) ? (float) $item['unitPrice'] : 0;
             if ($productUID <= 0 || $qty <= 0) continue;
@@ -1359,6 +1364,9 @@ class MY_Controller extends CI_Controller {
                 'DiscountAmount'  => (float) ($item['discount_amount']  ?? 0),
                 'NetAmount'       => (float) ($item['net_total']        ?? 0),
                 'IsCompliment'    => isset($item['isCompliment']) ? (int)$item['isCompliment'] : 0,
+                'BrandUID'        => !empty($item['brandUID'])   ? (int)$item['brandUID']            : NULL,
+                'BrandName'       => !empty($item['brandName'])  ? substr($item['brandName'], 0, 150) : NULL,
+                'VariantUID'      => !empty($item['variantUID']) ? (int)$item['variantUID']           : NULL,
                 'UpdatedBy'       => $userUID,
             ];
 

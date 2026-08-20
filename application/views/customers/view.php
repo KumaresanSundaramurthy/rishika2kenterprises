@@ -158,7 +158,7 @@
                                     </a>
                                 </li>
                                 <?php
-                                $showStats    = (int)($JwtData->TransSettings->ShowTransactionStats ?? 1);
+                                $showStats    = (int)($JwtData->GenSettings->ShowStats ?? 1) && (int)($JwtData->TransSettings->ShowTransactionStats ?? 1);
                                 $grpStatsVis  = ($InitTab ?? 'All') === 'Groups';
                                 $grpS         = $GrpStats ?? null;
                                 ?>
@@ -600,7 +600,7 @@ var OrgCountryISO2 = <?php echo json_encode($JwtData->Org->OrgCISO2 ?? 'IN'); ?>
 var CustShowUserFilter = <?php echo $showUserBtn ? 'true' : 'false'; ?>;
 var _custInitTab    = <?php echo json_encode($InitTab    ?? 'All'); ?>;
 var _custInitSearch = <?php echo json_encode($InitSearch ?? ''); ?>;
-var _custShowStats  = <?php echo (int)($JwtData->TransSettings->ShowTransactionStats ?? 1); ?>;
+var _custShowStats  = <?php echo (int)(($JwtData->GenSettings->ShowStats ?? 1) && ($JwtData->TransSettings->ShowTransactionStats ?? 1)); ?>;
 
 $(function () {
     'use strict';

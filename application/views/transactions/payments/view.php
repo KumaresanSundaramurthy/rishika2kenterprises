@@ -31,7 +31,7 @@
 
 
                     <!-- ── Stats Bar (apex-stats-strip = visibility controlled by StatsDefaultOpen setting) ── -->
-                    <?php if ($JwtData->TransSettings->ShowTransactionStats ?? 1): ?>
+                    <?php if (($JwtData->GenSettings->ShowStats ?? 1) && ($JwtData->TransSettings->ShowTransactionStats ?? 1)): ?>
                     <div class="apex-stats-strip mb-3" style="border-radius:.5rem;border:0;box-shadow:0 1px 4px rgba(0,0,0,.07);">
                         <!-- Current Balance -->
                         <div class="d-flex align-items-center gap-3 px-4 border-end" style="flex:1;min-width:0;padding-top:14px;padding-bottom:14px;">
@@ -290,7 +290,7 @@ _allPmtPage = new PaymentsPage({
     dec             : <?php echo $dec; ?>,
     limit           : <?php echo (int)($JwtData->GenSettings->RowLimit ?? 10); ?>,
     initStats       : <?php echo json_encode($BalanceStats ?? (object)['CashIn'=>0,'CashOut'=>0,'BankIn'=>0,'BankOut'=>0]); ?>,
-    showStats       : <?php echo json_encode(($JwtData->TransSettings->ShowTransactionStats ?? 1) == 1); ?>,
+    showStats       : <?php echo json_encode(($JwtData->GenSettings->ShowStats ?? 1) && ($JwtData->TransSettings->ShowTransactionStats ?? 1)); ?>,
     payModeFilter   : allPmtPayModeFilter,
     createdByFilter : allPmtCreatedByFilter,
     docTypeFilter   : allPmtDocTypeFilter,
@@ -610,18 +610,19 @@ function _doPaymentAction(paymentUID, $row, action) {
         data  : { PaymentUID: paymentUID, Action: action, [CsrfName]: CsrfToken },
         success: function (resp) {
             ajaxLoading(0);
+            hideUIBlock();
             if (!resp.Error) {
                 var msg = resp.Message;
+                showToastNotification(msg, 'success');
                 $row.fadeOut(300, function () { $(this).remove(); });
-                _allPmtPage.loadData(1).done(function () {
-                    showToastNotification(msg, 'success');
-                });
+                _allPmtPage.loadData(1);
             } else {
                 Swal.fire('Error', resp.Message, 'error');
             }
         },
         error: function () {
             ajaxLoading(0);
+            hideUIBlock();
         }
     });
 }

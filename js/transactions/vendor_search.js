@@ -22,6 +22,47 @@ function _buildVendAddrLine(a) {
     return parts.join(', ');
 }
 
+// ── Vendor state + balance indicators ────────────────────────────────────────
+
+/**
+ * Shows Inter-State / Intra-State badge in #vendTypeIndicator.
+ * @param {string} vendState  vendor's billing state (StateText)
+ * @returns {void}
+ */
+function _showVendTypeIndicator(vendState) {
+    var $box = $('#vendTypeIndicator');
+    if (!$box.length) return;
+    var orgState = (typeof _orgState !== 'undefined' ? _orgState : '').trim().toLowerCase();
+    var vs       = (vendState || '').trim().toLowerCase();
+    var typeLabel, typeClass, typeIcon;
+    if (vs && orgState && vs !== orgState) {
+        typeLabel = 'Inter-State Vendor';
+        typeClass = 'cust-type-interstate';
+        typeIcon  = 'bx-transfer';
+    } else {
+        typeLabel = 'Intra-State Vendor';
+        typeClass = 'cust-type-intrastate';
+        typeIcon  = 'bx-map-pin';
+    }
+    $box.html('<span class="cust-type-badge ' + typeClass + '"><i class="bx ' + typeIcon + '"></i> ' + typeLabel + '</span>').removeClass('d-none');
+}
+
+/**
+ * Shows pending debit notes total in #vendDebitNotesBadge.
+ * @param {number} debitNotesTotal  pending debit notes amount (0 = hide badge)
+ * @returns {void}
+ */
+function _showVendDebitNotesBadge(debitNotesTotal) {
+    var $badge = $('#vendDebitNotesBadge');
+    if (!$badge.length) return;
+    var amt = parseFloat(debitNotesTotal) || 0;
+    if (amt === 0) { $badge.addClass('d-none'); return; }
+    var cur    = (typeof CurrencySymbol !== 'undefined' && CurrencySymbol) ? CurrencySymbol : '₹';
+    var fmtAmt = amt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    $('#vendDebitNotesTotal').text(cur + ' ' + fmtAmt);
+    $badge.removeClass('d-none');
+}
+
 // ── Vendor Select2 dropdown ───────────────────────────────────────────────────
 function searchVendors(key) {
     var $el         = $('#' + key);
@@ -176,6 +217,7 @@ function searchVendors(key) {
         $('#' + wrapId).addClass('party-has-selection');
 
         // Address + warning strips
+        $('#vendorAddrDivider').removeClass('d-none');
         var addrObj = data.address || null;
         if (addrObj && addrObj.Line1) {
             $('#vendorAddressBox').find('span').text(_buildVendAddrLine(addrObj));
@@ -190,11 +232,18 @@ function searchVendors(key) {
             $('#vendorAddressBox').addClass('d-none').find('span').text('');
             $('#vendorNoAddressBox').removeClass('d-none');
         }
+
+        // State and debit notes indicators
+        _showVendTypeIndicator(data.state || '');
+        _showVendDebitNotesBadge(data.debitNotesTotal || 0);
     }).on('select2:clear', function () {
         $('#' + wrapId).removeClass('party-has-selection');
         $('#vendorAddressBox').addClass('d-none').find('span').text('');
         $('#vendorNoAddressBox').addClass('d-none');
+        $('#vendorAddrDivider').addClass('d-none');
         $('#isInterStateHidden').val('');
+        $('#vendTypeIndicator').addClass('d-none').empty();
+        $('#vendDebitNotesBadge').addClass('d-none');
     }).on('select2:close', function () {
         ajaxLoading(1);
     });
@@ -258,10 +307,12 @@ function searchVendors(key) {
 
     // ── Row selection ─────────────────────────────────────────────────────────
     $(document).on('click', '.vend-search-item', function () {
-        var vendUID  = $(this).data('uid');
-        var vendName = $(this).data('name');
-        var address  = $(this).data('address');
-        var state    = $(this).data('state');
+        var vendUID     = $(this).data('uid');
+        var vendName    = $(this).data('name');
+        var address     = $(this).data('address');
+        var state       = $(this).data('state');
+        var balance     = parseFloat($(this).data('balance')) || 0;
+        var balanceType = $(this).data('balance-type') || 'Credit';
         if (!vendUID || !vendName) return;
 
         var $sel = $('#vendorSearch');
@@ -274,6 +325,7 @@ function searchVendors(key) {
         $sel.closest('.vendor-search-group').addClass('party-has-selection');
 
         // Address + warning strips
+        $('#vendorAddrDivider').removeClass('d-none');
         if (address && address.Line1) {
             $('#vendorAddressBox').find('span').text(_buildVendAddrLine(address));
             $('#vendorAddressBox').removeClass('d-none');
@@ -286,6 +338,10 @@ function searchVendors(key) {
         if (typeof billManager !== 'undefined' && typeof _orgState !== 'undefined' && state) {
             billManager.setInterState(state.trim().toLowerCase() !== _orgState.trim().toLowerCase());
         }
+
+        // State and debit notes indicators
+        _showVendTypeIndicator(state || '');
+        _showVendDebitNotesBadge(0); // debit notes populated when cache key is available
 
         $('#vendorSearchModal').modal('hide');
     });
@@ -458,10 +514,13 @@ function searchVendors(key) {
             var stateVal = v.address ? escapeHtml(v.address.State || '') : '';
 
             html += '<tr class="vend-search-item"'
-                  + ' data-uid="'  + v.uid + '"'
-                  + ' data-name="' + escapeHtml(v.name) + '"'
+                  + ' data-uid="'          + v.uid + '"'
+                  + ' data-name="'         + escapeHtml(v.name) + '"'
                   + (addrJson ? ' data-address=\'' + addrJson + '\'' : '')
-                  + ' data-state="' + stateVal + '">';
+                  + ' data-state="'        + stateVal + '"'
+                  + ' data-balance="'      + (v.balance || 0) + '"'
+                  + ' data-balance-type="' + escapeHtml(v.balType || 'Credit') + '"'
+                  + '>';
             html += '<td class="col-serial"><div class="vend-serial">' + serial + '</div></td>';
             html += '<td class="col-vendor"><div class="vend-name">' + escapeHtml(v.name) + '</div>';
             var meta = [];
@@ -519,10 +578,13 @@ function searchVendors(key) {
                     var stateVal = v.address ? escapeHtml(v.address.State || '') : '';
 
                     html += '<tr class="vend-search-item"'
-                          + ' data-uid="'  + v.VendorUID + '"'
-                          + ' data-name="' + escapeHtml(v.Name) + '"'
+                          + ' data-uid="'          + v.VendorUID + '"'
+                          + ' data-name="'         + escapeHtml(v.Name) + '"'
                           + (addrJson ? ' data-address=\'' + addrJson + '\'' : '')
-                          + ' data-state="' + stateVal + '">';
+                          + ' data-state="'        + stateVal + '"'
+                          + ' data-balance="'      + (parseFloat(v.Balance || 0)) + '"'
+                          + ' data-balance-type="' + escapeHtml(bt || 'Credit') + '"'
+                          + '>';
                     html += '<td class="col-serial"><div class="vend-serial">' + serial + '</div></td>';
                     html += '<td class="col-vendor"><div class="vend-name">' + escapeHtml(v.Name) + '</div>'
                           + (v.Area ? '<div class="vend-meta"><i class="bx bx-map me-1"></i>' + escapeHtml(v.Area) + '</div>' : '')

@@ -125,6 +125,8 @@ class Pricelists_model extends CI_Model {
             $productUID      = (int) ($row['ProductUID']      ?? 0);
             $minQty          = (int) ($row['MinQty']          ?? 1);
             $customerTypeUID = (int) ($row['CustomerTypeUID'] ?? 0);
+            $variantUID      = isset($row['VariantUID']) && (int) $row['VariantUID'] > 0 ? (int) $row['VariantUID'] : null;
+
             $this->ReadDb->select('RuleUID');
             $this->ReadDb->from('Products.PriceListRuleTbl');
             $this->ReadDb->where([
@@ -134,8 +136,14 @@ class Pricelists_model extends CI_Model {
                 'MinQty'          => $minQty,
                 'CustomerTypeUID' => $customerTypeUID,
             ]);
+            if ($variantUID !== null) {
+                $this->ReadDb->where('VariantUID', $variantUID);
+            } else {
+                $this->ReadDb->where('VariantUID IS NULL', null, false);
+            }
             $this->ReadDb->limit(1);
             $existing = ($q = $this->ReadDb->get()) ? $q->row() : null;
+
             $data = [
                 'MaxQty'    => isset($row['MaxQty']) && $row['MaxQty'] !== '' ? (int) $row['MaxQty'] : null,
                 'Price'     => (float) ($row['Price'] ?? 0),
@@ -151,6 +159,7 @@ class Pricelists_model extends CI_Model {
                     'PriceListUID'    => $priceListUID,
                     'OrgUID'          => $orgUID,
                     'ProductUID'      => $productUID,
+                    'VariantUID'      => $variantUID,
                     'MinQty'          => $minQty,
                     'CustomerTypeUID' => $customerTypeUID,
                 ], $data));
@@ -280,11 +289,19 @@ class Pricelists_model extends CI_Model {
         $q = $this->ReadDb->get();
         $result->Discounts = $q ? $q->result() : [];
 
-        $this->ReadDb->select('R.ProductUID, P.ItemName AS ProductName, R.MinQty, R.MaxQty, R.CustomerTypeUID, R.Price');
+        $this->ReadDb->select(
+            'R.ProductUID, R.VariantUID, P.ItemName AS ProductName, R.MinQty, R.MaxQty, R.CustomerTypeUID, R.Price,'
+            . ' COALESCE(b.BrandName, \'\') AS BrandName, COALESCE(sz.Name, \'\') AS SizeName',
+            false
+        );
         $this->ReadDb->from('Products.PriceListRuleTbl R');
-        $this->ReadDb->join('Products.ProductTbl P', 'P.ProductUID = R.ProductUID', 'left');
+        $this->ReadDb->join('Products.ProductTbl P',         'P.ProductUID = R.ProductUID', 'left');
+        $this->ReadDb->join('Products.ProductVariantTbl pv', 'pv.VariantUID = R.VariantUID AND pv.OrgUID = R.OrgUID', 'left');
+        $this->ReadDb->join('Products.BrandTbl b',           'b.BrandUID = pv.BrandUID AND pv.BrandUID > 0', 'left');
+        $this->ReadDb->join('Products.SizeTbl sz',           'sz.SizeUID = pv.SizeUID AND pv.SizeUID > 0', 'left');
         $this->ReadDb->where(['R.PriceListUID' => $priceListUID, 'R.OrgUID' => $orgUID, 'R.IsDeleted' => 0]);
         $this->ReadDb->order_by('R.ProductUID', 'ASC');
+        $this->ReadDb->order_by('R.VariantUID', 'ASC');
         $this->ReadDb->order_by('R.MinQty', 'ASC');
         $q = $this->ReadDb->get();
         $result->Rules = $q ? $q->result() : [];

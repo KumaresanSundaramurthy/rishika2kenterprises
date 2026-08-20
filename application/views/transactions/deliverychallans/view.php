@@ -26,7 +26,7 @@ $this->load->view('common/transactions/header'); ?>
                 ];
                 $visibleFilters = $tabFilterMap[$initTab] ?? $tabFilterMap['All'];
 
-                if ($JwtData->TransSettings->ShowTransactionStats ?? 1):
+                if (($JwtData->GenSettings->ShowStats ?? 1) && ($JwtData->TransSettings->ShowTransactionStats ?? 1)):
                 $stats         = $SummaryStats ?? [];
                 $cur           = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
                 $dec           = $JwtData->GenSettings->DecimalPoints ?? 2;
@@ -432,15 +432,19 @@ $(function () {
         }
 
         $btn.removeData('_confirmed');
+        ajaxLoading(1);
         $.ajax({
             url   : '/deliverychallan/updateDeliveryChallanStatus',
             method: 'POST',
             data  : _actionPostData({ TransUID: uid, Status: status }),
             success: function (resp) {
-                if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
-                _renderListResponse(resp);
+                ajaxLoading(0);
+                hideUIBlock();
+                if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }
                 showToastNotification(resp.Message, 'success');
-            }
+                _renderListResponse(resp);
+            },
+            error: function () { ajaxLoading(0); hideUIBlock(); Swal.fire({ icon: 'error', text: 'Request failed. Please try again.' }); }
         });
     });
 
@@ -453,12 +457,15 @@ $(function () {
             icon : 'warning', showCancelButton: true, confirmButtonText: 'Delete', confirmButtonColor: '#d33',
         }).then(function (r) {
             if (!r.isConfirmed) return;
+            ajaxLoading(1);
             $.ajax({
                 url   : '/deliverychallan/deleteDeliveryChallan',
                 method: 'POST',
                 data  : _actionPostData({ TransUID: uid }),
                 success: function (resp) {
-                    if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
+                    ajaxLoading(0);
+                    hideUIBlock();
+                    if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }
                     showToastNotification(resp.Message, 'success');
                     if (PageNo > 1 && (resp.TotalCount || 0) <= (PageNo - 1) * RowLimit) {
                         PageNo--;
@@ -466,7 +473,8 @@ $(function () {
                     } else {
                         _renderListResponse(resp);
                     }
-                }
+                },
+                error: function () { ajaxLoading(0); hideUIBlock(); Swal.fire({ icon: 'error', text: 'Request failed. Please try again.' }); }
             });
         });
     });

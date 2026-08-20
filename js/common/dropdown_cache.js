@@ -37,6 +37,7 @@ window.DropdownCache = (function ($) {
     // Org keys — per-org, prefixed via orgKey(); writable from code
     var _orgKeyMap = {
         categories  : 'categories',   // Redis HASH — HGETALL
+        brands      : 'brands',        // Redis HASH — HGETALL
     };
 
     var _allKeyMap = $.extend({}, _globalKeyMap, _orgKeyMap);
@@ -49,13 +50,14 @@ window.DropdownCache = (function ($) {
             return Promise.resolve({ found: {}, missing: _fields.slice() });
         }
 
-        // 'categories' is a Redis hash → HGETALL; all others are strings → GET
+        // 'categories' and 'brands' are Redis hashes → HGETALL; all others are strings → GET
         // Global fields use literal key; org fields use orgKey() prefix
+        var _hashFields = ['categories', 'brands'];
         var cmds = _fields.map(function (f) {
             var key = _globalKeyMap.hasOwnProperty(f)
                 ? _globalKeyMap[f]
                 : UpstashService.orgKey(_orgKeyMap[f]);
-            return f === 'categories'
+            return _hashFields.indexOf(f) !== -1
                 ? ['HGETALL', key]
                 : ['GET',     key];
         });
@@ -67,17 +69,17 @@ window.DropdownCache = (function ($) {
             _fields.forEach(function (field, i) {
                 var raw = results[i];
 
-                if (field === 'categories') {
+                if (_hashFields.indexOf(field) !== -1) {
                     // HGETALL → flat [uid, jsonStr, uid, jsonStr, ...] array
                     if (Array.isArray(raw) && raw.length >= 2) {
-                        var cats = [];
+                        var items = [];
                         for (var j = 0; j + 1 < raw.length; j += 2) {
                             try {
                                 var val = raw[j + 1];
-                                cats.push(typeof val === 'string' ? JSON.parse(val) : val);
+                                items.push(typeof val === 'string' ? JSON.parse(val) : val);
                             } catch (e) {}
                         }
-                        if (cats.length > 0) { found[field] = cats; return; }
+                        if (items.length > 0) { found[field] = items; return; }
                     }
                     missing.push(field);
                     return;
@@ -427,6 +429,14 @@ window.DropdownCache = (function ($) {
         }
     }
 
-    return { init: init, ready: ready, openForProductForm: openForProductForm, populateProductModal: populateProductModal, patchCategories: patchCategories };
+    /**
+     * Return the cached brands array synchronously, or null if not yet loaded.
+     * @returns {Array|null}
+     */
+    function getBrands() {
+        return (_data && Array.isArray(_data.brands) && _data.brands.length) ? _data.brands : null;
+    }
+
+    return { init: init, ready: ready, openForProductForm: openForProductForm, populateProductModal: populateProductModal, patchCategories: patchCategories, getBrands: getBrands };
 
 }(jQuery));

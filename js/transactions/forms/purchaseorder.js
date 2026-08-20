@@ -111,6 +111,7 @@ $(function () {
 
             var items = typeof billManager !== 'undefined' ? billManager.getAllItems() : [];
             if (!items || items.length === 0) return showFormError('Please add at least one product.');
+            if (typeof validateBrandItems === 'function' && !validateBrandItems()) return;
 
             for (var i = 0; i < items.length; i++) {
                 var item = items[i];

@@ -645,12 +645,13 @@
                                             <!-- Sub-Tab: General (T&C) -->
                                             <?php
                                             $tgs = $TransSettings ?? new stdClass();
-                                            $tgsTerms       = htmlspecialchars($tgs->TermsAndConditions ?? '', ENT_QUOTES);
-                                            $tgsHideNav     = !empty($tgs->HideNavOnTransForm) ? (int)$tgs->HideNavOnTransForm : 0;
-                                            $tgsShowDesc    = isset($tgs->ShowProductDescription) ? (int)$tgs->ShowProductDescription : 1;
-                                            $tgsShowStats   = isset($tgs->ShowTransactionStats)   ? (int)$tgs->ShowTransactionStats   : 1;
-                                            $tgsComboDist   = $tgs->ComboPriceDistribution ?? 'ratio';
-                                            $tgsDefaultType = strtolower($tgs->DefaultTransactionType ?? 'regular');
+                                            $tgsTerms         = htmlspecialchars($tgs->TermsAndConditions ?? '', ENT_QUOTES);
+                                            $tgsHideNav       = !empty($tgs->HideNavOnTransForm) ? (int)$tgs->HideNavOnTransForm : 0;
+                                            $tgsShowDesc      = isset($tgs->ShowProductDescription) ? (int)$tgs->ShowProductDescription : 1;
+                                            $tgsShowStats     = isset($tgs->ShowTransactionStats)   ? (int)$tgs->ShowTransactionStats   : 1;
+                                            $tgsComboDist     = $tgs->ComboPriceDistribution ?? 'ratio';
+                                            $tgsDefaultType   = strtolower($tgs->DefaultTransactionType ?? 'regular');
+                                            $tgsAutoDraftSave = isset($tgs->AutoDraftSave) ? (int)$tgs->AutoDraftSave : 1;
                                             ?>
                                             <div class="tab-pane fade show active" id="tab-txn-general" role="tabpanel" aria-labelledby="tab-txn-general-tab">
 
@@ -715,6 +716,54 @@
                                                                     Show summary stats strip on all transaction list pages
                                                                 </label>
                                                                 <div class="form-text mt-0">When enabled, the summary cards (totals strip) appear at the top of every transaction list page — Invoices, Sales Orders, Purchases, etc. Disable globally for a cleaner, faster view.</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="col-12">
+                                                        <label class="form-label fw-semibold">Auto Save Draft</label>
+                                                        <div class="border rounded p-3">
+                                                            <div class="d-flex align-items-start gap-3">
+                                                                <div class="flex-shrink-0 mt-1">
+                                                                    <span class="badge rounded-pill bg-label-secondary p-2">
+                                                                        <i class="bx bx-save fs-5"></i>
+                                                                    </span>
+                                                                </div>
+                                                                <div class="flex-grow-1">
+                                                                    <div class="d-flex align-items-center justify-content-between mb-1">
+                                                                        <label class="fw-semibold mb-0" for="txn_AutoDraftSave">
+                                                                            Auto Save Draft on Transaction Forms
+                                                                        </label>
+                                                                        <div class="form-check form-switch mb-0 ms-3">
+                                                                            <input class="form-check-input" type="checkbox"
+                                                                                   id="txn_AutoDraftSave" name="AutoDraftSave"
+                                                                                   value="1" <?php echo $tgsAutoDraftSave ? 'checked' : ''; ?>>
+                                                                        </div>
+                                                                    </div>
+                                                                    <p class="text-muted small mb-3">
+                                                                        While filling a transaction form, the system periodically saves your in-progress data as a local draft. If you close the tab, navigate away, or the browser crashes before submitting, the draft is automatically restored the next time you open a new form of the same type.
+                                                                    </p>
+                                                                    <div class="row g-2">
+                                                                        <div class="col-md-6">
+                                                                            <div class="d-flex align-items-start gap-2 p-2 rounded bg-label-success">
+                                                                                <i class="bx bx-check-circle text-success mt-1"></i>
+                                                                                <div>
+                                                                                    <div class="fw-semibold small text-success">When Enabled</div>
+                                                                                    <div class="small text-muted">Draft is auto-saved every 30 seconds. A restore prompt appears the next time a new form is opened.</div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="col-md-6">
+                                                                            <div class="d-flex align-items-start gap-2 p-2 rounded bg-label-secondary">
+                                                                                <i class="bx bx-x-circle text-secondary mt-1"></i>
+                                                                                <div>
+                                                                                    <div class="fw-semibold small">When Disabled</div>
+                                                                                    <div class="small text-muted">No draft is saved. Unsaved data is permanently lost if you leave the form before submitting.</div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -1068,8 +1117,9 @@
 
                                             <!-- Sub-Tab: Purchase -->
                                             <?php
-                                            $purchaseShowSignature = !empty($ts->PurchaseShowSignature) ? (int)$ts->PurchaseShowSignature : 0;
-                                            $purchaseShowTerms     = !empty($ts->PurchaseShowTerms)     ? (int)$ts->PurchaseShowTerms     : 0;
+                                            $purchaseShowSignature    = !empty($ts->PurchaseShowSignature)    ? (int)$ts->PurchaseShowSignature    : 0;
+                                            $purchaseShowTerms        = !empty($ts->PurchaseShowTerms)        ? (int)$ts->PurchaseShowTerms        : 0;
+                                            $autoUpdatePurchasePrice  = $ts->AutoUpdatePurchasePrice ?? 'off';
                                             ?>
                                             <div class="tab-pane fade" id="tab-purchase-settings" role="tabpanel" aria-labelledby="tab-purchase-settings-tab">
 
@@ -1112,6 +1162,29 @@
                                                         </div>
                                                     </div>
 
+                                                </div>
+
+                                                <div class="row g-3 mt-1">
+                                                    <div class="col-12">
+                                                        <label class="form-label fw-semibold">Purchase Price Update</label>
+                                                        <div class="p-3 border rounded">
+                                                            <div class="row align-items-center g-3">
+                                                                <div class="col-md-8">
+                                                                    <label class="fw-semibold mb-1" for="purch_AutoUpdatePurchasePrice">
+                                                                        Auto-update product purchase price on save
+                                                                    </label>
+                                                                    <div id="purchAutoUpdateDesc" class="form-text mt-1 mb-0"></div>
+                                                                </div>
+                                                                <div class="col-md-4">
+                                                                    <select id="purch_AutoUpdatePurchasePrice" name="AutoUpdatePurchasePrice" class="form-select">
+                                                                        <option value="off"    <?php echo $autoUpdatePurchasePrice === 'off'    ? 'selected' : ''; ?>>Off – Do nothing</option>
+                                                                        <option value="auto"   <?php echo $autoUpdatePurchasePrice === 'auto'   ? 'selected' : ''; ?>>Auto – Update silently</option>
+                                                                        <option value="manual" <?php echo $autoUpdatePurchasePrice === 'manual' ? 'selected' : ''; ?>>Manual – Ask me first</option>
+                                                                    </select>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
 
                                                 <div class="mt-4 d-flex gap-2">
@@ -1409,6 +1482,7 @@ $(document).ready(function () {
                 PurchaseReturnItemMethod   : $('input[name="PurchaseReturnItemMethod"]:checked').val()   || 'Manual',
                 PurchaseShowSignature      : $('#purch_ShowSignature').is(':checked') ? 1 : 0,
                 PurchaseShowTerms          : $('#purch_ShowTerms').is(':checked')    ? 1 : 0,
+                AutoUpdatePurchasePrice    : $('#purch_AutoUpdatePurchasePrice').val() || 'off',
                 DCDefaultReturnDays        : $('#dc_DefaultReturnDays').val(),
                 QuotValidityDays           : $('#quot_ValidityDays').val(),
                 DefaultTransactionType     : $('#txn_DefaultTransactionType').val() || 'regular',
@@ -1527,6 +1601,7 @@ $(document).ready(function () {
                 ComboPriceDistribution     : $('input[name="ComboPriceDistribution"]:checked').val() || 'ratio',
                 PurchaseShowSignature      : $('#purch_ShowSignature').is(':checked') ? 1 : 0,
                 PurchaseShowTerms          : $('#purch_ShowTerms').is(':checked')    ? 1 : 0,
+                AutoUpdatePurchasePrice    : $('#purch_AutoUpdatePurchasePrice').val() || 'off',
                 DCDefaultReturnDays        : $('#dc_DefaultReturnDays').val(),
                 QuotValidityDays           : $('#quot_ValidityDays').val(),
                 DefaultTransactionType     : $('#txn_DefaultTransactionType').val() || 'regular',
@@ -1577,6 +1652,7 @@ $(document).ready(function () {
                 ComboPriceDistribution     : $('input[name="ComboPriceDistribution"]:checked').val() || 'ratio',
                 PurchaseShowSignature      : $('#purch_ShowSignature').is(':checked') ? 1 : 0,
                 PurchaseShowTerms          : $('#purch_ShowTerms').is(':checked')    ? 1 : 0,
+                AutoUpdatePurchasePrice    : $('#purch_AutoUpdatePurchasePrice').val() || 'off',
                 DCDefaultReturnDays        : $('#dc_DefaultReturnDays').val(),
                 QuotValidityDays           : $('#quot_ValidityDays').val(),
                 DefaultTransactionType     : $('#txn_DefaultTransactionType').val() || 'regular',
@@ -1595,6 +1671,24 @@ $(document).ready(function () {
         });
     });
 
+    // ── Auto Update Purchase Price description ───────────────────────────────
+    var _purchPriceUpdateDescs = {
+        'off'    : 'No action will be taken. The product\'s stored purchase price remains unchanged even if the billed price is different.',
+        'auto'   : 'On saving a purchase bill, the system will automatically update the product\'s purchase price whenever the billed price differs — no prompt shown.',
+        'manual' : 'On saving a purchase bill, if any item\'s billed price differs from the stored purchase price, you will be asked whether to update the product\'s purchase price before saving.'
+    };
+    /**
+     * @param {string} val
+     * @returns {void}
+     */
+    function _updatePurchPriceDesc(val) {
+        $('#purchAutoUpdateDesc').text(_purchPriceUpdateDescs[val] || '');
+    }
+    _updatePurchPriceDesc($('#purch_AutoUpdatePurchasePrice').val());
+    $('#purch_AutoUpdatePurchasePrice').on('change', function () {
+        _updatePurchPriceDesc($(this).val());
+    });
+
     // ── Save Purchase Settings ───────────────────────────────────────────────
     $('#btnSavePurchaseSettings').on('click', function () {
         var $btn     = $(this);
@@ -1609,6 +1703,7 @@ $(document).ready(function () {
             data   : {
                 PurchaseShowSignature      : $('#purch_ShowSignature').is(':checked') ? 1 : 0,
                 PurchaseShowTerms          : $('#purch_ShowTerms').is(':checked')    ? 1 : 0,
+                AutoUpdatePurchasePrice    : $('#purch_AutoUpdatePurchasePrice').val() || 'off',
                 InvoiceCancelAction        : $('input[name="InvoiceCancelAction"]:checked').val()        || 'ask',
                 SalesReturnCancelAction    : $('input[name="SalesReturnCancelAction"]:checked').val()    || 'ask',
                 SalesReturnItemMethod      : $('input[name="SalesReturnItemMethod"]:checked').val()      || 'Manual',
@@ -1659,6 +1754,7 @@ $(document).ready(function () {
                 PurchaseReturnItemMethod   : $('input[name="PurchaseReturnItemMethod"]:checked').val()   || 'Manual',
                 PurchaseShowSignature      : $('#purch_ShowSignature').is(':checked') ? 1 : 0,
                 PurchaseShowTerms          : $('#purch_ShowTerms').is(':checked')    ? 1 : 0,
+                AutoUpdatePurchasePrice    : $('#purch_AutoUpdatePurchasePrice').val() || 'off',
                 TermsAndConditions         : $('#txn_TermsAndConditions').val(),
                 HideNavOnTransForm         : $('#txn_HideNavOnTransForm').is(':checked') ? 1 : 0,
                 ShowProductDescription     : $('#txn_ShowProductDescription').is(':checked') ? 1 : 0,
@@ -1710,6 +1806,7 @@ $(document).ready(function () {
                 ComboPriceDistribution     : $('input[name="ComboPriceDistribution"]:checked').val() || 'ratio',
                 PurchaseShowSignature      : $('#purch_ShowSignature').is(':checked') ? 1 : 0,
                 PurchaseShowTerms          : $('#purch_ShowTerms').is(':checked')    ? 1 : 0,
+                AutoUpdatePurchasePrice    : $('#purch_AutoUpdatePurchasePrice').val() || 'off',
                 DCDefaultReturnDays        : $('#dc_DefaultReturnDays').val(),
                 QuotValidityDays           : $('#quot_ValidityDays').val(),
                 DefaultTransactionType     : $('#txn_DefaultTransactionType').val() || 'regular',
@@ -1755,6 +1852,7 @@ $(document).ready(function () {
                 PurchaseReturnItemMethod   : $('input[name="PurchaseReturnItemMethod"]:checked').val()   || 'Manual',
                 PurchaseShowSignature      : $('#purch_ShowSignature').is(':checked') ? 1 : 0,
                 PurchaseShowTerms          : $('#purch_ShowTerms').is(':checked')    ? 1 : 0,
+                AutoUpdatePurchasePrice    : $('#purch_AutoUpdatePurchasePrice').val() || 'off',
                 TermsAndConditions         : $('#txn_TermsAndConditions').val(),
                 HideNavOnTransForm         : $('#txn_HideNavOnTransForm').is(':checked') ? 1 : 0,
                 ShowProductDescription     : $('#txn_ShowProductDescription').is(':checked') ? 1 : 0,

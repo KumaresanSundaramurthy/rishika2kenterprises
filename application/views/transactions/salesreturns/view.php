@@ -25,7 +25,7 @@ $this->load->view('common/transactions/header'); ?>
                 ];
                 $visibleFilters = $tabFilterMap[$initTab] ?? $tabFilterMap['All'];
 
-                if ($JwtData->TransSettings->ShowTransactionStats ?? 1):
+                if (($JwtData->GenSettings->ShowStats ?? 1) && ($JwtData->TransSettings->ShowTransactionStats ?? 1)):
                 $stats       = $SummaryStats ?? [];
                 $cur         = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
                 $dec         = $JwtData->GenSettings->DecimalPoints ?? 2;
@@ -596,19 +596,18 @@ $(function () {
         var num    = $(this).data('num') || '';
 
         if (status !== 'Cancelled') {
-            showProcessing('Updating Status…');
+            ajaxLoading(1);
             $.ajax({
                 url: '/salesreturns/updateSalesReturnStatus', method: 'POST',
                 data: { TransUID: uid, Status: status, [CsrfName]: CsrfToken },
                 success: function (resp) {
-                    hideProcessing();
+                    ajaxLoading(0);
+                    hideUIBlock();
                     if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }
-                    var _msg = resp.Message || 'Status updated.';
-                    getSalesReturnsDetails(undefined, undefined, undefined, function () {
-                        showToastNotification(_msg, 'success');
-                    });
+                    showToastNotification(resp.Message || 'Status updated.', 'success');
+                    getSalesReturnsDetails();
                 },
-                error: function () { hideProcessing(); Swal.fire({ icon: 'error', text: 'Request failed. Try again.' }); }
+                error: function () { ajaxLoading(0); hideUIBlock(); Swal.fire({ icon: 'error', text: 'Request failed. Try again.' }); }
             });
             return;
         }
@@ -685,38 +684,28 @@ $(function () {
             }
         }).then(function (r) {
             if (!r.isConfirmed) return;
-            showProcessing('Cancelling Sales Return…');
+            ajaxLoading(1);
             $.ajax({
                 url   : '/salesreturns/updateSalesReturnStatus',
                 method: 'POST',
                 data  : { TransUID: uid, Status: 'Cancelled', CancelPaymentAction: r.value || '', [CsrfName]: CsrfToken },
                 success: function (resp) {
-                    hideProcessing();
+                    ajaxLoading(0);
+                    hideUIBlock();
                     if (resp.Error) {
                         Swal.fire({ icon: 'error', title: 'Cannot Cancel', html: resp.Message, confirmButtonColor: '#dc3545' });
                     } else {
-                        getSalesReturnsDetails();
+                        var msg = 'Sales Return cancelled successfully.';
                         if (resp.CustomerBalance !== undefined) {
                             var bal = parseFloat(resp.CustomerBalance).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                            var typ = resp.CustomerBalanceType === 'Debit' ? 'receivable <small>(customer owes you)</small>' : 'advance <small>(you owe customer)</small>';
-                            Swal.fire({
-                                icon : 'success',
-                                title: 'Sales Return Cancelled',
-                                html : 'Sales return cancelled successfully.<br><br>'
-                                     + '<div style="background:#f8f9fa;border-radius:10px;padding:14px 20px;margin-top:4px;display:inline-block;min-width:220px;">'
-                                     + '<div style="font-size:12px;color:#6c757d;margin-bottom:4px;">Updated Customer Balance</div>'
-                                     + '<div style="font-size:22px;font-weight:700;color:' + (resp.CustomerBalanceType === 'Debit' ? '#dc3545' : '#198754') + ';">'
-                                     + sym + bal + '</div>'
-                                     + '<div style="font-size:11px;color:#6c757d;margin-top:2px;">' + typ + '</div>'
-                                     + '</div>',
-                                confirmButtonColor: '#0d6efd'
-                            });
-                        } else {
-                            showToastNotification('Sales Return cancelled successfully.', 'success');
+                            var typ = resp.CustomerBalanceType === 'Debit' ? 'Debit <small>(receivable)</small>' : 'Advance <small>(credit)</small>';
+                            msg += '<br><small class="text-muted mt-1 d-block">Customer Balance: <strong>' + sym + bal + '</strong> ' + typ + '</small>';
                         }
+                        showToastNotification(msg, 'success');
+                        getSalesReturnsDetails();
                     }
                 },
-                error: function () { hideProcessing(); Swal.fire({ icon: 'error', text: 'Request failed. Try again.' }); }
+                error: function () { ajaxLoading(0); hideUIBlock(); Swal.fire({ icon: 'error', text: 'Request failed. Try again.' }); }
             });
         });
     }
@@ -741,10 +730,11 @@ $(function () {
             icon: 'warning', showCancelButton: true, confirmButtonText: 'Delete', confirmButtonColor: '#d33' })
             .then(function (r) {
                 if (!r.isConfirmed) return;
-                showProcessing('Deleting Sales Return…');
+                ajaxLoading(1);
                 $.ajax({ url: '/salesreturns/deleteSalesReturn', method: 'POST', data: _actionPostData({ TransUID: uid }),
                     success: function (resp) {
-                        hideProcessing();
+                        ajaxLoading(0);
+                        hideUIBlock();
                         if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }
                         showToastNotification(resp.Message || 'Deleted.', 'success');
                         if (PageNo > 1 && (resp.TotalCount || 0) <= (PageNo - 1) * RowLimit) {
@@ -754,7 +744,7 @@ $(function () {
                             _renderListResponse(resp);
                         }
                     },
-                    error: function () { hideProcessing(); Swal.fire({ icon: 'error', text: 'Request failed. Try again.' }); }
+                    error: function () { ajaxLoading(0); hideUIBlock(); Swal.fire({ icon: 'error', text: 'Request failed. Try again.' }); }
                 });
             });
     });

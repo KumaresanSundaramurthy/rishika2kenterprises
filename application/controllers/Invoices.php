@@ -129,6 +129,28 @@ class Invoices extends MY_Controller {
             $transDate     = $amounts['transDate'];
             $customerUID   = (int) getPostValue($PostData, 'customerSearch');
 
+            // Draft CN conflict check — block save if the selected CN is already Applied
+            if ($isDraft) {
+                $draftCnUID = (int) getPostValue($PostData, 'CreditNoteUID');
+                if ($draftCnUID > 0) {
+                    $cnCheckDb = $this->load->database('ReadDB', TRUE);
+                    $cnCheckDb->db_debug = FALSE;
+                    $cnApplied = $cnCheckDb->query(
+                        'SELECT CreditNoteNumber FROM Transaction.TransCreditNoteTbl
+                         WHERE CreditNoteUID = ? AND OrgUID = ? AND Status = ? AND IsDeleted = 0 LIMIT 1',
+                        [$draftCnUID, $orgUID, 'Applied']
+                    )->row();
+                    if ($cnApplied) {
+                        $this->dbwrite_model->rollbackTransaction();
+                        $this->EndReturnData->Error             = TRUE;
+                        $this->EndReturnData->CreditNoteConflict = TRUE;
+                        $this->EndReturnData->Message           = 'Credit Note ' . $cnApplied->CreditNoteNumber . ' has already been applied to another invoice.';
+                        $this->globalservice->sendJsonResponse($this->EndReturnData);
+                        return;
+                    }
+                }
+            }
+
             $resolved = $this->_resolveTransPrefix(
                 $isDraft, $amounts['prefixUID'], $amounts['transNumber'], $transDate, $orgUID
             );
@@ -169,6 +191,7 @@ class Invoices extends MY_Controller {
                 ],
                 $amounts, $PostData, $transUID
             );
+            $detailData['PendingCreditNoteUID'] = $isDraft ? ((int)getPostValue($PostData, 'CreditNoteUID') ?: NULL) : NULL;
             $detailResp = $this->dbwrite_model->insertData('Transaction', 'TransDetailTbl', $detailData);
             if ($detailResp->Error) throw new Exception($detailResp->Message);
 
@@ -178,14 +201,42 @@ class Invoices extends MY_Controller {
                 $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items, $this->_branchUID());
             }
 
-            // Record payment DB rows inside the transaction; ledger entries applied after commit
+            // Apply Credit Note first so its payment row commits before cash payment numbers are assigned
             $paidAmountForLedger = 0;
             $firstPaymentUID     = null;
+            if (!$isDraft) {
+                $cnUID = (int) getPostValue($PostData, 'CreditNoteUID');
+                if ($cnUID > 0) {
+                    $cnReadDb = $this->load->database('ReadDB', TRUE);
+                    $cnReadDb->db_debug = FALSE;
+                    $cnRow = $cnReadDb->query(
+                        'SELECT Amount FROM Transaction.TransCreditNoteTbl WHERE CreditNoteUID = ? AND OrgUID = ? AND Status = ? AND IsDeleted = 0',
+                        [$cnUID, $orgUID, 'Pending']
+                    )->row();
+                    if ($cnRow) {
+                        $cnApplyAmount = round((float)$cnRow->Amount, $this->_decimals());
+                        $this->load->library('customerbalance');
+                        $this->customerbalance->applyCreditNote($orgUID, $cnUID, $transUID, $userUID);
+                        $paidAmountForLedger += $cnApplyAmount;
+                        $this->_updateTransactionBalance($transUID, $netAmount, $paidAmountForLedger, $userUID);
+                    } else {
+                        $cnConflict = $cnReadDb->query(
+                            'SELECT CreditNoteNumber FROM Transaction.TransCreditNoteTbl WHERE CreditNoteUID = ? AND OrgUID = ? AND Status = ? AND IsDeleted = 0 AND IsCancelled = 0 LIMIT 1',
+                            [$cnUID, $orgUID, 'Applied']
+                        )->row();
+                        if ($cnConflict) {
+                            throw new Exception('Credit Note ' . $cnConflict->CreditNoteNumber . ' has already been applied to another invoice. Please remove it and save again.');
+                        }
+                    }
+                }
+            }
+
+            // Record cash payment after CN so payment numbers are assigned sequentially without collision
             if (!$isDraft && (int) getPostValue($PostData, 'RecordPayment') === 1) {
-                $payResult           = $this->_savePaymentRecord($transUID, $orgUID, $userUID, 'C', $customerUID, $netAmount, $PostData, 'In', $transDate);
-                $paidAmountForLedger = $payResult['totalPaid'];
-                $firstPaymentUID     = $payResult['firstPaymentUID'];
-                if ($paidAmountForLedger > 0) {
+                $payResult       = $this->_savePaymentRecord($transUID, $orgUID, $userUID, 'C', $customerUID, $netAmount, $PostData, 'In', $transDate);
+                $firstPaymentUID = $payResult['firstPaymentUID'];
+                if ($payResult['totalPaid'] > 0) {
+                    $paidAmountForLedger += $payResult['totalPaid'];
                     $this->_updateTransactionBalance($transUID, $netAmount, $paidAmountForLedger, $userUID);
                 }
             }
@@ -249,30 +300,6 @@ class Invoices extends MY_Controller {
                             $this->_updateTransactionBalance($transUID, $netAmount, $paidAmountForLedger + $onAccountAppliedTotal, $userUID);
                             $paidAmountForLedger += $onAccountAppliedTotal;
                         }
-                    }
-                }
-            }
-
-            // Apply Credit Note to this invoice at creation time
-            if (!$isDraft) {
-                $cnUID = (int) getPostValue($PostData, 'CreditNoteUID');
-                if ($cnUID > 0) {
-                    try {
-                        $cnReadDb = $this->load->database('ReadDB', TRUE);
-                        $cnReadDb->db_debug = FALSE;
-                        $cnRow = $cnReadDb->query(
-                            'SELECT Amount FROM Transaction.TransCreditNoteTbl WHERE CreditNoteUID = ? AND OrgUID = ? AND Status = ? AND IsDeleted = 0',
-                            [$cnUID, $orgUID, 'Pending']
-                        )->row();
-                        if ($cnRow) {
-                            $cnApplyAmount = round((float)$cnRow->Amount, $this->_decimals());
-                            $this->load->library('customerbalance');
-                            $this->customerbalance->applyCreditNote($orgUID, $cnUID, $transUID, $userUID);
-                            $this->_updateTransactionBalance($transUID, $netAmount, $paidAmountForLedger + $cnApplyAmount, $userUID);
-                            $paidAmountForLedger += $cnApplyAmount;
-                        }
-                    } catch (Exception $cnEx) {
-                        log_message('error', 'createInvoice: credit note application failed: ' . $cnEx->getMessage());
                     }
                 }
             }
@@ -373,6 +400,28 @@ class Invoices extends MY_Controller {
             $dueDate     = getPostValue($PostData, 'dueDate');
             $netAmount   = $amounts['netAmount'];
 
+            // Draft CN conflict check — block save if the selected CN is already Applied
+            if ($isDraft) {
+                $draftCnUID = (int) getPostValue($PostData, 'CreditNoteUID');
+                if ($draftCnUID > 0) {
+                    $cnCheckDb = $this->load->database('ReadDB', TRUE);
+                    $cnCheckDb->db_debug = FALSE;
+                    $cnApplied = $cnCheckDb->query(
+                        'SELECT CreditNoteNumber FROM Transaction.TransCreditNoteTbl
+                         WHERE CreditNoteUID = ? AND OrgUID = ? AND Status = ? AND IsDeleted = 0 LIMIT 1',
+                        [$draftCnUID, $orgUID, 'Applied']
+                    )->row();
+                    if ($cnApplied) {
+                        $this->dbwrite_model->rollbackTransaction();
+                        $this->EndReturnData->Error             = TRUE;
+                        $this->EndReturnData->CreditNoteConflict = TRUE;
+                        $this->EndReturnData->Message           = 'Credit Note ' . $cnApplied->CreditNoteNumber . ' has already been applied to another invoice.';
+                        $this->globalservice->sendJsonResponse($this->EndReturnData);
+                        return;
+                    }
+                }
+            }
+
             $cfg = [
                 'TransType'       => 'Invoice',
                 'PartyType'       => 'C',
@@ -420,6 +469,7 @@ class Invoices extends MY_Controller {
                 }
 
                 [$uniqueNumber] = $this->buildUniqueNumber($prefix, $transNumber, $amounts['transDate']);
+                $amounts['uniqueNumber'] = $uniqueNumber;
             }
 
             $activeTransUID = $transUID; // tracks the final transUID (may change for draftÃ¢â€ â€™issued with newer transactions)
@@ -444,8 +494,9 @@ class Invoices extends MY_Controller {
                 'PlaceOfSupplyName' => getPostValue($PostData, 'placeOfSupplyName') ?: NULL,
                 'IsInterState'      => $isInterState,
                 'IsForeignCustomer' => $isForeignCustomer,
-                'PriceListUID'      => (int)getPostValue($PostData, 'PriceListUID') ?: NULL,
-                'PriceListData'     => getPostValue($PostData, 'PriceListData') ?: NULL,
+                'PriceListUID'          => (int)getPostValue($PostData, 'PriceListUID') ?: NULL,
+                'PriceListData'         => getPostValue($PostData, 'PriceListData') ?: NULL,
+                'PendingCreditNoteUID'  => $isDraft ? ((int)getPostValue($PostData, 'CreditNoteUID') ?: NULL) : NULL,
             ];
 
             // Reverse stock if existing doc was already non-draft (edit of live invoice)
@@ -464,10 +515,12 @@ class Invoices extends MY_Controller {
                 $newTransUID    = $insertResp->ID;
                 $activeTransUID = $newTransUID;
 
-                $this->dbwrite_model->insertData('Transaction', 'TransDetailTbl', array_merge($commonDetail, [
-                    'FinancialYear' => $amounts['financialYear'],
-                    'TransUID'      => $newTransUID,
-                ]));
+                $detailResp = $this->dbwrite_model->updateData(
+                    'Transaction', 'TransDetailTbl',
+                    array_merge($commonDetail, ['TransUID' => $newTransUID]),
+                    ['TransUID' => $transUID, 'FinancialYear' => $amounts['financialYear']]
+                );
+                if ($detailResp->Error) throw new Exception($detailResp->Message);
 
                 $this->dbwrite_model->updateData(
                     'Transaction', 'TransProductsTbl',
@@ -481,7 +534,6 @@ class Invoices extends MY_Controller {
                 }
 
                 $this->dbwrite_model->deleteInTransaction('Transaction', 'TransactionsTbl', ['TransUID' => $transUID]);
-                $this->dbwrite_model->deleteInTransaction('Transaction', 'TransDetailTbl',  ['TransUID' => $transUID]);
 
             } else {
                 if ($uniqueNumber !== NULL) {
@@ -511,48 +563,53 @@ class Invoices extends MY_Controller {
 
             $this->_saveTransCharges($activeTransUID, $orgUID, $userUID, $PostData);
 
-            // Record payment DB rows inside the transaction; ledger entries applied after commit
+            // Apply Credit Note first so its payment row commits before cash payment numbers are assigned
             $paidAmountForLedger = 0;
             $firstPaymentUID     = null;
-            if (!$isDraft && (int) getPostValue($PostData, 'RecordPayment') === 1) {
-                $payResult           = $this->_savePaymentRecord($activeTransUID, $orgUID, $userUID, 'C', $customerUID, $netAmount, $PostData, 'In', $amounts['transDate']);
-                $paidAmountForLedger = $payResult['totalPaid'];
-                $firstPaymentUID     = $payResult['firstPaymentUID'];
-                if ($paidAmountForLedger > 0) {
-                    $this->_updateTransactionBalance($activeTransUID, $netAmount, $paidAmountForLedger, $userUID);
-                }
-            }
-
-            // Apply Credit Note to this invoice on finalise (draft→final or direct edit)
             if (!$isDraft) {
                 $cnUID = (int) getPostValue($PostData, 'CreditNoteUID');
                 if ($cnUID > 0) {
-                    try {
-                        $cnReadDb = $this->load->database('ReadDB', TRUE);
-                        $cnReadDb->db_debug = FALSE;
-                        $alreadyApplied = $cnReadDb->query(
-                            'SELECT CreditNoteUID FROM Transaction.TransCreditNoteTbl
-                             WHERE CreditNoteUID = ? AND OrgUID = ? AND AppliedTransUID = ?
-                               AND Status = ? AND IsDeleted = 0 LIMIT 1',
-                            [$cnUID, $orgUID, $activeTransUID, 'Applied']
+                    $cnReadDb = $this->load->database('ReadDB', TRUE);
+                    $cnReadDb->db_debug = FALSE;
+                    $alreadyApplied = $cnReadDb->query(
+                        'SELECT CreditNoteUID FROM Transaction.TransCreditNoteTbl
+                         WHERE CreditNoteUID = ? AND OrgUID = ? AND AppliedTransUID = ?
+                           AND Status = ? AND IsDeleted = 0 LIMIT 1',
+                        [$cnUID, $orgUID, $activeTransUID, 'Applied']
+                    )->row();
+                    if (!$alreadyApplied) {
+                        $cnRow = $cnReadDb->query(
+                            'SELECT Amount FROM Transaction.TransCreditNoteTbl
+                             WHERE CreditNoteUID = ? AND OrgUID = ? AND Status = ? AND IsDeleted = 0 LIMIT 1',
+                            [$cnUID, $orgUID, 'Pending']
                         )->row();
-                        if (!$alreadyApplied) {
-                            $cnRow = $cnReadDb->query(
-                                'SELECT Amount FROM Transaction.TransCreditNoteTbl
-                                 WHERE CreditNoteUID = ? AND OrgUID = ? AND Status = ? AND IsDeleted = 0',
-                                [$cnUID, $orgUID, 'Pending']
+                        if ($cnRow) {
+                            $cnApplyAmount = round((float)$cnRow->Amount, $this->_decimals());
+                            $this->load->library('customerbalance');
+                            $this->customerbalance->applyCreditNote($orgUID, $cnUID, $activeTransUID, $userUID);
+                            $paidAmountForLedger += $cnApplyAmount;
+                            $this->_updateTransactionBalance($activeTransUID, $netAmount, $paidAmountForLedger, $userUID);
+                        } else {
+                            $cnConflict = $cnReadDb->query(
+                                'SELECT CreditNoteNumber FROM Transaction.TransCreditNoteTbl
+                                 WHERE CreditNoteUID = ? AND OrgUID = ? AND Status = ? AND IsDeleted = 0 AND IsCancelled = 0 LIMIT 1',
+                                [$cnUID, $orgUID, 'Applied']
                             )->row();
-                            if ($cnRow) {
-                                $cnApplyAmount = round((float)$cnRow->Amount, $this->_decimals());
-                                $this->load->library('customerbalance');
-                                $this->customerbalance->applyCreditNote($orgUID, $cnUID, $activeTransUID, $userUID);
-                                $this->_updateTransactionBalance($activeTransUID, $netAmount, $paidAmountForLedger + $cnApplyAmount, $userUID);
-                                $paidAmountForLedger += $cnApplyAmount;
+                            if ($cnConflict) {
+                                throw new Exception('Credit Note ' . $cnConflict->CreditNoteNumber . ' has already been applied to another invoice. Please remove it and save again.');
                             }
                         }
-                    } catch (Exception $cnEx) {
-                        log_message('error', 'updateInvoice: credit note application failed: ' . $cnEx->getMessage());
                     }
+                }
+            }
+
+            // Record cash payment after CN so payment numbers are assigned sequentially without collision
+            if (!$isDraft && (int) getPostValue($PostData, 'RecordPayment') === 1) {
+                $payResult       = $this->_savePaymentRecord($activeTransUID, $orgUID, $userUID, 'C', $customerUID, $netAmount, $PostData, 'In', $amounts['transDate']);
+                $firstPaymentUID = $payResult['firstPaymentUID'];
+                if ($payResult['totalPaid'] > 0) {
+                    $paidAmountForLedger += $payResult['totalPaid'];
+                    $this->_updateTransactionBalance($activeTransUID, $netAmount, $paidAmountForLedger, $userUID);
                 }
             }
 
@@ -1001,7 +1058,7 @@ class Invoices extends MY_Controller {
             }
 
             $this->EndReturnData->Error   = FALSE;
-            $this->EndReturnData->Message = 'Invoice deleted successfully.';
+            $this->EndReturnData->Message = ($existing->DocStatus === 'Draft' ? 'Draft invoice' : 'Invoice') . ' deleted successfully.';
 
             // â”€â”€ Payment handling for deleted invoices â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             // No DocStatus gate â€” invoice can be 'Issued' and still have payments.
@@ -1345,7 +1402,7 @@ class Invoices extends MY_Controller {
             }
 
             $this->EndReturnData->Error     = FALSE;
-            $this->EndReturnData->Message   = 'Invoice cancelled successfully.';
+            $this->EndReturnData->Message   = ($existing->DocStatus === 'Draft' ? 'Draft invoice' : 'Invoice') . ' cancelled successfully.';
             $this->EndReturnData->NewStatus = $newStatus;
 
             try { $this->load->library('auditlog'); $this->auditlog->log($orgUID, $userUID, strtoupper($newStatus) . '_INVOICE', 'Invoice', $transUID, $existing->UniqueNumber ?? '', ['fromStatus' => $current, 'toStatus' => $newStatus], ucfirst($newStatus) . ' invoice ' . ($existing->UniqueNumber ?? "#{$transUID}"), 'Invoices', 'TRANSACTION'); } catch (Exception $auditEx) { log_message('error', 'Audit log failed: ' . $auditEx->getMessage()); }
@@ -1568,6 +1625,25 @@ class Invoices extends MY_Controller {
             $this->pageData['InvData']  = $invData;
             $this->pageData['InvItems'] = $invItems;
 
+            $this->pageData['DraftReservedCN'] = null;
+            if ($invData->DocStatus === 'Draft') {
+                $rDb = $this->load->database('ReadDB', TRUE);
+                $rDb->db_debug = FALSE;
+                $detail = $rDb->query(
+                    'SELECT PendingCreditNoteUID FROM Transaction.TransDetailTbl WHERE TransUID = ? LIMIT 1',
+                    [$transUID]
+                )->row();
+                $pendingCnUID = (int)($detail->PendingCreditNoteUID ?? 0);
+                if ($pendingCnUID > 0) {
+                    $this->pageData['DraftReservedCN'] = $rDb->query(
+                        'SELECT CreditNoteUID, CreditNoteNumber, Amount, CreditNoteType
+                         FROM Transaction.TransCreditNoteTbl
+                         WHERE CreditNoteUID = ? AND OrgUID = ? AND IsDeleted = 0 LIMIT 1',
+                        [$pendingCnUID, $orgUID]
+                    )->row();
+                }
+            }
+
             $prefixResult                    = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.OrgUID' => $orgUID, 'Prefix.ModuleUID' => $this->pageModuleUID]);
             $this->pageData['PrefixData']    = $prefixResult->Data ?? [];
 
@@ -1702,7 +1778,7 @@ class Invoices extends MY_Controller {
             $cn = $readDb->get()->row();
 
             if (!$cn) throw new Exception('Credit Note not found.');
-            if ($cn->Status !== 'Pending') throw new Exception('Only Pending Credit Notes can be cancelled. This Credit Note is ' . $cn->Status . '.');
+            if (!in_array($cn->Status, ['Pending', 'Applied'])) throw new Exception('Only Pending or Applied Credit Notes can be cancelled. This Credit Note is ' . $cn->Status . '.');
 
             $this->load->model('dbwrite_model');
             $this->dbwrite_model->startTransaction();
@@ -1710,17 +1786,8 @@ class Invoices extends MY_Controller {
             $wdb = $this->dbwrite_model->getWriteDb();
             $wdb->db_debug = FALSE;
 
-            // Cancel the linked payment
-            $wdb->where([
-                'TransUID'                  => (int)$cn->SourceTransUID,
-                'OrgUID'                    => (int)$orgUID,
-                'IsTransferredToCreditNote' => 1,
-                'IsDeleted'                 => 0,
-            ]);
-            $wdb->update('Transaction.PaymentsTbl', ['IsCancelled' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID]);
-
-            // Cancel the credit note
-            $cnUpdate = ['IsCancelled' => 1, 'IsActive' => 0, 'Status' => 'Cancelled', 'UpdatedBy' => $userUID];
+            // Revert the CN — clear applied links and restore to Pending
+            $cnUpdate = ['AppliedTransUID' => NULL, 'AppliedPaymentUID' => NULL, 'Status' => 'Pending', 'UpdatedBy' => $userUID];
             if ($notes !== '') $cnUpdate['CancelReason'] = $notes;
             $wdb->where(['CreditNoteUID' => $creditNoteUID, 'OrgUID' => (int)$orgUID]);
             $wdb->update('Transaction.TransCreditNoteTbl', $cnUpdate);
@@ -1787,15 +1854,6 @@ class Invoices extends MY_Controller {
 
             $wdb = $this->dbwrite_model->getWriteDb();
             $wdb->db_debug = FALSE;
-
-            // Soft-delete the linked payment that funded this credit note
-            $wdb->where([
-                'TransUID'                  => (int)$cn->SourceTransUID,
-                'OrgUID'                    => (int)$orgUID,
-                'IsTransferredToCreditNote' => 1,
-                'IsDeleted'                 => 0,
-            ]);
-            $wdb->update('Transaction.PaymentsTbl', ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID]);
 
             // Soft-delete the credit note
             $wdb->where(['CreditNoteUID' => $creditNoteUID, 'OrgUID' => (int)$orgUID]);

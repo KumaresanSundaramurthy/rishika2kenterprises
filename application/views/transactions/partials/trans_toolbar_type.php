@@ -12,6 +12,7 @@
  *   bool   $_tbShowOnAccount   true = render ms-auto credits block (customer modules only)
  *   bool   $_tbOnAccountGuard  true = wrap credits block in if(!$isEdit) — INV/SO; false = always — QT/PF/SR
  *   bool   $_tbOaSrStyle       true = use SR alternate single-badge layout (On Account only)
+ *   bool   $_tbVendorMode      true = render ms-auto vendor indicator block (purchase modules only)
  *
  *   bool   $_tbIsEdit          true when editing an existing transaction
  *   bool   $_tbIsDraftEdit     true when editing a Draft-status transaction
@@ -24,6 +25,7 @@ $_tbDispLabel = $_tbDispatchLabel   ?? 'Dispatch From';
 $_tbOa        = $_tbShowOnAccount    ?? false;
 $_tbOaGuard   = $_tbOnAccountGuard   ?? true;
 $_tbOaSr      = $_tbOaSrStyle        ?? false;
+$_tbVendor    = $_tbVendorMode       ?? false;
 $_tbIsEdit    = $_tbIsEdit           ?? false;
 $_tbIsDraft   = $_tbIsDraftEdit      ?? false;
 $_tbReadonly  = $_tbStrict ? ($_tbIsEdit && !$_tbIsDraft) : $_tbIsEdit;
@@ -49,7 +51,6 @@ $_tbReadonly  = $_tbStrict ? ($_tbIsEdit && !$_tbIsDraft) : $_tbIsEdit;
     </div>
     <?php endif; ?>
     <?php if ($_tbOa): ?>
-    <?php if (!$_tbOaGuard || !$_tbIsEdit): ?>
     <div class="ms-auto d-flex align-items-center gap-2">
         <div id="custTypeIndicator" class="d-none"></div>
         <div id="plChipWrap" class="d-none"></div>
@@ -70,5 +71,13 @@ $_tbReadonly  = $_tbStrict ? ($_tbIsEdit && !$_tbIsDraft) : $_tbIsEdit;
         <?php endif; ?>
     </div>
     <?php endif; ?>
+    <?php if ($_tbVendor): ?>
+    <div class="ms-auto d-flex align-items-center gap-2">
+        <div id="vendTypeIndicator" class="d-none"></div>
+        <div id="vendDebitNotesBadge" class="d-none trans-cn-badge">
+            <i class="bx bx-receipt"></i>
+            Debit Notes: <strong id="vendDebitNotesTotal" class="trans-credits-badge__amt"></strong>
+        </div>
+    </div>
     <?php endif; ?>
 </div>

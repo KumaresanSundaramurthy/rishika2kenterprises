@@ -483,7 +483,8 @@ $(function() {
     });
 
     // ── Open shipping modal (new or edit) ────────────────────────────────
-    function _openOrgShipModal(idx) {
+    // Assigned to window so onclick="" attributes in dynamic card HTML can reach it.
+    window._openOrgShipModal = function _openOrgShipModal(idx) {
         _orgShipMode    = true;
         _orgShipEditIdx = (idx !== undefined && idx >= 0) ? idx : -1;
         shippingAddrData = (_orgShipEditIdx >= 0) ? orgShipList[_orgShipEditIdx] : null;
@@ -502,7 +503,8 @@ $(function() {
     }
 
     // ── Delete a shipping card (point 6: min 1 shipping allowed) ─────────
-    function _deleteOrgShip(idx) {
+    // Assigned to window so onclick="" attributes in dynamic card HTML can reach it.
+    window._deleteOrgShip = function _deleteOrgShip(idx) {
         if (orgShipList.length <= 1) return; // safety guard
         if (orgShipList[idx] && orgShipList[idx].UID > 0) {
             orgDelShipUIDs.push(orgShipList[idx].UID);

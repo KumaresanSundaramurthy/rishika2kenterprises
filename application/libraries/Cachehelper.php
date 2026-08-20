@@ -199,14 +199,24 @@ class Cachehelper {
                 ];
             }
 
+            // Issue ReadDb COMMIT first so all subsequent reads see the latest WriteDb-committed data.
+            $balFresh       = $CI->vendors_model->getVendorClosingBalanceFresh($uid);
+
             $obRow          = $CI->vendors_model->getVendorOpeningBalance($orgUID, $uid);
             $openingBalance = $obRow ? (float)$obRow->OpeningBalance : 0.0;
             $openingBalType = $obRow ? $obRow->OpeningBalType        : 'Credit';
 
-            // Read closing balance via a fresh DB snapshot to see WriteDb-committed journal data.
-            $balFresh       = $CI->vendors_model->getVendorClosingBalanceFresh($uid);
-            $closingBalance = $balFresh['balance'];
-            $closingBalType = $balFresh['balType'];
+            // PendingBalance (set by recalcAndSync) is the authoritative running balance.
+            // Fall back to ChartOfAccounts only when no VendOpeningBalanceTbl row exists yet.
+            if ($obRow !== null) {
+                $closingBalance = (float)$obRow->PendingBalance;
+                $closingBalType = (string)$obRow->PendingBalType;
+                log_message('debug', '[VBAL-FLOW] upsertVendor SOURCE=VendOpeningBalanceTbl VendorUID=' . $uid . ' PendingBalance=' . $closingBalance . '(' . $closingBalType . ') OpeningBalance=' . $openingBalance . '(' . $openingBalType . ')');
+            } else {
+                $closingBalance = $balFresh['balance'];
+                $closingBalType = $balFresh['balType'];
+                log_message('debug', '[VBAL-FLOW] upsertVendor SOURCE=ChartOfAccounts (no OB row) VendorUID=' . $uid . ' ClosingBalance=' . $closingBalance . '(' . $closingBalType . ')');
+            }
 
             $cacheKey = $CI->redisservice->orgKey('vendors');
 
@@ -237,9 +247,10 @@ class Cachehelper {
                 ['HSET', $cacheKey, (string)$uid, json_encode($entry, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)],
                 ['DEL',  Upstashservice::keyVendor($uid)],
             ]);
+            log_message('debug', '[VBAL-FLOW] upsertVendor CACHE WRITTEN VendorUID=' . $uid . ' ClosingBalance=' . $closingBalance . '(' . $closingBalType . ') into key=' . $cacheKey);
 
         } catch (Exception $e) {
-            log_message('error', '[VENDOR-CACHE] upsertVendor: EXCEPTION vendorUID=' . ($uid ?? '?') . ' — ' . $e->getMessage());
+            log_message('error', '[VBAL-FLOW] upsertVendor EXCEPTION VendorUID=' . ($uid ?? '?') . ': ' . $e->getMessage());
         }
     }
 
@@ -339,7 +350,9 @@ class Cachehelper {
                 'IsComboItem'                => (int)($prod->IsComboItem          ?? 0),
                 'IsComposite'                => (int)($prod->IsComposite          ?? 0),
                 'IsSerialTracked'            => (int)($prod->IsSerialTracked      ?? 0),
+                'IsBrandApplicable'          => (int)($prod->IsBrandApplicable    ?? 0),
                 'Image'                      => $prod->Image                      ?? '',
+                'Variants'                   => $CI->products_model->getProductVariantsForPricelist($uid, $orgUID),
             ];
 
             $CI->upstashservice->pipeline([
@@ -435,6 +448,7 @@ class Cachehelper {
                 'IsComboItem'                => (int)($prod->IsComboItem          ?? 0),
                 'IsComposite'                => (int)($prod->IsComposite          ?? 0),
                 'IsSerialTracked'            => (int)($prod->IsSerialTracked      ?? 0),
+                'IsBrandApplicable'          => (int)($prod->IsBrandApplicable    ?? 0),
                 'Image'                      => $prod->Image                      ?? '',
                 'items'                      => $items,
             ];
@@ -633,6 +647,51 @@ class Cachehelper {
                 Upstashservice::keyBrand($uid),
                 Upstashservice::keyBrandsAll()
             );
+        } catch (Exception $e) {}
+    }
+
+    public function touchSize($sizeUID): void {
+        try {
+            $CI     =& get_instance();
+            $orgUID = (int) $CI->pageData['JwtData']->Org->OrgUID;
+            $uid    = (int) $sizeUID;
+            if ($uid <= 0) return;
+
+            $CI->load->model('products_model');
+            $rows = $CI->products_model->getSizesForCache($orgUID);
+            if (empty($rows)) return;
+
+            $size = null;
+            foreach ($rows as $row) {
+                if ((int)$row->SizeUID === $uid) { $size = $row; break; }
+            }
+            if (!$size) return;
+
+            $cacheKey = $CI->redisservice->orgKey('sizes');
+            $CI->upstashservice->hset($cacheKey, (string)$uid, json_encode([
+                'SizeUID'      => $uid,
+                'SizeName'     => $size->SizeName     ?? '',
+                'SizeCode'     => $size->SizeCode     ?? '',
+                'Length'       => $size->Length       ?? null,
+                'Width'        => $size->Width        ?? null,
+                'Height'       => $size->Height       ?? null,
+                'Depth'        => $size->Depth        ?? null,
+                'Diameter'     => $size->Diameter     ?? null,
+                'Thickness'    => $size->Thickness    ?? null,
+                'Weight'       => $size->Weight       ?? null,
+                'DimensionUOM' => $size->DimensionUOM ?? '',
+                'WeightUOM'    => $size->WeightUOM    ?? '',
+                'Description'  => $size->Description  ?? '',
+            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        } catch (Exception $e) {}
+    }
+
+    public function removeSize($sizeUID): void {
+        try {
+            $CI       =& get_instance();
+            $uid      = (int) $sizeUID;
+            $cacheKey = $CI->redisservice->orgKey('sizes');
+            $CI->upstashservice->hdel($cacheKey, (string)$uid);
         } catch (Exception $e) {}
     }
 }

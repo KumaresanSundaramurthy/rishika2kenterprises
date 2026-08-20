@@ -250,9 +250,14 @@
         $('#SellingTaxOption,#PurchaseTaxOption').val(defTax).trigger('change');
         $('#DiscountOption').val(defDisc).trigger('change');
         $('#TaxPercentage').val(defTaxD).trigger('change');
-        $('#PrimaryUnit,#Category,#StorageUID,#BrandUID,#PSizeUID').val(null).trigger('change');
+        $('#PrimaryUnit,#Category,#StorageUID,#BrandUID').val(null).trigger('change');
+        _variantRows = [];
+        $('#VariantSizeSelect,#VariantBrandSelect').val(null).trigger('change.select2');
+        $('#variantSection,#variantSizeRow,#variantBrandRow,#variantTableWrap').addClass('d-none');
+        $('#variantEmptyHint').removeClass('d-none');
+        $('#VariantData').val('[]');
         $('#IsSizeApplicable,#IsBrandApplicable,#IsSerialTracked,#NotForSale,#IsRentable').prop('checked', false).trigger('change');
-        $('#SizeDiv,#rentalConfigSection').addClass('d-none');
+        $('#rentalConfigSection').addClass('d-none');
 
         if (typeof myOneDropzone !== 'undefined') { myOneDropzone.removeAllFiles(true); }
         if (typeof quill        !== 'undefined') { quill.setContents([]); }
@@ -313,12 +318,14 @@
         $('#PartNumber').val(d.PartNumber);
         $('#SKU').val(d.SKU);
 
-        if (d.IsSizeApplicable == 1) {
-            $('#IsSizeApplicable').prop('checked', true).trigger('change');
-            $('#SizeDiv').removeClass('d-none');
-            $('#PSizeUID').val(d.SizeUID).trigger('change').prop('required', true);
+        var _isSizeApp  = d.IsSizeApplicable  == 1;
+        var _isBrandApp = d.IsBrandApplicable == 1;
+        if (_isSizeApp)  { $('#IsSizeApplicable').prop('checked', true); }
+        if (_isBrandApp) { $('#IsBrandApplicable').prop('checked', true); }
+        if (_isSizeApp || _isBrandApp) {
+            _updateVariantSectionVisibility();
+            _applyVariants(response.Variants || [], _isSizeApp, _isBrandApp);
         }
-        if (d.IsBrandApplicable == 1) { $('#IsBrandApplicable').prop('checked', true); }
         if (d.IsSerialTracked   == 1) { $('#IsSerialTracked').prop('checked', true); }
 
         // Reset state, load existing attachments from response (no AJAX — already in response)
@@ -371,8 +378,10 @@
         $('#AddEditItemForm').find('#OpeningQuantity,#OpeningPurchasePrice,#OpeningStockValue').val(0);
         if (val === 'Product') {
             $('.OpeningStockDiv').removeClass('d-none');
+            _updateVariantSectionVisibility();
         } else {
             $('.OpeningStockDiv').addClass('d-none');
+            $('#variantSection').addClass('d-none');
         }
     });
 
@@ -382,15 +391,6 @@
         else                        { $m.find('#rentalConfigSection').addClass('d-none'); }
     });
 
-    $(document).on('change', '#IsSizeApplicable', function () {
-        var $m = $(this).closest('.modal');
-        $m.find('#SizeDiv').addClass('d-none');
-        $m.find('#PSizeUID').removeAttr('required').val('').trigger('change');
-        if ($(this).is(':checked')) {
-            $m.find('#SizeDiv').removeClass('d-none').attr('required', true);
-            $m.find('#PSizeUID').val('').trigger('change');
-        }
-    });
 
     $(document).on('change', '#DiscountOption', function () {
         var $m  = $(this).closest('.modal');
@@ -485,20 +485,22 @@
                 if (skipConfirm) { _doProductSave(formData, productUID); return; }
                 var currentHsn = $.trim($('#HSNCode').val());
                 var hsnChanged = ($.trim(_pfOrigHsnCode) !== currentHsn);
-                var message    = hsnChanged
-                    ? 'You have updated the HSN/SAC code. This change will be reflected in all future transactions.'
-                    : 'Your changes will be saved and applied to the product.';
                 Swal.fire({
                     title             : t('swal_confirm_update', 'Update Item'),
                     html              : '<div class="alert alert-info d-flex align-items-start gap-2 text-start mb-0" style="font-size:.875rem;">'
                                       + '<i class="bx bx-info-circle fs-5 mt-1 flex-shrink-0"></i>'
-                                      + '<span>Note: ' + message + '</span>'
+                                      + '<span>Note: Your changes will apply only to new documents and will not affect older documents.</span>'
                                       + '</div>',
                     showCancelButton  : true,
                     confirmButtonText : t('btn_save_changes', 'Save Changes'),
                     cancelButtonText  : t('btn_cancel', 'Cancel'),
-                    confirmButtonColor : '#696cff',
-                    reverseButtons    : true
+                    position          : 'top',
+                    buttonsStyling    : false,
+                    customClass       : {
+                        container     : 'swal-top-pad',
+                        confirmButton : 'btn btn-primary me-2',
+                        cancelButton  : 'btn btn-outline-secondary',
+                    }
                 }).then(function (result) {
                     if (result.isConfirmed) { _doProductSave(formData, productUID); }
                 });
@@ -545,11 +547,13 @@
     });
 
     function _doProductSave(formData, productUID) {
-        var $btn = $('.AddEditProductBtn');
+        var $btn   = $('.AddEditProductBtn');
+        var isEdit = productUID > 0;
         $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
 
-        var url = (productUID === 0) ? '/products/addProductData' : '/products/updateProductData';
+        var url = isEdit ? '/products/updateProductData' : '/products/addProductData';
 
+        if (isEdit) { window._gpoUsingManualProgress = true; }
         $.ajax({
             url         : url,
             method      : 'POST',
@@ -562,7 +566,6 @@
                     showToastNotification(response.Message || 'Failed to save product.', 'error');
                     return;
                 }
-                // Attachments were uploaded as part of this same request — no extra round trip
                 _isDirty      = false;
                 _isCreateMode = false;
                 showToastNotification(response.Message, 'success');
@@ -572,8 +575,15 @@
             error: function () {
                 $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i>Save');
                 Swal.fire({ icon: 'error', title: t('swal_oops', 'Oops...'), text: t('swal_save_product_failed', 'Failed to save product.') });
+            },
+            complete: function () {
+                if (isEdit) {
+                    window._gpoUsingManualProgress = false;
+                    $('#globalProcOverlay').removeClass('gpo-wait-only');
+                }
             }
         });
+        if (isEdit) { $('#globalProcOverlay').addClass('gpo-wait-only'); }
     }
 
     // ── Dirty-tracking: flag changes while in create mode ────────────────────
@@ -601,6 +611,452 @@
                 $('#ProductFormModal').modal('hide');
             }
         });
+    });
+
+    // ── Variant Builder ──────────────────────────────────────────────────────────
+
+    var _variantRows = [];
+
+    /**
+     * Build tax <option> HTML for a variant row's price tax selector.
+     * Reads options from the already-populated #SellingTaxOption in the form.
+     * @param {number|string} selectedUID
+     * @returns {string}
+     */
+    function _buildTaxOptions(selectedUID) {
+        var html = '';
+        $('#SellingTaxOption option').each(function () {
+            var val = $(this).val();
+            if (!val) return;
+            var text  = $(this).text().trim();
+            var short = text.toLowerCase().indexOf('without') !== -1 ? 'W/o Tax'
+                      : text.toLowerCase().indexOf('with')    !== -1 ? 'W/ Tax'
+                      : text;
+            var sel = (String(val) === String(selectedUID)) ? ' selected' : '';
+            html += '<option value="' + val + '"' + sel + '>' + short + '</option>';
+        });
+        return html;
+    }
+
+    /**
+     * @param {number} sizeUID
+     * @param {number} brandUID
+     * @returns {Object|undefined}
+     */
+    function _findVariantRow(sizeUID, brandUID) {
+        return _variantRows.find(function (r) {
+            return r.SizeUID === sizeUID && r.BrandUID === brandUID;
+        });
+    }
+
+    /**
+     * @returns {Array<{SizeUID:number, SizeName:string}>}
+     */
+    function _getSelectedSizes() {
+        var data = $('#VariantSizeSelect').select2('data') || [];
+        return data.map(function (o) {
+            return { SizeUID: parseInt(o.id, 10), SizeName: o.text };
+        }).filter(function (o) { return o.SizeUID > 0; });
+    }
+
+    /**
+     * @returns {Array<{BrandUID:number, BrandName:string}>}
+     */
+    function _getSelectedBrands() {
+        var data = $('#VariantBrandSelect').select2('data') || [];
+        return data.map(function (o) {
+            return { BrandUID: parseInt(o.id, 10), BrandName: o.text };
+        }).filter(function (o) { return o.BrandUID > 0; });
+    }
+
+    /**
+     * Build variant matrix from selected sizes × brands, preserving existing input values.
+     * @returns {void}
+     */
+    function _buildVariantMatrix() {
+        var isSizeApp  = $('#IsSizeApplicable').is(':checked');
+        var isBrandApp = $('#IsBrandApplicable').is(':checked');
+        var sizes      = isSizeApp  ? _getSelectedSizes()  : [{ SizeUID: 0, SizeName: '' }];
+        var brands     = isBrandApp ? _getSelectedBrands() : [{ BrandUID: 0, BrandName: '' }];
+
+        // An active dimension with no selections yet means the user hasn't picked items.
+        // Show the hint without wiping existing rows — matrix rebuilds when they select.
+        if (!sizes.length || !brands.length) {
+            $('#variantTableWrap').addClass('d-none');
+            $('#variantEmptyHint').removeClass('d-none');
+            return;
+        }
+
+        var newRows   = [];
+        var defTaxUID = parseInt($('#SellingTaxOption').val()) || 0;
+
+        sizes.forEach(function (s) {
+            brands.forEach(function (b) {
+                var existing = _findVariantRow(s.SizeUID, b.BrandUID);
+                newRows.push({
+                    SizeUID:        s.SizeUID,
+                    SizeName:       s.SizeName,
+                    BrandUID:       b.BrandUID,
+                    BrandName:      b.BrandName,
+                    PartNumber:     existing ? existing.PartNumber     : '',
+                    PurchasePrice:  existing ? existing.PurchasePrice  : 0,
+                    PurchaseTaxUID: existing ? existing.PurchaseTaxUID : defTaxUID,
+                    SellingPrice:   existing ? existing.SellingPrice   : 0,
+                    SellingTaxUID:  existing ? existing.SellingTaxUID  : defTaxUID,
+                    OpeningQty:     existing ? existing.OpeningQty     : 0
+                });
+            });
+        });
+
+        _variantRows = newRows;
+        _renderVariantTable(isSizeApp, isBrandApp);
+        _updateVariantHidden();
+    }
+
+    /**
+     * @param {boolean} isSizeApp
+     * @param {boolean} isBrandApp
+     * @returns {void}
+     */
+    function _renderVariantTable(isSizeApp, isBrandApp) {
+        if (!_variantRows.length) {
+            $('#variantTableWrap').addClass('d-none');
+            $('#variantEmptyHint').removeClass('d-none');
+            return;
+        }
+        $('#variantTableWrap').removeClass('d-none');
+        $('#variantEmptyHint').addClass('d-none');
+        $('.var-col-size').toggleClass('d-none', !isSizeApp);
+        $('.var-col-brand').toggleClass('d-none', !isBrandApp);
+
+        var html     = '';
+        var defTaxUID = parseInt($('#SellingTaxOption').val()) || 0;
+        _variantRows.forEach(function (row, idx) {
+            var esc = function (s) { return $('<span>').text(s || '').html(); };
+            var sc  = isSizeApp  ? '<td class="var-col-size">'  + esc(row.SizeName)  + '</td>'
+                                 : '<td class="var-col-size d-none"></td>';
+            var bc  = isBrandApp ? '<td class="var-col-brand">' + esc(row.BrandName) + '</td>'
+                                 : '<td class="var-col-brand d-none"></td>';
+            html += '<tr class="var-row" data-idx="' + idx + '">' + sc + bc +
+                '<td><input type="text" class="form-control form-control-sm var-part-no" placeholder="Part No" value="' +
+                    esc(row.PartNumber) + '" maxlength="100"></td>' +
+                '<td><div class="input-group input-group-sm">' +
+                    '<input type="number" class="form-control form-control-sm var-purchase-price text-end" placeholder="0.00" min="0" step="any" value="' +
+                        (row.PurchasePrice || '') + '">' +
+                    '<select class="form-select form-select-sm var-tax-sel var-purchase-tax">' +
+                        _buildTaxOptions(row.PurchaseTaxUID || defTaxUID) +
+                    '</select>' +
+                '</div></td>' +
+                '<td><div class="input-group input-group-sm">' +
+                    '<input type="number" class="form-control form-control-sm var-selling-price text-end" placeholder="0.00" min="0" step="any" value="' +
+                        (row.SellingPrice || '') + '">' +
+                    '<select class="form-select form-select-sm var-tax-sel var-selling-tax">' +
+                        _buildTaxOptions(row.SellingTaxUID || defTaxUID) +
+                    '</select>' +
+                '</div></td>' +
+                '<td><input type="number" class="form-control form-control-sm var-opening-qty text-end" placeholder="0" min="0" step="1" value="' +
+                    (row.OpeningQty || 0) + '"></td>' +
+                '</tr>';
+        });
+        $('#variantTableBody').html(html);
+    }
+
+    /**
+     * Sync _variantRows from DOM inputs, update hidden field + total badge.
+     * @returns {void}
+     */
+    function _updateVariantHidden() {
+        var total = 0;
+        var dec   = (typeof decimalPlaces !== 'undefined') ? decimalPlaces : 2;
+        $('#variantTableBody .var-row').each(function () {
+            var idx = parseInt($(this).data('idx'), 10);
+            if (!_variantRows[idx]) return;
+            _variantRows[idx].PartNumber     = $(this).find('.var-part-no').val()                    || '';
+            _variantRows[idx].PurchasePrice  = parseFloat($(this).find('.var-purchase-price').val()) || 0;
+            _variantRows[idx].PurchaseTaxUID = parseInt($(this).find('.var-purchase-tax').val())     || 0;
+            _variantRows[idx].SellingPrice   = parseFloat($(this).find('.var-selling-price').val())  || 0;
+            _variantRows[idx].SellingTaxUID  = parseInt($(this).find('.var-selling-tax').val())      || 0;
+            _variantRows[idx].OpeningQty     = parseFloat($(this).find('.var-opening-qty').val())    || 0;
+            total += _variantRows[idx].OpeningQty;
+        });
+        $('#VariantData').val(JSON.stringify(_variantRows));
+        $('#OpeningQuantity').val(total > 0 ? total : 0);
+        var $badge = $('#variantTotalQty');
+        $badge.text('Total Qty: ' + total.toFixed(dec));
+        if (total > 0) { $badge.removeClass('bg-label-secondary').addClass('bg-label-primary'); }
+        else            { $badge.removeClass('bg-label-primary').addClass('bg-label-secondary'); }
+    }
+
+    /**
+     * Populate #VariantBrandSelect and (re)initialise its select2.
+     * Uses DropdownCache data when already in memory (no extra round-trip).
+     * Falls back to a direct Upstash HGETALL when the cache is cold.
+     * ALWAYS destroys the old select2 and re-inits after options are in the DOM
+     * so select2 never shows "No results found" on a stale empty list.
+     * @returns {Promise<void>}
+     */
+    function _loadBrandOptions() {
+        var $sel   = $('#VariantBrandSelect');
+        var $modal = $('#ProductFormModal');
+
+        /**
+         * @param {Array<{BrandUID:number, BrandName:string}>} brands
+         * @returns {void}
+         */
+        function _populate(brands) {
+            if ($sel.hasClass('select2-hidden-accessible')) { $sel.select2('destroy'); }
+            $sel.empty();
+            brands
+                .slice()
+                .sort(function (a, b) { return (a.BrandName || '').localeCompare(b.BrandName || ''); })
+                .forEach(function (b) { $sel.append(new Option(b.BrandName, b.BrandUID, false, false)); });
+            $sel.select2({ placeholder: 'Select brands...', allowClear: true, dropdownParent: $modal });
+        }
+
+        // Use DropdownCache in-memory brands when available (avoids a second Upstash call)
+        var cached = (typeof DropdownCache !== 'undefined') ? DropdownCache.getBrands() : null;
+        if (cached) {
+            _populate(cached);
+            return Promise.resolve();
+        }
+
+        var brandKey = UpstashService.orgKey('brands');
+        return UpstashService.hgetall(brandKey).then(function (map) {
+            _populate(Object.values(map));
+        });
+    }
+
+    /**
+     * Load org sizes into #VariantSizeSelect from Upstash cache (orgKey 'sizes').
+     * Falls back to AJAX /products/getSizes when the cache is cold or empty.
+     * Optionally pre-selects entries after populating.
+     * @param {Array<{SizeUID:number, SizeName:string}>} [preselect]
+     * @returns {Promise<void>}
+     */
+    function _loadSizeOptions(preselect) {
+        var $sel   = $('#VariantSizeSelect');
+        var $modal = $('#ProductFormModal');
+
+        /**
+         * @param {Array<{SizeUID:number, SizeName:string}>} sizes
+         * @returns {void}
+         */
+        function _populate(sizes) {
+            if ($sel.hasClass('select2-hidden-accessible')) { $sel.select2('destroy'); }
+            $sel.empty();
+            sizes
+                .slice()
+                .sort(function (a, b) { return (a.SizeName || '').localeCompare(b.SizeName || ''); })
+                .forEach(function (s) { $sel.append(new Option(s.SizeName, s.SizeUID, false, false)); });
+            $sel.select2({ placeholder: 'Select sizes...', allowClear: true, dropdownParent: $modal });
+            if (preselect && preselect.length) {
+                var ids = preselect.map(function (s) { return String(s.SizeUID); });
+                $sel.val(ids).trigger('change.select2');
+            }
+        }
+
+        var sizeKey = UpstashService.orgKey('sizes');
+        return UpstashService.hgetall(sizeKey).then(function (map) {
+            var items = map ? Object.values(map) : [];
+            if (items.length) {
+                _populate(items);
+                return;
+            }
+            // Cache cold — fall back to AJAX
+            return $.ajax({
+                url    : '/products/getSizes',
+                method : 'POST',
+                data   : { [CsrfName]: CsrfToken }
+            }).then(function (res) {
+                if (!res.Error && res.Data) { _populate(res.Data); }
+            });
+        });
+    }
+
+    /**
+     * Populate the variant section from an already-fetched variants array (from retrieveProductDetails).
+     * @param {Array}   variants   response.Variants from retrieveProductDetails
+     * @param {boolean} isSizeApp
+     * @param {boolean} isBrandApp
+     * @returns {void}
+     */
+    function _applyVariants(variants, isSizeApp, isBrandApp) {
+        var $modal = $('#ProductFormModal');
+
+        // Size select2 — init here (sizes have no separate loader that handles init)
+        if (isSizeApp && !$('#VariantSizeSelect').hasClass('select2-hidden-accessible')) {
+            $('#VariantSizeSelect').select2({ placeholder: 'Select sizes...', allowClear: true, dropdownParent: $modal });
+        }
+        // Brand select2 is owned by _loadBrandOptions() — do NOT pre-init here
+
+        if (!variants || !variants.length) {
+            if (isBrandApp) {
+                _loadBrandOptions().then(function () { _buildVariantMatrix(); });
+            } else {
+                _buildVariantMatrix();
+            }
+            return;
+        }
+
+        _variantRows = variants.map(function (v) {
+            return {
+                SizeUID:        parseInt(v.SizeUID,       10) || 0,
+                SizeName:       v.SizeName                    || '',
+                BrandUID:       parseInt(v.BrandUID,      10) || 0,
+                BrandName:      v.BrandName                   || '',
+                PartNumber:     v.PartNumber                  || '',
+                PurchasePrice:  parseFloat(v.PurchasePrice)   || 0,
+                PurchaseTaxUID: parseInt(v.PurchaseTaxUID, 10) || 0,
+                SellingPrice:   parseFloat(v.SellingPrice)    || 0,
+                SellingTaxUID:  parseInt(v.SellingTaxUID,  10) || 0,
+                OpeningQty:     parseFloat(v.OpeningQty)      || 0
+            };
+        });
+
+        var uniqueSizes = [], seenS = {};
+        _variantRows.forEach(function (r) {
+            if (r.SizeUID > 0 && !seenS[r.SizeUID]) {
+                seenS[r.SizeUID] = true;
+                uniqueSizes.push({ SizeUID: r.SizeUID, SizeName: r.SizeName });
+            }
+        });
+        var uniqueBrands = [], seenB = {};
+        _variantRows.forEach(function (r) {
+            if (r.BrandUID > 0 && !seenB[r.BrandUID]) {
+                seenB[r.BrandUID] = true;
+                uniqueBrands.push({ BrandUID: r.BrandUID, BrandName: r.BrandName });
+            }
+        });
+
+        function _finishWithBrands() {
+            if (isBrandApp && uniqueBrands.length) {
+                _loadBrandOptions().then(function () {
+                    var ids = uniqueBrands.map(function (b) { return String(b.BrandUID); });
+                    $('#VariantBrandSelect').val(ids).trigger('change.select2');
+                    _renderVariantTable(isSizeApp, isBrandApp);
+                    _updateVariantHidden();
+                });
+            } else {
+                _renderVariantTable(isSizeApp, isBrandApp);
+                _updateVariantHidden();
+            }
+        }
+
+        if (isSizeApp && uniqueSizes.length) {
+            _loadSizeOptions(uniqueSizes).then(_finishWithBrands);
+        } else {
+            _finishWithBrands();
+        }
+    }
+
+    /**
+     * Show/hide #variantSection and its sub-rows based on current flag state.
+     * @returns {void}
+     */
+    function _updateVariantSectionVisibility() {
+        var isSizeApp  = $('#IsSizeApplicable').is(':checked');
+        var isBrandApp = $('#IsBrandApplicable').is(':checked');
+        var isProduct  = $('#ProductType').val() === 'Product';
+
+        if ((isSizeApp || isBrandApp) && isProduct) {
+            $('#openingQtyDiv').addClass('d-none');
+            $('#variantSection').removeClass('d-none');
+            $('#variantSizeRow').toggleClass('d-none', !isSizeApp);
+            $('#variantBrandRow').toggleClass('d-none', !isBrandApp);
+        } else {
+            $('#openingQtyDiv').removeClass('d-none');
+            $('#variantSection').addClass('d-none');
+        }
+    }
+
+    $(document).on('change', '#IsSizeApplicable', function () {
+        if (!$('#VariantSizeSelect').hasClass('select2-hidden-accessible')) {
+            $('#VariantSizeSelect').select2({ placeholder: 'Select sizes...', allowClear: true, dropdownParent: $('#ProductFormModal') });
+        }
+        _updateVariantSectionVisibility();
+        if ($(this).is(':checked')) {
+            _loadSizeOptions([]).then(function () { _buildVariantMatrix(); });
+        } else {
+            _buildVariantMatrix();
+        }
+    });
+
+    $(document).on('change', '#IsBrandApplicable', function () {
+        _updateVariantSectionVisibility();
+        if ($(this).is(':checked')) {
+            // _loadBrandOptions handles select2 destroy + populate + re-init
+            _loadBrandOptions().then(function () { _buildVariantMatrix(); });
+        } else {
+            if ($('#VariantBrandSelect').hasClass('select2-hidden-accessible')) {
+                $('#VariantBrandSelect').select2('destroy');
+            }
+            $('#VariantBrandSelect').empty();
+            _buildVariantMatrix();
+        }
+    });
+
+    $(document).on('change', '#VariantSizeSelect',  function () { _buildVariantMatrix(); });
+    $(document).on('change', '#VariantBrandSelect', function () { _buildVariantMatrix(); });
+
+    $(document).on('input change', '#variantTableBody input, #variantTableBody select', function () { _updateVariantHidden(); });
+
+    $(document).on('click', '#AddNewSizeBtn', function () {
+        if ($('#sizeModal').length) {
+            // Full size management modal is available — open it directly
+            $('.addSize').first().trigger('click');
+            return;
+        }
+        // Fallback for pages where #sizeModal is not present
+        Swal.fire({
+            title            : 'Add New Size',
+            input            : 'text',
+            inputLabel       : 'Size Name',
+            inputPlaceholder : 'e.g. Large, XL, 500ml',
+            showCancelButton : true,
+            confirmButtonText: 'Add',
+            /**
+             * @param {string} v
+             * @returns {string|undefined}
+             */
+            inputValidator: function (v) {
+                if (!v || !v.trim()) { return 'Please enter a size name.'; }
+            }
+        }).then(function (res) {
+            if (!res.isConfirmed) return;
+            var sizeName = res.value.trim();
+            $.ajax({
+                url    : '/products/addSize',
+                method : 'POST',
+                data   : { SizeName: sizeName, [CsrfName]: CsrfToken }
+            }).done(function (resp) {
+                if (resp.Error) { showToastNotification(resp.Message || 'Failed to add size', 'error'); return; }
+                $(document).trigger('r2k:sizeAdded', { SizeUID: resp.SizeUID, SizeName: sizeName });
+            }).fail(function () {
+                showToastNotification('Failed to add size', 'error');
+            });
+        });
+    });
+
+    /**
+     * When a new size is created (from #sizeModal or quick-add fallback),
+     * append it to #VariantSizeSelect and select it.
+     * @param {jQuery.Event} e
+     * @param {{SizeUID:number, SizeName:string}} data
+     * @returns {void}
+     */
+    $(document).on('r2k:sizeAdded', function (e, data) {
+        var $sel = $('#VariantSizeSelect');
+        if (!$sel.length || !data || !data.SizeUID) return;
+        if (!$sel.find('option[value="' + data.SizeUID + '"]').length) {
+            $sel.append(new Option(data.SizeName, data.SizeUID, false, false));
+        }
+        var current = $sel.val() || [];
+        current.push(String(data.SizeUID));
+        $sel.val(current).trigger('change');
+    });
+
+    $(document).on('submit', '#AddEditItemForm', function () {
+        _updateVariantHidden();
     });
 
 })(window, jQuery);

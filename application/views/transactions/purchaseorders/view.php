@@ -27,7 +27,7 @@ $this->load->view('common/transactions/header'); ?>
                     'Draft'     => ['poStatusFilterTrigger', 'poUserFilterBtn', 'poVendorFilterBtn'],
                 ];
 
-                if ($JwtData->TransSettings->ShowTransactionStats ?? 1):
+                if (($JwtData->GenSettings->ShowStats ?? 1) && ($JwtData->TransSettings->ShowTransactionStats ?? 1)):
                 $poStats   = $SummaryStats ?? [];
                 $allCount  = array_sum(array_column($poStats, 'count'));
                 $allAmount = array_sum(array_column($poStats, 'amount'));
@@ -440,17 +440,19 @@ $(function () {
             Swal.fire({ title: 'Cancel Purchase Order?', html: 'Are you sure you want to cancel ' + lbl + '? This cannot be undone.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#6c757d', confirmButtonText: 'Yes, Cancel It', cancelButtonText: 'No, Keep It' }).then(function (r) { if (!r.isConfirmed) return; $btn.data('_confirmed', true).trigger('click'); });
             return;
         }
+        ajaxLoading(1);
         $.ajax({
             url   : '/purchaseorders/updatePurchaseOrderStatus',
             method: 'POST',
             data  : { TransUID: uid, Status: status, [CsrfName]: CsrfToken },
             success: function (resp) {
+                ajaxLoading(0);
+                hideUIBlock();
                 if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }
-                var _msg = resp.Message || 'Status updated.';
-                getPurchaseOrdersDetails(undefined, undefined, undefined, function () {
-                    showToastNotification(_msg, 'success');
-                });
-            }
+                showToastNotification(resp.Message || 'Status updated.', 'success');
+                getPurchaseOrdersDetails();
+            },
+            error: function () { ajaxLoading(0); hideUIBlock(); Swal.fire({ icon: 'error', text: 'Request failed. Please try again.' }); }
         });
     });
 
@@ -481,11 +483,14 @@ $(function () {
             confirmButtonColor: '#d33',
         }).then(function (result) {
             if (!result.isConfirmed) return;
+            ajaxLoading(1);
             $.ajax({
                 url   : '/purchaseorders/deletePurchaseOrder',
                 method: 'POST',
                 data  : _actionPostData({ TransUID: uid }),
                 success: function (resp) {
+                    ajaxLoading(0);
+                    hideUIBlock();
                     if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }
                     showToastNotification(resp.Message || 'Deleted.', 'success');
                     if (PageNo > 1 && (resp.TotalCount || 0) <= (PageNo - 1) * RowLimit) {
@@ -494,7 +499,8 @@ $(function () {
                     } else {
                         _renderListResponse(resp);
                     }
-                }
+                },
+                error: function () { ajaxLoading(0); hideUIBlock(); Swal.fire({ icon: 'error', text: 'Request failed. Please try again.' }); }
             });
         });
     });

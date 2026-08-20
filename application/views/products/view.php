@@ -24,9 +24,9 @@
                 $dec = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
                 ?>
 
-                <?php if ($JwtData->TransSettings->ShowTransactionStats ?? 1): ?>
+                <?php if (($JwtData->GenSettings->ShowStats ?? 1) && ($JwtData->TransSettings->ShowTransactionStats ?? 1)): ?>
                 <!-- ── Stats Strip ───────────────────────────────────────────── -->
-                <div class="apex-stats-strip<?php echo ($ActiveTabData == 'group' || $ActiveTabData == 'pricelist') ? ' d-none' : ''; ?>" id="ProductStatsRow">
+                <div class="apex-stats-strip<?php echo ($ActiveTabData == 'group' || $ActiveTabData == 'pricelist' || $ActiveTabData == 'size') ? ' d-none' : ''; ?>" id="ProductStatsRow">
                     <div class="apex-stat-item" style="--stat-color:#059669;cursor:default;pointer-events:none">
                         <div class="apex-stat-icon" style="background:#ecfdf5"><i class="bx bx-package" style="color:#059669"></i></div>
                         <div class="apex-stat-body">
@@ -94,7 +94,7 @@
                             <div class="r2k-search-wrap<?php echo !empty($InitSearch) ? ' is-expanded r2k-search-active' : ''; ?>">
                                 <i class="bx bx-search r2k-si"></i>
                                 <?php
-                                $searchPlaceholderMap = ['item' => 'Search items...', 'group' => 'Search groups...', 'pricelist' => 'Search price lists...', 'category' => 'Search categories...', 'brand' => 'Search brands...'];
+                                $searchPlaceholderMap = ['item' => 'Search items...', 'group' => 'Search groups...', 'pricelist' => 'Search price lists...', 'category' => 'Search categories...', 'brand' => 'Search brands...', 'size' => 'Search sizes...'];
                                 $searchPlaceholder = $searchPlaceholderMap[$ActiveTabData] ?? 'Search items...';
                                 ?>
                                 <input type="text" class="SearchDetails" id="SearchDetails" placeholder="<?php echo $searchPlaceholder; ?>" value="<?php echo htmlspecialchars($InitSearch ?? ''); ?>">
@@ -116,6 +116,7 @@
                             <a href="javascript:void(0);" class="apex-filter-btn <?php echo $ActiveTabData == 'category' ? '' : 'd-none'; ?>" id="btnSyncCategoriesCache" title="Sync Categories Cache"><i class="bx bx-planet"></i></a>
                             <a href="javascript:void(0);" class="apex-filter-btn <?php echo $ActiveTabData == 'pricelist' ? '' : 'd-none'; ?>" id="btnSyncPriceListCache" title="Sync Price List Cache"><i class="bx bx-planet"></i></a>
                             <a href="javascript:void(0);" class="apex-filter-btn <?php echo $ActiveTabData == 'brand' ? '' : 'd-none'; ?>" id="btnSyncBrandsCache" title="Sync Brands Cache"><i class="bx bx-planet"></i></a>
+                            <a href="javascript:void(0);" class="apex-filter-btn <?php echo $ActiveTabData == 'size' ? '' : 'd-none'; ?>" id="btnSyncSizesCache" title="Sync Sizes Cache"><i class="bx bx-planet"></i></a>
                             <div class="btn-group d-none" id="ActionsDD-Div">
                                 <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="actionsDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="<?php echo t('lbl_actions', 'Actions'); ?>">
                                     <i class="bx bx-menu"></i>
@@ -132,6 +133,7 @@
                             <a href="javascript:void(0);" class="btn btn-primary btn-sm <?php echo $ActiveTabData == 'pricelist' ? '' : 'd-none'; ?>" id="NewPriceList" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('create_price_list', 'Create Price List'); ?>"><i class="bx bx-plus me-1"></i><?php echo t('lbl_new', 'New'); ?></a>
                             <a href="javascript:void(0);" class="btn btn-primary btn-sm addCategory <?php echo $ActiveTabData == 'category' ? '' : 'd-none'; ?>" id="NewCategory" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('create_category', 'Create Category'); ?>"><i class="bx bx-plus me-1"></i><?php echo t('lbl_new', 'New'); ?></a>
                             <a href="javascript:void(0);" class="btn btn-primary btn-sm addBrand <?php echo $ActiveTabData == 'brand' ? '' : 'd-none'; ?>" id="NewBrand" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('create_brand', 'Create Brand'); ?>"><i class="bx bx-plus me-1"></i><?php echo t('lbl_new', 'New'); ?></a>
+                            <a href="javascript:void(0);" class="btn btn-primary btn-sm addSize <?php echo $ActiveTabData == 'size' ? '' : 'd-none'; ?>" id="NewSize" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Create Size"><i class="bx bx-plus me-1"></i><?php echo t('lbl_new', 'New'); ?></a>
                         </div>
 
                         <!-- Tabs Row -->
@@ -165,6 +167,12 @@
                                     <a class="nav-link <?php echo $ActiveTabData == 'brand' ? 'active' : ''; ?> TabPane" data-id="Brands" data-status="Brands" data-url-tab="brands" role="tab" data-bs-toggle="tab" data-bs-target="#NavBrandsPage" href="javascript:void(0);">
                                         <i class="bx bx-purchase-tag me-1"></i> Brands
                                         <span class="trans-tab-count<?php echo ($ActiveTabData != 'brand' || $ModTotalCount == 0) ? ' d-none' : ''; ?>" id="brandTotalCount"><?php echo ($ActiveTabData == 'brand' && $ModTotalCount > 0) ? $ModTotalCount : ''; ?></span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link <?php echo $ActiveTabData == 'size' ? 'active' : ''; ?> TabPane" data-id="Sizes" data-status="Sizes" data-url-tab="sizes" role="tab" data-bs-toggle="tab" data-bs-target="#NavSizesPage" href="javascript:void(0);">
+                                        <i class="bx bx-ruler me-1"></i> Sizes
+                                        <span class="trans-tab-count<?php echo ($ActiveTabData != 'size' || $ModTotalCount == 0) ? ' d-none' : ''; ?>" id="sizeTotalCount"><?php echo ($ActiveTabData == 'size' && $ModTotalCount > 0) ? $ModTotalCount : ''; ?></span>
                                     </a>
                                 </li>
                             </ul>
@@ -387,6 +395,43 @@
 
                                     </div>
 
+                                    <div class="tab-pane fade <?php echo $ActiveTabData == 'size' ? 'show active' : ''; ?>" id="NavSizesPage" role="tabpanel">
+
+                                        <div class="table-responsive text-nowrap h-100 tablecard">
+                                            <table class="table trans-table table-hover" id="SizesTable">
+                                                <thead class="r2k-thead">
+                                                    <tr>
+                                                        <th class="table-checkbox">
+                                                            <div class="form-check form-check-inline">
+                                                                <input class="form-check-input table-chkbox sizeHeaderCheck" type="checkbox">
+                                                            </div>
+                                                        </th>
+                                                        <th class="table-serialno <?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>"><?php echo t('col_sno', 'S.No'); ?></th>
+                                                        <th class="name-sortable position-relative" id="sortSizeName" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">
+                                                            <span class="sort-label cursor-pointer"><?php echo t('col_name', 'Name'); ?> <i class="bx bx-sort-alt-2 sort-icon ms-1"></i></span>
+                                                        </th>
+                                                        <th>Dimensions</th>
+                                                        <th><?php echo t('col_products', 'Products'); ?></th>
+                                                        <th><?php echo t('col_last_updated', 'Last Updated'); ?></th>
+                                                        <th class="text-center"><?php echo t('col_actions', 'Actions'); ?></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="r2k-tbody table-border-bottom-0">
+                                                    <?php if ($ActiveTabData == 'size') {
+                                                        echo $ModRowData;
+                                                    } else {
+                                                        $PageData['DataLists'] = [];
+                                                        echo $this->load->view('products/sizes/list', $PageData, TRUE);
+                                                    } ?>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <div class="d-flex align-items-center justify-content-between mx-0 px-3 mt-1 SizesPagination apex-pag-sticky" id="SizesPagination">
+                                            <?php echo $ActiveTabData == 'size' ? $ModPagination : ''; ?>
+                                        </div>
+
+                                    </div>
+
 
                         </div>
                     </div>
@@ -404,8 +449,10 @@
             <?php $this->load->view('products/modals/combo'); ?>
             <?php $this->load->view('products/modals/category'); ?>
             <?php $this->load->view('products/modals/brand'); ?>
+            <?php $this->load->view('products/modals/sizes'); ?>
             <?php $this->load->view('products/modals/barcodeprint'); ?>
             <?php $this->load->view('products/modals/pricelist'); ?>
+            <?php $this->load->view('products/modals/brand_stock'); ?>
 
             <!-- Category Products Modal -->
             <style>
@@ -603,6 +650,10 @@ const BrandTable = '#BrandsTable';
 const BrandPag = '.BrandsPagination';
 const BrandHeader = '.brandHeaderCheck';
 const BrandRow = '.brandCheck';
+const SizeTable = '#SizesTable';
+const SizePag = '.SizesPagination';
+const SizeHeader = '.sizeHeaderCheck';
+const SizeRow = '.sizeCheck';
 const PLTable  = '#PriceListTable';
 const PLPag    = '#PriceListPagination';
 const PLHeader = '.priceListHeaderCheck';
@@ -616,10 +667,12 @@ var _prodInitSearch = <?php echo json_encode($InitSearch ?? ''); ?>;
 let sortState = 0;
 let catgSortState = 0;
 let brandSortState = 0;
+let sizeSortState = 0;
 let groupSortState = 0;
 let plNameSortState = 0;
 var _catgListDirty = false;
 var _brandListDirty = false;
+var _sizeListDirty = false;
 let colSortStates = {};
 $(function() {
     'use strict';
@@ -653,20 +706,21 @@ $(function() {
             ActiveTabModuleId = $(this).data('moduleid');
             $('.trans-tab-count').addClass('d-none');
             _pushTabUrl(TabValue, '');
-            $('#ProductStatsRow').toggleClass('d-none', TabValue === 'Groups' || TabValue === 'PriceLists');
-            $('#NewItem,#NewComboItem,#NewPriceList,#NewCategory,#NewBrand,#CloneOption,#DeleteOption,#ItemCategory-Div').addClass('d-none');
+            $('#ProductStatsRow').toggleClass('d-none', TabValue === 'Groups' || TabValue === 'PriceLists' || TabValue === 'Sizes');
+            $('#NewItem,#NewComboItem,#NewPriceList,#NewCategory,#NewBrand,#NewSize,#CloneOption,#DeleteOption,#ItemCategory-Div').addClass('d-none');
             $('#ActionsDD-Div').addClass('d-none');
             $('#productTypeFilter,#categoryFilter').toggleClass('d-none', TabValue !== 'Item');
             $('#statusFilter,#taxFilter').toggleClass('d-none', TabValue !== 'Item' && TabValue !== 'Groups');
             $('#plStatusFilter,#plAssignedToFilter,#plScopeFilter').toggleClass('d-none', TabValue !== 'PriceLists');
             $('#productCatgFilter').toggleClass('d-none', TabValue !== 'Categories');
             $('#brandProductFilter').toggleClass('d-none', TabValue !== 'Brands');
-            var _prodSearchPlaceholders = { Item: 'Search items...', Groups: 'Search groups...', PriceLists: 'Search price lists...', Categories: 'Search categories...', Brands: 'Search brands...' };
+            $('#btnSyncSizesCache').toggleClass('d-none', TabValue !== 'Sizes');
+            var _prodSearchPlaceholders = { Item: 'Search items...', Groups: 'Search groups...', PriceLists: 'Search price lists...', Categories: 'Search categories...', Brands: 'Search brands...', Sizes: 'Search sizes...' };
             $('#SearchDetails').val('').attr('placeholder', _prodSearchPlaceholders[TabValue] || 'Search...');
             PageNo = 0;
             Filter = {};
             // Reset all sort visual states
-            sortState = 0; catgSortState = 0; brandSortState = 0; groupSortState = 0; plNameSortState = 0; colSortStates = {};
+            sortState = 0; catgSortState = 0; brandSortState = 0; sizeSortState = 0; groupSortState = 0; plNameSortState = 0; colSortStates = {};
             $('.name-sortable .sort-icon, .col-sortable .sort-icon').removeClass('bx-sort-up bx-sort-down text-primary').addClass('bx-sort-alt-2');
             $('.name-sortable, .col-sortable').removeClass('col-active').attr('data-bs-title', 'Click for ascending order');
             $('.mp-filterbox').hide();
@@ -677,7 +731,7 @@ $(function() {
             if (typeof brandProductFilter !== 'undefined') brandProductFilter.reset();
             if (typeof prodCatgFilter !== 'undefined') prodCatgFilter.reset();
             $('#ProductCountWrap').addClass('d-none');
-            $('#btnSyncProductsCache,#btnSyncCategoriesCache,#btnSyncPriceListCache,#btnSyncBrandsCache').addClass('d-none');
+            $('#btnSyncProductsCache,#btnSyncCategoriesCache,#btnSyncPriceListCache,#btnSyncBrandsCache,#btnSyncSizesCache').addClass('d-none');
             if (ActiveTabId == 'Item') {
                 $('#NewItem,#ItemCategory-Div,#ProductCountWrap').removeClass('d-none');
                 $('#btnSyncProductsCache').removeClass('d-none');
@@ -734,6 +788,18 @@ $(function() {
                     unSelectTableRecords(BrandTable, BrandRow);
                     updateBrandCount(parseInt($('#brandTotalCount').text(), 10) || 0);
                 }
+            } else if (ActiveTabId == 'Sizes') {
+                $('#NewSize').removeClass('d-none');
+                $('#btnSyncSizesCache').removeClass('d-none');
+                var sizeLen = $(SizeTable + ' ' + SizeRow).length;
+                if (sizeLen == 0 || _sizeListDirty) {
+                    _sizeListDirty = false;
+                    getSizesDetails(PageNo, RowLimit, Filter);
+                } else {
+                    $(SizeHeader).prop('checked', false).prop('indeterminate', false);
+                    unSelectTableRecords(SizeTable, SizeRow);
+                    updateSizeCount(parseInt($('#sizeTotalCount').text(), 10) || 0);
+                }
             }
         }
     });
@@ -780,6 +846,8 @@ $(function() {
                 DeleteContent = 'Do you want to delete all the selected category?';
             } else if (ActiveTabId == 'Brands') {
                 DeleteContent = 'Do you want to delete all the selected brand?';
+            } else if (ActiveTabId == 'Sizes') {
+                DeleteContent = 'Do you want to delete all the selected size?';
             } else if (ActiveTabId == 'PriceLists') {
                 DeleteContent = 'Do you want to delete all the selected price list?';
             }
@@ -799,6 +867,8 @@ $(function() {
                         deleteMultipleCategory();
                     } else if (ActiveTabId == 'Brands') {
                         deleteMultipleBrand();
+                    } else if (ActiveTabId == 'Sizes') {
+                        deleteMultipleSize();
                     } else if (ActiveTabId == 'PriceLists') {
                         deleteMultiplePriceList();
                     }
@@ -876,6 +946,10 @@ $(function() {
             brandSortState = (brandSortState + 1) % 3;
             defSortState = brandSortState;
             defFieldName = '#sortBrandName';
+        } else if (ActiveTabId == 'Sizes') {
+            sizeSortState = (sizeSortState + 1) % 3;
+            defSortState = sizeSortState;
+            defFieldName = '#sortSizeName';
         }
         const icon = $(this).find('.sort-icon');
         icon.removeClass('bx-sort-alt-2 bx-sort-up bx-sort-down text-primary');
@@ -1109,6 +1183,12 @@ $(function() {
         MultipleDeleteOption();
     });
 
+    $(document).on('change', SizeRow, function() {
+        $(this).closest('tr').toggleClass('row-sel', $(this).is(':checked'));
+        onClickOfCheckbox($(this), SizeTable, SizeHeader, SizeRow);
+        MultipleDeleteOption();
+    });
+
     $(document).on('change', PLRow, function() {
         $(this).closest('tr').toggleClass('row-sel', $(this).is(':checked'));
         onClickOfCheckbox($(this), PLTable, PLHeader, PLRow);
@@ -1186,6 +1266,7 @@ $(function() {
     basePageHeaderFunc(CatgHeader, CatgTable, CatgRow);
     basePaginationFunc(BrandPag, getBrandsDetails);
     basePageHeaderFunc(BrandHeader, BrandTable, BrandRow);
+    basePaginationFunc(SizePag, getSizesDetails);
     basePaginationFunc(PLPag, getPriceListDetails);
     basePageHeaderFunc(PLHeader, PLTable, PLRow);
 
@@ -1587,6 +1668,166 @@ $(function() {
         });
     });
 
+    // ── Sizes Page ─────────────────────────────────────────────────────────────
+    var _sizeIsDirty      = false;
+    var _sizeIsCreateMode = false;
+
+    $(document).on('click', '.addSize', function(e) {
+        e.preventDefault();
+        $('#sizeForm').trigger('reset');
+        $('#SizeModalTitle').text('Add Size');
+        $('#SizeSaveButton').text('Save');
+        $('#SizeUID').val(0);
+        $('#SizeDimensionUOM').val('');
+        $('#SizeWeightUOM').val('');
+        $('#sizeModal').modal('show');
+        _sizeIsCreateMode = true;
+        _sizeIsDirty      = false;
+    });
+
+    $('#sizeModal').on('shown.bs.modal', function() {
+        $('#SizeName').trigger('focus');
+    });
+
+    $('#sizeModal').on('hide.bs.modal', function(e) {
+        if (_sizeIsDirty && _sizeIsCreateMode) {
+            e.preventDefault();
+            Swal.fire({
+                title             : t('swal_unsaved_title',   'Unsaved Changes'),
+                text              : t('swal_unsaved_msg',     'Your changes will be lost if you close now.'),
+                icon              : 'warning',
+                showCancelButton  : true,
+                confirmButtonText : t('swal_unsaved_confirm', 'Close Anyway'),
+                cancelButtonText  : t('swal_unsaved_cancel',  'Stay'),
+                confirmButtonColor: '#d33',
+                cancelButtonColor : '#3085d6',
+            }).then(function (result) {
+                if (result.isConfirmed) {
+                    _sizeIsDirty      = false;
+                    _sizeIsCreateMode = false;
+                    $('#sizeModal').modal('hide');
+                }
+            });
+            return;
+        }
+        _sizeIsCreateMode = false;
+        _sizeIsDirty      = false;
+        formOpenCloseDefActions();
+    });
+
+    $(document).on('input change', '#sizeForm input', function () {
+        if (_sizeIsCreateMode) _sizeIsDirty = true;
+    });
+
+    $(document).on('click', '.editSize', function(e) {
+        e.preventDefault();
+        var $el = $(this);
+        var getVal = $el.data('uid');
+        if (!getVal) return;
+
+        $('#sizeForm').trigger('reset');
+        $('#SizeModalTitle').text('Edit Size');
+        $('#SizeSaveButton').text('Update');
+
+        $('#SizeUID').val(getVal);
+        $('#SizeName').val($el.data('name')        ? atob($el.data('name'))        : '');
+        $('#SizeCode').val($el.data('code')        ? atob($el.data('code'))        : '');
+        $('#SizeDescription').val($el.data('description') ? atob($el.data('description')) : '');
+        $('#SizeLength').val($el.data('length')    || '');
+        $('#SizeWidth').val($el.data('width')      || '');
+        $('#SizeHeight').val($el.data('height')    || '');
+        $('#SizeDepth').val($el.data('depth')      || '');
+        $('#SizeDiameter').val($el.data('diameter') || '');
+        $('#SizeThickness').val($el.data('thickness') || '');
+        $('#SizeWeight').val($el.data('weight')    || '');
+        $('#SizeDimensionUOM').val($el.data('dimensionuom') || '');
+        $('#SizeWeightUOM').val($el.data('weightuom') || '');
+
+        $('#sizeModal').modal('show');
+    });
+
+    $('#sizeForm').submit(function(e) {
+        e.preventDefault();
+
+        var SizeUID  = parseInt($('#SizeUID').val() || 0);
+        var formData = {};
+        $.each($(this).serializeArray(), function(_, f) { formData[f.name] = f.value; });
+        formData.SizeUID   = SizeUID;
+        formData.PageNo    = PageNo;
+        formData.RowLimit  = RowLimit;
+        formData[CsrfName] = CsrfToken;
+        if (Object.keys(Filter).length > 0) formData.Filter = JSON.stringify(Filter);
+
+        var $btn = $('#SizeSaveButton');
+        $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
+
+        var onDone = function(insertId) {
+            $btn.prop('disabled', false).text(SizeUID ? 'Update' : 'Save');
+            _sizeIsDirty      = false;
+            _sizeIsCreateMode = false;
+            if (SizeUID === 0 && insertId) {
+                $(document).trigger('r2k:sizeAdded', { SizeUID: insertId, SizeName: formData.SizeName });
+            }
+            $('#sizeModal').modal('hide');
+        };
+
+        if (SizeUID === 0) {
+            addSizeListDetails(formData, onDone);
+        } else {
+            editSizeListDetails(formData, onDone);
+        }
+    });
+
+    $(document).on('click', '.DeleteSize', function(e) {
+        e.preventDefault();
+        var GetId        = $(this).data('sizeuid');
+        var productCount = parseInt($(this).data('productcount') || 0, 10);
+        var sizeName     = $(this).data('sizename') || 'this size';
+
+        if (!GetId) return;
+
+        if (productCount > 0) {
+            showToastNotification(
+                '"' + sizeName + '" has ' + productCount + ' linked product' + (productCount > 1 ? 's' : '') + '. Remove the product link first before deleting.',
+                'error'
+            );
+            return false;
+        }
+
+        Swal.fire({
+            title: 'Delete size?',
+            text: "You won't be able to revert this!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            confirmButtonText: 'Yes, delete it!',
+            cancelButtonColor: '#3085d6',
+        }).then((result) => {
+            if (result.isConfirmed) {
+                deleteSizeItem(GetId);
+            }
+        });
+    });
+
+    $('#btnSyncSizesCache').click(function(e) {
+        e.preventDefault();
+        var $icon = $(this).find('i');
+        $icon.removeClass('bx-planet').addClass('bx-loader-alt bx-spin');
+        $.ajax({
+            url: '/products/syncSizesCache', method: 'POST', cache: false,
+            data: { [CsrfName]: CsrfToken },
+            success: function(r) {
+                showToastNotification(r.Message || 'Sizes cache synced.', r.Error ? 'error' : 'success');
+            },
+            error: function() {
+                showToastNotification('Failed to sync sizes cache.', 'error');
+            },
+            complete: function() {
+                $icon.removeClass('bx-loader-alt bx-spin').addClass('bx-planet');
+            }
+        });
+    });
+
     if (window.location.search.indexOf('action=create') !== -1) {
         $('#NewItem').trigger('click');
     }
@@ -1627,6 +1868,30 @@ function _loadPlProducts(callback) {
         function (products) { _plProductCache = products; callback(products); },
         function ()         { callback([]); }
     );
+}
+
+/**
+ * Fetch variant list for a product (used in price list rule blocks).
+ * @param {number}   productUID
+ * @param {Function} cb  Called with array of {VariantUID:number, Label:string}
+ * @returns {void}
+ */
+function _fetchPLVariants(productUID, cb) {
+    if (_plProductCache) {
+        for (var _vi = 0; _vi < _plProductCache.length; _vi++) {
+            if (_plProductCache[_vi].id === productUID) {
+                cb(_plProductCache[_vi].variants || []);
+                return;
+            }
+        }
+    }
+    $.ajax({
+        url   : '/products/getProductVariantsForPricelist',
+        method: 'POST',
+        data  : { ProductUID: productUID },
+        success: function (r) { cb(r.Error ? [] : (r.Variants || [])); },
+        error  : function ()  { cb([]); }
+    });
 }
 
 /**
@@ -1926,13 +2191,15 @@ function _buildTierHead(types, isSpecific) {
 
 /**
  * Cache the tier thead HTML and push it into all existing product block tables.
+ * Variant-mode blocks get the variant thead; tier-mode blocks get the tier thead.
  * @param {Array}   types
  * @param {boolean} isSpecific
  * @returns {void}
  */
 function _buildRulesHeader(types, isSpecific) {
     _plTierHeadHtml = _buildTierHead(types, isSpecific);
-    $('.pl-prod-block .pl-tiers-thead').html(_plTierHeadHtml);
+    $('.pl-prod-block[data-mode="tier"] .pl-tiers-thead').html(_plTierHeadHtml);
+    $('.pl-prod-block[data-mode="variant"] .pl-var-section .pl-tiers-thead').html(_plTierHeadHtml);
     $('#PLRulesLoading').addClass('d-none');
 }
 
@@ -2038,6 +2305,27 @@ $(document).on('focusin', '.pl-prod-block .pl-max-qty, .pl-prod-block .pl-ct-pri
 });
 
 /**
+ * Build one price-input cell (shared by tier rows and variant-tier rows).
+ * @param {number} ctUID
+ * @param {string} pv        saved price string (empty = blank)
+ * @param {string} curSym    HTML-escaped currency symbol
+ * @param {number} dec       decimal places
+ * @param {number} maxLen    max price length
+ * @returns {string}
+ */
+function _plBuildPriceCell(ctUID, pv, curSym, dec, maxLen) {
+    return '<td><div class="input-group input-group-sm">'
+        + '<span class="input-group-text">' + curSym + '</span>'
+        + '<input type="text" class="form-control form-control-sm pl-ct-price" data-ctuid="' + ctUID + '"'
+        + ' value="' + (pv || '') + '" placeholder="0.00"'
+        + ' onkeydown="return handleDotOnly(event)"'
+        + ' oninput="validatePriceInput(this,' + maxLen + ',' + dec + ')"'
+        + ' onpaste="handlePricePaste(event,' + maxLen + ',' + dec + ')"'
+        + ' ondrop="handlePriceDrop(event,' + maxLen + ',' + dec + ')">'
+        + '</div></td>';
+}
+
+/**
  * Add one price-tier row to a product block's tier tbody.
  * @param {jQuery} $tbody
  * @param {Object} [tierData]  {MinQty, MaxQty, Prices:{ctUID:value}}
@@ -2052,27 +2340,15 @@ function _plAddTierRow($tbody, tierData) {
     var dec        = (typeof JwtData !== 'undefined' && JwtData.GenSettings) ? (parseInt(JwtData.GenSettings.DecimalPoints,  10) || 2)  : 2;
     var maxLen     = (typeof JwtData !== 'undefined' && JwtData.GenSettings) ? (parseInt(JwtData.GenSettings.PriceMaxLength, 10) || 15) : 15;
 
-    function _priceCell(uid, pv) {
-        return '<td><div class="input-group input-group-sm">'
-            + '<span class="input-group-text">' + curSym + '</span>'
-            + '<input type="text" class="form-control form-control-sm pl-ct-price" data-ctuid="' + uid + '"'
-            + ' value="' + (pv !== '' ? pv : '') + '" placeholder="0.00"'
-            + ' onkeydown="return handleDotOnly(event)"'
-            + ' oninput="validatePriceInput(this,' + maxLen + ',' + dec + ')"'
-            + ' onpaste="handlePricePaste(event,' + maxLen + ',' + dec + ')"'
-            + ' ondrop="handlePriceDrop(event,' + maxLen + ',' + dec + ')">'
-            + '</div></td>';
-    }
-
     var priceCells = '';
     if (isSpecific || !types.length) {
-        var pv = (t.Prices && t.Prices[0] !== undefined) ? t.Prices[0] : '';
-        priceCells = _priceCell(0, pv);
+        var pv0 = (t.Prices && t.Prices[0] !== undefined) ? t.Prices[0] : '';
+        priceCells = _plBuildPriceCell(0, pv0, curSym, dec, maxLen);
     } else {
         $.each(types, function (_, ct) {
             var uid = parseInt(ct.CustomerTypeUID);
             var pv  = (t.Prices && t.Prices[uid] !== undefined) ? t.Prices[uid] : '';
-            priceCells += _priceCell(uid, pv);
+            priceCells += _plBuildPriceCell(uid, pv, curSym, dec, maxLen);
         });
     }
 
@@ -2089,9 +2365,63 @@ function _plAddTierRow($tbody, tierData) {
 }
 
 /**
+ * Switch a product block to variant mode — one sub-section per variant.
+ * @param {jQuery} $block
+ * @param {Array<{VariantUID:number,Label:string,Tiers?:Array}>} variants
+ * @returns {void}
+ */
+function _activateVariantMode($block, variants) {
+    var types    = _plCustomerTypes || [];
+    var isSpec   = $('input[name="PLAssignedTo"]:checked').val() === 'Customers';
+    var headHtml = _buildTierHead(types, isSpec);
+
+    $block.find('.pl-block-header .pl-add-tier-btn').addClass('d-none');
+    $block.find('.pl-tier-table-wrap').addClass('d-none');
+    var $sections = $block.find('.pl-variant-sections').empty().removeClass('d-none');
+
+    $.each(variants, function (_, v) {
+        var labelHtml = $('<span>').text(v.Label).html();
+        var $section = $(
+            '<div class="pl-var-section border-bottom" data-variant-uid="' + v.VariantUID + '">'
+            + '<div class="pl-var-section-header d-flex align-items-center justify-content-between px-2 py-1">'
+            +   '<span class="fw-semibold small text-muted">' + labelHtml + '</span>'
+            +   '<button type="button" class="btn btn-sm btn-outline-primary pl-add-tier-btn py-0">'
+            +     '<i class="bx bx-plus me-1"></i>Add Tier'
+            +   '</button>'
+            + '</div>'
+            + '<div class="table-responsive">'
+            +   '<table class="table table-sm table-bordered align-middle mb-0">'
+            +     '<thead class="r2k-thead pl-tiers-thead" style="font-size:.74rem;">' + headHtml + '</thead>'
+            +     '<tbody class="pl-tiers-body"></tbody>'
+            +   '</table>'
+            + '</div>'
+            + '</div>'
+        );
+        $sections.append($section);
+        var $tbody = $section.find('.pl-tiers-body');
+        var tiers  = (v.Tiers && v.Tiers.length) ? v.Tiers : [{ MinQty: 1, Prices: {} }];
+        $.each(tiers, function (_, tier) { _plAddTierRow($tbody, tier); });
+    });
+
+    $block.data('mode', 'variant');
+}
+
+/**
+ * Switch a product block to tier mode — single flat table with block-level Add Tier.
+ * @param {jQuery} $block
+ * @returns {void}
+ */
+function _activateTierMode($block) {
+    $block.find('.pl-block-header .pl-add-tier-btn').removeClass('d-none');
+    $block.find('.pl-tier-table-wrap').removeClass('d-none');
+    $block.find('.pl-variant-sections').addClass('d-none').empty();
+    $block.data('mode', 'tier');
+}
+
+/**
  * Add a product block card to the rules section.
- * Each block = one product header + a tier sub-table with qty break rows.
- * @param {Object} [data]  {ProductUID, ProductName, Tiers:[{MinQty,MaxQty,Prices}]}
+ * Product is always pre-selected (from search panel or edit restore).
+ * @param {Object} data  {ProductUID:number, ProductName:string, variants?:Array, VariantRows?:Array, Tiers?:Array}
  * @returns {void}
  */
 function plAddProductBlock(data) {
@@ -2101,18 +2431,19 @@ function plAddProductBlock(data) {
     }
 
     _plRuleSeq++;
-    var d          = data || {};
-    var preOption  = d.ProductUID
-        ? '<option value="' + d.ProductUID + '">' + $('<span>').text(d.ProductName || '').html() + '</option>'
-        : '';
+    var d        = data || {};
+    var nameHtml = d.ProductName
+        ? $('<span>').text(d.ProductName).html()
+        : '<em class="text-muted">Unknown product</em>';
 
     var $block = $(
-        '<div class="pl-prod-block card border mb-2" data-seq="' + _plRuleSeq + '">'
+        '<div class="pl-prod-block card border mb-2" data-seq="' + _plRuleSeq + '" data-mode="tier">'
         + '<div class="pl-block-header d-flex align-items-center gap-2 p-2 border-bottom">'
         +   '<input type="hidden" class="pl-prod-uid" value="' + (d.ProductUID || 0) + '">'
-        +   '<select class="pl-prod-select form-select form-select-sm flex-grow-1" style="min-width:0;">'
-        +     preOption
-        +   '</select>'
+        +   '<span class="pl-prod-name fw-semibold flex-grow-1 text-truncate">' + nameHtml + '</span>'
+        +   '<button type="button" class="btn btn-sm btn-outline-secondary pl-pick-product-btn flex-shrink-0" title="Change product">'
+        +     '<i class="bx bx-pencil"></i>'
+        +   '</button>'
         +   '<button type="button" class="btn btn-sm btn-outline-primary pl-add-tier-btn flex-shrink-0">'
         +     '<i class="bx bx-plus me-1"></i>Add Tier'
         +   '</button>'
@@ -2120,58 +2451,26 @@ function plAddProductBlock(data) {
         +     '<i class="bx bx-trash"></i>'
         +   '</button>'
         + '</div>'
-        + '<div class="table-responsive">'
+        + '<div class="pl-tier-table-wrap table-responsive">'
         +   '<table class="table table-sm table-bordered align-middle mb-0">'
-        +     '<thead class="r2k-thead pl-tiers-thead" style="font-size:.74rem;">'
-        +       _plTierHeadHtml
-        +     '</thead>'
+        +     '<thead class="r2k-thead pl-tiers-thead" style="font-size:.74rem;">' + _plTierHeadHtml + '</thead>'
         +     '<tbody class="pl-tiers-body"></tbody>'
         +   '</table>'
         + '</div>'
+        + '<div class="pl-variant-sections d-none"></div>'
         + '</div>'
     );
 
     $('#PLProductBlocksWrap').append($block);
 
-    // Select2 — Upstash cache via ProductAppend, client-side filter
-    $block.find('.pl-prod-select').select2({
-        placeholder        : 'Search product…',
-        allowClear         : false,
-        width              : '100%',
-        minimumInputLength : 1,
-        dropdownParent     : $('#priceListModal'),
-        ajax: {
-            delay    : 250,
-            transport: function (params, success) {
-                _loadPlProducts(function (products) {
-                    var term = ((params.data && params.data.term) || '').toLowerCase();
-                    var results = products
-                        .filter(function (p) { return !term || (p.text || '').toLowerCase().indexOf(term) !== -1; })
-                        .slice(0, 50)
-                        .map(function (p) { return { id: p.id, text: p.text }; });
-                    success({ results: results });
-                });
-            },
-            processResults: function (d) { return d; }
-        }
-    }).on('change', function () {
-        var $block     = $(this).closest('.pl-prod-block');
-        var newUID     = parseInt($(this).val() || 0, 10);
-        var currentUID = parseInt($block.find('.pl-prod-uid').val() || 0, 10);
-        if (currentUID > 0 && newUID !== currentUID) {
-            var $tbody = $block.find('.pl-tiers-body');
-            $tbody.empty();
-            _plAddTierRow($tbody, null);
-        }
-        $block.find('.pl-prod-uid').val(newUID);
-    });
+    var variantList = d.VariantRows || d.variants || [];
 
-    // Add tier rows
-    var $tbody = $block.find('.pl-tiers-body');
-    if (d.Tiers && d.Tiers.length) {
-        $.each(d.Tiers, function (_, tier) { _plAddTierRow($tbody, tier); });
+    if (variantList.length) {
+        _activateVariantMode($block, variantList);
+    } else if (d.Tiers && d.Tiers.length) {
+        $.each(d.Tiers, function (_, tier) { _plAddTierRow($block.find('.pl-tiers-body'), tier); });
     } else {
-        _plAddTierRow($tbody, null);
+        _plAddTierRow($block.find('.pl-tiers-body'), null);
     }
 
     _syncRulesEmpty();
@@ -2183,25 +2482,50 @@ $(document).on('click', '.pl-remove-block-btn', function () {
     _syncRulesEmpty();
 });
 
-// Remove a single tier row; auto-remove the block if that was its last tier
+// Remove a single tier row
 $(document).on('click', '.pl-remove-tier-btn', function () {
-    var $block = $(this).closest('.pl-prod-block');
+    var $block   = $(this).closest('.pl-prod-block');
+    var $section = $(this).closest('.pl-var-section');
     $(this).closest('.pl-tier-row').remove();
-    if (!$block.find('.pl-tier-row').length) {
-        $block.remove();
-        _syncRulesEmpty();
+    if ($section.length) {
+        // Variant sub-section: always keep at least one empty row per variant
+        if (!$section.find('.pl-tier-row').length) {
+            _plAddTierRow($section.find('.pl-tiers-body'), null);
+        }
+    } else {
+        // Tier mode: remove the whole block when its last row is gone
+        if (!$block.find('.pl-tier-row').length) {
+            $block.remove();
+            _syncRulesEmpty();
+        }
     }
 });
 
-// Add a new tier row — validate ALL existing rows in this block first
+// Add a new tier row — validate existing rows in this context (section or block) first
 $(document).on('click', '.pl-add-tier-btn', function () {
-    var $block  = $(this).closest('.pl-prod-block');
-    var $tiers  = $block.find('.pl-tier-row');
-    var blockNo = $('#PLProductBlocksWrap .pl-prod-block').index($block) + 1;
-    var error   = null;
+    var $btn     = $(this);
+    var $section = $btn.closest('.pl-var-section');
+    var $block   = $btn.closest('.pl-prod-block');
+    var blockNo  = $('#PLProductBlocksWrap .pl-prod-block').index($block) + 1;
+
+    var $contextTiers, $targetTbody, errorPrefix;
+    if ($section.length) {
+        // Variant sub-section button: validate only this section's tiers
+        $contextTiers = $section.find('.pl-tier-row');
+        $targetTbody  = $section.find('.pl-tiers-body');
+        var varLabel  = $.trim($section.find('.pl-var-section-header span').text());
+        errorPrefix   = 'Product ' + blockNo + ' — ' + varLabel + ': ';
+    } else {
+        // Item-level button: tier mode
+        $contextTiers = $block.find('.pl-tier-row');
+        $targetTbody  = $block.find('.pl-tiers-body');
+        errorPrefix   = 'Product ' + blockNo + ': ';
+    }
+
+    var error      = null;
     var nextMinQty = 1;
 
-    $tiers.each(function (ti) {
+    $contextTiers.each(function (ti) {
         if (error) return false;
         var $tr    = $(this);
         var tierNo = ti + 1;
@@ -2233,9 +2557,135 @@ $(document).on('click', '.pl-add-tier-btn', function () {
         });
     });
 
-    if (error) { showToastNotification('Product ' + blockNo + ', ' + error, 'warning'); return; }
+    if (error) { showToastNotification(errorPrefix + error, 'warning'); return; }
+    _plAddTierRow($targetTbody, { MinQty: nextMinQty });
+});
 
-    _plAddTierRow($block.find('.pl-tiers-body'), { MinQty: nextMinQty });
+// ── PL Product Search Panel ───────────────────────────────────────────────────
+
+/** null = new block add; jQuery block element = re-pick product for existing block */
+var _plCurrentPickTarget = null;
+
+/**
+ * Open the inline product search panel.
+ * @param {jQuery|null} target  null to add a new block; block jQuery to re-pick
+ * @returns {void}
+ */
+function _openPLProductSearch(target) {
+    _plCurrentPickTarget = target || null;
+    $('#plProdSearchInput').val('');
+    $('#plProdSearchClear').addClass('d-none');
+    $('#PLProductSearchPanel').removeClass('d-none');
+    $('#plProdSearchInput').trigger('focus');
+    if (_plProductCache) {
+        _renderPLSearchResults('');
+    } else {
+        $('#plProdSearchResults').html(
+            '<tr><td colspan="2" class="text-center py-4 text-muted"><i class="bx bx-loader-alt bx-spin me-1"></i>Loading products…</td></tr>'
+        );
+        $('#plProdSearchPageInfo').text('');
+        _loadPlProducts(function () { _renderPLSearchResults(''); });
+    }
+}
+
+/**
+ * Filter and render rows in the PL product search panel.
+ * @param {string} term
+ * @returns {void}
+ */
+function _renderPLSearchResults(term) {
+    var products = _plProductCache || [];
+    var t        = $.trim(term).toLowerCase();
+    var filtered = t
+        ? products.filter(function (p) {
+            return (p.text + ' ' + (p.categoryName || '') + ' ' + (p.partNumber || '')).toLowerCase().indexOf(t) !== -1;
+          })
+        : products;
+
+    $('#plProdSearchPageInfo').text(filtered.length + ' product' + (filtered.length !== 1 ? 's' : ''));
+
+    if (!filtered.length) {
+        $('#plProdSearchResults').html(
+            '<tr><td colspan="2" class="text-center py-4 text-muted">No products found.</td></tr>'
+        );
+        return;
+    }
+
+    var limit = Math.min(filtered.length, 150);
+    var rows  = '';
+    for (var _ri = 0; _ri < limit; _ri++) {
+        var p        = filtered[_ri];
+        var varCount = (p.variants && p.variants.length) ? p.variants.length : 0;
+        var varBadge = varCount > 0
+            ? ' <span class="badge bg-label-info" style="font-size:.62rem;">' + varCount + ' variant' + (varCount > 1 ? 's' : '') + '</span>'
+            : '';
+        rows += '<tr class="pl-prod-search-row" data-uid="' + p.id + '">'
+            + '<td>'
+            +   '<div class="fw-semibold" style="font-size:.84rem;">' + $('<span>').text(p.text).html() + varBadge + '</div>'
+            +   (p.categoryName ? '<div class="text-muted" style="font-size:.72rem;">' + $('<span>').text(p.categoryName).html() + '</div>' : '')
+            + '</td>'
+            + '<td class="text-muted" style="font-size:.78rem;">' + $('<span>').text(p.primaryUnit || '').html() + '</td>'
+            + '</tr>';
+    }
+    if (filtered.length > limit) {
+        rows += '<tr><td colspan="2" class="text-center py-2 text-muted" style="font-size:.74rem;">'
+              + 'Showing first ' + limit + ' — refine your search to see more.'
+              + '</td></tr>';
+    }
+    $('#plProdSearchResults').html(rows);
+}
+
+var _plSearchDebounce;
+$(document).on('input', '#plProdSearchInput', function () {
+    clearTimeout(_plSearchDebounce);
+    var t = $(this).val();
+    $('#plProdSearchClear').toggleClass('d-none', t === '');
+    _plSearchDebounce = setTimeout(function () { _renderPLSearchResults(t); }, 280);
+});
+
+$(document).on('click', '#plProdSearchClear', function () {
+    $('#plProdSearchInput').val('').trigger('input').trigger('focus');
+});
+
+$(document).on('click', '#plProdSearchCancel', function () {
+    _plCurrentPickTarget = null;
+    $('#PLProductSearchPanel').addClass('d-none');
+});
+
+// Product row click — pick product
+$(document).on('click', '.pl-prod-search-row', function () {
+    var uid     = parseInt($(this).data('uid'), 10);
+    var product = null;
+    var cache   = _plProductCache || [];
+    for (var _pi = 0; _pi < cache.length; _pi++) {
+        if (cache[_pi].id === uid) { product = cache[_pi]; break; }
+    }
+    if (!product) return;
+
+    var variants = product.variants || [];
+    $('#PLProductSearchPanel').addClass('d-none');
+
+    if (_plCurrentPickTarget) {
+        var $block = _plCurrentPickTarget;
+        _plCurrentPickTarget = null;
+        $block.find('.pl-prod-uid').val(uid);
+        $block.find('.pl-prod-name').text(product.text);
+        $block.find('.pl-tiers-body').empty();
+        $block.find('.pl-variant-sections').empty();
+        if (variants.length) {
+            _activateVariantMode($block, variants);
+        } else {
+            _activateTierMode($block);
+            _plAddTierRow($block.find('.pl-tiers-body'), null);
+        }
+    } else {
+        plAddProductBlock({ ProductUID: uid, ProductName: product.text, variants: variants });
+    }
+});
+
+// Pencil icon in block header — re-pick product
+$(document).on('click', '.pl-pick-product-btn', function () {
+    _openPLProductSearch($(this).closest('.pl-prod-block'));
 });
 
 // ── Open / Reset ──────────────────────────────────────────────────────────────
@@ -2289,6 +2739,8 @@ function openPriceListModal() {
     $('#PLRulesLoading').addClass('d-none');
     _syncRulesEmpty();
     _plRuleSeq = 0;
+    $('#PLProductSearchPanel').addClass('d-none');
+    _loadPlProducts(function () {});
     _initPLDatePickers();
     $('#priceListModal').modal('show');
 
@@ -2371,27 +2823,80 @@ function _fillPriceListForm(data) {
             });
         }
 
-        // Fill Specific Products — group flat DB rows by ProductUID, then by tier (MinQty+MaxQty)
+        // Fill Specific Products — group by ProductUID; detect variant vs tier mode per product
         if (scope === 'Specific' && data.Rules && data.Rules.length) {
             var prodMap   = {};
             var prodOrder = [];
             $.each(data.Rules, function (_, r) {
                 var pKey = r.ProductUID;
                 if (!prodMap[pKey]) {
-                    prodMap[pKey] = { ProductUID: r.ProductUID, ProductName: r.ProductName, Tiers: {}, TierOrder: [] };
+                    prodMap[pKey] = {
+                        ProductUID:   r.ProductUID,
+                        ProductName:  r.ProductName,
+                        HasVariants:  false,
+                        VariantMap:   {},
+                        VariantOrder: [],
+                        Tiers:        {},
+                        TierOrder:    []
+                    };
                     prodOrder.push(pKey);
                 }
-                var tKey = r.MinQty + '_' + (r.MaxQty !== null && r.MaxQty !== undefined ? r.MaxQty : '');
-                if (!prodMap[pKey].Tiers[tKey]) {
-                    prodMap[pKey].Tiers[tKey] = { MinQty: r.MinQty, MaxQty: r.MaxQty, Prices: {} };
-                    prodMap[pKey].TierOrder.push(tKey);
+                var varUID = r.VariantUID || 0;
+                if (varUID > 0) {
+                    prodMap[pKey].HasVariants = true;
+                    if (!prodMap[pKey].VariantMap[varUID]) {
+                        var varParts = [r.BrandName, r.SizeName].filter(Boolean);
+                        prodMap[pKey].VariantMap[varUID] = {
+                            VariantUID: varUID,
+                            BrandName:  r.BrandName || '',
+                            SizeName:   r.SizeName  || '',
+                            Label:      varParts.length ? varParts.join(' / ') : ('Variant #' + varUID),
+                            Tiers:      {},
+                            TierOrder:  []
+                        };
+                        prodMap[pKey].VariantOrder.push(varUID);
+                    }
+                    // Group tiers within this variant
+                    var vData = prodMap[pKey].VariantMap[varUID];
+                    var tKey2 = r.MinQty + '_' + (r.MaxQty !== null && r.MaxQty !== undefined ? r.MaxQty : '');
+                    if (!vData.Tiers[tKey2]) {
+                        vData.Tiers[tKey2] = { MinQty: r.MinQty, MaxQty: r.MaxQty, Prices: {} };
+                        vData.TierOrder.push(tKey2);
+                    }
+                    vData.Tiers[tKey2].Prices[r.CustomerTypeUID] = _plSmartDec(r.Price);
+                } else {
+                    var tKey = r.MinQty + '_' + (r.MaxQty !== null && r.MaxQty !== undefined ? r.MaxQty : '');
+                    if (!prodMap[pKey].Tiers[tKey]) {
+                        prodMap[pKey].Tiers[tKey] = { MinQty: r.MinQty, MaxQty: r.MaxQty, Prices: {} };
+                        prodMap[pKey].TierOrder.push(tKey);
+                    }
+                    prodMap[pKey].Tiers[tKey].Prices[r.CustomerTypeUID] = _plSmartDec(r.Price);
                 }
-                prodMap[pKey].Tiers[tKey].Prices[r.CustomerTypeUID] = _plSmartDec(r.Price);
             });
             $.each(prodOrder, function (_, pKey) {
-                var prod  = prodMap[pKey];
-                var tiers = prod.TierOrder.map(function (k) { return prod.Tiers[k]; });
-                plAddProductBlock({ ProductUID: prod.ProductUID, ProductName: prod.ProductName, Tiers: tiers });
+                var prod = prodMap[pKey];
+                if (prod.HasVariants) {
+                    plAddProductBlock({
+                        ProductUID:  prod.ProductUID,
+                        ProductName: prod.ProductName,
+                        VariantRows: prod.VariantOrder.map(function (vUID) {
+                            var vm = prod.VariantMap[vUID];
+                            return {
+                                VariantUID: vm.VariantUID,
+                                BrandName:  vm.BrandName,
+                                SizeName:   vm.SizeName,
+                                Label:      vm.Label,
+                                Tiers:      vm.TierOrder.map(function (tk) { return vm.Tiers[tk]; })
+                            };
+                        })
+                    });
+                } else {
+                    plAddProductBlock({
+                        ProductUID:  prod.ProductUID,
+                        ProductName: prod.ProductName,
+                        Tiers:       prod.TierOrder.map(function (k) { return prod.Tiers[k]; })
+                    });
+                }
             });
         }
     });
@@ -2450,30 +2955,57 @@ function _collectDiscounts() {
 
 /**
  * Collect rule rows from the Specific Products table.
- * Expands each row into one entry per CustomerType column.
- * @returns {Array<{ProductUID:number,MinQty:number,MaxQty:number|null,CustomerTypeUID:number,Price:number}>}
+ * In variant mode: one rule per variant row per customer type (MinQty=1, MaxQty=null).
+ * In tier mode: one rule per tier row per customer type (existing behaviour).
+ * @returns {Array<{ProductUID:number,VariantUID:number,MinQty:number,MaxQty:number|null,CustomerTypeUID:number,Price:number|null}>}
  */
 function _collectRules() {
     var rules = [];
     $('#PLProductBlocksWrap .pl-prod-block').each(function () {
         var $block  = $(this);
         var prodUID = parseInt($block.find('.pl-prod-uid').val() || 0, 10);
-        $block.find('.pl-tier-row').each(function () {
-            var $tr       = $(this);
-            var minQty    = parseInt($tr.find('.pl-min-qty').val() || 1, 10);
-            var maxQtyRaw = $.trim($tr.find('.pl-max-qty').val());
-            var maxQty    = maxQtyRaw !== '' ? parseInt(maxQtyRaw, 10) : null;
-            $tr.find('.pl-ct-price').each(function () {
-                var raw = $.trim($(this).val());
-                rules.push({
-                    ProductUID:      prodUID,
-                    MinQty:          minQty,
-                    MaxQty:          maxQty,
-                    CustomerTypeUID: parseInt($(this).data('ctuid') || 0, 10),
-                    Price:           raw !== '' ? (parseFloat(raw) || 0) : null
+
+        if ($block.data('mode') === 'variant') {
+            $block.find('.pl-var-section').each(function () {
+                var $section   = $(this);
+                var variantUID = parseInt($section.data('variant-uid') || 0, 10);
+                $section.find('.pl-tier-row').each(function () {
+                    var $tr       = $(this);
+                    var minQty    = parseInt($tr.find('.pl-min-qty').val() || 1, 10);
+                    var maxQtyRaw = $.trim($tr.find('.pl-max-qty').val());
+                    var maxQty    = maxQtyRaw !== '' ? parseInt(maxQtyRaw, 10) : null;
+                    $tr.find('.pl-ct-price').each(function () {
+                        var raw = $.trim($(this).val());
+                        rules.push({
+                            ProductUID:      prodUID,
+                            VariantUID:      variantUID,
+                            MinQty:          minQty,
+                            MaxQty:          maxQty,
+                            CustomerTypeUID: parseInt($(this).data('ctuid') || 0, 10),
+                            Price:           raw !== '' ? (parseFloat(raw) || 0) : null
+                        });
+                    });
                 });
             });
-        });
+        } else {
+            $block.find('.pl-tier-row').each(function () {
+                var $tr       = $(this);
+                var minQty    = parseInt($tr.find('.pl-min-qty').val() || 1, 10);
+                var maxQtyRaw = $.trim($tr.find('.pl-max-qty').val());
+                var maxQty    = maxQtyRaw !== '' ? parseInt(maxQtyRaw, 10) : null;
+                $tr.find('.pl-ct-price').each(function () {
+                    var raw = $.trim($(this).val());
+                    rules.push({
+                        ProductUID:      prodUID,
+                        VariantUID:      0,
+                        MinQty:          minQty,
+                        MaxQty:          maxQty,
+                        CustomerTypeUID: parseInt($(this).data('ctuid') || 0, 10),
+                        Price:           raw !== '' ? (parseFloat(raw) || 0) : null
+                    });
+                });
+            });
+        }
     });
     return rules;
 }
@@ -2498,89 +3030,143 @@ function _validateAllRules() {
             return false;
         }
 
-        var $tiers = $block.find('.pl-tier-row');
-        if (!$tiers.length) {
-            errorMsg = 'Product ' + blockNo + ': Add at least one price tier.';
-            return false;
-        }
+        if ($block.data('mode') === 'variant') {
+            // Validate each variant sub-section independently
+            $block.find('.pl-var-section').each(function () {
+                if (errorMsg) return false;
+                var $section = $(this);
+                var varLabel = $.trim($section.find('.pl-var-section-header span').text());
+                var prefix   = 'Product ' + blockNo + ' — ' + varLabel + ': ';
+                var $tiers   = $section.find('.pl-tier-row');
 
-        $tiers.each(function (ti) {
-            if (errorMsg) return false;
-            var $tr      = $(this);
-            var tierNo   = ti + 1;
-            var isLast   = ti === $tiers.length - 1;
-            var minQty   = parseInt($tr.find('.pl-min-qty').val() || 1, 10);
-            var maxRaw   = $.trim($tr.find('.pl-max-qty').val());
-            var maxQty   = maxRaw !== '' ? parseInt(maxRaw, 10) : null;
-
-            if (!isLast) {
-                if (maxQty === null || maxQty <= 0) {
-                    errorMsg = 'Product ' + blockNo + ', Tier ' + tierNo + ': Max Qty is required (only the last tier can be open-ended).';
-                    $tr.find('.pl-max-qty').focus();
+                if (!$tiers.length) {
+                    errorMsg = prefix + 'Add at least one price tier.';
                     return false;
                 }
-                if (maxQty <= minQty) {
-                    errorMsg = 'Product ' + blockNo + ', Tier ' + tierNo + ': Max Qty (' + maxQty + ') must be greater than Min Qty (' + minQty + ').';
-                    $tr.find('.pl-max-qty').focus();
-                    return false;
-                }
-            } else if (maxQty !== null && maxQty > 0 && maxQty <= minQty) {
-                errorMsg = 'Product ' + blockNo + ', Tier ' + tierNo + ': Max Qty must be greater than Min Qty (' + minQty + ').';
-                $tr.find('.pl-max-qty').focus();
+
+                $tiers.each(function (ti) {
+                    if (errorMsg) return false;
+                    var $tr    = $(this);
+                    var tierNo = ti + 1;
+                    var isLast = ti === $tiers.length - 1;
+                    var minQty = parseInt($tr.find('.pl-min-qty').val() || 1, 10);
+                    var maxRaw = $.trim($tr.find('.pl-max-qty').val());
+                    var maxQty = maxRaw !== '' ? parseInt(maxRaw, 10) : null;
+
+                    if (!isLast) {
+                        if (maxQty === null || maxQty <= 0) {
+                            errorMsg = prefix + 'Tier ' + tierNo + ': Max Qty is required (only the last tier can be open-ended).';
+                            $tr.find('.pl-max-qty').focus(); return false;
+                        }
+                        if (maxQty <= minQty) {
+                            errorMsg = prefix + 'Tier ' + tierNo + ': Max Qty (' + maxQty + ') must be greater than Min Qty (' + minQty + ').';
+                            $tr.find('.pl-max-qty').focus(); return false;
+                        }
+                    } else if (maxQty !== null && maxQty > 0 && maxQty <= minQty) {
+                        errorMsg = prefix + 'Tier ' + tierNo + ': Max Qty must be greater than Min Qty (' + minQty + ').';
+                        $tr.find('.pl-max-qty').focus(); return false;
+                    }
+
+                    if (ti > 0) {
+                        var prevMaxRaw = $.trim($tiers.eq(ti - 1).find('.pl-max-qty').val());
+                        var prevMax    = prevMaxRaw !== '' ? parseInt(prevMaxRaw, 10) : null;
+                        if (prevMax !== null && minQty !== prevMax + 1) {
+                            errorMsg = prefix + 'Tier ' + tierNo + ': Min Qty (' + minQty + ') must equal previous tier\'s Max Qty + 1 (' + (prevMax + 1) + ').';
+                            $tr.find('.pl-min-qty').closest('td').addClass('table-warning'); return false;
+                        }
+                    }
+
+                    $tr.find('.pl-ct-price').each(function () {
+                        if (errorMsg) return false;
+                        var raw = $.trim($(this).val());
+                        var v   = parseFloat(raw);
+                        if (raw === '' || isNaN(v) || v <= 0) {
+                            errorMsg = prefix + 'Tier ' + tierNo + ': Fill all price fields with a value greater than zero.';
+                            $(this).focus(); return false;
+                        }
+                    });
+                });
+            });
+        } else {
+            // Tier mode validation
+            var $tiers = $block.find('.pl-tier-row');
+            if (!$tiers.length) {
+                errorMsg = 'Product ' + blockNo + ': Add at least one price tier.';
                 return false;
             }
 
-            if (ti > 0) {
-                var prevMaxRaw = $.trim($tiers.eq(ti - 1).find('.pl-max-qty').val());
-                var prevMax    = prevMaxRaw !== '' ? parseInt(prevMaxRaw, 10) : null;
-                if (prevMax !== null && minQty !== prevMax + 1) {
-                    errorMsg = 'Product ' + blockNo + ', Tier ' + tierNo + ': Min Qty (' + minQty + ') must equal previous tier\'s Max Qty + 1 (' + (prevMax + 1) + ').';
-                    $tr.find('.pl-min-qty').closest('td').addClass('table-warning');
-                    return false;
-                }
-            }
-
-            $tr.find('.pl-ct-price').each(function () {
+            $tiers.each(function (ti) {
                 if (errorMsg) return false;
-                var raw = $.trim($(this).val());
-                var v   = parseFloat(raw);
-                if (raw === '' || isNaN(v) || v <= 0) {
-                    errorMsg = 'Product ' + blockNo + ', Tier ' + tierNo + ': Fill all price fields with a value greater than zero.';
-                    $(this).focus();
-                    return false;
+                var $tr    = $(this);
+                var tierNo = ti + 1;
+                var isLast = ti === $tiers.length - 1;
+                var minQty = parseInt($tr.find('.pl-min-qty').val() || 1, 10);
+                var maxRaw = $.trim($tr.find('.pl-max-qty').val());
+                var maxQty = maxRaw !== '' ? parseInt(maxRaw, 10) : null;
+
+                if (!isLast) {
+                    if (maxQty === null || maxQty <= 0) {
+                        errorMsg = 'Product ' + blockNo + ', Tier ' + tierNo + ': Max Qty is required (only the last tier can be open-ended).';
+                        $tr.find('.pl-max-qty').focus(); return false;
+                    }
+                    if (maxQty <= minQty) {
+                        errorMsg = 'Product ' + blockNo + ', Tier ' + tierNo + ': Max Qty (' + maxQty + ') must be greater than Min Qty (' + minQty + ').';
+                        $tr.find('.pl-max-qty').focus(); return false;
+                    }
+                } else if (maxQty !== null && maxQty > 0 && maxQty <= minQty) {
+                    errorMsg = 'Product ' + blockNo + ', Tier ' + tierNo + ': Max Qty must be greater than Min Qty (' + minQty + ').';
+                    $tr.find('.pl-max-qty').focus(); return false;
+                }
+
+                if (ti > 0) {
+                    var prevMaxRaw = $.trim($tiers.eq(ti - 1).find('.pl-max-qty').val());
+                    var prevMax    = prevMaxRaw !== '' ? parseInt(prevMaxRaw, 10) : null;
+                    if (prevMax !== null && minQty !== prevMax + 1) {
+                        errorMsg = 'Product ' + blockNo + ', Tier ' + tierNo + ': Min Qty (' + minQty + ') must equal previous tier\'s Max Qty + 1 (' + (prevMax + 1) + ').';
+                        $tr.find('.pl-min-qty').closest('td').addClass('table-warning'); return false;
+                    }
+                }
+
+                $tr.find('.pl-ct-price').each(function () {
+                    if (errorMsg) return false;
+                    var raw = $.trim($(this).val());
+                    var v   = parseFloat(raw);
+                    if (raw === '' || isNaN(v) || v <= 0) {
+                        errorMsg = 'Product ' + blockNo + ', Tier ' + tierNo + ': Fill all price fields with a value greater than zero.';
+                        $(this).focus(); return false;
+                    }
+                });
+                if (errorMsg) return false;
+
+                if (_plProductCache && (_plBelowPurchaseAction === 'strict' || _plBelowPurchaseAction === 'warn')) {
+                    var prodUID2 = parseInt($block.find('.pl-prod-uid').val() || 0, 10);
+                    var prodObj  = null;
+                    for (var _pi = 0; _pi < _plProductCache.length; _pi++) {
+                        if (parseInt(_plProductCache[_pi].id, 10) === prodUID2) { prodObj = _plProductCache[_pi]; break; }
+                    }
+                    if (prodObj && prodObj.purchasePrice > 0) {
+                        var dec2  = (typeof JwtData !== 'undefined' && JwtData.GenSettings) ? (parseInt(JwtData.GenSettings.DecimalPoints, 10) || 2) : 2;
+                        var effPP = (prodObj.purchasePriceTaxUID === 1)
+                            ? prodObj.purchasePrice
+                            : prodObj.purchasePrice * (1 + (prodObj.taxPercent || 0) / 100);
+                        $tr.find('.pl-ct-price').each(function () {
+                            if (errorMsg) return false;
+                            var raw2    = $.trim($(this).val());
+                            if (raw2 === '') return;
+                            var entered = parseFloat(raw2);
+                            if (!isNaN(entered) && entered > 0 && entered < effPP) {
+                                var msg = 'Product ' + blockNo + ', Tier ' + tierNo + ': Price (' + _plCurSym + entered.toFixed(dec2) + ') is below purchase cost (' + _plCurSym + effPP.toFixed(dec2) + ').';
+                                if (_plBelowPurchaseAction === 'strict') {
+                                    errorMsg = msg + ' Cannot save.'; $(this).focus();
+                                } else {
+                                    showToastNotification(msg, 'warning');
+                                }
+                            }
+                        });
+                    }
                 }
             });
-            if (errorMsg) return false;
-
-            if (_plProductCache && (_plBelowPurchaseAction === 'strict' || _plBelowPurchaseAction === 'warn')) {
-                var prodUID2 = parseInt($block.find('.pl-prod-uid').val() || 0, 10);
-                var prodObj  = null;
-                for (var _pi = 0; _pi < _plProductCache.length; _pi++) {
-                    if (parseInt(_plProductCache[_pi].id, 10) === prodUID2) { prodObj = _plProductCache[_pi]; break; }
-                }
-                if (prodObj && prodObj.purchasePrice > 0) {
-                    var dec2  = (typeof JwtData !== 'undefined' && JwtData.GenSettings) ? (parseInt(JwtData.GenSettings.DecimalPoints, 10) || 2) : 2;
-                    var effPP = (prodObj.purchasePriceTaxUID === 1)
-                        ? prodObj.purchasePrice
-                        : prodObj.purchasePrice * (1 + (prodObj.taxPercent || 0) / 100);
-                    $tr.find('.pl-ct-price').each(function () {
-                        if (errorMsg) return false;
-                        var raw2    = $.trim($(this).val());
-                        if (raw2 === '') return;
-                        var entered = parseFloat(raw2);
-                        if (!isNaN(entered) && entered > 0 && entered < effPP) {
-                            var msg = 'Product ' + blockNo + ', Tier ' + tierNo + ': Price (' + _plCurSym + entered.toFixed(dec2) + ') is below purchase cost (' + _plCurSym + effPP.toFixed(dec2) + ').';
-                            if (_plBelowPurchaseAction === 'strict') {
-                                errorMsg = msg + ' Cannot save.';
-                                $(this).focus();
-                            } else {
-                                showToastNotification(msg, 'warning');
-                            }
-                        }
-                    });
-                }
-            }
-        });
+        }
     });
 
     return errorMsg;

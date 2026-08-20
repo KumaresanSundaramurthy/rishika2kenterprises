@@ -495,6 +495,9 @@ class Products_model extends CI_Model {
                 'Products.HSNSACCode AS HSNSACCode',
                 'Products.PartNumber AS PartNumber',
                 'Products.IsComposite AS IsComposite',
+                'Products.IsBrandApplicable AS IsBrandApplicable',
+                'Products.IsSizeApplicable AS IsSizeApplicable',
+                'Products.LowStockAlertAt AS LowStockAlertAt',
                 'COALESCE(ProductStock.AvailableQty, 0) AS AvailableQuantity',
                 'Products.UpdatedOn AS UpdatedOn',
                 'Products.IsActive AS IsActive',
@@ -960,6 +963,7 @@ class Products_model extends CI_Model {
                 'p.IsComboItem',
                 'p.IsComposite',
                 'p.IsSerialTracked',
+                'p.IsBrandApplicable',
             ]);
             $this->ReadDb->from('Products.ProductTbl p');
             $this->ReadDb->join('Products.CategoryTbl cat',    'cat.CategoryUID = p.CategoryUID',      'left');
@@ -1089,8 +1093,11 @@ class Products_model extends CI_Model {
                 'Brand.Description AS Description',
                 'Brand.UpdatedOn AS UpdatedOn',
                 "CONCAT(User.FirstName, ' ', User.LastName) AS UpdatedBy",
-                '0 AS ProductCount',
             ]);
+            $this->ReadDb->select(
+                '(SELECT COUNT(DISTINCT pv.ProductUID) FROM Products.ProductVariantTbl pv WHERE pv.BrandUID = Brand.BrandUID AND pv.OrgUID = Brand.OrgUID AND pv.IsActive = 1) AS ProductCount',
+                false
+            );
             $this->ReadDb->from('Products.BrandTbl as Brand');
             $this->ReadDb->join('Users.UserTbl as User', 'User.UserUID = Brand.UpdatedBy', 'left');
             $this->ReadDb->where($baseWhere);
@@ -1144,6 +1151,32 @@ class Products_model extends CI_Model {
 
     }
 
+    public function getSizesForCache(int $orgUID): array {
+
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select([
+                'SizeUID',
+                'Name AS SizeName',
+                'SizeCode',
+                'Length', 'Width', 'Height', 'Depth',
+                'Diameter', 'Thickness',
+                'Weight', 'DimensionUOM', 'WeightUOM',
+                'Description',
+            ]);
+            $this->ReadDb->from('Products.SizeTbl');
+            $this->ReadDb->where(['OrgUID' => (int)$orgUID, 'IsActive' => 1]);
+            $this->ReadDb->order_by('Name', 'ASC');
+            $query = $this->ReadDb->get();
+            $error = $this->ReadDb->error();
+            if ($error['code']) throw new Exception($error['message']);
+            return $query->result();
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+
+    }
+
     public function getBrandsForCache(int $orgUID): array {
 
         try {
@@ -1173,6 +1206,48 @@ class Products_model extends CI_Model {
         } catch (Exception $e) {
             return null;
         }
+    }
+
+    public function isSizeInUse(int $sizeUID, int $orgUID): bool {
+        $this->ReadDb->db_debug = FALSE;
+        $this->ReadDb->select('1');
+        $this->ReadDb->from('Products.ProductVariantTbl');
+        $this->ReadDb->where(['SizeUID' => $sizeUID, 'OrgUID' => $orgUID, 'IsActive' => 1]);
+        $this->ReadDb->limit(1);
+        return (int) $this->ReadDb->get()->num_rows() > 0;
+    }
+
+    public function isBrandInUse(int $brandUID, int $orgUID): bool {
+        $this->ReadDb->db_debug = FALSE;
+        $this->ReadDb->select('1');
+        $this->ReadDb->from('Products.ProductVariantTbl');
+        $this->ReadDb->where(['BrandUID' => $brandUID, 'OrgUID' => $orgUID, 'IsActive' => 1]);
+        $this->ReadDb->limit(1);
+        return (int) $this->ReadDb->get()->num_rows() > 0;
+    }
+
+    public function getInUseSizeUIDs(array $sizeUIDs, int $orgUID): array {
+        if (empty($sizeUIDs)) return [];
+        $this->ReadDb->db_debug = FALSE;
+        $this->ReadDb->distinct();
+        $this->ReadDb->select('SizeUID');
+        $this->ReadDb->from('Products.ProductVariantTbl');
+        $this->ReadDb->where('OrgUID', $orgUID);
+        $this->ReadDb->where('IsActive', 1);
+        $this->ReadDb->where_in('SizeUID', $sizeUIDs);
+        return array_column($this->ReadDb->get()->result_array(), 'SizeUID');
+    }
+
+    public function getInUseBrandUIDs(array $brandUIDs, int $orgUID): array {
+        if (empty($brandUIDs)) return [];
+        $this->ReadDb->db_debug = FALSE;
+        $this->ReadDb->distinct();
+        $this->ReadDb->select('BrandUID');
+        $this->ReadDb->from('Products.ProductVariantTbl');
+        $this->ReadDb->where('OrgUID', $orgUID);
+        $this->ReadDb->where('IsActive', 1);
+        $this->ReadDb->where_in('BrandUID', $brandUIDs);
+        return array_column($this->ReadDb->get()->result_array(), 'BrandUID');
     }
 
     public function isDuplicateBrandName(int $orgUID, string $name, int $excludeUID = 0): bool {
@@ -1451,4 +1526,264 @@ class Products_model extends CI_Model {
             return [];
         }
     }
+
+    /**
+     * Get all active sizes for an org (for the variant size picker).
+     * @param int $orgUID
+     * @return array
+     */
+    public function getOrgSizes(int $orgUID): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select(['SizeUID', 'Name AS SizeName']);
+            $this->ReadDb->from('Products.SizeTbl');
+            $this->ReadDb->where(['OrgUID' => $orgUID, 'IsActive' => 1]);
+            $this->ReadDb->order_by('Name', 'ASC');
+            return $this->ReadDb->get()->result();
+        } catch (Throwable $e) {
+            log_message('error', 'getOrgSizes failed: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get all variants with their stock for a product (used in modal + edit form).
+     * @param int $productUID
+     * @param int $orgUID
+     * @return array
+     */
+    public function getProductVariants(int $productUID, int $orgUID): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select([
+                'pv.VariantUID',
+                'pv.BrandUID',
+                'pv.SizeUID',
+                'pv.PartNumber',
+                'pv.PurchasePrice',
+                'pv.PurchaseTaxUID',
+                'pv.SellingPrice',
+                'pv.SellingTaxUID',
+                'COALESCE(b.BrandName, \'\') AS BrandName',
+                'COALESCE(b.BrandCode, \'\') AS BrandCode',
+                'COALESCE(s.Name, \'\')      AS SizeName',
+                'COALESCE(pvs.OpeningQty, 0)   AS OpeningQty',
+                'COALESCE(pvs.AvailableQty, 0) AS AvailableQty',
+            ]);
+            $this->ReadDb->from('Products.ProductVariantTbl pv');
+            $this->ReadDb->join('Products.BrandTbl b',                 'b.BrandUID = pv.BrandUID AND pv.BrandUID > 0', 'LEFT');
+            $this->ReadDb->join('Products.SizeTbl s',                  's.SizeUID  = pv.SizeUID  AND pv.SizeUID  > 0', 'LEFT');
+            $this->ReadDb->join('Products.ProductVariantStockTbl pvs', 'pvs.VariantUID = pv.VariantUID AND pvs.OrgUID = pv.OrgUID', 'LEFT');
+            $this->ReadDb->where(['pv.ProductUID' => $productUID, 'pv.OrgUID' => $orgUID, 'pv.IsActive' => 1]);
+            $this->ReadDb->order_by('s.Name', 'ASC');
+            $this->ReadDb->order_by('b.BrandName', 'ASC');
+            return $this->ReadDb->get()->result();
+        } catch (Throwable $e) {
+            log_message('error', 'getProductVariants failed: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Slim variant list for the Price List rule builder.
+     * Returns VariantUID + human-readable Label (BrandName / SizeName).
+     * @param int $productUID
+     * @param int $orgUID
+     * @return array
+     */
+    public function getProductVariantsForPricelist(int $productUID, int $orgUID): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('pv.VariantUID, COALESCE(b.BrandName, \'\') AS BrandName, COALESCE(s.Name, \'\') AS SizeName', false);
+            $this->ReadDb->from('Products.ProductVariantTbl pv');
+            $this->ReadDb->join('Products.BrandTbl b', 'b.BrandUID = pv.BrandUID AND pv.BrandUID > 0', 'LEFT');
+            $this->ReadDb->join('Products.SizeTbl s',  's.SizeUID  = pv.SizeUID  AND pv.SizeUID  > 0', 'LEFT');
+            $this->ReadDb->where(['pv.ProductUID' => $productUID, 'pv.OrgUID' => $orgUID, 'pv.IsActive' => 1]);
+            $this->ReadDb->order_by('s.Name', 'ASC');
+            $this->ReadDb->order_by('b.BrandName', 'ASC');
+            $rows   = $this->ReadDb->get()->result();
+            $result = [];
+            foreach ($rows as $row) {
+                $parts    = array_filter([$row->BrandName, $row->SizeName]);
+                $result[] = [
+                    'VariantUID' => (int) $row->VariantUID,
+                    'BrandName'  => $row->BrandName,
+                    'SizeName'   => $row->SizeName,
+                    'Label'      => $parts ? implode(' / ', $parts) : ('Variant #' . $row->VariantUID),
+                ];
+            }
+            return $result;
+        } catch (Throwable $e) {
+            log_message('error', 'getProductVariantsForPricelist failed: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Bulk-fetch all active variants for an org in one query for cache sync.
+     * Returns [productUID => [{VariantUID,BrandName,SizeName,Label}, ...], ...]
+     * @param int $orgUID
+     * @return array<string, array<int, array<string, mixed>>>
+     */
+    public function getAllProductVariantsForSync(int $orgUID): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('pv.ProductUID, pv.VariantUID, COALESCE(b.BrandName, \'\') AS BrandName, COALESCE(s.Name, \'\') AS SizeName', false);
+            $this->ReadDb->from('Products.ProductVariantTbl pv');
+            $this->ReadDb->join('Products.BrandTbl b', 'b.BrandUID = pv.BrandUID AND pv.BrandUID > 0', 'LEFT');
+            $this->ReadDb->join('Products.SizeTbl s',  's.SizeUID  = pv.SizeUID  AND pv.SizeUID  > 0', 'LEFT');
+            $this->ReadDb->where(['pv.OrgUID' => $orgUID, 'pv.IsActive' => 1]);
+            $this->ReadDb->order_by('pv.ProductUID', 'ASC');
+            $this->ReadDb->order_by('s.Name', 'ASC');
+            $this->ReadDb->order_by('b.BrandName', 'ASC');
+            $rows   = $this->ReadDb->get()->result();
+            $result = [];
+            foreach ($rows as $row) {
+                $pKey  = (string)(int)$row->ProductUID;
+                $parts = array_filter([$row->BrandName, $row->SizeName]);
+                $result[$pKey][] = [
+                    'VariantUID' => (int) $row->VariantUID,
+                    'BrandName'  => $row->BrandName,
+                    'SizeName'   => $row->SizeName,
+                    'Label'      => $parts ? implode(' / ', $parts) : ('Variant #' . (int)$row->VariantUID),
+                ];
+            }
+            return $result;
+        } catch (Throwable $e) {
+            log_message('error', 'getAllProductVariantsForSync failed: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function getSizeListPaginated(int $orgUID, int $limit, int $offset, string $searchQuery = '', array $sortArr = []): object {
+
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $baseWhere = [
+                'Size.OrgUID'   => (int) $orgUID,
+                'Size.IsActive' => 1,
+            ];
+
+            $this->ReadDb->select('COUNT(Size.SizeUID) AS TotalCount');
+            $this->ReadDb->from('Products.SizeTbl as Size');
+            $this->ReadDb->where($baseWhere);
+            if (!empty($searchQuery)) { $this->ReadDb->where($searchQuery, null, false); }
+            $countQuery = $this->ReadDb->get();
+            $countError = $this->ReadDb->error();
+            if ($countError['code']) throw new Exception($countError['message']);
+            $totalCount = (int) ($countQuery->row()->TotalCount ?? 0);
+
+            $this->ReadDb->select([
+                'Size.SizeUID      AS SizeUID',
+                'Size.Name         AS SizeName',
+                'Size.SizeCode     AS SizeCode',
+                'Size.Length       AS Length',
+                'Size.Width        AS Width',
+                'Size.Height       AS Height',
+                'Size.Depth        AS Depth',
+                'Size.Diameter     AS Diameter',
+                'Size.Thickness    AS Thickness',
+                'Size.Weight       AS Weight',
+                'Size.DimensionUOM AS DimensionUOM',
+                'Size.WeightUOM    AS WeightUOM',
+                'Size.Description  AS Description',
+                'Size.UpdatedOn    AS UpdatedOn',
+                "CONCAT(COALESCE(User.FirstName,''), ' ', COALESCE(User.LastName,'')) AS UpdatedBy",
+            ]);
+            $this->ReadDb->select(
+                '(SELECT COUNT(DISTINCT pv.ProductUID) FROM Products.ProductVariantTbl pv WHERE pv.SizeUID = Size.SizeUID AND pv.OrgUID = Size.OrgUID AND pv.IsActive = 1) AS ProductCount',
+                false
+            );
+            $this->ReadDb->from('Products.SizeTbl as Size');
+            $this->ReadDb->join('Users.UserTbl as User', 'User.UserUID = Size.UpdatedBy', 'left');
+            $this->ReadDb->where($baseWhere);
+            if (!empty($searchQuery)) { $this->ReadDb->where($searchQuery, null, false); }
+            $this->ReadDb->group_by('Size.SizeUID');
+            if (!empty($sortArr)) {
+                foreach ($sortArr as $col => $dir) { $this->ReadDb->order_by($col, $dir); }
+            } else {
+                $this->ReadDb->order_by('Size.SizeUID', 'DESC');
+            }
+            $this->ReadDb->limit($limit, $offset);
+            $dataQuery = $this->ReadDb->get();
+            $dataError = $this->ReadDb->error();
+            if ($dataError['code']) throw new Exception($dataError['message']);
+
+            $result             = new stdClass();
+            $result->rows       = $dataQuery->result();
+            $result->totalCount = $totalCount;
+            return $result;
+
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+
+    }
+
+    public function sizeFilterFormation(object $ModuleInfoData, array $Filter): object {
+
+        $this->EndReturnData = new stdClass();
+        try {
+            $SearchDirectQuery = '';
+            $sortOperation     = [];
+            if (!empty($Filter)) {
+                if (array_key_exists('SearchAllData', $Filter)) {
+                    $s = $this->ReadDb->escape_like_str($Filter['SearchAllData']);
+                    $a = $ModuleInfoData->TableAliasName;
+                    $SearchDirectQuery = "({$a}.Name LIKE '%{$s}%')";
+                }
+                if (array_key_exists('NameSorting', $Filter)) {
+                    $sortOperation[$ModuleInfoData->TableAliasName . '.Name'] = $Filter['NameSorting'] == 1 ? 'ASC' : 'DESC';
+                }
+                if (array_key_exists('LastUpdatedFilter', $Filter) && !empty($Filter['LastUpdatedFilter'])) {
+                    $uids = array_values(array_filter(array_map('intval', (array) $Filter['LastUpdatedFilter'])));
+                    if (!empty($uids)) {
+                        $a = $ModuleInfoData->TableAliasName;
+                        $SearchDirectQuery .= ($SearchDirectQuery ? ' AND ' : '') . $a . '.UpdatedBy IN (' . implode(',', $uids) . ')';
+                    }
+                }
+            }
+            $this->EndReturnData->Error             = false;
+            $this->EndReturnData->SearchDirectQuery = $SearchDirectQuery;
+            $this->EndReturnData->sortOperation     = $sortOperation;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error             = true;
+            $this->EndReturnData->SearchDirectQuery = '';
+            $this->EndReturnData->sortOperation     = [];
+        }
+        return $this->EndReturnData;
+
+    }
+
+    public function isDuplicateSizeName(int $orgUID, string $sizeName, int $excludeUID = 0): bool {
+
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('SizeUID');
+            $this->ReadDb->from('Products.SizeTbl');
+            $this->ReadDb->where(['OrgUID' => $orgUID, 'Name' => $sizeName, 'IsActive' => 1]);
+            if ($excludeUID > 0) { $this->ReadDb->where('SizeUID !=', $excludeUID); }
+            $q = $this->ReadDb->get();
+            return $q && $q->num_rows() > 0;
+        } catch (Exception $e) {
+            return false;
+        }
+
+    }
+
+    public function getSizeByUID(int $sizeUID, int $orgUID): ?object {
+
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select(['SizeUID', 'Name AS SizeName']);
+            $this->ReadDb->from('Products.SizeTbl');
+            $this->ReadDb->where(['SizeUID' => $sizeUID, 'OrgUID' => $orgUID, 'IsActive' => 1]);
+            $q = $this->ReadDb->get();
+            return $q ? $q->row() : null;
+        } catch (Exception $e) {
+            return null;
+        }
+
+    }
+
 }

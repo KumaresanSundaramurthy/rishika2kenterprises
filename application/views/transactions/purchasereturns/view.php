@@ -25,7 +25,7 @@ $this->load->view('common/transactions/header'); ?>
                 ];
                 $visibleFilters = $tabFilterMap[$initTab] ?? $tabFilterMap['All'];
 
-                if ($JwtData->TransSettings->ShowTransactionStats ?? 1):
+                if (($JwtData->GenSettings->ShowStats ?? 1) && ($JwtData->TransSettings->ShowTransactionStats ?? 1)):
                 $stats       = $SummaryStats ?? [];
                 $cur         = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
                 $dec         = $JwtData->GenSettings->DecimalPoints ?? 2;
@@ -559,19 +559,18 @@ $(function () {
         var num    = $(this).data('num') || '';
 
         if (status !== 'Cancelled') {
-            showProcessing('Updating Status…');
+            ajaxLoading(1);
             $.ajax({
                 url: '/purchasereturns/updatePurchaseReturnStatus', method: 'POST',
                 data: { TransUID: uid, Status: status, [CsrfName]: CsrfToken },
                 success: function (resp) {
-                    hideProcessing();
+                    ajaxLoading(0);
+                    hideUIBlock();
                     if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }
-                    var _msg = resp.Message || 'Status updated.';
-                    getPurchaseReturnsDetails(undefined, undefined, undefined, function () {
-                        showToastNotification(_msg, 'success');
-                    });
+                    showToastNotification(resp.Message || 'Status updated.', 'success');
+                    getPurchaseReturnsDetails();
                 },
-                error: function () { hideProcessing(); Swal.fire({ icon: 'error', text: 'Request failed. Try again.' }); }
+                error: function () { ajaxLoading(0); hideUIBlock(); Swal.fire({ icon: 'error', text: 'Request failed. Try again.' }); }
             });
             return;
         }
@@ -635,21 +634,22 @@ $(function () {
             }
         }).then(function (r) {
             if (!r.isConfirmed) return;
-            showProcessing('Cancelling Purchase Return…');
+            ajaxLoading(1);
             $.ajax({
                 url   : '/purchasereturns/updatePurchaseReturnStatus',
                 method: 'POST',
                 data  : { TransUID: uid, Status: 'Cancelled', CancelPaymentAction: r.value || '', [CsrfName]: CsrfToken },
                 success: function (resp) {
-                    hideProcessing();
+                    ajaxLoading(0);
+                    hideUIBlock();
                     if (resp.Error) {
                         Swal.fire({ icon: 'error', title: 'Cannot Cancel', html: resp.Message, confirmButtonColor: '#dc3545' });
                     } else {
-                        getPurchaseReturnsDetails();
                         showToastNotification('Purchase Return cancelled successfully.', 'success');
+                        getPurchaseReturnsDetails();
                     }
                 },
-                error: function () { hideProcessing(); Swal.fire({ icon: 'error', text: 'Request failed. Try again.' }); }
+                error: function () { ajaxLoading(0); hideUIBlock(); Swal.fire({ icon: 'error', text: 'Request failed. Try again.' }); }
             });
         });
     }
@@ -674,8 +674,11 @@ $(function () {
             icon: 'warning', showCancelButton: true, confirmButtonText: 'Delete', confirmButtonColor: '#d33' })
             .then(function (r) {
                 if (!r.isConfirmed) return;
+                ajaxLoading(1);
                 $.ajax({ url: '/purchasereturns/deletePurchaseReturn', method: 'POST', data: _actionPostData({ TransUID: uid }),
                     success: function (resp) {
+                        ajaxLoading(0);
+                        hideUIBlock();
                         if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }
                         showToastNotification(resp.Message || 'Deleted.', 'success');
                         if (PageNo > 1 && (resp.TotalCount || 0) <= (PageNo - 1) * RowLimit) {
@@ -684,7 +687,8 @@ $(function () {
                         } else {
                             _renderListResponse(resp);
                         }
-                    }
+                    },
+                    error: function () { ajaxLoading(0); hideUIBlock(); Swal.fire({ icon: 'error', text: 'Request failed. Please try again.' }); }
                 });
             });
     });

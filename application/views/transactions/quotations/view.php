@@ -26,7 +26,7 @@ $this->load->view('common/transactions/header'); ?>
                 ];
                 $visibleFilters = $tabFilterMap[$initTab] ?? $tabFilterMap['All'];
 
-                if ($JwtData->TransSettings->ShowTransactionStats ?? 1):
+                if (($JwtData->GenSettings->ShowStats ?? 1) && ($JwtData->TransSettings->ShowTransactionStats ?? 1)):
                 $stats        = $SummaryStats ?? [];
                 $cur          = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
                 $dec          = $JwtData->GenSettings->DecimalPoints ?? 2;
@@ -481,17 +481,19 @@ $(function () {
         }
         $(this).removeData('_confirmed');
         // All other status changes (and confirmed Cancelled)
+        ajaxLoading(1);
         $.ajax({
             url   : '/quotations/updateQuotationStatus',
             method: 'POST',
             data  : { TransUID: uid, Status: status, [CsrfName]: CsrfToken },
             success: function (resp) {
+                ajaxLoading(0);
+                hideUIBlock();
                 if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }
-                var _msg = resp.Message || 'Status updated.';
-                getQuotationsDetails(undefined, undefined, undefined, function () {
-                    showToastNotification(_msg, 'success');
-                });
-            }
+                showToastNotification(resp.Message || 'Status updated.', 'success');
+                getQuotationsDetails();
+            },
+            error: function () { ajaxLoading(0); hideUIBlock(); Swal.fire({ icon: 'error', text: 'Request failed. Please try again.' }); }
         });
     });
 
@@ -520,11 +522,14 @@ $(function () {
             icon : 'warning', showCancelButton: true, confirmButtonText: 'Delete', confirmButtonColor: '#d33',
         }).then(function (r) {
             if (!r.isConfirmed) return;
+            ajaxLoading(1);
             $.ajax({
                 url   : '/quotations/deleteQuotation',
                 method: 'POST',
                 data  : _actionPostData({ TransUID: uid }),
                 success: function (resp) {
+                    ajaxLoading(0);
+                    hideUIBlock();
                     if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }
                     showToastNotification(resp.Message || 'Deleted.', 'success');
                     if (PageNo > 1 && (resp.TotalCount || 0) <= (PageNo - 1) * RowLimit) {
@@ -533,7 +538,8 @@ $(function () {
                     } else {
                         _renderListResponse(resp);
                     }
-                }
+                },
+                error: function () { ajaxLoading(0); hideUIBlock(); Swal.fire({ icon: 'error', text: 'Request failed. Please try again.' }); }
             });
         });
     });

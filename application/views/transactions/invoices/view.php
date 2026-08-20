@@ -30,7 +30,7 @@ $this->load->view('common/transactions/header'); ?>
                 ];
                 $visibleFilters = $tabFilterMap[$initTab] ?? $tabFilterMap['All'];
 
-                if ($JwtData->TransSettings->ShowTransactionStats ?? 1):
+                if (($JwtData->GenSettings->ShowStats ?? 1) && ($JwtData->TransSettings->ShowTransactionStats ?? 1)):
                 // ── Build summary numbers ─────────────────────────
                 $stats       = $SummaryStats ?? [];
                 $cur         = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
@@ -318,6 +318,7 @@ $(function () {
     'use strict';
 
     _checkPendingToast('_invPendingToast');
+    _checkPendingToast('_invPendingCnWarn');
     PageNo = _initPage;
     Filter['Status'] = _invInitTab === 'CreditNotes' ? 'All' : _invInitTab;
     if (_invInitSearch) { Filter.Name = _invInitSearch; }
@@ -979,7 +980,10 @@ function updateInvoiceRow(invoice, payments, paidTotal) {
     var paymentHtml = '';
     if (payments && payments.length > 0) {
         payments.forEach(function(p) {
-            paymentHtml += '<span class="badge bg-label-info me-1">' + (p.PaymentTypeName || 'Payment') + '</span>';
+            var isCN       = (p.SourceType === 'CreditNote');
+            var modeName   = isCN ? 'Credit Note' : (p.PaymentTypeName || 'Payment');
+            var modeClass  = isCN ? 'bg-label-success' : 'bg-label-info';
+            paymentHtml += '<span class="badge ' + modeClass + ' me-1">' + modeName + '</span>';
         });
         var hasAttach = invoice.PaymentAttachmentCount > 0;
         if (hasAttach) {

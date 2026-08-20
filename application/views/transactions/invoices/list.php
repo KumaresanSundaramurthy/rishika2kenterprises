@@ -203,6 +203,11 @@ if (!empty($DataLists)):
             $hasPayAttach  = !empty($list->PaymentAttachmentCount) && (int)$list->PaymentAttachmentCount > 0;
             ?>
             <?php if ($payCount > 0 && $firstMode): ?>
+                <?php
+                $isCnMode      = ($firstMode === 'Credit Note');
+                $modeBadge     = $isCnMode ? 'bg-label-success' : 'bg-label-primary';
+                $modeIcon      = $isCnMode ? 'bx-receipt'       : 'bx-credit-card';
+                ?>
                 <div class="pay-mode-cell<?php echo $payCount > 1 ? ' pay-mode-clickable' : ''; ?>"
                      <?php if ($payCount > 1): ?>
                      data-trans-uid="<?php echo (int)$list->TransUID; ?>"
@@ -210,8 +215,8 @@ if (!empty($DataLists)):
                      style="cursor:pointer;"
                      <?php endif; ?>>
                     <div class="d-flex align-items-center gap-1 flex-wrap">
-                        <span class="badge bg-label-primary" style="font-size:.68rem;">
-                            <i class="bx bx-credit-card me-1"></i><?php echo $firstMode; ?>
+                        <span class="badge <?php echo $modeBadge; ?>" style="font-size:.68rem;">
+                            <i class="bx <?php echo $modeIcon; ?> me-1"></i><?php echo $firstMode; ?>
                         </span>
                         <?php if ($extraCnt > 0): ?>
                             <span class="badge bg-label-secondary" style="font-size:.68rem;">+<?php echo $extraCnt; ?></span>

@@ -128,7 +128,7 @@ if ($isEdit) {
                             $_purchType = !empty($PurchData->DocType ?? '') ? $PurchData->DocType : $_tsDefault;
                             ?>
                             <!-- ── Toolbar: Type & Deliver To ──────────────────────────────── -->
-                            <?php $this->load->view('transactions/partials/trans_toolbar_type', ['_tbTypeValue' => $_purchType, '_tbFieldId' => 'purchaseType', '_tbFieldName' => 'purchaseType', '_tbEditGuardStrict' => true, '_tbDispatchLabel' => 'Deliver To', '_tbShowOnAccount' => false, '_tbIsEdit' => $isEdit, '_tbIsDraftEdit' => $isDraftEdit]); ?>
+                            <?php $this->load->view('transactions/partials/trans_toolbar_type', ['_tbTypeValue' => $_purchType, '_tbFieldId' => 'purchaseType', '_tbFieldName' => 'purchaseType', '_tbEditGuardStrict' => true, '_tbDispatchLabel' => 'Deliver To', '_tbShowOnAccount' => false, '_tbVendorMode' => true, '_tbIsEdit' => $isEdit, '_tbIsDraftEdit' => $isDraftEdit]); ?>
 
                             <!-- ── Row 1: Vendor | Supplier Invoice Date | Payment By | Reference ── -->
                             <div class="row g-2 align-items-end mb-2">
@@ -212,13 +212,8 @@ if ($isEdit) {
 
                             </div>
 
-                            <!-- Vendor address box -->
-                            <div class="row g-2 mb-3">
-                                <div class="col-md-4">
-                                    <div id="vendorAddressBox" class="trans-addr-strip d-none"><i class="bx bx-map-pin"></i><span></span></div>
-                                </div>
-                            </div>
-                            <hr class="mt-2 mb-3"/>
+                            <div id="vendorAddressBox" class="trans-addr-strip d-none"><i class="bx bx-map-pin"></i><span></span></div>
+                            <hr id="vendorAddrDivider" class="mt-3 d-none"/>
 
                             <?php $this->load->view('transactions/partials/form_products_add', [
                                 'transNotesPlaceholder' => 'Enter notes or anything else',
@@ -237,12 +232,12 @@ if ($isEdit) {
                                 'transEditItems'        => $isEdit ? ($PurchItems ?? []) : [],
                             ]); ?>
 
-                            <?php $this->load->view('transactions/partials/trans_summary_bar', ['_barIsSticky' => false, '_barSections' => 'full4', '_barButtonLayout' => 'split', '_barShowPrint' => 'draft_or_create', '_barUseDcClasses' => false, '_barIsEdit' => $isEdit, '_barIsDraftEdit' => $isDraftEdit]); ?>
+                            <?php $this->load->view('transactions/partials/trans_summary_bar', ['_barIsSticky' => false, '_barSections' => 'full4', '_barButtonLayout' => 'invoice', '_barShowPrint' => 'draft_or_create', '_barUseDcClasses' => false, '_barIsEdit' => $isEdit, '_barIsDraftEdit' => $isDraftEdit]); ?>
 
                         </div> <!-- /card-body -->
                     </div> <!-- /card -->
 
-                    <?php $this->load->view('transactions/partials/trans_summary_bar', ['_barIsSticky' => true, '_barSections' => 'full4', '_barButtonLayout' => 'split', '_barShowPrint' => 'draft_or_create', '_barUseDcClasses' => false, '_barIsEdit' => $isEdit, '_barIsDraftEdit' => $isDraftEdit]); ?>
+                    <?php $this->load->view('transactions/partials/trans_summary_bar', ['_barIsSticky' => true, '_barSections' => 'full4', '_barButtonLayout' => 'invoice', '_barShowPrint' => 'draft_or_create', '_barUseDcClasses' => false, '_barIsEdit' => $isEdit, '_barIsDraftEdit' => $isDraftEdit]); ?>
 
                     <?php echo form_close(); ?>
 
@@ -294,8 +289,9 @@ var _transFormData = <?php echo json_encode([
     'vendorCacheKey'=> $VendorCacheKey   ?? '',
     'returnTab'     => $_returnTab,
     'returnPage'    => (int)$_returnPage,
-    'currency'      => $JwtData->GenSettings->CurrenySymbol ?? '₹',
-    'decimals'      => (int)($JwtData->GenSettings->DecimalPoints ?? 2),
+    'currency'               => $JwtData->GenSettings->CurrenySymbol ?? '₹',
+    'decimals'               => (int)($JwtData->GenSettings->DecimalPoints ?? 2),
+    'autoUpdatePurchasePrice' => strtolower($JwtData->TransSettings->AutoUpdatePurchasePrice ?? 'off'),
     'editData'      => $isEdit ? [
         'transUID'          => $transUID,
         'vendorUID'         => (int)($PurchData->PartyUID ?? 0),
@@ -338,6 +334,11 @@ var _transFormData = <?php echo json_encode([
                 'discount_amount'  => (float)$item->DiscountAmount,
                 'line_total'       => (float)$item->TaxableAmount,
                 'net_total'        => (float)$item->NetAmount,
+                'brandUID'         => $item->BrandUID          ? (int)$item->BrandUID            : null,
+                'brandName'        => $item->BrandName          ?? '',
+                'variantUID'       => $item->VariantUID         ? (int)$item->VariantUID          : null,
+                'variantLabel'     => $item->VariantLabel        ?? '',
+                'IsBrandApplicable'=> (int)($item->IsBrandApplicable ?? 0),
             ];
         }, $PurchItems ?? []),
     ] : null,
@@ -377,6 +378,11 @@ var _transFormData = <?php echo json_encode([
             'discount_amount'  => (float)$item->DiscountAmount,
             'line_total'       => (float)$item->TaxableAmount,
             'net_total'        => (float)$item->NetAmount,
+            'brandUID'         => $item->BrandUID          ? (int)$item->BrandUID            : null,
+            'brandName'        => $item->BrandName          ?? '',
+            'variantUID'       => $item->VariantUID         ? (int)$item->VariantUID          : null,
+            'variantLabel'     => $item->VariantLabel        ?? '',
+            'IsBrandApplicable'=> (int)($item->IsBrandApplicable ?? 0),
         ];
     }, $POItems) : null,
 ]); ?>;

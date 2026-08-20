@@ -35,7 +35,6 @@
         var taxTotals    = s.taxTotals || {};
         var itemSummary  = s.items     || {};
         var extra        = s.extra     || {};
-        var addCharges   = s.additionalCharges || {};
 
         var payload = {};
         if (typeof CsrfName !== 'undefined') payload[CsrfName] = CsrfToken;
@@ -51,13 +50,13 @@
         payload.GlobalDiscPercent     = parseFloat($('#globalDiscPercent').val()          || 0);
         payload.extraDiscount         = parseFloat($('[name="extraDiscount"]').val()      || 0);
         payload.extDiscountType       = String($('[name="extDiscountType"]').val()        || '').trim();
-        payload.SubTotal              = totals.subtotal         || 0;
+        payload.SubTotal              = itemSummary.taxableAmount || 0;
         payload.DiscountAmount        = itemSummary.discountTotal || 0;
         payload.TaxAmount             = taxTotals.totalTax      || 0;
         payload.CgstAmount            = taxTotals.cgstTotal     || 0;
         payload.SgstAmount            = taxTotals.sgstTotal     || 0;
         payload.IgstAmount            = taxTotals.igstTotal     || 0;
-        payload.AdditionalChargesTotal = addCharges.total       || 0;
+        payload.AdditionalChargesTotal = (s.additionalCharges && s.additionalCharges.total) ? (s.additionalCharges.total.grossAmount || 0) : 0;
         payload.AdditionalCharges     = JSON.stringify(typeof collectAdditionalCharges === 'function' ? collectAdditionalCharges() : []);
         payload.RoundOff              = extra.roundOff          || 0;
         payload.NetAmount             = totals.grandTotal       || 0;
@@ -65,6 +64,10 @@
         payload.placeOfSupplyCode     = String($('#placeOfSupplyCode').val()    || '').trim();
         payload.placeOfSupplyName     = String($('#placeOfSupplyName').val()    || '').trim();
         payload.isInterState          = String($('#isInterStateHidden').val()   || '').trim();
+        payload.invoiceType           = String($('[name="invoiceType"]').val()  || '').trim();
+        payload.dispatchFrom          = String($('[name="dispatchFrom"]').val() || '').trim();
+        payload.SignatureUID          = parseInt($('#transSignatureUID').val(), 10) || 0;
+        payload.CreditNoteUID         = parseInt($('#CreditNoteUIDInput').val(), 10) || 0;
         payload.action                = 'draft';
 
         if (_draftUid > 0) payload.TransUID = _draftUid;
@@ -109,6 +112,7 @@
      * @returns {void}
      */
     function _onChanged() {
+        if (!window._autoDraftSave) return;
         if (!_meetsThreshold()) return;
         clearTimeout(_timer);
         _timer = setTimeout(_doSave, _cfg.debounceMs || 3000);

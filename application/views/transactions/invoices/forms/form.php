@@ -197,7 +197,7 @@ if ($isEdit) {
                                 'transShowDropzone'     => true,
                                 'transSignatureUID'     => $isEdit ? (int)($InvData->SignatureUID ?? 0) : 0,
                                 'transSignatures'       => $JwtData->User->Signatures ?? [],
-                                'transPaymentVars'      => !$isEdit ? [
+                                'transPaymentVars'      => (!$isEdit || $isDraftEdit) ? [
                                     'PaymentTypes'     => $PaymentTypes ?? [],
                                     'BankAccounts'     => $BankAccounts ?? [],
                                     'JwtData'          => $JwtData,
@@ -246,7 +246,7 @@ if ($isEdit) {
 <script src="/js/transactions/modaladdress.js"></script>
 <script src="/js/common/category_form.js"></script>
 <script src="/js/common/product_form.js"></script>
-<?php if (!$isEdit): ?>
+<?php if (!$isEdit || $isDraftEdit): ?>
 <script src="/js/transactions/payment_section.js"></script>
 <?php endif; ?>
 <script src="/js/transactions/attachments.js"></script>
@@ -271,6 +271,7 @@ var _transFormData = <?php echo json_encode([
     'currency'     => $JwtData->GenSettings->CurrenySymbol ?? '₹',
     'decimals'     => (int)($JwtData->GenSettings->DecimalPoints ?? 2),
     'editData'     => $isEdit ? [
+        'transUID'          => (int)($InvData->TransUID ?? 0),
         'custUID'           => (int)($InvData->PartyUID ?? 0),
         'custName'          => $InvData->PartyName  ?? '',
         'custArea'          => $InvData->PartyArea   ?? '',
@@ -314,8 +315,19 @@ var _transFormData = <?php echo json_encode([
                 'net_total'            => (float)$item->NetAmount,
                 'isCompliment'         => (int)($item->IsCompliment ?? 0),
                 'catalogSellingPrice'  => (float)($item->CatalogSellingPrice ?? 0),
+                'brandUID'             => $item->BrandUID          ? (int)$item->BrandUID            : null,
+                'brandName'            => $item->BrandName          ?? '',
+                'variantUID'           => $item->VariantUID         ? (int)$item->VariantUID          : null,
+                'variantLabel'         => $item->VariantLabel        ?? '',
+                'IsBrandApplicable'    => (int)($item->IsBrandApplicable ?? 0),
             ];
         }, $InvItems ?? []),
+        'draftCN' => ($isDraftEdit && !empty($DraftReservedCN)) ? [
+            'uid'    => (int)$DraftReservedCN->CreditNoteUID,
+            'number' => $DraftReservedCN->CreditNoteNumber ?? '',
+            'amount' => (float)$DraftReservedCN->Amount,
+            'type'   => $DraftReservedCN->CreditNoteType   ?? '',
+        ] : null,
     ] : null,
     'fromSO'      => (!$isEdit && !empty($SalesOrderData)) ? [
         'uid'            => (int)($FromSalesOrderUID ?? 0),

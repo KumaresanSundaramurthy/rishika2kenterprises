@@ -297,6 +297,8 @@ class Login_model extends CI_Model {
             if (!isset($row->ComboPriceDistribution))    $row->ComboPriceDistribution    = 'ratio';
             if (!isset($row->BelowPurchasePriceAction))  $row->BelowPurchasePriceAction  = 'warn';
             if (!isset($row->DefaultTransactionType))    $row->DefaultTransactionType     = 'regular';
+            if (!isset($row->AutoDraftSave))             $row->AutoDraftSave              = 1;
+            if (!isset($row->AutoUpdatePurchasePrice)) $row->AutoUpdatePurchasePrice    = 'off';
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = [$row];

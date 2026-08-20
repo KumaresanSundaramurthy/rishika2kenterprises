@@ -217,7 +217,7 @@ if (!function_exists('initTransFormCommon')) {
         return [
             '_posCode'      => $isEdit ? ($transData->PlaceOfSupplyCode ?? '') : ($jwtData->Org->StateCode ?? ''),
             '_posName'      => $isEdit ? ($transData->PlaceOfSupplyName ?? '') : ($jwtData->Org->StateName ?? ''),
-            '_isInterState' => $isEdit && $transData !== null && $transData->IsInterState !== null ? (int)$transData->IsInterState : '',
+            '_isInterState' => ($isEdit && isset($transData->IsInterState)) ? (int)$transData->IsInterState : '',
             '_returnTab'  => $returnTab,
             '_returnPage' => $returnPage,
             '_closeUrl'   => trans_build_close_url($closeBase, $returnTab, $returnPage),

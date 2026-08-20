@@ -759,6 +759,105 @@ class Dbwrite_model extends CI_Model {
         );
     }
 
+    /**
+     * Create a size in SizeTbl (or find existing) and return its SizeUID.
+     * Uses LAST_INSERT_ID trick so no separate SELECT is needed.
+     * @param int    $orgUID
+     * @param string $sizeName
+     * @param int    $userUID
+     * @returns int  SizeUID (0 on failure)
+     */
+    public function addSize(int $orgUID, string $sizeName, int $userUID): int {
+        $this->WriteDB->db_debug = FALSE;
+        $this->WriteDB->query(
+            "INSERT INTO Products.SizeTbl (OrgUID, Name)
+             VALUES (?, ?)
+             ON DUPLICATE KEY UPDATE SizeUID = LAST_INSERT_ID(SizeUID)",
+            [$orgUID, $sizeName]
+        );
+        $row = $this->WriteDB->query("SELECT LAST_INSERT_ID() AS id")->row();
+        return (int)($row->id ?? 0);
+    }
+
+    /**
+     * Upsert one product variant row (brand × size combination).
+     * Uses LAST_INSERT_ID trick to return VariantUID in both INSERT and UPDATE paths.
+     * @param int    $productUID
+     * @param int    $orgUID
+     * @param int    $brandUID      0 = no brand
+     * @param int    $sizeUID       0 = no size
+     * @param string $partNumber
+     * @param float  $purchasePrice
+     * @param int    $purchaseTaxUID
+     * @param float  $sellingPrice
+     * @param int    $sellingTaxUID
+     * @param int    $userUID
+     * @returns int  VariantUID
+     */
+    public function upsertProductVariant(int $productUID, int $orgUID, int $brandUID, int $sizeUID, string $partNumber, float $purchasePrice, int $purchaseTaxUID, float $sellingPrice, int $sellingTaxUID, int $userUID): int {
+        $this->WriteDB->db_debug = FALSE;
+        $this->WriteDB->query(
+            "INSERT INTO Products.ProductVariantTbl
+                 (ProductUID, OrgUID, BrandUID, SizeUID, PartNumber, PurchasePrice, PurchaseTaxUID, SellingPrice, SellingTaxUID, UpdatedBy)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE
+                 VariantUID     = LAST_INSERT_ID(VariantUID),
+                 PartNumber     = VALUES(PartNumber),
+                 PurchasePrice  = VALUES(PurchasePrice),
+                 PurchaseTaxUID = VALUES(PurchaseTaxUID),
+                 SellingPrice   = VALUES(SellingPrice),
+                 SellingTaxUID  = VALUES(SellingTaxUID),
+                 UpdatedBy      = VALUES(UpdatedBy)",
+            [$productUID, $orgUID, $brandUID, $sizeUID, $partNumber, $purchasePrice, $purchaseTaxUID, $sellingPrice, $sellingTaxUID, $userUID]
+        );
+        $row = $this->WriteDB->query("SELECT LAST_INSERT_ID() AS id")->row();
+        return (int)($row->id ?? 0);
+    }
+
+    /**
+     * Upsert variant stock.
+     * INSERT path (new variant): AvailableQty = openingQty.
+     * UPDATE path (edit): AvailableQty adjusted by delta (new - old opening).
+     * @param int   $variantUID
+     * @param int   $orgUID
+     * @param float $openingQty
+     * @returns void
+     */
+    public function upsertVariantStock(int $variantUID, int $orgUID, float $openingQty): void {
+        $this->WriteDB->db_debug = FALSE;
+        $this->WriteDB->query(
+            "INSERT INTO Products.ProductVariantStockTbl
+                 (VariantUID, OrgUID, OpeningQty, AvailableQty)
+             VALUES (?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE
+                 AvailableQty = AvailableQty + (VALUES(OpeningQty) - OpeningQty),
+                 OpeningQty   = VALUES(OpeningQty)",
+            [$variantUID, $orgUID, $openingQty, $openingQty]
+        );
+    }
+
+    /**
+     * Recalculate ProductStockTbl.AvailableQty = SUM of all variant AvailableQty.
+     * Call after any upsertVariantStock to keep the product total consistent.
+     * @param int $productUID
+     * @param int $orgUID
+     * @returns void
+     */
+    public function syncVariantStockTotal(int $productUID, int $orgUID): void {
+        $this->WriteDB->db_debug = FALSE;
+        $this->WriteDB->query(
+            "UPDATE Products.ProductStockTbl pst
+             SET pst.AvailableQty = (
+                 SELECT COALESCE(SUM(pvs.AvailableQty), 0)
+                 FROM Products.ProductVariantTbl pv
+                 JOIN Products.ProductVariantStockTbl pvs ON pvs.VariantUID = pv.VariantUID AND pvs.OrgUID = pst.OrgUID
+                 WHERE pv.ProductUID = ? AND pv.OrgUID = ?
+             )
+             WHERE pst.ProductUID = ? AND pst.OrgUID = ?",
+            [$productUID, $orgUID, $productUID, $orgUID]
+        );
+    }
+
     public function applyManualStockAdjustment($adjUID, $orgUID, $userUID, $productUID, $qty, $unitCost, $adjType, int $branchUID = 0) {
 
         $movementType = ($adjType === 'IN') ? 'IN' : 'OUT';
@@ -1140,11 +1239,11 @@ class Dbwrite_model extends CI_Model {
         return true;
     }
 
-    public function upsertTransactionSettings(int $orgUID, string $invoiceCancelAction, string $srCancelAction, string $srItemMethod, string $termsAndConditions, int $hideNav, int $purchaseShowSignature, int $purchaseShowTerms, string $prCancelAction, string $prItemMethod, int $showProductDescription, int $userUID, int $dcDefaultReturnDays = 7, int $quotValidityDays = 7, int $showTransactionStats = 1, string $comboPriceDistribution = 'ratio', string $belowPurchasePriceAction = 'warn', string $defaultTransactionType = 'regular'): bool {
+    public function upsertTransactionSettings(int $orgUID, string $invoiceCancelAction, string $srCancelAction, string $srItemMethod, string $termsAndConditions, int $hideNav, int $purchaseShowSignature, int $purchaseShowTerms, string $prCancelAction, string $prItemMethod, int $showProductDescription, int $userUID, int $dcDefaultReturnDays = 7, int $quotValidityDays = 7, int $showTransactionStats = 1, string $comboPriceDistribution = 'ratio', string $belowPurchasePriceAction = 'warn', string $defaultTransactionType = 'regular', int $autoDraftSave = 1, string $autoUpdatePurchasePrice = 'off'): bool {
         $this->WriteDB->db_debug = FALSE;
         $sql = "INSERT INTO Settings.TransactionSettingsTbl
-                    (OrgUID, InvoiceCancelAction, SalesReturnCancelAction, SalesReturnItemMethod, TermsAndConditions, HideNavOnTransForm, PurchaseShowSignature, PurchaseShowTerms, PurchaseReturnCancelAction, PurchaseReturnItemMethod, ShowProductDescription, DCDefaultReturnDays, QuotValidityDays, ShowTransactionStats, ComboPriceDistribution, BelowPurchasePriceAction, DefaultTransactionType, UpdatedBy)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (OrgUID, InvoiceCancelAction, SalesReturnCancelAction, SalesReturnItemMethod, TermsAndConditions, HideNavOnTransForm, PurchaseShowSignature, PurchaseShowTerms, PurchaseReturnCancelAction, PurchaseReturnItemMethod, ShowProductDescription, DCDefaultReturnDays, QuotValidityDays, ShowTransactionStats, ComboPriceDistribution, BelowPurchasePriceAction, DefaultTransactionType, AutoDraftSave, AutoUpdatePurchasePrice, UpdatedBy)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON DUPLICATE KEY UPDATE
                     InvoiceCancelAction        = VALUES(InvoiceCancelAction),
                     SalesReturnCancelAction    = VALUES(SalesReturnCancelAction),
@@ -1162,12 +1261,14 @@ class Dbwrite_model extends CI_Model {
                     ComboPriceDistribution     = VALUES(ComboPriceDistribution),
                     BelowPurchasePriceAction   = VALUES(BelowPurchasePriceAction),
                     DefaultTransactionType     = VALUES(DefaultTransactionType),
+                    AutoDraftSave              = VALUES(AutoDraftSave),
+                    AutoUpdatePurchasePrice    = VALUES(AutoUpdatePurchasePrice),
                     UpdatedBy                  = VALUES(UpdatedBy)";
         $ok = $this->WriteDB->query($sql, [
             $orgUID, $invoiceCancelAction, $srCancelAction,
             $srItemMethod, $termsAndConditions, $hideNav, $purchaseShowSignature, $purchaseShowTerms,
             $prCancelAction, $prItemMethod, $showProductDescription, $dcDefaultReturnDays, $quotValidityDays,
-            $showTransactionStats, $comboPriceDistribution, $belowPurchasePriceAction, $defaultTransactionType, $userUID,
+            $showTransactionStats, $comboPriceDistribution, $belowPurchasePriceAction, $defaultTransactionType, $autoDraftSave, $autoUpdatePurchasePrice, $userUID,
         ]);
         if (!$ok) {
             $err = $this->WriteDB->error();

@@ -15,7 +15,7 @@ class Products extends MY_Controller {
     private function sanitizeTabInput($tab): string {
 
         $tab = strtolower($tab ?: 'item');
-        $map = ['item' => 'item', 'group' => 'group', 'category' => 'category', 'pricelist' => 'pricelist', 'brand' => 'brand', 'items' => 'item', 'groups' => 'group', 'categories' => 'category', 'pricelists' => 'pricelist', 'brands' => 'brand'];
+        $map = ['item' => 'item', 'group' => 'group', 'category' => 'category', 'pricelist' => 'pricelist', 'brand' => 'brand', 'size' => 'size', 'items' => 'item', 'groups' => 'group', 'categories' => 'category', 'pricelists' => 'pricelist', 'brands' => 'brand', 'sizes' => 'size'];
         return $map[$tab] ?? 'item';
 
     }
@@ -214,6 +214,16 @@ class Products extends MY_Controller {
                 ], TRUE);
                 $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/products/getBrandList', $tableData->totalCount, 1, $limit);
                 $this->pageData['ModTotalCount'] = $tableData->totalCount;
+            } elseif ($activeTab === 'size') {
+                $fr        = $this->products_model->sizeFilterFormation((object)['TableAliasName' => 'Size'], $initFilter);
+                $tableData = $this->products_model->getSizeListPaginated($OrgUID, $limit, 0, $fr->SearchDirectQuery);
+                $this->pageData['ModRowData'] = $this->load->view('products/sizes/list', [
+                    'DataLists' => $tableData->rows,
+                    'StartFrom' => 0,
+                    'JwtData'   => $this->pageData['JwtData'],
+                ], TRUE);
+                $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/products/getSizeList', $tableData->totalCount, 1, $limit);
+                $this->pageData['ModTotalCount'] = $tableData->totalCount;
             } else {
                 $this->pageData['ModRowData']    = '';
                 $this->pageData['ModPagination'] = '';
@@ -223,12 +233,13 @@ class Products extends MY_Controller {
             
             $this->pageData['ActiveTabData']  = $activeTab;
             // Must match the data-id attribute values on the tab nav links in view.php
-            $tabNameMap = ['item' => 'Item', 'group' => 'Groups', 'pricelist' => 'PriceLists', 'category' => 'Categories', 'brand' => 'Brands'];
+            $tabNameMap = ['item' => 'Item', 'group' => 'Groups', 'pricelist' => 'PriceLists', 'category' => 'Categories', 'brand' => 'Brands', 'size' => 'Sizes'];
             $this->pageData['ActiveTabName']  = $tabNameMap[$activeTab] ?? ucfirst($activeTab);
             $this->pageData['InitSearch']     = $initSearch;
             $this->pageData['ActiveModuleId'] = 4;
 
-            $this->pageData['ProductStats'] = $this->products_model->getProductStats($OrgUID);
+            $_showStats = (bool)($this->pageData['JwtData']->GenSettings->ShowStats ?? 1) && (bool)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
+            $this->pageData['ProductStats'] = $_showStats ? $this->products_model->getProductStats($OrgUID) : null;
 
             $this->load->model('users_model');
             $this->pageData['OrgUsers'] = $this->users_model->getOrgUsersForCache($OrgUID);
@@ -512,9 +523,35 @@ class Products extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            // Create initial stock row in ProductStockTbl — seed with OpeningQuantity
-            $openingQty = (float)($prodFormData['OpeningQuantity'] ?? 0);
-            $this->dbwrite_model->initProductStock($ProductUID, (int) $this->pageData['JwtData']->Org->OrgUID, $openingQty);
+            // Variant or plain opening stock
+            $orgUID      = (int)$this->pageData['JwtData']->Org->OrgUID;
+            $userUID     = (int)$this->pageData['JwtData']->User->UserUID;
+            $isVariant   = !empty($prodFormData['IsBrandApplicable']) || !empty($prodFormData['IsSizeApplicable']);
+            if ($isVariant) {
+                $variantArr  = json_decode($this->input->post('VariantData') ?? '[]', true) ?: [];
+                $totalVarQty = 0.0;
+                foreach ($variantArr as $v) {
+                    $brandUID    = (int)($v['BrandUID']      ?? 0);
+                    $sizeUID     = (int)($v['SizeUID']       ?? 0);
+                    $partNo      = trim($v['PartNumber']     ?? '');
+                    $purPrice    = (float)($v['PurchasePrice'] ?? 0);
+                    $purTaxUID   = (int)($v['PurchaseTaxUID'] ?? 0);
+                    $selPrice    = (float)($v['SellingPrice']  ?? 0);
+                    $selTaxUID   = (int)($v['SellingTaxUID']  ?? 0);
+                    $openQty     = (float)($v['OpeningQty']   ?? 0);
+                    $variantUID  = $this->dbwrite_model->upsertProductVariant($ProductUID, $orgUID, $brandUID, $sizeUID, $partNo, $purPrice, $purTaxUID, $selPrice, $selTaxUID, $userUID);
+                    if ($variantUID > 0) {
+                        $this->dbwrite_model->upsertVariantStock($variantUID, $orgUID, $openQty);
+                        $totalVarQty += $openQty;
+                    }
+                }
+                $this->dbwrite_model->initProductStock($ProductUID, $orgUID, $totalVarQty);
+                $this->dbwrite_model->syncVariantStockTotal($ProductUID, $orgUID);
+            } else {
+                // Create initial stock row in ProductStockTbl — seed with OpeningQuantity
+                $openingQty = (float)($prodFormData['OpeningQuantity'] ?? 0);
+                $this->dbwrite_model->initProductStock($ProductUID, $orgUID, $openingQty);
+            }
 
             // Sync new product into the Upstash bulk cache
             $this->cachehelper->upsertProduct($ProductUID);
@@ -607,31 +644,35 @@ class Products extends MY_Controller {
             $attachments = $this->_getAttachmentsWithUrl('Product', $ProductUID, $orgUID);
 
             if ($cached !== null) {
-                $this->EndReturnData->Error        = FALSE;
-                $this->EndReturnData->Message      = 'Retrieved Successfully';
-                $this->EndReturnData->Data         = (object)$cached['Data'];
-                $this->EndReturnData->RentalConfig = isset($cached['RentalConfig']) ? (object)$cached['RentalConfig'] : null;
-                $this->EndReturnData->Attachments  = $attachments;
+                $data         = (object)$cached['Data'];
+                $rentalConfig = isset($cached['RentalConfig']) ? (object)$cached['RentalConfig'] : null;
             } else {
                 $this->load->model('products_model');
                 $GetProductData = $this->products_model->getProductsDetails(['Products.ProductUID' => $ProductUID]);
                 if (count($GetProductData) != 1) {
                     throw new Exception('Product not found');
                 }
+                $data         = $GetProductData[0];
                 $rentalConfig = $this->products_model->getRentalConfig($ProductUID, $orgUID);
-
-                $this->EndReturnData->Error        = FALSE;
-                $this->EndReturnData->Message      = 'Retrieved Successfully';
-                $this->EndReturnData->Data         = $GetProductData[0];
-                $this->EndReturnData->RentalConfig = $rentalConfig;
-                $this->EndReturnData->Attachments  = $attachments;
 
                 // Populate cache for next request
                 $this->upstashservice->set($cacheKey, [
-                    'Data'         => $GetProductData[0],
+                    'Data'         => $data,
                     'RentalConfig' => $rentalConfig,
                 ], Upstashservice::TTL_PRODUCT);
             }
+
+            // Variants are always fresh (stock changes) — never cached
+            $variants = (!empty($data->IsBrandApplicable) || !empty($data->IsSizeApplicable))
+                ? $this->products_model->getProductVariants($ProductUID, $orgUID)
+                : [];
+
+            $this->EndReturnData->Error        = FALSE;
+            $this->EndReturnData->Message      = 'Retrieved Successfully';
+            $this->EndReturnData->Data         = $data;
+            $this->EndReturnData->RentalConfig = $rentalConfig;
+            $this->EndReturnData->Attachments  = $attachments;
+            $this->EndReturnData->Variants     = $variants;
 
         } catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;
@@ -693,12 +734,33 @@ class Products extends MY_Controller {
                 throw new Exception($UpdateDataResp->Message);
             }
 
-            // Apply opening qty delta to ProductStockTbl inside the same transaction
+            // Apply opening qty to ProductStockTbl inside the same transaction
             if ($isPhysicalItem) {
-                $newOpeningQty = (float)($prodFormData['OpeningQuantity'] ?? 0);
-                $delta         = round($newOpeningQty - $oldOpeningQty, 4);
-                if ($delta != 0.0) {
-                    $this->dbwrite_model->applyOpeningQtyDelta($ProductUID, $orgUID, $delta);
+                $editUserUID = (int)$this->pageData['JwtData']->User->UserUID;
+                $isVariant   = !empty($prodFormData['IsBrandApplicable']) || !empty($prodFormData['IsSizeApplicable']);
+                if ($isVariant) {
+                    $variantArr = json_decode($this->input->post('VariantData') ?? '[]', true) ?: [];
+                    foreach ($variantArr as $v) {
+                        $brandUID   = (int)($v['BrandUID']      ?? 0);
+                        $sizeUID    = (int)($v['SizeUID']       ?? 0);
+                        $partNo     = trim($v['PartNumber']     ?? '');
+                        $purPrice   = (float)($v['PurchasePrice'] ?? 0);
+                        $purTaxUID  = (int)($v['PurchaseTaxUID'] ?? 0);
+                        $selPrice   = (float)($v['SellingPrice']  ?? 0);
+                        $selTaxUID  = (int)($v['SellingTaxUID']  ?? 0);
+                        $openQty    = (float)($v['OpeningQty']   ?? 0);
+                        $variantUID = $this->dbwrite_model->upsertProductVariant($ProductUID, $orgUID, $brandUID, $sizeUID, $partNo, $purPrice, $purTaxUID, $selPrice, $selTaxUID, $editUserUID);
+                        if ($variantUID > 0) {
+                            $this->dbwrite_model->upsertVariantStock($variantUID, $orgUID, $openQty);
+                        }
+                    }
+                    $this->dbwrite_model->syncVariantStockTotal($ProductUID, $orgUID);
+                } else {
+                    $newOpeningQty = (float)($prodFormData['OpeningQuantity'] ?? 0);
+                    $delta         = round($newOpeningQty - $oldOpeningQty, 4);
+                    if ($delta != 0.0) {
+                        $this->dbwrite_model->applyOpeningQtyDelta($ProductUID, $orgUID, $delta);
+                    }
                 }
             }
 
@@ -1014,7 +1076,9 @@ class Products extends MY_Controller {
                 $getResp = $this->fetchProductTableData($pageNo, 0, 1); // addComboItem — always groups
                 $this->EndReturnData->List       = $getResp->RecordHtmlData;
                 $this->EndReturnData->Pagination = $getResp->Pagination;
-                $this->EndReturnData->Stats      = $this->fetchProductStats();
+                if (($this->pageData['JwtData']->GenSettings->ShowStats ?? 1) && ($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1)) {
+                    $this->EndReturnData->Stats = $this->fetchProductStats();
+                }
             }
 
         } catch (\Throwable $e) {
@@ -1119,7 +1183,9 @@ class Products extends MY_Controller {
                 $getResp = $this->fetchProductTableData($pageNo, 0, 1); // editComboItem — always groups
                 $this->EndReturnData->List       = $getResp->RecordHtmlData;
                 $this->EndReturnData->Pagination = $getResp->Pagination;
-                $this->EndReturnData->Stats      = $this->fetchProductStats();
+                if (($this->pageData['JwtData']->GenSettings->ShowStats ?? 1) && ($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1)) {
+                    $this->EndReturnData->Stats = $this->fetchProductStats();
+                }
             }
 
             $this->EndReturnData->Error   = false;
@@ -1694,8 +1760,14 @@ class Products extends MY_Controller {
             if (!$CategoryUID || $CategoryUID <= 0) {
                 throw new Exception('Invalid Category ID');
             }
-                
+
             $this->load->model('products_model');
+
+            $ExistsInProducts = $this->products_model->getProductsDetails([], '', ['Products.CategoryUID' => [$CategoryUID]]);
+            if (!empty($ExistsInProducts)) {
+                throw new Exception('This category is linked to one or more products and cannot be deleted.');
+            }
+
             $ExistsInProducts = $this->products_model->getProductsDetails(['Category.CategoryUID' => $CategoryUID]);
             if (!empty($ExistsInProducts) && count($ExistsInProducts) > 0) {
                 throw new Exception('Category is linked to Product(s). Cannot delete.');
@@ -1796,6 +1868,330 @@ class Products extends MY_Controller {
     }
 
     // ── Brands ───────────────────────────────────────────────────────────────
+
+    /**
+     * Return all active sizes for the org (for the variant size picker in the product form).
+     * @returns void
+     */
+    public function getSizes(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID = (int)$this->pageData['JwtData']->Org->OrgUID;
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Data  = $this->products_model->getOrgSizes($orgUID);
+        } catch (Throwable $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    /**
+     * Create a new size for the org (called from the inline "Add Size" button).
+     * @returns void
+     */
+    public function addSize(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $sizeName = trim($this->input->post('SizeName') ?? '');
+            if ($sizeName === '') {
+                throw new InvalidArgumentException('Size name is required');
+            }
+            if (strlen($sizeName) > 100) {
+                throw new InvalidArgumentException('Size name is too long (max 100 characters)');
+            }
+            $orgUID  = (int)$this->pageData['JwtData']->Org->OrgUID;
+            $userUID = (int)$this->pageData['JwtData']->User->UserUID;
+            $sizeUID = $this->dbwrite_model->addSize($orgUID, $sizeName, $userUID);
+            if ($sizeUID <= 0) {
+                throw new RuntimeException('Failed to create size');
+            }
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Size added';
+            $this->EndReturnData->SizeUID = $sizeUID;
+        } catch (Throwable $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    // ── Sizes Management ──────────────────────────────────────────────────────
+
+    public function getSizeList(): void {
+
+        $this->EndReturnData = new stdClass();
+        try {
+            $OrgUID    = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $pageNo    = (int) $this->input->post('PageNo') ?: 1;
+            $limit     = (int) $this->input->post('RowLimit') ?: 10;
+            $offset    = ($pageNo - 1) * $limit;
+            $rawFilter = $this->input->post('Filter');
+            $filter    = is_array($rawFilter) ? $rawFilter : (json_decode($rawFilter ?: '{}', true) ?? []);
+
+            $filterResult = $this->products_model->sizeFilterFormation((object)['TableAliasName' => 'Size'], $filter);
+
+            $result  = $this->products_model->getSizeListPaginated($OrgUID, $limit, $offset, $filterResult->SearchDirectQuery, $filterResult->sortOperation);
+            $rowHtml = $this->load->view('products/sizes/list', [
+                'DataLists' => $result->rows,
+                'StartFrom' => $offset,
+                'JwtData'   => $this->pageData['JwtData'],
+            ], TRUE);
+
+            $this->EndReturnData->Error      = false;
+            $this->EndReturnData->List       = $rowHtml;
+            $this->EndReturnData->Pagination = $this->globalservice->buildPagePaginationHtml('/products/getSizeList', $result->totalCount, $pageNo, $limit);
+            $this->EndReturnData->TotalCount = $result->totalCount;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    public function addSizeDetails(): void {
+
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $userUID = (int) $this->pageData['JwtData']->User->UserUID;
+            $post    = $this->input->post(null, true);
+
+            $sizeName  = trim($post['SizeName'] ?? '');
+
+            if ($sizeName === '') throw new Exception('Size name is required.');
+            if (strlen($sizeName) > 100) throw new Exception('Size name is too long (max 100 characters).');
+
+            $this->load->model('products_model');
+            if ($this->products_model->isDuplicateSizeName($orgUID, $sizeName)) {
+                throw new Exception('A size with this name already exists.');
+            }
+
+            $data = [
+                'OrgUID'       => $orgUID,
+                'Name'         => $sizeName,
+                'SizeCode'     => trim($post['SizeCode'] ?? '') ?: null,
+                'Length'       => $post['Length']    !== '' && $post['Length']    !== null ? (float)$post['Length']    : null,
+                'Width'        => $post['Width']     !== '' && $post['Width']     !== null ? (float)$post['Width']     : null,
+                'Height'       => $post['Height']    !== '' && $post['Height']    !== null ? (float)$post['Height']    : null,
+                'Depth'        => $post['Depth']     !== '' && $post['Depth']     !== null ? (float)$post['Depth']     : null,
+                'Diameter'     => $post['Diameter']  !== '' && $post['Diameter']  !== null ? (float)$post['Diameter']  : null,
+                'Thickness'    => $post['Thickness'] !== '' && $post['Thickness'] !== null ? (float)$post['Thickness'] : null,
+                'Weight'       => $post['Weight']    !== '' && $post['Weight']    !== null ? (float)$post['Weight']    : null,
+                'DimensionUOM' => trim($post['DimensionUOM'] ?? '') ?: null,
+                'WeightUOM'    => trim($post['WeightUOM']    ?? '') ?: null,
+                'Description'  => trim($post['Description']  ?? '') ?: null,
+                'IsActive'     => 1,
+                'UpdatedBy'    => $userUID,
+                'CreatedBy'    => $userUID,
+            ];
+
+            $this->load->model('dbwrite_model');
+            $resp = $this->dbwrite_model->insertData('Products', 'SizeTbl', $data);
+            if ($resp->Error) throw new Exception($resp->Message);
+
+            $sizeUID = (int) $resp->ID;
+
+            $this->auditlog->log(
+                $orgUID, $userUID,
+                'ADD_SIZE', 'Size', $sizeUID, $sizeName,
+                ['SizeName' => $sizeName], 'Created size "' . $sizeName . '"', 'Products',
+                'MASTER', 'SUCCESS', '', 'WEB', [], $data
+            );
+
+            $this->cachehelper->touchSize($sizeUID);
+
+            $this->EndReturnData->Error    = false;
+            $this->EndReturnData->Message  = 'Size created successfully.';
+            $this->EndReturnData->InsertId = $sizeUID;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    public function updateSizeDetails(): void {
+
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $userUID = (int) $this->pageData['JwtData']->User->UserUID;
+            $post    = $this->input->post(null, true);
+            $sizeUID = (int) ($post['SizeUID'] ?? 0);
+            if ($sizeUID <= 0) throw new Exception('Invalid size.');
+
+            $sizeName  = trim($post['SizeName'] ?? '');
+
+            if ($sizeName === '') throw new Exception('Size name is required.');
+            if (strlen($sizeName) > 100) throw new Exception('Size name is too long (max 100 characters).');
+
+            $this->load->model('products_model');
+            if ($this->products_model->isDuplicateSizeName($orgUID, $sizeName, $sizeUID)) {
+                throw new Exception('A size with this name already exists.');
+            }
+
+            $data = [
+                'Name'         => $sizeName,
+                'SizeCode'     => trim($post['SizeCode'] ?? '') ?: null,
+                'Length'       => $post['Length']    !== '' && $post['Length']    !== null ? (float)$post['Length']    : null,
+                'Width'        => $post['Width']     !== '' && $post['Width']     !== null ? (float)$post['Width']     : null,
+                'Height'       => $post['Height']    !== '' && $post['Height']    !== null ? (float)$post['Height']    : null,
+                'Depth'        => $post['Depth']     !== '' && $post['Depth']     !== null ? (float)$post['Depth']     : null,
+                'Diameter'     => $post['Diameter']  !== '' && $post['Diameter']  !== null ? (float)$post['Diameter']  : null,
+                'Thickness'    => $post['Thickness'] !== '' && $post['Thickness'] !== null ? (float)$post['Thickness'] : null,
+                'Weight'       => $post['Weight']    !== '' && $post['Weight']    !== null ? (float)$post['Weight']    : null,
+                'DimensionUOM' => trim($post['DimensionUOM'] ?? '') ?: null,
+                'WeightUOM'    => trim($post['WeightUOM']    ?? '') ?: null,
+                'Description'  => trim($post['Description']  ?? '') ?: null,
+                'UpdatedBy'    => $userUID,
+            ];
+
+            $this->load->model('dbwrite_model');
+            $resp = $this->dbwrite_model->updateData('Products', 'SizeTbl', $data, ['SizeUID' => $sizeUID, 'OrgUID' => $orgUID]);
+            if ($resp->Error) throw new Exception($resp->Message);
+
+            $this->auditlog->log(
+                $orgUID, $userUID,
+                'UPDATE_SIZE', 'Size', $sizeUID, $sizeName,
+                [], 'Updated size "' . $sizeName . '"', 'Products',
+                'MASTER', 'SUCCESS', '', 'WEB', [], $data
+            );
+
+            $this->cachehelper->touchSize($sizeUID);
+
+            $this->EndReturnData->Error   = false;
+            $this->EndReturnData->Message = 'Size updated successfully.';
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    public function deleteSizeDetails(): void {
+
+        $this->EndReturnData = new stdClass();
+        try {
+            $sizeUID = (int) $this->input->post('SizeUID');
+            $orgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $userUID = (int) $this->pageData['JwtData']->User->UserUID;
+            if ($sizeUID <= 0) throw new Exception('Invalid size.');
+
+            if ($this->products_model->isSizeInUse($sizeUID, $orgUID)) {
+                throw new Exception('This size is linked to one or more product variants and cannot be deleted.');
+            }
+
+            $this->load->model('dbwrite_model');
+            $resp = $this->dbwrite_model->updateData('Products', 'SizeTbl', ['IsActive' => 0, 'UpdatedBy' => $userUID], ['SizeUID' => $sizeUID, 'OrgUID' => $orgUID]);
+            if ($resp->Error) throw new Exception($resp->Message);
+
+            $this->auditlog->log(
+                $orgUID, $userUID,
+                'DELETE_SIZE', 'Size', $sizeUID, '',
+                ['sizeUID' => $sizeUID], 'Deleted size #' . $sizeUID, 'Products',
+                'MASTER', 'SUCCESS', '', 'WEB',
+                ['sizeUID' => $sizeUID], []
+            );
+
+            $this->cachehelper->removeSize($sizeUID);
+
+            $this->EndReturnData->Error   = false;
+            $this->EndReturnData->Message = 'Size deleted successfully.';
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    public function deleteBulkSize(): void {
+
+        $this->EndReturnData = new stdClass();
+        try {
+            $sizeUIDs = $this->input->post('SizeUIDs[]');
+            if (empty($sizeUIDs)) throw new Exception('No sizes selected for deletion.');
+
+            if (!is_array($sizeUIDs)) { $sizeUIDs = [$sizeUIDs]; }
+            $sizeUIDs = array_filter(array_map('intval', $sizeUIDs), fn($id) => $id > 0);
+            if (empty($sizeUIDs)) throw new Exception('Invalid size IDs provided.');
+
+            $orgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $userUID = (int) $this->pageData['JwtData']->User->UserUID;
+
+            $inUse = $this->products_model->getInUseSizeUIDs(array_values($sizeUIDs), $orgUID);
+            if (!empty($inUse)) {
+                $count = count($inUse);
+                throw new Exception($count . ' of the selected size' . ($count > 1 ? 's are' : ' is') . ' linked to product variants and cannot be deleted.');
+            }
+
+            $this->load->model('dbwrite_model');
+            $resp = $this->dbwrite_model->updateData('Products', 'SizeTbl', ['IsActive' => 0, 'UpdatedBy' => $userUID], [], ['SizeUID' => array_values($sizeUIDs)]);
+            if ($resp->Error) throw new Exception($resp->Message);
+
+            $this->auditlog->log(
+                $orgUID, $userUID,
+                'BULK_DELETE_SIZES', 'Size', 0, implode(',', $sizeUIDs),
+                ['count' => count($sizeUIDs)], 'Bulk deleted ' . count($sizeUIDs) . ' size' . (count($sizeUIDs) > 1 ? 's' : ''), 'Products',
+                'MASTER', 'SUCCESS', '', 'WEB',
+                ['deletedUIDs' => array_values($sizeUIDs)], []
+            );
+
+            foreach ($sizeUIDs as $uid) { $this->cachehelper->removeSize($uid); }
+
+            $this->EndReturnData->Error   = false;
+            $this->EndReturnData->Message = 'Deleted successfully.';
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    /**
+     * Return all variant stock rows for a product (used in the modal and the product form edit).
+     * @returns void
+     */
+    public function getVariantStock(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $productUID = (int)$this->input->post('ProductUID');
+            if ($productUID <= 0) {
+                throw new InvalidArgumentException('Invalid ProductUID');
+            }
+            $orgUID = (int)$this->pageData['JwtData']->Org->OrgUID;
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Data  = $this->products_model->getProductVariants($productUID, $orgUID);
+        } catch (Throwable $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function getProductVariantsForPricelist(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $productUID = (int) $this->input->post('ProductUID');
+            if ($productUID <= 0) throw new InvalidArgumentException('Invalid ProductUID');
+            $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $this->EndReturnData->Error    = false;
+            $this->EndReturnData->Variants = $this->products_model->getProductVariantsForPricelist($productUID, $orgUID);
+        } catch (Throwable $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
 
     public function getBrandList(): void {
 
@@ -1987,6 +2383,10 @@ class Products extends MY_Controller {
             $userUID  = (int) $this->pageData['JwtData']->User->UserUID;
             if ($brandUID <= 0) throw new Exception('Invalid brand.');
 
+            if ($this->products_model->isBrandInUse($brandUID, $orgUID)) {
+                throw new Exception('This brand is linked to one or more product variants and cannot be deleted.');
+            }
+
             $this->load->model('dbwrite_model');
             $resp = $this->dbwrite_model->updateData('Products', 'BrandTbl', $this->globalservice->baseDeleteArrayDetails(), ['BrandUID' => $brandUID, 'OrgUID' => $orgUID]);
             if ($resp->Error) throw new Exception($resp->Message);
@@ -2026,6 +2426,12 @@ class Products extends MY_Controller {
             $orgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
             $userUID = (int) $this->pageData['JwtData']->User->UserUID;
 
+            $inUse = $this->products_model->getInUseBrandUIDs(array_values($brandUIDs), $orgUID);
+            if (!empty($inUse)) {
+                $count = count($inUse);
+                throw new Exception($count . ' of the selected brand' . ($count > 1 ? 's are' : ' is') . ' linked to product variants and cannot be deleted.');
+            }
+
             $this->load->model('dbwrite_model');
             $resp = $this->dbwrite_model->updateData('Products', 'BrandTbl', $this->globalservice->baseDeleteArrayDetails(), [], ['BrandUID' => array_values($brandUIDs)]);
             if ($resp->Error) throw new Exception($resp->Message);
@@ -2042,6 +2448,49 @@ class Products extends MY_Controller {
 
             $this->EndReturnData->Error    = false;
             $this->EndReturnData->Message  = 'Deleted Successfully.';
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    public function syncSizesCache(): void {
+
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $sizes  = $this->products_model->getSizesForCache($orgUID);
+            if (empty($sizes)) throw new Exception('No active sizes found.');
+
+            $cacheKey = $this->redisservice->orgKey('sizes');
+            $this->upstashservice->del($cacheKey);
+            $newMap = [];
+            foreach ($sizes as $s) {
+                $uid              = (int) $s->SizeUID;
+                $newMap[(string)$uid] = [
+                    'SizeUID'      => $uid,
+                    'SizeName'     => $s->SizeName     ?? '',
+                    'SizeCode'     => $s->SizeCode     ?? '',
+                    'Length'       => $s->Length       ?? null,
+                    'Width'        => $s->Width        ?? null,
+                    'Height'       => $s->Height       ?? null,
+                    'Depth'        => $s->Depth        ?? null,
+                    'Diameter'     => $s->Diameter     ?? null,
+                    'Thickness'    => $s->Thickness    ?? null,
+                    'Weight'       => $s->Weight       ?? null,
+                    'DimensionUOM' => $s->DimensionUOM ?? '',
+                    'WeightUOM'    => $s->WeightUOM    ?? '',
+                    'Description'  => $s->Description  ?? '',
+                ];
+            }
+            $this->upstashservice->hmset($cacheKey, $newMap);
+
+            $this->EndReturnData->Error   = false;
+            $this->EndReturnData->Message = count($sizes) . ' size(s) synced to cache.';
+            $this->EndReturnData->Count   = count($sizes);
 
         } catch (Exception $e) {
             $this->EndReturnData->Error   = true;
@@ -2113,6 +2562,9 @@ class Products extends MY_Controller {
                 ];
             }
 
+            // Build variant map: productUID => [{VariantUID,BrandName,SizeName,Label}, ...] — one query
+            $variantsByProduct = $this->products_model->getAllProductVariantsForSync($orgUID);
+
             $cacheKey = $this->redisservice->orgKey('products');
             $this->upstashservice->del($cacheKey);
             $newMap = [];
@@ -2151,6 +2603,8 @@ class Products extends MY_Controller {
                     'IsComboItem'                 => (int)($prod->IsComboItem          ?? 0),
                     'IsComposite'                 => $isComposite,
                     'IsSerialTracked'             => (int)($prod->IsSerialTracked      ?? 0),
+                    'IsBrandApplicable'           => (int)($prod->IsBrandApplicable    ?? 0),
+                    'Variants'                    => $variantsByProduct[(string)$uid] ?? [],
                 ];
                 if ($isComposite) {
                     $entry['items'] = $bomByParent[(string)$uid] ?? [];
@@ -3043,6 +3497,7 @@ class Products extends MY_Controller {
                         'IsComboItem'                 => (int)($prod->IsComboItem          ?? 0),
                         'IsComposite'                 => $isComposite,
                         'IsSerialTracked'             => (int)($prod->IsSerialTracked      ?? 0),
+                        'IsBrandApplicable'           => (int)($prod->IsBrandApplicable    ?? 0),
                     ];
                     if ($isComposite) {
                         $entry['items'] = $bomByParent[(string)$uid] ?? [];

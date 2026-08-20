@@ -1606,15 +1606,23 @@ $(document).ready(function () {
     }());
 
 
-    // ── Dispatch From — custom dropdown (no Select2) ──────────────────────────
+    // ── Dispatch From — fully manual custom dropdown (no Bootstrap Dropdown) ──
     (function () {
         var $grp = $('.dispatch-from-grp');
         if (!$grp.length || !$grp.find('.r2k-dispatch-from').length) return;
+
+        var $from = $grp.find('.r2k-dispatch-from');
+
+        /** @returns {void} */
+        function _closeDispatch() {
+            $from.removeClass('r2k-disp-open');
+        }
 
         /**
          * Select a dispatch address by UID, updating the hidden input,
          * trigger text, and checkmarks.
          * @param {number|string} uid
+         * @returns {void}
          */
         window._setDispatchFrom = function (uid) {
             uid = parseInt(uid, 10);
@@ -1625,9 +1633,10 @@ $(document).ready(function () {
             var newTrig = $item.data('trig') || '';
             $grp.find('.r2k-dispatch-val').text(newTrig);
 
-            // Update dispatch-from tooltip to the newly selected address
+            // Update tooltip to the newly selected address
             var dispBtn = $grp.find('.r2k-dispatch-btn')[0];
             if (dispBtn) {
+                dispBtn.title = newTrig;
                 dispBtn.setAttribute('data-bs-original-title', newTrig);
                 var dispTip = bootstrap.Tooltip.getInstance(dispBtn);
                 if (dispTip) dispTip.update();
@@ -1642,18 +1651,30 @@ $(document).ready(function () {
             });
         };
 
-        $grp.on('click', '.r2k-dispatch-item', function () {
-            window._setDispatchFrom($(this).data('uid'));
-            var $btn     = $grp.find('.r2k-dispatch-btn')[0];
-            var dropdown = $btn ? bootstrap.Dropdown.getInstance($btn) : null;
-            if (dropdown) dropdown.hide();
+        // Toggle open/close on button click
+        $grp.find('.r2k-dispatch-btn').on('click', function (e) {
+            e.stopPropagation();
+            $from.toggleClass('r2k-disp-open');
         });
 
-        // Init tooltip on the dispatch button programmatically — can't use
-        // data-bs-toggle="tooltip" because the button already uses data-bs-toggle="dropdown"
+        // Select item and close
+        $grp.on('click', '.r2k-dispatch-item', function (e) {
+            e.stopPropagation();
+            window._setDispatchFrom($(this).data('uid'));
+            _closeDispatch();
+        });
+
+        // Close when clicking anywhere outside the component
+        $(document).on('click.r2kDispatch', function (e) {
+            if (!$(e.target).closest('.r2k-dispatch-from').length) {
+                _closeDispatch();
+            }
+        });
+
+        // Init tooltip on the dispatch button (hover only — no Dropdown conflict)
         var _dispBtnEl = $grp.find('.r2k-dispatch-btn')[0];
         if (_dispBtnEl) {
-            new bootstrap.Tooltip(_dispBtnEl, { placement: 'bottom', trigger: 'hover focus' });
+            new bootstrap.Tooltip(_dispBtnEl, { placement: 'bottom', trigger: 'hover' });
         }
     }());
 
@@ -2405,11 +2426,115 @@ $(document).ready(function () {
         e.preventDefault();
         const itemId = $(this).data('id');
         const item = billManager.getItemById(itemId);
-        
+
         if (!item) return;
-        
+
         // Show modal with editor
         showDescriptionEditor(itemId, item.description || '', item.text || 'Product');
+    });
+
+    // Brand chip re-pick on existing row
+    $(document).on('click', '.brand-chip', function () {
+        var $chip  = $(this);
+        var rowId  = parseInt($chip.data('id'), 10);
+        var item   = billManager.getItemById(rowId);
+        if (!item) return;
+
+        BrandPicker.open(item, item.quantity, function (brandUID, brandName) {
+            var newBrandUID = parseInt(brandUID, 10);
+
+            // Derive the original ProductUID:
+            //   - new items:  item.productUID was stored when pushBillItems ran
+            //   - edit-mode items: id IS the ProductUID (no composite key yet)
+            var origUID = (item.productUID && parseInt(item.productUID, 10) > 0)
+                ? parseInt(item.productUID, 10)
+                : rowId;
+
+            var newComposite = origUID * 100000 + newBrandUID;
+
+            // Same brand selected again — just refresh the chip text, nothing else
+            if (newComposite === rowId) {
+                $chip.removeClass('empty brand-chip-error').addClass('selected')
+                     .html('<i class="bx bx-purchase-tag-alt me-1"></i>' + brandName);
+                return;
+            }
+
+            // Another row already has this product + brand combo
+            if (billManager.getItemById(newComposite)) {
+                Swal.fire({
+                    icon : 'error',
+                    title: t('swal_oops', 'Oops...'),
+                    text : t('swal_item_brand_in_cart', 'This item with the selected brand is already in the cart.'),
+                });
+                return;
+            }
+
+            // Re-key the item: update both the map and the items array in-place.
+            // We do NOT call removeItem() because that also removes the DOM row.
+            var updatedItem = Object.assign({}, item, {
+                id        : newComposite,
+                productUID: origUID,   // ensure PHP fallback reads the correct ProductUID
+                brandUID  : newBrandUID,
+                brandName : brandName,
+            });
+            var allItems = billManager.getAllItems();  // direct reference to internal array
+            var idx = allItems.findIndex(function (i) { return parseInt(i.id, 10) === rowId; });
+            if (idx >= 0) { allItems[idx] = updatedItem; }
+            delete billManager.map[rowId];
+            billManager.map[newComposite] = updatedItem;
+
+            // Update the chip so future clicks resolve to the new composite key
+            $chip.attr('data-id', newComposite)
+                 .removeClass('empty brand-chip-error').addClass('selected')
+                 .html('<i class="bx bx-purchase-tag-alt me-1"></i>' + brandName);
+        });
+    });
+
+    // Variant chip re-pick on existing row
+    $(document).on('click', '.variant-chip', function () {
+        var $chip = $(this);
+        var rowId = parseInt($chip.data('id'), 10);
+        var item  = billManager.getItemById(rowId);
+        if (!item) return;
+
+        VariantPicker.open(item, item.quantity, function (variantUID, variantLabel) {
+            var newVariantUID = parseInt(variantUID, 10);
+            var origUID = (item.productUID && parseInt(item.productUID, 10) > 0)
+                ? parseInt(item.productUID, 10)
+                : rowId;
+            var newComposite = origUID * 100000 + newVariantUID;
+
+            if (newComposite === rowId) {
+                $chip.removeClass('empty').addClass('selected')
+                     .html('<i class="bx bx-layer me-1"></i>' + variantLabel);
+                return;
+            }
+
+            if (billManager.getItemById(newComposite)) {
+                Swal.fire({
+                    icon : 'error',
+                    title: t('swal_oops', 'Oops...'),
+                    text : t('swal_item_variant_in_cart', 'This item with the selected variant is already in the cart.'),
+                });
+                return;
+            }
+
+            var updatedItem = Object.assign({}, item, {
+                id          : newComposite,
+                productUID  : origUID,
+                variantUID  : newVariantUID,
+                variantLabel: variantLabel,
+            });
+            var allItems = billManager.getAllItems();
+            var idx = allItems.findIndex(function (i) { return parseInt(i.id, 10) === rowId; });
+            if (idx >= 0) { allItems[idx] = updatedItem; }
+            delete billManager.map[rowId];
+            billManager.map[newComposite] = updatedItem;
+
+            $chip.attr('data-id', newComposite)
+                 .removeClass('empty').addClass('selected')
+                 .html('<i class="bx bx-layer me-1"></i>' + variantLabel);
+        });
     });
 
 });
@@ -3273,22 +3398,104 @@ function pushBillItems(productData, qty) {
             taxPercent: 0, cgstPercent: 0, sgstPercent: 0, igstPercent: 0, taxDetailsUID: 0,
         });
     }
+    if (parseInt(productData.IsBrandApplicable, 10) === 1) {
+        var _variants = (Array.isArray(productData.variants) && productData.variants.length > 0)
+            ? productData.variants : [];
+
+        if (_variants.length > 0) {
+            // Product has specific variants — use VariantPicker (Brand + Size)
+            VariantPicker.open(productData, qty, function (variantUID, variantLabel) {
+                var origUID     = parseInt(productData.id, 10);
+                var compositeId = origUID * 100000 + parseInt(variantUID, 10);
+                if (billManager.getItemById(compositeId)) {
+                    Swal.fire({icon: 'error', title: t('swal_oops', 'Oops...'), text: t('swal_item_variant_in_cart', 'This item with the selected variant is already in the cart.')});
+                    return;
+                }
+                productData = Object.assign({}, productData, {
+                    productUID  : origUID,
+                    id          : compositeId,
+                    variantUID  : variantUID,
+                    variantLabel: variantLabel,
+                });
+                _doAddBillItem(productData, qty);
+            });
+        } else {
+            // Brand-applicable but no variants cached — fall back to BrandPicker
+            BrandPicker.open(productData, qty, function (brandUID, brandName) {
+                var origUID     = parseInt(productData.id, 10);
+                var compositeId = origUID * 100000 + parseInt(brandUID, 10);
+                if (billManager.getItemById(compositeId)) {
+                    Swal.fire({icon: 'error', title: t('swal_oops', 'Oops...'), text: t('swal_item_brand_in_cart', 'This item with the selected brand is already in the cart.')});
+                    return;
+                }
+                productData = Object.assign({}, productData, {
+                    productUID : origUID,
+                    id         : compositeId,
+                    brandUID   : brandUID,
+                    brandName  : brandName,
+                });
+                _doAddBillItem(productData, qty);
+            });
+        }
+        return;
+    }
+
     let existingItem = billManager.getItemById(productData.id);
     if (existingItem) {
         Swal.fire({icon: "error", title: t('swal_oops', 'Oops...'), text: t('swal_item_in_cart', 'Item already moved to cart.')});
         return false;
-    } else {
-        billManager.addItem(productData, qty);
-        var item = billManager.getItemById(productData.id);
-        formationTableBillItems(item);
-        if ($('#isFullyPaid').is(':checked')) {
-            $('#isFullyPaid').prop('checked', false).trigger('change');
-        }
-        if (typeof _plTransApplyToNewRow === 'function') _plTransApplyToNewRow(productData.id);
-        if (item && item.isComposite) {
-            _fetchAndAttachBOM(item);
-        }
     }
+
+    _doAddBillItem(productData, qty);
+}
+
+/**
+ * Final step: add item to billManager + render row. Called after brand is resolved.
+ * @param {Object} productData
+ * @param {number} qty
+ * @returns {void}
+ */
+function _doAddBillItem(productData, qty) {
+    billManager.addItem(productData, qty);
+    var item = billManager.getItemById(productData.id);
+    formationTableBillItems(item);
+    if ($('#isFullyPaid').is(':checked')) {
+        $('#isFullyPaid').prop('checked', false).trigger('change');
+    }
+    if (typeof _plTransApplyToNewRow === 'function') _plTransApplyToNewRow(productData.id);
+    if (item && item.isComposite) {
+        _fetchAndAttachBOM(item);
+    }
+}
+
+/**
+ * Validate all cart items have a brand selected when required.
+ * Call this from each form's submit handler before _doSubmit().
+ * @returns {boolean} true = OK to submit, false = blocked (error shown)
+ */
+function validateBrandItems() {
+    var items  = billManager.getAllItems();
+    var failed = [];
+    items.forEach(function (item) {
+        if (parseInt(item.IsBrandApplicable, 10) === 1 && !item.brandUID) {
+            failed.push(item.itemName || item.text || ('#' + item.id));
+            var $chip = $('.brand-chip[data-id="' + item.id + '"]');
+            $chip.addClass('brand-chip-error');
+            setTimeout(function () { $chip.removeClass('brand-chip-error'); }, 3000);
+        }
+    });
+    if (failed.length) {
+        Swal.fire({
+            icon : 'warning',
+            title: t('swal_brand_required_title', 'Brand Required'),
+            html : t('swal_brand_required_text', 'Please select a brand for:') +
+                   '<ul class="text-start mt-2 mb-0">' +
+                   failed.map(function (n) { return '<li>' + n + '</li>'; }).join('') +
+                   '</ul>',
+        });
+        return false;
+    }
+    return true;
 }
 
 function _applyBOMComponents(item, components) {
@@ -3534,6 +3741,13 @@ function formationTableBillItems(productRow) {
                 </div>
                 ${descText}
                 ${hsnText}
+                ${parseInt(productRow.IsBrandApplicable, 10) === 1
+                    ? (productRow.variantUID
+                        ? `<div class="mt-1"><span class="variant-chip selected" data-id="${productRow.id}"><i class="bx bx-layer me-1"></i>${productRow.variantLabel || ''}</span></div>`
+                        : (productRow.brandUID
+                            ? `<div class="mt-1"><span class="brand-chip selected" data-id="${productRow.id}"><i class="bx bx-purchase-tag-alt me-1"></i>${productRow.brandName}</span></div>`
+                            : `<div class="mt-1"><span class="variant-chip empty" data-id="${productRow.id}"><i class="bx bx-layer me-1"></i>${t('lbl_select_variant', 'Select Variant')}</span></div>`))
+                    : ''}
             </td>
             <td>
                 <div class="input-group input-group-merge input-group-sm">

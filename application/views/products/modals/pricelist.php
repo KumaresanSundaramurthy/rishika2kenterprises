@@ -201,7 +201,7 @@
                                 Price Rules
                                 <span class="text-muted fw-normal" style="font-size:.74rem;">— exact price per product per customer type</span>
                             </h5>
-                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="plAddProductBlock()">
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="_openPLProductSearch(null)">
                                 <i class="bx bx-plus me-1"></i>Add Product
                             </button>
                         </div>
@@ -220,6 +220,37 @@
                             <i class="bx bx-info-circle me-1"></i>
                             <strong>Prices are tax-inclusive.</strong> All amounts entered here include tax. For products configured as <em>Without Tax</em> on the transaction page, amounts will differ accordingly.
                         </div>
+                        <!-- Inline product search panel — shown when "+ Add Product" or re-pick pencil clicked -->
+                        <div id="PLProductSearchPanel" class="d-none border rounded mb-2">
+                            <div class="d-flex align-items-center gap-2 p-2 border-bottom bg-light">
+                                <div class="input-group input-group-sm flex-grow-1">
+                                    <span class="input-group-text"><i class="bx bx-search"></i></span>
+                                    <input type="text" id="plProdSearchInput" class="form-control"
+                                           placeholder="Search by name, category or part number…" autocomplete="off">
+                                    <button type="button" id="plProdSearchClear" class="btn btn-outline-secondary d-none">
+                                        <i class="bx bx-x"></i>
+                                    </button>
+                                </div>
+                                <button type="button" id="plProdSearchCancel" class="btn btn-sm btn-outline-secondary flex-shrink-0">
+                                    Cancel
+                                </button>
+                            </div>
+                            <div class="pl-prod-search-body">
+                                <table class="table table-sm table-hover align-middle mb-0">
+                                    <tbody id="plProdSearchResults">
+                                        <tr>
+                                            <td colspan="2" class="text-center py-4 text-muted">
+                                                <i class="bx bx-loader-alt bx-spin me-1"></i> Loading products…
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="px-3 py-1 border-top">
+                                <small id="plProdSearchPageInfo" class="text-muted"></small>
+                            </div>
+                        </div>
+
                         <!-- Product block cards — one card per product, each has qty tier sub-table -->
                         <div id="PLProductBlocksWrap" class="mb-2"></div>
                         <div id="PLRulesEmpty" class="text-center text-muted py-4 mb-2 d-none" style="font-size:.82rem;">

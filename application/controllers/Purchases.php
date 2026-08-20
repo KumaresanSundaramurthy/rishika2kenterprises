@@ -197,8 +197,10 @@ class Purchases extends MY_Controller {
             }
 
             $this->dbwrite_model->commitTransaction();
+            $transCommitted = true;
 
-            // Apply vendor ledger + post journal after commit
+            // ── Post-commit steps (each isolated so one failure cannot crash the response) ──
+
             if (!$isDraft) {
                 try {
                     $this->load->library('accountledger');
@@ -212,35 +214,73 @@ class Purchases extends MY_Controller {
                         $vendorUID, $userUID
                     );
                 } catch (Exception $ledgerEx) {
-                    log_message('error', 'Ledger update failed after purchase creation: ' . $ledgerEx->getMessage());
+                    log_message('error', 'Ledger update failed after purchase create #' . $transUID . ': ' . $ledgerEx->getMessage());
                 }
             }
 
-            $this->_saveAttachments($transUID);
-            $this->_touchVendorCache($vendorUID);
+            try {
+                $this->_saveAttachments($transUID);
+            } catch (Exception $attEx) {
+                log_message('error', 'Attachment save failed after purchase create #' . $transUID . ': ' . $attEx->getMessage());
+            }
+
+            try {
+                $this->_touchVendorCache($vendorUID);
+            } catch (Exception $vcEx) {
+                log_message('error', 'Vendor cache update failed after purchase create #' . $transUID . ': ' . $vcEx->getMessage());
+            }
+
             if (!$isDraft) {
-                $this->_syncProductCacheFromItems($items);
-                $this->_recalcVendorBalance($orgUID, $vendorUID, $userUID);
                 try {
-                    $this->load->model('purchasepricehistory_model');
-                    $this->purchasepricehistory_model->syncFromPurchase($orgUID, $userUID, $transUID, $transDate, $vendorUID, $items);
-                } catch (Exception $priceEx) {
-                    log_message('error', 'Purchase price log sync failed after create #' . $transUID . ': ' . $priceEx->getMessage());
+                    $this->_syncProductCacheFromItems($items);
+                } catch (Exception $syncEx) {
+                    log_message('error', 'Product cache sync failed after purchase create #' . $transUID . ': ' . $syncEx->getMessage());
+                }
+
+                if ((int) getPostValue($PostData, 'UpdatePurchasePrices') === 1) {
+                    try {
+                        $this->_applyPurchasePriceUpdates($orgUID, $userUID, $PostData);
+                    } catch (Exception $priceUpEx) {
+                        log_message('error', 'Purchase price update failed after create #' . $transUID . ': ' . $priceUpEx->getMessage());
+                    }
+                }
+
+                try {
+                    $this->_recalcVendorBalance($orgUID, $vendorUID, $userUID);
+                } catch (Exception $balEx) {
+                    log_message('error', 'Vendor balance recalc failed after purchase create #' . $transUID . ': ' . $balEx->getMessage());
+                }
+
+                try {
+                    $this->load->model('purchasepricelist_model');
+                    $this->purchasepricelist_model->upsertFromPurchase(
+                        $orgUID, $this->_branchUID(), $vendorUID,
+                        $transUID, $transDate, $uniqueNumber, $financialYear,
+                        $userUID, $items
+                    );
+                } catch (Exception $pplEx) {
+                    log_message('error', 'Purchase price list upsert failed after create #' . $transUID . ': ' . $pplEx->getMessage());
                 }
             }
 
             $this->EndReturnData->Error    = FALSE;
             $this->EndReturnData->Message  = 'Purchase bill recorded successfully.';
-            $this->auditlog->log(
-                (int) $orgUID, (int) $userUID,
-                'ADD_PURCHASE', 'Purchase', (int) $transUID, (string) $uniqueNumber,
-                [], 'Created purchase ' . $uniqueNumber, 'Purchases', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
-            );
+            try {
+                $this->auditlog->log(
+                    (int) $orgUID, (int) $userUID,
+                    'ADD_PURCHASE', 'Purchase', (int) $transUID, (string) $uniqueNumber,
+                    [], 'Created purchase ' . $uniqueNumber, 'Purchases', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
+                );
+            } catch (Exception $auditEx) {
+                log_message('error', 'Audit log failed after purchase create #' . $transUID . ': ' . $auditEx->getMessage());
+            }
             $this->EndReturnData->TransUID = $transUID;
             $this->EndReturnData->Token    = $headerData['TransToken'];
 
         } catch (Exception $e) {
-            $this->dbwrite_model->rollbackTransaction();
+            if (empty($transCommitted)) {
+                $this->dbwrite_model->rollbackTransaction();
+            }
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -347,10 +387,12 @@ class Purchases extends MY_Controller {
                 $newTransUID    = $insertResp->ID;
                 $activeTransUID = $newTransUID;
 
-                $this->dbwrite_model->insertData('Transaction', 'TransDetailTbl', array_merge($commonDetail, [
-                    'FinancialYear' => $amounts['financialYear'],
-                    'TransUID'      => $newTransUID,
-                ]));
+                $detailResp = $this->dbwrite_model->updateData(
+                    'Transaction', 'TransDetailTbl',
+                    array_merge($commonDetail, ['TransUID' => $newTransUID]),
+                    ['TransUID' => $transUID, 'FinancialYear' => $amounts['financialYear']]
+                );
+                if ($detailResp->Error) throw new Exception($detailResp->Message);
 
                 $this->dbwrite_model->updateData(
                     'Transaction', 'TransProductsTbl',
@@ -364,7 +406,6 @@ class Purchases extends MY_Controller {
                 }
 
                 $this->dbwrite_model->deleteInTransaction('Transaction', 'TransactionsTbl', ['TransUID' => $transUID]);
-                $this->dbwrite_model->deleteInTransaction('Transaction', 'TransDetailTbl',  ['TransUID' => $transUID]);
 
             } else {
                 if ($uniqueNumber !== NULL) {
@@ -428,31 +469,74 @@ class Purchases extends MY_Controller {
 
             $this->_saveTransCharges($activeTransUID, $orgUID, $userUID, $PostData);
             $this->dbwrite_model->commitTransaction();
-            $this->_touchVendorCache($vendorUID);
+            $transCommitted = true;
+
+            // ── Post-commit steps (each isolated so one failure cannot crash the response) ──
+
+            try {
+                $this->_touchVendorCache($vendorUID);
+            } catch (Exception $vcEx) {
+                log_message('error', 'Vendor cache update failed after purchase update #' . $activeTransUID . ': ' . $vcEx->getMessage());
+            }
+
             if (!$isDraft) {
-                foreach ($items as $_item) { $u = (int)($_item['id'] ?? 0); if ($u > 0) $_cacheUIDs[$u] = true; }
-                foreach (array_keys($_cacheUIDs) as $_uid) { $this->cachehelper->upsertProduct($_uid); }
-                $this->_recalcVendorBalance($orgUID, $vendorUID, $userUID);
                 try {
-                    $this->load->model('purchasepricehistory_model');
-                    $this->purchasepricehistory_model->updateFromPurchase($orgUID, $userUID, $activeTransUID, $transUID, $amounts['transDate'], $vendorUID, $items);
-                } catch (Exception $priceEx) {
-                    log_message('error', 'Purchase price log sync failed after update #' . $activeTransUID . ': ' . $priceEx->getMessage());
+                    foreach ($items as $_item) { $u = (int)($_item['id'] ?? 0); if ($u > 0) $_cacheUIDs[$u] = true; }
+                    foreach (array_keys($_cacheUIDs) as $_uid) { $this->cachehelper->upsertProduct($_uid); }
+                } catch (Exception $cacheEx) {
+                    log_message('error', 'Product cache sync failed after purchase update #' . $activeTransUID . ': ' . $cacheEx->getMessage());
+                }
+
+                if ((int) getPostValue($PostData, 'UpdatePurchasePrices') === 1) {
+                    try {
+                        $this->_applyPurchasePriceUpdates($orgUID, $userUID, $PostData);
+                    } catch (Exception $priceUpEx) {
+                        log_message('error', 'Purchase price update failed after update #' . $activeTransUID . ': ' . $priceUpEx->getMessage());
+                    }
+                }
+
+                try {
+                    $this->_recalcVendorBalance($orgUID, $vendorUID, $userUID);
+                } catch (Exception $balEx) {
+                    log_message('error', 'Vendor balance recalc failed after purchase update #' . $activeTransUID . ': ' . $balEx->getMessage());
+                }
+
+                try {
+                    $this->load->model('purchasepricelist_model');
+                    $activeUniqueNum = $uniqueNumber ?? ($existing->UniqueNumber ?? '');
+                    $this->purchasepricelist_model->upsertFromPurchase(
+                        $orgUID, $this->_branchUID(), $vendorUID,
+                        $activeTransUID, $amounts['transDate'], (string)$activeUniqueNum, $amounts['financialYear'],
+                        $userUID, $items
+                    );
+                } catch (Exception $pplEx) {
+                    log_message('error', 'Purchase price list upsert failed after update #' . $activeTransUID . ': ' . $pplEx->getMessage());
                 }
             }
-            $this->transactions_model->generateAndStorePdf($activeTransUID, $orgUID, $this->pageModuleUID);
+
+            try {
+                $this->transactions_model->generateAndStorePdf($activeTransUID, $orgUID, $this->pageModuleUID);
+            } catch (Exception $pdfEx) {
+                log_message('error', 'PDF generation failed after purchase update #' . $activeTransUID . ': ' . $pdfEx->getMessage());
+            }
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Purchase bill updated successfully.';
             $this->EndReturnData->Token   = $this->_getOrCreateTransToken($activeTransUID);
-            $this->auditlog->log(
-                (int) $orgUID, (int) $userUID,
-                'UPDATE_PURCHASE', 'Purchase', (int) $activeTransUID, (string) ($uniqueNumber ?? $existing->UniqueNumber ?? ''),
-                [], 'Updated purchase ' . ($uniqueNumber ?? $existing->UniqueNumber ?? ''), 'Purchases', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
-            );
+            try {
+                $this->auditlog->log(
+                    (int) $orgUID, (int) $userUID,
+                    'UPDATE_PURCHASE', 'Purchase', (int) $activeTransUID, (string) ($uniqueNumber ?? $existing->UniqueNumber ?? ''),
+                    [], 'Updated purchase ' . ($uniqueNumber ?? $existing->UniqueNumber ?? ''), 'Purchases', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
+                );
+            } catch (Exception $auditEx) {
+                log_message('error', 'Audit log failed after purchase update #' . $activeTransUID . ': ' . $auditEx->getMessage());
+            }
 
         } catch (Exception $e) {
-            $this->dbwrite_model->rollbackTransaction();
+            if (empty($transCommitted)) {
+                $this->dbwrite_model->rollbackTransaction();
+            }
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -511,13 +595,6 @@ class Purchases extends MY_Controller {
                     log_message('error', 'Ledger reversal failed after purchase delete: ' . $ledgerEx->getMessage());
                 }
                 $this->_recalcVendorBalance($orgUID, $existing->PartyUID, $userUID);
-            }
-
-            try {
-                $this->load->model('purchasepricehistory_model');
-                $this->purchasepricehistory_model->softDeleteByTransaction($orgUID, $transUID, $userUID);
-            } catch (Exception $priceEx) {
-                log_message('error', 'Purchase price log soft-delete failed after delete #' . $transUID . ': ' . $priceEx->getMessage());
             }
 
             $this->EndReturnData->Error   = FALSE;
@@ -735,6 +812,26 @@ class Purchases extends MY_Controller {
             if ($resp->Error) throw new Exception($resp->Message);
             $this->dbwrite_model->commitTransaction();
 
+            // Post-commit: reverse stock and ledger when cancelling
+            if ($newStatus === 'Cancelled') {
+                try {
+                    $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
+                } catch (Exception $stockEx) {
+                    log_message('error', 'Stock reversal failed after purchase cancel #' . $transUID . ': ' . $stockEx->getMessage());
+                }
+
+                if ($existing->DocStatus !== 'Draft' && !empty($existing->PartyUID)) {
+                    try {
+                        $this->load->library('accountledger');
+                        $this->accountledger->applyLedgerEntry($existing->PartyUID, 'Vendor', (float) $existing->NetAmount, 'Debit', $transUID);
+                        $this->accountledger->reverseJournal('Purchase', $transUID, $userUID);
+                    } catch (Exception $ledgerEx) {
+                        log_message('error', 'Ledger reversal failed after purchase cancel #' . $transUID . ': ' . $ledgerEx->getMessage());
+                    }
+                    $this->_recalcVendorBalance($orgUID, $existing->PartyUID, $userUID);
+                }
+            }
+
             $docNum = $existing->UniqueNumber ?? '';
             $prefix = $docNum ? "{$docNum} " : '';
             if ($newStatus === 'Cancelled') {
@@ -886,6 +983,35 @@ class Purchases extends MY_Controller {
                 $seen[$uid] = true;
                 $this->cachehelper->upsertProduct($uid);
             }
+        }
+    }
+
+    /**
+     * Update the product master purchase price for items the user chose to sync.
+     * Called after transaction commit when UpdatePurchasePrices=1 is in the POST.
+     * @param int   $orgUID
+     * @param int   $userUID
+     * @param array $postData
+     * @return void
+     */
+    private function _applyPurchasePriceUpdates(int $orgUID, int $userUID, array $postData): void {
+        $json = getPostValue($postData, 'PriceChangedItems');
+        if (!$json) return;
+        $changedItems = json_decode($json, true);
+        if (!is_array($changedItems) || empty($changedItems)) return;
+
+        $this->load->model('dbwrite_model');
+        foreach ($changedItems as $entry) {
+            $productUID = (int)($entry['productUID'] ?? 0);
+            $newPrice   = (float)($entry['newPrice'] ?? 0);
+            if ($productUID <= 0 || $newPrice <= 0) continue;
+
+            $this->dbwrite_model->updateData(
+                'Products', 'ProductTbl',
+                ['PurchasePrice' => $newPrice, 'UpdatedBy' => $userUID],
+                ['ProductUID' => $productUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
+            );
+            $this->cachehelper->upsertProduct($productUID);
         }
     }
 

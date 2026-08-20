@@ -422,23 +422,26 @@ class Inventory extends MY_Controller {
             $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
             $limit = (int) ($GeneralSettings->RowLimit ?? 10);
 
+            $fmt           = $GeneralSettings->ListDateFormat ?? 'd M Y';
             $defaultFilter = ['DateFrom' => date('Y-m-01'), 'DateTo' => date('Y-m-t')];
 
             $listData   = $this->inventory_model->getGlobalTimeline($orgUID, $defaultFilter, $limit, 0);
             $totalCount = $this->inventory_model->getGlobalTimelineCount($orgUID, $defaultFilter);
             $categories = $this->inventory_model->getCategories($orgUID);
-            $orgUsers   = $this->_requireCache($this->redisservice->orgKey('org-users'));
 
             $this->pageData['ModRowData']    = $this->load->view('inventory/timeline_list', [
                 'DataLists' => $listData,
                 'SerialNo'  => 0,
                 'JwtData'   => $this->pageData['JwtData'],
             ], TRUE);
-            $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/inventory/timeline/getPageDetails', $totalCount, 1, $limit);
-            $this->pageData['ModAllCount']   = $totalCount;
-            $this->pageData['DefaultFilter'] = $defaultFilter;
-            $this->pageData['Categories']    = $categories;
-            $this->pageData['OrgUsers']      = $orgUsers ?? [];
+            $this->pageData['ModPagination']      = $this->globalservice->buildPagePaginationHtml('/inventory/timeline/getPageDetails', $totalCount, 1, $limit);
+            $this->pageData['ModAllCount']         = $totalCount;
+            $this->pageData['DefaultFilter']       = $defaultFilter;
+            $this->pageData['Categories']          = $categories;
+            $this->pageData['SavedDateRange']      = 'this_month';
+            $this->pageData['SavedDateLabel']      = 'This Month';
+            $this->pageData['SavedDateFromDisplay'] = date($fmt, strtotime($defaultFilter['DateFrom']));
+            $this->pageData['SavedDateToDisplay']   = date($fmt, strtotime($defaultFilter['DateTo']));
 
             $this->load->view('inventory/timeline_view', $this->pageData);
 

@@ -686,6 +686,7 @@ class Transactions extends MY_Controller {
                     "description" => $value->Description ?? '',
                     "isComboItem" => (int) $value->IsComboItem,
                     "comboItemCount" => (int) $value->ComboItemCount,
+                    'IsBrandApplicable' => (int)($value->IsBrandApplicable ?? 0),
                 ];
 
                 $retProdDetails[] = $formData;

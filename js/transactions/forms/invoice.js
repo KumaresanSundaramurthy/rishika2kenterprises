@@ -21,6 +21,7 @@ var _isPopulating = false;
 // Derived locals
 var _editData         = _isEdit ? (_cfg.editData || {}) : {};
 var _custState        = _isEdit ? (_editData.custState || '') : '';
+
 var _editItems        = _isEdit ? (_editData.items     || []) : [];
 var _paidAmount       = _isEdit ? (_editData.paidAmount || 0) : 0;
 var _fromSO           = !_isEdit ? (_cfg.fromSO           || null) : null;
@@ -139,6 +140,53 @@ $(function () {
             $('#customerSearch')
                 .append(new Option(_custLabel, _editData.custUID, true, true))
                 .trigger('change');
+
+            // select2:select never fires on programmatic population, so manually
+            // restore the customer indicator badges (inter-state, credits, price list chip).
+            (function _restoreEditIndicators() {
+                var uid = _editData.custUID;
+                // Immediately show inter-state badge using PHP-supplied customer state
+                if (typeof _showCustTypeIndicator === 'function') {
+                    _showCustTypeIndicator({ countryISO2: 'IN', address: { State: _editData.custState || '' } });
+                }
+                // Show price list chip baseline (no prices re-applied on edit)
+                if (typeof _plShowNoneChip === 'function') { _plShowNoneChip(); }
+                // Fetch the customer cache entry for accurate credits + country ISO2
+                if (typeof UpstashService === 'undefined' || !UpstashService.isEnabled()) return;
+                UpstashService.hget(UpstashService.orgKey('customers'), String(uid)).then(function (c) {
+                    if (!c) return;
+                    var addr = null;
+                    if (Array.isArray(c.Address) && c.Address.length) {
+                        addr = c.Address[0];
+                        c.Address.forEach(function (a) { if (a.AddressType === 'Billing') addr = a; });
+                    }
+                    if (typeof _showCustTypeIndicator === 'function') {
+                        _showCustTypeIndicator({
+                            countryISO2: c.CountryISO2 || 'IN',
+                            address: addr ? { State: addr.StateText || '' } : { State: _editData.custState || '' },
+                        });
+                    }
+                    var cnTotal = parseFloat(c.CreditNoteTotal || 0);
+                    if (typeof _showOnAccountBanner === 'function') {
+                        _showOnAccountBanner(
+                            parseFloat(c.OnAccountBalance || 0),
+                            c.OnAccountRecords || [],
+                            uid,
+                            parseFloat(c.AdvanceTotal || 0),
+                            cnTotal
+                        );
+                    }
+                    if (_isDraftEdit && typeof window._cnUpdateBanner === 'function') {
+                        window._cnUpdateBanner(uid, cnTotal);
+                    }
+                    // Pre-populate the Reserved CN strip on draft edit
+                    if (_isDraftEdit && _editData.draftCN && typeof window._cnPrePopulate === 'function') {
+                        var dcn = _editData.draftCN;
+                        window._cnPrePopulate(dcn.uid, dcn.number, dcn.amount, dcn.type || '');
+                    }
+                }).catch(function () {});
+            }());
+
             if (!_isDraftEdit) {
                 $('#customerSearch')
                     .on('select2:opening',  function (e) { e.preventDefault(); })
@@ -251,6 +299,7 @@ $(function () {
 
             var items = typeof billManager !== 'undefined' ? billManager.getAllItems() : [];
             if (!items || items.length === 0) return showFormError('Please add at least one product.');
+            if (typeof validateBrandItems === 'function' && !validateBrandItems()) return;
 
             if (_isEdit && _paidAmount > 0) {
                 var bm = typeof billManager !== 'undefined' ? billManager : null;
@@ -383,7 +432,7 @@ $(function () {
             if (typeof _plTransInjectFormData === 'function') _plTransInjectFormData(fd);
             $.each(charges, function (k, v) { fd.append(k, v); });
             collectTransAttachData(fd);
-            if (!_isEdit) {
+            if (!_isEdit || _isDraftEdit) {
                 fd.append('CreditNoteUID',      parseInt($('#CreditNoteUIDInput').val(), 10) || 0);
                 fd.append('PaymentRows',        $('#PaymentRowsJson').val()    || '');
                 fd.append('IsFullyPaid',        $('#isFullyPaid').is(':checked') ? 1 : 0);
@@ -410,7 +459,22 @@ $(function () {
                     if (response.Error) {
                         ajaxLoading(0);
                         setFormLoading('#' + _formId, false);
-                        showFormError(response.Message);
+                        if (response.CreditNoteConflict) {
+                            Swal.fire({
+                                title             : 'Credit Note Already Used',
+                                text              : response.Message,
+                                icon              : 'error',
+                                confirmButtonText : 'Clear Applied Credit Note',
+                                confirmButtonColor: '#dc3545',
+                                showCancelButton  : false,
+                                allowOutsideClick : false,
+                                allowEscapeKey    : false,
+                            }).then(function() {
+                                if (typeof window._clearAppliedCN === 'function') window._clearAppliedCN();
+                            });
+                        } else {
+                            showFormError(response.Message);
+                        }
                     } else if (_pendingPrintFormat) {
                         var _fmt = _pendingPrintFormat;
                         _pendingPrintFormat = null;
@@ -420,10 +484,17 @@ $(function () {
                         }
                         window._r2kRedirecting = true;
                         showUIBlock();
-                        _setPendingToast('_invPendingToast', (_isEdit ? (response.Message || 'Invoice updated successfully.') : 'Invoice created successfully.'), 'success');
+                        var _isDraftSave = (action === 'draft');
+                        var _toastMsg    = _isDraftSave ? 'Draft saved successfully.' : (_isEdit ? (response.Message || 'Invoice updated successfully.') : 'Invoice created successfully.');
+                        _setPendingToast('_invPendingToast', _toastMsg, 'success');
+                        if (response.CreditNoteWarning) { _setPendingToast('_invPendingCnWarn', response.CreditNoteWarning, 'warning'); }
                         window.location.href = _buildReturnUrl('/invoices');
                     } else {
-                        _showSavedAndGo(_isEdit ? 'Invoice Updated' : 'Invoice Saved', (_isEdit ? (response.Message || 'Invoice updated successfully.') : 'Invoice created successfully.'), action);
+                        var _isDraftSave = (action === 'draft');
+                        var _toastTitle  = _isDraftSave ? 'Draft Saved' : (_isEdit ? 'Invoice Updated' : 'Invoice Saved');
+                        var _toastMsg    = _isDraftSave ? 'Draft saved successfully.' : (_isEdit ? (response.Message || 'Invoice updated successfully.') : 'Invoice created successfully.');
+                        if (response.CreditNoteWarning) { _setPendingToast('_invPendingCnWarn', response.CreditNoteWarning, 'warning'); }
+                        _showSavedAndGo(_toastTitle, _toastMsg, action);
                     }
                 },
                 error: function () {

@@ -318,7 +318,8 @@ function _buildPaymentPanelHtml(payments, accentHex) {
     payments.forEach(function (p, i) {
         if (i > 0) html += '<hr style="margin:8px 0;border-color:#f0f0f0;">';
         var amt  = parseFloat(p.Amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        var mode = p.PaymentTypeName || '—';
+        var sourceType = p.SourceType || '';
+        var mode = p.PaymentTypeName || (sourceType === 'CreditNote' ? t('lbl_credit_note', 'Credit Note') : (sourceType === 'OnAccount' ? t('lbl_on_account', 'On Account') : '—'));
         var ref  = p.ReferenceNo || '';
         var date = '';
         if (p.CreatedOn) {

@@ -465,6 +465,20 @@
   font-variant-numeric: tabular-nums;
 }
 
+.gpo-wait-text {
+  display: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: #696cff;
+  letter-spacing: 0.04em;
+}
+
+#globalProcOverlay.gpo-wait-only .gpo-progress-wrap { display: none; }
+#globalProcOverlay.gpo-wait-only .gpo-wait-text     { display: block; }
+
+/* ── Product Variant table ───────────────────────────────────────────── */
+.var-tax-sel { width: 82px; flex-shrink: 0; }
+
 /* ── Sticky pagination bar (Customer list page) ─────────────────────── */
 
 /* Shared violet-tint token used by both the sticky pagination and page header */
@@ -754,7 +768,10 @@ input[type="number"] {
     appearance: textfield;
 }
 
-/* Dispatch From — custom dropdown trigger (no Select2) */
+/* Dispatch From — fully manual custom dropdown (no Bootstrap Dropdown) */
+.r2k-dispatch-from {
+    position: relative;
+}
 .r2k-dispatch-btn {
     display: inline-flex;
     align-items: center;
@@ -768,6 +785,18 @@ input[type="number"] {
     outline: none;
 }
 .r2k-dispatch-btn:focus { outline: none; box-shadow: none; }
+/* Chevron — replaces Bootstrap .dropdown-toggle::after */
+.r2k-dispatch-btn::after {
+    flex-shrink: 0;
+    display: inline-block;
+    margin-left: .255em;
+    vertical-align: .255em;
+    content: "";
+    border-top: .3em solid #344563;
+    border-right: .3em solid transparent;
+    border-bottom: 0;
+    border-left: .3em solid transparent;
+}
 .r2k-dispatch-val {
     flex: 1;
     /* font-weight: 700; */
@@ -777,16 +806,23 @@ input[type="number"] {
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-/* Bootstrap dropdown-toggle chevron colour */
-.r2k-dispatch-btn.dropdown-toggle::after {
-    flex-shrink: 0;
-    color: #344563;
-}
-/* Dropdown panel */
+/* Dropdown panel — hidden by default, shown by JS via .r2k-disp-open */
 .r2k-dispatch-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    z-index: 1050;
     min-width: 320px;
     max-height: 300px;
     overflow-y: auto;
+    background: var(--bs-dropdown-bg, #fff);
+    border: 1px solid rgba(0, 0, 0, .12);
+    border-radius: .375rem;
+    box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .15);
+}
+.r2k-dispatch-from.r2k-disp-open .r2k-dispatch-menu {
+    display: block;
 }
 /* Address card item */
 .r2k-dispatch-item {
@@ -879,5 +915,82 @@ input[type="number"] {
     background: #f0ebff !important;
     border-color: #d9d0ff !important;
     color: #6f42c1 !important;
+}
+
+/* ── SweetAlert2 top-position with breathing room ───────────────────────── */
+.swal-top-pad { padding-top: 70px !important; }
+
+/* ── Price List — variant-tier sections ──────────────────────────────────── */
+.pl-var-section-header { background: #f8f9fa; border-bottom: 1px solid #dee2e6; }
+.pl-var-section:last-child { border-bottom: none !important; }
+
+/* ── Price List — inline product search panel ────────────────────────────── */
+#PLProductSearchPanel              { background: #f0f4ff; border-color: #696cff !important; border-left-width: 3px !important; }
+#PLProductSearchPanel .bg-light    { background: #e4eaff !important; }
+.pl-prod-search-body               { max-height: 300px; overflow-y: auto; background: #fff; }
+.pl-prod-search-row td             { background: #fff; border-bottom: 1px solid #eef0f8; }
+.pl-prod-search-row:hover td       { background: #eef0ff; }
+.pl-prod-search-row                { cursor: pointer; }
+#plProdSearchPageInfo              { color: #6c757d; font-size: .75rem; }
+.pl-pick-product-btn               { font-size: .72rem; }
+
+/* ── Purchase Price Diff SweetAlert ─────────────────────────────────────── */
+.swal-purchase-intro        { margin: 0 0 10px; font-size: .9rem; }
+.swal-purchase-note         { margin: 0; font-size: .85rem; color: #566a7f; }
+.swal-purchase-table        { width: 100%; border-collapse: collapse; font-size: .85rem; margin-bottom: 12px; }
+.swal-purchase-table th     { padding: 4px 8px; text-align: left; border-bottom: 1px solid #eee; font-weight: 600; }
+.swal-purchase-table th:not(:first-child) { text-align: right; }
+.swal-purchase-table td     { padding: 5px 8px; border-bottom: 1px solid #f0f0f0; }
+.swal-purchase-table td:not(:first-child) { text-align: right; }
+.swal-purchase-new-price    { color: #696cff; font-weight: 600; }
+
+/* ── Barcode Print Modal ─────────────────────────────────────────────────── */
+.bc-modal-title      { font-size: .95rem; font-weight: 600; }
+.bc-beta-badge       { font-size: .6rem; vertical-align: middle; padding: 3px 6px; }
+.bc-product-subtitle { font-size: .75rem; max-width: 700px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bc-close-btn        { width: 30px; height: 30px; padding: 0; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+/* ── Product items list ──────────────────────────────────────────────────── */
+.prod-item-meta  { font-size: .75rem; }
+.prod-hsn-code   { font-size: .68rem; letter-spacing: .2px; color: #26a7de; }
+
+/* ── List page shared utilities ──────────────────────────────────────────── */
+.r2k-item-subtext { font-size: .76rem; }
+.r2k-dim-text     { font-size: .82rem; }
+.r2k-actions-menu { font-size: .82rem; min-width: 160px; }
+
+/* ── Empty state — shared across all tab list views ─────────────────────── */
+.r2k-list-empty {
+    height: 57vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.r2k-list-empty-inner {
+    max-width: 500px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+.r2k-list-empty-img {
+    flex: 3;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 1rem;
+}
+.r2k-list-empty-img img {
+    max-height: 40vh;
+    object-fit: contain;
+}
+.r2k-list-empty-action {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
 

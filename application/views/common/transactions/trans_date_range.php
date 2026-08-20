@@ -1,28 +1,81 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <style>
-/* ── Custom Date Range Modal: force 2-month side-by-side layout ── */
+/* ── Custom Date Range Modal ── */
+
+/* 1. Outer calendar fills the modal body */
+#r2kCustomRangeModal .flatpickr-calendar {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-shadow: none !important;
+}
+
+/* 2. Inner container: two months side by side via flex */
+#r2kCustomRangeModal .flatpickr-innerContainer {
+    display: flex !important;
+    width: 100% !important;
+    overflow: visible !important;
+}
+
+/* 3. Each month's container takes exactly half */
+#r2kCustomRangeModal .flatpickr-rContainer {
+    flex: 1 1 0% !important;
+    min-width: 0 !important;
+    width: auto !important;
+    overflow: visible !important;
+}
+
+/* 4. Day grid and weekday row fill their half */
+#r2kCustomRangeModal .flatpickr-weekdays,
+#r2kCustomRangeModal .flatpickr-weekdaycontainer,
+#r2kCustomRangeModal .flatpickr-days {
+    width: 100% !important;
+}
+#r2kCustomRangeModal .dayContainer {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+}
+
+/* 5. Day cells and weekday labels fill 1/7 of their container */
+#r2kCustomRangeModal .flatpickr-day {
+    max-width: calc(100% / 7) !important;
+    flex: 1 0 calc(100% / 7) !important;
+}
+#r2kCustomRangeModal span.flatpickr-weekday {
+    flex: 1 !important;
+    max-width: calc(100% / 7) !important;
+}
+
+/* 6. Month header row */
 #r2kCustomRangeModal .flatpickr-calendar .flatpickr-months {
     display: flex !important;
     align-items: stretch !important;
 }
+/* 7. Each month header: tall enough for selects, no overflow into date grid */
 #r2kCustomRangeModal .flatpickr-calendar .flatpickr-month {
-    flex: 1 1 0 !important;
+    flex: 1 1 0% !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    block-size: auto !important;
+    min-height: 48px !important;
+    height: auto !important;
     overflow: visible !important;
     padding: .4rem 0 !important;
 }
+/* 8. Month + year selects in a flex row, not absolutely positioned */
 #r2kCustomRangeModal .flatpickr-calendar .flatpickr-current-month {
     position: static !important;
-    inline-size: auto !important;
-    inset-inline-start: 0 !important;
+    width: auto !important;
+    left: auto !important;
     padding: 0 !important;
-    block-size: auto !important;
+    height: auto !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 2px !important;
 }
-/* Month & Year <select> — mirror .flatpickr-monthDropdown-months styling */
+
+/* 9. Month & Year <select> styling */
 #r2kCustomRangeModal .r2k-mo-sel,
 #r2kCustomRangeModal .r2k-yr-sel {
     appearance: menulist;
@@ -35,12 +88,11 @@
     font-family: inherit;
     font-size: 1.0625rem;
     font-weight: 400;
-    line-height: inherit;
+    line-height: 1.4;
     outline: none;
-    padding-inline: .5ch 0;
-    vertical-align: middle;
-    block-size: 2.25rem;
-    inline-size: auto;
+    padding: 0 .25rem 0 .5ch;
+    height: auto;
+    width: auto;
 }
 </style>
 

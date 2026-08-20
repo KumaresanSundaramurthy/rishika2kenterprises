@@ -35,7 +35,8 @@ class Indirectincome extends MY_Controller {
 
             $allData      = $this->indirectincome_model->getIncomeList($orgUID, $filter, $limit, 0);
             $allDataCount = $this->indirectincome_model->getIncomeCount($orgUID, $filter);
-            $summaryStats = $this->indirectincome_model->getIncomeSummaryStats($orgUID, $this->_branchUID());
+            $_showStats   = (bool)($this->pageData['JwtData']->GenSettings->ShowStats ?? 1) && (bool)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
+            $summaryStats = $_showStats ? $this->indirectincome_model->getIncomeSummaryStats($orgUID, $this->_branchUID()) : [];
 
             $this->pageData['ModRowData']    = $this->load->view('transactions/indirectincome/list', [
                 'DataLists'    => $allData,
@@ -90,7 +91,9 @@ class Indirectincome extends MY_Controller {
             $this->EndReturnData->RecordHtmlData = $rowHtml;
             $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml('/indirectincome/getPageDetails', $allDataCount, $pageNo, $limit);
             $this->EndReturnData->TotalCount     = $allDataCount;
-            $this->EndReturnData->SummaryStats   = $this->indirectincome_model->getIncomeSummaryStats($orgUID, $this->_branchUID());
+            if (($this->pageData['JwtData']->GenSettings->ShowStats ?? 1) && ($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1)) {
+                $this->EndReturnData->SummaryStats = $this->indirectincome_model->getIncomeSummaryStats($orgUID, $this->_branchUID());
+            }
 
         } catch (Throwable $e) {
             $this->EndReturnData->Error   = TRUE;
@@ -906,7 +909,9 @@ class Indirectincome extends MY_Controller {
         $this->EndReturnData->RecordHtmlData = $rowHtml;
         $this->EndReturnData->TotalCount     = $allCount;
         $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml('/indirectincome/getPageDetails', $allCount, 1, $limit);
-        $this->EndReturnData->SummaryStats   = $this->indirectincome_model->getIncomeSummaryStats($orgUID, $this->_branchUID());
+        if (($this->pageData['JwtData']->GenSettings->ShowStats ?? 1) && ($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1)) {
+            $this->EndReturnData->SummaryStats = $this->indirectincome_model->getIncomeSummaryStats($orgUID, $this->_branchUID());
+        }
     }
 
     // Validates POST, computes amounts, returns data array for IndirectIncomeTbl only

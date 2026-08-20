@@ -125,17 +125,24 @@ class Vendorbalance {
 
     public function recalcAndSync(int $orgUID, int $vendorUID, int $userUID): ?array {
         try {
+            log_message('debug', '[VBAL-FLOW] recalcAndSync START — VendorUID=' . $vendorUID);
             $this->CI->load->model('vendors_model');
+
+            // Flush the ReadDb REPEATABLE READ snapshot BEFORE running any sum queries,
+            // so they see the purchase that was just committed via WriteDb.
+            $this->CI->vendors_model->commitReadDb();
+            log_message('debug', '[VBAL-FLOW] ReadDb COMMIT issued');
 
             $vendRows = $this->CI->vendors_model->getVendorsWithLedgerForBalance(
                 (int)$orgUID, (int)$vendorUID
             );
             if (empty($vendRows)) {
-                log_message('debug', '[VendBalanceRecalc] VendorUID=' . $vendorUID . ' — vendor not found or inactive, recalc skipped');
+                log_message('debug', '[VBAL-FLOW] recalcAndSync SKIP — VendorUID=' . $vendorUID . ' not found or inactive');
                 return null;
             }
 
             $vend = $vendRows[0];
+            log_message('debug', '[VBAL-FLOW] Vendor row — Name=' . ($vend->Name ?? '?') . ' LedgerUID=' . ($vend->LedgerUID ?? 'NULL') . ' OpeningBal=' . ($vend->OpeningBalance ?? 0) . '(' . ($vend->OpeningBalType ?? '?') . ')');
 
             $totalPurchased   = $this->CI->vendors_model->getVendorTotalPurchased($orgUID, $vendorUID);
             $totalPaid        = $this->CI->vendors_model->getVendorTotalPaid($orgUID, $vendorUID);
@@ -143,6 +150,8 @@ class Vendorbalance {
             $prCoveredByDN    = $this->CI->vendors_model->getVendorPRCoveredByDebitNote($orgUID, $vendorUID);
             $effectiveReturned = max(0.0, $totalReturned - $prCoveredByDN);
             [$pendingDebitNotes, $pendingCreditNotes] = $this->CI->vendors_model->getVendorPendingNoteTotals($orgUID, $vendorUID);
+
+            log_message('debug', '[VBAL-FLOW] Sums — Purchased=' . $totalPurchased . ' Paid=' . $totalPaid . ' ReturnedRaw=' . $totalReturned . ' PRCoveredByDN=' . $prCoveredByDN . ' EffectiveReturned=' . $effectiveReturned . ' PendingDN=' . $pendingDebitNotes . ' PendingCN=' . $pendingCreditNotes);
 
             // Vendor opening: Credit = positive (we owe them), Debit = negative
             $signedOpening = ($vend->OpeningBalType === 'Credit')
@@ -156,37 +165,36 @@ class Vendorbalance {
             $newBalance  = abs($signedBalance);
             $newBalType  = ($signedBalance >= 0) ? 'Credit' : 'Debit';
 
-            log_message('debug', '[VendBalanceRecalc] VendorUID=' . $vendorUID
-                . ' Opening=' . $vend->OpeningBalance . '(' . $vend->OpeningBalType . ')'
-                . ' Purchased=' . $totalPurchased
-                . ' Paid=' . $totalPaid
-                . ' ReturnedRaw=' . $totalReturned
-                . ' PRCoveredByDN=' . $prCoveredByDN
-                . ' EffectiveReturned=' . $effectiveReturned
-                . ' PendingDN=' . $pendingDebitNotes
-                . ' PendingCN=' . $pendingCreditNotes
-                . ' Signed=' . $signedBalance
-                . ' => NEW=' . $newBalance . '(' . $newBalType . ')');
+            log_message('debug', '[VBAL-FLOW] Formula — SignedOpening=' . $signedOpening . ' SignedBalance=' . $signedBalance . ' => NEW=' . $newBalance . '(' . $newBalType . ')');
 
             // 1. Update VendOpeningBalanceTbl → PendingBalance
+            log_message('debug', '[VBAL-FLOW] Step1 updateVendorPendingBalance — VendorUID=' . $vendorUID . ' newBalance=' . $newBalance . ' newBalType=' . $newBalType);
             $this->CI->vendors_model->updateVendorPendingBalance(
                 $orgUID, $vendorUID, $newBalance, $newBalType, $userUID
             );
+            log_message('debug', '[VBAL-FLOW] Step1 DONE');
 
             // 2. Update Accounting.ChartOfAccounts → CurrentBalance
             if (!empty($vend->LedgerUID)) {
+                log_message('debug', '[VBAL-FLOW] Step2 updateVendorBalanceInLedger — LedgerUID=' . $vend->LedgerUID);
                 $this->CI->vendors_model->updateVendorBalanceInLedger(
                     $vend->LedgerUID, $newBalance, $newBalType, $userUID
                 );
+                log_message('debug', '[VBAL-FLOW] Step2 DONE');
+            } else {
+                log_message('debug', '[VBAL-FLOW] Step2 SKIPPED — no LedgerUID for VendorUID=' . $vendorUID);
             }
 
             // 3. Sync Upstash cache
+            log_message('debug', '[VBAL-FLOW] Step3 upsertVendor (cache) — VendorUID=' . $vendorUID);
             $this->CI->cachehelper->upsertVendor((int)$vendorUID);
+            log_message('debug', '[VBAL-FLOW] Step3 DONE');
 
+            log_message('debug', '[VBAL-FLOW] recalcAndSync COMPLETE — VendorUID=' . $vendorUID . ' FinalBalance=' . $newBalance . '(' . $newBalType . ')');
             return ['balance' => $newBalance, 'type' => $newBalType];
 
         } catch (Exception $e) {
-            log_message('error', 'Vendorbalance::recalcAndSync failed for VendorUID=' . $vendorUID . ': ' . $e->getMessage());
+            log_message('error', '[VBAL-FLOW] recalcAndSync EXCEPTION VendorUID=' . $vendorUID . ': ' . $e->getMessage());
             return null;
         }
     }

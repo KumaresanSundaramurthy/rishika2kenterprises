@@ -749,18 +749,30 @@ function showUIBlock() {
     if (!document.getElementById('globalProcOverlay')) {
         var d = document.createElement('div');
         d.id = 'globalProcOverlay';
-        d.innerHTML = ''
-            + '<div class="gpo-wrap">'
-                + '<div class="gpo-spinner">'
-                    + '<img class="gpo-logo" src="/images/logo/favicon_io/android-chrome-512x512-1.png">'
-                + '</div>'
-                + '<div class="gpo-progress-wrap">'
-                    + '<div class="gpo-progress-track">'
-                        + '<div class="gpo-progress-bar" id="gpoProgressBar"></div>'
+        if (window._r2kSimpleOverlay) {
+            d.classList.add('gpo-wait-only');
+            d.innerHTML = ''
+                + '<div class="gpo-wrap">'
+                    + '<div class="gpo-spinner">'
+                        + '<img class="gpo-logo" src="/images/logo/favicon_io/android-chrome-512x512-1.png">'
                     + '</div>'
-                    + '<span class="gpo-progress-pct" id="gpoProgressPct">0%</span>'
-                + '</div>'
-            + '</div>';
+                    + '<div class="gpo-wait-text">Processing&hellip; Please wait&hellip;</div>'
+                + '</div>';
+        } else {
+            d.innerHTML = ''
+                + '<div class="gpo-wrap">'
+                    + '<div class="gpo-spinner">'
+                        + '<img class="gpo-logo" src="/images/logo/favicon_io/android-chrome-512x512-1.png">'
+                    + '</div>'
+                    + '<div class="gpo-progress-wrap">'
+                        + '<div class="gpo-progress-track">'
+                            + '<div class="gpo-progress-bar" id="gpoProgressBar"></div>'
+                        + '</div>'
+                        + '<span class="gpo-progress-pct" id="gpoProgressPct">0%</span>'
+                    + '</div>'
+                    + '<div class="gpo-wait-text">Please wait&hellip;</div>'
+                + '</div>';
+        }
         document.body.appendChild(d);
     }
 

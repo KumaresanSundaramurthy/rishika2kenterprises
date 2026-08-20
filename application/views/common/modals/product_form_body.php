@@ -197,6 +197,52 @@ if (!empty($_JwtData->GenSettings->EnableStorage)) {
                         </div>
                     </div>
                 </div>
+                <!-- Variant builder — shown when IsSizeApplicable OR IsBrandApplicable is checked -->
+                <div class="col-12 d-none" id="variantSection">
+                    <div class="card border mb-3">
+                        <div class="card-header d-flex align-items-center py-2 px-3">
+                            <i class="bx bx-grid-alt me-2 text-primary"></i>
+                            <span class="fw-semibold small">Product Variants</span>
+                            <span class="ms-auto badge bg-label-secondary" id="variantTotalQty">Total Qty: 0</span>
+                        </div>
+                        <div class="card-body p-3">
+                            <div id="variantSizeRow" class="mb-3 d-none">
+                                <label class="form-label fw-semibold small mb-1">Sizes</label>
+                                <div class="d-flex gap-2">
+                                    <select id="VariantSizeSelect" class="form-select form-select-sm flex-grow-1" multiple></select>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary flex-shrink-0" id="AddNewSizeBtn">
+                                        <i class="bx bx-plus me-1"></i>New Size
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="variantBrandRow" class="mb-3 d-none">
+                                <label class="form-label fw-semibold small mb-1">Brands</label>
+                                <select id="VariantBrandSelect" class="form-select form-select-sm" multiple></select>
+                            </div>
+                            <div id="variantTableWrap" class="d-none">
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-bordered mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th class="var-col-size">Size</th>
+                                                <th class="var-col-brand">Brand</th>
+                                                <th>Part No.</th>
+                                                <th>Purchase Price</th>
+                                                <th>Selling Price</th>
+                                                <th>Opening Qty</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="variantTableBody"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div id="variantEmptyHint" class="text-center text-muted small py-2">
+                                Select sizes and/or brands above to generate the variant matrix.
+                            </div>
+                        </div>
+                    </div>
+                    <input type="hidden" name="VariantData" id="VariantData" value="[]">
+                </div>
                 <div class="mb-3 mt-2 col-md-12">
                     <label for="Description" class="form-label">Description</label>
                     <div class="form-control p-0">
@@ -211,7 +257,7 @@ if (!empty($_JwtData->GenSettings->EnableStorage)) {
                 <h5 class="modal-title mb-0">Other Information</h5>
             </div>
             <div class="row">
-                <div class="mb-3 col-md-4 OpeningStockDiv">
+                <div class="mb-3 col-md-4 OpeningStockDiv" id="openingQtyDiv">
                     <label for="OpeningQuantity" class="form-label">Opening Quantity</label>
                     <input type="text" class="form-control" name="OpeningQuantity" id="OpeningQuantity" min="0" placeholder="Enter Opening Quantity"
                         onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))"

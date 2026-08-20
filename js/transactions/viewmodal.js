@@ -302,6 +302,7 @@
                     '<div class="vtm-item-name">' + _esc(item.ProductName) + '</div>' +
                     (item.PartNumber ? '<div class="vtm-item-sub">Part# ' + _esc(item.PartNumber) + '</div>' : '') +
                     (item.HSNCode    ? '<div class="vtm-item-sub">HSN: '  + _esc(item.HSNCode)    + '</div>' : '') +
+                    (item.BrandName  ? '<div class="vtm-item-sub"><i class="bx bx-purchase-tag-alt me-1"></i>' + _esc(item.BrandName) + '</div>' : '') +
                 '</td>' +
                 '<td class="text-center">' +
                     '<span class="fw-500 text-nowrap">' + _fmtQty(item.Quantity) + ' <span class="vtm-item-sub">' + _esc(item.PrimaryUnitName) + '</span></span>' +

@@ -19,65 +19,72 @@ $this->load->view('common/transactions/header'); ?>
                         $dec           = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
                         $defaultFilter = $DefaultFilter ?? ['DateFrom' => date('Y-m-01'), 'DateTo' => date('Y-m-t')];
                         $categories    = $Categories ?? [];
-                        $orgUsers      = $OrgUsers ?? [];
-                        $showUserBtn   = !empty($orgUsers) && count($orgUsers) > 1;
                     ?>
 
                     <!-- ── Main Card ──────────────────────────────────────── -->
                     <div class="card">
 
-                        <!-- ── Action Row: filter buttons left, export right ── -->
+                        <!-- ── Action Row: filter buttons left, actions right ── -->
                         <div class="p-2 d-flex align-items-center justify-content-between mb-0 gap-2 flex-wrap">
                             <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <button type="button" id="tlItemFilterBtn" class="btn btn-sm btn-outline-secondary">
+                                    <i class="bx bx-package me-1"></i>Items
+                                </button>
                                 <button type="button" id="tlSourceFilterBtn" class="btn btn-sm btn-outline-secondary">
                                     <i class="bx bx-transfer me-1"></i>Source
                                 </button>
                                 <button type="button" id="tlCategoryFilterBtn" class="btn btn-sm btn-outline-secondary">
                                     <i class="bx bx-category me-1"></i>Category
                                 </button>
-                                <?php if ($showUserBtn): ?>
-                                <button type="button" id="tlUserFilterBtn" class="btn btn-sm btn-outline-secondary">
-                                    <i class="bx bx-user me-1"></i>Updated By
-                                </button>
-                                <?php endif; ?>
+                                <select id="tlMovementFilter" class="form-select form-select-sm tl-movement-select">
+                                    <option value="">All Movements</option>
+                                    <option value="IN">Stock In only</option>
+                                    <option value="OUT">Stock Out only</option>
+                                </select>
+                                <?php $this->load->view('common/transactions/date_filter_btn'); ?>
                             </div>
                             <div class="d-flex align-items-center gap-2">
+                                <span class="badge text-bg-light border" id="tlTotalCount"><?php echo number_format($ModAllCount); ?> records</span>
+                                <a href="javascript:void(0);" class="btn btn-sm btn-outline-secondary p-1 pageRefresh" title="Refresh">
+                                    <i class="bx bx-refresh fs-5"></i>
+                                </a>
                                 <div class="dropdown">
-                                    <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
+                                            data-bs-toggle="dropdown" data-bs-auto-close="true" aria-expanded="false"
+                                            title="Export">
                                         <i class="bx bx-export me-1"></i>Export
                                     </button>
-                                    <ul class="dropdown-menu dropdown-menu-end">
-                                        <li><a class="dropdown-item" href="javascript:void(0);" onclick="invExportTimeline('Print')"><i class="bx bx-printer me-1"></i>Print</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);" onclick="invExportTimeline('CSV')"><i class="bx bx-file me-1"></i>CSV</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);" onclick="invExportTimeline('Excel')"><i class="bx bxs-file-export me-1"></i>Excel</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);" onclick="invExportTimeline('Pdf')"><i class="bx bxs-file-pdf me-1"></i>PDF</a></li>
+                                    <ul class="dropdown-menu dropdown-menu-end r2k-export-menu" style="min-width:260px;font-size:.83rem;">
+                                        <li>
+                                            <a class="dropdown-item" href="javascript:void(0);" onclick="invExportTimeline('Print')">
+                                                <i class="bx bx-printer me-2 text-secondary"></i>Print Preview
+                                                <small class="text-muted ms-1">(Preview before printing)</small>
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider my-1"></li>
+                                        <li>
+                                            <a class="dropdown-item" href="javascript:void(0);" onclick="invExportTimeline('CSV')">
+                                                <i class="bx bx-file me-2 text-success"></i>CSV
+                                                <small class="text-muted ms-1">(Comma Separated, opens in any spreadsheet)</small>
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" href="javascript:void(0);" onclick="invExportTimeline('Excel')">
+                                                <i class="bx bxs-file-export me-2 text-success"></i>Excel
+                                                <small class="text-muted ms-1">(Microsoft Excel .xlsx format)</small>
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" href="javascript:void(0);" onclick="invExportTimeline('Pdf')">
+                                                <i class="bx bxs-file-pdf me-2 text-danger"></i>PDF
+                                                <small class="text-muted ms-1">(Fixed layout, best for sharing)</small>
+                                            </a>
+                                        </li>
                                     </ul>
                                 </div>
                                 <a href="/inventory" class="btn btn-sm btn-outline-secondary">
                                     <i class="bx bx-package me-1"></i>Back to Inventory
                                 </a>
-                            </div>
-                        </div>
-
-                        <!-- Toolbar: Items | Date Range | Movement — left; Refresh | Count — right -->
-                        <div class="trans-toolbar p-2">
-                            <div class="d-flex align-items-center gap-2">
-                                <button type="button" id="tlItemFilterBtn" class="btn btn-sm btn-outline-secondary">
-                                    <i class="bx bx-package me-1"></i>Items
-                                </button>
-                                <input type="text" id="tlDateRange" class="form-control form-control-sm"
-                                       placeholder="Date range">
-                                <select id="tlMovementFilter" class="form-select form-select-sm" style="width:140px;">
-                                    <option value="">All Movements</option>
-                                    <option value="IN">Stock In only</option>
-                                    <option value="OUT">Stock Out only</option>
-                                </select>
-                            </div>
-                            <div class="d-flex align-items-center gap-2">
-                                <a href="javascript:void(0);" class="btn btn-sm btn-outline-secondary p-1 pageRefresh" title="Refresh">
-                                    <i class="bx bx-refresh fs-5"></i>
-                                </a>
-                                <span class="badge text-bg-light border" id="tlTotalCount"><?php echo number_format($ModAllCount); ?> records</span>
                             </div>
                         </div>
 
@@ -196,19 +203,6 @@ $this->load->view('common/transactions/header'); ?>
     ],
 ]); ?>
 
-<!-- ── User Filter Box ────────────────────────────────────────────────────────── -->
-<?php if ($showUserBtn): ?>
-<?php $this->load->view('common/filter_panels/col_user_filter_box', [
-    'ColUserFilterConfig' => [
-        'id'         => 'tlUserFilterBox',
-        'triggerId'  => 'tlUserFilterBtn',
-        'checkClass' => 'tl-user-chk',
-        'title'      => 'Updated By',
-        'OrgUsers'   => $orgUsers,
-    ],
-]); ?>
-<?php endif; ?>
-
 <!-- ── Edit Inventory Remarks Modal ──────────────────────────────────────────── -->
 <div class="modal fade" id="tlEditAdjModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-top" style="max-width:480px;">
@@ -260,23 +254,11 @@ $this->load->view('common/transactions/header'); ?>
 <!-- ── Shared transaction view modal ─────────────────────────────────────────── -->
 <?php $this->load->view('common/transactions/print_modals'); ?>
 
-<style>
-/* Multi-month flatpickr: month headers side-by-side */
-.flatpickr-calendar.multiMonth .flatpickr-months {
-    display: flex;
-}
-.flatpickr-calendar.multiMonth .flatpickr-months .flatpickr-month {
-    flex: 1;
-}
-/* Widen the alt-input created by flatpickr for the date range field */
-#tlDateRange + .flatpickr-input {
-    width: 240px !important;
-}
-</style>
-
 <script src="/js/common/pagecheckbox.js"></script>
 <script src="/js/transactions/col_filter.js"></script>
 <script src="/js/transactions/viewmodal.js"></script>
+<script src="/js/common/datefilter.js"></script>
+<script src="/js/inventory.js"></script>
 <script src="/js/inventory_timeline.js"></script>
 
 <script>
@@ -320,16 +302,4 @@ var tlCategoryFilter = new TransColFilter({
     }
 });
 
-<?php if ($showUserBtn): ?>
-var tlUserFilter = new TransColFilter({
-    boxId: 'tlUserFilterBox', triggerId: 'tlUserFilterBtn',
-    filterKey: 'CreatedByUID', activeClass: 'has-filter',
-    onApply: function () {
-        var vals = tlUserFilter.getState()['CreatedByUID'] || [];
-        if (vals.length) _tlFilter['CreatedByUID'] = vals;
-        else delete _tlFilter['CreatedByUID'];
-        tlLoadPage(1);
-    }
-});
-<?php endif; ?>
 </script>

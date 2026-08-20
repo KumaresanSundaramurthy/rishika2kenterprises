@@ -217,7 +217,7 @@ $_defTaxDetailUID = (int)($_ps->DefaultTaxDetailUID    ?? 0); // null → no def
                         <h5 class="modal-title mb-0">Other Information</h5>
                     </div>
                     <div class="row">
-                        <div class="mb-3 col-md-4 OpeningStockDiv">
+                        <div class="mb-3 col-md-4 OpeningStockDiv" id="openingQtyDiv">
                             <label for="OpeningQuantity" class="form-label">Opening Quantity</label>
                             <input type="text" class="form-control" name="OpeningQuantity" id="OpeningQuantity" min="0" placeholder="Enter Opening Quantity" onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))" oninput="this.value=this.value.slice(0,this.maxLength); handleOnlyNumbers(this)" maxLength="<?php echo $JwtData->GenSettings->PriceMaxLength; ?>" pattern="[0-9]*" value="0" onpaste="pasteOnlyNumbers(event)" ondrop="dropOnlyNumbers(event)" />
                             <div id="OpeningQuantityHelp" class="form-text text-secondary">* Quantity available in your existing inventory</div>
@@ -230,6 +230,55 @@ $_defTaxDetailUID = (int)($_ps->DefaultTaxDetailUID    ?? 0); // null → no def
                             <label for="OpeningStockValue" class="form-label">Opening Stock Value (with Tax)</label>
                             <input type="text" class="form-control" name="OpeningStockValue" id="OpeningStockValue" min="0" placeholder="Enter Opening Stock Value" onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))" oninput="this.value=this.value.slice(0,this.maxLength); handleOnlyNumbers(this)" maxLength="<?php echo $JwtData->GenSettings->PriceMaxLength; ?>" pattern="[0-9]*" value="0" onpaste="pasteOnlyNumbers(event)" ondrop="dropOnlyNumbers(event)" />
                         </div>
+                        <!-- Variant builder — shown when IsSizeApplicable OR IsBrandApplicable is checked -->
+                        <div class="col-12 d-none" id="variantSection">
+                            <div class="card border mb-3">
+                                <div class="card-header d-flex align-items-center py-2 px-3">
+                                    <i class="bx bx-grid-alt me-2 text-primary"></i>
+                                    <span class="fw-semibold small">Product Variants</span>
+                                    <span class="ms-auto badge bg-label-secondary" id="variantTotalQty">Total Qty: 0</span>
+                                </div>
+                                <div class="card-body p-3">
+                                    <!-- Size picker -->
+                                    <div id="variantSizeRow" class="mb-3 d-none">
+                                        <label class="form-label fw-semibold small mb-1">Sizes</label>
+                                        <div class="d-flex gap-2">
+                                            <select id="VariantSizeSelect" class="form-select form-select-sm flex-grow-1" multiple></select>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary flex-shrink-0" id="AddNewSizeBtn">
+                                                <i class="bx bx-plus me-1"></i>New Size
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <!-- Brand picker -->
+                                    <div id="variantBrandRow" class="mb-3 d-none">
+                                        <label class="form-label fw-semibold small mb-1">Brands</label>
+                                        <select id="VariantBrandSelect" class="form-select form-select-sm" multiple></select>
+                                    </div>
+                                    <!-- Generated matrix table -->
+                                    <div id="variantTableWrap" class="d-none">
+                                        <div class="table-responsive">
+                                            <table class="table table-sm table-bordered mb-0">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th class="var-col-size">Size</th>
+                                                        <th class="var-col-brand">Brand</th>
+                                                        <th>Part No.</th>
+                                                        <th>Purchase Price</th>
+                                                        <th>Opening Qty</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="variantTableBody"></tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    <div id="variantEmptyHint" class="text-center text-muted small py-2">
+                                        Select sizes and/or brands above to generate the variant matrix.
+                                    </div>
+                                </div>
+                            </div>
+                            <input type="hidden" name="VariantData" id="VariantData" value="[]">
+                        </div>
+
                         <div class="mb-3 col-md-4">
                             <label for="Discount" class="form-label">Discount (<span id="discTextPercentHelp" class="form-text text-danger">Percentage (%) of products</span><span id="discTextAmountHelp" class="form-text text-danger d-none">Flat Amount (<?php echo $JwtData->GenSettings->CurrenySymbol; ?>) of products</span>)</label></label>
                             <div class="input-group input-group-merge">

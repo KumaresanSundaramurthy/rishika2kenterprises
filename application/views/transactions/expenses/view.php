@@ -31,7 +31,7 @@ $this->load->view('common/transactions/header'); ?>
                 ?>
 
                 <!-- ── Stats Strip ───────────────────────────────────────────── -->
-                <?php if ($JwtData->TransSettings->ShowTransactionStats ?? 1): ?>
+                <?php if (($JwtData->GenSettings->ShowStats ?? 1) && ($JwtData->TransSettings->ShowTransactionStats ?? 1)): ?>
                 <div class="apex-stats-strip">
                     <a href="javascript:void(0);" class="apex-stat-item active" data-status="All" data-stat-filter="All" style="--stat-color:#a855f7">
                         <div class="apex-stat-icon" style="background:#fdf4ff"><i class="bx bx-receipt" style="color:#a855f7"></i></div>

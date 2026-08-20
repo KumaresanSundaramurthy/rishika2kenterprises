@@ -106,7 +106,7 @@ class Transactions_model extends MY_Model {
                 'LEFT'
             );
             $this->ReadDb->join(
-                "(SELECT P.TransUID, COUNT(*) AS PaymentCount, GROUP_CONCAT(PT.Name ORDER BY P.PaymentUID ASC SEPARATOR ',') AS PaymentModes, MAX(CASE WHEN PT.IsCash = 0 THEN BA.BankName ELSE NULL END) AS PayBankName, MAX(CASE WHEN PT.IsCash = 0 THEN BA.AccountNumber ELSE NULL END) AS PayAccountNumber, (SELECT COUNT(*) FROM Transaction.PaymentAttachmentsTbl PA WHERE PA.PaymentUID IN (SELECT PaymentUID FROM Transaction.PaymentsTbl P2 WHERE P2.TransUID = P.TransUID AND P2.IsDeleted = 0 AND P2.IsActive = 1) AND PA.IsDeleted = 0 AND PA.IsActive = 1) AS PaymentAttachmentCount FROM Transaction.PaymentsTbl P JOIN Global.PaymentTypesTbl PT ON PT.PaymentTypeUID = P.PaymentTypeUID LEFT JOIN Organisation.OrgBankAccountsTbl BA ON BA.BankAccountUID = P.BankAccountUID WHERE P.IsDeleted = 0 AND P.IsActive = 1 GROUP BY P.TransUID) AS PayInfo",
+                "(SELECT P.TransUID, COUNT(*) AS PaymentCount, GROUP_CONCAT(CASE WHEN P.SourceType = 'CreditNote' THEN 'Credit Note' ELSE PT.Name END ORDER BY P.PaymentUID ASC SEPARATOR ',') AS PaymentModes, MAX(CASE WHEN P.SourceType != 'CreditNote' AND PT.IsCash = 0 THEN BA.BankName ELSE NULL END) AS PayBankName, MAX(CASE WHEN P.SourceType != 'CreditNote' AND PT.IsCash = 0 THEN BA.AccountNumber ELSE NULL END) AS PayAccountNumber, (SELECT COUNT(*) FROM Transaction.PaymentAttachmentsTbl PA WHERE PA.PaymentUID IN (SELECT PaymentUID FROM Transaction.PaymentsTbl P2 WHERE P2.TransUID = P.TransUID AND P2.IsDeleted = 0 AND P2.IsActive = 1) AND PA.IsDeleted = 0 AND PA.IsActive = 1) AS PaymentAttachmentCount FROM Transaction.PaymentsTbl P LEFT JOIN Global.PaymentTypesTbl PT ON PT.PaymentTypeUID = P.PaymentTypeUID LEFT JOIN Organisation.OrgBankAccountsTbl BA ON BA.BankAccountUID = P.BankAccountUID WHERE P.IsDeleted = 0 AND P.IsActive = 1 GROUP BY P.TransUID) AS PayInfo",
                 'PayInfo.TransUID = Ts.TransUID',
                 'LEFT'
             );
@@ -479,6 +479,7 @@ class Transactions_model extends MY_Model {
             'Tprod.*',
             'Product.HSNSACCode AS HSNCode',
             'Product.SellingPrice AS CatalogSellingPrice',
+            'Product.IsBrandApplicable AS IsBrandApplicable',
         ]);
         $this->ReadDb->from('Transaction.TransProductsTbl as Tprod');
         $this->ReadDb->join('Products.ProductTbl AS Product', 'Product.ProductUID = Tprod.ProductUID', 'LEFT');
@@ -853,6 +854,7 @@ class Transactions_model extends MY_Model {
                 'product.Description AS Description',
                 'product.IsComboItem AS IsComboItem',
                 'product.IsComposite AS IsComposite',
+                'product.IsBrandApplicable AS IsBrandApplicable',
                 '(SELECT COUNT(*) FROM Products.ProductBOMTbl pc WHERE pc.ParentProductUID = product.ProductUID AND pc.IsDeleted = 0 AND pc.IsActive = 1) AS ComboItemCount',
             );
             $where_ary = array(
@@ -1042,6 +1044,7 @@ class Transactions_model extends MY_Model {
                 'P.IsFullyPaid',
                 'P.ExcessAmount',
                 'P.CreatedOn',
+                'P.SourceType',
                 'PT.Name AS PaymentTypeName',
                 'PT.IsCash',
                 'BA.AccountName',

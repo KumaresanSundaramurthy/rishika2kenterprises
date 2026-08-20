@@ -3,6 +3,57 @@
 
 var _cfg = window._transFormData || {};
 
+// ── Purchase-price update helpers ─────────────────────────────────────────────
+
+/**
+ * Escape a string for safe insertion into HTML.
+ * @param {string} str
+ * @returns {string}
+ */
+function _escHtml(str) {
+    var d = document.createElement('div');
+    d.textContent = String(str || '');
+    return d.innerHTML;
+}
+
+/**
+ * Collect bill items whose billed price differs from the stored product purchase price.
+ * Deduplicates by productUID — first differing row per product wins.
+ * Comparison:
+ *   purchasePriceIsIncl=true  → compare sellingPrice (Price With Tax) vs purchasePrice
+ *   purchasePriceIsIncl=false → compare unitPrice    (Price ex-Tax)   vs purchasePrice
+ * @param {Array} items  billManager item objects
+ * @returns {Array} [{productUID, productName, newPrice, oldPrice, isPurchasePriceIncl}]
+ */
+function _getPriceChangedItems(items) {
+    var seen    = {};
+    var changed = [];
+    (items || []).forEach(function (item) {
+        var productUID = parseInt(item.productUID || item.id, 10);
+        if (!productUID || seen[productUID]) return;
+        seen[productUID] = true;
+
+        var storedPrice = parseFloat(item.purchasePrice) || 0;
+        if (storedPrice <= 0) return;
+
+        var isIncl      = item.purchasePriceIsIncl ? 1 : 0;
+        var billedPrice = isIncl
+            ? (parseFloat(item.sellingPrice) || 0)
+            : (parseFloat(item.unitPrice)    || 0);
+
+        if (Math.abs(billedPrice - storedPrice) > 0.001) {
+            changed.push({
+                productUID:          productUID,
+                productName:         String(item.itemName || item.text || ''),
+                newPrice:            billedPrice,
+                oldPrice:            storedPrice,
+                isPurchasePriceIncl: isIncl,
+            });
+        }
+    });
+    return changed;
+}
+
 // Globals — kept at file scope because other transaction scripts reference them
 const EnableStorage    = !!_cfg.enableStorage;
 var _formModuleUID     = _cfg.moduleUID  || 105;
@@ -73,6 +124,9 @@ $(function () {
         }
         if (typeof billManager !== 'undefined' && _orgState && _vendorState) {
             billManager.isInterState = (_vendorState.trim().toLowerCase() !== _orgState.trim().toLowerCase());
+        }
+        if (typeof _showVendTypeIndicator === 'function') {
+            _showVendTypeIndicator(_vendorState || '');
         }
 
         if (typeof billManager !== 'undefined' && Array.isArray(_editItems) && _editItems.length > 0) {
@@ -150,6 +204,7 @@ $(function () {
 
             var items = typeof billManager !== 'undefined' ? billManager.getAllItems() : [];
             if (!items || items.length === 0) return showFormError('Please add at least one product.');
+            if (typeof validateBrandItems === 'function' && !validateBrandItems()) return;
 
             for (var i = 0; i < items.length; i++) {
                 var item = items[i];
@@ -206,50 +261,93 @@ $(function () {
             if (_isEdit) postData.TransUID = _transUID;
             else if (_autoDraftUid > 0) postData.TransUID = _autoDraftUid;
 
-            var formData = new FormData();
-            $.each(postData, function (k, v) { formData.append(k, v); });
-            collectTransAttachData(formData);
+            // ── Auto Update Purchase Price ──────────────────────────────────────────
+            var _aupp    = ((_cfg.autoUpdatePurchasePrice || 'off') + '').toLowerCase();
+            var _changed = (_aupp !== 'off' && action !== 'draft') ? _getPriceChangedItems(items) : [];
 
-            ajaxLoading(1);
-            setFormLoading('#' + _formId, true, action);
-
-            $.ajax({
-                url         : '/' + (_autoDraftUid > 0 ? (_cfg.updateAction || _cfg.formAction || '') : (_cfg.formAction || '')),
-                method      : 'POST',
-                data        : formData,
-                processData : false,
-                contentType : false,
-                cache       : false,
-                success: function (response) {
-                    if (response.Error) {
+            /**
+             * Fire the AJAX save, optionally including purchase price update data.
+             * @param {boolean} withPrices  Whether to send UpdatePurchasePrices=1
+             * @returns {void}
+             */
+            function _doSubmit(withPrices) {
+                if (withPrices && _changed.length > 0) {
+                    postData.UpdatePurchasePrices = 1;
+                    postData.PriceChangedItems    = JSON.stringify(_changed);
+                }
+                var formData = new FormData();
+                $.each(postData, function (k, v) { formData.append(k, v); });
+                collectTransAttachData(formData);
+                ajaxLoading(1);
+                setFormLoading('#' + _formId, true, action);
+                $.ajax({
+                    url         : '/' + (_autoDraftUid > 0 ? (_cfg.updateAction || _cfg.formAction || '') : (_cfg.formAction || '')),
+                    method      : 'POST',
+                    data        : formData,
+                    processData : false,
+                    contentType : false,
+                    cache       : false,
+                    success: function (response) {
+                        if (response.Error) {
+                            ajaxLoading(0);
+                            setFormLoading('#' + _formId, false);
+                            showFormError(response.Message);
+                        } else if (_pendingPrintFormat) {
+                            var _fmt = _pendingPrintFormat;
+                            _pendingPrintFormat = null;
+                            _isDirty = false;
+                            if (response.Token) {
+                                window.open('/flow/doc/' + response.Token + '?format=' + _fmt, '_blank');
+                            }
+                            window._r2kRedirecting = true;
+                            showUIBlock();
+                            _setPendingToast('_purPendingToast', _isEdit ? response.Message : 'Purchase Bill created successfully.', 'success');
+                            window.location.href = _buildReturnUrl('/purchases');
+                        } else {
+                            window._r2kRedirecting = true;
+                            showUIBlock();
+                            _setPendingToast('_purPendingToast', _isEdit ? response.Message : 'Purchase Bill created successfully.', 'success');
+                            _isDirty = false;
+                            window.location.href = _buildReturnUrl('/purchases', action === 'draft' ? 'Draft' : '');
+                        }
+                    },
+                    error: function () {
                         ajaxLoading(0);
                         setFormLoading('#' + _formId, false);
-                        showFormError(response.Message);
-                    } else if (_pendingPrintFormat) {
-                        var _fmt = _pendingPrintFormat;
-                        _pendingPrintFormat = null;
-                        _isDirty = false;
-                        if (response.Token) {
-                            window.open('/flow/doc/' + response.Token + '?format=' + _fmt, '_blank');
-                        }
-                        window._r2kRedirecting = true;
-                        showUIBlock();
-                        _setPendingToast('_purPendingToast', _isEdit ? response.Message : 'Purchase Bill created successfully.', 'success');
-                        window.location.href = _buildReturnUrl('/purchases');
-                    } else {
-                        window._r2kRedirecting = true;
-                        showUIBlock();
-                        _setPendingToast('_purPendingToast', _isEdit ? response.Message : 'Purchase Bill created successfully.', 'success');
-                        _isDirty = false;
-                        window.location.href = _buildReturnUrl('/purchases', action === 'draft' ? 'Draft' : '');
+                        showFormError('Server error. Please try again.');
                     }
-                },
-                error: function () {
-                    ajaxLoading(0);
-                    setFormLoading('#' + _formId, false);
-                    showFormError('Server error. Please try again.');
-                }
-            });
+                });
+            }
+
+            if (_aupp === 'manual' && _changed.length > 0) {
+                var _cur  = _cfg.currency || '₹';
+                var _dec  = _cfg.decimals  || 2;
+                var _rows = _changed.map(function (c) {
+                    return '<tr>'
+                        + '<td>' + _escHtml(c.productName) + '</td>'
+                        + '<td>' + _escHtml(_cur) + ' ' + c.oldPrice.toFixed(_dec) + '</td>'
+                        + '<td class="swal-purchase-new-price">' + _escHtml(_cur) + ' ' + c.newPrice.toFixed(_dec) + '</td>'
+                        + '</tr>';
+                }).join('');
+                Swal.fire({
+                    title             : 'Purchase Price Changed',
+                    html              : '<p class="swal-purchase-intro">The following product(s) have a billed price different from the stored purchase price:</p>'
+                                      + '<table class="swal-purchase-table"><thead><tr>'
+                                      + '<th>Product</th><th>Stored Price</th><th>Billed Price</th>'
+                                      + '</tr></thead><tbody>' + _rows + '</tbody></table>'
+                                      + '<p class="swal-purchase-note">Would you like to update the product purchase prices?</p>',
+                    icon              : 'question',
+                    showCancelButton  : true,
+                    confirmButtonText : 'Update Purchase Prices',
+                    cancelButtonText  : 'Save Only',
+                    confirmButtonColor: '#696cff',
+                    cancelButtonColor : '#8592a3',
+                }).then(function (result) {
+                    _doSubmit(result.isConfirmed);
+                });
+            } else {
+                _doSubmit(_aupp === 'auto');
+            }
         });
 
         $form.on('click', 'button[type="submit"][name="action"]', function () {

@@ -39,6 +39,7 @@
     <script type="text/javascript" src="<?php echo _assetV('/js/common/item_filter.js'); ?>"></script>
     <script type="text/javascript" src="<?php echo _assetV('/js/common/dropdown_cache.js'); ?>"></script>
     <script>var R2K_STATS_DEFAULT_OPEN = <?php echo json_encode(isset($JwtData->GenSettings->StatsDefaultOpen) ? (bool)$JwtData->GenSettings->StatsDefaultOpen : true); ?>;</script>
+    <script>window._autoDraftSave = <?php echo isset($JwtData->TransSettings->AutoDraftSave) ? (int)$JwtData->TransSettings->AutoDraftSave : 1; ?>;</script>
     <script>
     <?php
     $CI =& get_instance();
@@ -68,8 +69,12 @@
     <script type="text/javascript" src="<?php echo _assetV('/js/common/attachments.js'); ?>"></script>
 
     <?php $this->load->view('common/transactions/remove_cart_modal'); ?>
+    <?php $this->load->view('common/modals/brand_picker_modal'); ?>
+    <?php $this->load->view('common/modals/variant_picker_modal'); ?>
     <?php $this->load->view('common/transactions/trans_footer_script'); ?>
     <script type="text/javascript" src="<?php echo _assetV('/js/common/additional_charge_form.js'); ?>"></script>
+    <script type="text/javascript" src="<?php echo _assetV('/js/transactions/brand_picker.js'); ?>"></script>
+    <script type="text/javascript" src="<?php echo _assetV('/js/transactions/variant_picker.js'); ?>"></script>
 
 </body>
 

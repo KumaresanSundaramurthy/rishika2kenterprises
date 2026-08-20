@@ -84,6 +84,8 @@ window.ProductAppend = (function () {
                 mrp                 : parseFloat(p.MRP        || 0),
                 image               : p.Image                 || '',
                 notForSale          : parseInt(p.NotForSale   || 0, 10),
+                IsBrandApplicable   : parseInt(p.IsBrandApplicable || 0, 10),
+                variants            : Array.isArray(p.Variants) ? p.Variants : [],
             };
         }).filter(function (p) {
             if (p.notForSale && !p.isComposite) return false; // component-only products hidden from search

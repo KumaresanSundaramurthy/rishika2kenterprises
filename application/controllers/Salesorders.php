@@ -231,10 +231,12 @@ class Salesorders extends MY_Controller {
                 if ($insertResp->Error) throw new Exception($insertResp->Message);
                 $newTransUID = $insertResp->ID;
 
-                $this->dbwrite_model->insertData('Transaction', 'TransDetailTbl', array_merge($commonDetail, [
-                    'FinancialYear' => $amounts['financialYear'],
-                    'TransUID'      => $newTransUID,
-                ]));
+                $detailResp = $this->dbwrite_model->updateData(
+                    'Transaction', 'TransDetailTbl',
+                    array_merge($commonDetail, ['TransUID' => $newTransUID]),
+                    ['TransUID' => $transUID, 'FinancialYear' => $amounts['financialYear']]
+                );
+                if ($detailResp->Error) throw new Exception($detailResp->Message);
 
                 $this->dbwrite_model->updateData(
                     'Transaction', 'TransProductsTbl',
@@ -244,7 +246,6 @@ class Salesorders extends MY_Controller {
                 $this->_insertTransItems($newTransUID, $amounts['financialYear'], $orgUID, $userUID, $items);
 
                 $this->dbwrite_model->deleteInTransaction('Transaction', 'TransactionsTbl', ['TransUID' => $transUID]);
-                $this->dbwrite_model->deleteInTransaction('Transaction', 'TransDetailTbl',  ['TransUID' => $transUID]);
 
             } else {
                 $updateHeader = $this->_buildTransUpdateHeader($cfg, $amounts, $PostData, $orgUID, $userUID);

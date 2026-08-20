@@ -540,7 +540,9 @@ class Customerbalance {
                 'CN.PartyUID'       => (int)$customerUID,
                 'CN.PartyType'      => 'C',
                 'CN.Status'         => 'Pending',
+                'CN.IsCancelled'    => 0,
                 'CN.IsDeleted'      => 0,
+                'CN.IsActive'       => 1,
                 'CN.PaymentCleared' => 0,
             ]);
             return $readDb->get()->result();

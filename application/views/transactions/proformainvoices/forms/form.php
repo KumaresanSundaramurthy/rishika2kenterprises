@@ -272,6 +272,11 @@ var _transFormData = <?php echo json_encode([
                 'discount_amount'  => (float)$item->DiscountAmount,
                 'line_total'       => (float)$item->TaxableAmount,
                 'net_total'        => (float)$item->NetAmount,
+                'brandUID'         => $item->BrandUID          ? (int)$item->BrandUID            : null,
+                'variantUID'       => $item->VariantUID         ? (int)$item->VariantUID          : null,
+                'variantLabel'     => $item->VariantLabel        ?? '',
+                'brandName'        => $item->BrandName         ?? '',
+                'IsBrandApplicable'=> (int)($item->IsBrandApplicable ?? 0),
             ];
         }, $PFItems ?? []),
     ] : null,

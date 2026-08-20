@@ -96,7 +96,8 @@ class Expenses extends MY_Controller {
 
             $allData      = $this->expenses_model->getExpenseList($orgUID, $filter, $limit, 0);
             $allDataCount = $this->expenses_model->getExpenseCount($orgUID, $filter);
-            $summaryStats = $this->expenses_model->getExpenseSummaryStats($orgUID, $this->_branchUID());
+            $_showStats   = (bool)($this->pageData['JwtData']->GenSettings->ShowStats ?? 1) && (bool)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
+            $summaryStats = $_showStats ? $this->expenses_model->getExpenseSummaryStats($orgUID, $this->_branchUID()) : [];
 
             $this->pageData['ModRowData']    = $this->load->view('transactions/expenses/list', [
                 'DataLists'    => $allData,

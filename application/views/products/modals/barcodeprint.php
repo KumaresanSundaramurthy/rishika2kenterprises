@@ -1,7 +1,7 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <div class="modal fade" id="barcodePrintModal" tabindex="-1" aria-labelledby="barcodePrintModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-top" style="max-width:740px;">
+    <div class="modal-dialog modal-xl modal-dialog-top">
         <div class="modal-content">
 
             <!-- Header -->
@@ -10,13 +10,15 @@
                     <i class="bx fs-4" id="bcModalIcon"></i>
                     <div>
                         <div class="d-flex align-items-center gap-2">
-                            <span class="fw-bold" style="font-size:.95rem;" id="bcModalTitle">Barcode</span>
-                            <span class="badge bg-label-warning" style="font-size:.6rem;vertical-align:middle;padding:3px 6px;">BETA</span>
+                            <span class="fw-bold bc-modal-title" id="bcModalTitle">Barcode</span>
+                            <span class="badge bg-label-warning bc-beta-badge">BETA</span>
                         </div>
-                        <div class="text-muted" id="barcodeProductSubtitle" style="font-size:.75rem;max-width:500px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
+                        <div class="text-muted bc-product-subtitle" id="barcodeProductSubtitle"></div>
                     </div>
                 </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn btn-sm btn-outline-secondary ms-auto bc-close-btn" data-bs-dismiss="modal" aria-label="Close">
+                    <i class="bx bx-x fs-5"></i>
+                </button>
             </div>
 
             <!-- Layout tabs -->

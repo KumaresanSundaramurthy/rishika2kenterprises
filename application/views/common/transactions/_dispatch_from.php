@@ -21,15 +21,13 @@ $_trigParts = array_filter([
 ]);
 $_trigText = htmlspecialchars(implode(' · ', $_trigParts)) ?: 'Select Address';
 ?>
-<div class="r2k-dispatch-from dropdown">
+<div class="r2k-dispatch-from">
     <input type="hidden" id="dispatchFrom" name="dispatchFrom"
            value="<?php echo $_defAddr ? (int)$_defAddr->OrgAddressUID : ''; ?>" required>
-    <button type="button" class="r2k-dispatch-btn dropdown-toggle" data-bs-toggle="dropdown"
-            aria-expanded="false"
-            title="<?php echo $_trigText; ?>">
+    <button type="button" class="r2k-dispatch-btn" title="<?php echo $_trigText; ?>">
         <span class="r2k-dispatch-val"><?php echo $_trigText; ?></span>
     </button>
-    <div class="dropdown-menu r2k-dispatch-menu p-1">
+    <div class="r2k-dispatch-menu p-1">
         <?php foreach ($DispatchAddresses as $_addr):
             $_uid      = (int)$_addr->OrgAddressUID;
             $_orgName  = htmlspecialchars($_addr->OrgName     ?? '');

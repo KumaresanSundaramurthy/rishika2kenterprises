@@ -9,6 +9,7 @@ function tlLoadPage(pageNo) {
     var $wrap = $('#tlTableBody');
     $wrap.html('<tr><td colspan="9" class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></td></tr>');
 
+    ajaxLoading(0);
     $.ajax({
         url: '/inventory/timeline/getPageDetails/' + (pageNo || 1),
         method: 'POST',
@@ -116,28 +117,15 @@ function _tlLoadItemsIntoBox() {
 $(document).ready(function () {
     'use strict';
 
-    // Set default filter from PHP-injected values
+    // Set default filter from PHP-injected values (current month)
     _tlFilter['DateFrom'] = TlDefaultDateFrom;
     _tlFilter['DateTo']   = TlDefaultDateTo;
 
-    var _tlDateFmt = (typeof _transFormDateFormat !== 'undefined') ? _transFormDateFormat : 'd-m-Y';
-
-    // Date range picker — two months side by side, appended to body to avoid clipping
-    flatpickr('#tlDateRange', {
-        mode:        'range',
-        showMonths:  2,
-        dateFormat:  'Y-m-d',
-        altInput:    true,
-        altFormat:   _tlDateFmt,
-        defaultDate: [TlDefaultDateFrom, TlDefaultDateTo],
-        appendTo:    document.body,
-        onChange: function (dates) {
-            if (dates.length === 2) {
-                _tlFilter['DateFrom'] = tlFmtDate(dates[0]);
-                _tlFilter['DateTo']   = tlFmtDate(dates[1]);
-                tlLoadPage(1);
-            }
-        }
+    // Date range changes from the shared date filter button
+    $(document).on('r2k:datechange', function (e, data) {
+        _tlFilter['DateFrom'] = data.from || '';
+        _tlFilter['DateTo']   = data.to   || '';
+        tlLoadPage(1);
     });
 
     // Populate item filter box on first open

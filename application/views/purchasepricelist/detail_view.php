@@ -202,19 +202,20 @@
     'use strict';
 
     var _priceListUID = <?php echo $priceListUID; ?>;
+    var _rowLimit     = <?php echo (int)($JwtData->GenSettings->RowLimit ?? 25); ?>;
 
     /**
      * @param {number} pageNo
      * @returns {void}
      */
     function _loadPage(pageNo) {
-        ajaxLoading(1);
+        $('#pplDetailTableBody').html('<tr><td colspan="8" class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary" role="status"></span></td></tr>');
+        ajaxLoading(0);
         $.ajax({
             url    : '/purchasepricelist/getDetailPageData/' + _priceListUID,
             method : 'POST',
-            data   : { PageNo: pageNo, RowLimit: _rowLimit() },
+            data   : { PageNo: pageNo, RowLimit: _rowLimit },
             success: function (res) {
-                ajaxLoading(0);
                 if (res.Error) { toast('error', res.Message); return; }
                 $('#pplDetailTableBody').html(res.RecordHtmlData);
                 $('#pplDetailPagination').html(res.Pagination);
@@ -224,7 +225,7 @@
                 _initTooltips();
             },
             error: function () {
-                ajaxLoading(0);
+                $('#pplDetailTableBody').html('');
                 toast('error', 'Failed to load history.');
             }
         });

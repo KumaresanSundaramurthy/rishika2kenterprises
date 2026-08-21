@@ -266,6 +266,144 @@ class Organisation extends MY_Controller {
         exit;
     }
 
+    public function addShipAddress(): void {
+        $this->EndReturnData          = new stdClass();
+        $this->EndReturnData->Error   = false;
+        $this->EndReturnData->Message = '';
+        try {
+            $post    = $this->input->post(null, true);
+            $orgUID  = (int)$this->pageData['JwtData']->Org->OrgUID;
+            $userUID = (int)$this->pageData['JwtData']->User->UserUID;
+            $maxShip = (int)($this->pageData['JwtData']->GenSettings->MaxShippingAddr ?? 3);
+            $now     = date('Y-m-d H:i:s');
+
+            $this->load->model('organisation_model');
+            $this->load->model('dbwrite_model');
+            $shipResult   = $this->organisation_model->getOrgShippingAddresses($orgUID);
+            $currentCount = (!$shipResult->Error) ? count($shipResult->Data) : 0;
+
+            if ($currentCount >= $maxShip) {
+                $this->EndReturnData->Error   = true;
+                $this->EndReturnData->Message = 'Only ' . $maxShip . ' shipping ' . ($maxShip === 1 ? 'address' : 'addresses') . ' can be added. Limit reached.';
+            } else {
+                $line1     = trim($post['Line1']     ?? '');
+                $line2     = trim($post['Line2']     ?? '');
+                $cityText  = trim($post['CityText']  ?? '');
+                $cityId    = (int)($post['CityId']   ?? 0);
+                $stateText = trim($post['StateText'] ?? '');
+                $stateId   = (int)($post['StateId']  ?? 0);
+                $pincode   = trim($post['Pincode']   ?? '');
+
+                if (empty($line1)) throw new Exception('Address Line 1 is required.');
+
+                $resp = $this->dbwrite_model->insertData('Organisation', 'OrgAddressTbl', [
+                    'OrgUID'      => $orgUID,
+                    'AddressType' => 'Shipping',
+                    'Line1'       => $line1,
+                    'Line2'       => $line2,
+                    'CityText'    => $cityText,
+                    'City'        => $cityId ?: null,
+                    'StateText'   => $stateText,
+                    'State'       => $stateId ?: null,
+                    'Pincode'     => $pincode,
+                    'CreatedOn'   => $now,
+                    'CreatedBy'   => $userUID,
+                    'UpdatedBy'   => $userUID,
+                ]);
+                if ($resp->Error) throw new Exception($resp->Message);
+
+                $this->redisservice->deleteCache($this->redisservice->orgKey('org-dispatch-addresses-shipping'));
+
+                $newUID = (int)$resp->ID;
+                $this->EndReturnData->OrgAddressUID = $newUID;
+                $this->EndReturnData->Message       = 'Shipping address added successfully.';
+                $this->EndReturnData->NewCount      = $currentCount + 1;
+                $this->EndReturnData->MaxShip       = $maxShip;
+                $this->EndReturnData->Address       = [
+                    'OrgAddressUID' => $newUID,
+                    'OrgName'       => $this->pageData['JwtData']->Org->Name ?? '',
+                    'Line1'         => $line1,
+                    'Line2'         => $line2,
+                    'CityText'      => $cityText,
+                    'CityId'        => $cityId,
+                    'StateText'     => $stateText,
+                    'StateId'       => $stateId,
+                    'Pincode'       => $pincode,
+                    'AddressType'   => 'Shipping',
+                ];
+            }
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->output->set_status_header(200)
+            ->set_content_type('application/json', 'utf-8')
+            ->set_output(json_encode($this->EndReturnData))
+            ->_display();
+        exit;
+    }
+
+    public function updateShipAddress(): void {
+        $this->EndReturnData          = new stdClass();
+        $this->EndReturnData->Error   = false;
+        $this->EndReturnData->Message = '';
+        try {
+            $post    = $this->input->post(null, true);
+            $orgUID  = (int)$this->pageData['JwtData']->Org->OrgUID;
+            $userUID = (int)$this->pageData['JwtData']->User->UserUID;
+            $addrUID = (int)($post['OrgAddressUID'] ?? 0);
+
+            if ($addrUID <= 0) throw new Exception('Invalid address.');
+
+            $line1     = trim($post['Line1']     ?? '');
+            $line2     = trim($post['Line2']     ?? '');
+            $cityText  = trim($post['CityText']  ?? '');
+            $cityId    = (int)($post['CityId']   ?? 0);
+            $stateText = trim($post['StateText'] ?? '');
+            $stateId   = (int)($post['StateId']  ?? 0);
+            $pincode   = trim($post['Pincode']   ?? '');
+
+            if (empty($line1)) throw new Exception('Address Line 1 is required.');
+
+            $this->load->model('dbwrite_model');
+            $resp = $this->dbwrite_model->updateData('Organisation', 'OrgAddressTbl', [
+                'Line1'     => $line1,
+                'Line2'     => $line2,
+                'CityText'  => $cityText,
+                'City'      => $cityId ?: null,
+                'StateText' => $stateText,
+                'State'     => $stateId ?: null,
+                'Pincode'   => $pincode,
+                'UpdatedBy' => $userUID,
+            ], ['OrgAddressUID' => $addrUID, 'OrgUID' => $orgUID]);
+
+            if ($resp->Error) throw new Exception($resp->Message);
+
+            $this->redisservice->deleteCache($this->redisservice->orgKey('org-dispatch-addresses-shipping'));
+
+            $this->EndReturnData->OrgAddressUID = $addrUID;
+            $this->EndReturnData->Message       = 'Shipping address updated successfully.';
+            $this->EndReturnData->Address       = [
+                'OrgAddressUID' => $addrUID,
+                'Line1'         => $line1,
+                'Line2'         => $line2,
+                'CityText'      => $cityText,
+                'CityId'        => $cityId,
+                'StateText'     => $stateText,
+                'StateId'       => $stateId,
+                'Pincode'       => $pincode,
+            ];
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->output->set_status_header(200)
+            ->set_content_type('application/json', 'utf-8')
+            ->set_output(json_encode($this->EndReturnData))
+            ->_display();
+        exit;
+    }
+
     private function handleAddress($PostData, $type, $userUID, $now) {
 
         $addrUIDField = $type === 'Billing' ? 'BillOrgAddressUID' : 'ShipOrgAddressUID';

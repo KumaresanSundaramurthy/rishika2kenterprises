@@ -129,6 +129,8 @@ $route['settings/profile/getExpenseAttachments']        = 'profile/getExpenseAtt
 $route['settings/profile/saveExpenseAttachment']        = 'profile/saveExpenseAttachment';
 $route['settings/profile/deleteExpenseAttachment']      = 'profile/deleteExpenseAttachment';
 $route['settings/organisation']                          = 'organisation';
+$route['organisation/addShipAddress']                    = 'organisation/addShipAddress';
+$route['organisation/updateShipAddress']                 = 'organisation/updateShipAddress';
 
 // ── Accounting ────────────────────────────────────────────────────────────
 $route['accounting/chartofaccounts']                     = 'accounting/chartofaccounts';

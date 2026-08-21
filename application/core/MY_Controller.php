@@ -178,6 +178,11 @@ class MY_Controller extends CI_Controller {
     protected function _getDispatchAddresses($orgUID) {
         $cacheKey  = $this->redisservice->orgKey('org-dispatch-addresses-shipping');
         $addresses = $this->redisservice->getCache($cacheKey)->Value ?? null;
+        // Bust cache if it predates the City/State columns being added to the query
+        if (is_array($addresses) && !empty($addresses) && !property_exists((object)$addresses[0], 'City')) {
+            $addresses = null;
+            $this->redisservice->deleteCache($cacheKey);
+        }
         if (!is_array($addresses)) {
             $this->load->model('organisation_model');
             $addresses = $this->organisation_model->getAllOrgDispatchAddresses((int) $orgUID);

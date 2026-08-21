@@ -161,7 +161,7 @@ function searchVendors(key) {
                                     company:     v.CompanyName      || '',
                                     balance:     parseFloat(v.ClosingBalance || v.OpeningBalance || 0),
                                     balanceType: v.ClosingBalType   || v.OpeningBalType || 'Credit',
-                                    lastTxAt:    v.LastTransactionAt || '',
+                                    lastUpdatedAt: v.LastUpdatedAt || '',
                                     address:     billing ? {
                                         Line1:   billing.Line1     || '',
                                         Line2:   billing.Line2     || '',
@@ -173,9 +173,9 @@ function searchVendors(key) {
                                 };
                             });
                             vendorCache.sort(function (a, b) {
-                                if (a.lastTxAt && b.lastTxAt) return new Date(b.lastTxAt) - new Date(a.lastTxAt);
-                                if (a.lastTxAt) return -1;
-                                if (b.lastTxAt) return 1;
+                                if (a.lastUpdatedAt && b.lastUpdatedAt) return new Date(b.lastUpdatedAt) - new Date(a.lastUpdatedAt);
+                                if (a.lastUpdatedAt) return -1;
+                                if (b.lastUpdatedAt) return 1;
                                 return a.name.localeCompare(b.name);
                             });
                             _paginate(vendorCache);
@@ -233,9 +233,9 @@ function searchVendors(key) {
             $('#vendorNoAddressBox').removeClass('d-none');
         }
 
-        // State and debit notes indicators
+        // State and vendor balance indicators
         _showVendTypeIndicator(data.state || '');
-        _showVendDebitNotesBadge(data.debitNotesTotal || 0);
+        _showVendDebitNotesBadge(data.balance || 0);
     }).on('select2:clear', function () {
         $('#' + wrapId).removeClass('party-has-selection');
         $('#vendorAddressBox').addClass('d-none').find('span').text('');
@@ -246,6 +246,7 @@ function searchVendors(key) {
         $('#vendDebitNotesBadge').addClass('d-none');
     }).on('select2:close', function () {
         ajaxLoading(1);
+        vendorCache = null;
     });
 }
 
@@ -257,6 +258,11 @@ function searchVendors(key) {
     var searchTerm  = '';
     var PAGE_SIZE   = 15;
     var vendCache   = null; // populated once from Upstash; null = not yet fetched
+
+    // ── Clear cache on modal close so next open always re-fetches Upstash ───────
+    $(document).on('hidden.bs.modal', '#vendorSearchModal', function () {
+        vendCache = null;
+    });
 
     // ── Open search modal ─────────────────────────────────────────────────────
     $(document).on('click', '#openVendorSearchModal', function () {
@@ -376,7 +382,7 @@ function searchVendors(key) {
                             company: v.CompanyName  || '',
                             balance: parseFloat(v.ClosingBalance || v.OpeningBalance || 0),
                             balType: v.ClosingBalType || v.OpeningBalType || 'Credit',
-                            lastTx:  v.LastTransactionAt || '',
+                            lastUpdatedAt: v.LastUpdatedAt || '',
                             address: billing ? {
                                 Line1:   billing.Line1     || '',
                                 Line2:   billing.Line2     || '',
@@ -388,9 +394,9 @@ function searchVendors(key) {
                     });
 
                     vendCache.sort(function (a, b) {
-                        if (a.lastTx && b.lastTx) return new Date(b.lastTx) - new Date(a.lastTx);
-                        if (a.lastTx) return -1;
-                        if (b.lastTx) return 1;
+                        if (a.lastUpdatedAt && b.lastUpdatedAt) return new Date(b.lastUpdatedAt) - new Date(a.lastUpdatedAt);
+                        if (a.lastUpdatedAt) return -1;
+                        if (b.lastUpdatedAt) return 1;
                         return a.name.localeCompare(b.name);
                     });
 

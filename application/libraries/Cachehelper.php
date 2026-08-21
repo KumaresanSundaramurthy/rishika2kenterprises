@@ -110,7 +110,7 @@ class Cachehelper {
                 'Notes'           => $cust->Notes ?? '',
                 'Image'           => $cust->Image ?? '',
                 'Address'         => $addressList,
-                'LastTransactionAt' => date('c'),
+                'LastUpdatedAt'     => date('c'),
             ];
 
             // Write the updated entry and invalidate the individual modal cache in one pipeline call
@@ -153,7 +153,7 @@ class Cachehelper {
             if (!is_array($entry) || empty($entry)) return; // not in cache, nothing to do
 
             // Update only the timestamp field in-place
-            $entry['LastTransactionAt'] = date('c');
+            $entry['LastUpdatedAt'] = date('c');
 
             // Write the updated entry back and invalidate the individual modal key
             $CI->upstashservice->pipeline([
@@ -239,7 +239,7 @@ class Cachehelper {
                 'Notes'           => $vend->Notes         ?? '',
                 'Image'           => $vend->Image         ?? '',
                 'Address'         => $addressList,
-                'LastTransactionAt' => date('c'),
+                'LastUpdatedAt'     => date('c'),
             ];
 
             // Write the updated entry and invalidate the individual modal cache in one pipeline call
@@ -286,7 +286,7 @@ class Cachehelper {
             if (!is_array($entry) || empty($entry)) return; // not in cache, nothing to do
 
             // Update only the timestamp field in-place
-            $entry['LastTransactionAt'] = date('c');
+            $entry['LastUpdatedAt'] = date('c');
 
             // Write the updated entry back and invalidate the individual modal key
             $CI->upstashservice->pipeline([

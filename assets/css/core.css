@@ -853,6 +853,72 @@ input[type="number"] {
     color: #696cff;
 }
 
+.r2k-dispatch-divider { border-top: 1px solid rgba(0,0,0,.08); margin: 4px 4px; }
+.r2k-dispatch-add-addr {
+    display: flex; align-items: center; gap: 7px;
+    padding: 7px 10px; border-radius: .3rem; cursor: pointer;
+    color: #8a8d93; font-size: .8rem; font-weight: 500;
+    transition: background .15s, color .15s;
+}
+.r2k-dispatch-add-addr:hover { background: #f5f5f9; color: #566a7f; }
+.r2k-dispatch-add-addr .bx  { font-size: 1rem; flex-shrink: 0; }
+.r2k-dispatch-edit-btn {
+    flex-shrink: 0; align-self: center;
+    background: none; border: 1px solid transparent; border-radius: .3rem;
+    padding: 3px 8px; font-size: .72rem; font-weight: 500;
+    color: #8a8d93; cursor: pointer; white-space: nowrap;
+    transition: background .15s, border-color .15s, color .15s;
+}
+.r2k-dispatch-edit-btn:hover { background: #f0edff; border-color: #d9d8ff; color: #696cff; }
+
+/* ── Tax rate badge (purchase/purchaseorder cart rows) ───────────────────── */
+.r2k-tax-badge {
+    display: inline-block;
+    cursor: pointer;
+    border-bottom: 1px dashed #8c8fa4;
+    color: #6d6f7c;
+    transition: color .15s, border-color .15s;
+    line-height: 1;
+}
+.r2k-tax-badge:hover { color: #696cff; border-color: #696cff; }
+
+/* ── Tax rate popover ────────────────────────────────────────────────────── */
+.r2k-tax-pop {
+    display: none;
+    position: absolute;
+    z-index: 1090;
+    background: #fff;
+    border: 1px solid #dde1ef;
+    border-radius: .4rem;
+    box-shadow: 0 4px 16px rgba(0,0,0,.12);
+    min-width: 160px;
+    padding: 4px 0;
+}
+.r2k-tax-pop.r2k-tax-pop-open { display: block; }
+.r2k-tax-pop-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+.r2k-tax-pop-item {
+    padding: 7px 20px;
+    cursor: pointer;
+    font-size: .82rem;
+    font-weight: 500;
+    transition: background .12s;
+}
+.r2k-tax-pop-item:hover { background: #f5f5ff; }
+.r2k-tax-pop-item.r2k-tax-pop-active { background: #eeecff; font-weight: 700; color: #696cff; }
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .r2k-tax-pop { background: #2b2c40; border-color: #434968; box-shadow: 0 4px 16px rgba(0,0,0,.4); }
+    :root:not([data-theme="light"]) .r2k-tax-pop-item:hover { background: #333657; }
+    :root:not([data-theme="light"]) .r2k-tax-pop-item.r2k-tax-pop-active { background: #3d3f68; }
+}
+[data-theme="dark"] .r2k-tax-pop { background: #2b2c40; border-color: #434968; box-shadow: 0 4px 16px rgba(0,0,0,.4); }
+[data-theme="dark"] .r2k-tax-pop-item:hover { background: #333657; }
+[data-theme="dark"] .r2k-tax-pop-item.r2k-tax-pop-active { background: #3d3f68; }
+
 /* ── Last Updated column — shared across all list pages ─────────────────── */
 .r2k-col-date     { font-size: .8rem; }
 .r2k-col-date-ago { font-size: .68rem; color: #0d6efd; font-weight: 500; }

@@ -68,6 +68,8 @@
 
     $('#customerSearchModal').on('hidden.bs.modal', function () {
         _destroyObserver();
+        _cacheAttempted = false;
+        _cacheData      = null;
     });
 
     // ── Search (debounced 380 ms) ─────────────────────────────────────────────
@@ -209,7 +211,7 @@
                         Balance:          parseFloat(c.ClosingBalance  || 0),
                         BalanceType:      c.ClosingBalType || 'Debit',
                         CountryISO2:      c.CountryISO2   || 'IN',
-                        _lastTxAt:        c.LastTransactionAt || '',
+                        _lastUpdatedAt:   c.LastUpdatedAt || '',
                         OnAccountBalance: parseFloat(c.OnAccountBalance || 0),
                         OnAccountRecords: (function () {
                             try { return c.OnAccountRecords ? (typeof c.OnAccountRecords === 'string' ? JSON.parse(c.OnAccountRecords) : c.OnAccountRecords) : []; }
@@ -235,11 +237,11 @@
 
                 // Sort: most recently transacted first, then A-Z
                 list.sort(function (a, b) {
-                    if (a._lastTxAt && b._lastTxAt) {
-                        return a._lastTxAt > b._lastTxAt ? -1 : a._lastTxAt < b._lastTxAt ? 1 : 0;
+                    if (a._lastUpdatedAt && b._lastUpdatedAt) {
+                        return a._lastUpdatedAt > b._lastUpdatedAt ? -1 : a._lastUpdatedAt < b._lastUpdatedAt ? 1 : 0;
                     }
-                    if (a._lastTxAt) return -1;
-                    if (b._lastTxAt) return  1;
+                    if (a._lastUpdatedAt) return -1;
+                    if (b._lastUpdatedAt) return  1;
                     return a.Name.localeCompare(b.Name);
                 });
 

@@ -239,6 +239,7 @@ $(document).on('change', '#ModalAddrState', function () {
 
 // ── Address modal save button click ──────────────────────────────────────────
 $(document).on('click', '#AddrSaveBtn', function () {
+    if (window._dispatchShipMode) return; // handled by transactions.js dispatch IIFE
     var line1 = $.trim($('#ModalAddrLine1').val());
     if (!line1) { showAlertMessageSwal('error', '', 'Address Line 1 is required.'); return; }
 

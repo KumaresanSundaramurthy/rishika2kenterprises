@@ -129,6 +129,24 @@ $(function () {
             _showVendTypeIndicator(_vendorState || '');
         }
 
+        // Show vendor balance badge from Upstash cache (edit mode)
+        if (_editData.vendorUID > 0 && typeof _upstashUrl !== 'undefined' && _upstashUrl && typeof _vendorCacheKey !== 'undefined' && _vendorCacheKey) {
+            $.ajax({
+                url: _upstashUrl + '/hget/' + encodeURIComponent(_vendorCacheKey) + '/' + encodeURIComponent(String(_editData.vendorUID)),
+                headers: { 'Authorization': 'Bearer ' + _upstashReadToken },
+                dataType: 'json',
+                success: function (resp) {
+                    var raw = resp && resp.result;
+                    if (!raw) return;
+                    try {
+                        var v = typeof raw === 'string' ? JSON.parse(raw) : raw;
+                        var bal = parseFloat(v.ClosingBalance || v.OpeningBalance || 0);
+                        if (typeof _showVendDebitNotesBadge === 'function') _showVendDebitNotesBadge(bal);
+                    } catch (e) {}
+                }
+            });
+        }
+
         if (typeof billManager !== 'undefined' && Array.isArray(_editItems) && _editItems.length > 0) {
             billManager.batchAdd(_editItems, null);
             $('#btnClearCart').removeClass('d-none');

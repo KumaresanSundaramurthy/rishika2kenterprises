@@ -197,6 +197,7 @@ $editPrefixSeg    = $_prefix['seg'];
 <?php $this->load->view('transactions/partials/additional_charges_data'); ?>
 
 <script>
+window._transAllowTaxChange = true;
 var _transFormData = <?php echo json_encode([
     'isEdit'        => $isEdit,
     'isDraftEdit'   => $isDraftEdit,

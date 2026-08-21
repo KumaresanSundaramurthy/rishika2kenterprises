@@ -1613,6 +1613,139 @@ $(document).ready(function () {
 
         var $from = $grp.find('.r2k-dispatch-from');
 
+        // ── Flags for dispatch ship add / edit modes ──────────────────────────
+        window._dispatchShipMode    = false;
+        window._dispatchShipEditUID = 0;
+
+        // ── "Add Address" row click ───────────────────────────────────────────
+        $grp.on('click', '.r2k-dispatch-add-addr', function (e) {
+            e.stopPropagation();
+            _closeDispatch();
+            var count = parseInt($from.data('count'), 10) || 0;
+            var max   = parseInt($from.data('max'),   10) || 3;
+            if (count >= max) {
+                showToastNotification('Only ' + max + ' shipping ' + (max === 1 ? 'address' : 'addresses') + ' can be added. Limit reached.', 'error');
+                return;
+            }
+            window._dispatchShipMode = true;
+            if (typeof openAddressModal === 'function') openAddressModal(2);
+        });
+
+        // ── Intercept AddrSaveBtn when in dispatch-ship mode (add OR edit) ──────
+        $(document).on('click', '#AddrSaveBtn', function () {
+            if (!window._dispatchShipMode) return;
+
+            var line1 = $.trim($('#ModalAddrLine1').val());
+            if (!line1) { $('#ModalAddrLine1').trigger('focus'); return; }
+
+            var $stateOpt = $('#ModalAddrState option:selected');
+            var $cityOpt  = $('#ModalAddrCity option:selected');
+            var stateText = $.trim($stateOpt.text());
+            var cityText  = $.trim($cityOpt.text());
+            if (stateText === '-- Select State --') stateText = '';
+            if (cityText  === '-- Select City --')  cityText  = '';
+
+            var isEdit   = (window._dispatchShipEditUID > 0);
+            var editUID  = window._dispatchShipEditUID;
+            var postData = {
+                Line1:     line1,
+                Line2:     $.trim($('#ModalAddrLine2').val()),
+                CityId:    $cityOpt.val()  || '',
+                CityText:  cityText,
+                StateId:   $stateOpt.val() || '',
+                StateText: stateText,
+                Pincode:   $.trim($('#ModalAddrPincode').val()),
+            };
+            if (isEdit) postData.OrgAddressUID = editUID;
+            if (typeof CsrfName !== 'undefined') postData[CsrfName] = CsrfToken;
+
+            var $btn    = $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving…');
+            var btnHtml = '<i class="bx bx-check me-1"></i>' + (isEdit ? 'Update' : 'Save');
+
+            $.ajax({
+                url     : isEdit ? '/organisation/updateShipAddress' : '/organisation/addShipAddress',
+                method  : 'POST',
+                data    : postData,
+                dataType: 'json',
+                success : function (res) {
+                    ajaxLoading(0);
+                    $btn.prop('disabled', false).html(btnHtml);
+                    if (res.Error) { showToastNotification(res.Message, 'error'); return; }
+
+                    $('#addEditAddressModal').modal('hide');
+                    window._dispatchShipMode    = false;
+                    window._dispatchShipEditUID = 0;
+
+                    var a         = res.Address;
+                    var parts     = [a.Line1];
+                    var cs        = [a.CityText, a.StateText].filter(Boolean).join(', ');
+                    if (cs)        parts.push(cs);
+                    if (a.Pincode) parts.push(a.Pincode);
+                    var trigText  = parts.join(' · ');
+                    var cityState = [a.CityText, a.StateText + (a.Pincode ? ' ' + a.Pincode : '')].filter(Boolean).join(', ');
+
+                    if (isEdit) {
+                        // Update existing item in DOM
+                        var $item = $grp.find('.r2k-dispatch-item[data-uid="' + editUID + '"]');
+                        $item.attr({
+                            'data-trig'     : trigText,
+                            'data-line1'    : a.Line1    || '',
+                            'data-line2'    : a.Line2    || '',
+                            'data-pincode'  : a.Pincode  || '',
+                            'data-state-id' : a.StateId  || 0,
+                            'data-city-id'  : a.CityId   || 0,
+                            'data-city-name': a.CityText || '',
+                        });
+                        var $info = $item.find('.r2k-dispatch-info');
+                        $info.find('.r2k-dispatch-line').eq(0).text(a.Line1 || '');
+                        $info.find('.r2k-dispatch-line').eq(1).text(a.Line2 || '').toggle(!!a.Line2);
+                        $info.find('.r2k-dispatch-city').text(cityState).toggle(!!cityState);
+                        if ($item.hasClass('selected')) {
+                            $grp.find('.r2k-dispatch-val').text(trigText);
+                            $grp.find('.r2k-dispatch-btn').attr('title', trigText);
+                        }
+                    } else {
+                        var newUID   = res.OrgAddressUID;
+                        var itemHtml =
+                            '<div class="r2k-dispatch-item"' +
+                            ' data-uid="'       + newUID                                        + '"' +
+                            ' data-trig="'      + trigText.replace(/"/g, '&quot;')              + '"' +
+                            ' data-line1="'     + (a.Line1    || '').replace(/"/g, '&quot;')   + '"' +
+                            ' data-line2="'     + (a.Line2    || '').replace(/"/g, '&quot;')   + '"' +
+                            ' data-pincode="'   + (a.Pincode  || '').replace(/"/g, '&quot;')   + '"' +
+                            ' data-state-id="'  + (a.StateId  || 0)                            + '"' +
+                            ' data-city-id="'   + (a.CityId   || 0)                            + '"' +
+                            ' data-city-name="' + (a.CityText || '').replace(/"/g, '&quot;')   + '">' +
+                              '<div class="r2k-dispatch-check"><i class="bx bx-circle"></i></div>' +
+                              '<div class="r2k-dispatch-info">' +
+                                (a.OrgName  ? '<div class="r2k-dispatch-org">'  + $('<div>').text(a.OrgName).html()  + '</div>' : '') +
+                                (a.Line1    ? '<div class="r2k-dispatch-line">'  + $('<div>').text(a.Line1).html()    + '</div>' : '') +
+                                (a.Line2    ? '<div class="r2k-dispatch-line">'  + $('<div>').text(a.Line2).html()    + '</div>' : '') +
+                                (cityState  ? '<div class="r2k-dispatch-city">'  + $('<div>').text(cityState).html()  + '</div>' : '') +
+                                '<span class="r2k-dispatch-badge">Shipping</span>' +
+                              '</div>' +
+                              '<button type="button" class="r2k-dispatch-edit-btn ms-2" title="Edit"><i class="bx bx-edit-alt me-1"></i>Edit</button>' +
+                            '</div>';
+                        $from.find('.r2k-dispatch-divider').first().before(itemHtml);
+                        $from.data('count', res.NewCount);
+                        window._setDispatchFrom(newUID);
+                    }
+                    showToastNotification(res.Message || (isEdit ? 'Address updated.' : 'Address added.'), 'success');
+                },
+                error: function () {
+                    ajaxLoading(0);
+                    $btn.prop('disabled', false).html(btnHtml);
+                    showToastNotification('Failed to save address. Please try again.', 'error');
+                }
+            });
+        });
+
+        // ── Reset flags when modal closes without saving ──────────────────────
+        $(document).on('hidden.bs.modal', '#addEditAddressModal', function () {
+            window._dispatchShipMode    = false;
+            window._dispatchShipEditUID = 0;
+        });
+
         /** @returns {void} */
         function _closeDispatch() {
             $from.removeClass('r2k-disp-open');
@@ -1657,11 +1790,40 @@ $(document).ready(function () {
             $from.toggleClass('r2k-disp-open');
         });
 
-        // Select item and close
+        // Select item and close (skip if Edit button was the target)
         $grp.on('click', '.r2k-dispatch-item', function (e) {
             e.stopPropagation();
+            if ($(e.target).closest('.r2k-dispatch-edit-btn').length) return;
             window._setDispatchFrom($(this).data('uid'));
             _closeDispatch();
+        });
+
+        // ── Edit button click — open modal pre-filled from DOM data attrs ────
+        $grp.on('click', '.r2k-dispatch-edit-btn', function (e) {
+            e.stopPropagation();
+            _closeDispatch();
+            var $item = $(this).closest('.r2k-dispatch-item');
+            window._dispatchShipEditUID = parseInt($item.data('uid'), 10) || 0;
+            window._dispatchShipMode    = true;
+            // Pre-populate shippingAddrData so openAddressModal(2) fills the form
+            shippingAddrData = {
+                UID      : 0,
+                Line1    : $item.data('line1')     || '',
+                Line2    : $item.data('line2')     || '',
+                Pincode  : $item.data('pincode')   || '',
+                StateId  : $item.data('state-id')  || '',
+                StateISO2: '',
+                CityId   : $item.data('city-id')   || '',
+                CityName : $item.data('city-name') || '',
+            };
+            openAddressModal(2);
+            // After modal opens: clear temp data + switch button label to Update
+            $('#addEditAddressModal').one('shown.bs.modal', function () {
+                shippingAddrData = null;
+                if (window._dispatchShipEditUID > 0) {
+                    $('#AddrSaveBtn').html('<i class="bx bx-check me-1"></i>Update');
+                }
+            });
         });
 
         // Close when clicking anywhere outside the component
@@ -1676,6 +1838,137 @@ $(document).ready(function () {
         if (_dispBtnEl) {
             new bootstrap.Tooltip(_dispBtnEl, { placement: 'bottom', trigger: 'hover' });
         }
+    }());
+
+    // ── Tax rate change popover (purchases + purchaseorders only) ────────────
+    (function () {
+        if (!window._transAllowTaxChange) return;
+
+        var $pop       = null;
+        var _activeId  = null;
+
+        function _ensurePop() {
+            if (!$pop || !$pop.length) {
+                $pop = $('<div id="r2kTaxRatePopover" class="r2k-tax-pop"></div>').appendTo('body');
+            }
+            return $pop;
+        }
+
+        /**
+         * Open the tax-rate popover anchored below a badge element.
+         * @param {jQuery} $badge - The clicked .r2k-tax-badge span.
+         * @param {number} itemId - Cart item ID.
+         * @returns {void}
+         */
+        function _open($badge, itemId) {
+            _activeId = itemId;
+            var $p = _ensurePop();
+
+            DropdownCache.ready().then(function (data) {
+                var taxList = data.taxDetails || [];
+                if (!taxList.length) return;
+
+                var currentUID = 0;
+                var currentItem = billManager.getItemById(itemId);
+                if (currentItem) currentUID = parseInt(currentItem.taxDetailsUID, 10) || 0;
+
+                var html = '<ul class="r2k-tax-pop-list">';
+                taxList.forEach(function (t) {
+                    var pct    = parseFloat(t.Percentage) || 0;
+                    var uid    = parseInt(t.TaxDetailsUID, 10);
+                    var active = (uid === currentUID) ? ' r2k-tax-pop-active' : '';
+                    html += '<li class="r2k-tax-pop-item' + active + '" data-uid="' + uid
+                          + '" data-pct="' + pct + '" data-cgst="' + (parseFloat(t.CGST) || 0)
+                          + '" data-sgst="' + (parseFloat(t.SGST) || 0)
+                          + '" data-igst="' + (parseFloat(t.IGST) || 0) + '">'
+                          + pct + '%'
+                          + '</li>';
+                });
+                html += '</ul>';
+
+                $p.html(html);
+                // Measure width before positioning to right-align under the badge
+                $p.css({ visibility: 'hidden', left: -9999 }).addClass('r2k-tax-pop-open');
+                var popW = $p.outerWidth() || 120;
+                $p.css({ visibility: '' });
+
+                var rect = $badge[0].getBoundingClientRect();
+                var top  = rect.bottom + window.scrollY + 4;
+                // Right-edge of popover aligns with right-edge of badge (opens leftward)
+                var left = rect.right + window.scrollX - popW;
+                left = Math.max(8, left);
+                $p.css({ top: top, left: left });
+            });
+        }
+
+        function _close() {
+            if ($pop && $pop.length) $pop.removeClass('r2k-tax-pop-open');
+            _activeId = null;
+        }
+
+        /**
+         * Apply chosen tax rate to a cart item and refresh all totals.
+         * @param {number} itemId  - Cart item ID.
+         * @param {number} taxUID  - TaxDetailsUID.
+         * @param {number} pct     - Total tax percentage.
+         * @param {number} cgstDb  - CGST from DB (used when not interState).
+         * @param {number} sgstDb  - SGST from DB (used when not interState).
+         * @param {number} igstDb  - IGST from DB (used when interState).
+         * @returns {void}
+         */
+        function _apply(itemId, taxUID, pct, cgstDb, sgstDb, igstDb) {
+            var item = billManager.getItemById(itemId);
+            if (!item) return;
+
+            var cgstPct, sgstPct, igstPct;
+            if (billManager.isInterState) {
+                cgstPct = 0; sgstPct = 0; igstPct = pct;
+            } else {
+                cgstPct = cgstDb || pct / 2;
+                sgstPct = sgstDb || pct / 2;
+                igstPct = 0;
+            }
+
+            var recalc = billManager.calculateRowItem($.extend({}, item, {
+                taxPercent:    pct,
+                cgstPercent:   cgstPct,
+                sgstPercent:   sgstPct,
+                igstPercent:   igstPct,
+                taxDetailsUID: taxUID,
+                _lastChanged:  'unitPrice',
+            }));
+            billManager.updateItemInStorage(itemId, recalc);
+            updateTableRow(recalc);
+            billManager.updateSummary();
+            if (typeof updateItemTaxBreakdown === 'function') updateItemTaxBreakdown();
+        }
+
+        $(document).on('click', '.r2k-tax-badge', function (e) {
+            e.stopPropagation();
+            var $badge = $(this);
+            var itemId = parseInt($badge.data('id'), 10);
+            if ($pop && $pop.hasClass('r2k-tax-pop-open') && _activeId === itemId) {
+                _close(); return;
+            }
+            _open($badge, itemId);
+        });
+
+        $(document).on('click', '.r2k-tax-pop-item', function (e) {
+            e.stopPropagation();
+            var $li = $(this);
+            _apply(
+                _activeId,
+                parseInt($li.data('uid'), 10),
+                parseFloat($li.data('pct')) || 0,
+                parseFloat($li.data('cgst')) || 0,
+                parseFloat($li.data('sgst')) || 0,
+                parseFloat($li.data('igst')) || 0
+            );
+            _close();
+        });
+
+        $(document).on('click.taxRatePop', function () { _close(); });
+
     }());
 
     // ── Type select tooltip — update label on change ─────────────────────────
@@ -2635,7 +2928,9 @@ function updateTableRow(productRow) {
         $row.find('#bm_'+pid+'_netamount').text(smartDecimal(productRow.net_total, genSettings.DecimalPoints, true));
         $row.find('#bm_'+pid+'_tot_unit_amount').text(`${smartDecimal(productRow.line_total, genSettings.DecimalPoints, true)}`);
         $row.find('#bm_'+pid+'_taxAmount').text(`${smartDecimal(productRow.taxAmount, genSettings.DecimalPoints, true)}`);
-        
+        const $taxBadge = $row.find('#bm_'+pid+'_taxBadge');
+        if ($taxBadge.length) { $taxBadge.text(productRow.taxPercent + '%'); }
+
         // Visual indicators for override status
         const discountInput = $row.find('#bm_'+pid+'_discount');
         if (productRow.discount_is_global && !productRow.overrides_global_discount) {
@@ -2766,7 +3061,7 @@ function searchCustomers(key) {
                             onAccountRecords:  c.OnAccountRecords             || [],
                             advanceTotal:      parseFloat(c.AdvanceTotal      || 0),
                             creditNoteTotal:   parseFloat(c.CreditNoteTotal   || 0),
-                            lastTxAt:          c.LastTransactionAt || '',
+                            lastTxAt:          c.LastUpdatedAt || '',
                             countryISO2:       c.CountryISO2 || 'IN',
                             customerTypeUID:   parseInt(c.CustomerTypeUID || 0, 10),
                             groupUID:          c.GroupUID ? parseInt(c.GroupUID, 10) : null,
@@ -2915,6 +3210,7 @@ function searchCustomers(key) {
     }).on('select2:close', function () {
         $('#' + wrapId).off('input.custSearch');
         $('#' + wrapId).find('.select2-dropdown').off('mousedown.createCust');
+        custCache = null;
     });
 
     // Shared badge renderer — called by the default _showOnAccountBanner and by
@@ -3719,6 +4015,10 @@ function formationTableBillItems(productRow) {
            </button>`
         : '';
 
+    const taxBadgeHtml = window._transAllowTaxChange
+        ? `<span class="r2k-tax-badge" id="bm_${productRow.id}_taxBadge" data-id="${productRow.id}">${productRow.taxPercent}%</span>`
+        : (productRow.taxPercent + '%');
+
     let tableData = `
         <tr data-id="${productRow.id}">
             <td class="drag-handle" style="width:20px;padding:4px 2px;vertical-align:middle;text-align:center;cursor:grab;" title="Drag to reorder">
@@ -3784,7 +4084,7 @@ function formationTableBillItems(productRow) {
                     <!-- RIGHT SIDE: Amount Details -->
                     <div class="text-end flex-grow-1">
                         <div class="text-primary fw-semibold">${genSettings.CurrenySymbol} <span id="bm_${productRow.id}_netamount"> ${smartDecimal(productRow.net_total, genSettings.DecimalPoints, true)}</span></div>
-                        <div class="transtext-small text-muted"><span id="bm_${productRow.id}_tot_unit_amount">${smartDecimal(productRow.line_total, genSettings.DecimalPoints, true)}</span> + <span id="bm_${productRow.id}_taxAmount">${smartDecimal(productRow.taxAmount, genSettings.DecimalPoints, true)}</span> (${productRow.taxPercent}%)</div>
+                        <div class="transtext-small text-muted"><span id="bm_${productRow.id}_tot_unit_amount">${smartDecimal(productRow.line_total, genSettings.DecimalPoints, true)}</span> + <span id="bm_${productRow.id}_taxAmount">${smartDecimal(productRow.taxAmount, genSettings.DecimalPoints, true)}</span> (${taxBadgeHtml})</div>
                     </div>
                 </div>
             </td>

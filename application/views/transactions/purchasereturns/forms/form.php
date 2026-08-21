@@ -234,6 +234,7 @@ if ($isEdit) {
 <script src="/js/common/phone_cc_dropdown.js"></script>
 <script src="/js/common/vendor_form.js"></script>
 <script src="/js/transactions/vendor_search.js"></script>
+<script src="/js/common/address.js"></script>
 <script src="/js/transactions/transactions.js"></script>
 <script src="/js/transactions/transprefix.js"></script>
 <script src="/js/transactions/modaladdress.js"></script>

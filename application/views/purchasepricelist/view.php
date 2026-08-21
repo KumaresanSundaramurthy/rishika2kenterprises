@@ -65,6 +65,7 @@
 
     var _currentFilter = {};
     var _searchTimer   = null;
+    var _rowLimit      = <?php echo (int)($JwtData->GenSettings->RowLimit ?? 25); ?>;
 
     /**
      * @param {number} pageNo
@@ -72,20 +73,20 @@
      * @returns {void}
      */
     function _loadPage(pageNo, filter) {
-        ajaxLoading(1);
+        $('#pplTableBody').html('<tr><td colspan="10" class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary" role="status"></span></td></tr>');
+        ajaxLoading(0);
         $.ajax({
             url    : '/purchasepricelist/getPageDetails/' + pageNo,
             method : 'POST',
-            data   : { Filter: filter, RowLimit: _rowLimit() },
+            data   : { Filter: filter, RowLimit: _rowLimit },
             success: function (res) {
-                ajaxLoading(0);
                 if (res.Error) { toast('error', res.Message); return; }
                 $('#pplTableBody').html(res.RecordHtmlData);
                 $('#pplPagination').html(res.Pagination);
                 _initTooltips();
             },
             error: function () {
-                ajaxLoading(0);
+                $('#pplTableBody').html('');
                 toast('error', 'Failed to load data.');
             }
         });
@@ -111,6 +112,13 @@
             _currentFilter.search = val;
             _loadPage(1, _currentFilter);
         }, 400);
+    });
+
+    // ── Refresh ───────────────────────────────────────────────────────────────
+
+    $(document).on('click', '.PageRefresh', function (e) {
+        e.preventDefault();
+        _loadPage(1, _currentFilter);
     });
 
     // ── Pagination (delegated) ────────────────────────────────────────────────

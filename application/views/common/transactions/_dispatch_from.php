@@ -21,7 +21,9 @@ $_trigParts = array_filter([
 ]);
 $_trigText = htmlspecialchars(implode(' · ', $_trigParts)) ?: 'Select Address';
 ?>
-<div class="r2k-dispatch-from">
+<div class="r2k-dispatch-from"
+     data-count="<?php echo count($DispatchAddresses); ?>"
+     data-max="<?php echo (int)(isset($JwtData) ? ($JwtData->GenSettings->MaxShippingAddr ?? 3) : 3); ?>">
     <input type="hidden" id="dispatchFrom" name="dispatchFrom"
            value="<?php echo $_defAddr ? (int)$_defAddr->OrgAddressUID : ''; ?>" required>
     <button type="button" class="r2k-dispatch-btn" title="<?php echo $_trigText; ?>">
@@ -48,7 +50,13 @@ $_trigText = htmlspecialchars(implode(' · ', $_trigParts)) ?: 'Select Address';
         ?>
         <div class="r2k-dispatch-item<?php echo $_isSel ? ' selected' : ''; ?>"
              data-uid="<?php echo $_uid; ?>"
-             data-trig="<?php echo $_optTrig; ?>">
+             data-trig="<?php echo $_optTrig; ?>"
+             data-line1="<?php echo htmlspecialchars($_addr->Line1    ?? ''); ?>"
+             data-line2="<?php echo htmlspecialchars($_addr->Line2    ?? ''); ?>"
+             data-pincode="<?php echo htmlspecialchars($_addr->Pincode ?? ''); ?>"
+             data-state-id="<?php echo (int)($_addr->State ?? 0); ?>"
+             data-city-id="<?php echo (int)($_addr->City  ?? 0); ?>"
+             data-city-name="<?php echo htmlspecialchars($_addr->CityText ?? ''); ?>">
             <div class="r2k-dispatch-check">
                 <i class="bx <?php echo $_isSel ? 'bx-check-circle' : 'bx-circle'; ?>"></i>
             </div>
@@ -59,7 +67,13 @@ $_trigText = htmlspecialchars(implode(' · ', $_trigParts)) ?: 'Select Address';
                 <?php if ($_cityState): ?><div class="r2k-dispatch-city"><?php echo $_cityState; ?></div><?php endif; ?>
                 <?php if ($_type): ?><span class="r2k-dispatch-badge"><?php echo $_type; ?></span><?php endif; ?>
             </div>
+            <button type="button" class="r2k-dispatch-edit-btn ms-2" title="Edit"><i class="bx bx-edit-alt me-1"></i>Edit</button>
         </div>
         <?php endforeach; ?>
+        <div class="r2k-dispatch-divider"></div>
+        <div class="r2k-dispatch-add-addr">
+            <i class="bx bx-plus-circle"></i>
+            <span>Add Address</span>
+        </div>
     </div>
 </div>

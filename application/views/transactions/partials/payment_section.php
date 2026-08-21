@@ -84,8 +84,8 @@ $currSymbol       = $JwtData->GenSettings->CurrenySymbol ?? '₹';
         <span id="payExcessWrap" class="text-warning d-none">Excess: <span id="payExcess"><?php echo $currSymbol; ?> 0.00</span></span>
     </div>
 
-    <!-- Payment Attachments Section -->
-    <div class="payment-attachments-section mt-3 px-1">
+    <!-- Payment Attachments Section (hidden for vendor/purchase pages) -->
+    <div class="payment-attachments-section mt-3 px-1<?php echo $paymentPartyType === 'V' ? ' d-none' : ''; ?>">
         <div class="d-flex align-items-center justify-content-between mb-2">
             <span class="fw-semibold text-dark" style="font-size:0.9rem;">
                 <i class="bx bx-paperclip me-1"></i>Payment Attachments

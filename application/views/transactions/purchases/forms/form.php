@@ -156,7 +156,7 @@ if ($isEdit) {
                                     </label>
                                     <?php $_fmt = $JwtData->GenSettings->FormDateFormat ?? 'd-m-Y'; ?>
                                     <?php if ($isEdit && !$isDraftEdit): ?>
-                                        <input type="hidden" name="transDate" value="<?php echo htmlspecialchars(format_datedisplay($PurchData->TransDate, 'Y-m-d')); ?>" />
+                                        <input type="hidden" id="transDate" name="transDate" value="<?php echo htmlspecialchars(format_datedisplay($PurchData->TransDate, 'Y-m-d')); ?>" />
                                         <div class="input-group input-group-sm input-group-merge">
                                             <span class="input-group-text bg-white"><i class="icon-base bx bx-calendar"></i></span>
                                             <input type="text" class="form-control form-control-sm bg-white text-muted" style="cursor:default;" value="<?php echo htmlspecialchars(format_datedisplay($PurchData->TransDate, $_fmt)); ?>" readonly tabindex="-1" />
@@ -263,6 +263,7 @@ if ($isEdit) {
 <script src="/js/common/phone_cc_dropdown.js"></script>
 <script src="/js/common/vendor_form.js"></script>
 <script src="/js/transactions/vendor_search.js"></script>
+<script src="/js/common/address.js"></script>
 <script src="/js/transactions/transactions.js"></script>
 <script src="/js/transactions/transprefix.js"></script>
 <script src="/js/transactions/modaladdress.js"></script>
@@ -275,6 +276,7 @@ if ($isEdit) {
 <?php $this->load->view('transactions/partials/additional_charges_data'); ?>
 
 <script>
+window._transAllowTaxChange = true;
 var _transFormData = <?php echo json_encode([
     'isEdit'        => $isEdit,
     'isDraftEdit'   => $isDraftEdit,

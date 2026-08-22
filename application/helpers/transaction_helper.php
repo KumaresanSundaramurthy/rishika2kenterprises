@@ -255,6 +255,7 @@ if (!function_exists('format_datedisplay')) {
             }
             return $dt->format($format);
         } catch (Exception $e) {
+            notifyError($e, 'transaction_helper::format_datedisplay');
             return $default;
         }
     }

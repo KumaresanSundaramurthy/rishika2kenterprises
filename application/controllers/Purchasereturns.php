@@ -27,6 +27,7 @@ class Purchasereturns extends MY_Controller {
             ]);
             $this->load->view('transactions/purchasereturns/view', $this->pageData);
         } catch (Exception $e) {
+            notifyError('Purchasereturns::index', $e);
             redirect('dashboard', 'refresh');
         }
     }
@@ -161,6 +162,7 @@ class Purchasereturns extends MY_Controller {
             $this->EndReturnData->TransUID = $transUID;
             $this->EndReturnData->Token    = $headerData['TransToken'];
         } catch (Exception $e) {
+            notifyError('Purchasereturns::addPurchaseReturn', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -301,6 +303,7 @@ class Purchasereturns extends MY_Controller {
                 [], 'Updated purchase return ' . ($uniqueNumber ?? $existing->UniqueNumber ?? ''), 'PurchaseReturns', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
             );
         } catch (Exception $e) {
+            notifyError('Purchasereturns::updatePurchaseReturn', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -355,6 +358,7 @@ class Purchasereturns extends MY_Controller {
 
             $this->_buildListResponse('transactions/purchasereturns/list', '/transactions/getPageDetails/108');
         } catch (Exception $e) {
+            notifyError('Purchasereturns::deletePurchaseReturn', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -500,6 +504,7 @@ class Purchasereturns extends MY_Controller {
             $this->EndReturnData->TransUID = $newTransUID;
             $this->EndReturnData->EditURL  = '/purchasereturns/edit/' . $newTransUID;
         } catch (Exception $e) {
+            notifyError('Purchasereturns::duplicatePurchaseReturn', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -643,6 +648,7 @@ class Purchasereturns extends MY_Controller {
             );
             $this->EndReturnData->NewStatus = $newStatus;
         } catch (Exception $e) {
+            notifyError('Purchasereturns::updatePurchaseReturnStatus', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -667,6 +673,7 @@ class Purchasereturns extends MY_Controller {
             $this->EndReturnData->HasRefunds   = $totalRefunded > 0;
             $this->EndReturnData->RefundAmount = $totalRefunded;
         } catch (Exception $e) {
+            notifyError('Purchasereturns::getPRCancelDependencies', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -684,6 +691,7 @@ class Purchasereturns extends MY_Controller {
             $this->EndReturnData->Error     = false;
             $this->EndReturnData->Purchases = $this->transactions_model->getVendorPurchasesWithReturnableItems($vendorUID, $orgUID);
         } catch (Exception $e) {
+            notifyError('Purchasereturns::getVendorPurchases', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -718,6 +726,7 @@ class Purchasereturns extends MY_Controller {
             $this->EndReturnData->Header = $header;
             $this->EndReturnData->Items  = $items;
         } catch (Exception $e) {
+            notifyError('Purchasereturns::getPurchaseItems', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -752,6 +761,7 @@ class Purchasereturns extends MY_Controller {
 
             $this->load->view('transactions/purchasereturns/forms/form', $this->pageData);
         } catch (Exception $e) {
+            notifyError('Purchasereturns::create', $e);
             redirect('purchasereturns', 'refresh');
         }
     }
@@ -792,6 +802,7 @@ class Purchasereturns extends MY_Controller {
 
             $this->load->view('transactions/purchasereturns/forms/form', $this->pageData);
         } catch (Exception $e) {
+            notifyError('Purchasereturns::edit', $e);
             redirect('purchasereturns', 'refresh');
         }
     }
@@ -914,6 +925,7 @@ class Purchasereturns extends MY_Controller {
             );
 
         } catch (Exception $e) {
+            notifyError('Purchasereturns::recordPayment', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -939,6 +951,7 @@ class Purchasereturns extends MY_Controller {
             $this->EndReturnData->Error     = false;
             $this->EndReturnData->Purchases = $this->transactions_model->getVendorPendingPurchases($vendorUID, $orgUID);
         } catch (Exception $e) {
+            notifyError('Purchasereturns::getPendingPurchases', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1072,6 +1085,7 @@ class Purchasereturns extends MY_Controller {
             $this->EndReturnData->Message = 'Debit of ' . number_format($amount, 2) . ' applied to purchase ' . ($purchase->UniqueNumber ?? '#' . $purchUID) . '.';
 
         } catch (Exception $e) {
+            notifyError('Purchasereturns::applyDebit', $e);
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();

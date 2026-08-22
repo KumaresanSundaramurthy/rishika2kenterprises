@@ -51,6 +51,7 @@ class Dbwrite_model extends CI_Model {
             return true;
             
         } catch (Exception $e) {
+            notifyError('Dbwrite_model::commitTransaction', $e);
             throw new Exception('Transaction failed: ' . $e->getMessage());
         }
     }
@@ -128,6 +129,7 @@ class Dbwrite_model extends CI_Model {
             }
 
         } catch (Exception $e) {
+            notifyError('Dbwrite_model::insertData', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Table = $Table;
             $this->EndReturnData->Data = $Data;
@@ -154,6 +156,7 @@ class Dbwrite_model extends CI_Model {
             }
 
         } catch (Exception $e) {
+            notifyError('Dbwrite_model::insertBatchInTransaction', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -189,6 +192,7 @@ class Dbwrite_model extends CI_Model {
 
         } catch (Exception $e) {
 
+            notifyError('Dbwrite_model::insertBatchData', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Table = $Table;
             $this->EndReturnData->Data = $Data;
@@ -248,6 +252,7 @@ class Dbwrite_model extends CI_Model {
 
         } catch (Exception $e) {
 
+            notifyError('Dbwrite_model::updateData', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Table = $Table;
             $this->EndReturnData->Data = $Data;
@@ -294,6 +299,7 @@ class Dbwrite_model extends CI_Model {
 
         } catch (Exception $e) {
 
+            notifyError('Dbwrite_model::updateBatchData', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Table = $Table;
             $this->EndReturnData->Data = $Data;
@@ -322,6 +328,7 @@ class Dbwrite_model extends CI_Model {
             }
 
         } catch (Exception $e) {
+            notifyError('Dbwrite_model::deleteInTransaction', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -357,6 +364,7 @@ class Dbwrite_model extends CI_Model {
 
         } catch (Exception $e) {
 
+            notifyError('Dbwrite_model::deleteData', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Table = $Table;
             $this->EndReturnData->Condition = $Condition;
@@ -1170,6 +1178,35 @@ class Dbwrite_model extends CI_Model {
         ]);
     }
 
+    public function markVendorPaymentsDeletedForTrans(int $transUID, int $orgUID, int $userUID): void {
+        $this->WriteDB->db_debug = FALSE;
+        $this->WriteDB->where([
+            'TransUID'         => $transUID,
+            'OrgUID'           => $orgUID,
+            'PartyType'        => 'S',
+            'PaymentDirection' => 'Out',
+            'IsDeleted'        => 0,
+        ])->update('Transaction.PaymentsTbl', [
+            'IsDeleted' => 1,
+            'UpdatedBy' => $userUID,
+        ]);
+    }
+
+    public function markVendorPaymentsCancelledForTrans(int $transUID, int $orgUID, int $userUID): void {
+        $this->WriteDB->db_debug = FALSE;
+        $this->WriteDB->where([
+            'TransUID'         => $transUID,
+            'OrgUID'           => $orgUID,
+            'PartyType'        => 'S',
+            'PaymentDirection' => 'Out',
+            'IsCancelled'      => 0,
+            'IsDeleted'        => 0,
+        ])->update('Transaction.PaymentsTbl', [
+            'IsCancelled' => 1,
+            'UpdatedBy'   => $userUID,
+        ]);
+    }
+
     public function cancelTransactionChildRecords($transUID, $userUID) {
         $this->WriteDB->db_debug = FALSE;
         $flag   = ['IsCancelled' => 1, 'UpdatedBy' => (int)$userUID];
@@ -1239,11 +1276,11 @@ class Dbwrite_model extends CI_Model {
         return true;
     }
 
-    public function upsertTransactionSettings(int $orgUID, string $invoiceCancelAction, string $srCancelAction, string $srItemMethod, string $termsAndConditions, int $hideNav, int $purchaseShowSignature, int $purchaseShowTerms, string $prCancelAction, string $prItemMethod, int $showProductDescription, int $userUID, int $dcDefaultReturnDays = 7, int $quotValidityDays = 7, int $showTransactionStats = 1, string $comboPriceDistribution = 'ratio', string $belowPurchasePriceAction = 'warn', string $defaultTransactionType = 'regular', int $autoDraftSave = 1, string $autoUpdatePurchasePrice = 'off'): bool {
+    public function upsertTransactionSettings(int $orgUID, string $invoiceCancelAction, string $srCancelAction, string $srItemMethod, string $termsAndConditions, int $hideNav, int $purchaseShowSignature, int $purchaseShowTerms, string $prCancelAction, string $prItemMethod, int $showProductDescription, int $userUID, int $dcDefaultReturnDays = 7, int $quotValidityDays = 7, int $showTransactionStats = 1, string $comboPriceDistribution = 'ratio', string $belowPurchasePriceAction = 'warn', string $defaultTransactionType = 'regular', int $autoDraftSave = 1, string $autoUpdatePurchasePrice = 'off', string $purchaseCancelAction = 'ask'): bool {
         $this->WriteDB->db_debug = FALSE;
         $sql = "INSERT INTO Settings.TransactionSettingsTbl
-                    (OrgUID, InvoiceCancelAction, SalesReturnCancelAction, SalesReturnItemMethod, TermsAndConditions, HideNavOnTransForm, PurchaseShowSignature, PurchaseShowTerms, PurchaseReturnCancelAction, PurchaseReturnItemMethod, ShowProductDescription, DCDefaultReturnDays, QuotValidityDays, ShowTransactionStats, ComboPriceDistribution, BelowPurchasePriceAction, DefaultTransactionType, AutoDraftSave, AutoUpdatePurchasePrice, UpdatedBy)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (OrgUID, InvoiceCancelAction, SalesReturnCancelAction, SalesReturnItemMethod, TermsAndConditions, HideNavOnTransForm, PurchaseShowSignature, PurchaseShowTerms, PurchaseReturnCancelAction, PurchaseReturnItemMethod, ShowProductDescription, DCDefaultReturnDays, QuotValidityDays, ShowTransactionStats, ComboPriceDistribution, BelowPurchasePriceAction, DefaultTransactionType, AutoDraftSave, AutoUpdatePurchasePrice, PurchaseCancelAction, UpdatedBy)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON DUPLICATE KEY UPDATE
                     InvoiceCancelAction        = VALUES(InvoiceCancelAction),
                     SalesReturnCancelAction    = VALUES(SalesReturnCancelAction),
@@ -1263,12 +1300,13 @@ class Dbwrite_model extends CI_Model {
                     DefaultTransactionType     = VALUES(DefaultTransactionType),
                     AutoDraftSave              = VALUES(AutoDraftSave),
                     AutoUpdatePurchasePrice    = VALUES(AutoUpdatePurchasePrice),
+                    PurchaseCancelAction       = VALUES(PurchaseCancelAction),
                     UpdatedBy                  = VALUES(UpdatedBy)";
         $ok = $this->WriteDB->query($sql, [
             $orgUID, $invoiceCancelAction, $srCancelAction,
             $srItemMethod, $termsAndConditions, $hideNav, $purchaseShowSignature, $purchaseShowTerms,
             $prCancelAction, $prItemMethod, $showProductDescription, $dcDefaultReturnDays, $quotValidityDays,
-            $showTransactionStats, $comboPriceDistribution, $belowPurchasePriceAction, $defaultTransactionType, $autoDraftSave, $autoUpdatePurchasePrice, $userUID,
+            $showTransactionStats, $comboPriceDistribution, $belowPurchasePriceAction, $defaultTransactionType, $autoDraftSave, $autoUpdatePurchasePrice, $purchaseCancelAction, $userUID,
         ]);
         if (!$ok) {
             $err = $this->WriteDB->error();

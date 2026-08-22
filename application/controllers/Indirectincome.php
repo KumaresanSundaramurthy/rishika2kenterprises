@@ -61,6 +61,7 @@ class Indirectincome extends MY_Controller {
             $this->load->view('transactions/indirectincome/view', $this->pageData);
 
         } catch (Throwable $e) {
+            notifyError('Indirectincome::index', $e);
             log_message('error', 'Indirectincome::index — ' . $e->getMessage());
             redirect('dashboard', 'refresh');
         }
@@ -96,6 +97,7 @@ class Indirectincome extends MY_Controller {
             }
 
         } catch (Throwable $e) {
+            notifyError('Indirectincome::getPageDetails', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -156,6 +158,7 @@ class Indirectincome extends MY_Controller {
             $this->EndReturnData->IncomeNumber = $incomeNumber;
 
         } catch (Throwable $e) {
+            notifyError('Indirectincome::addIncome', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -245,6 +248,7 @@ class Indirectincome extends MY_Controller {
             );
 
         } catch (Throwable $e) {
+            notifyError('Indirectincome::updateIncome', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -306,6 +310,7 @@ class Indirectincome extends MY_Controller {
             );
 
         } catch (Throwable $e) {
+            notifyError('Indirectincome::deleteIncome', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -372,6 +377,7 @@ class Indirectincome extends MY_Controller {
             );
 
         } catch (Throwable $e) {
+            notifyError('Indirectincome::duplicateIncome', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -518,6 +524,7 @@ class Indirectincome extends MY_Controller {
             );
 
         } catch (Throwable $e) {
+            notifyError('Indirectincome::recordPayment', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -554,6 +561,7 @@ class Indirectincome extends MY_Controller {
             $this->EndReturnData->Error    = FALSE;
             $this->EndReturnData->Payments = $list;
         } catch (Exception $e) {
+            notifyError('Indirectincome::getPaymentHistory', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -584,6 +592,7 @@ class Indirectincome extends MY_Controller {
             $this->EndReturnData->Error       = FALSE;
             $this->EndReturnData->Attachments = $attachments;
         } catch (Exception $e) {
+            notifyError('Indirectincome::getPaymentAttachments', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -665,6 +674,7 @@ class Indirectincome extends MY_Controller {
             );
 
         } catch (Throwable $e) {
+            notifyError('Indirectincome::updateIncomeStatus', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -699,6 +709,7 @@ class Indirectincome extends MY_Controller {
             $this->EndReturnData->Data  = $income;
 
         } catch (Throwable $e) {
+            notifyError('Indirectincome::getIncomeDetail', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -713,6 +724,7 @@ class Indirectincome extends MY_Controller {
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $this->indirectincome_model->getCategories($orgUID);
         } catch (Throwable $e) {
+            notifyError('Indirectincome::getCategories', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -754,6 +766,7 @@ class Indirectincome extends MY_Controller {
             $this->EndReturnData->CategoryName = $categoryName;
 
         } catch (Throwable $e) {
+            notifyError('Indirectincome::addCategory', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -791,6 +804,7 @@ class Indirectincome extends MY_Controller {
             $this->EndReturnData->CategoryUID  = $categoryUID;
             $this->EndReturnData->CategoryName = $name;
         } catch (Throwable $e) {
+            notifyError('Indirectincome::updateCategory', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -828,6 +842,7 @@ class Indirectincome extends MY_Controller {
                 [], 'Deleted income category #' . $categoryUID, 'IndirectIncome', 'MASTER'
             );
         } catch (Throwable $e) {
+            notifyError('Indirectincome::deleteCategory', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -850,6 +865,7 @@ class Indirectincome extends MY_Controller {
             $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml('/indirectincome/getCategoryList', $total, $pageNo, $limit);
             $this->EndReturnData->TotalCount     = $total;
         } catch (Throwable $e) {
+            notifyError('Indirectincome::getCategoryList', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1105,6 +1121,7 @@ class Indirectincome extends MY_Controller {
             );
 
         } catch (Throwable $e) {
+            notifyError('Indirectincome::deleteMultipleIncomes', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }

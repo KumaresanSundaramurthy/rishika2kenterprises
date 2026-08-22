@@ -1120,6 +1120,7 @@
                                             $purchaseShowSignature    = !empty($ts->PurchaseShowSignature)    ? (int)$ts->PurchaseShowSignature    : 0;
                                             $purchaseShowTerms        = !empty($ts->PurchaseShowTerms)        ? (int)$ts->PurchaseShowTerms        : 0;
                                             $autoUpdatePurchasePrice  = $ts->AutoUpdatePurchasePrice ?? 'off';
+                                            $purchaseCancelAction     = $ts->PurchaseCancelAction    ?? 'ask';
                                             ?>
                                             <div class="tab-pane fade" id="tab-purchase-settings" role="tabpanel" aria-labelledby="tab-purchase-settings-tab">
 
@@ -1163,6 +1164,59 @@
                                                     </div>
 
                                                 </div>
+
+                                                <hr class="my-4">
+
+                                                <!-- Cancelling / Deleting Purchase Bill -->
+                                                <div class="col-12">
+                                                    <label class="form-label fw-semibold">Cancelling / Deleting Purchase Bill <span class="text-danger">*</span></label>
+                                                    <p class="text-muted small mb-3">When a <strong>paid or partially paid</strong> purchase bill is cancelled or deleted, define what should happen to the amount already paid to the vendor.</p>
+
+                                                    <div class="row g-3">
+
+                                                        <div class="col-md-4">
+                                                            <div class="border rounded p-3 h-100 <?php echo $purchaseCancelAction === 'ask' ? 'border-primary bg-label-primary' : ''; ?>" style="cursor:pointer;" onclick="selectPurchCancelAction('ask')">
+                                                                <div class="d-flex align-items-center gap-2 mb-2">
+                                                                    <input class="form-check-input mt-0 flex-shrink-0" type="radio" name="PurchaseCancelAction" id="pca_ask" value="ask" <?php echo $purchaseCancelAction === 'ask' ? 'checked' : ''; ?>>
+                                                                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                                                                        <label class="fw-semibold mb-0" for="pca_ask" style="cursor:pointer;"><i class="bx bx-help-circle me-1 text-primary"></i>Always Ask</label>
+                                                                        <span class="badge bg-label-secondary">User Decides</span>
+                                                                    </div>
+                                                                </div>
+                                                                <p class="text-muted small mb-0">Show a prompt every time, letting the user pick between Debit Note or Refund on the spot. Best for teams that handle each vendor case individually.</p>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="col-md-4">
+                                                            <div class="border rounded p-3 h-100 <?php echo $purchaseCancelAction === 'debit_note' ? 'border-primary bg-label-primary' : ''; ?>" style="cursor:pointer;" onclick="selectPurchCancelAction('debit_note')">
+                                                                <div class="d-flex align-items-center gap-2 mb-2">
+                                                                    <input class="form-check-input mt-0 flex-shrink-0" type="radio" name="PurchaseCancelAction" id="pca_debit_note" value="debit_note" <?php echo $purchaseCancelAction === 'debit_note' ? 'checked' : ''; ?>>
+                                                                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                                                                        <label class="fw-semibold mb-0" for="pca_debit_note" style="cursor:pointer;"><i class="bx bx-receipt me-1 text-warning"></i>Convert to Debit Note</label>
+                                                                        <span class="badge bg-label-warning">Vendor Owes You</span>
+                                                                    </div>
+                                                                </div>
+                                                                <p class="text-muted small mb-0">Automatically raise a Debit Note against the vendor for the paid amount. It stays on their account and can be offset against your next purchase from them.</p>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="col-md-4">
+                                                            <div class="border rounded p-3 h-100 <?php echo $purchaseCancelAction === 'refund' ? 'border-primary bg-label-primary' : ''; ?>" style="cursor:pointer;" onclick="selectPurchCancelAction('refund')">
+                                                                <div class="d-flex align-items-center gap-2 mb-2">
+                                                                    <input class="form-check-input mt-0 flex-shrink-0" type="radio" name="PurchaseCancelAction" id="pca_refund" value="refund" <?php echo $purchaseCancelAction === 'refund' ? 'checked' : ''; ?>>
+                                                                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                                                                        <label class="fw-semibold mb-0" for="pca_refund" style="cursor:pointer;"><i class="bx bx-transfer me-1 text-success"></i>Mark as Refund</label>
+                                                                        <span class="badge bg-label-success">Cash Returned</span>
+                                                                    </div>
+                                                                </div>
+                                                                <p class="text-muted small mb-0">Automatically mark the paid amount as a refund due from the vendor. Records the expected return of cash or bank transfer. Physical recovery must be processed separately.</p>
+                                                            </div>
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+
+                                                <hr class="my-4">
 
                                                 <div class="row g-3 mt-1">
                                                     <div class="col-12">
@@ -1480,6 +1534,7 @@ $(document).ready(function () {
                 SalesReturnItemMethod      : $('input[name="SalesReturnItemMethod"]:checked').val()      || 'Manual',
                 PurchaseReturnCancelAction : $('input[name="PurchaseReturnCancelAction"]:checked').val() || 'ask',
                 PurchaseReturnItemMethod   : $('input[name="PurchaseReturnItemMethod"]:checked').val()   || 'Manual',
+                PurchaseCancelAction       : $('input[name="PurchaseCancelAction"]:checked').val()       || 'ask',
                 PurchaseShowSignature      : $('#purch_ShowSignature').is(':checked') ? 1 : 0,
                 PurchaseShowTerms          : $('#purch_ShowTerms').is(':checked')    ? 1 : 0,
                 AutoUpdatePurchasePrice    : $('#purch_AutoUpdatePurchasePrice').val() || 'off',
@@ -1551,6 +1606,16 @@ $(document).ready(function () {
             .closest('.border').addClass('border-primary bg-label-primary');
     };
 
+    // ── Purchase cancel action card selection ─────────────────────────────────
+    window.selectPurchCancelAction = function (value) {
+        $('input[name="PurchaseCancelAction"]').val([value]);
+        $('input[name="PurchaseCancelAction"]').closest('.border').each(function () {
+            $(this).removeClass('border-primary bg-label-primary');
+        });
+        $('input[name="PurchaseCancelAction"][value="' + value + '"]')
+            .closest('.border').addClass('border-primary bg-label-primary');
+    };
+
     // ── Combo price distribution card selection ───────────────────────────────
     window.selectComboPriceDist = function (value) {
         $('input[name="ComboPriceDistribution"]').val([value]);
@@ -1594,6 +1659,7 @@ $(document).ready(function () {
                 SalesReturnItemMethod      : $('input[name="SalesReturnItemMethod"]:checked').val()      || 'Manual',
                 PurchaseReturnCancelAction : $('input[name="PurchaseReturnCancelAction"]:checked').val() || 'ask',
                 PurchaseReturnItemMethod   : method,
+                PurchaseCancelAction       : $('input[name="PurchaseCancelAction"]:checked').val()       || 'ask',
                 TermsAndConditions         : $('#txn_TermsAndConditions').val(),
                 HideNavOnTransForm         : $('#txn_HideNavOnTransForm').is(':checked') ? 1 : 0,
                 ShowProductDescription     : $('#txn_ShowProductDescription').is(':checked') ? 1 : 0,
@@ -1645,6 +1711,7 @@ $(document).ready(function () {
                 SalesReturnItemMethod      : $('input[name="SalesReturnItemMethod"]:checked').val()      || 'Manual',
                 PurchaseReturnCancelAction : $('input[name="PurchaseReturnCancelAction"]:checked').val() || 'ask',
                 PurchaseReturnItemMethod   : $('input[name="PurchaseReturnItemMethod"]:checked').val()   || 'Manual',
+                PurchaseCancelAction       : $('input[name="PurchaseCancelAction"]:checked').val()       || 'ask',
                 TermsAndConditions         : $('#txn_TermsAndConditions').val(),
                 HideNavOnTransForm         : $('#txn_HideNavOnTransForm').is(':checked') ? 1 : 0,
                 ShowProductDescription     : $('#txn_ShowProductDescription').is(':checked') ? 1 : 0,
@@ -1704,6 +1771,7 @@ $(document).ready(function () {
                 PurchaseShowSignature      : $('#purch_ShowSignature').is(':checked') ? 1 : 0,
                 PurchaseShowTerms          : $('#purch_ShowTerms').is(':checked')    ? 1 : 0,
                 AutoUpdatePurchasePrice    : $('#purch_AutoUpdatePurchasePrice').val() || 'off',
+                PurchaseCancelAction       : $('input[name="PurchaseCancelAction"]:checked').val()       || 'ask',
                 InvoiceCancelAction        : $('input[name="InvoiceCancelAction"]:checked').val()        || 'ask',
                 SalesReturnCancelAction    : $('input[name="SalesReturnCancelAction"]:checked').val()    || 'ask',
                 SalesReturnItemMethod      : $('input[name="SalesReturnItemMethod"]:checked').val()      || 'Manual',
@@ -1752,6 +1820,7 @@ $(document).ready(function () {
                 SalesReturnItemMethod      : $('input[name="SalesReturnItemMethod"]:checked').val()      || 'Manual',
                 PurchaseReturnCancelAction : $('input[name="PurchaseReturnCancelAction"]:checked').val() || 'ask',
                 PurchaseReturnItemMethod   : $('input[name="PurchaseReturnItemMethod"]:checked').val()   || 'Manual',
+                PurchaseCancelAction       : $('input[name="PurchaseCancelAction"]:checked').val()       || 'ask',
                 PurchaseShowSignature      : $('#purch_ShowSignature').is(':checked') ? 1 : 0,
                 PurchaseShowTerms          : $('#purch_ShowTerms').is(':checked')    ? 1 : 0,
                 AutoUpdatePurchasePrice    : $('#purch_AutoUpdatePurchasePrice').val() || 'off',
@@ -1799,6 +1868,7 @@ $(document).ready(function () {
                 SalesReturnItemMethod      : method,
                 PurchaseReturnCancelAction : $('input[name="PurchaseReturnCancelAction"]:checked').val() || 'ask',
                 PurchaseReturnItemMethod   : $('input[name="PurchaseReturnItemMethod"]:checked').val()   || 'Manual',
+                PurchaseCancelAction       : $('input[name="PurchaseCancelAction"]:checked').val()       || 'ask',
                 TermsAndConditions         : $('#txn_TermsAndConditions').val(),
                 HideNavOnTransForm         : $('#txn_HideNavOnTransForm').is(':checked') ? 1 : 0,
                 ShowProductDescription     : $('#txn_ShowProductDescription').is(':checked') ? 1 : 0,
@@ -1850,6 +1920,7 @@ $(document).ready(function () {
                 SalesReturnItemMethod      : $('input[name="SalesReturnItemMethod"]:checked').val()      || 'Manual',
                 PurchaseReturnCancelAction : $('input[name="PurchaseReturnCancelAction"]:checked').val() || 'ask',
                 PurchaseReturnItemMethod   : $('input[name="PurchaseReturnItemMethod"]:checked').val()   || 'Manual',
+                PurchaseCancelAction       : $('input[name="PurchaseCancelAction"]:checked').val()       || 'ask',
                 PurchaseShowSignature      : $('#purch_ShowSignature').is(':checked') ? 1 : 0,
                 PurchaseShowTerms          : $('#purch_ShowTerms').is(':checked')    ? 1 : 0,
                 AutoUpdatePurchasePrice    : $('#purch_AutoUpdatePurchasePrice').val() || 'off',

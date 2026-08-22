@@ -29,6 +29,7 @@ class Purchaseorders extends MY_Controller {
             ]);
             $this->load->view('transactions/purchaseorders/view', $this->pageData);
         } catch (Exception $e) {
+            $this->notifyError('Purchaseorders::index', $e);
             redirect('dashboard', 'refresh');
         }
     }
@@ -112,6 +113,7 @@ class Purchaseorders extends MY_Controller {
             $this->EndReturnData->Token    = $headerData['TransToken'];
 
         } catch (Exception $e) {
+            $this->notifyError('Purchaseorders::addPurchaseOrder', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -264,6 +266,7 @@ class Purchaseorders extends MY_Controller {
             );
 
         } catch (Exception $e) {
+            $this->notifyError('Purchaseorders::updatePurchaseOrder', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -325,6 +328,7 @@ class Purchaseorders extends MY_Controller {
             $this->_buildListResponse('transactions/purchaseorders/list', '/transactions/getPageDetails/104');
 
         } catch (Exception $e) {
+            $this->notifyError('Purchaseorders::deletePurchaseOrder', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -481,6 +485,7 @@ class Purchaseorders extends MY_Controller {
             $this->EndReturnData->EditURL  = '/purchaseorders/edit/' . $newTransUID;
 
         } catch (Exception $e) {
+            $this->notifyError('Purchaseorders::duplicatePurchaseOrder', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -551,6 +556,7 @@ class Purchaseorders extends MY_Controller {
             $this->EndReturnData->NewStatus = $newStatus;
 
         } catch (Exception $e) {
+            $this->notifyError('Purchaseorders::updatePurchaseOrderStatus', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -591,6 +597,7 @@ class Purchaseorders extends MY_Controller {
             $this->load->view('transactions/purchaseorders/forms/form', $this->pageData);
 
         } catch (Exception $e) {
+            $this->notifyError('Purchaseorders::create', $e);
             redirect('purchaseorders', 'refresh');
         }
 
@@ -645,6 +652,7 @@ class Purchaseorders extends MY_Controller {
             $this->load->view('transactions/purchaseorders/forms/form', $this->pageData);
 
         } catch (Exception $e) {
+            $this->notifyError('Purchaseorders::edit', $e);
             redirect('purchaseorders', 'refresh');
         }
 

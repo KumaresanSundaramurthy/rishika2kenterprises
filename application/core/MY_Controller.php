@@ -42,6 +42,7 @@ class MY_Controller extends CI_Controller {
                 'UpdatedBy'      => $userUID,
             ]);
         } catch (Exception $e) {
+            notifyError($e, 'MY_Controller::_writeBankLedgerEntry');
             log_message('error', 'Bank ledger entry failed [' . $sourceType . '#' . $sourceUID . ']: ' . $e->getMessage());
         }
     }
@@ -69,6 +70,7 @@ class MY_Controller extends CI_Controller {
                 $this->cachehelper->upsertProduct($uid);
             }
         } catch (Throwable $e) {
+            notifyError($e, 'MY_Controller::_syncProductCacheByTransUID');
             log_message('error', '_syncProductCacheByTransUID failed for TransUID=' . $transUID . ': ' . $e->getMessage());
         }
     }
@@ -82,6 +84,7 @@ class MY_Controller extends CI_Controller {
             $this->vendorbalance->recalcAndSync($orgUID, $vendorUID, $userUID);
             log_message('debug', '[VBAL-FLOW] _recalcVendorBalance DONE — VendorUID=' . $vendorUID);
         } catch (Exception $e) {
+            notifyError($e, 'MY_Controller::_recalcVendorBalance');
             log_message('error', '[VBAL-FLOW] _recalcVendorBalance EXCEPTION VendorUID=' . $vendorUID . ': ' . $e->getMessage());
         }
     }
@@ -91,6 +94,7 @@ class MY_Controller extends CI_Controller {
             $this->load->library('customerbalance');
             $this->customerbalance->recalcAndSync($orgUID, $customerUID, $userUID);
         } catch (Exception $e) {
+            notifyError($e, 'MY_Controller::_recalcCustomerBalance');
             log_message('error', 'Customer balance recalc failed for CustomerUID=' . $customerUID . ': ' . $e->getMessage());
         }
     }

@@ -250,6 +250,7 @@ class Cachehelper {
             log_message('debug', '[VBAL-FLOW] upsertVendor CACHE WRITTEN VendorUID=' . $uid . ' ClosingBalance=' . $closingBalance . '(' . $closingBalType . ') into key=' . $cacheKey);
 
         } catch (Exception $e) {
+            notifyError($e, 'Cachehelper::upsertVendor');
             log_message('error', '[VBAL-FLOW] upsertVendor EXCEPTION VendorUID=' . ($uid ?? '?') . ': ' . $e->getMessage());
         }
     }

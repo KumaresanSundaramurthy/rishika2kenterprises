@@ -97,6 +97,7 @@ class Products_model extends CI_Model {
             $this->EndReturnData->sortOperation = $sortOperation;
 
         } catch (Exception $e) {
+            notifyError('Products_model::itemFilterFormation', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             $this->EndReturnData->SearchDirectQuery = '';
@@ -130,6 +131,7 @@ class Products_model extends CI_Model {
             return array_column($q->result_array(), 'ProductUID');
 
         } catch (Exception $e) {
+            notifyError('Products_model::getProductUIDsByFilter', $e);
             return [];
         }
 
@@ -211,6 +213,7 @@ class Products_model extends CI_Model {
             }
             return $this->EndReturnData->Data;
         } catch (Exception $e) {
+            notifyError('Products_model::getProductsDetails', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
@@ -255,6 +258,7 @@ class Products_model extends CI_Model {
             $this->EndReturnData->sortOperation = $sortOperation;
 
         } catch (Exception $e) {
+            notifyError('Products_model::catgFilterFormation', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             $this->EndReturnData->SearchDirectQuery = '';
@@ -317,6 +321,7 @@ class Products_model extends CI_Model {
             return $this->EndReturnData->Data;
 
         } catch (Exception $e) {
+            notifyError('Products_model::getCategoriesDetails1', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
@@ -391,6 +396,7 @@ class Products_model extends CI_Model {
 
             return $this->EndReturnData->Data;
         } catch (Exception $e) {
+            notifyError('Products_model::getCategoriesDetails', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
@@ -425,6 +431,7 @@ class Products_model extends CI_Model {
             if ($error['code']) throw new Exception($error['message']);
             return $query->result();
         } catch (Exception $e) {
+            notifyError('Products_model::getProductBOM', $e);
             throw new Exception($e->getMessage());
         }
 
@@ -455,6 +462,7 @@ class Products_model extends CI_Model {
             if ($error['code']) throw new Exception($error['message']);
             return $query->result();
         } catch (Exception $e) {
+            notifyError('Products_model::getItemsForBOM', $e);
             throw new Exception($e->getMessage());
         }
 
@@ -559,6 +567,7 @@ class Products_model extends CI_Model {
             return $result;
 
         } catch (Exception $e) {
+            notifyError('Products_model::getProductListPaginated', $e);
             throw new Exception($e->getMessage());
         }
 
@@ -591,6 +600,7 @@ class Products_model extends CI_Model {
             if ($error['code']) throw new Exception($error['message']);
             return $query->result();
         } catch (Exception $e) {
+            notifyError('Products_model::getProductsForExport', $e);
             throw new Exception($e->getMessage());
         }
     }
@@ -673,6 +683,7 @@ class Products_model extends CI_Model {
             return $result;
 
         } catch (Exception $e) {
+            notifyError('Products_model::getCategoryListPaginated', $e);
             throw new Exception($e->getMessage());
         }
 
@@ -706,6 +717,7 @@ class Products_model extends CI_Model {
             if ($error['code']) throw new Exception($error['message']);
             return $query->result();
         } catch (Exception $e) {
+            notifyError('Products_model::getProductsByCategoryUID', $e);
             throw new Exception($e->getMessage());
         }
 
@@ -745,6 +757,7 @@ class Products_model extends CI_Model {
             if ($error['code']) throw new Exception($error['message']);
             return $query->row();
         } catch (Exception $e) {
+            notifyError('Products_model::getProductStats', $e);
             throw new Exception($e->getMessage());
         }
 
@@ -828,6 +841,7 @@ class Products_model extends CI_Model {
             return $query->result();
 
         } catch (Exception $e) {
+            notifyError('Products_model::getProductsForCache', $e);
             throw new Exception($e->getMessage());
         }
 
@@ -863,6 +877,7 @@ class Products_model extends CI_Model {
             return $query->result();
 
         } catch (Exception $e) {
+            notifyError('Products_model::getAllProductBOMsForSync', $e);
             throw new Exception($e->getMessage());
         }
 
@@ -882,6 +897,7 @@ class Products_model extends CI_Model {
             $this->ReadDb->limit(1);
             return $this->ReadDb->get()->row() !== null;
         } catch (Exception $e) {
+            notifyError('Products_model::productHasTransactions', $e);
             return false;
         }
     }
@@ -902,6 +918,7 @@ class Products_model extends CI_Model {
             $this->ReadDb->limit(1);
             return $this->ReadDb->get()->row() !== null;
         } catch (Exception $e) {
+            notifyError('Products_model::productUsedInComboWithTransactions', $e);
             return false;
         }
     }
@@ -921,6 +938,7 @@ class Products_model extends CI_Model {
             $this->ReadDb->limit(1);
             return $this->ReadDb->get()->row() !== null;
         } catch (Exception $e) {
+            notifyError('Products_model::isProductLinkedToCombo', $e);
             return false;
         }
     }
@@ -982,6 +1000,7 @@ class Products_model extends CI_Model {
             return $query->row();
 
         } catch (Exception $e) {
+            notifyError('Products_model::getProductForCache', $e);
             throw new Exception($e->getMessage());
         }
 
@@ -1013,6 +1032,7 @@ class Products_model extends CI_Model {
             return $query->result();
 
         } catch (Exception $e) {
+            notifyError('Products_model::getCategoriesForCache', $e);
             throw new Exception($e->getMessage());
         }
 
@@ -1057,6 +1077,7 @@ class Products_model extends CI_Model {
             $this->EndReturnData->SearchDirectQuery = $SearchDirectQuery;
             $this->EndReturnData->sortOperation     = $sortOperation;
         } catch (Exception $e) {
+            notifyError('Products_model::brandFilterFormation', $e);
             $this->EndReturnData->Error             = true;
             $this->EndReturnData->SearchDirectQuery = '';
             $this->EndReturnData->sortOperation     = [];
@@ -1146,6 +1167,7 @@ class Products_model extends CI_Model {
             return $result;
 
         } catch (Exception $e) {
+            notifyError('Products_model::getBrandListPaginated', $e);
             throw new Exception($e->getMessage());
         }
 
@@ -1172,6 +1194,7 @@ class Products_model extends CI_Model {
             if ($error['code']) throw new Exception($error['message']);
             return $query->result();
         } catch (Exception $e) {
+            notifyError('Products_model::getSizesForCache', $e);
             throw new Exception($e->getMessage());
         }
 
@@ -1190,6 +1213,7 @@ class Products_model extends CI_Model {
             if ($error['code']) throw new Exception($error['message']);
             return $query->result();
         } catch (Exception $e) {
+            notifyError('Products_model::getBrandsForCache', $e);
             throw new Exception($e->getMessage());
         }
 
@@ -1204,6 +1228,7 @@ class Products_model extends CI_Model {
             $q = $this->ReadDb->get();
             return $q ? $q->row() : null;
         } catch (Exception $e) {
+            notifyError('Products_model::getBrandByUID', $e);
             return null;
         }
     }
@@ -1261,6 +1286,7 @@ class Products_model extends CI_Model {
             $q = $this->ReadDb->get();
             return $q ? ((int)($q->row()->cnt ?? 0) > 0) : false;
         } catch (Exception $e) {
+            notifyError('Products_model::isDuplicateBrandName', $e);
             return false;
         }
     }
@@ -1283,6 +1309,7 @@ class Products_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result_array() : [];
         } catch (Exception $e) {
+            notifyError('Products_model::getEntityAttachments', $e);
             log_message('error', 'getEntityAttachments failed: ' . $e->getMessage());
             return [];
         }
@@ -1306,6 +1333,7 @@ class Products_model extends CI_Model {
             $row = $q ? $q->row() : null;
             return $row ? $row->FilePath : null;
         } catch (Exception $e) {
+            notifyError('Products_model::getEntityPrimaryImage', $e);
             return null;
         }
     }
@@ -1384,6 +1412,7 @@ class Products_model extends CI_Model {
 
             return $row;
         } catch (Throwable $e) {
+            notifyError('Products_model::getProductProfile', $e);
             log_message('error', 'getProductProfile failed for UID=' . $productUID . ': ' . $e->getMessage());
             return null;
         }
@@ -1418,6 +1447,7 @@ class Products_model extends CI_Model {
             );
             return $q ? $q->result_array() : [];
         } catch (Throwable $e) {
+            notifyError('Products_model::getProductTopCustomers', $e);
             return [];
         }
     }
@@ -1455,6 +1485,7 @@ class Products_model extends CI_Model {
             );
             return $q ? $q->result_array() : [];
         } catch (Throwable $e) {
+            notifyError('Products_model::getProductTransactionHistory', $e);
             log_message('error', 'getProductTransactionHistory failed: ' . $e->getMessage());
             return [];
         }
@@ -1494,6 +1525,7 @@ class Products_model extends CI_Model {
             );
             return $q ? $q->result_array() : [];
         } catch (Throwable $e) {
+            notifyError('Products_model::getProductStockMovements', $e);
             log_message('error', 'getProductStockMovements failed: ' . $e->getMessage());
             return [];
         }
@@ -1522,6 +1554,7 @@ class Products_model extends CI_Model {
             );
             return $q ? $q->result_array() : [];
         } catch (Throwable $e) {
+            notifyError('Products_model::getProductAuditHistory', $e);
             log_message('error', 'getProductAuditHistory failed: ' . $e->getMessage());
             return [];
         }
@@ -1541,6 +1574,7 @@ class Products_model extends CI_Model {
             $this->ReadDb->order_by('Name', 'ASC');
             return $this->ReadDb->get()->result();
         } catch (Throwable $e) {
+            notifyError('Products_model::getOrgSizes', $e);
             log_message('error', 'getOrgSizes failed: ' . $e->getMessage());
             return [];
         }
@@ -1579,6 +1613,7 @@ class Products_model extends CI_Model {
             $this->ReadDb->order_by('b.BrandName', 'ASC');
             return $this->ReadDb->get()->result();
         } catch (Throwable $e) {
+            notifyError('Products_model::getProductVariants', $e);
             log_message('error', 'getProductVariants failed: ' . $e->getMessage());
             return [];
         }
@@ -1614,6 +1649,7 @@ class Products_model extends CI_Model {
             }
             return $result;
         } catch (Throwable $e) {
+            notifyError('Products_model::getProductVariantsForPricelist', $e);
             log_message('error', 'getProductVariantsForPricelist failed: ' . $e->getMessage());
             return [];
         }
@@ -1650,6 +1686,7 @@ class Products_model extends CI_Model {
             }
             return $result;
         } catch (Throwable $e) {
+            notifyError('Products_model::getAllProductVariantsForSync', $e);
             log_message('error', 'getAllProductVariantsForSync failed: ' . $e->getMessage());
             return [];
         }
@@ -1715,6 +1752,7 @@ class Products_model extends CI_Model {
             return $result;
 
         } catch (Exception $e) {
+            notifyError('Products_model::getSizeListPaginated', $e);
             throw new Exception($e->getMessage());
         }
 
@@ -1747,6 +1785,7 @@ class Products_model extends CI_Model {
             $this->EndReturnData->SearchDirectQuery = $SearchDirectQuery;
             $this->EndReturnData->sortOperation     = $sortOperation;
         } catch (Exception $e) {
+            notifyError('Products_model::sizeFilterFormation', $e);
             $this->EndReturnData->Error             = true;
             $this->EndReturnData->SearchDirectQuery = '';
             $this->EndReturnData->sortOperation     = [];
@@ -1766,6 +1805,7 @@ class Products_model extends CI_Model {
             $q = $this->ReadDb->get();
             return $q && $q->num_rows() > 0;
         } catch (Exception $e) {
+            notifyError('Products_model::isDuplicateSizeName', $e);
             return false;
         }
 
@@ -1781,6 +1821,7 @@ class Products_model extends CI_Model {
             $q = $this->ReadDb->get();
             return $q ? $q->row() : null;
         } catch (Exception $e) {
+            notifyError('Products_model::getSizeByUID', $e);
             return null;
         }
 

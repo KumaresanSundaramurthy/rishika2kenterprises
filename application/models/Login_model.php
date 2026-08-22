@@ -266,6 +266,7 @@ class Login_model extends CI_Model {
             $this->EndReturnData->Data  = $query->result();
             return $this->EndReturnData;
         } catch (Exception $e) {
+            notifyError($e, 'Login_model::getProductSettings');
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
@@ -304,6 +305,7 @@ class Login_model extends CI_Model {
             $this->EndReturnData->Data  = [$row];
             return $this->EndReturnData;
         } catch (Exception $e) {
+            notifyError($e, 'Login_model::getOrgTransactionSettings');
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             $this->EndReturnData->Data    = [];
@@ -359,6 +361,7 @@ class Login_model extends CI_Model {
             return $query->num_rows();
 
         } catch (Exception $e) {
+            notifyError($e, 'Login_model::getFailedAttempts');
             throw new Exception($e->getMessage());
         }
 
@@ -385,6 +388,7 @@ class Login_model extends CI_Model {
             return $query->result();
 
         } catch (Exception $e) {
+            notifyError($e, 'Login_model::getUserAuditInfo');
             throw new Exception($e->getMessage());
         }
 
@@ -412,6 +416,7 @@ class Login_model extends CI_Model {
             }
             return $list;
         } catch (Exception $e) {
+            notifyError($e, 'Login_model::_loadUserSignatures');
             return [];
         }
     }
@@ -438,6 +443,7 @@ class Login_model extends CI_Model {
             }
             return $cfg;
         } catch (Exception $e) {
+            notifyError($e, 'Login_model::getAttachCfg');
             return [];
         }
     }
@@ -456,6 +462,7 @@ class Login_model extends CI_Model {
             );
             return $query ? $query->result() : [];
         } catch (Throwable $e) {
+            notifyError($e, 'Login_model::_loadAccessibleBranches');
             log_message('error', '_loadAccessibleBranches: ' . $e->getMessage());
             return [];
         }

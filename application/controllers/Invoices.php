@@ -364,6 +364,7 @@ class Invoices extends MY_Controller {
             $this->EndReturnData->Token    = $headerData['TransToken'];
 
         } catch (Exception $e) {
+            notifyError('Invoices::addInvoice', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -659,6 +660,7 @@ class Invoices extends MY_Controller {
             $this->_recalcCustomerBalance($orgUID, $customerUID, $userUID);
 
         } catch (Exception $e) {
+            notifyError('Invoices::updateInvoice', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -961,6 +963,7 @@ class Invoices extends MY_Controller {
             $this->_savePaymentAttachments($resp->ID);
 
         } catch (Exception $e) {
+            notifyError('Invoices::recordInvoicePayment', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error     = TRUE;
             $this->EndReturnData->Message   = $e->getMessage();
@@ -1096,6 +1099,7 @@ class Invoices extends MY_Controller {
             $this->_buildListResponse('transactions/invoices/list', '/transactions/getPageDetails/103');
 
         } catch (Exception $e) {
+            notifyError('Invoices::deleteInvoice', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -1234,6 +1238,7 @@ class Invoices extends MY_Controller {
                     'DiscountAmount'    => $item->DiscountAmount,
                     'NetAmount'         => $item->NetAmount,
                     'QuantityConverted' => 0,
+                    'IsCompliment'      => (int)($item->IsCompliment ?? 0),
                     'IsActive'          => 1,
                     'IsDeleted'         => 0,
                     'CreatedBy'         => $userUID,
@@ -1250,6 +1255,7 @@ class Invoices extends MY_Controller {
             $this->EndReturnData->EditURL  = '/invoices/' . $headerData['TransToken'] . '/edit';
 
         } catch (Exception $e) {
+            notifyError('Invoices::duplicateInvoice', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -1462,6 +1468,7 @@ class Invoices extends MY_Controller {
             }
 
         } catch (Exception $e) {
+            notifyError('Invoices::updateInvoiceStatus', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -1504,6 +1511,7 @@ class Invoices extends MY_Controller {
             $this->EndReturnData->Attachments = $attachments;
 
         } catch (Exception $e) {
+            notifyError('Invoices::getPaymentAttachments', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1592,6 +1600,7 @@ class Invoices extends MY_Controller {
             $this->load->view('transactions/invoices/forms/form', $this->pageData);
 
         } catch (Exception $e) {
+            notifyError('Invoices::create', $e);
             redirect('invoices', 'refresh');
         }
 
@@ -1668,6 +1677,7 @@ class Invoices extends MY_Controller {
             $this->load->view('transactions/invoices/forms/form', $this->pageData);
 
         } catch (Exception $e) {
+            notifyError('Invoices::edit', $e);
             redirect('invoices', 'refresh');
         }
 
@@ -1700,6 +1710,7 @@ class Invoices extends MY_Controller {
             $this->EndReturnData->Size     = strlen($pdfBytes);
 
         } catch (Exception $e) {
+            notifyError('Invoices::getInvoicePdfBase64', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1729,6 +1740,7 @@ class Invoices extends MY_Controller {
             $this->EndReturnData->Data    = $result;
 
         } catch (Exception $e) {
+            notifyError('Invoices::applyCreditNote', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1753,6 +1765,7 @@ class Invoices extends MY_Controller {
             $this->EndReturnData->Message = 'Credit note marked as refunded.';
 
         } catch (Exception $e) {
+            notifyError('Invoices::refundCreditNote', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1822,6 +1835,7 @@ class Invoices extends MY_Controller {
             $this->EndReturnData->Message = 'Credit Note cancelled successfully.';
 
         } catch (Exception $e) {
+            notifyError('Invoices::cancelCreditNote', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -1891,6 +1905,7 @@ class Invoices extends MY_Controller {
             $this->EndReturnData->Message = 'Credit Note and linked payment deleted successfully.';
 
         } catch (Exception $e) {
+            notifyError('Invoices::deleteCreditNote', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -1915,6 +1930,7 @@ class Invoices extends MY_Controller {
             $this->EndReturnData->Data  = $notes;
 
         } catch (Exception $e) {
+            notifyError('Invoices::getCustomerCreditNotes', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -2014,6 +2030,7 @@ class Invoices extends MY_Controller {
             );
 
         } catch (Exception $e) {
+            notifyError('Invoices::getCreditNotesList', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }

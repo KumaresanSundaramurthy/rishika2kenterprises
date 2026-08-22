@@ -124,6 +124,7 @@ class Reports_model extends CI_Model
                AND P.PartyType  = 'C'
                AND P.IsDeleted  = 0
                AND P.IsActive   = 1
+               AND P.IsCancelled = 0
                AND P.PaymentDate BETWEEN ? AND ?
              ORDER BY P.PaymentDate DESC, P.PaymentUID DESC
              LIMIT 1000",
@@ -163,6 +164,7 @@ class Reports_model extends CI_Model
                AND P.PartyType  = 'S'
                AND P.IsDeleted  = 0
                AND P.IsActive   = 1
+               AND P.IsCancelled = 0
                AND P.PaymentDate BETWEEN ? AND ?
              ORDER BY P.PaymentDate DESC, P.PaymentUID DESC
              LIMIT 1000",
@@ -208,6 +210,7 @@ class Reports_model extends CI_Model
              WHERE P.OrgUID    = ?
                AND P.IsDeleted = 0
                AND P.IsActive  = 1
+               AND P.IsCancelled = 0
                AND P.PaymentDate BETWEEN ? AND ?
                {$accountFilter}
              ORDER BY P.PaymentDate ASC, P.PaymentUID ASC
@@ -490,7 +493,7 @@ class Reports_model extends CI_Model
         $q3 = $this->ReadDb->query(
             "SELECT COALESCE(SUM(Amount), 0) AS total FROM Transaction.PaymentsTbl
              WHERE OrgUID=? AND PartyUID=? AND PartyType='C'
-               AND IsDeleted=0 AND IsActive=1 AND PaymentDate < ?",
+               AND IsDeleted=0 AND IsActive=1 AND IsCancelled=0 AND PaymentDate < ?",
             [$orgUID, $customerUID, $before]
         );
         $payBefore = (float)($q3 ? $q3->row()->total : 0);
@@ -535,7 +538,7 @@ class Reports_model extends CI_Model
                      0.00 AS Debit, P.Amount AS Credit
               FROM Transaction.PaymentsTbl P
               WHERE P.OrgUID=? AND P.PartyUID=? AND P.PartyType='C'
-                AND P.IsDeleted=0 AND P.IsActive=1
+                AND P.IsDeleted=0 AND P.IsActive=1 AND P.IsCancelled=0
                 AND P.PaymentDate BETWEEN ? AND ?)
              ORDER BY TxDate ASC, TxType ASC
              LIMIT 1000",
@@ -581,7 +584,7 @@ class Reports_model extends CI_Model
         $q3 = $this->ReadDb->query(
             "SELECT COALESCE(SUM(Amount), 0) AS total FROM Transaction.PaymentsTbl
              WHERE OrgUID=? AND PartyUID=? AND PartyType='S'
-               AND IsDeleted=0 AND IsActive=1 AND PaymentDate < ?",
+               AND IsDeleted=0 AND IsActive=1 AND IsCancelled=0 AND PaymentDate < ?",
             [$orgUID, $vendorUID, $before]
         );
         $payBefore = (float)($q3 ? $q3->row()->total : 0);
@@ -627,7 +630,7 @@ class Reports_model extends CI_Model
                      P.Amount AS Debit, 0.00 AS Credit
               FROM Transaction.PaymentsTbl P
               WHERE P.OrgUID=? AND P.PartyUID=? AND P.PartyType='S'
-                AND P.IsDeleted=0 AND P.IsActive=1
+                AND P.IsDeleted=0 AND P.IsActive=1 AND P.IsCancelled=0
                 AND P.PaymentDate BETWEEN ? AND ?)
              ORDER BY TxDate ASC, TxType ASC
              LIMIT 1000",

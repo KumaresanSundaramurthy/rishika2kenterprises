@@ -38,6 +38,7 @@ class Salesorders extends MY_Controller {
             ]);
             $this->load->view('transactions/salesorders/view', $this->pageData);
         } catch (Exception $e) {
+            $this->notifyError('Salesorders::index', $e);
             redirect('dashboard', 'refresh');
         }
     }
@@ -132,6 +133,7 @@ class Salesorders extends MY_Controller {
             $this->EndReturnData->Token    = $headerData['TransToken'];
 
         } catch (Exception $e) {
+            $this->notifyError('Salesorders::addSalesOrder', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -289,6 +291,7 @@ class Salesorders extends MY_Controller {
             );
 
         } catch (Exception $e) {
+            $this->notifyError('Salesorders::updateSalesOrder', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -349,6 +352,7 @@ class Salesorders extends MY_Controller {
             $this->_buildListResponse('transactions/salesorders/list', '/transactions/getPageDetails/102');
 
         } catch (Exception $e) {
+            $this->notifyError('Salesorders::deleteSalesOrder', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -488,6 +492,7 @@ class Salesorders extends MY_Controller {
                     'DiscountAmount'  => $item->DiscountAmount,
                     'NetAmount'       => $item->NetAmount,
                     'QuantityConverted' => 0,
+                    'IsCompliment'    => (int)($item->IsCompliment ?? 0),
                     'IsActive'        => 1,
                     'IsDeleted'       => 0,
                     'CreatedBy'       => $userUID,
@@ -509,6 +514,7 @@ class Salesorders extends MY_Controller {
             $this->EndReturnData->EditURL  = '/salesorders/edit/' . $newTransUID;
 
         } catch (Exception $e) {
+            $this->notifyError('Salesorders::duplicateSalesOrder', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -555,6 +561,7 @@ class Salesorders extends MY_Controller {
             $this->EndReturnData->RedirectURL = '/invoices/create?fromSalesOrder=' . $transUID;
 
         } catch (Exception $e) {
+            $this->notifyError('Salesorders::convertSalesOrderToInvoice', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -596,6 +603,7 @@ class Salesorders extends MY_Controller {
             $this->EndReturnData->RedirectURL = '/deliverychallan/create?fromSalesOrder=' . $transUID;
 
         } catch (Exception $e) {
+            $this->notifyError('Salesorders::convertSalesOrderToDeliveryChallan', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -655,6 +663,7 @@ class Salesorders extends MY_Controller {
             $this->_buildListResponse('transactions/salesorders/list', '/transactions/getPageDetails/102');
 
         } catch (Exception $e) {
+            $this->notifyError('Salesorders::updateSalesOrderStatus', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -720,6 +729,7 @@ class Salesorders extends MY_Controller {
             $this->load->view('transactions/salesorders/forms/form', $this->pageData);
 
         } catch (Exception $e) {
+            $this->notifyError('Salesorders::create', $e);
             redirect('salesorders', 'refresh');
         }
 
@@ -783,6 +793,7 @@ class Salesorders extends MY_Controller {
             $this->load->view('transactions/salesorders/forms/form', $this->pageData);
 
         } catch (Exception $e) {
+            $this->notifyError('Salesorders::edit', $e);
             redirect('salesorders', 'refresh');
         }
 

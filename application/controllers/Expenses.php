@@ -31,6 +31,7 @@ class Expenses extends MY_Controller {
             $this->pageData['ExpenseAttachments']= [];
             $this->load->view('transactions/expenses/forms/form', $this->pageData);
         } catch (Throwable $e) {
+            notifyError('Expenses::openCreate', $e);
             log_message('error', 'Expenses::createForm — ' . $e->getMessage());
             redirect('expenses', 'refresh');
         }
@@ -70,6 +71,7 @@ class Expenses extends MY_Controller {
 
             $this->load->view('transactions/expenses/forms/form', $this->pageData);
         } catch (Throwable $e) {
+            notifyError('Expenses::openEdit', $e);
             log_message('error', 'Expenses::editForm — ' . $e->getMessage());
             redirect('expenses', 'refresh');
         }
@@ -122,6 +124,7 @@ class Expenses extends MY_Controller {
             $this->load->view('transactions/expenses/view', $this->pageData);
 
         } catch (Throwable $e) {
+            notifyError('Expenses::index', $e);
             log_message('error', 'Expenses::index — ' . $e->getMessage());
             redirect('dashboard', 'refresh');
         }
@@ -158,6 +161,7 @@ class Expenses extends MY_Controller {
             }
 
         } catch (Throwable $e) {
+            notifyError('Expenses::getPageDetails', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -244,6 +248,7 @@ class Expenses extends MY_Controller {
             $this->EndReturnData->ExpenseNumber = $expenseNumber;
 
         } catch (Throwable $e) {
+            notifyError('Expenses::addExpense', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -369,6 +374,7 @@ class Expenses extends MY_Controller {
             );
 
         } catch (Throwable $e) {
+            notifyError('Expenses::updateExpense', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -427,6 +433,7 @@ class Expenses extends MY_Controller {
             );
 
         } catch (Throwable $e) {
+            notifyError('Expenses::deleteExpense', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -496,6 +503,7 @@ class Expenses extends MY_Controller {
             );
 
         } catch (Throwable $e) {
+            notifyError('Expenses::duplicateExpense', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -663,6 +671,7 @@ class Expenses extends MY_Controller {
             );
 
         } catch (Throwable $e) {
+            notifyError('Expenses::recordPayment', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -699,6 +708,7 @@ class Expenses extends MY_Controller {
             $this->EndReturnData->Error    = FALSE;
             $this->EndReturnData->Payments = $list;
         } catch (Exception $e) {
+            notifyError('Expenses::getPaymentHistory', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -729,6 +739,7 @@ class Expenses extends MY_Controller {
             $this->EndReturnData->Error       = FALSE;
             $this->EndReturnData->Attachments = $attachments;
         } catch (Exception $e) {
+            notifyError('Expenses::getPaymentAttachments', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -828,6 +839,7 @@ class Expenses extends MY_Controller {
             );
 
         } catch (Throwable $e) {
+            notifyError('Expenses::updateExpenseStatus', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -860,6 +872,7 @@ class Expenses extends MY_Controller {
             $this->EndReturnData->Items = $this->expenses_model->getExpenseItems($expenseUID, $orgUID);
 
         } catch (Throwable $e) {
+            notifyError('Expenses::getExpenseDetail', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -874,6 +887,7 @@ class Expenses extends MY_Controller {
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $this->expenses_model->getCategories($orgUID);
         } catch (Throwable $e) {
+            notifyError('Expenses::getCategories', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -888,6 +902,7 @@ class Expenses extends MY_Controller {
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $sections;
         } catch (Throwable $e) {
+            notifyError('Expenses::getTdsSections', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -930,6 +945,7 @@ class Expenses extends MY_Controller {
             $this->_appendCategoryListResponse($orgUID);
 
         } catch (Throwable $e) {
+            notifyError('Expenses::addCategory', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -952,6 +968,7 @@ class Expenses extends MY_Controller {
             $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml('/expenses/getCategoryList', $total, $pageNo, $limit);
             $this->EndReturnData->TotalCount     = $total;
         } catch (Throwable $e) {
+            notifyError('Expenses::getCategoryList', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -989,6 +1006,7 @@ class Expenses extends MY_Controller {
             $this->EndReturnData->CategoryName = $name;
             $this->_appendCategoryListResponse($orgUID);
         } catch (Throwable $e) {
+            notifyError('Expenses::updateCategory', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1027,6 +1045,7 @@ class Expenses extends MY_Controller {
             $this->EndReturnData->CategoryUID = $categoryUID;
             $this->_appendCategoryListResponse($orgUID);
         } catch (Throwable $e) {
+            notifyError('Expenses::deleteCategory', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1450,6 +1469,7 @@ class Expenses extends MY_Controller {
             );
 
         } catch (Throwable $e) {
+            notifyError('Expenses::deleteMultipleExpenses', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }

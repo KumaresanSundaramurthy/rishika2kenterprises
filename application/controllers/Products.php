@@ -247,6 +247,7 @@ class Products extends MY_Controller {
             $this->load->view('products/view', $this->pageData);
 
         } catch (Exception $e) {
+            notifyError('Products::index', $e);
             redirect('dashboard', 'refresh');
         }
 
@@ -393,6 +394,7 @@ class Products extends MY_Controller {
             $this->EndReturnData->Error  = false;
             $this->EndReturnData->Config = $config ?: null;
         } catch (Exception $e) {
+            notifyError('Products::getRentalConfig', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -435,6 +437,7 @@ class Products extends MY_Controller {
             $this->EndReturnData->TotalCount  = $result->totalCount;
 
         } catch (Exception $e) {
+            notifyError('Products::getProductList', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -479,6 +482,7 @@ class Products extends MY_Controller {
             $this->EndReturnData->TotalCount = $result->totalCount;
 
         } catch (Exception $e) {
+            notifyError('Products::getGroupList', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -616,6 +620,7 @@ class Products extends MY_Controller {
                 throw $e;
             }
         } catch (Exception $e) {
+            notifyError('Products::addProductData', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -675,6 +680,7 @@ class Products extends MY_Controller {
             $this->EndReturnData->Variants     = $variants;
 
         } catch (Exception $e) {
+            notifyError('Products::retrieveProductDetails', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -798,6 +804,7 @@ class Products extends MY_Controller {
                 throw $e;
             }
         } catch (Exception $e) {
+            notifyError('Products::updateProductData', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -855,6 +862,7 @@ class Products extends MY_Controller {
             );
 
         } catch (Exception $e) {
+            notifyError('Products::deleteProductDetails', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -938,6 +946,7 @@ class Products extends MY_Controller {
             );
 
         } catch (Exception $e) {
+            notifyError('Products::deleteBulkProduct', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -945,7 +954,7 @@ class Products extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
 
     }
-    
+
     // COMBO / COMPOSITE PRODUCT METHODS
     
     /** Return non-composite products for BOM component search (Select2 AJAX) */
@@ -959,6 +968,7 @@ class Products extends MY_Controller {
             $this->EndReturnData->Error = false;
             $this->EndReturnData->Items = $items;
         } catch (Exception $e) {
+            notifyError('Products::getItemsForBOM', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
             $this->EndReturnData->Items   = [];
@@ -1082,6 +1092,7 @@ class Products extends MY_Controller {
             }
 
         } catch (\Throwable $e) {
+            notifyError('Products::addComboItem', $e);
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
@@ -1201,6 +1212,7 @@ class Products extends MY_Controller {
             );
 
         } catch (\Throwable $e) {
+            notifyError('Products::editComboItem', $e);
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
@@ -1232,6 +1244,7 @@ class Products extends MY_Controller {
             $this->EndReturnData->Components = $this->products_model->getProductBOM($comboUID);
 
         } catch (Exception $e) {
+            notifyError('Products::retrieveComboDetails', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1248,6 +1261,7 @@ class Products extends MY_Controller {
             $this->EndReturnData->Error      = false;
             $this->EndReturnData->Components = $this->products_model->getProductBOM($productUID);
         } catch (Exception $e) {
+            notifyError('Products::getTransComboComponents', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1298,6 +1312,7 @@ class Products extends MY_Controller {
             );
 
         } catch (Exception $e) {
+            notifyError('Products::deleteComboItem', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
@@ -1305,7 +1320,7 @@ class Products extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
 
     }
-    
+
     // END COMBO METHODS
 
     public function toggleProductStatus() {
@@ -1341,6 +1356,7 @@ class Products extends MY_Controller {
             );
 
         } catch (Exception $e) {
+            notifyError('Products::toggleProductStatus', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1380,6 +1396,7 @@ class Products extends MY_Controller {
             $this->EndReturnData->UIDs       = array_column($result->rows, 'CategoryUID');
 
         } catch (Exception $e) {
+            notifyError('Products::getCategoryList', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1401,10 +1418,11 @@ class Products extends MY_Controller {
             $this->EndReturnData->Message = 'Retrieved Successfully';
 
         } catch (Exception $e) {
+            notifyError('Products::getAllCategories', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = 'Unable to fetch categories';
         }
-        
+
         $this->globalservice->sendJsonResponse($this->EndReturnData);
 
     }
@@ -1420,6 +1438,7 @@ class Products extends MY_Controller {
                 return ['uid' => (int) $c->CategoryUID, 'name' => $c->Name];
             }, $rows));
         } catch (Exception $e) {
+            notifyError('Products::getCategoryOptions', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Options = [];
         }
@@ -1530,6 +1549,7 @@ class Products extends MY_Controller {
             $this->EndReturnData->Data  = $data;
 
         } catch (Throwable $e) {
+            notifyError('Products::getDropdownCache', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1552,6 +1572,7 @@ class Products extends MY_Controller {
             $this->EndReturnData->Products = $products;
             $this->EndReturnData->Count    = count($products);
         } catch (Exception $e) {
+            notifyError('Products::getProductsByCategory', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1632,6 +1653,7 @@ class Products extends MY_Controller {
                 throw $e;
             }
         } catch (Exception $e) {
+            notifyError('Products::addCategoryDetails', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -1673,10 +1695,11 @@ class Products extends MY_Controller {
             }
 
         } catch (Exception $e) {
+            notifyError('Products::retrieveCategoryDetails', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
-        
+
         $this->globalservice->sendJsonResponse($this->EndReturnData);
 
 	}
@@ -1742,6 +1765,7 @@ class Products extends MY_Controller {
                 throw $e;
             }
         } catch (Exception $e) {
+            notifyError('Products::updateCategoryDetails', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -1797,6 +1821,7 @@ class Products extends MY_Controller {
             );
 
         } catch (Exception $e) {
+            notifyError('Products::deleteCategoryDetails', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1859,6 +1884,7 @@ class Products extends MY_Controller {
             );
 
         } catch (Exception $e) {
+            notifyError('Products::deleteBulkCategory', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1880,6 +1906,7 @@ class Products extends MY_Controller {
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $this->products_model->getOrgSizes($orgUID);
         } catch (Throwable $e) {
+            notifyError('Products::getSizes', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1910,6 +1937,7 @@ class Products extends MY_Controller {
             $this->EndReturnData->Message = 'Size added';
             $this->EndReturnData->SizeUID = $sizeUID;
         } catch (Throwable $e) {
+            notifyError('Products::addSize', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1943,6 +1971,7 @@ class Products extends MY_Controller {
             $this->EndReturnData->Pagination = $this->globalservice->buildPagePaginationHtml('/products/getSizeList', $result->totalCount, $pageNo, $limit);
             $this->EndReturnData->TotalCount = $result->totalCount;
         } catch (Exception $e) {
+            notifyError('Products::getSizeList', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -2007,6 +2036,7 @@ class Products extends MY_Controller {
             $this->EndReturnData->InsertId = $sizeUID;
 
         } catch (Exception $e) {
+            notifyError('Products::addSizeDetails', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -2067,6 +2097,7 @@ class Products extends MY_Controller {
             $this->EndReturnData->Message = 'Size updated successfully.';
 
         } catch (Exception $e) {
+            notifyError('Products::updateSizeDetails', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -2105,6 +2136,7 @@ class Products extends MY_Controller {
             $this->EndReturnData->Message = 'Size deleted successfully.';
 
         } catch (Exception $e) {
+            notifyError('Products::deleteSizeDetails', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -2150,6 +2182,7 @@ class Products extends MY_Controller {
             $this->EndReturnData->Message = 'Deleted successfully.';
 
         } catch (Exception $e) {
+            notifyError('Products::deleteBulkSize', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -2172,6 +2205,7 @@ class Products extends MY_Controller {
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $this->products_model->getProductVariants($productUID, $orgUID);
         } catch (Throwable $e) {
+            notifyError('Products::getVariantStock', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -2187,6 +2221,7 @@ class Products extends MY_Controller {
             $this->EndReturnData->Error    = false;
             $this->EndReturnData->Variants = $this->products_model->getProductVariantsForPricelist($productUID, $orgUID);
         } catch (Throwable $e) {
+            notifyError('Products::getProductVariantsForPricelist', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -2218,6 +2253,7 @@ class Products extends MY_Controller {
             $this->EndReturnData->Pagination = $this->globalservice->buildPagePaginationHtml('/products/getBrandList', $result->totalCount, $pageNo, $limit);
             $this->EndReturnData->TotalCount = $result->totalCount;
         } catch (Exception $e) {
+            notifyError('Products::getBrandList', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -2288,6 +2324,7 @@ class Products extends MY_Controller {
             $this->EndReturnData->InsertId = $brandUID;
 
         } catch (Exception $e) {
+            notifyError('Products::addBrandDetails', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -2313,6 +2350,7 @@ class Products extends MY_Controller {
             $this->EndReturnData->Data        = $brand;
             $this->EndReturnData->Attachments = $attachments;
         } catch (Exception $e) {
+            notifyError('Products::retrieveBrandDetails', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -2367,6 +2405,7 @@ class Products extends MY_Controller {
             $this->EndReturnData->Message  = 'Brand updated successfully.';
 
         } catch (Exception $e) {
+            notifyError('Products::updateBrandDetails', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -2405,6 +2444,7 @@ class Products extends MY_Controller {
             $this->EndReturnData->Message  = 'Brand deleted successfully.';
 
         } catch (Exception $e) {
+            notifyError('Products::deleteBrandDetails', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -2450,6 +2490,7 @@ class Products extends MY_Controller {
             $this->EndReturnData->Message  = 'Deleted Successfully.';
 
         } catch (Exception $e) {
+            notifyError('Products::deleteBulkBrand', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -2493,6 +2534,7 @@ class Products extends MY_Controller {
             $this->EndReturnData->Count   = count($sizes);
 
         } catch (Exception $e) {
+            notifyError('Products::syncSizesCache', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -2528,6 +2570,7 @@ class Products extends MY_Controller {
             $this->EndReturnData->Count   = count($brands);
 
         } catch (Exception $e) {
+            notifyError('Products::syncBrandsCache', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -2619,6 +2662,7 @@ class Products extends MY_Controller {
             $this->EndReturnData->Count   = count($products);
 
         } catch (Exception $e) {
+            notifyError('Products::syncProductsCache', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -2659,6 +2703,7 @@ class Products extends MY_Controller {
             $this->EndReturnData->Count   = count($categories);
 
         } catch (Exception $e) {
+            notifyError('Products::syncCategoriesCache', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -2814,6 +2859,7 @@ class Products extends MY_Controller {
             $this->EndReturnData->Error       = false;
             $this->EndReturnData->Attachments = $attachments;
         } catch (Exception $e) {
+            notifyError('Products::getAttachments', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -2900,6 +2946,7 @@ class Products extends MY_Controller {
             $this->EndReturnData->Message = count($saved) . ' image(s) saved.';
             $this->EndReturnData->Saved   = $saved;
         } catch (Exception $e) {
+            notifyError('Products::saveAttachments', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -2933,6 +2980,7 @@ class Products extends MY_Controller {
             $this->EndReturnData->Error   = false;
             $this->EndReturnData->Message = 'Attachment deleted.';
         } catch (Exception $e) {
+            notifyError('Products::deleteAttachment', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -2958,6 +3006,7 @@ class Products extends MY_Controller {
                 );
             }
         } catch (Exception $e) {
+            notifyError('Products::_syncPrimaryImage', $e);
             log_message('error', '_syncPrimaryImage failed: ' . $e->getMessage());
         }
     }
@@ -2981,6 +3030,7 @@ class Products extends MY_Controller {
             $this->EndReturnData->Pagination = $this->globalservice->buildPagePaginationHtml('/products/getPriceListData', $result->totalCount, $pageNo, $limit);
             $this->EndReturnData->TotalCount = $result->totalCount;
         } catch (Throwable $e) {
+            notifyError('Products::getPriceListData', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -3032,6 +3082,7 @@ class Products extends MY_Controller {
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
+            notifyError('Products::getPriceListForEdit', $e);
             log_message('error', 'getPriceListForEdit: ' . $e->getMessage());
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = 'Failed to load price list data.';
@@ -3143,6 +3194,7 @@ class Products extends MY_Controller {
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
+            notifyError('Products::savePriceList', $e);
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
             log_message('error', 'savePriceList: ' . $e->getMessage());
             $this->EndReturnData->Error   = true;
@@ -3194,6 +3246,7 @@ class Products extends MY_Controller {
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
+            notifyError('Products::deletePriceList', $e);
             log_message('error', 'deletePriceList: ' . $e->getMessage());
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = 'Failed to delete price list. Please try again.';
@@ -3242,6 +3295,7 @@ class Products extends MY_Controller {
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
+            notifyError('Products::deleteBulkPriceList', $e);
             log_message('error', 'deleteBulkPriceList: ' . $e->getMessage());
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = 'Failed to delete price lists. Please try again.';
@@ -3271,6 +3325,7 @@ class Products extends MY_Controller {
 
             $this->upstashservice->set($cacheKey, $current, 0);
         } catch (Exception $e) {
+            notifyError('Products::_upsertOnePriceListCache', $e);
             log_message('error', '_upsertOnePriceListCache: ' . $e->getMessage());
         }
     }
@@ -3288,6 +3343,7 @@ class Products extends MY_Controller {
             $filtered = array_values(array_filter($current, fn($pl) => (int)($pl['PriceListUID'] ?? 0) !== $plUID));
             $this->upstashservice->set($cacheKey, $filtered, 0);
         } catch (Exception $e) {
+            notifyError('Products::_removeOnePriceListCache', $e);
             log_message('error', '_removeOnePriceListCache: ' . $e->getMessage());
         }
     }
@@ -3304,6 +3360,7 @@ class Products extends MY_Controller {
             $cacheKey = $this->redisservice->orgKey('price-lists');
             $this->upstashservice->set($cacheKey, $lists, 0);
         } catch (Exception $e) {
+            notifyError('Products::_syncPriceListCache', $e);
             log_message('error', '_syncPriceListCache: ' . $e->getMessage());
         }
     }
@@ -3323,6 +3380,7 @@ class Products extends MY_Controller {
             $this->EndReturnData->Lists   = $lists;
             $this->EndReturnData->Message = count($lists) . ' price list(s) synced to cache.';
         } catch (Exception $e) {
+            notifyError('Products::syncPriceListCache', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -3514,6 +3572,7 @@ class Products extends MY_Controller {
             }
 
         } catch (Exception $e) {
+            notifyError('Products::recalcStock', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -3606,6 +3665,7 @@ class Products extends MY_Controller {
             $this->EndReturnData->Html  = $html;
 
         } catch (Exception $e) {
+            notifyError('Products::getProductProfileTab', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }

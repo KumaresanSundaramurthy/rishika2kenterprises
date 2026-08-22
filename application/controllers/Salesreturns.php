@@ -27,6 +27,7 @@ class Salesreturns extends MY_Controller {
             ]);
             $this->load->view('transactions/salesreturns/view', $this->pageData);
         } catch (Exception $e) {
+            notifyError('Salesreturns::index', $e);
             redirect('dashboard', 'refresh');
         }
     }
@@ -205,6 +206,7 @@ class Salesreturns extends MY_Controller {
             $this->EndReturnData->TransUID = $transUID;
             $this->EndReturnData->Token    = $headerData['TransToken'];
         } catch (Exception $e) {
+            notifyError('Salesreturns::addSalesReturn', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -349,6 +351,7 @@ class Salesreturns extends MY_Controller {
                 [], 'Updated sales return ' . ($uniqueNumber ?? $existing->UniqueNumber ?? ''), 'SalesReturns', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
             );
         } catch (Exception $e) {
+            notifyError('Salesreturns::updateSalesReturn', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -454,6 +457,7 @@ class Salesreturns extends MY_Controller {
 
             $this->_buildListResponse('transactions/salesreturns/list', '/transactions/getPageDetails/106');
         } catch (Exception $e) {
+            notifyError('Salesreturns::deleteSalesReturn', $e);
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -581,6 +585,7 @@ class Salesreturns extends MY_Controller {
                     'DiscountAmount'    => $item->DiscountAmount,
                     'NetAmount'         => $item->NetAmount,
                     'QuantityConverted' => 0,
+                    'IsCompliment'      => (int)($item->IsCompliment ?? 0),
                     'IsActive'          => 1,
                     'IsDeleted'         => 0,
                     'CreatedBy'         => $userUID,
@@ -600,6 +605,7 @@ class Salesreturns extends MY_Controller {
             $this->EndReturnData->TransUID = $newTransUID;
             $this->EndReturnData->EditURL  = '/salesreturns/edit/' . $newTransUID;
         } catch (Exception $e) {
+            notifyError('Salesreturns::duplicateSalesReturn', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -770,6 +776,7 @@ class Salesreturns extends MY_Controller {
             );
             $this->EndReturnData->NewStatus = $newStatus;
         } catch (Exception $e) {
+            notifyError('Salesreturns::updateSalesReturnStatus', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -797,6 +804,7 @@ class Salesreturns extends MY_Controller {
             $this->EndReturnData->HasRefunds       = $totalRefunded > 0;
             $this->EndReturnData->RefundAmount     = $totalRefunded;
         } catch (Exception $e) {
+            notifyError('Salesreturns::getSRCancelDependencies', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -832,6 +840,7 @@ class Salesreturns extends MY_Controller {
             $this->EndReturnData->Header  = $header;
             $this->EndReturnData->Items   = $items;
         } catch (Exception $e) {
+            notifyError('Salesreturns::getInvoiceItems', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -850,6 +859,7 @@ class Salesreturns extends MY_Controller {
             $this->EndReturnData->Error    = false;
             $this->EndReturnData->Invoices = $this->transactions_model->getCustomerInvoicesWithReturnableItems($customerUID, $orgUID);
         } catch (Exception $e) {
+            notifyError('Salesreturns::getCustomerInvoices', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -882,6 +892,7 @@ class Salesreturns extends MY_Controller {
 
             $this->load->view('transactions/salesreturns/forms/form', $this->pageData);
         } catch (Exception $e) {
+            notifyError('Salesreturns::create', $e);
             redirect('salesreturns', 'refresh');
         }
     }
@@ -921,6 +932,7 @@ class Salesreturns extends MY_Controller {
 
             $this->load->view('transactions/salesreturns/forms/form', $this->pageData);
         } catch (Exception $e) {
+            notifyError('Salesreturns::edit', $e);
             redirect('salesreturns', 'refresh');
         }
     }
@@ -953,6 +965,7 @@ class Salesreturns extends MY_Controller {
             $this->EndReturnData->Error       = FALSE;
             $this->EndReturnData->Attachments = $attachments;
         } catch (Exception $e) {
+            notifyError('Salesreturns::getPaymentAttachments', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1106,6 +1119,7 @@ class Salesreturns extends MY_Controller {
             );
 
         } catch (Exception $e) {
+            notifyError('Salesreturns::recordPayment', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -1222,6 +1236,7 @@ class Salesreturns extends MY_Controller {
             $this->EndReturnData->Error    = false;
             $this->EndReturnData->Invoices = $this->transactions_model->getPendingInvoicesForCustomer($customerUID, $orgUID);
         } catch (Exception $e) {
+            notifyError('Salesreturns::getPendingInvoices', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1355,6 +1370,7 @@ class Salesreturns extends MY_Controller {
             $this->EndReturnData->Message = 'Credit of ' . number_format($amount, 2) . ' applied to invoice ' . ($invoice->UniqueNumber ?? '#' . $invoiceUID) . '.';
 
         } catch (Exception $e) {
+            notifyError('Salesreturns::applyCredit', $e);
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();

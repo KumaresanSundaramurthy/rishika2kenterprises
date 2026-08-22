@@ -68,6 +68,50 @@ class Vendorbalance {
         }
     }
 
+    public function createPurchaseCancelDebitNote(int $orgUID, int $vendorUID, int $purchTransUID, string $purchUniqueNumber, float $amount, int $userUID): ?array {
+        try {
+            if ($amount <= 0) return null;
+
+            $writeDb = $this->CI->load->database('WriteDB', TRUE);
+            $writeDb->db_debug = FALSE;
+
+            $insertData = [
+                'OrgUID'            => $orgUID,
+                'PartyUID'          => $vendorUID,
+                'PartyType'         => 'S',
+                'SourceTransUID'    => $purchTransUID,
+                'SourceTransNumber' => $purchUniqueNumber,
+                'SourceModuleUID'   => 105,
+                'DebitNoteToken'    => generate_uuid4(),
+                'Amount'            => $amount,
+                'Status'            => 'Pending',
+                'Notes'             => 'Auto-created from cancelled Purchase ' . $purchUniqueNumber,
+                'CreatedBy'         => $userUID,
+                'UpdatedBy'         => $userUID,
+                'IsActive'          => 1,
+                'IsDeleted'         => 0,
+                'IsCancelled'       => 0,
+            ];
+
+            $insertOk = $writeDb->insert('Transaction.TransDebitNoteTbl', $insertData);
+            $dbErr    = $writeDb->error();
+
+            if (!$insertOk || !empty($dbErr['code'])) {
+                log_message('error', '[VDN-TRACE] createPurchaseCancelDebitNote INSERT FAILED — ' . ($dbErr['message'] ?? '?'));
+                return null;
+            }
+
+            $debitNoteUID = (int)$writeDb->insert_id();
+            log_message('debug', '[VDN-TRACE] createPurchaseCancelDebitNote OK — TransDebitNoteUID=' . $debitNoteUID . ' Purchase=' . $purchUniqueNumber . ' Amount=' . $amount);
+
+            return ['debitNoteUID' => $debitNoteUID, 'amount' => $amount];
+
+        } catch (Exception $e) {
+            log_message('error', 'Vendorbalance::createPurchaseCancelDebitNote failed: ' . $e->getMessage());
+            return null;
+        }
+    }
+
     // ── Credit Note: create when PR is cancelled with 'recover' action ─────────
     // Tracks: we owe vendor back the refund they had already given us.
 

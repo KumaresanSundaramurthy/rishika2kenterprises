@@ -79,8 +79,10 @@ if (!empty($DataLists)):
         }
         $waMessageEncoded = rawurlencode($waMessage);
 
-        $showPending = !$isDraft && $pendingAmt > 0 && !in_array($status, ['Paid', 'Cancelled', 'Rejected']);
-        $hasAttach   = !empty($list->AttachmentCount) && (int)$list->AttachmentCount > 0;
+        $showPending   = !$isDraft && $pendingAmt > 0 && !in_array($status, ['Paid', 'Cancelled', 'Rejected']);
+        $hasAttach     = !empty($list->AttachmentCount) && (int)$list->AttachmentCount > 0;
+        // True when a debit-note credit (PaymentTypeUID=0) has been applied to this purchase
+        $debitApplied  = !empty($list->PaymentModes) && in_array('Debit Note', array_map('trim', explode(',', $list->PaymentModes)));
 ?>
     <tr>
 
@@ -177,6 +179,11 @@ if (!empty($DataLists)):
             $hasPayAttach = !empty($list->PaymentAttachmentCount) && (int)$list->PaymentAttachmentCount > 0;
             ?>
             <?php if ($payCount > 0 && $firstMode): ?>
+                <?php
+                $isDnMode   = ($firstMode === 'Debit Note');
+                $modeBadge  = $isDnMode ? 'bg-label-warning' : 'bg-label-primary';
+                $modeIcon   = $isDnMode ? 'bx-transfer'      : 'bx-credit-card';
+                ?>
                 <div class="pay-mode-cell<?php echo $payCount > 1 ? ' pay-mode-clickable' : ''; ?>"
                      <?php if ($payCount > 1): ?>
                      data-trans-uid="<?php echo (int)$list->TransUID; ?>"
@@ -184,8 +191,8 @@ if (!empty($DataLists)):
                      style="cursor:pointer;"
                      <?php endif; ?>>
                     <div class="d-flex align-items-center gap-1 flex-wrap">
-                        <span class="badge bg-label-primary" style="font-size:.68rem;">
-                            <i class="bx bx-credit-card me-1"></i><?php echo $firstMode; ?>
+                        <span class="badge <?php echo $modeBadge; ?>" style="font-size:.68rem;">
+                            <i class="bx <?php echo $modeIcon; ?> me-1"></i><?php echo $firstMode; ?>
                         </span>
                         <?php if ($extraCnt > 0): ?>
                             <span class="badge bg-label-secondary" style="font-size:.68rem;">+<?php echo $extraCnt; ?></span>
@@ -341,6 +348,16 @@ if (!empty($DataLists)):
                                 <i class="bx bx-money-withdraw me-2 text-success"></i><?php echo t('act_issue_payment', 'Issue Payment'); ?>
                             </button>
                         </li>
+                        <li>
+                            <button class="dropdown-item purchApplyDebitNote"
+                                    data-uid="<?php echo (int)$list->TransUID; ?>"
+                                    data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
+                                    data-vendor-uid="<?php echo (int)$list->PartyUID; ?>"
+                                    data-vendor="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
+                                    data-pending="<?php echo $pendingAmt; ?>">
+                                <i class="bx bx-transfer me-2 text-warning"></i>Apply Debit Note
+                            </button>
+                        </li>
                         <?php endif; ?>
 
                         <!-- Print section -->
@@ -416,6 +433,8 @@ if (!empty($DataLists)):
                             <button class="dropdown-item text-warning purch-status-update"
                                     data-uid="<?php echo (int)$list->TransUID; ?>"
                                     data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? 'Draft'); ?>"
+                                    data-paid="<?php echo $paidAmt; ?>"
+                                    data-debit-applied="<?php echo $debitApplied ? '1' : '0'; ?>"
                                     data-status="Cancelled">
                                 <i class="bx bx-x-circle me-2"></i><?php echo t('act_cancel_bill', 'Cancel Bill'); ?>
                             </button>
@@ -424,7 +443,9 @@ if (!empty($DataLists)):
                         <li>
                             <button class="dropdown-item text-danger deletePurchase"
                                     data-uid="<?php echo (int)$list->TransUID; ?>"
-                                    data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? 'Draft'); ?>">
+                                    data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? 'Draft'); ?>"
+                                    data-paid="<?php echo $paidAmt; ?>"
+                                    data-debit-applied="<?php echo $debitApplied ? '1' : '0'; ?>">
                                 <i class="bx bx-trash me-2"></i><?php echo t('delete', 'Delete'); ?>
                             </button>
                         </li>

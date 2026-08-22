@@ -141,6 +141,7 @@ class Customerbalance {
             return ['creditNoteUID' => $creditNoteUID, 'amount' => $paidTotal];
 
         } catch (Exception $e) {
+            notifyError($e, 'Customerbalance::createCreditNote');
             log_message('error', 'Customerbalance::createCreditNote failed: ' . $e->getMessage());
             return null;
         }
@@ -252,6 +253,7 @@ class Customerbalance {
             return ['creditNoteUID' => $creditNoteUID, 'creditNoteNumber' => $cnNumber, 'amount' => $amount];
 
         } catch (Exception $e) {
+            notifyError($e, 'Customerbalance::createSalesReturnCreditNote');
             log_message('error', '[CN-TRACE] EXCEPTION in createSalesReturnCreditNote: ' . $e->getMessage() . ' | File=' . $e->getFile() . ':' . $e->getLine());
             return null;
         }
@@ -326,6 +328,7 @@ class Customerbalance {
 
             return ['debitNoteUID' => $debitNoteUID, 'debitNoteNumber' => $dnNumber, 'amount' => $amount];
         } catch (Exception $e) {
+            notifyError($e, 'Customerbalance::createDebitNote');
             log_message('error', 'Customerbalance::createDebitNote failed: ' . $e->getMessage());
             return null;
         }
@@ -349,6 +352,7 @@ class Customerbalance {
             ]);
             return $readDb->get()->result();
         } catch (Exception $e) {
+            notifyError($e, 'Customerbalance::getPendingDebitNotes');
             return [];
         }
     }
@@ -462,6 +466,7 @@ class Customerbalance {
             return ['paymentUID' => $paymentUID];
 
         } catch (Exception $e) {
+            notifyError($e, 'Customerbalance::applyCreditNote');
             log_message('error', 'Customerbalance::applyCreditNote failed: ' . $e->getMessage());
             throw $e;
         }
@@ -521,6 +526,7 @@ class Customerbalance {
             return true;
 
         } catch (Exception $e) {
+            notifyError($e, 'Customerbalance::refundCreditNote');
             log_message('error', 'Customerbalance::refundCreditNote failed: ' . $e->getMessage());
             throw $e;
         }
@@ -547,6 +553,7 @@ class Customerbalance {
             ]);
             return $readDb->get()->result();
         } catch (Exception $e) {
+            notifyError($e, 'Customerbalance::getPendingCreditNotes');
             return [];
         }
     }
@@ -635,6 +642,7 @@ class Customerbalance {
             return ['balance' => $newBalance, 'type' => $newBalType];
 
         } catch (Exception $e) {
+            notifyError($e, 'Customerbalance::recalcAndSync');
             log_message('error', 'Customerbalance::recalcAndSync failed for CustomerUID=' . $customerUID . ': ' . $e->getMessage());
             return null;
         }

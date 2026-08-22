@@ -76,6 +76,7 @@ class Settings extends MY_Controller {
 
             $this->load->view('settings/generalsettings/view', $this->pageData);
         } catch (Exception $e) {
+            notifyError('Settings::generalsettings', $e);
             redirect('dashboard', 'refresh');
         }
     }
@@ -127,6 +128,7 @@ class Settings extends MY_Controller {
             $this->EndReturnData->Message = 'Product settings saved successfully.';
 
         } catch (Exception $e) {
+            notifyError('Settings::updateProductSettings', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -262,6 +264,7 @@ class Settings extends MY_Controller {
             $this->EndReturnData->Message = 'Settings saved successfully.';
 
         } catch (Exception $e) {
+            notifyError('Settings::updateGeneralSettings', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -278,6 +281,7 @@ class Settings extends MY_Controller {
             $this->EndReturnData->Error = false;
             $this->EndReturnData->Data  = $this->_getAdditionalChargesForOrg($orgUID, false);
         } catch (Exception $e) {
+            notifyError('Settings::getAdditionalChargesCache', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -294,6 +298,7 @@ class Settings extends MY_Controller {
             $this->EndReturnData->Error = false;
             $this->EndReturnData->Data  = $result->Data;
         } catch (Exception $e) {
+            notifyError('Settings::getSalutationList', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -313,6 +318,12 @@ class Settings extends MY_Controller {
             $invoiceCancelAction = getPostValue($post, 'InvoiceCancelAction');
             if (!in_array($invoiceCancelAction, $validInvActions)) {
                 $invoiceCancelAction = 'ask';
+            }
+
+            $validPurchCancelActions = ['ask', 'debit_note', 'refund'];
+            $purchaseCancelAction = getPostValue($post, 'PurchaseCancelAction');
+            if (!in_array($purchaseCancelAction, $validPurchCancelActions)) {
+                $purchaseCancelAction = 'ask';
             }
 
             $validSRCancelActions = ['ask', 'recover', 'writeoff'];
@@ -384,7 +395,7 @@ class Settings extends MY_Controller {
             }
 
             $this->load->model('dbwrite_model');
-            $this->dbwrite_model->upsertTransactionSettings($orgUID, $invoiceCancelAction, $srCancelAction, $salesReturnItemMethod, $termsAndConditions, $hideNavOnTransForm, $purchaseShowSignature, $purchaseShowTerms, $prCancelAction, $purchaseReturnItemMethod, $showProductDescription, $userUID, $dcDefaultReturnDays, $quotValidityDays, $showTransactionStats, $comboPriceDistribution, $belowPurchasePriceAction, $defaultTransactionType, $autoDraftSave, $autoUpdatePurchasePrice);
+            $this->dbwrite_model->upsertTransactionSettings($orgUID, $invoiceCancelAction, $srCancelAction, $salesReturnItemMethod, $termsAndConditions, $hideNavOnTransForm, $purchaseShowSignature, $purchaseShowTerms, $prCancelAction, $purchaseReturnItemMethod, $showProductDescription, $userUID, $dcDefaultReturnDays, $quotValidityDays, $showTransactionStats, $comboPriceDistribution, $belowPurchasePriceAction, $defaultTransactionType, $autoDraftSave, $autoUpdatePurchasePrice, $purchaseCancelAction);
 
             // Patch only TransSettings in JWT payload
             $this->load->model('login_model');
@@ -402,6 +413,7 @@ class Settings extends MY_Controller {
             $this->EndReturnData->Message = 'Transaction settings saved successfully.';
 
         } catch (Exception $e) {
+            notifyError('Settings::updateTransactionSettings', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -434,6 +446,7 @@ class Settings extends MY_Controller {
 
             $this->load->view('settings/thermalconfig/view', $this->pageData);
         } catch (Exception $e) {
+            notifyError('Settings::thermalconfig', $e);
             redirect('dashboard', 'refresh');
         }
     }
@@ -443,6 +456,7 @@ class Settings extends MY_Controller {
         try {
             $this->load->view('settings/banks/view', $this->pageData);
         } catch (Exception $e) {
+            notifyError('Settings::banks', $e);
             redirect('dashboard', 'refresh');
         }
     }
@@ -468,6 +482,7 @@ class Settings extends MY_Controller {
 
             $this->load->view('settings/msgtemplates/view', $this->pageData);
         } catch (Exception $e) {
+            notifyError('Settings::msgtemplates', $e);
             redirect('dashboard', 'refresh');
         }
     }
@@ -502,6 +517,7 @@ class Settings extends MY_Controller {
             $this->EndReturnData->TransTypes     = $transTypes;
 
         } catch (Exception $e) {
+            notifyError('Settings::getThermalConfigList', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -601,6 +617,7 @@ class Settings extends MY_Controller {
             $this->EndReturnData->TotalCount = count($updatedData);
 
         } catch (Exception $e) {
+            notifyError('Settings::saveThermalConfig', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -632,6 +649,7 @@ class Settings extends MY_Controller {
             $this->EndReturnData->TotalCount     = count($rows);
 
         } catch (Exception $e) {
+            notifyError('Settings::getBankList', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -659,6 +677,7 @@ class Settings extends MY_Controller {
             $this->EndReturnData->Balance = $result->Balance;
 
         } catch (Exception $e) {
+            notifyError('Settings::getBankBalance', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -687,6 +706,7 @@ class Settings extends MY_Controller {
             $this->EndReturnData->Data  = $result->Data;
 
         } catch (Exception $e) {
+            notifyError('Settings::getBankDetail', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -778,6 +798,7 @@ class Settings extends MY_Controller {
             $this->EndReturnData->Error = FALSE;
 
         } catch (Exception $e) {
+            notifyError('Settings::saveBankDetail', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -815,6 +836,7 @@ class Settings extends MY_Controller {
             $this->EndReturnData->Message = 'Bank account deleted successfully.';
 
         } catch (Exception $e) {
+            notifyError('Settings::deleteBankDetail', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -852,6 +874,7 @@ class Settings extends MY_Controller {
             $this->EndReturnData->Message = 'Default bank updated.';
 
         } catch (Exception $e) {
+            notifyError('Settings::setDefaultBank', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -929,6 +952,7 @@ class Settings extends MY_Controller {
             $this->EndReturnData->Message = 'Funds transferred successfully.';
 
         } catch (Exception $e) {
+            notifyError('Settings::transferFunds', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -976,6 +1000,7 @@ class Settings extends MY_Controller {
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $getData->Data;
         } catch (Exception $e) {
+            notifyError('Settings::getMsgTemplateDetail', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1004,6 +1029,7 @@ class Settings extends MY_Controller {
             $this->EndReturnData->Modules        = $modules;
             $this->EndReturnData->Tokens         = self::$MSG_TOKENS;
         } catch (Exception $e) {
+            notifyError('Settings::getMsgTemplateList', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1059,6 +1085,7 @@ class Settings extends MY_Controller {
                 'JwtData'   => $this->pageData['JwtData'],
             ], TRUE);
         } catch (Exception $e) {
+            notifyError('Settings::saveMsgTemplate', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1080,6 +1107,7 @@ class Settings extends MY_Controller {
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Template deleted.';
         } catch (Exception $e) {
+            notifyError('Settings::deleteMsgTemplate', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1108,6 +1136,7 @@ class Settings extends MY_Controller {
 
             $this->load->view('settings/prefixconfig/view', $this->pageData);
         } catch (Exception $e) {
+            notifyError('Settings::prefixconfig', $e);
             redirect('dashboard', 'refresh');
         }
     }
@@ -1131,6 +1160,7 @@ class Settings extends MY_Controller {
             $this->EndReturnData->TotalCount = count($rows);
             $this->EndReturnData->Modules    = $modules;
         } catch (Exception $e) {
+            notifyError('Settings::getPrefixConfigList', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1218,6 +1248,7 @@ class Settings extends MY_Controller {
             $this->EndReturnData->TotalCount = count($rows);
             $this->EndReturnData->Modules    = $modules;
         } catch (Exception $e) {
+            notifyError('Settings::savePrefixConfig', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1250,6 +1281,7 @@ class Settings extends MY_Controller {
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Prefix deleted successfully.';
         } catch (Exception $e) {
+            notifyError('Settings::deletePrefixConfig', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1282,6 +1314,7 @@ class Settings extends MY_Controller {
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Default prefix updated.';
         } catch (Exception $e) {
+            notifyError('Settings::setDefaultPrefixConfig', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1312,6 +1345,7 @@ class Settings extends MY_Controller {
             $this->EndReturnData->Message = 'Thermal print config deleted.';
 
         } catch (Exception $e) {
+            notifyError('Settings::deleteThermalConfig', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1352,6 +1386,7 @@ class Settings extends MY_Controller {
 
             $this->load->view('settings/additionalcharges/view', $this->pageData);
         } catch (Exception $e) {
+            notifyError('Settings::additionalcharges', $e);
             redirect('dashboard', 'refresh');
         }
     }
@@ -1413,6 +1448,7 @@ class Settings extends MY_Controller {
             $this->EndReturnData->ChargeLimit    = $chargeLimit;
             $this->EndReturnData->NextSortOrder  = $maxSort + 1;
         } catch (Exception $e) {
+            notifyError('Settings::getAdditionalChargesList', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1533,6 +1569,7 @@ class Settings extends MY_Controller {
                 }
             }
         } catch (Exception $e) {
+            notifyError('Settings::saveAdditionalCharge', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1587,6 +1624,7 @@ class Settings extends MY_Controller {
             $this->EndReturnData->ChargeLimit   = $chargeLimit;
             $this->EndReturnData->NextSortOrder = $maxSort + 1;
         } catch (Exception $e) {
+            notifyError('Settings::deleteAdditionalCharge', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }

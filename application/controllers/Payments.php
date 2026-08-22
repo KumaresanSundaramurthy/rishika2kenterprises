@@ -61,6 +61,7 @@ class Payments extends MY_Controller {
             $this->load->view('transactions/payments/view', $this->pageData);
 
         } catch (Exception $e) {
+            notifyError('Payments::index', $e);
             redirect('dashboard', 'refresh');
         }
 
@@ -99,6 +100,7 @@ class Payments extends MY_Controller {
             $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml('/payments/getPaymentsPageDetails', $allDataCount, $pageNo, $limit);
 
         } catch (Exception $e) {
+            notifyError('Payments::getPaymentsPageDetails', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -122,6 +124,7 @@ class Payments extends MY_Controller {
             }
 
         } catch (Exception $e) {
+            notifyError('Payments::getStats', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -387,6 +390,7 @@ class Payments extends MY_Controller {
             );
 
         } catch (Exception $e) {
+            notifyError('Payments::addPayment', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error     = TRUE;
             $this->EndReturnData->Message   = $e->getMessage();
@@ -416,6 +420,7 @@ class Payments extends MY_Controller {
             $this->EndReturnData->PaidTotal  = $paidTotal;
 
         } catch (Exception $e) {
+            notifyError('Payments::getPaymentsByTransaction', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -443,6 +448,7 @@ class Payments extends MY_Controller {
             $this->EndReturnData->Data  = $record;
 
         } catch (Exception $e) {
+            notifyError('Payments::getPaymentDetail', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -694,6 +700,7 @@ class Payments extends MY_Controller {
             );
 
         } catch (Exception $e) {
+            notifyError('Payments::deletePayment', $e);
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -732,6 +739,7 @@ class Payments extends MY_Controller {
             $this->EndReturnData->AdvanceTotal   = round((float) array_sum(array_column($advance,   'Amount')), $dec);
 
         } catch (Exception $e) {
+            notifyError('Payments::getCustomerCreditsDetail', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -755,6 +763,7 @@ class Payments extends MY_Controller {
             $this->EndReturnData->Total       = round((float) array_sum(array_column($rows, 'Amount')), $dec);
 
         } catch (Exception $e) {
+            notifyError('Payments::getCustomerCreditNoteDetail', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -780,6 +789,7 @@ class Payments extends MY_Controller {
             $this->EndReturnData->Sources      = $rows;
 
         } catch (Exception $e) {
+            notifyError('Payments::getCustomerExcessBalance', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -800,6 +810,7 @@ class Payments extends MY_Controller {
             $this->EndReturnData->Data  = $types;
 
         } catch (Exception $e) {
+            notifyError('Payments::getPaymentTypes', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -821,6 +832,7 @@ class Payments extends MY_Controller {
             $this->EndReturnData->Data  = $accounts;
 
         } catch (Exception $e) {
+            notifyError('Payments::getBankAccounts', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -902,6 +914,7 @@ class Payments extends MY_Controller {
             );
 
         } catch (Exception $e) {
+            notifyError('Payments::saveBankAccount', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -935,6 +948,7 @@ class Payments extends MY_Controller {
             $this->EndReturnData->Data  = $record;
 
         } catch (Exception $e) {
+            notifyError('Payments::getBankDetails', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -981,6 +995,7 @@ class Payments extends MY_Controller {
             $this->EndReturnData->Message = 'Default bank updated.';
 
         } catch (Exception $e) {
+            notifyError('Payments::setDefaultBank', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -1023,6 +1038,7 @@ class Payments extends MY_Controller {
             );
 
         } catch (Exception $e) {
+            notifyError('Payments::deleteBankAccount', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1067,6 +1083,7 @@ class Payments extends MY_Controller {
             }
 
         } catch (Exception $e) {
+            notifyError('Payments::getPaymentPrintDetail', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1101,6 +1118,7 @@ class Payments extends MY_Controller {
             exit;
 
         } catch (Exception $e) {
+            notifyError('Payments::downloadPaymentPdf', $e);
             header('Content-Type: application/json');
             echo json_encode(['Error' => true, 'Message' => $e->getMessage()]);
             exit;
@@ -1121,6 +1139,7 @@ class Payments extends MY_Controller {
             $this->EndReturnData->Data  = $accounts;
 
         } catch (Exception $e) {
+            notifyError('Payments::getBanksList', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1159,6 +1178,7 @@ class Payments extends MY_Controller {
             $this->EndReturnData->Size     = strlen($pdfBytes);
 
         } catch (Exception $e) {
+            notifyError('Payments::getPaymentPdfBase64', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }

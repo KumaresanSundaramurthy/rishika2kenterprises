@@ -379,6 +379,11 @@ $route['purchases/deletePurchase']                         = 'purchases/deletePu
 $route['purchases/duplicatePurchase']                      = 'purchases/duplicatePurchase';
 $route['purchases/updatePurchaseStatus']                   = 'purchases/updatePurchaseStatus';
 $route['purchases/getPurchaseDetail']                      = 'purchases/getPurchaseDetail';
+$route['purchases/getVendorDebitNotes']                    = 'purchases/getVendorDebitNotes';
+$route['purchases/applyDebitNote']                         = 'purchases/applyDebitNote';
+$route['purchases/refundDebitNote']                        = 'purchases/refundDebitNote';
+$route['purchases/deleteDebitNote']                        = 'purchases/deleteDebitNote';
+$route['purchases/getDebitNotesList']                      = 'purchases/getDebitNotesList';
 
 // Sales Returns
 $route['salesreturns']                                             = 'salesreturns/index';

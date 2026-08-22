@@ -3019,3 +3019,6 @@ tr:hover .apex-party-actions {
 
 /* ── Inventory Timeline ─────────────────────────────────────────────────────── */
 .tl-movement-select { width: 140px; }
+
+/* ── Debit Notes Tab ─────────────────────────────────────────────────────────── */
+.dn-search-input { max-width: 200px; }

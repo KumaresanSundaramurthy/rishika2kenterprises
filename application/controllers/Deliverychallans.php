@@ -591,6 +591,7 @@ class Deliverychallans extends MY_Controller {
                     'SgstAmount' => $item->SgstAmount, 'IgstAmount' => $item->IgstAmount,
                     'TaxAmount' => $item->TaxAmount, 'DiscountAmount' => $item->DiscountAmount,
                     'NetAmount' => $item->NetAmount, 'QuantityConverted' => 0,
+                    'IsCompliment' => (int)($item->IsCompliment ?? 0),
                     'IsActive' => 1, 'IsDeleted' => 0, 'CreatedBy' => $userUID, 'UpdatedBy' => $userUID,
                 ]);
             }

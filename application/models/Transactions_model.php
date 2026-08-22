@@ -30,6 +30,7 @@ class Transactions_model extends MY_Model {
             if (!$query) return [];
             return array_map('intval', array_column($query->result_array(), 'ProductUID'));
         } catch (Throwable $e) {
+            notifyError('Transactions_model::getProductUIDsByTransUID', $e);
             log_message('error', 'getProductUIDsByTransUID failed for TransUID=' . $transUID . ': ' . $e->getMessage());
             return [];
         }
@@ -101,12 +102,12 @@ class Transactions_model extends MY_Model {
             $this->ReadDb->join('Users.UserTbl as User', 'User.UserUID = Ts.UpdatedBy', 'left');
             $this->ReadDb->join('Users.UserTbl as CreatedUser', 'CreatedUser.UserUID = Ts.CreatedBy', 'left');
             $this->ReadDb->join(
-                '(SELECT TransUID, SUM(Amount) AS PaidAmount FROM Transaction.PaymentsTbl WHERE IsDeleted = 0 AND IsActive = 1 GROUP BY TransUID) AS PaidSum',
+                '(SELECT TransUID, SUM(Amount) AS PaidAmount FROM Transaction.PaymentsTbl WHERE IsDeleted = 0 AND IsActive = 1 AND IsCancelled = 0 GROUP BY TransUID) AS PaidSum',
                 'PaidSum.TransUID = Ts.TransUID',
                 'LEFT'
             );
             $this->ReadDb->join(
-                "(SELECT P.TransUID, COUNT(*) AS PaymentCount, GROUP_CONCAT(CASE WHEN P.SourceType = 'CreditNote' THEN 'Credit Note' ELSE PT.Name END ORDER BY P.PaymentUID ASC SEPARATOR ',') AS PaymentModes, MAX(CASE WHEN P.SourceType != 'CreditNote' AND PT.IsCash = 0 THEN BA.BankName ELSE NULL END) AS PayBankName, MAX(CASE WHEN P.SourceType != 'CreditNote' AND PT.IsCash = 0 THEN BA.AccountNumber ELSE NULL END) AS PayAccountNumber, (SELECT COUNT(*) FROM Transaction.PaymentAttachmentsTbl PA WHERE PA.PaymentUID IN (SELECT PaymentUID FROM Transaction.PaymentsTbl P2 WHERE P2.TransUID = P.TransUID AND P2.IsDeleted = 0 AND P2.IsActive = 1) AND PA.IsDeleted = 0 AND PA.IsActive = 1) AS PaymentAttachmentCount FROM Transaction.PaymentsTbl P LEFT JOIN Global.PaymentTypesTbl PT ON PT.PaymentTypeUID = P.PaymentTypeUID LEFT JOIN Organisation.OrgBankAccountsTbl BA ON BA.BankAccountUID = P.BankAccountUID WHERE P.IsDeleted = 0 AND P.IsActive = 1 GROUP BY P.TransUID) AS PayInfo",
+                "(SELECT P.TransUID, COUNT(*) AS PaymentCount, GROUP_CONCAT(CASE WHEN P.SourceType = 'CreditNote' THEN 'Credit Note' WHEN P.PaymentTypeUID = 0 THEN 'Debit Note' ELSE PT.Name END ORDER BY P.PaymentUID ASC SEPARATOR ',') AS PaymentModes, MAX(CASE WHEN P.SourceType != 'CreditNote' AND PT.IsCash = 0 THEN BA.BankName ELSE NULL END) AS PayBankName, MAX(CASE WHEN P.SourceType != 'CreditNote' AND PT.IsCash = 0 THEN BA.AccountNumber ELSE NULL END) AS PayAccountNumber, (SELECT COUNT(*) FROM Transaction.PaymentAttachmentsTbl PA WHERE PA.PaymentUID IN (SELECT PaymentUID FROM Transaction.PaymentsTbl P2 WHERE P2.TransUID = P.TransUID AND P2.IsDeleted = 0 AND P2.IsActive = 1 AND P2.IsCancelled = 0) AND PA.IsDeleted = 0 AND PA.IsActive = 1) AS PaymentAttachmentCount FROM Transaction.PaymentsTbl P LEFT JOIN Global.PaymentTypesTbl PT ON PT.PaymentTypeUID = P.PaymentTypeUID LEFT JOIN Organisation.OrgBankAccountsTbl BA ON BA.BankAccountUID = P.BankAccountUID WHERE P.IsDeleted = 0 AND P.IsActive = 1 AND P.IsCancelled = 0 GROUP BY P.TransUID) AS PayInfo",
                 'PayInfo.TransUID = Ts.TransUID',
                 'LEFT'
             );
@@ -129,6 +130,7 @@ class Transactions_model extends MY_Model {
             return $query->result();
 
         } catch (Throwable $e) {
+            notifyError('Transactions_model::getTransactionPageList', $e);
             log_message('error', 'getTransactionPageList: ' . $e->getMessage());
             return $isCount ? 0 : [];
         }
@@ -176,7 +178,7 @@ class Transactions_model extends MY_Model {
                 LEFT JOIN (
                     SELECT TransUID, SUM(Amount) AS PaidAmount
                     FROM   Transaction.PaymentsTbl
-                    WHERE  IsDeleted = 0 AND IsActive = 1
+                    WHERE  IsDeleted = 0 AND IsActive = 1 AND IsCancelled = 0
                     GROUP  BY TransUID
                 ) AS PaidSum ON PaidSum.TransUID = Ts.TransUID
                 WHERE Ts.ModuleUID = ? AND Ts.OrgUID = ? AND Ts.IsDeleted = 0 $dateWhere $branchWhere
@@ -206,6 +208,7 @@ class Transactions_model extends MY_Model {
             return $out;
 
         } catch (Exception $e) {
+            notifyError('Transactions_model::getTransactionSummaryStats', $e);
             return [];
         }
     }
@@ -231,6 +234,7 @@ class Transactions_model extends MY_Model {
             }
             return $out;
         } catch (Exception $e) {
+            notifyError('Transactions_model::getSimpleTransactionStats', $e);
             return [];
         }
     }
@@ -275,7 +279,7 @@ class Transactions_model extends MY_Model {
             // Correlated subquery avoids referencing PaidSum alias which is absent from the count path.
             $this->ReadDb->where_in('Ts.DocStatus', ['Issued', 'Partial']);
             $this->ReadDb->where(
-                '(Ts.NetAmount - COALESCE((SELECT SUM(p.Amount) FROM Transaction.PaymentsTbl p WHERE p.TransUID = Ts.TransUID AND p.IsDeleted = 0 AND p.IsActive = 1), 0)) > 0.01',
+                '(Ts.NetAmount - COALESCE((SELECT SUM(p.Amount) FROM Transaction.PaymentsTbl p WHERE p.TransUID = Ts.TransUID AND p.IsDeleted = 0 AND p.IsActive = 1 AND p.IsCancelled = 0), 0)) > 0.01',
                 null, false
             );
         } elseif ($tab === 'SRPending' || $tab === 'PRPending') {
@@ -299,7 +303,7 @@ class Transactions_model extends MY_Model {
             $this->ReadDb->where_not_in('Ts.DocStatus', ['Draft', 'Cancelled', 'Rejected']);
             $this->ReadDb->where('Ts.NetAmount >', 0);
             $this->ReadDb->where(
-                'COALESCE((SELECT SUM(p.Amount) FROM Transaction.PaymentsTbl p WHERE p.TransUID = Ts.TransUID AND p.IsDeleted = 0 AND p.IsActive = 1), 0) >= Ts.NetAmount',
+                'COALESCE((SELECT SUM(p.Amount) FROM Transaction.PaymentsTbl p WHERE p.TransUID = Ts.TransUID AND p.IsDeleted = 0 AND p.IsActive = 1 AND p.IsCancelled = 0), 0) >= Ts.NetAmount',
                 null, false
             );
         } elseif ($tab === 'Cancelled') {
@@ -341,7 +345,7 @@ class Transactions_model extends MY_Model {
         if (!empty($filter['PaymentMode'])) {
             $safe = $this->ReadDb->escape_str($filter['PaymentMode']);
             $this->ReadDb->where(
-                "EXISTS (SELECT 1 FROM Transaction.PaymentsTbl _P JOIN Global.PaymentTypesTbl _PT ON _PT.PaymentTypeUID = _P.PaymentTypeUID WHERE _P.TransUID = Ts.TransUID AND _PT.Name = '" . $safe . "' AND _P.IsDeleted = 0 AND _P.IsActive = 1)",
+                "EXISTS (SELECT 1 FROM Transaction.PaymentsTbl _P JOIN Global.PaymentTypesTbl _PT ON _PT.PaymentTypeUID = _P.PaymentTypeUID WHERE _P.TransUID = Ts.TransUID AND _PT.Name = '" . $safe . "' AND _P.IsDeleted = 0 AND _P.IsActive = 1 AND _P.IsCancelled = 0)",
                 null, false
             );
         }
@@ -544,6 +548,7 @@ class Transactions_model extends MY_Model {
             $this->EndReturnData->Message = 'Success';
 
         } catch (Exception $e) {
+            notifyError('Transactions_model::getTransactionsPrefixDetails', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -583,6 +588,7 @@ class Transactions_model extends MY_Model {
             $this->EndReturnData->Message = 'Success';
 
         } catch (Exception $e) {
+            notifyError('Transactions_model::getOrgLocations', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -609,6 +615,7 @@ class Transactions_model extends MY_Model {
             $next   = $result ? ((int)($result->MaxNumber ?? 0) + 1) : 1;
             return ($next > 2147483647) ? -1 : $next;
         } catch (Exception $e) {
+            notifyError('Transactions_model::getNextTransactionNumber', $e);
             return 1;
         }
     }
@@ -663,6 +670,7 @@ class Transactions_model extends MY_Model {
             return $next;
 
         } catch (Exception $e) {
+            notifyError('Transactions_model::getNextPaymentNumber', $e);
             return 1;
         }
 
@@ -681,6 +689,7 @@ class Transactions_model extends MY_Model {
             $result = $this->ReadDb->get()->row();
             return $result ? ((int)($result->MaxSeq ?? 0) + 1) : 1;
         } catch (Exception $e) {
+            notifyError('Transactions_model::getNextCreditNoteNumber', $e);
             return 1;
         }
     }
@@ -698,7 +707,52 @@ class Transactions_model extends MY_Model {
             $result = $this->ReadDb->get()->row();
             return $result ? ((int)($result->MaxSeq ?? 0) + 1) : 1;
         } catch (Exception $e) {
+            notifyError('Transactions_model::getNextDebitNoteNumber', $e);
             return 1;
+        }
+    }
+
+    public function getVendorDebitNote(int $debitNoteUID, int $orgUID): ?object {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('TransDebitNoteUID, PartyUID, Amount, Status, SourceTransNumber');
+            $this->ReadDb->from('Transaction.TransDebitNoteTbl');
+            $this->ReadDb->where([
+                'TransDebitNoteUID' => $debitNoteUID,
+                'OrgUID'            => $orgUID,
+                'PartyType'         => 'S',
+                'IsCancelled'       => 0,
+                'IsDeleted'         => 0,
+            ]);
+            return $this->ReadDb->get()->row() ?: null;
+        } catch (Exception $e) {
+            notifyError('Transactions_model::getVendorDebitNote', $e);
+            log_message('error', 'getVendorDebitNote failed: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    public function getVendorAvailableDebitNotes(int $orgUID, int $vendorUID): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('TransDebitNoteUID, SourceTransNumber, Amount, Status, Notes, SourceModuleUID');
+            $this->ReadDb->from('Transaction.TransDebitNoteTbl');
+            $this->ReadDb->where([
+                'OrgUID'      => $orgUID,
+                'PartyUID'    => $vendorUID,
+                'PartyType'   => 'S',
+                'Status'      => 'Pending',
+                'IsCancelled' => 0,
+                'IsDeleted'   => 0,
+            ]);
+            $this->ReadDb->where('Amount >', 0);
+            $this->ReadDb->order_by('TransDebitNoteUID', 'ASC');
+            $result = $this->ReadDb->get()->result();
+            return $result ?: [];
+        } catch (Exception $e) {
+            notifyError('Transactions_model::getVendorAvailableDebitNotes', $e);
+            log_message('error', 'getVendorAvailableDebitNotes failed: ' . $e->getMessage());
+            return [];
         }
     }
 
@@ -725,6 +779,7 @@ class Transactions_model extends MY_Model {
             return $query->row();
 
         } catch (Exception $e) {
+            notifyError('Transactions_model::getTransactionByPrefixAndNumber', $e);
             return NULL;
         }
 
@@ -787,6 +842,7 @@ class Transactions_model extends MY_Model {
             return $this->EndReturnData->Data;
 
         } catch (Exception $e) {
+            notifyError('Transactions_model::getCustomersDetails', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
@@ -890,6 +946,7 @@ class Transactions_model extends MY_Model {
             return $this->EndReturnData->Data;
 
         } catch (Exception $e) {
+            notifyError('Transactions_model::getTransProductsDetails', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
@@ -913,8 +970,9 @@ class Transactions_model extends MY_Model {
             $query = $this->ReadDb->get();
             
             return $query->result();
-            
+
         } catch (Exception $e) {
+            notifyError('Transactions_model::getEntityInvoices', $e);
             throw new Exception($e->getMessage());
         }
 
@@ -931,8 +989,9 @@ class Transactions_model extends MY_Model {
             $query = $this->ReadDb->get();
             
             return $query->result();
-            
+
         } catch (Exception $e) {
+            notifyError('Transactions_model::getCustomerPayments', $e);
             throw new Exception($e->getMessage());
         }
 
@@ -951,6 +1010,7 @@ class Transactions_model extends MY_Model {
             return $query->result();
 
         } catch (Exception $e) {
+            notifyError('Transactions_model::getCustomerOrders', $e);
             throw new Exception($e->getMessage());
         }
 
@@ -975,6 +1035,7 @@ class Transactions_model extends MY_Model {
             $this->upstashservice->set($key, $data, 0);
             return $data;
         } catch (Exception $e) {
+            notifyError('Transactions_model::getPaymentTypesList', $e);
             return [];
         }
     }
@@ -1004,6 +1065,7 @@ class Transactions_model extends MY_Model {
             return $row ?: NULL;
 
         } catch (Exception $e) {
+            notifyError('Transactions_model::getPrintBankAccount', $e);
             return NULL;
         }
     }
@@ -1026,6 +1088,7 @@ class Transactions_model extends MY_Model {
             $this->upstashservice->set($key, $data, 0);
             return $data;
         } catch (Exception $e) {
+            notifyError('Transactions_model::getOrgBankAccounts', $e);
             return [];
         }
     }
@@ -1061,6 +1124,7 @@ class Transactions_model extends MY_Model {
             return $query->result();
 
         } catch (Exception $e) {
+            notifyError('Transactions_model::getTransactionPayments', $e);
             return [];
         }
 
@@ -1081,7 +1145,7 @@ class Transactions_model extends MY_Model {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select('COALESCE(SUM(Amount), 0) AS TotalPaid');
         $this->ReadDb->from('Transaction.PaymentsTbl');
-        $this->ReadDb->where(['TransUID' => $transUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0, 'IsActive' => 1]);
+        $this->ReadDb->where(['TransUID' => $transUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0, 'IsActive' => 1, 'IsCancelled' => 0]);
         $query = $this->ReadDb->get();
         $row   = ($query && $query->num_rows() > 0) ? $query->row() : null;
         return $row ? (float) $row->TotalPaid : 0;
@@ -1151,11 +1215,11 @@ class Transactions_model extends MY_Model {
             $this->ReadDb->join('Users.UserTbl AS User',           'User.UserUID  = Ts.UpdatedBy', 'LEFT');
             $this->ReadDb->join('Users.UserTbl AS CUser',          'CUser.UserUID = Ts.CreatedBy', 'LEFT');
             $this->ReadDb->join(
-                '(SELECT TransUID, SUM(Amount) AS PaidAmount FROM Transaction.PaymentsTbl WHERE IsDeleted = 0 AND IsActive = 1 GROUP BY TransUID) AS PaidSum',
+                '(SELECT TransUID, SUM(Amount) AS PaidAmount FROM Transaction.PaymentsTbl WHERE IsDeleted = 0 AND IsActive = 1 AND IsCancelled = 0 GROUP BY TransUID) AS PaidSum',
                 'PaidSum.TransUID = Ts.TransUID', 'LEFT'
             );
             $this->ReadDb->join(
-                "(SELECT P.TransUID, GROUP_CONCAT(DISTINCT PT.Name ORDER BY P.PaymentUID ASC SEPARATOR ', ') AS PaymentModes FROM Transaction.PaymentsTbl P JOIN Global.PaymentTypesTbl PT ON PT.PaymentTypeUID = P.PaymentTypeUID WHERE P.IsDeleted = 0 AND P.IsActive = 1 GROUP BY P.TransUID) AS PayInfo",
+                "(SELECT P.TransUID, GROUP_CONCAT(DISTINCT PT.Name ORDER BY P.PaymentUID ASC SEPARATOR ', ') AS PaymentModes FROM Transaction.PaymentsTbl P JOIN Global.PaymentTypesTbl PT ON PT.PaymentTypeUID = P.PaymentTypeUID WHERE P.IsDeleted = 0 AND P.IsActive = 1 AND P.IsCancelled = 0 GROUP BY P.TransUID) AS PayInfo",
                 'PayInfo.TransUID = Ts.TransUID', 'LEFT'
             );
             $this->ReadDb->where(['Ts.IsDeleted' => 0, 'Ts.IsActive' => 1, 'Ts.ModuleUID' => (int)$moduleUID, 'Ts.OrgUID' => $orgUID]);
@@ -1164,6 +1228,7 @@ class Transactions_model extends MY_Model {
             $query = $this->ReadDb->get();
             return ($query) ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Transactions_model::getTransactionExportData', $e);
             return [];
         }
     }
@@ -1329,6 +1394,7 @@ class Transactions_model extends MY_Model {
             return $query->result();
 
         } catch (Exception $e) {
+            notifyError('Transactions_model::getPaymentsList', $e);
             return [];
         }
 
@@ -1402,6 +1468,7 @@ class Transactions_model extends MY_Model {
             return $this->ReadDb->count_all_results();
 
         } catch (Exception $e) {
+            notifyError('Transactions_model::getPaymentsCount', $e);
             return 0;
         }
 
@@ -1428,7 +1495,7 @@ class Transactions_model extends MY_Model {
             $this->ReadDb->from('Transaction.PaymentsTbl AS P');
             $this->ReadDb->join('Global.PaymentTypesTbl AS PT', 'PT.PaymentTypeUID = P.PaymentTypeUID', 'LEFT');
             $this->ReadDb->join('Organisation.OrgBankAccountsTbl AS BA', 'BA.BankAccountUID = P.BankAccountUID', 'LEFT');
-            $this->ReadDb->where(['P.OrgUID' => $orgUID, 'P.IsDeleted' => 0, 'P.IsActive' => 1]);
+            $this->ReadDb->where(['P.OrgUID' => $orgUID, 'P.IsDeleted' => 0, 'P.IsActive' => 1, 'P.IsCancelled' => 0]);
 
             if (!empty($filter['PartyType']))        $this->ReadDb->where('P.PartyType', $filter['PartyType']);
             if (!empty($filter['PaymentDirection'])) $this->ReadDb->where('P.PaymentDirection', $filter['PaymentDirection']);
@@ -1446,6 +1513,7 @@ class Transactions_model extends MY_Model {
             return $query->result();
 
         } catch (Exception $e) {
+            notifyError('Transactions_model::getPaymentMethodSummary', $e);
             return [];
         }
 
@@ -1464,7 +1532,7 @@ class Transactions_model extends MY_Model {
             ]);
             $this->ReadDb->from('Transaction.PaymentsTbl AS P');
             $this->ReadDb->join('Global.PaymentTypesTbl AS PT', 'PT.PaymentTypeUID = P.PaymentTypeUID', 'LEFT');
-            $this->ReadDb->where(['P.OrgUID' => $orgUID, 'P.IsDeleted' => 0, 'P.IsActive' => 1]);
+            $this->ReadDb->where(['P.OrgUID' => $orgUID, 'P.IsDeleted' => 0, 'P.IsActive' => 1, 'P.IsCancelled' => 0]);
 
             if (!empty($filter['DateFrom']))  $this->ReadDb->where('DATE(P.CreatedOn) >=', $filter['DateFrom']);
             if (!empty($filter['DateTo']))    $this->ReadDb->where('DATE(P.CreatedOn) <=', $filter['DateTo']);
@@ -1489,6 +1557,7 @@ class Transactions_model extends MY_Model {
             return $query->row() ?: (object)['CashIn' => 0, 'CashOut' => 0, 'BankIn' => 0, 'BankOut' => 0];
 
         } catch (Exception $e) {
+            notifyError('Transactions_model::getPaymentsBalanceStats', $e);
             return (object)['CashIn' => 0, 'CashOut' => 0, 'BankIn' => 0, 'BankOut' => 0];
         }
 
@@ -2574,6 +2643,7 @@ class Transactions_model extends MY_Model {
             ]);
             return $key;
         } catch (Exception $e) {
+            notifyError('Transactions_model::_uploadPdfToR2', $e);
             return null;
         }
     }
@@ -2588,6 +2658,7 @@ class Transactions_model extends MY_Model {
             // Verify it's a real PDF (starts with %PDF-)
             return ($data !== false && strncmp($data, '%PDF-', 5) === 0) ? $data : null;
         } catch (Exception $e) {
+            notifyError('Transactions_model::_fetchPdfFromR2', $e);
             return null;
         }
     }
@@ -2790,6 +2861,7 @@ class Transactions_model extends MY_Model {
                  . '</div>';
 
         } catch (Exception $e) {
+            notifyError('Transactions_model::_buildSignatureHtml', $e);
             return '<div style="min-height:65px;"></div>';
         }
     }
@@ -3090,6 +3162,7 @@ class Transactions_model extends MY_Model {
             }
             return $result;
         } catch (Exception $e) {
+            notifyError('Transactions_model::getDCReturnedQty', $e);
             return [];
         }
     }
@@ -3115,6 +3188,7 @@ class Transactions_model extends MY_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Transactions_model::getTransactionCharges', $e);
             log_message('error', 'Transactions_model::getTransactionCharges — ' . $e->getMessage());
             return [];
         }
@@ -3230,6 +3304,7 @@ class Transactions_model extends MY_Model {
             $this->ReadDb->where(['ChargeUID' => $chargeUID, 'OrgUID' => $orgUID, 'IsActive' => 1]);
             return $this->ReadDb->count_all_results() > 0;
         } catch (Exception $e) {
+            notifyError('Transactions_model::chargeIsUsedInAnyTransaction', $e);
             return false;
         }
     }
@@ -3315,6 +3390,7 @@ class Transactions_model extends MY_Model {
             return $query ? $query->result_array() : [];
 
         } catch (Exception $e) {
+            notifyError('Transactions_model::getDayBookEntries', $e);
             log_message('error', 'getDayBookEntries: ' . $e->getMessage());
             return [];
         }
@@ -3342,6 +3418,7 @@ class Transactions_model extends MY_Model {
             if (!$query) return [];
             return array_column($query->result_array(), 'TransUID');
         } catch (Exception $e) {
+            notifyError('Transactions_model::getTransactionUIDsByFilter', $e);
             log_message('error', 'getTransactionUIDsByFilter: ' . $e->getMessage());
             return [];
         }

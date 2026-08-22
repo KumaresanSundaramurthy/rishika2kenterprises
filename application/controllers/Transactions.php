@@ -53,6 +53,7 @@ class Transactions extends MY_Controller {
             ]);
 
         } catch (Exception $e) {
+            notifyError('Transactions::getPageDetails', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -77,6 +78,7 @@ class Transactions extends MY_Controller {
             $this->EndReturnData->Error = FALSE;
 
         } catch (Exception $e) {
+            notifyError('Transactions::getTransactionPrefixes', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -135,6 +137,7 @@ class Transactions extends MY_Controller {
             $this->EndReturnData->PrefixData = $newPrefix->Data[0] ?? null;
 
         } catch (Exception $e) {
+            notifyError('Transactions::addTransactionPrefix', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -191,6 +194,7 @@ class Transactions extends MY_Controller {
             $this->EndReturnData->Message = 'Prefix updated successfully.';
 
         } catch (Exception $e) {
+            notifyError('Transactions::updateTransactionPrefix', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -232,6 +236,7 @@ class Transactions extends MY_Controller {
             $this->EndReturnData->Message = 'Prefix deleted.';
 
         } catch (Exception $e) {
+            notifyError('Transactions::deleteTransactionPrefix', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -286,6 +291,7 @@ class Transactions extends MY_Controller {
             $this->EndReturnData->AllPrefixData = $allResults;
 
         } catch (Exception $e) {
+            notifyError('Transactions::setDefaultTransactionPrefix', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -326,6 +332,7 @@ class Transactions extends MY_Controller {
             $this->EndReturnData->Error = false;
 
         } catch (Exception $e) {
+            notifyError('Transactions::searchVendors', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -373,6 +380,7 @@ class Transactions extends MY_Controller {
             $this->EndReturnData->Error = false;
 
         } catch (Exception $e) {
+            notifyError('Transactions::searchCustomers', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -458,6 +466,7 @@ class Transactions extends MY_Controller {
             }
 
         } catch (Exception $e) {
+            notifyError('Transactions::getTransactionDetail', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -544,6 +553,7 @@ class Transactions extends MY_Controller {
             $this->EndReturnData->Attachments = $attachments;
 
         } catch (Exception $e) {
+            notifyError('Transactions::getAttachments', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -588,6 +598,7 @@ class Transactions extends MY_Controller {
             $this->EndReturnData->Size     = strlen($pdfBytes);
 
         } catch (Exception $e) {
+            notifyError('Transactions::getTransactionPdfBase64', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -625,6 +636,7 @@ class Transactions extends MY_Controller {
             exit;
 
         } catch (Exception $e) {
+            notifyError('Transactions::downloadA4Pdf', $e);
             header('Content-Type: application/json');
             echo json_encode(['Error' => true, 'Message' => $e->getMessage()]);
             exit;
@@ -696,6 +708,7 @@ class Transactions extends MY_Controller {
             $this->EndReturnData->Error = false;
 
         } catch (Exception $e) {
+            notifyError('Transactions::searchTransProducts', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -755,6 +768,7 @@ class Transactions extends MY_Controller {
             );
 
         } catch (Throwable $e) {
+            notifyError('Transactions::deleteMultipleTransactions', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }

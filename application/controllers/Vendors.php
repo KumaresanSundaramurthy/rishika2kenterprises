@@ -137,6 +137,7 @@ class Vendors extends MY_Controller {
             $this->load->view('vendors/view', $this->pageData);
 
         } catch (Exception $e) {
+            notifyError('Vendors::index', $e);
             redirect('dashboard', 'refresh');
         }
     }
@@ -160,6 +161,7 @@ class Vendors extends MY_Controller {
             $this->EndReturnData->TotalCount     = $pageData->TotalCount;
 
         } catch (Exception $e) {
+            notifyError('Vendors::getVendorsPageDetails', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -371,6 +373,7 @@ class Vendors extends MY_Controller {
                 throw $e;
             }
         } catch (Exception $e) {
+            notifyError('Vendors::addVendorData', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -426,6 +429,7 @@ class Vendors extends MY_Controller {
             $this->EndReturnData->ShippingAddr = $shippingAddr;
 
         } catch (Exception $e) {
+            notifyError('Vendors::loadModalForm', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -463,6 +467,7 @@ class Vendors extends MY_Controller {
             $this->EndReturnData->Error        = false;
             $this->EndReturnData->VendorNumber = $settings->VendorNextNumber;
         } catch (Exception $e) {
+            notifyError('Vendors::getNextVendorNumber', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -537,6 +542,7 @@ class Vendors extends MY_Controller {
             $this->EndReturnData->Count   = count($vendors);
 
         } catch (Exception $e) {
+            notifyError('Vendors::syncVendorsCache', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -579,6 +585,7 @@ class Vendors extends MY_Controller {
             $this->EndReturnData->Attachments  = $attachments;
 
         } catch (Exception $e) {
+            notifyError('Vendors::getVendorForModal', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -754,6 +761,7 @@ class Vendors extends MY_Controller {
                 throw $e;
             }
         } catch (Exception $e) {
+            notifyError('Vendors::updateVendorData', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -816,6 +824,7 @@ class Vendors extends MY_Controller {
             $this->_sendExport($type, 'Vendor_Data', 'Vendors', 'Vendor Report', $headers, $rows, $orgInfo, $timezone, $colWidths);
 
         } catch (Exception $e) {
+            notifyError('Vendors::exportVendors', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             $this->globalservice->sendJsonResponse($this->EndReturnData);
@@ -830,6 +839,7 @@ class Vendors extends MY_Controller {
             $this->EndReturnData->Error = false;
             $this->EndReturnData->Tags  = $tags;
         } catch (Exception $e) {
+            notifyError('Vendors::getVendorTags', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -846,6 +856,7 @@ class Vendors extends MY_Controller {
             $this->EndReturnData->Error = false;
             $this->EndReturnData->Stats = $stats;
         } catch (Exception $e) {
+            notifyError('Vendors::getStats', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -890,6 +901,7 @@ class Vendors extends MY_Controller {
             );
 
         } catch (Exception $e) {
+            notifyError('Vendors::toggleVendorStatus', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -941,6 +953,7 @@ class Vendors extends MY_Controller {
             );
 
         } catch (Exception $e) {
+            notifyError('Vendors::deleteVendorData', $e);
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -1011,6 +1024,7 @@ class Vendors extends MY_Controller {
             );
 
         } catch (Exception $e) {
+            notifyError('Vendors::deleteMultipleVendors', $e);
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -1047,6 +1061,7 @@ class Vendors extends MY_Controller {
             $this->EndReturnData->Error = false;
             $this->EndReturnData->Data  = $this->_vendorGroupTypesList();
         } catch (Exception $e) {
+            notifyError('Vendors::getGroupTypes', $e);
             $this->EndReturnData->Error = true;
             $this->EndReturnData->Data  = [];
         }
@@ -1089,6 +1104,7 @@ class Vendors extends MY_Controller {
                 }
             }
         } catch (Exception $e) {
+            notifyError('Vendors::searchVendors', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = 'Unable to fetch vendors at the moment.';
         }
@@ -1112,6 +1128,7 @@ class Vendors extends MY_Controller {
                        && (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
             $this->EndReturnData->Stats = $this->vendors_model->getVendorGroupStats($this->pageData['JwtData']->Org->OrgUID);
         } catch (Exception $e) {
+            notifyError('Vendors::getGroupsData', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1133,6 +1150,7 @@ class Vendors extends MY_Controller {
             $this->EndReturnData->Members    = $members;
             $this->EndReturnData->GroupTypes = $this->_vendorGroupTypesList();
         } catch (Exception $e) {
+            notifyError('Vendors::getGroupForModal', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1198,6 +1216,7 @@ class Vendors extends MY_Controller {
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
+            notifyError('Vendors::addGroupData', $e);
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
@@ -1261,6 +1280,7 @@ class Vendors extends MY_Controller {
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
+            notifyError('Vendors::updateGroupData', $e);
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
@@ -1306,6 +1326,7 @@ class Vendors extends MY_Controller {
                        && (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
             $this->EndReturnData->Stats = $this->vendors_model->getVendorGroupStats($orgUID);
         } catch (Exception $e) {
+            notifyError('Vendors::deleteGroup', $e);
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
@@ -1353,6 +1374,7 @@ class Vendors extends MY_Controller {
                        && (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
             $this->EndReturnData->Stats = $this->vendors_model->getVendorGroupStats($orgUID);
         } catch (Exception $e) {
+            notifyError('Vendors::toggleGroupStatus', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1367,6 +1389,7 @@ class Vendors extends MY_Controller {
             $this->EndReturnData->Error  = false;
             $this->EndReturnData->Groups = $this->vendors_model->getActiveVendorGroupsForDropdown($orgUID);
         } catch (Exception $e) {
+            notifyError('Vendors::getGroupsForDropdown', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1399,6 +1422,7 @@ class Vendors extends MY_Controller {
             $this->EndReturnData->Message = count($groups) . ' group(s) synced to cache.';
             $this->EndReturnData->Count   = count($groups);
         } catch (Exception $e) {
+            notifyError('Vendors::syncVendorGroupsCache', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1421,6 +1445,7 @@ class Vendors extends MY_Controller {
             $this->EndReturnData->Members  = $members;
             $this->EndReturnData->Overview = $overview;
         } catch (Exception $e) {
+            notifyError('Vendors::getGroupDetail', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1484,6 +1509,7 @@ class Vendors extends MY_Controller {
             $this->EndReturnData->Failed  = $result->Failed ?? 0;
 
         } catch (Throwable $e) {
+            notifyError('Vendors::sendCommunication', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1542,6 +1568,7 @@ class Vendors extends MY_Controller {
             $this->EndReturnData->FinancialYear = $financialYear;
 
         } catch (Exception $e) {
+            notifyError('Vendors::saveVendorOpeningBalance', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1574,6 +1601,7 @@ class Vendors extends MY_Controller {
             $this->EndReturnData->FinancialYear = $financialYear;
 
         } catch (Exception $e) {
+            notifyError('Vendors::getVendorOpeningBalance', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1641,6 +1669,7 @@ class Vendors extends MY_Controller {
             }
 
         } catch (Exception $e) {
+            notifyError('Vendors::recalcBalance', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1751,6 +1780,7 @@ class Vendors extends MY_Controller {
             $this->EndReturnData->Error = false;
 
         } catch (Exception $e) {
+            notifyError('Vendors::getVendorSearchList', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1838,6 +1868,7 @@ class Vendors extends MY_Controller {
             );
 
         } catch (Exception $e) {
+            notifyError('Vendors::updateVendorBalance', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1861,6 +1892,7 @@ class Vendors extends MY_Controller {
             $this->EndReturnData->Error       = false;
             $this->EndReturnData->Attachments = $attachments;
         } catch (Exception $e) {
+            notifyError('Vendors::getVendorAttachments', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1891,6 +1923,7 @@ class Vendors extends MY_Controller {
                 ['attachUID' => $attachUID], []
             );
         } catch (Exception $e) {
+            notifyError('Vendors::deleteVendorAttachment', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1963,6 +1996,7 @@ class Vendors extends MY_Controller {
             );
             $this->cachehelper->upsertVendor($vendorUID);
         } catch (Exception $e) {
+            notifyError('Vendors::_syncVendorPrimaryImage', $e);
             log_message('error', '_syncVendorPrimaryImage failed: ' . $e->getMessage());
         }
     }
@@ -2099,6 +2133,7 @@ class Vendors extends MY_Controller {
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Html  = $html;
         } catch (Exception $e) {
+            notifyError('Vendors::getVendorProfileTab', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -2146,6 +2181,7 @@ class Vendors extends MY_Controller {
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Html  = $html;
         } catch (Exception $e) {
+            notifyError('Vendors::getVendorStatementTab', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -2173,6 +2209,7 @@ class Vendors extends MY_Controller {
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Note saved.';
         } catch (Exception $e) {
+            notifyError('Vendors::saveVendorNote', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }

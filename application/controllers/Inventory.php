@@ -59,6 +59,7 @@ class Inventory extends MY_Controller {
             $this->load->view('inventory/view', $this->pageData);
 
         } catch (Throwable $e) {
+            notifyError('Inventory::index', $e);
             log_message('error', 'Inventory::index — ' . $e->getMessage());
             redirect('dashboard', 'refresh');
         }
@@ -94,6 +95,7 @@ class Inventory extends MY_Controller {
             $this->EndReturnData->TotalCount     = $totalCount;
 
         } catch (Exception $e) {
+            notifyError('Inventory::getPageDetails', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -171,6 +173,7 @@ class Inventory extends MY_Controller {
             $this->EndReturnData->Stats   = $stats;
 
         } catch (Exception $e) {
+            notifyError('Inventory::stockIn', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -249,6 +252,7 @@ class Inventory extends MY_Controller {
             $this->EndReturnData->Stats   = $stats;
 
         } catch (Exception $e) {
+            notifyError('Inventory::stockOut', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -284,6 +288,7 @@ class Inventory extends MY_Controller {
             $this->EndReturnData->Message = 'Remarks updated successfully.';
 
         } catch (Exception $e) {
+            notifyError('Inventory::updateAdj', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -341,6 +346,7 @@ class Inventory extends MY_Controller {
             $this->EndReturnData->Stats   = $stats;
 
         } catch (Exception $e) {
+            notifyError('Inventory::deleteAdj', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -375,6 +381,7 @@ class Inventory extends MY_Controller {
             $this->EndReturnData->Message = 'Remarks updated successfully.';
 
         } catch (Exception $e) {
+            notifyError('Inventory::updateLedgerRemarks', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -400,6 +407,7 @@ class Inventory extends MY_Controller {
             $this->EndReturnData->Timeline = $timeline;
 
         } catch (Exception $e) {
+            notifyError('Inventory::getTimeline', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -446,6 +454,7 @@ class Inventory extends MY_Controller {
             $this->load->view('inventory/timeline_view', $this->pageData);
 
         } catch (Throwable $e) {
+            notifyError('Inventory::timelinePage', $e);
             redirect('dashboard', 'refresh');
         }
 
@@ -480,6 +489,7 @@ class Inventory extends MY_Controller {
             $this->EndReturnData->TotalCount     = $totalCount;
 
         } catch (Exception $e) {
+            notifyError('Inventory::getTimelinePageDetails', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -500,6 +510,7 @@ class Inventory extends MY_Controller {
             $this->EndReturnData->Error    = FALSE;
             $this->EndReturnData->Products = $results;
         } catch (Exception $e) {
+            notifyError('Inventory::searchProducts', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -518,6 +529,7 @@ class Inventory extends MY_Controller {
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Stats = $this->inventory_model->getInventoryStats($orgUID);
         } catch (Exception $e) {
+            notifyError('Inventory::getStats', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -551,6 +563,7 @@ class Inventory extends MY_Controller {
             $this->_sendExport($type, 'Inventory_Data', 'Inventory', 'Inventory / Stock Report', $headers, $rows, $orgInfo, $timezone, $colWidths);
 
         } catch (Exception $e) {
+            notifyError('Inventory::export', $e);
             echo json_encode(['Error' => true, 'Message' => $e->getMessage()]);
         }
     }
@@ -585,6 +598,7 @@ class Inventory extends MY_Controller {
             $this->_sendExport($type, 'Inventory_Timeline', 'Timeline', 'Inventory Stock Timeline', $headers, $rows, $orgInfo, $timezone, $colWidths);
 
         } catch (Exception $e) {
+            notifyError('Inventory::exportTimeline', $e);
             echo json_encode(['Error' => true, 'Message' => $e->getMessage()]);
         }
     }

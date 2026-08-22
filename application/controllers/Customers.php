@@ -124,6 +124,7 @@ class Customers extends MY_Controller {
             $this->load->view('customers/view', $this->pageData);
 
         } catch (Exception $e) {
+            notifyError('Customers::index', $e);
             redirect('dashboard', 'refresh');
         }
     }
@@ -147,6 +148,7 @@ class Customers extends MY_Controller {
             $this->EndReturnData->TotalCount     = $pageData->TotalCount;
 
         } catch (Exception $e) {
+            notifyError('Customers::getCustomersPageDetails', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -184,6 +186,7 @@ class Customers extends MY_Controller {
             }
 
         } catch (Exception $e) {
+            notifyError('Customers::searchCustomers', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = 'Unable to fetch customers at the moment.';
         }
@@ -376,6 +379,7 @@ class Customers extends MY_Controller {
                 throw $e;
             }
         } catch (Exception $e) {
+            notifyError('Customers::addCustomerData', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -432,6 +436,7 @@ class Customers extends MY_Controller {
             $this->EndReturnData->ShippingAddr = $shippingAddr;
 
         } catch (Exception $e) {
+            notifyError('Customers::loadModalForm', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -472,6 +477,7 @@ class Customers extends MY_Controller {
             $this->EndReturnData->Error          = false;
             $this->EndReturnData->CustomerNumber = $settings->CustomerNextNumber;
         } catch (Exception $e) {
+            notifyError('Customers::getNextCustomerNumber', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -572,6 +578,7 @@ class Customers extends MY_Controller {
             $this->EndReturnData->Count   = count($customers);
 
         } catch (Exception $e) {
+            notifyError('Customers::syncCustomersCache', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -606,6 +613,7 @@ class Customers extends MY_Controller {
             $this->EndReturnData->Message = count($groups) . ' group(s) synced to cache.';
             $this->EndReturnData->Count   = count($groups);
         } catch (Exception $e) {
+            notifyError('Customers::syncCustomerGroupsCache', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -646,6 +654,7 @@ class Customers extends MY_Controller {
             $this->EndReturnData->Attachments  = $attachments;
 
         } catch (Exception $e) {
+            notifyError('Customers::getCustomerForModal', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -847,6 +856,7 @@ class Customers extends MY_Controller {
                 throw $e;
             }
         } catch (Exception $e) {
+            notifyError('Customers::updateCustomerData', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -896,6 +906,7 @@ class Customers extends MY_Controller {
             );
 
         } catch (Exception $e) {
+            notifyError('Customers::deleteCustomerData', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -944,6 +955,7 @@ class Customers extends MY_Controller {
             $this->_sendExport($type, 'Customer_Data', 'Customers', 'Customer Report', $headers, $rows, $orgInfo, $timezone, $colWidths);
 
         } catch (Exception $e) {
+            notifyError('Customers::exportCustomers', $e);
             echo json_encode(['Error' => true, 'Message' => $e->getMessage()]);
         }
     }
@@ -956,6 +968,7 @@ class Customers extends MY_Controller {
             $this->EndReturnData->Error = false;
             $this->EndReturnData->Tags  = $tags;
         } catch (Exception $e) {
+            notifyError('Customers::getCustomerTags', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -997,6 +1010,7 @@ class Customers extends MY_Controller {
                 ['IsActive' => $newStatus]
             );
         } catch (Exception $e) {
+            notifyError('Customers::toggleCustomerStatus', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1078,6 +1092,7 @@ class Customers extends MY_Controller {
             );
 
         } catch (Exception $e) {
+            notifyError('Customers::deleteBulkCustomers', $e);
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -1199,6 +1214,7 @@ class Customers extends MY_Controller {
             $this->EndReturnData->FinancialYear  = $financialYear;
 
         } catch (Exception $e) {
+            notifyError('Customers::saveCustomerOpeningBalance', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1231,6 +1247,7 @@ class Customers extends MY_Controller {
             $this->EndReturnData->FinancialYear = $financialYear;
 
         } catch (Exception $e) {
+            notifyError('Customers::getCustomerOpeningBalance', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1319,6 +1336,7 @@ class Customers extends MY_Controller {
             );
 
         } catch (Exception $e) {
+            notifyError('Customers::updateCustomerBalance', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1366,6 +1384,7 @@ class Customers extends MY_Controller {
             ];
 
         } catch (Exception $e) {
+            notifyError('Customers::getCustomerBalance', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1425,6 +1444,7 @@ class Customers extends MY_Controller {
             );
 
         } catch (Exception $e) {
+            notifyError('Customers::getCustomerSearchList', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1452,6 +1472,7 @@ class Customers extends MY_Controller {
             $this->EndReturnData->Payments = $result;
 
         } catch (Exception $e) {
+            notifyError('Customers::getCustomerOnAccountBalance', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1519,6 +1540,7 @@ class Customers extends MY_Controller {
             }
 
         } catch (Exception $e) {
+            notifyError('Customers::recalcBalance', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1574,6 +1596,7 @@ class Customers extends MY_Controller {
             }
 
         } catch (Exception $e) {
+            notifyError('Customers::applyOnAccountPayment', $e);
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
@@ -1731,6 +1754,7 @@ class Customers extends MY_Controller {
             $this->EndReturnData->Html  = $html;
 
         } catch (Exception $e) {
+            notifyError('Customers::getCustomerProfileTab', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1756,6 +1780,7 @@ class Customers extends MY_Controller {
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Note saved.';
         } catch (Exception $e) {
+            notifyError('Customers::saveCustomerNote', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1801,6 +1826,7 @@ class Customers extends MY_Controller {
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Html  = $html;
         } catch (Exception $e) {
+            notifyError('Customers::getCustomerStatementTab', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1831,6 +1857,7 @@ class Customers extends MY_Controller {
                 );
             }
         } catch (Exception $e) {
+            notifyError('Customers::getGroupTypes', $e);
             $this->EndReturnData->Error = true;
             $this->EndReturnData->Data  = [];
         }
@@ -1845,6 +1872,7 @@ class Customers extends MY_Controller {
             $this->EndReturnData->Error = false;
             $this->EndReturnData->Data  = $this->customers_model->getCustomerTypesFromDB();
         } catch (Exception $e) {
+            notifyError('Customers::getCustomerTypes', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
             $this->EndReturnData->Data    = [];
@@ -1885,6 +1913,7 @@ class Customers extends MY_Controller {
             $_showStats = (int)($this->pageData['JwtData']->GenSettings->ShowStats ?? 1) && (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
             $this->EndReturnData->Stats = $this->customers_model->getGroupStats($this->pageData['JwtData']->Org->OrgUID);
         } catch (Exception $e) {
+            notifyError('Customers::getGroupsData', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1906,6 +1935,7 @@ class Customers extends MY_Controller {
             $this->EndReturnData->Members    = $members;
             $this->EndReturnData->GroupTypes = $this->_groupTypesList();
         } catch (Exception $e) {
+            notifyError('Customers::getGroupForModal', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1990,6 +2020,7 @@ class Customers extends MY_Controller {
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
+            notifyError('Customers::addGroupData', $e);
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
@@ -2012,6 +2043,7 @@ class Customers extends MY_Controller {
             $this->pageData['GroupTypes'] = $this->_groupTypesList();
             $this->load->view('customers/groups/form', $this->pageData);
         } catch (Exception $e) {
+            notifyError('Customers::groupEdit', $e);
             redirect('customers');
         }
     }
@@ -2086,6 +2118,7 @@ class Customers extends MY_Controller {
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
+            notifyError('Customers::updateGroupData', $e);
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
@@ -2130,6 +2163,7 @@ class Customers extends MY_Controller {
             $_showStats = (int)($this->pageData['JwtData']->GenSettings->ShowStats ?? 1) && (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
             $this->EndReturnData->Stats = $this->customers_model->getGroupStats($orgUID);
         } catch (Exception $e) {
+            notifyError('Customers::deleteGroup', $e);
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
@@ -2176,6 +2210,7 @@ class Customers extends MY_Controller {
             $_showStats = (int)($this->pageData['JwtData']->GenSettings->ShowStats ?? 1) && (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
             $this->EndReturnData->Stats = $this->customers_model->getGroupStats($orgUID);
         } catch (Exception $e) {
+            notifyError('Customers::toggleGroupStatus', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -2196,6 +2231,7 @@ class Customers extends MY_Controller {
             $this->EndReturnData->Members  = $this->customers_model->getGroupMembers($orgUID, $groupUID);
             $this->EndReturnData->Overview = $this->customers_model->getGroupOverview($orgUID, $groupUID);
         } catch (Exception $e) {
+            notifyError('Customers::getGroupDetail', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -2210,6 +2246,7 @@ class Customers extends MY_Controller {
             $this->EndReturnData->Error = false;
             $this->EndReturnData->Data  = $this->customers_model->getGroupOutstanding($orgUID, (int)$groupUID);
         } catch (Exception $e) {
+            notifyError('Customers::getGroupOutstanding', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -2239,6 +2276,7 @@ class Customers extends MY_Controller {
             $this->EndReturnData->Error  = false;
             $this->EndReturnData->Groups = $rows ?: [];
         } catch (Exception $e) {
+            notifyError('Customers::getGroupsForDropdown', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -2260,6 +2298,7 @@ class Customers extends MY_Controller {
             $this->EndReturnData->Error       = false;
             $this->EndReturnData->Attachments = $attachments;
         } catch (Exception $e) {
+            notifyError('Customers::getCustomerAttachments', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -2278,6 +2317,7 @@ class Customers extends MY_Controller {
             $this->EndReturnData->Message = count($saved) . ' image(s) saved.';
             $this->EndReturnData->Saved   = $saved;
         } catch (Exception $e) {
+            notifyError('Customers::saveCustomerAttachments', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -2308,6 +2348,7 @@ class Customers extends MY_Controller {
                 ['attachUID' => $attachUID], []
             );
         } catch (Exception $e) {
+            notifyError('Customers::deleteCustomerAttachment', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -2387,6 +2428,7 @@ class Customers extends MY_Controller {
             );
             $this->cachehelper->upsertCustomer($customerUID);
         } catch (Exception $e) {
+            notifyError('Customers::_syncCustomerPrimaryImage', $e);
             log_message('error', '_syncCustomerPrimaryImage failed: ' . $e->getMessage());
         }
     }

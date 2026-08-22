@@ -29,6 +29,7 @@ class Purchases extends MY_Controller {
             ]);
             $this->load->view('transactions/purchases/view', $this->pageData);
         } catch (Exception $e) {
+            notifyError('Purchases::index', $e);
             redirect('dashboard', 'refresh');
         }
     }
@@ -61,6 +62,7 @@ class Purchases extends MY_Controller {
             $this->load->view('transactions/purchases/payments', $this->pageData);
 
         } catch (Exception $e) {
+            notifyError('Purchases::purchasePayments', $e);
             redirect('purchases', 'refresh');
         }
 
@@ -101,6 +103,7 @@ class Purchases extends MY_Controller {
             $this->EndReturnData->Totals         = $this->transactions_model->getPaymentsTotals($orgUID, $filter);
 
         } catch (Exception $e) {
+            notifyError('Purchases::getPurchasePaymentsPageDetails', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -278,6 +281,7 @@ class Purchases extends MY_Controller {
             $this->EndReturnData->Token    = $headerData['TransToken'];
 
         } catch (Exception $e) {
+            notifyError('Purchases::addPurchase', $e);
             if (empty($transCommitted)) {
                 $this->dbwrite_model->rollbackTransaction();
             }
@@ -534,6 +538,7 @@ class Purchases extends MY_Controller {
             }
 
         } catch (Exception $e) {
+            notifyError('Purchases::updatePurchase', $e);
             if (empty($transCommitted)) {
                 $this->dbwrite_model->rollbackTransaction();
             }
@@ -560,13 +565,55 @@ class Purchases extends MY_Controller {
             $transUID = (int) getPostValue($PostData, 'TransUID');
             if ($transUID <= 0) throw new Exception('Purchase bill ID is required.');
 
+            // Point 5: JWT setting as default; POST overrides for 'ask' mode
+            $transSettings       = $this->pageData['JwtData']->TransSettings ?? null;
+            $cancelPaymentAction = $transSettings->PurchaseCancelAction ?? 'ask';
+            $postAction          = trim($this->input->post('CancelPaymentAction') ?? '');
+            if (in_array($postAction, ['debit_note', 'refund'])) {
+                $cancelPaymentAction = $postAction;
+            }
+
             $this->load->model('transactions_model');
             $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
             if (!$existing) throw new Exception('Purchase bill not found.');
 
+            // Point 4: guard — block delete if a debit note credit has already been applied to this purchase
+            $readDb = $this->load->database('ReadDB', TRUE);
+            $readDb->db_debug = FALSE;
+            $debitAppliedCheck = $readDb->query(
+                'SELECT PaymentUID FROM Transaction.PaymentsTbl
+                  WHERE TransUID = ? AND OrgUID = ? AND PaymentTypeUID = 0
+                    AND PartyType = ? AND IsDeleted = 0 AND IsCancelled = 0
+                  LIMIT 1',
+                [$transUID, $orgUID, 'S']
+            )->row();
+            if ($debitAppliedCheck) {
+                throw new Exception(
+                    'A debit note credit has already been applied to this purchase bill. ' .
+                    'Please remove the debit note payment entry first, then delete this bill.'
+                );
+            }
+
+            // Fetch payment total before the DB transaction so we can fix ledger reversal
+            $payments    = $this->transactions_model->getTransactionPayments($transUID, $orgUID);
+            $alreadyPaid = array_sum(array_column((array) $payments, 'Amount'));
+
             $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
 
-            $now = time();
+            // Mark payments before deleting the transaction
+            if ($alreadyPaid > 0 && in_array($cancelPaymentAction, ['debit_note', 'refund'])) {
+                if ($cancelPaymentAction === 'refund') {
+                    $this->dbwrite_model->markVendorPaymentsDeletedForTrans($transUID, $orgUID, $userUID);
+                } else {
+                    // Debit Note: mark payments cancelled and create a vendor debit note credit
+                    $this->dbwrite_model->markVendorPaymentsCancelledForTrans($transUID, $orgUID, $userUID);
+                    $this->load->library('vendorbalance');
+                    $this->vendorbalance->createPurchaseCancelDebitNote(
+                        $orgUID, (int)$existing->PartyUID, $transUID,
+                        (string)($existing->UniqueNumber ?? ''), $alreadyPaid, $userUID
+                    );
+                }
+            }
 
             $this->dbwrite_model->updateData(
                 'Transaction', 'TransProductsTbl',
@@ -589,7 +636,11 @@ class Purchases extends MY_Controller {
             if ($existing->DocStatus !== 'Draft' && $existing->PartyType === 'S' && $existing->PartyUID > 0) {
                 try {
                     $this->load->library('accountledger');
-                    $this->accountledger->applyLedgerEntry($existing->PartyUID, 'Vendor', (float) $existing->NetAmount, 'Debit', $transUID);
+                    // Only reverse the unpaid portion — payments already reduced vendor balance
+                    $remaining = max(0, round((float)$existing->NetAmount - $alreadyPaid, $this->_decimals()));
+                    if ($remaining > 0) {
+                        $this->accountledger->applyLedgerEntry($existing->PartyUID, 'Vendor', $remaining, 'Debit', $transUID);
+                    }
                     $this->accountledger->reverseJournal('Purchase', $transUID, $userUID);
                 } catch (Exception $ledgerEx) {
                     log_message('error', 'Ledger reversal failed after purchase delete: ' . $ledgerEx->getMessage());
@@ -602,12 +653,13 @@ class Purchases extends MY_Controller {
             $this->auditlog->log(
                 (int) $orgUID, (int) $userUID,
                 'DELETE_PURCHASE', 'Purchase', (int) $transUID, (string) ($existing->UniqueNumber ?? ''),
-                [], 'Deleted purchase #' . $transUID, 'Purchases', 'TRANSACTION'
+                ['CancelPaymentAction' => $cancelPaymentAction], 'Deleted purchase #' . $transUID, 'Purchases', 'TRANSACTION'
             );
 
             $this->_buildListResponse('transactions/purchases/list', '/transactions/getPageDetails/105');
 
         } catch (Exception $e) {
+            notifyError('Purchases::deletePurchase', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -672,6 +724,8 @@ class Purchases extends MY_Controller {
                 'TransDate'         => $today,
                 'TransYear'         => (int) date('Y'),
                 'DocType'     => $src->DocType,
+                'TotalQuantity'     => $src->TotalQuantity ?? 0,
+                'TotalItems'        => $src->TotalItems    ?? 0,
                 'GrossAmount'       => $src->GrossAmount,
                 'SubTotal'          => $src->SubTotal,
                 'DiscountAmount'    => $src->DiscountAmount,
@@ -707,7 +761,7 @@ class Purchases extends MY_Controller {
                 'SignatureUID'      => $src->SignatureUID     ?? NULL,
                 'AdditionalCharges' => $src->AdditionalChargesJson ?? NULL,
                 'IsInterState'      => ($src->IgstAmount ?? 0) > 0 ? 1 : (($src->CgstAmount ?? 0) > 0 || ($src->SgstAmount ?? 0) > 0 ? 0 : NULL),
-                'IsForeignCustomer' => NULL,
+                'IsForeignCustomer' => $src->IsForeignVendor ?? NULL,
             ];
             $this->dbwrite_model->insertData('Transaction', 'TransDetailTbl', $detailData);
 
@@ -764,6 +818,7 @@ class Purchases extends MY_Controller {
             $this->EndReturnData->EditURL  = '/purchases/edit/' . $newTransUID;
 
         } catch (Exception $e) {
+            notifyError('Purchases::duplicatePurchase', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -790,9 +845,18 @@ class Purchases extends MY_Controller {
             $validTransitions = [
                 'Draft'     => ['Received'],
                 'Received'  => ['Paid', 'Cancelled'],
-                'Paid'      => [],
+                'Paid'      => ['Cancelled'],
                 'Cancelled' => [],
             ];
+
+            // Point 5: read JWT setting as authoritative default; POST overrides only for 'ask' mode
+            $transSettings       = $this->pageData['JwtData']->TransSettings ?? null;
+            $cancelPaymentAction = $transSettings->PurchaseCancelAction ?? 'ask';
+            $postAction          = trim($this->input->post('CancelPaymentAction') ?? '');
+            if (in_array($postAction, ['debit_note', 'refund'])) {
+                $cancelPaymentAction = $postAction;
+            }
+            $cancelReason = trim($this->input->post('CancelReason') ?? '');
 
             $this->load->model('transactions_model');
             $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
@@ -803,27 +867,60 @@ class Purchases extends MY_Controller {
                 throw new Exception("Cannot change status from {$current} to {$newStatus}.");
             }
 
+            $updateFields = [
+                'DocStatus' => $newStatus,
+                'UpdatedBy' => $userUID,
+                'UpdatedOn' => date('Y-m-d H:i:s'),
+            ];
+            // Point 1 + 2: set IsCancelled flag and persist CancelReason
+            if ($newStatus === 'Cancelled') {
+                $updateFields['IsCancelled']  = 1;
+                $updateFields['CancelReason'] = $cancelReason ?: NULL;
+            }
+
             $this->dbwrite_model->startTransaction();
             $resp = $this->dbwrite_model->updateData(
-                'Transaction', 'TransactionsTbl',
-                ['DocStatus' => $newStatus, 'UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
+                'Transaction', 'TransactionsTbl', $updateFields,
                 ['TransUID' => $transUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
             );
             if ($resp->Error) throw new Exception($resp->Message);
+
+            if ($newStatus === 'Cancelled') {
+                // Point 3: cascade IsCancelled to child records
+                $this->dbwrite_model->cancelTransactionChildRecords($transUID, $userUID);
+                // Point 11: stock reversal inside the transaction (same failure scope as status update)
+                $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
+            }
+
             $this->dbwrite_model->commitTransaction();
 
-            // Post-commit: reverse stock and ledger when cancelling
             if ($newStatus === 'Cancelled') {
-                try {
-                    $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
-                } catch (Exception $stockEx) {
-                    log_message('error', 'Stock reversal failed after purchase cancel #' . $transUID . ': ' . $stockEx->getMessage());
-                }
-
                 if ($existing->DocStatus !== 'Draft' && !empty($existing->PartyUID)) {
+                    // Payment handling — only when a paid amount exists
+                    $payments    = $this->transactions_model->getTransactionPayments($transUID, $orgUID);
+                    $alreadyPaid = array_sum(array_column((array) $payments, 'Amount'));
+
+                    if ($alreadyPaid > 0 && in_array($cancelPaymentAction, ['debit_note', 'refund'])) {
+                        if ($cancelPaymentAction === 'refund') {
+                            $this->dbwrite_model->markVendorPaymentsDeletedForTrans($transUID, $orgUID, $userUID);
+                        } else {
+                            // Debit Note: mark payments cancelled and create a vendor debit note credit
+                            $this->dbwrite_model->markVendorPaymentsCancelledForTrans($transUID, $orgUID, $userUID);
+                            $this->load->library('vendorbalance');
+                            $this->vendorbalance->createPurchaseCancelDebitNote(
+                                $orgUID, (int)$existing->PartyUID, $transUID,
+                                (string)($existing->UniqueNumber ?? ''), $alreadyPaid, $userUID
+                            );
+                        }
+                    }
+
                     try {
                         $this->load->library('accountledger');
-                        $this->accountledger->applyLedgerEntry($existing->PartyUID, 'Vendor', (float) $existing->NetAmount, 'Debit', $transUID);
+                        // Reverse only the unpaid portion — payments already reduced vendor balance
+                        $remaining = max(0, round((float)$existing->NetAmount - $alreadyPaid, $this->_decimals()));
+                        if ($remaining > 0) {
+                            $this->accountledger->applyLedgerEntry($existing->PartyUID, 'Vendor', $remaining, 'Debit', $transUID);
+                        }
                         $this->accountledger->reverseJournal('Purchase', $transUID, $userUID);
                     } catch (Exception $ledgerEx) {
                         log_message('error', 'Ledger reversal failed after purchase cancel #' . $transUID . ': ' . $ledgerEx->getMessage());
@@ -846,14 +943,20 @@ class Purchases extends MY_Controller {
 
             $this->EndReturnData->Error     = FALSE;
             $this->EndReturnData->Message   = $msg;
+            if ($cancelPaymentAction === 'debit_note') {
+                $payments    = $payments ?? $this->transactions_model->getTransactionPayments($transUID, $orgUID);
+                $this->EndReturnData->DebitNoteAmount = array_sum(array_column((array) $payments, 'Amount'));
+            }
             $this->auditlog->log(
                 (int) $orgUID, (int) $userUID,
                 'UPDATE_PURCHASE_STATUS', 'Purchase', (int) $transUID, (string) ($existing->UniqueNumber ?? ''),
-                ['NewStatus' => $newStatus], 'Updated purchase status #' . $transUID, 'Purchases', 'TRANSACTION'
+                ['NewStatus' => $newStatus, 'CancelPaymentAction' => $cancelPaymentAction, 'CancelReason' => $cancelReason],
+                'Updated purchase status #' . $transUID . ($cancelReason ? ' — ' . $cancelReason : ''), 'Purchases', 'TRANSACTION'
             );
             $this->EndReturnData->NewStatus = $newStatus;
 
         } catch (Exception $e) {
+            notifyError('Purchases::updatePurchaseStatus', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -910,6 +1013,7 @@ class Purchases extends MY_Controller {
             $this->load->view('transactions/purchases/forms/form', $this->pageData);
 
         } catch (Exception $e) {
+            notifyError('Purchases::create', $e);
             redirect('purchases', 'refresh');
         }
 
@@ -966,6 +1070,7 @@ class Purchases extends MY_Controller {
             $this->load->view('transactions/purchases/forms/form', $this->pageData);
 
         } catch (Exception $e) {
+            notifyError('Purchases::edit', $e);
             redirect('purchases', 'refresh');
         }
 
@@ -1149,6 +1254,7 @@ class Purchases extends MY_Controller {
             $this->_buildPaymentListResponse('transactions/purchases/list', '/transactions/getPageDetails/105');
 
         } catch (Exception $e) {
+            notifyError('Purchases::recordPurchasePayment', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -1156,6 +1262,344 @@ class Purchases extends MY_Controller {
 
         $this->globalservice->sendJsonResponse($this->EndReturnData);
 
+    }
+
+    public function getVendorDebitNotes(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $vendorUID = (int)($this->input->get('VendorUID') ?: $this->input->post('VendorUID'));
+            $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
+            if ($vendorUID <= 0) throw new Exception('Invalid vendor.');
+
+            $this->load->model('transactions_model');
+            $rows = $this->transactions_model->getVendorAvailableDebitNotes($orgUID, $vendorUID);
+
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Data  = $rows;
+        } catch (Exception $e) {
+            notifyError('Purchases::getVendorDebitNotes', $e);
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function applyDebitNote(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $this->load->model('dbwrite_model');
+            $this->load->model('transactions_model');
+
+            $PostData      = $this->input->post();
+            $userUID       = $this->pageData['JwtData']->User->UserUID;
+            $orgUID        = $this->pageData['JwtData']->Org->OrgUID;
+            $transUID      = (int)   getPostValue($PostData, 'TransUID');
+            $debitNoteUID  = (int)   getPostValue($PostData, 'DebitNoteUID');
+            $amount        = (float) getPostValue($PostData, 'Amount', 'Array', 0);
+            $notes         = getPostValue($PostData, 'Notes') ?: NULL;
+
+            if ($transUID     <= 0) throw new Exception('Invalid purchase.');
+            if ($debitNoteUID <= 0) throw new Exception('Invalid debit note.');
+            if ($amount       <= 0) throw new Exception('Amount must be greater than 0.');
+
+            $purchase = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
+            if (!$purchase) throw new Exception('Purchase not found.');
+            if (in_array($purchase->DocStatus, ['Draft', 'Cancelled', 'Rejected'])) {
+                throw new Exception('Cannot apply debit to this purchase.');
+            }
+
+            // Load the debit note row
+            $debitNote = $this->transactions_model->getVendorDebitNote($debitNoteUID, $orgUID);
+            if (!$debitNote) throw new Exception('Debit note not found.');
+            if ($debitNote->Status !== 'Pending') throw new Exception('This debit note has already been fully applied.');
+            if ((int)$debitNote->PartyUID !== (int)$purchase->PartyUID) {
+                throw new Exception('Debit note does not belong to the same vendor as this purchase.');
+            }
+
+            $dnBalance    = (float)$debitNote->Amount;
+            $purchPaid    = (float)($purchase->PaidAmount ?? 0);
+            $purchBalance = max(0, round((float)$purchase->NetAmount - $purchPaid, $this->_decimals()));
+
+            if ($purchBalance <= 0) throw new Exception('Purchase has no pending balance.');
+            if ($dnBalance    <= 0) throw new Exception('Debit note has no remaining balance.');
+
+            $maxAmount = min($dnBalance, $purchBalance);
+            if ($amount > $maxAmount + 0.01) {
+                throw new Exception('Amount exceeds available debit (' . number_format($maxAmount, 2) . ').');
+            }
+            $amount = min($amount, $maxAmount);
+
+            $this->dbwrite_model->startTransaction();
+
+            // Lock purchase row to prevent concurrent payment race
+            $this->dbwrite_model->lockTransactionRow($transUID, $orgUID);
+
+            // Generate payment number
+            $today         = date('Y-m-d');
+            $payTransYear  = (int)date('Y');
+            $payPrefixData = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.OrgUID' => $orgUID, 'Prefix.ModuleUID' => 111]);
+            $payPrefix     = !empty($payPrefixData->Data) ? $payPrefixData->Data[0] : null;
+            $payPrefixUID  = $payPrefix ? (int)$payPrefix->PrefixUID : null;
+            $paymentNumber = $payPrefixUID ? $this->transactions_model->getNextPaymentNumber($payPrefixUID, $orgUID, $payTransYear) : 0;
+            $payUniqueNum  = ($payPrefix && $paymentNumber > 0) ? $this->_buildPaymentUniqueNumber($payPrefix, $today, $paymentNumber) : null;
+            $receiptToken  = $this->transactions_model->_generateReceiptToken();
+
+            // Insert PaymentsTbl row — PaymentTypeUID=0 = debit adjustment
+            $paymentData = [
+                'OrgUID'           => $orgUID,
+                'PaymentDate'      => $today,
+                'PaymentModuleUID' => 111,
+                'PrefixUID'        => $payPrefixUID,
+                'PaymentNumber'    => $paymentNumber,
+                'UniqueNumber'     => $payUniqueNum,
+                'ReceiptToken'     => $receiptToken,
+                'TransYear'        => $payTransYear,
+                'TransUID'         => $transUID,
+                'ModuleUID'        => 105,
+                'PartyType'        => 'S',
+                'PartyUID'         => $purchase->PartyUID,
+                'PaymentTypeUID'   => 0,
+                'Amount'           => $amount,
+                'BankAccountUID'   => NULL,
+                'ReferenceNo'      => $debitNote->SourceTransNumber,
+                'Notes'            => $notes,
+                'PaymentSource'    => 'Record',
+                'PaymentDirection' => 'Out',
+                'IsFullyPaid'      => 0,
+                'ExcessAmount'     => 0,
+                'IsActive'         => 1,
+                'IsDeleted'        => 0,
+                'CreatedBy'        => $userUID,
+                'UpdatedBy'        => $userUID,
+            ];
+            $resp = $this->dbwrite_model->insertData('Transaction', 'PaymentsTbl', $paymentData);
+            if ($resp->Error) throw new Exception($resp->Message);
+
+            // Update purchase paid/balance/status
+            $newPurchPaid    = round($purchPaid + $amount, $this->_decimals());
+            $newPurchBalance = max(0, round((float)$purchase->NetAmount - $newPurchPaid, $this->_decimals()));
+            $purchFullyPaid  = ($purchase->NetAmount > 0 && $newPurchBalance <= 0) ? 1 : 0;
+            $purchNewStatus  = $purchFullyPaid ? 'Paid' : 'Partial';
+            $this->dbwrite_model->updateTransIsFullyPaid($transUID, $purchFullyPaid, $newPurchPaid, $newPurchBalance, $userUID);
+            $this->dbwrite_model->updateTransDocStatus($transUID, $orgUID, $purchNewStatus, $userUID);
+
+            // Reduce debit note balance; mark Applied when fully consumed
+            $newDnBalance = round($dnBalance - $amount, $this->_decimals());
+            $newDnStatus  = $newDnBalance <= 0 ? 'Applied' : 'Pending';
+            $this->dbwrite_model->updateData(
+                'Transaction', 'TransDebitNoteTbl',
+                ['Amount' => max(0, $newDnBalance), 'Status' => $newDnStatus, 'UpdatedBy' => $userUID],
+                ['TransDebitNoteUID' => $debitNoteUID, 'OrgUID' => $orgUID]
+            );
+
+            $this->dbwrite_model->commitTransaction();
+
+            $this->_recalcVendorBalance($orgUID, $purchase->PartyUID, $userUID);
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Debit note credit of ' . number_format($amount, 2) . ' applied to purchase ' . ($purchase->UniqueNumber ?? '#' . $transUID) . '.';
+            $this->EndReturnData->IsFullyPaid = $purchFullyPaid;
+            $this->auditlog->log(
+                (int)$orgUID, (int)$userUID,
+                'APPLY_DEBIT_NOTE', 'Purchase', (int)$transUID, (string)($purchase->UniqueNumber ?? ''),
+                ['DebitNoteUID' => $debitNoteUID, 'Amount' => $amount],
+                'Applied debit note #' . $debitNoteUID . ' to purchase ' . ($purchase->UniqueNumber ?? ''), 'Purchases', 'PAYMENT'
+            );
+
+            $this->_buildPaymentListResponse('transactions/purchases/list', '/transactions/getPageDetails/105');
+
+        } catch (Exception $e) {
+            notifyError('Purchases::applyDebitNote', $e);
+            if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    // ── Debit Note: refund (vendor pays back in cash) ──────────────────────────
+    public function refundDebitNote(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID       = $this->pageData['JwtData']->Org->OrgUID;
+            $userUID      = $this->pageData['JwtData']->User->UserUID;
+            $debitNoteUID = (int)$this->input->post('DebitNoteUID');
+            if ($debitNoteUID <= 0) throw new Exception('Debit note ID is required.');
+
+            $readDb = $this->load->database('ReadDB', TRUE);
+            $readDb->db_debug = FALSE;
+            $readDb->from('Transaction.TransDebitNoteTbl');
+            $readDb->where(['TransDebitNoteUID' => $debitNoteUID, 'OrgUID' => (int)$orgUID, 'IsDeleted' => 0, 'IsCancelled' => 0]);
+            $dn = $readDb->get()->row();
+            if (!$dn) throw new Exception('Debit note not found.');
+            if ($dn->Status !== 'Pending') throw new Exception('Only Pending debit notes can be refunded. This one is ' . $dn->Status . '.');
+
+            $this->load->model('dbwrite_model');
+            $this->dbwrite_model->startTransaction();
+            $wdb = $this->dbwrite_model->getWriteDb();
+            $wdb->db_debug = FALSE;
+            $wdb->where(['TransDebitNoteUID' => $debitNoteUID, 'OrgUID' => (int)$orgUID]);
+            $wdb->update('Transaction.TransDebitNoteTbl', ['Status' => 'Refunded', 'UpdatedBy' => $userUID]);
+            $this->dbwrite_model->commitTransaction();
+
+            $this->load->library('vendorbalance');
+            $this->vendorbalance->recalcAndSync($orgUID, (int)$dn->PartyUID, $userUID);
+
+            $this->auditlog->log($orgUID, $userUID, 'REFUND_DEBIT_NOTE', 'DebitNote', $debitNoteUID,
+                $dn->SourceTransNumber ?? '', [], 'Refunded debit note #' . $debitNoteUID, 'Purchases', 'TRANSACTION');
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Debit note marked as refunded.';
+        } catch (Exception $e) {
+            notifyError('Purchases::refundDebitNote', $e);
+            if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    // ── Debit Note: delete a Pending note ──────────────────────────────────────
+    public function deleteDebitNote(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID       = $this->pageData['JwtData']->Org->OrgUID;
+            $userUID      = $this->pageData['JwtData']->User->UserUID;
+            $debitNoteUID = (int)$this->input->post('DebitNoteUID');
+            if ($debitNoteUID <= 0) throw new Exception('Debit note ID is required.');
+
+            $readDb = $this->load->database('ReadDB', TRUE);
+            $readDb->db_debug = FALSE;
+            $readDb->from('Transaction.TransDebitNoteTbl');
+            $readDb->where(['TransDebitNoteUID' => $debitNoteUID, 'OrgUID' => (int)$orgUID, 'IsDeleted' => 0]);
+            $dn = $readDb->get()->row();
+            if (!$dn) throw new Exception('Debit note not found.');
+            if ($dn->Status !== 'Pending') throw new Exception('Only Pending debit notes can be deleted. This one is ' . $dn->Status . '.');
+
+            $this->load->model('dbwrite_model');
+            $this->dbwrite_model->startTransaction();
+            $wdb = $this->dbwrite_model->getWriteDb();
+            $wdb->db_debug = FALSE;
+            $wdb->where(['TransDebitNoteUID' => $debitNoteUID, 'OrgUID' => (int)$orgUID]);
+            $wdb->update('Transaction.TransDebitNoteTbl', ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID]);
+            $this->dbwrite_model->commitTransaction();
+
+            $this->load->library('vendorbalance');
+            $this->vendorbalance->recalcAndSync($orgUID, (int)$dn->PartyUID, $userUID);
+
+            $this->auditlog->log($orgUID, $userUID, 'DELETE_DEBIT_NOTE', 'DebitNote', $debitNoteUID,
+                $dn->SourceTransNumber ?? '', [], 'Deleted debit note #' . $debitNoteUID, 'Purchases', 'TRANSACTION');
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Debit note deleted successfully.';
+        } catch (Exception $e) {
+            notifyError('Purchases::deleteDebitNote', $e);
+            if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    // ── Debit Notes: paginated list for the Debit Notes tab ────────────────────
+    public function getDebitNotesList(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
+            $pageNo  = max(1, (int)($this->input->post('PageNo')   ?: 1));
+            $limit   = max(1, (int)($this->input->post('RowLimit') ?: 10));
+            $offset  = ($pageNo - 1) * $limit;
+            $status  = trim($this->input->post('Status') ?: '');
+            $search  = trim($this->input->post('Search') ?: '');
+
+            $readDb = $this->load->database('ReadDB', TRUE);
+            $readDb->db_debug = FALSE;
+
+            $baseWhere = ['DN.OrgUID' => (int)$orgUID, 'DN.PartyType' => 'S', 'DN.IsDeleted' => 0, 'DN.IsCancelled' => 0];
+            if ($status !== '' && $status !== 'All') $baseWhere['DN.Status'] = $status;
+
+            // Count
+            $readDb->select('COUNT(*) AS total');
+            $readDb->from('Transaction.TransDebitNoteTbl DN');
+            $readDb->join('Vendors.VendorTbl V', 'V.VendorUID = DN.PartyUID', 'left');
+            $readDb->where($baseWhere);
+            if ($search !== '') {
+                $readDb->group_start();
+                $readDb->like('DN.SourceTransNumber', $search);
+                $readDb->or_like('V.Name', $search);
+                $readDb->group_end();
+            }
+            $totalCount = (int)($readDb->get()->row()->total ?? 0);
+
+            // Data
+            $readDb->select([
+                'DN.TransDebitNoteUID', 'DN.SourceTransUID', 'DN.SourceTransNumber',
+                'DN.SourceModuleUID', 'DN.Amount', 'DN.Status', 'DN.Notes', 'DN.CreatedOn',
+                'V.VendorUID', 'V.Name AS VendorName', 'V.Image AS VendorImage',
+                "CONCAT(U.FirstName, ' ', U.LastName) AS CreatorName",
+            ]);
+            $readDb->from('Transaction.TransDebitNoteTbl DN');
+            $readDb->join('Vendors.VendorTbl V', 'V.VendorUID = DN.PartyUID', 'left');
+            $readDb->join('Users.UserTbl U',     'U.UserUID = DN.CreatedBy',  'left');
+            $readDb->where($baseWhere);
+            if ($search !== '') {
+                $readDb->group_start();
+                $readDb->like('DN.SourceTransNumber', $search);
+                $readDb->or_like('V.Name', $search);
+                $readDb->group_end();
+            }
+            $readDb->order_by('DN.TransDebitNoteUID', 'DESC');
+            $readDb->limit($limit, $offset);
+            $rows = $readDb->get()->result();
+
+            $cur = $this->pageData['JwtData']->GenSettings->CurrenySymbol  ?? '₹';
+            $dec = (int)($this->pageData['JwtData']->GenSettings->DecimalPoints ?? 2);
+            $dtFmt = $this->pageData['JwtData']->GenSettings->ListDateFormat ?? 'd M Y';
+
+            $html = '';
+            if (empty($rows)) {
+                $html = '<tr><td colspan="6" class="text-center text-muted py-4">No debit notes found.</td></tr>';
+            } else {
+                foreach ($rows as $i => $dn) {
+                    $statusBadge = match($dn->Status) {
+                        'Pending'  => '<span class="badge bg-label-warning">Pending</span>',
+                        'Applied'  => '<span class="badge bg-label-success">Applied</span>',
+                        'Refunded' => '<span class="badge bg-label-info">Refunded</span>',
+                        default    => '<span class="badge bg-label-secondary">' . htmlspecialchars($dn->Status) . '</span>',
+                    };
+                    $canDelete  = $dn->Status === 'Pending';
+                    $canRefund  = $dn->Status === 'Pending';
+                    $sourceLink = $dn->SourceTransUID
+                        ? '<a href="/purchases/view/' . (int)$dn->SourceTransUID . '" class="text-primary fw-semibold">' . htmlspecialchars($dn->SourceTransNumber ?? '—') . '</a>'
+                        : htmlspecialchars($dn->SourceTransNumber ?? '—');
+
+                    $html .= '<tr>'
+                        . '<td class="text-muted small">' . ($offset + $i + 1) . '</td>'
+                        . '<td>' . $sourceLink . '<div class="text-muted small">' . htmlspecialchars($dn->VendorName ?? '—') . '</div></td>'
+                        . '<td>' . $statusBadge . '</td>'
+                        . '<td class="fw-semibold text-success">' . htmlspecialchars($cur) . ' ' . number_format((float)$dn->Amount, $dec) . '</td>'
+                        . '<td class="text-muted small">' . date($dtFmt, strtotime($dn->CreatedOn)) . '<br><span>' . htmlspecialchars($dn->CreatorName ?? '—') . '</span></td>'
+                        . '<td>'
+                            . ($canRefund ? '<button class="btn btn-sm btn-outline-info me-1 dnRefundBtn" data-uid="' . (int)$dn->TransDebitNoteUID . '" data-num="' . htmlspecialchars($dn->SourceTransNumber ?? '') . '" data-bs-toggle="tooltip" data-bs-placement="top" title="Mark as Refunded"><i class="bx bx-money"></i></button>' : '')
+                            . ($canDelete ? '<button class="btn btn-sm btn-outline-danger dnDeleteBtn" data-uid="' . (int)$dn->TransDebitNoteUID . '" data-num="' . htmlspecialchars($dn->SourceTransNumber ?? '') . '" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete"><i class="bx bx-trash"></i></button>' : '')
+                        . '</td>'
+                        . '</tr>';
+                }
+            }
+
+            $this->EndReturnData->Error          = FALSE;
+            $this->EndReturnData->TotalCount     = $totalCount;
+            $this->EndReturnData->RecordHtmlData = $html;
+            $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml(
+                '/purchases/getDebitNotesList', $totalCount, $pageNo, $limit
+            );
+
+        } catch (Exception $e) {
+            notifyError('Purchases::getDebitNotesList', $e);
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
     public function getPaymentAttachments() {
@@ -1185,6 +1629,7 @@ class Purchases extends MY_Controller {
             $this->EndReturnData->Attachments = $attachments;
 
         } catch (Exception $e) {
+            notifyError('Purchases::getPaymentAttachments', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }

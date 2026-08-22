@@ -38,6 +38,7 @@ class Quotations extends MY_Controller {
             ]);
             $this->load->view('transactions/quotations/view', $this->pageData);
         } catch (Exception $e) {
+            notifyError('Quotations::index', $e);
             log_message('error', '[Quotations::index] ' . $e->getMessage() . ' | ' . $e->getFile() . ':' . $e->getLine());
             redirect('dashboard', 'refresh');
         }
@@ -137,6 +138,7 @@ class Quotations extends MY_Controller {
                 throw $e;
             }
         } catch (Exception $e) {
+            notifyError('Quotations::addQuotation', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -307,6 +309,7 @@ class Quotations extends MY_Controller {
             );
 
         } catch (Exception $e) {
+            notifyError('Quotations::updateQuotation', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -370,6 +373,7 @@ class Quotations extends MY_Controller {
             $this->_buildListResponse('transactions/quotations/list', '/transactions/getPageDetails/101');
 
         } catch (Exception $e) {
+            notifyError('Quotations::deleteQuotation', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -403,6 +407,7 @@ class Quotations extends MY_Controller {
             $this->EndReturnData->RedirectURL = $redirectURL;
 
         } catch (Exception $e) {
+            notifyError('Quotations::convertQuotationToInvoice', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -475,6 +480,7 @@ class Quotations extends MY_Controller {
             $this->EndReturnData->NewStatus = $newStatus;
 
         } catch (Exception $e) {
+            notifyError('Quotations::updateQuotationStatus', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -538,6 +544,7 @@ class Quotations extends MY_Controller {
             $this->load->view('transactions/quotations/forms/form', $this->pageData);
 
         } catch (Exception $e) {
+            notifyError('Quotations::create', $e);
             redirect('dashboard', 'refresh');
         }
 
@@ -609,6 +616,7 @@ class Quotations extends MY_Controller {
             $this->load->view('transactions/quotations/forms/form', $this->pageData);
 
         } catch (Exception $e) {
+            notifyError('Quotations::edit', $e);
             redirect('quotations', 'refresh');
         }
 

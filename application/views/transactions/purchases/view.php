@@ -103,6 +103,7 @@ $this->load->view('common/transactions/header'); ?>
                                 <li class="nav-item"><a class="nav-link<?php echo $initTab === 'Paid' ? ' active' : ''; ?> purch-status-tab" data-status="Paid" data-url-tab="paid" href="javascript:void(0);">Paid <span class="trans-tab-count ms-1<?php echo ($initTab !== 'Paid' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'Paid' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
                                 <li class="nav-item"><a class="nav-link<?php echo $initTab === 'Cancelled' ? ' active' : ''; ?> purch-status-tab" data-status="Cancelled" data-url-tab="cancelled" href="javascript:void(0);">Cancelled <span class="trans-tab-count ms-1<?php echo ($initTab !== 'Cancelled' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'Cancelled' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
                                 <li class="nav-item"><a class="nav-link<?php echo $initTab === 'Draft' ? ' active' : ''; ?> purch-status-tab" data-status="Draft" data-url-tab="draft" href="javascript:void(0);">Drafts <span class="trans-tab-count ms-1<?php echo ($initTab !== 'Draft' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'Draft' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link<?php echo $initTab === 'DebitNotes' ? ' active' : ''; ?>" id="purchDnTab" href="javascript:void(0);"><i class="bx bx-transfer me-1 text-warning"></i>Debit Notes</a></li>
                             </ul>
                             <?php $this->load->view('common/transactions/filter_notice'); ?>
                         </div>
@@ -115,7 +116,7 @@ $this->load->view('common/transactions/header'); ?>
                         </div>
 
                         <!-- Table -->
-                        <div class="table-responsive">
+                        <div class="table-responsive" id="purchTableWrap">
                             <table class="table trans-table table-hover MainviewTable mb-0" id="purchTable">
                                 <thead class="r2k-thead">
                                     <tr>
@@ -149,6 +150,35 @@ $this->load->view('common/transactions/header'); ?>
                             <?php echo $ModPagination ?: ''; ?>
                         </div>
 
+                        <!-- ── Debit Notes section (hidden until tab clicked) ── -->
+                        <div id="purchDnSection" class="d-none px-3 pb-3">
+                            <div class="d-flex align-items-center justify-content-between mb-2 mt-2">
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-sm btn-outline-secondary dn-status-btn active" data-status="All">All</button>
+                                    <button class="btn btn-sm btn-outline-warning dn-status-btn" data-status="Pending">Pending</button>
+                                    <button class="btn btn-sm btn-outline-success dn-status-btn" data-status="Applied">Applied</button>
+                                    <button class="btn btn-sm btn-outline-info dn-status-btn" data-status="Refunded">Refunded</button>
+                                </div>
+                                <input type="text" class="form-control form-control-sm dn-search-input" id="dnSearch" placeholder="Search bill # or vendor…">
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-hover table-sm mb-0">
+                                    <thead class="r2k-thead"><tr>
+                                        <th style="width:36px">#</th>
+                                        <th>Source Bill / Vendor</th>
+                                        <th>Status</th>
+                                        <th>Amount</th>
+                                        <th>Created</th>
+                                        <th style="width:80px"></th>
+                                    </tr></thead>
+                                    <tbody id="purchDnTableBody">
+                                        <tr><td colspan="6" class="text-center text-muted py-4">Loading…</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div id="purchDnPagination" class="mt-2"></div>
+                        </div>
+
                     </div>
 
                     <?php $this->load->view('common/transactions/print_modals'); ?>
@@ -169,6 +199,82 @@ $this->load->view('common/transactions/header'); ?>
             ?>
 
             <?php $this->load->view('common/modals/send_communication'); ?>
+
+            <!-- ── Apply Debit Note Modal ─────────────────────── -->
+            <div class="modal fade" id="applyDebitNoteModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header" style="background:#fff7e6;border-bottom:2px solid #f59e0b;">
+                            <h5 class="modal-title fw-semibold" style="color:#92400e;">
+                                <i class="bx bx-transfer me-2" style="color:#f59e0b;"></i>Apply Debit Note Credit
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <!-- Bill info strip -->
+                            <div class="d-flex gap-3 mb-3 p-3 rounded" style="background:#fef9f0;">
+                                <div class="flex-grow-1">
+                                    <div class="text-muted small">Purchase Bill</div>
+                                    <div class="fw-semibold" id="adnBillNum">—</div>
+                                </div>
+                                <div>
+                                    <div class="text-muted small">Vendor</div>
+                                    <div class="fw-semibold" id="adnVendorName">—</div>
+                                </div>
+                                <div class="text-end">
+                                    <div class="text-muted small">Balance Due</div>
+                                    <div class="fw-bold text-danger" id="adnBalanceDisplay">—</div>
+                                </div>
+                            </div>
+
+                            <!-- Loading state -->
+                            <div id="adnLoadingState" class="text-center py-3 d-none">
+                                <div class="spinner-border spinner-border-sm text-warning me-2"></div>
+                                <span class="text-muted">Checking available debit notes…</span>
+                            </div>
+
+                            <!-- Empty state -->
+                            <div id="adnEmptyState" class="d-none text-center py-4">
+                                <i class="bx bx-transfer-alt" style="font-size:2rem;color:#d1d5db;"></i>
+                                <div class="text-muted mt-2">No debit note credits available for this vendor.</div>
+                                <div class="small text-muted mt-1">Debit notes are created when a paid purchase is cancelled with the "Debit Note" option.</div>
+                            </div>
+
+                            <!-- Debit note selection -->
+                            <div id="adnSelectState" class="d-none">
+                                <label class="form-label fw-semibold mb-2">Select Debit Note Credit</label>
+                                <div id="adnNotesList" class="mb-3"></div>
+
+                                <div class="row g-2">
+                                    <div class="col-12">
+                                        <label class="form-label small text-muted mb-1">Amount to Apply</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text" id="adnCurrSymbol"><?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?></span>
+                                            <input type="number" class="form-control" id="adnAmount" min="0.01" step="0.01" placeholder="0.00">
+                                        </div>
+                                        <div class="small text-muted mt-1">Max: <span id="adnMaxLabel">0.00</span></div>
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label small text-muted mb-1">Notes (optional)</label>
+                                        <textarea class="form-control form-control-sm" id="adnNotes" rows="2" placeholder="Reference or note…"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <input type="hidden" id="adnTransUID">
+                            <input type="hidden" id="adnVendorUID">
+                            <input type="hidden" id="adnSelectedDebitNoteUID">
+                            <input type="hidden" id="adnPurchasePending">
+                        </div>
+                        <div class="modal-footer" id="adnFooter" style="display:none!important;">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-warning btn-sm fw-semibold" id="btnApplyDebitNote">
+                                <i class="bx bx-check me-1"></i> Apply Credit
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <?php $this->load->view('common/footer_desc'); ?>
 
@@ -447,6 +553,57 @@ $(function () {
         if (match) { PageNo = parseInt(match[1]); _purchClearSelectAll(); getPurchasesDetails(); }
     });
 
+    // ── Purchase cancel-action setting (mirrors InvoiceCancelAction) ────────
+    var _purchCancelSetting = '<?php echo addslashes($JwtData->TransSettings->PurchaseCancelAction ?? 'ask'); ?>';
+
+    var _purchCancelActionMeta = {
+        debit_note : {
+            label: 'Convert to Debit Note',
+            desc : 'The paid amount will be raised as a <strong>Debit Note</strong> against this vendor. It will sit on their account and can be offset against your next purchase from them.'
+        },
+        refund : {
+            label: 'Mark as Refund',
+            desc : 'The paid amount will be marked as a <strong>Refund</strong> due from this vendor. The actual cash or bank transfer must be arranged separately.'
+        }
+    };
+
+    /**
+     * @param {string} defaultAction
+     * @returns {string}
+     */
+    function _buildPurchPaymentActionHtml(defaultAction) {
+        var isAsk = (defaultAction === 'ask');
+        var html  = '';
+        if (isAsk) {
+            html += '<div class="mt-3 text-start">';
+            html += '<label class="form-label fw-semibold small mb-1">Select action for the paid amount:</label>';
+            html += '<select class="form-select form-select-sm" id="swalPurchCancelAction">';
+            html += '<option value="">— Choose an action —</option>';
+            $.each(_purchCancelActionMeta, function (val, m) {
+                html += '<option value="' + val + '">' + m.label + '</option>';
+            });
+            html += '</select>';
+            html += '<div id="swalPurchCancelDesc" class="text-muted small mt-2 p-2 rounded" style="background:#f8f9fa;min-height:36px;"></div>';
+            html += '</div>';
+        } else {
+            var meta = _purchCancelActionMeta[defaultAction] || {};
+            html += '<div class="mt-3 text-start" id="swalPurchPresetWrap">';
+            html += '<div class="p-2 rounded small" style="background:#f0f4ff;border-left:3px solid #696cff;">' + (meta.desc || '') + '</div>';
+            html += '<a href="javascript:void(0)" class="small text-primary mt-2 d-inline-block" id="swalPurchChangeAction">&#9998; Click here to change</a>';
+            html += '</div>';
+            html += '<div class="mt-2 text-start d-none" id="swalPurchChangeWrap">';
+            html += '<label class="form-label fw-semibold small mb-1">Select a different action:</label>';
+            html += '<select class="form-select form-select-sm" id="swalPurchCancelAction">';
+            $.each(_purchCancelActionMeta, function (val, m) {
+                html += '<option value="' + val + '"' + (val === defaultAction ? ' selected' : '') + '>' + m.label + '</option>';
+            });
+            html += '</select>';
+            html += '<div id="swalPurchCancelDesc" class="text-muted small mt-2 p-2 rounded" style="background:#f8f9fa;">' + (meta.desc || '') + '</div>';
+            html += '</div>';
+        }
+        return html;
+    }
+
     // ── Delete ──────────────────────────────────────────────────
     function _actionPostData(extra) {
         Filter.Status = $('.purch-status-tab.active').data('status') || 'All';
@@ -463,20 +620,70 @@ $(function () {
     }
 
     $(document).on('click', '.deletePurchase', function () {
-        var uid = $(this).data('uid');
-        var num = $(this).data('num') || '';
+        var uid          = $(this).data('uid');
+        var num          = $(this).data('num') || '';
+        var paidAmt      = parseFloat($(this).data('paid') || 0);
+        var debitApplied = $(this).data('debit-applied') == '1';
+        var hasPaid      = paidAmt > 0;
+
+        // Guard: debit note already applied — block and explain
+        if (debitApplied) {
+            Swal.fire({
+                icon : 'warning',
+                title: 'Cannot Delete',
+                text : 'A debit note credit has been applied to this purchase bill. Remove the debit note payment entry first, then delete this bill.',
+            });
+            return;
+        }
+
+        var baseHtml = num ? 'Delete <strong>' + num + '</strong>? This cannot be undone.' : 'This cannot be undone.';
+        if (hasPaid) {
+            baseHtml += '<div class="mt-2 text-muted small">Paid amount: <strong>&#8377;' +
+                paidAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 }) + '</strong></div>';
+            baseHtml += _buildPurchPaymentActionHtml(_purchCancelSetting);
+        }
+
         Swal.fire({
             title: 'Delete Purchase Bill?',
-            html : num ? 'Delete <strong>' + num + '</strong>? This cannot be undone.' : 'This cannot be undone.',
+            html : baseHtml,
             icon : 'warning', showCancelButton: true,
             confirmButtonText: 'Delete', confirmButtonColor: '#d33',
+            didOpen: function () {
+                $(document).on('change', '#swalPurchCancelAction', function () {
+                    var val = $(this).val();
+                    $('#swalPurchCancelDesc').html(val && _purchCancelActionMeta[val] ? _purchCancelActionMeta[val].desc : '');
+                });
+                $(document).on('click', '#swalPurchChangeAction', function () {
+                    $('#swalPurchPresetWrap').addClass('d-none');
+                    $('#swalPurchChangeWrap').removeClass('d-none');
+                });
+            },
+            willClose: function () {
+                $(document).off('change', '#swalPurchCancelAction');
+                $(document).off('click', '#swalPurchChangeAction');
+            }
         }).then(function (r) {
             if (!r.isConfirmed) return;
+
+            var cancelPaymentAction = '';
+            if (hasPaid) {
+                var chosen = $('#swalPurchCancelAction').val();
+                if (_purchCancelSetting === 'ask') {
+                    cancelPaymentAction = chosen || '';
+                    if (!cancelPaymentAction) {
+                        Swal.fire({ icon: 'warning', text: 'Please select an action for the paid amount.' });
+                        return;
+                    }
+                } else {
+                    cancelPaymentAction = chosen || _purchCancelSetting;
+                }
+            }
+
             ajaxLoading(1);
             $.ajax({
                 url   : '/purchases/deletePurchase',
                 method: 'POST',
-                data  : _actionPostData({ TransUID: uid }),
+                data  : _actionPostData({ TransUID: uid, CancelPaymentAction: cancelPaymentAction }),
                 success: function (resp) {
                     ajaxLoading(0);
                     hideUIBlock();
@@ -496,26 +703,93 @@ $(function () {
 
     // ── Cancel ──────────────────────────────────────────────────
     $(document).on('click', '.purch-status-update', function () {
-        var uid    = $(this).data('uid');
-        var num    = $(this).data('num') || '';
-        var status = $(this).data('status') || 'Cancelled';
+        var uid          = $(this).data('uid');
+        var num          = $(this).data('num') || '';
+        var status       = $(this).data('status') || 'Cancelled';
+        var paidAmt      = parseFloat($(this).data('paid') || 0);
+        var debitApplied = $(this).data('debit-applied') == '1';
+        var hasPaid      = paidAmt > 0;
+
+        // Guard: debit note already applied — warn but still allow cancel (unlike delete, cancel is reversible in audit)
+        var baseHtml = num ? 'Cancel <strong>' + num + '</strong>? This cannot be undone.' : 'This cannot be undone.';
+        if (debitApplied) {
+            baseHtml += '<div class="alert alert-warning mt-2 mb-0 py-2 px-3 text-start" style="font-size:.82rem;">' +
+                '<i class="bx bx-info-circle me-1"></i>' +
+                'A debit note credit has been applied to this bill. Cancelling will leave that debit note orphaned. ' +
+                'Consider removing the debit note payment first.' +
+            '</div>';
+        }
+        if (hasPaid) {
+            baseHtml += '<div class="mt-2 text-muted small">Paid amount: <strong>&#8377;' +
+                paidAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 }) + '</strong></div>';
+            baseHtml += _buildPurchPaymentActionHtml(_purchCancelSetting);
+        }
+        baseHtml += '<div class="mt-3 text-start">' +
+            '<label class="form-label fw-semibold small mb-1">Reason for cancellation ' +
+            '<span class="text-muted fw-normal">(optional)</span></label>' +
+            '<textarea class="form-control form-control-sm" id="swalPurchCancelReason" rows="2" ' +
+            'maxlength="500" placeholder="e.g. Wrong vendor, duplicate entry…"></textarea>' +
+            '</div>';
+
         Swal.fire({
-            title: 'Cancel Purchase Bill?',
-            html : num ? 'Cancel <strong>' + num + '</strong>? This cannot be undone.' : 'This cannot be undone.',
-            icon : 'warning', showCancelButton: true,
-            confirmButtonText: 'Yes, Cancel It', confirmButtonColor: '#fd7e14',
+            title             : 'Cancel Purchase Bill?',
+            html              : baseHtml,
+            icon              : 'warning',
+            showCancelButton  : true,
+            confirmButtonText : 'Yes, Cancel It',
+            confirmButtonColor: '#fd7e14',
+            didOpen: function () {
+                var $icon = $(Swal.getIcon());
+                $icon.css({ width: '3em', height: '3em', borderWidth: '2px' });
+                $icon.find('.swal2-icon-content').css({ fontSize: '1.5em' });
+                $(document).on('change', '#swalPurchCancelAction', function () {
+                    var val = $(this).val();
+                    $('#swalPurchCancelDesc').html(val && _purchCancelActionMeta[val] ? _purchCancelActionMeta[val].desc : '');
+                });
+                $(document).on('click', '#swalPurchChangeAction', function () {
+                    $('#swalPurchPresetWrap').addClass('d-none');
+                    $('#swalPurchChangeWrap').removeClass('d-none');
+                });
+            },
+            willClose: function () {
+                $(document).off('change', '#swalPurchCancelAction');
+                $(document).off('click', '#swalPurchChangeAction');
+            }
         }).then(function (r) {
             if (!r.isConfirmed) return;
+
+            var cancelPaymentAction = '';
+            if (hasPaid) {
+                var chosen = $('#swalPurchCancelAction').val();
+                if (_purchCancelSetting === 'ask') {
+                    cancelPaymentAction = chosen || '';
+                    if (!cancelPaymentAction) {
+                        Swal.fire({ icon: 'warning', text: 'Please select an action for the paid amount.' });
+                        return;
+                    }
+                } else {
+                    cancelPaymentAction = chosen || _purchCancelSetting;
+                }
+            }
+
+            var cancelReason = $.trim($('#swalPurchCancelReason').val() || '');
+
             ajaxLoading(1);
             $.ajax({
                 url   : '/purchases/updatePurchaseStatus',
                 method: 'POST',
-                data  : { TransUID: uid, Status: status, [CsrfName]: CsrfToken },
+                data  : { TransUID: uid, Status: status, CancelPaymentAction: cancelPaymentAction, CancelReason: cancelReason, [CsrfName]: CsrfToken },
                 success: function (resp) {
                     ajaxLoading(0);
                     hideUIBlock();
                     if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }
-                    showToastNotification(resp.Message || 'Cancelled.', 'success');
+                    var msg = resp.Message || 'Cancelled.';
+                    if (resp.DebitNoteAmount) {
+                        msg += '<br><small class="text-muted mt-1 d-block">Debit Note: <strong>&#8377;' +
+                               parseFloat(resp.DebitNoteAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 }) +
+                               '</strong> (Pending)</small>';
+                    }
+                    showToastNotification(msg, 'success');
                     getPurchasesDetails();
                 },
                 error: function () { ajaxLoading(0); hideUIBlock(); Swal.fire({ icon: 'error', text: 'Request failed. Please try again.' }); }
@@ -748,6 +1022,313 @@ function _buildPurchDetailHtml(resp) {
             }
         });
     });
+
+// ── Debit Notes Tab ──────────────────────────────────────────────
+(function () {
+    'use strict';
+
+    var _dnPageNo  = 1;
+    var _dnLimit   = 10;
+    var _dnStatus  = 'All';
+    var _dnSearch  = '';
+    var _dnActive  = false;
+
+    /**
+     * @param {number} page
+     * @returns {void}
+     */
+    function loadDebitNotes(page) {
+        _dnPageNo = page || 1;
+        $('#purchDnTableBody').html('<tr><td colspan="6" class="text-center text-muted py-3"><span class="spinner-border spinner-border-sm me-2"></span>Loading…</td></tr>');
+        $.ajax({
+            url    : '/purchases/getDebitNotesList',
+            method : 'POST',
+            data   : { PageNo: _dnPageNo, RowLimit: _dnLimit, Status: _dnStatus, Search: _dnSearch },
+            beforeSend: function (xhr) { xhr.setRequestHeader(CsrfName, CsrfToken); },
+            success: function (resp) {
+                if (resp.Error) {
+                    $('#purchDnTableBody').html('<tr><td colspan="6" class="text-center text-danger py-3">' + resp.Message + '</td></tr>');
+                } else {
+                    $('#purchDnTableBody').html(resp.RecordHtmlData);
+                    $('#purchDnPagination').html(resp.Pagination || '');
+                    [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]')).map(function (el) {
+                        return new bootstrap.Tooltip(el, { container: 'body' });
+                    });
+                }
+            },
+            error: function () {
+                $('#purchDnTableBody').html('<tr><td colspan="6" class="text-center text-danger py-3">Failed to load. Try again.</td></tr>');
+            }
+        });
+    }
+
+    // Tab click — switch between main list and DN section
+    $('#purchDnTab').on('click', function () {
+        _dnActive = true;
+        $('#purchTableWrap, #purchPagination, #purchSelectAllBanner').addClass('d-none');
+        $('#purchDnSection').removeClass('d-none');
+        $('.purch-status-tab').removeClass('active');
+        $(this).addClass('active');
+        loadDebitNotes(1);
+    });
+
+    // When a regular status tab is clicked, restore main list
+    $(document).on('click', '.purch-status-tab', function () {
+        if (_dnActive) {
+            _dnActive = false;
+            $('#purchDnSection').addClass('d-none');
+            $('#purchTableWrap, #purchPagination').removeClass('d-none');
+            $('#purchDnTab').removeClass('active');
+        }
+    });
+
+    // DN status filter buttons
+    $(document).on('click', '.dn-status-btn', function () {
+        $('.dn-status-btn').removeClass('active');
+        $(this).addClass('active');
+        _dnStatus = $(this).data('status');
+        loadDebitNotes(1);
+    });
+
+    // DN search
+    var _dnSearchTimer;
+    $('#dnSearch').on('input', function () {
+        clearTimeout(_dnSearchTimer);
+        _dnSearch = $.trim($(this).val());
+        _dnSearchTimer = setTimeout(function () { loadDebitNotes(1); }, 400);
+    });
+
+    // DN pagination click
+    $(document).on('click', '#purchDnPagination .page-link', function (e) {
+        e.preventDefault();
+        var p = parseInt($(this).data('page'), 10);
+        if (p > 0) loadDebitNotes(p);
+    });
+
+    // Refund button
+    $(document).on('click', '.dnRefundBtn', function () {
+        var uid = $(this).data('uid');
+        var num = $(this).data('num') || '';
+        Swal.fire({
+            title: 'Mark as Refunded?',
+            html : 'Mark debit note from <strong>' + num + '</strong> as refunded (vendor paid back in cash)?',
+            icon : 'question',
+            showCancelButton : true,
+            confirmButtonText: 'Yes, Refunded',
+            confirmButtonColor: '#0dcaf0',
+        }).then(function (r) {
+            if (!r.isConfirmed) return;
+            ajaxLoading(1);
+            $.ajax({
+                url    : '/purchases/refundDebitNote',
+                method : 'POST',
+                data   : { DebitNoteUID: uid },
+                beforeSend: function (xhr) { xhr.setRequestHeader(CsrfName, CsrfToken); },
+                success: function (resp) {
+                    ajaxLoading(0);
+                    showToastNotification(resp.Message, resp.Error ? 'error' : 'success');
+                    if (!resp.Error) loadDebitNotes(_dnPageNo);
+                },
+                error: function () { ajaxLoading(0); showToastNotification('Request failed.', 'error'); }
+            });
+        });
+    });
+
+    // Delete button
+    $(document).on('click', '.dnDeleteBtn', function () {
+        var uid = $(this).data('uid');
+        var num = $(this).data('num') || '';
+        Swal.fire({
+            title: 'Delete Debit Note?',
+            html : 'Delete debit note from <strong>' + num + '</strong>? This cannot be undone.',
+            icon : 'warning',
+            showCancelButton : true,
+            confirmButtonText: 'Yes, Delete',
+            confirmButtonColor: '#dc3545',
+        }).then(function (r) {
+            if (!r.isConfirmed) return;
+            ajaxLoading(1);
+            $.ajax({
+                url    : '/purchases/deleteDebitNote',
+                method : 'POST',
+                data   : { DebitNoteUID: uid },
+                beforeSend: function (xhr) { xhr.setRequestHeader(CsrfName, CsrfToken); },
+                success: function (resp) {
+                    ajaxLoading(0);
+                    showToastNotification(resp.Message, resp.Error ? 'error' : 'success');
+                    if (!resp.Error) loadDebitNotes(_dnPageNo);
+                },
+                error: function () { ajaxLoading(0); showToastNotification('Request failed.', 'error'); }
+            });
+        });
+    });
+
+}());
+
+// ── Apply Debit Note ─────────────────────────────────────────────
+(function () {
+    'use strict';
+
+    var _cur = '<?php echo addslashes($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>';
+    var _dec = <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>;
+
+    /**
+     * @param {number} v
+     * @returns {string}
+     */
+    function fmt(v) {
+        return _cur + ' ' + parseFloat(v).toFixed(_dec);
+    }
+
+    /**
+     * @param {Array} notes
+     * @param {number} purchasePending
+     * @returns {void}
+     */
+    function renderDebitNotes(notes, purchasePending) {
+        var html = '';
+        $.each(notes, function (i, dn) {
+            var uid    = dn.TransDebitNoteUID;
+            var srcNum = dn.SourceTransNumber || '—';
+            var amt    = parseFloat(dn.Amount) || 0;
+            html += '<div class="debit-note-card border rounded p-3 mb-2 cursor-pointer" data-uid="' + uid + '" data-amount="' + amt + '" style="cursor:pointer;transition:all .15s;">' +
+                '<div class="d-flex justify-content-between align-items-start">' +
+                    '<div>' +
+                        '<div class="fw-semibold small">From cancelled bill: <span class="text-warning">' + srcNum + '</span></div>' +
+                        '<div class="text-muted small mt-1">' + (dn.Notes || '') + '</div>' +
+                    '</div>' +
+                    '<div class="text-end">' +
+                        '<div class="fw-bold text-success">' + fmt(amt) + '</div>' +
+                        '<div class="small text-muted">Available</div>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+        });
+        $('#adnNotesList').html(html);
+
+        // Select first by default
+        var firstCard = $('#adnNotesList .debit-note-card').first();
+        if (firstCard.length) selectDebitNote(firstCard, purchasePending);
+
+        // Card click
+        $('#adnNotesList').on('click', '.debit-note-card', function () {
+            selectDebitNote($(this), purchasePending);
+        });
+    }
+
+    /**
+     * @param {jQuery} $card
+     * @param {number} purchasePending
+     * @returns {void}
+     */
+    function selectDebitNote($card, purchasePending) {
+        $('#adnNotesList .debit-note-card').css({ border: '', background: '' });
+        $card.css({ border: '2px solid #f59e0b', background: '#fffbeb' });
+        var uid    = $card.data('uid');
+        var dnAmt  = parseFloat($card.data('amount')) || 0;
+        var maxAmt = Math.min(dnAmt, purchasePending);
+        $('#adnSelectedDebitNoteUID').val(uid);
+        $('#adnAmount').val(maxAmt.toFixed(_dec)).attr('max', maxAmt);
+        $('#adnMaxLabel').text(fmt(maxAmt));
+    }
+
+    $(document).on('click', '.purchApplyDebitNote', function () {
+        var transUID    = $(this).data('uid');
+        var billNum     = $(this).data('num')        || '';
+        var vendorUID   = $(this).data('vendor-uid');
+        var vendorName  = $(this).data('vendor')     || '';
+        var pending     = parseFloat($(this).data('pending')) || 0;
+
+        $('#adnTransUID').val(transUID);
+        $('#adnVendorUID').val(vendorUID);
+        $('#adnPurchasePending').val(pending);
+        $('#adnBillNum').text(billNum);
+        $('#adnVendorName').text(vendorName);
+        $('#adnBalanceDisplay').text(fmt(pending));
+        $('#adnNotesList').html('');
+        $('#adnAmount').val('');
+        $('#adnNotes').val('');
+        $('#adnSelectedDebitNoteUID').val('');
+
+        // Show loading, hide others
+        $('#adnLoadingState').removeClass('d-none');
+        $('#adnEmptyState,#adnSelectState').addClass('d-none');
+        $('#adnFooter').css('display', '');
+
+        $('#applyDebitNoteModal').modal('show');
+
+        $.ajax({
+            url     : '/purchases/getVendorDebitNotes',
+            method  : 'GET',
+            data    : { VendorUID: vendorUID },
+            success : function (resp) {
+                $('#adnLoadingState').addClass('d-none');
+                if (resp.Error || !resp.Data || resp.Data.length === 0) {
+                    $('#adnEmptyState').removeClass('d-none');
+                    $('#adnFooter').css('display', 'none');
+                } else {
+                    $('#adnSelectState').removeClass('d-none');
+                    renderDebitNotes(resp.Data, pending);
+                }
+            },
+            error: function () {
+                $('#adnLoadingState').addClass('d-none');
+                $('#adnEmptyState').removeClass('d-none');
+                $('#adnFooter').css('display', 'none');
+            }
+        });
+    });
+
+    $('#btnApplyDebitNote').on('click', function () {
+        var transUID      = parseInt($('#adnTransUID').val(), 10);
+        var debitNoteUID  = parseInt($('#adnSelectedDebitNoteUID').val(), 10);
+        var amount        = parseFloat($('#adnAmount').val()) || 0;
+        var notes         = $.trim($('#adnNotes').val());
+
+        if (!transUID)     { Swal.fire({ icon: 'warning', text: 'Invalid purchase.' }); return; }
+        if (!debitNoteUID) { Swal.fire({ icon: 'warning', text: 'Please select a debit note.' }); return; }
+        if (amount <= 0)   { Swal.fire({ icon: 'warning', text: 'Enter a valid amount.' }); return; }
+
+        var $btn = $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Applying…');
+
+        $.ajax({
+            url        : '/purchases/applyDebitNote',
+            method     : 'POST',
+            data       : {
+                TransUID     : transUID,
+                DebitNoteUID : debitNoteUID,
+                Amount       : amount,
+                Notes        : notes,
+                CurrentPage  : PageNo  || 1,
+                RowLimit     : RowLimit || 10,
+                Filter       : JSON.stringify(Filter || {}),
+            },
+            beforeSend : function (xhr) { xhr.setRequestHeader(CsrfName, CsrfToken); },
+            success: function (resp) {
+                $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i> Apply Credit');
+                if (resp.Error) {
+                    showToastNotification(resp.Message, 'error');
+                } else {
+                    $('#applyDebitNoteModal').modal('hide');
+                    if (resp.RecordHtmlData) {
+                        $(ModuleTable + ' tbody').html(resp.RecordHtmlData);
+                        $(ModulePag).html(resp.Pagination || '');
+                        [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]')).map(function (el) {
+                            return new bootstrap.Tooltip(el, { container: 'body' });
+                        });
+                        if (resp.SummaryStats) { updateSummaryStats(resp.SummaryStats); }
+                    }
+                    showToastNotification(resp.Message, 'success');
+                }
+            },
+            error: function () {
+                $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i> Apply Credit');
+                showToastNotification('Request failed. Try again.', 'error');
+            }
+        });
+    });
+
+}());
 
     function updateSummaryStats(stats) {
         if (!document.querySelector('.apex-stats-strip')) return;

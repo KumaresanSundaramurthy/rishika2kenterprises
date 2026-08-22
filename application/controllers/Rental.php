@@ -44,6 +44,7 @@ class Rental extends MY_Controller {
             $this->load->view('transactions/rental/view', $this->pageData);
 
         } catch (Throwable $e) {
+            notifyError('Rental::index', $e);
             log_message('error', 'Rental::index — ' . $e->getMessage());
             redirect('dashboard', 'refresh');
         }
@@ -80,6 +81,7 @@ class Rental extends MY_Controller {
             $this->EndReturnData->Stats          = $this->rental_model->getRentalStats($orgUID);
 
         } catch (Exception $e) {
+            notifyError('Rental::getPageDetails', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -219,6 +221,7 @@ class Rental extends MY_Controller {
             $this->EndReturnData->RentalNumber = $rentalNumber;
 
         } catch (Exception $e) {
+            notifyError('Rental::createRental', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -247,6 +250,7 @@ class Rental extends MY_Controller {
             $this->EndReturnData->Data  = $rental;
 
         } catch (Exception $e) {
+            notifyError('Rental::getRentalDetail', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -358,6 +362,7 @@ class Rental extends MY_Controller {
             $this->EndReturnData->Message = 'Return recorded. Status: ' . $newStatus . '.';
 
         } catch (Exception $e) {
+            notifyError('Rental::processReturn', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -452,6 +457,7 @@ class Rental extends MY_Controller {
             $this->EndReturnData->Message = 'Payment recorded successfully.';
 
         } catch (Exception $e) {
+            notifyError('Rental::recordPayment', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -491,6 +497,7 @@ class Rental extends MY_Controller {
             $this->EndReturnData->Message = ($rental->RentalNumber ?? 'Rental') . ' cancelled.';
 
         } catch (Exception $e) {
+            notifyError('Rental::cancelRental', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -511,6 +518,7 @@ class Rental extends MY_Controller {
             $this->EndReturnData->Error    = FALSE;
             $this->EndReturnData->Products = $this->rental_model->searchRentableProducts($orgUID, $term);
         } catch (Exception $e) {
+            notifyError('Rental::searchRentableProducts', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }

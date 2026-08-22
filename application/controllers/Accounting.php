@@ -37,6 +37,7 @@ class Accounting extends MY_Controller {
             $this->pageData['TotalCount']   = $total;
             $this->load->view('accounting/chart_of_accounts/view', $this->pageData);
         } catch (Exception $e) {
+            notifyError('Accounting::chartofaccounts', $e);
             redirect('dashboard', 'refresh');
         }
     }
@@ -60,6 +61,7 @@ class Accounting extends MY_Controller {
             $this->EndReturnData->TotalCount     = $total;
             $this->EndReturnData->Stats          = $stats;
         } catch (Exception $e) {
+            notifyError('Accounting::getChartOfAccountsPage', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -129,6 +131,7 @@ class Accounting extends MY_Controller {
             );
             $this->EndReturnData->Stats          = $stats;
         } catch (Exception $e) {
+            notifyError('Accounting::saveLedger', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -166,6 +169,7 @@ class Accounting extends MY_Controller {
             );
             $this->EndReturnData->Stats          = $stats;
         } catch (Exception $e) {
+            notifyError('Accounting::toggleLedgerStatus', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -203,6 +207,7 @@ class Accounting extends MY_Controller {
             );
             $this->EndReturnData->Stats          = $stats;
         } catch (Exception $e) {
+            notifyError('Accounting::deleteLedger', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -222,6 +227,7 @@ class Accounting extends MY_Controller {
             $this->pageData['DefaultFY']      = $defaultFY;
             $this->load->view('accounting/trial_balance/view', $this->pageData);
         } catch (Exception $e) {
+            notifyError('Accounting::trialbalance', $e);
             redirect('dashboard', 'refresh');
         }
     }
@@ -273,6 +279,7 @@ class Accounting extends MY_Controller {
             $this->EndReturnData->IsBalanced  = abs($grandDr - $grandCr) < 0.01;
             $this->EndReturnData->RowCount    = count($rows);
         } catch (Exception $e) {
+            notifyError('Accounting::getTrialBalanceAjax', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -295,6 +302,7 @@ class Accounting extends MY_Controller {
             $this->pageData['TotalCount']    = $total;
             $this->load->view('accounting/journal_list/view', $this->pageData);
         } catch (Exception $e) {
+            notifyError('Accounting::journallist', $e);
             redirect('dashboard', 'refresh');
         }
     }
@@ -317,6 +325,7 @@ class Accounting extends MY_Controller {
             );
             $this->EndReturnData->Stats          = $stats;
         } catch (Exception $e) {
+            notifyError('Accounting::getJournalListPage', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -340,6 +349,7 @@ class Accounting extends MY_Controller {
             $this->EndReturnData->Html  = $html;
             $this->EndReturnData->JournalNo = $journal->JournalNo;
         } catch (Exception $e) {
+            notifyError('Accounting::getJournalDetail', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -359,6 +369,7 @@ class Accounting extends MY_Controller {
             $this->pageData['AllLedgers'] = $this->accountledger_model->getAllActiveLedgers();
             $this->load->view('accounting/general_ledger/view', $this->pageData);
         } catch (Exception $e) {
+            notifyError('Accounting::generalledger', $e);
             redirect('dashboard', 'refresh');
         }
     }
@@ -428,6 +439,7 @@ class Accounting extends MY_Controller {
             $this->EndReturnData->TotalDebit     = $totDr;
             $this->EndReturnData->TotalCredit    = $totCr;
         } catch (Exception $e) {
+            notifyError('Accounting::getLedgerStatementAjax', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -487,6 +499,7 @@ class Accounting extends MY_Controller {
             $this->EndReturnData->JournalNo = $journalNo;
             $this->EndReturnData->JournalUID= $jUID;
         } catch (Exception $e) {
+            notifyError('Accounting::saveManualJournal', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -508,6 +521,7 @@ class Accounting extends MY_Controller {
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Journal reversed and deleted successfully.';
         } catch (Exception $e) {
+            notifyError('Accounting::deleteManualJournal', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -521,6 +535,7 @@ class Accounting extends MY_Controller {
             $this->pageData['BankLedgers'] = $this->accountledger_model->getBankAndCashLedgers();
             $this->load->view('accounting/bank_reconciliation/view', $this->pageData);
         } catch (Exception $e) {
+            notifyError('Accounting::bankreconciliation', $e);
             log_message('error', 'bankreconciliation: ' . $e->getMessage());
             redirect('dashboard', 'refresh');
         }
@@ -581,6 +596,7 @@ class Accounting extends MY_Controller {
             $this->EndReturnData->ClearedType    = $clearedType;
             $this->EndReturnData->EntryCount     = count($entries);
         } catch (Exception $e) {
+            notifyError('Accounting::getBankReconAjax', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -606,6 +622,7 @@ class Accounting extends MY_Controller {
             $this->EndReturnData->ClearedCount  = count($cleared);
             $this->EndReturnData->UnclearedCount= count($uncleared);
         } catch (Exception $e) {
+            notifyError('Accounting::saveBankRecon', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -630,6 +647,7 @@ class Accounting extends MY_Controller {
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->results = $results;
         } catch (Exception $e) {
+            notifyError('Accounting::getLedgersForJournal', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             $this->EndReturnData->results = [];
@@ -698,6 +716,7 @@ class Accounting extends MY_Controller {
             $this->EndReturnData->TotalExpense = $totalExpense;
             $this->EndReturnData->NetProfit    = $netProfit;
         } catch (Exception $e) {
+            notifyError('Accounting::getPandLAjax', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -792,6 +811,7 @@ class Accounting extends MY_Controller {
             $this->EndReturnData->NetProfit         = $netProfit;
             $this->EndReturnData->IsBalanced        = abs($totalAssets - $totalLiabilities - $netProfit) < 0.01;
         } catch (Exception $e) {
+            notifyError('Accounting::getBalanceSheetAjax', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -814,6 +834,7 @@ class Accounting extends MY_Controller {
             $this->pageData['TotalCount']    = $total;
             $this->load->view('accounting/recurring_journals/view', $this->pageData);
         } catch (Exception $e) {
+            notifyError('Accounting::recurringjournals', $e);
             log_message('error', 'recurringjournals: ' . $e->getMessage());
             redirect('dashboard', 'refresh');
         }
@@ -839,6 +860,7 @@ class Accounting extends MY_Controller {
             $this->EndReturnData->TotalCount     = $total;
             $this->EndReturnData->Stats          = $stats;
         } catch (Exception $e) {
+            notifyError('Accounting::getRecurringJournalsPage', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -875,6 +897,7 @@ class Accounting extends MY_Controller {
             $this->EndReturnData->EndDate    = $journal->EndDate ?? '';
             $this->EndReturnData->Lines      = $lines;
         } catch (Exception $e) {
+            notifyError('Accounting::getRecurringJournalAjax', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -970,6 +993,7 @@ class Accounting extends MY_Controller {
             $this->EndReturnData->Message = $recurUID > 0 ? 'Recurring journal updated.' : 'Recurring journal created.';
             $this->EndReturnData->RecurUID= $recurUID;
         } catch (Exception $e) {
+            notifyError('Accounting::saveRecurringJournal', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1033,6 +1057,7 @@ class Accounting extends MY_Controller {
             $this->EndReturnData->NextRunDate = $newNext;
             $this->EndReturnData->Ended       = $ended;
         } catch (Exception $e) {
+            notifyError('Accounting::postRecurringJournal', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1103,6 +1128,7 @@ class Accounting extends MY_Controller {
             $this->EndReturnData->Posted  = $posted;
             $this->EndReturnData->Errors  = $errors;
         } catch (Exception $e) {
+            notifyError('Accounting::postAllDueJournals', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1134,6 +1160,7 @@ class Accounting extends MY_Controller {
             $this->EndReturnData->Message   = $newStatus ? 'Recurring journal resumed.' : 'Recurring journal paused.';
             $this->EndReturnData->IsActive  = $newStatus;
         } catch (Exception $e) {
+            notifyError('Accounting::toggleRecurringStatus', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1161,6 +1188,7 @@ class Accounting extends MY_Controller {
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Recurring journal deleted.';
         } catch (Exception $e) {
+            notifyError('Accounting::deleteRecurringJournal', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1205,6 +1233,7 @@ class Accounting extends MY_Controller {
             $this->pageData['CurrentLock'] = $this->accountledger_model->getPeriodLock();
             $this->load->view('accounting/period_lock/view', $this->pageData);
         } catch (Exception $e) {
+            notifyError('Accounting::periodlock', $e);
             log_message('error', 'periodlock: ' . $e->getMessage());
             redirect('dashboard', 'refresh');
         }
@@ -1247,6 +1276,7 @@ class Accounting extends MY_Controller {
             $this->EndReturnData->Message    = "Books locked up to {$display}.";
             $this->EndReturnData->LockedUpTo = $lockDate;
         } catch (Exception $e) {
+            notifyError('Accounting::savePeriodLock', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1264,6 +1294,7 @@ class Accounting extends MY_Controller {
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Period lock removed. All periods are now open for posting.';
         } catch (Exception $e) {
+            notifyError('Accounting::removePeriodLock', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1369,6 +1400,7 @@ class Accounting extends MY_Controller {
             $this->EndReturnData->Html   = $html;
             $this->EndReturnData->Totals = $totals;
         } catch (Exception $e) {
+            notifyError('Accounting::getComparativePnLAjax', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1472,6 +1504,7 @@ class Accounting extends MY_Controller {
             $this->EndReturnData->Html   = $html;
             $this->EndReturnData->Ratios = $ratios;
         } catch (Exception $e) {
+            notifyError('Accounting::getRatiosAjax', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1567,6 +1600,7 @@ class Accounting extends MY_Controller {
             $this->EndReturnData->GrandClosingBal= $grandClosing;
             $this->EndReturnData->NetChange      = $grandPeriodDr - $grandPeriodCr;
         } catch (Exception $e) {
+            notifyError('Accounting::getCashFlowAjax', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1637,6 +1671,7 @@ class Accounting extends MY_Controller {
             $this->EndReturnData->Html   = $html;
             $this->EndReturnData->Totals = $totals;
         } catch (Exception $e) {
+            notifyError('Accounting::getBudgetVActualAjax', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1660,6 +1695,7 @@ class Accounting extends MY_Controller {
             $this->EndReturnData->Error  = FALSE;
             $this->EndReturnData->Amount = $amount;
         } catch (Exception $e) {
+            notifyError('Accounting::saveBudgetAmount', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1735,6 +1771,7 @@ class Accounting extends MY_Controller {
             $this->EndReturnData->Html    = $html;
             $this->EndReturnData->Totals  = $totals;
         } catch (Exception $e) {
+            notifyError('Accounting::getAgedReceivablesAjax', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1811,6 +1848,7 @@ class Accounting extends MY_Controller {
             $this->EndReturnData->Html    = $html;
             $this->EndReturnData->Totals  = $totals;
         } catch (Exception $e) {
+            notifyError('Accounting::getAgedPayablesAjax', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1885,6 +1923,7 @@ class Accounting extends MY_Controller {
             $this->EndReturnData->GrandCr = $grandCr;
             $this->EndReturnData->DayCount= count($days);
         } catch (Exception $e) {
+            notifyError('Accounting::getDayBookAjax', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }

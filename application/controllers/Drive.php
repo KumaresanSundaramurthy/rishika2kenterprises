@@ -47,6 +47,7 @@ class Drive extends MY_Controller {
             $out->Error = false;
             $out->Path  = '/' . ltrim($r2Key, '/'); // e.g. /drive/1/1/timestamp_file.pdf
         } catch (\Aws\Exception\AwsException $e) {
+            $this->notifyError('Drive::_driveUpload', $e);
             $out->Error   = true;
             $out->Message = $e->getMessage();
         }

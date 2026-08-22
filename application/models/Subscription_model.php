@@ -23,6 +23,7 @@ class Subscription_model extends CI_Model {
             $result->Error = FALSE;
             $result->Data  = ($query && $query->num_rows() > 0) ? $query->row() : null;
         } catch (Exception $e) {
+            notifyError($e, 'Subscription_model::getUserSubscription');
             log_message('error', 'Subscription_model::getUserSubscription — ' . $e->getMessage());
             $result->Error   = TRUE;
             $result->Message = $e->getMessage();
@@ -44,6 +45,7 @@ class Subscription_model extends CI_Model {
             $result->Error = FALSE;
             $result->Data  = ($query && $query->num_rows() > 0) ? $query->row() : null;
         } catch (Exception $e) {
+            notifyError($e, 'Subscription_model::getUserEmailInfo');
             log_message('error', 'Subscription_model::getUserEmailInfo — ' . $e->getMessage());
             $result->Error   = TRUE;
             $result->Message = $e->getMessage();
@@ -68,6 +70,7 @@ class Subscription_model extends CI_Model {
             $result->Error    = FALSE;
             $result->AlreadySent = ($query && $query->num_rows() > 0);
         } catch (Exception $e) {
+            notifyError($e, 'Subscription_model::isNotificationSentToday');
             log_message('error', 'Subscription_model::isNotificationSentToday — ' . $e->getMessage());
             $result->Error      = TRUE;
             $result->Message    = $e->getMessage();
@@ -91,6 +94,7 @@ class Subscription_model extends CI_Model {
             $result->Error = FALSE;
             $result->Data  = $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError($e, 'Subscription_model::getSubscriptionPlans');
             log_message('error', 'Subscription_model::getSubscriptionPlans — ' . $e->getMessage());
             $result->Error   = TRUE;
             $result->Message = $e->getMessage();
@@ -110,6 +114,7 @@ class Subscription_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError($e, 'Subscription_model::getUserSubscriptionHistory');
             log_message('error', 'Subscription_model::getUserSubscriptionHistory — ' . $e->getMessage());
             return [];
         }
@@ -129,6 +134,7 @@ class Subscription_model extends CI_Model {
             $result->Error = FALSE;
             $result->Data  = ($query && $query->num_rows() > 0) ? $query->row() : null;
         } catch (Exception $e) {
+            notifyError($e, 'Subscription_model::getPlanByCode');
             log_message('error', 'Subscription_model::getPlanByCode — ' . $e->getMessage());
             $result->Error   = TRUE;
             $result->Message = $e->getMessage();

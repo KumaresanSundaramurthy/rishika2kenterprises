@@ -36,7 +36,7 @@ class Attendance extends MY_Controller {
             $this->pageData['EmployeeList'] = $this->users_model->getEmployeeDropdownList($this->_orgUID());
             $this->pageData['TodayDate']    = $today;
             $this->load->view('hrms/attendance/view', $this->pageData);
-        } catch (Exception $e) { redirect('dashboard', 'refresh'); }
+        } catch (Exception $e) { $this->notifyError('Attendance::index', $e); redirect('dashboard', 'refresh'); }
     }
 
     // ── Monthly grid view ─────────────────────────────────────────────────────
@@ -57,7 +57,7 @@ class Attendance extends MY_Controller {
             $this->pageData['Year']           = $year;
             $this->pageData['DaysInMonth']    = (int)date('t', mktime(0, 0, 0, $month, 1, $year));
             $this->load->view('hrms/attendance/monthly', $this->pageData);
-        } catch (Exception $e) { redirect('attendance', 'refresh'); }
+        } catch (Exception $e) { $this->notifyError('Attendance::monthly', $e); redirect('attendance', 'refresh'); }
     }
 
     public function getPageDetails($pageNo = 0) {
@@ -69,7 +69,7 @@ class Attendance extends MY_Controller {
             $this->EndReturnData->RecordHtmlData = $pd->RecordHtmlData;
             $this->EndReturnData->Pagination     = $pd->Pagination;
             $this->EndReturnData->TotalCount     = $pd->TotalCount;
-        } catch (Exception $e) { $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
+        } catch (Exception $e) { $this->notifyError('Attendance::getPageDetails', $e); $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
@@ -118,7 +118,7 @@ class Attendance extends MY_Controller {
             if ($res->Error) throw new Exception($res->Message);
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Attendance saved.';
-        } catch (Exception $e) { $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
+        } catch (Exception $e) { $this->notifyError('Attendance::save', $e); $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
@@ -148,7 +148,7 @@ class Attendance extends MY_Controller {
             }
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = $saved . ' record(s) saved.';
-        } catch (Exception $e) { $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
+        } catch (Exception $e) { $this->notifyError('Attendance::saveBulk', $e); $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
@@ -161,7 +161,7 @@ class Attendance extends MY_Controller {
             $res = $this->dbwrite_model->updateData('Transaction', 'AttendanceTbl', ['IsDeleted' => 1, 'UpdatedBy' => $this->_userUID()], ['AttendanceUID' => $uid, 'OrgUID' => $this->_orgUID()]);
             if ($res->Error) throw new Exception($res->Message);
             $this->EndReturnData->Error = FALSE; $this->EndReturnData->Message = 'Deleted.';
-        } catch (Exception $e) { $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
+        } catch (Exception $e) { $this->notifyError('Attendance::delete', $e); $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
@@ -173,7 +173,7 @@ class Attendance extends MY_Controller {
             $this->load->model('attendance_model');
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $this->attendance_model->getMonthlyAttendance($this->_orgUID(), $year, $month);
-        } catch (Exception $e) { $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
+        } catch (Exception $e) { $this->notifyError('Attendance::getMonthlyData', $e); $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
@@ -183,7 +183,7 @@ class Attendance extends MY_Controller {
             $this->load->model('attendance_model');
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $this->attendance_model->getDailyStats($this->_orgUID(), date('Y-m-d'));
-        } catch (Exception $e) { $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
+        } catch (Exception $e) { $this->notifyError('Attendance::getDashboardStats', $e); $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 }

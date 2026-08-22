@@ -59,6 +59,7 @@ class Branches_model extends CI_Model {
             return $this->EndReturnData;
 
         } catch (Exception $e) {
+            notifyError($e, 'Branches_model::getBranchListPaginated');
             $this->EndReturnData->rows       = [];
             $this->EndReturnData->totalCount = 0;
             return $this->EndReturnData;
@@ -76,6 +77,7 @@ class Branches_model extends CI_Model {
             );
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError($e, 'Branches_model::getBranchList');
             return [];
         }
     }
@@ -91,6 +93,7 @@ class Branches_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query && $query->num_rows() > 0;
         } catch (Exception $e) {
+            notifyError($e, 'Branches_model::getBranchCodeExists');
             return FALSE;
         }
     }

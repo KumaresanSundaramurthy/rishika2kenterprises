@@ -28,7 +28,10 @@ class Payslips extends MY_Controller {
             $this->load->model('users_model');
             $this->pageData['EmployeeList'] = $this->users_model->getEmployeeDropdownList($this->_orgUID());
             $this->load->view('hrms/payslips/view', $this->pageData);
-        } catch (Exception $e) { redirect('dashboard', 'refresh'); }
+        } catch (Exception $e) {
+            notifyError('Payslips::index', $e);
+            redirect('dashboard', 'refresh');
+        }
     }
 
     public function getPageDetails($pageNo = 0) {
@@ -39,7 +42,11 @@ class Payslips extends MY_Controller {
             $this->EndReturnData->RecordHtmlData = $pd->RecordHtmlData;
             $this->EndReturnData->Pagination     = $pd->Pagination;
             $this->EndReturnData->TotalCount     = $pd->TotalCount;
-        } catch (Exception $e) { $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
+        } catch (Exception $e) {
+            notifyError('Payslips::getPageDetails', $e);
+            $this->EndReturnData->Error = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
@@ -52,7 +59,10 @@ class Payslips extends MY_Controller {
             $this->pageData['Slip']    = $slip;
             $this->pageData['OrgInfo'] = $this->pageData['JwtData']->Org ?? new stdClass();
             $this->load->view('hrms/payslips/detail', $this->pageData);
-        } catch (Exception $e) { redirect('payslips', 'refresh'); }
+        } catch (Exception $e) {
+            notifyError('Payslips::viewPayslip', $e);
+            redirect('payslips', 'refresh');
+        }
     }
 
     public function printPayslip($uid = 0) {
@@ -64,6 +74,9 @@ class Payslips extends MY_Controller {
             $this->pageData['Slip']    = $slip;
             $this->pageData['OrgInfo'] = $this->pageData['JwtData']->Org ?? new stdClass();
             $this->load->view('hrms/payslips/print', $this->pageData);
-        } catch (Exception $e) { echo 'Error: ' . $e->getMessage(); }
+        } catch (Exception $e) {
+            notifyError('Payslips::printPayslip', $e);
+            echo 'Error: ' . $e->getMessage();
+        }
     }
 }

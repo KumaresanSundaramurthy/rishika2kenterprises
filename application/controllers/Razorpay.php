@@ -77,6 +77,7 @@ class Razorpay extends CI_Controller {
             $out->notes = ['invoice' => $stub->UniqueNumber ?? ''];
 
         } catch (Exception $e) {
+            notifyError('Razorpay::createOrder', $e);
             $out->Error   = true;
             $out->Message = $e->getMessage();
         }
@@ -193,6 +194,7 @@ class Razorpay extends CI_Controller {
             $out->ReceiptUrl = base_url('receipt/' . $receiptToken);
 
         } catch (Exception $e) {
+            notifyError('Razorpay::verifyAndRecord', $e);
             if (isset($this->dbwrite_model)) {
                 try { $this->dbwrite_model->rollbackTransaction(); } catch (Throwable $_) {}
             }

@@ -240,6 +240,7 @@ Class Globalservice {
             $this->EndReturnData->Error = FALSE;
 
         } catch (Exception $e) {
+            notifyError('Globalservice::getBaseMainPageTablePagination', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -358,6 +359,7 @@ Class Globalservice {
             }
 
         } catch (Exception $e) {
+            notifyError('Globalservice::getModulePageColumnDetails', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -383,6 +385,7 @@ Class Globalservice {
             // }
 
         } catch (Exception $e) {
+            notifyError('Globalservice::getModuleViewColumnDetails', $e);
             throw new Exception($e->getMessage());
         }
 
@@ -506,6 +509,7 @@ Class Globalservice {
             exit;
 
         } catch (Exception $e) {
+            notifyError('Globalservice::exportCSV', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
@@ -632,6 +636,7 @@ Class Globalservice {
             exit;
 
         } catch (Exception $e) {
+            notifyError('Globalservice::exportExcel', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
@@ -760,6 +765,7 @@ Class Globalservice {
             exit;
 
         } catch (Exception $e) {
+            notifyError('Globalservice::exportPdf', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
@@ -826,6 +832,7 @@ Class Globalservice {
             }
 
         } catch (Exception $e) {
+            notifyError('Globalservice::fileUploadService', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }

@@ -124,6 +124,7 @@ class Barcodeconfig extends MY_Controller {
             $this->EndReturnData->Message = 'Configuration saved successfully.';
 
         } catch (Exception $e) {
+            notifyError('Barcodeconfig::saveConfig', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -151,6 +152,7 @@ class Barcodeconfig extends MY_Controller {
             $this->EndReturnData->Layout = $row ?: null;
 
         } catch (Exception $e) {
+            notifyError('Barcodeconfig::getLayout', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -205,6 +207,7 @@ class Barcodeconfig extends MY_Controller {
             $this->EndReturnData->Message = 'Layout saved successfully.';
 
         } catch (Exception $e) {
+            notifyError('Barcodeconfig::saveLayout', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }

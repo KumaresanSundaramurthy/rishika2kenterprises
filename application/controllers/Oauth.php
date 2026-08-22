@@ -117,6 +117,7 @@ class Oauth extends CI_Controller {
             $this->_completeOAuthLogin($googleUser['email'], 'GOOGLE');
 
         } catch (Exception $e) {
+            notifyError('Oauth::googleCallback', $e);
             $this->session->set_flashdata('danger', $e->getMessage());
             redirect('portal', 'refresh');
         }
@@ -181,6 +182,7 @@ class Oauth extends CI_Controller {
             $this->_completeOAuthLogin($fbUser['email'], 'FACEBOOK');
 
         } catch (Exception $e) {
+            notifyError('Oauth::facebookCallback', $e);
             $this->session->set_flashdata('danger', $e->getMessage());
             redirect('portal', 'refresh');
         }

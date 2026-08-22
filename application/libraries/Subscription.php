@@ -79,6 +79,7 @@ class Subscription {
             }
 
         } catch (Exception $e) {
+            notifyError('Subscription::checkSubscription', $e);
             $result->message = 'Error checking subscription: ' . $e->getMessage();
         }
 
@@ -95,6 +96,7 @@ class Subscription {
             );
             return $updateResult->Error === FALSE;
         } catch (Exception $e) {
+            notifyError('Subscription::updateSubscriptionStatus', $e);
             log_message('error', 'Subscription::updateSubscriptionStatus — ' . $e->getMessage());
             return false;
         }
@@ -142,6 +144,7 @@ class Subscription {
             ];
 
         } catch (Exception $e) {
+            notifyError('Subscription::extendSubscription', $e);
             return ['success' => false, 'message' => $e->getMessage()];
         }
     }
@@ -165,6 +168,7 @@ class Subscription {
                 'CreatedOn'          => date('Y-m-d H:i:s'),
             ]);
         } catch (Exception $e) {
+            notifyError('Subscription::_logSubscriptionHistory', $e);
             log_message('error', 'Subscription::_logSubscriptionHistory — ' . $e->getMessage());
         }
     }
@@ -204,6 +208,7 @@ class Subscription {
                 try {
                     $sent = $this->_sendExpiryEmail($user->EmailAddress, $fullName ?: 'Valued Customer', (int)$daysRemaining);
                 } catch (Throwable $e) {
+                    notifyError('Subscription::sendExpiryWarning', $e);
                     log_message('error', '[Subscription] Email send failed: ' . $e->getMessage());
                 }
                 if ($sent) {
@@ -218,6 +223,7 @@ class Subscription {
             log_message('info', "Expiry warning ({$daysRemaining} days) processed for user {$userUID}");
 
         } catch (Throwable $e) {
+            notifyError('Subscription::sendExpiryWarning', $e);
             log_message('error', 'Subscription::sendExpiryWarning — ' . $e->getMessage());
         }
     }
@@ -236,6 +242,7 @@ class Subscription {
                 'ErrorMessage'       => $errorMessage,
             ]);
         } catch (Exception $e) {
+            notifyError('Subscription::logLoginAttempt', $e);
             log_message('error', 'Subscription::logLoginAttempt — ' . $e->getMessage());
         }
     }
@@ -301,6 +308,7 @@ class Subscription {
             ];
 
         } catch (Exception $e) {
+            notifyError('Subscription::activateSubscription', $e);
             return ['success' => false, 'message' => $e->getMessage()];
         }
     }

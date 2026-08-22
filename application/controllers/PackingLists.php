@@ -131,6 +131,7 @@ class Packinglists extends MY_Controller {
             $this->EndReturnData->PLUID    = $savedUID;
             $this->EndReturnData->PrintURL = '/packing-list/' . $transUID . '/print';
         } catch (Exception $e) {
+            $this->notifyError('Packinglists::save', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();

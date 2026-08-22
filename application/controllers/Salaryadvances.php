@@ -50,7 +50,7 @@ class Salaryadvances extends MY_Controller {
             $this->EndReturnData->Pagination     = $pd->Pagination;
             $this->EndReturnData->TotalCount     = $pd->TotalCount;
             $this->EndReturnData->Stats          = $pd->Stats;
-        } catch (Exception $e) { $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
+        } catch (Exception $e) { $this->notifyError('Salaryadvances::getPageDetails', $e); $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
@@ -94,7 +94,7 @@ class Salaryadvances extends MY_Controller {
             $this->EndReturnData->RecordHtmlData = $pd->RecordHtmlData;
             $this->EndReturnData->Pagination     = $pd->Pagination;
             $this->EndReturnData->Stats          = $pd->Stats;
-        } catch (Exception $e) { $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
+        } catch (Exception $e) { $this->notifyError('Salaryadvances::save', $e); $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
@@ -138,7 +138,7 @@ class Salaryadvances extends MY_Controller {
             $this->EndReturnData->RecordHtmlData = $pd->RecordHtmlData;
             $this->EndReturnData->Pagination     = $pd->Pagination;
             $this->EndReturnData->Stats          = $pd->Stats;
-        } catch (Exception $e) { $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
+        } catch (Exception $e) { $this->notifyError('Salaryadvances::approve', $e); $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
@@ -159,7 +159,7 @@ class Salaryadvances extends MY_Controller {
             $this->EndReturnData->RecordHtmlData = $pd->RecordHtmlData;
             $this->EndReturnData->Pagination     = $pd->Pagination;
             $this->EndReturnData->Stats          = $pd->Stats;
-        } catch (Exception $e) { $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
+        } catch (Exception $e) { $this->notifyError('Salaryadvances::reject', $e); $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
@@ -198,7 +198,7 @@ class Salaryadvances extends MY_Controller {
             $this->EndReturnData->RecordHtmlData = $pd->RecordHtmlData;
             $this->EndReturnData->Pagination     = $pd->Pagination;
             $this->EndReturnData->Stats          = $pd->Stats;
-        } catch (Exception $e) { $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
+        } catch (Exception $e) { $this->notifyError('Salaryadvances::delete', $e); $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 }

@@ -76,7 +76,7 @@ class Fileupload {
             $this->EndReturnData->Message = "Success";
             
         } catch (AwsException $e) {
-
+            notifyError('Fileupload::fileUpload', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
 

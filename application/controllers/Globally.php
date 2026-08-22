@@ -31,6 +31,7 @@ class Globally extends CI_Controller {
             $this->EndReturnData->Message = 'Data Retrieved Successfully';
 
         } catch (Exception $e) {
+            $this->notifyError('Globally::getCountryInfo', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -69,6 +70,7 @@ class Globally extends CI_Controller {
             $this->EndReturnData->Cities = $citiesByState;
 
         } catch (Exception $e) {
+            $this->notifyError('Globally::geodata', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -95,6 +97,7 @@ class Globally extends CI_Controller {
             $this->EndReturnData->Message = 'Data Retrieved Successfully';
 
         } catch (Exception $e) {
+            $this->notifyError('Globally::getStateCityOfCountry', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -124,6 +127,7 @@ class Globally extends CI_Controller {
             }
 
         } catch (Exception $e) {
+            $this->notifyError('Globally::getStateofCountry', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -158,6 +162,7 @@ class Globally extends CI_Controller {
             }
 
         } catch (Exception $e) {
+            $this->notifyError('Globally::getCityofCountry', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -182,6 +187,7 @@ class Globally extends CI_Controller {
             $this->EndReturnData->Data  = ($result->Error === FALSE) ? $result->Data : [];
             if ($result->Error) $this->EndReturnData->Message = $result->Message;
         } catch (Exception $e) {
+            $this->notifyError('Globally::getCitiesOfState', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -197,6 +203,7 @@ class Globally extends CI_Controller {
             $this->EndReturnData->Data  = ($result->Error === FALSE) ? $result->Data : [];
             if ($result->Error) $this->EndReturnData->Message = $result->Message;
         } catch (Exception $e) {
+            $this->notifyError('Globally::getTimezones', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -218,6 +225,7 @@ class Globally extends CI_Controller {
             $this->EndReturnData->Message = 'Data Retrieved Successfully';
 
         } catch (Exception $e) {
+            $this->notifyError('Globally::getStorageTypeInfo', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -271,6 +279,7 @@ class Globally extends CI_Controller {
             }
 
         } catch (Exception $e) {
+            $this->notifyError('Globally::updatePageSettings', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -315,6 +324,7 @@ class Globally extends CI_Controller {
             }
 
 		} catch (Exception $e) {
+            $this->notifyError('Globally::getPrintPreviewDetails', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -381,6 +391,7 @@ class Globally extends CI_Controller {
             }
 
         } catch (Exception $e) {
+            $this->notifyError('Globally::exportModuleDataDetails', $e);
             redirect('dashboard', 'refresh');
         }
 
@@ -397,6 +408,7 @@ class Globally extends CI_Controller {
             $this->EndReturnData->Error = false;
 
 		} catch (Exception $e) {
+            $this->notifyError('Globally::getModPageDataDetails', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -538,6 +550,7 @@ class Globally extends CI_Controller {
             // $this->EndReturnData->AddressLine2      = '';
 
         } catch (Exception $e) {
+            $this->notifyError('Globally::fetchGstinDetails', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -586,6 +599,7 @@ class Globally extends CI_Controller {
             $this->EndReturnData->RawBody    = $rawBody;
 
         } catch (Exception $e) {
+            $this->notifyError('Globally::getCommTemplate', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -865,6 +879,7 @@ class Globally extends CI_Controller {
             $this->EndReturnData->Address = $data['ADDRESS'] ?? '';
 
         } catch (Exception $e) {
+            $this->notifyError('Globally::fetchIfscDetails', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }

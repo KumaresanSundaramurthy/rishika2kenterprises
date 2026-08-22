@@ -30,7 +30,7 @@ class Payroll extends MY_Controller {
             $this->load->model('payroll_model');
             $this->pageData['PayrollStats']  = $this->payroll_model->getPayrollStats($this->_orgUID());
             $this->load->view('hrms/payroll/view', $this->pageData);
-        } catch (Exception $e) { redirect('dashboard', 'refresh'); }
+        } catch (Exception $e) { $this->notifyError('Payroll::index', $e); redirect('dashboard', 'refresh'); }
     }
 
     public function getPageDetails($pageNo = 0) {
@@ -41,7 +41,7 @@ class Payroll extends MY_Controller {
             $this->EndReturnData->RecordHtmlData = $pd->RecordHtmlData;
             $this->EndReturnData->Pagination     = $pd->Pagination;
             $this->EndReturnData->TotalCount     = $pd->TotalCount;
-        } catch (Exception $e) { $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
+        } catch (Exception $e) { $this->notifyError('Payroll::getPageDetails', $e); $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
@@ -55,7 +55,7 @@ class Payroll extends MY_Controller {
             $this->pageData['CurrentMonth']  = (int)date('m');
             $this->pageData['CurrentYear']   = (int)date('Y');
             $this->load->view('hrms/payroll/process', $this->pageData);
-        } catch (Exception $e) { redirect('payroll', 'refresh'); }
+        } catch (Exception $e) { $this->notifyError('Payroll::process', $e); redirect('payroll', 'refresh'); }
     }
 
     // ── AJAX — compute employee lines for selected month ──────────────────────
@@ -144,7 +144,7 @@ class Payroll extends MY_Controller {
             $this->EndReturnData->WorkDays   = $workDays;
             $this->EndReturnData->Existing   = $existing ? $existing->PayrollUID : 0;
             $this->EndReturnData->ExistStatus= $existing ? $existing->PayrollStatus : '';
-        } catch (Exception $e) { $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
+        } catch (Exception $e) { $this->notifyError('Payroll::getPayrollEmployees', $e); $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
@@ -230,7 +230,7 @@ class Payroll extends MY_Controller {
                 'SAVE_PAYROLL', 'Payroll', (int) $payrollUID, '',
                 ['Month' => $month, 'Year' => $year], 'Processed payroll for ' . $month . '/' . $year, 'Payroll', 'TRANSACTION'
             );
-        } catch (Exception $e) { $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
+        } catch (Exception $e) { $this->notifyError('Payroll::savePayroll', $e); $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
@@ -278,7 +278,7 @@ class Payroll extends MY_Controller {
                 'UPDATE_PAYROLL_STATUS', 'Payroll', (int) $uid, '',
                 ['NewStatus' => $status], 'Updated payroll status #' . $uid, 'Payroll', 'TRANSACTION'
             );
-        } catch (Exception $e) { $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
+        } catch (Exception $e) { $this->notifyError('Payroll::updateStatus', $e); $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
@@ -310,7 +310,7 @@ class Payroll extends MY_Controller {
                 'DELETE_PAYROLL', 'Payroll', (int) $uid, '',
                 [], 'Deleted payroll #' . $uid, 'Payroll', 'TRANSACTION'
             );
-        } catch (Exception $e) { $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
+        } catch (Exception $e) { $this->notifyError('Payroll::delete', $e); $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
@@ -323,6 +323,6 @@ class Payroll extends MY_Controller {
             $this->pageData['Payroll']      = $payroll;
             $this->pageData['PayrollLines'] = $this->payroll_model->getPayrollLines((int)$uid);
             $this->load->view('hrms/payroll/detail', $this->pageData);
-        } catch (Exception $e) { redirect('payroll', 'refresh'); }
+        } catch (Exception $e) { $this->notifyError('Payroll::viewPayroll', $e); redirect('payroll', 'refresh'); }
     }
 }

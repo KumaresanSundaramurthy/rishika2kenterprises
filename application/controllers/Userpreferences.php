@@ -43,6 +43,7 @@ class Userpreferences extends MY_Controller {
 
             $out->Error = false;
         } catch (Throwable $e) {
+            $this->notifyError('Userpreferences::save', $e);
             $out->Error   = true;
             $out->Message = $e->getMessage();
         }
@@ -63,6 +64,7 @@ class Userpreferences extends MY_Controller {
             $out->Error       = false;
             $out->Preferences = $prefs;
         } catch (Throwable $e) {
+            $this->notifyError('Userpreferences::getAll', $e);
             $out->Error   = true;
             $out->Message = $e->getMessage();
             $out->Preferences = [];

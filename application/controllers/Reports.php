@@ -61,6 +61,7 @@ class Reports extends MY_Controller {
             $this->EndReturnData->entries = $entries;
 
         } catch (Exception $e) {
+            $this->notifyError('Reports::getDayBookData', $e);
             $this->EndReturnData->Status  = 'Error';
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -100,6 +101,7 @@ class Reports extends MY_Controller {
             $this->EndReturnData->Status = 'Success';
             $this->EndReturnData->rows   = $rows;
         } catch (Exception $e) {
+            $this->notifyError('Reports::getSalesSummaryData', $e);
             $this->EndReturnData->Status  = 'Error';
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -138,6 +140,7 @@ class Reports extends MY_Controller {
             $this->EndReturnData->Status = 'Success';
             $this->EndReturnData->rows   = $rows;
         } catch (Exception $e) {
+            $this->notifyError('Reports::getPurchaseSummaryData', $e);
             $this->EndReturnData->Status  = 'Error';
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -172,6 +175,7 @@ class Reports extends MY_Controller {
             $this->EndReturnData->Status = 'Success';
             $this->EndReturnData->rows   = $rows;
         } catch (Exception $e) {
+            $this->notifyError('Reports::getMonthlySummaryData', $e);
             $this->EndReturnData->Status  = 'Error';
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -206,6 +210,7 @@ class Reports extends MY_Controller {
             $this->EndReturnData->Status = 'Success';
             $this->EndReturnData->rows   = $rows;
         } catch (Exception $e) {
+            $this->notifyError('Reports::getPaymentReceivedData', $e);
             $this->EndReturnData->Status  = 'Error';
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -240,6 +245,7 @@ class Reports extends MY_Controller {
             $this->EndReturnData->Status = 'Success';
             $this->EndReturnData->rows   = $rows;
         } catch (Exception $e) {
+            $this->notifyError('Reports::getPaymentMadeData', $e);
             $this->EndReturnData->Status  = 'Error';
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -274,6 +280,7 @@ class Reports extends MY_Controller {
             $this->EndReturnData->Status = 'Success';
             $this->EndReturnData->rows   = $rows;
         } catch (Exception $e) {
+            $this->notifyError('Reports::getPLStatementData', $e);
             $this->EndReturnData->Status  = 'Error';
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -305,6 +312,7 @@ class Reports extends MY_Controller {
             $this->EndReturnData->Status = 'Success';
             $this->EndReturnData->rows   = $rows;
         } catch (Exception $e) {
+            $this->notifyError('Reports::getBalanceSheetData', $e);
             $this->EndReturnData->Status  = 'Error';
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -339,6 +347,7 @@ class Reports extends MY_Controller {
             $this->EndReturnData->Status = 'Success';
             $this->EndReturnData->rows   = $rows;
         } catch (Exception $e) {
+            $this->notifyError('Reports::getTrialBalanceData', $e);
             $this->EndReturnData->Status  = 'Error';
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -364,6 +373,7 @@ class Reports extends MY_Controller {
             $this->EndReturnData->Status = 'Success';
             $this->EndReturnData->rows   = $rows;
         } catch (Exception $e) {
+            $this->notifyError('Reports::getCustomerOutstandingData', $e);
             $this->EndReturnData->Status  = 'Error';
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -402,6 +412,7 @@ class Reports extends MY_Controller {
             $this->EndReturnData->rows    = $rows;
             $this->EndReturnData->opening = $opening;
         } catch (Exception $e) {
+            $this->notifyError('Reports::getCustomerLedgerData', $e);
             $this->EndReturnData->Status  = 'Error';
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -427,6 +438,7 @@ class Reports extends MY_Controller {
             $this->EndReturnData->Status = 'Success';
             $this->EndReturnData->rows   = $rows;
         } catch (Exception $e) {
+            $this->notifyError('Reports::getCustomerAgeingData', $e);
             $this->EndReturnData->Status  = 'Error';
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -452,6 +464,7 @@ class Reports extends MY_Controller {
             $this->EndReturnData->Status = 'Success';
             $this->EndReturnData->rows   = $rows;
         } catch (Exception $e) {
+            $this->notifyError('Reports::getSupplierOutstandingData', $e);
             $this->EndReturnData->Status  = 'Error';
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -490,6 +503,7 @@ class Reports extends MY_Controller {
             $this->EndReturnData->rows    = $rows;
             $this->EndReturnData->opening = $opening;
         } catch (Exception $e) {
+            $this->notifyError('Reports::getSupplierLedgerData', $e);
             $this->EndReturnData->Status  = 'Error';
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -524,6 +538,7 @@ class Reports extends MY_Controller {
             $this->EndReturnData->Status = 'Success';
             $this->EndReturnData->rows   = $rows;
         } catch (Exception $e) {
+            $this->notifyError('Reports::getItemWiseSalesData', $e);
             $this->EndReturnData->Status  = 'Error';
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -558,6 +573,7 @@ class Reports extends MY_Controller {
             $this->EndReturnData->Status = 'Success';
             $this->EndReturnData->rows   = $rows;
         } catch (Exception $e) {
+            $this->notifyError('Reports::getItemWisePurchaseData', $e);
             $this->EndReturnData->Status  = 'Error';
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -583,6 +599,7 @@ class Reports extends MY_Controller {
             $this->EndReturnData->Status = 'Success';
             $this->EndReturnData->rows   = $rows;
         } catch (Exception $e) {
+            $this->notifyError('Reports::getLowStockAlertData', $e);
             $this->EndReturnData->Status  = 'Error';
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -608,6 +625,7 @@ class Reports extends MY_Controller {
             $this->EndReturnData->Status = 'Success';
             $this->EndReturnData->rows   = $rows;
         } catch (Exception $e) {
+            $this->notifyError('Reports::getStockSummaryData', $e);
             $this->EndReturnData->Status  = 'Error';
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -641,6 +659,7 @@ class Reports extends MY_Controller {
             $this->EndReturnData->Status = 'Success';
             $this->EndReturnData->rows   = $this->reports_model->getInvoiceItemwiseData($orgUID, $from, $to);
         } catch (Exception $e) {
+            $this->notifyError('Reports::getInvoiceItemwiseData', $e);
             $this->EndReturnData->Status  = 'Error';
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -674,6 +693,7 @@ class Reports extends MY_Controller {
             $this->EndReturnData->Status = 'Success';
             $this->EndReturnData->rows   = $this->reports_model->getPurchaseItemwiseData($orgUID, $from, $to);
         } catch (Exception $e) {
+            $this->notifyError('Reports::getPurchaseItemwiseData', $e);
             $this->EndReturnData->Status  = 'Error';
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -707,6 +727,7 @@ class Reports extends MY_Controller {
             $this->EndReturnData->Status = 'Success';
             $this->EndReturnData->rows   = $this->reports_model->getSalesReturnItemwiseData($orgUID, $from, $to);
         } catch (Exception $e) {
+            $this->notifyError('Reports::getSalesReturnItemwiseData', $e);
             $this->EndReturnData->Status  = 'Error';
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -740,6 +761,7 @@ class Reports extends MY_Controller {
             $this->EndReturnData->Status = 'Success';
             $this->EndReturnData->rows   = $this->reports_model->getPurchaseReturnItemwiseData($orgUID, $from, $to);
         } catch (Exception $e) {
+            $this->notifyError('Reports::getPurchaseReturnItemwiseData', $e);
             $this->EndReturnData->Status  = 'Error';
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -773,6 +795,7 @@ class Reports extends MY_Controller {
             $this->EndReturnData->Status = 'Success';
             $this->EndReturnData->rows   = $this->reports_model->getSalesRegisterData($orgUID, $from, $to);
         } catch (Exception $e) {
+            $this->notifyError('Reports::getSalesRegisterData', $e);
             $this->EndReturnData->Status  = 'Error';
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -806,6 +829,7 @@ class Reports extends MY_Controller {
             $this->EndReturnData->Status = 'Success';
             $this->EndReturnData->rows   = $this->reports_model->getPurchaseRegisterData($orgUID, $from, $to);
         } catch (Exception $e) {
+            $this->notifyError('Reports::getPurchaseRegisterData', $e);
             $this->EndReturnData->Status  = 'Error';
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -839,6 +863,7 @@ class Reports extends MY_Controller {
             $this->EndReturnData->Status = 'Success';
             $this->EndReturnData->rows   = $this->reports_model->getSalesReturnRegisterData($orgUID, $from, $to);
         } catch (Exception $e) {
+            $this->notifyError('Reports::getSalesReturnRegisterData', $e);
             $this->EndReturnData->Status  = 'Error';
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -872,6 +897,7 @@ class Reports extends MY_Controller {
             $this->EndReturnData->Status = 'Success';
             $this->EndReturnData->rows   = $this->reports_model->getPurchaseReturnRegisterData($orgUID, $from, $to);
         } catch (Exception $e) {
+            $this->notifyError('Reports::getPurchaseReturnRegisterData', $e);
             $this->EndReturnData->Status  = 'Error';
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -905,6 +931,7 @@ class Reports extends MY_Controller {
             $this->EndReturnData->Status = 'Success';
             $this->EndReturnData->rows   = $this->reports_model->getDeliveryChallanRegisterData($orgUID, $from, $to);
         } catch (Exception $e) {
+            $this->notifyError('Reports::getDeliveryChallanRegisterData', $e);
             $this->EndReturnData->Status  = 'Error';
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -938,6 +965,7 @@ class Reports extends MY_Controller {
             $this->EndReturnData->Status = 'Success';
             $this->EndReturnData->rows   = $this->reports_model->getExpenseRegisterData($orgUID, $from, $to);
         } catch (Exception $e) {
+            $this->notifyError('Reports::getExpenseRegisterData', $e);
             $this->EndReturnData->Status  = 'Error';
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -976,6 +1004,7 @@ class Reports extends MY_Controller {
             $this->EndReturnData->b2cs   = $data['b2cs'] ?? [];
             $this->EndReturnData->cdnr   = $data['cdnr'] ?? [];
         } catch (Exception $e) {
+            $this->notifyError('Reports::getGstr1Data', $e);
             $this->EndReturnData->Status  = 'Error';
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1010,6 +1039,7 @@ class Reports extends MY_Controller {
             $this->EndReturnData->Status = 'Success';
             $this->EndReturnData->rows   = $rows;
         } catch (Exception $e) {
+            $this->notifyError('Reports::getGstr2bData', $e);
             $this->EndReturnData->Status  = 'Error';
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1045,6 +1075,7 @@ class Reports extends MY_Controller {
             $this->EndReturnData->outward = $data['outward'] ?? [];
             $this->EndReturnData->itc     = $data['itc']     ?? [];
         } catch (Exception $e) {
+            $this->notifyError('Reports::getGstr3bData', $e);
             $this->EndReturnData->Status  = 'Error';
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1079,6 +1110,7 @@ class Reports extends MY_Controller {
             $this->EndReturnData->Status = 'Success';
             $this->EndReturnData->rows   = $rows;
         } catch (Exception $e) {
+            $this->notifyError('Reports::getGstr7Data', $e);
             $this->EndReturnData->Status  = 'Error';
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1112,6 +1144,7 @@ class Reports extends MY_Controller {
             $this->EndReturnData->Status = 'Success';
             $this->EndReturnData->rows   = $rows;
         } catch (Exception $e) {
+            $this->notifyError('Reports::getHsnData', $e);
             $this->EndReturnData->Status  = 'Error';
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1244,6 +1277,7 @@ class Reports extends MY_Controller {
             $this->EndReturnData->Status = 'Success';
             $this->EndReturnData->rows   = $rows;
         } catch (Exception $e) {
+            $this->notifyError('Reports::getBankStatementData', $e);
             $this->EndReturnData->Status  = 'Error';
             $this->EndReturnData->Message = $e->getMessage();
         }

@@ -84,6 +84,7 @@ class Upstashservice {
             $decoded = json_decode($raw, true);
             return ($decoded !== null) ? $decoded : $raw;
         } catch (Exception $e) {
+            notifyError('Upstashservice::get', $e);
             $this->log("GET [{$key}]", $e->getMessage());
             return null;
         }
@@ -107,6 +108,7 @@ class Upstashservice {
             if ($ttl > 0) { $cmd[] = 'EX'; $cmd[] = (string)$ttl; }
             return $this->cmd($cmd) === 'OK';
         } catch (Exception $e) {
+            notifyError('Upstashservice::set', $e);
             $this->log("SET [{$key}]", $e->getMessage());
             return false;
         }
@@ -123,6 +125,7 @@ class Upstashservice {
         try {
             return (int)$this->cmd(array_merge(['DEL'], $keys));
         } catch (Exception $e) {
+            notifyError('Upstashservice::del', $e);
             $this->log('DEL [' . implode(', ', $keys) . ']', $e->getMessage());
             return 0;
         }
@@ -157,6 +160,7 @@ class Upstashservice {
                 : json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
             return $this->cmd(['HSET', $key, $field, $payload]) !== null;
         } catch (Exception $e) {
+            notifyError('Upstashservice::hset', $e);
             $this->log("HSET [{$key}:{$field}]", $e->getMessage());
             return false;
         }
@@ -171,6 +175,7 @@ class Upstashservice {
             $decoded = json_decode($raw, true);
             return ($decoded !== null) ? $decoded : $raw;
         } catch (Exception $e) {
+            notifyError('Upstashservice::hget', $e);
             $this->log("HGET [{$key}:{$field}]", $e->getMessage());
             return null;
         }
@@ -194,6 +199,7 @@ class Upstashservice {
             }
             return $result;
         } catch (Exception $e) {
+            notifyError('Upstashservice::hgetall', $e);
             $this->log("HGETALL [{$key}]", $e->getMessage());
             return [];
         }
@@ -215,6 +221,7 @@ class Upstashservice {
             }
             return $this->cmd($cmd) !== null;
         } catch (Exception $e) {
+            notifyError('Upstashservice::hmset', $e);
             $this->log("HMSET [{$key}]", $e->getMessage());
             return false;
         }
@@ -226,6 +233,7 @@ class Upstashservice {
         try {
             return (int)$this->cmd(array_merge(['HDEL', $key], $fields));
         } catch (Exception $e) {
+            notifyError('Upstashservice::hdel', $e);
             $this->log('HDEL [' . $key . ':' . implode(',', $fields) . ']', $e->getMessage());
             return 0;
         }
@@ -283,12 +291,14 @@ class Upstashservice {
                     }
                     $result[] = ['key' => $key, 'type' => $type ?? 'string', 'ttl' => $ttl, 'size' => $size, 'value' => $val];
                 } catch (Exception $e) {
+                    notifyError('Upstashservice::getAllKeysData', $e);
                     $result[] = ['key' => $key, 'type' => 'unknown', 'ttl' => -1, 'size' => 0, 'value' => null];
                 }
             }
             usort($result, fn($a, $b) => strcmp($a['key'], $b['key']));
             return $result;
         } catch (Exception $e) {
+            notifyError('Upstashservice::getAllKeysData', $e);
             $this->log('getAllKeysData', $e->getMessage());
             return [];
         }

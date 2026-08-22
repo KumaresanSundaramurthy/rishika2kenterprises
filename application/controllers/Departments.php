@@ -27,7 +27,10 @@ class Departments extends MY_Controller {
             $this->pageData['ModRowData']    = $pd->RecordHtmlData;
             $this->pageData['ModPagination'] = $pd->Pagination;
             $this->load->view('hrms/departments/view', $this->pageData);
-        } catch (Exception $e) { redirect('dashboard', 'refresh'); }
+        } catch (Exception $e) {
+            $this->notifyError('Departments::index', $e);
+            redirect('dashboard', 'refresh');
+        }
     }
 
     public function getPageDetails($pageNo = 0) {
@@ -38,7 +41,7 @@ class Departments extends MY_Controller {
             $this->EndReturnData->RecordHtmlData = $pd->RecordHtmlData;
             $this->EndReturnData->Pagination     = $pd->Pagination;
             $this->EndReturnData->TotalCount     = $pd->TotalCount;
-        } catch (Exception $e) { $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
+        } catch (Exception $e) { $this->notifyError('Departments::getPageDetails', $e); $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
@@ -76,7 +79,7 @@ class Departments extends MY_Controller {
             $this->EndReturnData->RecordHtmlData = $pd->RecordHtmlData;
             $this->EndReturnData->Pagination     = $pd->Pagination;
             $this->EndReturnData->TotalCount     = $pd->TotalCount;
-        } catch (Exception $e) { $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
+        } catch (Exception $e) { $this->notifyError('Departments::save', $e); $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
@@ -89,7 +92,7 @@ class Departments extends MY_Controller {
             $res = $this->dbwrite_model->updateData('Organisation', 'DepartmentTbl', ['IsDeleted' => 1, 'UpdatedBy' => $this->_userUID()], ['DepartmentUID' => $uid, 'OrgUID' => $this->_orgUID()]);
             if ($res->Error) throw new Exception($res->Message);
             $this->EndReturnData->Error = FALSE; $this->EndReturnData->Message = 'Deleted.';
-        } catch (Exception $e) { $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
+        } catch (Exception $e) { $this->notifyError('Departments::delete', $e); $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
@@ -99,7 +102,7 @@ class Departments extends MY_Controller {
             $this->load->model('users_model');
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $this->users_model->getDepartmentList($this->_orgUID());
-        } catch (Exception $e) { $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
+        } catch (Exception $e) { $this->notifyError('Departments::getList', $e); $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 }

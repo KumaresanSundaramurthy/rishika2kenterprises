@@ -20,6 +20,7 @@ class Users_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Users_model::getOrgUsersForCache', $e);
             log_message('error', 'Users_model::getOrgUsersForCache — ' . $e->getMessage());
             return [];
         }
@@ -37,6 +38,7 @@ class Users_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Users_model::getEmployeeDropdownList', $e);
             log_message('error', 'Users_model::getEmployeeDropdownList — ' . $e->getMessage());
             return [];
         }
@@ -59,6 +61,7 @@ class Users_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->row() : null;
         } catch (Exception $e) {
+            notifyError('Users_model::getUserStats', $e);
             log_message('error', 'Users_model::getUserStats — ' . $e->getMessage());
             return null;
         }
@@ -94,6 +97,7 @@ class Users_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Users_model::getUsersList', $e);
             log_message('error', 'Users_model::getUsersList — ' . $e->getMessage());
             return [];
         }
@@ -112,6 +116,7 @@ class Users_model extends CI_Model {
             $row   = $query ? $query->row() : null;
             return $row ? (int)$row->cnt : 0;
         } catch (Exception $e) {
+            notifyError('Users_model::getUsersCount', $e);
             log_message('error', 'Users_model::getUsersCount — ' . $e->getMessage());
             return 0;
         }
@@ -151,6 +156,7 @@ class Users_model extends CI_Model {
             $user->Addresses = $this->getUserAddresses($userUID);
             return $user;
         } catch (Exception $e) {
+            notifyError('Users_model::getUserById', $e);
             log_message('error', 'Users_model::getUserById — ' . $e->getMessage());
             return null;
         }
@@ -167,6 +173,7 @@ class Users_model extends CI_Model {
             $q = $this->ReadDb->get();
             return $q ? $q->result() : [];
         } catch (Exception $e) {
+            notifyError('Users_model::getOrgUsersForDropdown', $e);
             log_message('error', 'Users_model::getOrgUsersForDropdown — ' . $e->getMessage());
             return [];
         }
@@ -188,6 +195,7 @@ class Users_model extends CI_Model {
             }
             return $out;
         } catch (Exception $e) {
+            notifyError('Users_model::getUserAddresses', $e);
             log_message('error', 'Users_model::getUserAddresses — ' . $e->getMessage());
             return ['Current' => null, 'Permanent' => null];
         }
@@ -204,6 +212,7 @@ class Users_model extends CI_Model {
             $this->ReadDb->limit(1);
             return $this->ReadDb->get()->row();
         } catch (Exception $e) {
+            notifyError('Users_model::getUserAddressForType', $e);
             log_message('error', 'Users_model::getUserAddressForType — ' . $e->getMessage());
             return null;
         }
@@ -222,6 +231,7 @@ class Users_model extends CI_Model {
             $next = (int)($row->MaxNum ?? 0) + 1;
             return 'EMP-' . str_pad($next, 4, '0', STR_PAD_LEFT);
         } catch (Exception $e) {
+            notifyError('Users_model::getNextEmployeeCode', $e);
             return 'EMP-0001';
         }
     }
@@ -272,6 +282,7 @@ class Users_model extends CI_Model {
             $r->totalCount = $total;
             return $r;
         } catch (Exception $e) {
+            notifyError('Users_model::getDepartmentListPaginated', $e);
             log_message('error', 'Users_model::getDepartmentListPaginated — ' . $e->getMessage());
             $r = new stdClass(); $r->rows = []; $r->totalCount = 0; return $r;
         }
@@ -323,6 +334,7 @@ class Users_model extends CI_Model {
             $r->totalCount = $total;
             return $r;
         } catch (Exception $e) {
+            notifyError('Users_model::getDesignationListPaginated', $e);
             log_message('error', 'Users_model::getDesignationListPaginated — ' . $e->getMessage());
             $r = new stdClass(); $r->rows = []; $r->totalCount = 0; return $r;
         }
@@ -377,6 +389,7 @@ class Users_model extends CI_Model {
             $r->totalCount = $total;
             return $r;
         } catch (Exception $e) {
+            notifyError('Users_model::getHolidayListPaginated', $e);
             log_message('error', 'Users_model::getHolidayListPaginated — ' . $e->getMessage());
             $r = new stdClass(); $r->rows = []; $r->totalCount = 0; return $r;
         }
@@ -396,6 +409,7 @@ class Users_model extends CI_Model {
             $this->ReadDb->order_by('DepartmentName', 'ASC');
             return $this->ReadDb->get()->result();
         } catch (Exception $e) {
+            notifyError('Users_model::getDepartmentList', $e);
             log_message('error', 'Users_model::getDepartmentList — ' . $e->getMessage());
             return [];
         }
@@ -415,6 +429,7 @@ class Users_model extends CI_Model {
             $this->ReadDb->order_by('DesignationName', 'ASC');
             return $this->ReadDb->get()->result();
         } catch (Exception $e) {
+            notifyError('Users_model::getDesignationList', $e);
             log_message('error', 'Users_model::getDesignationList — ' . $e->getMessage());
             return [];
         }
@@ -431,6 +446,7 @@ class Users_model extends CI_Model {
             $this->ReadDb->limit(1);
             return $this->ReadDb->get()->row();
         } catch (Throwable $e) {
+            notifyError('Users_model::getUserByPasswordToken', $e);
             log_message('error', 'Users_model::getUserByPasswordToken — ' . $e->getMessage());
             return null;
         }
@@ -456,6 +472,7 @@ class Users_model extends CI_Model {
             $q = $this->ReadDb->get();
             return $q ? $q->result() : [];
         } catch (Exception $e) {
+            notifyError('Users_model::getUserAttachments', $e);
             log_message('error', 'Users_model::getUserAttachments — ' . $e->getMessage());
             return [];
         }
@@ -471,6 +488,7 @@ class Users_model extends CI_Model {
             $q = $this->ReadDb->get();
             return $q ? $q->result() : [];
         } catch (Exception $e) {
+            notifyError('Users_model::getExpenseAttachments', $e);
             log_message('error', 'Users_model::getExpenseAttachments — ' . $e->getMessage());
             return [];
         }
@@ -488,6 +506,7 @@ class Users_model extends CI_Model {
             $q = $this->ReadDb->get();
             return $q ? $q->result() : [];
         } catch (Exception $e) {
+            notifyError('Users_model::getEmergencyContacts', $e);
             log_message('error', 'Users_model::getEmergencyContacts — ' . $e->getMessage());
             return [];
         }
@@ -504,6 +523,7 @@ class Users_model extends CI_Model {
             $q = $this->ReadDb->get();
             return $q ? $q->result() : [];
         } catch (Exception $e) {
+            notifyError('Users_model::getEducationList', $e);
             log_message('error', 'Users_model::getEducationList — ' . $e->getMessage());
             return [];
         }
@@ -520,6 +540,7 @@ class Users_model extends CI_Model {
             $q = $this->ReadDb->get();
             return $q ? $q->result() : [];
         } catch (Exception $e) {
+            notifyError('Users_model::getExperienceList', $e);
             log_message('error', 'Users_model::getExperienceList — ' . $e->getMessage());
             return [];
         }
@@ -536,6 +557,7 @@ class Users_model extends CI_Model {
             $q = $this->ReadDb->get();
             return ($q && $q->num_rows() > 0) ? $q->row() : null;
         } catch (Exception $e) {
+            notifyError('Users_model::getBankDetails', $e);
             log_message('error', 'Users_model::getBankDetails — ' . $e->getMessage());
             return null;
         }
@@ -552,6 +574,7 @@ class Users_model extends CI_Model {
             $q = $this->ReadDb->get();
             return ($q && $q->num_rows() > 0) ? $q->result() : [];
         } catch (Exception $e) {
+            notifyError('Users_model::getExpenseList', $e);
             log_message('error', 'Users_model::getExpenseList — ' . $e->getMessage());
             return [];
         }
@@ -593,6 +616,7 @@ class Users_model extends CI_Model {
             );
             return $q ? $q->result() : [];
         } catch (Exception $e) {
+            notifyError('Users_model::getUserBranchAccess', $e);
             log_message('error', 'Users_model::getUserBranchAccess — ' . $e->getMessage());
             return [];
         }

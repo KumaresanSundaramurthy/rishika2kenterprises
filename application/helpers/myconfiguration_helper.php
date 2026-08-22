@@ -124,6 +124,7 @@ function changeTimeZonefromDateTime($DateTimeVal, $TimeZone, $FormatType = 1) {
         $DateTime = new DateTime($DateTimeVal);
         $DateTime->setTimezone($_tzObjects[$TimeZone]);
     } catch (Exception $e) {
+        notifyError('myconfiguration_helper::changeTimeZonefromDateTime', $e);
         return '—';
     }
 

@@ -30,6 +30,7 @@ class Profile extends MY_Controller {
             $this->load->view('profile/view', $this->pageData);
 
         } catch (Exception $e) {
+            notifyError('Profile::index', $e);
             redirect('dashboard', 'refresh');
         }
 
@@ -87,6 +88,7 @@ class Profile extends MY_Controller {
             $this->EndReturnData->Message = $saved ? 'Address saved successfully.' : 'Nothing to save.';
 
         } catch (Throwable $e) {
+            notifyError('Profile::saveProfileAddress', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -152,6 +154,7 @@ class Profile extends MY_Controller {
             $this->EndReturnData->Message = 'Work information saved successfully.';
 
         } catch (Throwable $e) {
+            notifyError('Profile::saveProfileWorkInfo', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -208,6 +211,7 @@ class Profile extends MY_Controller {
             $this->EndReturnData->Attachments = $this->users_model->getUserAttachments($userUID, $orgUID);
 
         } catch (Throwable $e) {
+            notifyError('Profile::saveProfileAttachment', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -238,6 +242,7 @@ class Profile extends MY_Controller {
             $this->EndReturnData->Attachments = $this->users_model->getUserAttachments($userUID, $orgUID);
 
         } catch (Throwable $e) {
+            notifyError('Profile::deleteProfileAttachment', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -257,6 +262,7 @@ class Profile extends MY_Controller {
             $this->EndReturnData->Error       = FALSE;
             $this->EndReturnData->Attachments = $this->users_model->getExpenseAttachments($expenseUID, $userUID, $orgUID);
         } catch (Throwable $e) {
+            notifyError('Profile::getExpenseAttachments', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -312,6 +318,7 @@ class Profile extends MY_Controller {
             $this->EndReturnData->Attachments = $this->users_model->getExpenseAttachments($expenseUID, $userUID, $orgUID);
 
         } catch (Throwable $e) {
+            notifyError('Profile::saveExpenseAttachment', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -343,6 +350,7 @@ class Profile extends MY_Controller {
             $this->EndReturnData->Attachments = $this->users_model->getExpenseAttachments($expenseUID, $userUID, $orgUID);
 
         } catch (Throwable $e) {
+            notifyError('Profile::deleteExpenseAttachment', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -414,6 +422,7 @@ class Profile extends MY_Controller {
             $this->EndReturnData->Message = 'Updated Successfully';
 
         } catch (Exception $e) {
+            notifyError('Profile::updateProfileDetails', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -458,6 +467,7 @@ class Profile extends MY_Controller {
             $this->EndReturnData->Data  = $items;
 
         } catch (Exception $e) {
+            notifyError('Profile::getSignaturesJson', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             $this->EndReturnData->Data    = [];
@@ -483,6 +493,7 @@ class Profile extends MY_Controller {
             $this->load->view('profile/signatures_list', $this->pageData);
 
         } catch (Exception $e) {
+            notifyError('Profile::getSignatureList', $e);
             echo '<div class="alert alert-danger m-3">Error loading signatures: ' . htmlspecialchars($e->getMessage()) . '</div>';
         }
 
@@ -575,6 +586,7 @@ class Profile extends MY_Controller {
             $this->EndReturnData->Message = 'Signature saved successfully';
 
         } catch (Exception $e) {
+            notifyError('Profile::saveSignature', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -659,6 +671,7 @@ class Profile extends MY_Controller {
             $this->EndReturnData->Message = 'Signature updated successfully';
 
         } catch (Exception $e) {
+            notifyError('Profile::updateSignature', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -696,6 +709,7 @@ class Profile extends MY_Controller {
             $this->EndReturnData->Message = 'Signature deleted';
 
         } catch (Exception $e) {
+            notifyError('Profile::deleteSignature', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -742,6 +756,7 @@ class Profile extends MY_Controller {
             $this->EndReturnData->Message = 'Default signature updated';
 
         } catch (Exception $e) {
+            notifyError('Profile::setDefaultSignature', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -759,6 +774,7 @@ class Profile extends MY_Controller {
             $this->EndReturnData->Error    = FALSE;
             $this->EndReturnData->Contacts = $this->users_model->getEmergencyContacts($userUID);
         } catch (Throwable $e) {
+            notifyError('Profile::getEmergencyContacts', $e);
             $this->EndReturnData->Error    = TRUE;
             $this->EndReturnData->Message  = $e->getMessage();
             $this->EndReturnData->Contacts = [];
@@ -823,6 +839,7 @@ class Profile extends MY_Controller {
             $this->EndReturnData->Message  = $emgUID > 0 ? 'Contact updated.' : 'Contact added.';
             $this->EndReturnData->Contacts = $this->users_model->getEmergencyContacts($userUID);
         } catch (Throwable $e) {
+            notifyError('Profile::saveEmergencyContact', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -846,6 +863,7 @@ class Profile extends MY_Controller {
             $this->EndReturnData->Message  = 'Contact deleted.';
             $this->EndReturnData->Contacts = $this->users_model->getEmergencyContacts($userUID);
         } catch (Throwable $e) {
+            notifyError('Profile::deleteEmergencyContact', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -886,6 +904,7 @@ class Profile extends MY_Controller {
             $this->EndReturnData->Message  = 'Primary contact updated.';
             $this->EndReturnData->Contacts = $this->users_model->getEmergencyContacts($userUID);
         } catch (Throwable $e) {
+            notifyError('Profile::setPrimaryContact', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -901,6 +920,7 @@ class Profile extends MY_Controller {
             $this->EndReturnData->Error  = FALSE;
             $this->EndReturnData->Data   = $this->users_model->getBankDetails($userUID);
         } catch (Throwable $e) {
+            notifyError('Profile::getBankDetails', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             $this->EndReturnData->Data    = null;
@@ -948,6 +968,7 @@ class Profile extends MY_Controller {
             $this->EndReturnData->Message = 'Bank details saved.';
             $this->EndReturnData->Data    = $this->users_model->getBankDetails($userUID);
         } catch (Throwable $e) {
+            notifyError('Profile::saveBankDetails', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -964,6 +985,7 @@ class Profile extends MY_Controller {
             $this->EndReturnData->Education  = $this->users_model->getEducationList($userUID);
             $this->EndReturnData->Experience = $this->users_model->getExperienceList($userUID);
         } catch (Throwable $e) {
+            notifyError('Profile::getEduExp', $e);
             $this->EndReturnData->Error      = TRUE;
             $this->EndReturnData->Message    = $e->getMessage();
             $this->EndReturnData->Education  = [];
@@ -1011,6 +1033,7 @@ class Profile extends MY_Controller {
             $this->EndReturnData->Message   = $eduUID > 0 ? 'Education updated.' : 'Education added.';
             $this->EndReturnData->Education = $this->users_model->getEducationList($userUID);
         } catch (Throwable $e) {
+            notifyError('Profile::saveEducation', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1034,6 +1057,7 @@ class Profile extends MY_Controller {
             $this->EndReturnData->Message   = 'Deleted.';
             $this->EndReturnData->Education = $this->users_model->getEducationList($userUID);
         } catch (Throwable $e) {
+            notifyError('Profile::deleteEducation', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1079,6 +1103,7 @@ class Profile extends MY_Controller {
             $this->EndReturnData->Message    = $expUID > 0 ? 'Experience updated.' : 'Experience added.';
             $this->EndReturnData->Experience = $this->users_model->getExperienceList($userUID);
         } catch (Throwable $e) {
+            notifyError('Profile::saveExperience', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1102,6 +1127,7 @@ class Profile extends MY_Controller {
             $this->EndReturnData->Message    = 'Deleted.';
             $this->EndReturnData->Experience = $this->users_model->getExperienceList($userUID);
         } catch (Throwable $e) {
+            notifyError('Profile::deleteExperience', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1118,6 +1144,7 @@ class Profile extends MY_Controller {
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $this->users_model->getExpenseList($userUID, $orgUID);
         } catch (Throwable $e) {
+            notifyError('Profile::getExpenses', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             $this->EndReturnData->Data    = [];
@@ -1215,6 +1242,7 @@ class Profile extends MY_Controller {
             $this->EndReturnData->Data       = $this->users_model->getExpenseList($userUID, $orgUID);
 
         } catch (Throwable $e) {
+            notifyError('Profile::saveExpense', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -1239,6 +1267,7 @@ class Profile extends MY_Controller {
             $this->EndReturnData->Message = 'Expense deleted.';
             $this->EndReturnData->Data    = $this->users_model->getExpenseList($userUID, $orgUID);
         } catch (Throwable $e) {
+            notifyError('Profile::deleteExpense', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }

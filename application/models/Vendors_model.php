@@ -70,10 +70,11 @@ class Vendors_model extends CI_Model {
             } else {
                 $this->EndReturnData->Data = $query->result();
             }
-            
+
             return $this->EndReturnData->Data;
 
         } catch (Exception $e) {
+            notifyError('Vendors_model::getVendors', $e->getMessage());
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
@@ -116,10 +117,11 @@ class Vendors_model extends CI_Model {
             } else {
                 $this->EndReturnData->Data = $query->result();
             }
-            
+
             return $this->EndReturnData->Data;
 
         } catch (Exception $e) {
+            notifyError('Vendors_model::getVendorBankInfo', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
@@ -166,10 +168,11 @@ class Vendors_model extends CI_Model {
             } else {
                 $this->EndReturnData->Data = $query->result();
             }
-            
+
             return $this->EndReturnData->Data;
 
         } catch (Exception $e) {
+            notifyError('Vendors_model::getVendorAddress', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
@@ -335,6 +338,7 @@ class Vendors_model extends CI_Model {
             return $result;
 
         } catch (Exception $e) {
+            notifyError('Vendors_model::getVendorListPaginated', $e);
             throw new Exception($e->getMessage());
         }
 
@@ -379,6 +383,7 @@ class Vendors_model extends CI_Model {
             return array_column($q->result_array(), 'VendorUID');
 
         } catch (Exception $e) {
+            notifyError('Vendors_model::getVendorUIDsByFilter', $e);
             return [];
         }
 
@@ -421,6 +426,7 @@ class Vendors_model extends CI_Model {
             if (!$query) throw new Exception('DB error');
             return $query->row();
         } catch (Exception $e) {
+            notifyError('Vendors_model::getVendorStats', $e);
             throw new Exception($e->getMessage());
         }
 
@@ -445,6 +451,7 @@ class Vendors_model extends CI_Model {
             }
             return array_keys($tags);
         } catch (Exception $e) {
+            notifyError('Vendors_model::getVendorTags', $e);
             throw new Exception($e->getMessage());
         }
     }
@@ -469,6 +476,7 @@ class Vendors_model extends CI_Model {
             if (!$query) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
             return $query->row();
         } catch (Exception $e) {
+            notifyError('Vendors_model::getVendorOpeningBalance', $e);
             throw new Exception($e->getMessage());
         }
     }
@@ -508,6 +516,7 @@ class Vendors_model extends CI_Model {
             return (int)$res->ID;
 
         } catch (Exception $e) {
+            notifyError('Vendors_model::saveVendorOpeningBalance', $e);
             throw new Exception($e->getMessage());
         }
     }
@@ -549,6 +558,7 @@ class Vendors_model extends CI_Model {
                 log_message('debug', '[VBAL-FLOW] updateVendorPendingBalance INSERT OK — new VendBalUID=' . ($res->ID ?? '?'));
             }
         } catch (Exception $e) {
+            notifyError('Vendors_model::updateVendorPendingBalance', $e);
             log_message('error', '[VBAL-FLOW] updateVendorPendingBalance EXCEPTION VendorUID=' . $vendorUID . ': ' . $e->getMessage());
             throw new Exception($e->getMessage());
         }
@@ -578,6 +588,7 @@ class Vendors_model extends CI_Model {
             if (!$query) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
             return (float)$query->row()->total;
         } catch (Exception $e) {
+            notifyError('Vendors_model::getVendorPRCoveredByDebitNote', $e);
             log_message('error', 'Vendors_model::getVendorPRCoveredByDebitNote failed: ' . $e->getMessage());
             return 0.0;
         }
@@ -616,6 +627,7 @@ class Vendors_model extends CI_Model {
 
             return [$pendingDebit, $pendingCredit];
         } catch (Exception $e) {
+            notifyError('Vendors_model::getVendorPendingNoteTotals', $e);
             log_message('error', 'Vendors_model::getVendorPendingNoteTotals failed: ' . $e->getMessage());
             return [0.0, 0.0];
         }
@@ -638,6 +650,7 @@ class Vendors_model extends CI_Model {
             $this->ReadDb->limit(1);
             return $this->ReadDb->get()->row();
         } catch (Exception $e) {
+            notifyError('Vendors_model::getVendorDebitCreditRaw', $e);
             return null;
         }
     }
@@ -684,6 +697,7 @@ class Vendors_model extends CI_Model {
             if ($res->Error) throw new Exception($res->Message ?? 'Vendor year opening balance insert failed.');
             return (int)$res->ID;
         } catch (Exception $e) {
+            notifyError('Vendors_model::saveVendorYearOpening', $e);
             throw new Exception($e->getMessage());
         }
     }
@@ -704,6 +718,7 @@ class Vendors_model extends CI_Model {
             if (!$query) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
             return $query->row();
         } catch (Exception $e) {
+            notifyError('Vendors_model::getVendorYearOpening', $e);
             throw new Exception($e->getMessage());
         }
     }
@@ -745,6 +760,7 @@ class Vendors_model extends CI_Model {
             if (!$query) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
             return $query->result();
         } catch (Exception $e) {
+            notifyError('Vendors_model::getVendorsWithLedgerForBalance', $e);
             throw new Exception($e->getMessage());
         }
     }
@@ -786,6 +802,7 @@ class Vendors_model extends CI_Model {
             log_message('debug', '[EXP-BAL] getVendorClosingBalanceFresh → vendorUID=' . $vendorUID . ' ChartOfAccounts.CurrentBalance=' . $result['balance'] . ' ' . $result['balType']);
             return $result;
         } catch (Exception $e) {
+            notifyError('Vendors_model::getVendorClosingBalanceFresh', $e);
             log_message('error', '[VENDOR-CACHE] getVendorClosingBalanceFresh: ' . $e->getMessage());
             return ['balance' => 0.0, 'balType' => 'Credit'];
         }
@@ -809,6 +826,7 @@ class Vendors_model extends CI_Model {
             if (!$query) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
             return (float) $query->row()->total;
         } catch (Exception $e) {
+            notifyError('Vendors_model::getVendorTotalPurchased', $e);
             throw new Exception($e->getMessage());
         }
     }
@@ -830,6 +848,7 @@ class Vendors_model extends CI_Model {
             if (!$query) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
             return (float) $query->row()->total;
         } catch (Exception $e) {
+            notifyError('Vendors_model::getVendorTotalPaid', $e);
             throw new Exception($e->getMessage());
         }
     }
@@ -852,6 +871,7 @@ class Vendors_model extends CI_Model {
             if (!$query) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
             return (float) $query->row()->total;
         } catch (Exception $e) {
+            notifyError('Vendors_model::getVendorTotalReturned', $e);
             throw new Exception($e->getMessage());
         }
     }
@@ -865,6 +885,7 @@ class Vendors_model extends CI_Model {
             ], ['LedgerUID' => (int)$ledgerUID]);
             if ($res->Error) throw new Exception($res->Message ?? 'Ledger update failed.');
         } catch (Exception $e) {
+            notifyError('Vendors_model::updateVendorBalanceInLedger', $e);
             throw new Exception($e->getMessage());
         }
     }
@@ -905,6 +926,7 @@ class Vendors_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Vendors_model::searchVendorsForGroup', $e);
             throw new Exception($e->getMessage());
         }
     }
@@ -1025,6 +1047,7 @@ class Vendors_model extends CI_Model {
             $result->totalCount = $totalCount;
             return $result;
         } catch (Exception $e) {
+            notifyError('Vendors_model::getVendorGroupListPaginated', $e);
             throw new Exception($e->getMessage());
         }
     }
@@ -1051,6 +1074,7 @@ class Vendors_model extends CI_Model {
             }
             return $query ? $query->row() : null;
         } catch (Exception $e) {
+            notifyError('Vendors_model::getVendorGroupStats', $e);
             return null;
         }
     }
@@ -1077,6 +1101,7 @@ class Vendors_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->row() : null;
         } catch (Exception $e) {
+            notifyError('Vendors_model::getVendorGroupByUID', $e);
             return null;
         }
     }
@@ -1099,6 +1124,7 @@ class Vendors_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Vendors_model::getVendorGroupMembers', $e);
             return [];
         }
     }
@@ -1113,6 +1139,7 @@ class Vendors_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Vendors_model::getActiveVendorGroupsForDropdown', $e);
             return [];
         }
     }
@@ -1162,6 +1189,7 @@ class Vendors_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->row() : null;
         } catch (Exception $e) {
+            notifyError('Vendors_model::getVendorGroupMembership', $e);
             return null;
         }
     }
@@ -1202,6 +1230,7 @@ class Vendors_model extends CI_Model {
             if (!$query) return [];
             return array_column($query->result_array(), 'VendorUID');
         } catch (Exception $e) {
+            notifyError('Vendors_model::getVendorsInOtherGroups', $e);
             return [];
         }
     }
@@ -1223,6 +1252,7 @@ class Vendors_model extends CI_Model {
             );
             return $query ? $query->row() : null;
         } catch (Exception $e) {
+            notifyError('Vendors_model::getVendorGroupOverview', $e);
             return null;
         }
     }
@@ -1239,6 +1269,7 @@ class Vendors_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result_array() : [];
         } catch (Exception $e) {
+            notifyError('Vendors_model::getVendorAttachments', $e);
             log_message('error', 'getVendorAttachments failed: ' . $e->getMessage());
             return [];
         }
@@ -1254,7 +1285,10 @@ class Vendors_model extends CI_Model {
             $this->ReadDb->limit(1);
             $row = $this->ReadDb->get()->row();
             return $row ? $row->FilePath : null;
-        } catch (Exception $e) { return null; }
+        } catch (Exception $e) {
+            notifyError('Vendors_model::getVendorPrimaryImage', $e);
+            return null;
+        }
     }
 
     // ── Vendor Profile Modal methods ───────────────────────────────────────
@@ -1289,6 +1323,7 @@ class Vendors_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result_array() : [];
         } catch (Exception $e) {
+            notifyError('Vendors_model::getVendorMonthlyPurchaseData', $e);
             log_message('error', 'getVendorMonthlyPurchaseData: ' . $e->getMessage());
             return [];
         }
@@ -1323,6 +1358,7 @@ class Vendors_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result_array() : [];
         } catch (Exception $e) {
+            notifyError('Vendors_model::getVendorRecentTransactions', $e);
             log_message('error', 'getVendorRecentTransactions: ' . $e->getMessage());
             return [];
         }
@@ -1372,6 +1408,7 @@ class Vendors_model extends CI_Model {
             usort($all, function (array $a, array $b): int { return strcmp($a['TxDate'], $b['TxDate']); });
             return $all;
         } catch (Exception $e) {
+            notifyError('Vendors_model::getVendorStatementData', $e);
             log_message('error', 'getVendorStatementData: ' . $e->getMessage());
             return [];
         }
@@ -1395,6 +1432,7 @@ class Vendors_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result_array() : [];
         } catch (Exception $e) {
+            notifyError('Vendors_model::getVendorNotes', $e);
             log_message('error', 'getVendorNotes: ' . $e->getMessage());
             return [];
         }
@@ -1453,6 +1491,7 @@ class Vendors_model extends CI_Model {
                 'DaysSinceLastTx'  => isset($row->DaysSinceLastTx) ? (int) $row->DaysSinceLastTx : null,
             ];
         } catch (Exception $e) {
+            notifyError('Vendors_model::getVendorFinancialSummary', $e);
             log_message('error', 'getVendorFinancialSummary: ' . $e->getMessage());
             return ['TotalPurchased' => 0.0, 'TotalReturned' => 0.0, 'DaysSinceLastTx' => null];
         }
@@ -1469,6 +1508,7 @@ class Vendors_model extends CI_Model {
         try {
             $now = new DateTime('now', new DateTimeZone($timezone ?: 'UTC'));
         } catch (Exception $e) {
+            notifyError('Vendors_model::_calcFYYear', $e);
             $now = new DateTime('now');
         }
         $month = (int) $now->format('n');
@@ -1485,6 +1525,7 @@ class Vendors_model extends CI_Model {
             $this->ReadDb->db_debug = FALSE;
             return $this->ReadDb->get_where('Settings.OrgCreditSettingsTbl', ['OrgUID' => $orgUID])->row() ?: null;
         } catch (Exception $e) {
+            notifyError('Vendors_model::getCreditSettings', $e);
             return null;
         }
     }
@@ -1549,6 +1590,7 @@ class Vendors_model extends CI_Model {
 
             return $existing;
         } catch (Exception $e) {
+            notifyError('Vendors_model::getOrInitVendorCreditSettings', $e);
             log_message('error', 'getOrInitVendorCreditSettings: ' . $e->getMessage());
             return null;
         }
@@ -1612,6 +1654,7 @@ class Vendors_model extends CI_Model {
             }
             return null;
         } catch (Exception $e) {
+            notifyError('Vendors_model::claimNextVendorNumber', $e);
             log_message('error', 'claimNextVendorNumber: ' . $e->getMessage());
             return null;
         }

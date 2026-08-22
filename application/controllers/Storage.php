@@ -51,6 +51,7 @@ class Storage extends MY_Controller {
             $this->load->view('storage/view', $this->pageData);
 
         } catch (Exception $e) {
+            $this->notifyError('Storage::index', $e);
             redirect('dashboard', 'refresh');
         }
 
@@ -69,6 +70,7 @@ class Storage extends MY_Controller {
             $this->EndReturnData->Message = 'Retrieved Successfully';
 
         } catch (Exception $e) {
+            $this->notifyError('Storage::getAllStorage', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -133,6 +135,7 @@ class Storage extends MY_Controller {
             $this->EndReturnData->Pagination = $getResp->Pagination;
 
         } catch (Exception $e) {
+            $this->notifyError('Storage::addStorageData', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -182,6 +185,7 @@ class Storage extends MY_Controller {
             $this->EndReturnData->Pagination = $getResp->Pagination;
 
         } catch (Exception $e) {
+            $this->notifyError('Storage::updateStorageData', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -222,6 +226,7 @@ class Storage extends MY_Controller {
             $this->EndReturnData->Pagination = $getResp->Pagination;
 
         } catch (Exception $e) {
+            $this->notifyError('Storage::deleteStorageDetails', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -262,6 +267,7 @@ class Storage extends MY_Controller {
             $this->EndReturnData->Pagination = $getResp->Pagination;
 
         } catch (Exception $e) {
+            $this->notifyError('Storage::deleteBulkStorage', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }

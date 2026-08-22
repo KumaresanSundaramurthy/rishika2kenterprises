@@ -46,6 +46,7 @@ class Organisation extends MY_Controller {
             $this->load->view('organisation/view', $this->pageData);
 
         } catch (Exception $e) {
+            $this->notifyError('Organisation::index', $e);
             log_message('error', 'Organisation::index() — ' . $e->getMessage());
             $this->load->view('organisation/view', $this->pageData);
         }
@@ -200,6 +201,7 @@ class Organisation extends MY_Controller {
                 : [];
 
         } catch (Exception $e) {
+            $this->notifyError('Organisation::updateOrgForm', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -220,6 +222,7 @@ class Organisation extends MY_Controller {
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $result->Data;
         } catch (Exception $e) {
+            $this->notifyError('Organisation::getBusinessTypes', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -238,6 +241,7 @@ class Organisation extends MY_Controller {
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $result->Data;
         } catch (Exception $e) {
+            $this->notifyError('Organisation::getIndustryTypes', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -256,6 +260,7 @@ class Organisation extends MY_Controller {
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $result->Data;
         } catch (Exception $e) {
+            $this->notifyError('Organisation::getBusRegTypes', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -333,6 +338,7 @@ class Organisation extends MY_Controller {
                 ];
             }
         } catch (Exception $e) {
+            $this->notifyError('Organisation::addShipAddress', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -394,6 +400,7 @@ class Organisation extends MY_Controller {
                 'Pincode'       => $pincode,
             ];
         } catch (Exception $e) {
+            $this->notifyError('Organisation::updateShipAddress', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }

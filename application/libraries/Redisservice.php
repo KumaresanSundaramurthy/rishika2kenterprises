@@ -61,6 +61,7 @@ class RedisService {
             $this->connected = true;
             $this->log('INFO', 'Connection established');
         } catch (Exception $e) {
+            notifyError($e, 'Redisservice::connect');
             $this->connected = false;
             $this->log('ERROR', 'Connection failed: ' . $e->getMessage());
         } finally {
@@ -171,6 +172,7 @@ class RedisService {
             $result->TTL     = (int)$ttl;
             $this->log('SET', "{$resolvedKey} ttl={$ttl}");
         } catch (Exception $e) {
+            notifyError('Redisservice::setCache', $e);
             $result->Error   = true;
             $result->Message = $e->getMessage();
             $result->Key     = $resolvedKey;
@@ -222,6 +224,7 @@ class RedisService {
                 $this->log('HIT', "GET {$resolvedKey}");
             }
         } catch (Exception $e) {
+            notifyError('Redisservice::getCache', $e);
             $isConn                    = $this->_isConnectionError($e);
             $result->Error             = true;
             $result->IsConnectionError = $isConn;
@@ -245,6 +248,7 @@ class RedisService {
             $result->Deleted = (bool)$deleted;
             $this->log('DEL', $resolvedKey);
         } catch (Exception $e) {
+            notifyError('Redisservice::deleteCache', $e);
             $result->Error   = true;
             $result->Message = $e->getMessage();
             $result->Key     = $resolvedKey;
@@ -260,6 +264,7 @@ class RedisService {
             if (!$this->connected) $this->connect();
             return (bool)$this->client->exists($resolvedKey);
         } catch (Exception $e) {
+            notifyError('Redisservice::cacheExists', $e);
             return false;
         }
     }
@@ -284,6 +289,7 @@ class RedisService {
             } while ($cursor !== '0');
             $this->log('SCAN', "pattern={$pattern} deleted={$count}");
         } catch (Exception $e) {
+            notifyError('Redisservice::clearCacheByPattern', $e);
             $this->log('ERROR', "SCAN {$pattern}: " . $e->getMessage());
         }
         return $count;
@@ -362,12 +368,14 @@ class RedisService {
                         }
                         $result[] = ['key' => $key, 'type' => $type, 'ttl' => $ttl, 'size' => $size, 'value' => $val];
                     } catch (Exception $e) {
+                        notifyError('Redisservice::getAllKeysData', $e);
                         $result[] = ['key' => $key, 'type' => 'unknown', 'ttl' => -1, 'size' => 0, 'value' => null];
                     }
                 }
             } while ($cursor !== '0');
             usort($result, fn($a, $b) => strcmp($a['key'], $b['key']));
         } catch (Exception $e) {
+            notifyError('Redisservice::getAllKeysData', $e);
             $this->log('ERROR', 'getAllKeysData: ' . $e->getMessage());
         }
         return $result;
@@ -381,6 +389,7 @@ class RedisService {
             $this->log('DEL', $key . ' (exact)');
             return (bool)$deleted;
         } catch (Exception $e) {
+            notifyError('Redisservice::deleteExactKey', $e);
             $this->log('ERROR', "DEL {$key} (exact): " . $e->getMessage());
             return false;
         }
@@ -398,6 +407,7 @@ class RedisService {
             $result->Message = 'Database flushed';
             $this->log('FLUSH', 'flushdb called');
         } catch (Exception $e) {
+            notifyError('Redisservice::flush', $e);
             $result->Error   = true;
             $result->Message = $e->getMessage();
             $this->log('ERROR', 'FLUSH: ' . $e->getMessage());

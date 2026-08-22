@@ -59,6 +59,7 @@ class Expenses_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Expenses_model::getExpenseList', $e);
             log_message('error', 'Expenses_model::getExpenseList — ' . $e->getMessage());
             return [];
         }
@@ -78,6 +79,7 @@ class Expenses_model extends CI_Model {
             $row   = $query ? $query->row() : null;
             return $row ? (int)$row->cnt : 0;
         } catch (Exception $e) {
+            notifyError('Expenses_model::getExpenseCount', $e);
             log_message('error', 'Expenses_model::getExpenseCount — ' . $e->getMessage());
             return 0;
         }
@@ -118,6 +120,7 @@ class Expenses_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->row() : null;
         } catch (Exception $e) {
+            notifyError('Expenses_model::getExpenseById', $e);
             log_message('error', 'Expenses_model::getExpenseById — ' . $e->getMessage());
             return null;
         }
@@ -141,6 +144,7 @@ class Expenses_model extends CI_Model {
             }
             return $result;
         } catch (Exception $e) {
+            notifyError('Expenses_model::getExpenseSummaryStats', $e);
             log_message('error', 'Expenses_model::getExpenseSummaryStats — ' . $e->getMessage());
             return [];
         }
@@ -162,6 +166,7 @@ class Expenses_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Expenses_model::getCategories', $e);
             log_message('error', 'Expenses_model::getCategories — ' . $e->getMessage());
             return [];
         }
@@ -178,6 +183,7 @@ class Expenses_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Expenses_model::getPaymentTypes', $e);
             log_message('error', 'Expenses_model::getPaymentTypes — ' . $e->getMessage());
             return [];
         }
@@ -197,6 +203,7 @@ class Expenses_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Expenses_model::getBankAccounts', $e);
             log_message('error', 'Expenses_model::getBankAccounts — ' . $e->getMessage());
             return [];
         }
@@ -214,6 +221,7 @@ class Expenses_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Expenses_model::getTdsSections', $e);
             log_message('error', 'Expenses_model::getTdsSections — ' . $e->getMessage());
             return [];
         }
@@ -233,6 +241,7 @@ class Expenses_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->row() : null;
         } catch (Exception $e) {
+            notifyError('Expenses_model::getCashAccount', $e);
             log_message('error', 'Expenses_model::getCashAccount — ' . $e->getMessage());
             return null;
         }
@@ -259,6 +268,7 @@ class Expenses_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Expenses_model::getCategoryList', $e);
             log_message('error', 'Expenses_model::getCategoryList — ' . $e->getMessage());
             return [];
         }
@@ -283,6 +293,7 @@ class Expenses_model extends CI_Model {
             $row   = $query ? $query->row() : null;
             return $row ? (int)$row->cnt : 0;
         } catch (Exception $e) {
+            notifyError('Expenses_model::getCategoryCount', $e);
             log_message('error', 'Expenses_model::getCategoryCount — ' . $e->getMessage());
             return 0;
         }
@@ -303,6 +314,7 @@ class Expenses_model extends CI_Model {
             $row   = $query ? $query->row() : null;
             return $row ? (int)$row->cnt : 0;
         } catch (Exception $e) {
+            notifyError('Expenses_model::getPaymentCount', $e);
             log_message('error', 'Expenses_model::getPaymentCount — ' . $e->getMessage());
             return 0;
         }
@@ -321,6 +333,7 @@ class Expenses_model extends CI_Model {
             $row   = $query ? $query->row() : null;
             return $row && (int)$row->cnt > 0;
         } catch (Exception $e) {
+            notifyError('Expenses_model::isCategoryLinked', $e);
             log_message('error', 'Expenses_model::isCategoryLinked — ' . $e->getMessage());
             return true; // fail-safe: treat as linked to prevent accidental delete
         }
@@ -378,6 +391,7 @@ class Expenses_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Expenses_model::getExpenseItems', $e);
             log_message('error', 'Expenses_model::getExpenseItems — ' . $e->getMessage());
             return [];
         }
@@ -495,6 +509,7 @@ class Expenses_model extends CI_Model {
             if (!$query) return [];
             return array_column($query->result_array(), 'ExpenseUID');
         } catch (Exception $e) {
+            notifyError('Expenses_model::getExpenseUIDsByFilter', $e);
             log_message('error', 'getExpenseUIDsByFilter: ' . $e->getMessage());
             return [];
         }

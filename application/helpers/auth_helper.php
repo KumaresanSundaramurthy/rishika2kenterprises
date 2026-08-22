@@ -24,6 +24,7 @@ function is_authenticated() {
         $redis = $CI->redisservice->getCache($jwt->key);
         return $redis->Error === false;
     } catch (Exception $e) {
+        notifyError('auth_helper::is_authenticated', $e);
         return false;
     }
 }

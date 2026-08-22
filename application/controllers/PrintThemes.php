@@ -131,6 +131,7 @@ class PrintThemes extends MY_Controller {
             $this->load->view('printthemes/view', $this->pageData);
 
         } catch (Exception $e) {
+            notifyError('PrintThemes::index', $e);
             redirect('dashboard', 'refresh');
         }
 
@@ -149,6 +150,7 @@ class PrintThemes extends MY_Controller {
             $this->EndReturnData->Pagination     = $resp->Pagination;
             $this->EndReturnData->TotalCount     = $resp->TotalCount;
         } catch (Exception $e) {
+            notifyError('PrintThemes::getThemeList', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -167,6 +169,7 @@ class PrintThemes extends MY_Controller {
             $this->EndReturnData->Pagination     = $resp->Pagination;
             $this->EndReturnData->TotalCount     = $resp->TotalCount;
         } catch (Exception $e) {
+            notifyError('PrintThemes::getTemplateList', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -261,6 +264,7 @@ class PrintThemes extends MY_Controller {
             $this->EndReturnData->Message = 'Theme saved successfully.';
 
         } catch (Exception $e) {
+            notifyError('PrintThemes::saveTheme', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -292,6 +296,7 @@ class PrintThemes extends MY_Controller {
             $this->EndReturnData->Message = 'Theme removed.';
 
         } catch (Exception $e) {
+            notifyError('PrintThemes::deleteTheme', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -318,6 +323,7 @@ class PrintThemes extends MY_Controller {
             $this->EndReturnData->Data  = $found;
 
         } catch (Exception $e) {
+            notifyError('PrintThemes::getThemeData', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -386,6 +392,7 @@ class PrintThemes extends MY_Controller {
             $this->EndReturnData->Message = 'Template saved successfully.';
 
         } catch (Exception $e) {
+            notifyError('PrintThemes::saveTemplate', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -415,6 +422,7 @@ class PrintThemes extends MY_Controller {
             $this->EndReturnData->Message = 'Template removed.';
 
         } catch (Exception $e) {
+            notifyError('PrintThemes::deleteTemplate', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -435,6 +443,7 @@ class PrintThemes extends MY_Controller {
             $this->EndReturnData->Data  = $result->Data;
 
         } catch (Exception $e) {
+            notifyError('PrintThemes::getTemplateData', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }

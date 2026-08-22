@@ -34,6 +34,7 @@ class Roles extends MY_Controller {
             $this->load->view('roles/view', $this->pageData);
 
         } catch (Exception $e) {
+            $this->notifyError('Roles::index', $e);
             redirect('dashboard', 'refresh');
         }
 
@@ -54,6 +55,7 @@ class Roles extends MY_Controller {
             $this->EndReturnData->Data    = $result->Error === FALSE ? $result->Data : [];
 
         } catch (Exception $e) {
+            $this->notifyError('Roles::getRolesList', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -79,6 +81,7 @@ class Roles extends MY_Controller {
             $this->EndReturnData->Data    = $result->Error === FALSE ? $result->Data : [];
 
         } catch (Exception $e) {
+            $this->notifyError('Roles::getRolePermissions', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -140,6 +143,7 @@ class Roles extends MY_Controller {
             $this->EndReturnData->Message = $RoleUID > 0 ? 'Role updated successfully.' : 'Role created successfully.';
 
         } catch (Exception $e) {
+            $this->notifyError('Roles::saveRole', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -165,6 +169,7 @@ class Roles extends MY_Controller {
             $this->EndReturnData->Message = 'Permissions saved successfully.';
 
         } catch (Exception $e) {
+            $this->notifyError('Roles::saveRolePermissions', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -205,6 +210,7 @@ class Roles extends MY_Controller {
             $this->EndReturnData->Message = 'Role deleted successfully.';
 
         } catch (Exception $e) {
+            $this->notifyError('Roles::deleteRole', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }

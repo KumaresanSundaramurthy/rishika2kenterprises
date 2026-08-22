@@ -28,6 +28,7 @@ class Proformainvoices extends MY_Controller {
             ]);
             $this->load->view('transactions/proformainvoices/view', $this->pageData);
         } catch (Exception $e) {
+            notifyError('Proformainvoices::index', $e);
             redirect('dashboard', 'refresh');
         }
     }
@@ -62,6 +63,7 @@ class Proformainvoices extends MY_Controller {
 
             $this->load->view('transactions/proformainvoices/forms/form', $this->pageData);
         } catch (Exception $e) {
+            notifyError('Proformainvoices::create', $e);
             redirect('proforma', 'refresh');
         }
     }
@@ -117,6 +119,7 @@ class Proformainvoices extends MY_Controller {
 
             $this->load->view('transactions/proformainvoices/forms/form', $this->pageData);
         } catch (Exception $e) {
+            notifyError('Proformainvoices::edit', $e);
             redirect('proforma', 'refresh');
         }
     }
@@ -197,6 +200,7 @@ class Proformainvoices extends MY_Controller {
             $this->EndReturnData->TransUID = $transUID;
             $this->EndReturnData->Token    = $headerData['TransToken'];
         } catch (Exception $e) {
+            notifyError('Proformainvoices::addProFormaInvoice', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -315,6 +319,7 @@ class Proformainvoices extends MY_Controller {
                 [], 'Updated proforma invoice ' . ($uniqueNumber ?? $existing->UniqueNumber ?? ''), 'ProformaInvoices', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
             );
         } catch (Exception $e) {
+            notifyError('Proformainvoices::updateProFormaInvoice', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -363,6 +368,7 @@ class Proformainvoices extends MY_Controller {
             );
             $this->_buildListResponse('transactions/proformainvoices/list', '/transactions/getPageDetails/113');
         } catch (Exception $e) {
+            notifyError('Proformainvoices::deleteProFormaInvoice', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -489,6 +495,7 @@ class Proformainvoices extends MY_Controller {
             $this->EndReturnData->TransUID = $newTransUID;
             $this->EndReturnData->EditURL  = '/proforma/' . $newTransUID . '/edit';
         } catch (Exception $e) {
+            notifyError('Proformainvoices::duplicateProFormaInvoice', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -543,6 +550,7 @@ class Proformainvoices extends MY_Controller {
             );
             $this->_buildListResponse('transactions/proformainvoices/list', '/transactions/getPageDetails/113');
         } catch (Exception $e) {
+            notifyError('Proformainvoices::updateProFormaStatus', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -584,6 +592,7 @@ class Proformainvoices extends MY_Controller {
             );
             $this->EndReturnData->RedirectURL = '/invoices/create?fromProForma=' . $transUID;
         } catch (Exception $e) {
+            notifyError('Proformainvoices::convertProFormaToInvoice', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();

@@ -227,6 +227,7 @@ class Pricelists_model extends CI_Model {
             $dq = $this->ReadDb->get();
             $result->rows = $dq ? $dq->result() : [];
         } catch (Exception $e) {
+            notifyError($e, 'pricelists_model::getPriceListPaginated');
             log_message('error', 'getPriceListPaginated: ' . $e->getMessage());
         }
         return $result;

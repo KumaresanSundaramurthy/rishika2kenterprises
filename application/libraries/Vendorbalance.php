@@ -63,6 +63,7 @@ class Vendorbalance {
             return ['debitNoteUID' => $debitNoteUID, 'amount' => $amount];
 
         } catch (Exception $e) {
+            notifyError('Vendorbalance::createPurchaseReturnDebitNote', $e);
             log_message('error', 'Vendorbalance::createPurchaseReturnDebitNote failed: ' . $e->getMessage());
             return null;
         }
@@ -107,6 +108,7 @@ class Vendorbalance {
             return ['debitNoteUID' => $debitNoteUID, 'amount' => $amount];
 
         } catch (Exception $e) {
+            notifyError('Vendorbalance::createPurchaseCancelDebitNote', $e);
             log_message('error', 'Vendorbalance::createPurchaseCancelDebitNote failed: ' . $e->getMessage());
             return null;
         }
@@ -147,6 +149,7 @@ class Vendorbalance {
             return ['creditNoteUID' => $creditNoteUID, 'amount' => $amount];
 
         } catch (Exception $e) {
+            notifyError('Vendorbalance::createVendorCreditNote', $e);
             log_message('error', 'Vendorbalance::createVendorCreditNote failed: ' . $e->getMessage());
             return null;
         }
@@ -238,6 +241,7 @@ class Vendorbalance {
             return ['balance' => $newBalance, 'type' => $newBalType];
 
         } catch (Exception $e) {
+            notifyError('Vendorbalance::recalcAndSync', $e);
             log_message('error', '[VBAL-FLOW] recalcAndSync EXCEPTION VendorUID=' . $vendorUID . ': ' . $e->getMessage());
             return null;
         }

@@ -50,6 +50,7 @@ class Cachemonitor extends MY_Controller {
             $this->EndReturnData->Message = 'Verified';
 
         } catch (Exception $e) {
+            $this->notifyError('Cachemonitor::verifyPassword', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -69,6 +70,7 @@ class Cachemonitor extends MY_Controller {
             $this->EndReturnData->Data    = $keys;
             $this->EndReturnData->Count   = count($keys);
         } catch (Exception $e) {
+            $this->notifyError('Cachemonitor::getRedisData', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -91,6 +93,7 @@ class Cachemonitor extends MY_Controller {
             $this->EndReturnData->Deleted = $deleted;
             $this->EndReturnData->Message = $deleted ? 'Key deleted.' : 'Key not found (already expired?).';
         } catch (Exception $e) {
+            $this->notifyError('Cachemonitor::deleteRedisKey', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -113,6 +116,7 @@ class Cachemonitor extends MY_Controller {
             $this->EndReturnData->Deleted = $count > 0;
             $this->EndReturnData->Message = $count > 0 ? 'Key deleted.' : 'Key not found (already expired?).';
         } catch (Exception $e) {
+            $this->notifyError('Cachemonitor::deleteUpstashKey', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -139,6 +143,7 @@ class Cachemonitor extends MY_Controller {
                 $this->EndReturnData->Count   = count($keys);
             }
         } catch (Exception $e) {
+            $this->notifyError('Cachemonitor::getUpstashData', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }

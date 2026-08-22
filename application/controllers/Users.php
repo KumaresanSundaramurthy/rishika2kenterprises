@@ -50,6 +50,7 @@ class Users extends MY_Controller {
             $this->load->view('users/view', $this->pageData);
 
         } catch (Throwable $e) {
+            notifyError('Users::index', $e);
             log_message('error', 'Users::index — ' . $e->getMessage());
             redirect('dashboard', 'refresh');
         }
@@ -83,6 +84,7 @@ class Users extends MY_Controller {
             $this->EndReturnData->Stats          = $this->users_model->getUserStats($orgUID);
 
         } catch (Throwable $e) {
+            notifyError('Users::getPageDetails', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -112,6 +114,7 @@ class Users extends MY_Controller {
             $this->EndReturnData->BranchAccess = $this->users_model->getUserBranchAccess($userUID, $orgUID);
 
         } catch (Throwable $e) {
+            notifyError('Users::getUserDetail', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -166,6 +169,7 @@ class Users extends MY_Controller {
             $this->EndReturnData->Attachments = $this->users_model->getUserAttachments($userUID, $orgUID);
 
         } catch (Throwable $e) {
+            notifyError('Users::saveUserAttachment', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -195,6 +199,7 @@ class Users extends MY_Controller {
             $this->EndReturnData->Attachments = $this->users_model->getUserAttachments($userUID, $orgUID);
 
         } catch (Throwable $e) {
+            notifyError('Users::deleteUserAttachment', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -222,6 +227,7 @@ class Users extends MY_Controller {
             $this->_appendListResponse($JwtData->Org->OrgUID);
 
         } catch (Throwable $e) {
+            notifyError('Users::toggleStatus', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -418,6 +424,7 @@ class Users extends MY_Controller {
             $this->_appendListResponse($orgUID);
 
         } catch (Throwable $e) {
+            notifyError('Users::saveUser', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -449,6 +456,7 @@ class Users extends MY_Controller {
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = t('language_updated', 'Language updated successfully.');
         } catch (Exception $e) {
+            notifyError('Users::updateLanguage', $e);
             log_message('error', 'Users::updateLanguage — ' . $e->getMessage());
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -464,6 +472,7 @@ class Users extends MY_Controller {
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $this->users_model->getEmployeeDropdownList($orgUID);
         } catch (Throwable $e) {
+            notifyError('Users::getEmployeeList', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -536,6 +545,7 @@ class Users extends MY_Controller {
                 throw new Exception($curlErr ?: 'Brevo API error HTTP ' . $httpCode . ': ' . $response);
             }
         } catch (Throwable $e) {
+            notifyError('Users::_sendPasswordSetupEmail', $e);
             log_message('error', 'Users::_sendPasswordSetupEmail — ' . $e->getMessage());
         }
     }

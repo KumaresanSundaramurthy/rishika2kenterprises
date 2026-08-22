@@ -114,6 +114,7 @@ class Assistant extends MY_Controller {
             $out->Reply   = $reply;
 
         } catch (Exception $e) {
+            $this->notifyError('Assistant::chat', $e);
             $out->Error   = true;
             $out->Message = $e->getMessage();
             $out->Reply   = null;

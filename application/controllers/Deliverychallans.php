@@ -37,6 +37,7 @@ class Deliverychallans extends MY_Controller {
             ]);
             $this->load->view('transactions/deliverychallans/view', $this->pageData);
         } catch (Exception $e) {
+            $this->notifyError('Deliverychallans::index', $e);
             redirect('dashboard', 'refresh');
         }
     }
@@ -96,6 +97,7 @@ class Deliverychallans extends MY_Controller {
 
             $this->load->view('transactions/deliverychallans/forms/form', $this->pageData);
         } catch (Exception $e) {
+            $this->notifyError('Deliverychallans::create', $e);
             redirect('deliverychallan', 'refresh');
         }
     }
@@ -156,6 +158,7 @@ class Deliverychallans extends MY_Controller {
 
             $this->load->view('transactions/deliverychallans/forms/form', $this->pageData);
         } catch (Exception $e) {
+            $this->notifyError('Deliverychallans::edit', $e);
             redirect('deliverychallan', 'refresh');
         }
     }
@@ -286,6 +289,7 @@ class Deliverychallans extends MY_Controller {
             $this->EndReturnData->TransUID = $transUID;
             $this->EndReturnData->Token    = $headerData['TransToken'];
         } catch (Exception $e) {
+            $this->notifyError('Deliverychallans::addDeliveryChallan', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -423,6 +427,7 @@ class Deliverychallans extends MY_Controller {
                 [], 'Updated delivery challan ' . ($uniqueNumber ?? $existing->UniqueNumber ?? ''), 'DeliveryChallans', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
             );
         } catch (Exception $e) {
+            $this->notifyError('Deliverychallans::updateDeliveryChallan', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -480,6 +485,7 @@ class Deliverychallans extends MY_Controller {
             );
             $this->_buildListResponse('transactions/deliverychallans/list', '/transactions/getPageDetails/112');
         } catch (Exception $e) {
+            $this->notifyError('Deliverychallans::deleteDeliveryChallan', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -608,6 +614,7 @@ class Deliverychallans extends MY_Controller {
             $this->EndReturnData->TransUID = $newTransUID;
             $this->EndReturnData->EditURL  = '/deliverychallan/' . $newTransUID . '/edit';
         } catch (Exception $e) {
+            $this->notifyError('Deliverychallans::duplicateDeliveryChallan', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -677,6 +684,7 @@ class Deliverychallans extends MY_Controller {
             $this->EndReturnData->NewStatus      = $newStatus;
             $this->_buildListResponse('transactions/deliverychallans/list', '/transactions/getPageDetails/112');
         } catch (Exception $e) {
+            $this->notifyError('Deliverychallans::updateDeliveryChallanStatus', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -724,6 +732,7 @@ class Deliverychallans extends MY_Controller {
             $this->EndReturnData->DC      = ['UniqueNumber' => $dc->UniqueNumber, 'DocStatus' => $dc->DocStatus];
             $this->EndReturnData->Items   = $itemData;
         } catch (Exception $e) {
+            $this->notifyError('Deliverychallans::getPartialReturnData', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -861,6 +870,7 @@ class Deliverychallans extends MY_Controller {
             $this->_buildListResponse('transactions/deliverychallans/list', '/transactions/getPageDetails/112');
 
         } catch (Exception $e) {
+            $this->notifyError('Deliverychallans::partialReturn', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -902,6 +912,7 @@ class Deliverychallans extends MY_Controller {
             );
             $this->EndReturnData->RedirectURL = '/invoices/create?fromChallan=' . $transUID;
         } catch (Exception $e) {
+            $this->notifyError('Deliverychallans::convertChallanToInvoice', $e);
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();

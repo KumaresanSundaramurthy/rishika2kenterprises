@@ -73,6 +73,7 @@ class Cache extends CI_Controller {
             $this->globalservice->refreshUserCache();
             $this->_json(['Error' => false, 'Message' => 'Cache refreshed']);
         } catch (Exception $e) {
+            notifyError('Cache::refresh', $e);
             $this->_json(['Error' => true, 'Message' => $e->getMessage()], 500);
         }
     }

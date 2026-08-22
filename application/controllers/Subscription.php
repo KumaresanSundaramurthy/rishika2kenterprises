@@ -36,6 +36,7 @@ class Subscription extends CI_Controller {
             $this->load->view('subscription/expired', $this->pageData);
 
         } catch (Exception $e) {
+            $this->notifyError('Subscription::expired', $e);
             show_error('Error loading subscription page: ' . $e->getMessage());
         }
     }
@@ -55,6 +56,7 @@ class Subscription extends CI_Controller {
             $this->load->view('subscription/plans', $this->pageData);
 
         } catch (Exception $e) {
+            $this->notifyError('Subscription::plans', $e);
             show_error('Error loading plans: ' . $e->getMessage());
         }
     }
@@ -87,6 +89,7 @@ class Subscription extends CI_Controller {
             }
 
         } catch (Exception $e) {
+            $this->notifyError('Subscription::extend', $e);
             $this->EndReturnData->Error = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -138,6 +141,7 @@ class Subscription extends CI_Controller {
             }
 
         } catch (Exception $e) {
+            $this->notifyError('Subscription::activate', $e);
             $this->EndReturnData->Error = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -168,6 +172,7 @@ class Subscription extends CI_Controller {
             $this->EndReturnData->Plan = $subscriptionInfo->plan ?? 'Unknown';
 
         } catch (Exception $e) {
+            $this->notifyError('Subscription::getStatus', $e);
             $this->EndReturnData->Error = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -194,6 +199,7 @@ class Subscription extends CI_Controller {
             $this->load->view('subscription/history', $this->pageData);
 
         } catch (Exception $e) {
+            $this->notifyError('Subscription::history', $e);
             show_error('Error loading subscription history: ' . $e->getMessage());
         }
     }

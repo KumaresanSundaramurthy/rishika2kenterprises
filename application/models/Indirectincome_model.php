@@ -59,6 +59,7 @@ class Indirectincome_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Indirectincome_model::getIncomeList', $e);
             log_message('error', 'Indirectincome_model::getIncomeList — ' . $e->getMessage());
             return [];
         }
@@ -78,6 +79,7 @@ class Indirectincome_model extends CI_Model {
             $row   = $query ? $query->row() : null;
             return $row ? (int)$row->cnt : 0;
         } catch (Exception $e) {
+            notifyError('Indirectincome_model::getIncomeCount', $e);
             log_message('error', 'Indirectincome_model::getIncomeCount — ' . $e->getMessage());
             return 0;
         }
@@ -111,6 +113,7 @@ class Indirectincome_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->row() : null;
         } catch (Exception $e) {
+            notifyError('Indirectincome_model::getIncomeById', $e);
             log_message('error', 'Indirectincome_model::getIncomeById — ' . $e->getMessage());
             return null;
         }
@@ -134,6 +137,7 @@ class Indirectincome_model extends CI_Model {
             }
             return $result;
         } catch (Exception $e) {
+            notifyError('Indirectincome_model::getIncomeSummaryStats', $e);
             log_message('error', 'Indirectincome_model::getIncomeSummaryStats — ' . $e->getMessage());
             return [];
         }
@@ -155,6 +159,7 @@ class Indirectincome_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Indirectincome_model::getCategories', $e);
             log_message('error', 'Indirectincome_model::getCategories — ' . $e->getMessage());
             return [];
         }
@@ -171,6 +176,7 @@ class Indirectincome_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Indirectincome_model::getPaymentTypes', $e);
             log_message('error', 'Indirectincome_model::getPaymentTypes — ' . $e->getMessage());
             return [];
         }
@@ -190,6 +196,7 @@ class Indirectincome_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Indirectincome_model::getBankAccounts', $e);
             log_message('error', 'Indirectincome_model::getBankAccounts — ' . $e->getMessage());
             return [];
         }
@@ -209,6 +216,7 @@ class Indirectincome_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->row() : null;
         } catch (Exception $e) {
+            notifyError('Indirectincome_model::getCashAccount', $e);
             log_message('error', 'Indirectincome_model::getCashAccount — ' . $e->getMessage());
             return null;
         }
@@ -235,6 +243,7 @@ class Indirectincome_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Indirectincome_model::getCategoryList', $e);
             log_message('error', 'Indirectincome_model::getCategoryList — ' . $e->getMessage());
             return [];
         }
@@ -259,6 +268,7 @@ class Indirectincome_model extends CI_Model {
             $row   = $query ? $query->row() : null;
             return $row ? (int)$row->cnt : 0;
         } catch (Exception $e) {
+            notifyError('Indirectincome_model::getCategoryCount', $e);
             log_message('error', 'Indirectincome_model::getCategoryCount — ' . $e->getMessage());
             return 0;
         }
@@ -279,6 +289,7 @@ class Indirectincome_model extends CI_Model {
             $row   = $query ? $query->row() : null;
             return $row ? (int)$row->cnt : 0;
         } catch (Exception $e) {
+            notifyError('Indirectincome_model::getPaymentCount', $e);
             log_message('error', 'Indirectincome_model::getPaymentCount — ' . $e->getMessage());
             return 0;
         }
@@ -297,6 +308,7 @@ class Indirectincome_model extends CI_Model {
             $row   = $query ? $query->row() : null;
             return $row && (int)$row->cnt > 0;
         } catch (Exception $e) {
+            notifyError('Indirectincome_model::isCategoryLinked', $e);
             log_message('error', 'Indirectincome_model::isCategoryLinked — ' . $e->getMessage());
             return true;
         }
@@ -368,6 +380,7 @@ class Indirectincome_model extends CI_Model {
             if (!$query) return [];
             return array_column($query->result_array(), 'IncomeUID');
         } catch (Exception $e) {
+            notifyError('Indirectincome_model::getIncomeUIDsByFilter', $e);
             log_message('error', 'getIncomeUIDsByFilter: ' . $e->getMessage());
             return [];
         }

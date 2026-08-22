@@ -109,6 +109,7 @@ Class Accountledger {
             return $ledgerId;
         
         } catch (Exception $e) {
+            notifyError('Accountledger::createLedgerAccountingInfo', $e);
             throw $e;
         }
 
@@ -203,6 +204,7 @@ Class Accountledger {
             return $mapResp->ID;
             
         } catch (Exception $e) {
+            notifyError('Accountledger::mapEntityToLedger', $e);
             throw new Exception("Failed to map {$entityType} to ledger: " . $e->getMessage());
         }
 
@@ -228,6 +230,7 @@ Class Accountledger {
             return $this->CI->accountledger_model->getEntityLedgerByColumn($column, $entityId, $entityType);
             
         } catch (Exception $e) {
+            notifyError('Accountledger::getEntityLedgerMapping', $e);
             throw new Exception("Failed to get ledger mapping: " . $e->getMessage());
         }
     }
@@ -265,6 +268,7 @@ Class Accountledger {
             $this->CI->dbwrite_model->insertData('Accounting', 'LedgerAuditTrail', $auditData);
             
         } catch (Exception $e) {
+            notifyError('Accountledger::logLedgerAudit', $e);
             throw new Exception("Ledger audit log failed: " . $e->getMessage());
         }
 
@@ -394,6 +398,7 @@ Class Accountledger {
             return $entityLedger->LedgerUID;
 
         } catch (Exception $e) {
+            notifyError('Accountledger::updateEntityLedgerInfo', $e);
             throw new Exception("{$entityType} ledger update failed: " . $e->getMessage());
         }
 
@@ -436,6 +441,7 @@ Class Accountledger {
             return true;
             
         } catch (Exception $e) {
+            notifyError('Accountledger::deactivateEntityLedger', $e);
             throw new Exception("{$entityType} ledger deactivation failed: " . $e->getMessage());
         }
 

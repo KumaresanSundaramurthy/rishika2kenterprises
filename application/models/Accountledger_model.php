@@ -36,6 +36,7 @@ class Accountledger_model extends CI_Model {
             return $query->row();
             
         } catch (Exception $e) {
+            notifyError('Accountledger_model::getEntityLedgerByColumn', $e);
             throw new Exception('getEntityLedgerByColumn failed: ' . $e->getMessage());
         }
 
@@ -90,6 +91,7 @@ class Accountledger_model extends CI_Model {
             return $query->row();
             
         } catch (Exception $e) {
+            notifyError('Accountledger_model::getEntityWithLedger', $e);
             throw new Exception( "getEntityWithLedger failed for {$entityType}: " .$e->getMessage());
         }
 
@@ -116,6 +118,7 @@ class Accountledger_model extends CI_Model {
             return $query->row();
 
         } catch (Exception $e) {
+            notifyError('Accountledger_model::getLedgerById', $e);
             throw $e;
         }
 
@@ -137,8 +140,9 @@ class Accountledger_model extends CI_Model {
                 throw new Exception($error['message'] ?? 'Database error occurred');
             }
             return $query->result();
-            
+
         } catch (Exception $e) {
+            notifyError('Accountledger_model::getLedgerByParentAndType', $e);
             throw $e;
         }
 
@@ -162,6 +166,7 @@ class Accountledger_model extends CI_Model {
             return ($query->num_rows() > 0);
 
         } catch (Exception $e) {
+            notifyError('Accountledger_model::ledgerHasTransactions', $e);
             throw new Exception('ledgerHasTransactions failed: ' . $e->getMessage());
         }
 
@@ -178,6 +183,7 @@ class Accountledger_model extends CI_Model {
             $query = $this->ReadDb->get();
             return ($query && $query->num_rows() > 0) ? $query->row() : null;
         } catch (Exception $e) {
+            notifyError('Accountledger_model::getSystemLedgerByCode', $e);
             log_message('error', 'Accountledger_model: ' . $e->getMessage());
             return null;
         }
@@ -198,6 +204,7 @@ class Accountledger_model extends CI_Model {
             $query = $this->ReadDb->get();
             return ($query && $query->num_rows() > 0) ? $query->row() : null;
         } catch (Exception $e) {
+            notifyError('Accountledger_model::getLastLedgerBalance', $e);
             log_message('error', 'Accountledger_model: ' . $e->getMessage());
             return null;
         }
@@ -214,6 +221,7 @@ class Accountledger_model extends CI_Model {
             $query = $this->ReadDb->get();
             return ($query) ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Accountledger_model::getJournalByReference', $e);
             log_message('error', 'Accountledger_model: ' . $e->getMessage());
             return [];
         }
@@ -229,6 +237,7 @@ class Accountledger_model extends CI_Model {
             $query = $this->ReadDb->get();
             return ($query) ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Accountledger_model::getJournalEntries', $e);
             log_message('error', 'Accountledger_model: ' . $e->getMessage());
             return [];
         }
@@ -268,6 +277,7 @@ class Accountledger_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Accountledger_model::getTrialBalance', $e);
             log_message('error', 'getTrialBalance: ' . $e->getMessage());
             return [];
         }
@@ -289,6 +299,7 @@ class Accountledger_model extends CI_Model {
             }
             return array_column($query->result_array(), 'FinancialYear');
         } catch (Exception $e) {
+            notifyError('Accountledger_model::getJournalFinancialYears', $e);
             return [(int)date('Y')];
         }
     }
@@ -325,6 +336,7 @@ class Accountledger_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Accountledger_model::getJournalList', $e);
             log_message('error', 'getJournalList: ' . $e->getMessage());
             return [];
         }
@@ -348,6 +360,7 @@ class Accountledger_model extends CI_Model {
             $row = $this->ReadDb->get()->row();
             return (int)($row->cnt ?? 0);
         } catch (Exception $e) {
+            notifyError('Accountledger_model::getJournalCount', $e);
             log_message('error', 'Accountledger_model: ' . $e->getMessage());
             return 0;
         }
@@ -372,6 +385,7 @@ class Accountledger_model extends CI_Model {
             $row = $this->ReadDb->get()->row();
             return $row ?? new stdClass();
         } catch (Exception $e) {
+            notifyError('Accountledger_model::getJournalStats', $e);
             return new stdClass();
         }
     }
@@ -405,6 +419,7 @@ class Accountledger_model extends CI_Model {
             $header->Lines = $lines;
             return $header;
         } catch (Exception $e) {
+            notifyError('Accountledger_model::getJournalWithEntries', $e);
             log_message('error', 'getJournalWithEntries: ' . $e->getMessage());
             return null;
         }
@@ -437,6 +452,7 @@ class Accountledger_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Accountledger_model::getChartOfAccountsList', $e);
             log_message('error', 'getChartOfAccountsList: ' . $e->getMessage());
             return [];
         }
@@ -458,6 +474,7 @@ class Accountledger_model extends CI_Model {
             $row = $this->ReadDb->get()->row();
             return (int)($row->cnt ?? 0);
         } catch (Exception $e) {
+            notifyError('Accountledger_model::getChartOfAccountsCount', $e);
             log_message('error', 'Accountledger_model: ' . $e->getMessage());
             return 0;
         }
@@ -481,6 +498,7 @@ class Accountledger_model extends CI_Model {
             $row = $this->ReadDb->get()->row();
             return $row ?? new stdClass();
         } catch (Exception $e) {
+            notifyError('Accountledger_model::getChartOfAccountsStats', $e);
             return new stdClass();
         }
     }
@@ -508,6 +526,7 @@ class Accountledger_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Accountledger_model::getLedgerStatement', $e);
             log_message('error', 'getLedgerStatement: ' . $e->getMessage());
             return [];
         }
@@ -529,6 +548,7 @@ class Accountledger_model extends CI_Model {
             $row = $this->ReadDb->get()->row();
             return $row ?? (object)['TotalDebit' => 0, 'TotalCredit' => 0];
         } catch (Exception $e) {
+            notifyError('Accountledger_model::getLedgerActivityBefore', $e);
             return (object)['TotalDebit' => 0, 'TotalCredit' => 0];
         }
     }
@@ -547,6 +567,7 @@ class Accountledger_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Accountledger_model::getAllActiveLedgers', $e);
             log_message('error', 'Accountledger_model: ' . $e->getMessage());
             return [];
         }
@@ -569,6 +590,7 @@ class Accountledger_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Accountledger_model::getBankAndCashLedgers', $e);
             log_message('error', 'getBankAndCashLedgers: ' . $e->getMessage());
             return [];
         }
@@ -597,6 +619,7 @@ class Accountledger_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Accountledger_model::getBankReconEntries', $e);
             log_message('error', 'getBankReconEntries: ' . $e->getMessage());
             return [];
         }
@@ -611,6 +634,7 @@ class Accountledger_model extends CI_Model {
             $WriteDb->where_in('EntryUID', $entryUIDs);
             $WriteDb->update('Accounting.JournalEntries', ['IsReconciled' => (int)$isReconciled]);
         } catch (Exception $e) {
+            notifyError('Accountledger_model::bulkUpdateReconStatus', $e);
             log_message('error', 'bulkUpdateReconStatus: ' . $e->getMessage());
             throw $e;
         }
@@ -643,6 +667,7 @@ class Accountledger_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Accountledger_model::getRecurringJournalList', $e);
             log_message('error', 'getRecurringJournalList: ' . $e->getMessage());
             return [];
         }
@@ -670,6 +695,7 @@ class Accountledger_model extends CI_Model {
             $row = $this->ReadDb->get()->row();
             return (int)($row->cnt ?? 0);
         } catch (Exception $e) {
+            notifyError('Accountledger_model::getRecurringJournalCount', $e);
             return 0;
         }
     }
@@ -691,6 +717,7 @@ class Accountledger_model extends CI_Model {
             $row = $this->ReadDb->get()->row();
             return $row ?? new stdClass();
         } catch (Exception $e) {
+            notifyError('Accountledger_model::getRecurringJournalStats', $e);
             return new stdClass();
         }
     }
@@ -719,6 +746,7 @@ class Accountledger_model extends CI_Model {
 
             return $header;
         } catch (Exception $e) {
+            notifyError('Accountledger_model::getRecurringJournalById', $e);
             log_message('error', 'getRecurringJournalById: ' . $e->getMessage());
             return null;
         }
@@ -739,6 +767,7 @@ class Accountledger_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Accountledger_model::getDueRecurringJournals', $e);
             log_message('error', 'getDueRecurringJournals: ' . $e->getMessage());
             return [];
         }
@@ -778,6 +807,7 @@ class Accountledger_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Accountledger_model::getPandLRows', $e);
             log_message('error', 'getPandLRows: ' . $e->getMessage());
             return [];
         }
@@ -818,6 +848,7 @@ class Accountledger_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Accountledger_model::getBalanceSheetRows', $e);
             log_message('error', 'getBalanceSheetRows: ' . $e->getMessage());
             return [];
         }
@@ -851,6 +882,7 @@ class Accountledger_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Accountledger_model::getCashFlowBalances', $e);
             log_message('error', 'getCashFlowBalances: ' . $e->getMessage());
             return [];
         }
@@ -879,6 +911,7 @@ class Accountledger_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Accountledger_model::getCashFlowCategoryRows', $e);
             log_message('error', 'getCashFlowCategoryRows: ' . $e->getMessage());
             return [];
         }
@@ -923,6 +956,7 @@ class Accountledger_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Accountledger_model::getBudgetVsActualRows', $e);
             log_message('error', 'getBudgetVsActualRows: ' . $e->getMessage());
             return [];
         }
@@ -956,6 +990,7 @@ class Accountledger_model extends CI_Model {
             }
             return !$res->Error;
         } catch (Exception $e) {
+            notifyError('Accountledger_model::saveBudgetAmount', $e);
             log_message('error', 'saveBudgetAmount: ' . $e->getMessage());
             return false;
         }
@@ -993,6 +1028,7 @@ class Accountledger_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Accountledger_model::getAgedReceivablesRows', $e);
             log_message('error', 'getAgedReceivablesRows: ' . $e->getMessage());
             return [];
         }
@@ -1030,6 +1066,7 @@ class Accountledger_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Accountledger_model::getAgedPayablesRows', $e);
             log_message('error', 'getAgedPayablesRows: ' . $e->getMessage());
             return [];
         }
@@ -1064,6 +1101,7 @@ class Accountledger_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Accountledger_model::getDayBookRows', $e);
             log_message('error', 'getDayBookRows: ' . $e->getMessage());
             return [];
         }
@@ -1084,6 +1122,7 @@ class Accountledger_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Accountledger_model::getCashBankLedgers', $e);
             log_message('error', 'getCashBankLedgers: ' . $e->getMessage());
             return [];
         }
@@ -1101,6 +1140,7 @@ class Accountledger_model extends CI_Model {
             $this->ReadDb->limit(1);
             return $this->ReadDb->get()->row() ?? null;
         } catch (Exception $e) {
+            notifyError('Accountledger_model::getPeriodLock', $e);
             log_message('error', 'getPeriodLock: ' . $e->getMessage());
             return null;
         }
@@ -1125,6 +1165,7 @@ class Accountledger_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Accountledger_model::getLedgersForJournalDropdown', $e);
             log_message('error', 'getLedgersForJournalDropdown: ' . $e->getMessage());
             return [];
         }
@@ -1144,6 +1185,7 @@ class Accountledger_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Accountledger_model::getParentLedgers', $e);
             log_message('error', 'Accountledger_model: ' . $e->getMessage());
             return [];
         }

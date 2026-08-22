@@ -107,6 +107,7 @@ class Auditlog {
                 'FormDataJson'  => !empty($formDataJson) ? json_encode($formDataJson) : NULL,
             ]);
         } catch (Exception $e) {
+            notifyError('Auditlog::log', $e);
             log_message('error', 'Auditlog::log failed: ' . $e->getMessage());
         }
     }

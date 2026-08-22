@@ -27,7 +27,10 @@ class Dashboard_model extends CI_Model {
             $this->ReadDb->where(['OrgUID' => (int)$orgUID, 'PendingBalType' => 'Debit', 'IsDeleted' => 0]);
             $row = $this->_row();
             return (float)($row->total ?? 0);
-        } catch (Exception $e) { return 0; }
+        } catch (Exception $e) {
+            notifyError('dashboard_model::getTotalReceivable', $e);
+            return 0;
+        }
     }
 
     // ── Total Payable: we owe vendors (Credit balance) ───────────────────────
@@ -38,7 +41,10 @@ class Dashboard_model extends CI_Model {
             $this->ReadDb->where(['OrgUID' => (int)$orgUID, 'PendingBalType' => 'Credit', 'IsDeleted' => 0]);
             $row = $this->_row();
             return (float)($row->total ?? 0);
-        } catch (Exception $e) { return 0; }
+        } catch (Exception $e) {
+            notifyError('dashboard_model::getTotalPayable', $e);
+            return 0;
+        }
     }
 
     // ── Today's sales total & invoice count ──────────────────────────────────
@@ -52,7 +58,10 @@ class Dashboard_model extends CI_Model {
             $this->ReadDb->where_not_in('DocStatus', ['Draft', 'Cancelled', 'Rejected']);
             $row = $this->_row();
             return ['total' => (float)($row->total ?? 0), 'count' => (int)($row->count ?? 0)];
-        } catch (Exception $e) { return ['total' => 0, 'count' => 0]; }
+        } catch (Exception $e) {
+            notifyError('dashboard_model::getTodaySales', $e);
+            return ['total' => 0, 'count' => 0];
+        }
     }
 
     // ── This month vs last month sales ───────────────────────────────────────
@@ -75,7 +84,10 @@ class Dashboard_model extends CI_Model {
                 'this_month' => (float)($row->this_month ?? 0),
                 'last_month' => (float)($row->last_month ?? 0),
             ];
-        } catch (Exception $e) { return ['this_month' => 0, 'last_month' => 0]; }
+        } catch (Exception $e) {
+            notifyError('dashboard_model::getMonthlySalesComparison', $e);
+            return ['this_month' => 0, 'last_month' => 0];
+        }
     }
 
     // ── Sales chart: last 30 days grouped by date ────────────────────────────
@@ -90,7 +102,10 @@ class Dashboard_model extends CI_Model {
             $this->ReadDb->group_by('DATE(TransDate)');
             $this->ReadDb->order_by('sale_date', 'ASC');
             return $this->_result();
-        } catch (Exception $e) { return []; }
+        } catch (Exception $e) {
+            notifyError('dashboard_model::getSalesChartData', $e);
+            return [];
+        }
     }
 
     // ── Overdue invoices: past ValidityDate, still has balance ───────────────
@@ -109,7 +124,10 @@ class Dashboard_model extends CI_Model {
             $this->ReadDb->order_by('D.ValidityDate', 'ASC');
             $this->ReadDb->limit(6);
             return $this->_result();
-        } catch (Exception $e) { return []; }
+        } catch (Exception $e) {
+            notifyError('dashboard_model::getOverdueInvoices', $e);
+            return [];
+        }
     }
 
     // ── Top 5 customers by outstanding receivable ────────────────────────────
@@ -123,7 +141,10 @@ class Dashboard_model extends CI_Model {
             $this->ReadDb->order_by('COB.PendingBalance', 'DESC');
             $this->ReadDb->limit(5);
             return $this->_result();
-        } catch (Exception $e) { return []; }
+        } catch (Exception $e) {
+            notifyError('dashboard_model::getTopCustomers', $e);
+            return [];
+        }
     }
 
     // ── Recent 10 transactions across all modules ────────────────────────────
@@ -139,7 +160,10 @@ class Dashboard_model extends CI_Model {
             $this->ReadDb->order_by('T.TransUID', 'DESC');
             $this->ReadDb->limit(10);
             return $this->_result();
-        } catch (Exception $e) { return []; }
+        } catch (Exception $e) {
+            notifyError('dashboard_model::getRecentTransactions', $e);
+            return [];
+        }
     }
 
     // ── Receivable trend: daily open invoice balance amounts (last 30 days) ──
@@ -154,7 +178,10 @@ class Dashboard_model extends CI_Model {
             $this->ReadDb->group_by('DATE(TransDate)');
             $this->ReadDb->order_by('sale_date', 'ASC');
             return $this->_result();
-        } catch (Exception $e) { return []; }
+        } catch (Exception $e) {
+            notifyError('dashboard_model::getReceivableTrend', $e);
+            return [];
+        }
     }
 
     // ── Payable trend: daily purchase bill amounts (last 30 days) ────────────
@@ -169,7 +196,10 @@ class Dashboard_model extends CI_Model {
             $this->ReadDb->group_by('DATE(TransDate)');
             $this->ReadDb->order_by('sale_date', 'ASC');
             return $this->_result();
-        } catch (Exception $e) { return []; }
+        } catch (Exception $e) {
+            notifyError('dashboard_model::getPayableTrend', $e);
+            return [];
+        }
     }
 
     // ── Monthly sales trend: last 12 months ──────────────────────────────────
@@ -184,7 +214,10 @@ class Dashboard_model extends CI_Model {
             $this->ReadDb->group_by("DATE_FORMAT(TransDate, '%Y-%m-01')");
             $this->ReadDb->order_by('sale_date', 'ASC');
             return $this->_result();
-        } catch (Exception $e) { return []; }
+        } catch (Exception $e) {
+            notifyError('dashboard_model::getMonthlySalesTrend', $e);
+            return [];
+        }
     }
 
     // ── Today's purchases total & count ──────────────────────────────────────
@@ -198,7 +231,10 @@ class Dashboard_model extends CI_Model {
             $this->ReadDb->where_not_in('DocStatus', ['Draft', 'Cancelled', 'Rejected']);
             $row = $this->_row();
             return ['total' => (float)($row->total ?? 0), 'count' => (int)($row->count ?? 0)];
-        } catch (Exception $e) { return ['total' => 0, 'count' => 0]; }
+        } catch (Exception $e) {
+            notifyError('dashboard_model::getTodayPurchases', $e);
+            return ['total' => 0, 'count' => 0];
+        }
     }
 
     // ── This month vs last month purchases ───────────────────────────────────
@@ -221,7 +257,10 @@ class Dashboard_model extends CI_Model {
                 'this_month' => (float)($row->this_month ?? 0),
                 'last_month' => (float)($row->last_month ?? 0),
             ];
-        } catch (Exception $e) { return ['this_month' => 0, 'last_month' => 0]; }
+        } catch (Exception $e) {
+            notifyError('dashboard_model::getMonthlyPurchasesComparison', $e);
+            return ['this_month' => 0, 'last_month' => 0];
+        }
     }
 
     // ── Top 5 vendors by outstanding payable ─────────────────────────────────
@@ -235,7 +274,10 @@ class Dashboard_model extends CI_Model {
             $this->ReadDb->order_by('VOB.PendingBalance', 'DESC');
             $this->ReadDb->limit(5);
             return $this->_result();
-        } catch (Exception $e) { return []; }
+        } catch (Exception $e) {
+            notifyError('dashboard_model::getTopVendors', $e);
+            return [];
+        }
     }
 
     // ── Expense summary this month: top 5 categories by amount ──────────────
@@ -251,7 +293,10 @@ class Dashboard_model extends CI_Model {
             $this->ReadDb->order_by('total', 'DESC');
             $this->ReadDb->limit(5);
             return $this->_result();
-        } catch (Exception $e) { return []; }
+        } catch (Exception $e) {
+            notifyError('dashboard_model::getExpenseSummary', $e);
+            return [];
+        }
     }
 
     // ── Top 5 products by revenue this month (invoices only) ────────────────
@@ -269,7 +314,10 @@ class Dashboard_model extends CI_Model {
             $this->ReadDb->order_by('revenue', 'DESC');
             $this->ReadDb->limit(5);
             return $this->_result();
-        } catch (Exception $e) { return []; }
+        } catch (Exception $e) {
+            notifyError('dashboard_model::getTopProducts', $e);
+            return [];
+        }
     }
 
     // ── Pending document counts: drafts, open invoices, open POs, open purchases ─
@@ -287,6 +335,7 @@ class Dashboard_model extends CI_Model {
             $row = $this->_row();
             return $row ?? (object)['draft_count' => 0, 'open_invoices' => 0, 'open_pos' => 0, 'open_purchases' => 0];
         } catch (Exception $e) {
+            notifyError('dashboard_model::getPendingCounts', $e);
             return (object)['draft_count' => 0, 'open_invoices' => 0, 'open_pos' => 0, 'open_purchases' => 0];
         }
     }

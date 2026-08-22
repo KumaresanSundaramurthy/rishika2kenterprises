@@ -52,6 +52,7 @@ class Global_model extends CI_Model {
             $this->EndReturnData->Data    = $data;
 
         } catch (Exception $e) {
+            notifyError('Global_model::getTimezoneDetails', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -107,6 +108,7 @@ class Global_model extends CI_Model {
             $this->EndReturnData->Message = 'Data Retrieved Successfully';
 
         } catch (Exception $e) {
+            notifyError('Global_model::getPrimaryUnitInfo', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -142,6 +144,7 @@ class Global_model extends CI_Model {
             $this->EndReturnData->Message = 'Data Retrieved Successfully';
 
         } catch (Exception $e) {
+            notifyError('Global_model::getDiscountTypeInfo', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -175,6 +178,7 @@ class Global_model extends CI_Model {
             $this->EndReturnData->Message = 'Data Retrieved Successfully';
 
         } catch (Exception $e) {
+            notifyError('Global_model::getProductTypeInfo', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -208,6 +212,7 @@ class Global_model extends CI_Model {
             $this->EndReturnData->Message = 'Data Retrieved Successfully';
 
         } catch (Exception $e) {
+            notifyError('Global_model::getProductTaxInfo', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -245,6 +250,7 @@ class Global_model extends CI_Model {
             $this->EndReturnData->Message = 'Data Retrieved Successfully';
 
         } catch (Exception $e) {
+            notifyError('Global_model::getTaxDetailsInfo', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -299,6 +305,7 @@ class Global_model extends CI_Model {
             $this->EndReturnData->Message = 'Data Retrieved Successfully';
 
         } catch (Exception $e) {
+            notifyError('Global_model::getTaxPercentageDetailsInfo', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -321,6 +328,7 @@ class Global_model extends CI_Model {
             $this->EndReturnData->Error   = false;
             $this->EndReturnData->Message = 'Success';
         } catch (Exception $e) {
+            notifyError('Global_model::getSalutations', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -359,6 +367,7 @@ class Global_model extends CI_Model {
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Message = 'Data Retrieved Successfully';
         } catch (Exception $e) {
+            notifyError('Global_model::getStorageTypeData', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -417,6 +426,7 @@ class Global_model extends CI_Model {
             return $this->EndReturnData->Data;
 
         } catch (Exception $e) {
+            notifyError('Global_model::getModuleDetails', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
@@ -495,6 +505,7 @@ class Global_model extends CI_Model {
             // }
 
         } catch (Exception $e) {
+            notifyError('Global_model::getModuleViewColumnDetails', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
@@ -553,6 +564,7 @@ class Global_model extends CI_Model {
                 return $this->EndReturnData->Data;
 
         } catch (Exception $e) {
+            notifyError('Global_model::getModuleViewJoinColumnDetails', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
@@ -678,7 +690,7 @@ class Global_model extends CI_Model {
             return $this->EndReturnData->Data;            
 
         } catch (Exception $e) {
-
+            notifyError('Global_model::getModuleReportDetails', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($e->getMessage());
@@ -782,7 +794,7 @@ class Global_model extends CI_Model {
             }
 
         } catch (Exception $e) {
-
+            notifyError('Global_model::getModuleTotalDataRowCount', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($e->getMessage());

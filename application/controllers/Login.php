@@ -170,6 +170,7 @@ class Login extends CI_Controller {
             }
 
         } catch (Exception $e) {
+            notifyError('Login::doLoginForm', $e);
             $this->session->set_flashdata('danger', $e->getMessage());
         }
 
@@ -203,8 +204,9 @@ class Login extends CI_Controller {
             $result = $this->dbwrite_model->insertData('Security', 'UserLoginAudit', $auditData);
             
             return $result->ID;
-            
+
         } catch (Exception $e) {
+            notifyError('Login::logLoginSuccess', $e);
             return null;
         }
 
@@ -235,6 +237,7 @@ class Login extends CI_Controller {
             return $this->dbwrite_model->insertData('Security', 'UserLoginAudit', $auditData);
             
         } catch (Exception $e) {
+            notifyError('Login::logLoginFailure', $e);
             return null;
         }
 
@@ -327,6 +330,7 @@ class Login extends CI_Controller {
             redirect('forgot-password', 'refresh');
 
         } catch (Exception $e) {
+            notifyError('Login::sendResetLink', $e);
             $this->session->set_flashdata('danger', 'Something went wrong. Please try again.');
             redirect('forgot-password', 'refresh');
         }
@@ -407,6 +411,7 @@ class Login extends CI_Controller {
             redirect('portal', 'refresh');
 
         } catch (Exception $e) {
+            notifyError('Login::doForgotReset', $e);
             $this->session->set_flashdata('danger', 'Something went wrong. Please try again.');
             if (!empty($token)) {
                 redirect('reset-password/' . $token, 'refresh');
@@ -464,6 +469,7 @@ class Login extends CI_Controller {
             );
 
         } catch (Exception $e) {
+            notifyError('Login::_sendResetEmail', $e);
             error_log('[ForgotPassword] Email send failed: ' . $e->getMessage());
         }
     }
@@ -530,6 +536,7 @@ class Login extends CI_Controller {
             );
 
         } catch (Exception $e) {
+            notifyError('Login::_sendPasswordChangedEmail', $e);
             error_log('[PasswordChanged] Email send failed: ' . $e->getMessage());
         }
     }
@@ -613,6 +620,7 @@ class Login extends CI_Controller {
             }
 
         } catch (Exception $e) {
+            notifyError('Login::resetPassword', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -633,6 +641,7 @@ class Login extends CI_Controller {
             try {
                 $JwtData = JWT::decode($JwtEncoded, new Key(getenv('JWT_KEY'), 'HS256'));
             } catch (Exception $e) {
+                notifyError('Login::logout', $e);
                 $JwtData = null;
             }
 
@@ -691,6 +700,7 @@ class Login extends CI_Controller {
             $this->load->model('organisation_model');
             return $this->organisation_model->getDefaultOrgLogo();
         } catch (Exception $e) {
+            notifyError('Login::_getDefaultOrgLogo', $e);
             return '';
         }
     }

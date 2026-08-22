@@ -147,6 +147,7 @@ class Launch extends CI_Controller {
             $response->Message = 'Enquiry sent successfully!';
 
         } catch (Exception $e) {
+            notifyError('Launch::sendEnquiry', $e);
             $response->Error   = true;
             $response->Message = $e->getMessage();
         }

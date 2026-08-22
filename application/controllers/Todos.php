@@ -49,6 +49,7 @@ class Todos extends MY_Controller {
             $this->pageData['TotalCount']    = $pd->TotalCount;
             $this->load->view('todos/index', $this->pageData);
         } catch (Exception $e) {
+            notifyError('Todos::index', $e);
             redirect('dashboard', 'refresh');
         }
     }
@@ -64,6 +65,7 @@ class Todos extends MY_Controller {
             $this->EndReturnData->Pagination     = $pd->Pagination;
             $this->EndReturnData->TotalCount     = $pd->TotalCount;
         } catch (Exception $e) {
+            notifyError('Todos::getPageDetails', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -82,6 +84,7 @@ class Todos extends MY_Controller {
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $todo;
         } catch (Exception $e) {
+            notifyError('Todos::getDetail', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -151,6 +154,7 @@ class Todos extends MY_Controller {
             $this->EndReturnData->Pagination     = $pd->Pagination;
             $this->EndReturnData->TotalCount     = $pd->TotalCount;
         } catch (Exception $e) {
+            notifyError('Todos::save', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -193,6 +197,7 @@ class Todos extends MY_Controller {
             $this->EndReturnData->Pagination     = $pd->Pagination;
             $this->EndReturnData->TotalCount     = $pd->TotalCount;
         } catch (Exception $e) {
+            notifyError('Todos::changeStatus', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -221,6 +226,7 @@ class Todos extends MY_Controller {
             $this->EndReturnData->Pagination     = $pd->Pagination;
             $this->EndReturnData->TotalCount     = $pd->TotalCount;
         } catch (Exception $e) {
+            notifyError('Todos::delete', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -237,6 +243,7 @@ class Todos extends MY_Controller {
                 $this->_orgUID(), $this->_userUID()
             );
         } catch (Exception $e) {
+            notifyError('Todos::getBadgeCount', $e);
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Count = 0;
         }
@@ -253,6 +260,7 @@ class Todos extends MY_Controller {
                 $this->_orgUID(), $this->_userUID()
             );
         } catch (Exception $e) {
+            notifyError('Todos::getStats', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -272,6 +280,7 @@ class Todos extends MY_Controller {
                 $this->_orgUID(), $refType, $refUID
             );
         } catch (Exception $e) {
+            notifyError('Todos::getLinkedTodos', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }

@@ -31,6 +31,7 @@ class Organisation_model extends CI_Model {
 
         } catch(Exception $e) {
 
+            notifyError('Organisation_model::getOrganisationDetails', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
@@ -64,6 +65,7 @@ class Organisation_model extends CI_Model {
 
         } catch(Exception $e) {
 
+            notifyError('Organisation_model::getAllOrganisationAddressDetails', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
@@ -94,6 +96,7 @@ class Organisation_model extends CI_Model {
 
         } catch (Exception $e) {
 
+            notifyError('Organisation_model::getOrgShippingAddresses', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
@@ -123,6 +126,7 @@ class Organisation_model extends CI_Model {
 
         } catch(Exception $e) {
 
+            notifyError('Organisation_model::getOrgBusinessTypeDetails', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
@@ -152,6 +156,7 @@ class Organisation_model extends CI_Model {
 
         } catch(Exception $e) {
 
+            notifyError('Organisation_model::getOrgIndustryTypeDetails', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
@@ -181,6 +186,7 @@ class Organisation_model extends CI_Model {
 
         } catch(Exception $e) {
 
+            notifyError('Organisation_model::getOrgBusRegTypeDetails', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
@@ -211,6 +217,7 @@ class Organisation_model extends CI_Model {
 
         } catch(Exception $e) {
 
+            notifyError('Organisation_model::getOrgAddressDetails', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
@@ -241,6 +248,7 @@ class Organisation_model extends CI_Model {
             $this->ReadDb->order_by('a.OrgAddressUID', 'ASC');
             return $this->ReadDb->get()->result() ?? [];
         } catch (Exception $e) {
+            notifyError('Organisation_model::getAllOrgDispatchAddresses', $e);
             return [];
         }
     }
@@ -275,6 +283,7 @@ class Organisation_model extends CI_Model {
 
         } catch (Exception $e) {
 
+            notifyError('Organisation_model::getOrgDispatchAddress', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
@@ -311,6 +320,7 @@ class Organisation_model extends CI_Model {
 
         } catch (Exception $e) {
 
+            notifyError('Organisation_model::getOrgForReceipt', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
@@ -329,6 +339,7 @@ class Organisation_model extends CI_Model {
             $row = $this->ReadDb->get()->row();
             return ($row && !empty($row->DevPassword)) ? $row->DevPassword : '';
         } catch (Exception $e) {
+            notifyError('Organisation_model::getDevPassword', $e);
             return '';
         }
     }
@@ -343,6 +354,7 @@ class Organisation_model extends CI_Model {
             $row = $this->ReadDb->get()->row();
             return ($row && !empty($row->Logo)) ? resolveCdnUrl($row->Logo) : '';
         } catch (Exception $e) {
+            notifyError('Organisation_model::getDefaultOrgLogo', $e);
             return '';
         }
     }
@@ -379,6 +391,7 @@ class Organisation_model extends CI_Model {
             return $result;
 
         } catch (Exception $e) {
+            notifyError('Organisation_model::getOrgInfoCached', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             return $this->EndReturnData;
@@ -401,6 +414,7 @@ class Organisation_model extends CI_Model {
             return $this->EndReturnData;
 
         } catch (Exception $e) {
+            notifyError('Organisation_model::getPrintThemeConfigs', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
@@ -431,6 +445,7 @@ class Organisation_model extends CI_Model {
             return $this->EndReturnData;
 
         } catch (Exception $e) {
+            notifyError('Organisation_model::getPrintThemeByType', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
@@ -461,6 +476,7 @@ class Organisation_model extends CI_Model {
             return $this->EndReturnData;
 
         } catch (Exception $e) {
+            notifyError('Organisation_model::getPrintThemeByModule', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
@@ -501,6 +517,7 @@ class Organisation_model extends CI_Model {
             return $this->EndReturnData;
 
         } catch (Exception $e) {
+            notifyError('Organisation_model::getPrintThemeConfigsPaginated', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
@@ -537,6 +554,7 @@ class Organisation_model extends CI_Model {
             return $this->EndReturnData;
 
         } catch (Exception $e) {
+            notifyError('Organisation_model::getPrintTemplatesPaginated', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
@@ -561,6 +579,7 @@ class Organisation_model extends CI_Model {
             return $this->EndReturnData;
 
         } catch (Exception $e) {
+            notifyError('Organisation_model::getPrintTemplatesAll', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
@@ -584,6 +603,7 @@ class Organisation_model extends CI_Model {
             return $this->EndReturnData;
 
         } catch (Exception $e) {
+            notifyError('Organisation_model::getPrintTemplateByUID', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
@@ -608,6 +628,7 @@ class Organisation_model extends CI_Model {
 
         } catch (Exception $e) {
 
+            notifyError('Organisation_model::getThermalPrintConfig', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
@@ -633,6 +654,7 @@ class Organisation_model extends CI_Model {
 
         } catch (Exception $e) {
 
+            notifyError('Organisation_model::getThermalPrintConfigByModule', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
@@ -665,6 +687,7 @@ class Organisation_model extends CI_Model {
             return $this->EndReturnData;
 
         } catch (Exception $e) {
+            notifyError('Organisation_model::getBankAccountList', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
@@ -688,6 +711,7 @@ class Organisation_model extends CI_Model {
             return $this->EndReturnData;
 
         } catch (Exception $e) {
+            notifyError('Organisation_model::getBankAccountByUID', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
@@ -731,6 +755,7 @@ class Organisation_model extends CI_Model {
             return $this->EndReturnData;
 
         } catch (Exception $e) {
+            notifyError('Organisation_model::getBankBalance', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
@@ -751,6 +776,7 @@ class Organisation_model extends CI_Model {
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $this->ReadDb->get()->result();
         } catch (Exception $e) {
+            notifyError('Organisation_model::getMessageTemplates', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -771,6 +797,7 @@ class Organisation_model extends CI_Model {
             }
             return $result;
         } catch (Exception $e) {
+            notifyError('Organisation_model::getModuleMessageTemplates', $e);
             return [];
         }
     }
@@ -785,6 +812,7 @@ class Organisation_model extends CI_Model {
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $this->ReadDb->get()->row();
         } catch (Exception $e) {
+            notifyError('Organisation_model::getMessageTemplate', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -800,6 +828,7 @@ class Organisation_model extends CI_Model {
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $this->ReadDb->get()->row();
         } catch (Exception $e) {
+            notifyError('Organisation_model::getMessageTemplateByUID', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -826,6 +855,7 @@ class Organisation_model extends CI_Model {
 
         } catch (Exception $e) {
 
+            notifyError('Organisation_model::getThermalPrintConfigList', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
@@ -851,6 +881,7 @@ class Organisation_model extends CI_Model {
             return $this->EndReturnData;
 
         } catch (Exception $e) {
+            notifyError('Organisation_model::getThermalPrintModules', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
@@ -871,6 +902,7 @@ class Organisation_model extends CI_Model {
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $this->ReadDb->get()->result();
         } catch (Exception $e) {
+            notifyError('Organisation_model::getPrefixModules', $e);
             log_message('error', 'Organisation_model::getPrefixModules — ' . $e->getMessage());
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -889,6 +921,7 @@ class Organisation_model extends CI_Model {
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $this->ReadDb->get()->result();
         } catch (Exception $e) {
+            notifyError('Organisation_model::getPrintTemplateModules', $e);
             log_message('error', 'Organisation_model::getPrintTemplateModules — ' . $e->getMessage());
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -913,6 +946,7 @@ class Organisation_model extends CI_Model {
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $this->ReadDb->get()->result();
         } catch (Exception $e) {
+            notifyError('Organisation_model::getPrefixConfigList', $e);
             log_message('error', 'Organisation_model::getPrefixConfigList — ' . $e->getMessage());
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -931,6 +965,7 @@ class Organisation_model extends CI_Model {
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $this->ReadDb->get()->row();
         } catch (Exception $e) {
+            notifyError('Organisation_model::getPrefixByUID', $e);
             log_message('error', 'Organisation_model::getPrefixByUID — ' . $e->getMessage());
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -957,6 +992,7 @@ class Organisation_model extends CI_Model {
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $this->ReadDb->get()->result();
         } catch (Exception $e) {
+            notifyError('Organisation_model::getAdditionalChargesList', $e);
             log_message('error', 'Organisation_model::getAdditionalChargesList — ' . $e->getMessage());
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -976,6 +1012,7 @@ class Organisation_model extends CI_Model {
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $this->ReadDb->get()->row();
         } catch (Exception $e) {
+            notifyError('Organisation_model::getAdditionalChargeByUID', $e);
             log_message('error', 'Organisation_model::getAdditionalChargeByUID — ' . $e->getMessage());
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -991,6 +1028,7 @@ class Organisation_model extends CI_Model {
             $this->ReadDb->where(['OrgUID' => $orgUID, 'IsDeleted' => 0]);
             return (int) $this->ReadDb->count_all_results();
         } catch (Exception $e) {
+            notifyError('Organisation_model::getCustomChargesCount', $e);
             return 0;
         }
     }
@@ -1005,6 +1043,7 @@ class Organisation_model extends CI_Model {
             }
             return $this->ReadDb->count_all_results() > 0;
         } catch (Exception $e) {
+            notifyError('Organisation_model::additionalChargeNameExists', $e);
             return false;
         }
     }

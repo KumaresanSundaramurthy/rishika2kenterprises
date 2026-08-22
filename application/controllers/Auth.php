@@ -65,6 +65,7 @@ class Auth extends MY_Controller {
             $this->EndReturnData->Message = 'Cache refreshed successfully. Changes will reflect on next page load.';
 
         } catch (Exception $e) {
+            $this->notifyError('Auth::refreshTokens', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }

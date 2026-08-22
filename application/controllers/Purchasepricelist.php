@@ -55,6 +55,7 @@ class Purchasepricelist extends MY_Controller {
             $this->pageData['TotalCount']    = $pd->TotalCount;
             $this->load->view('purchasepricelist/view', $this->pageData);
         } catch (Exception $e) {
+            notifyError('Purchasepricelist::index', $e);
             redirect('dashboard', 'refresh');
         }
     }
@@ -94,6 +95,7 @@ class Purchasepricelist extends MY_Controller {
             $this->load->view('purchasepricelist/detail_view', $this->pageData);
 
         } catch (Exception $e) {
+            notifyError('Purchasepricelist::view', $e);
             redirect('purchasepricelist', 'refresh');
         }
     }
@@ -133,6 +135,7 @@ class Purchasepricelist extends MY_Controller {
             );
             $this->EndReturnData->TotalCount     = $history->totalCount;
         } catch (Exception $e) {
+            notifyError('Purchasepricelist::getDetailPageData', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -158,6 +161,7 @@ class Purchasepricelist extends MY_Controller {
             $this->EndReturnData->Pagination     = $pd->Pagination;
             $this->EndReturnData->TotalCount     = $pd->TotalCount;
         } catch (Exception $e) {
+            notifyError('Purchasepricelist::getPageDetails', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }

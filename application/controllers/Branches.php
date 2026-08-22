@@ -38,7 +38,7 @@ class Branches extends MY_Controller {
             $this->pageData['ModRowData']    = $pd->RecordHtmlData;
             $this->pageData['ModPagination'] = $pd->Pagination;
             $this->load->view('settings/branches/view', $this->pageData);
-        } catch (Exception $e) { redirect('dashboard', 'refresh'); }
+        } catch (Exception $e) { $this->notifyError('Branches::index', $e); redirect('dashboard', 'refresh'); }
     }
 
     public function getPageDetails(int $pageNo = 0): void {
@@ -51,6 +51,7 @@ class Branches extends MY_Controller {
             $this->EndReturnData->Pagination     = $pd->Pagination;
             $this->EndReturnData->TotalCount     = $pd->TotalCount;
         } catch (Exception $e) {
+            $this->notifyError('Branches::getPageDetails', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -110,6 +111,7 @@ class Branches extends MY_Controller {
             $this->EndReturnData->Pagination     = $pd->Pagination;
             $this->EndReturnData->TotalCount     = $pd->TotalCount;
         } catch (Exception $e) {
+            $this->notifyError('Branches::save', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -131,6 +133,7 @@ class Branches extends MY_Controller {
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Branch deleted.';
         } catch (Exception $e) {
+            $this->notifyError('Branches::delete', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -144,6 +147,7 @@ class Branches extends MY_Controller {
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $this->branches_model->getBranchList($this->_orgUID());
         } catch (Exception $e) {
+            $this->notifyError('Branches::getList', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -194,6 +198,7 @@ class Branches extends MY_Controller {
             $this->EndReturnData->BranchName = $target->BranchName ?? '';
             $this->EndReturnData->BranchCode = $target->BranchCode ?? '';
         } catch (Exception $e) {
+            $this->notifyError('Branches::switchBranch', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }

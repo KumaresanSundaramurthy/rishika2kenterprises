@@ -30,6 +30,7 @@ class Roles_model extends CI_Model {
             $this->EndReturnData->Data    = $query->result();
 
         } catch (Exception $e) {
+            notifyError($e, 'Roles_model::getRolesList');
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -70,6 +71,7 @@ class Roles_model extends CI_Model {
             $this->EndReturnData->Data    = ['main' => $mainMenus, 'sub' => $subMenus];
 
         } catch (Exception $e) {
+            notifyError($e, 'Roles_model::getAllMenusForMatrix');
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -105,6 +107,7 @@ class Roles_model extends CI_Model {
             $this->EndReturnData->Data    = ['main' => $mainPerms, 'sub' => $subPerms];
 
         } catch (Exception $e) {
+            notifyError($e, 'Roles_model::getRolePermissions');
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }

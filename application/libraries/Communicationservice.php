@@ -62,6 +62,7 @@ class Communicationservice {
             $this->EndReturnData->Message = "SMS sent to {$sent} recipient(s)" . ($failed ? ", {$failed} failed." : '.');
 
         } catch (Throwable $e) {
+            notifyError('Communicationservice::sendSMS', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -170,6 +171,7 @@ class Communicationservice {
             $this->EndReturnData->Message = "Email sent to {$sent} recipient(s)" . ($failed ? ", {$failed} failed." : '.');
 
         } catch (Throwable $e) {
+            notifyError('Communicationservice::sendEmail', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }

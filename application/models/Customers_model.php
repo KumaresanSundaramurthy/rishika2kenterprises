@@ -27,6 +27,7 @@ class Customers_model extends CI_Model {
             $row = $result ? $result->row() : null;
             return [(float)($row->CreditTotal ?? 0), (float)($row->DebitTotal ?? 0)];
         } catch (Exception $e) {
+            notifyError('Customers_model::getCustomerPendingNoteTotals', $e);
             log_message('error', 'Customers_model::getCustomerPendingNoteTotals failed: ' . $e->getMessage());
             return [0.0, 0.0];
         }
@@ -98,6 +99,7 @@ class Customers_model extends CI_Model {
             return $query->result();
 
         } catch (Exception $e) {
+            notifyError('Customers_model::getCustomers', $e);
             throw new Exception($e->getMessage());
         }
 
@@ -135,6 +137,7 @@ class Customers_model extends CI_Model {
             return $query->result();
 
         } catch (Exception $e) {
+            notifyError('Customers_model::getCustomerAddress', $e);
             throw new Exception($e->getMessage());
         }
 
@@ -169,6 +172,7 @@ class Customers_model extends CI_Model {
             return $query->result();
 
         } catch (Exception $e) {
+            notifyError('Customers_model::getCustomerBankInfo', $e);
             throw new Exception($e->getMessage());
         }
 
@@ -206,6 +210,7 @@ class Customers_model extends CI_Model {
             return $query->result();
 
         } catch (Exception $e) {
+            notifyError('Customers_model::getCustomersDetails', $e);
             throw new Exception($e->getMessage());
         }
 
@@ -248,6 +253,7 @@ class Customers_model extends CI_Model {
             if (!$query) throw new Exception('DB error');
             return $query->row();
         } catch (Exception $e) {
+            notifyError('Customers_model::getCustomerStats', $e);
             throw new Exception($e->getMessage());
         }
 
@@ -485,6 +491,7 @@ class Customers_model extends CI_Model {
             return $result;
 
         } catch (Exception $e) {
+            notifyError('Customers_model::getCustomerListPaginated', $e);
             throw new Exception($e->getMessage());
         }
 
@@ -511,6 +518,7 @@ class Customers_model extends CI_Model {
             if ($error['code']) throw new Exception($error['message']);
             return $query->result();
         } catch (Exception $e) {
+            notifyError('Customers_model::getCustomerTypeList', $e);
             throw new Exception($e->getMessage());
         }
 
@@ -531,6 +539,7 @@ class Customers_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Customers_model::getCustomerTypesFromDB', $e);
             return [];
         }
     }
@@ -554,6 +563,7 @@ class Customers_model extends CI_Model {
             }
             return array_keys($tags);
         } catch (Exception $e) {
+            notifyError('Customers_model::getCustomerTags', $e);
             throw new Exception($e->getMessage());
         }
     }
@@ -595,6 +605,7 @@ class Customers_model extends CI_Model {
             if (!$query) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
             return $query->result();
         } catch (Exception $e) {
+            notifyError('Customers_model::getCustomersWithLedgerForBalance', $e);
             throw new Exception($e->getMessage());
         }
     }
@@ -617,6 +628,7 @@ class Customers_model extends CI_Model {
             if (!$query) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
             return (float) $query->row()->total;
         } catch (Exception $e) {
+            notifyError('Customers_model::getCustomerTotalInvoiced', $e);
             throw new Exception($e->getMessage());
         }
     }
@@ -643,6 +655,7 @@ class Customers_model extends CI_Model {
             if (!$query) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
             return (float) $query->row()->total;
         } catch (Exception $e) {
+            notifyError('Customers_model::getCustomerTotalReceived', $e);
             throw new Exception($e->getMessage());
         }
     }
@@ -666,6 +679,7 @@ class Customers_model extends CI_Model {
             if (!$query) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
             return (float) $query->row()->total;
         } catch (Exception $e) {
+            notifyError('Customers_model::getCustomerTotalReturned', $e);
             throw new Exception($e->getMessage());
         }
     }
@@ -693,6 +707,7 @@ class Customers_model extends CI_Model {
             if (!$query) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
             return (float)$query->row()->total;
         } catch (Exception $e) {
+            notifyError('Customers_model::getCustomerSRCoveredByCreditNote', $e);
             log_message('error', 'Customers_model::getCustomerSRCoveredByCreditNote failed: ' . $e->getMessage());
             return 0.0;
         }
@@ -707,6 +722,7 @@ class Customers_model extends CI_Model {
             ], ['LedgerUID' => (int)$ledgerUID]);
             if ($res->Error) throw new Exception($res->Message ?? 'Ledger update failed.');
         } catch (Exception $e) {
+            notifyError('Customers_model::updateCustomerBalanceInLedger', $e);
             throw new Exception($e->getMessage());
         }
     }
@@ -720,6 +736,7 @@ class Customers_model extends CI_Model {
             ], ['CustomerUID' => (int)$customerUID]);
             if ($res->Error) throw new Exception($res->Message ?? 'Customer balance update failed.');
         } catch (Exception $e) {
+            notifyError('Customers_model::updateCustomerBalanceInCustomerTbl', $e);
             throw new Exception($e->getMessage());
         }
     }
@@ -745,6 +762,7 @@ class Customers_model extends CI_Model {
             if (!$query) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
             return $query->row();
         } catch (Exception $e) {
+            notifyError('Customers_model::getCustomerOpeningBalance', $e);
             throw new Exception($e->getMessage());
         }
     }
@@ -790,6 +808,7 @@ class Customers_model extends CI_Model {
             return (int)$res->ID;
 
         } catch (Exception $e) {
+            notifyError('Customers_model::saveCustomerOpeningBalance', $e);
             throw new Exception($e->getMessage());
         }
     }
@@ -815,6 +834,7 @@ class Customers_model extends CI_Model {
                 ]
             );
         } catch (Exception $e) {
+            notifyError('Customers_model::updateCustomerPendingBalance', $e);
             throw new Exception($e->getMessage());
         }
     }
@@ -836,6 +856,7 @@ class Customers_model extends CI_Model {
             $this->ReadDb->limit(1);
             return $this->ReadDb->get()->row();
         } catch (Exception $e) {
+            notifyError('Customers_model::getCustomerDebitCreditRaw', $e);
             return null;
         }
     }
@@ -886,6 +907,7 @@ class Customers_model extends CI_Model {
             if ($res->Error) throw new Exception($res->Message ?? 'Year opening balance insert failed.');
             return (int)$res->ID;
         } catch (Exception $e) {
+            notifyError('Customers_model::saveCustomerYearOpening', $e);
             throw new Exception($e->getMessage());
         }
     }
@@ -906,6 +928,7 @@ class Customers_model extends CI_Model {
             if (!$query) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
             return $query->row();
         } catch (Exception $e) {
+            notifyError('Customers_model::getCustomerYearOpening', $e);
             throw new Exception($e->getMessage());
         }
     }
@@ -935,6 +958,7 @@ class Customers_model extends CI_Model {
             $result = $this->ReadDb->get()->result_array();
             return $result ?: [];
         } catch (Exception $e) {
+            notifyError('Customers_model::getCustomerOnAccountPayments', $e);
             return [];
         }
     }
@@ -953,6 +977,7 @@ class Customers_model extends CI_Model {
             );
             return $query ? (float)($query->row()->AdvanceTotal ?? 0) : 0.0;
         } catch (Exception $e) {
+            notifyError('Customers_model::getCustomerAdvanceTotal', $e);
             return 0.0;
         }
     }
@@ -970,6 +995,7 @@ class Customers_model extends CI_Model {
             );
             return $query ? (float)($query->row()->CreditNoteTotal ?? 0) : 0.0;
         } catch (Exception $e) {
+            notifyError('Customers_model::getCustomerCreditNoteTotal', $e);
             return 0.0;
         }
     }
@@ -1091,6 +1117,7 @@ class Customers_model extends CI_Model {
             $result->totalCount = $totalCount;
             return $result;
         } catch (Exception $e) {
+            notifyError('Customers_model::getGroupListPaginated', $e);
             throw new Exception($e->getMessage());
         }
     }
@@ -1106,6 +1133,7 @@ class Customers_model extends CI_Model {
             );
             return $query ? $query->row() : new stdClass();
         } catch (Exception $e) {
+            notifyError('Customers_model::getGroupStats', $e);
             return new stdClass();
         }
     }
@@ -1119,6 +1147,7 @@ class Customers_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->row() : null;
         } catch (Exception $e) {
+            notifyError('Customers_model::getGroupByUID', $e);
             return null;
         }
     }
@@ -1140,6 +1169,7 @@ class Customers_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Customers_model::getGroupMembers', $e);
             return [];
         }
     }
@@ -1159,6 +1189,7 @@ class Customers_model extends CI_Model {
             );
             return $query ? $query->row() : new stdClass();
         } catch (Exception $e) {
+            notifyError('Customers_model::getGroupOverview', $e);
             return new stdClass();
         }
     }
@@ -1179,6 +1210,7 @@ class Customers_model extends CI_Model {
             );
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Customers_model::getGroupOutstanding', $e);
             return [];
         }
     }
@@ -1245,6 +1277,7 @@ class Customers_model extends CI_Model {
             }
             return $rows;
         } catch (Exception $e) {
+            notifyError('Customers_model::getCustomerGroupsForExport', $e);
             return [];
         }
     }
@@ -1259,6 +1292,7 @@ class Customers_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError('Customers_model::getActiveGroupsForDropdown', $e);
             return [];
         }
     }
@@ -1273,6 +1307,7 @@ class Customers_model extends CI_Model {
             $q = $this->ReadDb->get();
             return $q ? $q->result() : [];
         } catch (Exception $e) {
+            notifyError('Customers_model::getActiveCustomerGroupsForDropdown', $e);
             return [];
         }
     }
@@ -1286,6 +1321,7 @@ class Customers_model extends CI_Model {
             $q = $this->ReadDb->get();
             return $q ? ($q->row() ?: null) : null;
         } catch (Exception $e) {
+            notifyError('Customers_model::getGroupDropdownDataByUID', $e);
             return null;
         }
     }
@@ -1337,6 +1373,7 @@ class Customers_model extends CI_Model {
             $q = $this->ReadDb->get();
             return $q ? ($q->row() ?: null) : null;
         } catch (Exception $e) {
+            notifyError('Customers_model::getCustomerGroupMembership', $e);
             return null;
         }
     }
@@ -1372,6 +1409,7 @@ class Customers_model extends CI_Model {
             $q = $this->ReadDb->get();
             return $q ? array_column($q->result_array(), 'CustomerUID') : [];
         } catch (Exception $e) {
+            notifyError('Customers_model::getCustomersInOtherGroups', $e);
             return [];
         }
     }
@@ -1388,6 +1426,7 @@ class Customers_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result_array() : [];
         } catch (Exception $e) {
+            notifyError('Customers_model::getCustomerAttachments', $e);
             log_message('error', 'getCustomerAttachments failed: ' . $e->getMessage());
             return [];
         }
@@ -1403,7 +1442,7 @@ class Customers_model extends CI_Model {
             $this->ReadDb->limit(1);
             $row = $this->ReadDb->get()->row();
             return $row ? $row->FilePath : null;
-        } catch (Exception $e) { return null; }
+        } catch (Exception $e) { notifyError('Customers_model::getCustomerPrimaryImage', $e); return null; }
     }
 
     // ── Customer Profile Modal methods ─────────────────────────────────────
@@ -1435,6 +1474,7 @@ class Customers_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result_array() : [];
         } catch (Exception $e) {
+            notifyError('Customers_model::getMonthlySalesData', $e);
             log_message('error', 'getMonthlySalesData: ' . $e->getMessage());
             return [];
         }
@@ -1463,6 +1503,7 @@ class Customers_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result_array() : [];
         } catch (Exception $e) {
+            notifyError('Customers_model::getCustomerRecentTransactions', $e);
             log_message('error', 'getCustomerRecentTransactions: ' . $e->getMessage());
             return [];
         }
@@ -1505,6 +1546,7 @@ class Customers_model extends CI_Model {
             usort($all, function ($a, $b) { return strcmp($a['TxDate'], $b['TxDate']); });
             return $all;
         } catch (Exception $e) {
+            notifyError('Customers_model::getCustomerStatementData', $e);
             log_message('error', 'getCustomerStatementData: ' . $e->getMessage());
             return [];
         }
@@ -1524,6 +1566,7 @@ class Customers_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result_array() : [];
         } catch (Exception $e) {
+            notifyError('Customers_model::getCustomerNotes', $e);
             log_message('error', 'getCustomerNotes: ' . $e->getMessage());
             return [];
         }
@@ -1633,6 +1676,7 @@ class Customers_model extends CI_Model {
                 ],
             ];
         } catch (Exception $e) {
+            notifyError('Customers_model::getCustomerFinancialSummary', $e);
             log_message('error', 'getCustomerFinancialSummary: ' . $e->getMessage());
             return [
                 'TotalInvoiced' => 0.0,
@@ -1717,6 +1761,7 @@ class Customers_model extends CI_Model {
                 'DaysSinceLastTx' => $daysSinceLastTx,
             ];
         } catch (Exception $e) {
+            notifyError('Customers_model::getCustomerHealthData', $e);
             log_message('error', 'getCustomerHealthData: ' . $e->getMessage());
             return [
                 'CollectionRate'  => 100.0,
@@ -1757,6 +1802,7 @@ class Customers_model extends CI_Model {
                 'Bucket_90Plus'=> (float) ($row->Bucket_90Plus ?? 0),
             ];
         } catch (Exception $e) {
+            notifyError('Customers_model::getCustomerAgeing', $e);
             log_message('error', 'getCustomerAgeing: ' . $e->getMessage());
             return ['Bucket_0_30' => 0.0, 'Bucket_31_60' => 0.0, 'Bucket_61_90' => 0.0, 'Bucket_90Plus' => 0.0];
         }
@@ -1805,6 +1851,7 @@ class Customers_model extends CI_Model {
                 'Margin'  => $margin,
             ];
         } catch (Exception $e) {
+            notifyError('Customers_model::getCustomerProfitability', $e);
             log_message('error', 'getCustomerProfitability: ' . $e->getMessage());
             return ['Revenue' => 0.0, 'COGS' => 0.0, 'Profit' => 0.0, 'Margin' => 0.0];
         }
@@ -1824,6 +1871,7 @@ class Customers_model extends CI_Model {
         try {
             $now = new DateTime('now', new DateTimeZone($timezone ?: 'UTC'));
         } catch (Exception $e) {
+            notifyError('Customers_model::_calcFYYear', $e);
             $now = new DateTime('now');
         }
         $month = (int) $now->format('n');
@@ -1840,6 +1888,7 @@ class Customers_model extends CI_Model {
             $this->ReadDb->db_debug = FALSE;
             return $this->ReadDb->get_where('Settings.OrgCreditSettingsTbl', ['OrgUID' => $orgUID])->row() ?: null;
         } catch (Exception $e) {
+            notifyError('Customers_model::getCreditSettings', $e);
             return null;
         }
     }
@@ -1980,6 +2029,7 @@ class Customers_model extends CI_Model {
             }
             return null;
         } catch (Exception $e) {
+            notifyError('Customers_model::claimNextCustomerNumber', $e);
             log_message('error', 'claimNextCustomerNumber: ' . $e->getMessage());
             return null;
         }

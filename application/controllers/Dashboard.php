@@ -49,6 +49,7 @@ class Dashboard extends MY_Controller {
             $this->load->view('dashboard/view', $this->pageData);
 
         } catch (Exception $e) {
+            $this->notifyError('Dashboard::index', $e);
             $this->load->view('dashboard/view', $this->pageData);
         }
     }

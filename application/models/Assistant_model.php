@@ -76,6 +76,7 @@ class Assistant_model extends CI_Model {
                 'last_month' => (float)($row->last_month ?? 0),
             ];
         } catch (Exception $e) {
+            notifyError($e, 'Assistant_model::_getSalesSummary');
             return ['this_month' => 0, 'this_count' => 0, 'last_month' => 0];
         }
     }
@@ -92,7 +93,10 @@ class Assistant_model extends CI_Model {
             $this->ReadDb->where('PendingBalance >', 0);
             $row = $this->_row();
             return (float)($row->total ?? 0);
-        } catch (Exception $e) { return 0.0; }
+        } catch (Exception $e) {
+            notifyError($e, 'Assistant_model::_getReceivable');
+            return 0.0;
+        }
     }
 
     /**
@@ -107,7 +111,10 @@ class Assistant_model extends CI_Model {
             $this->ReadDb->where('PendingBalance >', 0);
             $row = $this->_row();
             return (float)($row->total ?? 0);
-        } catch (Exception $e) { return 0.0; }
+        } catch (Exception $e) {
+            notifyError($e, 'Assistant_model::_getPayable');
+            return 0.0;
+        }
     }
 
     /**
@@ -132,7 +139,10 @@ class Assistant_model extends CI_Model {
             $this->ReadDb->where('T.BalanceAmount >', 0);
             $row = $this->_row();
             return (int)($row->cnt ?? 0);
-        } catch (Exception $e) { return 0; }
+        } catch (Exception $e) {
+            notifyError($e, 'Assistant_model::_getOverdueCount');
+            return 0;
+        }
     }
 
     /**
@@ -149,7 +159,10 @@ class Assistant_model extends CI_Model {
             $this->ReadDb->where('COALESCE(PS.AvailableQty, 0) <= P.LowStockAlertAt', null, false);
             $row = $this->_row();
             return (int)($row->cnt ?? 0);
-        } catch (Exception $e) { return 0; }
+        } catch (Exception $e) {
+            notifyError($e, 'Assistant_model::_getLowStockCount');
+            return 0;
+        }
     }
 
     /**
@@ -176,7 +189,10 @@ class Assistant_model extends CI_Model {
             $this->ReadDb->order_by('total', 'DESC');
             $this->ReadDb->limit(5);
             return $this->_result();
-        } catch (Exception $e) { return []; }
+        } catch (Exception $e) {
+            notifyError($e, 'Assistant_model::_getTopCustomers');
+            return [];
+        }
     }
 
     /**
@@ -199,7 +215,10 @@ class Assistant_model extends CI_Model {
             $this->ReadDb->order_by('qty_sold', 'DESC');
             $this->ReadDb->limit(5);
             return $this->_result();
-        } catch (Exception $e) { return []; }
+        } catch (Exception $e) {
+            notifyError($e, 'Assistant_model::_getTopProducts');
+            return [];
+        }
     }
 
     /**
@@ -227,6 +246,7 @@ class Assistant_model extends CI_Model {
                 'payments' => (int)($row->payments  ?? 0),
             ];
         } catch (Exception $e) {
+            notifyError($e, 'Assistant_model::_getTodayActivity');
             return ['total' => 0, 'invoices' => 0, 'purchases' => 0, 'payments' => 0];
         }
     }

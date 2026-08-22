@@ -37,7 +37,7 @@ class Curlservice {
             }
 
         } catch (Exception $e) {
-            
+            notifyError('Curlservice::retrieve', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
 

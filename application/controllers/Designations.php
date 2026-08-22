@@ -27,7 +27,10 @@ class Designations extends MY_Controller {
             $this->pageData['ModRowData']    = $pd->RecordHtmlData;
             $this->pageData['ModPagination'] = $pd->Pagination;
             $this->load->view('hrms/designations/view', $this->pageData);
-        } catch (Exception $e) { redirect('dashboard', 'refresh'); }
+        } catch (Exception $e) {
+            $this->notifyError('Designations::index', $e);
+            redirect('dashboard', 'refresh');
+        }
     }
 
     public function getPageDetails($pageNo = 0) {
@@ -38,7 +41,7 @@ class Designations extends MY_Controller {
             $this->EndReturnData->RecordHtmlData = $pd->RecordHtmlData;
             $this->EndReturnData->Pagination     = $pd->Pagination;
             $this->EndReturnData->TotalCount     = $pd->TotalCount;
-        } catch (Exception $e) { $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
+        } catch (Exception $e) { $this->notifyError('Designations::getPageDetails', $e); $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
@@ -59,7 +62,7 @@ class Designations extends MY_Controller {
             if ($res->Error) throw new Exception($res->Message);
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = $uid ? 'Updated.' : 'Created.';
-        } catch (Exception $e) { $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
+        } catch (Exception $e) { $this->notifyError('Designations::save', $e); $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
@@ -72,7 +75,7 @@ class Designations extends MY_Controller {
             $res = $this->dbwrite_model->updateData('Organisation', 'DesignationTbl', ['IsDeleted' => 1, 'UpdatedBy' => $this->_userUID()], ['DesignationUID' => $uid, 'OrgUID' => $this->_orgUID()]);
             if ($res->Error) throw new Exception($res->Message);
             $this->EndReturnData->Error = FALSE; $this->EndReturnData->Message = 'Deleted.';
-        } catch (Exception $e) { $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
+        } catch (Exception $e) { $this->notifyError('Designations::delete', $e); $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
@@ -82,7 +85,7 @@ class Designations extends MY_Controller {
             $this->load->model('users_model');
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $this->users_model->getDesignationList($this->_orgUID());
-        } catch (Exception $e) { $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
+        } catch (Exception $e) { $this->notifyError('Designations::getList', $e); $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 }

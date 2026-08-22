@@ -83,6 +83,7 @@ class Services extends CI_Controller {
             }
 
         } catch (Exception $e) {
+            notifyError('Services::SubscribeSendEmail', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }

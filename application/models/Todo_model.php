@@ -90,6 +90,7 @@ class Todo_model extends CI_Model {
             $this->ReadDb->limit($limit, $offset);
             $result->rows = $this->ReadDb->get()->result();
         } catch (Exception $e) {
+            notifyError($e, 'Todo_model::getTodoListPaginated');
             log_message('error', 'Todo_model::getTodoListPaginated — ' . $e->getMessage());
         }
         return $result;
@@ -116,6 +117,7 @@ class Todo_model extends CI_Model {
             if (!$query || $query->num_rows() === 0) return null;
             return $query->row();
         } catch (Exception $e) {
+            notifyError($e, 'Todo_model::getTodoById');
             return null;
         }
     }
@@ -148,6 +150,7 @@ class Todo_model extends CI_Model {
                 'today'     => (int)($row->today      ?? 0),
             ];
         } catch (Exception $e) {
+            notifyError($e, 'Todo_model::getTodoStats');
             return ['total' => 0, 'active' => 0, 'completed' => 0, 'overdue' => 0, 'today' => 0];
         }
     }
@@ -169,6 +172,7 @@ class Todo_model extends CI_Model {
             $row = $query ? $query->row() : null;
             return (int)($row->cnt ?? 0);
         } catch (Exception $e) {
+            notifyError($e, 'Todo_model::getPendingBadgeCount');
             return 0;
         }
     }
@@ -188,6 +192,7 @@ class Todo_model extends CI_Model {
             );
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError($e, 'Todo_model::getUserList');
             return [];
         }
     }
@@ -212,6 +217,7 @@ class Todo_model extends CI_Model {
             );
             return $query ? $query->result() : [];
         } catch (Exception $e) {
+            notifyError($e, 'Todo_model::getLinkedTodos');
             return [];
         }
     }

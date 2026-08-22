@@ -64,6 +64,7 @@ class Exports extends MY_Controller {
             echo $result['content'];
 
         } catch (Exception $e) {
+            $this->notifyError('Exports::exportData', $e);
             http_response_code(500);
             echo json_encode(['Error' => true, 'Message' => $e->getMessage()]);
         }

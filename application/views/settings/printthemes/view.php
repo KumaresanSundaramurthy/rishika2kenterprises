@@ -101,8 +101,8 @@
     </div>
 </div>
 
-<?php $this->load->view('printthemes/modals/theme');    ?>
-<?php $this->load->view('printthemes/modals/template'); ?>
+<?php $this->load->view('settings/printthemes/modals/theme');    ?>
+<?php $this->load->view('settings/printthemes/modals/template'); ?>
 
 <!-- Template image preview modal -->
 <div class="modal fade" id="tplImgPreviewModal" tabindex="-1" aria-hidden="true">

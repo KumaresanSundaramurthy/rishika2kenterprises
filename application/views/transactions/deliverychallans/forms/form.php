@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var object|null $DCData */      $DCData      = $DCData      ?? null;
 /** @var object      $JwtData */
 /** @var array       $DCItems */     $DCItems      = $DCItems      ?? [];
@@ -395,11 +395,11 @@ $_addrLines = buildDispatchAddressLines($DispatchAddress ?? null);
 <script src="/js/common/phone_cc_dropdown.js"></script>
 <script src="/js/common/customer_form.js"></script>
 <script src="/js/transactions/deliverychallans.js"></script>
-<script src="/js/transactions/transactions.js"></script>
+<script src="/js/transactions/forms/bill_manager.js"></script>
 <?php $this->load->view('common/transactions/pricelist_select_modal'); ?>
-<script src="/js/transactions/pricelist_trans.js"></script>
-<script src="/js/transactions/transprefix.js"></script>
-<script src="/js/transactions/modaladdress.js"></script>
+<script src="/js/transactions/forms/pricelist_trans.js"></script>
+<script src="/js/transactions/forms/transprefix.js"></script>
+<script src="/js/transactions/forms/modaladdress.js"></script>
 <script src="/js/common/category_form.js"></script>
 <script src="/js/common/product_form.js"></script>
 <script src="/js/transactions/attachments.js"></script>

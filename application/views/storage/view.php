@@ -102,7 +102,7 @@
 
 <?php $this->load->view('common/footer'); ?>
 
-<script src="/js/storage.js"></script>
+<script src="/js/storage/storage.js"></script>
 <script src="/js/common/pagecheckbox.js"></script>
 
 <script>

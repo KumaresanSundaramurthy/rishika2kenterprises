@@ -47,7 +47,7 @@ class PrintThemes extends MY_Controller {
         $offset = ($pageNo - 1) * $limit;
 
         $result  = $this->organisation_model->getPrintThemeConfigsPaginated($orgUID, $limit, $offset);
-        $rowHtml = $this->load->view('printthemes/themes/list', [
+        $rowHtml = $this->load->view('settings/printthemes/themes/list', [
             'DataLists'        => $result->rows,
             'StartFrom'        => $offset,
             'TransactionTypes' => $this->_loadPrintModules()['types'],
@@ -74,7 +74,7 @@ class PrintThemes extends MY_Controller {
         $search = trim($this->input->post('Search') ?: '');
 
         $result  = $this->organisation_model->getPrintTemplatesPaginated($limit, $offset, $search);
-        $rowHtml = $this->load->view('printthemes/templates/list', [
+        $rowHtml = $this->load->view('settings/printthemes/templates/list', [
             'DataLists' => $result->rows,
             'StartFrom' => $offset,
             'JwtData'   => $this->pageData['JwtData'],
@@ -128,7 +128,7 @@ class PrintThemes extends MY_Controller {
             $orgData = $this->organisation_model->getOrgInfoCached($orgUID)->Data;
             $this->pageData['OrgPreviewData'] = $orgData;
 
-            $this->load->view('printthemes/view', $this->pageData);
+            $this->load->view('settings/printthemes/view', $this->pageData);
 
         } catch (Exception $e) {
             notifyError('PrintThemes::index', $e);

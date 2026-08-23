@@ -1,5 +1,5 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
-$cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+$cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? 'â‚¹');
 $dec = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 $this->load->view('common/header'); ?>
 
@@ -18,7 +18,7 @@ $this->load->view('common/header'); ?>
 
                 <div class="container-xxl flex-grow-1">
 
-                    <!-- ── Filter Card ────────────────────────────────────── -->
+                    <!-- â”€â”€ Filter Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
                     <div class="card mb-3">
                         <div class="card-body p-3">
                             <div class="row g-3 align-items-end">
@@ -46,7 +46,7 @@ $this->load->view('common/header'); ?>
                         </div>
                     </div>
 
-                    <!-- ── Summary Cards ──────────────────────────────────── -->
+                    <!-- â”€â”€ Summary Cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
                     <div class="row g-3 mb-3 d-none" id="cfSummaryRow">
                         <div class="col-md-3">
                             <div class="card h-100">
@@ -54,7 +54,7 @@ $this->load->view('common/header'); ?>
                                     <div class="cf-sum-icon cf-icon-open"><i class="bx bx-wallet fs-4"></i></div>
                                     <div>
                                         <div class="text-muted" style="font-size:.75rem;">Opening Cash &amp; Bank</div>
-                                        <div class="fw-bold" style="font-size:1rem;" id="cfSumOpen">—</div>
+                                        <div class="fw-bold" style="font-size:1rem;" id="cfSumOpen">â€”</div>
                                     </div>
                                 </div>
                             </div>
@@ -65,7 +65,7 @@ $this->load->view('common/header'); ?>
                                     <div class="cf-sum-icon cf-icon-in"><i class="bx bx-trending-up fs-4"></i></div>
                                     <div>
                                         <div class="text-muted" style="font-size:.75rem;">Total Inflows</div>
-                                        <div class="fw-bold text-success" style="font-size:1rem;" id="cfSumIn">—</div>
+                                        <div class="fw-bold text-success" style="font-size:1rem;" id="cfSumIn">â€”</div>
                                     </div>
                                 </div>
                             </div>
@@ -76,7 +76,7 @@ $this->load->view('common/header'); ?>
                                     <div class="cf-sum-icon cf-icon-out"><i class="bx bx-trending-down fs-4"></i></div>
                                     <div>
                                         <div class="text-muted" style="font-size:.75rem;">Total Outflows</div>
-                                        <div class="fw-bold text-danger" style="font-size:1rem;" id="cfSumOut">—</div>
+                                        <div class="fw-bold text-danger" style="font-size:1rem;" id="cfSumOut">â€”</div>
                                     </div>
                                 </div>
                             </div>
@@ -87,14 +87,14 @@ $this->load->view('common/header'); ?>
                                     <div class="cf-sum-icon cf-icon-close" id="cfSumCloseIcon"><i class="bx bx-wallet-alt fs-4"></i></div>
                                     <div>
                                         <div class="text-muted" style="font-size:.75rem;">Closing Cash &amp; Bank</div>
-                                        <div class="fw-bold" style="font-size:1rem;" id="cfSumClose">—</div>
+                                        <div class="fw-bold" style="font-size:1rem;" id="cfSumClose">â€”</div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- ── Statement Area ─────────────────────────────────── -->
+                    <!-- â”€â”€ Statement Area â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
                     <div class="card">
                         <div class="card-body p-0" id="cfStatementArea">
                             <div class="d-flex flex-column align-items-center py-5 text-muted" id="cfEmptyState">
@@ -195,4 +195,4 @@ $this->load->view('common/header'); ?>
 }());
 </script>
 
-<?php $this->load->view('common/footer_scripts'); ?>
+<?php $this->load->view('common/footer_script'); ?>

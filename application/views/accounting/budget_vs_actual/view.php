@@ -1,5 +1,5 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
-$cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+$cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? 'â‚¹');
 $dec = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 $this->load->view('common/header'); ?>
 
@@ -18,7 +18,7 @@ $this->load->view('common/header'); ?>
 
                 <div class="container-xxl flex-grow-1">
 
-                    <!-- ── Filter Card ────────────────────────────────────── -->
+                    <!-- â”€â”€ Filter Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
                     <div class="card mb-3">
                         <div class="card-body p-3">
                             <div class="row g-3 align-items-end">
@@ -30,7 +30,7 @@ $this->load->view('common/header'); ?>
                                         for ($y = $currentYear + 1; $y >= $currentYear - 3; $y--):
                                         ?>
                                         <option value="<?php echo $y; ?>" <?php echo $y === $currentYear ? 'selected' : ''; ?>>
-                                            <?php echo $y; ?>–<?php echo ($y + 1); ?>
+                                            <?php echo $y; ?>â€“<?php echo ($y + 1); ?>
                                         </option>
                                         <?php endfor; ?>
                                     </select>
@@ -65,7 +65,7 @@ $this->load->view('common/header'); ?>
                         </div>
                     </div>
 
-                    <!-- ── Summary Cards ──────────────────────────────────── -->
+                    <!-- â”€â”€ Summary Cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
                     <div class="row g-3 mb-3 d-none" id="bvaSummaryRow">
                         <div class="col-md-3">
                             <div class="card h-100">
@@ -73,8 +73,8 @@ $this->load->view('common/header'); ?>
                                     <div class="bva-sum-icon bva-icon-income"><i class="bx bx-trending-up fs-4"></i></div>
                                     <div>
                                         <div class="text-muted" style="font-size:.75rem;">Budget Income</div>
-                                        <div class="fw-bold text-success" style="font-size:1rem;" id="bvaSumBudgetInc">—</div>
-                                        <div class="text-muted" style="font-size:.72rem;">Actual: <span id="bvaSumActualInc">—</span></div>
+                                        <div class="fw-bold text-success" style="font-size:1rem;" id="bvaSumBudgetInc">â€”</div>
+                                        <div class="text-muted" style="font-size:.72rem;">Actual: <span id="bvaSumActualInc">â€”</span></div>
                                     </div>
                                 </div>
                             </div>
@@ -85,8 +85,8 @@ $this->load->view('common/header'); ?>
                                     <div class="bva-sum-icon bva-icon-expense"><i class="bx bx-trending-down fs-4"></i></div>
                                     <div>
                                         <div class="text-muted" style="font-size:.75rem;">Budget Expense</div>
-                                        <div class="fw-bold text-danger" style="font-size:1rem;" id="bvaSumBudgetExp">—</div>
-                                        <div class="text-muted" style="font-size:.72rem;">Actual: <span id="bvaSumActualExp">—</span></div>
+                                        <div class="fw-bold text-danger" style="font-size:1rem;" id="bvaSumBudgetExp">â€”</div>
+                                        <div class="text-muted" style="font-size:.72rem;">Actual: <span id="bvaSumActualExp">â€”</span></div>
                                     </div>
                                 </div>
                             </div>
@@ -97,8 +97,8 @@ $this->load->view('common/header'); ?>
                                     <div class="bva-sum-icon bva-icon-net" id="bvaSumNetIcon"><i class="bx bx-money fs-4"></i></div>
                                     <div>
                                         <div class="text-muted" style="font-size:.75rem;">Budget Net Profit</div>
-                                        <div class="fw-bold" style="font-size:1rem;" id="bvaSumBudgetNet">—</div>
-                                        <div class="text-muted" style="font-size:.72rem;">Actual: <span id="bvaSumActualNet">—</span></div>
+                                        <div class="fw-bold" style="font-size:1rem;" id="bvaSumBudgetNet">â€”</div>
+                                        <div class="text-muted" style="font-size:.72rem;">Actual: <span id="bvaSumActualNet">â€”</span></div>
                                     </div>
                                 </div>
                             </div>
@@ -109,7 +109,7 @@ $this->load->view('common/header'); ?>
                                     <div class="bva-sum-icon bva-icon-var" id="bvaSumVarIcon"><i class="bx bx-transfer fs-4"></i></div>
                                     <div>
                                         <div class="text-muted" style="font-size:.75rem;">Net Variance</div>
-                                        <div class="fw-bold" style="font-size:1rem;" id="bvaSumNetVar">—</div>
+                                        <div class="fw-bold" style="font-size:1rem;" id="bvaSumNetVar">â€”</div>
                                         <div class="text-muted" style="font-size:.72rem;" id="bvaSumVarLabel">vs Budget</div>
                                     </div>
                                 </div>
@@ -117,7 +117,7 @@ $this->load->view('common/header'); ?>
                         </div>
                     </div>
 
-                    <!-- ── Report Area ────────────────────────────────────── -->
+                    <!-- â”€â”€ Report Area â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
                     <div class="card">
                         <div class="card-body p-0" id="bvaReportArea">
                             <div class="d-flex flex-column align-items-center py-5 text-muted" id="bvaEmptyState">
@@ -265,7 +265,7 @@ $this->load->view('common/header'); ?>
                                 cell.textContent = _cur + ' ' + current.toFixed(_dec);
                                 cell.dataset.value = current;
                             } else {
-                                cell.textContent   = newVal > 0 ? (_cur + ' ' + newVal.toLocaleString('en-IN', { minimumFractionDigits: _dec, maximumFractionDigits: _dec })) : '—';
+                                cell.textContent   = newVal > 0 ? (_cur + ' ' + newVal.toLocaleString('en-IN', { minimumFractionDigits: _dec, maximumFractionDigits: _dec })) : 'â€”';
                                 cell.dataset.value = newVal;
                             }
                         })
@@ -277,7 +277,7 @@ $this->load->view('common/header'); ?>
                 input.addEventListener('blur',  function () { _save(); });
                 input.addEventListener('keydown', function (e) {
                     if (e.key === 'Enter')  { input.blur(); }
-                    if (e.key === 'Escape') { cell.textContent = current > 0 ? (_cur + ' ' + current.toFixed(_dec)) : '—'; }
+                    if (e.key === 'Escape') { cell.textContent = current > 0 ? (_cur + ' ' + current.toFixed(_dec)) : 'â€”'; }
                 });
             });
         });
@@ -288,4 +288,4 @@ $this->load->view('common/header'); ?>
 }());
 </script>
 
-<?php $this->load->view('common/footer_scripts'); ?>
+<?php $this->load->view('common/footer_script'); ?>

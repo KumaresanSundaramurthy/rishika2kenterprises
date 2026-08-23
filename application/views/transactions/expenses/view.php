@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 $this->load->view('common/transactions/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -494,7 +494,7 @@ $this->load->view('common/transactions/payment_modal');
 ]); ?>
 <?php endif; ?>
 
-<script src="/js/transactions/col_filter.js"></script>
+<script src="/js/core/col_filter.js"></script>
 <script src="/js/common/pagecheckbox.js"></script>
 <script src="/js/transactions/expenses.js"></script>
 

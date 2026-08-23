@@ -1,4 +1,4 @@
-    
+﻿    
 
     <?php $this->load->view('common/common_form'); ?>
 
@@ -57,14 +57,14 @@
     ?>
     </script>
     <script type="text/javascript" src="<?php echo _assetV('/js/common/default.js'); ?>"></script>
-    <script type="text/javascript" src="<?php echo _assetV('/js/transactions/customer_search.js'); ?>"></script>
+    <script type="text/javascript" src="<?php echo _assetV('/js/common/customer_search.js'); ?>"></script>
     <script type="text/javascript" src="<?php echo _assetV('/js/transactions/product_search.js'); ?>"></script>
     <script type="text/javascript" src="<?php echo _assetV('/js/common/datefilter.js'); ?>"></script>
     <script type="text/javascript" src="<?php echo _assetV('/js/common/export.js'); ?>"></script>
     <script type="text/javascript" src="<?php echo _assetV('/js/core/pending_toast.js'); ?>"></script>
     <script type="text/javascript" src="<?php echo _assetV('/js/core/autoDraft.js'); ?>"></script>
     <script type="text/javascript" src="<?php echo _assetV('/js/transactions/common.js'); ?>"></script>
-    <script type="text/javascript" src="<?php echo _assetV('/js/transactions/thermal_print.js'); ?>"></script>
+    <script type="text/javascript" src="<?php echo _assetV('/js/core/thermal_print.js'); ?>"></script>
     <link rel="stylesheet" href="<?php echo _assetV('/assets/vendor/css/attachments.css'); ?>">
     <script type="text/javascript" src="<?php echo _assetV('/js/common/attachments.js'); ?>"></script>
 

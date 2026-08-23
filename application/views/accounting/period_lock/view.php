@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var object|null $CurrentLock */ $CurrentLock = $CurrentLock ?? null;
 $dateFmt   = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
 $isLocked  = $CurrentLock !== null;
@@ -22,7 +22,7 @@ $this->load->view('common/header'); ?>
                     <div class="row justify-content-center">
                         <div class="col-md-8 col-lg-6">
 
-                            <!-- ── Current Status Card ─────────────────────── -->
+                            <!-- â”€â”€ Current Status Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
                             <div class="card mb-3">
                                 <div class="card-body p-4">
                                     <div class="d-flex align-items-center gap-3">
@@ -58,7 +58,7 @@ $this->load->view('common/header'); ?>
                                 </div>
                             </div>
 
-                            <!-- ── Set Lock Date Card ──────────────────────── -->
+                            <!-- â”€â”€ Set Lock Date Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
                             <div class="card">
                                 <div class="card-header" style="background:transparent;border-bottom:1px solid var(--bs-border-color);">
                                     <h6 class="mb-0 fw-semibold">
@@ -92,13 +92,13 @@ $this->load->view('common/header'); ?>
                                     <div class="mt-3 p-3 rounded" style="background:#fef9ee;border:1px solid #fde68a;font-size:.78rem;" id="plWarningBox">
                                         <i class="bx bx-info-circle me-1 text-warning"></i>
                                         <strong>Important:</strong> Once a period is locked, no journal can be posted or reversed
-                                        within that period — including invoices, payments, expenses, and manual entries.
+                                        within that period â€” including invoices, payments, expenses, and manual entries.
                                         Only remove the lock if a correction is genuinely required.
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- ── Lock History Note ───────────────────────── -->
+                            <!-- â”€â”€ Lock History Note â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
                             <?php if ($isLocked): ?>
                             <div class="mt-3 text-center text-muted" style="font-size:.75rem;">
                                 Lock was set by user #<?php echo (int)$CurrentLock->LockedBy; ?>.
@@ -115,8 +115,6 @@ $this->load->view('common/header'); ?>
     </div>
 </div>
 
-<?php $this->load->view('common/apex/sweetalert2'); ?>
-
 <script>
 (function () {
     'use strict';
@@ -125,7 +123,7 @@ $this->load->view('common/header'); ?>
     var _isLocked = <?php echo $isLocked ? 'true' : 'false'; ?>;
     var _dateFmt  = '<?php echo $dateFmt; ?>';
 
-    // ── Flatpickr ─────────────────────────────────────────────────────────────
+    // â”€â”€ Flatpickr â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     var _fpOptions = {
         static   : true,
         position : 'below left',
@@ -140,7 +138,7 @@ $this->load->view('common/header'); ?>
         flatpickr('#plLockDate', _fpOptions);
     }
 
-    // ── Save / Advance lock ───────────────────────────────────────────────────
+    // â”€â”€ Save / Advance lock â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     document.getElementById('plSaveBtn').addEventListener('click', function () {
         var lockDate = document.getElementById('plLockDate').value;
         if (!lockDate) {
@@ -189,7 +187,7 @@ $this->load->view('common/header'); ?>
         });
     });
 
-    // ── Remove lock ───────────────────────────────────────────────────────────
+    // â”€â”€ Remove lock â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     var removeBtn = document.getElementById('plRemoveBtn');
     if (removeBtn) {
         removeBtn.addEventListener('click', function () {
@@ -216,4 +214,4 @@ $this->load->view('common/header'); ?>
 }());
 </script>
 
-<?php $this->load->view('common/footer_scripts'); ?>
+<?php $this->load->view('common/footer_script'); ?>

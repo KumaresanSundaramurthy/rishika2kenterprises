@@ -227,7 +227,8 @@ class BillManager {
         const sellingPrice = this.roundValue(unitPrice * (1 + taxPercent / 100));
         
         const item = {
-            ...productData, 
+            ...productData,
+            serials: Array.isArray(productData.serials) ? [...productData.serials] : [],
             quantity: parseFloat(qty) || 1,
             // TAX FIELDS
             cgstPercent: parseFloat(productData.cgstPercent) || 0,
@@ -3961,6 +3962,29 @@ function _fetchAndAttachBOM(item, callback) {
     });
 }
 
+/**
+ * Build the serial-number panel HTML injected inside the product name cell.
+ * Rendered once when the item is first added; SerialTracker events manage inputs.
+ * @param {number|string} productId  - billManager item id
+ * @param {string}        transType  - 'Purchase' or 'Invoice'
+ * @returns {string} HTML string
+ */
+function _bmBuildSerialPanel(productId, transType) {
+    var mode  = (transType === 'Invoice') ? 'select' : 'text';
+    var label = (transType === 'Invoice') ? 'Select Serials' : 'Serial Numbers';
+    return '<div class="bm-serial-panel" id="bm_' + productId + '_serialPanel">' +
+        '<div class="bm-serial-header">' +
+            '<span class="bm-serial-label"><i class="bx bx-barcode"></i> ' + label + '</span>' +
+            '<span class="bm-serial-count" id="bm_' + productId + '_serialCount"></span>' +
+        '</div>' +
+        '<div class="bm-serial-inputs" id="bm_' + productId + '_serialInputs"></div>' +
+        '<button type="button" class="btn btn-link btn-sm bm-serial-add-btn p-0"' +
+            ' data-id="' + productId + '" data-mode="' + mode + '">' +
+            '<i class="bx bx-plus-circle"></i> Add Serial' +
+        '</button>' +
+    '</div>';
+}
+
 function formationTableBillItems(productRow) {
 
     let rowCount = $('#billTableBody tr[data-id]').length;
@@ -4048,6 +4072,9 @@ function formationTableBillItems(productRow) {
                             ? `<div class="mt-1"><span class="brand-chip selected" data-id="${productRow.id}"><i class="bx bx-purchase-tag-alt me-1"></i>${productRow.brandName}</span></div>`
                             : `<div class="mt-1"><span class="variant-chip empty" data-id="${productRow.id}"><i class="bx bx-layer me-1"></i>${t('lbl_select_variant', 'Select Variant')}</span></div>`))
                     : ''}
+                ${parseInt(productRow.IsSerialTracked, 10) === 1
+                    ? _bmBuildSerialPanel(productRow.id, ((window._transFormData || {}).transType || ''))
+                    : ''}
             </td>
             <td>
                 <div class="input-group input-group-merge input-group-sm">
@@ -4104,6 +4131,16 @@ function formationTableBillItems(productRow) {
     var newCount = $('#billTableBody tr[data-id]').length;
     $('#btnClearCart').toggleClass('d-none', newCount < 1);
     $('#chkReverseOrder').closest('.form-check-inline').toggleClass('d-none', newCount < 2);
+
+    // Pre-populate serial inputs when item has pre-loaded serials (edit / returns mode)
+    if (parseInt(productRow.IsSerialTracked, 10) === 1 &&
+        Array.isArray(productRow.serials) && productRow.serials.length > 0) {
+        setTimeout(function () {
+            if (typeof SerialTracker !== 'undefined') {
+                SerialTracker.prePopulate(productRow.id, productRow.serials);
+            }
+        }, 0);
+    }
 }
 
 function isIntegerValue(value) {

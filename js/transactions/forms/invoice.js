@@ -324,6 +324,11 @@ $(function () {
                 }
             }
 
+            if (typeof SerialTracker !== 'undefined' && !_isEdit && action !== 'draft') {
+                var _serialErr = SerialTracker.getValidationError(items);
+                if (_serialErr) return showFormError(_serialErr);
+            }
+
             var bm            = typeof billManager !== 'undefined' ? billManager : null;
             var summary       = bm ? bm.summary : {};
             var netAmount     = summary.totals    ? (summary.totals.grandTotal       || 0) : 0;

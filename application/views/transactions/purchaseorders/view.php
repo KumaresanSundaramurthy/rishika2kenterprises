@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 $this->load->view('common/transactions/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -226,10 +226,10 @@ $this->load->view('common/transactions/header'); ?>
 <?php $this->load->view('common/transactions/footer'); ?>
 
 <script src="/js/common/party_filter.js"></script>
-<script src="/js/transactions/viewmodal.js"></script>
-<script src="/js/transactions/a4_print.js"></script>
+<script src="/js/core/viewmodal.js"></script>
+<script src="/js/core/a4_print.js"></script>
 <script src="/js/transactions/filter_bar.js"></script>
-<script src="/js/transactions/col_filter.js"></script>
+<script src="/js/core/col_filter.js"></script>
 <script src="/js/common/pagecheckbox.js"></script>
 <script src="/js/transactions/purchaseorders.js"></script>
 

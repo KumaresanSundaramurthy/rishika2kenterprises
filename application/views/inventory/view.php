@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 $this->load->view('common/transactions/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -255,8 +255,8 @@ $this->load->view('inventory/partials/_timeline_modal');
 <script src="/js/common/pagecheckbox.js"></script>
 <script src="/js/common/productappend.js"></script>
 <script src="/js/common/item_filter.js"></script>
-<script src="/js/transactions/col_filter.js"></script>
-<script src="/js/inventory.js"></script>
+<script src="/js/core/col_filter.js"></script>
+<script src="/js/inventory/inventory.js"></script>
 
 <script>
 const InvCurrency   = <?php echo json_encode($cur); ?>;

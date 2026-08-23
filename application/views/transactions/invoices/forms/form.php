@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php
 $isEdit      = isset($InvData);
 $isDraftEdit = $isEdit && ($InvData->DocStatus === 'Draft');
@@ -239,24 +239,25 @@ if ($isEdit) {
 <script src="/js/common/phone_cc_dropdown.js"></script>
 <script src="/js/common/customer_form.js"></script>
 <script src="/js/transactions/invoices.js"></script>
-<script src="/js/transactions/transactions.js"></script>
+<script src="/js/transactions/forms/bill_manager.js"></script>
 <?php $this->load->view('common/transactions/pricelist_select_modal'); ?>
-<script src="/js/transactions/pricelist_trans.js"></script>
-<script src="/js/transactions/transprefix.js"></script>
-<script src="/js/transactions/modaladdress.js"></script>
+<script src="/js/transactions/forms/pricelist_trans.js"></script>
+<script src="/js/transactions/forms/transprefix.js"></script>
+<script src="/js/transactions/forms/modaladdress.js"></script>
 <script src="/js/common/category_form.js"></script>
 <script src="/js/common/product_form.js"></script>
 <?php if (!$isEdit || $isDraftEdit): ?>
-<script src="/js/transactions/payment_section.js"></script>
+<script src="/js/transactions/forms/payment_section.js"></script>
 <?php endif; ?>
 <script src="/js/transactions/attachments.js"></script>
-<script src="/js/transactions/a4_print.js"></script>
+<script src="/js/core/a4_print.js"></script>
 <?php $this->load->view('transactions/partials/additional_charges_data'); ?>
 
 <script>
 var _transFormData = <?php echo json_encode([
     'isEdit'       => $isEdit,
     'isDraftEdit'  => $isDraftEdit,
+    'transType'    => 'Invoice',
     'moduleUID'    => (int)($JwtData->ModuleUID ?? 0),
     'enableStorage'=> (bool)$JwtData->GenSettings->EnableStorage,
     'formId'       => $formId,
@@ -282,7 +283,7 @@ var _transFormData = <?php echo json_encode([
         'globalDiscPercent' => (float)($InvData->GlobalDiscPercent ?? 0),
         'paidAmount'        => (float)($InvData->PaidAmount ?? 0),
         'attachments'       => $InvAttachments ?? [],
-        'items'             => array_map(function($item) {
+        'items'             => array_map(function($item) use ($InvSerialsByProd) {
             return [
                 'id'               => (int)  $item->ProductUID,
                 'text'             => $item->ProductName,
@@ -320,6 +321,8 @@ var _transFormData = <?php echo json_encode([
                 'variantUID'           => $item->VariantUID         ? (int)$item->VariantUID          : null,
                 'variantLabel'         => $item->VariantLabel        ?? '',
                 'IsBrandApplicable'    => (int)($item->IsBrandApplicable ?? 0),
+                'IsSerialTracked'      => (int)($item->IsSerialTracked  ?? 0),
+                'serials'              => $InvSerialsByProd[(int)$item->ProductUID] ?? [],
             ];
         }, $InvItems ?? []),
         'draftCN' => ($isDraftEdit && !empty($DraftReservedCN)) ? [
@@ -451,4 +454,5 @@ var _transFormData = <?php echo json_encode([
 </script>
 <?php $this->load->view('common/transactions/credits_detail_modal'); ?>
 <?php $this->load->view('common/transactions/creditnote_detail_modal'); ?>
+<script src="/js/transactions/forms/serial_tracker.js"></script>
 <script src="/js/transactions/forms/invoice.js"></script>

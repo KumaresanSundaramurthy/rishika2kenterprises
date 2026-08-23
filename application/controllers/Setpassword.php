@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Setpassword extends CI_Controller {
 
@@ -8,36 +8,36 @@ class Setpassword extends CI_Controller {
         $this->load->helper('url');
     }
 
-    // ── Show form or status page ──────────────────────────────────────────────
+    // â”€â”€ Show form or status page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function index($token = '') {
         if (empty($token)) {
-            $this->load->view('setpassword/index', ['state' => 'invalid']);
+            $this->load->view('login/setpassword/index', ['state' => 'invalid']);
             return;
         }
 
         $user = $this->users_model->getUserByPasswordToken($token);
 
         if (!$user) {
-            $this->load->view('setpassword/index', ['state' => 'invalid']);
+            $this->load->view('login/setpassword/index', ['state' => 'invalid']);
             return;
         }
 
         if ((int)$user->IsPasswordSet === 1) {
-            $this->load->view('setpassword/index', [
+            $this->load->view('login/setpassword/index', [
                 'state' => 'already_set',
                 'user'  => $user,
             ]);
             return;
         }
 
-        $this->load->view('setpassword/index', [
+        $this->load->view('login/setpassword/index', [
             'state' => 'form',
             'token' => $token,
             'user'  => $user,
         ]);
     }
 
-    // ── Handle form submission ────────────────────────────────────────────────
+    // â”€â”€ Handle form submission â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function submit() {
         $token = $this->input->post('token');
         $pwd   = $this->input->post('Password');
@@ -46,12 +46,12 @@ class Setpassword extends CI_Controller {
         $user = $token ? $this->users_model->getUserByPasswordToken($token) : null;
 
         if (!$user) {
-            $this->load->view('setpassword/index', ['state' => 'invalid']);
+            $this->load->view('login/setpassword/index', ['state' => 'invalid']);
             return;
         }
 
         if ((int)$user->IsPasswordSet === 1) {
-            $this->load->view('setpassword/index', [
+            $this->load->view('login/setpassword/index', [
                 'state' => 'already_set',
                 'user'  => $user,
             ]);
@@ -59,7 +59,7 @@ class Setpassword extends CI_Controller {
         }
 
         if (empty($pwd) || strlen($pwd) < 6) {
-            $this->load->view('setpassword/index', [
+            $this->load->view('login/setpassword/index', [
                 'state' => 'form',
                 'token' => $token,
                 'user'  => $user,
@@ -69,7 +69,7 @@ class Setpassword extends CI_Controller {
         }
 
         if ($pwd !== $cpwd) {
-            $this->load->view('setpassword/index', [
+            $this->load->view('login/setpassword/index', [
                 'state' => 'form',
                 'token' => $token,
                 'user'  => $user,
@@ -80,7 +80,7 @@ class Setpassword extends CI_Controller {
 
         $this->users_model->updateUserPassword($user->UserUID, $pwd);
 
-        $this->load->view('setpassword/index', [
+        $this->load->view('login/setpassword/index', [
             'state' => 'success',
             'user'  => $user,
         ]);

@@ -414,4 +414,4 @@ var DriveConfig = {
     quotaBytes:     <?php echo (int)($QuotaBytes ?? 104857600); ?>
 };
 </script>
-<script src="<?php echo _assetV('/js/drive.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/drive/drive.js'); ?>"></script>

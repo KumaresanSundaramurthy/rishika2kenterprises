@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 
 $_today      = date('Y-m-d');
 $_listFmt    = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
@@ -332,7 +332,7 @@ const genSettings = <?php echo json_encode($JwtData->GenSettings ?? new stdClass
 var _transListDateFormat = '<?php echo addslashes($JwtData->GenSettings->ListDateFormat ?? 'd M Y'); ?>';
 </script>
 <script src="/js/reports/daybook.js"></script>
-<script src="/js/transactions/viewmodal.js"></script>
+<script src="/js/core/viewmodal.js"></script>
 
 <?php $this->load->view('common/transactions/print_modals'); ?>
 <?php $this->load->view('common/footer_desc'); ?>

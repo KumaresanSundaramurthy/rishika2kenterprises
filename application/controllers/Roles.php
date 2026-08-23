@@ -31,7 +31,7 @@ class Roles extends MY_Controller {
             $this->pageData['AllMainMenus'] = $menusResult->Error === FALSE ? ($menusResult->Data['main'] ?? []) : [];
             $this->pageData['AllSubMenus']  = $menusResult->Error === FALSE ? ($menusResult->Data['sub']  ?? []) : [];
 
-            $this->load->view('roles/view', $this->pageData);
+            $this->load->view('settings/roles/view', $this->pageData);
 
         } catch (Exception $e) {
             $this->notifyError('Roles::index', $e);

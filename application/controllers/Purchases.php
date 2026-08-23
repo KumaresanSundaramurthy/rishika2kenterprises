@@ -184,6 +184,7 @@ class Purchases extends MY_Controller {
             $this->_insertTransItems($transUID, $financialYear, $orgUID, $userUID, $items);
 
             if (!$isDraft) {
+                $this->_saveTransSerials($transUID, $orgUID, $userUID, 'Purchase', $items);
                 $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items, $this->_branchUID());
             }
 
@@ -433,6 +434,7 @@ class Purchases extends MY_Controller {
                 $this->_updateTransItems($transUID, $items, $orgUID, $amounts['financialYear'], $userUID);
 
                 if (!$isDraft) {
+                    $this->_updateTransSerials($transUID, $orgUID, $userUID, 'Purchase', $items);
                     $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items, $this->_branchUID());
                 }
             }
@@ -1036,9 +1038,10 @@ class Purchases extends MY_Controller {
 
             $purchItems = $this->transactions_model->getTransactionItems($transUID, $orgUID);
 
-            $this->pageData['PurchData']        = $purchData;
-            $this->pageData['PurchItems']       = $purchItems;
-            $this->pageData['PurchAttachments'] = $this->transactions_model->getTransactionAttachments($transUID, $orgUID);
+            $this->pageData['PurchData']          = $purchData;
+            $this->pageData['PurchItems']         = $purchItems;
+            $this->pageData['PurchAttachments']   = $this->transactions_model->getTransactionAttachments($transUID, $orgUID);
+            $this->pageData['PurchSerialsByProd'] = $this->_getTransSerialsGrouped($transUID, $orgUID, 'Purchase');
 
             $prefixResult                    = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.OrgUID' => $orgUID, 'Prefix.ModuleUID' => $this->pageModuleUID]);
             $this->pageData['PrefixData']    = $prefixResult->Data ?? [];

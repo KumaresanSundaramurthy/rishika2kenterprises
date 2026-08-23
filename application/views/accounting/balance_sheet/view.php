@@ -1,5 +1,5 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
-$cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+$cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? 'â‚¹');
 $dec = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 $this->load->view('common/header'); ?>
 
@@ -18,7 +18,7 @@ $this->load->view('common/header'); ?>
 
                 <div class="container-xxl flex-grow-1">
 
-                    <!-- ── Filter Card ────────────────────────────────────── -->
+                    <!-- â”€â”€ Filter Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
                     <div class="card mb-3">
                         <div class="card-body p-3">
                             <div class="row g-3 align-items-end">
@@ -49,7 +49,7 @@ $this->load->view('common/header'); ?>
                         </div>
                     </div>
 
-                    <!-- ── Summary Cards ──────────────────────────────────── -->
+                    <!-- â”€â”€ Summary Cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
                     <div class="row g-3 mb-3 d-none" id="bsSummaryRow">
                         <div class="col-md-4">
                             <div class="card h-100">
@@ -59,7 +59,7 @@ $this->load->view('common/header'); ?>
                                     </div>
                                     <div>
                                         <div class="text-muted" style="font-size:.75rem;">Total Assets</div>
-                                        <div class="fw-bold" style="font-size:1.1rem;color:#1d4ed8;" id="bsSumAssets">—</div>
+                                        <div class="fw-bold" style="font-size:1.1rem;color:#1d4ed8;" id="bsSumAssets">â€”</div>
                                     </div>
                                 </div>
                             </div>
@@ -72,7 +72,7 @@ $this->load->view('common/header'); ?>
                                     </div>
                                     <div>
                                         <div class="text-muted" style="font-size:.75rem;">Total Liabilities</div>
-                                        <div class="fw-bold" style="font-size:1.1rem;color:#9a3412;" id="bsSumLiab">—</div>
+                                        <div class="fw-bold" style="font-size:1.1rem;color:#9a3412;" id="bsSumLiab">â€”</div>
                                     </div>
                                 </div>
                             </div>
@@ -85,12 +85,12 @@ $this->load->view('common/header'); ?>
                                     </div>
                                     <div>
                                         <div class="text-muted" style="font-size:.75rem;" id="bsSumNetLabel">Net Profit</div>
-                                        <div class="fw-bold" style="font-size:1.1rem;" id="bsSumNet">—</div>
+                                        <div class="fw-bold" style="font-size:1.1rem;" id="bsSumNet">â€”</div>
                                         <div class="d-none" id="bsBalancedBadge">
-                                            <span class="badge bg-success" style="font-size:.65rem;">Balanced ✓</span>
+                                            <span class="badge bg-success" style="font-size:.65rem;">Balanced âœ“</span>
                                         </div>
                                         <div class="d-none" id="bsUnbalancedBadge">
-                                            <span class="badge bg-danger" style="font-size:.65rem;">Unbalanced ✗</span>
+                                            <span class="badge bg-danger" style="font-size:.65rem;">Unbalanced âœ—</span>
                                         </div>
                                     </div>
                                 </div>
@@ -98,7 +98,7 @@ $this->load->view('common/header'); ?>
                         </div>
                     </div>
 
-                    <!-- ── Statement Area ─────────────────────────────────── -->
+                    <!-- â”€â”€ Statement Area â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
                     <div class="card">
                         <div class="card-body p-0" id="bsStatementArea">
                             <div class="d-flex flex-column align-items-center py-5 text-muted" id="bsEmptyState">
@@ -124,7 +124,7 @@ $this->load->view('common/header'); ?>
     var _cur     = '<?php echo $cur; ?>';
     var _dec     = <?php echo $dec; ?>;
 
-    // ── Flatpickr ─────────────────────────────────────────────────────────────
+    // â”€â”€ Flatpickr â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     var _fpCfg = { static: true, position: 'below left', dateFormat: 'Y-m-d', altInput: true, altFormat: _transFormDateFormat || 'd M Y' };
     if (typeof flatpickr !== 'undefined') {
         flatpickr('#bsAsOfDate', Object.assign({}, _fpCfg, { defaultDate: new Date() }));
@@ -139,7 +139,7 @@ $this->load->view('common/header'); ?>
         return _cur + ' ' + Math.abs(n).toLocaleString('en-IN', { minimumFractionDigits: _dec, maximumFractionDigits: _dec });
     }
 
-    // ── Load button ───────────────────────────────────────────────────────────
+    // â”€â”€ Load button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     document.getElementById('bsLoadBtn').addEventListener('click', function () {
         var asOf    = document.getElementById('bsAsOfDate').value;
         var pnlFrom = document.getElementById('bsPnlFrom').value;
@@ -200,10 +200,10 @@ $this->load->view('common/header'); ?>
             });
     });
 
-    // ── Print ─────────────────────────────────────────────────────────────────
+    // â”€â”€ Print â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     document.getElementById('bsPrintBtn').addEventListener('click', function () { window.print(); });
 
 }());
 </script>
 
-<?php $this->load->view('common/footer_scripts'); ?>
+<?php $this->load->view('common/footer_script'); ?>

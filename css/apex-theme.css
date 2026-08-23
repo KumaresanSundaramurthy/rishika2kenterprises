@@ -3022,3 +3022,15 @@ tr:hover .apex-party-actions {
 
 /* ── Debit Notes Tab ─────────────────────────────────────────────────────────── */
 .dn-search-input { max-width: 200px; }
+
+/* ── Serial Number Panel (cart row) ─────────────────────────────────────────── */
+.bm-serial-panel       { border-top: 1px dashed #dee2e6; margin-top: 6px; padding-top: 6px; }
+.bm-serial-header      { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.bm-serial-label       { font-size: 11px; font-weight: 600; color: #6c757d;
+                          text-transform: uppercase; letter-spacing: .04em; }
+.bm-serial-count       { font-size: 11px; }
+.bm-serial-row         { display: flex; align-items: center; gap: 4px; margin-bottom: 3px; }
+.bm-serial-text-input  { font-size: 12px !important; }
+.bm-serial-select-input{ flex: 1; font-size: 12px !important; }
+.bm-serial-add-btn     { font-size: 12px; }
+:root[data-theme="dark"] .bm-serial-panel { border-top-color: #3b4253; }

@@ -304,7 +304,7 @@
 .org-ship-bg                  { background-color: #f0fdf4; }   /* shipping: soft green */
 </style>
 
-<script src="/js/organisation.js"></script>
+<script src="/js/organisation/organisation.js"></script>
 <script src="/js/common/address.js"></script>
 
 <script>

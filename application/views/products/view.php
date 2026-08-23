@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php $this->load->view('common/header'); ?>
 
@@ -624,8 +624,8 @@
 <script src="<?php echo _assetV('/js/common/customer_form.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/common/category_form.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/common/product_form.js'); ?>"></script>
-<script src="<?php echo _assetV('/js/transactions/col_filter.js'); ?>"></script>
-<script src="<?php echo _assetV('/js/products.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/core/col_filter.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/products/products.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/common/productappend.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/combinemodules/combo.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/common/pagecheckbox.js'); ?>"></script>

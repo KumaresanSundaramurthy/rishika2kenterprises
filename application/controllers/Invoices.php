@@ -198,6 +198,7 @@ class Invoices extends MY_Controller {
             $this->_insertTransItems($transUID, $financialYear, $orgUID, $userUID, $items);
 
             if (!$isDraft) {
+                $this->_saveTransSerials($transUID, $orgUID, $userUID, 'Invoice', $items, $customerUID);
                 $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items, $this->_branchUID());
             }
 
@@ -1673,6 +1674,7 @@ class Invoices extends MY_Controller {
             $this->pageData['TransactionCharges'] = $this->transactions_model->getTransactionCharges($transUID, (int)$orgUID);
             $this->pageData['TaxList']            = $this->_getTaxList();
             $this->pageData['IsEditMode']         = true;
+            $this->pageData['InvSerialsByProd']   = $this->_getTransSerialsGrouped($transUID, $orgUID, 'Invoice');
 
             $this->load->view('transactions/invoices/forms/form', $this->pageData);
 

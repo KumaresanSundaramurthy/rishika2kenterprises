@@ -18,7 +18,7 @@ class Cachemonitor extends MY_Controller {
         }
         $this->pageData['PageTitle'] = 'Cache Monitor';
         $this->pageData['IsDevEnv']  = (ENVIRONMENT === 'development');
-        $this->load->view('cachemonitor/view', $this->pageData);
+        $this->load->view('settings/cachemonitor/view', $this->pageData);
     }
 
     // ── AJAX: verify dev password ─────────────────────────────────────────────

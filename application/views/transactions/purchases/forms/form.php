@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php
 $isEdit      = isset($PurchData);
 $isDraftEdit = $isEdit && ($PurchData->DocStatus === 'Draft');
@@ -262,15 +262,15 @@ if ($isEdit) {
 <script src="/js/transactions/purchases.js"></script>
 <script src="/js/common/phone_cc_dropdown.js"></script>
 <script src="/js/common/vendor_form.js"></script>
-<script src="/js/transactions/vendor_search.js"></script>
+<script src="/js/transactions/forms/vendor_search.js"></script>
 <script src="/js/common/address.js"></script>
-<script src="/js/transactions/transactions.js"></script>
-<script src="/js/transactions/transprefix.js"></script>
-<script src="/js/transactions/modaladdress.js"></script>
+<script src="/js/transactions/forms/bill_manager.js"></script>
+<script src="/js/transactions/forms/transprefix.js"></script>
+<script src="/js/transactions/forms/modaladdress.js"></script>
 <script src="/js/common/category_form.js"></script>
 <script src="/js/common/product_form.js"></script>
 <?php if (!$isEdit): ?>
-<script src="/js/transactions/payment_section.js"></script>
+<script src="/js/transactions/forms/payment_section.js"></script>
 <?php endif; ?>
 <script src="/js/transactions/attachments.js"></script>
 <?php $this->load->view('transactions/partials/additional_charges_data'); ?>
@@ -280,6 +280,7 @@ window._transAllowTaxChange = true;
 var _transFormData = <?php echo json_encode([
     'isEdit'        => $isEdit,
     'isDraftEdit'   => $isDraftEdit,
+    'transType'     => 'Purchase',
     'moduleUID'     => 105,
     'enableStorage' => (bool)$JwtData->GenSettings->EnableStorage,
     'formId'        => $formId,
@@ -305,7 +306,7 @@ var _transFormData = <?php echo json_encode([
         'extraDiscType'     => $PurchData->ExtraDiscType ?? '',
         'globalDiscPercent' => (float)($PurchData->GlobalDiscPercent ?? 0),
         'attachments'       => $PurchAttachments ?? [],
-        'items'             => array_map(function($item) {
+        'items'             => array_map(function($item) use ($PurchSerialsByProd) {
             return [
                 'id'               => (int)  $item->ProductUID,
                 'text'             => $item->ProductName,
@@ -341,6 +342,8 @@ var _transFormData = <?php echo json_encode([
                 'variantUID'       => $item->VariantUID         ? (int)$item->VariantUID          : null,
                 'variantLabel'     => $item->VariantLabel        ?? '',
                 'IsBrandApplicable'=> (int)($item->IsBrandApplicable ?? 0),
+                'IsSerialTracked'  => (int)($item->IsSerialTracked  ?? 0),
+                'serials'          => $PurchSerialsByProd[(int)$item->ProductUID] ?? [],
             ];
         }, $PurchItems ?? []),
     ] : null,
@@ -389,4 +392,5 @@ var _transFormData = <?php echo json_encode([
     }, $POItems) : null,
 ]); ?>;
 </script>
+<script src="/js/transactions/forms/serial_tracker.js"></script>
 <script src="/js/transactions/forms/purchase.js"></script>

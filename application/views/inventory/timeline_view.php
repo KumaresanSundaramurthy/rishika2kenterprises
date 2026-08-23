@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 $this->load->view('common/transactions/header'); ?>
 
 <div class="layout-wrapper layout-horizontal basic-form-page transactionPage layout-content-navbar">
@@ -255,11 +255,11 @@ $this->load->view('common/transactions/header'); ?>
 <?php $this->load->view('common/transactions/print_modals'); ?>
 
 <script src="/js/common/pagecheckbox.js"></script>
-<script src="/js/transactions/col_filter.js"></script>
-<script src="/js/transactions/viewmodal.js"></script>
+<script src="/js/core/col_filter.js"></script>
+<script src="/js/core/viewmodal.js"></script>
 <script src="/js/common/datefilter.js"></script>
-<script src="/js/inventory.js"></script>
-<script src="/js/inventory_timeline.js"></script>
+<script src="/js/inventory/inventory.js"></script>
+<script src="/js/inventory/inventory_timeline.js"></script>
 
 <script>
 var TlCurrency        = <?php echo json_encode($cur); ?>;

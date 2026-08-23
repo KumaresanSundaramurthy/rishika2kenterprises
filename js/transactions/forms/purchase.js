@@ -231,6 +231,11 @@ $(function () {
                 if (parseFloat(item.unitPrice) < 0) return showFormError('Row ' + (i + 1) + ': Price cannot be negative.');
             }
 
+            if (typeof SerialTracker !== 'undefined' && action !== 'draft') {
+                var _serialErr = SerialTracker.getValidationError(items);
+                if (_serialErr) return showFormError(_serialErr);
+            }
+
             if (!_isEdit && action !== 'draft') {
                 if (typeof serializePaymentRows === 'function' && !serializePaymentRows()) {
                     return showFormError('Please enter a valid amount for every payment row.');

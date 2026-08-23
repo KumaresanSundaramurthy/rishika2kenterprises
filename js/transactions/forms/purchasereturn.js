@@ -347,6 +347,11 @@ $(function () {
             if (!items || items.length === 0) return showFormError('Please add at least one product.');
             if (typeof validateBrandItems === 'function' && !validateBrandItems()) return;
 
+            if (typeof SerialTracker !== 'undefined' && action !== 'draft') {
+                var _serialErr = SerialTracker.getValidationError(items);
+                if (_serialErr) return showFormError(_serialErr);
+            }
+
             var bm      = typeof billManager !== 'undefined' ? billManager : null;
             var summary = bm ? bm.summary : {};
             var charges = { AdditionalCharges: JSON.stringify(typeof collectAdditionalCharges === 'function' ? collectAdditionalCharges() : []) };

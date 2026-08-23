@@ -99,6 +99,7 @@ class Purchasereturns extends MY_Controller {
             $this->_insertTransItems($transUID, $financialYear, $orgUID, $userUID, $items);
 
             if (!$isDraft) {
+                $this->_saveTransSerials($transUID, $orgUID, $userUID, 'PurchaseReturn', $items, $vendorUID);
                 $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items, $this->_branchUID());
             }
 
@@ -263,6 +264,7 @@ class Purchasereturns extends MY_Controller {
                 $this->dbwrite_model->updateData('Transaction', 'TransProductsTbl', ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID], ['TransUID' => $transUID, 'IsDeleted' => 0]);
                 $this->_insertTransItems($newTransUID, $amounts['financialYear'], $orgUID, $userUID, $items);
                 if (!$isDraft) {
+                    $this->_saveTransSerials($newTransUID, $orgUID, $userUID, 'PurchaseReturn', $items, $vendorUID);
                     $this->dbwrite_model->saveStockMovements($newTransUID, $this->pageModuleUID, $orgUID, $userUID, $items, $this->_branchUID());
                 }
                 $this->dbwrite_model->deleteInTransaction('Transaction', 'TransactionsTbl', ['TransUID' => $transUID]);
@@ -282,6 +284,7 @@ class Purchasereturns extends MY_Controller {
                 $this->dbwrite_model->updateData('Transaction', 'TransDetailTbl', $commonDetail, ['FinancialYear' => $amounts['financialYear'], 'TransUID' => $transUID]);
                 $this->_updateTransItems($transUID, $items, $orgUID, $amounts['financialYear'], $userUID);
                 if (!$isDraft) {
+                    $this->_updateTransSerials($transUID, $orgUID, $userUID, 'PurchaseReturn', $items, $vendorUID);
                     $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items, $this->_branchUID());
                 }
             }
@@ -793,6 +796,7 @@ class Purchasereturns extends MY_Controller {
             $this->pageData['TransactionCharges'] = $this->transactions_model->getTransactionCharges($transUID, (int)$orgUID);
             $this->pageData['TaxList']            = $this->_getTaxList();
             $this->pageData['IsEditMode']         = true;
+            $this->pageData['PRSerialsByProd']    = $this->_getTransSerialsGrouped($transUID, $orgUID, 'PurchaseReturn');
 
             $this->_getDispatchAddresses($orgUID);
             $this->_loadUpstashConfig();

@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php $this->load->view('common/header'); ?>
 
@@ -576,9 +576,9 @@ document.addEventListener('DOMContentLoaded', function () {
 <script src="<?php echo _assetV('/js/common/phone_cc_dropdown.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/common/customer_form.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/common/customer_group_form.js'); ?>"></script>
-<script src="<?php echo _assetV('/js/transactions/col_filter.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/core/col_filter.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/common/party_filter.js'); ?>"></script>
-<script src="<?php echo _assetV('/js/customers.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/customers/customers.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/common/pagecheckbox.js'); ?>"></script>
 <script src="/js/common/communication.js"></script>
 

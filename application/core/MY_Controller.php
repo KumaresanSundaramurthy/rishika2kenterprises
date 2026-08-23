@@ -1302,6 +1302,307 @@ class MY_Controller extends CI_Controller {
     }
 
     /**
+     * Persist serial numbers for serial-tracked items inside an open DB transaction.
+     *
+     * Purchase: creates new ProductSerialsTbl rows (Status='Available').
+     * Invoice:  marks existing rows Sold (Status='Sold', SaleTransUID, CustomerUID).
+     *
+     * Must be called AFTER _insertTransItems() and BEFORE commitTransaction().
+     * Only pass $items for a new (non-draft) transaction — skip on edits.
+     *
+     * @param int    $transUID   The just-inserted transaction UID
+     * @param int    $orgUID
+     * @param int    $userUID
+     * @param string $transType  'Purchase', 'Invoice', 'SalesReturn', or 'PurchaseReturn'
+     * @param array  $items      Decoded items from POST (each may have a 'serials' sub-array)
+     * @param int    $partyUID   CustomerUID for Invoice/SalesReturn, VendorUID for PurchaseReturn (0 otherwise)
+     * @return void
+     * @throws Exception on DB error
+     */
+    protected function _saveTransSerials(int $transUID, int $orgUID, int $userUID, string $transType, array $items, int $partyUID = 0): void {
+        $this->load->model('dbwrite_model');
+
+        foreach ($items as $item) {
+            $productUID = isset($item['productUID']) ? (int)$item['productUID']
+                        : (isset($item['id'])         ? (int)$item['id'] : 0);
+            if ($productUID <= 0) continue;
+
+            $serials = isset($item['serials']) && is_array($item['serials']) ? $item['serials'] : [];
+            if (empty($serials)) continue;
+
+            if ($transType === 'Purchase') {
+                $rows = [];
+                foreach ($serials as $rawSN) {
+                    $sn = trim((string)$rawSN);
+                    if ($sn === '') continue;
+                    $rows[] = [
+                        'OrgUID'           => $orgUID,
+                        'ProductUID'       => $productUID,
+                        'SerialNumber'     => $sn,
+                        'Status'           => 'Available',
+                        'PurchaseTransUID' => $transUID,
+                        'IsDeleted'        => 0,
+                        'CreatedBy'        => $userUID,
+                        'UpdatedBy'        => $userUID,
+                    ];
+                }
+                if (!empty($rows)) {
+                    $resp = $this->dbwrite_model->insertBatchInTransaction('Transaction', 'ProductSerialsTbl', $rows);
+                    if ($resp->Error) throw new Exception('Serial number save failed: ' . $resp->Message);
+                }
+
+            } elseif ($transType === 'Invoice') {
+                foreach ($serials as $rawSN) {
+                    $sn = trim((string)$rawSN);
+                    if ($sn === '') continue;
+                    $resp = $this->dbwrite_model->updateData('Transaction', 'ProductSerialsTbl',
+                        ['Status' => 'Sold', 'SaleTransUID' => $transUID, 'CustomerUID' => $partyUID > 0 ? $partyUID : NULL, 'UpdatedBy' => $userUID],
+                        ['OrgUID' => $orgUID, 'ProductUID' => $productUID, 'SerialNumber' => $sn, 'Status' => 'Available', 'IsDeleted' => 0]
+                    );
+                    if ($resp->Error) throw new Exception('Serial number update failed: ' . $resp->Message);
+                }
+
+            } elseif ($transType === 'SalesReturn') {
+                // Customer returning goods — mark serials back to Available so they can be resold
+                foreach ($serials as $rawSN) {
+                    $sn = trim((string)$rawSN);
+                    if ($sn === '') continue;
+                    $resp = $this->dbwrite_model->updateData('Transaction', 'ProductSerialsTbl',
+                        ['Status' => 'Available', 'SaleTransUID' => NULL, 'CustomerUID' => NULL, 'ReturnTransUID' => $transUID, 'UpdatedBy' => $userUID],
+                        ['OrgUID' => $orgUID, 'ProductUID' => $productUID, 'SerialNumber' => $sn, 'Status' => 'Sold', 'IsDeleted' => 0]
+                    );
+                    if ($resp->Error) throw new Exception('Serial return failed: ' . $resp->Message);
+                }
+
+            } elseif ($transType === 'PurchaseReturn') {
+                // Returning goods to vendor — mark serials Returned (no longer in our stock)
+                foreach ($serials as $rawSN) {
+                    $sn = trim((string)$rawSN);
+                    if ($sn === '') continue;
+                    $resp = $this->dbwrite_model->updateData('Transaction', 'ProductSerialsTbl',
+                        ['Status' => 'Returned', 'ReturnTransUID' => $transUID, 'UpdatedBy' => $userUID],
+                        ['OrgUID' => $orgUID, 'ProductUID' => $productUID, 'SerialNumber' => $sn, 'Status' => 'Available', 'IsDeleted' => 0]
+                    );
+                    if ($resp->Error) throw new Exception('Serial return failed: ' . $resp->Message);
+                }
+            }
+        }
+    }
+
+    /**
+     * Return serial numbers grouped by ProductUID for a given transaction.
+     * Used to populate edit-mode cart panels.
+     *
+     * Purchase:       reads rows WHERE PurchaseTransUID = $transUID
+     * Invoice:        reads rows WHERE SaleTransUID     = $transUID
+     * SalesReturn:    reads rows WHERE ReturnTransUID   = $transUID AND Status = 'Available'
+     * PurchaseReturn: reads rows WHERE ReturnTransUID   = $transUID AND Status = 'Returned'
+     *
+     * @param int    $transUID
+     * @param int    $orgUID
+     * @param string $transType 'Purchase'|'Invoice'|'SalesReturn'|'PurchaseReturn'
+     * @return array<int, string[]>  [productUID => [serial1, serial2, ...]]
+     */
+    protected function _getTransSerialsGrouped(int $transUID, int $orgUID, string $transType): array {
+        $db = $this->load->database('ReadDB', TRUE);
+        $db->db_debug = FALSE;
+
+        if ($transType === 'SalesReturn') {
+            $sql = "SELECT ProductUID, SerialNumber
+                      FROM Transaction.ProductSerialsTbl
+                     WHERE OrgUID = ? AND ReturnTransUID = ? AND Status = 'Available' AND IsDeleted = 0
+                     ORDER BY ProductUID, SerialNumber";
+        } elseif ($transType === 'PurchaseReturn') {
+            $sql = "SELECT ProductUID, SerialNumber
+                      FROM Transaction.ProductSerialsTbl
+                     WHERE OrgUID = ? AND ReturnTransUID = ? AND Status = 'Returned' AND IsDeleted = 0
+                     ORDER BY ProductUID, SerialNumber";
+        } else {
+            $col = ($transType === 'Invoice') ? 'SaleTransUID' : 'PurchaseTransUID';
+            $sql = "SELECT ProductUID, SerialNumber
+                      FROM Transaction.ProductSerialsTbl
+                     WHERE OrgUID = ? AND {$col} = ? AND IsDeleted = 0
+                     ORDER BY ProductUID, SerialNumber";
+        }
+
+        $rows = $db->query($sql, [$orgUID, $transUID])->result();
+
+        $grouped = [];
+        foreach ($rows as $row) {
+            $grouped[(int)$row->ProductUID][] = $row->SerialNumber;
+        }
+        return $grouped;
+    }
+
+    /**
+     * Diff old vs new serials when editing an existing Purchase or Invoice.
+     * Must be called inside an open DB transaction, after _updateTransItems().
+     *
+     * Serials removed by the user: soft-deleted (Purchase) or marked back Available (Invoice).
+     * Serials added by the user:   inserted as Available (Purchase) or marked Sold (Invoice).
+     *
+     * @param int    $transUID
+     * @param int    $orgUID
+     * @param int    $userUID
+     * @param string $transType 'Purchase' or 'Invoice'
+     * @param array  $items     Decoded items from POST (each may have a 'serials' sub-array)
+     * @param int    $partyUID  CustomerUID for Invoice (0 for Purchase)
+     * @return void
+     * @throws Exception on DB error
+     */
+    /**
+     * Diff old vs new serials when editing an existing SalesReturn or PurchaseReturn.
+     * Must be called inside an open DB transaction, after _updateTransItems().
+     *
+     * SalesReturn removed: re-mark Sold, clear ReturnTransUID (undo the customer return).
+     * SalesReturn added:   mark Available, set ReturnTransUID (new return from customer).
+     * PurchaseReturn removed: re-mark Available, clear ReturnTransUID (undo the vendor return).
+     * PurchaseReturn added:   mark Returned, set ReturnTransUID (new return to vendor).
+     *
+     * @param int    $transUID
+     * @param int    $orgUID
+     * @param int    $userUID
+     * @param string $transType 'SalesReturn'|'PurchaseReturn'
+     * @param array  $items
+     * @return void
+     * @throws Exception on DB error
+     */
+    private function _updateReturnSerials(int $transUID, int $orgUID, int $userUID, string $transType, array $items): void {
+        $isSR = ($transType === 'SalesReturn');
+        $currentStatus = $isSR ? 'Available' : 'Returned';
+
+        foreach ($items as $item) {
+            $productUID = isset($item['productUID']) ? (int)$item['productUID']
+                        : (isset($item['id'])         ? (int)$item['id'] : 0);
+            if ($productUID <= 0) continue;
+
+            $newSerials = isset($item['serials']) && is_array($item['serials'])
+                ? array_values(array_unique(array_filter(array_map('trim', array_map('strval', $item['serials'])))))
+                : [];
+
+            $db = $this->load->database('ReadDB', TRUE);
+            $db->db_debug = FALSE;
+            $existing = array_column(
+                $db->query(
+                    "SELECT SerialNumber FROM Transaction.ProductSerialsTbl
+                      WHERE OrgUID = ? AND ProductUID = ? AND ReturnTransUID = ? AND Status = ? AND IsDeleted = 0",
+                    [$orgUID, $productUID, $transUID, $currentStatus]
+                )->result_array(),
+                'SerialNumber'
+            );
+
+            $toRemove = array_diff($existing, $newSerials);
+            $toAdd    = array_diff($newSerials, $existing);
+
+            foreach ($toRemove as $sn) {
+                if ($isSR) {
+                    // Undo customer return: serial goes back to Sold (SaleTransUID lost at SR save time)
+                    $this->dbwrite_model->updateData('Transaction', 'ProductSerialsTbl',
+                        ['Status' => 'Sold', 'ReturnTransUID' => NULL, 'UpdatedBy' => $userUID],
+                        ['OrgUID' => $orgUID, 'ProductUID' => $productUID, 'SerialNumber' => $sn, 'ReturnTransUID' => $transUID, 'IsDeleted' => 0]
+                    );
+                } else {
+                    // Undo vendor return: serial goes back to Available
+                    $this->dbwrite_model->updateData('Transaction', 'ProductSerialsTbl',
+                        ['Status' => 'Available', 'ReturnTransUID' => NULL, 'UpdatedBy' => $userUID],
+                        ['OrgUID' => $orgUID, 'ProductUID' => $productUID, 'SerialNumber' => $sn, 'ReturnTransUID' => $transUID, 'IsDeleted' => 0]
+                    );
+                }
+            }
+
+            foreach ($toAdd as $sn) {
+                if ($isSR) {
+                    $this->dbwrite_model->updateData('Transaction', 'ProductSerialsTbl',
+                        ['Status' => 'Available', 'SaleTransUID' => NULL, 'CustomerUID' => NULL, 'ReturnTransUID' => $transUID, 'UpdatedBy' => $userUID],
+                        ['OrgUID' => $orgUID, 'ProductUID' => $productUID, 'SerialNumber' => $sn, 'Status' => 'Sold', 'IsDeleted' => 0]
+                    );
+                } else {
+                    $this->dbwrite_model->updateData('Transaction', 'ProductSerialsTbl',
+                        ['Status' => 'Returned', 'ReturnTransUID' => $transUID, 'UpdatedBy' => $userUID],
+                        ['OrgUID' => $orgUID, 'ProductUID' => $productUID, 'SerialNumber' => $sn, 'Status' => 'Available', 'IsDeleted' => 0]
+                    );
+                }
+            }
+        }
+    }
+
+    protected function _updateTransSerials(int $transUID, int $orgUID, int $userUID, string $transType, array $items, int $partyUID = 0): void {
+        $this->load->model('dbwrite_model');
+
+        if ($transType === 'SalesReturn' || $transType === 'PurchaseReturn') {
+            $this->_updateReturnSerials($transUID, $orgUID, $userUID, $transType, $items);
+            return;
+        }
+
+        $col = ($transType === 'Invoice') ? 'SaleTransUID' : 'PurchaseTransUID';
+
+        foreach ($items as $item) {
+            $productUID = isset($item['productUID']) ? (int)$item['productUID']
+                        : (isset($item['id'])         ? (int)$item['id'] : 0);
+            if ($productUID <= 0) continue;
+
+            $newSerials = isset($item['serials']) && is_array($item['serials'])
+                ? array_values(array_unique(array_filter(array_map('trim', array_map('strval', $item['serials'])))))
+                : [];
+
+            // Fetch what's currently stored for this product in this transaction
+            $db = $this->load->database('ReadDB', TRUE);
+            $db->db_debug = FALSE;
+            $existing = array_column(
+                $db->query(
+                    "SELECT SerialNumber FROM Transaction.ProductSerialsTbl
+                      WHERE OrgUID = ? AND ProductUID = ? AND {$col} = ? AND IsDeleted = 0",
+                    [$orgUID, $productUID, $transUID]
+                )->result_array(),
+                'SerialNumber'
+            );
+
+            $toRemove = array_diff($existing, $newSerials);
+            $toAdd    = array_diff($newSerials, $existing);
+
+            // Handle removed serials
+            foreach ($toRemove as $sn) {
+                if ($transType === 'Purchase') {
+                    $this->dbwrite_model->updateData('Transaction', 'ProductSerialsTbl',
+                        ['IsDeleted' => 1, 'UpdatedBy' => $userUID],
+                        ['OrgUID' => $orgUID, 'ProductUID' => $productUID, 'SerialNumber' => $sn, 'PurchaseTransUID' => $transUID]
+                    );
+                } elseif ($transType === 'Invoice') {
+                    $this->dbwrite_model->updateData('Transaction', 'ProductSerialsTbl',
+                        ['Status' => 'Available', 'SaleTransUID' => NULL, 'CustomerUID' => NULL, 'UpdatedBy' => $userUID],
+                        ['OrgUID' => $orgUID, 'ProductUID' => $productUID, 'SerialNumber' => $sn, 'SaleTransUID' => $transUID, 'IsDeleted' => 0]
+                    );
+                }
+            }
+
+            // Handle added serials
+            if (!empty($toAdd)) {
+                if ($transType === 'Purchase') {
+                    $rows = [];
+                    foreach ($toAdd as $sn) {
+                        $rows[] = [
+                            'OrgUID'           => $orgUID, 'ProductUID' => $productUID,
+                            'SerialNumber'     => $sn, 'Status' => 'Available',
+                            'PurchaseTransUID' => $transUID, 'IsDeleted' => 0,
+                            'CreatedBy'        => $userUID, 'UpdatedBy' => $userUID,
+                        ];
+                    }
+                    $resp = $this->dbwrite_model->insertBatchInTransaction('Transaction', 'ProductSerialsTbl', $rows);
+                    if ($resp->Error) throw new Exception('Serial update (add) failed: ' . $resp->Message);
+                } elseif ($transType === 'Invoice') {
+                    foreach ($toAdd as $sn) {
+                        $resp = $this->dbwrite_model->updateData('Transaction', 'ProductSerialsTbl',
+                            ['Status' => 'Sold', 'SaleTransUID' => $transUID, 'CustomerUID' => $partyUID > 0 ? $partyUID : NULL, 'UpdatedBy' => $userUID],
+                            ['OrgUID' => $orgUID, 'ProductUID' => $productUID, 'SerialNumber' => $sn, 'Status' => 'Available', 'IsDeleted' => 0]
+                        );
+                        if ($resp->Error) throw new Exception('Serial update (sell) failed: ' . $resp->Message);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
      * Smart item diff for updateXxx(): soft-delete removed items, update existing in place,
      * batch-insert genuinely new ones. Must be called inside an open DB transaction.
      * SourceTransProdUID is read from $item['sourceTransProdUID'] when present (Sales Returns);

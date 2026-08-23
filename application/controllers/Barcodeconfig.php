@@ -61,7 +61,7 @@ class Barcodeconfig extends MY_Controller {
         $BarcodeConfig->IsEnabled = (int)(bool)$BarcodeConfig->IsEnabled;
         $QRConfig->IsEnabled      = (int)(bool)$QRConfig->IsEnabled;
 
-        $this->load->view('barcodeconfig/view', [
+        $this->load->view('settings/barcodeconfig/view', [
             'JwtData'       => $this->pageData['JwtData'],
             'BarcodeConfig' => $BarcodeConfig,
             'QRConfig'      => $QRConfig,

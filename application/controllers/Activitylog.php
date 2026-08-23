@@ -38,7 +38,7 @@ class Activitylog extends MY_Controller {
         $this->pageData['OrgUsers']    = $this->activitylog_model->getDistinctUsers($orgUID);
         $this->pageData['InitFilter']  = $filter;
 
-        $this->load->view('activitylog/view', $this->pageData);
+        $this->load->view('settings/activitylog/view', $this->pageData);
     }
 
     // ── AJAX: paginated list ─────────────────────────────────────────────────

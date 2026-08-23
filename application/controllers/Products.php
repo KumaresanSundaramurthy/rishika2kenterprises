@@ -1446,6 +1446,50 @@ class Products extends MY_Controller {
 
     }
 
+    /**
+     * AJAX — return available serial numbers for a serial-tracked product.
+     * Used by the Invoice form's serial picker to show selectable serials.
+     *
+     * POST param: ProductUID (int)
+     * Response:   { Error, Serials: string[], Count: int }
+     *
+     * @return void
+     */
+    public function getAvailableSerials(): void {
+
+        $this->EndReturnData = new stdClass();
+        try {
+            $productUID = (int)($this->input->post('ProductUID') ?? 0);
+            if ($productUID <= 0) throw new Exception('ProductUID is required.');
+
+            $orgUID = (int)$this->pageData['JwtData']->Org->OrgUID;
+
+            $db = $this->load->database('ReadDB', TRUE);
+            $db->db_debug = FALSE;
+
+            $rows = $db->query(
+                'SELECT SerialNumber
+                   FROM Transaction.ProductSerialsTbl
+                  WHERE OrgUID = ? AND ProductUID = ? AND Status = ? AND IsDeleted = 0
+                  ORDER BY SerialNumber ASC',
+                [$orgUID, $productUID, 'Available']
+            )->result();
+
+            $serials = array_map(fn(object $r): string => $r->SerialNumber, $rows);
+
+            $this->EndReturnData->Error   = false;
+            $this->EndReturnData->Serials = $serials;
+            $this->EndReturnData->Count   = count($serials);
+
+        } catch (Exception $e) {
+            $this->notifyError('Products::getAvailableSerials', $e);
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
     public function getDropdownCache() {
 
         $this->EndReturnData = new stdClass();

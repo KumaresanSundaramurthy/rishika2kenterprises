@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
 <?php $this->load->view('common/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -233,12 +233,12 @@ $this->load->view('common/transactions/payment_modal');
 <link rel="stylesheet" href="/assets/vendor/css/transactions.css">
 <link rel="stylesheet" href="/css/transactions-theme.css">
 <script src="/js/common/datefilter.js"></script>
-<script src="/js/transactions/col_filter.js"></script>
+<script src="/js/core/col_filter.js"></script>
 <script src="/js/transactions/payments_page.js"></script>
 <script src="/js/transactions/attachments.js"></script>
-<script src="/js/transactions/viewmodal.js"></script>
-<script src="/js/transactions/a4_print.js"></script>
-<script src="/js/transactions/thermal_print.js"></script>
+<script src="/js/core/viewmodal.js"></script>
+<script src="/js/core/a4_print.js"></script>
+<script src="/js/core/thermal_print.js"></script>
 <script src="/js/common/communication.js"></script>
 
 <script>

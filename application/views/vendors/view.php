@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php $this->load->view('common/header'); ?>
 
@@ -359,13 +359,13 @@
 
 <?php $this->load->view('common/footer'); ?>
 
-<script src="<?php echo _assetV('/js/transactions/col_filter.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/core/col_filter.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/common/party_filter.js'); ?>"></script>
 <link rel="stylesheet" href="<?php echo _assetV('/assets/vendor/css/attachments.css'); ?>">
 <script src="<?php echo _assetV('/js/common/attachments.js'); ?>"></script>
 <script src="/js/common/phone_cc_dropdown.js"></script>
 <script src="<?php echo _assetV('/js/common/vendor_form.js'); ?>"></script>
-<script src="<?php echo _assetV('/js/vendors.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/vendors/vendors.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/common/pagecheckbox.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/common/communication.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/common/gstin_fetch.js'); ?>"></script>

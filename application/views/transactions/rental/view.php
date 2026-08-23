@@ -150,7 +150,7 @@ $this->load->view('common/transactions/payment_modal');
 
 <?php $this->load->view('common/transactions/footer'); ?>
 
-<script src="/js/rental.js"></script>
+<script src="/js/rental/rental.js"></script>
 
 <script>
 var RntCurrency  = '<?php echo addslashes($cur); ?>';

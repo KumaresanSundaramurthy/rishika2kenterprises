@@ -1210,7 +1210,7 @@ $attachments = $userAttachments ?? [];
 
 <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
 <script src="/js/common/address.js"></script>
-<script src="/js/profile.js"></script>
+<script src="/js/profile/profile.js"></script>
 
 <script>
 'use strict';

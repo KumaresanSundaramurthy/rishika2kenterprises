@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php
 $isEdit      = isset($PRData);
 $isDraftEdit = $isEdit && ($PRData->DocStatus === 'Draft');
@@ -233,15 +233,15 @@ if ($isEdit) {
 <script src="/js/transactions/purchasereturns.js"></script>
 <script src="/js/common/phone_cc_dropdown.js"></script>
 <script src="/js/common/vendor_form.js"></script>
-<script src="/js/transactions/vendor_search.js"></script>
+<script src="/js/transactions/forms/vendor_search.js"></script>
 <script src="/js/common/address.js"></script>
-<script src="/js/transactions/transactions.js"></script>
-<script src="/js/transactions/transprefix.js"></script>
-<script src="/js/transactions/modaladdress.js"></script>
+<script src="/js/transactions/forms/bill_manager.js"></script>
+<script src="/js/transactions/forms/transprefix.js"></script>
+<script src="/js/transactions/forms/modaladdress.js"></script>
 <script src="/js/common/category_form.js"></script>
 <script src="/js/common/product_form.js"></script>
 <?php if (!$isEdit): ?>
-<script src="/js/transactions/payment_section.js"></script>
+<script src="/js/transactions/forms/payment_section.js"></script>
 <?php endif; ?>
 <script src="/js/transactions/attachments.js"></script>
 <?php $this->load->view('transactions/partials/additional_charges_data'); ?>
@@ -263,6 +263,7 @@ var _transFormData = <?php echo json_encode([
     'currency'      => $JwtData->GenSettings->CurrenySymbol ?? '₹',
     'decimals'      => (int)($JwtData->GenSettings->DecimalPoints ?? 2),
     'prItemMethod'  => $_prMethod,
+    'transType'     => 'PurchaseReturn',
     'editData'      => $isEdit ? [
         'transUID'          => $transUID,
         'vendorUID'         => (int)($PRData->PartyUID ?? 0),
@@ -273,7 +274,7 @@ var _transFormData = <?php echo json_encode([
         'extraDiscType'     => $PRData->ExtraDiscountType ?? '',
         'globalDiscPercent' => (float)($PRData->GlobalDiscPercent ?? 0),
         'attachments'       => $PRAttachments ?? [],
-        'items'             => array_map(function($item) {
+        'items'             => array_map(function($item) use ($PRSerialsByProd) {
             return [
                 'id'               => (int)  $item->ProductUID,
                 'text'             => $item->ProductName,
@@ -309,9 +310,12 @@ var _transFormData = <?php echo json_encode([
                 'variantLabel'     => $item->VariantLabel        ?? '',
                 'brandName'        => $item->BrandName         ?? '',
                 'IsBrandApplicable'=> (int)($item->IsBrandApplicable ?? 0),
+                'IsSerialTracked'  => (int)($item->IsSerialTracked  ?? 0),
+                'serials'          => $PRSerialsByProd[(int)$item->ProductUID] ?? [],
             ];
         }, $PRItems ?? []),
     ] : null,
 ]); ?>;
 </script>
+<script src="/js/transactions/forms/serial_tracker.js"></script>
 <script src="/js/transactions/forms/purchasereturn.js"></script>

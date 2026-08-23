@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php
 $isEdit     = isset($ExpenseData) && $ExpenseData !== null;
 $expense    = $ExpenseData ?? null;
@@ -672,7 +672,7 @@ function _custBalanceHtml(balance, balanceType) {
 </script>
 
 <script src="/js/transactions/attachments.js"></script>
-<script src="/js/transactions/vendor_search.js"></script>
+<script src="/js/transactions/forms/vendor_search.js"></script>
 
 <script>
 $(function () {

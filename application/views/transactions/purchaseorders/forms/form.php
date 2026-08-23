@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php
 $isEdit      = isset($POData);
 $isDraftEdit = $isEdit && ($POData->DocStatus === 'Draft');
@@ -187,10 +187,10 @@ $editPrefixSeg    = $_prefix['seg'];
 <script src="/js/transactions/purchaseorders.js"></script>
 <script src="/js/common/phone_cc_dropdown.js"></script>
 <script src="/js/common/vendor_form.js"></script>
-<script src="/js/transactions/vendor_search.js"></script>
-<script src="/js/transactions/transactions.js"></script>
-<script src="/js/transactions/transprefix.js"></script>
-<script src="/js/transactions/modaladdress.js"></script>
+<script src="/js/transactions/forms/vendor_search.js"></script>
+<script src="/js/transactions/forms/bill_manager.js"></script>
+<script src="/js/transactions/forms/transprefix.js"></script>
+<script src="/js/transactions/forms/modaladdress.js"></script>
 <script src="/js/common/category_form.js"></script>
 <script src="/js/common/product_form.js"></script>
 <script src="/js/transactions/attachments.js"></script>

@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php
 $isEdit      = isset($SRData);
 $isDraftEdit = $isEdit && ($SRData->DocStatus === 'Draft');
@@ -213,15 +213,15 @@ if ($isEdit) {
 <script src="/js/common/phone_cc_dropdown.js"></script>
 <script src="/js/common/customer_form.js"></script>
 <script src="/js/transactions/salesreturns.js"></script>
-<script src="/js/transactions/transactions.js"></script>
+<script src="/js/transactions/forms/bill_manager.js"></script>
 
 <script>window.R2K_CUST_HIDE_CREATE = true;</script>
-<script src="/js/transactions/transprefix.js"></script>
-<script src="/js/transactions/modaladdress.js"></script>
+<script src="/js/transactions/forms/transprefix.js"></script>
+<script src="/js/transactions/forms/modaladdress.js"></script>
 <script src="/js/common/category_form.js"></script>
 <script src="/js/common/product_form.js"></script>
 <?php if (!$isEdit): ?>
-<script src="/js/transactions/payment_section.js"></script>
+<script src="/js/transactions/forms/payment_section.js"></script>
 <?php endif; ?>
 <script src="/js/transactions/attachments.js"></script>
 <?php $this->load->view('transactions/partials/additional_charges_data'); ?>
@@ -244,6 +244,7 @@ var _transFormData = <?php echo json_encode([
     'decimals'       => (int)($JwtData->GenSettings->DecimalPoints ?? 2),
     'listDateFormat' => $JwtData->GenSettings->ListDateFormat ?? 'd M Y',
     'srItemMethod'   => $_srMethod,
+    'transType'      => 'SalesReturn',
     'editData'       => $isEdit ? [
         'transUID'          => $transUID,
         'custUID'           => (int)($SRData->PartyUID ?? 0),
@@ -254,7 +255,7 @@ var _transFormData = <?php echo json_encode([
         'extraDiscType'     => $SRData->ExtraDiscountType ?? '',
         'globalDiscPercent' => (float)($SRData->GlobalDiscPercent ?? 0),
         'attachments'       => $SRAttachments ?? [],
-        'items'             => array_map(function($item) {
+        'items'             => array_map(function($item) use ($SRSerialsByProd) {
             return [
                 'id'               => (int)  $item->ProductUID,
                 'text'             => $item->ProductName,
@@ -292,9 +293,12 @@ var _transFormData = <?php echo json_encode([
                 'variantLabel'         => $item->VariantLabel        ?? '',
                 'brandName'            => $item->BrandName         ?? '',
                 'IsBrandApplicable'    => (int)($item->IsBrandApplicable ?? 0),
+                'IsSerialTracked'      => (int)($item->IsSerialTracked  ?? 0),
+                'serials'              => $SRSerialsByProd[(int)$item->ProductUID] ?? [],
             ];
         }, $SRItems ?? []),
     ] : null,
 ]); ?>;
 </script>
+<script src="/js/transactions/forms/serial_tracker.js"></script>
 <script src="/js/transactions/forms/salesreturn.js"></script>

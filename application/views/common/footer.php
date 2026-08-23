@@ -1,4 +1,4 @@
-    
+﻿    
 
     <?php $this->load->view('common/common_form'); ?>
 
@@ -39,7 +39,7 @@
     <script>var R2K_STATS_DEFAULT_OPEN = <?php echo json_encode(isset($JwtData->GenSettings->StatsDefaultOpen) ? (bool)$JwtData->GenSettings->StatsDefaultOpen : true); ?>;</script>
     <script type="text/javascript" src="<?php echo _assetV('/js/common/default.js'); ?>"></script>
     <script type="text/javascript" src="<?php echo _assetV('/js/common/export.js'); ?>"></script>
-    <script type="text/javascript" src="<?php echo _assetV('/js/transactions/customer_search.js'); ?>"></script>
+    <script type="text/javascript" src="<?php echo _assetV('/js/common/customer_search.js'); ?>"></script>
     <script type="text/javascript" src="<?php echo _assetV('/js/core/internet_monitor.js'); ?>"></script>
 
     <?php $this->load->view('common/footer_script'); ?>

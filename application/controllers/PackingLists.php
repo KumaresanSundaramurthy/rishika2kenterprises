@@ -32,7 +32,7 @@ class Packinglists extends MY_Controller {
         $this->pageData['PageTitle']       = 'Packing Lists';
         $this->pageData['PageDescription'] = 'All packing lists across transactions';
         $this->pageData['PLList']          = $this->Packinglist_model->getAll($orgUID);
-        $this->load->view('packing_lists/index', $this->pageData);
+        $this->load->view('transactions/packing_lists/index', $this->pageData);
     }
 
     // ── Form (create or edit) ────────────────────────────────────
@@ -66,7 +66,7 @@ class Packinglists extends MY_Controller {
             $this->pageData['PLItems']         = $plItems;
             $this->pageData['OrgInfo']         = $orgInfo->Data ?? null;
 
-            $this->load->view('packing_lists/form', $this->pageData);
+            $this->load->view('transactions/packing_lists/form', $this->pageData);
         } catch (Exception) {
             redirect('/', 'refresh');
         }
@@ -167,7 +167,7 @@ class Packinglists extends MY_Controller {
             $this->pageData['PLItems']  = $plItems;
             $this->pageData['OrgInfo']  = $orgInfo->Data ?? null;
 
-            $this->load->view('packing_lists/print', $this->pageData);
+            $this->load->view('transactions/packing_lists/print', $this->pageData);
         } catch (Exception) {
             redirect('/', 'refresh');
         }

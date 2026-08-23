@@ -1,5 +1,5 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
-$cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+$cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? 'â‚¹');
 $dec = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 $this->load->view('common/header'); ?>
 
@@ -18,7 +18,7 @@ $this->load->view('common/header'); ?>
 
                 <div class="container-xxl flex-grow-1">
 
-                    <!-- ── Filter Card ────────────────────────────────────── -->
+                    <!-- â”€â”€ Filter Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
                     <div class="card mb-3">
                         <div class="card-body p-3">
                             <div class="row g-3 align-items-end">
@@ -41,7 +41,7 @@ $this->load->view('common/header'); ?>
                         </div>
                     </div>
 
-                    <!-- ── Summary Cards ──────────────────────────────────── -->
+                    <!-- â”€â”€ Summary Cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
                     <div class="row g-3 mb-3 d-none" id="arSummaryRow">
                         <div class="col-md-3">
                             <div class="card h-100">
@@ -51,7 +51,7 @@ $this->load->view('common/header'); ?>
                                     </div>
                                     <div>
                                         <div class="text-muted" style="font-size:.75rem;">Total Outstanding</div>
-                                        <div class="fw-bold aged-val-total" style="font-size:1rem;" id="arSumTotal">—</div>
+                                        <div class="fw-bold aged-val-total" style="font-size:1rem;" id="arSumTotal">â€”</div>
                                     </div>
                                 </div>
                             </div>
@@ -63,8 +63,8 @@ $this->load->view('common/header'); ?>
                                         <i class="bx bx-time fs-4"></i>
                                     </div>
                                     <div>
-                                        <div class="text-muted" style="font-size:.75rem;">Current (0–30 days)</div>
-                                        <div class="fw-bold aged-val-current" style="font-size:1rem;" id="arSum0to30">—</div>
+                                        <div class="text-muted" style="font-size:.75rem;">Current (0â€“30 days)</div>
+                                        <div class="fw-bold aged-val-current" style="font-size:1rem;" id="arSum0to30">â€”</div>
                                     </div>
                                 </div>
                             </div>
@@ -76,8 +76,8 @@ $this->load->view('common/header'); ?>
                                         <i class="bx bx-alarm-exclamation fs-4"></i>
                                     </div>
                                     <div>
-                                        <div class="text-muted" style="font-size:.75rem;">31–90 days</div>
-                                        <div class="fw-bold aged-val-warn" style="font-size:1rem;" id="arSumMid">—</div>
+                                        <div class="text-muted" style="font-size:.75rem;">31â€“90 days</div>
+                                        <div class="fw-bold aged-val-warn" style="font-size:1rem;" id="arSumMid">â€”</div>
                                     </div>
                                 </div>
                             </div>
@@ -90,14 +90,14 @@ $this->load->view('common/header'); ?>
                                     </div>
                                     <div>
                                         <div class="text-muted" style="font-size:.75rem;">90+ days overdue</div>
-                                        <div class="fw-bold aged-val-overdue" style="font-size:1rem;" id="arSum90plus">—</div>
+                                        <div class="fw-bold aged-val-overdue" style="font-size:1rem;" id="arSum90plus">â€”</div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- ── Statement Area ─────────────────────────────────── -->
+                    <!-- â”€â”€ Statement Area â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
                     <div class="card">
                         <div class="card-body p-0" id="arStatementArea">
                             <div class="d-flex flex-column align-items-center py-5 text-muted" id="arEmptyState">
@@ -184,4 +184,4 @@ $this->load->view('common/header'); ?>
 }());
 </script>
 
-<?php $this->load->view('common/footer_scripts'); ?>
+<?php $this->load->view('common/footer_script'); ?>

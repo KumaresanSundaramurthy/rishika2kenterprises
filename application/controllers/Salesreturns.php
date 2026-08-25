@@ -55,6 +55,7 @@ class Salesreturns extends MY_Controller {
             $igstAmount    = $amounts['igstAmount'];
             $transDate     = $amounts['transDate'];
             $customerUID   = (int) getPostValue($PostData, 'customerSearch');
+            $fromInvoiceUID = (int) getPostValue($PostData, 'fromInvoiceUID');
 
             // Log customer balance before SR creation
             $this->load->model('customers_model');
@@ -110,6 +111,11 @@ class Salesreturns extends MY_Controller {
             if (!$isDraft) {
                 $this->_saveTransSerials($transUID, $orgUID, $userUID, 'SalesReturn', $items, $customerUID);
                 $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items, $this->_branchUID());
+                if ($fromInvoiceUID > 0) {
+                    $this->dbwrite_model->insertConversionRecord(
+                        $orgUID, $fromInvoiceUID, 103, $transUID, $this->pageModuleUID, 'InvoiceToSalesReturn', $userUID
+                    );
+                }
             }
 
             $this->dbwrite_model->commitTransaction();

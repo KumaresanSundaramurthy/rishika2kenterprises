@@ -1026,6 +1026,35 @@ class Invoices extends MY_Controller {
                 );
             }
 
+            // Guard — Sales Return exists against this invoice: block delete
+            $srCheck = $readDb->query(
+                'SELECT 1 FROM (
+                     SELECT CV.ConversionUID AS id
+                     FROM Transaction.TransConversionTbl CV
+                     INNER JOIN Transaction.TransactionsTbl RTC ON RTC.TransUID = CV.TargetTransUID
+                     WHERE CV.SourceTransUID = ? AND CV.TargetModuleUID = 106 AND CV.OrgUID = ?
+                     AND RTC.IsDeleted = 0 AND RTC.IsCancelled = 0
+                     UNION ALL
+                     SELECT RP.TransProdUID AS id
+                     FROM Transaction.TransProductsTbl RP
+                     INNER JOIN Transaction.TransactionsTbl RTP ON RTP.TransUID = RP.TransUID
+                     WHERE RP.SourceTransProdUID IN (
+                         SELECT TransProdUID FROM Transaction.TransProductsTbl
+                         WHERE TransUID = ? AND IsDeleted = 0 AND IsActive = 1
+                     )
+                     AND RTP.ModuleUID = 106 AND RTP.OrgUID = ?
+                     AND RTP.IsDeleted = 0 AND RTP.IsCancelled = 0
+                     AND RP.IsDeleted = 0 AND RP.IsActive = 1
+                 ) AS sr_combined LIMIT 1',
+                [$transUID, $orgUID, $transUID, $orgUID]
+            )->row();
+            if ($srCheck) {
+                throw new Exception(
+                    'A sales return has been raised against this invoice. ' .
+                    'Please cancel or delete the sales return first, then delete this invoice.'
+                );
+            }
+
             // Reverse stock movements (no-op if it was a draft)
             $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
 
@@ -1365,6 +1394,35 @@ class Invoices extends MY_Controller {
                     throw new Exception(
                         'This invoice has a Credit Note applied to it. ' .
                         'Please remove the credit note payment entry first, then cancel this invoice.'
+                    );
+                }
+
+                // Guard E — Sales Return exists against this invoice: block cancel
+                $srOnThis = $readDb->query(
+                    'SELECT 1 FROM (
+                         SELECT CV.ConversionUID AS id
+                         FROM Transaction.TransConversionTbl CV
+                         INNER JOIN Transaction.TransactionsTbl RTC ON RTC.TransUID = CV.TargetTransUID
+                         WHERE CV.SourceTransUID = ? AND CV.TargetModuleUID = 106 AND CV.OrgUID = ?
+                         AND RTC.IsDeleted = 0 AND RTC.IsCancelled = 0
+                         UNION ALL
+                         SELECT RP.TransProdUID AS id
+                         FROM Transaction.TransProductsTbl RP
+                         INNER JOIN Transaction.TransactionsTbl RTP ON RTP.TransUID = RP.TransUID
+                         WHERE RP.SourceTransProdUID IN (
+                             SELECT TransProdUID FROM Transaction.TransProductsTbl
+                             WHERE TransUID = ? AND IsDeleted = 0 AND IsActive = 1
+                         )
+                         AND RTP.ModuleUID = 106 AND RTP.OrgUID = ?
+                         AND RTP.IsDeleted = 0 AND RTP.IsCancelled = 0
+                         AND RP.IsDeleted = 0 AND RP.IsActive = 1
+                     ) AS sr_combined LIMIT 1',
+                    [$transUID, $orgUID, $transUID, $orgUID]
+                )->row();
+                if ($srOnThis) {
+                    throw new Exception(
+                        'A sales return has been raised against this invoice. ' .
+                        'Please cancel or delete the sales return first, then cancel this invoice.'
                     );
                 }
             }

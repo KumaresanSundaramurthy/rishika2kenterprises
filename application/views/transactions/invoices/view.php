@@ -592,7 +592,12 @@ $(function () {
         var advanceOut    = parseInt($(this).data('advance-out')    || 0, 10);
         var onAccountIn   = parseInt($(this).data('onaccount-in')   || 0, 10);
         var creditNoteIn  = parseInt($(this).data('creditnote-in')  || 0, 10);
+        var salesReturn   = parseInt($(this).data('sales-return')   || 0, 10);
 
+        if (salesReturn) {
+            Swal.fire({ icon: 'warning', title: 'Cannot Delete', text: 'A sales return has been raised against this invoice. Cancel or delete the return first, then delete this invoice.' });
+            return;
+        }
         if (advanceOut) {
             Swal.fire({ icon: 'warning', title: 'Cannot Delete', text: 'This invoice has excess credit applied to another invoice. Delete that advance entry first, then try again.' });
             return;
@@ -757,7 +762,12 @@ $(function () {
         var advanceOut   = parseInt($(this).attr('data-advance-out')   || 0, 10);
         var onAccountIn  = parseInt($(this).attr('data-onaccount-in')  || 0, 10);
         var creditNoteIn = parseInt($(this).attr('data-creditnote-in') || 0, 10);
+        var salesReturn  = parseInt($(this).attr('data-sales-return')  || 0, 10);
 
+        if (salesReturn) {
+            Swal.fire({ icon: 'warning', title: 'Cannot Cancel', text: 'A sales return has been raised against this invoice. Cancel or delete the return first, then cancel this invoice.' });
+            return;
+        }
         if (advanceOut) {
             Swal.fire({ icon: 'warning', title: 'Cannot Cancel', text: 'This invoice has excess credit applied to another invoice. Delete that advance entry first, then try again.' });
             return;

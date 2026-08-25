@@ -1291,9 +1291,11 @@ class MY_Controller extends CI_Controller {
                 'BrandUID'          => !empty($item['brandUID'])   ? (int)$item['brandUID']            : NULL,
                 'BrandName'         => !empty($item['brandName'])  ? substr($item['brandName'], 0, 150) : NULL,
                 'VariantUID'        => !empty($item['variantUID']) ? (int)$item['variantUID']           : NULL,
-                'IsDeleted'         => 0,
-                'CreatedBy'         => $userUID,
-                'UpdatedBy'         => $userUID,
+                'IsDeleted'          => 0,
+                'CreatedBy'          => $userUID,
+                'UpdatedBy'          => $userUID,
+                'SourceTransProdUID' => isset($item['sourceTransProdUID']) && (int)$item['sourceTransProdUID'] > 0
+                                        ? (int)$item['sourceTransProdUID'] : NULL,
             ];
         }
         if (empty($rows)) return;

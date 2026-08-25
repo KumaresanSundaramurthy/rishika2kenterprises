@@ -741,6 +741,11 @@ tr:hover .inv-row-action {
     color: #3b5bdb;
     border-color: #3b5bdb44;
 }
+.rp-adv-type-badge--dn {
+    background: #fffbeb;
+    color: #92400e;
+    border-color: #f59e0b44;
+}
 .rp-adv-cancel-row {
     margin-top: 4px;
     padding-left: 2px;

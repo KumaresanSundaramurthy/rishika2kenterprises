@@ -119,6 +119,44 @@ $rpBtnLabel    = $rpBtnLabel    ?? 'Record Payment';
 
                 </div>
 
+                <!-- Debit Note Credits Section (vendor / purchase side) -->
+                <div id="rpDebitNoteSection" class="rp-advance-section" style="display:none;">
+
+                    <!-- State 1: Prompt -->
+                    <div id="rpDnPrompt" class="rp-adv-prompt">
+                        <i class="bx bx-transfer-alt rp-adv-prompt-icon"></i>
+                        <span class="rp-adv-prompt-text">Debit note credits may be available for this vendor.</span>
+                        <button type="button" class="btn btn-sm rp-adv-check-btn" id="rpDnCheckBtn">
+                            Check &amp; Apply
+                        </button>
+                    </div>
+
+                    <!-- State 2: Loading -->
+                    <div id="rpDnLoading" class="rp-adv-loading" style="display:none;">
+                        <i class="bx bx-loader-alt bx-spin me-1"></i> Fetching debit notes…
+                    </div>
+
+                    <!-- State 3: No balance -->
+                    <div id="rpDnEmpty" class="rp-adv-empty" style="display:none;">
+                        <i class="bx bx-info-circle me-1"></i> No debit note credits available for this vendor.
+                    </div>
+
+                    <!-- State 4: Radio list -->
+                    <div id="rpDnSources" style="display:none;">
+                        <div class="rp-section-header mb-1">
+                            <i class="bx bx-transfer rp-section-icon rp-section-icon--green"></i>
+                            <span class="rp-section-label rp-section-label--green">Select Debit Note to Apply</span>
+                        </div>
+                        <div id="rpDnRadioList" class="rp-adv-radio-list"></div>
+                        <div class="rp-adv-cancel-row">
+                            <button type="button" class="btn btn-link btn-sm p-0 text-muted" id="rpDnCancelBtn">
+                                <i class="bx bx-x me-1"></i>Don't apply debit note
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+
                 <!-- Payment form -->
                 <div class="rp-form-section">
                     <div class="rp-section-header">
@@ -209,6 +247,9 @@ $rpBtnLabel    = $rpBtnLabel    ?? 'Record Payment';
                 <input type="hidden" id="rpExcessSourcePaymentUID" value="">
                 <input type="hidden" id="rpOnAccountAmount"          value="">
                 <input type="hidden" id="rpOnAccountSourcePaymentUID" value="">
+                <input type="hidden" id="rpVendorUID"       value="">
+                <input type="hidden" id="rpDebitNoteUID"    value="">
+                <input type="hidden" id="rpDebitNoteAmount" value="">
 
             </div>
         </div>
@@ -343,6 +384,8 @@ $pdtLinkedLabel = $pdtLinkedLabel ?? 'Linked Document';
     var _totalCredit      = 0;
     var _advanceApplied   = false;
     var _rpOrigBalanceDue = 0;
+    var _dnSources        = [];
+    var _dnApplied        = false;
 
     function _rpEsc(s) { return $('<span>').text(s || '').html(); }
 
@@ -437,6 +480,61 @@ $pdtLinkedLabel = $pdtLinkedLabel ?? 'Linked Document';
             .val(_rpOrigBalanceDue.toFixed(_rpDec));
     }
 
+    function _rpDnState(state) {
+        $('#rpDnPrompt, #rpDnLoading, #rpDnEmpty, #rpDnSources').hide();
+        if (state === 'prompt')  { $('#rpDnPrompt').show(); }
+        if (state === 'loading') { $('#rpDnLoading').show(); }
+        if (state === 'empty')   { $('#rpDnEmpty').show(); }
+        if (state === 'sources') { $('#rpDnSources').show(); }
+    }
+
+    function _rpBuildDnList() {
+        var $list = $('#rpDnRadioList').empty();
+        $.each(_dnSources, function (i, dn) {
+            var dnAmt    = parseFloat(dn.Amount);
+            var disabled = dnAmt > _rpOrigBalanceDue;
+            var uid      = 'rpDnRadio_' + dn.DebitNoteUID;
+            var srcNum   = dn.SourceTransNumber || ('DN #' + dn.DebitNoteUID);
+            var $row = $(
+                '<label class="rp-adv-radio-row' + (disabled ? ' rp-adv-radio-row--disabled' : '') + '" for="' + uid + '">' +
+                    '<input type="radio" id="' + uid + '" name="rpDnRadio" value="' + dn.DebitNoteUID + '"' +
+                        ' data-dn-amount="' + dnAmt + '"' +
+                        (disabled ? ' disabled' : '') +
+                    '>' +
+                    '<div class="rp-adv-radio-body">' +
+                        '<div class="d-flex align-items-center gap-2 flex-wrap">' +
+                            '<span class="rp-adv-radio-label">' + _rpEsc(srcNum) + '</span>' +
+                            '<span class="rp-adv-type-badge rp-adv-type-badge--dn">Debit Note</span>' +
+                        '</div>' +
+                        '<span class="rp-adv-radio-amount">' + _rpFmt(dnAmt) + ' available</span>' +
+                        (disabled ? '<span class="rp-adv-radio-badge">Exceeds balance due</span>' : '') +
+                    '</div>' +
+                '</label>'
+            );
+            $list.append($row);
+        });
+    }
+
+    function _rpClearDnSelection() {
+        _dnApplied = false;
+        $('#rpDebitNoteUID').val('');
+        $('#rpDebitNoteAmount').val('');
+        $('input[name="rpDnRadio"]').prop('checked', false);
+        $('#rpAmount')
+            .removeAttr('readonly')
+            .attr('max', _rpOrigBalanceDue)
+            .val(_rpOrigBalanceDue.toFixed(_rpDec));
+    }
+
+    function _resetDebitNote() {
+        _dnSources = [];
+        _dnApplied = false;
+        $('#rpDebitNoteSection').hide();
+        $('#rpDebitNoteUID').val('');
+        $('#rpDebitNoteAmount').val('');
+        _rpDnState('prompt');
+    }
+
     function _resetAdvance() {
         _creditSources  = [];
         _totalCredit    = 0;
@@ -451,9 +549,10 @@ $pdtLinkedLabel = $pdtLinkedLabel ?? 'Linked Document';
 
     // Expose open-modal helper for all modules
     window.rpOpenModal = function (cfg) {
-        $('#rpTransUID').val(cfg.transUID || 0);
+        $('#rpTransUID').val(cfg.transUID   || 0);
         $('#rpSubmitUrl').val(cfg.submitUrl || '');
-        $('#rpPartyUID').val(cfg.partyUID  || 0);
+        $('#rpPartyUID').val(cfg.partyUID   || 0);
+        $('#rpVendorUID').val(cfg.vendorUID || 0);
         $('#rpDocNum').text(cfg.docNum || '—');
         $('#rpDocDate').text(cfg.docDate || '—');
         if (cfg.partyName) {
@@ -474,12 +573,20 @@ $pdtLinkedLabel = $pdtLinkedLabel ?? 'Linked Document';
         $('#rpBankAccount').val('');
 
         _resetAdvance();
+        _resetDebitNote();
 
         // Show advance prompt for customer invoices (no AJAX yet — user must click "Check & Apply")
         var partyUID = parseInt(cfg.partyUID, 10) || 0;
         if (partyUID > 0) {
             _rpAdvState('prompt');
             $('#rpAdvanceSection').show();
+        }
+
+        // Show debit note prompt for vendor purchases
+        var vendorUID = parseInt(cfg.vendorUID, 10) || 0;
+        if (vendorUID > 0) {
+            _rpDnState('prompt');
+            $('#rpDebitNoteSection').show();
         }
 
         if (typeof _attachResetState === 'function') { _attachResetState('Payment'); }
@@ -491,9 +598,10 @@ $pdtLinkedLabel = $pdtLinkedLabel ?? 'Linked Document';
     // because jQuery is loaded in the footer (after this script runs).
     document.addEventListener('DOMContentLoaded', function () {
 
-        // Reset advance state when modal is fully hidden
+        // Reset advance/debit-note state when modal is fully hidden
         $('#recordPaymentModal').on('hidden.bs.modal', function () {
             _resetAdvance();
+            _resetDebitNote();
         });
 
         // Init flatpickr and dropzone when modal first opens; reset date on each open
@@ -584,6 +692,56 @@ $pdtLinkedLabel = $pdtLinkedLabel ?? 'Linked Document';
             _rpAdvState('prompt');
         });
 
+        // Debit note: "Check & Apply" — fetch from backend (cached after first load)
+        $(document).on('click', '#rpDnCheckBtn', function () {
+            var vendorUID = parseInt($('#rpVendorUID').val(), 10);
+            if (!vendorUID) return;
+            if (_dnSources.length > 0) {
+                _rpBuildDnList();
+                _rpDnState('sources');
+                return;
+            }
+            _rpDnState('loading');
+            $.ajax({
+                url      : '/purchases/getVendorDebitNotes',
+                method   : 'GET',
+                data     : { VendorUID: vendorUID },
+                dataType : 'json',
+                success  : function (resp) {
+                    if (resp.Error || !resp.Data || !resp.Data.length) {
+                        _rpDnState('empty');
+                        return;
+                    }
+                    _dnSources = resp.Data;
+                    _rpBuildDnList();
+                    _rpDnState('sources');
+                },
+                error: function () { _rpDnState('empty'); }
+            });
+        });
+
+        // Debit note radio selection
+        $(document).on('change', 'input[name="rpDnRadio"]', function () {
+            var dnAmt  = parseFloat($(this).data('dn-amount')) || 0;
+            var dnUID  = parseInt($(this).val(), 10) || 0;
+            var newMax = Math.max(0, Math.round((_rpOrigBalanceDue - dnAmt) * Math.pow(10, _rpDec)) / Math.pow(10, _rpDec));
+            _dnApplied = true;
+            $('#rpDebitNoteUID').val(dnUID);
+            $('#rpDebitNoteAmount').val(dnAmt.toFixed(_rpDec));
+            var $amt = $('#rpAmount').attr('max', newMax).val(newMax.toFixed(_rpDec));
+            if (newMax === 0) {
+                $amt.attr('readonly', true).val('0');
+            } else {
+                $amt.removeAttr('readonly');
+            }
+        });
+
+        // Debit note: "Don't apply" — back to prompt, clear selection
+        $(document).on('click', '#rpDnCancelBtn', function () {
+            _rpClearDnSelection();
+            _rpDnState('prompt');
+        });
+
         // Payment type pill toggle
         // On blur: cap to pending max then format with smartDecimal
         $(document).on('blur', '#rpAmount', function () {
@@ -615,6 +773,8 @@ $pdtLinkedLabel = $pdtLinkedLabel ?? 'Linked Document';
             var excessSourcePaymentUID = _advanceApplied ? (parseInt($('#rpExcessSourcePaymentUID').val(), 10) || 0) : 0;
             var onAccountAmount        = _advanceApplied ? (parseFloat($('#rpOnAccountAmount').val()) || 0) : 0;
             var onAccountSourceUID     = _advanceApplied ? (parseInt($('#rpOnAccountSourcePaymentUID').val(), 10) || 0) : 0;
+            var debitNoteUID           = _dnApplied ? (parseInt($('#rpDebitNoteUID').val(), 10) || 0) : 0;
+            var debitNoteAmount        = _dnApplied ? (parseFloat($('#rpDebitNoteAmount').val()) || 0) : 0;
             var paymentDate            = $('#rpPaymentDate').val() || new Date().toISOString().split('T')[0];
             var bankAccountUID         = parseInt($('#rpBankAccount').val(), 10) || 0;
             var referenceNo            = $.trim($('#rpReferenceNo').val());
@@ -624,7 +784,7 @@ $pdtLinkedLabel = $pdtLinkedLabel ?? 'Linked Document';
 
             if (!transUID) { Swal.fire({ icon: 'warning', text: 'Invalid record.' }); return; }
 
-            if (amount <= 0 && advanceAmount <= 0 && onAccountAmount <= 0) {
+            if (amount <= 0 && advanceAmount <= 0 && onAccountAmount <= 0 && debitNoteAmount <= 0) {
                 Swal.fire({ icon: 'warning', text: 'Enter a payment amount or select a credit to apply.' });
                 return;
             }
@@ -663,12 +823,16 @@ $pdtLinkedLabel = $pdtLinkedLabel ?? 'Linked Document';
             fd.append('ExcessSourcePaymentUID',   excessSourcePaymentUID || 0);
             fd.append('OnAccountAmount',          onAccountAmount);
             fd.append('OnAccountSourcePaymentUID', onAccountSourceUID || 0);
+            fd.append('DebitNoteUID',             debitNoteUID    || 0);
+            fd.append('DebitNoteAmount',          debitNoteAmount || 0);
             fd.append('PaymentDate',              paymentDate);
             fd.append('BankAccountUID',           bankAccountUID || '');
             fd.append('ReferenceNo',              referenceNo);
             fd.append('Notes',                    notes);
             fd.append(CsrfName, CsrfToken);
             (_attachState && _attachState['Payment'] ? (_attachState['Payment'].newFiles || []) : []).forEach(function (f) { fd.append('PaymentFiles[]', f, f.name); });
+
+            if (typeof window.rpBeforeSend === 'function') { window.rpBeforeSend(fd); }
 
             $.ajax({
                 url         : submitUrl,

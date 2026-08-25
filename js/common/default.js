@@ -742,6 +742,8 @@ var _gpoSim = (function () {
     };
 }());
 
+window._r2kSimpleOverlay = true;
+
 /** @returns {void} */
 function showUIBlock() {
     clearTimeout(_gpoHideTimer);

@@ -309,6 +309,7 @@ if (!empty($DataLists)):
                         data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
                         data-date="<?php echo htmlspecialchars(format_datedisplay($list->TransDate ?? '')); ?>"
                         data-party="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
+                        data-vendor-uid="<?php echo (int)$list->PartyUID; ?>"
                         data-total="<?php echo $netAmt; ?>"
                         data-paid="<?php echo $paidAmt; ?>"
                         data-pending="<?php echo $pendingAmt; ?>"
@@ -342,20 +343,11 @@ if (!empty($DataLists)):
                                     data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
                                     data-date="<?php echo htmlspecialchars(format_datedisplay($list->TransDate ?? '')); ?>"
                                     data-party="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
+                                    data-vendor-uid="<?php echo (int)$list->PartyUID; ?>"
                                     data-total="<?php echo $netAmt; ?>"
                                     data-paid="<?php echo $paidAmt; ?>"
                                     data-pending="<?php echo $pendingAmt; ?>">
                                 <i class="bx bx-money-withdraw me-2 text-success"></i><?php echo t('act_issue_payment', 'Issue Payment'); ?>
-                            </button>
-                        </li>
-                        <li>
-                            <button class="dropdown-item purchApplyDebitNote"
-                                    data-uid="<?php echo (int)$list->TransUID; ?>"
-                                    data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
-                                    data-vendor-uid="<?php echo (int)$list->PartyUID; ?>"
-                                    data-vendor="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
-                                    data-pending="<?php echo $pendingAmt; ?>">
-                                <i class="bx bx-transfer me-2 text-warning"></i>Apply Debit Note
                             </button>
                         </li>
                         <?php endif; ?>

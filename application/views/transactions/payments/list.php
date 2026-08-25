@@ -19,6 +19,7 @@ $modeColors = [
     'cheque'      => ['bg' => '#fce4ec', 'color' => '#880e4f'],
     'emi'         => ['bg' => '#e0f7fa', 'color' => '#00695c'],
     'tds'         => ['bg' => '#f3e5f5', 'color' => '#6a1b9a'],
+    'debit note'  => ['bg' => '#fff3e0', 'color' => '#e65100'],
 ];
 
 if (!function_exists('_allPmtModeBadge')) {

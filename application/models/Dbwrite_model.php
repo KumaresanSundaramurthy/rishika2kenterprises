@@ -51,7 +51,7 @@ class Dbwrite_model extends CI_Model {
             return true;
             
         } catch (Exception $e) {
-            notifyError('Dbwrite_model::commitTransaction', $e);
+            try { notifyError('Dbwrite_model::commitTransaction', $e); } catch (Exception $_) {}
             throw new Exception('Transaction failed: ' . $e->getMessage());
         }
     }

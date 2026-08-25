@@ -303,7 +303,7 @@ $(function () {
                 }
                 $('#pdDateLabel').text(dateStr || '—');
                 $('#pdAmount').text(fmt(d.Amount));
-                var modeMap = { 'cash':'#e8f5e9|#2e7d32','upi':'#ede7f6|#4527a0','card':'#e3f2fd|#1565c0','net banking':'#fff8e1|#f57f17','cheque':'#fce4ec|#880e4f' };
+                var modeMap = { 'cash':'#e8f5e9|#2e7d32','upi':'#ede7f6|#4527a0','card':'#e3f2fd|#1565c0','net banking':'#fff8e1|#f57f17','cheque':'#fce4ec|#880e4f','debit note':'#fff3e0|#e65100' };
                 var mk = (d.PaymentTypeName || '').toLowerCase().trim();
                 var mc = modeMap[mk] ? modeMap[mk].split('|') : ['#f0f0f0','#555'];
                 $('#pdModeBadge').html('<span class="pmt-mode-badge" style="background:' + mc[0] + ';color:' + mc[1] + ';">' + (d.PaymentTypeName || '—') + '</span>');

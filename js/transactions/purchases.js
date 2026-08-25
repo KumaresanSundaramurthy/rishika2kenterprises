@@ -33,7 +33,7 @@ function deleteMultiplePurchases() {
 function getPurchasesDetails(pageNo, rowLimit, filter, afterLoad) {
     loadTransactionList({
         url:            '/transactions/getPageDetails/105/',
-        tabCountClass:  '.purch-tab-count',
+        tabCountClass:  '.trans-tab-count',
         statusTabClass: '.purch-status-tab',
         errorMessage:   'Failed to load purchase bills.',
         onSuccess:      function (resp) {

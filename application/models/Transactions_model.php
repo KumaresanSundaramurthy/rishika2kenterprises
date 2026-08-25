@@ -715,10 +715,10 @@ class Transactions_model extends MY_Model {
     public function getVendorDebitNote(int $debitNoteUID, int $orgUID): ?object {
         try {
             $this->ReadDb->db_debug = FALSE;
-            $this->ReadDb->select('TransDebitNoteUID, PartyUID, Amount, Status, SourceTransNumber');
+            $this->ReadDb->select('DebitNoteUID, PartyUID, Amount, Status, SourceTransNumber');
             $this->ReadDb->from('Transaction.TransDebitNoteTbl');
             $this->ReadDb->where([
-                'TransDebitNoteUID' => $debitNoteUID,
+                'DebitNoteUID' => $debitNoteUID,
                 'OrgUID'            => $orgUID,
                 'PartyType'         => 'S',
                 'IsCancelled'       => 0,
@@ -735,7 +735,7 @@ class Transactions_model extends MY_Model {
     public function getVendorAvailableDebitNotes(int $orgUID, int $vendorUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
-            $this->ReadDb->select('TransDebitNoteUID, SourceTransNumber, Amount, Status, Notes, SourceModuleUID');
+            $this->ReadDb->select('DebitNoteUID, SourceTransNumber, Amount, Status, Notes, SourceModuleUID');
             $this->ReadDb->from('Transaction.TransDebitNoteTbl');
             $this->ReadDb->where([
                 'OrgUID'      => $orgUID,
@@ -746,7 +746,7 @@ class Transactions_model extends MY_Model {
                 'IsDeleted'   => 0,
             ]);
             $this->ReadDb->where('Amount >', 0);
-            $this->ReadDb->order_by('TransDebitNoteUID', 'ASC');
+            $this->ReadDb->order_by('DebitNoteUID', 'ASC');
             $result = $this->ReadDb->get()->result();
             return $result ?: [];
         } catch (Exception $e) {
@@ -1286,9 +1286,9 @@ class Transactions_model extends MY_Model {
                 'P.Notes',
                 'P.CreatedOn',
                 'P.ReceiptToken',
-                'PT.Name AS PaymentTypeName',
+                "CASE WHEN P.PaymentTypeUID = 0 THEN 'Debit Note' ELSE PT.Name END AS PaymentTypeName",
                 'PT.IsCash',
-                'PT.Code AS PaymentTypeCode',
+                "CASE WHEN P.PaymentTypeUID = 0 THEN 'DN' ELSE PT.Code END AS PaymentTypeCode",
                 'T.UniqueNumber as TransNumber',
                 'T.TransDate',
                 'T.NetAmount AS BillAmount',

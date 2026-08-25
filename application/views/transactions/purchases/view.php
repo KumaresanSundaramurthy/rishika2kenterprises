@@ -103,7 +103,7 @@ $this->load->view('common/transactions/header'); ?>
                                 <li class="nav-item"><a class="nav-link<?php echo $initTab === 'Paid' ? ' active' : ''; ?> purch-status-tab" data-status="Paid" data-url-tab="paid" href="javascript:void(0);">Paid <span class="trans-tab-count ms-1<?php echo ($initTab !== 'Paid' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'Paid' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
                                 <li class="nav-item"><a class="nav-link<?php echo $initTab === 'Cancelled' ? ' active' : ''; ?> purch-status-tab" data-status="Cancelled" data-url-tab="cancelled" href="javascript:void(0);">Cancelled <span class="trans-tab-count ms-1<?php echo ($initTab !== 'Cancelled' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'Cancelled' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
                                 <li class="nav-item"><a class="nav-link<?php echo $initTab === 'Draft' ? ' active' : ''; ?> purch-status-tab" data-status="Draft" data-url-tab="draft" href="javascript:void(0);">Drafts <span class="trans-tab-count ms-1<?php echo ($initTab !== 'Draft' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'Draft' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
-                                <li class="nav-item"><a class="nav-link<?php echo $initTab === 'DebitNotes' ? ' active' : ''; ?>" id="purchDnTab" href="javascript:void(0);"><i class="bx bx-transfer me-1 text-warning"></i>Debit Notes</a></li>
+                                <li class="nav-item"><a class="nav-link<?php echo $initTab === 'DebitNotes' ? ' active' : ''; ?>" id="purchDnTab" href="javascript:void(0);">Debit Notes <span class="trans-tab-count ms-1 d-none" id="purchDnTabCount"></span></a></li>
                             </ul>
                             <?php $this->load->view('common/transactions/filter_notice'); ?>
                         </div>
@@ -169,7 +169,7 @@ $this->load->view('common/transactions/header'); ?>
                                         <th>Status</th>
                                         <th>Amount</th>
                                         <th>Created</th>
-                                        <th style="width:80px"></th>
+                                        <th style="width:80px">Actions</th>
                                     </tr></thead>
                                     <tbody id="purchDnTableBody">
                                         <tr><td colspan="6" class="text-center text-muted py-4">Loading…</td></tr>
@@ -199,82 +199,6 @@ $this->load->view('common/transactions/header'); ?>
             ?>
 
             <?php $this->load->view('common/modals/send_communication'); ?>
-
-            <!-- ── Apply Debit Note Modal ─────────────────────── -->
-            <div class="modal fade" id="applyDebitNoteModal" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content">
-                        <div class="modal-header" style="background:#fff7e6;border-bottom:2px solid #f59e0b;">
-                            <h5 class="modal-title fw-semibold" style="color:#92400e;">
-                                <i class="bx bx-transfer me-2" style="color:#f59e0b;"></i>Apply Debit Note Credit
-                            </h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">
-                            <!-- Bill info strip -->
-                            <div class="d-flex gap-3 mb-3 p-3 rounded" style="background:#fef9f0;">
-                                <div class="flex-grow-1">
-                                    <div class="text-muted small">Purchase Bill</div>
-                                    <div class="fw-semibold" id="adnBillNum">—</div>
-                                </div>
-                                <div>
-                                    <div class="text-muted small">Vendor</div>
-                                    <div class="fw-semibold" id="adnVendorName">—</div>
-                                </div>
-                                <div class="text-end">
-                                    <div class="text-muted small">Balance Due</div>
-                                    <div class="fw-bold text-danger" id="adnBalanceDisplay">—</div>
-                                </div>
-                            </div>
-
-                            <!-- Loading state -->
-                            <div id="adnLoadingState" class="text-center py-3 d-none">
-                                <div class="spinner-border spinner-border-sm text-warning me-2"></div>
-                                <span class="text-muted">Checking available debit notes…</span>
-                            </div>
-
-                            <!-- Empty state -->
-                            <div id="adnEmptyState" class="d-none text-center py-4">
-                                <i class="bx bx-transfer-alt" style="font-size:2rem;color:#d1d5db;"></i>
-                                <div class="text-muted mt-2">No debit note credits available for this vendor.</div>
-                                <div class="small text-muted mt-1">Debit notes are created when a paid purchase is cancelled with the "Debit Note" option.</div>
-                            </div>
-
-                            <!-- Debit note selection -->
-                            <div id="adnSelectState" class="d-none">
-                                <label class="form-label fw-semibold mb-2">Select Debit Note Credit</label>
-                                <div id="adnNotesList" class="mb-3"></div>
-
-                                <div class="row g-2">
-                                    <div class="col-12">
-                                        <label class="form-label small text-muted mb-1">Amount to Apply</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text" id="adnCurrSymbol"><?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?></span>
-                                            <input type="number" class="form-control" id="adnAmount" min="0.01" step="0.01" placeholder="0.00">
-                                        </div>
-                                        <div class="small text-muted mt-1">Max: <span id="adnMaxLabel">0.00</span></div>
-                                    </div>
-                                    <div class="col-12">
-                                        <label class="form-label small text-muted mb-1">Notes (optional)</label>
-                                        <textarea class="form-control form-control-sm" id="adnNotes" rows="2" placeholder="Reference or note…"></textarea>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <input type="hidden" id="adnTransUID">
-                            <input type="hidden" id="adnVendorUID">
-                            <input type="hidden" id="adnSelectedDebitNoteUID">
-                            <input type="hidden" id="adnPurchasePending">
-                        </div>
-                        <div class="modal-footer" id="adnFooter" style="display:none!important;">
-                            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-                            <button type="button" class="btn btn-warning btn-sm fw-semibold" id="btnApplyDebitNote">
-                                <i class="bx bx-check me-1"></i> Apply Credit
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
             <?php $this->load->view('common/footer_desc'); ?>
 
@@ -614,7 +538,7 @@ $(function () {
         $(ModuleTable + ' tbody').html(resp.RecordHtmlData);
         $(ModulePag).html(resp.Pagination);
         var count = resp.TotalCount || 0;
-        var $badge = $('.purch-status-tab.active .purch-tab-count');
+        var $badge = $('.purch-status-tab.active .trans-tab-count');
         if (count > 0) { $badge.text(count).removeClass('d-none'); } else { $badge.text('').addClass('d-none'); }
         initTooltips();
     }
@@ -710,15 +634,17 @@ $(function () {
         var debitApplied = $(this).data('debit-applied') == '1';
         var hasPaid      = paidAmt > 0;
 
-        // Guard: debit note already applied — warn but still allow cancel (unlike delete, cancel is reversible in audit)
-        var baseHtml = num ? 'Cancel <strong>' + num + '</strong>? This cannot be undone.' : 'This cannot be undone.';
+        // Guard: debit note already applied — block cancel entirely
         if (debitApplied) {
-            baseHtml += '<div class="alert alert-warning mt-2 mb-0 py-2 px-3 text-start" style="font-size:.82rem;">' +
-                '<i class="bx bx-info-circle me-1"></i>' +
-                'A debit note credit has been applied to this bill. Cancelling will leave that debit note orphaned. ' +
-                'Consider removing the debit note payment first.' +
-            '</div>';
+            Swal.fire({
+                icon : 'warning',
+                title: 'Cannot Cancel',
+                text : 'A debit note credit has been applied to this purchase bill. Remove the debit note payment entry first, then cancel this bill.',
+            });
+            return;
         }
+
+        var baseHtml = num ? 'Cancel <strong>' + num + '</strong>? This cannot be undone.' : 'This cannot be undone.';
         if (hasPaid) {
             baseHtml += '<div class="mt-2 text-muted small">Paid amount: <strong>&#8377;' +
                 paidAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 }) + '</strong></div>';
@@ -873,153 +799,48 @@ function _buildPurchDetailHtml(resp) {
     var _bankAccts = <?php echo json_encode(array_values(array_map(function($b) {
         return ['BankAccountUID' => (int)$b->BankAccountUID, 'BankName' => (string)$b->BankName, 'AccountName' => (string)$b->AccountName, 'IsDefault' => (int)$b->IsDefault];
     }, array_filter($BankAccounts ?? [], function($b) { return !(int)$b->IsCash; })))); ?>;
-    var _fpInstance = null;
     var _currency   = '<?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>';
-    var _vDec       = <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>;
 
-    (function () {
-        var $sel = $('#rpBankAccount').empty().append('<option value="">— Select bank account —</option>');
-        $.each(_bankAccts, function (i, b) {
-            $sel.append('<option value="' + b.BankAccountUID + '">' + _esc(b.BankName) + ' — ' + _esc(b.AccountName) + '</option>');
-        });
-    }());
-
-    function renderPaymentTypes() {
-        var $wrap = $('#rpPaymentTypes').empty();
-        if (!_payTypes.length) {
-            $wrap.html('<div class="text-muted" style="font-size:.8rem;"><i class="bx bx-loader-alt bx-spin"></i> Loading…</div>');
-            return;
-        }
-        $.each(_payTypes, function (i, t) {
-            var active = (i === 0) ? ' active' : '';
-            if (i === 0) { $('#rpPaymentTypeUID').val(t.PaymentTypeUID); $('#rpIsCash').val(t.IsCash); }
-            $wrap.append(
-                '<button type="button" class="rp-type-pill btn btn-sm btn-outline-secondary' + active + '" ' +
-                'data-uid="' + t.PaymentTypeUID + '" data-iscash="' + t.IsCash + '">' + _esc(t.Name) + '</button>'
-            );
-        });
-        toggleBankRow();
+    if (typeof window.initRecordPaymentModal === 'function') {
+        window.initRecordPaymentModal(_payTypes, _bankAccts, _currency);
     }
 
-    function toggleBankRow() {
-        var isCash = parseInt($('#rpIsCash').val(), 10);
-        $('#rpBankRow').toggleClass('d-none', !!isCash);
-        if (!isCash && !$('#rpBankAccount').val()) {
-            var def = $.grep(_bankAccts, function(b) { return b.IsDefault === 1; });
-            if (def.length) { $('#rpBankAccount').val(def[0].BankAccountUID); }
-        }
-    }
-
-    $('#recordPaymentModal').on('shown.bs.modal', function () {
-        if (!_fpInstance) {
-            _fpInstance = flatpickr('#rpPaymentDate', {
-                dateFormat   : 'Y-m-d',
-                altInput     : true,
-                altFormat    : _transFormDateFormat,
-                maxDate      : 'today',
-                disableMobile: true,
-                defaultDate  : 'today',
-                static       : true,
-                position     : 'below left',
+    /**
+     * @param {Object} resp
+     * @returns {void}
+     */
+    window.rpAfterSuccess = function (resp) {
+        if (resp.RecordHtmlData) {
+            $(ModuleTable + ' tbody').html(resp.RecordHtmlData);
+            $(ModulePag).html(resp.Pagination || '');
+            [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]')).map(function (el) {
+                return new bootstrap.Tooltip(el, { container: 'body' });
             });
-        } else {
-            _fpInstance.setDate(new Date(), false);
+            if (resp.SummaryStats) { updateSummaryStats(resp.SummaryStats); }
         }
-    });
+    };
+
+    /**
+     * @param {FormData} fd
+     * @returns {void}
+     */
+    window.rpBeforeSend = function (fd) {
+        fd.append('CurrentPage', PageNo  || 1);
+        fd.append('RowLimit',    RowLimit || 10);
+        fd.append('Filter',      JSON.stringify(Filter || {}));
+    };
 
     $(document).on('click', '.purchReceivePayment', function () {
-        var uid     = $(this).data('uid');
-        var num     = $(this).data('num')     || '';
-        var date    = $(this).data('date')    || '';
-        var party   = $(this).data('party')   || '';
-        var total   = parseFloat($(this).data('total'))   || 0;
-        var paid    = parseFloat($(this).data('paid'))    || 0;
-        var pending = parseFloat($(this).data('pending')) || 0;
-
-        $('#rpTransUID').val(uid);
-        $('#rpBillNum').text(num);
-        $('#rpBillDate').text(date);
-        $('#rpPartyName').text(party);
-        $('#rpTotalCard').text(_currency + ' ' + total.toFixed(_vDec));
-        $('#rpPaidCard').text(_currency + ' ' + paid.toFixed(_vDec));
-        $('#rpBalanceCard').text(_currency + ' ' + pending.toFixed(_vDec));
-        $('#rpAmount').val(pending.toFixed(_vDec)).attr('max', pending);
-        $('#rpCurrencySymbol').text(_currency);
-        $('#rpReferenceNo').val('');
-        $('#rpNotes').val('');
-        $('#rpBankAccount').val('');
-
-        if (typeof _attachResetState === 'function') { _attachResetState('Payment'); }
-        renderPaymentTypes();
-        $('#recordPaymentModal').modal('show');
-    });
-
-    $(document).on('click', '.rp-type-pill', function () {
-        $('.rp-type-pill').removeClass('active btn-primary').addClass('btn-outline-secondary');
-        $(this).addClass('active btn-primary').removeClass('btn-outline-secondary');
-        $('#rpPaymentTypeUID').val($(this).data('uid'));
-        $('#rpIsCash').val($(this).data('iscash'));
-        toggleBankRow();
-    });
-
-    $('#btnSubmitPayment').on('click', function () {
-        var transUID       = parseInt($('#rpTransUID').val(), 10);
-        var paymentTypeUID = parseInt($('#rpPaymentTypeUID').val(), 10);
-        var amount         = parseFloat($('#rpAmount').val()) || 0;
-        var paymentDate    = $('#rpPaymentDate').val() || new Date().toISOString().split('T')[0];
-        var bankAccountUID = parseInt($('#rpBankAccount').val(), 10) || 0;
-        var referenceNo    = $.trim($('#rpReferenceNo').val());
-        var notes          = $.trim($('#rpNotes').val());
-
-        if (!transUID)       { Swal.fire({ icon: 'warning', text: 'Invalid purchase bill.' }); return; }
-        if (!paymentTypeUID) { Swal.fire({ icon: 'warning', text: 'Please select a payment type.' }); return; }
-        if (amount <= 0)     { Swal.fire({ icon: 'warning', text: 'Enter a valid amount.' }); return; }
-        var isCash = parseInt($('#rpIsCash').val(), 10);
-        if (!isCash && !bankAccountUID) { Swal.fire({ icon: 'warning', text: 'Please select a bank account for this payment type.' }); return; }
-
-        var $btn = $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Saving…');
-
-        var fd = new FormData();
-        fd.append('TransUID',       transUID);
-        fd.append('PaymentTypeUID', paymentTypeUID);
-        fd.append('Amount',         amount);
-        fd.append('PaymentDate',    paymentDate);
-        fd.append('BankAccountUID', bankAccountUID || '');
-        fd.append('ReferenceNo',    referenceNo);
-        fd.append('Notes',          notes);
-        fd.append('CurrentPage',    PageNo || 1);
-        fd.append('RowLimit',       RowLimit || 10);
-        fd.append('Filter',         JSON.stringify(Filter || {}));
-        fd.append(CsrfName,         CsrfToken);
-        (_attachState && _attachState['Payment'] ? (_attachState['Payment'].newFiles || []) : []).forEach(function (f) { fd.append('PaymentFiles[]', f, f.name); });
-
-        $.ajax({
-            url         : '/purchases/recordPurchasePayment',
-            method      : 'POST',
-            data        : fd,
-            processData : false,
-            contentType : false,
-            success: function (resp) {
-                $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i> Issue Payment');
-                if (resp.Error) {
-                    showToastNotification(resp.Message, 'error');
-                } else {
-                    $('#recordPaymentModal').modal('hide');
-                    if (resp.RecordHtmlData) {
-                        $(ModuleTable + ' tbody').html(resp.RecordHtmlData);
-                        $(ModulePag).html(resp.Pagination || '');
-                        [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]')).map(function (el) {
-                            return new bootstrap.Tooltip(el, { container: 'body' });
-                        });
-                        if (resp.SummaryStats) { updateSummaryStats(resp.SummaryStats); }
-                    }
-                    showToastNotification(resp.Message, 'success');
-                }
-            },
-            error: function () {
-                $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i> Issue Payment');
-                showToastNotification('Request failed. Try again.', 'error');
-            }
+        rpOpenModal({
+            transUID  : $(this).data('uid'),
+            docNum    : $(this).data('num')     || '',
+            docDate   : $(this).data('date')    || '',
+            partyName : $(this).data('party')   || '',
+            vendorUID : parseInt($(this).data('vendor-uid'), 10) || 0,
+            total     : parseFloat($(this).data('total'))   || 0,
+            paid      : parseFloat($(this).data('paid'))    || 0,
+            pending   : parseFloat($(this).data('pending')) || 0,
+            submitUrl : '/purchases/recordPurchasePayment',
         });
     });
 
@@ -1039,6 +860,7 @@ function _buildPurchDetailHtml(resp) {
      */
     function loadDebitNotes(page) {
         _dnPageNo = page || 1;
+        ajaxLoading(0);
         $('#purchDnTableBody').html('<tr><td colspan="6" class="text-center text-muted py-3"><span class="spinner-border spinner-border-sm me-2"></span>Loading…</td></tr>');
         $.ajax({
             url    : '/purchases/getDebitNotesList',
@@ -1051,6 +873,8 @@ function _buildPurchDetailHtml(resp) {
                 } else {
                     $('#purchDnTableBody').html(resp.RecordHtmlData);
                     $('#purchDnPagination').html(resp.Pagination || '');
+                    var dnCount = resp.TotalCount || 0;
+                    if (dnCount > 0) { $('#purchDnTabCount').text(dnCount).removeClass('d-none'); } else { $('#purchDnTabCount').text('').addClass('d-none'); }
                     [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]')).map(function (el) {
                         return new bootstrap.Tooltip(el, { container: 'body' });
                     });
@@ -1068,6 +892,7 @@ function _buildPurchDetailHtml(resp) {
         $('#purchTableWrap, #purchPagination, #purchSelectAllBanner').addClass('d-none');
         $('#purchDnSection').removeClass('d-none');
         $('.purch-status-tab').removeClass('active');
+        $('.purch-status-tab .trans-tab-count').addClass('d-none');
         $(this).addClass('active');
         loadDebitNotes(1);
     });
@@ -1079,6 +904,7 @@ function _buildPurchDetailHtml(resp) {
             $('#purchDnSection').addClass('d-none');
             $('#purchTableWrap, #purchPagination').removeClass('d-none');
             $('#purchDnTab').removeClass('active');
+            $('#purchDnTabCount').text('').addClass('d-none');
         }
     });
 
@@ -1160,171 +986,6 @@ function _buildPurchDetailHtml(resp) {
                 },
                 error: function () { ajaxLoading(0); showToastNotification('Request failed.', 'error'); }
             });
-        });
-    });
-
-}());
-
-// ── Apply Debit Note ─────────────────────────────────────────────
-(function () {
-    'use strict';
-
-    var _cur = '<?php echo addslashes($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>';
-    var _dec = <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>;
-
-    /**
-     * @param {number} v
-     * @returns {string}
-     */
-    function fmt(v) {
-        return _cur + ' ' + parseFloat(v).toFixed(_dec);
-    }
-
-    /**
-     * @param {Array} notes
-     * @param {number} purchasePending
-     * @returns {void}
-     */
-    function renderDebitNotes(notes, purchasePending) {
-        var html = '';
-        $.each(notes, function (i, dn) {
-            var uid    = dn.TransDebitNoteUID;
-            var srcNum = dn.SourceTransNumber || '—';
-            var amt    = parseFloat(dn.Amount) || 0;
-            html += '<div class="debit-note-card border rounded p-3 mb-2 cursor-pointer" data-uid="' + uid + '" data-amount="' + amt + '" style="cursor:pointer;transition:all .15s;">' +
-                '<div class="d-flex justify-content-between align-items-start">' +
-                    '<div>' +
-                        '<div class="fw-semibold small">From cancelled bill: <span class="text-warning">' + srcNum + '</span></div>' +
-                        '<div class="text-muted small mt-1">' + (dn.Notes || '') + '</div>' +
-                    '</div>' +
-                    '<div class="text-end">' +
-                        '<div class="fw-bold text-success">' + fmt(amt) + '</div>' +
-                        '<div class="small text-muted">Available</div>' +
-                    '</div>' +
-                '</div>' +
-            '</div>';
-        });
-        $('#adnNotesList').html(html);
-
-        // Select first by default
-        var firstCard = $('#adnNotesList .debit-note-card').first();
-        if (firstCard.length) selectDebitNote(firstCard, purchasePending);
-
-        // Card click
-        $('#adnNotesList').on('click', '.debit-note-card', function () {
-            selectDebitNote($(this), purchasePending);
-        });
-    }
-
-    /**
-     * @param {jQuery} $card
-     * @param {number} purchasePending
-     * @returns {void}
-     */
-    function selectDebitNote($card, purchasePending) {
-        $('#adnNotesList .debit-note-card').css({ border: '', background: '' });
-        $card.css({ border: '2px solid #f59e0b', background: '#fffbeb' });
-        var uid    = $card.data('uid');
-        var dnAmt  = parseFloat($card.data('amount')) || 0;
-        var maxAmt = Math.min(dnAmt, purchasePending);
-        $('#adnSelectedDebitNoteUID').val(uid);
-        $('#adnAmount').val(maxAmt.toFixed(_dec)).attr('max', maxAmt);
-        $('#adnMaxLabel').text(fmt(maxAmt));
-    }
-
-    $(document).on('click', '.purchApplyDebitNote', function () {
-        var transUID    = $(this).data('uid');
-        var billNum     = $(this).data('num')        || '';
-        var vendorUID   = $(this).data('vendor-uid');
-        var vendorName  = $(this).data('vendor')     || '';
-        var pending     = parseFloat($(this).data('pending')) || 0;
-
-        $('#adnTransUID').val(transUID);
-        $('#adnVendorUID').val(vendorUID);
-        $('#adnPurchasePending').val(pending);
-        $('#adnBillNum').text(billNum);
-        $('#adnVendorName').text(vendorName);
-        $('#adnBalanceDisplay').text(fmt(pending));
-        $('#adnNotesList').html('');
-        $('#adnAmount').val('');
-        $('#adnNotes').val('');
-        $('#adnSelectedDebitNoteUID').val('');
-
-        // Show loading, hide others
-        $('#adnLoadingState').removeClass('d-none');
-        $('#adnEmptyState,#adnSelectState').addClass('d-none');
-        $('#adnFooter').css('display', '');
-
-        $('#applyDebitNoteModal').modal('show');
-
-        $.ajax({
-            url     : '/purchases/getVendorDebitNotes',
-            method  : 'GET',
-            data    : { VendorUID: vendorUID },
-            success : function (resp) {
-                $('#adnLoadingState').addClass('d-none');
-                if (resp.Error || !resp.Data || resp.Data.length === 0) {
-                    $('#adnEmptyState').removeClass('d-none');
-                    $('#adnFooter').css('display', 'none');
-                } else {
-                    $('#adnSelectState').removeClass('d-none');
-                    renderDebitNotes(resp.Data, pending);
-                }
-            },
-            error: function () {
-                $('#adnLoadingState').addClass('d-none');
-                $('#adnEmptyState').removeClass('d-none');
-                $('#adnFooter').css('display', 'none');
-            }
-        });
-    });
-
-    $('#btnApplyDebitNote').on('click', function () {
-        var transUID      = parseInt($('#adnTransUID').val(), 10);
-        var debitNoteUID  = parseInt($('#adnSelectedDebitNoteUID').val(), 10);
-        var amount        = parseFloat($('#adnAmount').val()) || 0;
-        var notes         = $.trim($('#adnNotes').val());
-
-        if (!transUID)     { Swal.fire({ icon: 'warning', text: 'Invalid purchase.' }); return; }
-        if (!debitNoteUID) { Swal.fire({ icon: 'warning', text: 'Please select a debit note.' }); return; }
-        if (amount <= 0)   { Swal.fire({ icon: 'warning', text: 'Enter a valid amount.' }); return; }
-
-        var $btn = $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Applying…');
-
-        $.ajax({
-            url        : '/purchases/applyDebitNote',
-            method     : 'POST',
-            data       : {
-                TransUID     : transUID,
-                DebitNoteUID : debitNoteUID,
-                Amount       : amount,
-                Notes        : notes,
-                CurrentPage  : PageNo  || 1,
-                RowLimit     : RowLimit || 10,
-                Filter       : JSON.stringify(Filter || {}),
-            },
-            beforeSend : function (xhr) { xhr.setRequestHeader(CsrfName, CsrfToken); },
-            success: function (resp) {
-                $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i> Apply Credit');
-                if (resp.Error) {
-                    showToastNotification(resp.Message, 'error');
-                } else {
-                    $('#applyDebitNoteModal').modal('hide');
-                    if (resp.RecordHtmlData) {
-                        $(ModuleTable + ' tbody').html(resp.RecordHtmlData);
-                        $(ModulePag).html(resp.Pagination || '');
-                        [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]')).map(function (el) {
-                            return new bootstrap.Tooltip(el, { container: 'body' });
-                        });
-                        if (resp.SummaryStats) { updateSummaryStats(resp.SummaryStats); }
-                    }
-                    showToastNotification(resp.Message, 'success');
-                }
-            },
-            error: function () {
-                $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i> Apply Credit');
-                showToastNotification('Request failed. Try again.', 'error');
-            }
         });
     });
 

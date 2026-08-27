@@ -3,7 +3,6 @@
 /** @var float $GrandDr */ $GrandDr = (float)($GrandDr ?? 0);
 /** @var float $GrandCr */ $GrandCr = (float)($GrandCr ?? 0);
 $cur     = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-$dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 $dateFmt = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
 $orgName = htmlspecialchars($JwtData->Org->OrgName ?? '');
 $dfDisp  = date($dateFmt, strtotime($DateFrom));
@@ -15,9 +14,9 @@ $dtDisp  = date($dateFmt, strtotime($DateTo));
  * @param int    $dec
  * @returns string
  */
-function _dbFmt(float $n, string $cur, int $dec): string {
+function _dbFmt(float $n, string $cur): string {
     if (abs($n) < 0.005) return '';
-    return $cur . ' ' . number_format($n, $dec);
+    return $cur . ' ' . smartDecimal($n);
 }
 
 $refBadge = [
@@ -59,8 +58,8 @@ $refBadge = [
                 <?php echo date($dateFmt, strtotime($dateKey)); ?>
             </span>
             <span class="db-daily-totals">
-                <span class="text-success me-2"><i class="bx bx-trending-up me-1"></i>Dr <?php echo _dbFmt((float)$day['dailyDr'], $cur, $dec); ?></span>
-                <span class="text-danger"><i class="bx bx-trending-down me-1"></i>Cr <?php echo _dbFmt((float)$day['dailyCr'], $cur, $dec); ?></span>
+                <span class="text-success me-2"><i class="bx bx-trending-up me-1"></i>Dr <?php echo _dbFmt((float)$day['dailyDr'], $cur); ?></span>
+                <span class="text-danger"><i class="bx bx-trending-down me-1"></i>Cr <?php echo _dbFmt((float)$day['dailyCr'], $cur); ?></span>
             </span>
         </div>
 
@@ -118,10 +117,10 @@ $refBadge = [
                 </td>
 
                 <td class="text-end fw-semibold text-success db-amt" style="font-size:.82rem;">
-                    <?php echo $isDr ? _dbFmt((float)$entry->Amount, $cur, $dec) : ''; ?>
+                    <?php echo $isDr ? _dbFmt((float)$entry->Amount, $cur) : ''; ?>
                 </td>
                 <td class="text-end fw-semibold text-danger db-amt" style="font-size:.82rem;">
-                    <?php echo !$isDr ? _dbFmt((float)$entry->Amount, $cur, $dec) : ''; ?>
+                    <?php echo !$isDr ? _dbFmt((float)$entry->Amount, $cur) : ''; ?>
                 </td>
             </tr>
             <?php endforeach; // entries
@@ -133,10 +132,10 @@ $refBadge = [
                         Day Total
                     </td>
                     <td class="text-end fw-bold text-success" style="font-size:.82rem;">
-                        <?php echo _dbFmt((float)$day['dailyDr'], $cur, $dec); ?>
+                        <?php echo _dbFmt((float)$day['dailyDr'], $cur); ?>
                     </td>
                     <td class="text-end fw-bold text-danger" style="font-size:.82rem;">
-                        <?php echo _dbFmt((float)$day['dailyCr'], $cur, $dec); ?>
+                        <?php echo _dbFmt((float)$day['dailyCr'], $cur); ?>
                     </td>
                 </tr>
             </tfoot>
@@ -150,11 +149,11 @@ $refBadge = [
         <div class="fw-bold" style="font-size:.85rem;">Grand Total</div>
         <div>
             <span class="text-success fw-bold" style="font-size:.85rem;">
-                Dr <?php echo $cur . ' ' . number_format($GrandDr, $dec); ?>
+                Dr <?php echo $cur . ' ' . smartDecimal($GrandDr); ?>
             </span>
             <span class="mx-2 text-muted">|</span>
             <span class="text-danger fw-bold" style="font-size:.85rem;">
-                Cr <?php echo $cur . ' ' . number_format($GrandCr, $dec); ?>
+                Cr <?php echo $cur . ' ' . smartDecimal($GrandCr); ?>
             </span>
         </div>
     </div>

@@ -90,7 +90,6 @@
                                             <?php
                                             $gs              = $GenSettings ?? new stdClass();
                                             $gsCurrency      = htmlspecialchars($gs->CurrenySymbol   ?? '₹');
-                                            $gsDecimal       = (int)($gs->DecimalPoints  ?? 2);
                                             $gsSerial        = !empty($gs->SerialNoDisplay);
                                             $gsRowLimit      = (int)($gs->RowLimit       ?? 10);
                                             $gsFYMonth       = (int)($gs->FYStartMonth   ?? 4);
@@ -162,15 +161,6 @@
                                                         <input type="text" class="form-control" id="gs_CurrenySymbol" name="CurrenySymbol"
                                                                placeholder="e.g. ₹" value="<?php echo $gsCurrency; ?>" maxlength="1" />
                                                         <div class="form-text">Single character representing your country's currency (e.g. ₹ India, $ USA, € Europe).</div>
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <label class="form-label">Decimal Places</label>
-                                                        <select class="form-select" id="gs_DecimalPoints" name="DecimalPoints">
-                                                            <option value="0" <?php echo $gsDecimal === 0 ? 'selected' : ''; ?>>0 — No decimals (e.g. 100)</option>
-                                                            <option value="2" <?php echo $gsDecimal === 2 ? 'selected' : ''; ?>>2 — Standard (e.g. 100.00)</option>
-                                                            <option value="3" <?php echo $gsDecimal === 3 ? 'selected' : ''; ?>>3 — High precision (e.g. 100.000)</option>
-                                                        </select>
-                                                        <div class="form-text">Controls how prices, quantities, and totals are displayed throughout the app.</div>
                                                     </div>
                                                 </div>
 
@@ -1410,8 +1400,7 @@ $(document).ready(function () {
             method : 'POST',
             data   : {
                 CurrenySymbol          : currency,
-                DecimalPoints          : $('#gs_DecimalPoints').val(),
-                RowLimit               : $('#gs_RowLimit').val(),
+RowLimit               : $('#gs_RowLimit').val(),
                 FYStartMonth           : $('#gs_FYStartMonth').val(),
                 DefaultSalutationUID   : $('#gs_DefaultSalutationUID').val(),
                 SerialNoDisplay        : $('#gs_SerialNoDisplay').is(':checked')    ? 1 : 0,

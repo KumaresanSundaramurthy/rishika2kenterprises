@@ -103,7 +103,7 @@ class MY_Controller extends CI_Controller {
     protected function _rowLimit(): int      { return (int)($this->pageData['JwtData']->GenSettings->RowLimit      ?? 25); }
     protected function _dateFormat(): string { return       $this->pageData['JwtData']->GenSettings->ListDateFormat ?? 'd M Y'; }
     protected function _currency(): string   { return       $this->pageData['JwtData']->GenSettings->CurrenySymbol  ?? 'â‚¹'; }
-    protected function _decimals(): int      { return (int)($this->pageData['JwtData']->GenSettings->DecimalPoints  ?? 2); }
+    protected function _decimals(): int      { return 2; }
     protected function _uiLang(): string     { return       $this->pageData['JwtData']->User->UILanguage            ?? 'en'; }
 
     /**
@@ -1834,7 +1834,7 @@ class MY_Controller extends CI_Controller {
      */
     protected function _updateTransactionBalance(int $transUID, float $netAmount, float $paidAmount, int $userUID): void {
         $isFullyPaid   = ($netAmount > 0 && round($netAmount - $paidAmount, 4) <= 0) ? 1 : 0;
-        $balanceAmount = max(0, round($netAmount - $paidAmount, $this->_decimals()));
+        $balanceAmount = max(0, round($netAmount - $paidAmount, 4));
         $ok = $this->dbwrite_model->updateTransIsFullyPaid($transUID, $isFullyPaid, $paidAmount, $balanceAmount, $userUID);
         if ($ok === false) {
             throw new Exception('Failed to update transaction balance for TransUID ' . $transUID);

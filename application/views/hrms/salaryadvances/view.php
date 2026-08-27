@@ -13,7 +13,7 @@
           'pageDescription' => 'Track advance payments &amp; recoveries',
         ]); ?>
 
-        <?php $st = $AdvanceStats ?? null; $cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); $dec = (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>
+        <?php $st = $AdvanceStats ?? null; $cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>
 
         <!-- ── Stats Strip ──────────────────────────────────────────────────── -->
         <div class="apex-stats-strip">

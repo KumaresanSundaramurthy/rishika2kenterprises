@@ -5,7 +5,6 @@
 /** @var float  $TotalLiabilities */ $TotalLiabilities = (float)($TotalLiabilities ?? 0);
 /** @var float  $NetProfit */        $NetProfit        = (float)($NetProfit        ?? 0);
 $cur     = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-$dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 $dateFmt = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
 $orgName = htmlspecialchars($JwtData->Org->OrgName ?? '');
 $asOfDisp = date($dateFmt, strtotime($AsOfDate));
@@ -21,7 +20,7 @@ $isLoss   = $NetProfit < 0;
  * @param int    $dec
  * @returns string
  */
-function _bsFmt(float $n, string $cur, int $dec): string {
+function _bsFmt(float $n, string $cur): string {
     if (abs($n) < 0.005) return '<span class="text-muted" style="font-size:.78rem;">—</span>';
     return $cur . ' ' . smartDecimal(abs($n));
 }
@@ -73,7 +72,7 @@ function _bsFmt(float $n, string $cur, int $dec): string {
                         </td>
                         <td class="text-end fw-semibold" style="font-size:.82rem;white-space:nowrap;width:130px;
                             <?php echo (!$isDr && abs($cb) > 0.005) ? 'color:#dc2626;' : ''; ?>">
-                            <?php echo _bsFmt($cb, $cur, $dec); ?>
+                            <?php echo _bsFmt($cb, $cur); ?>
                         </td>
                     </tr>
                     <?php endforeach; ?>
@@ -83,7 +82,7 @@ function _bsFmt(float $n, string $cur, int $dec): string {
                         </td>
                         <td class="text-end fw-bold" style="font-size:.8rem;white-space:nowrap;
                             <?php echo $grp['total'] < 0 ? 'color:#dc2626;' : 'color:#1d4ed8;'; ?>">
-                            <?php echo _bsFmt($grp['total'], $cur, $dec); ?>
+                            <?php echo _bsFmt($grp['total'], $cur); ?>
                         </td>
                     </tr>
                 <?php endforeach; ?>
@@ -130,7 +129,7 @@ function _bsFmt(float $n, string $cur, int $dec): string {
                             <?php endif; ?>
                         </td>
                         <td class="text-end fw-semibold" style="font-size:.82rem;white-space:nowrap;width:130px;">
-                            <?php echo _bsFmt($cb, $cur, $dec); ?>
+                            <?php echo _bsFmt($cb, $cur); ?>
                         </td>
                     </tr>
                     <?php endforeach; ?>
@@ -139,7 +138,7 @@ function _bsFmt(float $n, string $cur, int $dec): string {
                             Subtotal — <?php echo htmlspecialchars($grp['label']); ?>
                         </td>
                         <td class="text-end fw-bold" style="font-size:.8rem;white-space:nowrap;color:#9a3412;">
-                            <?php echo _bsFmt($grp['total'], $cur, $dec); ?>
+                            <?php echo _bsFmt($grp['total'], $cur); ?>
                         </td>
                     </tr>
                 <?php endforeach; ?>
@@ -155,7 +154,7 @@ function _bsFmt(float $n, string $cur, int $dec): string {
                         </td>
                         <td class="text-end fw-bold" style="font-size:.82rem;white-space:nowrap;
                             color:<?php echo $isLoss ? '#dc2626' : '#16a34a'; ?>;">
-                            <?php echo _bsFmt($NetProfit, $cur, $dec); ?>
+                            <?php echo _bsFmt($NetProfit, $cur); ?>
                             <?php if ($isLoss): ?><div style="font-size:.7rem;">(Loss)</div><?php endif; ?>
                         </td>
                     </tr>

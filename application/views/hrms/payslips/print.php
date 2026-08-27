@@ -1,6 +1,5 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
 $cur  = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-$dec  = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 $s    = $Slip ?? new stdClass();
 $org  = $OrgInfo ?? new stdClass();
 $months = ['','January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -67,27 +66,27 @@ $period = ($months[(int)($s->PayrollMonth ?? 0)] ?? '—') . ' ' . ($s->PayrollY
     <div>
       <div class="section-title"><?php echo t('lbl_earnings', 'Earnings'); ?></div>
       <table class="breakdown">
-        <tr><td><?php echo t('lbl_basic_salary', 'Basic Salary'); ?></td><td><?php echo $cur . ' ' . number_format((float)($s->BasicSalary ?? 0), $dec); ?></td></tr>
-        <tr><td><?php echo t('lbl_allowances', 'Allowances'); ?></td><td><?php echo $cur . ' ' . number_format((float)($s->Allowances ?? 0), $dec); ?></td></tr>
-        <tr><td><?php echo t('lbl_incentives', 'Incentives'); ?></td><td><?php echo $cur . ' ' . number_format((float)($s->Incentives ?? 0), $dec); ?></td></tr>
-        <?php if ((float)($s->OtherEarnings ?? 0) > 0): ?><tr><td><?php echo t('lbl_other_earnings', 'Other Earnings'); ?></td><td><?php echo $cur . ' ' . number_format((float)$s->OtherEarnings, $dec); ?></td></tr><?php endif; ?>
-        <tr><td><?php echo t('lbl_gross_salary', 'Gross Salary'); ?></td><td style="color:#16a34a;"><?php echo $cur . ' ' . number_format((float)($s->GrossSalary ?? 0), $dec); ?></td></tr>
+        <tr><td><?php echo t('lbl_basic_salary', 'Basic Salary'); ?></td><td><?php echo $cur . ' ' . smartDecimal((float)($s->BasicSalary ?? 0)); ?></td></tr>
+        <tr><td><?php echo t('lbl_allowances', 'Allowances'); ?></td><td><?php echo $cur . ' ' . smartDecimal((float)($s->Allowances ?? 0)); ?></td></tr>
+        <tr><td><?php echo t('lbl_incentives', 'Incentives'); ?></td><td><?php echo $cur . ' ' . smartDecimal((float)($s->Incentives ?? 0)); ?></td></tr>
+        <?php if ((float)($s->OtherEarnings ?? 0) > 0): ?><tr><td><?php echo t('lbl_other_earnings', 'Other Earnings'); ?></td><td><?php echo $cur . ' ' . smartDecimal((float)$s->OtherEarnings); ?></td></tr><?php endif; ?>
+        <tr><td><?php echo t('lbl_gross_salary', 'Gross Salary'); ?></td><td style="color:#16a34a;"><?php echo $cur . ' ' . smartDecimal((float)($s->GrossSalary ?? 0)); ?></td></tr>
       </table>
     </div>
     <div>
       <div class="section-title"><?php echo t('lbl_deductions', 'Deductions'); ?></div>
       <table class="breakdown">
-        <tr><td><?php echo t('lbl_absent_deduction', 'Absent Deduction'); ?></td><td style="color:#dc2626;"><?php echo $cur . ' ' . number_format((float)($s->AbsentDeduction ?? 0), $dec); ?></td></tr>
-        <tr><td><?php echo t('lbl_fixed_deductions', 'Fixed Deductions'); ?></td><td style="color:#dc2626;"><?php echo $cur . ' ' . number_format((float)($s->FixedDeductions ?? 0), $dec); ?></td></tr>
-        <tr><td><?php echo t('lbl_advance_recovery', 'Advance Recovery'); ?></td><td style="color:#d97706;"><?php echo $cur . ' ' . number_format((float)($s->AdvanceRecovery ?? 0), $dec); ?></td></tr>
-        <?php if ((float)($s->OtherDeductions ?? 0) > 0): ?><tr><td><?php echo t('lbl_other_deductions', 'Other Deductions'); ?></td><td style="color:#dc2626;"><?php echo $cur . ' ' . number_format((float)$s->OtherDeductions, $dec); ?></td></tr><?php endif; ?>
-        <tr><td><?php echo t('lbl_total_deductions', 'Total Deductions'); ?></td><td style="color:#dc2626;"><?php echo $cur . ' ' . number_format((float)($s->TotalDeductions ?? 0), $dec); ?></td></tr>
+        <tr><td><?php echo t('lbl_absent_deduction', 'Absent Deduction'); ?></td><td style="color:#dc2626;"><?php echo $cur . ' ' . smartDecimal((float)($s->AbsentDeduction ?? 0)); ?></td></tr>
+        <tr><td><?php echo t('lbl_fixed_deductions', 'Fixed Deductions'); ?></td><td style="color:#dc2626;"><?php echo $cur . ' ' . smartDecimal((float)($s->FixedDeductions ?? 0)); ?></td></tr>
+        <tr><td><?php echo t('lbl_advance_recovery', 'Advance Recovery'); ?></td><td style="color:#d97706;"><?php echo $cur . ' ' . smartDecimal((float)($s->AdvanceRecovery ?? 0)); ?></td></tr>
+        <?php if ((float)($s->OtherDeductions ?? 0) > 0): ?><tr><td><?php echo t('lbl_other_deductions', 'Other Deductions'); ?></td><td style="color:#dc2626;"><?php echo $cur . ' ' . smartDecimal((float)$s->OtherDeductions); ?></td></tr><?php endif; ?>
+        <tr><td><?php echo t('lbl_total_deductions', 'Total Deductions'); ?></td><td style="color:#dc2626;"><?php echo $cur . ' ' . smartDecimal((float)($s->TotalDeductions ?? 0)); ?></td></tr>
       </table>
     </div>
   </div>
   <div class="net-row">
     <div class="net-label"><?php echo strtoupper(t('lbl_net_payable', 'Net Payable')); ?></div>
-    <div class="net-value"><?php echo $cur . ' ' . number_format((float)($s->NetPayable ?? 0), $dec); ?></div>
+    <div class="net-value"><?php echo $cur . ' ' . smartDecimal((float)($s->NetPayable ?? 0)); ?></div>
   </div>
   <div class="footer-note">This is a computer-generated payslip and does not require a signature.</div>
 </div>

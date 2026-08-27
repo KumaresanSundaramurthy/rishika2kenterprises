@@ -4,11 +4,10 @@
 <?php
 $gs      = $JwtData->GenSettings ?? new stdClass();
 $cur     = htmlspecialchars($gs->CurrenySymbol ?? '₹');
-$dec     = (int)($gs->DecimalPoints ?? 2);
 $dateFmt = $gs->ListDateFormat ?? 'd M Y';
 
-function dashFmt(float $v, string $cur, int $dec): string {
-    return $cur . ' ' . number_format($v, $dec, '.', ',');
+function dashFmt(float $v, string $cur): string {
+    return $cur . ' ' . smartDecimal($v);
 }
 function dashPct(float $curr, float $prev): float {
     if ($prev == 0.0) return $curr > 0 ? 100.0 : 0.0;
@@ -234,7 +233,7 @@ $kpiData = [
                                             <i class="bx bx-receipt" style="font-size:1.15rem;color:#0d6efd;"></i>
                                         </div>
                                     </div>
-                                    <div class="kpi-value" style="color:#0d6efd;"><?php echo dashFmt($todaySales['total'], $cur, $dec); ?></div>
+                                    <div class="kpi-value" style="color:#0d6efd;"><?php echo dashFmt($todaySales['total'], $cur); ?></div>
                                     <div class="kpi-sub text-muted">
                                         <?php echo (int)$todaySales['count']; ?> invoice<?php echo $todaySales['count'] != 1 ? 's' : ''; ?> today
                                     </div>
@@ -255,7 +254,7 @@ $kpiData = [
                                             <i class="bx bx-trending-up" style="font-size:1.15rem;color:#f59e0b;"></i>
                                         </div>
                                     </div>
-                                    <div class="kpi-value" style="color:#f59e0b;"><?php echo dashFmt($monthly['this_month'], $cur, $dec); ?></div>
+                                    <div class="kpi-value" style="color:#f59e0b;"><?php echo dashFmt($monthly['this_month'], $cur); ?></div>
                                     <div class="kpi-sub">
                                         <?php if ($salesPct > 0): ?>
                                             <span class="kpi-badge up"><i class="bx bx-up-arrow-alt"></i><?php echo $salesPct; ?>%</span>
@@ -285,7 +284,7 @@ $kpiData = [
                                             <i class="bx bx-down-arrow-circle" style="font-size:1.15rem;color:#198754;"></i>
                                         </div>
                                     </div>
-                                    <div class="kpi-value" style="color:#198754;"><?php echo dashFmt($TotalReceivable ?? 0, $cur, $dec); ?></div>
+                                    <div class="kpi-value" style="color:#198754;"><?php echo dashFmt($TotalReceivable ?? 0, $cur); ?></div>
                                     <div class="kpi-sub text-muted">Customer outstanding</div>
                                 </div>
                             </div>
@@ -304,7 +303,7 @@ $kpiData = [
                                             <i class="bx bx-up-arrow-circle" style="font-size:1.15rem;color:#dc3545;"></i>
                                         </div>
                                     </div>
-                                    <div class="kpi-value" style="color:#dc3545;"><?php echo dashFmt($TotalPayable ?? 0, $cur, $dec); ?></div>
+                                    <div class="kpi-value" style="color:#dc3545;"><?php echo dashFmt($TotalPayable ?? 0, $cur); ?></div>
                                     <div class="kpi-sub text-muted">Vendor outstanding</div>
                                 </div>
                             </div>
@@ -320,7 +319,7 @@ $kpiData = [
                                             <i class="bx bx-purchase-tag kpi-purch-ico"></i>
                                         </div>
                                     </div>
-                                    <div class="kpi-value kpi-purch-val"><?php echo dashFmt($todayPurch['total'], $cur, $dec); ?></div>
+                                    <div class="kpi-value kpi-purch-val"><?php echo dashFmt($todayPurch['total'], $cur); ?></div>
                                     <div class="kpi-sub text-muted">
                                         <?php echo (int)$todayPurch['count']; ?> bill<?php echo $todayPurch['count'] != 1 ? 's' : ''; ?> today
                                     </div>
@@ -338,7 +337,7 @@ $kpiData = [
                                             <i class="bx bx-store kpi-mpurch-ico"></i>
                                         </div>
                                     </div>
-                                    <div class="kpi-value kpi-mpurch-val"><?php echo dashFmt($monthlyPurch['this_month'], $cur, $dec); ?></div>
+                                    <div class="kpi-value kpi-mpurch-val"><?php echo dashFmt($monthlyPurch['this_month'], $cur); ?></div>
                                     <div class="kpi-sub">
                                         <?php if ($purchPct > 0): ?>
                                             <span class="kpi-badge up"><i class="bx bx-up-arrow-alt"></i><?php echo $purchPct; ?>%</span>
@@ -431,7 +430,7 @@ $kpiData = [
                                                 <div style="font-size:.68rem;color:#dc3545;">Due: <?php echo format_datedisplay($inv->ValidityDate, $dateFmt); ?></div>
                                             </div>
                                             <div class="text-end">
-                                                <div style="font-size:.82rem;font-weight:700;color:#dc3545;"><?php echo dashFmt($inv->BalanceAmount, $cur, $dec); ?></div>
+                                                <div style="font-size:.82rem;font-weight:700;color:#dc3545;"><?php echo dashFmt($inv->BalanceAmount, $cur); ?></div>
                                             </div>
                                         </div>
                                         <?php endforeach; ?>
@@ -468,7 +467,7 @@ $kpiData = [
                                                 <div style="font-size:.7rem;color:#6c757d;"><?php echo htmlspecialchars($cust->MobileNumber); ?></div>
                                                 <?php endif; ?>
                                             </div>
-                                            <div class="fw-bold text-end flex-shrink-0" style="font-size:.82rem;color:#198754;"><?php echo dashFmt($cust->PendingBalance, $cur, $dec); ?></div>
+                                            <div class="fw-bold text-end flex-shrink-0" style="font-size:.82rem;color:#198754;"><?php echo dashFmt($cust->PendingBalance, $cur); ?></div>
                                         </div>
                                         <?php endforeach; ?>
                                     <?php endif; ?>
@@ -496,7 +495,7 @@ $kpiData = [
                                                 <div style="font-size:.7rem;color:#6c757d;"><?php echo htmlspecialchars($vend->MobileNumber); ?></div>
                                                 <?php endif; ?>
                                             </div>
-                                            <div class="fw-bold text-end flex-shrink-0 vend-balance"><?php echo dashFmt($vend->PendingBalance, $cur, $dec); ?></div>
+                                            <div class="fw-bold text-end flex-shrink-0 vend-balance"><?php echo dashFmt($vend->PendingBalance, $cur); ?></div>
                                         </div>
                                         <?php endforeach; ?>
                                     <?php endif; ?>
@@ -541,7 +540,7 @@ $kpiData = [
                                                 <td style="color:#0d6efd;font-weight:600;"><?php echo htmlspecialchars($txn->UniqueNumber ?? '—'); ?></td>
                                                 <td style="color:#6c757d;"><?php echo htmlspecialchars($txn->TransType ?? '—'); ?></td>
                                                 <td style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px;"><?php echo htmlspecialchars($txn->PartyName ?? '—'); ?></td>
-                                                <td class="text-end pe-3 fw-semibold"><?php echo dashFmt($txn->NetAmount, $cur, $dec); ?></td>
+                                                <td class="text-end pe-3 fw-semibold"><?php echo dashFmt($txn->NetAmount, $cur); ?></td>
                                                 <td><span class="badge" style="background:<?php echo $color; ?>1a;color:<?php echo $color; ?>;font-size:.68rem;"><?php echo htmlspecialchars($txn->DocStatus); ?></span></td>
                                             </tr>
                                             <?php endforeach; ?>
@@ -571,7 +570,7 @@ $kpiData = [
                                         <div class="d-flex align-items-center gap-3 mb-3">
                                             <div>
                                                 <div class="exp-total-lbl text-muted">Total Spent</div>
-                                                <div class="exp-total-val"><?php echo dashFmt($expTotal, $cur, $dec); ?></div>
+                                                <div class="exp-total-val"><?php echo dashFmt($expTotal, $cur); ?></div>
                                             </div>
                                             <div class="text-muted" style="font-size:.75rem;">| <?php echo count($expSummary); ?> categor<?php echo count($expSummary) == 1 ? 'y' : 'ies'; ?></div>
                                         </div>
@@ -584,7 +583,7 @@ $kpiData = [
                                                 <div class="exp-cat-bar">
                                                     <div class="exp-cat-fill" style="width:<?php echo $pct; ?>%;"></div>
                                                 </div>
-                                                <span class="exp-cat-amt"><?php echo dashFmt((float)$exp->total, $cur, $dec); ?></span>
+                                                <span class="exp-cat-amt"><?php echo dashFmt((float)$exp->total, $cur); ?></span>
                                             </div>
                                             <?php endforeach; ?>
                                         </div>
@@ -617,7 +616,7 @@ $kpiData = [
                                                     </div>
                                                 </div>
                                                 <span class="prod-qty"><?php echo number_format((float)$prod->qty_sold, 0); ?> qty</span>
-                                                <span class="prod-rev"><?php echo dashFmt((float)$prod->revenue, $cur, $dec); ?></span>
+                                                <span class="prod-rev"><?php echo dashFmt((float)$prod->revenue, $cur); ?></span>
                                             </div>
                                             <?php endforeach; ?>
                                         </div>
@@ -643,7 +642,7 @@ $kpiData = [
     'use strict';
 
     var cur  = <?php echo json_encode($cur); ?>;
-    var dec  = <?php echo (int)$dec; ?>;
+    var dec  = 2;
 
     // KPI metric datasets — each carries its own labels array for the axis
     var metrics = <?php echo json_encode($kpiData); ?>;

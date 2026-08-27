@@ -28,8 +28,7 @@ $this->load->view('common/transactions/header'); ?>
                 if (($JwtData->GenSettings->ShowStats ?? 1) && ($JwtData->TransSettings->ShowTransactionStats ?? 1)):
                 $stats       = $SummaryStats ?? [];
                 $cur         = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-                $dec         = $JwtData->GenSettings->DecimalPoints ?? 2;
-
+                
                 $activePurchStatuses = ['Received', 'Partial', 'Paid'];
                 $cntAll     = array_sum(array_map(fn($s) => $stats[$s]['count']  ?? 0, $activePurchStatuses));
                 $amtAll     = array_sum(array_map(fn($s) => $stats[$s]['amount'] ?? 0, $activePurchStatuses));

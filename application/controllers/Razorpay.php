@@ -188,7 +188,7 @@ class Razorpay extends CI_Controller {
             }
 
             $out->Error      = false;
-            $out->Message    = 'Payment of â‚¹' . number_format($pendingAmt, 2) . ' recorded successfully.';
+            $out->Message    = 'Payment of â‚¹' . smartDecimal($pendingAmt) . ' recorded successfully.';
             $out->ReceiptUrl = base_url('receipt/' . $receiptToken);
 
         } catch (Exception $e) {

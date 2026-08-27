@@ -1,7 +1,6 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var object $Ratios */ $Ratios = $Ratios ?? (object)[];
 $cur     = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-$dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 $dateFmt = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
 $orgName = htmlspecialchars($JwtData->Org->OrgName ?? '');
 $asDisp  = date($dateFmt, strtotime($AsOfDate));
@@ -56,10 +55,10 @@ function _ratioBadge(?float $v, float $good, float $warn, bool $higherIsBetter =
         <div class="col-12">
             <div class="row g-2">
                 <?php $items = [
-                    ['label'=>'Total Assets',     'val'=>$cur.' '.number_format($Ratios->totalAssets,  $dec), 'icon'=>'bx-building-house', 'col'=>'#1d4ed8'],
-                    ['label'=>'Total Liabilities','val'=>$cur.' '.number_format($Ratios->totalLiab,    $dec), 'icon'=>'bx-credit-card',    'col'=>'#dc2626'],
-                    ['label'=>'Equity',           'val'=>$cur.' '.number_format($Ratios->equity,       $dec), 'icon'=>'bx-dollar-circle',  'col'=>$Ratios->equity>=0?'#059669':'#dc2626'],
-                    ['label'=>'Net Profit',       'val'=>$cur.' '.number_format($Ratios->netProfit,    $dec), 'icon'=>'bx-trending-up',    'col'=>$Ratios->netProfit>=0?'#059669':'#dc2626'],
+                    ['label'=>'Total Assets',     'val'=>$cur.' '.smartDecimal($Ratios->totalAssets), 'icon'=>'bx-building-house', 'col'=>'#1d4ed8'],
+                    ['label'=>'Total Liabilities','val'=>$cur.' '.smartDecimal($Ratios->totalLiab), 'icon'=>'bx-credit-card',    'col'=>'#dc2626'],
+                    ['label'=>'Equity',           'val'=>$cur.' '.smartDecimal($Ratios->equity), 'icon'=>'bx-dollar-circle',  'col'=>$Ratios->equity>=0?'#059669':'#dc2626'],
+                    ['label'=>'Net Profit',       'val'=>$cur.' '.smartDecimal($Ratios->netProfit), 'icon'=>'bx-trending-up',    'col'=>$Ratios->netProfit>=0?'#059669':'#dc2626'],
                 ]; foreach ($items as $item): ?>
                 <div class="col-md-3">
                     <div class="card ratio-summary-card">

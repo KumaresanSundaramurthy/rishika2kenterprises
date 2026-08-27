@@ -5,7 +5,6 @@ $cdnUrl     = getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv(
 include_once(APPPATH . 'views/transactions/partials/party_avatar.php');
 
 $currency   = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-$decimals   = $JwtData->GenSettings->DecimalPoints ?? 2;
 $showSerial = $JwtData->GenSettings->SerialNoDisplay == 1;
 
 $statusBadge = [
@@ -175,17 +174,17 @@ if (!empty($DataLists)):
 
         <!-- Total -->
         <td style="text-align:right;">
-            <div class="trans-amount-main"><?php echo $currency . ' ' . number_format((float)$list->GrandTotal, $decimals, '.', ','); ?></div>
+            <div class="trans-amount-main"><?php echo $currency . ' ' . smartDecimal((float)$list->GrandTotal); ?></div>
             <?php if ((float)$list->ExtraCharges > 0): ?>
-                <div class="text-muted" style="font-size:.7rem;">+<?php echo $currency; ?> <?php echo number_format((float)$list->ExtraCharges, $decimals, '.', ','); ?> extra</div>
+                <div class="text-muted" style="font-size:.7rem;">+<?php echo $currency; ?> <?php echo smartDecimal((float)$list->ExtraCharges); ?> extra</div>
             <?php endif; ?>
         </td>
 
         <!-- Paid -->
         <td style="text-align:right;">
-            <div style="font-weight:500;color:#16a34a;font-size:.85rem;"><?php echo $currency . ' ' . number_format((float)$list->TotalPaid, $decimals, '.', ','); ?></div>
+            <div style="font-weight:500;color:#16a34a;font-size:.85rem;"><?php echo $currency . ' ' . smartDecimal((float)$list->TotalPaid); ?></div>
             <?php if ((float)$list->DepositCollected > 0): ?>
-                <div class="text-muted" style="font-size:.7rem;"><?php echo $currency; ?> <?php echo number_format((float)$list->DepositCollected, $decimals, '.', ','); ?> deposit</div>
+                <div class="text-muted" style="font-size:.7rem;"><?php echo $currency; ?> <?php echo smartDecimal((float)$list->DepositCollected); ?> deposit</div>
             <?php endif; ?>
         </td>
 
@@ -193,7 +192,7 @@ if (!empty($DataLists)):
         <td style="text-align:right;">
             <?php $bal = (float)$list->BalanceAmount; ?>
             <div style="font-weight:600;color:<?php echo $bal > 0 ? '#dc2626' : '#16a34a'; ?>;font-size:.85rem;">
-                <?php echo $currency . ' ' . number_format($bal, $decimals, '.', ','); ?>
+                <?php echo $currency . ' ' . smartDecimal($bal); ?>
             </div>
         </td>
 

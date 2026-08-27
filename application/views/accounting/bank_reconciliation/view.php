@@ -170,7 +170,7 @@ $this->load->view('common/header'); ?>
     'use strict';
 
     var _cur     = '<?php echo addslashes($cur); ?>';
-    var _dec     = <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>;
+    var _dec     = 2;
     var _dateFmt = (typeof _transFormDateFormat !== 'undefined') ? _transFormDateFormat : 'd M Y';
 
     // ── State ──────────────────────────────────────────────────────────────

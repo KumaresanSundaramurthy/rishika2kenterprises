@@ -2189,7 +2189,7 @@ class Vendors extends MY_Controller {
 
             $JwtData    = $this->pageData['JwtData'];
             $cur        = $JwtData->GenSettings->CurrenySymbol ?? 'â‚¹';
-            $dec        = (int) ($JwtData->GenSettings->DecimalPoints ?? 2);
+            $dec        = 2;
             $dateFormat = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
 
             $html = '';
@@ -2339,7 +2339,7 @@ class Vendors extends MY_Controller {
                 'ToDate'      => $toDate,
                 'JwtData'     => $JwtData,
                 'Cur'         => $JwtData->GenSettings->CurrenySymbol ?? 'â‚¹',
-                'Dec'         => (int) ($JwtData->GenSettings->DecimalPoints ?? 2),
+                'Dec'         => 2,
                 'DateFormat'  => $JwtData->GenSettings->ListDateFormat ?? 'd M Y',
                 'VendorUID'   => $vendorUID,
                 'OrgInfo'     => $orgResult->Data ?? null,

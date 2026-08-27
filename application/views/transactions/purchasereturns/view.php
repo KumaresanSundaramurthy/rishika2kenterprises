@@ -28,8 +28,7 @@ $this->load->view('common/transactions/header'); ?>
                 if (($JwtData->GenSettings->ShowStats ?? 1) && ($JwtData->TransSettings->ShowTransactionStats ?? 1)):
                 $stats       = $SummaryStats ?? [];
                 $cur         = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-                $dec         = $JwtData->GenSettings->DecimalPoints ?? 2;
-
+                
                 $cntAll     = array_sum(array_column($stats, 'count'));
                 $cntPending = ($stats['Approved']['count']  ?? 0) + ($stats['Partial']['count']  ?? 0);
                 $cntPaid    = $stats['Paid']['count']  ?? 0;

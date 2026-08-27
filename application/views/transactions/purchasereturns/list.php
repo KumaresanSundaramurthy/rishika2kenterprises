@@ -7,7 +7,6 @@ $moduleContext = 'purchasereturn';
 include(APPPATH . 'views/transactions/partials/status_config.php');
 
 $currency   = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-$decimals   = $JwtData->GenSettings->DecimalPoints ?? 2;
 $showSerial = $JwtData->GenSettings->SerialNoDisplay == 1;
 
 if (!empty($DataLists)):
@@ -23,7 +22,7 @@ if (!empty($DataLists)):
 
         $netAmt     = (float)($list->NetAmount  ?? 0);
         $paidAmt    = (float)($list->PaidAmount ?? 0);
-        $pendingAmt = max(0, round($netAmt - $paidAmt, $decimals));
+        $pendingAmt = max(0, round($netAmt - $paidAmt));
 
         if ($isDraft) {
             $refundBadge = '';
@@ -94,9 +93,9 @@ if (!empty($DataLists)):
             <?php if ($isDraft && $netAmt == 0): ?>
                 <span class="text-muted">—</span>
             <?php else: ?>
-                <div class="trans-amount-main"><?php echo $currency . ' ' . smartDecimal($netAmt, $decimals, true); ?></div>
+                <div class="trans-amount-main"><?php echo $currency . ' ' . smartDecimal($netAmt); ?></div>
                 <?php if (!$isDraft && $pendingAmt > 0 && $pendingAmt < $netAmt): ?>
-                <div class="text-muted" style="font-size:.7rem;">Pending: <?php echo $currency . ' ' . smartDecimal($pendingAmt, $decimals, true); ?></div>
+                <div class="text-muted" style="font-size:.7rem;">Pending: <?php echo $currency . ' ' . smartDecimal($pendingAmt); ?></div>
                 <?php endif; ?>
             <?php endif; ?>
         </td>
@@ -233,7 +232,7 @@ if (!empty($DataLists)):
                         data-total="<?php echo $netAmt; ?>"
                         data-paid="<?php echo $paidAmt; ?>"
                         data-pending="<?php echo $pendingAmt; ?>"
-                        title="Record Refund — <?php echo $currency . ' ' . smartDecimal($pendingAmt, $decimals, true); ?> pending">
+                        title="Record Refund — <?php echo $currency . ' ' . smartDecimal($pendingAmt); ?> pending">
                     <?php echo $currency; ?>
                 </button>
                 <?php endif; ?>

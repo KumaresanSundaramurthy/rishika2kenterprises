@@ -2,7 +2,7 @@
     'use strict';
 
     var _sym = (genSettings && genSettings.CurrenySymbol) ? genSettings.CurrenySymbol : '₹';
-    var _dec = (genSettings && genSettings.DecimalPoints)  ? parseInt(genSettings.DecimalPoints, 10) : 2;
+    var _dec = 2;
     var _customerUID = 0;
 
     /**

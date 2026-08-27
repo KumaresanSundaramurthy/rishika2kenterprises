@@ -1,6 +1,5 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
 $cur    = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-$dec    = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 $p      = $Payroll ?? new stdClass();
 $lines  = $PayrollLines ?? [];
 $months = ['','January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -34,8 +33,8 @@ $badge = $statusColors[$p->PayrollStatus ?? 'Draft'] ?? 'secondary';
                 <div class="col-md-3"><div class="text-muted"><?php echo t('lbl_period', 'Period'); ?></div><div class="fw-semibold"><?php echo $period; ?></div></div>
                 <div class="col-md-2"><div class="text-muted"><?php echo t('col_status', 'Status'); ?></div><span class="badge bg-label-<?php echo $badge; ?>"><?php echo $p->PayrollStatus ?? '—'; ?></span></div>
                 <div class="col-md-2"><div class="text-muted"><?php echo t('lbl_employees', 'Employees'); ?></div><div class="fw-semibold"><?php echo count($lines); ?></div></div>
-                <div class="col-md-2"><div class="text-muted"><?php echo t('lbl_gross', 'Gross'); ?></div><div class="fw-semibold"><?php echo $cur . ' ' . number_format((float)($p->TotalGross ?? 0), $dec); ?></div></div>
-                <div class="col-md-2"><div class="text-muted"><?php echo t('lbl_net_payable', 'Net Payable'); ?></div><div class="fw-semibold text-success"><?php echo $cur . ' ' . number_format((float)($p->TotalNetPayable ?? 0), $dec); ?></div></div>
+                <div class="col-md-2"><div class="text-muted"><?php echo t('lbl_gross', 'Gross'); ?></div><div class="fw-semibold"><?php echo $cur . ' ' . smartDecimal((float)($p->TotalGross ?? 0)); ?></div></div>
+                <div class="col-md-2"><div class="text-muted"><?php echo t('lbl_net_payable', 'Net Payable'); ?></div><div class="fw-semibold text-success"><?php echo $cur . ' ' . smartDecimal((float)($p->TotalNetPayable ?? 0)); ?></div></div>
                 <?php if (!empty($p->Notes)): ?><div class="col-12"><div class="text-muted"><?php echo t('lbl_notes', 'Notes'); ?></div><div><?php echo htmlspecialchars($p->Notes); ?></div></div><?php endif; ?>
               </div>
             </div>
@@ -63,10 +62,10 @@ $badge = $statusColors[$p->PayrollStatus ?? 'Draft'] ?? 'secondary';
                     <td><span class="badge bg-label-secondary"><?php echo $ln->SalaryType ?? '—'; ?></span></td>
                     <td><?php echo number_format((float)($ln->PresentDays ?? 0), 1); ?></td>
                     <td><?php echo number_format((float)($ln->AbsentDays ?? 0), 1); ?></td>
-                    <td><?php echo $cur . ' ' . number_format((float)($ln->GrossSalary ?? 0), $dec); ?></td>
-                    <td class="text-warning"><?php echo $cur . ' ' . number_format((float)($ln->AdvanceRecovery ?? 0), $dec); ?></td>
-                    <td class="text-danger"><?php echo $cur . ' ' . number_format((float)($ln->TotalDeductions ?? 0), $dec); ?></td>
-                    <td class="text-success fw-semibold"><?php echo $cur . ' ' . number_format((float)($ln->NetPayable ?? 0), $dec); ?></td>
+                    <td><?php echo $cur . ' ' . smartDecimal((float)($ln->GrossSalary ?? 0)); ?></td>
+                    <td class="text-warning"><?php echo $cur . ' ' . smartDecimal((float)($ln->AdvanceRecovery ?? 0)); ?></td>
+                    <td class="text-danger"><?php echo $cur . ' ' . smartDecimal((float)($ln->TotalDeductions ?? 0)); ?></td>
+                    <td class="text-success fw-semibold"><?php echo $cur . ' ' . smartDecimal((float)($ln->NetPayable ?? 0)); ?></td>
                     <td>
                       <a href="/payslips/view/<?php echo (int)$ln->PayrollLineUID; ?>" class="btn btn-icon btn-sm text-primary" title="<?php echo t('btn_view_detail', 'View Payslip'); ?>"><i class="bx bx-file"></i></a>
                       <a href="/payslips/print/<?php echo (int)$ln->PayrollLineUID; ?>" class="btn btn-icon btn-sm text-secondary" title="<?php echo t('btn_print', 'Print'); ?>" target="_blank"><i class="bx bx-printer"></i></a>

@@ -214,7 +214,7 @@ function _buildCommTokenContext(moduleUID, rowData) {
     var orgCtx = (window._commOrgContext  || {});
     var gs     = (window._commGenSettings || {});
     var cur    = gs.CurrenySymbol || '₹';
-    var dec    = parseInt(gs.DecimalPoints || 2);
+    var dec    = 2;
     var fmtAmt = function (n) {
         return parseFloat(n || 0).toFixed(dec)
             .replace(/\B(?=(\d{3})+(?!\d))/g, ',');

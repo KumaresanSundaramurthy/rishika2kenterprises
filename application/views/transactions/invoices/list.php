@@ -7,7 +7,6 @@ $moduleContext = 'invoice';
 include(APPPATH . 'views/transactions/partials/status_config.php');
 
 $currency   = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-$decimals   = $JwtData->GenSettings->DecimalPoints ?? 2;
 $showSerial = $JwtData->GenSettings->SerialNoDisplay == 1;
 $invModuleUID = 103;
 
@@ -27,7 +26,7 @@ if (!empty($DataLists)):
 
         $paidAmt    = (float)($list->PaidAmount ?? 0);
         $netAmt     = (float)($list->NetAmount  ?? 0);
-        $pendingAmt = max(0, round($netAmt - $paidAmt, $decimals));
+        $pendingAmt = max(0, round($netAmt - $paidAmt));
 
         // Payment status badge — $payStatus stays English for WA template token matching
         if ($isDraft) {
@@ -52,9 +51,9 @@ if (!empty($DataLists)):
         $partyName   = $list->PartyName   ?? 'Customer';
         $invoiceNum  = $list->UniqueNumber ?? 'Draft';
         $invoiceLink = (getenv('APP_URL') ?: 'http://localhost:8080') . '/invoice/' . ($list->TransToken ?? '');
-        $numericAmt  = smartDecimal($netAmt, $decimals, true);
+        $numericAmt  = smartDecimal($netAmt);
         $billAmount  = $currency . ' ' . $numericAmt;
-        $pendingFmt  = $currency . ' ' . smartDecimal($pendingAmt, $decimals, true);
+        $pendingFmt  = $currency . ' ' . smartDecimal($pendingAmt);
         $transDate   = !empty($list->TransDate) ? format_datedisplay($list->TransDate) : '';
 
         if (!empty($waTemplate)) {
@@ -164,10 +163,10 @@ if (!empty($DataLists)):
             <?php if ($isDraft && $netAmt == 0): ?>
                 <span class="text-muted">—</span>
             <?php else: ?>
-                <div class="trans-amount-main"><?php echo $currency . ' ' . smartDecimal($netAmt, $decimals, true); ?></div>
+                <div class="trans-amount-main"><?php echo $currency . ' ' . smartDecimal($netAmt); ?></div>
                 <?php if ($showPending): ?>
                     <div style="font-size:.68rem;color:#d33;font-weight:500;">
-                        Bal <?php echo $currency . ' ' . smartDecimal($pendingAmt, $decimals, true); ?>
+                        Bal <?php echo $currency . ' ' . smartDecimal($pendingAmt); ?>
                     </div>
                 <?php endif; ?>
             <?php endif; ?>
@@ -338,7 +337,7 @@ if (!empty($DataLists)):
                         data-pending="<?php echo $pendingAmt; ?>"
                         data-bs-toggle="tooltip"
                         data-bs-trigger="hover"
-                        title="Record Payment — <?php echo $currency . ' ' . smartDecimal($pendingAmt, $decimals, true); ?> pending">
+                        title="Record Payment — <?php echo $currency . ' ' . smartDecimal($pendingAmt); ?> pending">
                     <?php echo $currency; ?>
                 </button>
                 <?php endif; ?>

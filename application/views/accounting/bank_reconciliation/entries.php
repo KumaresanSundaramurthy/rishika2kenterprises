@@ -2,7 +2,6 @@
 /** @var array $Entries */ $Entries = $Entries ?? [];
 $cur     = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
 $dateFmt = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
-$dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 
 $refBadge = [
     'Invoice'          => 'bg-label-primary',

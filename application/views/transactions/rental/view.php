@@ -17,8 +17,7 @@ $this->load->view('common/transactions/header'); ?>
                 $paymentTypes = $PaymentTypes  ?? [];
                 $bankAccounts = $BankAccounts  ?? [];
                 $cur  = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-                $dec  = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
-                $ovd  = (int)($stats->overdueCount ?? 0);
+                                $ovd  = (int)($stats->overdueCount ?? 0);
                 ?>
 
                 <!-- ── Stats Strip ───────────────────────────────────────────── -->
@@ -30,7 +29,7 @@ $this->load->view('common/transactions/header'); ?>
                             <div class="apex-stat-label">Total Rentals</div>
                             <div class="apex-stat-bottom">
                                 <span class="apex-stat-count" id="statTotalCount"><?php echo number_format((int)($stats->totalCount ?? 0)); ?></span>
-                                <span class="apex-stat-amount" id="statTotalRevenue"><?php echo $cur . ' ' . number_format((float)($stats->totalRevenue ?? 0), $dec, '.', ','); ?></span>
+                                <span class="apex-stat-amount" id="statTotalRevenue"><?php echo $cur . ' ' . smartDecimal((float)($stats->totalRevenue ?? 0)); ?></span>
                             </div>
                         </div>
                     </a>
@@ -50,7 +49,7 @@ $this->load->view('common/transactions/header'); ?>
                             <div class="apex-stat-label">Closed / Returned</div>
                             <div class="apex-stat-bottom">
                                 <span class="apex-stat-count" id="statClosedCount"><?php echo number_format((int)($stats->closedCount ?? 0)); ?></span>
-                                <span class="apex-stat-amount" id="statDeposit"><?php echo $cur . ' ' . number_format((float)($stats->totalDeposit ?? 0), $dec, '.', ','); ?> deposit</span>
+                                <span class="apex-stat-amount" id="statDeposit"><?php echo $cur . ' ' . smartDecimal((float)($stats->totalDeposit ?? 0)); ?> deposit</span>
                             </div>
                         </div>
                     </a>
@@ -59,7 +58,7 @@ $this->load->view('common/transactions/header'); ?>
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">Outstanding Balance</div>
                             <div class="apex-stat-bottom">
-                                <span class="apex-stat-count" id="statBalance" style="color:#d97706"><?php echo $cur . ' ' . number_format((float)($stats->totalBalance ?? 0), $dec, '.', ','); ?></span>
+                                <span class="apex-stat-count" id="statBalance" style="color:#d97706"><?php echo $cur . ' ' . smartDecimal((float)($stats->totalBalance ?? 0)); ?></span>
                             </div>
                         </div>
                     </div>

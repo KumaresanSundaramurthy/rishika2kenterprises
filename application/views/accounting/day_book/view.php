@@ -1,7 +1,6 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var array $CashBankLedgers */ $CashBankLedgers = $CashBankLedgers ?? [];
 $cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? 'â‚¹');
-$dec = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 $this->load->view('common/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -100,7 +99,7 @@ $this->load->view('common/header'); ?>
 
     var _baseUrl = '<?php echo base_url(); ?>';
     var _cur     = '<?php echo $cur; ?>';
-    var _dec     = <?php echo $dec; ?>;
+    var _dec     = 2;
 
     var _fpCfg = { static: true, position: 'below left', dateFormat: 'Y-m-d', altInput: true, altFormat: _transFormDateFormat || 'd M Y' };
     var _fpFrom, _fpTo;

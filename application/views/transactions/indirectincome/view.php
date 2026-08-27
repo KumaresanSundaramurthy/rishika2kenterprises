@@ -15,8 +15,7 @@ $this->load->view('common/transactions/header'); ?>
                 <?php
                 $stats   = $SummaryStats ?? [];
                 $cur     = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-                $dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
-
+                
                 $cntPending   = ($stats['Pending']['count']  ?? 0) + ($stats['Partial']['count']  ?? 0);
                 $amtPending   = ($stats['Pending']['amount'] ?? 0) + ($stats['Partial']['amount'] ?? 0);
                 $cntReceived  = $stats['Received']['count']  ?? 0;
@@ -39,7 +38,7 @@ $this->load->view('common/transactions/header'); ?>
                             <div class="apex-stat-label">All Income</div>
                             <div class="apex-stat-bottom">
                                 <span class="apex-stat-count"><?php echo number_format($cntAll); ?></span>
-                                <span class="apex-stat-amount"><?php echo $cur . ' ' . number_format((float)$amtAll, $dec, '.', ','); ?></span>
+                                <span class="apex-stat-amount"><?php echo $cur . ' ' . smartDecimal((float)$amtAll); ?></span>
                             </div>
                         </div>
                     </a>
@@ -49,7 +48,7 @@ $this->load->view('common/transactions/header'); ?>
                             <div class="apex-stat-label">Pending</div>
                             <div class="apex-stat-bottom">
                                 <span class="apex-stat-count"><?php echo number_format($cntPending); ?></span>
-                                <span class="apex-stat-amount"><?php echo $cur . ' ' . number_format((float)$amtPending, $dec, '.', ','); ?></span>
+                                <span class="apex-stat-amount"><?php echo $cur . ' ' . smartDecimal((float)$amtPending); ?></span>
                             </div>
                         </div>
                     </a>
@@ -59,7 +58,7 @@ $this->load->view('common/transactions/header'); ?>
                             <div class="apex-stat-label">Received</div>
                             <div class="apex-stat-bottom">
                                 <span class="apex-stat-count"><?php echo number_format($cntReceived); ?></span>
-                                <span class="apex-stat-amount"><?php echo $cur . ' ' . number_format((float)$amtReceived, $dec, '.', ','); ?></span>
+                                <span class="apex-stat-amount"><?php echo $cur . ' ' . smartDecimal((float)$amtReceived); ?></span>
                             </div>
                         </div>
                     </a>

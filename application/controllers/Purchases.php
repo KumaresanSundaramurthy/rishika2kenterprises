@@ -1681,7 +1681,7 @@ class Purchases extends MY_Controller {
             $rows = $readDb->get()->result();
 
             $cur      = $this->pageData['JwtData']->GenSettings->CurrenySymbol  ?? 'â‚¹';
-            $dec      = (int)($this->pageData['JwtData']->GenSettings->DecimalPoints ?? 2);
+            $dec      = 2;
             $timezone = $this->pageData['JwtData']->User->Timezone ?? 'UTC';
 
             $html = '';
@@ -1720,7 +1720,7 @@ class Purchases extends MY_Controller {
                         . '<td class="text-muted small">' . ($offset + $i + 1) . '</td>'
                         . '<td>' . $sourceLink . '<div class="text-muted small">' . htmlspecialchars($dn->VendorName ?? 'â€”') . '</div></td>'
                         . '<td>' . $statusBadge . '</td>'
-                        . '<td class="fw-semibold text-success">' . htmlspecialchars($cur) . ' ' . number_format((float)$dn->Amount, $dec) . '</td>'
+                        . '<td class="fw-semibold text-success">' . htmlspecialchars($cur) . ' ' . smartDecimal((float)$dn->Amount) . '</td>'
                         . '<td class="text-muted small">' . changeTimeZonefromDateTime($dn->CreatedOn, $timezone, 2) . '<br><span>' . htmlspecialchars($dn->CreatorName ?? 'â€”') . '</span></td>'
                         . '<td>' . $dnActions . '</td>'
                         . '</tr>';

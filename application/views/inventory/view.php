@@ -15,8 +15,7 @@ $this->load->view('common/transactions/header'); ?>
                 <?php
                 $stats    = $Stats ?? null;
                 $cur      = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-                $dec      = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
-                $showSno  = $JwtData->GenSettings->SerialNoDisplay == 1;
+                                $showSno  = $JwtData->GenSettings->SerialNoDisplay == 1;
 
                 $posCount   = (int)($stats->positiveCount  ?? 0);
                 $posQty     = (float)($stats->positiveQty   ?? 0);
@@ -27,7 +26,7 @@ $this->load->view('common/transactions/header'); ?>
 
                 $categories = $Categories ?? [];
 
-                function invFmt($val, $sym, $dec) {
+                function invFmt($val, $sym) {
                     return $sym . ' ' . smartDecimal((float)$val);
                 }
                 ?>
@@ -59,7 +58,7 @@ $this->load->view('common/transactions/header'); ?>
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">Stock Value (Sale)</div>
                             <div class="apex-stat-bottom">
-                                <span class="apex-stat-count" id="statSaleValue"><?php echo invFmt($saleVal, $cur, $dec); ?></span>
+                                <span class="apex-stat-count" id="statSaleValue"><?php echo invFmt($saleVal, $cur); ?></span>
                                 <span class="apex-stat-amount">at selling price</span>
                             </div>
                         </div>
@@ -69,7 +68,7 @@ $this->load->view('common/transactions/header'); ?>
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">Stock Value (Purchase)</div>
                             <div class="apex-stat-bottom">
-                                <span class="apex-stat-count" id="statPurchaseValue"><?php echo invFmt($purchVal, $cur, $dec); ?></span>
+                                <span class="apex-stat-count" id="statPurchaseValue"><?php echo invFmt($purchVal, $cur); ?></span>
                                 <span class="apex-stat-amount">at purchase price</span>
                             </div>
                         </div>
@@ -260,7 +259,7 @@ $this->load->view('inventory/partials/_timeline_modal');
 
 <script>
 const InvCurrency   = <?php echo json_encode($cur); ?>;
-const InvDecimals   = <?php echo (int)$dec; ?>;
+const InvDecimals   = 2;
 const InvShowSerial = <?php echo $showSno ? 'true' : 'false'; ?>;
 
 // ── Status filter (TransColFilter) ───────────────────────────────────────────

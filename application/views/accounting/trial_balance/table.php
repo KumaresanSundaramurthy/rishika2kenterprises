@@ -6,9 +6,8 @@
 /** @var float  $TotalObCr */
 /** @var int    $FinancialYear */
 $cur     = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-$dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 
-function _tbFmt(mixed $n, string $cur, int $dec): string {
+function _tbFmt(mixed $n, string $cur): string {
     if (abs((float)$n) < 0.005) return '<span class="text-muted">—</span>';
     return $cur . ' ' . smartDecimal((float)$n);
 }
@@ -82,12 +81,12 @@ foreach (array_keys($grouped) as $t) {
                 <?php endif; ?>
             </td>
             <td><span class="badge <?php echo $badge; ?>" style="font-size:.68rem;"><?php echo htmlspecialchars($type); ?></span></td>
-            <td class="text-end text-success"><?php echo $obDr > 0 ? (_tbFmt($obDr, $cur, $dec)) : '—'; ?></td>
-            <td class="text-end text-danger"> <?php echo $obCr > 0 ? (_tbFmt($obCr, $cur, $dec)) : '—'; ?></td>
-            <td class="text-end text-success fw-semibold"><?php echo $dr > 0 ? (_tbFmt($dr, $cur, $dec)) : '—'; ?></td>
-            <td class="text-end text-danger fw-semibold"> <?php echo $cr > 0 ? (_tbFmt($cr, $cur, $dec)) : '—'; ?></td>
-            <td class="text-end text-success"><?php echo $cbDr > 0 ? (_tbFmt($cbDr, $cur, $dec)) : '—'; ?></td>
-            <td class="text-end text-danger"> <?php echo $cbCr > 0 ? (_tbFmt($cbCr, $cur, $dec)) : '—'; ?></td>
+            <td class="text-end text-success"><?php echo $obDr > 0 ? (_tbFmt($obDr, $cur)) : '—'; ?></td>
+            <td class="text-end text-danger"> <?php echo $obCr > 0 ? (_tbFmt($obCr, $cur)) : '—'; ?></td>
+            <td class="text-end text-success fw-semibold"><?php echo $dr > 0 ? (_tbFmt($dr, $cur)) : '—'; ?></td>
+            <td class="text-end text-danger fw-semibold"> <?php echo $cr > 0 ? (_tbFmt($cr, $cur)) : '—'; ?></td>
+            <td class="text-end text-success"><?php echo $cbDr > 0 ? (_tbFmt($cbDr, $cur)) : '—'; ?></td>
+            <td class="text-end text-danger"> <?php echo $cbCr > 0 ? (_tbFmt($cbCr, $cur)) : '—'; ?></td>
         </tr>
         <?php endforeach; ?>
     <?php endforeach; ?>

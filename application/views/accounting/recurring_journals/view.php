@@ -3,7 +3,6 @@
 /** @var int $TotalCount */ $TotalCount = $TotalCount ?? 0;
 $dateFmt = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
 $cur     = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? 'â‚¹');
-$dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 $this->load->view('common/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -198,7 +197,7 @@ $this->load->view('common/header'); ?>
 
     var _baseUrl       = '<?php echo base_url(); ?>';
     var _cur           = '<?php echo $cur; ?>';
-    var _dec           = <?php echo $dec; ?>;
+    var _dec           = 2;
     var _dateFmt       = '<?php echo $dateFmt; ?>';
     var _activeFilter  = 'All';
     var _searchTimer   = null;

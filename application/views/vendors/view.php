@@ -21,8 +21,7 @@
                 <?php
                 $s   = $VendStats ?? null;
                 $cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-                $dec = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
-                ?>
+                                ?>
 
                 <?php if (($JwtData->GenSettings->ShowStats ?? 1) && ($JwtData->TransSettings->ShowTransactionStats ?? 1)): ?>
                 <!-- ── Stats Strip ───────────────────────────────────────────── -->
@@ -379,7 +378,7 @@ $(function () {
 
     var _vgrpDetailUID = 0;
     var _currency      = '<?php echo addslashes(htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹')); ?>';
-    var _dec           = <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>;
+    var _dec           = 2;
 
     var _typeColors = {
         'Business Group' : { bg: '#f0efff', c: '#696cff' },

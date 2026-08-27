@@ -5,7 +5,6 @@
 /** @var float $TotalExpense */ $TotalExpense = (float)($TotalExpense ?? 0);
 /** @var float $NetProfit */    $NetProfit    = (float)($NetProfit    ?? 0);
 $cur     = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-$dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 $dateFmt = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
 $orgName = htmlspecialchars($JwtData->Org->OrgName ?? '');
 $dfDisp  = date($dateFmt, strtotime($DateFrom));
@@ -18,9 +17,9 @@ $isLoss  = $NetProfit < 0;
  * @param int    $dec
  * @returns string
  */
-function _plFmt(float $n, string $cur, int $dec): string {
+function _plFmt(float $n, string $cur): string {
     if (abs($n) < 0.005) return '<span class="text-muted">—</span>';
-    return $cur . ' ' . number_format(abs($n), $dec);
+    return $cur . ' ' . smartDecimal(abs($n));
 }
 ?>
 <div class="pl-statement" id="plStatement">
@@ -56,7 +55,7 @@ function _plFmt(float $n, string $cur, int $dec): string {
                 <td><code style="font-size:.75rem;color:#7c3aed;"><?php echo htmlspecialchars($r->LedgerCode ?? ''); ?></code></td>
                 <td><?php echo htmlspecialchars($r->LedgerName); ?></td>
                 <td class="text-end fw-semibold <?php echo $net < 0 ? 'text-danger' : 'text-success'; ?>">
-                    <?php echo _plFmt($net, $cur, $dec); ?>
+                    <?php echo _plFmt($net, $cur); ?>
                     <?php if ($net < 0): ?><small class="ms-1" style="font-size:.7rem;">(Dr)</small><?php endif; ?>
                 </td>
             </tr>
@@ -68,7 +67,7 @@ function _plFmt(float $n, string $cur, int $dec): string {
         <tfoot>
             <tr class="pl-subtotal income-subtotal">
                 <td colspan="2" class="fw-semibold">TOTAL INCOME</td>
-                <td class="text-end fw-bold text-success"><?php echo $cur . ' ' . number_format(max(0, $TotalIncome), $dec); ?></td>
+                <td class="text-end fw-bold text-success"><?php echo $cur . ' ' . smartDecimal(max(0, $TotalIncome)); ?></td>
             </tr>
         </tfoot>
     </table>
@@ -97,7 +96,7 @@ function _plFmt(float $n, string $cur, int $dec): string {
                 <td><code style="font-size:.75rem;color:#7c3aed;"><?php echo htmlspecialchars($r->LedgerCode ?? ''); ?></code></td>
                 <td><?php echo htmlspecialchars($r->LedgerName); ?></td>
                 <td class="text-end fw-semibold <?php echo $net < 0 ? 'text-success' : 'text-danger'; ?>">
-                    <?php echo _plFmt($net, $cur, $dec); ?>
+                    <?php echo _plFmt($net, $cur); ?>
                     <?php if ($net < 0): ?><small class="ms-1" style="font-size:.7rem;">(Cr)</small><?php endif; ?>
                 </td>
             </tr>
@@ -109,7 +108,7 @@ function _plFmt(float $n, string $cur, int $dec): string {
         <tfoot>
             <tr class="pl-subtotal expense-subtotal">
                 <td colspan="2" class="fw-semibold">TOTAL EXPENSES</td>
-                <td class="text-end fw-bold text-danger"><?php echo $cur . ' ' . number_format(max(0, $TotalExpense), $dec); ?></td>
+                <td class="text-end fw-bold text-danger"><?php echo $cur . ' ' . smartDecimal(max(0, $TotalExpense)); ?></td>
             </tr>
         </tfoot>
     </table>
@@ -128,7 +127,7 @@ function _plFmt(float $n, string $cur, int $dec): string {
                 </td>
                 <td class="text-end fw-bold" style="font-size:1rem;padding:12px 16px;width:150px;
                     <?php echo $isLoss ? 'color:#dc2626;' : 'color:#16a34a;'; ?>">
-                    <?php echo $cur . ' ' . number_format(abs($NetProfit), $dec); ?>
+                    <?php echo $cur . ' ' . smartDecimal(abs($NetProfit)); ?>
                     <?php if ($isLoss): ?><div style="font-size:.72rem;font-weight:400;">(Loss)</div><?php endif; ?>
                 </td>
             </tr>

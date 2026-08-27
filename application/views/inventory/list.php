@@ -2,7 +2,6 @@
 
 <?php
 $currency  = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-$decimals  = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 $showSno   = $JwtData->GenSettings->SerialNoDisplay == 1;
 $sno       = (int)($SerialNumber ?? 0);
 

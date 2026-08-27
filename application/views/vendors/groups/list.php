@@ -2,7 +2,6 @@
 
 <?php
 $currency = $JwtData->GenSettings->CurrenySymbol ?? '₹';
-$dec      = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 
 if (!empty($DataLists)):
     foreach ($DataLists as $list):

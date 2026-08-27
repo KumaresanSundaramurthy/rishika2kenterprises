@@ -88,7 +88,7 @@ class Doc extends CI_Controller {
             && ($pendingAmt > 0.01)
             && !in_array($stub->DocStatus, ['Cancelled', 'Rejected', 'Draft'], true)
             && !empty(getenv('RAZORPAY_KEY_ID'));
-        $pendingFmt  = '&#8377;' . number_format($pendingAmt, 2);
+        $pendingFmt  = '&#8377;' . smartDecimal($pendingAmt);
         $createUrl   = base_url('razorpay/createOrder/'   . $token);
         $verifyUrl   = base_url('razorpay/verifyAndRecord/' . $token);
 

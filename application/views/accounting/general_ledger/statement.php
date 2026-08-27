@@ -9,10 +9,9 @@
 /** @var float       $TotalCredit */
 $cur     = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
 $dateFmt = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
-$dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 
-function _glFmt(mixed $n, string $cur, int $dec): string {
-    return $cur . ' ' . number_format((float)$n, $dec, '.', ',');
+function _glFmt(mixed $n, string $cur): string {
+    return $cur . ' ' . smartDecimal((float)$n);
 }
 ?>
 <table class="table table-sm table-bordered align-middle mb-0" style="font-size:.82rem;">
@@ -39,7 +38,7 @@ function _glFmt(mixed $n, string $cur, int $dec): string {
             <td class="text-end">—</td>
             <td class="text-end">—</td>
             <td class="text-end fw-semibold" style="color:#7c3aed;">
-                <?php echo _glFmt($OpeningBalance, $cur, $dec); ?>
+                <?php echo _glFmt($OpeningBalance, $cur); ?>
                 <div style="font-size:.68rem;color:#8b8bcc;"><?php echo htmlspecialchars($OpeningBalanceType); ?></div>
             </td>
         </tr>
@@ -71,13 +70,13 @@ function _glFmt(mixed $n, string $cur, int $dec): string {
                 <?php endif; ?>
             </td>
             <td class="text-end text-success fw-semibold">
-                <?php echo $isDebit ? _glFmt($ln->Amount, $cur, $dec) : '—'; ?>
+                <?php echo $isDebit ? _glFmt($ln->Amount, $cur) : '—'; ?>
             </td>
             <td class="text-end text-danger fw-semibold">
-                <?php echo !$isDebit ? _glFmt($ln->Amount, $cur, $dec) : '—'; ?>
+                <?php echo !$isDebit ? _glFmt($ln->Amount, $cur) : '—'; ?>
             </td>
             <td class="text-end fw-semibold <?php echo $balClass; ?>">
-                <?php echo _glFmt($ln->RunningBalance, $cur, $dec); ?>
+                <?php echo _glFmt($ln->RunningBalance, $cur); ?>
                 <div style="font-size:.68rem;font-weight:400;opacity:.75;"><?php echo htmlspecialchars($ln->RunningBalanceType ?? ''); ?></div>
             </td>
         </tr>
@@ -87,10 +86,10 @@ function _glFmt(mixed $n, string $cur, int $dec): string {
         <!-- Totals Row -->
         <tr style="background:#f8f5ff;font-weight:600;">
             <td colspan="4" class="text-end" style="color:#566a7f;font-size:.8rem;">Period Totals</td>
-            <td class="text-end text-success"><?php echo _glFmt($TotalDebit,  $cur, $dec); ?></td>
-            <td class="text-end text-danger"><?php echo _glFmt($TotalCredit, $cur, $dec); ?></td>
+            <td class="text-end text-success"><?php echo _glFmt($TotalDebit,  $cur); ?></td>
+            <td class="text-end text-danger"><?php echo _glFmt($TotalCredit, $cur); ?></td>
             <td class="text-end" style="color:#7c3aed;">
-                <?php echo _glFmt($ClosingBalance, $cur, $dec); ?>
+                <?php echo _glFmt($ClosingBalance, $cur); ?>
                 <div style="font-size:.68rem;font-weight:400;color:#8b8bcc;"><?php echo htmlspecialchars($ClosingBalanceType); ?></div>
             </td>
         </tr>

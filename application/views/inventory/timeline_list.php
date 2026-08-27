@@ -1,7 +1,6 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php
 $currency = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-$decimals = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 
 $moduleMap = [
     103 => ['label' => 'Invoice',          'color' => '#2563eb'],

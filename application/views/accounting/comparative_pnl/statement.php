@@ -3,7 +3,6 @@
 /** @var array  $Expense */ $Expense = $Expense ?? [];
 /** @var array  $Totals  */ $Totals  = $Totals  ?? [];
 $cur     = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-$dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 $dateFmt = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
 $orgName = htmlspecialchars($JwtData->Org->OrgName ?? '');
 
@@ -20,7 +19,7 @@ $p2Label = htmlspecialchars($P2Label ?? 'Period 2');
  * @param int    $dec
  * @returns string
  */
-function _cmpFmt(float $n, string $cur, int $dec): string {
+function _cmpFmt(float $n, string $cur): string {
     if (abs($n) < 0.005) return '<span class="text-muted comp-dash">—</span>';
     return $cur . ' ' . smartDecimal(abs($n));
 }
@@ -45,7 +44,7 @@ function _cmpPct(?float $pct, bool $higherIsBetter): string {
  * @param int    $dec
  * @returns string
  */
-function _cmpVar(float $var, bool $higherIsBetter, string $cur, int $dec): string {
+function _cmpVar(float $var, bool $higherIsBetter, string $cur): string {
     if (abs($var) < 0.005) return '<span class="text-muted">—</span>';
     $good = $higherIsBetter ? $var >= 0 : $var <= 0;
     $cls  = $good ? 'text-success' : 'text-danger';
@@ -89,9 +88,9 @@ function _cmpVar(float $var, bool $higherIsBetter, string $cur, int $dec): strin
                 <code style="font-size:.7rem;color:#7c3aed;display:block;"><?php echo htmlspecialchars($r->LedgerCode); ?></code>
                 <?php endif; ?>
             </td>
-            <td class="text-end fw-semibold comp-p1-val" style="font-size:.82rem;"><?php echo _cmpFmt($r->Net1, $cur, $dec); ?></td>
-            <td class="text-end comp-p2-val" style="font-size:.82rem;"><?php echo _cmpFmt($r->Net2, $cur, $dec); ?></td>
-            <td class="text-end" style="font-size:.82rem;"><?php echo _cmpVar($r->Variance, true, $cur, $dec); ?></td>
+            <td class="text-end fw-semibold comp-p1-val" style="font-size:.82rem;"><?php echo _cmpFmt($r->Net1, $cur); ?></td>
+            <td class="text-end comp-p2-val" style="font-size:.82rem;"><?php echo _cmpFmt($r->Net2, $cur); ?></td>
+            <td class="text-end" style="font-size:.82rem;"><?php echo _cmpVar($r->Variance, true, $cur); ?></td>
             <td class="text-center" style="font-size:.82rem;"><?php echo _cmpPct($r->PctChange, true); ?></td>
         </tr>
         <?php endforeach; ?>
@@ -102,9 +101,9 @@ function _cmpVar(float $var, bool $higherIsBetter, string $cur, int $dec): strin
         <tfoot>
             <tr class="comp-tfoot comp-income-tfoot">
                 <td class="fw-bold">TOTAL INCOME</td>
-                <td class="text-end fw-bold comp-p1-val"><?php echo _cmpFmt($Totals['income1'], $cur, $dec); ?></td>
-                <td class="text-end fw-bold comp-p2-val"><?php echo _cmpFmt($Totals['income2'], $cur, $dec); ?></td>
-                <td class="text-end fw-bold"><?php echo _cmpVar($Totals['incVar'], true, $cur, $dec); ?></td>
+                <td class="text-end fw-bold comp-p1-val"><?php echo _cmpFmt($Totals['income1'], $cur); ?></td>
+                <td class="text-end fw-bold comp-p2-val"><?php echo _cmpFmt($Totals['income2'], $cur); ?></td>
+                <td class="text-end fw-bold"><?php echo _cmpVar($Totals['incVar'], true, $cur); ?></td>
                 <td class="text-center"><?php echo _cmpPct($Totals['incPct'], true); ?></td>
             </tr>
         </tfoot>
@@ -134,9 +133,9 @@ function _cmpVar(float $var, bool $higherIsBetter, string $cur, int $dec): strin
                 <code style="font-size:.7rem;color:#7c3aed;display:block;"><?php echo htmlspecialchars($r->LedgerCode); ?></code>
                 <?php endif; ?>
             </td>
-            <td class="text-end fw-semibold comp-p1-val" style="font-size:.82rem;"><?php echo _cmpFmt($r->Net1, $cur, $dec); ?></td>
-            <td class="text-end comp-p2-val" style="font-size:.82rem;"><?php echo _cmpFmt($r->Net2, $cur, $dec); ?></td>
-            <td class="text-end" style="font-size:.82rem;"><?php echo _cmpVar($r->Variance, false, $cur, $dec); ?></td>
+            <td class="text-end fw-semibold comp-p1-val" style="font-size:.82rem;"><?php echo _cmpFmt($r->Net1, $cur); ?></td>
+            <td class="text-end comp-p2-val" style="font-size:.82rem;"><?php echo _cmpFmt($r->Net2, $cur); ?></td>
+            <td class="text-end" style="font-size:.82rem;"><?php echo _cmpVar($r->Variance, false, $cur); ?></td>
             <td class="text-center" style="font-size:.82rem;"><?php echo _cmpPct($r->PctChange, false); ?></td>
         </tr>
         <?php endforeach; ?>
@@ -147,9 +146,9 @@ function _cmpVar(float $var, bool $higherIsBetter, string $cur, int $dec): strin
         <tfoot>
             <tr class="comp-tfoot comp-expense-tfoot">
                 <td class="fw-bold">TOTAL EXPENSES</td>
-                <td class="text-end fw-bold comp-p1-val"><?php echo _cmpFmt($Totals['expense1'], $cur, $dec); ?></td>
-                <td class="text-end fw-bold comp-p2-val"><?php echo _cmpFmt($Totals['expense2'], $cur, $dec); ?></td>
-                <td class="text-end fw-bold"><?php echo _cmpVar($Totals['expVar'], false, $cur, $dec); ?></td>
+                <td class="text-end fw-bold comp-p1-val"><?php echo _cmpFmt($Totals['expense1'], $cur); ?></td>
+                <td class="text-end fw-bold comp-p2-val"><?php echo _cmpFmt($Totals['expense2'], $cur); ?></td>
+                <td class="text-end fw-bold"><?php echo _cmpVar($Totals['expVar'], false, $cur); ?></td>
                 <td class="text-center"><?php echo _cmpPct($Totals['expPct'], false); ?></td>
             </tr>
         </tfoot>
@@ -165,13 +164,13 @@ function _cmpVar(float $var, bool $higherIsBetter, string $cur, int $dec): strin
             <tr class="comp-net-row <?php echo $net1IsLoss ? 'comp-net-loss' : 'comp-net-profit'; ?>">
                 <td class="fw-bold" style="font-size:.9rem;">NET <?php echo $net1IsLoss ? 'DEFICIT' : 'SURPLUS'; ?> (Profit)</td>
                 <td class="text-end fw-bold" style="font-size:.88rem;width:130px;color:<?php echo $net1IsLoss ? '#dc2626' : '#16a34a'; ?>;">
-                    <?php echo _cmpFmt($Totals['net1'], $cur, $dec); ?>
+                    <?php echo _cmpFmt($Totals['net1'], $cur); ?>
                 </td>
                 <td class="text-end fw-bold" style="font-size:.88rem;width:130px;color:<?php echo $net2IsLoss ? '#dc2626' : '#16a34a'; ?>;">
-                    <?php echo _cmpFmt($Totals['net2'], $cur, $dec); ?>
+                    <?php echo _cmpFmt($Totals['net2'], $cur); ?>
                 </td>
                 <td class="text-end fw-bold" style="font-size:.88rem;width:120px;">
-                    <?php echo _cmpVar($Totals['netVar'], true, $cur, $dec); ?>
+                    <?php echo _cmpVar($Totals['netVar'], true, $cur); ?>
                 </td>
                 <td class="text-center" style="width:80px;">
                     <?php echo _cmpPct($Totals['netPct'], true); ?>

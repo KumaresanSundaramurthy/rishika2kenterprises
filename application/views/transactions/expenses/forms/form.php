@@ -44,18 +44,17 @@ $vendorStateCode = $VendorStateCode ?? '';
 $orgStateCode    = $JwtData->Org->StateCode ?? '';
 $isInterState    = ($vendorStateCode !== '' && $orgStateCode !== '' && $vendorStateCode !== $orgStateCode);
 
-$dec = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 
 // Pre-computed values for edit-mode footer/summary pre-population
 if ($isEdit) {
-    $_expAmt    = round((float)($expense->Amount    ?? 0), $dec);
-    $_taxAmt    = round((float)($expense->TaxAmount ?? 0), $dec);
-    $_cgstTotal = round((float)($expense->CGSTTotal ?? 0), $dec);
-    $_sgstTotal = round((float)($expense->SGSTTotal ?? 0), $dec);
-    $_igstTotal = round((float)($expense->IGSTTotal ?? 0), $dec);
-    $_tdsAmt    = round((float)($expense->TDSAmount ?? 0), $dec);
-    $_netAmt    = round((float)($expense->NetAmount ?? 0), $dec);
-    $_grandTotal = round($_expAmt + $_taxAmt, $dec); // Grand Total = taxable + tax, no round-off
+    $_expAmt    = round((float)($expense->Amount    ?? 0));
+    $_taxAmt    = round((float)($expense->TaxAmount ?? 0));
+    $_cgstTotal = round((float)($expense->CGSTTotal ?? 0));
+    $_sgstTotal = round((float)($expense->SGSTTotal ?? 0));
+    $_igstTotal = round((float)($expense->IGSTTotal ?? 0));
+    $_tdsAmt    = round((float)($expense->TDSAmount ?? 0));
+    $_netAmt    = round((float)($expense->NetAmount ?? 0));
+    $_grandTotal = round($_expAmt + $_taxAmt); // Grand Total = taxable + tax, no round-off
     $_cgstDisp  = $isInterState ? $_igstTotal : $_cgstTotal;
 } else {
     $_expAmt = $_taxAmt = $_cgstTotal = $_sgstTotal = $_igstTotal = $_tdsAmt = $_netAmt = $_grandTotal = $_cgstDisp = 0.0;
@@ -312,26 +311,26 @@ if ($isEdit) {
                                                         <td colspan="4" class="border-0 py-1"></td>
                                                         <td class="no-tax-col border-0 py-1" style="<?php echo $ntd; ?>"></td>
                                                         <td colspan="3" class="text-end py-1 text-muted border-0" style="font-size:.78rem;">Taxable Amount</td>
-                                                        <td class="text-end py-1 fw-semibold border-0 pe-3" id="footerTaxable" style="font-size:.82rem;"><?php echo number_format($_expAmt, $dec, '.', ''); ?></td>
+                                                        <td class="text-end py-1 fw-semibold border-0 pe-3" id="footerTaxable" style="font-size:.82rem;"><?php echo smartDecimal($_expAmt); ?></td>
                                                     </tr>
                                                     <tr class="tax-col" id="footerCgstRow" style="display:<?php echo $taxApplicable ? 'table-row' : 'none'; ?>;">
                                                         <td colspan="4" class="border-0 py-1"></td>
                                                         <td class="no-tax-col border-0 py-1" style="<?php echo $ntd; ?>"></td>
                                                         <td colspan="3" class="text-end py-1 text-muted border-0" style="font-size:.78rem;" id="footerCgstLabel"><?php echo $isInterState ? 'IGST' : 'CGST'; ?></td>
-                                                        <td class="text-end py-1 border-0 pe-3" id="footerCgstAmt" style="font-size:.82rem;"><?php echo number_format($_cgstDisp, $dec, '.', ''); ?></td>
+                                                        <td class="text-end py-1 border-0 pe-3" id="footerCgstAmt" style="font-size:.82rem;"><?php echo smartDecimal($_cgstDisp); ?></td>
                                                     </tr>
                                                     <tr class="tax-col sgst-col" id="footerSgstRow" style="display:<?php echo ($taxApplicable && !$isInterState) ? 'table-row' : 'none'; ?>;">
                                                         <td colspan="4" class="border-0 py-1"></td>
                                                         <td class="no-tax-col border-0 py-1" style="<?php echo $ntd; ?>"></td>
                                                         <td colspan="3" class="text-end py-1 text-muted border-0" style="font-size:.78rem;">SGST</td>
-                                                        <td class="text-end py-1 border-0 pe-3" id="footerSgstAmt" style="font-size:.82rem;"><?php echo number_format($_sgstTotal, $dec, '.', ''); ?></td>
+                                                        <td class="text-end py-1 border-0 pe-3" id="footerSgstAmt" style="font-size:.82rem;"><?php echo smartDecimal($_sgstTotal); ?></td>
                                                     </tr>
                                                     <tr id="footerRoundOffRow" style="display:none;"></tr>
                                                     <tr>
                                                         <td colspan="4" class="border-top py-2"></td>
                                                         <td class="no-tax-col border-top py-2" style="<?php echo $ntd; ?>"></td>
                                                         <td colspan="3" class="text-end py-2 border-top fw-semibold" style="font-size:.82rem;">Grand Total</td>
-                                                        <td class="text-end py-2 border-top fw-bold pe-3" id="footerGrandTotal"><?php echo number_format($_grandTotal, $dec, '.', ''); ?></td>
+                                                        <td class="text-end py-2 border-top fw-bold pe-3" id="footerGrandTotal"><?php echo smartDecimal($_grandTotal); ?></td>
                                                     </tr>
                                                 </tfoot>
                                             </table>
@@ -449,40 +448,40 @@ if ($isEdit) {
                                             <tbody>
                                             <tr class="tax-col" id="summaryTaxableRow" style="display:<?php echo $taxApplicable ? 'table-row' : 'none'; ?>;">
                                                 <td class="border-0 ps-0 text-muted py-2">Taxable Amount</td>
-                                                <td class="border-0 pe-0 text-end py-2" id="summaryTaxable"><?php echo $isEdit && $taxApplicable ? $cur . ' ' . number_format($_expAmt, $dec, '.', '') : '—'; ?></td>
+                                                <td class="border-0 pe-0 text-end py-2" id="summaryTaxable"><?php echo $isEdit && $taxApplicable ? $cur . ' ' . smartDecimal($_expAmt) : '—'; ?></td>
                                             </tr>
                                             <tr class="tax-col" id="summaryCgstRow" style="display:<?php echo $taxApplicable ? 'table-row' : 'none'; ?>;">
                                                 <td class="border-0 ps-0 text-muted py-2"><span class="cgst-col-label"><?php echo $isInterState ? 'IGST' : 'CGST'; ?></span></td>
-                                                <td class="border-0 pe-0 text-end py-2" id="summaryCgstAmt"><?php echo $isEdit && $taxApplicable ? $cur . ' ' . number_format($_cgstDisp, $dec, '.', '') : '—'; ?></td>
+                                                <td class="border-0 pe-0 text-end py-2" id="summaryCgstAmt"><?php echo $isEdit && $taxApplicable ? $cur . ' ' . smartDecimal($_cgstDisp) : '—'; ?></td>
                                             </tr>
                                             <tr class="tax-col sgst-col" id="summarySgstRow" style="display:<?php echo ($taxApplicable && !$isInterState) ? 'table-row' : 'none'; ?>;">
                                                 <td class="border-0 ps-0 text-muted py-2">SGST</td>
-                                                <td class="border-0 pe-0 text-end py-2" id="summarySgstAmt"><?php echo $isEdit && $taxApplicable && !$isInterState ? $cur . ' ' . number_format($_sgstTotal, $dec, '.', '') : '—'; ?></td>
+                                                <td class="border-0 pe-0 text-end py-2" id="summarySgstAmt"><?php echo $isEdit && $taxApplicable && !$isInterState ? $cur . ' ' . smartDecimal($_sgstTotal) : '—'; ?></td>
                                             </tr>
                                             <tr id="summaryRcmRow" style="display:<?php echo $rcmApplicable ? 'table-row' : 'none'; ?>;">
                                                 <td class="border-0 ps-0 text-muted py-2">RCM (Self-Pay)</td>
-                                                <td class="border-0 pe-0 text-end py-2" id="summaryRcmAmt"><?php echo $isEdit && $rcmApplicable ? $cur . ' ' . number_format($rcmAmount, $dec, '.', '') : '—'; ?></td>
+                                                <td class="border-0 pe-0 text-end py-2" id="summaryRcmAmt"><?php echo $isEdit && $rcmApplicable ? $cur . ' ' . smartDecimal($rcmAmount) : '—'; ?></td>
                                             </tr>
                                             <tr id="summaryTotalRow" style="display:<?php echo $taxApplicable ? 'table-row' : 'none'; ?>;border-top:2px solid #e9eaec;">
                                                 <td class="ps-0 fw-semibold py-2" style="border-top:2px solid #e9eaec;">Total Amount</td>
-                                                <td class="pe-0 text-end fw-semibold py-2" id="summaryTotal" style="border-top:2px solid #e9eaec;"><?php echo $isEdit && $taxApplicable ? $cur . ' ' . number_format($_grandTotal, $dec, '.', '') : '—'; ?></td>
+                                                <td class="pe-0 text-end fw-semibold py-2" id="summaryTotal" style="border-top:2px solid #e9eaec;"><?php echo $isEdit && $taxApplicable ? $cur . ' ' . smartDecimal($_grandTotal) : '—'; ?></td>
                                             </tr>
                                             <tr id="summaryExpAmtRow" style="display:<?php echo $taxApplicable ? 'none' : 'table-row'; ?>;">
                                                 <td class="border-0 ps-0 text-muted py-2">Expense Amount</td>
-                                                <td class="border-0 pe-0 text-end py-2 fw-semibold" id="summaryExpAmt"><?php echo $isEdit && !$taxApplicable ? $cur . ' ' . number_format($_expAmt, $dec, '.', '') : '—'; ?></td>
+                                                <td class="border-0 pe-0 text-end py-2 fw-semibold" id="summaryExpAmt"><?php echo $isEdit && !$taxApplicable ? $cur . ' ' . smartDecimal($_expAmt) : '—'; ?></td>
                                             </tr>
                                             <tr id="summaryTdsRow" style="display:<?php echo $tdsApplicable ? 'table-row' : 'none'; ?>;">
                                                 <td class="border-0 ps-0 text-muted py-2">TDS Deducted</td>
-                                                <td class="border-0 pe-0 text-end py-2 text-danger" id="summaryTdsAmt"><?php echo $isEdit && $tdsApplicable ? '− ' . $cur . ' ' . number_format($_tdsAmt, $dec, '.', '') : '—'; ?></td>
+                                                <td class="border-0 pe-0 text-end py-2 text-danger" id="summaryTdsAmt"><?php echo $isEdit && $tdsApplicable ? '− ' . $cur . ' ' . smartDecimal($_tdsAmt) : '—'; ?></td>
                                             </tr>
                                             <?php $_roSign = ($roundOff >= 0) ? '+' : '−'; ?>
                                             <tr id="summaryRoundRow" style="display:<?php echo $isEdit && $roundOff != 0 ? 'table-row' : 'none'; ?>;">
                                                 <td class="border-0 ps-0 text-muted py-2">Round Off</td>
-                                                <td class="border-0 pe-0 text-end py-2" id="summaryRoundOff"><?php echo $isEdit && $roundOff != 0 ? $_roSign . $cur . ' ' . number_format(abs($roundOff), $dec, '.', '') : '—'; ?></td>
+                                                <td class="border-0 pe-0 text-end py-2" id="summaryRoundOff"><?php echo $isEdit && $roundOff != 0 ? $_roSign . $cur . ' ' . smartDecimal(abs($roundOff)) : '—'; ?></td>
                                             </tr>
                                             <tr style="border-top:2px solid #e9eaec;">
                                                 <td class="ps-0 fw-bold py-2 text-primary" style="border-top:2px solid #e9eaec;font-size:.88rem;">Net Payable</td>
-                                                <td class="pe-0 text-end fw-bold py-2 text-primary" id="summaryNet" style="border-top:2px solid #e9eaec;font-size:.88rem;"><?php echo $isEdit ? $cur . ' ' . number_format($_netAmt, $dec, '.', '') : '—'; ?></td>
+                                                <td class="pe-0 text-end fw-bold py-2 text-primary" id="summaryNet" style="border-top:2px solid #e9eaec;font-size:.88rem;"><?php echo $isEdit ? $cur . ' ' . smartDecimal($_netAmt) : '—'; ?></td>
                                             </tr>
                                             </tbody>
                                         </table>
@@ -679,7 +678,7 @@ $(function () {
     'use strict';
 
     var curSymbol       = '<?php echo addslashes($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>';
-    var decPoints       = <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>;
+    var decPoints       = 9;
     var rowIndex        = <?php echo !empty($existItems) ? count($existItems) : 0; ?>;
     var isTaxOn         = <?php echo $taxApplicable ? 'true' : 'false'; ?>;
     var amountType      = '<?php echo $amountType; ?>';

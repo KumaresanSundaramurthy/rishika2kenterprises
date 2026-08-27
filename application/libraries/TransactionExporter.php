@@ -350,7 +350,7 @@ class TransactionExporter {
             return $d ? date_format($d, $dateFmt) : $val;
         }
         if (in_array($col, $this->moneyCols)) {
-            return number_format((float)$val, 2, '.', '');
+            return smartDecimal((float)$val);
         }
         return (string)$val;
     }

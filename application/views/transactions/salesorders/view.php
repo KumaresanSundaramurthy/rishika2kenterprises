@@ -28,8 +28,7 @@ $this->load->view('common/transactions/header'); ?>
                 if (($JwtData->GenSettings->ShowStats ?? 1) && ($JwtData->TransSettings->ShowTransactionStats ?? 1)):
                 $stats       = $SummaryStats ?? [];
                 $cur         = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-                $dec         = $JwtData->GenSettings->DecimalPoints ?? 2;
-
+                
                 $cntAll       = array_sum(array_column($stats, 'count'));
                 $cntConfirmed = $stats['Pending']['count']   ?? 0;
                 $cntCompleted = $stats['Completed']['count'] ?? 0;
@@ -56,7 +55,7 @@ $this->load->view('common/transactions/header'); ?>
                             <div class="apex-stat-label"><?php echo $stat['label']; ?></div>
                             <div class="apex-stat-bottom">
                                 <span class="apex-stat-count"><?php echo $stat['count']; ?></span>
-                                <span class="apex-stat-amount"><?php echo $cur . ' ' . number_format((float)$stat['amount'], $dec); ?></span>
+                                <span class="apex-stat-amount"><?php echo $cur . ' ' . smartDecimal((float)$stat['amount']); ?></span>
                             </div>
                         </div>
                     </div>
@@ -212,7 +211,7 @@ var _commOrgContext = <?php
 ?>;
 var _commGenSettings  = <?php echo json_encode([
     'CurrenySymbol' => $JwtData->GenSettings->CurrenySymbol ?? '₹',
-    'DecimalPoints' => (int)($JwtData->GenSettings->DecimalPoints ?? 2),
+    'DecimalPoints' => 9,
 ]); ?>;
 var _rawEmailTemplate = <?php echo json_encode($CommEmailTemplate ?? null); ?>;
 var _r2CdnBase        = <?php echo json_encode(rtrim(getenv('CFLARE_R2_CDN') ?: getenv('CDN_URL'), '/')); ?>;

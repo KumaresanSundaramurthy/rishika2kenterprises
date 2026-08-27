@@ -7,7 +7,6 @@ $moduleContext = 'proformainvoice';
 include(APPPATH . 'views/transactions/partials/status_config.php');
 
 $currency   = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-$decimals   = $JwtData->GenSettings->DecimalPoints ?? 2;
 $showSerial = $JwtData->GenSettings->SerialNoDisplay == 1;
 $today      = time();
 $soonDays   = 3;
@@ -97,7 +96,7 @@ if (!empty($DataLists)):
             <?php if ($isDraft && (float)$list->NetAmount == 0): ?>
                 <span class="text-muted">—</span>
             <?php else: ?>
-                <div class="trans-amount-main"><?php echo $currency . ' ' . smartDecimal($list->NetAmount, $decimals, true); ?></div>
+                <div class="trans-amount-main"><?php echo $currency . ' ' . smartDecimal($list->NetAmount); ?></div>
             <?php endif; ?>
         </td>
 

@@ -7,7 +7,6 @@ $moduleContext = 'salesorder';
 include(APPPATH . 'views/transactions/partials/status_config.php');
 
 $currency    = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-$decimals    = $JwtData->GenSettings->DecimalPoints ?? 2;
 $showSerial  = $JwtData->GenSettings->SerialNoDisplay == 1;
 $soModuleUID = 102;
 $today       = time();
@@ -53,7 +52,7 @@ if (!empty($DataLists)):
         $soNum      = $list->UniqueNumber ?? 'Draft';
         $soLink     = (getenv('APP_URL') ?: 'http://localhost:8080') . '/salesorder/' . ($list->TransToken ?? '');
         $netAmt     = (float)($list->NetAmount ?? 0);
-        $numericAmt = smartDecimal($netAmt, $decimals, true);
+        $numericAmt = smartDecimal($netAmt);
         $billAmount = $currency . ' ' . $numericAmt;
         $transDate  = !empty($list->TransDate) ? format_datedisplay($list->TransDate) : '';
         $soStatus   = $list->Status ?? '';
@@ -148,7 +147,7 @@ if (!empty($DataLists)):
             <?php if ($isDraft && (float)$list->NetAmount == 0): ?>
                 <span class="text-muted">—</span>
             <?php else: ?>
-                <div class="trans-amount-main"><?php echo $currency . ' ' . smartDecimal($list->NetAmount, $decimals, true); ?></div>
+                <div class="trans-amount-main"><?php echo $currency . ' ' . smartDecimal($list->NetAmount); ?></div>
             <?php endif; ?>
         </td>
 

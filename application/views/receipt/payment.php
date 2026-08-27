@@ -73,7 +73,6 @@ body { font-family: Arial, Helvetica, sans-serif; background:#f0f2f5; color:#222
 $e      = fn($v) => htmlspecialchars((string)($v ?? ''), ENT_QUOTES);
 $fmt    = function($d) { if (!$d) return '—'; $dt = date_create($d); return $dt ? date_format($dt, 'd M Y') : $d; };
 $cur    = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-$dec    = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 $fmtAmt = fn($v) => $cur . ' ' . smartDecimal((float)$v);
 
 $direction  = ($payment->PartyType === 'C') ? 'Payment Received' : 'Payment Made';

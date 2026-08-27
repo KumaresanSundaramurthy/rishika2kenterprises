@@ -2,7 +2,6 @@
 /** @var array $Rows */   $Rows    = $Rows    ?? [];
 /** @var array $Totals */ $Totals  = $Totals  ?? [];
 $cur     = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-$dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 $dateFmt = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
 $orgName = htmlspecialchars($JwtData->Org->OrgName ?? '');
 $asOfDisp = date($dateFmt, strtotime($AsOfDate));
@@ -13,7 +12,7 @@ $asOfDisp = date($dateFmt, strtotime($AsOfDate));
  * @param int    $dec
  * @returns string
  */
-function _apFmt(float $n, string $cur, int $dec): string {
+function _apFmt(float $n, string $cur): string {
     if (abs($n) < 0.005) return '<span class="text-muted aged-dash">—</span>';
     return $cur . ' ' . smartDecimal($n);
 }
@@ -81,19 +80,19 @@ function _apFmt(float $n, string $cur, int $dec): string {
                 <?php endif; ?>
             </td>
             <td class="text-end fw-semibold" style="font-size:.82rem;color:#92400e;">
-                <?php echo _apFmt((float)$r->NetOutstanding, $cur, $dec); ?>
+                <?php echo _apFmt((float)$r->NetOutstanding, $cur); ?>
             </td>
             <td class="text-end aged-col-current" style="font-size:.82rem;">
-                <?php echo _apFmt((float)$r->Band0to30, $cur, $dec); ?>
+                <?php echo _apFmt((float)$r->Band0to30, $cur); ?>
             </td>
             <td class="text-end aged-col-warn1" style="font-size:.82rem;">
-                <?php echo _apFmt((float)$r->Band31to60, $cur, $dec); ?>
+                <?php echo _apFmt((float)$r->Band31to60, $cur); ?>
             </td>
             <td class="text-end aged-col-warn2" style="font-size:.82rem;">
-                <?php echo _apFmt((float)$r->Band61to90, $cur, $dec); ?>
+                <?php echo _apFmt((float)$r->Band61to90, $cur); ?>
             </td>
             <td class="text-end aged-col-overdue fw-semibold" style="font-size:.82rem;">
-                <?php echo _apFmt((float)$r->Band90plus, $cur, $dec); ?>
+                <?php echo _apFmt((float)$r->Band90plus, $cur); ?>
             </td>
         </tr>
         <?php endforeach; ?>

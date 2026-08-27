@@ -1579,15 +1579,14 @@ class Transactions_model extends MY_Model {
         // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         $e   = fn($v) => htmlspecialchars((string)($v ?? ''), ENT_QUOTES);
         // Read print formats and org timezone from GenSettings JWT
+        $dec = 2;
         try {
             $CI          = &get_instance();
             $cur         = ($CI->pageData['JwtData']->GenSettings->CurrenySymbol  ?? 'â‚¹') . ' ';
-            $dec         = (int)($CI->pageData['JwtData']->GenSettings->DecimalPoints ?? 2);
-            $_printFmt   = $CI->pageData['JwtData']->GenSettings->PrintDateFormat ?? 'd M Y';
+                        $_printFmt   = $CI->pageData['JwtData']->GenSettings->PrintDateFormat ?? 'd M Y';
             $_timezone   = $CI->pageData['JwtData']->User->Timezone               ?? 'UTC';
         } catch (Exception $_) {
             $cur         = 'â‚¹ ';
-            $dec         = 2;
             $_printFmt   = 'd M Y';
             $_timezone   = 'UTC';
         }
@@ -1623,11 +1622,11 @@ class Transactions_model extends MY_Model {
                     '<td style="text-align:center">' . ($i + 1) . '</td>' .
                     '<td>' . $e($item->ProductName) . '</td>' .
                     '<td style="text-align:center">' . $e($item->HSNCode ?? '-') . '</td>' .
-                    '<td style="text-align:right">'  . number_format((float)($item->UnitPrice ?? 0), $dec) . '</td>' .
+                    '<td style="text-align:right">'  . smartDecimal((float)($item->UnitPrice ?? 0)) . '</td>' .
                     '<td style="text-align:center">' . smartDecimal($item->Quantity ?? 0) . ' ' . $e($item->PrimaryUnitName ?? '') . '</td>' .
-                    '<td style="text-align:right">'  . number_format((float)($item->UnitPrice ?? 0) * (float)($item->Quantity ?? 0), $dec) . '</td>' .
-                    '<td style="text-align:right">'  . ($taxAmt ? number_format($taxAmt, $dec) . ' (' . number_format((float)($item->TaxPercentage ?? 0), 0) . '%)' : '') . '</td>' .
-                    '<td style="text-align:right">'  . number_format((float)($item->NetAmount ?? 0), $dec) . '</td>' .
+                    '<td style="text-align:right">'  . smartDecimal((float)($item->UnitPrice ?? 0) * (float)($item->Quantity ?? 0)) . '</td>' .
+                    '<td style="text-align:right">'  . ($taxAmt ? smartDecimal($taxAmt) . ' (' . number_format((float)($item->TaxPercentage ?? 0), 0) . '%)' : '') . '</td>' .
+                    '<td style="text-align:right">'  . smartDecimal((float)($item->NetAmount ?? 0)) . '</td>' .
                 '</tr>';
         }
         $itemsTable =
@@ -1647,11 +1646,11 @@ class Transactions_model extends MY_Model {
         $totals =
             '<table style="width:100%;border-collapse:collapse;font-size:8.5pt;margin-bottom:8px;">' .
             '<tr><td style="border:1px solid #ddd;padding:5px;text-align:right;font-weight:600;">Sub Total</td>' .
-            '<td style="border:1px solid #ddd;padding:5px;text-align:right;width:120px;">' . $cur . number_format((float)($h->SubTotal ?? 0), $dec) . '</td></tr>' .
-            ((float)($h->DiscountAmount ?? 0) > 0 ? '<tr><td style="border:1px solid #ddd;padding:5px;text-align:right;color:#c00;">Discount</td><td style="border:1px solid #ddd;padding:5px;text-align:right;color:#c00;">- ' . $cur . number_format((float)$h->DiscountAmount, $dec) . '</td></tr>' : '') .
-            ((float)($h->TaxAmount ?? 0) > 0 ? '<tr><td style="border:1px solid #ddd;padding:5px;text-align:right;">Tax</td><td style="border:1px solid #ddd;padding:5px;text-align:right;">' . $cur . number_format((float)$h->TaxAmount, $dec) . '</td></tr>' : '') .
+            '<td style="border:1px solid #ddd;padding:5px;text-align:right;width:120px;">' . $cur . smartDecimal((float)($h->SubTotal ?? 0)) . '</td></tr>' .
+            ((float)($h->DiscountAmount ?? 0) > 0 ? '<tr><td style="border:1px solid #ddd;padding:5px;text-align:right;color:#c00;">Discount</td><td style="border:1px solid #ddd;padding:5px;text-align:right;color:#c00;">- ' . $cur . smartDecimal((float)$h->DiscountAmount) . '</td></tr>' : '') .
+            ((float)($h->TaxAmount ?? 0) > 0 ? '<tr><td style="border:1px solid #ddd;padding:5px;text-align:right;">Tax</td><td style="border:1px solid #ddd;padding:5px;text-align:right;">' . $cur . smartDecimal((float)$h->TaxAmount) . '</td></tr>' : '') .
             '<tr><td style="border:1px solid #ddd;padding:5px;text-align:right;font-weight:700;">Net Amount</td>' .
-            '<td style="border:1px solid #ddd;padding:5px;text-align:right;font-weight:700;">' . $cur . number_format((float)($h->NetAmount ?? 0), $dec) . '</td></tr>' .
+            '<td style="border:1px solid #ddd;padding:5px;text-align:right;font-weight:700;">' . $cur . smartDecimal((float)($h->NetAmount ?? 0)) . '</td></tr>' .
             '</table>';
 
         // â”€â”€ Customer Addresses â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -1730,8 +1729,8 @@ class Transactions_model extends MY_Model {
 
         // â”€â”€ HSN summary totals â€” computed from item-level data (matches HSN loop rows) â”€â”€
         $CI              = &get_instance();
-        $dec2            = (int)($CI->pageData['JwtData']->GenSettings->DecimalPoints ?? 2);
-        $hsnTotalTaxable = array_sum(array_map(
+        $dec2            = 2;
+                $hsnTotalTaxable = array_sum(array_map(
             fn($it) => round((float)($it->UnitPrice ?? 0) * (float)($it->Quantity ?? 0), $dec2),
             $items
         ));
@@ -1766,7 +1765,7 @@ class Transactions_model extends MY_Model {
                     $balType = $result['balType'];
                 }
                 if ($partyUID > 0 && !empty($balType)) {
-                    $partyBalAmt  = $cur . number_format($bal, $dec) . ' ' . ($balType === 'Debit' ? 'Dr' : 'Cr');
+                    $partyBalAmt  = $cur . smartDecimal($bal) . ' ' . ($balType === 'Debit' ? 'Dr' : 'Cr');
                     $partyBalShow = '1';
                 }
             } catch (Exception $_) {}
@@ -1842,14 +1841,14 @@ class Transactions_model extends MY_Model {
             '{{HSN_TAX_TABLE}}'        => '',
             /** Summary Totals */
             '{{TOTAL_ITEMS_COUNT}}'    => $totalItemsCount,
-            '{{TOTAL_QTY}}'            => number_format($totalQty, 2),
-            '{{TOTAL_TAXABLE_AMOUNT}}' => number_format((float)($h->SubTotal ?? 0), $dec),
-            '{{TOTAL_CGST}}'           => number_format(round($totalCgst, $dec), $dec),
-            '{{TOTAL_SGST}}'           => number_format(round($totalSgst, $dec), $dec),
-            '{{TOTAL_IGST}}'           => number_format(round($totalIgst, $dec), $dec),
-            '{{TOTAL_TAX}}'            => number_format((float)($h->TaxAmount ?? 0), $dec),
-            '{{TOTAL_DISCOUNT}}'       => number_format((float)($h->DiscountAmount ?? 0), $dec),
-            '{{NET_AMOUNT}}'           => number_format((float)($h->NetAmount ?? 0), $dec),
+            '{{TOTAL_QTY}}'            => smartDecimal($totalQty),
+            '{{TOTAL_TAXABLE_AMOUNT}}' => smartDecimal((float)($h->SubTotal ?? 0)),
+            '{{TOTAL_CGST}}'           => smartDecimal(round($totalCgst, 9)),
+            '{{TOTAL_SGST}}'           => smartDecimal(round($totalSgst, 9)),
+            '{{TOTAL_IGST}}'           => smartDecimal(round($totalIgst, 9)),
+            '{{TOTAL_TAX}}'            => smartDecimal((float)($h->TaxAmount ?? 0)),
+            '{{TOTAL_DISCOUNT}}'       => smartDecimal((float)($h->DiscountAmount ?? 0)),
+            '{{NET_AMOUNT}}'           => smartDecimal((float)($h->NetAmount ?? 0)),
             '{{AMOUNT_IN_WORDS}}'      => print_number_to_words((float)($h->NetAmount ?? 0)),
             '{{UPI_QR_CODE}}'          => $e($org->UpiId ?? ''),
             /** Bank Account */
@@ -1865,11 +1864,11 @@ class Transactions_model extends MY_Model {
             /** Copy label â€” JS replaces __COPY_LABEL__ client-side based on user selection */
             '{{COPY_LABEL}}'           => '__COPY_LABEL__',
             /** HSN Summary TOTAL row tokens (match the summed rows in the loop) */
-            '{{HSN_TOTAL_TAXABLE}}'    => number_format($hsnTotalTaxable, $dec2),
-            '{{HSN_TOTAL_CGST}}'       => number_format(round($hsnTotalCgst, $dec2), $dec2),
-            '{{HSN_TOTAL_SGST}}'       => number_format(round($hsnTotalSgst, $dec2), $dec2),
-            '{{HSN_TOTAL_IGST}}'       => number_format(round($hsnTotalIgst, $dec2), $dec2),
-            '{{HSN_TOTAL_TAX}}'        => number_format($hsnTotalTax, $dec2),
+            '{{HSN_TOTAL_TAXABLE}}'    => smartDecimal($hsnTotalTaxable),
+            '{{HSN_TOTAL_CGST}}'       => smartDecimal(round($hsnTotalCgst, 9)),
+            '{{HSN_TOTAL_SGST}}'       => smartDecimal(round($hsnTotalSgst, 9)),
+            '{{HSN_TOTAL_IGST}}'       => smartDecimal(round($hsnTotalIgst, 9)),
+            '{{HSN_TOTAL_TAX}}'        => smartDecimal($hsnTotalTax),
         ];
 
         $html = $this->_processLoops($tplHtml, $items);
@@ -1909,13 +1908,12 @@ class Transactions_model extends MY_Model {
     }
 
     private function _processLoops(string $html, array $items): string {
+        $dec = 2;
         try {
             $CI  = &get_instance();
             $cur = ($CI->pageData['JwtData']->GenSettings->CurrenySymbol  ?? 'â‚¹') . ' ';
-            $dec = (int)($CI->pageData['JwtData']->GenSettings->DecimalPoints ?? 2);
-        } catch (Exception $_) {
+                    } catch (Exception $_) {
             $cur = 'â‚¹ ';
-            $dec = 2;
         }
         $e   = fn($v) => htmlspecialchars((string)($v ?? ''), ENT_QUOTES);
 
@@ -1939,14 +1937,14 @@ class Transactions_model extends MY_Model {
                         '{{ITEM.SNO}}'          => $i + 1,
                         '{{ITEM.PRODUCT_NAME}}' => $e($item->ProductName ?? ''),
                         '{{ITEM.HSN_CODE}}'     => $e($item->HSNCode ?? $item->HSNSACCode ?? ''),
-                        '{{ITEM.UNIT_PRICE}}'   => $cur . number_format($unitPrice, $dec),
+                        '{{ITEM.UNIT_PRICE}}'   => $cur . smartDecimal($unitPrice),
                         '{{ITEM.QTY}}'          => $e($item->Quantity ?? ''),
                         '{{ITEM.UNIT}}'         => $e($item->PrimaryUnitName ?? ''),
-                        '{{ITEM.TAXABLE_VALUE}}'=> $cur . number_format($taxableVal, $dec),
+                        '{{ITEM.TAXABLE_VALUE}}'=> $cur . smartDecimal($taxableVal),
                         '{{ITEM.TAX_PCT}}'      => number_format($taxPct, 2),
-                        '{{ITEM.TAX_AMT}}'      => $cur . number_format($taxAmt, $dec),
-                        '{{ITEM.NET_AMOUNT}}'   => $cur . number_format((float)($item->NetAmount ?? 0), $dec),
-                        '{{ITEM.DISCOUNT}}'     => $cur . number_format((float)($item->DiscountAmount ?? 0), $dec),
+                        '{{ITEM.TAX_AMT}}'      => $cur . smartDecimal($taxAmt),
+                        '{{ITEM.NET_AMOUNT}}'   => $cur . smartDecimal((float)($item->NetAmount ?? 0)),
+                        '{{ITEM.DISCOUNT}}'     => $cur . smartDecimal((float)($item->DiscountAmount ?? 0)),
                         '{{ITEM.PART_NUMBER}}'  => $e($item->PartNumber ?? ''),
                     ];
                     $rows .= str_replace(array_keys($map), array_values($map), $rowTpl);
@@ -1961,8 +1959,7 @@ class Transactions_model extends MY_Model {
         try {
             $CI  = &get_instance();
             $cur = ($CI->pageData['JwtData']->GenSettings->CurrenySymbol  ?? 'â‚¹') . ' ';
-            $dec = (int)($CI->pageData['JwtData']->GenSettings->DecimalPoints ?? 2);
-        } catch (Exception $_) {
+                    } catch (Exception $_) {
             $cur = 'â‚¹ ';
             $dec = 2;
         }
@@ -2007,19 +2004,19 @@ class Transactions_model extends MY_Model {
                     $map = [
                         '{{HSN.SNO}}'           => $sno++,
                         '{{HSN.CODE}}'          => $e($g['hsn']),
-                        '{{HSN.TAXABLE_VALUE}}' => number_format($g['taxableValue'], $dec),
+                        '{{HSN.TAXABLE_VALUE}}' => smartDecimal($g['taxableValue']),
                         // Rate tokens â€” plain numbers, no % suffix (add % in template if needed)
                         '{{HSN.TAX_RATE}}'      => number_format($g['taxPct'], 0),
                         '{{HSN.CGST_RATE}}'     => number_format($splitRate, 0),
                         '{{HSN.SGST_RATE}}'     => number_format($splitRate, 0),
                         '{{HSN.IGST_RATE}}'     => number_format($g['taxPct'], 0),
                         // Amount tokens
-                        '{{HSN.CGST_AMT}}'      => number_format($cgstAmt, $dec),
-                        '{{HSN.SGST_AMT}}'      => number_format($sgstAmt, $dec),
-                        '{{HSN.IGST_AMT}}'      => number_format($igstAmt, $dec),
+                        '{{HSN.CGST_AMT}}'      => smartDecimal($cgstAmt),
+                        '{{HSN.SGST_AMT}}'      => smartDecimal($sgstAmt),
+                        '{{HSN.IGST_AMT}}'      => smartDecimal($igstAmt),
                         // Combined tax for this HSN row (CGST+SGST OR IGST â€” whichever applies)
-                        '{{HSN.TAX_AMT}}'       => number_format($totalTax, $dec),
-                        '{{HSN.TOTAL_TAX}}'     => number_format($totalTax, $dec),
+                        '{{HSN.TAX_AMT}}'       => smartDecimal($totalTax),
+                        '{{HSN.TOTAL_TAX}}'     => smartDecimal($totalTax),
                     ];
                     $rows .= str_replace(array_keys($map), array_values($map), $rowTpl);
                 }
@@ -2036,8 +2033,7 @@ class Transactions_model extends MY_Model {
             $CI        = &get_instance();
             $gs        = $CI->pageData['JwtData']->GenSettings;
             $_printFmt = $gs->PrintDateFormat ?? 'd M Y';
-            $dec       = (int)($gs->DecimalPoints ?? 2);
-            $cur       = ($gs->CurrenySymbol ?? 'â‚¹') . ' ';
+                        $cur       = ($gs->CurrenySymbol ?? 'â‚¹') . ' ';
         } catch (Exception $_) {
             $_printFmt = 'd M Y';
             $dec       = 2;
@@ -2053,8 +2049,8 @@ class Transactions_model extends MY_Model {
                 '<td style="text-align:center">' . ($i + 1) . '</td>' .
                 '<td>' . $e($item->ProductName) . '</td>' .
                 '<td style="text-align:center">' . smartDecimal($item->Quantity ?? 0) . ' ' . $e($item->PrimaryUnitName ?? '') . '</td>' .
-                '<td style="text-align:right">' . $cur . number_format((float)($item->UnitPrice ?? 0), $dec) . '</td>' .
-                '<td style="text-align:right">' . $cur . number_format((float)($item->NetAmount ?? 0), $dec) . '</td>' .
+                '<td style="text-align:right">' . $cur . smartDecimal((float)($item->UnitPrice ?? 0)) . '</td>' .
+                '<td style="text-align:right">' . $cur . smartDecimal((float)($item->NetAmount ?? 0)) . '</td>' .
                 '</tr>';
         }
 
@@ -2081,10 +2077,10 @@ class Transactions_model extends MY_Model {
                 '<th style="width:90px;text-align:right">Unit Price</th>' .
                 '<th style="width:90px;text-align:right">Amount</th></tr></thead>' .
             '<tbody>' . $rows . '</tbody><tfoot>' .
-                '<tr><td colspan="4" style="text-align:right;font-weight:bold">Sub Total</td><td style="text-align:right">' . $cur . number_format((float)($h->SubTotal ?? 0), $dec) . '</td></tr>' .
-                ((float)($h->DiscountAmount ?? 0) > 0 ? '<tr><td colspan="4" style="text-align:right;color:#c00">Discount</td><td style="text-align:right;color:#c00">- ' . $cur . number_format((float)$h->DiscountAmount, $dec) . '</td></tr>' : '') .
-                ((float)($h->TaxAmount ?? 0) > 0 ? '<tr><td colspan="4" style="text-align:right">Tax</td><td style="text-align:right">' . $cur . number_format((float)$h->TaxAmount, $dec) . '</td></tr>' : '') .
-                '<tr><td colspan="4" style="text-align:right;font-weight:bold">Net Amount</td><td style="text-align:right;font-weight:bold">' . $cur . number_format((float)($h->NetAmount ?? 0), $dec) . '</td></tr>' .
+                '<tr><td colspan="4" style="text-align:right;font-weight:bold">Sub Total</td><td style="text-align:right">' . $cur . smartDecimal((float)($h->SubTotal ?? 0)) . '</td></tr>' .
+                ((float)($h->DiscountAmount ?? 0) > 0 ? '<tr><td colspan="4" style="text-align:right;color:#c00">Discount</td><td style="text-align:right;color:#c00">- ' . $cur . smartDecimal((float)$h->DiscountAmount) . '</td></tr>' : '') .
+                ((float)($h->TaxAmount ?? 0) > 0 ? '<tr><td colspan="4" style="text-align:right">Tax</td><td style="text-align:right">' . $cur . smartDecimal((float)$h->TaxAmount) . '</td></tr>' : '') .
+                '<tr><td colspan="4" style="text-align:right;font-weight:bold">Net Amount</td><td style="text-align:right;font-weight:bold">' . $cur . smartDecimal((float)($h->NetAmount ?? 0)) . '</td></tr>' .
             '</tfoot></table>' .
             (!empty($h->Notes) ? '<p style="margin-top:12px;font-size:11px;color:#666"><strong>Notes:</strong> ' . $e($h->Notes) . '</p>' : '') .
             (!empty($h->TermsConditions) ? '<p style="font-size:11px;color:#666"><strong>Terms:</strong> ' . $e($h->TermsConditions) . '</p>' : '') .
@@ -2100,15 +2096,14 @@ class Transactions_model extends MY_Model {
         $cur    = $org->CurrenySymbol ?? 'â‚¹';
         try {
             $CI        = &get_instance();
-            $dec       = (int)($CI->pageData['JwtData']->GenSettings->DecimalPoints ?? 2);
-            $_printFmt = $CI->pageData['JwtData']->GenSettings->PrintDateFormat ?? 'd M Y';
+                        $_printFmt = $CI->pageData['JwtData']->GenSettings->PrintDateFormat ?? 'd M Y';
             $_timezone = $CI->pageData['JwtData']->User->Timezone               ?? 'UTC';
         } catch (Exception $_) {
             $dec       = 2;
             $_printFmt = 'd M Y';
             $_timezone = 'UTC';
         }
-        $fmtAmt = fn($v) => number_format((float)$v, $dec, '.', ',');
+        $fmtAmt = fn($v) => smartDecimal((float)$v);
         $fmt = function(string $date) use ($_printFmt): string {
             if (!$date) return 'â€”';
             $d = date_create($date);

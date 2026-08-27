@@ -5,7 +5,6 @@ $cdnUrl    = getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('
 include_once(APPPATH . 'views/transactions/partials/party_avatar.php');
 
 $cur = $JwtData->GenSettings->CurrenySymbol ?? '₹';
-$dec = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 
 $orgName   = $OrgInfo->BrandName ?? $OrgInfo->Name ?? '';
 $orgMobile = $OrgInfo->MobileNumber ?? '';

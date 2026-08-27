@@ -42,7 +42,7 @@
 
     function _smartDec(n) {
         if (n === null || n === undefined || n === '') return '0.00';
-        var dec = typeof genSettings !== 'undefined' ? (parseInt(genSettings.DecimalPoints, 10) || 2) : 2;
+        var dec = 2;
         var val = parseFloat(n);
         return (isNaN(val) ? 0 : val).toFixed(dec);
     }

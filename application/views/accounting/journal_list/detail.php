@@ -2,7 +2,6 @@
 /** @var object $Journal */
 $cur     = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
 $dateFmt = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
-$dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 $lines   = $Journal->Lines ?? [];
 $totDr   = 0;
 $totCr   = 0;

@@ -291,7 +291,7 @@ function _buildThermalHtml(resp, type) {
     var org = resp.OrgInfo     || {};
     var cfg = resp.ThermalConfig || {};
     var sym = (genSettings && genSettings.CurrenySymbol) ? genSettings.CurrenySymbol : '₹';
-    var dec = genSettings && genSettings.DecimalPoints ? genSettings.DecimalPoints : 2;
+    var dec = 2;
 
     var line1 = org.BrandName || org.Name || '';
     var line3 = [org.Line1, org.Line2, org.CityText, org.StateText, org.Pincode].filter(Boolean).join(', ');
@@ -446,7 +446,7 @@ function _buildPmtThermalHtml(resp, forPrint) {
     var org = resp.OrgInfo       || {};
     var cfg = resp.ThermalConfig || {};
     var sym = (typeof genSettings !== 'undefined' && genSettings.CurrenySymbol) ? genSettings.CurrenySymbol : '₹';
-    var dec = typeof genSettings !== 'undefined' && genSettings.DecimalPoints ? genSettings.DecimalPoints : 2;
+    var dec = 2;
 
     var showLogo   = cfg.ShowLogo           !== undefined ? parseInt(cfg.ShowLogo)           : 0;
     var showCo     = cfg.ShowCompanyDetails !== undefined ? parseInt(cfg.ShowCompanyDetails) : 1;

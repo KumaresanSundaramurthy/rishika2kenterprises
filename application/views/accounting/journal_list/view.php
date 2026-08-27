@@ -344,7 +344,7 @@ $this->load->view('common/header'); ?>
 (function () {
     'use strict';
 
-    var _dec     = (typeof JwtData !== 'undefined' && JwtData.GenSettings) ? (parseInt(JwtData.GenSettings.DecimalPoints) || 2) : 2;
+    var _dec     = 2;
     var _cur     = (typeof currencySymbol !== 'undefined') ? currencySymbol : '₹';
     var _rowIdx  = 0;
 

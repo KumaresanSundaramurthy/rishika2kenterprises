@@ -29,8 +29,7 @@ $this->load->view('common/transactions/header'); ?>
                 if (($JwtData->GenSettings->ShowStats ?? 1) && ($JwtData->TransSettings->ShowTransactionStats ?? 1)):
                 $stats         = $SummaryStats ?? [];
                 $cur           = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-                $dec           = $JwtData->GenSettings->DecimalPoints ?? 2;
-
+                
                 $cntAll        = array_sum(array_column($stats, 'count'));
                 $cntDispatched = $stats['Dispatched']['count']  ?? 0;
                 $cntDelivered  = $stats['Delivered']['count']   ?? 0;

@@ -18,7 +18,7 @@
     var _fpTo       = null;
 
     var _cur = (typeof genSettings !== 'undefined' && genSettings.CurrenySymbol) ? genSettings.CurrenySymbol : '₹';
-    var _dec = (typeof genSettings !== 'undefined' && genSettings.DecimalPoints) ? parseInt(genSettings.DecimalPoints, 10) : 2;
+    var _dec = 2;
 
     /**
      * @param {number} n

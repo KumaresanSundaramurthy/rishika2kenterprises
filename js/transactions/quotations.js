@@ -135,7 +135,7 @@ function getQuotationsDetails(pageNo, rowLimit, filter, afterLoad) {
 function updateQuotStatCards(stats) {
     if (!stats || Object.keys(stats).length === 0) return;
     var cur = (typeof currencySymbol !== 'undefined') ? currencySymbol : '₹';
-    var dec = (typeof JwtData !== 'undefined' && JwtData.GenSettings) ? (JwtData.GenSettings.DecimalPoints || 2) : 2;
+    var dec = 2;
 
     function fmt(v) {
         return cur + ' ' + parseFloat(v || 0).toLocaleString('en-IN', { minimumFractionDigits: dec, maximumFractionDigits: dec });

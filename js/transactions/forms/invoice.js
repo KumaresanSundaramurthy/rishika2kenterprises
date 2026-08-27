@@ -246,7 +246,7 @@ $(function () {
                 var bm         = typeof billManager !== 'undefined' ? billManager : null;
                 var grandTotal = bm && bm.summary && bm.summary.totals ? (bm.summary.totals.grandTotal || 0) : 0;
                 var cur        = genSettings.CurrenySymbol || '₹';
-                var dec        = genSettings.DecimalPoints || 2;
+                var dec        = 2;
                 if (grandTotal < _paidAmount) {
                     var shortfall = smartDecimal(Math.abs(_paidAmount - grandTotal), dec, true);
                     $('#r2kPaidAmtWarnMsg').text(
@@ -322,7 +322,7 @@ $(function () {
                 var newTotal = bm && bm.summary && bm.summary.totals ? (bm.summary.totals.grandTotal || 0) : 0;
                 if (newTotal < _paidAmount) {
                     var cur = genSettings.CurrenySymbol || '₹';
-                    var dec = genSettings.DecimalPoints || 2;
+                    var dec = 2;
                     return showFormError(
                         'Cannot save: invoice total (' + cur + ' ' + smartDecimal(newTotal, dec, true) +
                         ') is below the already paid amount (' + cur + ' ' + smartDecimal(_paidAmount, dec, true) +
@@ -391,7 +391,7 @@ $(function () {
                 var _overAmt = _paidTotal - netAmount;
                 if (_overAmt > 0.005) {
                     var _cur = genSettings.CurrenySymbol || '₹';
-                    var _dec = genSettings.DecimalPoints || 2;
+                    var _dec = 2;
                     Swal.fire({
                         title             : 'Payment is More Than Bill Amount',
                         html              : 'You are collecting <b>' + _cur + ' ' + smartDecimal(_paidTotal, _dec, true) + '</b> ' +

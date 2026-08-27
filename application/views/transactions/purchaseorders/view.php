@@ -32,8 +32,7 @@ $this->load->view('common/transactions/header'); ?>
                 $allCount  = array_sum(array_column($poStats, 'count'));
                 $allAmount = array_sum(array_column($poStats, 'amount'));
                 $cur       = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-                $dec       = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
-
+                
                 $statsItems = [
                     ['label' => 'All Purchase Orders', 'status' => 'All',       'icon' => 'bx-file-blank',   'iconBg' => '#eef2ff', 'iconColor' => '#696cff', 'count' => $allCount,                              'amount' => $allAmount],
                     ['label' => 'Received',            'status' => 'Received',  'icon' => 'bx-download',     'iconBg' => '#e0f5f2', 'iconColor' => '#17a2b8', 'count' => $poStats['Received']['count']  ?? 0,    'amount' => $poStats['Received']['amount']  ?? 0],

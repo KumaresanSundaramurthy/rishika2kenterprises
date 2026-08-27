@@ -28,8 +28,7 @@ $this->load->view('common/transactions/header'); ?>
                 if (($JwtData->GenSettings->ShowStats ?? 1) && ($JwtData->TransSettings->ShowTransactionStats ?? 1)):
                 $stats        = $SummaryStats ?? [];
                 $cur          = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-                $dec          = $JwtData->GenSettings->DecimalPoints ?? 2;
-
+                
                 $cntAll       = array_sum(array_column(
                     array_filter($stats, fn($k) => !in_array($k, ['Draft','Cancelled','Expired']), ARRAY_FILTER_USE_KEY),
                     'count'
@@ -60,7 +59,7 @@ $this->load->view('common/transactions/header'); ?>
                             <div class="apex-stat-label"><?php echo $stat['label']; ?></div>
                             <div class="apex-stat-bottom">
                                 <span class="apex-stat-count"><?php echo $stat['count']; ?></span>
-                                <span class="apex-stat-amount"><?php echo $cur . ' ' . number_format((float)$stat['amount'], $dec); ?></span>
+                                <span class="apex-stat-amount"><?php echo $cur . ' ' . smartDecimal((float)$stat['amount']); ?></span>
                             </div>
                         </div>
                     </div>

@@ -1137,10 +1137,10 @@ $attachments = $userAttachments ?? [];
                             <span class="input-group-text"><?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?></span>
                             <input type="text" class="form-control" id="expAmount" placeholder="0"
                                 onkeydown="return handleDotOnly(event)"
-                                oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo (int)($JwtData->GenSettings->PriceMaxLength ?? 12); ?>, <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>)"
+                                oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo (int)($JwtData->GenSettings->PriceMaxLength ?? 12); ?>, 9)"
                                 maxlength="<?php echo (int)($JwtData->GenSettings->PriceMaxLength ?? 12); ?>"
-                                onpaste="handlePricePaste(event, <?php echo (int)($JwtData->GenSettings->PriceMaxLength ?? 12); ?>, <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>)"
-                                ondrop="handlePriceDrop(event, <?php echo (int)($JwtData->GenSettings->PriceMaxLength ?? 12); ?>, <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>)"
+                                onpaste="handlePricePaste(event, <?php echo (int)($JwtData->GenSettings->PriceMaxLength ?? 12); ?>, 9)"
+                                ondrop="handlePriceDrop(event, <?php echo (int)($JwtData->GenSettings->PriceMaxLength ?? 12); ?>, 9)"
                                 value="">
                         </div>
                     </div>

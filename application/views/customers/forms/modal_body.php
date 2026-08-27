@@ -8,7 +8,6 @@
 $isEdit  = ($FormMode === 'edit');
 $isClone = ($FormMode === 'clone');
 $d       = $FormData; // shorthand, null for add
-$dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 ?>
 
 <form id="CustomerModalForm" data-mode="<?php echo $FormMode; ?>" autocomplete="off" novalidate>

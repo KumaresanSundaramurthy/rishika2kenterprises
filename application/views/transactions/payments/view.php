@@ -16,8 +16,7 @@
 
                     <?php
                     $cur   = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-                    $dec   = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
-                    $stats = $BalanceStats ?? (object)['CashIn' => 0, 'CashOut' => 0, 'BankIn' => 0, 'BankOut' => 0];
+                                        $stats = $BalanceStats ?? (object)['CashIn' => 0, 'CashOut' => 0, 'BankIn' => 0, 'BankOut' => 0];
 
                     $cashIn  = (float)($stats->CashIn  ?? 0);
                     $cashOut = (float)($stats->CashOut ?? 0);

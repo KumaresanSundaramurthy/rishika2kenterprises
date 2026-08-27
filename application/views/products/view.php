@@ -21,8 +21,7 @@
                 <?php
                 $s   = $ProductStats ?? null;
                 $cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-                $dec = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
-                ?>
+                                ?>
 
                 <?php if (($JwtData->GenSettings->ShowStats ?? 1) && ($JwtData->TransSettings->ShowTransactionStats ?? 1)): ?>
                 <!-- ── Stats Strip ───────────────────────────────────────────── -->
@@ -2245,7 +2244,7 @@ $(document).on('change', '.pl-global-type', function () {
 $(document).on('keydown', '.pl-global-val, .pl-ct-price', function (e) {
     if (!/^\d$/.test(e.key)) return;
     var dec = (typeof JwtData !== 'undefined' && JwtData.GenSettings)
-        ? (parseInt(JwtData.GenSettings.DecimalPoints, 10) || 2) : 2;
+        ? 2;
     var raw = this.value;
     var dot = raw.indexOf('.');
     if (dot === -1) return;
@@ -2271,7 +2270,7 @@ $(document).on('blur', '.pl-ct-price', function () {
         if (parseInt(_plProductCache[_bi].id, 10) === prodUID) { prodObj = _plProductCache[_bi]; break; }
     }
     if (!prodObj || !(prodObj.purchasePrice > 0)) return;
-    var dec   = (typeof JwtData !== 'undefined' && JwtData.GenSettings) ? (parseInt(JwtData.GenSettings.DecimalPoints, 10) || 2) : 2;
+    var dec   = (typeof JwtData !== 'undefined' && JwtData.GenSettings) ? 2;
     var effPP = (prodObj.purchasePriceTaxUID === 1)
         ? prodObj.purchasePrice
         : prodObj.purchasePrice * (1 + (prodObj.taxPercent || 0) / 100);
@@ -2337,7 +2336,7 @@ function _plAddTierRow($tbody, tierData) {
     var t          = tierData || {};
     var maxVal     = (t.MaxQty !== null && t.MaxQty !== undefined && t.MaxQty !== 0) ? t.MaxQty : '';
     var curSym     = $('<span>').text(_plCurSym).html();
-    var dec        = (typeof JwtData !== 'undefined' && JwtData.GenSettings) ? (parseInt(JwtData.GenSettings.DecimalPoints,  10) || 2)  : 2;
+    var dec        = (typeof JwtData !== 'undefined' && JwtData.GenSettings) ? 2;
     var maxLen     = (typeof JwtData !== 'undefined' && JwtData.GenSettings) ? (parseInt(JwtData.GenSettings.PriceMaxLength, 10) || 15) : 15;
 
     var priceCells = '';
@@ -2770,11 +2769,11 @@ $(document).on('click', '#NewPriceList, #NewPriceListEmpty', function (e) {
  * @returns {number}
  */
 function _plSmartDec(v) {
-    var dec = (typeof JwtData !== 'undefined' && JwtData.GenSettings) ? (parseInt(JwtData.GenSettings.DecimalPoints, 10) || 2) : 2;
+    var dec = (typeof JwtData !== 'undefined' && JwtData.GenSettings) ? 2;
     return parseFloat(parseFloat(v || 0).toFixed(dec));
 }
 function _plDecStep() {
-    var dec = (typeof JwtData !== 'undefined' && JwtData.GenSettings) ? (parseInt(JwtData.GenSettings.DecimalPoints, 10) || 2) : 2;
+    var dec = (typeof JwtData !== 'undefined' && JwtData.GenSettings) ? 2;
     return (1 / Math.pow(10, dec)).toFixed(dec);
 }
 
@@ -3145,7 +3144,7 @@ function _validateAllRules() {
                         if (parseInt(_plProductCache[_pi].id, 10) === prodUID2) { prodObj = _plProductCache[_pi]; break; }
                     }
                     if (prodObj && prodObj.purchasePrice > 0) {
-                        var dec2  = (typeof JwtData !== 'undefined' && JwtData.GenSettings) ? (parseInt(JwtData.GenSettings.DecimalPoints, 10) || 2) : 2;
+                        var dec2  = (typeof JwtData !== 'undefined' && JwtData.GenSettings) ? 2;
                         var effPP = (prodObj.purchasePriceTaxUID === 1)
                             ? prodObj.purchasePrice
                             : prodObj.purchasePrice * (1 + (prodObj.taxPercent || 0) / 100);
@@ -3327,7 +3326,7 @@ $(document).on('click', '.catg-prod-count-btn', function () {
     var catgName = $(this).data('catgname');
     var prodCount = parseInt($(this).text()) || 0;
     var sym = (typeof currencySymbol !== 'undefined') ? currencySymbol : '\u20b9';
-    var dec = typeof JwtData !== 'undefined' && JwtData.GenSettings ? JwtData.GenSettings.DecimalPoints || 2 : 2;
+    var dec = typeof JwtData !== 'undefined' && JwtData.GenSettings ? 2;
 
     // Show banner + skeleton immediately — no blank page
     var skeleton =

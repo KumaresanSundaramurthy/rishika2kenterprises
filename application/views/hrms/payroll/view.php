@@ -16,12 +16,12 @@
           </div>
 
           <!-- Stat cards -->
-          <?php $st = $PayrollStats ?? null; $cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); $dec = (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>
+          <?php $st = $PayrollStats ?? null; $cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>
           <div class="row g-3 mb-3">
             <div class="col-6 col-md"><div class="trans-stat-card stat-all"><div class="trans-stat-label"><?php echo t('stat_total_payrolls', 'Total Payrolls'); ?></div><div class="trans-stat-count"><?php echo (int)($st->Total ?? 0); ?></div><div class="trans-stat-amount">&nbsp;</div><i class="bx bx-layer trans-stat-icon"></i></div></div>
             <div class="col-6 col-md"><div class="trans-stat-card stat-draft"><div class="trans-stat-label"><?php echo t('stat_draft', 'Draft'); ?></div><div class="trans-stat-count"><?php echo (int)($st->Draft ?? 0); ?></div><div class="trans-stat-amount">&nbsp;</div><i class="bx bx-edit trans-stat-icon"></i></div></div>
             <div class="col-6 col-md"><div class="trans-stat-card stat-active"><div class="trans-stat-label"><?php echo t('stat_processed', 'Processed'); ?></div><div class="trans-stat-count"><?php echo (int)($st->Processed ?? 0); ?></div><div class="trans-stat-amount">&nbsp;</div><i class="bx bx-check trans-stat-icon"></i></div></div>
-            <div class="col-6 col-md"><div class="trans-stat-card stat-converted"><div class="trans-stat-label"><?php echo t('stat_paid', 'Paid'); ?></div><div class="trans-stat-count"><?php echo (int)($st->Paid ?? 0); ?></div><div class="trans-stat-amount"><?php echo $cur . ' ' . number_format((float)($st->TotalPaid ?? 0), $dec); ?></div><i class="bx bx-money trans-stat-icon"></i></div></div>
+            <div class="col-6 col-md"><div class="trans-stat-card stat-converted"><div class="trans-stat-label"><?php echo t('stat_paid', 'Paid'); ?></div><div class="trans-stat-count"><?php echo (int)($st->Paid ?? 0); ?></div><div class="trans-stat-amount"><?php echo $cur . ' ' . smartDecimal((float)($st->TotalPaid ?? 0)); ?></div><i class="bx bx-money trans-stat-icon"></i></div></div>
           </div>
 
           <div class="card">

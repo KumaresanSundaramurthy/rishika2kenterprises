@@ -751,7 +751,7 @@ class Organisation_model extends CI_Model {
 
             $CI = &get_instance();
             $this->EndReturnData->Error   = FALSE;
-            $this->EndReturnData->Balance = round($balance, (int)($CI->pageData['JwtData']->GenSettings->DecimalPoints ?? 2));
+            $this->EndReturnData->Balance = round($balance, 4);
             return $this->EndReturnData;
 
         } catch (Exception $e) {

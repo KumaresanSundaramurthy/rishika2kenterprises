@@ -24,7 +24,7 @@ Class Accountledger {
 
     /** Returns configured decimal places for monetary rounding */
     private function _dec(): int {
-        return (int)($this->CI->pageData['JwtData']->GenSettings->DecimalPoints ?? 2);
+        return 4;
     }
 
     public function createLedgerAccountingInfo($entityId, $postData, $entityType = 'Customer') {

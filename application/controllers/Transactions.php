@@ -668,7 +668,7 @@ class Transactions extends MY_Controller {
                 $taxPercent = (float) $value->TaxPercentage;
 
                 $unitPrice = smartDecimal($sellingPrice / (1 + ($taxPercent / 100)), 8);
-                $taxAmount = smartDecimal($sellingPrice - $unitPrice, $GeneralSettings->DecimalPoints, true);
+                $taxAmount = smartDecimal($sellingPrice - $unitPrice);
 
                 $formData = [
                     'id'   => (int) $value->ProductUID,
@@ -677,9 +677,9 @@ class Transactions extends MY_Controller {
                     'productType' => $value->ProductType,
                     'unitPrice' => (float) $unitPrice,
                     'taxAmount' => (float) $taxAmount,
-                    'sellingPrice' => (float) smartDecimal($sellingPrice, $GeneralSettings->DecimalPoints, true),
-                    'purchasePrice'     => (float) smartDecimal($value->PurchasePrice, $GeneralSettings->DecimalPoints, true),
-                    'mrp'               => (float) smartDecimal($value->MRP, $GeneralSettings->DecimalPoints, true),
+                    'sellingPrice' => (float) smartDecimal($sellingPrice),
+                    'purchasePrice'     => (float) smartDecimal($value->PurchasePrice),
+                    'mrp'               => (float) smartDecimal($value->MRP),
                     'purchasePriceTaxUID' => (int)($value->PurchasePriceProductTaxUID ?? 0),
                     'purchasePriceIsIncl' => ((int)($value->PurchasePriceProductTaxUID ?? 1)) === 1,
                     "availableQuantity" => (float) $value->AvailableQuantity,

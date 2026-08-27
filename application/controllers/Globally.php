@@ -719,7 +719,7 @@ class Globally extends CI_Controller {
      */
     private function _resolveCommTokens($moduleUID, $context, $subject, $body) {
         $cur = $this->pageData['JwtData']->GenSettings->CurrenySymbol ?? 'â‚¹';
-        $dec = (int)($this->pageData['JwtData']->GenSettings->DecimalPoints ?? 2);
+        $dec = 2;
 
         $orgName    = $context['OrgName']    ?? '';
         $orgPhone   = $context['OrgPhone']   ?? '';

@@ -5,7 +5,6 @@
 /** @var float $GrandPeriodCr */  $GrandPeriodCr  = (float)($GrandPeriodCr  ?? 0);
 /** @var float $GrandClosingBal */$GrandClosingBal= (float)($GrandClosingBal ?? 0);
 $cur     = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-$dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 $dateFmt = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
 $orgName = htmlspecialchars($JwtData->Org->OrgName ?? '');
 $dfDisp  = date($dateFmt, strtotime($DateFrom));
@@ -31,10 +30,10 @@ $refLabels = [
  * @param bool   $showSign
  * @returns string
  */
-function _cfFmt(float $n, string $cur, int $dec, bool $showSign = false): string {
+function _cfFmt(float $n, string $cur, bool $showSign = false): string {
     if (abs($n) < 0.005) return '<span class="text-muted">—</span>';
     $prefix = $showSign ? ($n >= 0 ? '+' : '−') : '';
-    return $prefix . $cur . ' ' . number_format(abs($n), $dec);
+    return $prefix . $cur . ' ' . smartDecimal(abs($n));
 }
 
 $grandNetChange = $GrandPeriodDr - $GrandPeriodCr;
@@ -72,7 +71,7 @@ $netPos         = $grandNetChange >= 0;
             <div class="text-end">
                 <div class="text-muted" style="font-size:.72rem;">Net Change</div>
                 <div class="fw-bold <?php echo $acc->NetChange >= 0 ? 'text-success' : 'text-danger'; ?>" style="font-size:.88rem;">
-                    <?php echo _cfFmt($acc->NetChange, $cur, $dec, true); ?>
+                    <?php echo _cfFmt($acc->NetChange, $cur, true); ?>
                 </div>
             </div>
         </div>
@@ -85,7 +84,7 @@ $netPos         = $grandNetChange >= 0;
                     <td class="fw-semibold" style="font-size:.82rem;">Opening Balance</td>
                     <td></td>
                     <td class="text-end fw-bold" style="font-size:.82rem;">
-                        <?php echo _cfFmt($acc->OpeningBal, $cur, $dec); ?>
+                        <?php echo _cfFmt($acc->OpeningBal, $cur); ?>
                         <?php if (abs($acc->OpeningBal) > 0.005): ?>
                         <span class="ms-1 text-muted" style="font-size:.68rem;"><?php echo $acc->OpeningBal >= 0 ? 'Dr' : 'Cr'; ?></span>
                         <?php endif; ?>
@@ -108,14 +107,14 @@ $netPos         = $grandNetChange >= 0;
                     <td style="width:16px;border-left:3px solid #bbf7d0;"></td>
                     <td style="font-size:.82rem;padding-left:12px;"><?php echo $label; ?></td>
                     <td class="text-end text-success fw-semibold" style="font-size:.82rem;">
-                        <?php echo _cfFmt($amt, $cur, $dec); ?>
+                        <?php echo _cfFmt($amt, $cur); ?>
                     </td>
                 </tr>
                 <?php endforeach; ?>
                 <tr class="cf-subtotal cf-inflow-subtotal">
                     <td colspan="2" class="fw-semibold" style="font-size:.78rem;">Total Inflows</td>
                     <td class="text-end fw-bold text-success" style="font-size:.82rem;">
-                        <?php echo _cfFmt($totalIn, $cur, $dec); ?>
+                        <?php echo _cfFmt($totalIn, $cur); ?>
                     </td>
                 </tr>
                 <?php endif; ?>
@@ -136,14 +135,14 @@ $netPos         = $grandNetChange >= 0;
                     <td style="width:16px;border-left:3px solid #fecaca;"></td>
                     <td style="font-size:.82rem;padding-left:12px;"><?php echo $label; ?></td>
                     <td class="text-end text-danger fw-semibold" style="font-size:.82rem;">
-                        (<?php echo _cfFmt($amt, $cur, $dec); ?>)
+                        (<?php echo _cfFmt($amt, $cur); ?>)
                     </td>
                 </tr>
                 <?php endforeach; ?>
                 <tr class="cf-subtotal cf-outflow-subtotal">
                     <td colspan="2" class="fw-semibold" style="font-size:.78rem;">Total Outflows</td>
                     <td class="text-end fw-bold text-danger" style="font-size:.82rem;">
-                        (<?php echo _cfFmt($totalOut, $cur, $dec); ?>)
+                        (<?php echo _cfFmt($totalOut, $cur); ?>)
                     </td>
                 </tr>
                 <?php endif; ?>
@@ -154,7 +153,7 @@ $netPos         = $grandNetChange >= 0;
                     <td></td>
                     <td class="text-end fw-bold" style="font-size:.88rem;
                         color:<?php echo $acc->ClosingBal >= 0 ? '#059669' : '#dc2626'; ?>;">
-                        <?php echo _cfFmt($acc->ClosingBal, $cur, $dec); ?>
+                        <?php echo _cfFmt($acc->ClosingBal, $cur); ?>
                         <?php if (abs($acc->ClosingBal) > 0.005): ?>
                         <span class="ms-1 text-muted" style="font-size:.68rem;"><?php echo $acc->ClosingBal >= 0 ? 'Dr' : 'Cr'; ?></span>
                         <?php endif; ?>
@@ -174,26 +173,26 @@ $netPos         = $grandNetChange >= 0;
             <tbody>
                 <tr>
                     <td style="font-size:.82rem;">Total Opening Balance</td>
-                    <td class="text-end fw-semibold" style="font-size:.82rem;"><?php echo _cfFmt($GrandOpeningBal, $cur, $dec); ?></td>
+                    <td class="text-end fw-semibold" style="font-size:.82rem;"><?php echo _cfFmt($GrandOpeningBal, $cur); ?></td>
                 </tr>
                 <tr>
                     <td style="font-size:.82rem;color:#059669;">+ Total Inflows</td>
-                    <td class="text-end fw-bold text-success" style="font-size:.82rem;"><?php echo _cfFmt($GrandPeriodDr, $cur, $dec); ?></td>
+                    <td class="text-end fw-bold text-success" style="font-size:.82rem;"><?php echo _cfFmt($GrandPeriodDr, $cur); ?></td>
                 </tr>
                 <tr>
                     <td style="font-size:.82rem;color:#dc2626;">− Total Outflows</td>
-                    <td class="text-end fw-bold text-danger" style="font-size:.82rem;">(<?php echo _cfFmt($GrandPeriodCr, $cur, $dec); ?>)</td>
+                    <td class="text-end fw-bold text-danger" style="font-size:.82rem;">(<?php echo _cfFmt($GrandPeriodCr, $cur); ?>)</td>
                 </tr>
                 <tr class="cf-grand-net <?php echo $netPos ? 'cf-net-pos' : 'cf-net-neg'; ?>">
                     <td class="fw-bold" style="font-size:.85rem;">Net Change in Cash &amp; Bank</td>
                     <td class="text-end fw-bold" style="font-size:.88rem;">
-                        <?php echo _cfFmt($grandNetChange, $cur, $dec, true); ?>
+                        <?php echo _cfFmt($grandNetChange, $cur, true); ?>
                     </td>
                 </tr>
                 <tr class="cf-grand-closing">
                     <td class="fw-bold" style="font-size:.85rem;">Total Closing Balance</td>
                     <td class="text-end fw-bold" style="font-size:.88rem;color:<?php echo $GrandClosingBal >= 0 ? '#059669' : '#dc2626'; ?>;">
-                        <?php echo _cfFmt($GrandClosingBal, $cur, $dec); ?>
+                        <?php echo _cfFmt($GrandClosingBal, $cur); ?>
                     </td>
                 </tr>
             </tbody>

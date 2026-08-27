@@ -12,11 +12,10 @@
 
                     <?php
                     $cur      = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-                    $dec      = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
-                    $totals   = $Totals ?? (object)['TotalReceived' => 0, 'TotalPaid' => 0];
+                                        $totals   = $Totals ?? (object)['TotalReceived' => 0, 'TotalPaid' => 0];
                     $totalPaid = (float)($totals->TotalPaid ?? 0);
 
-                    function ppFmt($val, $sym, $dec) {
+                    function ppFmt($val, $sym) {
                         return $sym . ' ' . smartDecimal((float)$val);
                     }
                     ?>
@@ -27,7 +26,7 @@
                             <div class="trans-stat-card stat-active">
                                 <div class="trans-stat-label">Total Payments</div>
                                 <div class="trans-stat-count"><?php echo number_format($ModAllCount); ?></div>
-                                <div class="trans-stat-amount"><?php echo ppFmt($totalPaid, $cur, $dec); ?></div>
+                                <div class="trans-stat-amount"><?php echo ppFmt($totalPaid, $cur); ?></div>
                                 <i class="bx bx-money-withdraw trans-stat-icon"></i>
                             </div>
                         </div>
@@ -97,7 +96,7 @@
                         <div class="card-footer bg-white border-top d-flex flex-wrap justify-content-between align-items-center px-3 py-2 gap-3">
                             <div class="d-flex align-items-center gap-3">
                                 <span class="text-muted" style="font-size:.8rem;">
-                                    Total Paid Out: &nbsp;<strong class="text-danger" id="ppFooterPaid"><?php echo ppFmt($totalPaid, $cur, $dec); ?></strong>
+                                    Total Paid Out: &nbsp;<strong class="text-danger" id="ppFooterPaid"><?php echo ppFmt($totalPaid, $cur); ?></strong>
                                 </span>
                             </div>
                             <div id="ppPagination" class="d-flex align-items-center gap-3">

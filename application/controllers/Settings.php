@@ -148,9 +148,6 @@ class Settings extends MY_Controller {
             $post    = $this->input->post();
 
             // Validate & sanitize
-            $decimalPoints = in_array((int)getPostValue($post, 'DecimalPoints'), [0, 2, 3])
-                ? (int)getPostValue($post, 'DecimalPoints') : 2;
-
             // Currency: exactly 1 character
             $currencySymbol = trim(getPostValue($post, 'CurrenySymbol') ?: 'â‚¹');
             $currencySymbol = mb_substr($currencySymbol, 0, 1);
@@ -208,7 +205,6 @@ class Settings extends MY_Controller {
             if (!in_array($empCodeDigits, [3, 4, 5, 6])) $empCodeDigits = 4;
 
             $data = [
-                'DecimalPoints'        => $decimalPoints,
                 'CurrenySymbol'        => $currencySymbol,
                 'SerialNoDisplay'      => $serialNoDisplay,
                 'FYStartMonth'         => $fyStartMonth,

@@ -69,7 +69,7 @@ $(function () {
                         var fmt = _orgDateFmt || 'd M Y';
                         return fmt.replace('Y', d[0]).replace('m', d[1]).replace('d', d[2]).replace('M', _months[parseInt(d[1], 10) - 1]);
                     }());
-                    var label = inv.UniqueNumber + ' | ' + dateLabel + ' | ' + (genSettings.CurrenySymbol || '₹') + parseFloat(inv.NetAmount).toFixed(genSettings.DecimalPoints || 2);
+                    var label = inv.UniqueNumber + ' | ' + dateLabel + ' | ' + (genSettings.CurrenySymbol || '₹') + parseFloat(inv.NetAmount).toFixed(2);
                     opts += '<option value="' + inv.TransUID + '">' + label + '</option>';
                 });
                 $inv.html(opts).prop('disabled', false);

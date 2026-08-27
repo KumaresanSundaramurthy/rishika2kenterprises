@@ -1,6 +1,5 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
 $cur  = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-$dec  = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 $s    = $Slip ?? new stdClass();
 $org  = $OrgInfo ?? new stdClass();
 $months = ['','January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -52,28 +51,28 @@ $period = ($months[(int)($s->PayrollMonth ?? 0)] ?? '—') . ' ' . ($s->PayrollY
                 <div class="col-md-6">
                   <h6 class="fw-semibold mb-2"><?php echo t('lbl_earnings', 'Earnings'); ?></h6>
                   <table class="table table-sm mb-0" style="font-size:.875rem;">
-                    <tr><td><?php echo t('lbl_basic_salary', 'Basic Salary'); ?></td><td class="text-end"><?php echo $cur . ' ' . number_format((float)($s->BasicSalary ?? 0), $dec); ?></td></tr>
-                    <tr><td><?php echo t('lbl_allowances', 'Allowances'); ?></td><td class="text-end"><?php echo $cur . ' ' . number_format((float)($s->Allowances ?? 0), $dec); ?></td></tr>
-                    <tr><td><?php echo t('lbl_incentives', 'Incentives'); ?></td><td class="text-end"><?php echo $cur . ' ' . number_format((float)($s->Incentives ?? 0), $dec); ?></td></tr>
-                    <?php if ((float)($s->OtherEarnings ?? 0) > 0): ?><tr><td><?php echo t('lbl_other_earnings', 'Other Earnings'); ?></td><td class="text-end"><?php echo $cur . ' ' . number_format((float)$s->OtherEarnings, $dec); ?></td></tr><?php endif; ?>
-                    <tr class="fw-semibold table-light"><td><?php echo t('lbl_gross_salary', 'Gross Salary'); ?></td><td class="text-end text-success"><?php echo $cur . ' ' . number_format((float)($s->GrossSalary ?? 0), $dec); ?></td></tr>
+                    <tr><td><?php echo t('lbl_basic_salary', 'Basic Salary'); ?></td><td class="text-end"><?php echo $cur . ' ' . smartDecimal((float)($s->BasicSalary ?? 0)); ?></td></tr>
+                    <tr><td><?php echo t('lbl_allowances', 'Allowances'); ?></td><td class="text-end"><?php echo $cur . ' ' . smartDecimal((float)($s->Allowances ?? 0)); ?></td></tr>
+                    <tr><td><?php echo t('lbl_incentives', 'Incentives'); ?></td><td class="text-end"><?php echo $cur . ' ' . smartDecimal((float)($s->Incentives ?? 0)); ?></td></tr>
+                    <?php if ((float)($s->OtherEarnings ?? 0) > 0): ?><tr><td><?php echo t('lbl_other_earnings', 'Other Earnings'); ?></td><td class="text-end"><?php echo $cur . ' ' . smartDecimal((float)$s->OtherEarnings); ?></td></tr><?php endif; ?>
+                    <tr class="fw-semibold table-light"><td><?php echo t('lbl_gross_salary', 'Gross Salary'); ?></td><td class="text-end text-success"><?php echo $cur . ' ' . smartDecimal((float)($s->GrossSalary ?? 0)); ?></td></tr>
                   </table>
                 </div>
                 <div class="col-md-6">
                   <h6 class="fw-semibold mb-2"><?php echo t('lbl_deductions', 'Deductions'); ?></h6>
                   <table class="table table-sm mb-0" style="font-size:.875rem;">
-                    <tr><td><?php echo t('lbl_absent_deduction', 'Absent Days Deduction'); ?></td><td class="text-end text-danger"><?php echo $cur . ' ' . number_format((float)($s->AbsentDeduction ?? 0), $dec); ?></td></tr>
-                    <tr><td><?php echo t('lbl_fixed_deductions', 'Fixed Deductions'); ?></td><td class="text-end text-danger"><?php echo $cur . ' ' . number_format((float)($s->FixedDeductions ?? 0), $dec); ?></td></tr>
-                    <tr><td><?php echo t('lbl_advance_recovery', 'Advance Recovery'); ?></td><td class="text-end text-warning"><?php echo $cur . ' ' . number_format((float)($s->AdvanceRecovery ?? 0), $dec); ?></td></tr>
-                    <?php if ((float)($s->OtherDeductions ?? 0) > 0): ?><tr><td><?php echo t('lbl_other_deductions', 'Other Deductions'); ?></td><td class="text-end text-danger"><?php echo $cur . ' ' . number_format((float)$s->OtherDeductions, $dec); ?></td></tr><?php endif; ?>
-                    <tr class="fw-semibold table-light"><td><?php echo t('lbl_total_deductions', 'Total Deductions'); ?></td><td class="text-end text-danger"><?php echo $cur . ' ' . number_format((float)($s->TotalDeductions ?? 0), $dec); ?></td></tr>
+                    <tr><td><?php echo t('lbl_absent_deduction', 'Absent Days Deduction'); ?></td><td class="text-end text-danger"><?php echo $cur . ' ' . smartDecimal((float)($s->AbsentDeduction ?? 0)); ?></td></tr>
+                    <tr><td><?php echo t('lbl_fixed_deductions', 'Fixed Deductions'); ?></td><td class="text-end text-danger"><?php echo $cur . ' ' . smartDecimal((float)($s->FixedDeductions ?? 0)); ?></td></tr>
+                    <tr><td><?php echo t('lbl_advance_recovery', 'Advance Recovery'); ?></td><td class="text-end text-warning"><?php echo $cur . ' ' . smartDecimal((float)($s->AdvanceRecovery ?? 0)); ?></td></tr>
+                    <?php if ((float)($s->OtherDeductions ?? 0) > 0): ?><tr><td><?php echo t('lbl_other_deductions', 'Other Deductions'); ?></td><td class="text-end text-danger"><?php echo $cur . ' ' . smartDecimal((float)$s->OtherDeductions); ?></td></tr><?php endif; ?>
+                    <tr class="fw-semibold table-light"><td><?php echo t('lbl_total_deductions', 'Total Deductions'); ?></td><td class="text-end text-danger"><?php echo $cur . ' ' . smartDecimal((float)($s->TotalDeductions ?? 0)); ?></td></tr>
                   </table>
                 </div>
               </div>
               <hr>
               <div class="d-flex justify-content-between align-items-center">
                 <span class="fw-bold" style="font-size:1.05rem;"><?php echo strtoupper(t('lbl_net_payable', 'Net Payable')); ?></span>
-                <span class="fw-bold text-success" style="font-size:1.2rem;"><?php echo $cur . ' ' . number_format((float)($s->NetPayable ?? 0), $dec); ?></span>
+                <span class="fw-bold text-success" style="font-size:1.2rem;"><?php echo $cur . ' ' . smartDecimal((float)($s->NetPayable ?? 0)); ?></span>
               </div>
             </div>
           </div>

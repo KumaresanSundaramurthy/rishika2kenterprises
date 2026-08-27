@@ -210,7 +210,7 @@ class Payments extends MY_Controller {
                         $remaining = max(0, round($freshNetAmount - $freshPaidAmount, $this->_decimals()));
                         throw new ValidationException(
                             'Payment exceeds the invoice balance. ' .
-                            'Remaining: ' . number_format($remaining, $this->_decimals()) . '. ' .
+                            'Remaining: ' . smartDecimal($remaining) . '. ' .
                             'Another payment may have been recorded simultaneously â€” please refresh and try again.'
                         );
                     }
@@ -230,7 +230,7 @@ class Payments extends MY_Controller {
                 if ($availableOnAccount <= 0) throw new ValidationException('No on-account balance available â€” it may have been used by another user. Please refresh and try again.', 1001);
                 $onAccountAmount = round($onAccountAmount, $this->_decimals());
                 if ($onAccountAmount > $availableOnAccount) {
-                    throw new ValidationException('On-account amount (' . number_format($onAccountAmount, $this->_decimals()) . ') exceeds available balance (' . number_format($availableOnAccount, $this->_decimals()) . ').');
+                    throw new ValidationException('On-account amount (' . smartDecimal($onAccountAmount) . ') exceeds available balance (' . smartDecimal($availableOnAccount) . ').');
                 }
             }
 
@@ -259,7 +259,7 @@ class Payments extends MY_Controller {
                 }
                 $advanceAmount = round($advanceAmount, $this->_decimals());
                 if ($advanceAmount > $availableExcess) {
-                    throw new ValidationException('Advance amount (' . number_format($advanceAmount, $this->_decimals()) . ') exceeds available balance (' . number_format($availableExcess, $this->_decimals()) . ').');
+                    throw new ValidationException('Advance amount (' . smartDecimal($advanceAmount) . ') exceeds available balance (' . smartDecimal($availableExcess) . ').');
                 }
             }
 

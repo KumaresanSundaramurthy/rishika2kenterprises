@@ -5,7 +5,6 @@ $DataLists    = $DataLists    ?? [];
 $SerialNumber = $SerialNumber ?? 0;
 
 $fmt      = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
-$dec      = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 $currency = $JwtData->GenSettings->CurrenySymbol ?? '₹';
 
 if (empty($DataLists)) : ?>
@@ -45,7 +44,7 @@ foreach ($DataLists as $i => $row):
     <td><?php echo $entryDate; ?></td>
 
     <td class="text-end fw-semibold">
-        <?php echo $currency . ' ' . number_format($purchasePrice, $dec, '.', ','); ?>
+        <?php echo $currency . ' ' . smartDecimal($purchasePrice); ?>
         <?php if ($unit): ?>
             <div class="text-muted tinysmall">per <?php echo $unit; ?></div>
         <?php endif; ?>
@@ -53,7 +52,7 @@ foreach ($DataLists as $i => $row):
 
     <td class="text-end">
         <?php if ($prevPrice > 0): ?>
-            <?php echo $currency . ' ' . number_format($prevPrice, $dec, '.', ','); ?>
+            <?php echo $currency . ' ' . smartDecimal($prevPrice); ?>
         <?php else: ?>
             <span class="text-muted">—</span>
         <?php endif; ?>
@@ -62,12 +61,12 @@ foreach ($DataLists as $i => $row):
     <td class="text-center">
         <?php echo $dirBadge; ?>
         <?php if ($priceDiff != 0): ?>
-            <div class="tinysmall text-muted"><?php echo ($priceDiff > 0 ? '+' : '') . $currency . ' ' . number_format($priceDiff, $dec); ?></div>
+            <div class="tinysmall text-muted"><?php echo ($priceDiff > 0 ? '+' : '') . $currency . ' ' . smartDecimal($priceDiff); ?></div>
         <?php endif; ?>
     </td>
 
     <td class="text-end">
-        <?php echo number_format($qty, $dec, '.', ','); ?>
+        <?php echo smartDecimal($qty); ?>
         <?php if ($unit): ?>
             <span class="text-muted tinysmall"><?php echo $unit; ?></span>
         <?php endif; ?>

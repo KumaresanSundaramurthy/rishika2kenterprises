@@ -5,7 +5,6 @@ $DataLists    = $DataLists    ?? [];
 $SerialNumber = $SerialNumber ?? 0;
 
 $fmt      = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
-$dec      = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 $currency = $JwtData->GenSettings->CurrenySymbol ?? '₹';
 
 if (empty($DataLists)) : ?>
@@ -60,12 +59,12 @@ foreach ($DataLists as $i => $row):
     <td class="small"><?php echo htmlspecialchars($row->VendorName ?? '—'); ?></td>
 
     <td class="text-end fw-semibold">
-        <?php echo $currency . ' ' . number_format($priceWithTax, $dec, '.', ','); ?>
+        <?php echo $currency . ' ' . smartDecimal($priceWithTax); ?>
         <span class="badge <?php echo $isIncl ? 'bg-label-info' : 'bg-label-secondary'; ?> ms-1 tinysmall">
             <?php echo $isIncl ? 'Incl' : 'Excl'; ?>
         </span>
         <?php if ($taxPct > 0): ?>
-            <div class="text-muted fw-normal tinysmall"><?php echo $currency . ' ' . number_format($purchasePrice, $dec, '.', ','); ?> excl + <?php echo number_format($taxPct, 2); ?>% tax</div>
+            <div class="text-muted fw-normal tinysmall"><?php echo $currency . ' ' . smartDecimal($purchasePrice); ?> excl + <?php echo number_format($taxPct, 2); ?>% tax</div>
         <?php elseif (!empty($row->Unit)): ?>
             <div class="text-muted fw-normal tinysmall">per <?php echo htmlspecialchars($row->Unit); ?></div>
         <?php endif; ?>
@@ -76,7 +75,7 @@ foreach ($DataLists as $i => $row):
     </td>
 
     <td class="text-end small">
-        <?php echo number_format($qty, $dec, '.', ','); ?>
+        <?php echo smartDecimal($qty); ?>
         <?php if (!empty($row->Unit)): ?>
             <span class="text-muted tinysmall"><?php echo htmlspecialchars($row->Unit); ?></span>
         <?php endif; ?>
@@ -91,7 +90,7 @@ foreach ($DataLists as $i => $row):
     </td>
 
     <td class="text-end fw-semibold">
-        <?php echo $currency . ' ' . number_format($totalAmt, $dec, '.', ','); ?>
+        <?php echo $currency . ' ' . smartDecimal($totalAmt); ?>
     </td>
 
     <td>

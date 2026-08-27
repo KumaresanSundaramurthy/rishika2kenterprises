@@ -299,7 +299,7 @@ class Expenses extends MY_Controller {
             if ($paidAmount > 0 && $newNetAmt < $paidAmount - 0.001) {
                 throw new ValidationException(
                     'Amount cannot be less than ' . $this->_currency() . ' ' .
-                    number_format($paidAmount, $dec) . ' (already paid).'
+                    smartDecimal($paidAmount) . ' (already paid).'
                 );
             }
 

@@ -29,7 +29,7 @@
      * @returns {string}
      */
     function fmt(v) {
-        var dp  = (typeof genSettings !== 'undefined' && genSettings.DecimalPoints) ? genSettings.DecimalPoints : 2;
+        var dp  = 2;
         var num = parseFloat(v) || 0;
         return num === 0 ? '0' : smartDecimal(num, dp, false);
     }

@@ -42,7 +42,7 @@
                             <label for="ComboSellingPrice" class="form-label">Selling Price <span style="color:red">*</span> (<span id="ComboSellingPriceTaxHelp" class="form-text text-danger">Inclusive of Taxes</span><span id="ComboSellingPriceWTaxHelp" class="form-text text-danger d-none">Exclusive of Taxes</span>)</label>
                             <div class="input-group input-group-merge">
                                 <span class="input-group-text"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
-                                <input type="text" class="form-control" name="ComboSellingPrice" id="ComboSellingPrice" min="0" placeholder="Enter Selling Price" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" maxLength="<?php echo $JwtData->GenSettings->PriceMaxLength; ?>" required />
+                                <input type="text" class="form-control" name="ComboSellingPrice" id="ComboSellingPrice" min="0" placeholder="Enter Selling Price" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, 9)" maxLength="<?php echo $JwtData->GenSettings->PriceMaxLength; ?>" required />
                                 <select class="form-select tax-option-select" id="ComboSellingTaxOption" name="ComboSellingTaxOption"></select>
                             </div>
                         </div>
@@ -50,7 +50,7 @@
                             <label for="ComboPurchasePrice" class="form-label">Purchase Price <span style="color:red">*</span> (<span id="ComboPurchasePriceTaxHelp" class="form-text text-danger">Inclusive of Taxes</span><span id="ComboPurchasePriceWTaxHelp" class="form-text text-danger d-none">Exclusive of Taxes</span>)</label>
                             <div class="input-group input-group-merge">
                                 <span class="input-group-text"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
-                                <input type="text" class="form-control" name="ComboPurchasePrice" id="ComboPurchasePrice" min="0" placeholder="Enter Purchase Price" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" maxLength="<?php echo $JwtData->GenSettings->PriceMaxLength; ?>" onpaste="handlePricePaste(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" ondrop="handlePriceDrop(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" required />
+                                <input type="text" class="form-control" name="ComboPurchasePrice" id="ComboPurchasePrice" min="0" placeholder="Enter Purchase Price" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, 9)" maxLength="<?php echo $JwtData->GenSettings->PriceMaxLength; ?>" onpaste="handlePricePaste(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, 9)" ondrop="handlePriceDrop(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, 9)" required />
                                 <select class="form-select tax-option-select" id="ComboPurchaseTaxOption" name="ComboPurchaseTaxOption"></select>
                             </div>
                         </div>
@@ -58,7 +58,7 @@
                             <label for="ComboMRP" class="form-label">MRP (Maximum Retail Price)</label>
                             <div class="input-group input-group-merge">
                                 <span class="input-group-text"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
-                                <input type="text" class="form-control" name="ComboMRP" id="ComboMRP" min="0" placeholder="Enter MRP" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" maxLength="<?php echo $JwtData->GenSettings->PriceMaxLength; ?>" pattern="^\d{1,<?php echo $JwtData->GenSettings->PriceMaxLength; ?>}(\.\d{0,<?php echo $JwtData->GenSettings->DecimalPoints; ?>})?$" onpaste="handlePricePaste(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" ondrop="handlePriceDrop(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" value="0" />
+                                <input type="text" class="form-control" name="ComboMRP" id="ComboMRP" min="0" placeholder="Enter MRP" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, 9)" maxLength="<?php echo $JwtData->GenSettings->PriceMaxLength; ?>" pattern="^\d{1,<?php echo $JwtData->GenSettings->PriceMaxLength; ?>}(\.\d{0,9})?$" onpaste="handlePricePaste(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, 9)" ondrop="handlePriceDrop(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, 9)" value="0" />
                             </div>
                         </div>
                         <div class="mb-3 col-md-6">
@@ -94,10 +94,10 @@
                             <label class="form-label">Quantity</label>
                             <input type="text" class="form-control" id="ComboItemQty" placeholder="Qty"
                                 onkeydown="return handleDotOnly(event)"
-                                oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?= (int)($JwtData->GenSettings->PriceMaxLength ?? 10) ?>, <?= (int)($JwtData->GenSettings->DecimalPoints ?? 2) ?>)"
+                                oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?= (int)($JwtData->GenSettings->PriceMaxLength ?? 10) ?>, 9)"
                                 maxlength="<?= (int)($JwtData->GenSettings->PriceMaxLength ?? 10) ?>"
-                                onpaste="handlePricePaste(event, <?= (int)($JwtData->GenSettings->PriceMaxLength ?? 10) ?>, <?= (int)($JwtData->GenSettings->DecimalPoints ?? 2) ?>)"
-                                ondrop="handlePriceDrop(event, <?= (int)($JwtData->GenSettings->PriceMaxLength ?? 10) ?>, <?= (int)($JwtData->GenSettings->DecimalPoints ?? 2) ?>)"
+                                onpaste="handlePricePaste(event, <?= (int)($JwtData->GenSettings->PriceMaxLength ?? 10) ?>, 9)"
+                                ondrop="handlePriceDrop(event, <?= (int)($JwtData->GenSettings->PriceMaxLength ?? 10) ?>, 9)"
                                 value="1" />
                         </div>
                         <div class="col-md-2 d-flex align-items-end">
@@ -134,5 +134,5 @@
 </div>
 <script>
 var _comboQtyMaxLen = <?= (int)($JwtData->GenSettings->PriceMaxLength ?? 10) ?>;
-var _comboQtyDecimals = <?= (int)($JwtData->GenSettings->DecimalPoints ?? 2) ?>;
+var _comboQtyDecimals = 9;
 </script>

@@ -5,7 +5,6 @@ $moduleContext = 'indirectincome';
 include(APPPATH . 'views/transactions/partials/status_config.php');
 
 $currency   = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-$decimals   = $JwtData->GenSettings->DecimalPoints ?? 2;
 $showSerial = $JwtData->GenSettings->SerialNoDisplay == 1;
 
 if (!empty($DataLists)):
@@ -16,7 +15,7 @@ if (!empty($DataLists)):
         $icon        = $statusIcon[$status]        ?? 'bx-circle';
         $paidAmt     = (float)($list->PaidAmount   ?? 0);
         $netAmt      = (float)($list->NetAmount    ?? 0);
-        $pendingAmt  = max(0, round($netAmt - $paidAmt, $decimals));
+        $pendingAmt  = max(0, round($netAmt - $paidAmt));
         $showPending = in_array($status, ['Pending', 'Partial']) && $netAmt > 0;
 ?>
     <tr>
@@ -65,9 +64,9 @@ if (!empty($DataLists)):
 
         <!-- Amount -->
         <td>
-            <div class="trans-amount-main"><?php echo $currency . ' ' . smartDecimal($list->Amount, $decimals, true); ?></div>
+            <div class="trans-amount-main"><?php echo $currency . ' ' . smartDecimal($list->Amount); ?></div>
             <?php if ($status === 'Partial' && $pendingAmt > 0): ?>
-                <div style="font-size:.7rem;color:#dc3545;margin-top:2px;"><?php echo t('lbl_bal', 'Bal'); ?> <?php echo $currency . ' ' . number_format($pendingAmt, $decimals); ?></div>
+                <div style="font-size:.7rem;color:#dc3545;margin-top:2px;"><?php echo t('lbl_bal', 'Bal'); ?> <?php echo $currency . ' ' . smartDecimal($pendingAmt); ?></div>
             <?php endif; ?>
         </td>
 

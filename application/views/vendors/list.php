@@ -4,7 +4,6 @@
 $cdnUrl     = getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN');
 $showSerial = isset($GenSettings->SerialNoDisplay) && $GenSettings->SerialNoDisplay == 1;
 $currency   = $JwtData->GenSettings->CurrenySymbol ?? '₹';
-$dec        = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 
 if (!empty($DataLists)):
     foreach ($DataLists as $list):
@@ -126,7 +125,7 @@ if (!empty($DataLists)):
         <!-- Closing Balance -->
         <td>
             <?php
-                $bal     = round((float)($list->ClosingBalance ?? 0), $dec);
+                $bal     = round((float)($list->ClosingBalance ?? 0));
                 $balType = $list->ClosingBalanceType ?? 'Credit';
                 $balClass = $bal == 0 ? 'text-muted' : (($balType === 'Credit') ? 'text-danger' : 'text-success');
                 $balLabel = $bal == 0 ? '' : (($balType === 'Credit') ? 'To Pay' : 'To Collect');

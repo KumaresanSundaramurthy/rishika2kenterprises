@@ -7,7 +7,6 @@ $moduleContext = 'salesreturn';
 include(APPPATH . 'views/transactions/partials/status_config.php');
 
 $currency      = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-$decimals      = $JwtData->GenSettings->DecimalPoints ?? 2;
 $showSerial    = $JwtData->GenSettings->SerialNoDisplay == 1;
 $srModuleUID   = 106;
 
@@ -31,7 +30,7 @@ if (!empty($DataLists)):
 
         $netAmt    = (float)($list->NetAmount  ?? 0);
         $paidAmt   = (float)($list->PaidAmount ?? 0);
-        $pendingAmt = max(0, round($netAmt - $paidAmt, $decimals));
+        $pendingAmt = max(0, round($netAmt - $paidAmt));
 
         // Payment status badge — $payStatus stays English for WA template token matching
         if ($isDraft) {
@@ -57,7 +56,7 @@ if (!empty($DataLists)):
         $partyName  = $list->PartyName   ?? 'Customer';
         $returnNum  = $list->UniqueNumber ?? 'Draft';
         $transDate  = !empty($list->TransDate) ? format_datedisplay($list->TransDate) : '';
-        $billAmount = $currency . ' ' . smartDecimal($netAmt, $decimals, true);
+        $billAmount = $currency . ' ' . smartDecimal($netAmt);
 
         $waMessage  = "Hello *{$partyName}*,\n\n";
         $waMessage .= "Sales Return: *{$returnNum}*\n";
@@ -123,10 +122,10 @@ if (!empty($DataLists)):
             <?php if ($isDraft && $netAmt == 0): ?>
                 <span class="text-muted">—</span>
             <?php else: ?>
-                <div class="trans-amount-main"><?php echo $currency . ' ' . smartDecimal($netAmt, $decimals, true); ?></div>
+                <div class="trans-amount-main"><?php echo $currency . ' ' . smartDecimal($netAmt); ?></div>
                 <?php if ($showPending): ?>
                     <div style="font-size:.68rem;color:#d33;font-weight:500;">
-                        Bal <?php echo $currency . ' ' . smartDecimal($pendingAmt, $decimals, true); ?>
+                        Bal <?php echo $currency . ' ' . smartDecimal($pendingAmt); ?>
                     </div>
                 <?php endif; ?>
             <?php endif; ?>
@@ -278,7 +277,7 @@ if (!empty($DataLists)):
                         data-total="<?php echo $netAmt; ?>"
                         data-paid="<?php echo $paidAmt; ?>"
                         data-pending="<?php echo $pendingAmt; ?>"
-                        title="Refund Payment — <?php echo $currency . ' ' . smartDecimal($pendingAmt, $decimals, true); ?> pending">
+                        title="Refund Payment — <?php echo $currency . ' ' . smartDecimal($pendingAmt); ?> pending">
                     <?php echo $currency; ?>
                 </button>
                 <?php endif; ?>

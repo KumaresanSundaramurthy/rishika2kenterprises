@@ -2,7 +2,6 @@
 /** @var int $SerialNumber */ $SerialNumber = $SerialNumber ?? 0;
 $cur     = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
 $dateFmt = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
-$dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 
 $statusBadge = [
     'Requested' => 'bg-label-info',
@@ -32,9 +31,9 @@ if (!empty($DataLists)):
     <?php endif; ?>
   </td>
   <td style="font-size:.875rem;"><?php echo $dt; ?></td>
-  <td class="fw-semibold"><?php echo $cur . ' ' . number_format($amount, $dec); ?></td>
-  <td class="text-success"><?php echo $cur . ' ' . number_format($recovered, $dec); ?></td>
-  <td class="<?php echo $balance > 0 ? 'text-danger fw-semibold' : 'text-success'; ?>"><?php echo $cur . ' ' . number_format($balance, $dec); ?></td>
+  <td class="fw-semibold"><?php echo $cur . ' ' . smartDecimal($amount); ?></td>
+  <td class="text-success"><?php echo $cur . ' ' . smartDecimal($recovered); ?></td>
+  <td class="<?php echo $balance > 0 ? 'text-danger fw-semibold' : 'text-success'; ?>"><?php echo $cur . ' ' . smartDecimal($balance); ?></td>
   <td><span class="badge <?php echo $badge; ?>"><?php echo $status; ?></span></td>
   <td class="text-muted" style="font-size:.8rem;"><?php echo htmlspecialchars($row->Remarks ?? '—'); ?></td>
   <td>

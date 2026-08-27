@@ -34,8 +34,7 @@ $this->load->view('common/transactions/header'); ?>
                 // ── Build summary numbers ─────────────────────────
                 $stats       = $SummaryStats ?? [];
                 $cur         = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-                $dec         = $JwtData->GenSettings->DecimalPoints ?? 2;
-
+                
                 $activeInvStatuses = ['Issued', 'Partial', 'Paid'];
                 $cntAll     = array_sum(array_map(fn($s) => $stats[$s]['count']  ?? 0, $activeInvStatuses));
                 $amtAll     = array_sum(array_map(fn($s) => $stats[$s]['amount'] ?? 0, $activeInvStatuses));

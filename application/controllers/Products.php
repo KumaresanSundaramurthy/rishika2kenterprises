@@ -3734,7 +3734,7 @@ class Products extends MY_Controller {
             $tab     = preg_replace('/[^a-z]/', '', strtolower($tab));
             $JwtData = $this->pageData['JwtData'];
             $cur     = $JwtData->GenSettings->CurrenySymbol ?? '₹';
-            $dec     = (int) ($JwtData->GenSettings->DecimalPoints ?? 2);
+            $dec     = 2;
             $dateFmt = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
 
             $html = '';

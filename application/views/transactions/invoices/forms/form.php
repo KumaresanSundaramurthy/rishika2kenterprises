@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php
 $isEdit      = isset($InvData);
 $isDraftEdit = $isEdit && ($InvData->DocStatus === 'Draft');
@@ -132,7 +132,10 @@ if ($isEdit) {
                                 <div class="col-md-4">
                                     <?php if ($isEdit && !$isDraftEdit): ?>
                                         <label class="trans-field-label mb-1">Customer</label>
-                                        <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
+                                        <div class="input-group input-group-sm input-group-merge customer-search-group party-has-selection" id="customerGroup_customerSearch">
+                                            <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
+                                            <span class="party-edit-icon" id="editCustomerBtn" title="Edit Customer"><i class="bx bx-edit"></i></span>
+                                        </div>
                                     <?php else: ?>
                                         <div class="d-flex align-items-center justify-content-between mb-2">
                                             <label for="customerSearch" class="trans-field-label mb-0">Customer <span class="text-danger">*</span></label>
@@ -143,7 +146,7 @@ if ($isEdit) {
                                         <div class="input-group input-group-sm input-group-merge customer-search-group" id="customerGroup_customerSearch">
                                             <span class="input-group-text p-2 cursor-pointer party-search-icon" id="openCustomerSearchModal" style="background:#f0efff;border-color:#d9d8ff;color:#696cff;"><i class="icon-base bx bx-search"></i></span>
                                             <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
-                                            <span class="party-edit-icon" id="editCustomerBtn" title="Edit Customer"><i class="bx bx-edit-alt"></i></span>
+                                            <span class="party-edit-icon" id="editCustomerBtn" title="Edit Customer"><i class="bx bx-edit"></i></span>
                                         </div>
                                     <?php endif; ?>
                                 </div>
@@ -187,7 +190,7 @@ if ($isEdit) {
 
                             </div>
 
-                            <div id="customerAddressBox" class="trans-addr-strip d-none"><i class="bx bx-map-pin"></i><span></span></div>
+                            <div id="customerAddressBox" class="trans-addr-strip d-none"><i class="bx bx-map-pin"></i><span></span><button type="button" id="btnEditCustAddr" class="trans-addr-edit-btn" title="Edit billing address"><i class="bx bx-edit"></i></button></div>
                             <hr class="mt-3"/>
 
                             <?php $this->load->view('transactions/partials/form_products_add', [
@@ -270,22 +273,30 @@ var _transFormData = <?php echo json_encode([
     'returnTab'    => $_returnTab,
     'returnPage'   => (int)$_returnPage,
     'currency'     => $JwtData->GenSettings->CurrenySymbol ?? '₹',
-    'decimals'     => (int)($JwtData->GenSettings->DecimalPoints ?? 2),
+    'decimals'     => 9,
     'editData'     => $isEdit ? [
         'transUID'          => (int)($InvData->TransUID ?? 0),
         'custUID'           => (int)($InvData->PartyUID ?? 0),
         'custName'          => $InvData->PartyName  ?? '',
         'custArea'          => $InvData->PartyArea   ?? '',
         'custMobile'        => $InvData->PartyMobile ?? '',
+        'custBillLine1'     => $InvData->BillLine1  ?? '',
+        'custBillLine2'     => $InvData->BillLine2  ?? '',
+        'custBillCity'      => $InvData->BillCity   ?? '',
+        'custBillState'     => $InvData->BillState  ?? '',
+        'custBillPincode'   => $InvData->BillPincode ?? '',
+        'hasReturns'        => isset($HasSalesReturns) && $HasSalesReturns ? 1 : 0,
         'custState'         => $CustAddr->StateText ?? '',
         'extraDiscAmount'   => (float)($InvData->ExtraDiscAmount ?? 0),
         'extraDiscType'     => $InvData->ExtraDiscType ?? '',
         'globalDiscPercent' => (float)($InvData->GlobalDiscPercent ?? 0),
         'paidAmount'        => (float)($InvData->PaidAmount ?? 0),
         'attachments'       => $InvAttachments ?? [],
-        'items'             => array_map(function($item) use ($InvSerialsByProd) {
+        'items'             => array_map(function($item) use ($InvSerialsByProd, $ReturnedQtyMap) {
             return [
                 'id'               => (int)  $item->ProductUID,
+                'transProdUID'     => (int)  $item->TransProdUID,
+                'returnedQty'      => (float)($ReturnedQtyMap[(int)$item->TransProdUID] ?? 0),
                 'text'             => $item->ProductName,
                 'itemName'         => $item->ProductName,
                 'description'      => $item->Description ?? '',

@@ -39,7 +39,7 @@ class Pricelists_model extends CI_Model {
     }
 
     /**
-     * Upsert assignment rows — restores soft-deleted row if same key exists, else inserts.
+     * Upsert assignment rows â€” restores soft-deleted row if same key exists, else inserts.
      * @param int    $priceListUID
      * @param int    $orgUID
      * @param string $refType  'Group' | 'Customer'
@@ -75,7 +75,7 @@ class Pricelists_model extends CI_Model {
     }
 
     /**
-     * Upsert discount rows — restores soft-deleted row if same CustomerTypeUID exists, else inserts.
+     * Upsert discount rows â€” restores soft-deleted row if same CustomerTypeUID exists, else inserts.
      * @param int   $priceListUID
      * @param int   $orgUID
      * @param array $rows  each: [CustomerTypeUID, DiscountType, DiscountValue]
@@ -112,7 +112,7 @@ class Pricelists_model extends CI_Model {
     }
 
     /**
-     * Upsert price rule rows — restores soft-deleted row if same natural key exists, else inserts.
+     * Upsert price rule rows â€” restores soft-deleted row if same natural key exists, else inserts.
      * Natural key: PriceListUID + OrgUID + ProductUID + MinQty + CustomerTypeUID.
      * @param int   $priceListUID
      * @param int   $orgUID
@@ -228,7 +228,6 @@ class Pricelists_model extends CI_Model {
             $result->rows = $dq ? $dq->result() : [];
         } catch (Exception $e) {
             notifyError($e, 'pricelists_model::getPriceListPaginated');
-            log_message('error', 'getPriceListPaginated: ' . $e->getMessage());
         }
         return $result;
     }

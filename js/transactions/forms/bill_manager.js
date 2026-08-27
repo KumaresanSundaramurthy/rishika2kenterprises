@@ -79,9 +79,12 @@ class BillManager {
     // Reset all immunity and apply global discount
     resetAllImmunityAndApplyGlobalDiscount() {
         this.items.forEach(item => {
+            // Skip items that have a linked sales return — discount is frozen
+            if ((item.returnedQty || 0) > 0) return;
+
             const itemId = parseInt(item.id, 10);
             const updatedItem = {...item};
-            
+
             // RESET IMMUNITY
             updatedItem.immune_to_global = false;
             updatedItem.discount_manually_changed = false;
@@ -2483,6 +2486,13 @@ $(document).ready(function () {
         recalculateAllItemsWithNewScope(newScope);
     });
 
+    // SR-locked row — readonly/disabled inputs block changes at the DOM level.
+    // Show a warning toast when the user clicks any input inside a locked row.
+    $(document).on('click', 'tr[data-sr-locked="1"] input[readonly], tr[data-sr-locked="1"] select[disabled]', function () {
+        showToastNotification('Item locked — a sales return has been raised against this item. Changes are not allowed.', 'error');
+    });
+
+
     $(document).on('click', '.deleteBillItem', function(e) {
         e.preventDefault();
 
@@ -3290,14 +3300,24 @@ function searchCustomers(key) {
             $("#customerAddressBox").find('span').text([_sLines, _sLoc].filter(Boolean).join(' · '));
             $("#customerAddressBox").removeClass('d-none');
             $('#customerNoAddressBox').addClass('d-none');
+            window._currentCustAddr = {
+                customerUID: parseInt(data.id, 10) || 0,
+                Line1: data.address.Line1   || '',
+                Line2: data.address.Line2   || '',
+                City:  data.address.City    || '',
+                State: data.address.State   || '',
+                Pincode: data.address.Pincode || '',
+            };
         } else {
             $("#customerAddressBox").addClass('d-none').find('span').text('');
             $('#customerNoAddressBox').removeClass('d-none');
+            window._currentCustAddr = { customerUID: parseInt(data.id, 10) || 0, Line1: '', Line2: '', City: '', State: '', Pincode: '' };
         }
         _showCustTypeIndicator(data);
         if (typeof _plTransResolve === 'function') _plTransResolve(data);
     }).on('select2:clear', function () {
         _selectedUID = 0;
+        window._currentCustAddr = { customerUID: 0, Line1: '', Line2: '', City: '', State: '', Pincode: '' };
         $('#' + wrapId).removeClass('party-has-selection');
         $("#customerAddressBox").addClass('d-none').find('span').text('');
         $('#customerNoAddressBox').addClass('d-none');
@@ -4043,8 +4063,9 @@ function formationTableBillItems(productRow) {
         ? `<span class="r2k-tax-badge" id="bm_${productRow.id}_taxBadge" data-id="${productRow.id}">${productRow.taxPercent}%</span>`
         : (productRow.taxPercent + '%');
 
+    const _srLocked = (productRow.returnedQty || 0) > 0 ? 1 : 0;
     let tableData = `
-        <tr data-id="${productRow.id}">
+        <tr data-id="${productRow.id}" data-sr-locked="${_srLocked}">
             <td class="drag-handle" style="width:20px;padding:4px 2px;vertical-align:middle;text-align:center;cursor:grab;" title="Drag to reorder">
                 <i class="bx bx-grid-vertical" style="font-size:1.1rem;color:#c0c7cf;"></i>
             </td>
@@ -4106,7 +4127,10 @@ function formationTableBillItems(productRow) {
                 <div class="d-flex align-items-center justify-content-between h-100">
                     <!-- LEFT SIDE: Delete Icon -->
                     <div class="flex-shrink-0 me-3">
-                        <button type="button" class="btn btn-sm btn-outline-danger deleteBillItem" data-id="${productRow.id}" title="Remove item"><i class="bx bx-trash"></i></button>
+                        ${_srLocked
+                            ? `<button type="button" class="btn btn-sm btn-outline-secondary" disabled title="Cannot remove — a sales return exists for this item"><i class="bx bx-trash"></i></button>`
+                            : `<button type="button" class="btn btn-sm btn-outline-danger deleteBillItem" data-id="${productRow.id}" title="Remove item"><i class="bx bx-trash"></i></button>`
+                        }
                     </div>
                     <!-- RIGHT SIDE: Amount Details -->
                     <div class="text-end flex-grow-1">
@@ -4131,6 +4155,14 @@ function formationTableBillItems(productRow) {
     var newCount = $('#billTableBody tr[data-id]').length;
     $('#btnClearCart').toggleClass('d-none', newCount < 1);
     $('#chkReverseOrder').closest('.form-check-inline').toggleClass('d-none', newCount < 2);
+
+    // SR-locked row (JS-rendered) — make all editable inputs readonly/disabled so bill_manager
+    // never receives a change event from them. The click handler above shows the toast.
+    if (_srLocked) {
+        var $lockedRow = $('#billTableBody tr[data-id="' + productRow.id + '"]');
+        $lockedRow.find('input.updateAllBillAmounts').prop('readonly', true);
+        $lockedRow.find('select.discTypeActionBillAmounts').prop('disabled', true);
+    }
 
     // Pre-populate serial inputs when item has pre-loaded serials (edit / returns mode)
     if (parseInt(productRow.IsSerialTracked, 10) === 1 &&

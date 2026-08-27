@@ -17,7 +17,7 @@ Class Accountledger {
         $this->CI =& get_instance();
     }
 
-    /** Returns the current org UID from JWT — used in every Accounting insert/query */
+    /** Returns the current org UID from JWT â€” used in every Accounting insert/query */
     private function _orgUID(): int {
         return (int)($this->CI->pageData['JwtData']->Org->OrgUID ?? 0);
     }
@@ -33,7 +33,7 @@ Class Accountledger {
             
             $ledgerConfig = $this->getLedgerConfig($entityType);
 
-            // Cache parent ledger existence — it never changes once chart of accounts is set up
+            // Cache parent ledger existence â€” it never changes once chart of accounts is set up
             $cacheKey = 'parent_' . $ledgerConfig['parent_id'];
             if (!isset($this->_sysLedgerCache[$cacheKey])) {
                 $this->CI->load->model('accountledger_model');
@@ -191,8 +191,8 @@ Class Accountledger {
             
             // Parent row (Customer/Vendor) was inserted in the same open transaction.
             // InnoDB FK check tries to acquire a shared lock on a row that already has
-            // an exclusive lock in our transaction → lock wait timeout (50s).
-            // The row genuinely exists — disable FK checks just for this insert.
+            // an exclusive lock in our transaction â†’ lock wait timeout (50s).
+            // The row genuinely exists â€” disable FK checks just for this insert.
             $this->CI->dbwrite_model->setForeignKeyChecks(false);
             $mapResp = $this->CI->dbwrite_model->insertData('Accounting', 'EntityLedgerMap', $mapData);
             $this->CI->dbwrite_model->setForeignKeyChecks(true);
@@ -408,7 +408,7 @@ Class Accountledger {
 
         try {
 
-            // Defensive check – ledger should not have transactions
+            // Defensive check â€“ ledger should not have transactions
             $this->CI->load->model('accountledger_model');
             if ($this->CI->accountledger_model->ledgerHasTransactions($ledgerId)) {
                 throw new Exception('Ledger has accounting transactions and cannot be deactivated');
@@ -488,7 +488,7 @@ Class Accountledger {
             throw new Exception('Failed to update ledger balance: ' . $updateResp->Message);
         }
 
-        // Audit log is non-critical — runs outside any caller transaction
+        // Audit log is non-critical â€” runs outside any caller transaction
         // so it cannot poison a parent commit. Failures are logged silently.
         try {
             $this->logLedgerAudit($entityId, $ledgerUID, 'BALANCE_ADJUST', [
@@ -498,7 +498,6 @@ Class Accountledger {
                 'reference_id'        => $referenceId,
             ], $entityType);
         } catch (Exception $ignored) {
-            log_message('error', "Ledger audit log failed [{$entityType} ID {$entityId}]: " . $ignored->getMessage());
         }
 
     }
@@ -532,7 +531,7 @@ Class Accountledger {
             'accounts_receiv' => 'SYS-AR',
             'salary_expense'  => 'SYS-SALARY-EXP',
             'salary_payable'  => 'SYS-SALARY-PAY',
-            'advance_clearing'=> 'SYS-EMP-ADV',   // Employee Advances (Asset) — Dr on advance, Cr on payroll recovery
+            'advance_clearing'=> 'SYS-EMP-ADV',   // Employee Advances (Asset) â€” Dr on advance, Cr on payroll recovery
             'employee_advance'=> 'SYS-EMP-ADV',
             'stock_in_hand'   => 'SYS-STOCK',
             'stock_adj_loss'  => 'SYS-STOCK-ADJ',
@@ -555,7 +554,7 @@ Class Accountledger {
     private function _createJournalHeader($journalDate, $fy, $refType, $refID, $refNo, $narration, $createdBy) {
         $orgUID = $this->_orgUID();
 
-        // Period lock enforcement — block posting to any locked period
+        // Period lock enforcement â€” block posting to any locked period
         $this->CI->load->model('accountledger_model');
         $lock = $this->CI->accountledger_model->getPeriodLock();
         if ($lock && $journalDate <= $lock->LockedUpTo) {
@@ -594,11 +593,10 @@ Class Accountledger {
         $amount = round((float) $amount, $this->_dec());
         if ($amount <= 0 || !$ledgerUID) return;
 
-        log_message('debug', '[EXP-BAL] _addJournalLine → ledgerUID=' . $ledgerUID . ' type=' . $type . ' amount=' . $amount . ' particulars="' . $particulars . '"');
 
         $orgUID = $this->_orgUID();
 
-        // Insert journal entry line — capture EntryUID for LedgerBalances FK
+        // Insert journal entry line â€” capture EntryUID for LedgerBalances FK
         $entryResp = $this->CI->dbwrite_model->insertData('Accounting', 'JournalEntries', [
             'OrgUID'          => $orgUID,
             'JournalUID'      => (int) $journalUID,
@@ -618,7 +616,6 @@ Class Accountledger {
         $prevBal  = $last ? (float)$last->RunningBalance : 0.0;
         $prevType = $last ? $last->BalanceType : 'Debit';
 
-        log_message('debug', '[EXP-BAL] _addJournalLine → prevBal=' . $prevBal . ' ' . $prevType . ' (last row ' . ($last ? 'found' : 'NULL/empty') . ')');
 
         if ($type === $prevType) {
             $newBal  = $prevBal + $amount;
@@ -633,7 +630,6 @@ Class Accountledger {
             }
         }
 
-        log_message('debug', '[EXP-BAL] _addJournalLine → newBal=' . $newBal . ' ' . $newType . ' → writing to LedgerBalances + ChartOfAccounts');
 
         // One LedgerBalances row per journal ENTRY (EntryUID), not per journal
         // This allows the same ledger to appear in multiple lines of one journal
@@ -683,33 +679,33 @@ Class Accountledger {
         $refNo  = $uniqueNumber ?: null;
         $jUID   = $this->_createJournalHeader(
             $transDate, $fy, 'Invoice', $transUID, $refNo,
-            'Sale Invoice ' . ($uniqueNumber ?: 'Draft') . ' — Customer #' . $customerUID,
+            'Sale Invoice ' . ($uniqueNumber ?: 'Draft') . ' â€” Customer #' . $customerUID,
             $createdBy
         );
 
         $this->_addJournalLine($jUID, $custLedgerUID, 'Debit', $netAmount,
-            'Invoice ' . ($uniqueNumber ?: '') . ' — Amount Receivable', $transDate, $fy, $createdBy);
+            'Invoice ' . ($uniqueNumber ?: '') . ' â€” Amount Receivable', $transDate, $fy, $createdBy);
 
         $salesUID = $this->_getSystemLedgerUID('sales_revenue');
         if ($salesUID) {
             $this->_addJournalLine($jUID, $salesUID, 'Credit', $taxableAmount,
-                'Sale of goods/services — ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+                'Sale of goods/services â€” ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
         }
 
         if ($cgst > 0) {
             $uid = $this->_getSystemLedgerUID('cgst_output');
             if ($uid) $this->_addJournalLine($jUID, $uid, 'Credit', $cgst,
-                'Output CGST — ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+                'Output CGST â€” ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
         }
         if ($sgst > 0) {
             $uid = $this->_getSystemLedgerUID('sgst_output');
             if ($uid) $this->_addJournalLine($jUID, $uid, 'Credit', $sgst,
-                'Output SGST — ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+                'Output SGST â€” ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
         }
         if ($igst > 0) {
             $uid = $this->_getSystemLedgerUID('igst_output');
             if ($uid) $this->_addJournalLine($jUID, $uid, 'Credit', $igst,
-                'Output IGST — ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+                'Output IGST â€” ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
         }
     }
 
@@ -729,39 +725,38 @@ Class Accountledger {
         $refNo = $uniqueNumber ?: null;
         $jUID  = $this->_createJournalHeader(
             $transDate, $fy, 'Purchase', $transUID, $refNo,
-            'Purchase Bill ' . ($uniqueNumber ?: 'Draft') . ' — Vendor #' . $vendorUID,
+            'Purchase Bill ' . ($uniqueNumber ?: 'Draft') . ' â€” Vendor #' . $vendorUID,
             $createdBy
         );
 
         $purchUID = $this->_getSystemLedgerUID('purchase_cost');
         if ($purchUID) {
             $this->_addJournalLine($jUID, $purchUID, 'Debit', $taxableAmount,
-                'Purchase of goods/services — ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+                'Purchase of goods/services â€” ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
         }
 
         if ($cgst > 0) {
             $uid = $this->_getSystemLedgerUID('cgst_input');
             if ($uid) $this->_addJournalLine($jUID, $uid, 'Debit', $cgst,
-                'Input CGST — ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+                'Input CGST â€” ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
         }
         if ($sgst > 0) {
             $uid = $this->_getSystemLedgerUID('sgst_input');
             if ($uid) $this->_addJournalLine($jUID, $uid, 'Debit', $sgst,
-                'Input SGST — ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+                'Input SGST â€” ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
         }
         if ($igst > 0) {
             $uid = $this->_getSystemLedgerUID('igst_input');
             if ($uid) $this->_addJournalLine($jUID, $uid, 'Debit', $igst,
-                'Input IGST — ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+                'Input IGST â€” ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
         }
 
         $this->_addJournalLine($jUID, $vendLedgerUID, 'Credit', $netAmount,
-            'Bill ' . ($uniqueNumber ?: '') . ' — Amount Payable', $transDate, $fy, $createdBy);
+            'Bill ' . ($uniqueNumber ?: '') . ' â€” Amount Payable', $transDate, $fy, $createdBy);
     }
 
     // Payment journal: received = Cr Customer; made = Dr Vendor
     public function postPaymentJournal($direction, $transUID, $paymentDate, $fy, $amount, $partyUID, $entityType, $createdBy) {
-        log_message('debug', '[EXP-BAL] postPaymentJournal → direction=' . $direction . ' transUID=' . $transUID . ' amount=' . $amount . ' partyUID=' . $partyUID . ' entityType=' . $entityType);
         $amount = round((float) $amount, $this->_dec());
         if ($amount <= 0) return;
 
@@ -772,14 +767,14 @@ Class Accountledger {
         if ($direction === 'received') {
             $jUID = $this->_createJournalHeader(
                 $paymentDate, $fy, 'Payment-In', $transUID, null,
-                'Payment received — ' . $entityType . ' #' . $partyUID, $createdBy
+                'Payment received â€” ' . $entityType . ' #' . $partyUID, $createdBy
             );
             $this->_addJournalLine($jUID, $partyLedgerUID, 'Credit', $amount,
                 'Payment received against transaction #' . $transUID, $paymentDate, $fy, $createdBy);
         } elseif ($direction === 'made') {
             $jUID = $this->_createJournalHeader(
                 $paymentDate, $fy, 'Payment-Out', $transUID, null,
-                'Payment made — ' . $entityType . ' #' . $partyUID, $createdBy
+                'Payment made â€” ' . $entityType . ' #' . $partyUID, $createdBy
             );
             $this->_addJournalLine($jUID, $partyLedgerUID, 'Debit', $amount,
                 'Payment made against transaction #' . $transUID, $paymentDate, $fy, $createdBy);
@@ -801,32 +796,32 @@ Class Accountledger {
 
         $jUID = $this->_createJournalHeader(
             $transDate, $fy, 'SalesReturn', $transUID, $uniqueNumber ?: null,
-            'Sales Return ' . ($uniqueNumber ?: 'Draft') . ' — Customer #' . $customerUID,
+            'Sales Return ' . ($uniqueNumber ?: 'Draft') . ' â€” Customer #' . $customerUID,
             $createdBy
         );
 
         $salesUID = $this->_getSystemLedgerUID('sales_revenue');
         if ($salesUID) {
             $this->_addJournalLine($jUID, $salesUID, 'Debit', $taxableAmount,
-                'Sales return — goods/services reversed ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+                'Sales return â€” goods/services reversed ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
         }
         if ($cgst > 0) {
             $uid = $this->_getSystemLedgerUID('cgst_output');
             if ($uid) $this->_addJournalLine($jUID, $uid, 'Debit', $cgst,
-                'Output CGST reversed — ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+                'Output CGST reversed â€” ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
         }
         if ($sgst > 0) {
             $uid = $this->_getSystemLedgerUID('sgst_output');
             if ($uid) $this->_addJournalLine($jUID, $uid, 'Debit', $sgst,
-                'Output SGST reversed — ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+                'Output SGST reversed â€” ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
         }
         if ($igst > 0) {
             $uid = $this->_getSystemLedgerUID('igst_output');
             if ($uid) $this->_addJournalLine($jUID, $uid, 'Debit', $igst,
-                'Output IGST reversed — ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+                'Output IGST reversed â€” ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
         }
         $this->_addJournalLine($jUID, $custLedgerUID, 'Credit', $netAmount,
-            'Sales return credit — ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+            'Sales return credit â€” ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
     }
 
     // Purchase Return: Dr Vendor, Cr Purchase Cost + Cr Input Tax (reversal of a purchase)
@@ -844,44 +839,43 @@ Class Accountledger {
 
         $jUID = $this->_createJournalHeader(
             $transDate, $fy, 'PurchaseReturn', $transUID, $uniqueNumber ?: null,
-            'Purchase Return ' . ($uniqueNumber ?: 'Draft') . ' — Vendor #' . $vendorUID,
+            'Purchase Return ' . ($uniqueNumber ?: 'Draft') . ' â€” Vendor #' . $vendorUID,
             $createdBy
         );
 
         $this->_addJournalLine($jUID, $vendLedgerUID, 'Debit', $netAmount,
-            'Purchase return debit — ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+            'Purchase return debit â€” ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
 
         $purchUID = $this->_getSystemLedgerUID('purchase_cost');
         if ($purchUID) {
             $this->_addJournalLine($jUID, $purchUID, 'Credit', $taxableAmount,
-                'Purchase return — goods/services reversed ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+                'Purchase return â€” goods/services reversed ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
         }
         if ($cgst > 0) {
             $uid = $this->_getSystemLedgerUID('cgst_input');
             if ($uid) $this->_addJournalLine($jUID, $uid, 'Credit', $cgst,
-                'Input CGST reversed — ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+                'Input CGST reversed â€” ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
         }
         if ($sgst > 0) {
             $uid = $this->_getSystemLedgerUID('sgst_input');
             if ($uid) $this->_addJournalLine($jUID, $uid, 'Credit', $sgst,
-                'Input SGST reversed — ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+                'Input SGST reversed â€” ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
         }
         if ($igst > 0) {
             $uid = $this->_getSystemLedgerUID('igst_input');
             if ($uid) $this->_addJournalLine($jUID, $uid, 'Credit', $igst,
-                'Input IGST reversed — ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+                'Input IGST reversed â€” ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
         }
     }
 
     // Expense journal:
-    //   With-tax + vendor → Dr Expense (taxable) + Dr Input Tax, Cr Vendor Ledger (specific)
-    //   Without-tax / no vendor → Dr Expense, Cr Accounts Payable (generic)
+    //   With-tax + vendor â†’ Dr Expense (taxable) + Dr Input Tax, Cr Vendor Ledger (specific)
+    //   Without-tax / no vendor â†’ Dr Expense, Cr Accounts Payable (generic)
     // Expense journal:
-    //   With-tax + vendor (intra-state) → Dr Expense + Dr CGST ITC + Dr SGST ITC, Cr Vendor Ledger
-    //   With-tax + vendor (inter-state) → Dr Expense + Dr IGST ITC, Cr Vendor Ledger
-    //   Without-tax / no vendor → Dr Expense, Cr Accounts Payable (generic)
+    //   With-tax + vendor (intra-state) â†’ Dr Expense + Dr CGST ITC + Dr SGST ITC, Cr Vendor Ledger
+    //   With-tax + vendor (inter-state) â†’ Dr Expense + Dr IGST ITC, Cr Vendor Ledger
+    //   Without-tax / no vendor â†’ Dr Expense, Cr Accounts Payable (generic)
     public function postExpenseJournal($expenseUID, $expenseDate, $expenseNumber, $fy, $netAmount, $createdBy, $vendorUID = null, $taxableAmount = 0.0, $taxAmount = 0.0, $cgst = 0.0, $sgst = 0.0, $igst = 0.0) {
-        log_message('debug', '[EXP-BAL] postExpenseJournal → expenseUID=' . $expenseUID . ' netAmount=' . $netAmount . ' taxable=' . $taxableAmount . ' cgst=' . $cgst . ' sgst=' . $sgst . ' igst=' . $igst . ' vendorUID=' . $vendorUID);
         $netAmount     = round((float) $netAmount,     $this->_dec());
         $taxableAmount = round((float) $taxableAmount, $this->_dec());
         $cgst          = round((float) $cgst,          $this->_dec());
@@ -903,51 +897,51 @@ Class Accountledger {
                 $vendLedgerUID = (int) $mapping->LedgerUID;
                 $ref = $expenseNumber ?: '#' . $expenseUID;
 
-                // Dr: Expense Account — taxable portion
+                // Dr: Expense Account â€” taxable portion
                 if ($expUID) {
                     $drExpAmt = $taxableAmount > 0 ? $taxableAmount : $netAmount;
                     $this->_addJournalLine($jUID, $expUID, 'Debit', $drExpAmt,
-                        'Expense recorded — ' . $ref, $expenseDate, $fy, $createdBy);
+                        'Expense recorded â€” ' . $ref, $expenseDate, $fy, $createdBy);
                 }
 
                 // Dr: CGST Input Tax Credit (intra-state)
                 if ($cgst > 0) {
                     $uid = $this->_getSystemLedgerUID('cgst_input');
                     if ($uid) $this->_addJournalLine($jUID, $uid, 'Debit', $cgst,
-                        'Input CGST on expense — ' . $ref, $expenseDate, $fy, $createdBy);
+                        'Input CGST on expense â€” ' . $ref, $expenseDate, $fy, $createdBy);
                 }
 
                 // Dr: SGST Input Tax Credit (intra-state)
                 if ($sgst > 0) {
                     $uid = $this->_getSystemLedgerUID('sgst_input');
                     if ($uid) $this->_addJournalLine($jUID, $uid, 'Debit', $sgst,
-                        'Input SGST on expense — ' . $ref, $expenseDate, $fy, $createdBy);
+                        'Input SGST on expense â€” ' . $ref, $expenseDate, $fy, $createdBy);
                 }
 
                 // Dr: IGST Input Tax Credit (inter-state)
                 if ($igst > 0) {
                     $uid = $this->_getSystemLedgerUID('igst_input');
                     if ($uid) $this->_addJournalLine($jUID, $uid, 'Debit', $igst,
-                        'Input IGST on expense — ' . $ref, $expenseDate, $fy, $createdBy);
+                        'Input IGST on expense â€” ' . $ref, $expenseDate, $fy, $createdBy);
                 }
 
-                // Cr: Vendor Ledger — net payable (after TDS)
+                // Cr: Vendor Ledger â€” net payable (after TDS)
                 $this->_addJournalLine($jUID, $vendLedgerUID, 'Credit', $netAmount,
-                    'Payable to vendor — expense ' . $ref, $expenseDate, $fy, $createdBy);
+                    'Payable to vendor â€” expense ' . $ref, $expenseDate, $fy, $createdBy);
 
                 return;
             }
         }
 
-        // Without-tax or vendor ledger not found — fall back to generic AP
+        // Without-tax or vendor ledger not found â€” fall back to generic AP
         if ($expUID) {
             $this->_addJournalLine($jUID, $expUID, 'Debit', $netAmount,
-                'Expense recorded — ' . ($expenseNumber ?: '#' . $expenseUID), $expenseDate, $fy, $createdBy);
+                'Expense recorded â€” ' . ($expenseNumber ?: '#' . $expenseUID), $expenseDate, $fy, $createdBy);
         }
         $apUID = $this->_getSystemLedgerUID('accounts_payable');
         if ($apUID) {
             $this->_addJournalLine($jUID, $apUID, 'Credit', $netAmount,
-                'Payable for expense — ' . ($expenseNumber ?: '#' . $expenseUID), $expenseDate, $fy, $createdBy);
+                'Payable for expense â€” ' . ($expenseNumber ?: '#' . $expenseUID), $expenseDate, $fy, $createdBy);
         }
     }
 
@@ -965,12 +959,12 @@ Class Accountledger {
         $arUID = $this->_getSystemLedgerUID('accounts_receiv');
         if ($arUID) {
             $this->_addJournalLine($jUID, $arUID, 'Debit', $netAmount,
-                'Income receivable — ' . ($incomeNumber ?: '#' . $incomeUID), $incomeDate, $fy, $createdBy);
+                'Income receivable â€” ' . ($incomeNumber ?: '#' . $incomeUID), $incomeDate, $fy, $createdBy);
         }
         $incUID = $this->_getSystemLedgerUID('income_account');
         if ($incUID) {
             $this->_addJournalLine($jUID, $incUID, 'Credit', $netAmount,
-                'Indirect income recorded — ' . ($incomeNumber ?: '#' . $incomeUID), $incomeDate, $fy, $createdBy);
+                'Indirect income recorded â€” ' . ($incomeNumber ?: '#' . $incomeUID), $incomeDate, $fy, $createdBy);
         }
     }
 
@@ -981,15 +975,15 @@ Class Accountledger {
 
         $jUID = $this->_createJournalHeader(
             $advanceDate, $fy, 'SalaryAdvance', $advanceUID, 'ADV-' . $advanceUID,
-            'Salary advance approved — Advance #' . $advanceUID,
+            'Salary advance approved â€” Advance #' . $advanceUID,
             $createdBy
         );
 
-        // Dr: Employee Advances (our asset — employee owes us this amount)
+        // Dr: Employee Advances (our asset â€” employee owes us this amount)
         $advUID = $this->_getSystemLedgerUID('employee_advance');
         if ($advUID) {
             $this->_addJournalLine($jUID, $advUID, 'Debit', $amount,
-                'Advance given to employee — #' . $advanceUID, $advanceDate, $fy, $createdBy);
+                'Advance given to employee â€” #' . $advanceUID, $advanceDate, $fy, $createdBy);
         }
 
         // Cr: Accounts Payable (represents cash/bank outflow)
@@ -1025,22 +1019,22 @@ Class Accountledger {
         $salPayUID = $this->_getSystemLedgerUID('salary_payable');
         if ($salPayUID && $netAmount > 0) {
             $this->_addJournalLine($jUID, $salPayUID, 'Credit', $netAmount,
-                'Net salary payable — payroll #' . $payrollUID, $payrollDate, $fy, $createdBy);
+                'Net salary payable â€” payroll #' . $payrollUID, $payrollDate, $fy, $createdBy);
         }
 
         // Cr: Advance Recovery Clearing (reduces employee advance balance)
         $advUID = $this->_getSystemLedgerUID('advance_clearing');
         if ($advUID && $advanceRecovery > 0) {
             $this->_addJournalLine($jUID, $advUID, 'Credit', $advanceRecovery,
-                'Advance recovery — payroll #' . $payrollUID, $payrollDate, $fy, $createdBy);
+                'Advance recovery â€” payroll #' . $payrollUID, $payrollDate, $fy, $createdBy);
         }
 
-        // Cr: Other deductions (PF, ESI, TDS etc. — goes to a clearing/deductions account)
+        // Cr: Other deductions (PF, ESI, TDS etc. â€” goes to a clearing/deductions account)
         $otherDed = round($deductions - $advanceRecovery, $this->_dec());
         $apUID    = $this->_getSystemLedgerUID('accounts_payable');
         if ($apUID && $otherDed > 0) {
             $this->_addJournalLine($jUID, $apUID, 'Credit', $otherDed,
-                'Salary deductions (PF/ESI/TDS) — payroll #' . $payrollUID, $payrollDate, $fy, $createdBy);
+                'Salary deductions (PF/ESI/TDS) â€” payroll #' . $payrollUID, $payrollDate, $fy, $createdBy);
         }
     }
 
@@ -1053,31 +1047,30 @@ Class Accountledger {
         $toLedgerUID   = $this->_getOrCreateBankLedgerUID($toBankUID,   $createdBy);
 
         if (!$fromLedgerUID || !$toLedgerUID) {
-            log_message('error', 'Fund transfer journal skipped — bank ledger(s) could not be resolved. FromBank=' . $fromBankUID . ' ToBank=' . $toBankUID);
             return;
         }
 
         $jUID = $this->_createJournalHeader(
             $transferDate, $fy, 'FundTransfer', $transferUID, 'FT-' . $transferUID,
-            'Fund transfer between bank accounts — Ref #' . $transferUID,
+            'Fund transfer between bank accounts â€” Ref #' . $transferUID,
             $createdBy
         );
 
         // Dr: Destination bank (receives funds)
         $this->_addJournalLine($jUID, $toLedgerUID, 'Debit', $amount,
-            'Transfer in — bank account #' . $toBankUID, $transferDate, $fy, $createdBy);
+            'Transfer in â€” bank account #' . $toBankUID, $transferDate, $fy, $createdBy);
 
         // Cr: Source bank (pays out funds)
         $this->_addJournalLine($jUID, $fromLedgerUID, 'Credit', $amount,
-            'Transfer out — bank account #' . $fromBankUID, $transferDate, $fy, $createdBy);
+            'Transfer out â€” bank account #' . $fromBankUID, $transferDate, $fy, $createdBy);
     }
 
-    // Public entry point — called from Settings when a new bank account is saved.
+    // Public entry point â€” called from Settings when a new bank account is saved.
     public function createBankLedger(int $bankUID, int $createdBy): void {
         $this->_getOrCreateBankLedgerUID($bankUID, $createdBy);
     }
 
-    // Returns the LedgerUID for a bank account — creates one on-the-fly if it doesn't exist yet.
+    // Returns the LedgerUID for a bank account â€” creates one on-the-fly if it doesn't exist yet.
     private function _getOrCreateBankLedgerUID(int $bankUID, int $createdBy): ?int {
         $this->CI->load->model('accountledger_model');
         $orgUID = $this->_orgUID();
@@ -1120,7 +1113,6 @@ Class Accountledger {
             'UpdatedBy'       => $createdBy,
         ]);
         if ($ledgerResp->Error) {
-            log_message('error', 'Failed to auto-create bank ledger for BankUID=' . $bankUID . ': ' . $ledgerResp->Message);
             return null;
         }
         $ledgerUID = (int)$ledgerResp->ID;
@@ -1135,22 +1127,21 @@ Class Accountledger {
             'UpdatedBy'  => $createdBy,
         ]);
         if ($mapResp->Error) {
-            log_message('error', 'Failed to map bank ledger for BankUID=' . $bankUID . ': ' . $mapResp->Message);
             return null;
         }
 
         return $ledgerUID;
     }
 
-    // Manual Stock Adjustment: Stock IN → Dr Stock-in-Hand / Cr Purchase Cost
-    //                          Stock OUT → Dr Stock Adjustment Loss / Cr Stock-in-Hand
+    // Manual Stock Adjustment: Stock IN â†’ Dr Stock-in-Hand / Cr Purchase Cost
+    //                          Stock OUT â†’ Dr Stock Adjustment Loss / Cr Stock-in-Hand
     public function postStockAdjustmentJournal(int $adjUID, string $adjDate, int $fy, string $adjType, float $stockValue, int $createdBy) {
         $stockValue = round($stockValue, $this->_dec());
         if ($stockValue <= 0) return;
 
         $jUID = $this->_createJournalHeader(
             $adjDate, $fy, 'StockAdjustment', $adjUID, 'ADJ-' . $adjUID,
-            'Manual stock ' . strtolower($adjType) . ' adjustment — Adj #' . $adjUID,
+            'Manual stock ' . strtolower($adjType) . ' adjustment â€” Adj #' . $adjUID,
             $createdBy
         );
 
@@ -1160,30 +1151,30 @@ Class Accountledger {
             // Dr: Stock-in-Hand (inventory asset increases)
             if ($stockUID) {
                 $this->_addJournalLine($jUID, $stockUID, 'Debit', $stockValue,
-                    'Stock received — Adj #' . $adjUID, $adjDate, $fy, $createdBy);
+                    'Stock received â€” Adj #' . $adjUID, $adjDate, $fy, $createdBy);
             }
             // Cr: Purchase Cost (cost of goods received without invoice)
             $purchUID = $this->_getSystemLedgerUID('purchase_cost');
             if ($purchUID) {
                 $this->_addJournalLine($jUID, $purchUID, 'Credit', $stockValue,
-                    'Stock addition cost — Adj #' . $adjUID, $adjDate, $fy, $createdBy);
+                    'Stock addition cost â€” Adj #' . $adjUID, $adjDate, $fy, $createdBy);
             }
         } else {
             // Dr: Stock Adjustment Loss (expense for stock written off / consumed)
             $adjLossUID = $this->_getSystemLedgerUID('stock_adj_loss');
             if ($adjLossUID) {
                 $this->_addJournalLine($jUID, $adjLossUID, 'Debit', $stockValue,
-                    'Stock removed/written off — Adj #' . $adjUID, $adjDate, $fy, $createdBy);
+                    'Stock removed/written off â€” Adj #' . $adjUID, $adjDate, $fy, $createdBy);
             }
             // Cr: Stock-in-Hand (inventory asset decreases)
             if ($stockUID) {
                 $this->_addJournalLine($jUID, $stockUID, 'Credit', $stockValue,
-                    'Stock reduction — Adj #' . $adjUID, $adjDate, $fy, $createdBy);
+                    'Stock reduction â€” Adj #' . $adjUID, $adjDate, $fy, $createdBy);
             }
         }
     }
 
-    // Reverse all non-deleted journals for a given reference — creates counter-entry journals
+    // Reverse all non-deleted journals for a given reference â€” creates counter-entry journals
     /**
      * Ensure every payment recorded against an expense has a corresponding
      * Payment-Out journal entry in the vendor ledger. Payments made before
@@ -1207,10 +1198,8 @@ Class Accountledger {
         foreach ($payments as $pmt) {
             $existing = $this->CI->accountledger_model->getJournalByReference('Payment-Out', (int)$pmt->PaymentUID);
             if (!empty($existing)) {
-                log_message('debug', '[EXP-BAL] ensurePaymentJournals → PaymentUID=' . $pmt->PaymentUID . ' journal exists, skip');
                 continue;
             }
-            log_message('debug', '[EXP-BAL] ensurePaymentJournals → PaymentUID=' . $pmt->PaymentUID . ' amount=' . $pmt->Amount . ' back-filling journal');
             $this->postPaymentJournal(
                 'made', (int)$pmt->PaymentUID, $pmt->PaymentDate, (int)$pmt->TransYear,
                 (float)$pmt->Amount, $vendorUID, 'Vendor', $userUID
@@ -1310,7 +1299,6 @@ Class Accountledger {
         $this->CI->load->model('accountledger_model');
         $journals = $this->CI->accountledger_model->getJournalByReference($refType, (int) $transUID);
 
-        log_message('debug', '[EXP-BAL] reverseJournal → refType=' . $refType . ' transUID=' . $transUID . ' journalsFound=' . count($journals));
 
         foreach ($journals as $journal) {
             $jUID    = (int) $journal->JournalUID;
@@ -1318,7 +1306,6 @@ Class Accountledger {
             $revDate = date('Y-m-d');
 
             $entries = $this->CI->accountledger_model->getJournalEntries($jUID);
-            log_message('debug', '[EXP-BAL] reverseJournal → reversing JournalUID=' . $jUID . ' JournalNo=' . $journal->JournalNo . ' entries=' . count($entries));
 
             // Soft-delete original journal header + lines (scoped to this org)
             $this->CI->dbwrite_model->updateData('Accounting', 'GeneralJournal',

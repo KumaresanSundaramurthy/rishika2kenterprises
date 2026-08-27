@@ -9,7 +9,7 @@ class Expenses_model extends CI_Model {
         $this->ReadDb = $this->load->database('ReadDB', TRUE);
     }
 
-    // ── Paginated list ───────────────────────────────────────────────────────
+    // â”€â”€ Paginated list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getExpenseList(int $orgUID, array $filter, int $limit, int $offset): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -60,12 +60,11 @@ class Expenses_model extends CI_Model {
             return $query ? $query->result() : [];
         } catch (Exception $e) {
             notifyError('Expenses_model::getExpenseList', $e);
-            log_message('error', 'Expenses_model::getExpenseList — ' . $e->getMessage());
             return [];
         }
     }
 
-    // ── Count ────────────────────────────────────────────────────────────────
+    // â”€â”€ Count â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getExpenseCount(int $orgUID, array $filter): int {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -80,12 +79,11 @@ class Expenses_model extends CI_Model {
             return $row ? (int)$row->cnt : 0;
         } catch (Exception $e) {
             notifyError('Expenses_model::getExpenseCount', $e);
-            log_message('error', 'Expenses_model::getExpenseCount — ' . $e->getMessage());
             return 0;
         }
     }
 
-    // ── Single record ────────────────────────────────────────────────────────
+    // â”€â”€ Single record â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getExpenseById(int $expenseUID, int $orgUID): ?object {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -121,12 +119,11 @@ class Expenses_model extends CI_Model {
             return $query ? $query->row() : null;
         } catch (Exception $e) {
             notifyError('Expenses_model::getExpenseById', $e);
-            log_message('error', 'Expenses_model::getExpenseById — ' . $e->getMessage());
             return null;
         }
     }
 
-    // ── Summary stats for stat cards ─────────────────────────────────────────
+    // â”€â”€ Summary stats for stat cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getExpenseSummaryStats(int $orgUID, int $branchUID = 0): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -145,12 +142,11 @@ class Expenses_model extends CI_Model {
             return $result;
         } catch (Exception $e) {
             notifyError('Expenses_model::getExpenseSummaryStats', $e);
-            log_message('error', 'Expenses_model::getExpenseSummaryStats — ' . $e->getMessage());
             return [];
         }
     }
 
-    // ── Categories (org-specific + system defaults) ──────────────────────────
+    // â”€â”€ Categories (org-specific + system defaults) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getCategories(int $orgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -167,12 +163,11 @@ class Expenses_model extends CI_Model {
             return $query ? $query->result() : [];
         } catch (Exception $e) {
             notifyError('Expenses_model::getCategories', $e);
-            log_message('error', 'Expenses_model::getCategories — ' . $e->getMessage());
             return [];
         }
     }
 
-    // ── Payment types ────────────────────────────────────────────────────────
+    // â”€â”€ Payment types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getPaymentTypes(): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -184,12 +179,11 @@ class Expenses_model extends CI_Model {
             return $query ? $query->result() : [];
         } catch (Exception $e) {
             notifyError('Expenses_model::getPaymentTypes', $e);
-            log_message('error', 'Expenses_model::getPaymentTypes — ' . $e->getMessage());
             return [];
         }
     }
 
-    // ── Bank accounts for org (excludes cash accounts) ────────────────────────
+    // â”€â”€ Bank accounts for org (excludes cash accounts) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getBankAccounts(int $orgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -204,12 +198,11 @@ class Expenses_model extends CI_Model {
             return $query ? $query->result() : [];
         } catch (Exception $e) {
             notifyError('Expenses_model::getBankAccounts', $e);
-            log_message('error', 'Expenses_model::getBankAccounts — ' . $e->getMessage());
             return [];
         }
     }
 
-    // ── TDS Sections ─────────────────────────────────────────────────────────
+    // â”€â”€ TDS Sections â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getTdsSections(): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -222,12 +215,11 @@ class Expenses_model extends CI_Model {
             return $query ? $query->result() : [];
         } catch (Exception $e) {
             notifyError('Expenses_model::getTdsSections', $e);
-            log_message('error', 'Expenses_model::getTdsSections — ' . $e->getMessage());
             return [];
         }
     }
 
-    // ── Default cash account for ledger entries ──────────────────────────────
+    // â”€â”€ Default cash account for ledger entries â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getCashAccount(int $orgUID): ?object {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -242,12 +234,11 @@ class Expenses_model extends CI_Model {
             return $query ? $query->row() : null;
         } catch (Exception $e) {
             notifyError('Expenses_model::getCashAccount', $e);
-            log_message('error', 'Expenses_model::getCashAccount — ' . $e->getMessage());
             return null;
         }
     }
 
-    // ── Category list (paginated, for manager modal) ─────────────────────────
+    // â”€â”€ Category list (paginated, for manager modal) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getCategoryList(int $orgUID, string $search, int $limit, int $offset): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -269,12 +260,11 @@ class Expenses_model extends CI_Model {
             return $query ? $query->result() : [];
         } catch (Exception $e) {
             notifyError('Expenses_model::getCategoryList', $e);
-            log_message('error', 'Expenses_model::getCategoryList — ' . $e->getMessage());
             return [];
         }
     }
 
-    // ── Category count ───────────────────────────────────────────────────────
+    // â”€â”€ Category count â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getCategoryCount(int $orgUID, string $search): int {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -294,13 +284,12 @@ class Expenses_model extends CI_Model {
             return $row ? (int)$row->cnt : 0;
         } catch (Exception $e) {
             notifyError('Expenses_model::getCategoryCount', $e);
-            log_message('error', 'Expenses_model::getCategoryCount — ' . $e->getMessage());
             return 0;
         }
     }
 
 
-    // ── Count existing payment rows for an expense (for UniqueNumber suffix) ───
+    // â”€â”€ Count existing payment rows for an expense (for UniqueNumber suffix) â”€â”€â”€
     public function getPaymentCount(int $transUID, string $sourceType, int $orgUID): int {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -315,12 +304,11 @@ class Expenses_model extends CI_Model {
             return $row ? (int)$row->cnt : 0;
         } catch (Exception $e) {
             notifyError('Expenses_model::getPaymentCount', $e);
-            log_message('error', 'Expenses_model::getPaymentCount — ' . $e->getMessage());
             return 0;
         }
     }
 
-    // ── Check if any active expense uses this category ────────────────────────
+    // â”€â”€ Check if any active expense uses this category â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function isCategoryLinked(int $categoryUID, int $orgUID): bool {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -334,17 +322,16 @@ class Expenses_model extends CI_Model {
             return $row && (int)$row->cnt > 0;
         } catch (Exception $e) {
             notifyError('Expenses_model::isCategoryLinked', $e);
-            log_message('error', 'Expenses_model::isCategoryLinked — ' . $e->getMessage());
             return true; // fail-safe: treat as linked to prevent accidental delete
         }
     }
 
-    // ── Write DB helper ──────────────────────────────────────────────────────
+    // â”€â”€ Write DB helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private function _wdb(): CI_DB_driver {
         return $this->load->database('WriteDB', TRUE);
     }
 
-    // ── Expense items ─────────────────────────────────────────────────────────
+    // â”€â”€ Expense items â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /**
      * @param int   $expenseUID
@@ -392,7 +379,6 @@ class Expenses_model extends CI_Model {
             return $query ? $query->result() : [];
         } catch (Exception $e) {
             notifyError('Expenses_model::getExpenseItems', $e);
-            log_message('error', 'Expenses_model::getExpenseItems — ' . $e->getMessage());
             return [];
         }
     }
@@ -435,7 +421,7 @@ class Expenses_model extends CI_Model {
         $wdb->update('Transaction.ExpenseItemsTbl', ['IsDeleted' => 1, 'UpdatedBy' => $actorUID]);
     }
 
-    // ── Private filter helper ────────────────────────────────────────────────
+    // â”€â”€ Private filter helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private function _applyFilters(array $filter): void {
         if (!empty($filter['BranchUID'])) {
             $this->ReadDb->where('e.BranchUID', (int)$filter['BranchUID']);
@@ -510,7 +496,6 @@ class Expenses_model extends CI_Model {
             return array_column($query->result_array(), 'ExpenseUID');
         } catch (Exception $e) {
             notifyError('Expenses_model::getExpenseUIDsByFilter', $e);
-            log_message('error', 'getExpenseUIDsByFilter: ' . $e->getMessage());
             return [];
         }
     }

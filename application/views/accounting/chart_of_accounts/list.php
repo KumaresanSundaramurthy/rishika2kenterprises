@@ -52,7 +52,7 @@ if (!empty($DataLists)):
     <td><span class="badge <?php echo $badge; ?>" style="font-size:.72rem;"><?php echo htmlspecialchars($row->LedgerType ?? ''); ?></span></td>
     <td class="text-muted" style="font-size:.8rem;"><?php echo htmlspecialchars($row->ParentLedgerName ?? '—'); ?></td>
     <td class="text-end fw-semibold <?php echo $balClass; ?>" style="font-size:.84rem;">
-        <?php echo $cur . ' ' . number_format((float)($row->CurrentBalance ?? 0), $dec); ?>
+        <?php echo $cur . ' ' . smartDecimal($row->CurrentBalance ?? 0); ?>
         <div class="text-muted" style="font-size:.68rem;font-weight:400;"><?php echo htmlspecialchars($row->CurrentBalanceType ?? 'Debit'); ?></div>
     </td>
     <td class="text-center">

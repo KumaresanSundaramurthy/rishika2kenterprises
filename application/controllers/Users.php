@@ -13,7 +13,7 @@ class Users extends MY_Controller {
         $this->load->model('dbwrite_model');
     }
 
-    // ── List page ─────────────────────────────────────────────────────────────
+    // â”€â”€ List page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function index() {
         if (!$this->_loadPageTitle()) {
             $this->load->view('common/module_error', $this->pageData);
@@ -51,12 +51,11 @@ class Users extends MY_Controller {
 
         } catch (Throwable $e) {
             notifyError('Users::index', $e);
-            log_message('error', 'Users::index — ' . $e->getMessage());
             redirect('dashboard', 'refresh');
         }
     }
 
-    // ── AJAX pagination ───────────────────────────────────────────────────────
+    // â”€â”€ AJAX pagination â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getPageDetails($pageNo = 1) {
         $this->EndReturnData = new stdClass();
         try {
@@ -91,7 +90,7 @@ class Users extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Get single user for edit modal ────────────────────────────────────────
+    // â”€â”€ Get single user for edit modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getUserDetail() {
         $this->EndReturnData = new stdClass();
         try {
@@ -121,7 +120,7 @@ class Users extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Upload employee attachment ────────────────────────────────────────────
+    // â”€â”€ Upload employee attachment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function saveUserAttachment() {
         $this->EndReturnData = new stdClass();
         try {
@@ -176,7 +175,7 @@ class Users extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Delete employee attachment ────────────────────────────────────────────
+    // â”€â”€ Delete employee attachment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function deleteUserAttachment() {
         $this->EndReturnData = new stdClass();
         try {
@@ -206,7 +205,7 @@ class Users extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Toggle active status ──────────────────────────────────────────────────
+    // â”€â”€ Toggle active status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function toggleStatus() {
         $this->EndReturnData = new stdClass();
         try {
@@ -234,7 +233,7 @@ class Users extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Save (create / update) ────────────────────────────────────────────────
+    // â”€â”€ Save (create / update) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function saveUser() {
         $this->EndReturnData = new stdClass();
         try {
@@ -246,7 +245,7 @@ class Users extends MY_Controller {
             $now            = date('Y-m-d H:i:s');
             $HasLoginAccess = (int)($PostData['HasLoginAccess'] ?? 0);
 
-            // ── Common fields ──────────────────────────────────────────────────
+            // â”€â”€ Common fields â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             $FirstName   = trim($PostData['FirstName']   ?? '');
             $LastName    = trim($PostData['LastName']    ?? '');
             $Email       = trim($PostData['Email']       ?? '');
@@ -256,7 +255,7 @@ class Users extends MY_Controller {
 
             if (empty($FirstName)) throw new Exception('First name is required.');
 
-            // ── Login-only fields ──────────────────────────────────────────────
+            // â”€â”€ Login-only fields â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             $UserName = trim($PostData['UserName'] ?? '');
             $RoleUID  = !empty($PostData['RoleUID']) ? (int)$PostData['RoleUID'] : NULL;
             $IsActive = (int)($PostData['IsActive'] ?? 1);
@@ -268,7 +267,7 @@ class Users extends MY_Controller {
                 if (!$RoleUID)                     throw new Exception('Role is required for login users.');
             }
 
-            // ── HR / Employment fields ─────────────────────────────────────────
+            // â”€â”€ HR / Employment fields â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             $EmployeeCode   = trim($PostData['EmployeeCode']   ?? '');
             $DepartmentUID  = !empty($PostData['DepartmentUID'])  ? (int)$PostData['DepartmentUID']  : NULL;
             $DesignationUID = !empty($PostData['DesignationUID']) ? (int)$PostData['DesignationUID'] : NULL;
@@ -276,7 +275,7 @@ class Users extends MY_Controller {
             $EmployeeStatus = in_array($PostData['EmployeeStatus'] ?? '', ['Active','Resigned','Terminated','OnLeave'])
                               ? $PostData['EmployeeStatus'] : 'Active';
 
-            // ── Salary fields (only applied when caller has permission) ────────
+            // â”€â”€ Salary fields (only applied when caller has permission) â”€â”€â”€â”€â”€â”€â”€â”€
             $SalaryType      = in_array($PostData['SalaryType'] ?? '', ['Monthly','Daily','Hourly'])
                                ? $PostData['SalaryType'] : 'Monthly';
             $BasicSalary     = $this->_canSeeSalary() ? (float)($PostData['BasicSalary']     ?? 0) : NULL;
@@ -284,7 +283,7 @@ class Users extends MY_Controller {
             $Incentives      = $this->_canSeeSalary() ? (float)($PostData['Incentives']      ?? 0) : NULL;
             $FixedDeductions = $this->_canSeeSalary() ? (float)($PostData['FixedDeductions'] ?? 0) : NULL;
 
-            // ── Build data array ───────────────────────────────────────────────
+            // â”€â”€ Build data array â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             $userData = [
                 'FirstName'      => $FirstName,
                 'LastName'       => $LastName,
@@ -354,7 +353,7 @@ class Users extends MY_Controller {
                 }
             }
 
-            // ── Save addresses ─────────────────────────────────────────────────
+            // â”€â”€ Save addresses â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             $delUIDs = trim($PostData['DelAddrUIDs'] ?? '');
             if ($delUIDs) {
                 foreach (array_filter(array_map('intval', explode(',', $delUIDs))) as $addrUID) {
@@ -398,7 +397,7 @@ class Users extends MY_Controller {
                 }
             }
 
-            // ── Sync branch access assignments ─────────────────────────────────────
+            // â”€â”€ Sync branch access assignments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             $branchAccessJson = trim($PostData['BranchAccessJson'] ?? '');
             if ($branchAccessJson !== '') {
                 $branches = json_decode($branchAccessJson, true) ?: [];
@@ -432,7 +431,7 @@ class Users extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Per-user language preference ──────────────────────────────────────────
+    // â”€â”€ Per-user language preference â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function updateLanguage(): void {
         $this->EndReturnData = new stdClass();
         try {
@@ -457,14 +456,13 @@ class Users extends MY_Controller {
             $this->EndReturnData->Message = t('language_updated', 'Language updated successfully.');
         } catch (Exception $e) {
             notifyError('Users::updateLanguage', $e);
-            log_message('error', 'Users::updateLanguage — ' . $e->getMessage());
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Employee dropdown for Attendance / Payroll ────────────────────────────
+    // â”€â”€ Employee dropdown for Attendance / Payroll â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getEmployeeList() {
         $this->EndReturnData = new stdClass();
         try {
@@ -479,7 +477,7 @@ class Users extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Org login-users cache ─────────────────────────────────────────────────
+    // â”€â”€ Org login-users cache â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getOrgUsers() {
         $orgUID   = (int)$this->pageData['JwtData']->Org->OrgUID;
         $cacheKey = $this->redisservice->orgKey('org-users');
@@ -494,7 +492,7 @@ class Users extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Private helpers ───────────────────────────────────────────────────────
+    // â”€â”€ Private helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private function _canSeeSalary() {
         $roleUID = (int)($this->pageData['JwtData']->User->RoleUID ?? 0);
         return in_array($roleUID, [1, 2]);
@@ -514,7 +512,7 @@ class Users extends MY_Controller {
 <p><a class="btn" href="' . $setupUrl . '">Set My Password</a></p>
 <p>If the button does not work, copy and paste this link:<br>
 <a href="' . $setupUrl . '">' . $setupUrl . '</a></p>
-<p>This link has no expiry — you can use it any time until your password is set.</p>
+<p>This link has no expiry â€” you can use it any time until your password is set.</p>
 <p>Regards,<br>' . $fromName . '</p>
 </body></html>';
 
@@ -522,7 +520,7 @@ class Users extends MY_Controller {
             $payload = json_encode([
                 'sender'      => ['name' => $fromName, 'email' => $fromEmail],
                 'to'          => [['email' => $email, 'name' => $firstName]],
-                'subject'     => 'Set Your Password — ' . $fromName,
+                'subject'     => 'Set Your Password â€” ' . $fromName,
                 'htmlContent' => $htmlBody,
             ]);
             $ch = curl_init('https://api.brevo.com/v3/smtp/email');
@@ -546,7 +544,6 @@ class Users extends MY_Controller {
             }
         } catch (Throwable $e) {
             notifyError('Users::_sendPasswordSetupEmail', $e);
-            log_message('error', 'Users::_sendPasswordSetupEmail — ' . $e->getMessage());
         }
     }
 

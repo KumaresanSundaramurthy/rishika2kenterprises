@@ -1,7 +1,7 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
 
 /**
- * Razorpay_model — data queries for the public payment flow.
+ * Razorpay_model â€” data queries for the public payment flow.
  * All reads use ReadDb; write uses the dbwrite_model via the controller.
  */
 class Razorpay_model extends CI_Model {
@@ -35,7 +35,6 @@ class Razorpay_model extends CI_Model {
             return ($q !== false) ? ($q->row() ?? null) : null;
         } catch (Exception $e) {
             notifyError($e, 'Razorpay_model::getInvoicePartyInfo');
-            log_message('error', '[Razorpay_model::getInvoicePartyInfo] ' . $e->getMessage());
             return null;
         }
     }
@@ -70,7 +69,7 @@ class Razorpay_model extends CI_Model {
      * Find the UID of a suitable "Online" / "UPI" / "Net Banking" payment type.
      * Falls back to the first available non-cash active type.
      *
-     * @param int $orgUID  (unused currently — PaymentTypes are global, not org-scoped)
+     * @param int $orgUID  (unused currently â€” PaymentTypes are global, not org-scoped)
      * @returns int  0 if none found
      */
     public function getOnlinePaymentTypeUID(int $orgUID = 0): int {
@@ -107,7 +106,6 @@ class Razorpay_model extends CI_Model {
 
         } catch (Exception $e) {
             notifyError($e, 'Razorpay_model::getOnlinePaymentTypeUID');
-            log_message('error', '[Razorpay_model::getOnlinePaymentTypeUID] ' . $e->getMessage());
             return 0;
         }
     }

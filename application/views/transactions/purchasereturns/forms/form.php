@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php
 $isEdit      = isset($PRData);
 $isDraftEdit = $isEdit && ($PRData->DocStatus === 'Draft');
@@ -174,9 +174,23 @@ if ($isEdit) {
                             </div>
 
                             <!-- Vendor address box -->
+                            <?php
+                            $_vAddrText = '';
+                            if ($isEdit && isset($VendorAddr) && !empty($VendorAddr)) {
+                                $_vLineParts = array_filter([trim($VendorAddr->Line1 ?? ''), trim($VendorAddr->Line2 ?? '')]);
+                                $_vLocParts  = array_filter([trim($VendorAddr->CityText ?? ''), trim($VendorAddr->StateText ?? '')]);
+                                $_vLoc = implode(', ', $_vLocParts);
+                                if (!empty(trim($VendorAddr->Pincode ?? ''))) $_vLoc .= ' – ' . trim($VendorAddr->Pincode);
+                                $_vAddrParts = array_filter([implode(', ', $_vLineParts), $_vLoc]);
+                                $_vAddrText  = implode(' · ', $_vAddrParts);
+                            }
+                            ?>
                             <div class="row g-2 mb-3">
                                 <div class="col-md-4">
-                                    <div id="vendorAddressBox" class="trans-addr-strip d-none"><i class="bx bx-map-pin"></i><span></span></div>
+                                    <div id="vendorAddressBox" class="trans-addr-strip <?php echo !empty($_vAddrText) ? '' : 'd-none'; ?>">
+                                        <i class="bx bx-map-pin"></i>
+                                        <span><?php echo htmlspecialchars($_vAddrText); ?></span><button type="button" id="btnEditVendAddr" class="trans-addr-edit-btn" title="Edit billing address"><i class="bx bx-edit"></i></button>
+                                    </div>
                                 </div>
                             </div>
                             <hr class="mt-2 mb-3"/>
@@ -261,7 +275,7 @@ var _transFormData = <?php echo json_encode([
     'returnTab'     => $_returnTab,
     'returnPage'    => (int)$_returnPage,
     'currency'      => $JwtData->GenSettings->CurrenySymbol ?? '₹',
-    'decimals'      => (int)($JwtData->GenSettings->DecimalPoints ?? 2),
+    'decimals'      => 9,
     'prItemMethod'  => $_prMethod,
     'transType'     => 'PurchaseReturn',
     'editData'      => $isEdit ? [
@@ -270,6 +284,11 @@ var _transFormData = <?php echo json_encode([
         'vendorName'        => $PRData->PartyName  ?? '',
         'vendorArea'        => $PRData->PartyArea   ?? '',
         'vendorMobile'      => $PRData->PartyMobile ?? '',
+        'vendBillLine1'     => isset($VendorAddr) ? ($VendorAddr->Line1     ?? '') : '',
+        'vendBillLine2'     => isset($VendorAddr) ? ($VendorAddr->Line2     ?? '') : '',
+        'vendBillCity'      => isset($VendorAddr) ? ($VendorAddr->CityText  ?? '') : '',
+        'vendBillState'     => isset($VendorAddr) ? ($VendorAddr->StateText ?? '') : '',
+        'vendBillPincode'   => isset($VendorAddr) ? ($VendorAddr->Pincode   ?? '') : '',
         'extraDiscAmount'   => (float)($PRData->ExtraDiscount ?? 0),
         'extraDiscType'     => $PRData->ExtraDiscountType ?? '',
         'globalDiscPercent' => (float)($PRData->GlobalDiscPercent ?? 0),

@@ -75,7 +75,7 @@ if (!function_exists('_allPmtModeBadge')) {
         $receiptUrl   = $receiptToken ? $appUrl . '/receipt/' . $receiptToken : '';
 
         // WhatsApp message
-        $amtFormatted = $cur . ' ' . number_format((float)$row->Amount, $dec, '.', ',');
+        $amtFormatted = $cur . ' ' . smartDecimal((float)$row->Amount);
         $payStatus    = ($row->IsFullyPaid ?? 0) ? 'Paid' : ($isIn ? 'Partially Paid' : 'Partial');
         $receiptNum   = $row->PaymentUniqueNumber ?? '';
         $shareMsg     = "Hello *{$row->PartyName}*,\n\n"
@@ -95,7 +95,7 @@ if (!function_exists('_allPmtModeBadge')) {
         data-trans-module="<?php echo $transModule; ?>"
         data-trans-type="<?php echo $transType; ?>"
         data-trans-number="<?php echo htmlspecialchars($row->TransNumber ?? ''); ?>"
-        data-amount="<?php echo number_format((float)$row->Amount, $dec, '.', ','); ?>"
+        data-amount="<?php echo smartDecimal((float)$row->Amount); ?>"
         data-raw-amount="<?php echo (float)$row->Amount; ?>"
         data-payment-date="<?php echo htmlspecialchars($row->CreatedOn ?? ''); ?>"
         data-payment-type="<?php echo htmlspecialchars($row->PaymentTypeName ?? ''); ?>"
@@ -141,7 +141,7 @@ if (!function_exists('_allPmtModeBadge')) {
         <td>
             <div class="fw-semibold <?php echo $amtClass; ?>" style="font-size:.88rem;">
                 <?php echo htmlspecialchars($cur); ?>
-                <?php echo number_format((float)$row->Amount, $dec, '.', ','); ?>
+                <?php echo smartDecimal((float)$row->Amount); ?>
             </div>
             <?php
                 $oaSrc        = !empty($row->IsOnAccount);
@@ -171,7 +171,7 @@ if (!function_exists('_allPmtModeBadge')) {
                              background:#f3e8ff;color:#6b21a8;border:1px solid #d8b4fe;">Credit Note</span>
             <?php elseif (($row->ExcessAmount ?? 0) > 0): ?>
                 <div style="font-size:.7rem;color:#f59e0b;">
-                    Excess: <?php echo htmlspecialchars($cur); ?> <?php echo number_format((float)$row->ExcessAmount, $dec); ?>
+                    Excess: <?php echo htmlspecialchars($cur); ?> <?php echo smartDecimal((float)$row->ExcessAmount); ?>
                 </div>
             <?php endif; ?>
             <?php if (!empty($row->ReferenceNo)): ?>
@@ -397,7 +397,7 @@ if (!function_exists('_allPmtModeBadge')) {
                         <button class="dropdown-item cancelPaymentOut text-warning"
                                 data-payment-uid="<?php echo (int)$row->PaymentUID; ?>"
                                 data-num="<?php echo htmlspecialchars($row->PaymentUniqueNumber ?? ''); ?>"
-                                data-amount="<?php echo htmlspecialchars(number_format((float)$row->Amount, $dec)); ?>"
+                                data-amount="<?php echo htmlspecialchars(smartDecimal((float)$row->Amount)); ?>"
                                 data-is-cn="<?php echo $isCN ? '1' : '0'; ?>"
                                 data-is-oa="<?php echo $isOA ? '1' : '0'; ?>">
                             <i class="bx bx-x-circle me-2"></i><?php echo t('cancel', 'Cancel'); ?>
@@ -406,7 +406,7 @@ if (!function_exists('_allPmtModeBadge')) {
                     <li>
                         <button class="dropdown-item deletePaymentOut text-danger"
                                 data-payment-uid="<?php echo (int)$row->PaymentUID; ?>"
-                                data-amount="<?php echo htmlspecialchars(number_format((float)$row->Amount, $dec)); ?>"
+                                data-amount="<?php echo htmlspecialchars(smartDecimal((float)$row->Amount)); ?>"
                                 data-is-cn="<?php echo $isCN ? '1' : '0'; ?>"
                                 data-is-oa="<?php echo $isOA ? '1' : '0'; ?>">
                             <i class="bx bx-trash me-2"></i><?php echo t('delete', 'Delete'); ?>

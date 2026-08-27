@@ -62,10 +62,10 @@ if (!empty($DataLists)):
         </td>
         <td class="text-end">
             <?php if ($receivable > 0): ?>
-                <div style="font-size:.82rem;font-weight:600;color:#28a745;"><?php echo $currency . ' ' . number_format($receivable, $dec); ?></div>
+                <div style="font-size:.82rem;font-weight:600;color:#28a745;"><?php echo $currency . ' ' . smartDecimal($receivable); ?></div>
                 <div class="text-muted" style="font-size:.7rem;">Receivable</div>
             <?php elseif ($payable > 0): ?>
-                <div style="font-size:.82rem;font-weight:600;color:#dc3545;"><?php echo $currency . ' ' . number_format($payable, $dec); ?></div>
+                <div style="font-size:.82rem;font-weight:600;color:#dc3545;"><?php echo $currency . ' ' . smartDecimal($payable); ?></div>
                 <div class="text-muted" style="font-size:.7rem;">Payable</div>
             <?php else: ?>
                 <span class="text-muted" style="font-size:.8rem;">Settled</span>

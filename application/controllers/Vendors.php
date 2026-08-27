@@ -9,7 +9,7 @@ class Vendors extends MY_Controller {
         parent::__construct();
     }
 
-    // ── Internal helpers ──────────────────────────────────────────────────────
+    // â”€â”€ Internal helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private function _initModule() {
         if (isset($this->pageData['ModuleId'])) return;
@@ -51,7 +51,7 @@ class Vendors extends MY_Controller {
         return $resp;
     }
 
-    // ── Page routes ───────────────────────────────────────────────────────────
+    // â”€â”€ Page routes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function index() {
         if (!$this->_loadPageTitle()) {
             $this->load->view('common/module_error', $this->pageData);
@@ -293,7 +293,7 @@ class Vendors extends MY_Controller {
 
             } elseif (!empty($linkCustomer) && (string) $linkCustomer === 'ExistingCustomer') {
                 $CustomerUID = getPostValue($PostData, 'Customers', 0);
-                if ($CustomerUID <= 0) throw new Exception('Invalid Customer selected for linking');
+                if ($CustomerUID <= 0) throw new ValidationException('Invalid Customer selected for linking');
 
                 $updVendorLink = $this->dbwrite_model->updateData('Vendors', 'VendorTbl', ['CustomerUID' => $CustomerUID], ['VendorUID' => $VendorUID]);
                 if ($updVendorLink->Error) throw new Exception($updVendorLink->Message ?? 'Failed to link customer to vendor');
@@ -301,7 +301,7 @@ class Vendors extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            // Claim next vendor number — 5-retry optimistic lock inside claimNextVendorNumber.
+            // Claim next vendor number â€” 5-retry optimistic lock inside claimNextVendorNumber.
             $_vOrgUID   = (int) $this->pageData['JwtData']->Org->OrgUID;
             $_fyMonth   = (int) ($this->pageData['JwtData']->GenSettings->FYStartMonth ?? 4);
             $_tz        = $this->pageData['JwtData']->User->Timezone ?? 'UTC';
@@ -372,6 +372,10 @@ class Vendors extends MY_Controller {
             } else {
                 throw $e;
             }
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Vendors::addVendorData', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -428,6 +432,9 @@ class Vendors extends MY_Controller {
             $this->EndReturnData->BillingAddr  = $billingAddr;
             $this->EndReturnData->ShippingAddr = $shippingAddr;
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Vendors::loadModalForm', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -466,6 +473,9 @@ class Vendors extends MY_Controller {
 
             $this->EndReturnData->Error        = false;
             $this->EndReturnData->VendorNumber = $settings->VendorNextNumber;
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Vendors::getNextVendorNumber', $e);
             $this->EndReturnData->Error   = true;
@@ -485,7 +495,7 @@ class Vendors extends MY_Controller {
 
             // Fetch all active vendors
             $vendors = $this->vendors_model->getVendors(['Vendors.OrgUID' => $orgUID]);
-            if (empty($vendors)) throw new Exception('No vendors found.');
+            if (empty($vendors)) throw new ValidationException('No vendors found.');
 
             // DEL old STRING key (handles migration) then rebuild fresh as HSET
             $cacheKey = $this->redisservice->orgKey('vendors');
@@ -534,13 +544,16 @@ class Vendors extends MY_Controller {
                 ];
             }
 
-            // Store as HSET — one bulk command, one field per vendor
+            // Store as HSET â€” one bulk command, one field per vendor
             $this->upstashservice->hmset($cacheKey, $newMap);
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = count($vendors) . ' vendor(s) synced to cache.';
             $this->EndReturnData->Count   = count($vendors);
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Vendors::syncVendorsCache', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -556,7 +569,7 @@ class Vendors extends MY_Controller {
         try {
             $uid    = (int) $uid;
             $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
-            if ($uid <= 0) throw new Exception('Invalid vendor ID.');
+            if ($uid <= 0) throw new ValidationException('Invalid vendor ID.');
 
             // Always fetch attachments fresh
             $this->load->model('vendors_model');
@@ -566,7 +579,7 @@ class Vendors extends MY_Controller {
             unset($a);
 
             $getVendData = $this->vendors_model->getVendors(['Vendors.VendorUID' => $uid]);
-            if (empty($getVendData)) throw new Exception('Vendor not found.');
+            if (empty($getVendData)) throw new ValidationException('Vendor not found.');
 
             $bankDetails = $this->vendors_model->getVendorBankInfo(['VendBankDetails.VendorUID' => $uid]);
             $addrInfo    = $this->vendors_model->getVendorAddress(['VendAddress.VendorUID' => $uid]);
@@ -584,6 +597,9 @@ class Vendors extends MY_Controller {
             $this->EndReturnData->ShippingAddr = $shippingAddr;
             $this->EndReturnData->Attachments  = $attachments;
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Vendors::getVendorForModal', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -665,7 +681,7 @@ class Vendors extends MY_Controller {
                 $newBalance    = abs($balanceSigned);
                 $newType       = ($balanceSigned >= 0) ? 'Credit' : 'Debit';
 
-                // Write via dbwrite_model (C1 — same connection as this transaction, no FK deadlock)
+                // Write via dbwrite_model (C1 â€” same connection as this transaction, no FK deadlock)
                 if ($obRow) {
                     $this->dbwrite_model->updateData('Vendors', 'VendOpeningBalanceTbl', [
                         'OpeningBalance' => $newBalance,
@@ -760,6 +776,10 @@ class Vendors extends MY_Controller {
             } else {
                 throw $e;
             }
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Vendors::updateVendorData', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -799,7 +819,7 @@ class Vendors extends MY_Controller {
             $rows = [];
             $i    = 1;
             foreach ($result->rows as $row) {
-                $balance   = number_format((float)($row->ClosingBalance ?? 0), 2);
+                $balance   = smartDecimal((float)($row->ClosingBalance ?? 0));
                 $balType   = $row->ClosingBalanceType ?? 'Credit';
                 $status    = (int)($row->IsActive ?? 1) === 1 ? 'Active' : 'Inactive';
                 $updatedOn = !empty($row->UpdatedOn)
@@ -823,6 +843,10 @@ class Vendors extends MY_Controller {
 
             $this->_sendExport($type, 'Vendor_Data', 'Vendors', 'Vendor Report', $headers, $rows, $orgInfo, $timezone, $colWidths);
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+            $this->globalservice->sendJsonResponse($this->EndReturnData);
         } catch (Exception $e) {
             notifyError('Vendors::exportVendors', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -838,6 +862,9 @@ class Vendors extends MY_Controller {
             $tags = $this->vendors_model->getVendorTags($this->pageData['JwtData']->Org->OrgUID);
             $this->EndReturnData->Error = false;
             $this->EndReturnData->Tags  = $tags;
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Vendors::getVendorTags', $e);
             $this->EndReturnData->Error   = true;
@@ -855,6 +882,9 @@ class Vendors extends MY_Controller {
             $stats = $_showStats ? $this->vendors_model->getVendorStats($this->pageData['JwtData']->Org->OrgUID) : null;
             $this->EndReturnData->Error = false;
             $this->EndReturnData->Stats = $stats;
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Vendors::getStats', $e);
             $this->EndReturnData->Error   = true;
@@ -870,8 +900,8 @@ class Vendors extends MY_Controller {
             $VendorUID = (int) $this->input->post('VendorUID');
             $newStatus = (int) $this->input->post('IsActive');
 
-            if (!$VendorUID) throw new Exception('Vendor ID is missing.');
-            if (!in_array($newStatus, [0, 1])) throw new Exception('Invalid status value.');
+            if (!$VendorUID) throw new ValidationException('Vendor ID is missing.');
+            if (!in_array($newStatus, [0, 1])) throw new ValidationException('Invalid status value.');
 
             $this->load->model('dbwrite_model');
             $resp = $this->dbwrite_model->updateData(
@@ -881,7 +911,7 @@ class Vendors extends MY_Controller {
             );
             if ($resp->Error) throw new Exception($resp->Message);
 
-            // Sync Upstash: active → add/update in cache; inactive → remove from cache
+            // Sync Upstash: active â†’ add/update in cache; inactive â†’ remove from cache
             if ($newStatus === 1) {
                 $this->cachehelper->upsertVendor($VendorUID);
             } else {
@@ -900,6 +930,9 @@ class Vendors extends MY_Controller {
                 ['IsActive' => $newStatus]
             );
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Vendors::toggleVendorStatus', $e);
             $this->EndReturnData->Error   = true;
@@ -918,14 +951,14 @@ class Vendors extends MY_Controller {
             $this->dbwrite_model->startTransaction();
 
             $VendorUID = (int) $this->input->post('VendorUID');
-            if (!$VendorUID) throw new Exception('Vendor Information is Missing to Delete');
+            if (!$VendorUID) throw new ValidationException('Vendor Information is Missing to Delete');
 
-            if ($this->vendorHasTransactions($VendorUID)) throw new Exception('Vendor has existing transactions (Purchase Orders/Payments)');
+            if ($this->vendorHasTransactions($VendorUID)) throw new ValidationException('Vendor has existing transactions (Purchase Orders/Payments)');
 
             $this->load->model('accountledger_model');
             $vendor = $this->accountledger_model->getEntityWithLedger($VendorUID, 'Vendor');
-            if (!$vendor)             throw new Exception('Vendor not found');
-            if ($vendor->IsDeleted == 1) throw new Exception('Vendor already deleted');
+            if (!$vendor)             throw new ValidationException('Vendor not found');
+            if ($vendor->IsDeleted == 1) throw new ValidationException('Vendor already deleted');
 
             $UpdateResp = $this->dbwrite_model->updateData('Vendors', 'VendorTbl', $this->globalservice->baseDeleteArrayDetails(), ['VendorUID' => $VendorUID]);
             if ($UpdateResp->Error) throw new Exception($UpdateResp->Message);
@@ -952,6 +985,10 @@ class Vendors extends MY_Controller {
                 []
             );
 
+        } catch (ValidationException $e) {
+            if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Vendors::deleteVendorData', $e);
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
@@ -976,24 +1013,24 @@ class Vendors extends MY_Controller {
                 $VendorUIDs = array_filter(array_map('intval', $VendorUIDs));
             } else {
                 $VendorUIDs = $this->input->post('VendorUIDs[]');
-                if (empty($VendorUIDs)) throw new Exception('Vendor Information is Missing to Delete');
+                if (empty($VendorUIDs)) throw new ValidationException('Vendor Information is Missing to Delete');
                 if (!is_array($VendorUIDs)) $VendorUIDs = [$VendorUIDs];
                 $VendorUIDs = array_filter(array_map('intval', $VendorUIDs));
             }
-            if (empty($VendorUIDs)) throw new Exception('Invalid vendor IDs provided');
+            if (empty($VendorUIDs)) throw new ValidationException('Invalid vendor IDs provided');
 
             $this->load->model('dbwrite_model');
             $this->dbwrite_model->startTransaction();
 
             foreach ($VendorUIDs as $vendorId) {
                 if ($this->vendorHasTransactions($vendorId)) {
-                    throw new Exception("Vendor ID {$vendorId} has existing transactions");
+                    throw new ValidationException("Vendor ID {$vendorId} has existing transactions");
                 }
 
                 $this->load->model('accountledger_model');
                 $vendor = $this->accountledger_model->getEntityWithLedger($vendorId, 'Vendor');
-                if (!$vendor)              throw new Exception("Vendor ID {$vendorId} not found");
-                if ($vendor->IsDeleted == 1) throw new Exception("Vendor ID {$vendorId} is already deleted");
+                if (!$vendor)              throw new ValidationException("Vendor ID {$vendorId} not found");
+                if ($vendor->IsDeleted == 1) throw new ValidationException("Vendor ID {$vendorId} is already deleted");
 
                 if ($vendor->LedgerUID) {
                     $this->load->library('accountledger');
@@ -1023,6 +1060,10 @@ class Vendors extends MY_Controller {
                 []
             );
 
+        } catch (ValidationException $e) {
+            if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Vendors::deleteMultipleVendors', $e);
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
@@ -1037,6 +1078,8 @@ class Vendors extends MY_Controller {
         try {
             $this->load->model('transactions_model');
             return count($this->transactions_model->getEntityInvoices($vendorId, 'Vendor')) > 0;
+        } catch (ValidationException $e) {
+            return false;
         } catch (Exception $e) {
             return false;
         }
@@ -1046,9 +1089,9 @@ class Vendors extends MY_Controller {
         return (date('n') >= 4) ? (int)date('Y') : (int)date('Y') - 1;
     }
 
-    // ══════════════════════════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     // Vendor Group methods
-    // ══════════════════════════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
     private function _vendorGroupTypesList() {
         $this->load->model('vendors_model');
@@ -1060,6 +1103,9 @@ class Vendors extends MY_Controller {
         try {
             $this->EndReturnData->Error = false;
             $this->EndReturnData->Data  = $this->_vendorGroupTypesList();
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error = true;
+            $this->EndReturnData->Data  = [];
         } catch (Exception $e) {
             notifyError('Vendors::getGroupTypes', $e);
             $this->EndReturnData->Error = true;
@@ -1103,6 +1149,9 @@ class Vendors extends MY_Controller {
                     ];
                 }
             }
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = 'Unable to fetch vendors at the moment.';
         } catch (Exception $e) {
             notifyError('Vendors::searchVendors', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -1127,6 +1176,9 @@ class Vendors extends MY_Controller {
             $_showStats = (int)($this->pageData['JwtData']->GenSettings->ShowStats ?? 1)
                        && (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
             $this->EndReturnData->Stats = $this->vendors_model->getVendorGroupStats($this->pageData['JwtData']->Org->OrgUID);
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Vendors::getGroupsData', $e);
             $this->EndReturnData->Error   = true;
@@ -1139,16 +1191,19 @@ class Vendors extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $groupUID = (int)$groupUID;
-            if (!$groupUID) throw new Exception('Group ID is missing.');
+            if (!$groupUID) throw new ValidationException('Group ID is missing.');
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
             $this->load->model('vendors_model');
             $group   = $this->vendors_model->getVendorGroupByUID($orgUID, $groupUID);
-            if (!$group) throw new Exception('Group not found.');
+            if (!$group) throw new ValidationException('Group not found.');
             $members = $this->vendors_model->getVendorGroupMembers($orgUID, $groupUID);
             $this->EndReturnData->Error      = false;
             $this->EndReturnData->Data       = $group;
             $this->EndReturnData->Members    = $members;
             $this->EndReturnData->GroupTypes = $this->_vendorGroupTypesList();
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Vendors::getGroupForModal', $e);
             $this->EndReturnData->Error   = true;
@@ -1215,6 +1270,10 @@ class Vendors extends MY_Controller {
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
+        } catch (ValidationException $e) {
+            if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Vendors::addGroupData', $e);
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
@@ -1233,7 +1292,7 @@ class Vendors extends MY_Controller {
             $groupUID  = (int)($post['GroupUID'] ?? 0);
             $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
             $userUID   = $this->pageData['JwtData']->User->UserUID;
-            if (!$groupUID) throw new Exception('Group ID is missing.');
+            if (!$groupUID) throw new ValidationException('Group ID is missing.');
             $groupName = trim($post['GroupName'] ?? '');
             if (!$groupName) throw new InvalidArgumentException('Group Name is required.');
             $validTypes = $this->_vendorGroupTypesList();
@@ -1279,6 +1338,10 @@ class Vendors extends MY_Controller {
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
+        } catch (ValidationException $e) {
+            if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Vendors::updateGroupData', $e);
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
@@ -1295,7 +1358,7 @@ class Vendors extends MY_Controller {
             $pageNo   = (int)($this->input->post('PageNo') ?: 1);
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
             $userUID  = $this->pageData['JwtData']->User->UserUID;
-            if (!$groupUID) throw new Exception('Group ID is missing.');
+            if (!$groupUID) throw new ValidationException('Group ID is missing.');
             $this->load->model('dbwrite_model');
             $this->load->model('vendors_model');
             $oldGroup = $this->vendors_model->getVendorGroupByUID($orgUID, $groupUID);
@@ -1325,6 +1388,10 @@ class Vendors extends MY_Controller {
             $_showStats = (int)($this->pageData['JwtData']->GenSettings->ShowStats ?? 1)
                        && (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
             $this->EndReturnData->Stats = $this->vendors_model->getVendorGroupStats($orgUID);
+        } catch (ValidationException $e) {
+            if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Vendors::deleteGroup', $e);
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
@@ -1342,8 +1409,8 @@ class Vendors extends MY_Controller {
             $pageNo    = (int)($this->input->post('PageNo') ?: 1);
             $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
             $userUID   = $this->pageData['JwtData']->User->UserUID;
-            if (!$groupUID) throw new Exception('Group ID is missing.');
-            if (!in_array($newStatus, [0, 1])) throw new Exception('Invalid status value.');
+            if (!$groupUID) throw new ValidationException('Group ID is missing.');
+            if (!in_array($newStatus, [0, 1])) throw new ValidationException('Invalid status value.');
             $this->load->model('dbwrite_model');
             $resp = $this->dbwrite_model->updateData('Vendors', 'VendorGroupTbl',
                 ['IsActive' => $newStatus, 'UpdatedBy' => $userUID],
@@ -1373,6 +1440,9 @@ class Vendors extends MY_Controller {
             $_showStats = (int)($this->pageData['JwtData']->GenSettings->ShowStats ?? 1)
                        && (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
             $this->EndReturnData->Stats = $this->vendors_model->getVendorGroupStats($orgUID);
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Vendors::toggleGroupStatus', $e);
             $this->EndReturnData->Error   = true;
@@ -1388,6 +1458,9 @@ class Vendors extends MY_Controller {
             $this->load->model('vendors_model');
             $this->EndReturnData->Error  = false;
             $this->EndReturnData->Groups = $this->vendors_model->getActiveVendorGroupsForDropdown($orgUID);
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Vendors::getGroupsForDropdown', $e);
             $this->EndReturnData->Error   = true;
@@ -1402,7 +1475,7 @@ class Vendors extends MY_Controller {
             $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
             $this->load->model('vendors_model');
             $groups = $this->vendors_model->getActiveVendorGroupsForDropdown($orgUID);
-            if (empty($groups)) throw new Exception('No active vendor groups found.');
+            if (empty($groups)) throw new ValidationException('No active vendor groups found.');
 
             $cacheKey = $this->redisservice->orgKey('vendor-groups');
             $this->upstashservice->del($cacheKey);
@@ -1421,6 +1494,9 @@ class Vendors extends MY_Controller {
             $this->EndReturnData->Error   = false;
             $this->EndReturnData->Message = count($groups) . ' group(s) synced to cache.';
             $this->EndReturnData->Count   = count($groups);
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Vendors::syncVendorGroupsCache', $e);
             $this->EndReturnData->Error   = true;
@@ -1433,17 +1509,20 @@ class Vendors extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $groupUID = (int)$groupUID;
-            if (!$groupUID) throw new Exception('Group ID is missing.');
+            if (!$groupUID) throw new ValidationException('Group ID is missing.');
             $orgUID = (int)$this->pageData['JwtData']->Org->OrgUID;
             $this->load->model('vendors_model');
             $group = $this->vendors_model->getVendorGroupByUID($orgUID, $groupUID);
-            if (!$group) throw new Exception('Group not found.');
+            if (!$group) throw new ValidationException('Group not found.');
             $members  = $this->vendors_model->getVendorGroupMembers($orgUID, $groupUID);
             $overview = $this->vendors_model->getVendorGroupOverview($orgUID, $groupUID);
             $this->EndReturnData->Error    = false;
             $this->EndReturnData->Data     = $group;
             $this->EndReturnData->Members  = $members;
             $this->EndReturnData->Overview = $overview;
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Vendors::getGroupDetail', $e);
             $this->EndReturnData->Error   = true;
@@ -1452,7 +1531,7 @@ class Vendors extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Send SMS / Email ─────────────────────────────────────────────────────
+    // â”€â”€ Send SMS / Email â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function sendCommunication() {
 
         $this->EndReturnData = new stdClass();
@@ -1468,10 +1547,10 @@ class Vendors extends MY_Controller {
             $moduleUID = (int) $this->input->post('ModuleUID');
             $recordUID = (int) $this->input->post('RecordUID');
 
-            if (!in_array($commType, ['SMS', 'Email'])) throw new Exception('Invalid communication type.');
-            if (empty($message))                         throw new Exception('Message cannot be empty.');
-            if ($commType === 'Email' && empty($subject)) throw new Exception('Email subject is required.');
-            if (empty($uids) || !is_array($uids))        throw new Exception('No recipients selected.');
+            if (!in_array($commType, ['SMS', 'Email'])) throw new ValidationException('Invalid communication type.');
+            if (empty($message))                         throw new ValidationException('Message cannot be empty.');
+            if ($commType === 'Email' && empty($subject)) throw new ValidationException('Email subject is required.');
+            if (empty($uids) || !is_array($uids))        throw new ValidationException('No recipients selected.');
 
             $uids = array_map('intval', $uids);
 
@@ -1519,7 +1598,7 @@ class Vendors extends MY_Controller {
 
     }
 
-    // ── Vendor Opening Balance ────────────────────────────────────────────────
+    // â”€â”€ Vendor Opening Balance â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public function saveVendorOpeningBalance() {
 
@@ -1534,9 +1613,9 @@ class Vendors extends MY_Controller {
             $notes         = trim($this->input->post('Notes') ?? '');
             $financialYear = (int)   $this->input->post('FinancialYear');
 
-            if ($vendorUID <= 0)                              throw new Exception('Invalid vendor.');
-            if ($balance < 0)                                 throw new Exception('Opening balance cannot be negative.');
-            if (!in_array($balanceType, ['Debit', 'Credit'])) throw new Exception('BalanceType must be Debit or Credit.');
+            if ($vendorUID <= 0)                              throw new ValidationException('Invalid vendor.');
+            if ($balance < 0)                                 throw new ValidationException('Opening balance cannot be negative.');
+            if (!in_array($balanceType, ['Debit', 'Credit'])) throw new ValidationException('BalanceType must be Debit or Credit.');
             if ($financialYear <= 0) {
                 $financialYear = $this->_currentFinancialYear();
             }
@@ -1567,6 +1646,9 @@ class Vendors extends MY_Controller {
             $this->EndReturnData->VendBalUID    = $id;
             $this->EndReturnData->FinancialYear = $financialYear;
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Vendors::saveVendorOpeningBalance', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -1586,7 +1668,7 @@ class Vendors extends MY_Controller {
             $vendorUID     = (int) $this->input->get_post('VendorUID');
             $financialYear = (int) $this->input->get_post('FinancialYear');
 
-            if ($vendorUID <= 0) throw new Exception('Invalid vendor.');
+            if ($vendorUID <= 0) throw new ValidationException('Invalid vendor.');
             if ($financialYear <= 0) {
                 $financialYear = $this->_currentFinancialYear();
             }
@@ -1600,6 +1682,9 @@ class Vendors extends MY_Controller {
             $this->EndReturnData->YearData      = $yearRow;
             $this->EndReturnData->FinancialYear = $financialYear;
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Vendors::getVendorOpeningBalance', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -1610,11 +1695,73 @@ class Vendors extends MY_Controller {
 
     }
 
+    public function updateBillingAddress(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $this->load->model('vendors_model');
+            $this->load->model('dbwrite_model');
+            $PostData  = $this->input->post(null, true);
+            $orgUID    = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $userUID   = (int) $this->pageData['JwtData']->User->UserUID;
+            $vendorUID = (int) getPostValue($PostData, 'VendorUID', 0);
+            $line1     = trim((string) getPostValue($PostData, 'Line1', '', ''));
+
+            if ($vendorUID <= 0 || $line1 === '') {
+                $this->EndReturnData->Error   = true;
+                $this->EndReturnData->Message = 'Line 1 is required.';
+                $this->globalservice->sendJsonResponse($this->EndReturnData);
+                return;
+            }
+
+            $existing = $this->vendors_model->getVendorAddress([
+                'VendAddress.VendorUID'   => $vendorUID,
+                'VendAddress.OrgUID'      => $orgUID,
+                'VendAddress.AddressType' => 'Billing',
+            ]);
+
+            $addressData = [
+                'VendorUID'   => $vendorUID,
+                'OrgUID'      => $orgUID,
+                'AddressType' => 'Billing',
+                'Line1'       => $line1,
+                'Line2'       => trim((string) getPostValue($PostData, 'Line2',     '', '')),
+                'Pincode'     => trim((string) getPostValue($PostData, 'Pincode',   '', '')),
+                'State'       => trim((string) getPostValue($PostData, 'StateId',   '', '')),
+                'StateText'   => trim((string) getPostValue($PostData, 'StateText', '', '')),
+                'City'        => trim((string) getPostValue($PostData, 'CityId',    '', '')),
+                'CityText'    => trim((string) getPostValue($PostData, 'CityText',  '', '')),
+                'UpdatedBy'   => $userUID,
+            ];
+
+            if (!empty($existing)) {
+                $resp = $this->dbwrite_model->updateData('Vendors', 'VendAddressTbl', $addressData, ['VendAddressUID' => (int) $existing[0]->VendAddressUID]);
+            } else {
+                $addressData['CreatedBy'] = $userUID;
+                $resp = $this->dbwrite_model->insertData('Vendors', 'VendAddressTbl', $addressData);
+            }
+            if ($resp->Error) throw new Exception($resp->Message);
+
+            $this->cachehelper->upsertVendor($vendorUID);
+
+            $this->EndReturnData->Error   = false;
+            $this->EndReturnData->Message = 'Address updated successfully.';
+
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        } catch (Exception $e) {
+            notifyError('Vendors::updateBillingAddress', $e);
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
     /**
      * Recalculate vendor closing balance from scratch and sync to DB + Upstash.
      *
      * POST body:
-     *   VendorUID (int, optional) — omit or 0 to recalculate ALL vendors in the org.
+     *   VendorUID (int, optional) â€” omit or 0 to recalculate ALL vendors in the org.
      */
     public function recalcBalance(): void {
         $this->EndReturnData = new stdClass();
@@ -1628,7 +1775,7 @@ class Vendors extends MY_Controller {
             $readDb->db_debug = FALSE;
 
             if ($vendorUID > 0) {
-                // ── Single vendor ──────────────────────────────────────────
+                // â”€â”€ Single vendor â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                 $result = $this->vendorbalance->recalcAndSync($orgUID, $vendorUID, $userUID);
                 if (!$result) throw new Exception('Vendor not found or recalculation failed.');
 
@@ -1638,7 +1785,7 @@ class Vendors extends MY_Controller {
                 $this->EndReturnData->BalanceType = $result['type'];
 
             } else {
-                // ── All vendors for this org ───────────────────────────────
+                // â”€â”€ All vendors for this org â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                 $rows = $readDb->query(
                     'SELECT VendorUID FROM Vendors.VendorTbl
                       WHERE OrgUID = ? AND IsDeleted = 0
@@ -1646,7 +1793,7 @@ class Vendors extends MY_Controller {
                     [$orgUID]
                 )->result();
 
-                if (empty($rows)) throw new Exception('No vendors found for this organisation.');
+                if (empty($rows)) throw new ValidationException('No vendors found for this organisation.');
 
                 $total   = count($rows);
                 $success = 0;
@@ -1657,17 +1804,19 @@ class Vendors extends MY_Controller {
                         $success++;
                     } else {
                         $failed++;
-                        log_message('error', 'recalcBalance: failed for VendorUID=' . $row->VendorUID);
                     }
                 }
 
                 $this->EndReturnData->Error   = false;
-                $this->EndReturnData->Message = "Recalculated {$success} of {$total} vendors." . ($failed > 0 ? " {$failed} failed — check logs." : '');
+                $this->EndReturnData->Message = "Recalculated {$success} of {$total} vendors." . ($failed > 0 ? " {$failed} failed â€” check logs." : '');
                 $this->EndReturnData->Total   = $total;
                 $this->EndReturnData->Success = $success;
                 $this->EndReturnData->Failed  = $failed;
             }
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Vendors::recalcBalance', $e);
             $this->EndReturnData->Error   = true;
@@ -1779,6 +1928,9 @@ class Vendors extends MY_Controller {
 
             $this->EndReturnData->Error = false;
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Vendors::getVendorSearchList', $e);
             $this->EndReturnData->Error   = true;
@@ -1804,7 +1956,7 @@ class Vendors extends MY_Controller {
             $vendors = $this->vendors_model->getVendorsWithLedgerForBalance($orgUID, $filterUID);
 
             if (empty($vendors)) {
-                throw new Exception('No vendors found to update.');
+                throw new ValidationException('No vendors found to update.');
             }
 
             $updated = 0;
@@ -1832,7 +1984,7 @@ class Vendors extends MY_Controller {
                     $newBalance     = abs($signedBalance);
                     $newBalanceType = ($signedBalance >= 0) ? 'Credit' : 'Debit';
 
-                    // Step 4: Persist — update ledger current balance + VendOpeningBalanceTbl pending balance.
+                    // Step 4: Persist â€” update ledger current balance + VendOpeningBalanceTbl pending balance.
                     if (!empty($vend->LedgerUID)) {
                         $this->vendors_model->updateVendorBalanceInLedger(
                             $vend->LedgerUID, $newBalance, $newBalanceType, $userUID
@@ -1845,6 +1997,9 @@ class Vendors extends MY_Controller {
 
                     $updated++;
 
+                } catch (ValidationException $innerEx) {
+                    $errors[] = 'VendorUID ' . $vend->VendorUID . ': ' . $innerEx->getMessage();
+                    $skipped++;
                 } catch (Exception $innerEx) {
                     $errors[] = 'VendorUID ' . $vend->VendorUID . ': ' . $innerEx->getMessage();
                     $skipped++;
@@ -1867,6 +2022,9 @@ class Vendors extends MY_Controller {
                 [], []
             );
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Vendors::updateVendorBalance', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -1877,20 +2035,23 @@ class Vendors extends MY_Controller {
 
     }
 
-    // ── Vendor Attachments ────────────────────────────────────────────────────
+    // â”€â”€ Vendor Attachments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public function getVendorAttachments() {
         $this->EndReturnData = new stdClass();
         try {
             $vendorUID = (int)$this->input->get_post('VendorUID');
             $orgUID    = (int)$this->pageData['JwtData']->Org->OrgUID;
-            if ($vendorUID <= 0) throw new Exception('Invalid vendor.');
+            if ($vendorUID <= 0) throw new ValidationException('Invalid vendor.');
             $this->load->model('vendors_model');
             $attachments = $this->vendors_model->getVendorAttachments($vendorUID, $orgUID);
             $cdnUrl = rtrim(getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN'), '/');
             foreach ($attachments as &$a) { $a['Url'] = $cdnUrl . '/' . ltrim($a['FilePath'], '/'); }
             $this->EndReturnData->Error       = false;
             $this->EndReturnData->Attachments = $attachments;
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Vendors::getVendorAttachments', $e);
             $this->EndReturnData->Error   = true;
@@ -1906,7 +2067,7 @@ class Vendors extends MY_Controller {
             $vendorUID = (int)$this->input->post('VendorUID');
             $orgUID    = (int)$this->pageData['JwtData']->Org->OrgUID;
             $userUID   = (int)$this->pageData['JwtData']->User->UserUID;
-            if ($attachUID <= 0) throw new Exception('Invalid attachment.');
+            if ($attachUID <= 0) throw new ValidationException('Invalid attachment.');
             $this->load->model('dbwrite_model');
             $this->dbwrite_model->updateData('Vendors', 'VendorAttachmentsTbl',
                 ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
@@ -1922,6 +2083,9 @@ class Vendors extends MY_Controller {
                 'MASTER', 'SUCCESS', '', 'WEB',
                 ['attachUID' => $attachUID], []
             );
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Vendors::deleteVendorAttachment', $e);
             $this->EndReturnData->Error   = true;
@@ -1995,13 +2159,13 @@ class Vendors extends MY_Controller {
                 ['VendorUID' => $vendorUID, 'OrgUID' => $orgUID]
             );
             $this->cachehelper->upsertVendor($vendorUID);
+        } catch (ValidationException $e) {
         } catch (Exception $e) {
             notifyError('Vendors::_syncVendorPrimaryImage', $e);
-            log_message('error', '_syncVendorPrimaryImage failed: ' . $e->getMessage());
         }
     }
 
-    // ── Vendor Profile Modal ───────────────────────────────────────────────
+    // â”€â”€ Vendor Profile Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /**
      * Loads a single vendor profile tab and returns rendered HTML.
@@ -2016,15 +2180,15 @@ class Vendors extends MY_Controller {
             $uid     = (int) $uid;
             $orgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
             $userUID = (int) $this->pageData['JwtData']->User->UserUID;
-            if ($uid <= 0) throw new Exception('Invalid vendor ID.');
+            if ($uid <= 0) throw new ValidationException('Invalid vendor ID.');
 
             $this->load->model('vendors_model');
             $vendData = $this->vendors_model->getVendors(['Vendors.VendorUID' => $uid]);
-            if (empty($vendData)) throw new Exception('Vendor not found.');
+            if (empty($vendData)) throw new ValidationException('Vendor not found.');
             $vend = $vendData[0];
 
             $JwtData    = $this->pageData['JwtData'];
-            $cur        = $JwtData->GenSettings->CurrenySymbol ?? '₹';
+            $cur        = $JwtData->GenSettings->CurrenySymbol ?? 'â‚¹';
             $dec        = (int) ($JwtData->GenSettings->DecimalPoints ?? 2);
             $dateFormat = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
 
@@ -2127,11 +2291,14 @@ class Vendors extends MY_Controller {
                     break;
 
                 default:
-                    throw new Exception('Unknown tab.');
+                    throw new ValidationException('Unknown tab.');
             }
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Html  = $html;
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Vendors::getVendorProfileTab', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -2152,12 +2319,12 @@ class Vendors extends MY_Controller {
             $vendorUID = (int) $this->input->post('VendorUID');
             $fromDate  = $this->input->post('FromDate') ?: date('Y-m-01');
             $toDate    = $this->input->post('ToDate')   ?: date('Y-m-t');
-            if ($vendorUID <= 0) throw new Exception('Invalid vendor.');
+            if ($vendorUID <= 0) throw new ValidationException('Invalid vendor.');
 
             $this->load->model('vendors_model');
             $this->load->model('organisation_model');
             $vendData = $this->vendors_model->getVendors(['Vendors.VendorUID' => $vendorUID]);
-            if (empty($vendData)) throw new Exception('Vendor not found.');
+            if (empty($vendData)) throw new ValidationException('Vendor not found.');
 
             $JwtData    = $this->pageData['JwtData'];
             $statement  = $this->vendors_model->getVendorStatementData($orgUID, $vendorUID, $fromDate, $toDate);
@@ -2171,7 +2338,7 @@ class Vendors extends MY_Controller {
                 'FromDate'    => $fromDate,
                 'ToDate'      => $toDate,
                 'JwtData'     => $JwtData,
-                'Cur'         => $JwtData->GenSettings->CurrenySymbol ?? '₹',
+                'Cur'         => $JwtData->GenSettings->CurrenySymbol ?? 'â‚¹',
                 'Dec'         => (int) ($JwtData->GenSettings->DecimalPoints ?? 2),
                 'DateFormat'  => $JwtData->GenSettings->ListDateFormat ?? 'd M Y',
                 'VendorUID'   => $vendorUID,
@@ -2180,6 +2347,9 @@ class Vendors extends MY_Controller {
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Html  = $html;
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Vendors::getVendorStatementTab', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -2200,14 +2370,17 @@ class Vendors extends MY_Controller {
             $userUID   = (int) $this->pageData['JwtData']->User->UserUID;
             $vendorUID = (int) $this->input->post('VendorUID');
             $note      = trim($this->input->post('Note') ?? '');
-            if ($vendorUID <= 0) throw new Exception('Invalid vendor.');
-            if (empty($note))    throw new Exception('Note cannot be empty.');
+            if ($vendorUID <= 0) throw new ValidationException('Invalid vendor.');
+            if (empty($note))    throw new ValidationException('Note cannot be empty.');
 
             $this->load->model('vendors_model');
             $this->vendors_model->saveVendorNote($orgUID, $vendorUID, $note, $userUID);
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Note saved.';
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Vendors::saveVendorNote', $e);
             $this->EndReturnData->Error   = TRUE;

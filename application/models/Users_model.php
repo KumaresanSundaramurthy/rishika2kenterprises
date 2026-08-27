@@ -9,7 +9,7 @@ class Users_model extends CI_Model {
         $this->ReadDb = $this->load->database('ReadDB', TRUE);
     }
 
-    // ── Login-users cache (HasLoginAccess=1 only) ─────────────────────────────
+    // â”€â”€ Login-users cache (HasLoginAccess=1 only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getOrgUsersForCache(int $orgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -21,12 +21,11 @@ class Users_model extends CI_Model {
             return $query ? $query->result() : [];
         } catch (Exception $e) {
             notifyError('Users_model::getOrgUsersForCache', $e);
-            log_message('error', 'Users_model::getOrgUsersForCache — ' . $e->getMessage());
             return [];
         }
     }
 
-    // ── All staff dropdown (includes non-login employees) ────────────────────
+    // â”€â”€ All staff dropdown (includes non-login employees) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getEmployeeDropdownList(int $orgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -39,12 +38,11 @@ class Users_model extends CI_Model {
             return $query ? $query->result() : [];
         } catch (Exception $e) {
             notifyError('Users_model::getEmployeeDropdownList', $e);
-            log_message('error', 'Users_model::getEmployeeDropdownList — ' . $e->getMessage());
             return [];
         }
     }
 
-    // ── Staff stats (for header cards) ───────────────────────────────────────
+    // â”€â”€ Staff stats (for header cards) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getUserStats(int $orgUID): ?object {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -62,12 +60,11 @@ class Users_model extends CI_Model {
             return $query ? $query->row() : null;
         } catch (Exception $e) {
             notifyError('Users_model::getUserStats', $e);
-            log_message('error', 'Users_model::getUserStats — ' . $e->getMessage());
             return null;
         }
     }
 
-    // ── Paginated list ────────────────────────────────────────────────────────
+    // â”€â”€ Paginated list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getUsersList(int $orgUID, array $filter, int $limit, int $offset): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -98,12 +95,11 @@ class Users_model extends CI_Model {
             return $query ? $query->result() : [];
         } catch (Exception $e) {
             notifyError('Users_model::getUsersList', $e);
-            log_message('error', 'Users_model::getUsersList — ' . $e->getMessage());
             return [];
         }
     }
 
-    // ── Count ─────────────────────────────────────────────────────────────────
+    // â”€â”€ Count â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getUsersCount(int $orgUID, array $filter): int {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -117,12 +113,11 @@ class Users_model extends CI_Model {
             return $row ? (int)$row->cnt : 0;
         } catch (Exception $e) {
             notifyError('Users_model::getUsersCount', $e);
-            log_message('error', 'Users_model::getUsersCount — ' . $e->getMessage());
             return 0;
         }
     }
 
-    // ── Single record + addresses + HR fields ─────────────────────────────────
+    // â”€â”€ Single record + addresses + HR fields â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getUserById(int $userUID, int $orgUID): ?object {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -157,12 +152,11 @@ class Users_model extends CI_Model {
             return $user;
         } catch (Exception $e) {
             notifyError('Users_model::getUserById', $e);
-            log_message('error', 'Users_model::getUserById — ' . $e->getMessage());
             return null;
         }
     }
 
-    // ── Org users for reporting-manager dropdown ──────────────────────────────
+    // â”€â”€ Org users for reporting-manager dropdown â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getOrgUsersForDropdown(int $orgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -174,12 +168,11 @@ class Users_model extends CI_Model {
             return $q ? $q->result() : [];
         } catch (Exception $e) {
             notifyError('Users_model::getOrgUsersForDropdown', $e);
-            log_message('error', 'Users_model::getOrgUsersForDropdown — ' . $e->getMessage());
             return [];
         }
     }
 
-    // ── User addresses ────────────────────────────────────────────────────────
+    // â”€â”€ User addresses â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getUserAddresses(int $userUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -196,7 +189,6 @@ class Users_model extends CI_Model {
             return $out;
         } catch (Exception $e) {
             notifyError('Users_model::getUserAddresses', $e);
-            log_message('error', 'Users_model::getUserAddresses — ' . $e->getMessage());
             return ['Current' => null, 'Permanent' => null];
         }
     }
@@ -213,12 +205,11 @@ class Users_model extends CI_Model {
             return $this->ReadDb->get()->row();
         } catch (Exception $e) {
             notifyError('Users_model::getUserAddressForType', $e);
-            log_message('error', 'Users_model::getUserAddressForType — ' . $e->getMessage());
             return null;
         }
     }
 
-    // ── Next employee code ────────────────────────────────────────────────────
+    // â”€â”€ Next employee code â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getNextEmployeeCode(int $orgUID): string {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -236,7 +227,7 @@ class Users_model extends CI_Model {
         }
     }
 
-    // ── Department paginated list ─────────────────────────────────────────────
+    // â”€â”€ Department paginated list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getDepartmentListPaginated(int $orgUID, int $limit, int $offset, array $filter = []): object {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -283,12 +274,11 @@ class Users_model extends CI_Model {
             return $r;
         } catch (Exception $e) {
             notifyError('Users_model::getDepartmentListPaginated', $e);
-            log_message('error', 'Users_model::getDepartmentListPaginated — ' . $e->getMessage());
             $r = new stdClass(); $r->rows = []; $r->totalCount = 0; return $r;
         }
     }
 
-    // ── Designation paginated list ────────────────────────────────────────────
+    // â”€â”€ Designation paginated list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getDesignationListPaginated(int $orgUID, int $limit, int $offset, array $filter = []): object {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -335,12 +325,11 @@ class Users_model extends CI_Model {
             return $r;
         } catch (Exception $e) {
             notifyError('Users_model::getDesignationListPaginated', $e);
-            log_message('error', 'Users_model::getDesignationListPaginated — ' . $e->getMessage());
             $r = new stdClass(); $r->rows = []; $r->totalCount = 0; return $r;
         }
     }
 
-    // ── Holiday paginated list ────────────────────────────────────────────────
+    // â”€â”€ Holiday paginated list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getHolidayListPaginated(int $orgUID, int $limit, int $offset, array $filter = []): object {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -390,12 +379,11 @@ class Users_model extends CI_Model {
             return $r;
         } catch (Exception $e) {
             notifyError('Users_model::getHolidayListPaginated', $e);
-            log_message('error', 'Users_model::getHolidayListPaginated — ' . $e->getMessage());
             $r = new stdClass(); $r->rows = []; $r->totalCount = 0; return $r;
         }
     }
 
-    // ── Departments ───────────────────────────────────────────────────────────
+    // â”€â”€ Departments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getDepartmentList(int $orgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -410,12 +398,11 @@ class Users_model extends CI_Model {
             return $this->ReadDb->get()->result();
         } catch (Exception $e) {
             notifyError('Users_model::getDepartmentList', $e);
-            log_message('error', 'Users_model::getDepartmentList — ' . $e->getMessage());
             return [];
         }
     }
 
-    // ── Designations ──────────────────────────────────────────────────────────
+    // â”€â”€ Designations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getDesignationList(int $orgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -430,12 +417,11 @@ class Users_model extends CI_Model {
             return $this->ReadDb->get()->result();
         } catch (Exception $e) {
             notifyError('Users_model::getDesignationList', $e);
-            log_message('error', 'Users_model::getDesignationList — ' . $e->getMessage());
             return [];
         }
     }
 
-    // ── Password helpers ──────────────────────────────────────────────────────
+    // â”€â”€ Password helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getUserByPasswordToken(string $token): ?object {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -447,7 +433,6 @@ class Users_model extends CI_Model {
             return $this->ReadDb->get()->row();
         } catch (Throwable $e) {
             notifyError('Users_model::getUserByPasswordToken', $e);
-            log_message('error', 'Users_model::getUserByPasswordToken — ' . $e->getMessage());
             return null;
         }
     }
@@ -460,7 +445,7 @@ class Users_model extends CI_Model {
         ], ['UserUID' => (int)$userUID]);
     }
 
-    // ── User attachments ──────────────────────────────────────────────────────
+    // â”€â”€ User attachments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getUserAttachments(int $userUID, int $orgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -473,7 +458,6 @@ class Users_model extends CI_Model {
             return $q ? $q->result() : [];
         } catch (Exception $e) {
             notifyError('Users_model::getUserAttachments', $e);
-            log_message('error', 'Users_model::getUserAttachments — ' . $e->getMessage());
             return [];
         }
     }
@@ -489,12 +473,11 @@ class Users_model extends CI_Model {
             return $q ? $q->result() : [];
         } catch (Exception $e) {
             notifyError('Users_model::getExpenseAttachments', $e);
-            log_message('error', 'Users_model::getExpenseAttachments — ' . $e->getMessage());
             return [];
         }
     }
 
-    // ── Emergency contacts ────────────────────────────────────────────────────
+    // â”€â”€ Emergency contacts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getEmergencyContacts(int $userUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -507,12 +490,11 @@ class Users_model extends CI_Model {
             return $q ? $q->result() : [];
         } catch (Exception $e) {
             notifyError('Users_model::getEmergencyContacts', $e);
-            log_message('error', 'Users_model::getEmergencyContacts — ' . $e->getMessage());
             return [];
         }
     }
 
-    // ── Education list ────────────────────────────────────────────────────────
+    // â”€â”€ Education list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getEducationList(int $userUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -524,12 +506,11 @@ class Users_model extends CI_Model {
             return $q ? $q->result() : [];
         } catch (Exception $e) {
             notifyError('Users_model::getEducationList', $e);
-            log_message('error', 'Users_model::getEducationList — ' . $e->getMessage());
             return [];
         }
     }
 
-    // ── Experience list ───────────────────────────────────────────────────────
+    // â”€â”€ Experience list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getExperienceList(int $userUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -541,12 +522,11 @@ class Users_model extends CI_Model {
             return $q ? $q->result() : [];
         } catch (Exception $e) {
             notifyError('Users_model::getExperienceList', $e);
-            log_message('error', 'Users_model::getExperienceList — ' . $e->getMessage());
             return [];
         }
     }
 
-    // ── Bank details ──────────────────────────────────────────────────────────
+    // â”€â”€ Bank details â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getBankDetails(int $userUID): ?object {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -558,12 +538,11 @@ class Users_model extends CI_Model {
             return ($q && $q->num_rows() > 0) ? $q->row() : null;
         } catch (Exception $e) {
             notifyError('Users_model::getBankDetails', $e);
-            log_message('error', 'Users_model::getBankDetails — ' . $e->getMessage());
             return null;
         }
     }
 
-    // ── Expenses & Reimbursements ─────────────────────────────────────────────
+    // â”€â”€ Expenses & Reimbursements â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getExpenseList(int $userUID, int $orgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -575,12 +554,11 @@ class Users_model extends CI_Model {
             return ($q && $q->num_rows() > 0) ? $q->result() : [];
         } catch (Exception $e) {
             notifyError('Users_model::getExpenseList', $e);
-            log_message('error', 'Users_model::getExpenseList — ' . $e->getMessage());
             return [];
         }
     }
 
-    // ── Private filter helper ─────────────────────────────────────────────────
+    // â”€â”€ Private filter helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private function _applyFilters(array $filter): void {
         if (!empty($filter['EmpStatus']) && $filter['EmpStatus'] !== 'All') {
             $this->ReadDb->where('u.EmployeeStatus', $filter['EmpStatus']);
@@ -604,7 +582,7 @@ class Users_model extends CI_Model {
         }
     }
 
-    // ── Branch access assignments for a user ──────────────────────────────────
+    // â”€â”€ Branch access assignments for a user â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getUserBranchAccess(int $userUID, int $orgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -617,7 +595,6 @@ class Users_model extends CI_Model {
             return $q ? $q->result() : [];
         } catch (Exception $e) {
             notifyError('Users_model::getUserBranchAccess', $e);
-            log_message('error', 'Users_model::getUserBranchAccess — ' . $e->getMessage());
             return [];
         }
     }

@@ -170,7 +170,7 @@ $pageHead = $isEdit ? 'Edit Customer Group' : 'Create Customer Group';
                                                     <td style="font-size:.8rem;"><?php echo htmlspecialchars($m->Area ?? '—'); ?></td>
                                                     <td style="font-size:.8rem;"><?php echo htmlspecialchars($m->MobileNumber ?? '—'); ?></td>
                                                     <td class="text-end" style="font-size:.8rem;color:<?php echo ($m->BalanceType ?? '') === 'Credit' ? '#dc3545' : '#28a745'; ?>">
-                                                        <?php echo number_format((float)($m->Balance ?? 0), (int)($JwtData->GenSettings->DecimalPoints ?? 2)); ?>
+                                                        <?php echo smartDecimal($m->Balance ?? 0); ?>
                                                     </td>
                                                     <td class="text-center">
                                                         <button type="button" class="btn btn-sm btn-icon <?php echo $m->IsGroupPrimary ? 'btn-warning' : 'btn-outline-secondary'; ?> cg-set-primary"

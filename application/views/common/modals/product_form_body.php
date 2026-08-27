@@ -60,11 +60,11 @@ if (!empty($_JwtData->GenSettings->EnableStorage)) {
                         <span class="input-group-text"><?= $_JwtData->GenSettings->CurrenySymbol ?></span>
                         <input type="text" class="form-control" name="SellingPrice" id="SellingPrice" min="0" placeholder="Enter Selling Price"
                             onkeydown="return handleDotOnly(event)"
-                            oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?= $_JwtData->GenSettings->PriceMaxLength ?>, <?= $_JwtData->GenSettings->DecimalPoints ?>)"
+                            oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)"
                             maxLength="<?= $_JwtData->GenSettings->PriceMaxLength ?>"
-                            pattern="^\d{1,<?= $_JwtData->GenSettings->PriceMaxLength ?>}(\.\d{0,<?= $_JwtData->GenSettings->DecimalPoints ?>})?$"
-                            onpaste="handlePricePaste(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, <?= $_JwtData->GenSettings->DecimalPoints ?>)"
-                            ondrop="handlePriceDrop(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, <?= $_JwtData->GenSettings->DecimalPoints ?>)" required />
+                            pattern="^\d{1,<?= $_JwtData->GenSettings->PriceMaxLength ?>}(\.\d{0,9})?$"
+                            onpaste="handlePricePaste(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)"
+                            ondrop="handlePriceDrop(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)" required />
                         <select class="form-select tax-option-select" id="SellingTaxOption" name="SellingTaxOption">
                         </select>
                     </div>
@@ -75,11 +75,11 @@ if (!empty($_JwtData->GenSettings->EnableStorage)) {
                         <span class="input-group-text"><?= $_JwtData->GenSettings->CurrenySymbol ?></span>
                         <input type="text" class="form-control" name="MRP" id="MRP" min="0" placeholder="Enter MRP"
                             onkeydown="return handleDotOnly(event)"
-                            oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?= $_JwtData->GenSettings->PriceMaxLength ?>, <?= $_JwtData->GenSettings->DecimalPoints ?>)"
+                            oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)"
                             maxLength="<?= $_JwtData->GenSettings->PriceMaxLength ?>"
-                            pattern="^\d{1,<?= $_JwtData->GenSettings->PriceMaxLength ?>}(\.\d{0,<?= $_JwtData->GenSettings->DecimalPoints ?>})?$"
-                            onpaste="handlePricePaste(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, <?= $_JwtData->GenSettings->DecimalPoints ?>)"
-                            ondrop="handlePriceDrop(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, <?= $_JwtData->GenSettings->DecimalPoints ?>)" value="0" />
+                            pattern="^\d{1,<?= $_JwtData->GenSettings->PriceMaxLength ?>}(\.\d{0,9})?$"
+                            onpaste="handlePricePaste(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)"
+                            ondrop="handlePriceDrop(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)" value="0" />
                     </div>
                 </div>
                 <div class="mb-3 col-md-6">
@@ -88,11 +88,11 @@ if (!empty($_JwtData->GenSettings->EnableStorage)) {
                         <span class="input-group-text"><?= $_JwtData->GenSettings->CurrenySymbol ?></span>
                         <input type="text" class="form-control" name="PurchasePrice" id="PurchasePrice" min="0" placeholder="Enter Purchase Price"
                             onkeydown="return handleDotOnly(event)"
-                            oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?= $_JwtData->GenSettings->PriceMaxLength ?>, <?= $_JwtData->GenSettings->DecimalPoints ?>)"
+                            oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)"
                             maxLength="<?= $_JwtData->GenSettings->PriceMaxLength ?>"
-                            pattern="^\d{1,<?= $_JwtData->GenSettings->PriceMaxLength ?>}(\.\d{0,<?= $_JwtData->GenSettings->DecimalPoints ?>})?$"
-                            onpaste="handlePricePaste(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, <?= $_JwtData->GenSettings->DecimalPoints ?>)"
-                            ondrop="handlePriceDrop(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, <?= $_JwtData->GenSettings->DecimalPoints ?>)" />
+                            pattern="^\d{1,<?= $_JwtData->GenSettings->PriceMaxLength ?>}(\.\d{0,9})?$"
+                            onpaste="handlePricePaste(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)"
+                            ondrop="handlePriceDrop(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)" />
                         <select class="form-select tax-option-select" id="PurchaseTaxOption" name="PurchaseTaxOption">
                         </select>
                     </div>
@@ -260,38 +260,44 @@ if (!empty($_JwtData->GenSettings->EnableStorage)) {
                 <div class="mb-3 col-md-4 OpeningStockDiv" id="openingQtyDiv">
                     <label for="OpeningQuantity" class="form-label">Opening Quantity</label>
                     <input type="text" class="form-control" name="OpeningQuantity" id="OpeningQuantity" min="0" placeholder="Enter Opening Quantity"
-                        onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))"
-                        oninput="this.value=this.value.slice(0,this.maxLength); handleOnlyNumbers(this)"
-                        maxLength="<?= $_JwtData->GenSettings->PriceMaxLength ?>" pattern="[0-9]*" value="0"
-                        onpaste="pasteOnlyNumbers(event)" ondrop="dropOnlyNumbers(event)" />
+                        onkeydown="return handleDotOnly(event)"
+                        oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)"
+                        maxLength="<?= $_JwtData->GenSettings->PriceMaxLength ?>"
+                        pattern="^\d{1,<?= $_JwtData->GenSettings->PriceMaxLength ?>}(\.\d{0,9})?$" value="0"
+                        onpaste="handlePricePaste(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)"
+                        ondrop="handlePriceDrop(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)" />
                     <div class="form-text text-secondary">* Quantity available in your existing inventory</div>
                 </div>
                 <div class="mb-3 col-md-4 OpeningStockDiv">
                     <label for="OpeningPurchasePrice" class="form-label">Opening Purchase Price (with Tax)</label>
                     <input type="text" class="form-control" name="OpeningPurchasePrice" id="OpeningPurchasePrice" min="0" placeholder="Enter Opening Purchase Price"
-                        onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))"
-                        oninput="this.value=this.value.slice(0,this.maxLength); handleOnlyNumbers(this)"
-                        maxLength="<?= $_JwtData->GenSettings->PriceMaxLength ?>" pattern="[0-9]*" value="0"
-                        onpaste="pasteOnlyNumbers(event)" ondrop="dropOnlyNumbers(event)" />
+                        onkeydown="return handleDotOnly(event)"
+                        oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)"
+                        maxLength="<?= $_JwtData->GenSettings->PriceMaxLength ?>"
+                        pattern="^\d{1,<?= $_JwtData->GenSettings->PriceMaxLength ?>}(\.\d{0,9})?$" value="0"
+                        onpaste="handlePricePaste(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)"
+                        ondrop="handlePriceDrop(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)" />
                 </div>
                 <div class="mb-3 col-md-4 OpeningStockDiv">
                     <label for="OpeningStockValue" class="form-label">Opening Stock Value (with Tax)</label>
                     <input type="text" class="form-control" name="OpeningStockValue" id="OpeningStockValue" min="0" placeholder="Enter Opening Stock Value"
-                        onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))"
-                        oninput="this.value=this.value.slice(0,this.maxLength); handleOnlyNumbers(this)"
-                        maxLength="<?= $_JwtData->GenSettings->PriceMaxLength ?>" pattern="[0-9]*" value="0"
-                        onpaste="pasteOnlyNumbers(event)" ondrop="dropOnlyNumbers(event)" />
+                        onkeydown="return handleDotOnly(event)"
+                        oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)"
+                        maxLength="<?= $_JwtData->GenSettings->PriceMaxLength ?>"
+                        pattern="^\d{1,<?= $_JwtData->GenSettings->PriceMaxLength ?>}(\.\d{0,9})?$" value="0"
+                        onpaste="handlePricePaste(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)"
+                        ondrop="handlePriceDrop(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)" />
                 </div>
                 <div class="mb-3 col-md-4">
                     <label for="Discount" class="form-label">Discount (<span id="discTextPercentHelp" class="form-text text-danger">Percentage (%)</span><span id="discTextAmountHelp" class="form-text text-danger d-none">Flat Amount (<?= $_JwtData->GenSettings->CurrenySymbol ?>)</span>)</label>
                     <div class="input-group input-group-merge">
                         <input class="form-control" type="text" id="Discount" name="Discount" min="0" placeholder="Enter Discount Percentage"
                             onkeydown="return handleDotOnly(event)"
-                            oninput="this.value=this.value.slice(0,this.maxLength); validateDiscountInput(this, <?= $_JwtData->GenSettings->PriceMaxLength ?>, <?= $_JwtData->GenSettings->DecimalPoints ?>)"
+                            oninput="this.value=this.value.slice(0,this.maxLength); validateDiscountInput(this, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)"
                             maxLength="<?= $_JwtData->GenSettings->PriceMaxLength ?>"
-                            pattern="^\d{1,<?= $_JwtData->GenSettings->PriceMaxLength ?>}(\.\d{0,<?= $_JwtData->GenSettings->DecimalPoints ?>})?$"
-                            onpaste="handleDiscountPaste(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, <?= $_JwtData->GenSettings->DecimalPoints ?>)"
-                            ondrop="handleDiscountDrop(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, <?= $_JwtData->GenSettings->DecimalPoints ?>)" value="0" />
+                            pattern="^\d{1,<?= $_JwtData->GenSettings->PriceMaxLength ?>}(\.\d{0,9})?$"
+                            onpaste="handleDiscountPaste(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)"
+                            ondrop="handleDiscountDrop(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)" value="0" />
                         <select class="form-select w-30" id="DiscountOption" name="DiscountOption">
                         </select>
                     </div>
@@ -299,10 +305,12 @@ if (!empty($_JwtData->GenSettings->EnableStorage)) {
                 <div class="mb-3 col-md-4">
                     <label for="LowStockAlert" class="form-label">Low Stock Alert at</label>
                     <input type="text" class="form-control" name="LowStockAlert" id="LowStockAlert" min="0" placeholder="Low Stock Alert"
-                        onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))"
-                        oninput="this.value=this.value.slice(0,this.maxLength); handleOnlyNumbers(this)"
-                        maxLength="<?= $_JwtData->GenSettings->PriceMaxLength ?>" pattern="[0-9]*"
-                        onpaste="pasteOnlyNumbers(event)" ondrop="dropOnlyNumbers(event)" value="0" />
+                        onkeydown="return handleDotOnly(event)"
+                        oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)"
+                        maxLength="<?= $_JwtData->GenSettings->PriceMaxLength ?>"
+                        pattern="^\d{1,<?= $_JwtData->GenSettings->PriceMaxLength ?>}(\.\d{0,9})?$"
+                        onpaste="handlePricePaste(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)"
+                        ondrop="handlePriceDrop(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)" value="0" />
                 </div>
                 <div class="mb-3 col-md-4">
                     <label for="NotForSale" class="form-label d-block">Not For Sale</label>
@@ -339,14 +347,14 @@ if (!empty($_JwtData->GenSettings->EnableStorage)) {
                     </h5>
                 </div>
                 <div class="row g-3">
-                    <div class="col-md-3"><label class="form-label fw-semibold">Security Deposit</label><div class="input-group input-group-sm"><span class="input-group-text"><?= $_JwtData->GenSettings->CurrenySymbol ?></span><input type="number" class="form-control" id="rc_SecurityDeposit" name="rc_SecurityDeposit" min="0" step="any" placeholder="0.00" value="0"></div></div>
-                    <div class="col-md-3"><label class="form-label fw-semibold">Hourly Rate</label><div class="input-group input-group-sm"><span class="input-group-text"><?= $_JwtData->GenSettings->CurrenySymbol ?></span><input type="number" class="form-control" id="rc_HourlyRate" name="rc_HourlyRate" min="0" step="any" placeholder="0.00" value="0"></div></div>
-                    <div class="col-md-3"><label class="form-label fw-semibold">Half Day Rate <small class="text-muted">(4 hrs)</small></label><div class="input-group input-group-sm"><span class="input-group-text"><?= $_JwtData->GenSettings->CurrenySymbol ?></span><input type="number" class="form-control" id="rc_HalfDayRate" name="rc_HalfDayRate" min="0" step="any" placeholder="0.00" value="0"></div></div>
-                    <div class="col-md-3"><label class="form-label fw-semibold">Full Day Rate <small class="text-muted">(8 hrs)</small></label><div class="input-group input-group-sm"><span class="input-group-text"><?= $_JwtData->GenSettings->CurrenySymbol ?></span><input type="number" class="form-control" id="rc_FullDayRate" name="rc_FullDayRate" min="0" step="any" placeholder="0.00" value="0"></div></div>
-                    <div class="col-md-3"><label class="form-label fw-semibold">Fixed Package Rate</label><div class="input-group input-group-sm"><span class="input-group-text"><?= $_JwtData->GenSettings->CurrenySymbol ?></span><input type="number" class="form-control" id="rc_FixedPackageRate" name="rc_FixedPackageRate" min="0" step="any" placeholder="0.00" value="0"></div></div>
-                    <div class="col-md-3"><label class="form-label fw-semibold">Extra Hour Rate</label><div class="input-group input-group-sm"><span class="input-group-text"><?= $_JwtData->GenSettings->CurrenySymbol ?></span><input type="number" class="form-control" id="rc_ExtraHourRate" name="rc_ExtraHourRate" min="0" step="any" placeholder="0.00" value="0"></div></div>
-                    <div class="col-md-3"><label class="form-label fw-semibold">Late Return / Hour</label><div class="input-group input-group-sm"><span class="input-group-text"><?= $_JwtData->GenSettings->CurrenySymbol ?></span><input type="number" class="form-control" id="rc_LateReturnCharge" name="rc_LateReturnCharge" min="0" step="any" placeholder="0.00" value="0"></div></div>
-                    <div class="col-md-3"><label class="form-label fw-semibold">Damage Penalty</label><div class="input-group input-group-sm"><span class="input-group-text"><?= $_JwtData->GenSettings->CurrenySymbol ?></span><input type="number" class="form-control" id="rc_DamagePenaltyRate" name="rc_DamagePenaltyRate" min="0" step="any" placeholder="0.00" value="0"></div></div>
+                    <div class="col-md-3"><label class="form-label fw-semibold">Security Deposit</label><div class="input-group input-group-sm"><span class="input-group-text"><?= $_JwtData->GenSettings->CurrenySymbol ?></span><input type="text" inputmode="decimal" class="form-control" id="rc_SecurityDeposit" name="rc_SecurityDeposit" placeholder="0" value="0" onkeypress="return (event.charCode===8||event.charCode===0||(event.charCode>=48&&event.charCode<=57)||(event.charCode===46&&this.value.indexOf('.')===-1))" oninput="var p=this.value.split('.');if(p.length>1&&p[1].length>9)this.value=p[0]+'.'+p[1].slice(0,9);"></div></div>
+                    <div class="col-md-3"><label class="form-label fw-semibold">Hourly Rate</label><div class="input-group input-group-sm"><span class="input-group-text"><?= $_JwtData->GenSettings->CurrenySymbol ?></span><input type="text" inputmode="decimal" class="form-control" id="rc_HourlyRate" name="rc_HourlyRate" placeholder="0" value="0" onkeypress="return (event.charCode===8||event.charCode===0||(event.charCode>=48&&event.charCode<=57)||(event.charCode===46&&this.value.indexOf('.')===-1))" oninput="var p=this.value.split('.');if(p.length>1&&p[1].length>9)this.value=p[0]+'.'+p[1].slice(0,9);"></div></div>
+                    <div class="col-md-3"><label class="form-label fw-semibold">Half Day Rate <small class="text-muted">(4 hrs)</small></label><div class="input-group input-group-sm"><span class="input-group-text"><?= $_JwtData->GenSettings->CurrenySymbol ?></span><input type="text" inputmode="decimal" class="form-control" id="rc_HalfDayRate" name="rc_HalfDayRate" placeholder="0" value="0" onkeypress="return (event.charCode===8||event.charCode===0||(event.charCode>=48&&event.charCode<=57)||(event.charCode===46&&this.value.indexOf('.')===-1))" oninput="var p=this.value.split('.');if(p.length>1&&p[1].length>9)this.value=p[0]+'.'+p[1].slice(0,9);"></div></div>
+                    <div class="col-md-3"><label class="form-label fw-semibold">Full Day Rate <small class="text-muted">(8 hrs)</small></label><div class="input-group input-group-sm"><span class="input-group-text"><?= $_JwtData->GenSettings->CurrenySymbol ?></span><input type="text" inputmode="decimal" class="form-control" id="rc_FullDayRate" name="rc_FullDayRate" placeholder="0" value="0" onkeypress="return (event.charCode===8||event.charCode===0||(event.charCode>=48&&event.charCode<=57)||(event.charCode===46&&this.value.indexOf('.')===-1))" oninput="var p=this.value.split('.');if(p.length>1&&p[1].length>9)this.value=p[0]+'.'+p[1].slice(0,9);"></div></div>
+                    <div class="col-md-3"><label class="form-label fw-semibold">Fixed Package Rate</label><div class="input-group input-group-sm"><span class="input-group-text"><?= $_JwtData->GenSettings->CurrenySymbol ?></span><input type="text" inputmode="decimal" class="form-control" id="rc_FixedPackageRate" name="rc_FixedPackageRate" placeholder="0" value="0" onkeypress="return (event.charCode===8||event.charCode===0||(event.charCode>=48&&event.charCode<=57)||(event.charCode===46&&this.value.indexOf('.')===-1))" oninput="var p=this.value.split('.');if(p.length>1&&p[1].length>9)this.value=p[0]+'.'+p[1].slice(0,9);"></div></div>
+                    <div class="col-md-3"><label class="form-label fw-semibold">Extra Hour Rate</label><div class="input-group input-group-sm"><span class="input-group-text"><?= $_JwtData->GenSettings->CurrenySymbol ?></span><input type="text" inputmode="decimal" class="form-control" id="rc_ExtraHourRate" name="rc_ExtraHourRate" placeholder="0" value="0" onkeypress="return (event.charCode===8||event.charCode===0||(event.charCode>=48&&event.charCode<=57)||(event.charCode===46&&this.value.indexOf('.')===-1))" oninput="var p=this.value.split('.');if(p.length>1&&p[1].length>9)this.value=p[0]+'.'+p[1].slice(0,9);"></div></div>
+                    <div class="col-md-3"><label class="form-label fw-semibold">Late Return / Hour</label><div class="input-group input-group-sm"><span class="input-group-text"><?= $_JwtData->GenSettings->CurrenySymbol ?></span><input type="text" inputmode="decimal" class="form-control" id="rc_LateReturnCharge" name="rc_LateReturnCharge" placeholder="0" value="0" onkeypress="return (event.charCode===8||event.charCode===0||(event.charCode>=48&&event.charCode<=57)||(event.charCode===46&&this.value.indexOf('.')===-1))" oninput="var p=this.value.split('.');if(p.length>1&&p[1].length>9)this.value=p[0]+'.'+p[1].slice(0,9);"></div></div>
+                    <div class="col-md-3"><label class="form-label fw-semibold">Damage Penalty</label><div class="input-group input-group-sm"><span class="input-group-text"><?= $_JwtData->GenSettings->CurrenySymbol ?></span><input type="text" inputmode="decimal" class="form-control" id="rc_DamagePenaltyRate" name="rc_DamagePenaltyRate" placeholder="0" value="0" onkeypress="return (event.charCode===8||event.charCode===0||(event.charCode>=48&&event.charCode<=57)||(event.charCode===46&&this.value.indexOf('.')===-1))" oninput="var p=this.value.split('.');if(p.length>1&&p[1].length>9)this.value=p[0]+'.'+p[1].slice(0,9);"></div></div>
                     <div class="col-md-3"><label class="form-label fw-semibold">Min Rental Hours</label><input type="number" class="form-control form-control-sm" id="rc_MinRentalHours" name="rc_MinRentalHours" min="1" step="1" placeholder="1" value="1"></div>
                 </div>
             </div>

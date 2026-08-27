@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 $this->load->view('common/transactions/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -56,7 +56,7 @@ $this->load->view('common/transactions/header'); ?>
                             <div class="apex-stat-label"><?php echo $stat['label']; ?></div>
                             <div class="apex-stat-bottom">
                                 <span class="apex-stat-count"><?php echo $stat['count']; ?></span>
-                                <span class="apex-stat-amount"><?php echo $cur . ' ' . number_format((float)$stat['amount'], $dec); ?></span>
+                                <span class="apex-stat-amount"><?php echo $cur . ' ' . smartDecimal($stat['amount']); ?></span>
                             </div>
                         </div>
                     </div>
@@ -337,8 +337,7 @@ function hideProcessing()       { hideUIBlock(); }
 function updateSummaryStats(stats) {
     if (!document.querySelector('.apex-stats-strip')) return;
     var cur = '<?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? "₹"); ?>';
-    var dec = <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>;
-    function fmt(v) { return cur + ' ' + parseFloat(v).toLocaleString('en-IN', { minimumFractionDigits: dec, maximumFractionDigits: dec }); }
+    function fmt(v) { return cur + ' ' + smartDecimal(parseFloat(v)); }
     function cnt(s) { return stats[s] ? parseInt(stats[s].count  || 0) : 0; }
     function amt(s) { return stats[s] ? parseFloat(stats[s].amount || 0) : 0; }
 
@@ -763,7 +762,7 @@ $(function () {
         var paid    = parseFloat($el.data('paid'))    || 0;
         var pending = parseFloat($el.data('pending')) || 0;
         var _cur    = '<?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>';
-        var _vDec   = <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>;
+        var _vDec   = 9;
 
         $('#rpTransUID').val(uid);
         $('#rpInvNum').text(num || '—');
@@ -959,7 +958,7 @@ function _buildSrDetailHtml(resp) {
 (function () {
     'use strict';
     var _acCur     = '<?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>';
-    var _acDec     = <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>;
+    var _acDec     = 9;
     var _acBalance = 0;
     var _acSelect2 = null;
 

@@ -9,7 +9,7 @@ class Customers extends MY_Controller {
         parent::__construct();
     }
 
-    // ── Internal helpers ──────────────────────────────────────────────────────
+    // â”€â”€ Internal helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private function _initModule() {
         $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
         $this->pageData['Limit'] = $GeneralSettings->RowLimit ?? 10;
@@ -38,7 +38,7 @@ class Customers extends MY_Controller {
         
     }
 
-    // ── Page routes ───────────────────────────────────────────────────────────
+    // â”€â”€ Page routes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function index() {
         if (!$this->_loadPageTitle()) {
             $this->load->view('common/module_error', $this->pageData);
@@ -100,7 +100,7 @@ class Customers extends MY_Controller {
 
             $this->_loadUpstashConfig();
 
-            // Always sync cache from DB — DB is the source of truth for the sequence.
+            // Always sync cache from DB â€” DB is the source of truth for the sequence.
             try {
                 $_fyMonth  = (int) ($this->pageData['JwtData']->GenSettings->FYStartMonth ?? 4);
                 $_tz       = $this->pageData['JwtData']->User->Timezone ?? 'UTC';
@@ -118,7 +118,6 @@ class Customers extends MY_Controller {
                     ], 86400);
                 }
             } catch (Exception $_ce) {
-                log_message('error', 'credit-settings warm-up: ' . $_ce->getMessage());
             }
 
             $this->load->view('customers/view', $this->pageData);
@@ -286,7 +285,7 @@ class Customers extends MY_Controller {
                 );
             }
 
-            // Build Customer response from POST data — no extra DB query needed
+            // Build Customer response from POST data â€” no extra DB query needed
             $custName = getPostValue($PostData, 'Name');
             $custArea = getPostValue($PostData, 'Area');
             $cust_Data = [
@@ -306,7 +305,7 @@ class Customers extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            // Claim next customer number — 5-retry optimistic lock inside claimNextCustomerNumber.
+            // Claim next customer number â€” 5-retry optimistic lock inside claimNextCustomerNumber.
             // FY rollover is handled automatically: if financial year changed since last creation,
             // the first customer of the new year gets e.g. C-270001 with no manual action needed.
             $_cOrgUID   = (int) $this->pageData['JwtData']->Org->OrgUID;
@@ -342,7 +341,7 @@ class Customers extends MY_Controller {
                 );
             }
 
-            // Success is confirmed — customer is saved
+            // Success is confirmed â€” customer is saved
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Created Successfully';
             $this->auditlog->log(
@@ -364,8 +363,10 @@ class Customers extends MY_Controller {
                     $this->EndReturnData->Pagination = $pageData->Pagination;
                     $_showStats = (int)($this->pageData['JwtData']->GenSettings->ShowStats ?? 1) && (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
                     $this->EndReturnData->Stats      = $_showStats ? $this->customers_model->getCustomerStats($this->pageData['JwtData']->Org->OrgUID) : null;
+                } catch (ValidationException $e) {
+                    // non-fatal â€” list refresh failed but customer was created successfully
                 } catch (Exception $e) {
-                    // non-fatal — list refresh failed but customer was created successfully
+                    // non-fatal â€” list refresh failed but customer was created successfully
                 }
             }
 
@@ -378,6 +379,10 @@ class Customers extends MY_Controller {
             } else {
                 throw $e;
             }
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Customers::addCustomerData', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -435,6 +440,9 @@ class Customers extends MY_Controller {
             $this->EndReturnData->BillingAddr  = $billingAddr;
             $this->EndReturnData->ShippingAddr = $shippingAddr;
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Customers::loadModalForm', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -452,7 +460,7 @@ class Customers extends MY_Controller {
             $tz        = $this->pageData['JwtData']->User->Timezone ?? 'UTC';
             $creditKey = $this->redisservice->orgKey('credit-settings');
 
-            // Cache hit — return instantly, no DB call needed.
+            // Cache hit â€” return instantly, no DB call needed.
             $cached = $this->upstashservice->get($creditKey);
             if ($cached !== null && !empty($cached['cust_next_number'])) {
                 $this->EndReturnData->Error          = false;
@@ -461,7 +469,7 @@ class Customers extends MY_Controller {
                 return;
             }
 
-            // Cache cold — getOrInitCreditSettings handles FY rollover and returns
+            // Cache cold â€” getOrInitCreditSettings handles FY rollover and returns
             // a row with the correct CustomerNextNumber already stored in DB.
             $this->load->model('customers_model');
             $settings = $this->customers_model->getOrInitCreditSettings($orgUID, $userUID, $fyMonth, $tz);
@@ -476,6 +484,9 @@ class Customers extends MY_Controller {
 
             $this->EndReturnData->Error          = false;
             $this->EndReturnData->CustomerNumber = $settings->CustomerNextNumber;
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Customers::getNextCustomerNumber', $e);
             $this->EndReturnData->Error   = true;
@@ -496,9 +507,9 @@ class Customers extends MY_Controller {
 
             // Fetch all active customers
             $customers = $this->customers_model->getCustomers(['Customers.OrgUID' => $orgUID]);
-            if (empty($customers)) throw new Exception('No customers found.');
+            if (empty($customers)) throw new ValidationException('No customers found.');
 
-            // Build the HSET map — DEL old key first to clear stale entries (handles migration from old STRING format)
+            // Build the HSET map â€” DEL old key first to clear stale entries (handles migration from old STRING format)
             $cacheKey = $this->redisservice->orgKey('customers');
             $this->upstashservice->del($cacheKey);
             $newMap   = [];
@@ -521,7 +532,7 @@ class Customers extends MY_Controller {
                 }
 
                 // Closing balance = outstanding after all invoices & payments
-                // (same logic as Cachehelper::upsertCustomer — PendingBalance is computed by the ledger query)
+                // (same logic as Cachehelper::upsertCustomer â€” PendingBalance is computed by the ledger query)
                 $obRow          = $this->customers_model->getCustomerOpeningBalance($orgUID, $uid);
                 $closingBalance = $obRow ? (float)($obRow->PendingBalance ?? $obRow->OpeningBalance) : 0.0;
                 $closingBalType = $obRow ? ($obRow->PendingBalType        ?? $obRow->OpeningBalType)  : 'Debit';
@@ -534,11 +545,11 @@ class Customers extends MY_Controller {
                         'PaymentUID'          => (int)$r['PaymentUID'],
                         'Amount'              => (float)$r['Amount'],
                         'CreatedOn'           => $r['CreatedOn']           ?? '',
-                        'SourceInvoiceNumber' => $r['SourceInvoiceNumber'] ?? '—',
+                        'SourceInvoiceNumber' => $r['SourceInvoiceNumber'] ?? 'â€”',
                     ];
                 }, $onAccountRows);
 
-                // Build customer entry — identical shape to Cachehelper::upsertCustomer
+                // Build customer entry â€” identical shape to Cachehelper::upsertCustomer
                 $newMap[(string)$uid] = [
                     'CustomerUID'      => $uid,
                     'Name'             => $cust->Name            ?? '',
@@ -570,13 +581,16 @@ class Customers extends MY_Controller {
                 ];
             }
 
-            // Store as HSET — one bulk command, one field per customer
+            // Store as HSET â€” one bulk command, one field per customer
             $this->upstashservice->hmset($cacheKey, $newMap);
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = count($customers) . ' customer(s) synced to cache.';
             $this->EndReturnData->Count   = count($customers);
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Customers::syncCustomersCache', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -593,7 +607,7 @@ class Customers extends MY_Controller {
             $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
             $this->load->model('customers_model');
             $groups = $this->customers_model->getActiveCustomerGroupsForDropdown($orgUID);
-            if (empty($groups)) throw new Exception('No active customer groups found.');
+            if (empty($groups)) throw new ValidationException('No active customer groups found.');
 
             $cacheKey = $this->redisservice->orgKey('customer-groups');
             $this->upstashservice->del($cacheKey);
@@ -612,6 +626,9 @@ class Customers extends MY_Controller {
             $this->EndReturnData->Error   = false;
             $this->EndReturnData->Message = count($groups) . ' group(s) synced to cache.';
             $this->EndReturnData->Count   = count($groups);
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Customers::syncCustomerGroupsCache', $e);
             $this->EndReturnData->Error   = true;
@@ -625,7 +642,7 @@ class Customers extends MY_Controller {
         try {
             $uid    = (int) $uid;
             $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
-            if ($uid <= 0) throw new Exception('Invalid customer ID.');
+            if ($uid <= 0) throw new ValidationException('Invalid customer ID.');
 
             // Always fetch attachments fresh (they change independently of customer cache)
             $this->load->model('customers_model');
@@ -635,7 +652,7 @@ class Customers extends MY_Controller {
             unset($a);
 
             $getCustData = $this->customers_model->getCustomers(['Customers.CustomerUID' => $uid]);
-            if (empty($getCustData)) throw new Exception('Customer not found.');
+            if (empty($getCustData)) throw new ValidationException('Customer not found.');
 
             $bankDetails = $this->customers_model->getCustomerBankInfo(['CustBankDetails.CustomerUID' => $uid]);
             $addrInfo    = $this->customers_model->getCustomerAddress(['CustAddress.CustomerUID' => $uid]);
@@ -653,6 +670,9 @@ class Customers extends MY_Controller {
             $this->EndReturnData->ShippingAddr = $shippingAddr;
             $this->EndReturnData->Attachments  = $attachments;
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Customers::getCustomerForModal', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -688,7 +708,7 @@ class Customers extends MY_Controller {
             $newName = getPostValue($PostData, 'Name');
             $newSgn  = ($newType === 'Debit') ? $newAmt : -$newAmt;
 
-            // Compare against CustOpeningBalanceTbl — the source of truth for opening balance.
+            // Compare against CustOpeningBalanceTbl â€” the source of truth for opening balance.
             // CustomerTbl.DebitCreditAmount can be stale/out-of-sync with the actual opening balance.
             $obRowPre = $this->customers_model->getCustomerOpeningBalance($orgUID, (int)$CustomerUID);
             $oldOpeningSigned = 0.0;
@@ -855,6 +875,10 @@ class Customers extends MY_Controller {
             } else {
                 throw $e;
             }
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Customers::updateCustomerData', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -873,13 +897,13 @@ class Customers extends MY_Controller {
             $this->dbwrite_model->startTransaction();
 
             $CustomerUID = (int) $this->input->post('CustomerUID');
-            if (!$CustomerUID) throw new Exception('Customer Information is Missing to Delete');
+            if (!$CustomerUID) throw new ValidationException('Customer Information is Missing to Delete');
 
             $this->load->model('accountledger_model');
             $customer = $this->accountledger_model->getEntityWithLedger($CustomerUID, 'Customer');
-            if (!$customer)             throw new Exception('Customer not found');
-            if ($customer->IsDeleted == 1) throw new Exception('Customer already deleted');
-            if ($this->customerHasTransactions($CustomerUID)) throw new Exception('Customer has existing transactions (Invoices/Payments/Orders)');
+            if (!$customer)             throw new ValidationException('Customer not found');
+            if ($customer->IsDeleted == 1) throw new ValidationException('Customer already deleted');
+            if ($this->customerHasTransactions($CustomerUID)) throw new ValidationException('Customer has existing transactions (Invoices/Payments/Orders)');
 
             $UpdateResp = $this->dbwrite_model->updateData('Customers', 'CustomerTbl', $this->globalservice->baseDeleteArrayDetails(), ['CustomerUID' => $CustomerUID]);
             if ($UpdateResp->Error) throw new Exception($UpdateResp->Message);
@@ -905,6 +929,10 @@ class Customers extends MY_Controller {
                 []
             );
 
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Customers::deleteCustomerData', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -942,7 +970,7 @@ class Customers extends MY_Controller {
                     $row->GSTIN            ?? '',
                     $row->CompanyName      ?? '',
                     $row->CustomerTypeName ?? '',
-                    number_format((float)($row->ClosingBalance ?? 0), 2),
+                    smartDecimal((float)($row->ClosingBalance ?? 0)),
                     $row->ClosingBalanceType ?? '',
                     ((int)($row->IsActive ?? 1)) === 1 ? 'Active' : 'Inactive',
                     !empty($row->UpdatedOn) ? date($this->pageData['JwtData']->GenSettings->ListDateTimeFormat ?? 'd M Y', strtotime($row->UpdatedOn)) : '',
@@ -954,6 +982,8 @@ class Customers extends MY_Controller {
             $colWidths = ['3%','14%','9%','9%','12%','9%','9%','8%','7%','6%','5%','9%','10%'];
             $this->_sendExport($type, 'Customer_Data', 'Customers', 'Customer Report', $headers, $rows, $orgInfo, $timezone, $colWidths);
 
+        } catch (ValidationException $e) {
+            echo json_encode(['Error' => true, 'Message' => $e->getMessage()]);
         } catch (Exception $e) {
             notifyError('Customers::exportCustomers', $e);
             echo json_encode(['Error' => true, 'Message' => $e->getMessage()]);
@@ -967,6 +997,9 @@ class Customers extends MY_Controller {
             $tags = $this->customers_model->getCustomerTags($this->pageData['JwtData']->Org->OrgUID);
             $this->EndReturnData->Error = false;
             $this->EndReturnData->Tags  = $tags;
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Customers::getCustomerTags', $e);
             $this->EndReturnData->Error   = true;
@@ -980,8 +1013,8 @@ class Customers extends MY_Controller {
         try {
             $CustomerUID = (int) $this->input->post('CustomerUID');
             $newStatus   = (int) $this->input->post('IsActive');
-            if (!$CustomerUID) throw new Exception('Customer ID is missing');
-            if (!in_array($newStatus, [0, 1])) throw new Exception('Invalid status value');
+            if (!$CustomerUID) throw new ValidationException('Customer ID is missing');
+            if (!in_array($newStatus, [0, 1])) throw new ValidationException('Invalid status value');
 
             $this->load->model('dbwrite_model');
             $resp = $this->dbwrite_model->updateData(
@@ -991,7 +1024,7 @@ class Customers extends MY_Controller {
             );
             if ($resp->Error) throw new Exception($resp->Message);
 
-            // Sync Upstash: active → add/update in cache; inactive → remove from cache
+            // Sync Upstash: active â†’ add/update in cache; inactive â†’ remove from cache
             if ($newStatus === 1) {
                 $this->cachehelper->upsertCustomer($CustomerUID);
             } else {
@@ -1009,6 +1042,9 @@ class Customers extends MY_Controller {
                 ['IsActive' => 1 - $newStatus],
                 ['IsActive' => $newStatus]
             );
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Customers::toggleCustomerStatus', $e);
             $this->EndReturnData->Error   = true;
@@ -1041,13 +1077,13 @@ class Customers extends MY_Controller {
             if ($selectAll) {
                 $filter       = json_decode($this->input->post('Filter') ?? '{}', true) ?: [];
                 $CustomerUIDs = $this->customers_model->getCustomerUIDsByFilter($orgUID, $filter);
-                if (empty($CustomerUIDs)) throw new Exception('No customers found matching the current filter.');
+                if (empty($CustomerUIDs)) throw new ValidationException('No customers found matching the current filter.');
             } else {
                 $CustomerUIDs = $this->input->post('CustomerUIDs[]');
-                if (empty($CustomerUIDs)) throw new Exception('Customer Information is Missing to Delete');
+                if (empty($CustomerUIDs)) throw new ValidationException('Customer Information is Missing to Delete');
                 if (!is_array($CustomerUIDs)) $CustomerUIDs = [$CustomerUIDs];
                 $CustomerUIDs = array_filter(array_map('intval', $CustomerUIDs));
-                if (empty($CustomerUIDs)) throw new Exception('Invalid customer IDs provided');
+                if (empty($CustomerUIDs)) throw new ValidationException('Invalid customer IDs provided');
             }
 
             $this->load->model('dbwrite_model');
@@ -1055,13 +1091,13 @@ class Customers extends MY_Controller {
 
             foreach ($CustomerUIDs as $customerId) {
                 if ($this->customerHasTransactions($customerId)) {
-                    throw new Exception("Customer ID {$customerId} has existing transactions (Invoices/Payments/Orders)");
+                    throw new ValidationException("Customer ID {$customerId} has existing transactions (Invoices/Payments/Orders)");
                 }
 
                 $this->load->model('accountledger_model');
                 $customer = $this->accountledger_model->getEntityWithLedger($customerId, 'Customer');
-                if (!$customer)              throw new Exception("Customer ID {$customerId} not found");
-                if ($customer->IsDeleted == 1) throw new Exception("Customer ID {$customerId} is already deleted");
+                if (!$customer)              throw new ValidationException("Customer ID {$customerId} not found");
+                if ($customer->IsDeleted == 1) throw new ValidationException("Customer ID {$customerId} is already deleted");
 
                 if ($customer->LedgerUID) {
                     $this->load->library('accountledger');
@@ -1091,6 +1127,10 @@ class Customers extends MY_Controller {
                 []
             );
 
+        } catch (ValidationException $e) {
+            if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Customers::deleteBulkCustomers', $e);
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
@@ -1101,7 +1141,7 @@ class Customers extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Send SMS / Email ─────────────────────────────────────────────────────
+    // â”€â”€ Send SMS / Email â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function sendCommunication() {
 
         $this->EndReturnData = new stdClass();
@@ -1117,10 +1157,10 @@ class Customers extends MY_Controller {
             $moduleUID = (int) $this->input->post('ModuleUID');
             $recordUID = (int) $this->input->post('RecordUID');
 
-            if (!in_array($commType, ['SMS', 'Email'])) throw new Exception('Invalid communication type.');
-            if (empty($message))                         throw new Exception('Message cannot be empty.');
-            if ($commType === 'Email' && empty($subject)) throw new Exception('Email subject is required.');
-            if (empty($uids) || !is_array($uids))        throw new Exception('No recipients selected.');
+            if (!in_array($commType, ['SMS', 'Email'])) throw new ValidationException('Invalid communication type.');
+            if (empty($message))                         throw new ValidationException('Message cannot be empty.');
+            if ($commType === 'Email' && empty($subject)) throw new ValidationException('Email subject is required.');
+            if (empty($uids) || !is_array($uids))        throw new ValidationException('No recipients selected.');
 
             $uids = array_map('intval', $uids);
 
@@ -1180,9 +1220,9 @@ class Customers extends MY_Controller {
             $notes         = trim($this->input->post('Notes') ?? '');
             $financialYear = (int)   $this->input->post('FinancialYear');
 
-            if ($customerUID <= 0)                              throw new Exception('Invalid customer.');
-            if ($balance < 0)                                   throw new Exception('Opening balance cannot be negative.');
-            if (!in_array($balanceType, ['Debit', 'Credit']))   throw new Exception('BalanceType must be Debit or Credit.');
+            if ($customerUID <= 0)                              throw new ValidationException('Invalid customer.');
+            if ($balance < 0)                                   throw new ValidationException('Opening balance cannot be negative.');
+            if (!in_array($balanceType, ['Debit', 'Credit']))   throw new ValidationException('BalanceType must be Debit or Credit.');
             if ($financialYear <= 0) {
                 $financialYear = (date('n') >= 4) ? (int)date('Y') : (int)date('Y') - 1;
             }
@@ -1213,6 +1253,9 @@ class Customers extends MY_Controller {
             $this->EndReturnData->OpeningBalUID  = $id;
             $this->EndReturnData->FinancialYear  = $financialYear;
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Customers::saveCustomerOpeningBalance', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -1232,9 +1275,10 @@ class Customers extends MY_Controller {
             $customerUID   = (int) $this->input->get_post('CustomerUID');
             $financialYear = (int) $this->input->get_post('FinancialYear');
 
-            if ($customerUID <= 0) throw new Exception('Invalid customer.');
+            if ($customerUID <= 0) throw new ValidationException('Invalid customer.');
             if ($financialYear <= 0) {
                 $financialYear = $this->_currentFinancialYear();
+
             }
 
             $this->load->model('customers_model');
@@ -1246,6 +1290,9 @@ class Customers extends MY_Controller {
             $this->EndReturnData->YearData      = $yearRow;
             $this->EndReturnData->FinancialYear = $financialYear;
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Customers::getCustomerOpeningBalance', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -1271,7 +1318,7 @@ class Customers extends MY_Controller {
             $customers = $this->customers_model->getCustomersWithLedgerForBalance($orgUID, $filterUID);
 
             if (empty($customers)) {
-                throw new Exception('No customers found to update.');
+                throw new ValidationException('No customers found to update.');
             }
 
             $updated = 0;
@@ -1299,7 +1346,7 @@ class Customers extends MY_Controller {
                     $newBalance     = abs($signedBalance);
                     $newBalanceType = ($signedBalance >= 0) ? 'Debit' : 'Credit';
 
-                    // Step 4: Persist — update ledger current balance + CustOpeningBalanceTbl pending balance.
+                    // Step 4: Persist â€” update ledger current balance + CustOpeningBalanceTbl pending balance.
                     // DebitCreditAmount in CustomerTbl is the adjustment-delta field; do NOT overwrite it here.
                     if (!empty($cust->LedgerUID)) {
                         $this->customers_model->updateCustomerBalanceInLedger(
@@ -1335,6 +1382,9 @@ class Customers extends MY_Controller {
                 [], []
             );
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Customers::updateCustomerBalance', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -1352,12 +1402,12 @@ class Customers extends MY_Controller {
 
             $orgUID      = $this->pageData['JwtData']->Org->OrgUID;
             $customerUID = (int) $this->input->get_post('CustomerUID');
-            if ($customerUID <= 0) throw new Exception('Invalid customer.');
+            if ($customerUID <= 0) throw new ValidationException('Invalid customer.');
 
             $this->load->model('customers_model');
 
             $custRows = $this->customers_model->getCustomersWithLedgerForBalance($orgUID, $customerUID);
-            if (empty($custRows)) throw new Exception('Customer not found.');
+            if (empty($custRows)) throw new ValidationException('Customer not found.');
 
             $cust          = $custRows[0];
             $totalInvoiced = $this->customers_model->getCustomerTotalInvoiced($orgUID, $customerUID);
@@ -1383,6 +1433,9 @@ class Customers extends MY_Controller {
                 'TotalReturned'  => $totalReturned,
             ];
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Customers::getCustomerBalance', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -1443,6 +1496,9 @@ class Customers extends MY_Controller {
                 $limit
             );
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Customers::getCustomerSearchList', $e);
             $this->EndReturnData->Error   = true;
@@ -1460,7 +1516,7 @@ class Customers extends MY_Controller {
         try {
             $orgUID      = $this->pageData['JwtData']->Org->OrgUID;
             $customerUID = (int) $this->input->post('CustomerUID');
-            if ($customerUID <= 0) throw new Exception('CustomerUID is required.');
+            if ($customerUID <= 0) throw new ValidationException('CustomerUID is required.');
 
             $this->load->model('customers_model');
             $result = $this->customers_model->getCustomerOnAccountPayments($orgUID, $customerUID);
@@ -1471,6 +1527,9 @@ class Customers extends MY_Controller {
             $this->EndReturnData->Total    = round((float)$total, $this->_decimals());
             $this->EndReturnData->Payments = $result;
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Customers::getCustomerOnAccountBalance', $e);
             $this->EndReturnData->Error   = true;
@@ -1485,8 +1544,70 @@ class Customers extends MY_Controller {
      * Recalculate customer closing balance from scratch and sync to DB + Upstash.
      *
      * POST body:
-     *   CustomerUID (int, optional) — omit or 0 to recalculate ALL customers in the org.
+     *   CustomerUID (int, optional) â€” omit or 0 to recalculate ALL customers in the org.
      */
+    public function updateBillingAddress(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $this->load->model('customers_model');
+            $this->load->model('dbwrite_model');
+            $PostData    = $this->input->post(null, true);
+            $orgUID      = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $userUID     = (int) $this->pageData['JwtData']->User->UserUID;
+            $customerUID = (int) getPostValue($PostData, 'CustomerUID', 0);
+            $line1       = trim((string) getPostValue($PostData, 'Line1', '', ''));
+
+            if ($customerUID <= 0 || $line1 === '') {
+                $this->EndReturnData->Error   = true;
+                $this->EndReturnData->Message = 'Line 1 is required.';
+                $this->globalservice->sendJsonResponse($this->EndReturnData);
+                return;
+            }
+
+            $existing = $this->customers_model->getCustomerAddress([
+                'CustAddress.CustomerUID' => $customerUID,
+                'CustAddress.OrgUID'      => $orgUID,
+                'CustAddress.AddressType' => 'Billing',
+            ]);
+
+            $addressData = [
+                'CustomerUID' => $customerUID,
+                'OrgUID'      => $orgUID,
+                'AddressType' => 'Billing',
+                'Line1'       => $line1,
+                'Line2'       => trim((string) getPostValue($PostData, 'Line2',     '', '')),
+                'Pincode'     => trim((string) getPostValue($PostData, 'Pincode',   '', '')),
+                'State'       => trim((string) getPostValue($PostData, 'StateId',   '', '')),
+                'StateText'   => trim((string) getPostValue($PostData, 'StateText', '', '')),
+                'City'        => trim((string) getPostValue($PostData, 'CityId',    '', '')),
+                'CityText'    => trim((string) getPostValue($PostData, 'CityText',  '', '')),
+                'UpdatedBy'   => $userUID,
+            ];
+
+            if (!empty($existing)) {
+                $resp = $this->dbwrite_model->updateData('Customers', 'CustAddressTbl', $addressData, ['CustAddressUID' => (int) $existing[0]->CustAddressUID]);
+            } else {
+                $addressData['CreatedBy'] = $userUID;
+                $resp = $this->dbwrite_model->insertData('Customers', 'CustAddressTbl', $addressData);
+            }
+            if ($resp->Error) throw new Exception($resp->Message);
+
+            $this->cachehelper->upsertCustomer($customerUID);
+
+            $this->EndReturnData->Error   = false;
+            $this->EndReturnData->Message = 'Address updated successfully.';
+
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        } catch (Exception $e) {
+            notifyError('Customers::updateBillingAddress', $e);
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
     public function recalcBalance(): void {
         $this->EndReturnData = new stdClass();
         try {
@@ -1499,7 +1620,7 @@ class Customers extends MY_Controller {
             $readDb->db_debug = FALSE;
 
             if ($customerUID > 0) {
-                // ── Single customer ────────────────────────────────────────
+                // â”€â”€ Single customer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                 $result = $this->customerbalance->recalcAndSync($orgUID, $customerUID, $userUID);
                 if (!$result) throw new Exception('Customer not found or recalculation failed.');
 
@@ -1509,7 +1630,7 @@ class Customers extends MY_Controller {
                 $this->EndReturnData->BalanceType = $result['type'];
 
             } else {
-                // ── All customers for this org ─────────────────────────────
+                // â”€â”€ All customers for this org â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                 $rows = $readDb->query(
                     'SELECT CustomerUID FROM Customers.CustomerTbl
                       WHERE OrgUID = ? AND IsDeleted = 0
@@ -1517,7 +1638,7 @@ class Customers extends MY_Controller {
                     [$orgUID]
                 )->result();
 
-                if (empty($rows)) throw new Exception('No customers found for this organisation.');
+                if (empty($rows)) throw new ValidationException('No customers found for this organisation.');
 
                 $total   = count($rows);
                 $success = 0;
@@ -1528,17 +1649,19 @@ class Customers extends MY_Controller {
                         $success++;
                     } else {
                         $failed++;
-                        log_message('error', 'recalcBalance: failed for CustomerUID=' . $row->CustomerUID);
                     }
                 }
 
                 $this->EndReturnData->Error   = false;
-                $this->EndReturnData->Message = "Recalculated {$success} of {$total} customers." . ($failed > 0 ? " {$failed} failed — check logs." : '');
+                $this->EndReturnData->Message = "Recalculated {$success} of {$total} customers." . ($failed > 0 ? " {$failed} failed â€” check logs." : '');
                 $this->EndReturnData->Total   = $total;
                 $this->EndReturnData->Success = $success;
                 $this->EndReturnData->Failed  = $failed;
             }
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Customers::recalcBalance', $e);
             $this->EndReturnData->Error   = true;
@@ -1556,13 +1679,13 @@ class Customers extends MY_Controller {
             $userUID     = $this->pageData['JwtData']->User->UserUID;
             $paymentUID  = (int) $this->input->post('PaymentUID');
             $transUID    = (int) $this->input->post('TransUID');
-            if ($paymentUID <= 0 || $transUID <= 0) throw new Exception('PaymentUID and TransUID are required.');
+            if ($paymentUID <= 0 || $transUID <= 0) throw new ValidationException('PaymentUID and TransUID are required.');
 
             $this->load->model('dbwrite_model');
             $this->load->model('transactions_model');
 
             $payment = $this->dbwrite_model->getOnAccountPayment($paymentUID, $orgUID);
-            if (!$payment) throw new Exception('On Account payment not found or already applied.');
+            if (!$payment) throw new ValidationException('On Account payment not found or already applied.');
 
             $this->dbwrite_model->startTransaction();
 
@@ -1595,6 +1718,10 @@ class Customers extends MY_Controller {
                 $this->EndReturnData->CustomerBalanceType = $balResult['type'];
             }
 
+        } catch (ValidationException $e) {
+            if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Customers::applyOnAccountPayment', $e);
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
@@ -1606,9 +1733,9 @@ class Customers extends MY_Controller {
 
     }
 
-    // ══════════════════════════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     // Customer Profile Modal
-    // ══════════════════════════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
     /**
      * Serves a single tab for the customer profile modal via AJAX.
@@ -1622,15 +1749,15 @@ class Customers extends MY_Controller {
             $uid    = (int) $uid;
             $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
             $userUID = (int) $this->pageData['JwtData']->User->UserUID;
-            if ($uid <= 0) throw new Exception('Invalid customer ID.');
+            if ($uid <= 0) throw new ValidationException('Invalid customer ID.');
 
             $this->load->model('customers_model');
             $custData = $this->customers_model->getCustomers(['Customers.CustomerUID' => $uid]);
-            if (empty($custData)) throw new Exception('Customer not found.');
+            if (empty($custData)) throw new ValidationException('Customer not found.');
             $cust = $custData[0];
 
             $JwtData    = $this->pageData['JwtData'];
-            $cur        = $JwtData->GenSettings->CurrenySymbol ?? '₹';
+            $cur        = $JwtData->GenSettings->CurrenySymbol ?? 'â‚¹';
             $dec        = (int) ($JwtData->GenSettings->DecimalPoints ?? 2);
             $dateFormat = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
 
@@ -1747,12 +1874,15 @@ class Customers extends MY_Controller {
                     break;
 
                 default:
-                    throw new Exception('Unknown tab.');
+                    throw new ValidationException('Unknown tab.');
             }
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Html  = $html;
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Customers::getCustomerProfileTab', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -1771,14 +1901,17 @@ class Customers extends MY_Controller {
             $userUID     = (int) $this->pageData['JwtData']->User->UserUID;
             $customerUID = (int) $this->input->post('CustomerUID');
             $note        = trim($this->input->post('Note') ?? '');
-            if ($customerUID <= 0) throw new Exception('Invalid customer.');
-            if (empty($note))      throw new Exception('Note cannot be empty.');
+            if ($customerUID <= 0) throw new ValidationException('Invalid customer.');
+            if (empty($note))      throw new ValidationException('Note cannot be empty.');
 
             $this->load->model('customers_model');
             $this->customers_model->saveCustomerNote($orgUID, $customerUID, $note, $userUID);
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Note saved.';
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Customers::saveCustomerNote', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -1797,12 +1930,12 @@ class Customers extends MY_Controller {
             $customerUID = (int) $this->input->post('CustomerUID');
             $fromDate    = $this->input->post('FromDate') ?: date('Y-m-01');
             $toDate      = $this->input->post('ToDate')   ?: date('Y-m-t');
-            if ($customerUID <= 0) throw new Exception('Invalid customer.');
+            if ($customerUID <= 0) throw new ValidationException('Invalid customer.');
 
             $this->load->model('customers_model');
             $this->load->model('organisation_model');
             $custData = $this->customers_model->getCustomers(['Customers.CustomerUID' => $customerUID]);
-            if (empty($custData)) throw new Exception('Customer not found.');
+            if (empty($custData)) throw new ValidationException('Customer not found.');
 
             $JwtData    = $this->pageData['JwtData'];
             $statement  = $this->customers_model->getCustomerStatementData($orgUID, $customerUID, $fromDate, $toDate);
@@ -1816,7 +1949,7 @@ class Customers extends MY_Controller {
                 'FromDate'    => $fromDate,
                 'ToDate'      => $toDate,
                 'JwtData'     => $JwtData,
-                'Cur'         => $JwtData->GenSettings->CurrenySymbol ?? '₹',
+                'Cur'         => $JwtData->GenSettings->CurrenySymbol ?? 'â‚¹',
                 'Dec'         => (int) ($JwtData->GenSettings->DecimalPoints ?? 2),
                 'DateFormat'  => $JwtData->GenSettings->ListDateFormat ?? 'd M Y',
                 'CustomerUID' => $customerUID,
@@ -1825,6 +1958,9 @@ class Customers extends MY_Controller {
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Html  = $html;
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Customers::getCustomerStatementTab', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -1833,9 +1969,9 @@ class Customers extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ══════════════════════════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     // Customer Group methods
-    // ══════════════════════════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
     private function _groupTypesList() {
         $this->load->model('customers_model');
@@ -1856,6 +1992,9 @@ class Customers extends MY_Controller {
                     0
                 );
             }
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error = true;
+            $this->EndReturnData->Data  = [];
         } catch (Exception $e) {
             notifyError('Customers::getGroupTypes', $e);
             $this->EndReturnData->Error = true;
@@ -1864,13 +2003,17 @@ class Customers extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // Global key — direct DB fetch, no Upstash check (JS already missed); no write back
+    // Global key â€” direct DB fetch, no Upstash check (JS already missed); no write back
     public function getCustomerTypes(): void {
         $this->EndReturnData = new stdClass();
         try {
             $this->load->model('customers_model');
             $this->EndReturnData->Error = false;
             $this->EndReturnData->Data  = $this->customers_model->getCustomerTypesFromDB();
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+            $this->EndReturnData->Data    = [];
         } catch (Exception $e) {
             notifyError('Customers::getCustomerTypes', $e);
             $this->EndReturnData->Error   = true;
@@ -1912,6 +2055,9 @@ class Customers extends MY_Controller {
             $this->EndReturnData->TotalCount     = $pageData->TotalCount;
             $_showStats = (int)($this->pageData['JwtData']->GenSettings->ShowStats ?? 1) && (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
             $this->EndReturnData->Stats = $this->customers_model->getGroupStats($this->pageData['JwtData']->Org->OrgUID);
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Customers::getGroupsData', $e);
             $this->EndReturnData->Error   = true;
@@ -1924,16 +2070,19 @@ class Customers extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $groupUID = (int)$groupUID;
-            if (!$groupUID) throw new Exception('Group ID is missing.');
+            if (!$groupUID) throw new ValidationException('Group ID is missing.');
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
             $this->load->model('customers_model');
             $group   = $this->customers_model->getGroupByUID($orgUID, $groupUID);
-            if (!$group) throw new Exception('Group not found.');
+            if (!$group) throw new ValidationException('Group not found.');
             $members = $this->customers_model->getGroupMembers($orgUID, $groupUID);
             $this->EndReturnData->Error      = false;
             $this->EndReturnData->Data       = $group;
             $this->EndReturnData->Members    = $members;
             $this->EndReturnData->GroupTypes = $this->_groupTypesList();
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Customers::getGroupForModal', $e);
             $this->EndReturnData->Error   = true;
@@ -2019,6 +2168,10 @@ class Customers extends MY_Controller {
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
+        } catch (ValidationException $e) {
+            if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Customers::addGroupData', $e);
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
@@ -2042,6 +2195,8 @@ class Customers extends MY_Controller {
             $this->pageData['Members']    = $this->customers_model->getGroupMembers($orgUID, $groupUID);
             $this->pageData['GroupTypes'] = $this->_groupTypesList();
             $this->load->view('customers/groups/form', $this->pageData);
+        } catch (ValidationException $e) {
+            redirect('customers');
         } catch (Exception $e) {
             notifyError('Customers::groupEdit', $e);
             redirect('customers');
@@ -2057,7 +2212,7 @@ class Customers extends MY_Controller {
             $groupUID  = (int)($post['GroupUID'] ?? 0);
             $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
             $userUID   = $this->pageData['JwtData']->User->UserUID;
-            if (!$groupUID) throw new Exception('Group ID is missing.');
+            if (!$groupUID) throw new ValidationException('Group ID is missing.');
             $groupName = trim($post['GroupName'] ?? '');
             if (!$groupName) throw new InvalidArgumentException('Group Name is required.');
             $validTypes = $this->_groupTypesList();
@@ -2117,6 +2272,10 @@ class Customers extends MY_Controller {
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
+        } catch (ValidationException $e) {
+            if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Customers::updateGroupData', $e);
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
@@ -2133,7 +2292,7 @@ class Customers extends MY_Controller {
             $pageNo   = (int)($this->input->post('PageNo') ?: 1);
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
             $userUID  = $this->pageData['JwtData']->User->UserUID;
-            if (!$groupUID) throw new Exception('Group ID is missing.');
+            if (!$groupUID) throw new ValidationException('Group ID is missing.');
             $this->load->model('dbwrite_model');
             $this->load->model('customers_model');
             $oldGroup = $this->customers_model->getGroupByUID($orgUID, $groupUID);
@@ -2162,6 +2321,10 @@ class Customers extends MY_Controller {
             $this->EndReturnData->Pagination     = $pageData->Pagination;
             $_showStats = (int)($this->pageData['JwtData']->GenSettings->ShowStats ?? 1) && (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
             $this->EndReturnData->Stats = $this->customers_model->getGroupStats($orgUID);
+        } catch (ValidationException $e) {
+            if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Customers::deleteGroup', $e);
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
@@ -2179,8 +2342,8 @@ class Customers extends MY_Controller {
             $pageNo    = (int)($this->input->post('PageNo') ?: 1);
             $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
             $userUID   = $this->pageData['JwtData']->User->UserUID;
-            if (!$groupUID) throw new Exception('Group ID is missing.');
-            if (!in_array($newStatus, [0, 1])) throw new Exception('Invalid status value.');
+            if (!$groupUID) throw new ValidationException('Group ID is missing.');
+            if (!in_array($newStatus, [0, 1])) throw new ValidationException('Invalid status value.');
             $this->load->model('dbwrite_model');
             $resp = $this->dbwrite_model->updateData('Customers', 'CustomerGroupTbl',
                 ['IsActive' => $newStatus, 'UpdatedBy' => $userUID],
@@ -2209,6 +2372,9 @@ class Customers extends MY_Controller {
             $this->EndReturnData->Pagination     = $pageData->Pagination;
             $_showStats = (int)($this->pageData['JwtData']->GenSettings->ShowStats ?? 1) && (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
             $this->EndReturnData->Stats = $this->customers_model->getGroupStats($orgUID);
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Customers::toggleGroupStatus', $e);
             $this->EndReturnData->Error   = true;
@@ -2221,15 +2387,18 @@ class Customers extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $groupUID = (int)$groupUID;
-            if (!$groupUID) throw new Exception('Group ID is missing.');
+            if (!$groupUID) throw new ValidationException('Group ID is missing.');
             $orgUID = $this->pageData['JwtData']->Org->OrgUID;
             $this->load->model('customers_model');
             $group = $this->customers_model->getGroupByUID($orgUID, $groupUID);
-            if (!$group) throw new Exception('Group not found.');
+            if (!$group) throw new ValidationException('Group not found.');
             $this->EndReturnData->Error    = false;
             $this->EndReturnData->Data     = $group;
             $this->EndReturnData->Members  = $this->customers_model->getGroupMembers($orgUID, $groupUID);
             $this->EndReturnData->Overview = $this->customers_model->getGroupOverview($orgUID, $groupUID);
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Customers::getGroupDetail', $e);
             $this->EndReturnData->Error   = true;
@@ -2245,6 +2414,9 @@ class Customers extends MY_Controller {
             $this->load->model('customers_model');
             $this->EndReturnData->Error = false;
             $this->EndReturnData->Data  = $this->customers_model->getGroupOutstanding($orgUID, (int)$groupUID);
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Customers::getGroupOutstanding', $e);
             $this->EndReturnData->Error   = true;
@@ -2275,6 +2447,9 @@ class Customers extends MY_Controller {
             }
             $this->EndReturnData->Error  = false;
             $this->EndReturnData->Groups = $rows ?: [];
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Customers::getGroupsForDropdown', $e);
             $this->EndReturnData->Error   = true;
@@ -2283,20 +2458,23 @@ class Customers extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Customer Attachments ──────────────────────────────────────────────────
+    // â”€â”€ Customer Attachments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public function getCustomerAttachments() {
         $this->EndReturnData = new stdClass();
         try {
             $customerUID = (int)$this->input->get_post('CustomerUID');
             $orgUID      = (int)$this->pageData['JwtData']->Org->OrgUID;
-            if ($customerUID <= 0) throw new Exception('Invalid customer.');
+            if ($customerUID <= 0) throw new ValidationException('Invalid customer.');
             $this->load->model('customers_model');
             $attachments = $this->customers_model->getCustomerAttachments($customerUID, $orgUID);
             $cdnUrl = rtrim(getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN'), '/');
             foreach ($attachments as &$a) { $a['Url'] = $cdnUrl . '/' . ltrim($a['FilePath'], '/'); }
             $this->EndReturnData->Error       = false;
             $this->EndReturnData->Attachments = $attachments;
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Customers::getCustomerAttachments', $e);
             $this->EndReturnData->Error   = true;
@@ -2311,11 +2489,14 @@ class Customers extends MY_Controller {
             $customerUID = (int)$this->input->post('CustomerUID');
             $orgUID      = (int)$this->pageData['JwtData']->Org->OrgUID;
             $userUID     = (int)$this->pageData['JwtData']->User->UserUID;
-            if ($customerUID <= 0) throw new Exception('Invalid customer.');
+            if ($customerUID <= 0) throw new ValidationException('Invalid customer.');
             $saved = $this->_handleCustomerAttachments($customerUID, $orgUID, $userUID, '', false);
             $this->EndReturnData->Error   = false;
             $this->EndReturnData->Message = count($saved) . ' image(s) saved.';
             $this->EndReturnData->Saved   = $saved;
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Customers::saveCustomerAttachments', $e);
             $this->EndReturnData->Error   = true;
@@ -2331,7 +2512,7 @@ class Customers extends MY_Controller {
             $customerUID = (int)$this->input->post('CustomerUID');
             $orgUID      = (int)$this->pageData['JwtData']->Org->OrgUID;
             $userUID     = (int)$this->pageData['JwtData']->User->UserUID;
-            if ($attachUID <= 0) throw new Exception('Invalid attachment.');
+            if ($attachUID <= 0) throw new ValidationException('Invalid attachment.');
             $this->load->model('dbwrite_model');
             $this->dbwrite_model->updateData('Customers', 'CustomerAttachmentsTbl',
                 ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
@@ -2347,6 +2528,9 @@ class Customers extends MY_Controller {
                 'MASTER', 'SUCCESS', '', 'WEB',
                 ['attachUID' => $attachUID], []
             );
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Customers::deleteCustomerAttachment', $e);
             $this->EndReturnData->Error   = true;
@@ -2427,9 +2611,9 @@ class Customers extends MY_Controller {
                 ['CustomerUID' => $customerUID, 'OrgUID' => $orgUID]
             );
             $this->cachehelper->upsertCustomer($customerUID);
+        } catch (ValidationException $e) {
         } catch (Exception $e) {
             notifyError('Customers::_syncCustomerPrimaryImage', $e);
-            log_message('error', '_syncCustomerPrimaryImage failed: ' . $e->getMessage());
         }
     }
 

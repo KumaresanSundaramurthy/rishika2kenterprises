@@ -54,27 +54,27 @@
                     <div class="row">
                         <div class="mb-3 col-sm-4">
                             <label class="form-label" for="SizeLength">Length</label>
-                            <input type="number" class="form-control" id="SizeLength" placeholder="0.00" name="Length" min="0" step="0.01" />
+                            <input type="text" inputmode="decimal" class="form-control" id="SizeLength" placeholder="0" name="Length" onkeypress="return (event.charCode===8||event.charCode===0||(event.charCode>=48&&event.charCode<=57)||(event.charCode===46&&this.value.indexOf('.')===-1))" oninput="var p=this.value.split('.');if(p.length>1&&p[1].length>9)this.value=p[0]+'.'+p[1].slice(0,9);" />
                         </div>
                         <div class="mb-3 col-sm-4">
                             <label class="form-label" for="SizeWidth">Width</label>
-                            <input type="number" class="form-control" id="SizeWidth" placeholder="0.00" name="Width" min="0" step="0.01" />
+                            <input type="text" inputmode="decimal" class="form-control" id="SizeWidth" placeholder="0" name="Width" onkeypress="return (event.charCode===8||event.charCode===0||(event.charCode>=48&&event.charCode<=57)||(event.charCode===46&&this.value.indexOf('.')===-1))" oninput="var p=this.value.split('.');if(p.length>1&&p[1].length>9)this.value=p[0]+'.'+p[1].slice(0,9);" />
                         </div>
                         <div class="mb-3 col-sm-4">
                             <label class="form-label" for="SizeHeight">Height</label>
-                            <input type="number" class="form-control" id="SizeHeight" placeholder="0.00" name="Height" min="0" step="0.01" />
+                            <input type="text" inputmode="decimal" class="form-control" id="SizeHeight" placeholder="0" name="Height" onkeypress="return (event.charCode===8||event.charCode===0||(event.charCode>=48&&event.charCode<=57)||(event.charCode===46&&this.value.indexOf('.')===-1))" oninput="var p=this.value.split('.');if(p.length>1&&p[1].length>9)this.value=p[0]+'.'+p[1].slice(0,9);" />
                         </div>
                         <div class="mb-3 col-sm-4">
                             <label class="form-label" for="SizeDepth">Depth</label>
-                            <input type="number" class="form-control" id="SizeDepth" placeholder="0.00" name="Depth" min="0" step="0.01" />
+                            <input type="text" inputmode="decimal" class="form-control" id="SizeDepth" placeholder="0" name="Depth" onkeypress="return (event.charCode===8||event.charCode===0||(event.charCode>=48&&event.charCode<=57)||(event.charCode===46&&this.value.indexOf('.')===-1))" oninput="var p=this.value.split('.');if(p.length>1&&p[1].length>9)this.value=p[0]+'.'+p[1].slice(0,9);" />
                         </div>
                         <div class="mb-3 col-sm-4">
                             <label class="form-label" for="SizeDiameter">Diameter</label>
-                            <input type="number" class="form-control" id="SizeDiameter" placeholder="0.00" name="Diameter" min="0" step="0.01" />
+                            <input type="text" inputmode="decimal" class="form-control" id="SizeDiameter" placeholder="0" name="Diameter" onkeypress="return (event.charCode===8||event.charCode===0||(event.charCode>=48&&event.charCode<=57)||(event.charCode===46&&this.value.indexOf('.')===-1))" oninput="var p=this.value.split('.');if(p.length>1&&p[1].length>9)this.value=p[0]+'.'+p[1].slice(0,9);" />
                         </div>
                         <div class="mb-3 col-sm-4">
                             <label class="form-label" for="SizeThickness">Thickness</label>
-                            <input type="number" class="form-control" id="SizeThickness" placeholder="0.00" name="Thickness" min="0" step="0.01" />
+                            <input type="text" inputmode="decimal" class="form-control" id="SizeThickness" placeholder="0" name="Thickness" onkeypress="return (event.charCode===8||event.charCode===0||(event.charCode>=48&&event.charCode<=57)||(event.charCode===46&&this.value.indexOf('.')===-1))" oninput="var p=this.value.split('.');if(p.length>1&&p[1].length>9)this.value=p[0]+'.'+p[1].slice(0,9);" />
                         </div>
                         <div class="mb-3 col-sm-4">
                             <label class="form-label" for="SizeDimensionUOM">Dimension UOM</label>
@@ -96,7 +96,7 @@
                     <div class="row">
                         <div class="mb-3 col-sm-6">
                             <label class="form-label" for="SizeWeight">Weight</label>
-                            <input type="number" class="form-control" id="SizeWeight" placeholder="0.000" name="Weight" min="0" step="0.001" />
+                            <input type="text" inputmode="decimal" class="form-control" id="SizeWeight" placeholder="0" name="Weight" onkeypress="return (event.charCode===8||event.charCode===0||(event.charCode>=48&&event.charCode<=57)||(event.charCode===46&&this.value.indexOf('.')===-1))" oninput="var p=this.value.split('.');if(p.length>1&&p[1].length>9)this.value=p[0]+'.'+p[1].slice(0,9);" />
                         </div>
                         <div class="mb-3 col-sm-6">
                             <label class="form-label" for="SizeWeightUOM">Weight UOM</label>

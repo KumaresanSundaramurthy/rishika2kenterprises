@@ -926,9 +926,7 @@ input[type="number"] {
 
 /* ── Customer address full-width strip (transaction forms) ───────────────── */
 .trans-addr-strip {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
+    display: block;
     margin-top: 6px;
     padding: 7px 12px;
     background: #f5f4ff;
@@ -938,17 +936,32 @@ input[type="number"] {
     color: #444;
     width: 100%;
     box-sizing: border-box;
+    line-height: 1.6;
 }
 .trans-addr-strip .bx {
     color: #696cff;
     font-size: .9rem;
-    flex-shrink: 0;
-    margin-top: 2px;
+    margin-right: 4px;
+    vertical-align: middle;
 }
 .trans-addr-strip span {
-    line-height: 1.5;
     word-break: break-word;
 }
+.trans-addr-edit-btn {
+    background: none;
+    border: none;
+    padding: 0 2px;
+    margin-left: 6px;
+    color: #696cff;
+    font-size: .95rem;
+    line-height: 1;
+    vertical-align: middle;
+    opacity: 0.6;
+    cursor: pointer;
+    transition: opacity .15s;
+}
+.trans-addr-edit-btn:hover { opacity: 1; }
+.trans-addr-edit-btn--locked { opacity: .4; cursor: not-allowed; pointer-events: none; }
 
 /* ── No-address warning strip (transaction forms) ────────────────────────── */
 .trans-addr-warn {

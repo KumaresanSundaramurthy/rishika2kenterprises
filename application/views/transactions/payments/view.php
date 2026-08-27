@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
 <?php $this->load->view('common/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -25,7 +25,7 @@
                     $bankOut = (float)($stats->BankOut ?? 0);
 
                     function allPmtFmt(float $val, string $sym, int $dec): string {
-                        return $sym . ' ' . number_format((float)$val, $dec, '.', ',');
+                        return $sym . ' ' . smartDecimal((float)$val);
                     }
                     ?>
 

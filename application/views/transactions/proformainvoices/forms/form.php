@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php
 $isEdit      = isset($PFData);
 $isDraftEdit = $isEdit && ($PFData->DocStatus === 'Draft');
@@ -119,7 +119,10 @@ $_addrLines = buildDispatchAddressLines($DispatchAddress ?? null);
                                 <div class="col-md-4">
                                     <?php if ($isEdit && !$isDraftEdit): ?>
                                     <label class="trans-field-label mb-1">Customer</label>
-                                    <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
+                                    <div class="input-group input-group-sm input-group-merge customer-search-group party-has-selection" id="customerGroup_customerSearch">
+                                        <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
+                                        <span class="party-edit-icon" id="editCustomerBtn" title="Edit Customer"><i class="bx bx-edit"></i></span>
+                                    </div>
                                     <?php else: ?>
                                     <div class="d-flex align-items-center justify-content-between mb-1">
                                         <label for="customerSearch" class="trans-field-label mb-0">Select Customer <span class="text-danger">*</span></label>
@@ -130,7 +133,7 @@ $_addrLines = buildDispatchAddressLines($DispatchAddress ?? null);
                                     <div class="input-group input-group-sm input-group-merge customer-search-group" id="customerGroup_customerSearch">
                                         <span class="input-group-text p-2 cursor-pointer party-search-icon" id="openCustomerSearchModal" style="background:#f0efff;border-color:#d9d8ff;color:#696cff;"><i class="icon-base bx bx-search"></i></span>
                                         <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
-                                        <span class="party-edit-icon" id="editCustomerBtn" title="Edit Customer"><i class="bx bx-edit-alt"></i></span>
+                                        <span class="party-edit-icon" id="editCustomerBtn" title="Edit Customer"><i class="bx bx-edit"></i></span>
                                     </div>
                                     <?php endif; ?>
                                 </div>
@@ -160,7 +163,7 @@ $_addrLines = buildDispatchAddressLines($DispatchAddress ?? null);
                                         value="<?php echo $isEdit ? htmlspecialchars($PFData->Reference ?? '') : ''; ?>" />
                                 </div>
                             </div>
-                            <div id="customerAddressBox" class="trans-addr-strip d-none"><i class="bx bx-map-pin"></i><span></span></div>
+                            <div id="customerAddressBox" class="trans-addr-strip d-none"><i class="bx bx-map-pin"></i><span></span><button type="button" id="btnEditCustAddr" class="trans-addr-edit-btn" title="Edit billing address"><i class="bx bx-edit"></i></button></div>
                             <hr class="mt-3"/>
 
                             <?php $this->load->view('transactions/partials/form_products_add', [
@@ -228,7 +231,7 @@ var _transFormData = <?php echo json_encode([
     'returnTab'    => $_returnTab,
     'returnPage'   => (int)$_returnPage,
     'currency'     => $JwtData->GenSettings->CurrenySymbol ?? '₹',
-    'decimals'     => (int)($JwtData->GenSettings->DecimalPoints ?? 2),
+    'decimals'     => 9,
     'orgState'     => $DispatchAddress->StateText ?? '',
     'editData'     => $isEdit ? [
         'transUID'          => $transUID,
@@ -236,6 +239,11 @@ var _transFormData = <?php echo json_encode([
         'custName'          => $PFData->PartyName  ?? '',
         'custArea'          => $PFData->PartyArea   ?? '',
         'custMobile'        => $PFData->PartyMobile ?? '',
+        'custBillLine1'     => $PFData->BillLine1   ?? '',
+        'custBillLine2'     => $PFData->BillLine2   ?? '',
+        'custBillCity'      => $PFData->BillCity    ?? '',
+        'custBillState'     => $PFData->BillState   ?? '',
+        'custBillPincode'   => $PFData->BillPincode ?? '',
         'custState'         => isset($CustAddr) ? ($CustAddr->StateText ?? '') : '',
         'extraDiscAmount'   => (float)($PFData->ExtraDiscAmount ?? 0),
         'extraDiscType'     => $PFData->ExtraDiscType ?? '',

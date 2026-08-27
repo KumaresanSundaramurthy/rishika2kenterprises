@@ -504,6 +504,9 @@
         }
 
         // Addresses
+        // CityId is intentionally cleared: ba.City (CSC numeric ID) may point to a
+        // different city than ba.CityText when the text was updated outside the form.
+        // Relying only on CityName (text match) in openAddressModal gives the correct result.
         if (response.BillingAddr) {
             var ba = response.BillingAddr;
             billingAddrData = {
@@ -514,7 +517,7 @@
                 StateId  : ba.State    || '',
                 StateName: ba.StateText || '',
                 StateISO2: '',
-                CityId   : ba.City     || '',
+                CityId   : '',
                 CityName : ba.CityText || ''
             };
             if (typeof renderAddrSummary === 'function') renderAddrSummary(1, billingAddrData);
@@ -529,7 +532,7 @@
                 StateId  : sa.State    || '',
                 StateName: sa.StateText || '',
                 StateISO2: '',
-                CityId   : sa.City     || '',
+                CityId   : '',
                 CityName : sa.CityText || ''
             };
             if (typeof renderAddrSummary === 'function') renderAddrSummary(2, shippingAddrData);
@@ -727,7 +730,7 @@
     function _smartDecimal(val) {
         var n = parseFloat(val);
         if (isNaN(n)) return '0';
-        return n === 0 ? '0' : String(parseFloat(n.toFixed(6)));
+        return n === 0 ? '0' : String(parseFloat(n.toFixed(9)));
     }
 
     /**

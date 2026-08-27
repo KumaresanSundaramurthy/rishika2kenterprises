@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var object|null $CurrentLock */ $CurrentLock = $CurrentLock ?? null;
 $dateFmt   = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
 $isLocked  = $CurrentLock !== null;

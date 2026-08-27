@@ -12,27 +12,27 @@ function _sizeDimSummary(object $row): string {
 
     // L × W × H
     $lwh = array_filter([
-        isset($row->Length)    && $row->Length    > 0 ? rtrim(rtrim(number_format((float)$row->Length, 2), '0'), '.') : null,
-        isset($row->Width)     && $row->Width     > 0 ? rtrim(rtrim(number_format((float)$row->Width,  2), '0'), '.') : null,
-        isset($row->Height)    && $row->Height    > 0 ? rtrim(rtrim(number_format((float)$row->Height, 2), '0'), '.') : null,
+        isset($row->Length)    && $row->Length    > 0 ? smartDecimal($row->Length) : null,
+        isset($row->Width)     && $row->Width     > 0 ? smartDecimal($row->Width)  : null,
+        isset($row->Height)    && $row->Height    > 0 ? smartDecimal($row->Height) : null,
     ]);
     if (count($lwh)) $parts[] = implode(' × ', $lwh) . ($uom ? ' ' . $uom : '');
 
     // Depth
     if (!empty($row->Depth) && $row->Depth > 0)
-        $parts[] = 'D ' . rtrim(rtrim(number_format((float)$row->Depth, 2), '0'), '.') . ($uom ? ' ' . $uom : '');
+        $parts[] = 'D ' . smartDecimal($row->Depth) . ($uom ? ' ' . $uom : '');
 
     // Diameter
     if (!empty($row->Diameter) && $row->Diameter > 0)
-        $parts[] = 'Ø ' . rtrim(rtrim(number_format((float)$row->Diameter, 2), '0'), '.') . ($uom ? ' ' . $uom : '');
+        $parts[] = 'Ø ' . smartDecimal($row->Diameter) . ($uom ? ' ' . $uom : '');
 
     // Thickness
     if (!empty($row->Thickness) && $row->Thickness > 0)
-        $parts[] = 'T ' . rtrim(rtrim(number_format((float)$row->Thickness, 2), '0'), '.') . ($uom ? ' ' . $uom : '');
+        $parts[] = 'T ' . smartDecimal($row->Thickness) . ($uom ? ' ' . $uom : '');
 
     // Weight
     if (!empty($row->Weight) && $row->Weight > 0)
-        $parts[] = rtrim(rtrim(number_format((float)$row->Weight, 3), '0'), '.') . ($wuom ? ' ' . $wuom : '');
+        $parts[] = smartDecimal($row->Weight) . ($wuom ? ' ' . $wuom : '');
 
     return implode(' · ', $parts);
 }

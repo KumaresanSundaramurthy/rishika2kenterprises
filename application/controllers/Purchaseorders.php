@@ -28,6 +28,8 @@ class Purchaseorders extends MY_Controller {
                 'paginationUrl'=> '/transactions/getPageDetails/104',
             ]);
             $this->load->view('transactions/purchaseorders/view', $this->pageData);
+        } catch (ValidationException $e) {
+            redirect('dashboard', 'refresh');
         } catch (Exception $e) {
             $this->notifyError('Purchaseorders::index', $e);
             redirect('dashboard', 'refresh');
@@ -112,6 +114,10 @@ class Purchaseorders extends MY_Controller {
             $this->EndReturnData->TransUID = $transUID;
             $this->EndReturnData->Token    = $headerData['TransToken'];
 
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             $this->notifyError('Purchaseorders::addPurchaseOrder', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -136,7 +142,7 @@ class Purchaseorders extends MY_Controller {
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
             $transUID = (int) getPostValue($PostData, 'TransUID');
-            if ($transUID <= 0) throw new Exception('Purchase order ID is required.');
+            if ($transUID <= 0) throw new ValidationException('Purchase order ID is required.');
 
             $itemsJson = $this->_validateTransForm($PostData);
             $amounts   = $this->_extractTransAmounts($PostData, $itemsJson);
@@ -159,21 +165,21 @@ class Purchaseorders extends MY_Controller {
 
             $this->load->model('transactions_model');
             $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
-            if (!$existing) throw new Exception('Purchase order not found.');
+            if (!$existing) throw new ValidationException('Purchase order not found.');
 
             $uniqueNumber = NULL;
             if ($existing->DocStatus === 'Draft' && !$isDraft) {
-                if ($prefixUID <= 0) throw new Exception('Please select a prefix to finalise this purchase order.');
-                if ($transNumber <= 0) throw new Exception('Transaction number must be greater than 0.');
+                if ($prefixUID <= 0) throw new ValidationException('Please select a prefix to finalise this purchase order.');
+                if ($transNumber <= 0) throw new ValidationException('Transaction number must be greater than 0.');
 
                 $prefixData = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.PrefixUID' => $prefixUID, 'Prefix.OrgUID' => $orgUID]);
-                if (empty($prefixData->Data)) throw new Exception('Invalid prefix selected.');
+                if (empty($prefixData->Data)) throw new ValidationException('Invalid prefix selected.');
                 $prefix = $prefixData->Data[0];
 
                 $dupCheck = $this->transactions_model->getTransactionByPrefixAndNumber($prefixUID, $transNumber, $orgUID, $this->pageModuleUID);
                 if ($dupCheck) {
                     $nextSuggested = $this->transactions_model->getNextTransactionNumber($prefixUID, $orgUID, $this->pageModuleUID);
-                    throw new Exception("Transaction number {$transNumber} already exists. Next available: {$nextSuggested}.");
+                    throw new ValidationException("Transaction number {$transNumber} already exists. Next available: {$nextSuggested}.");
                 }
 
                 [$uniqueNumber] = $this->buildUniqueNumber($prefix, $transNumber, $amounts['transDate']);
@@ -265,6 +271,10 @@ class Purchaseorders extends MY_Controller {
                 [], 'Updated purchase order ' . ($uniqueNumber ?? $existing->UniqueNumber ?? ''), 'PurchaseOrders', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
             );
 
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             $this->notifyError('Purchaseorders::updatePurchaseOrder', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -289,14 +299,14 @@ class Purchaseorders extends MY_Controller {
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
             $transUID = (int) getPostValue($PostData, 'TransUID');
-            if ($transUID <= 0) throw new Exception('Purchase order ID is required.');
+            if ($transUID <= 0) throw new ValidationException('Purchase order ID is required.');
 
             $this->load->model('transactions_model');
             $existing = $this->transactions_model->getTransactionPageList(1, 0, $this->pageModuleUID, [
                 'TransUID' => $transUID,
                 'OrgUID'   => $orgUID,
             ]);
-            if (empty($existing)) throw new Exception('Purchase order not found.');
+            if (empty($existing)) throw new ValidationException('Purchase order not found.');
 
             $now = time();
 
@@ -327,6 +337,10 @@ class Purchaseorders extends MY_Controller {
 
             $this->_buildListResponse('transactions/purchaseorders/list', '/transactions/getPageDetails/104');
 
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             $this->notifyError('Purchaseorders::deletePurchaseOrder', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -351,16 +365,16 @@ class Purchaseorders extends MY_Controller {
             $userUID  = $this->pageData['JwtData']->User->UserUID;
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
-            if ($srcUID <= 0) throw new Exception('Invalid purchase order.');
+            if ($srcUID <= 0) throw new ValidationException('Invalid purchase order.');
 
             $this->load->model('transactions_model');
             $src = $this->transactions_model->getTransactionById($srcUID, $orgUID, $this->pageModuleUID);
-            if (!$src) throw new Exception('Purchase order not found.');
+            if (!$src) throw new ValidationException('Purchase order not found.');
 
             $nextNumber   = $this->transactions_model->getNextTransactionNumber($src->PrefixUID, $orgUID, $this->pageModuleUID);
             $prefixResult = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.PrefixUID' => $src->PrefixUID, 'Prefix.OrgUID' => $orgUID]);
             $prefix       = $prefixResult->Data[0] ?? null;
-            if (!$prefix) throw new Exception('Prefix not found.');
+            if (!$prefix) throw new ValidationException('Prefix not found.');
 
             $sep   = $prefix->Separator ?? '-';
             $parts = [strtoupper($prefix->Name)];
@@ -484,6 +498,10 @@ class Purchaseorders extends MY_Controller {
             $this->EndReturnData->TransUID = $newTransUID;
             $this->EndReturnData->EditURL  = '/purchaseorders/edit/' . $newTransUID;
 
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             $this->notifyError('Purchaseorders::duplicatePurchaseOrder', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -507,7 +525,7 @@ class Purchaseorders extends MY_Controller {
             $userUID   = $this->pageData['JwtData']->User->UserUID;
             $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
 
-            if ($transUID <= 0) throw new Exception('Invalid purchase order.');
+            if ($transUID <= 0) throw new ValidationException('Invalid purchase order.');
 
             $validTransitions = [
                 'Draft'     => ['Received'],
@@ -518,11 +536,11 @@ class Purchaseorders extends MY_Controller {
 
             $this->load->model('transactions_model');
             $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
-            if (!$existing) throw new Exception('Purchase order not found.');
+            if (!$existing) throw new ValidationException('Purchase order not found.');
 
             $current = $existing->DocStatus;
             if (!in_array($newStatus, $validTransitions[$current] ?? [])) {
-                throw new Exception("Cannot change status from {$current} to {$newStatus}.");
+                throw new ValidationException("Cannot change status from {$current} to {$newStatus}.");
             }
 
             $this->dbwrite_model->startTransaction();
@@ -555,6 +573,10 @@ class Purchaseorders extends MY_Controller {
             );
             $this->EndReturnData->NewStatus = $newStatus;
 
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             $this->notifyError('Purchaseorders::updatePurchaseOrderStatus', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -596,6 +618,8 @@ class Purchaseorders extends MY_Controller {
 
             $this->load->view('transactions/purchaseorders/forms/form', $this->pageData);
 
+        } catch (ValidationException $e) {
+            redirect('purchaseorders', 'refresh');
         } catch (Exception $e) {
             $this->notifyError('Purchaseorders::create', $e);
             redirect('purchaseorders', 'refresh');
@@ -651,6 +675,8 @@ class Purchaseorders extends MY_Controller {
 
             $this->load->view('transactions/purchaseorders/forms/form', $this->pageData);
 
+        } catch (ValidationException $e) {
+            redirect('purchaseorders', 'refresh');
         } catch (Exception $e) {
             $this->notifyError('Purchaseorders::edit', $e);
             redirect('purchaseorders', 'refresh');

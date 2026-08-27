@@ -177,7 +177,7 @@ function filterByMainMenuUID($data, $mainMenuUID) {
     }));
 }
 
-function smartDecimal($number, $maxDecimals = 6, $digReq = false) {
+function smartDecimal($number, $maxDecimals = 9, $digReq = false) {
     // Convert to float first to remove unnecessary zeros
     $number = (float) $number;
     // Format with max decimals

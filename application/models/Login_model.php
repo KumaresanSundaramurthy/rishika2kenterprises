@@ -20,7 +20,7 @@ class Login_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            // User — personal identity fields only
+            // User â€” personal identity fields only
             $JwtUserData = [];
             $JwtUserData['UserUID']      = $UserData->UserUID;
             $JwtUserData['FirstName']    = $UserData->UserFirstName;
@@ -39,7 +39,7 @@ class Login_model extends CI_Model {
             $JwtUserData['LastLoginOn']     = $UserData->LastLoginOn       ?? null;
             $JwtUserData['LastLoginDevice'] = $UserData->LastLoginDevice   ?? null;
 
-            // Org — organisation-level fields
+            // Org â€” organisation-level fields
             $JwtOrgData = [];
             $JwtOrgData['OrgUID']       = $UserData->UserOrgUID;
             $JwtOrgData['BranchUID']    = $UserData->BranchUID;
@@ -62,13 +62,13 @@ class Login_model extends CI_Model {
             $GeneralSettings = $this->getOrgGeneralSettings($UserData->UserOrgUID)->Data[0];
             $ModuleInfo      = $this->getModuleDetails($UserData->UserOrgUID)->Data;
 
-            // Product Settings (OrgProductSettingsTbl) — stored in main JWT payload
+            // Product Settings (OrgProductSettingsTbl) â€” stored in main JWT payload
             $productSettingsResult = $this->getProductSettings($UserData->UserOrgUID);
             $ProductSettings = (!$productSettingsResult->Error && !empty($productSettingsResult->Data))
                 ? $productSettingsResult->Data[0]
                 : new stdClass();
 
-            // Transaction Settings (TransactionSettingsTbl) — stored in main JWT payload
+            // Transaction Settings (TransactionSettingsTbl) â€” stored in main JWT payload
             $transSettingsResult = $this->getOrgTransactionSettings($UserData->UserOrgUID);
             $TransSettings = (!$transSettingsResult->Error && !empty($transSettingsResult->Data))
                 ? $transSettingsResult->Data[0]
@@ -87,7 +87,7 @@ class Login_model extends CI_Model {
                 }
             }
 
-            // Attachment config — loaded once at login, lives in JWT/Redis for session lifetime
+            // Attachment config â€” loaded once at login, lives in JWT/Redis for session lifetime
             $AttachCfg = $this->getAttachCfg();
 
             // Branches the user can switch to (populated from UserBranchAccessTbl)
@@ -101,7 +101,6 @@ class Login_model extends CI_Model {
                 $plFlagKey = $this->redisservice->orgKey('has-price-lists', $UserData->OrgToken ?? '');
                 $this->upstashservice->set($plFlagKey, ($plRow && (int)$plRow->cnt > 0), 0);
             } catch (Throwable $e) {
-                log_message('error', 'formatJWTPayload has-price-lists: ' . $e->getMessage());
             }
 
             $this->EndReturnData->Error = FALSE;
@@ -161,7 +160,7 @@ class Login_model extends CI_Model {
 
     }
 
-    // ── Role-based menu queries ──────────────────────────────────
+    // â”€â”€ Role-based menu queries â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getRoleMainMenus(int $RoleUID): object {
 
         $this->EndReturnData = new stdClass();
@@ -421,7 +420,7 @@ class Login_model extends CI_Model {
         }
     }
 
-    // ── Attachment config ─────────────────────────────────────────────────────
+    // â”€â”€ Attachment config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private function getAttachCfg(): array {
         try {
@@ -463,7 +462,6 @@ class Login_model extends CI_Model {
             return $query ? $query->result() : [];
         } catch (Throwable $e) {
             notifyError($e, 'Login_model::_loadAccessibleBranches');
-            log_message('error', '_loadAccessibleBranches: ' . $e->getMessage());
             return [];
         }
     }

@@ -28,7 +28,6 @@ class Customers_model extends CI_Model {
             return [(float)($row->CreditTotal ?? 0), (float)($row->DebitTotal ?? 0)];
         } catch (Exception $e) {
             notifyError('Customers_model::getCustomerPendingNoteTotals', $e);
-            log_message('error', 'Customers_model::getCustomerPendingNoteTotals failed: ' . $e->getMessage());
             return [0.0, 0.0];
         }
     }
@@ -310,7 +309,7 @@ class Customers_model extends CI_Model {
                 $baseWhere['Customers.IsActive'] = (int) $filter['IsActive'];
             }
 
-            // ToCollect / ToPay filter — subquery approach works for both count and data queries
+            // ToCollect / ToPay filter â€” subquery approach works for both count and data queries
             $balanceSubquery = null;
             if (!empty($filter['BalanceType'])) {
                 $balType        = ($filter['BalanceType'] === 'Credit') ? 'Credit' : 'Debit';
@@ -524,7 +523,7 @@ class Customers_model extends CI_Model {
 
     }
 
-    // Pure DB fetch — no OrgUID filter (global data); used by AJAX endpoint
+    // Pure DB fetch â€” no OrgUID filter (global data); used by AJAX endpoint
     public function getCustomerTypesFromDB(): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -568,7 +567,7 @@ class Customers_model extends CI_Model {
         }
     }
 
-    // ── Balance recalculation queries ─────────────────────────────────────────
+    // â”€â”€ Balance recalculation queries â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public function getCustomersWithLedgerForBalance(int $orgUID, int $customerUID = 0): array {
         try {
@@ -622,7 +621,7 @@ class Customers_model extends CI_Model {
                 'ModuleUID' => 103,
                 'IsDeleted' => 0,
             ]);
-            // Draft invoices do not affect customer balance — exclude along with Cancelled/Rejected
+            // Draft invoices do not affect customer balance â€” exclude along with Cancelled/Rejected
             $this->ReadDb->where_not_in('DocStatus', ['Draft', 'Cancelled', 'Rejected']);
             $query = $this->ReadDb->get();
             if (!$query) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
@@ -648,7 +647,7 @@ class Customers_model extends CI_Model {
                 'IsCancelled'                  => 0,   // exclude voided/reversed payments
                 'IsExcessApplied'              => 0,   // exclude advance allocation memo rows (no new cash)
             ]);
-            // CN payments are tracked via TransCreditNoteTbl in the balance formula — excluding
+            // CN payments are tracked via TransCreditNoteTbl in the balance formula â€” excluding
             // them here prevents double-counting when TransCreditNoteTbl.Status lags behind.
             $this->ReadDb->where("(SourceType IS NULL OR SourceType != 'CreditNote')", null, false);
             $query = $this->ReadDb->get();
@@ -708,7 +707,6 @@ class Customers_model extends CI_Model {
             return (float)$query->row()->total;
         } catch (Exception $e) {
             notifyError('Customers_model::getCustomerSRCoveredByCreditNote', $e);
-            log_message('error', 'Customers_model::getCustomerSRCoveredByCreditNote failed: ' . $e->getMessage());
             return 0.0;
         }
     }
@@ -742,7 +740,7 @@ class Customers_model extends CI_Model {
     }
 
 
-    // â”€â”€ CustOpeningBalanceTbl (one row per customer, no year) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Ã¢â€â‚¬Ã¢â€â‚¬ CustOpeningBalanceTbl (one row per customer, no year) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
     public function getCustomerOpeningBalance(int $orgUID, int $customerUID): ?object {
         try {
@@ -788,7 +786,7 @@ class Customers_model extends CI_Model {
             }
 
             // CustomerUID was inserted in the caller's open transaction (different connection).
-            // FK check would wait 50s for the uncommitted row → disable for this insert only.
+            // FK check would wait 50s for the uncommitted row â†’ disable for this insert only.
             $this->dbwrite_model->setForeignKeyChecks(false);
             $res = $this->dbwrite_model->insertData('Customers', 'CustOpeningBalanceTbl', [
                 'OrgUID'         => (int)$orgUID,
@@ -863,7 +861,7 @@ class Customers_model extends CI_Model {
 
     // Applies a signed numeric delta (+/-) to the customer running opening balance.
     // Returns ['balance' => float, 'type' => 'Debit'|'Credit'].
-    // ── CustYearOpeningBalanceTbl (year-wise opening balance snapshot) ─────────
+    // â”€â”€ CustYearOpeningBalanceTbl (year-wise opening balance snapshot) â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     // $onlyIfNew=true: insert-only, preserving the year-start snapshot.
     public function saveCustomerYearOpening(int $orgUID, int $customerUID, int $financialYear, float $openingBalance, string $openingBalType, int $userUID, bool $onlyIfNew = false, bool $isNew = false): int {
@@ -933,7 +931,7 @@ class Customers_model extends CI_Model {
         }
     }
 
-    // â”€â”€ CustBalanceHistoryTbl (year-wise snapshots) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Ã¢â€â‚¬Ã¢â€â‚¬ CustBalanceHistoryTbl (year-wise snapshots) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 
     public function getCustomerOnAccountPayments(int $orgUID, int $customerUID): array {
@@ -953,7 +951,7 @@ class Customers_model extends CI_Model {
                 'P.IsDeleted'        => 0,
                 'P.IsCancelled'      => 0,
             ]);
-            // FIFO — oldest first
+            // FIFO â€” oldest first
             $this->ReadDb->order_by('P.CreatedOn', 'ASC');
             $result = $this->ReadDb->get()->result_array();
             return $result ?: [];
@@ -1000,9 +998,9 @@ class Customers_model extends CI_Model {
         }
     }
 
-    // ══════════════════════════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     // Customer Group methods
-    // ══════════════════════════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
     public function getGroupTypes(string $module = 'customers'): array {
         try {
@@ -1021,7 +1019,7 @@ class Customers_model extends CI_Model {
         try {
             $this->ReadDb->db_debug = false;
 
-            // ── Count (no joins needed; all filters are on CG) ──
+            // â”€â”€ Count (no joins needed; all filters are on CG) â”€â”€
             $this->ReadDb->select('COUNT(*) AS cnt', false);
             $this->ReadDb->from('Customers.CustomerGroupTbl CG');
             $this->ReadDb->where(['CG.OrgUID' => (int)$orgUID, 'CG.IsDeleted' => 0]);
@@ -1047,7 +1045,7 @@ class Customers_model extends CI_Model {
             $countRow   = $this->ReadDb->get()->row();
             $totalCount = (int)($countRow->cnt ?? 0);
 
-            // ── Step 1: Paginated groups with member count + primary name (no COB join) ──
+            // â”€â”€ Step 1: Paginated groups with member count + primary name (no COB join) â”€â”€
             $this->ReadDb->select(
                 'CG.GroupUID, CG.GroupCode, CG.GroupName, CG.GroupType,
                  CG.ContactPerson, CG.Mobile, CG.Email, CG.IsActive, CG.CreatedOn,
@@ -1085,7 +1083,7 @@ class Customers_model extends CI_Model {
             $query = $this->ReadDb->get();
             $rows  = $query ? $query->result() : [];
 
-            // ── Step 2: Balance totals scoped only to this page's group UIDs ──
+            // â”€â”€ Step 2: Balance totals scoped only to this page's group UIDs â”€â”€
             if (!empty($rows)) {
                 $groupUIDs = [];
                 foreach ($rows as $row) { $groupUIDs[] = (int)$row->GroupUID; }
@@ -1414,7 +1412,7 @@ class Customers_model extends CI_Model {
         }
     }
 
-    // ── Customer Attachments ──────────────────────────────────────────────────
+    // â”€â”€ Customer Attachments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public function getCustomerAttachments(int $customerUID, int $orgUID): array {
         try {
@@ -1427,7 +1425,6 @@ class Customers_model extends CI_Model {
             return $query ? $query->result_array() : [];
         } catch (Exception $e) {
             notifyError('Customers_model::getCustomerAttachments', $e);
-            log_message('error', 'getCustomerAttachments failed: ' . $e->getMessage());
             return [];
         }
     }
@@ -1445,7 +1442,7 @@ class Customers_model extends CI_Model {
         } catch (Exception $e) { notifyError('Customers_model::getCustomerPrimaryImage', $e); return null; }
     }
 
-    // ── Customer Profile Modal methods ─────────────────────────────────────
+    // â”€â”€ Customer Profile Modal methods â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /**
      * Returns last 6 months of invoice totals per month for the sales bar chart.
@@ -1475,7 +1472,6 @@ class Customers_model extends CI_Model {
             return $query ? $query->result_array() : [];
         } catch (Exception $e) {
             notifyError('Customers_model::getMonthlySalesData', $e);
-            log_message('error', 'getMonthlySalesData: ' . $e->getMessage());
             return [];
         }
     }
@@ -1504,7 +1500,6 @@ class Customers_model extends CI_Model {
             return $query ? $query->result_array() : [];
         } catch (Exception $e) {
             notifyError('Customers_model::getCustomerRecentTransactions', $e);
-            log_message('error', 'getCustomerRecentTransactions: ' . $e->getMessage());
             return [];
         }
     }
@@ -1547,7 +1542,6 @@ class Customers_model extends CI_Model {
             return $all;
         } catch (Exception $e) {
             notifyError('Customers_model::getCustomerStatementData', $e);
-            log_message('error', 'getCustomerStatementData: ' . $e->getMessage());
             return [];
         }
     }
@@ -1567,7 +1561,6 @@ class Customers_model extends CI_Model {
             return $query ? $query->result_array() : [];
         } catch (Exception $e) {
             notifyError('Customers_model::getCustomerNotes', $e);
-            log_message('error', 'getCustomerNotes: ' . $e->getMessage());
             return [];
         }
     }
@@ -1588,11 +1581,11 @@ class Customers_model extends CI_Model {
         if ($res->Error) throw new Exception($res->Message ?? 'Note insert failed.');
     }
 
-    // ── Innovative additions for Customer Profile ──────────────────────────
+    // â”€â”€ Innovative additions for Customer Profile â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /**
      * Single-query aggregation that replaces getCustomerTotalInvoiced, getCustomerTotalReturned,
-     * getCustomerHealthData, and getCustomerAgeing — all in one pass over TransactionsTbl.
+     * getCustomerHealthData, and getCustomerAgeing â€” all in one pass over TransactionsTbl.
      * @return array{TotalInvoiced:float,TotalReturned:float,HealthData:array,Ageing:array}
      */
     public function getCustomerFinancialSummary(int $orgUID, int $customerUID): array {
@@ -1677,7 +1670,6 @@ class Customers_model extends CI_Model {
             ];
         } catch (Exception $e) {
             notifyError('Customers_model::getCustomerFinancialSummary', $e);
-            log_message('error', 'getCustomerFinancialSummary: ' . $e->getMessage());
             return [
                 'TotalInvoiced' => 0.0,
                 'TotalReturned' => 0.0,
@@ -1694,7 +1686,7 @@ class Customers_model extends CI_Model {
     /**
      * Returns health metrics: collection rate, overdue count, last tx date, health score.
      * @return array{CollectionRate:float,OverdueCount:int,HealthScore:string,HealthColor:string,LastTxDate:string|null,DaysSinceLastTx:int|null}
-     * @deprecated Use getCustomerFinancialSummary()['HealthData'] — kept for direct calls outside overview tab.
+     * @deprecated Use getCustomerFinancialSummary()['HealthData'] â€” kept for direct calls outside overview tab.
      */
     public function getCustomerHealthData(int $orgUID, int $customerUID): array {
         try {
@@ -1762,7 +1754,6 @@ class Customers_model extends CI_Model {
             ];
         } catch (Exception $e) {
             notifyError('Customers_model::getCustomerHealthData', $e);
-            log_message('error', 'getCustomerHealthData: ' . $e->getMessage());
             return [
                 'CollectionRate'  => 100.0,
                 'OverdueCount'    => 0,
@@ -1803,15 +1794,14 @@ class Customers_model extends CI_Model {
             ];
         } catch (Exception $e) {
             notifyError('Customers_model::getCustomerAgeing', $e);
-            log_message('error', 'getCustomerAgeing: ' . $e->getMessage());
             return ['Bucket_0_30' => 0.0, 'Bucket_31_60' => 0.0, 'Bucket_61_90' => 0.0, 'Bucket_90Plus' => 0.0];
         }
     }
 
     /**
-     * Returns lifetime revenue, estimated COGS (current purchase price × qty), gross profit and margin %.
+     * Returns lifetime revenue, estimated COGS (current purchase price Ã— qty), gross profit and margin %.
      * Pass $revenue from getCustomerFinancialSummary()['TotalInvoiced'] to skip the redundant revenue SELECT.
-     * Note: COGS uses current ProductTbl.PurchasePrice — not the price at the time of the invoice.
+     * Note: COGS uses current ProductTbl.PurchasePrice â€” not the price at the time of the invoice.
      * @return array{Revenue:float,COGS:float,Profit:float,Margin:float}
      */
     public function getCustomerProfitability(int $orgUID, int $customerUID, float $revenue = -1.0): array {
@@ -1852,18 +1842,17 @@ class Customers_model extends CI_Model {
             ];
         } catch (Exception $e) {
             notifyError('Customers_model::getCustomerProfitability', $e);
-            log_message('error', 'getCustomerProfitability: ' . $e->getMessage());
             return ['Revenue' => 0.0, 'COGS' => 0.0, 'Profit' => 0.0, 'Margin' => 0.0];
         }
     }
 
-    // ── Credit Settings (customer sequence numbers) ───────────────────────────
+    // â”€â”€ Credit Settings (customer sequence numbers) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /**
      * Returns 2-digit financial year start year based on org's FY start month and timezone.
-     * e.g. FYStartMonth=4 (April), date=Aug 2026 → FY starts 2026 → returns 26
-     *      FYStartMonth=4 (April), date=Feb 2026 → FY starts 2025 → returns 25
-     * @param int    $fyStartMonth  1–12, from GenSettings->FYStartMonth
+     * e.g. FYStartMonth=4 (April), date=Aug 2026 â†’ FY starts 2026 â†’ returns 26
+     *      FYStartMonth=4 (April), date=Feb 2026 â†’ FY starts 2025 â†’ returns 25
+     * @param int    $fyStartMonth  1â€“12, from GenSettings->FYStartMonth
      * @param string $timezone      IANA timezone string, from JwtData->User->Timezone
      * @return int
      */
@@ -1895,9 +1884,9 @@ class Customers_model extends CI_Model {
 
     /**
      * Returns a credit-settings row guaranteed to reflect the current financial year.
-     * — No row: inserts fresh row with correct FY year and pre-formatted next numbers.
-     * — Row exists, FY year matches: returns as-is.
-     * — Row exists, FY year stale: corrects DB (seq=1, new year, new CustomerNextNumber)
+     * â€” No row: inserts fresh row with correct FY year and pre-formatted next numbers.
+     * â€” Row exists, FY year matches: returns as-is.
+     * â€” Row exists, FY year stale: corrects DB (seq=1, new year, new CustomerNextNumber)
      *   using an optimistic WHERE so concurrent callers don't double-reset.
      * @param int    $orgUID
      * @param int    $userUID
@@ -1912,7 +1901,7 @@ class Customers_model extends CI_Model {
 
         if ($existing) {
             if ((int) $existing->CustomerSeqYear !== $fyYear2) {
-                // Financial year rolled over — reset Customer sequence for new FY.
+                // Financial year rolled over â€” reset Customer sequence for new FY.
                 // Optimistic WHERE on CustomerSeqYear: only one concurrent caller wins;
                 // losers fall through to getCreditSettings() and get the corrected row.
                 $this->load->model('dbwrite_model');
@@ -1929,7 +1918,7 @@ class Customers_model extends CI_Model {
                 return $this->getCreditSettings($orgUID);
             }
             if (empty($existing->CustomerNextNumber)) {
-                // Row exists but CustomerNextNumber is NULL — column was added after row was
+                // Row exists but CustomerNextNumber is NULL â€” column was added after row was
                 // created (ALTER TABLE migration). Backfill next number AND correct the year
                 // so claimNextCustomerNumber never sees a stale CustomerSeqYear mismatch.
                 $nextNum = 'C-' . $yrPad . str_pad((int) $existing->CustomerSeq, 4, '0', STR_PAD_LEFT);
@@ -1947,7 +1936,7 @@ class Customers_model extends CI_Model {
             return $existing;
         }
 
-        // No row yet — insert with correct FY year and pre-formatted next numbers.
+        // No row yet â€” insert with correct FY year and pre-formatted next numbers.
         $this->load->model('dbwrite_model');
         $this->dbwrite_model->insertData('Settings', 'OrgCreditSettingsTbl', [
             'OrgUID'             => $orgUID,
@@ -1966,7 +1955,7 @@ class Customers_model extends CI_Model {
      * Atomically claims the next customer number for $orgUID.
      * Handles financial year rollover: if the stored FY year differs from the
      * current FY year (calculated from $fyStartMonth + $timezone), seq resets to 1
-     * for the new year automatically — no manual intervention ever needed.
+     * for the new year automatically â€” no manual intervention ever needed.
      * Uses a 5-retry optimistic lock (WHERE CustomerSeq + CustomerSeqYear) so
      * concurrent saves cannot produce duplicate numbers.
      * Returns ['claimed' => 'C-260001', 'next' => 'C-260002'] on success, null on failure.
@@ -1989,7 +1978,7 @@ class Customers_model extends CI_Model {
                 $storedSeq     = (int) $row->CustomerSeq;
                 $yrPad         = str_pad($currentFYYear, 2, '0', STR_PAD_LEFT);
 
-                // Determine if this is a real 1-year FY rollover (e.g. 25→26, or 99→0)
+                // Determine if this is a real 1-year FY rollover (e.g. 25â†’26, or 99â†’0)
                 // vs stale initialisation data (e.g. 93 stored when current year is 26).
                 // Only a difference of exactly 1 (mod 100) counts as a genuine rollover.
                 $isLegitRollover = ($storedFYYear === (($currentFYYear - 1 + 100) % 100));
@@ -2025,12 +2014,11 @@ class Customers_model extends CI_Model {
                 if ($db->affected_rows() === 1) {
                     return ['claimed' => $claimedNum, 'next' => $nextNum];
                 }
-                // Lost optimistic race — retry with fresh row values
+                // Lost optimistic race â€” retry with fresh row values
             }
             return null;
         } catch (Exception $e) {
             notifyError('Customers_model::claimNextCustomerNumber', $e);
-            log_message('error', 'claimNextCustomerNumber: ' . $e->getMessage());
             return null;
         }
     }

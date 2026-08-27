@@ -1,7 +1,7 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
 
 /**
- * Geminiapi — thin cURL wrapper for Google Gemini Flash.
+ * Geminiapi â€” thin cURL wrapper for Google Gemini Flash.
  * No external dependencies; works in the existing Docker PHP environment.
  *
  * Usage (from a controller):
@@ -80,19 +80,16 @@ class Geminiapi {
         curl_close($ch);
 
         if ($err) {
-            log_message('error', '[Geminiapi] cURL error: ' . $err);
             return 'Network error connecting to AI service. Please try again.';
         }
 
         $data = @json_decode($raw, true);
 
         if (!is_array($data)) {
-            log_message('error', '[Geminiapi] Unparseable response (HTTP ' . $code . '): ' . substr($raw, 0, 300));
             return 'AI service returned an unexpected response. Please try again.';
         }
 
         if (!empty($data['error'])) {
-            log_message('error', '[Geminiapi] API error: ' . json_encode($data['error']));
             $msg = $data['error']['message'] ?? 'Unknown error';
             if ($code === 400) return 'Request was rejected by AI service. Try rephrasing your question.';
             if ($code === 429) return 'AI service rate limit reached. Please wait a moment and try again.';
@@ -101,7 +98,6 @@ class Geminiapi {
 
         $text = $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
         if ($text === null) {
-            log_message('error', '[Geminiapi] No text in response: ' . json_encode($data));
             return 'I couldn\'t generate a response. Please try rephrasing your question.';
         }
 

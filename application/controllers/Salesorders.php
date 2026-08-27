@@ -37,6 +37,8 @@ class Salesorders extends MY_Controller {
                 'listViewExtraData' => ['WhatsAppTemplate' => $templates['WhatsApp'] ?? null],
             ]);
             $this->load->view('transactions/salesorders/view', $this->pageData);
+        } catch (ValidationException $e) {
+            redirect('dashboard', 'refresh');
         } catch (Exception $e) {
             $this->notifyError('Salesorders::index', $e);
             redirect('dashboard', 'refresh');
@@ -132,6 +134,10 @@ class Salesorders extends MY_Controller {
             $this->EndReturnData->TransUID = $transUID;
             $this->EndReturnData->Token    = $headerData['TransToken'];
 
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             $this->notifyError('Salesorders::addSalesOrder', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -156,7 +162,7 @@ class Salesorders extends MY_Controller {
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
             $transUID = (int) getPostValue($PostData, 'TransUID');
-            if ($transUID <= 0) throw new Exception('Sales Order ID is required.');
+            if ($transUID <= 0) throw new ValidationException('Sales Order ID is required.');
 
             $itemsJson = $this->_validateTransForm($PostData);
             $amounts   = $this->_extractTransAmounts($PostData, $itemsJson);
@@ -180,21 +186,21 @@ class Salesorders extends MY_Controller {
 
             $this->load->model('transactions_model');
             $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
-            if (!$existing) throw new Exception('Sales Order not found.');
+            if (!$existing) throw new ValidationException('Sales Order not found.');
 
             $uniqueNumber = NULL;
             if ($existing->DocStatus === 'Draft' && !$isDraft) {
-                if ($prefixUID <= 0) throw new Exception('Please select a prefix to finalize this sales order.');
-                if ($transNumber <= 0) throw new Exception('Transaction number must be greater than 0.');
+                if ($prefixUID <= 0) throw new ValidationException('Please select a prefix to finalize this sales order.');
+                if ($transNumber <= 0) throw new ValidationException('Transaction number must be greater than 0.');
 
                 $prefixData = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.PrefixUID' => $prefixUID, 'Prefix.OrgUID' => $orgUID]);
-                if (empty($prefixData->Data)) throw new Exception('Invalid prefix selected.');
+                if (empty($prefixData->Data)) throw new ValidationException('Invalid prefix selected.');
                 $prefix = $prefixData->Data[0];
 
                 $dupCheck = $this->transactions_model->getTransactionByPrefixAndNumber($prefixUID, $transNumber, $orgUID, $this->pageModuleUID);
                 if ($dupCheck) {
                     $nextSuggested = $this->transactions_model->getNextTransactionNumber($prefixUID, $orgUID, $this->pageModuleUID);
-                    throw new Exception("Transaction number {$transNumber} already exists. Next available: {$nextSuggested}.");
+                    throw new ValidationException("Transaction number {$transNumber} already exists. Next available: {$nextSuggested}.");
                 }
 
                 [$uniqueNumber] = $this->buildUniqueNumber($prefix, $transNumber, $amounts['transDate']);
@@ -290,6 +296,10 @@ class Salesorders extends MY_Controller {
                 [], 'Updated sales order ' . ($uniqueNumber ?? $existing->UniqueNumber ?? ''), 'SalesOrders', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
             );
 
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             $this->notifyError('Salesorders::updateSalesOrder', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -314,14 +324,14 @@ class Salesorders extends MY_Controller {
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
             $transUID = (int) getPostValue($PostData, 'TransUID');
-            if ($transUID <= 0) throw new Exception('Sales Order ID is required.');
+            if ($transUID <= 0) throw new ValidationException('Sales Order ID is required.');
 
             $this->load->model('transactions_model');
             $existing = $this->transactions_model->getTransactionPageList(1, 0, $this->pageModuleUID, [
                 'TransUID' => $transUID,
                 'OrgUID'   => $orgUID,
             ]);
-            if (empty($existing)) throw new Exception('Sales Order not found.');
+            if (empty($existing)) throw new ValidationException('Sales Order not found.');
 
             $now = time();
 
@@ -351,6 +361,10 @@ class Salesorders extends MY_Controller {
             );
             $this->_buildListResponse('transactions/salesorders/list', '/transactions/getPageDetails/102');
 
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             $this->notifyError('Salesorders::deleteSalesOrder', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -375,16 +389,16 @@ class Salesorders extends MY_Controller {
             $userUID  = $this->pageData['JwtData']->User->UserUID;
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
-            if ($srcUID <= 0) throw new Exception('Invalid sales order.');
+            if ($srcUID <= 0) throw new ValidationException('Invalid sales order.');
 
             $this->load->model('transactions_model');
             $src = $this->transactions_model->getTransactionById($srcUID, $orgUID, $this->pageModuleUID);
-            if (!$src) throw new Exception('Sales Order not found.');
+            if (!$src) throw new ValidationException('Sales Order not found.');
 
             $nextNumber   = $this->transactions_model->getNextTransactionNumber($src->PrefixUID, $orgUID, $this->pageModuleUID);
             $prefixResult = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.PrefixUID' => $src->PrefixUID, 'Prefix.OrgUID' => $orgUID]);
             $prefix       = $prefixResult->Data[0] ?? null;
-            if (!$prefix) throw new Exception('Prefix not found.');
+            if (!$prefix) throw new ValidationException('Prefix not found.');
 
             $sep   = $prefix->Separator ?? '-';
             $parts = [strtoupper($prefix->Name)];
@@ -513,6 +527,10 @@ class Salesorders extends MY_Controller {
             $this->EndReturnData->TransUID = $newTransUID;
             $this->EndReturnData->EditURL  = '/salesorders/edit/' . $newTransUID;
 
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             $this->notifyError('Salesorders::duplicateSalesOrder', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -535,12 +553,12 @@ class Salesorders extends MY_Controller {
             $userUID  = $this->pageData['JwtData']->User->UserUID;
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
-            if ($transUID <= 0) throw new Exception('Invalid sales order.');
+            if ($transUID <= 0) throw new ValidationException('Invalid sales order.');
 
             $this->load->model('transactions_model');
             $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
-            if (!$existing) throw new Exception('Sales Order not found.');
-            if ($existing->DocStatus !== 'Pending') throw new Exception('Only Pending orders can be converted to an Invoice.');
+            if (!$existing) throw new ValidationException('Sales Order not found.');
+            if ($existing->DocStatus !== 'Pending') throw new ValidationException('Only Pending orders can be converted to an Invoice.');
 
             $this->dbwrite_model->startTransaction();
             $resp = $this->dbwrite_model->updateData(
@@ -560,6 +578,10 @@ class Salesorders extends MY_Controller {
             );
             $this->EndReturnData->RedirectURL = '/invoices/create?fromSalesOrder=' . $transUID;
 
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             $this->notifyError('Salesorders::convertSalesOrderToInvoice', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -582,12 +604,12 @@ class Salesorders extends MY_Controller {
             $userUID  = $this->pageData['JwtData']->User->UserUID;
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
-            if ($transUID <= 0) throw new Exception('Invalid sales order.');
+            if ($transUID <= 0) throw new ValidationException('Invalid sales order.');
 
             $this->load->model('transactions_model');
             $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
-            if (!$existing) throw new Exception('Sales Order not found.');
-            if ($existing->DocStatus !== 'Pending') throw new Exception('Only Pending orders can be converted to a Delivery Challan.');
+            if (!$existing) throw new ValidationException('Sales Order not found.');
+            if ($existing->DocStatus !== 'Pending') throw new ValidationException('Only Pending orders can be converted to a Delivery Challan.');
 
             $this->dbwrite_model->startTransaction();
             $resp = $this->dbwrite_model->updateData(
@@ -602,6 +624,10 @@ class Salesorders extends MY_Controller {
             $this->EndReturnData->Message     = 'Sales order marked as converted.';
             $this->EndReturnData->RedirectURL = '/deliverychallan/create?fromSalesOrder=' . $transUID;
 
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             $this->notifyError('Salesorders::convertSalesOrderToDeliveryChallan', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -625,7 +651,7 @@ class Salesorders extends MY_Controller {
             $userUID   = $this->pageData['JwtData']->User->UserUID;
             $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
 
-            if ($transUID <= 0) throw new Exception('Invalid sales order.');
+            if ($transUID <= 0) throw new ValidationException('Invalid sales order.');
 
             $validTransitions = [
                 'Draft'     => ['Pending'],
@@ -636,11 +662,11 @@ class Salesorders extends MY_Controller {
 
             $this->load->model('transactions_model');
             $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
-            if (!$existing) throw new Exception('Sales Order not found.');
+            if (!$existing) throw new ValidationException('Sales Order not found.');
 
             $current = $existing->DocStatus;
             if (!in_array($newStatus, $validTransitions[$current] ?? [])) {
-                throw new Exception("Cannot change status from {$current} to {$newStatus}.");
+                throw new ValidationException("Cannot change status from {$current} to {$newStatus}.");
             }
 
             $this->dbwrite_model->startTransaction();
@@ -662,6 +688,10 @@ class Salesorders extends MY_Controller {
             $this->EndReturnData->NewStatus       = $newStatus;
             $this->_buildListResponse('transactions/salesorders/list', '/transactions/getPageDetails/102');
 
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             $this->notifyError('Salesorders::updateSalesOrderStatus', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -728,6 +758,8 @@ class Salesorders extends MY_Controller {
 
             $this->load->view('transactions/salesorders/forms/form', $this->pageData);
 
+        } catch (ValidationException $e) {
+            redirect('salesorders', 'refresh');
         } catch (Exception $e) {
             $this->notifyError('Salesorders::create', $e);
             redirect('salesorders', 'refresh');
@@ -792,6 +824,8 @@ class Salesorders extends MY_Controller {
 
             $this->load->view('transactions/salesorders/forms/form', $this->pageData);
 
+        } catch (ValidationException $e) {
+            redirect('salesorders', 'refresh');
         } catch (Exception $e) {
             $this->notifyError('Salesorders::edit', $e);
             redirect('salesorders', 'refresh');

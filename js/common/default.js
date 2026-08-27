@@ -1539,10 +1539,10 @@ function baseUnSelectFunctionality(PageSelcType) {
     $('#unSelectPagesModal').modal('hide');
 }
 
-function smartDecimal(number, maxDecimals = 6, digReq = false) {
+function smartDecimal(number, maxDecimals = 9, digReq = false) {
     number = parseFloat(number);
 
-    // Format to max 6 decimal places
+    // Format to max 9 decimal places
     let formatted = number.toFixed(maxDecimals);
 
     if (digReq) {

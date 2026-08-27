@@ -6,53 +6,53 @@
  * Sends formatted error/alert messages to a Telegram chat via Bot API.
  * Uses fire-and-forget cURL with a short timeout so it never blocks the app.
  *
- * Usage (static — works anywhere, no CI load needed):
+ * Usage (static â€” works anywhere, no CI load needed):
  *   Telegramnotifier::error('Something broke', $exception);
  *   Telegramnotifier::alert('Low stock warning', ['product' => 'Widget']);
  *
  * Config via .env:
- *   TELEGRAM_BOT_TOKEN   — token from @BotFather
- *   TELEGRAM_CHAT_ID     — your personal or group chat ID
+ *   TELEGRAM_BOT_TOKEN   â€” token from @BotFather
+ *   TELEGRAM_CHAT_ID     â€” your personal or group chat ID
  */
 class Telegramnotifier
 {
     private static string $apiBase = 'https://api.telegram.org/bot';
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // Public API
-    // ─────────────────────────────────────────────────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /**
-     * Send an error notification (red alert — exceptions, DB failures, etc.)
+     * Send an error notification (red alert â€” exceptions, DB failures, etc.)
      *
      * @param string         $title   Short description of where the error occurred
      * @param Throwable|null $e       The caught exception (optional)
-     * @param array          $context Extra key→value pairs to include in the message
+     * @param array          $context Extra keyâ†’value pairs to include in the message
      * @return void
      */
     public static function error(string $title, ?Throwable $e = null, array $context = []): void
     {
         $lines   = [];
-        $lines[] = '🚨 <b>ERROR</b>';
+        $lines[] = 'ðŸš¨ <b>ERROR</b>';
         $lines[] = '<b>' . self::_esc($title) . '</b>';
         $lines[] = '';
 
         if ($e !== null) {
-            $lines[] = '📋 <b>Message:</b> ' . self::_esc($e->getMessage());
-            $lines[] = '📁 <b>File:</b> <code>' . self::_esc(self::_shortPath($e->getFile())) . ':' . $e->getLine() . '</code>';
+            $lines[] = 'ðŸ“‹ <b>Message:</b> ' . self::_esc($e->getMessage());
+            $lines[] = 'ðŸ“ <b>File:</b> <code>' . self::_esc(self::_shortPath($e->getFile())) . ':' . $e->getLine() . '</code>';
         }
 
         if (!empty($context)) {
             $lines[] = '';
             foreach ($context as $key => $val) {
-                $lines[] = "• <b>{$key}:</b> " . self::_esc((string)$val);
+                $lines[] = "â€¢ <b>{$key}:</b> " . self::_esc((string)$val);
             }
         }
 
         $lines[] = '';
-        $lines[] = '🌐 <b>URL:</b> <code>' . self::_esc(self::_currentUrl()) . '</code>';
-        $lines[] = '🕐 <b>Time:</b> ' . date('d M Y  H:i:s');
-        $lines[] = '⚙️ <b>Env:</b> ' . self::_esc(getenv('CI_ENV') ?: 'unknown');
+        $lines[] = 'ðŸŒ <b>URL:</b> <code>' . self::_esc(self::_currentUrl()) . '</code>';
+        $lines[] = 'ðŸ• <b>Time:</b> ' . date('d M Y  H:i:s');
+        $lines[] = 'âš™ï¸ <b>Env:</b> ' . self::_esc(getenv('CI_ENV') ?: 'unknown');
 
         self::_send(implode("\n", $lines));
     }
@@ -67,25 +67,25 @@ class Telegramnotifier
     public static function alert(string $title, array $context = []): void
     {
         $lines   = [];
-        $lines[] = '⚠️ <b>ALERT</b>';
+        $lines[] = 'âš ï¸ <b>ALERT</b>';
         $lines[] = '<b>' . self::_esc($title) . '</b>';
 
         if (!empty($context)) {
             $lines[] = '';
             foreach ($context as $key => $val) {
-                $lines[] = "• <b>{$key}:</b> " . self::_esc((string)$val);
+                $lines[] = "â€¢ <b>{$key}:</b> " . self::_esc((string)$val);
             }
         }
 
         $lines[] = '';
-        $lines[] = '🕐 <b>Time:</b> ' . date('d M Y  H:i:s');
+        $lines[] = 'ðŸ• <b>Time:</b> ' . date('d M Y  H:i:s');
 
         self::_send(implode("\n", $lines));
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // Internal helpers
-    // ─────────────────────────────────────────────────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /**
      * @param string $message  HTML-formatted message text
@@ -97,7 +97,6 @@ class Telegramnotifier
         $chatId = getenv('TELEGRAM_CHAT_ID');
 
         if (empty($token) || empty($chatId)) {
-            log_message('error', '[Telegramnotifier] TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not set in .env');
             return;
         }
 
@@ -125,11 +124,9 @@ class Telegramnotifier
         curl_close($ch);
 
         if ($curlErr) {
-            log_message('error', '[Telegramnotifier] cURL error: ' . $curlErr);
         } elseif ($response) {
             $decoded = json_decode($response, true);
             if (!($decoded['ok'] ?? false)) {
-                log_message('error', '[Telegramnotifier] Telegram API error: ' . $response);
             }
         }
     }

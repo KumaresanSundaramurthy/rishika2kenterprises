@@ -60,6 +60,8 @@ class Payments extends MY_Controller {
 
             $this->load->view('transactions/payments/view', $this->pageData);
 
+        } catch (ValidationException $e) {
+            redirect('dashboard', 'refresh');
         } catch (Exception $e) {
             notifyError('Payments::index', $e);
             redirect('dashboard', 'refresh');
@@ -79,7 +81,7 @@ class Payments extends MY_Controller {
             $offset = ($pageNo - 1) * $limit;
             $filter = $this->input->post('Filter') ?: [];
 
-            // Unified: show both In and Out — direction filter comes from client if set
+            // Unified: show both In and Out â€” direction filter comes from client if set
             $orgUID = $this->pageData['JwtData']->Org->OrgUID;
 
             $this->load->model('transactions_model');
@@ -99,6 +101,9 @@ class Payments extends MY_Controller {
             $this->EndReturnData->RecordHtmlData = $rowHtml;
             $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml('/payments/getPaymentsPageDetails', $allDataCount, $pageNo, $limit);
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Payments::getPaymentsPageDetails', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -123,6 +128,9 @@ class Payments extends MY_Controller {
                 $this->EndReturnData->Stats = $this->transactions_model->getPaymentsBalanceStats($orgUID, $filter);
             }
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Payments::getStats', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -162,11 +170,11 @@ class Payments extends MY_Controller {
             $onAccountAmount           = (float) getPostValue($PostData, 'OnAccountAmount', 'Array', 0);
             $onAccountSourcePaymentUID = (int)   getPostValue($PostData, 'OnAccountSourcePaymentUID');
 
-            if ($transUID <= 0) throw new Exception('Invalid transaction.');
-            if ($amount <= 0 && $advanceAmount <= 0 && $onAccountAmount <= 0) throw new Exception('Payment amount must be greater than 0.');
-            if ($amount > 0 && $paymentTypeUID <= 0) throw new Exception('Please select a payment type.');
-            if ($advanceAmount > 0 && $excessSourcePaymentUID <= 0) throw new Exception('Invalid advance payment source.');
-            if ($onAccountAmount > 0 && $onAccountSourcePaymentUID <= 0) throw new Exception('Invalid on-account payment source.');
+            if ($transUID <= 0) throw new ValidationException('Invalid transaction.');
+            if ($amount <= 0 && $advanceAmount <= 0 && $onAccountAmount <= 0) throw new ValidationException('Payment amount must be greater than 0.');
+            if ($amount > 0 && $paymentTypeUID <= 0) throw new ValidationException('Please select a payment type.');
+            if ($advanceAmount > 0 && $excessSourcePaymentUID <= 0) throw new ValidationException('Invalid advance payment source.');
+            if ($onAccountAmount > 0 && $onAccountSourcePaymentUID <= 0) throw new ValidationException('Invalid on-account payment source.');
 
             // Lock the invoice row to serialise concurrent payment recordings.
             // A second request reaching this point while the first is inside the
@@ -178,13 +186,13 @@ class Payments extends MY_Controller {
                 $lockedInv = $this->transactions_model->lockInvoiceForUpdate($transUID, $orgUID);
 
                 if (!$lockedInv) {
-                    throw new Exception('Invoice not found.');
+                    throw new ValidationException('Invoice not found.');
                 }
                 if ((int)($lockedInv->IsDeleted ?? 0) === 1) {
-                    throw new Exception('This invoice has been deleted and cannot accept payments.');
+                    throw new ValidationException('This invoice has been deleted and cannot accept payments.');
                 }
                 if (in_array($lockedInv->DocStatus, ['Cancelled', 'Rejected'], true)) {
-                    throw new Exception('This invoice is ' . $lockedInv->DocStatus . ' and cannot accept payments.');
+                    throw new ValidationException('This invoice is ' . $lockedInv->DocStatus . ' and cannot accept payments.');
                 }
 
                 $freshNetAmount  = (float)($lockedInv->NetAmount  ?? 0);
@@ -192,7 +200,7 @@ class Payments extends MY_Controller {
 
                 if ($freshNetAmount > 0) {
                     if ($freshPaidAmount >= $freshNetAmount) {
-                        throw new Exception(
+                        throw new ValidationException(
                             'This invoice has already been fully paid. No further payment is needed.',
                             1002
                         );
@@ -200,10 +208,10 @@ class Payments extends MY_Controller {
                     $totalAfterPayment = round($freshPaidAmount + $amount, $this->_decimals());
                     if ($totalAfterPayment > round($freshNetAmount, $this->_decimals())) {
                         $remaining = max(0, round($freshNetAmount - $freshPaidAmount, $this->_decimals()));
-                        throw new Exception(
+                        throw new ValidationException(
                             'Payment exceeds the invoice balance. ' .
                             'Remaining: ' . number_format($remaining, $this->_decimals()) . '. ' .
-                            'Another payment may have been recorded simultaneously — please refresh and try again.'
+                            'Another payment may have been recorded simultaneously â€” please refresh and try again.'
                         );
                     }
                 }
@@ -211,22 +219,22 @@ class Payments extends MY_Controller {
 
             $excessAmount = $freshNetAmount > 0 ? max(0, $amount - $freshNetAmount) : 0;
 
-            // ── On Account allocation guard (race-condition safe) ───────────────
+            // â”€â”€ On Account allocation guard (race-condition safe) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             $lockedOnAccountSource = null;
             if ($onAccountAmount > 0 && $onAccountSourcePaymentUID > 0) {
                 $lockedOnAccountSource = $this->transactions_model->lockOnAccountSourcePayment(
                     $onAccountSourcePaymentUID, $orgUID, $partyUID
                 );
-                if (!$lockedOnAccountSource) throw new Exception('On-account payment source not found.', 1001);
+                if (!$lockedOnAccountSource) throw new ValidationException('On-account payment source not found.', 1001);
                 $availableOnAccount = round((float)($lockedOnAccountSource->Amount ?? 0), $this->_decimals());
-                if ($availableOnAccount <= 0) throw new Exception('No on-account balance available — it may have been used by another user. Please refresh and try again.', 1001);
+                if ($availableOnAccount <= 0) throw new ValidationException('No on-account balance available â€” it may have been used by another user. Please refresh and try again.', 1001);
                 $onAccountAmount = round($onAccountAmount, $this->_decimals());
                 if ($onAccountAmount > $availableOnAccount) {
-                    throw new Exception('On-account amount (' . number_format($onAccountAmount, $this->_decimals()) . ') exceeds available balance (' . number_format($availableOnAccount, $this->_decimals()) . ').');
+                    throw new ValidationException('On-account amount (' . number_format($onAccountAmount, $this->_decimals()) . ') exceeds available balance (' . number_format($availableOnAccount, $this->_decimals()) . ').');
                 }
             }
 
-            // ── Advance allocation guard (race-condition safe) ──────────────────
+            // â”€â”€ Advance allocation guard (race-condition safe) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             // Lock the source payment row with FOR UPDATE so concurrent requests
             // queue here. After the lock, re-read ExcessAmount to ensure the advance
             // is still available and hasn't been consumed by another user.
@@ -237,25 +245,25 @@ class Payments extends MY_Controller {
                 );
 
                 if (!$lockedSource) {
-                    throw new Exception('Advance payment source not found.');
+                    throw new ValidationException('Advance payment source not found.');
                 }
                 if ((int)($lockedSource->IsDeleted  ?? 0) === 1) {
-                    throw new Exception('The advance payment source has been deleted.');
+                    throw new ValidationException('The advance payment source has been deleted.');
                 }
                 if ((int)($lockedSource->IsCancelled ?? 0) === 1) {
-                    throw new Exception('The advance payment source has been cancelled.');
+                    throw new ValidationException('The advance payment source has been cancelled.');
                 }
                 $availableExcess = round((float)($lockedSource->ExcessAmount ?? 0), $this->_decimals());
                 if ($availableExcess <= 0) {
-                    throw new Exception('No advance balance available — it may have been used by another user. Please refresh and try again.', 1001);
+                    throw new ValidationException('No advance balance available â€” it may have been used by another user. Please refresh and try again.', 1001);
                 }
                 $advanceAmount = round($advanceAmount, $this->_decimals());
                 if ($advanceAmount > $availableExcess) {
-                    throw new Exception('Advance amount (' . number_format($advanceAmount, $this->_decimals()) . ') exceeds available balance (' . number_format($availableExcess, $this->_decimals()) . ').');
+                    throw new ValidationException('Advance amount (' . number_format($advanceAmount, $this->_decimals()) . ') exceeds available balance (' . number_format($availableExcess, $this->_decimals()) . ').');
                 }
             }
 
-            // ── Insert fresh cash payment (if amount > 0) ──────────────────────
+            // â”€â”€ Insert fresh cash payment (if amount > 0) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             $freshPaymentUID = null;
             if ($amount > 0) {
                 $paymentData = [
@@ -286,7 +294,7 @@ class Payments extends MY_Controller {
                 $freshPaymentUID = $resp->ID;
             }
 
-            // ── Insert advance allocation memo row (if advanceAmount > 0) ───────
+            // â”€â”€ Insert advance allocation memo row (if advanceAmount > 0) â”€â”€â”€â”€â”€â”€â”€
             // This row is excluded from customer balance (IsExcessApplied = 1).
             // It only increments the invoice PaidAmount so the invoice shows correctly.
             $advancePaymentUID = null;
@@ -323,7 +331,7 @@ class Payments extends MY_Controller {
                 $this->transactions_model->reduceExcessAmount($excessSourcePaymentUID, $orgUID, $newExcess, $userUID);
             }
 
-            // ── Insert on-account allocation memo row (if onAccountAmount > 0) ──
+            // â”€â”€ Insert on-account allocation memo row (if onAccountAmount > 0) â”€â”€
             $onAccountPaymentUID = null;
             if ($onAccountAmount > 0 && $lockedOnAccountSource !== null) {
                 $oaPaymentData = [
@@ -361,8 +369,8 @@ class Payments extends MY_Controller {
             if ($amount > 0 && $freshPaymentUID) {
                 $ledgerDirection = ($partyType === 'C') ? 'CR' : 'DR';
                 $ledgerNarration = ($partyType === 'C')
-                    ? 'Payment received from customer — #' . (int)$freshPaymentUID
-                    : 'Payment made to vendor — #' . (int)$freshPaymentUID;
+                    ? 'Payment received from customer â€” #' . (int)$freshPaymentUID
+                    : 'Payment made to vendor â€” #' . (int)$freshPaymentUID;
                 $this->_writeBankLedgerEntry(
                     $orgUID, $bankAccountUID, $ledgerDirection, $amount,
                     'Payment', (int)$freshPaymentUID, $moduleUID ?: $this->pageModuleUID,
@@ -381,14 +389,19 @@ class Payments extends MY_Controller {
 
             $auditMeta = ['TransUID' => $transUID, 'Amount' => $amount, 'AdvanceAmount' => $advanceAmount, 'OnAccountAmount' => $onAccountAmount];
             $auditDesc = 'Recorded payment for transaction #' . $transUID
-                . ($advanceAmount > 0 ? ' (includes ₹' . $advanceAmount . ' advance from Payment #' . $excessSourcePaymentUID . ')' : '')
-                . ($onAccountAmount > 0 ? ' (includes ₹' . $onAccountAmount . ' on-account from Payment #' . $onAccountSourcePaymentUID . ')' : '');
+                . ($advanceAmount > 0 ? ' (includes â‚¹' . $advanceAmount . ' advance from Payment #' . $excessSourcePaymentUID . ')' : '')
+                . ($onAccountAmount > 0 ? ' (includes â‚¹' . $onAccountAmount . ' on-account from Payment #' . $onAccountSourcePaymentUID . ')' : '');
             $this->auditlog->log(
                 (int)$orgUID, (int)$userUID,
                 'ADD_PAYMENT', 'Payment', (int)($freshPaymentUID ?? $advancePaymentUID), '',
                 $auditMeta, $auditDesc, 'Payments', 'PAYMENT', 'SUCCESS', '', 'WEB', [], [], $PostData
             );
 
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error     = TRUE;
+            $this->EndReturnData->Message   = $e->getMessage();
+            $this->EndReturnData->ErrorCode = $e->getCode() ?: 0;
         } catch (Exception $e) {
             notifyError('Payments::addPayment', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -409,7 +422,7 @@ class Payments extends MY_Controller {
             $transUID = (int) $this->input->get_post('TransUID');
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
-            if ($transUID <= 0) throw new Exception('Invalid transaction.');
+            if ($transUID <= 0) throw new ValidationException('Invalid transaction.');
 
             $this->load->model('transactions_model');
             $payments    = $this->transactions_model->getTransactionPayments($transUID, $orgUID);
@@ -419,6 +432,9 @@ class Payments extends MY_Controller {
             $this->EndReturnData->Payments   = $payments;
             $this->EndReturnData->PaidTotal  = $paidTotal;
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Payments::getPaymentsByTransaction', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -438,15 +454,18 @@ class Payments extends MY_Controller {
             $paymentUID = (int) getPostValue($PostData, 'PaymentUID');
             $orgUID     = $this->pageData['JwtData']->Org->OrgUID;
 
-            if ($paymentUID <= 0) throw new Exception('Invalid payment record.');
+            if ($paymentUID <= 0) throw new ValidationException('Invalid payment record.');
 
             $this->load->model('transactions_model');
             $record = $this->transactions_model->getPaymentDetailById($paymentUID, $orgUID);
-            if (!$record) throw new Exception('Payment record not found.');
+            if (!$record) throw new ValidationException('Payment record not found.');
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $record;
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Payments::getPaymentDetail', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -470,18 +489,18 @@ class Payments extends MY_Controller {
             $userUID    = $this->pageData['JwtData']->User->UserUID;
             $orgUID     = $this->pageData['JwtData']->Org->OrgUID;
 
-            if ($paymentUID <= 0) throw new Exception('Invalid payment record.');
+            if ($paymentUID <= 0) throw new ValidationException('Invalid payment record.');
 
             // 1. Fetch payment + existing paid total BEFORE deletion (avoids read-replica lag)
             $payment = $this->transactions_model->getPaymentRow($paymentUID, $orgUID);
-            if (!$payment) throw new Exception('Payment record not found or already deleted.');
+            if (!$payment) throw new ValidationException('Payment record not found or already deleted.');
 
-            // Guard 1 — Block cancellation of source On Account payment that was already applied
+            // Guard 1 â€” Block cancellation of source On Account payment that was already applied
             $appliedTransUID = (int)($payment->OnAccountAppliedTransUID ?? 0);
             if ($appliedTransUID > 0 && (int)($payment->IsOnAccount ?? 1) === 0) {
                 $linkedInv = $this->transactions_model->getTransactionBasicInfo($appliedTransUID, $orgUID);
                 if ($linkedInv && !in_array($linkedInv->DocStatus, ['Cancelled', 'Rejected'])) {
-                    throw new Exception(
+                    throw new ValidationException(
                         'This payment is adjusted against Invoice ' .
                         ($linkedInv->UniqueNumber ?: '#' . $appliedTransUID) .
                         '. You cannot delete this payment until that invoice is fully cancelled.'
@@ -489,41 +508,41 @@ class Payments extends MY_Controller {
                 }
             }
 
-            // Guard 2 — Block cancellation of source On Account if applied child payments exist
+            // Guard 2 â€” Block cancellation of source On Account if applied child payments exist
             $appliedChild = $this->dbwrite_model->getAppliedChildPayment($paymentUID, $orgUID);
             if ($appliedChild) {
-                throw new Exception(
+                throw new ValidationException(
                     'This On Account payment has been applied to Invoice ' .
                     ($appliedChild->UniqueNumber ?: '#' . $appliedChild->PaymentUID) .
                     '. Cancel that payment first before deleting this record.'
                 );
             }
 
-            // Guard — Block if this payment is itself a source whose advance is still in use
+            // Guard â€” Block if this payment is itself a source whose advance is still in use
             if ((int)($payment->IsExcessApplied ?? 0) === 0 && (float)($payment->ExcessAmount ?? 0) == 0) {
-                // ExcessAmount may be 0 because advance was consumed — check for active links
+                // ExcessAmount may be 0 because advance was consumed â€” check for active links
                 $activeAdvLink = $this->transactions_model->getActiveAdvanceLink($paymentUID);
                 if ($activeAdvLink) {
-                    throw new Exception(
+                    throw new ValidationException(
                         'This payment has an advance credit used in another invoice. Remove that advance entry first, then delete this payment.'
                     );
                 }
             }
 
-            // Guard 3 — Block if payment was transferred to a Credit Note (invoice cancellation flow)
+            // Guard 3 â€” Block if payment was transferred to a Credit Note (invoice cancellation flow)
             if ((int)($payment->IsTransferredToCreditNote ?? 0) === 1) {
-                throw new Exception(
+                throw new ValidationException(
                     'This payment has been converted to a Credit Note. ' .
-                    'To remove it, delete the linked Credit Note from the Credit Notes tab — ' .
+                    'To remove it, delete the linked Credit Note from the Credit Notes tab â€” ' .
                     'that will automatically delete this payment and revert the customer balance.'
                 );
             }
 
-            // Guard 4 (On Account) — Block if payment is held as on-account customer credit
+            // Guard 4 (On Account) â€” Block if payment is held as on-account customer credit
             if ((int)($payment->IsOnAccount ?? 0) === 1) {
-                throw new Exception(
+                throw new ValidationException(
                     'This payment is held as an on-account credit for the customer (from a cancelled invoice). ' .
-                    'It cannot be cancelled or deleted directly — apply it to a new invoice to use the credit.'
+                    'It cannot be cancelled or deleted directly â€” apply it to a new invoice to use the credit.'
                 );
             }
 
@@ -532,12 +551,12 @@ class Payments extends MY_Controller {
                 ? $this->transactions_model->getSumPaidForTransaction($transUID, $orgUID)
                 : 0;
 
-            // Guard 4 — SR payment: block if linked Credit Note is already Applied to an invoice
+            // Guard 4 â€” SR payment: block if linked Credit Note is already Applied to an invoice
             $srCN = null;
             if ($transUID > 0 && (int)($payment->ModuleUID ?? 0) === 106) {
                 $srCN = $this->transactions_model->getSRCreditNoteBySourceTrans($transUID);
                 if ($srCN && $srCN->Status === 'Applied') {
-                    throw new Exception(
+                    throw new ValidationException(
                         'This credit note has been applied to an invoice. ' .
                         'Please reverse the credit allocation before deleting this payment.'
                     );
@@ -548,32 +567,32 @@ class Payments extends MY_Controller {
 
             $this->dbwrite_model->startTransaction();
 
-            // Re-check payment state from WriteDB with FOR UPDATE — locks the row so
+            // Re-check payment state from WriteDB with FOR UPDATE â€” locks the row so
             // concurrent delete/cancel requests queue up rather than racing each other.
             // Any commit by the first request makes this row visible as already processed
             // to every subsequent request waiting on the lock.
             $freshPayment = $this->transactions_model->lockPaymentForDelete($paymentUID, $orgUID);
 
             if (!$freshPayment) {
-                throw new Exception('Payment record not found.');
+                throw new ValidationException('Payment record not found.');
             }
             if ((int)($freshPayment->IsDeleted ?? 0) === 1) {
-                throw new Exception('This payment has already been deleted by another user.');
+                throw new ValidationException('This payment has already been deleted by another user.');
             }
             if ((int)($freshPayment->IsCancelled ?? 0) === 1) {
-                throw new Exception('This payment has already been cancelled by another user.');
+                throw new ValidationException('This payment has already been cancelled by another user.');
             }
             if ((int)($freshPayment->IsTransferredToCreditNote ?? 0) === 1) {
-                throw new Exception(
+                throw new ValidationException(
                     'This payment has been converted to a Credit Note. ' .
-                    'To remove it, delete the linked Credit Note from the Credit Notes tab — ' .
+                    'To remove it, delete the linked Credit Note from the Credit Notes tab â€” ' .
                     'that will automatically delete this payment and revert the customer balance.'
                 );
             }
             if ((int)($freshPayment->IsOnAccount ?? 0) === 1) {
-                throw new Exception(
+                throw new ValidationException(
                     'This payment is held as an on-account credit for the customer (from a cancelled invoice). ' .
-                    'It cannot be cancelled or deleted directly — apply it to a new invoice to use the credit.'
+                    'It cannot be cancelled or deleted directly â€” apply it to a new invoice to use the credit.'
                 );
             }
 
@@ -589,7 +608,7 @@ class Payments extends MY_Controller {
                 }
             }
 
-            // 2. Mark payment based on action: cancel → IsCancelled = 1, delete → IsDeleted = 1
+            // 2. Mark payment based on action: cancel â†’ IsCancelled = 1, delete â†’ IsDeleted = 1
             $updateFields = $action === 'cancel'
                 ? ['IsCancelled' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID]
                 : ['IsDeleted'   => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID];
@@ -660,7 +679,7 @@ class Payments extends MY_Controller {
 
             // 4. Reverse customer ledger entry (non-fatal)
             // Skip for advance memo rows (IsExcessApplied = 1), on-account applied rows
-            // (OnAccountSourcePaymentUID > 0), and credit note adjustments — none carry real new cash.
+            // (OnAccountSourcePaymentUID > 0), and credit note adjustments â€” none carry real new cash.
             if ($transUID > 0 && $payment->PartyType === 'C' && (int)$payment->PartyUID > 0
                 && (int)($payment->IsExcessApplied ?? 0) === 0
                 && (int)($payment->OnAccountSourcePaymentUID ?? 0) === 0
@@ -671,7 +690,6 @@ class Payments extends MY_Controller {
                         (int) $payment->PartyUID, 'Customer', (float) $payment->Amount, 'Debit', $transUID
                     );
                 } catch (Exception $ledgerEx) {
-                    log_message('error', 'Ledger reversal failed after payment delete PaymentUID=' . $paymentUID . ': ' . $ledgerEx->getMessage());
                 }
             }
 
@@ -685,7 +703,6 @@ class Payments extends MY_Controller {
                         $this->EndReturnData->CustomerBalanceType = $balResult['type'];
                     }
                 } catch (Exception $balEx) {
-                    log_message('error', 'Customer balance recalc failed after payment delete PaymentUID=' . $paymentUID . ': ' . $balEx->getMessage());
                 }
             }
 
@@ -699,6 +716,10 @@ class Payments extends MY_Controller {
                 ['TransUID' => $transUID], $auditDesc, 'Payments', 'PAYMENT'
             );
 
+        } catch (ValidationException $e) {
+            if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Payments::deletePayment', $e);
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
@@ -716,7 +737,7 @@ class Payments extends MY_Controller {
             $partyUID = (int) $this->input->get_post('PartyUID');
             $orgUID   = (int) $this->pageData['JwtData']->Org->OrgUID;
 
-            if ($partyUID <= 0) throw new Exception('Invalid customer.');
+            if ($partyUID <= 0) throw new ValidationException('Invalid customer.');
 
             $this->load->model('transactions_model');
             $rows = $this->transactions_model->getCustomerCreditsDetail($partyUID, $orgUID);
@@ -738,6 +759,9 @@ class Payments extends MY_Controller {
             $this->EndReturnData->OnAccountTotal = round((float) array_sum(array_column($onAccount, 'Amount')), $dec);
             $this->EndReturnData->AdvanceTotal   = round((float) array_sum(array_column($advance,   'Amount')), $dec);
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Payments::getCustomerCreditsDetail', $e);
             $this->EndReturnData->Error   = true;
@@ -752,7 +776,7 @@ class Payments extends MY_Controller {
             $partyUID = (int) $this->input->get_post('PartyUID');
             $orgUID   = (int) $this->pageData['JwtData']->Org->OrgUID;
 
-            if ($partyUID <= 0) throw new Exception('Invalid customer.');
+            if ($partyUID <= 0) throw new ValidationException('Invalid customer.');
 
             $this->load->model('transactions_model');
             $rows = $this->transactions_model->getCustomerCreditNoteDetail($partyUID, $orgUID);
@@ -762,6 +786,9 @@ class Payments extends MY_Controller {
             $this->EndReturnData->CreditNotes = $rows;
             $this->EndReturnData->Total       = round((float) array_sum(array_column($rows, 'Amount')), $dec);
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Payments::getCustomerCreditNoteDetail', $e);
             $this->EndReturnData->Error   = true;
@@ -778,7 +805,7 @@ class Payments extends MY_Controller {
             $partyUID = (int) $this->input->get_post('PartyUID');
             $orgUID   = (int) $this->pageData['JwtData']->Org->OrgUID;
 
-            if ($partyUID <= 0) throw new Exception('Invalid customer.');
+            if ($partyUID <= 0) throw new ValidationException('Invalid customer.');
 
             $this->load->model('transactions_model');
             $rows        = $this->transactions_model->getCustomerAvailableCredits($partyUID, $orgUID);
@@ -788,6 +815,9 @@ class Payments extends MY_Controller {
             $this->EndReturnData->TotalCredit  = round((float)$totalCredit, $this->_decimals());
             $this->EndReturnData->Sources      = $rows;
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Payments::getCustomerExcessBalance', $e);
             $this->EndReturnData->Error   = true;
@@ -809,6 +839,9 @@ class Payments extends MY_Controller {
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $types;
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Payments::getPaymentTypes', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -831,6 +864,9 @@ class Payments extends MY_Controller {
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $accounts;
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Payments::getBankAccounts', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -872,10 +908,10 @@ class Payments extends MY_Controller {
                 'UpdatedBy'     => $userUID,
             ];
 
-            if (empty($accountData['AccountName']))   throw new Exception('Account holder name is required.');
-            if (empty($accountData['BankName']))      throw new Exception('Bank name is required.');
-            if (empty($accountData['AccountNumber'])) throw new Exception('Account number is required.');
-            if ($accountUID <= 0 && $accountNumber !== $confirmNumber) throw new Exception('Account number and confirmation do not match.');
+            if (empty($accountData['AccountName']))   throw new ValidationException('Account holder name is required.');
+            if (empty($accountData['BankName']))      throw new ValidationException('Bank name is required.');
+            if (empty($accountData['AccountNumber'])) throw new ValidationException('Account number is required.');
+            if ($accountUID <= 0 && $accountNumber !== $confirmNumber) throw new ValidationException('Account number and confirmation do not match.');
 
             $this->dbwrite_model->startTransaction();
 
@@ -913,6 +949,10 @@ class Payments extends MY_Controller {
                 ['IsUpdate' => $accountUID > 0], ($accountUID > 0 ? 'Updated' : 'Added') . ' bank account ' . ($accountData['AccountName'] ?? ''), 'Payments', 'SETTINGS'
             );
 
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Payments::saveBankAccount', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -932,7 +972,7 @@ class Payments extends MY_Controller {
             $PostData      = $this->input->post();
             $orgUID        = $this->pageData['JwtData']->Org->OrgUID;
             $bankAccountUID = (int) getPostValue($PostData, 'BankAccountUID');
-            if ($bankAccountUID <= 0) throw new Exception('Bank account ID is required.');
+            if ($bankAccountUID <= 0) throw new ValidationException('Bank account ID is required.');
 
             $this->load->model('transactions_model');
 
@@ -942,11 +982,14 @@ class Payments extends MY_Controller {
             $this->transactions_model->ReadDb->where(['BankAccountUID' => $bankAccountUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
             $query  = $this->transactions_model->ReadDb->get();
             $record = $query ? $query->row() : null;
-            if (!$record) throw new Exception('Bank account not found.');
+            if (!$record) throw new ValidationException('Bank account not found.');
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $record;
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Payments::getBankDetails', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -968,7 +1011,7 @@ class Payments extends MY_Controller {
             $orgUID         = $this->pageData['JwtData']->Org->OrgUID;
             $userUID        = $this->pageData['JwtData']->User->UserUID;
             $bankAccountUID = (int) getPostValue($PostData, 'BankAccountUID');
-            if ($bankAccountUID <= 0) throw new Exception('Bank account ID is required.');
+            if ($bankAccountUID <= 0) throw new ValidationException('Bank account ID is required.');
 
             $this->dbwrite_model->startTransaction();
 
@@ -994,6 +1037,10 @@ class Payments extends MY_Controller {
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Default bank updated.';
 
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Payments::setDefaultBank', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -1016,7 +1063,7 @@ class Payments extends MY_Controller {
             $orgUID         = $this->pageData['JwtData']->Org->OrgUID;
             $userUID        = $this->pageData['JwtData']->User->UserUID;
             $bankAccountUID = (int) getPostValue($PostData, 'BankAccountUID');
-            if ($bankAccountUID <= 0) throw new Exception('Bank account ID is required.');
+            if ($bankAccountUID <= 0) throw new ValidationException('Bank account ID is required.');
 
             $deleteData = $this->globalservice->baseDeleteArrayDetails();
             $deleteData['IsActive'] = 0;
@@ -1037,6 +1084,9 @@ class Payments extends MY_Controller {
                 [], 'Deleted bank account #' . $bankAccountUID, 'Payments', 'SETTINGS'
             );
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Payments::deleteBankAccount', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -1057,11 +1107,11 @@ class Payments extends MY_Controller {
             $orgUID     = $this->pageData['JwtData']->Org->OrgUID;
             $isThermal  = $printType == 'thermal' ? 1 : 0;
 
-            if ($paymentUID <= 0) throw new Exception('Invalid payment.');
+            if ($paymentUID <= 0) throw new ValidationException('Invalid payment.');
 
             $this->load->model('transactions_model');
             $payment     = $this->transactions_model->getPaymentDetailById($paymentUID, $orgUID);
-            if (!$payment) throw new Exception('Payment not found.');
+            if (!$payment) throw new ValidationException('Payment not found.');
                         $this->load->model('organisation_model');
             $orgInfo    = $this->organisation_model->getOrgInfoCached($orgUID);
             $org        = $orgInfo->Data ?? null;
@@ -1074,7 +1124,7 @@ class Payments extends MY_Controller {
                 $this->EndReturnData->ThermalConfig = $thermalCfg->Data ?? null;
             }
 
-            // PrintTheme and PrintHtml are only needed for A4 preview — skip for thermal
+            // PrintTheme and PrintHtml are only needed for A4 preview â€” skip for thermal
             if (!$isThermal) {
                 $printTheme = $this->organisation_model->getPrintThemeByType($orgUID, 'Payment');
                 $themeData  = $printTheme->Data ?? null;
@@ -1082,6 +1132,9 @@ class Payments extends MY_Controller {
                 $this->EndReturnData->PrintHtml  = $this->transactions_model->_renderPaymentReceiptHtml($payment, $org, $themeData);
             }
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Payments::getPaymentPrintDetail', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -1100,11 +1153,11 @@ class Payments extends MY_Controller {
             $paperSize  = strtoupper(trim($this->input->get_post('PaperSize') ?: 'A4'));
             $orgUID     = $this->pageData['JwtData']->Org->OrgUID;
 
-            if ($paymentUID <= 0) throw new Exception('Invalid payment.');
+            if ($paymentUID <= 0) throw new ValidationException('Invalid payment.');
 
             $this->load->model('transactions_model');
             $payment = $this->transactions_model->getPaymentDetailById($paymentUID, $orgUID);
-            if (!$payment) throw new Exception('Payment not found.');
+            if (!$payment) throw new ValidationException('Payment not found.');
 
             $pdfBytes = $this->transactions_model->generatePaymentReceiptPdfBytes($paymentUID, $orgUID, $paperSize);
             if (!$pdfBytes) throw new Exception('Failed to generate PDF.');
@@ -1117,6 +1170,10 @@ class Payments extends MY_Controller {
             echo $pdfBytes;
             exit;
 
+        } catch (ValidationException $e) {
+            header('Content-Type: application/json');
+            echo json_encode(['Error' => true, 'Message' => $e->getMessage()]);
+            exit;
         } catch (Exception $e) {
             notifyError('Payments::downloadPaymentPdf', $e);
             header('Content-Type: application/json');
@@ -1138,6 +1195,9 @@ class Payments extends MY_Controller {
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $accounts;
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Payments::getBanksList', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -1161,11 +1221,11 @@ class Payments extends MY_Controller {
             $paperSize  = strtoupper(trim($this->input->post('PaperSize') ?: 'A4'));
             $orgUID     = $this->pageData['JwtData']->Org->OrgUID;
 
-            if ($paymentUID <= 0) throw new Exception('Invalid payment.');
+            if ($paymentUID <= 0) throw new ValidationException('Invalid payment.');
 
             $this->load->model('transactions_model');
             $payment = $this->transactions_model->getPaymentDetailById($paymentUID, $orgUID);
-            if (!$payment) throw new Exception('Payment not found.');
+            if (!$payment) throw new ValidationException('Payment not found.');
 
             $pdfBytes = $this->transactions_model->generatePaymentReceiptPdfBytes($paymentUID, $orgUID, $paperSize);
             if (!$pdfBytes) throw new Exception('Failed to generate PDF.');
@@ -1177,6 +1237,9 @@ class Payments extends MY_Controller {
             $this->EndReturnData->Filename = $filename;
             $this->EndReturnData->Size     = strlen($pdfBytes);
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Payments::getPaymentPdfBase64', $e);
             $this->EndReturnData->Error   = TRUE;

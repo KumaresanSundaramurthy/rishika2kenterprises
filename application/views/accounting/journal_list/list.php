@@ -44,8 +44,8 @@ if (!empty($DataLists)):
         <?php endif; ?>
     </td>
     <td class="text-muted" style="font-size:.8rem;"><?php echo htmlspecialchars($row->Narration ?? '—'); ?></td>
-    <td class="text-end fw-semibold text-success" style="font-size:.82rem;"><?php echo $cur . ' ' . number_format($dr, $dec); ?></td>
-    <td class="text-end fw-semibold text-danger"  style="font-size:.82rem;"><?php echo $cur . ' ' . number_format($cr, $dec); ?></td>
+    <td class="text-end fw-semibold text-success" style="font-size:.82rem;"><?php echo $cur . ' ' . smartDecimal($dr); ?></td>
+    <td class="text-end fw-semibold text-danger"  style="font-size:.82rem;"><?php echo $cur . ' ' . smartDecimal($cr); ?></td>
     <td class="text-center">
         <span class="badge bg-label-secondary" style="font-size:.7rem;"><?php echo (int)($row->LineCount ?? 0); ?></span>
     </td>

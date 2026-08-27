@@ -1,4 +1,4 @@
-window.isRtl = window.Helpers.isRtl(),
+﻿window.isRtl = window.Helpers.isRtl(),
 window.isDarkStyle = window.Helpers.isDarkStyle();
 let menu, animate, isHorizontalLayout = !1, SearchConfig = (document.getElementById("layout-menu") && (isHorizontalLayout = document.getElementById("layout-menu").classList.contains("menu-horizontal")),
 document.addEventListener("DOMContentLoaded", function() {
@@ -157,7 +157,6 @@ document.addEventListener("DOMContentLoaded", function() {
                     document.documentElement.setAttribute("dir", n),
                     "rtl" === n ? "true" !== localStorage.getItem("templateCustomizer-" + templateName + "--Rtl") && window.templateCustomizer && window.templateCustomizer.setRtl(!0) : "true" === localStorage.getItem("templateCustomizer-" + templateName + "--Rtl") && window.templateCustomizer && window.templateCustomizer.setRtl(!1),
                     e)
-                        return console.log("something went wrong loading", e);
                     r(),
                     window.Helpers.syncCustomOptionsRtl(o)
                 }

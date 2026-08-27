@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php $this->load->view('common/header'); ?>
 
@@ -53,7 +53,7 @@
                             <div class="apex-stat-label">To Collect</div>
                             <div class="apex-stat-bottom">
                                 <span class="apex-stat-count vend-stat-tocollect"><?php echo number_format((int)($s->ToCollectCount ?? 0)); ?></span>
-                                <span class="apex-stat-amount"><?php echo $cur . ' ' . number_format((float)($s->ToCollectAmount ?? 0), $dec); ?></span>
+                                <span class="apex-stat-amount"><?php echo $cur . ' ' . smartDecimal($s->ToCollectAmount ?? 0); ?></span>
                             </div>
                         </div>
                     </a>
@@ -63,7 +63,7 @@
                             <div class="apex-stat-label">To Pay</div>
                             <div class="apex-stat-bottom">
                                 <span class="apex-stat-count vend-stat-topay"><?php echo number_format((int)($s->ToPayCount ?? 0)); ?></span>
-                                <span class="apex-stat-amount"><?php echo $cur . ' ' . number_format((float)($s->ToPayAmount ?? 0), $dec); ?></span>
+                                <span class="apex-stat-amount"><?php echo $cur . ' ' . smartDecimal($s->ToPayAmount ?? 0); ?></span>
                             </div>
                         </div>
                     </a>

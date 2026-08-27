@@ -1149,7 +1149,6 @@ function commonExportFunctionality(Flag, Type, PageType) {
             URLs += "&ExportIds=" + ExportIds;
         }
     }
-    console.log(URLs)
     if (Flag == 1) {
         exportAllActions(ActiveTabModuleId, Type, URLs, function () {
             exportModalCloseFunc(TableName, TableHeader, TableRow);

@@ -14,7 +14,7 @@ class Indirectincome extends MY_Controller {
         $this->load->model('transactions_model');
     }
 
-    // ── List page ────────────────────────────────────────────────────────────
+    // â”€â”€ List page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function index() {
         if (!$this->_loadPageTitle($this->pageModuleUID)) {
             $this->load->view('common/module_error', $this->pageData);
@@ -60,14 +60,15 @@ class Indirectincome extends MY_Controller {
 
             $this->load->view('transactions/indirectincome/view', $this->pageData);
 
+        } catch (ValidationException $e) {
+            redirect('dashboard', 'refresh');
         } catch (Throwable $e) {
             notifyError('Indirectincome::index', $e);
-            log_message('error', 'Indirectincome::index — ' . $e->getMessage());
             redirect('dashboard', 'refresh');
         }
     }
 
-    // ── AJAX pagination ──────────────────────────────────────────────────────
+    // â”€â”€ AJAX pagination â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getPageDetails($pageNo = 1) {
         $this->EndReturnData = new stdClass();
         try {
@@ -96,6 +97,9 @@ class Indirectincome extends MY_Controller {
                 $this->EndReturnData->SummaryStats = $this->indirectincome_model->getIncomeSummaryStats($orgUID, $this->_branchUID());
             }
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Throwable $e) {
             notifyError('Indirectincome::getPageDetails', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -104,7 +108,7 @@ class Indirectincome extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Add income (modal AJAX) ───────────────────────────────────────────────
+    // â”€â”€ Add income (modal AJAX) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function addIncome() {
         $this->EndReturnData = new stdClass();
         try {
@@ -142,7 +146,6 @@ class Indirectincome extends MY_Controller {
                     (float) $data['NetAmount'], $userUID
                 );
             } catch (Exception $ledgerEx) {
-                log_message('error', 'Ledger update failed after indirect income creation: ' . $ledgerEx->getMessage());
             }
 
             $this->_saveAttachments($incomeUID, 'IndirectIncome');
@@ -157,6 +160,10 @@ class Indirectincome extends MY_Controller {
             $this->EndReturnData->IncomeUID    = $incomeUID;
             $this->EndReturnData->IncomeNumber = $incomeNumber;
 
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Throwable $e) {
             notifyError('Indirectincome::addIncome', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -171,7 +178,7 @@ class Indirectincome extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Update income (modal AJAX) ────────────────────────────────────────────
+    // â”€â”€ Update income (modal AJAX) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function updateIncome() {
         $this->EndReturnData = new stdClass();
         try {
@@ -180,11 +187,11 @@ class Indirectincome extends MY_Controller {
             $userUID   = $this->pageData['JwtData']->User->UserUID;
             $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
 
-            if ($incomeUID <= 0) throw new Exception('Invalid income record.');
+            if ($incomeUID <= 0) throw new ValidationException('Invalid income record.');
 
             $existing = $this->indirectincome_model->getIncomeById($incomeUID, $orgUID);
-            if (!$existing) throw new Exception('Income not found.');
-            if ($existing->DocStatus === 'Cancelled') throw new Exception('This income cannot be edited.');
+            if (!$existing) throw new ValidationException('Income not found.');
+            if ($existing->DocStatus === 'Cancelled') throw new ValidationException('This income cannot be edited.');
 
             $data = $this->_buildIncomeData($PostData, $userUID, $orgUID, false);
             unset($data['CreatedBy'], $data['CreatedOn'], $data['OrgUID'], $data['ModuleUID']);
@@ -194,7 +201,7 @@ class Indirectincome extends MY_Controller {
             $newNetAmt  = round((float)$data['NetAmount'], $dec);
 
             if ($paidAmount > 0 && $newNetAmt < $paidAmount - 0.001) {
-                throw new Exception(
+                throw new ValidationException(
                     'Amount cannot be less than ' . $this->_currency() . ' ' .
                     number_format($paidAmount, $dec) . ' (already received).'
                 );
@@ -236,7 +243,6 @@ class Indirectincome extends MY_Controller {
                     (float)$data['NetAmount'], $userUID
                 );
             } catch (Exception $ledgerEx) {
-                log_message('error', 'Ledger update failed after income edit #' . $incomeUID . ': ' . $ledgerEx->getMessage());
             }
 
             $this->EndReturnData->Error   = FALSE;
@@ -247,6 +253,9 @@ class Indirectincome extends MY_Controller {
                 [], 'Updated income ' . ($existing->IncomeNumber ?? ''), 'IndirectIncome', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
             );
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Throwable $e) {
             notifyError('Indirectincome::updateIncome', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -260,7 +269,7 @@ class Indirectincome extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Delete income ─────────────────────────────────────────────────────────
+    // â”€â”€ Delete income â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function deleteIncome() {
         $this->EndReturnData = new stdClass();
         try {
@@ -269,11 +278,11 @@ class Indirectincome extends MY_Controller {
             $userUID   = $this->pageData['JwtData']->User->UserUID;
             $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
 
-            if ($incomeUID <= 0) throw new Exception('Invalid income record.');
+            if ($incomeUID <= 0) throw new ValidationException('Invalid income record.');
 
             $existing = $this->indirectincome_model->getIncomeById($incomeUID, $orgUID);
-            if (!$existing) throw new Exception('Income not found.');
-            if ($existing->DocStatus === 'Cancelled') throw new Exception('Cancelled income cannot be deleted.');
+            if (!$existing) throw new ValidationException('Income not found.');
+            if ($existing->DocStatus === 'Cancelled') throw new ValidationException('Cancelled income cannot be deleted.');
 
             $deleteData = $this->globalservice->baseDeleteArrayDetails();
             $deleteData['IsActive'] = 0;
@@ -298,7 +307,6 @@ class Indirectincome extends MY_Controller {
                 $this->load->library('accountledger');
                 $this->accountledger->reverseJournal('IndirectIncome', $incomeUID, $userUID);
             } catch (Exception $ledgerEx) {
-                log_message('error', 'Ledger reverse failed after income delete #' . $incomeUID . ': ' . $ledgerEx->getMessage());
             }
 
             $this->EndReturnData->Error   = FALSE;
@@ -309,6 +317,9 @@ class Indirectincome extends MY_Controller {
                 [], 'Deleted income ' . ($existing->IncomeNumber ?? ''), 'IndirectIncome', 'TRANSACTION'
             );
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Throwable $e) {
             notifyError('Indirectincome::deleteIncome', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -322,7 +333,7 @@ class Indirectincome extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Duplicate income (creates a Pending copy dated today) ────────────────
+    // â”€â”€ Duplicate income (creates a Pending copy dated today) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function duplicateIncome() {
         $this->EndReturnData = new stdClass();
         try {
@@ -331,10 +342,10 @@ class Indirectincome extends MY_Controller {
             $userUID   = $this->pageData['JwtData']->User->UserUID;
             $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
 
-            if ($incomeUID <= 0) throw new Exception('Invalid income record.');
+            if ($incomeUID <= 0) throw new ValidationException('Invalid income record.');
 
             $src = $this->indirectincome_model->getIncomeById($incomeUID, $orgUID);
-            if (!$src) throw new Exception('Income not found.');
+            if (!$src) throw new ValidationException('Income not found.');
 
             $data = [
                 'OrgUID'        => $orgUID,
@@ -376,6 +387,9 @@ class Indirectincome extends MY_Controller {
                 [], 'Duplicated income ' . $newNumber, 'IndirectIncome', 'TRANSACTION'
             );
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Throwable $e) {
             notifyError('Indirectincome::duplicateIncome', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -389,7 +403,7 @@ class Indirectincome extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Record payment via shared modal ─────────────────────────────────────────
+    // â”€â”€ Record payment via shared modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function recordPayment() {
         $this->EndReturnData = new stdClass();
         try {
@@ -398,12 +412,12 @@ class Indirectincome extends MY_Controller {
             $userUID   = $this->pageData['JwtData']->User->UserUID;
             $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
 
-            if ($incomeUID <= 0) throw new Exception('Invalid income record.');
+            if ($incomeUID <= 0) throw new ValidationException('Invalid income record.');
 
             $existing = $this->indirectincome_model->getIncomeById($incomeUID, $orgUID);
-            if (!$existing) throw new Exception('Income not found.');
+            if (!$existing) throw new ValidationException('Income not found.');
             if (!in_array($existing->DocStatus, ['Pending', 'Partial'])) {
-                throw new Exception('Payment can only be recorded for Pending or Partially Received income.');
+                throw new ValidationException('Payment can only be recorded for Pending or Partially Received income.');
             }
 
             $paymentTypeUID = (int)getPostValue($PostData, 'PaymentTypeUID') ?: NULL;
@@ -413,15 +427,15 @@ class Indirectincome extends MY_Controller {
             $notes          = getPostValue($PostData, 'Notes')       ?: NULL;
             $paymentAmount  = round((float)getPostValue($PostData, 'Amount'), $this->_decimals());
 
-            if (!$paymentTypeUID) throw new Exception('Please select a payment type.');
-            if ($paymentAmount <= 0) throw new Exception('Payment amount must be greater than 0.');
+            if (!$paymentTypeUID) throw new ValidationException('Please select a payment type.');
+            if ($paymentAmount <= 0) throw new ValidationException('Payment amount must be greater than 0.');
 
             $netAmount     = round((float)$existing->NetAmount, $this->_decimals());
             $existingPaid  = round((float)($existing->PaidAmount ?? 0), $this->_decimals());
             $newPaidAmount = round($existingPaid + $paymentAmount, $this->_decimals());
 
             if ($newPaidAmount > $netAmount + 0.01) {
-                throw new Exception('Total received (' . $newPaidAmount . ') cannot exceed the income amount (' . $netAmount . ').');
+                throw new ValidationException('Total received (' . $newPaidAmount . ') cannot exceed the income amount (' . $netAmount . ').');
             }
 
             $newPaidAmount   = min($newPaidAmount, $netAmount);
@@ -500,7 +514,7 @@ class Indirectincome extends MY_Controller {
                     'SourceUID'      => $incomeUID,
                     'ModuleUID'      => $this->pageModuleUID,
                     'ReferenceNo'    => $referenceNo,
-                    'Narration'      => ($isFullyReceived ? 'Income received' : 'Income partially received') . ' — ' . $existing->IncomeNumber,
+                    'Narration'      => ($isFullyReceived ? 'Income received' : 'Income partially received') . ' â€” ' . $existing->IncomeNumber,
                     'IsActive'       => 1,
                     'IsDeleted'      => 0,
                     'CreatedBy'      => $userUID,
@@ -523,6 +537,10 @@ class Indirectincome extends MY_Controller {
                 ['Amount' => $paymentAmount], 'Recorded payment for income ' . ($existing->IncomeNumber ?? ''), 'IndirectIncome', 'PAYMENT'
             );
 
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Throwable $e) {
             notifyError('Indirectincome::recordPayment', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -537,13 +555,13 @@ class Indirectincome extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Payment history popup ────────────────────────────────────────────────
+    // â”€â”€ Payment history popup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getPaymentHistory() {
         $this->EndReturnData = new stdClass();
         try {
             $incomeUID = (int)$this->input->post('TransUID');
             $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
-            if ($incomeUID <= 0) throw new Exception('Invalid income record.');
+            if ($incomeUID <= 0) throw new ValidationException('Invalid income record.');
 
             $this->load->model('transactions_model');
             $payments = $this->transactions_model->getTransactionPayments($incomeUID, $orgUID);
@@ -560,6 +578,9 @@ class Indirectincome extends MY_Controller {
 
             $this->EndReturnData->Error    = FALSE;
             $this->EndReturnData->Payments = $list;
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Indirectincome::getPaymentHistory', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -568,13 +589,13 @@ class Indirectincome extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Payment attachments ──────────────────────────────────────────────────
+    // â”€â”€ Payment attachments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getPaymentAttachments() {
         $this->EndReturnData = new stdClass();
         try {
             $incomeUID = (int)$this->input->post('TransUID');
             $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
-            if ($incomeUID <= 0) throw new Exception('Invalid income record.');
+            if ($incomeUID <= 0) throw new ValidationException('Invalid income record.');
 
             $this->load->model('transactions_model');
             $payments    = $this->transactions_model->getTransactionPayments($incomeUID, $orgUID);
@@ -591,6 +612,9 @@ class Indirectincome extends MY_Controller {
 
             $this->EndReturnData->Error       = FALSE;
             $this->EndReturnData->Attachments = $attachments;
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Indirectincome::getPaymentAttachments', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -599,7 +623,7 @@ class Indirectincome extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Update status (Pending → Received / Cancelled, Received → Cancelled) ──
+    // â”€â”€ Update status (Pending â†’ Received / Cancelled, Received â†’ Cancelled) â”€â”€
     public function updateIncomeStatus() {
         $this->EndReturnData = new stdClass();
         try {
@@ -611,11 +635,11 @@ class Indirectincome extends MY_Controller {
             $userUID   = $this->pageData['JwtData']->User->UserUID;
             $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
 
-            if ($incomeUID <= 0)   throw new Exception('Invalid income record.');
-            if (empty($newStatus)) throw new Exception('Status is required.');
+            if ($incomeUID <= 0)   throw new ValidationException('Invalid income record.');
+            if (empty($newStatus)) throw new ValidationException('Status is required.');
 
             $existing = $this->indirectincome_model->getIncomeById($incomeUID, $orgUID);
-            if (!$existing) throw new Exception('Income not found.');
+            if (!$existing) throw new ValidationException('Income not found.');
 
             $allowed = [
                 'Pending'  => ['Received', 'Cancelled'],
@@ -623,7 +647,7 @@ class Indirectincome extends MY_Controller {
             ];
 
             if (!isset($allowed[$existing->DocStatus]) || !in_array($newStatus, $allowed[$existing->DocStatus])) {
-                throw new Exception('Invalid status transition.');
+                throw new ValidationException('Invalid status transition.');
             }
 
             $updateData = [
@@ -662,7 +686,6 @@ class Indirectincome extends MY_Controller {
                     $this->accountledger->reverseJournal('IndirectIncome', $incomeUID, $userUID);
                 }
             } catch (Exception $ledgerEx) {
-                log_message('error', 'Ledger failed on income status change #' . $incomeUID . ': ' . $ledgerEx->getMessage());
             }
 
             $this->EndReturnData->Error   = FALSE;
@@ -673,6 +696,10 @@ class Indirectincome extends MY_Controller {
                 ['NewStatus' => $newStatus], 'Updated income status ' . ($existing->IncomeNumber ?? ''), 'IndirectIncome', 'TRANSACTION'
             );
 
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Throwable $e) {
             notifyError('Indirectincome::updateIncomeStatus', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -687,9 +714,9 @@ class Indirectincome extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Get attachments for a single income record ───────────────────────────
+    // â”€â”€ Get attachments for a single income record â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-    // ── Get single income detail ──────────────────────────────────────────────
+    // â”€â”€ Get single income detail â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getIncomeDetail() {
         $this->EndReturnData = new stdClass();
         try {
@@ -697,10 +724,10 @@ class Indirectincome extends MY_Controller {
             $incomeUID = (int)getPostValue($PostData, 'IncomeUID');
             $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
 
-            if ($incomeUID <= 0) throw new Exception('Invalid income record.');
+            if ($incomeUID <= 0) throw new ValidationException('Invalid income record.');
 
             $income = $this->indirectincome_model->getIncomeById($incomeUID, $orgUID);
-            if (!$income) throw new Exception('Income not found.');
+            if (!$income) throw new ValidationException('Income not found.');
 
             $this->load->model('transactions_model');
             $income->Attachments = $this->transactions_model->getExpenseIncomeAttachments($incomeUID, $orgUID, 'IndirectIncome');
@@ -708,6 +735,9 @@ class Indirectincome extends MY_Controller {
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $income;
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Throwable $e) {
             notifyError('Indirectincome::getIncomeDetail', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -716,13 +746,16 @@ class Indirectincome extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Get category list ─────────────────────────────────────────────────────
+    // â”€â”€ Get category list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getCategories() {
         $this->EndReturnData = new stdClass();
         try {
             $orgUID = $this->pageData['JwtData']->Org->OrgUID;
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $this->indirectincome_model->getCategories($orgUID);
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Throwable $e) {
             notifyError('Indirectincome::getCategories', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -731,7 +764,7 @@ class Indirectincome extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Add new category ──────────────────────────────────────────────────────
+    // â”€â”€ Add new category â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function addCategory() {
         $this->EndReturnData = new stdClass();
         try {
@@ -740,7 +773,7 @@ class Indirectincome extends MY_Controller {
             $orgUID       = $this->pageData['JwtData']->Org->OrgUID;
             $userUID      = $this->pageData['JwtData']->User->UserUID;
 
-            if (empty($categoryName)) throw new Exception('Category name is required.');
+            if (empty($categoryName)) throw new ValidationException('Category name is required.');
 
             $resp = $this->dbwrite_model->insertData('Transaction', 'IndirectIncomeCategoryTbl', [
                 'OrgUID'       => $orgUID,
@@ -765,6 +798,9 @@ class Indirectincome extends MY_Controller {
             $this->EndReturnData->CategoryUID  = $resp->ID;
             $this->EndReturnData->CategoryName = $categoryName;
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Throwable $e) {
             notifyError('Indirectincome::addCategory', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -773,7 +809,7 @@ class Indirectincome extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Update category name ──────────────────────────────────────────────────
+    // â”€â”€ Update category name â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function updateCategory() {
         $this->EndReturnData = new stdClass();
         try {
@@ -783,8 +819,8 @@ class Indirectincome extends MY_Controller {
             $orgUID      = $this->pageData['JwtData']->Org->OrgUID;
             $userUID     = $this->pageData['JwtData']->User->UserUID;
 
-            if ($categoryUID <= 0) throw new Exception('Invalid category.');
-            if (empty($name))      throw new Exception('Category name is required.');
+            if ($categoryUID <= 0) throw new ValidationException('Invalid category.');
+            if (empty($name))      throw new ValidationException('Category name is required.');
 
             $resp = $this->dbwrite_model->updateData('Transaction', 'IndirectIncomeCategoryTbl', [
                 'CategoryName' => $name,
@@ -803,6 +839,9 @@ class Indirectincome extends MY_Controller {
             );
             $this->EndReturnData->CategoryUID  = $categoryUID;
             $this->EndReturnData->CategoryName = $name;
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Throwable $e) {
             notifyError('Indirectincome::updateCategory', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -811,7 +850,7 @@ class Indirectincome extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Delete category ───────────────────────────────────────────────────────
+    // â”€â”€ Delete category â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function deleteCategory() {
         $this->EndReturnData = new stdClass();
         try {
@@ -820,9 +859,9 @@ class Indirectincome extends MY_Controller {
             $orgUID      = $this->pageData['JwtData']->Org->OrgUID;
             $userUID     = $this->pageData['JwtData']->User->UserUID;
 
-            if ($categoryUID <= 0) throw new Exception('Invalid category.');
+            if ($categoryUID <= 0) throw new ValidationException('Invalid category.');
             if ($this->indirectincome_model->isCategoryLinked($categoryUID, $orgUID)) {
-                throw new Exception('This category is used in existing income records and cannot be deleted.');
+                throw new ValidationException('This category is used in existing income records and cannot be deleted.');
             }
 
             $resp = $this->dbwrite_model->updateData('Transaction', 'IndirectIncomeCategoryTbl', [
@@ -841,6 +880,9 @@ class Indirectincome extends MY_Controller {
                 'DELETE_INCOME_CATEGORY', 'IncomeCategory', (int) $categoryUID, '',
                 [], 'Deleted income category #' . $categoryUID, 'IndirectIncome', 'MASTER'
             );
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Throwable $e) {
             notifyError('Indirectincome::deleteCategory', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -849,7 +891,7 @@ class Indirectincome extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Category list (paginated, for manager modal) ──────────────────────────
+    // â”€â”€ Category list (paginated, for manager modal) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getCategoryList() {
         $this->EndReturnData = new stdClass();
         try {
@@ -864,6 +906,9 @@ class Indirectincome extends MY_Controller {
             $this->EndReturnData->RecordHtmlData = $this->_buildCategoryListHtml($list);
             $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml('/indirectincome/getCategoryList', $total, $pageNo, $limit);
             $this->EndReturnData->TotalCount     = $total;
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Throwable $e) {
             notifyError('Indirectincome::getCategoryList', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -872,7 +917,7 @@ class Indirectincome extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Renders category rows as list-group HTML ──────────────────────────────
+    // â”€â”€ Renders category rows as list-group HTML â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private function _buildCategoryListHtml($list) {
         if (empty($list)) {
             return '<div class="text-center py-5 text-muted" style="font-size:.88rem;">No categories found.</div>';
@@ -894,16 +939,16 @@ class Indirectincome extends MY_Controller {
                 $html .= '<button class="btn btn-icon btn-sm text-primary incCatEditBtn" data-uid="' . $uid . '" data-name="' . $eName . '" title="Edit"><i class="bx bx-edit" style="font-size:1rem;"></i></button>';
                 $html .= '<button class="btn btn-icon btn-sm text-danger incCatDeleteBtn" data-uid="' . $uid . '" data-name="' . $eName . '" title="Delete"><i class="bx bx-trash" style="font-size:1rem;"></i></button>';
             } else {
-                $html .= '<span class="text-muted px-2" title="System category — cannot be modified"><i class="bx bx-lock-alt" style="font-size:.85rem;"></i></span>';
+                $html .= '<span class="text-muted px-2" title="System category â€” cannot be modified"><i class="bx bx-lock-alt" style="font-size:.85rem;"></i></span>';
             }
             $html .= '</div></li>';
         }
         return $html;
     }
 
-    // ═══════════════════════════════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     // Private helpers
-    // ═══════════════════════════════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
     private function _appendListResponse($orgUID) {
         $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
@@ -939,9 +984,9 @@ class Indirectincome extends MY_Controller {
         $incomeDate     =         getPostValue($PostData, 'IncomeDate')     ?: date('Y-m-d');
         $notes          =         getPostValue($PostData, 'Notes')          ?: NULL;
 
-        if ($amount <= 0)                    throw new Exception('Income amount must be greater than 0.');
-        if (empty($incomeDate))              throw new Exception('Income date is required.');
-        if ($isReceived && !$paymentTypeUID) throw new Exception('Please select a payment type.');
+        if ($amount <= 0)                    throw new ValidationException('Income amount must be greater than 0.');
+        if (empty($incomeDate))              throw new ValidationException('Income date is required.');
+        if ($isReceived && !$paymentTypeUID) throw new ValidationException('Please select a payment type.');
 
         $data = [
             'OrgUID'        => $orgUID,
@@ -980,7 +1025,7 @@ class Indirectincome extends MY_Controller {
         $paymentDate    = getPostValue($PostData, 'PaymentDate') ?: $fallbackDate;
         $paymentNotes   = getPostValue($PostData, 'PaymentNotes') ?: NULL;
 
-        if (!$paymentTypeUID) throw new Exception('Please select a payment type.');
+        if (!$paymentTypeUID) throw new ValidationException('Please select a payment type.');
 
         $payTransYear  = (int)date('Y', strtotime($paymentDate));
         $payPrefixData = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.OrgUID' => $orgUID, 'Prefix.ModuleUID' => 110]);
@@ -1038,7 +1083,7 @@ class Indirectincome extends MY_Controller {
                 'SourceUID'      => $incomeUID,
                 'ModuleUID'      => $this->pageModuleUID,
                 'ReferenceNo'    => null,
-                'Narration'      => 'Indirect income received — ' . $incomeNumber,
+                'Narration'      => 'Indirect income received â€” ' . $incomeNumber,
                 'IsActive'       => 1,
                 'IsDeleted'      => 0,
                 'CreatedBy'      => $userUID,
@@ -1050,7 +1095,7 @@ class Indirectincome extends MY_Controller {
         }
     }
 
-    // ── Bulk delete indirect incomes ─────────────────────────────────────────
+    // â”€â”€ Bulk delete indirect incomes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function deleteMultipleIncomes(): void {
         $this->EndReturnData = new stdClass();
         try {
@@ -1070,7 +1115,7 @@ class Indirectincome extends MY_Controller {
                     : [];
             }
 
-            if (empty($incomeUIDs)) throw new Exception('No records selected.');
+            if (empty($incomeUIDs)) throw new ValidationException('No records selected.');
 
             $deleted = 0;
             $errors  = [];
@@ -1100,7 +1145,6 @@ class Indirectincome extends MY_Controller {
                         $this->load->library('accountledger');
                         $this->accountledger->reverseJournal('IndirectIncome', (int)$incomeUID, $userUID);
                     } catch (Throwable $ledgerEx) {
-                        log_message('error', 'Bulk income delete ledger #' . $incomeUID . ': ' . $ledgerEx->getMessage());
                     }
 
                     $deleted++;
@@ -1109,7 +1153,7 @@ class Indirectincome extends MY_Controller {
                 }
             }
 
-            if ($deleted === 0) throw new Exception(implode('; ', $errors) ?: 'No records deleted.');
+            if ($deleted === 0) throw new ValidationException(implode('; ', $errors) ?: 'No records deleted.');
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = $deleted . ' income record(s) deleted.' .
@@ -1120,6 +1164,9 @@ class Indirectincome extends MY_Controller {
                 [], 'Bulk deleted ' . $deleted . ' income record(s)', 'IndirectIncome', 'TRANSACTION'
             );
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Throwable $e) {
             notifyError('Indirectincome::deleteMultipleIncomes', $e);
             $this->EndReturnData->Error   = TRUE;

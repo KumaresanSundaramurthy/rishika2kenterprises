@@ -1,4 +1,4 @@
-﻿    
+    
 
     <?php $this->load->view('common/common_form'); ?>
 
@@ -49,6 +49,10 @@
     <?php $this->load->view('common/ai_assistant_widget'); ?>
     <script type="text/javascript" src="<?php echo _assetV('/js/core/ai_assistant.js'); ?>"></script>
     <?php endif; ?>
+
+    <!-- Help Drawer -->
+    <?php $this->load->view('common/help_drawer'); ?>
+    <script type="text/javascript" src="<?php echo _assetV('/js/core/help_drawer.js'); ?>"></script>
 
 </body>
 

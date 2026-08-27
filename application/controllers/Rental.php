@@ -12,7 +12,7 @@ class Rental extends MY_Controller {
         $this->load->helper('transaction');
     }
 
-    // ── Main page ─────────────────────────────────────────────────────────────
+    // â”€â”€ Main page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public function index() {
         if (!$this->_loadPageTitle($this->pageModuleUID)) {
@@ -45,12 +45,11 @@ class Rental extends MY_Controller {
 
         } catch (Throwable $e) {
             notifyError('Rental::index', $e);
-            log_message('error', 'Rental::index — ' . $e->getMessage());
             redirect('dashboard', 'refresh');
         }
     }
 
-    // ── AJAX pagination ───────────────────────────────────────────────────────
+    // â”€â”€ AJAX pagination â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public function getPageDetails($pageNo = 1) {
         $this->EndReturnData = new stdClass();
@@ -88,7 +87,7 @@ class Rental extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Create rental ─────────────────────────────────────────────────────────
+    // â”€â”€ Create rental â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public function createRental() {
         $this->EndReturnData = new stdClass();
@@ -233,7 +232,7 @@ class Rental extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Get rental detail (AJAX) ──────────────────────────────────────────────
+    // â”€â”€ Get rental detail (AJAX) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public function getRentalDetail() {
         $this->EndReturnData = new stdClass();
@@ -257,7 +256,7 @@ class Rental extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Process return ────────────────────────────────────────────────────────
+    // â”€â”€ Process return â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public function processReturn() {
         $this->EndReturnData = new stdClass();
@@ -374,7 +373,7 @@ class Rental extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Record payment (called by shared #recordPaymentModal) ─────────────────
+    // â”€â”€ Record payment (called by shared #recordPaymentModal) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public function recordPayment() {
         $this->EndReturnData = new stdClass();
@@ -440,7 +439,7 @@ class Rental extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            // Post rental income journal (non-fatal — payment is already committed)
+            // Post rental income journal (non-fatal â€” payment is already committed)
             try {
                 $this->load->library('accountledger');
                 $pmtUID = (int)$pmtResp->ID;
@@ -450,7 +449,6 @@ class Rental extends MY_Controller {
                     $pmtUID, $paymentDate, $rentalNo, $pmtFY, round($amount, $this->_decimals()), $userUID
                 );
             } catch (Exception $ledgerEx) {
-                log_message('error', 'Ledger failed after rental payment #' . $rentalUID . ': ' . $ledgerEx->getMessage());
             }
 
             $this->EndReturnData->Error   = FALSE;
@@ -469,7 +467,7 @@ class Rental extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Cancel rental ─────────────────────────────────────────────────────────
+    // â”€â”€ Cancel rental â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public function cancelRental() {
         $this->EndReturnData = new stdClass();
@@ -508,7 +506,7 @@ class Rental extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Search rentable products (Select2 AJAX) ───────────────────────────────
+    // â”€â”€ Search rentable products (Select2 AJAX) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public function searchRentableProducts() {
         $this->EndReturnData = new stdClass();
@@ -525,7 +523,7 @@ class Rental extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Private helpers ───────────────────────────────────────────────────────
+    // â”€â”€ Private helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private function _appendListResponse($orgUID) {
         $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();

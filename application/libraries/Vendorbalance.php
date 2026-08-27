@@ -1,16 +1,16 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 /**
- * Vendorbalance — vendor-side counterpart to Customerbalance.
+ * Vendorbalance â€” vendor-side counterpart to Customerbalance.
  *
  * Manages debit/credit notes created when Purchase Returns are saved or cancelled.
  * Both note types are stored in the unified TransDebitNoteTbl / TransCreditNoteTbl
  * with PartyType='S' to distinguish vendor records from customer records ('C').
  *
- * TransDebitNoteTbl  — vendor owes us (created when PR has no full cash refund yet)
- * TransCreditNoteTbl — we owe vendor back (created when PR is cancelled with 'recover')
+ * TransDebitNoteTbl  â€” vendor owes us (created when PR has no full cash refund yet)
+ * TransCreditNoteTbl â€” we owe vendor back (created when PR is cancelled with 'recover')
  *
- * Full vendor balance recalc (recalcAndSync) is stubbed — to be implemented
+ * Full vendor balance recalc (recalcAndSync) is stubbed â€” to be implemented
  * when the vendor balance tracking module is built.
  */
 class Vendorbalance {
@@ -22,7 +22,7 @@ class Vendorbalance {
         $this->CI =& get_instance();
     }
 
-    // ── Debit Note: create when PR is saved without full cash refund received ──
+    // â”€â”€ Debit Note: create when PR is saved without full cash refund received â”€â”€
 
     public function createPurchaseReturnDebitNote(int $orgUID, int $vendorUID, int $prTransUID, string $prUniqueNumber, float $amount, int $userUID, ?string $_transDate = null) {
         try {
@@ -53,18 +53,15 @@ class Vendorbalance {
             $dbErr    = $writeDb->error();
 
             if (!$insertOk || !empty($dbErr['code'])) {
-                log_message('error', '[VDN-TRACE] INSERT FAILED — ' . ($dbErr['message'] ?? '?'));
                 return null;
             }
 
             $debitNoteUID = (int)$writeDb->insert_id();
-            log_message('debug', '[VDN-TRACE] INSERT OK — TransDebitNoteUID=' . $debitNoteUID . ' PR=' . $prUniqueNumber . ' Amount=' . $amount);
 
             return ['debitNoteUID' => $debitNoteUID, 'amount' => $amount];
 
         } catch (Exception $e) {
             notifyError('Vendorbalance::createPurchaseReturnDebitNote', $e);
-            log_message('error', 'Vendorbalance::createPurchaseReturnDebitNote failed: ' . $e->getMessage());
             return null;
         }
     }
@@ -98,23 +95,20 @@ class Vendorbalance {
             $dbErr    = $writeDb->error();
 
             if (!$insertOk || !empty($dbErr['code'])) {
-                log_message('error', '[VDN-TRACE] createPurchaseCancelDebitNote INSERT FAILED — ' . ($dbErr['message'] ?? '?'));
                 return null;
             }
 
             $debitNoteUID = (int)$writeDb->insert_id();
-            log_message('debug', '[VDN-TRACE] createPurchaseCancelDebitNote OK — TransDebitNoteUID=' . $debitNoteUID . ' Purchase=' . $purchUniqueNumber . ' Amount=' . $amount);
 
             return ['debitNoteUID' => $debitNoteUID, 'amount' => $amount];
 
         } catch (Exception $e) {
             notifyError('Vendorbalance::createPurchaseCancelDebitNote', $e);
-            log_message('error', 'Vendorbalance::createPurchaseCancelDebitNote failed: ' . $e->getMessage());
             return null;
         }
     }
 
-    // ── Credit Note: create when PR is cancelled with 'recover' action ─────────
+    // â”€â”€ Credit Note: create when PR is cancelled with 'recover' action â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // Tracks: we owe vendor back the refund they had already given us.
 
     public function createVendorCreditNote(int $orgUID, int $vendorUID, int $sourceTransUID, string $sourceTransNumber, float $amount, int $userUID, $writeDb = null) {
@@ -136,7 +130,7 @@ class Vendorbalance {
                 'CreditNoteToken'   => generate_uuid4(),
                 'Amount'            => (float)$amount,
                 'Status'            => 'Pending',
-                'Notes'             => 'Auto-created on PR cancellation (Recover — we owe vendor back)',
+                'Notes'             => 'Auto-created on PR cancellation (Recover â€” we owe vendor back)',
                 'CreatedBy'         => (int)$userUID,
                 'UpdatedBy'         => (int)$userUID,
                 'IsActive'          => 1,
@@ -144,52 +138,46 @@ class Vendorbalance {
             ]);
 
             $creditNoteUID = (int)$writeDb->insert_id();
-            log_message('debug', '[VCN-CREATE] TransCreditNoteUID=' . $creditNoteUID . ' PR=' . $sourceTransNumber . ' Amount=' . $amount);
 
             return ['creditNoteUID' => $creditNoteUID, 'amount' => $amount];
 
         } catch (Exception $e) {
             notifyError('Vendorbalance::createVendorCreditNote', $e);
-            log_message('error', 'Vendorbalance::createVendorCreditNote failed: ' . $e->getMessage());
             return null;
         }
     }
 
-    // ── Balance recalculation — mirrors Customerbalance::recalcAndSync ────────
+    // â”€â”€ Balance recalculation â€” mirrors Customerbalance::recalcAndSync â”€â”€â”€â”€â”€â”€â”€â”€
     //
     // Formula (Credit = we owe vendor, Debit = vendor owes us):
     //   SignedBalance = signedOpening
     //                + TotalPurchased        (increases what we owe)
-    //                − TotalPaid             (decreases what we owe)
-    //                − EffectivePRReturned   (PRs not already covered by a debit note)
-    //                − PendingDebitNotes     (vendor owes us — reduces payable)
-    //                + PendingCreditNotes    (we owe vendor back — increases payable)
+    //                âˆ’ TotalPaid             (decreases what we owe)
+    //                âˆ’ EffectivePRReturned   (PRs not already covered by a debit note)
+    //                âˆ’ PendingDebitNotes     (vendor owes us â€” reduces payable)
+    //                + PendingCreditNotes    (we owe vendor back â€” increases payable)
     //
     // Syncs to:
-    //   1. Vendors.VendOpeningBalanceTbl  → PendingBalance / PendingBalType
-    //   2. Accounting.ChartOfAccounts     → CurrentBalance / CurrentBalanceType
-    //   3. Upstash cache                  → via cachehelper->upsertVendor()
+    //   1. Vendors.VendOpeningBalanceTbl  â†’ PendingBalance / PendingBalType
+    //   2. Accounting.ChartOfAccounts     â†’ CurrentBalance / CurrentBalanceType
+    //   3. Upstash cache                  â†’ via cachehelper->upsertVendor()
 
     public function recalcAndSync(int $orgUID, int $vendorUID, int $userUID): ?array {
         try {
-            log_message('debug', '[VBAL-FLOW] recalcAndSync START — VendorUID=' . $vendorUID);
             $this->CI->load->model('vendors_model');
 
             // Flush the ReadDb REPEATABLE READ snapshot BEFORE running any sum queries,
             // so they see the purchase that was just committed via WriteDb.
             $this->CI->vendors_model->commitReadDb();
-            log_message('debug', '[VBAL-FLOW] ReadDb COMMIT issued');
 
             $vendRows = $this->CI->vendors_model->getVendorsWithLedgerForBalance(
                 (int)$orgUID, (int)$vendorUID
             );
             if (empty($vendRows)) {
-                log_message('debug', '[VBAL-FLOW] recalcAndSync SKIP — VendorUID=' . $vendorUID . ' not found or inactive');
                 return null;
             }
 
             $vend = $vendRows[0];
-            log_message('debug', '[VBAL-FLOW] Vendor row — Name=' . ($vend->Name ?? '?') . ' LedgerUID=' . ($vend->LedgerUID ?? 'NULL') . ' OpeningBal=' . ($vend->OpeningBalance ?? 0) . '(' . ($vend->OpeningBalType ?? '?') . ')');
 
             $totalPurchased   = $this->CI->vendors_model->getVendorTotalPurchased($orgUID, $vendorUID);
             $totalPaid        = $this->CI->vendors_model->getVendorTotalPaid($orgUID, $vendorUID);
@@ -198,7 +186,6 @@ class Vendorbalance {
             $effectiveReturned = max(0.0, $totalReturned - $prCoveredByDN);
             [$pendingDebitNotes, $pendingCreditNotes] = $this->CI->vendors_model->getVendorPendingNoteTotals($orgUID, $vendorUID);
 
-            log_message('debug', '[VBAL-FLOW] Sums — Purchased=' . $totalPurchased . ' Paid=' . $totalPaid . ' ReturnedRaw=' . $totalReturned . ' PRCoveredByDN=' . $prCoveredByDN . ' EffectiveReturned=' . $effectiveReturned . ' PendingDN=' . $pendingDebitNotes . ' PendingCN=' . $pendingCreditNotes);
 
             // Vendor opening: Credit = positive (we owe them), Debit = negative
             $signedOpening = ($vend->OpeningBalType === 'Credit')
@@ -212,37 +199,27 @@ class Vendorbalance {
             $newBalance  = abs($signedBalance);
             $newBalType  = ($signedBalance >= 0) ? 'Credit' : 'Debit';
 
-            log_message('debug', '[VBAL-FLOW] Formula — SignedOpening=' . $signedOpening . ' SignedBalance=' . $signedBalance . ' => NEW=' . $newBalance . '(' . $newBalType . ')');
 
-            // 1. Update VendOpeningBalanceTbl → PendingBalance
-            log_message('debug', '[VBAL-FLOW] Step1 updateVendorPendingBalance — VendorUID=' . $vendorUID . ' newBalance=' . $newBalance . ' newBalType=' . $newBalType);
+            // 1. Update VendOpeningBalanceTbl â†’ PendingBalance
             $this->CI->vendors_model->updateVendorPendingBalance(
                 $orgUID, $vendorUID, $newBalance, $newBalType, $userUID
             );
-            log_message('debug', '[VBAL-FLOW] Step1 DONE');
 
-            // 2. Update Accounting.ChartOfAccounts → CurrentBalance
+            // 2. Update Accounting.ChartOfAccounts â†’ CurrentBalance
             if (!empty($vend->LedgerUID)) {
-                log_message('debug', '[VBAL-FLOW] Step2 updateVendorBalanceInLedger — LedgerUID=' . $vend->LedgerUID);
                 $this->CI->vendors_model->updateVendorBalanceInLedger(
                     $vend->LedgerUID, $newBalance, $newBalType, $userUID
                 );
-                log_message('debug', '[VBAL-FLOW] Step2 DONE');
             } else {
-                log_message('debug', '[VBAL-FLOW] Step2 SKIPPED — no LedgerUID for VendorUID=' . $vendorUID);
             }
 
             // 3. Sync Upstash cache
-            log_message('debug', '[VBAL-FLOW] Step3 upsertVendor (cache) — VendorUID=' . $vendorUID);
             $this->CI->cachehelper->upsertVendor((int)$vendorUID);
-            log_message('debug', '[VBAL-FLOW] Step3 DONE');
 
-            log_message('debug', '[VBAL-FLOW] recalcAndSync COMPLETE — VendorUID=' . $vendorUID . ' FinalBalance=' . $newBalance . '(' . $newBalType . ')');
             return ['balance' => $newBalance, 'type' => $newBalType];
 
         } catch (Exception $e) {
             notifyError('Vendorbalance::recalcAndSync', $e);
-            log_message('error', '[VBAL-FLOW] recalcAndSync EXCEPTION VendorUID=' . $vendorUID . ': ' . $e->getMessage());
             return null;
         }
     }

@@ -64,6 +64,24 @@ $(function () {
                 .on('select2:opening',  function (e) { e.preventDefault(); })
                 .on('select2:clearing', function (e) { e.preventDefault(); });
             $('#customerSearch').data('select2').$container.addClass('select2-party-readonly');
+
+            // Populate address strip from PHP-supplied billing address
+            if (_editData.custAddr) {
+                var _a = _editData.custAddr;
+                var _aLines = [_a.Line1, _a.Line2].filter(Boolean).join(', ');
+                var _aLoc   = [_a.City, _a.State].filter(Boolean).join(', ');
+                if (_a.Pincode) _aLoc += ' – ' + _a.Pincode;
+                var _aText  = [_aLines, _aLoc].filter(Boolean).join(' · ');
+                if (_aText) { $('#customerAddressBox').find('span').text(_aText).end().removeClass('d-none'); }
+                window._currentCustAddr = {
+                    customerUID : _editData.custUID   || 0,
+                    Line1       : _a.Line1            || '',
+                    Line2       : _a.Line2            || '',
+                    City        : _a.City             || '',
+                    State       : _a.State            || '',
+                    Pincode     : _a.Pincode          || '',
+                };
+            }
         }
     }
 
@@ -440,6 +458,87 @@ $(function () {
                 }
             }
         });
+    });
+
+    // ── Billing address edit — open #addEditAddressModal ────────────────────
+    var _custAddrModalActive = false;
+
+    $('#AddrSaveBtn').on('click.dcBillAddr', function (e) {
+        if (!_custAddrModalActive) return;
+        e.stopImmediatePropagation();
+        var addr = window._currentCustAddr || {};
+        if (!addr.customerUID) return;
+        var line1     = $.trim($('#ModalAddrLine1').val());
+        var line2     = $.trim($('#ModalAddrLine2').val());
+        var pincode   = $.trim($('#ModalAddrPincode').val());
+        var stateText = $.trim($('#ModalAddrState option:selected').text());
+        var cityText  = $.trim($('#ModalAddrCity  option:selected').text());
+        if (stateText === '-- Select State --') stateText = '';
+        if (cityText  === '-- Select City --')  cityText  = '';
+        var stateId   = $('#ModalAddrState option:selected').val() || '';
+        var cityId    = $('#ModalAddrCity  option:selected').val() || '';
+        if (!line1) { showToastNotification('Address Line 1 is required.', 'error'); return; }
+        ajaxLoading(1);
+        $.ajax({
+            url    : '/customers/updateBillingAddress',
+            method : 'POST',
+            data   : { CustomerUID: addr.customerUID, Line1: line1, Line2: line2, StateId: stateId, StateText: stateText, CityId: cityId, CityText: cityText, Pincode: pincode },
+            success: function (resp) {
+                ajaxLoading(0);
+                if (resp.Error) { showToastNotification(resp.Message || 'Failed to update address.', 'error'); return; }
+                var _lines = [line1, line2].filter(Boolean).join(', ');
+                var _loc   = [cityText, stateText].filter(Boolean).join(', ');
+                if (pincode) _loc += ' – ' + pincode;
+                var _text  = [_lines, _loc].filter(Boolean).join(' · ');
+                $('#customerAddressBox').find('span').text(_text).end().removeClass('d-none');
+                window._currentCustAddr = { customerUID: addr.customerUID, Line1: line1, Line2: line2, City: cityText, State: stateText, Pincode: pincode };
+                var $custOpt = $('#customerSearch').find('option[value="' + addr.customerUID + '"]');
+                var _s2d = $custOpt.data('data');
+                if (_s2d && _s2d.address) { _s2d.address.Line1 = line1; _s2d.address.Line2 = line2; _s2d.address.City = cityText; _s2d.address.State = stateText; _s2d.address.Pincode = pincode; $custOpt.data('data', _s2d); }
+                _custAddrModalActive = false;
+                $('#addEditAddressModal').modal('hide');
+                showToastNotification(resp.Message || 'Address updated.', 'success');
+            },
+            error: function () { ajaxLoading(0); showToastNotification('Server error. Please try again.', 'error'); }
+        });
+    });
+
+    $(document).on('hide.bs.modal', '#addEditAddressModal', function () { _custAddrModalActive = false; });
+
+    $(document).on('click', '#btnEditCustAddr', function () {
+        var addr = window._currentCustAddr || {};
+        if (!addr.customerUID) { showToastNotification('Please select a customer first.', 'error'); return; }
+        $('#addrModalTitle').text('Edit Billing Address');
+        $('#AddrUID').val(0);
+        $('#AddrType').val('Billing');
+        $('#ModalAddrLine1').val(addr.Line1 || '');
+        $('#ModalAddrLine2').val(addr.Line2 || '');
+        $('#ModalAddrPincode').val(addr.Pincode || '');
+        csc_loadStates('ModalAddrState', 'IN', '', function () {
+            var stateText = $.trim(addr.State || '').toLowerCase();
+            var stateISO2 = '';
+            if (stateText) {
+                $('#ModalAddrState option').each(function () {
+                    if ($.trim($(this).text()).toLowerCase() === stateText) {
+                        stateISO2 = $(this).data('iso2') || '';
+                        $('#ModalAddrState').val($(this).val());
+                        if ($('#ModalAddrState').hasClass('select2')) {
+                            $('#ModalAddrState').data('skipCityLoad', true);
+                            $('#ModalAddrState').trigger('change.select2');
+                        }
+                        return false;
+                    }
+                });
+            }
+            if (stateISO2) {
+                csc_loadCities('ModalAddrCity', 'IN', stateISO2, '', addr.City || '', null);
+            } else {
+                $('#ModalAddrCity').empty().append('<option value="">-- Select City --</option>');
+                if ($('#ModalAddrCity').hasClass('select2')) { $('#ModalAddrCity').select2({ width: '100%', dropdownParent: $('#addEditAddressModal .modal-content') }); }
+            }
+        });
+        _custAddrModalActive = true;
+        $('#addEditAddressModal').modal('show');
     });
 
 });

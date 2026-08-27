@@ -29,8 +29,8 @@ if (!empty($Entries)):
         $bCls   = $refBadge[$ref] ?? 'bg-label-secondary';
 ?>
 <tr data-uid="<?php echo $uid; ?>"
-    data-dr="<?php echo number_format($drAmt, $dec, '.', ''); ?>"
-    data-cr="<?php echo number_format($crAmt, $dec, '.', ''); ?>"
+    data-dr="<?php echo smartDecimal($drAmt); ?>"
+    data-cr="<?php echo smartDecimal($crAmt); ?>"
     class="<?php echo $en->IsReconciled ? 'recon-row-cleared' : ''; ?>">
     <td class="text-center" style="width:44px;">
         <input type="checkbox" class="recon-chk form-check-input"
@@ -52,10 +52,10 @@ if (!empty($Entries)):
         <?php echo htmlspecialchars($en->Particulars ?: ($en->Narration ?? '—')); ?>
     </td>
     <td class="text-end fw-semibold text-success" style="font-size:.82rem;white-space:nowrap;">
-        <?php echo $isDr ? ($cur . ' ' . number_format($amt, $dec)) : '—'; ?>
+        <?php echo $isDr ? ($cur . ' ' . smartDecimal($amt)) : '—'; ?>
     </td>
     <td class="text-end fw-semibold text-danger" style="font-size:.82rem;white-space:nowrap;">
-        <?php echo !$isDr ? ($cur . ' ' . number_format($amt, $dec)) : '—'; ?>
+        <?php echo !$isDr ? ($cur . ' ' . smartDecimal($amt)) : '—'; ?>
     </td>
 </tr>
 <?php endforeach; else: ?>

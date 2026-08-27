@@ -141,6 +141,22 @@ $(function () {
                 .append(new Option(_custLabel, _editData.custUID, true, true))
                 .trigger('change');
 
+            // Populate address strip from PHP-supplied billing address
+            (function () {
+                var _aLines = [_editData.custBillLine1, _editData.custBillLine2].filter(Boolean).join(', ');
+                var _aLoc   = [_editData.custBillCity, _editData.custBillState].filter(Boolean).join(', ');
+                if (_editData.custBillPincode) _aLoc += ' – ' + _editData.custBillPincode;
+                var _aText  = [_aLines, _aLoc].filter(Boolean).join(' · ');
+                if (_aText) { $('#customerAddressBox').find('span').text(_aText).end().removeClass('d-none'); }
+            }());
+            window._currentCustAddr = {
+                customerUID : _editData.custUID        || 0,
+                Line1       : _editData.custBillLine1   || '',
+                Line2       : _editData.custBillLine2   || '',
+                City        : _editData.custBillCity    || '',
+                State       : _editData.custBillState   || '',
+                Pincode     : _editData.custBillPincode || '',
+            };
             // select2:select never fires on programmatic population, so manually
             // restore the customer indicator badges (inter-state, credits, price list chip).
             (function _restoreEditIndicators() {
@@ -552,6 +568,150 @@ $(function () {
                 }
             }
         });
+    });
+
+    // ── Billing address edit — open #addEditAddressModal ────────────────────
+    var _custAddrModalActive = false;
+
+    // Direct handler runs before address.js delegated handler; intercepts save when flag is set.
+    $('#AddrSaveBtn').on('click.invBillAddr', function (e) {
+        if (!_custAddrModalActive) return;
+        e.stopImmediatePropagation();
+
+        var addr     = window._currentCustAddr || {};
+        if (!addr.customerUID) return;
+
+        var line1     = $.trim($('#ModalAddrLine1').val());
+        var line2     = $.trim($('#ModalAddrLine2').val());
+        var pincode   = $.trim($('#ModalAddrPincode').val());
+        var stateText = $.trim($('#ModalAddrState option:selected').text());
+        var cityText  = $.trim($('#ModalAddrCity  option:selected').text());
+        if (stateText === '-- Select State --') stateText = '';
+        if (cityText  === '-- Select City --')  cityText  = '';
+        var stateId   = $('#ModalAddrState option:selected').val() || '';
+        var cityId    = $('#ModalAddrCity  option:selected').val() || '';
+
+        if (!line1) { showToastNotification('Address Line 1 is required.', 'error'); return; }
+
+        ajaxLoading(1);
+        $.ajax({
+            url    : '/customers/updateBillingAddress',
+            method : 'POST',
+            data   : {
+                CustomerUID : addr.customerUID,
+                Line1       : line1,
+                Line2       : line2,
+                StateId     : stateId,
+                StateText   : stateText,
+                CityId      : cityId,
+                CityText    : cityText,
+                Pincode     : pincode,
+            },
+            success: function (resp) {
+                ajaxLoading(0);
+                if (resp.Error) { showToastNotification(resp.Message || 'Failed to update address.', 'error'); return; }
+                var _lines = [line1, line2].filter(Boolean).join(', ');
+                var _loc   = [cityText, stateText].filter(Boolean).join(', ');
+                if (pincode) _loc += ' – ' + pincode;
+                var _text  = [_lines, _loc].filter(Boolean).join(' · ');
+                $('#customerAddressBox').find('span').text(_text).end().removeClass('d-none');
+                window._currentCustAddr = {
+                    customerUID : addr.customerUID,
+                    Line1       : line1,
+                    Line2       : line2,
+                    City        : cityText,
+                    State       : stateText,
+                    Pincode     : pincode,
+                };
+                // Sync updated address into the select2 option's internal data object so
+                // any future select2:select event reads the fresh address instead of the
+                // stale value that was loaded at page render / initial customer selection.
+                var $custOpt = $('#customerSearch').find('option[value="' + addr.customerUID + '"]');
+                var _s2d     = $custOpt.data('data');
+                if (_s2d && _s2d.address) {
+                    _s2d.address.Line1   = line1;
+                    _s2d.address.Line2   = line2;
+                    _s2d.address.City    = cityText;
+                    _s2d.address.State   = stateText;
+                    _s2d.address.Pincode = pincode;
+                    $custOpt.data('data', _s2d);
+                }
+                if (typeof _showCustTypeIndicator === 'function') {
+                    _showCustTypeIndicator({ countryISO2: 'IN', address: { State: stateText } });
+                }
+                _custAddrModalActive = false;
+                $('#addEditAddressModal').modal('hide');
+                showToastNotification(resp.Message || 'Address updated.', 'success');
+            },
+            error: function () {
+                ajaxLoading(0);
+                showToastNotification('Server error. Please try again.', 'error');
+            }
+        });
+    });
+
+    $(document).on('hide.bs.modal', '#addEditAddressModal', function () {
+        _custAddrModalActive = false;
+    });
+
+    $(document).on('click', '#btnEditCustAddr', function () {
+        var addr = window._currentCustAddr || {};
+        if (!addr.customerUID) {
+            showToastNotification('Please select a customer first.', 'error');
+            return;
+        }
+
+        /**
+         * Pre-fills and opens the billing address modal with the given address.
+         * @param {object} a  address with Line1/Line2/City/State/Pincode
+         * @returns {void}
+         */
+        function _openModal(a) {
+            $('#addrModalTitle').text('Edit Billing Address');
+            $('#AddrUID').val(0);
+            $('#AddrType').val('Billing');
+            $('#ModalAddrLine1').val(a.Line1 || '');
+            $('#ModalAddrLine2').val(a.Line2 || '');
+            $('#ModalAddrPincode').val(a.Pincode || '');
+            csc_loadStates('ModalAddrState', 'IN', '', function () {
+                var stateText = $.trim(a.State || '').toLowerCase();
+                var stateISO2 = '';
+                if (stateText) {
+                    $('#ModalAddrState option').each(function () {
+                        if ($.trim($(this).text()).toLowerCase() === stateText) {
+                            stateISO2 = $(this).data('iso2') || '';
+                            $('#ModalAddrState').val($(this).val());
+                            if ($('#ModalAddrState').hasClass('select2')) {
+                                // Set flag so the delegated #ModalAddrState change handler in
+                                // address.js skips its city reload — we call csc_loadCities
+                                // below with the correct city name; without this the two async
+                                // calls race and the city pre-selection can be lost.
+                                $('#ModalAddrState').data('skipCityLoad', true);
+                                $('#ModalAddrState').trigger('change.select2');
+                            }
+                            return false;
+                        }
+                    });
+                }
+                if (stateISO2) {
+                    csc_loadCities('ModalAddrCity', 'IN', stateISO2, '', a.City || '', null);
+                } else {
+                    $('#ModalAddrCity').empty().append('<option value="">-- Select City --</option>');
+                    if ($('#ModalAddrCity').hasClass('select2')) {
+                        $('#ModalAddrCity').select2({ width: '100%', dropdownParent: $('#addEditAddressModal .modal-content') });
+                    }
+                }
+                if (_editData && _editData.hasReturns) {
+                    var $ms = $('#ModalAddrState');
+                    $ms.prop('disabled', true);
+                    if ($ms.hasClass('select2')) { $ms.data('skipCityLoad', true); $ms.trigger('change.select2'); }
+                }
+            });
+            _custAddrModalActive = true;
+            $('#addEditAddressModal').modal('show');
+        }
+
+        _openModal(window._currentCustAddr);
     });
 
 });

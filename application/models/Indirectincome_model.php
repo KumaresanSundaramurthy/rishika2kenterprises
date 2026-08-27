@@ -9,7 +9,7 @@ class Indirectincome_model extends CI_Model {
         $this->ReadDb = $this->load->database('ReadDB', TRUE);
     }
 
-    // ── Paginated list ───────────────────────────────────────────────────────
+    // â”€â”€ Paginated list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getIncomeList(int $orgUID, array $filter, int $limit, int $offset): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -60,12 +60,11 @@ class Indirectincome_model extends CI_Model {
             return $query ? $query->result() : [];
         } catch (Exception $e) {
             notifyError('Indirectincome_model::getIncomeList', $e);
-            log_message('error', 'Indirectincome_model::getIncomeList — ' . $e->getMessage());
             return [];
         }
     }
 
-    // ── Count ────────────────────────────────────────────────────────────────
+    // â”€â”€ Count â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getIncomeCount(int $orgUID, array $filter): int {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -80,12 +79,11 @@ class Indirectincome_model extends CI_Model {
             return $row ? (int)$row->cnt : 0;
         } catch (Exception $e) {
             notifyError('Indirectincome_model::getIncomeCount', $e);
-            log_message('error', 'Indirectincome_model::getIncomeCount — ' . $e->getMessage());
             return 0;
         }
     }
 
-    // ── Single record ────────────────────────────────────────────────────────
+    // â”€â”€ Single record â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getIncomeById(int $incomeUID, int $orgUID): ?object {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -114,12 +112,11 @@ class Indirectincome_model extends CI_Model {
             return $query ? $query->row() : null;
         } catch (Exception $e) {
             notifyError('Indirectincome_model::getIncomeById', $e);
-            log_message('error', 'Indirectincome_model::getIncomeById — ' . $e->getMessage());
             return null;
         }
     }
 
-    // ── Summary stats for stat cards ─────────────────────────────────────────
+    // â”€â”€ Summary stats for stat cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getIncomeSummaryStats(int $orgUID, int $branchUID = 0): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -138,12 +135,11 @@ class Indirectincome_model extends CI_Model {
             return $result;
         } catch (Exception $e) {
             notifyError('Indirectincome_model::getIncomeSummaryStats', $e);
-            log_message('error', 'Indirectincome_model::getIncomeSummaryStats — ' . $e->getMessage());
             return [];
         }
     }
 
-    // ── Categories ───────────────────────────────────────────────────────────
+    // â”€â”€ Categories â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getCategories(int $orgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -160,12 +156,11 @@ class Indirectincome_model extends CI_Model {
             return $query ? $query->result() : [];
         } catch (Exception $e) {
             notifyError('Indirectincome_model::getCategories', $e);
-            log_message('error', 'Indirectincome_model::getCategories — ' . $e->getMessage());
             return [];
         }
     }
 
-    // ── Payment types ────────────────────────────────────────────────────────
+    // â”€â”€ Payment types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getPaymentTypes(): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -177,12 +172,11 @@ class Indirectincome_model extends CI_Model {
             return $query ? $query->result() : [];
         } catch (Exception $e) {
             notifyError('Indirectincome_model::getPaymentTypes', $e);
-            log_message('error', 'Indirectincome_model::getPaymentTypes — ' . $e->getMessage());
             return [];
         }
     }
 
-    // ── Bank accounts ────────────────────────────────────────────────────────
+    // â”€â”€ Bank accounts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getBankAccounts(int $orgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -197,12 +191,11 @@ class Indirectincome_model extends CI_Model {
             return $query ? $query->result() : [];
         } catch (Exception $e) {
             notifyError('Indirectincome_model::getBankAccounts', $e);
-            log_message('error', 'Indirectincome_model::getBankAccounts — ' . $e->getMessage());
             return [];
         }
     }
 
-    // ── Default cash account for ledger entries ──────────────────────────────
+    // â”€â”€ Default cash account for ledger entries â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getCashAccount(int $orgUID): ?object {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -217,12 +210,11 @@ class Indirectincome_model extends CI_Model {
             return $query ? $query->row() : null;
         } catch (Exception $e) {
             notifyError('Indirectincome_model::getCashAccount', $e);
-            log_message('error', 'Indirectincome_model::getCashAccount — ' . $e->getMessage());
             return null;
         }
     }
 
-    // ── Category list (paginated, for manager modal) ─────────────────────────
+    // â”€â”€ Category list (paginated, for manager modal) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getCategoryList(int $orgUID, string $search, int $limit, int $offset): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -244,12 +236,11 @@ class Indirectincome_model extends CI_Model {
             return $query ? $query->result() : [];
         } catch (Exception $e) {
             notifyError('Indirectincome_model::getCategoryList', $e);
-            log_message('error', 'Indirectincome_model::getCategoryList — ' . $e->getMessage());
             return [];
         }
     }
 
-    // ── Category count ───────────────────────────────────────────────────────
+    // â”€â”€ Category count â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getCategoryCount(int $orgUID, string $search): int {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -269,13 +260,12 @@ class Indirectincome_model extends CI_Model {
             return $row ? (int)$row->cnt : 0;
         } catch (Exception $e) {
             notifyError('Indirectincome_model::getCategoryCount', $e);
-            log_message('error', 'Indirectincome_model::getCategoryCount — ' . $e->getMessage());
             return 0;
         }
     }
 
 
-    // ── Count existing payment rows for an income (for UniqueNumber suffix) ────
+    // â”€â”€ Count existing payment rows for an income (for UniqueNumber suffix) â”€â”€â”€â”€
     public function getPaymentCount(int $transUID, string $sourceType, int $orgUID): int {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -290,12 +280,11 @@ class Indirectincome_model extends CI_Model {
             return $row ? (int)$row->cnt : 0;
         } catch (Exception $e) {
             notifyError('Indirectincome_model::getPaymentCount', $e);
-            log_message('error', 'Indirectincome_model::getPaymentCount — ' . $e->getMessage());
             return 0;
         }
     }
 
-    // ── Check if category is in use ──────────────────────────────────────────
+    // â”€â”€ Check if category is in use â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function isCategoryLinked(int $categoryUID, int $orgUID): bool {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -309,12 +298,11 @@ class Indirectincome_model extends CI_Model {
             return $row && (int)$row->cnt > 0;
         } catch (Exception $e) {
             notifyError('Indirectincome_model::isCategoryLinked', $e);
-            log_message('error', 'Indirectincome_model::isCategoryLinked — ' . $e->getMessage());
             return true;
         }
     }
 
-    // ── Private filter helper ────────────────────────────────────────────────
+    // â”€â”€ Private filter helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private function _applyFilters(array $filter): void {
         if (!empty($filter['BranchUID'])) {
             $this->ReadDb->where('i.BranchUID', (int)$filter['BranchUID']);
@@ -381,7 +369,6 @@ class Indirectincome_model extends CI_Model {
             return array_column($query->result_array(), 'IncomeUID');
         } catch (Exception $e) {
             notifyError('Indirectincome_model::getIncomeUIDsByFilter', $e);
-            log_message('error', 'getIncomeUIDsByFilter: ' . $e->getMessage());
             return [];
         }
     }

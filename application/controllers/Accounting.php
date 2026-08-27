@@ -19,7 +19,7 @@ class Accounting extends MY_Controller {
         $this->load->model('accountledger_model');
     }
 
-    // ── Chart of Accounts — list page ────────────────────────────────────────
+    // â”€â”€ Chart of Accounts â€” list page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function chartofaccounts() {
         if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
         try {
@@ -42,7 +42,7 @@ class Accounting extends MY_Controller {
         }
     }
 
-    // ── AJAX — paginated list ─────────────────────────────────────────────────
+    // â”€â”€ AJAX â€” paginated list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getChartOfAccountsPage($pageNo = 1) {
         $this->EndReturnData = new stdClass();
         try {
@@ -68,7 +68,7 @@ class Accounting extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Save ledger (create / update) ────────────────────────────────────────
+    // â”€â”€ Save ledger (create / update) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function saveLedger() {
         $this->EndReturnData = new stdClass();
         try {
@@ -99,7 +99,7 @@ class Accounting extends MY_Controller {
             ];
 
             if ($ledgerUID > 0) {
-                // Update — code is immutable; scope to this org
+                // Update â€” code is immutable; scope to this org
                 $res = $this->dbwrite_model->updateData('Accounting', 'ChartOfAccounts', $data,
                     ['LedgerUID' => $ledgerUID, 'OrgUID' => $orgUID]);
                 if ($res->Error) throw new Exception($res->Message);
@@ -138,7 +138,7 @@ class Accounting extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Toggle active / inactive ──────────────────────────────────────────────
+    // â”€â”€ Toggle active / inactive â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function toggleLedgerStatus() {
         $this->EndReturnData = new stdClass();
         try {
@@ -176,7 +176,7 @@ class Accounting extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Soft-delete (only if no journal entries) ──────────────────────────────
+    // â”€â”€ Soft-delete (only if no journal entries) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function deleteLedger() {
         $this->EndReturnData = new stdClass();
         try {
@@ -214,7 +214,7 @@ class Accounting extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Trial Balance — page ─────────────────────────────────────────────────
+    // â”€â”€ Trial Balance â€” page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function trialbalance() {
         if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
         try {
@@ -232,7 +232,7 @@ class Accounting extends MY_Controller {
         }
     }
 
-    // ── Trial Balance — AJAX ──────────────────────────────────────────────────
+    // â”€â”€ Trial Balance â€” AJAX â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getTrialBalanceAjax() {
         $this->EndReturnData = new stdClass();
         try {
@@ -253,7 +253,7 @@ class Accounting extends MY_Controller {
                 $dr     = (float)$r->PeriodDebit;
                 $cr     = (float)$r->PeriodCredit;
 
-                // Closing = opening ± net movement
+                // Closing = opening Â± net movement
                 list($cb, $cbType) = $this->_calcBalance($ob, $obType, $dr, $cr);
                 $r->ClosingBalance     = $cb;
                 $r->ClosingBalanceType = $cbType;
@@ -286,7 +286,7 @@ class Accounting extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Journal Listing — page ───────────────────────────────────────────────
+    // â”€â”€ Journal Listing â€” page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function journallist() {
         if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
         try {
@@ -307,7 +307,7 @@ class Accounting extends MY_Controller {
         }
     }
 
-    // ── Journal Listing — AJAX paginated ─────────────────────────────────────
+    // â”€â”€ Journal Listing â€” AJAX paginated â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getJournalListPage($pageNo = 1) {
         $this->EndReturnData = new stdClass();
         try {
@@ -332,7 +332,7 @@ class Accounting extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Journal detail modal — AJAX ───────────────────────────────────────────
+    // â”€â”€ Journal detail modal â€” AJAX â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getJournalDetail() {
         $this->EndReturnData = new stdClass();
         try {
@@ -362,7 +362,7 @@ class Accounting extends MY_Controller {
             ['DataLists' => $rows, 'SerialNumber' => $offset, 'JwtData' => $JwtData], TRUE);
     }
 
-    // ── General Ledger — page ────────────────────────────────────────────────
+    // â”€â”€ General Ledger â€” page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function generalledger() {
         if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
         try {
@@ -374,7 +374,7 @@ class Accounting extends MY_Controller {
         }
     }
 
-    // ── General Ledger — AJAX fetch statement ────────────────────────────────
+    // â”€â”€ General Ledger â€” AJAX fetch statement â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getLedgerStatementAjax() {
         $this->EndReturnData = new stdClass();
         try {
@@ -446,7 +446,7 @@ class Accounting extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Manual Journal — save (POST) ─────────────────────────────────────────
+    // â”€â”€ Manual Journal â€” save (POST) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function saveManualJournal(): void {
         $this->EndReturnData = new stdClass();
         try {
@@ -482,8 +482,8 @@ class Accounting extends MY_Controller {
             if (count($clean) < 2) throw new Exception('At least 2 valid journal lines are required.');
             if (abs($totalDr - $totalCr) > 0.01) {
                 throw new Exception(
-                    'Journal does not balance — Debit: ' . number_format($totalDr, $dec) .
-                    ', Credit: ' . number_format($totalCr, $dec) . '.'
+                    'Journal does not balance â€” Debit: ' . smartDecimal($totalDr) .
+                    ', Credit: ' . smartDecimal($totalCr) . '.'
                 );
             }
 
@@ -506,7 +506,7 @@ class Accounting extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Manual Journal — delete (reversal + soft-delete) ─────────────────────
+    // â”€â”€ Manual Journal â€” delete (reversal + soft-delete) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function deleteManualJournal(): void {
         $this->EndReturnData = new stdClass();
         try {
@@ -528,7 +528,7 @@ class Accounting extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Bank Reconciliation — page ───────────────────────────────────────────
+    // â”€â”€ Bank Reconciliation â€” page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function bankreconciliation(): void {
         if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
         try {
@@ -536,12 +536,11 @@ class Accounting extends MY_Controller {
             $this->load->view('accounting/bank_reconciliation/view', $this->pageData);
         } catch (Exception $e) {
             notifyError('Accounting::bankreconciliation', $e);
-            log_message('error', 'bankreconciliation: ' . $e->getMessage());
             redirect('dashboard', 'refresh');
         }
     }
 
-    // ── Bank Reconciliation — AJAX load entries ───────────────────────────────
+    // â”€â”€ Bank Reconciliation â€” AJAX load entries â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getBankReconAjax(): void {
         $this->EndReturnData = new stdClass();
         try {
@@ -603,7 +602,7 @@ class Accounting extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Bank Reconciliation — AJAX save cleared status ────────────────────────
+    // â”€â”€ Bank Reconciliation â€” AJAX save cleared status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function saveBankRecon(): void {
         $this->EndReturnData = new stdClass();
         try {
@@ -629,7 +628,7 @@ class Accounting extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Ledger search dropdown for manual journal (GET, no CSRF) ─────────────
+    // â”€â”€ Ledger search dropdown for manual journal (GET, no CSRF) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getLedgersForJournal(): void {
         $this->EndReturnData = new stdClass();
         try {
@@ -655,13 +654,13 @@ class Accounting extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Profit & Loss — page ─────────────────────────────────────────────────
+    // â”€â”€ Profit & Loss â€” page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function profitloss(): void {
         if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
         $this->load->view('accounting/profit_loss/view', $this->pageData);
     }
 
-    // ── Profit & Loss — AJAX load statement ──────────────────────────────────
+    // â”€â”€ Profit & Loss â€” AJAX load statement â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getPandLAjax(): void {
         $this->EndReturnData = new stdClass();
         try {
@@ -723,13 +722,13 @@ class Accounting extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Balance Sheet — page ──────────────────────────────────────────────────
+    // â”€â”€ Balance Sheet â€” page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function balancesheet(): void {
         if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
         $this->load->view('accounting/balance_sheet/view', $this->pageData);
     }
 
-    // ── Balance Sheet — AJAX load statement ───────────────────────────────────
+    // â”€â”€ Balance Sheet â€” AJAX load statement â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getBalanceSheetAjax(): void {
         $this->EndReturnData = new stdClass();
         try {
@@ -741,7 +740,7 @@ class Accounting extends MY_Controller {
             }
             if ($pnlFrom > $asOfDate) throw new Exception('P&L From date cannot be after the Balance Sheet date.');
 
-            // ── Balance Sheet rows ──────────────────────────────────────────
+            // â”€â”€ Balance Sheet rows â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             $bsRows = $this->accountledger_model->getBalanceSheetRows($asOfDate);
 
             $assetGroups = [
@@ -781,7 +780,7 @@ class Accounting extends MY_Controller {
                 }
             }
 
-            // ── Net Profit from P&L (period start → asOfDate) ──────────────
+            // â”€â”€ Net Profit from P&L (period start â†’ asOfDate) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             $pnlRows = $this->accountledger_model->getPandLRows($pnlFrom, $asOfDate);
             $totalIncome = $totalExpense = 0.0;
             foreach ($pnlRows as $r) {
@@ -818,7 +817,7 @@ class Accounting extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Recurring Journals — page ─────────────────────────────────────────────
+    // â”€â”€ Recurring Journals â€” page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function recurringjournals(): void {
         if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
         try {
@@ -835,12 +834,11 @@ class Accounting extends MY_Controller {
             $this->load->view('accounting/recurring_journals/view', $this->pageData);
         } catch (Exception $e) {
             notifyError('Accounting::recurringjournals', $e);
-            log_message('error', 'recurringjournals: ' . $e->getMessage());
             redirect('dashboard', 'refresh');
         }
     }
 
-    // ── Recurring Journals — AJAX paginated list ──────────────────────────────
+    // â”€â”€ Recurring Journals â€” AJAX paginated list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getRecurringJournalsPage(int $pageNo = 1): void {
         $this->EndReturnData = new stdClass();
         try {
@@ -867,7 +865,7 @@ class Accounting extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Recurring Journals — GET single for edit modal ────────────────────────
+    // â”€â”€ Recurring Journals â€” GET single for edit modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getRecurringJournalAjax(): void {
         $this->EndReturnData = new stdClass();
         try {
@@ -904,7 +902,7 @@ class Accounting extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Recurring Journals — POST save (create / update) ─────────────────────
+    // â”€â”€ Recurring Journals â€” POST save (create / update) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function saveRecurringJournal(): void {
         $this->EndReturnData = new stdClass();
         try {
@@ -1000,7 +998,7 @@ class Accounting extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Recurring Journals — POST run one journal now ─────────────────────────
+    // â”€â”€ Recurring Journals â€” POST run one journal now â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function postRecurringJournal(): void {
         $this->EndReturnData = new stdClass();
         try {
@@ -1064,7 +1062,7 @@ class Accounting extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Recurring Journals — POST run all due journals ────────────────────────
+    // â”€â”€ Recurring Journals â€” POST run all due journals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function postAllDueJournals(): void {
         $this->EndReturnData = new stdClass();
         try {
@@ -1135,7 +1133,7 @@ class Accounting extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Recurring Journals — POST toggle pause/resume ─────────────────────────
+    // â”€â”€ Recurring Journals â€” POST toggle pause/resume â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function toggleRecurringStatus(): void {
         $this->EndReturnData = new stdClass();
         try {
@@ -1167,7 +1165,7 @@ class Accounting extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Recurring Journals — POST soft-delete ────────────────────────────────
+    // â”€â”€ Recurring Journals â€” POST soft-delete â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function deleteRecurringJournal(): void {
         $this->EndReturnData = new stdClass();
         try {
@@ -1226,7 +1224,7 @@ class Accounting extends MY_Controller {
         return [abs($net), $flipped[$balType]];
     }
 
-    // ── Period Lock — page ────────────────────────────────────────────────────
+    // â”€â”€ Period Lock â€” page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function periodlock(): void {
         if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
         try {
@@ -1234,12 +1232,11 @@ class Accounting extends MY_Controller {
             $this->load->view('accounting/period_lock/view', $this->pageData);
         } catch (Exception $e) {
             notifyError('Accounting::periodlock', $e);
-            log_message('error', 'periodlock: ' . $e->getMessage());
             redirect('dashboard', 'refresh');
         }
     }
 
-    // ── Period Lock — POST save / advance lock date ───────────────────────────
+    // â”€â”€ Period Lock â€” POST save / advance lock date â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function savePeriodLock(): void {
         $this->EndReturnData = new stdClass();
         try {
@@ -1283,7 +1280,7 @@ class Accounting extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Period Lock — POST remove lock ────────────────────────────────────────
+    // â”€â”€ Period Lock â€” POST remove lock â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function removePeriodLock(): void {
         $this->EndReturnData = new stdClass();
         try {
@@ -1301,13 +1298,13 @@ class Accounting extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Comparative P&L — page ───────────────────────────────────────────────
+    // â”€â”€ Comparative P&L â€” page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function comparativepnl(): void {
         if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
         $this->load->view('accounting/comparative_pnl/view', $this->pageData);
     }
 
-    // ── Comparative P&L — AJAX statement ─────────────────────────────────────
+    // â”€â”€ Comparative P&L â€” AJAX statement â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getComparativePnLAjax(): void {
         $this->EndReturnData = new stdClass();
         try {
@@ -1407,13 +1404,13 @@ class Accounting extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Financial Ratios — page ───────────────────────────────────────────────
+    // â”€â”€ Financial Ratios â€” page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function ratios(): void {
         if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
         $this->load->view('accounting/ratios/view', $this->pageData);
     }
 
-    // ── Financial Ratios — AJAX dashboard ────────────────────────────────────
+    // â”€â”€ Financial Ratios â€” AJAX dashboard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getRatiosAjax(): void {
         $this->EndReturnData = new stdClass();
         try {
@@ -1511,13 +1508,13 @@ class Accounting extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Cash Flow Statement — page ────────────────────────────────────────────
+    // â”€â”€ Cash Flow Statement â€” page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function cashflow(): void {
         if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
         $this->load->view('accounting/cash_flow/view', $this->pageData);
     }
 
-    // ── Cash Flow Statement — AJAX statement ─────────────────────────────────
+    // â”€â”€ Cash Flow Statement â€” AJAX statement â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getCashFlowAjax(): void {
         $this->EndReturnData = new stdClass();
         try {
@@ -1607,13 +1604,13 @@ class Accounting extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Budget vs Actual — page ───────────────────────────────────────────────
+    // â”€â”€ Budget vs Actual â€” page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function budgetvactual(): void {
         if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
         $this->load->view('accounting/budget_vs_actual/view', $this->pageData);
     }
 
-    // ── Budget vs Actual — AJAX report ────────────────────────────────────────
+    // â”€â”€ Budget vs Actual â€” AJAX report â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getBudgetVActualAjax(): void {
         $this->EndReturnData = new stdClass();
         try {
@@ -1678,7 +1675,7 @@ class Accounting extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Budget vs Actual — save budget amount ─────────────────────────────────
+    // â”€â”€ Budget vs Actual â€” save budget amount â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function saveBudgetAmount(): void {
         $this->EndReturnData = new stdClass();
         try {
@@ -1702,13 +1699,13 @@ class Accounting extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Aged Receivables — page ───────────────────────────────────────────────
+    // â”€â”€ Aged Receivables â€” page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function agedreceivables(): void {
         if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
         $this->load->view('accounting/aged_receivables/view', $this->pageData);
     }
 
-    // ── Aged Receivables — AJAX statement ────────────────────────────────────
+    // â”€â”€ Aged Receivables â€” AJAX statement â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getAgedReceivablesAjax(): void {
         $this->EndReturnData = new stdClass();
         try {
@@ -1778,13 +1775,13 @@ class Accounting extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Aged Payables — page ──────────────────────────────────────────────────
+    // â”€â”€ Aged Payables â€” page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function agedpayables(): void {
         if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
         $this->load->view('accounting/aged_payables/view', $this->pageData);
     }
 
-    // ── Aged Payables — AJAX statement ───────────────────────────────────────
+    // â”€â”€ Aged Payables â€” AJAX statement â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getAgedPayablesAjax(): void {
         $this->EndReturnData = new stdClass();
         try {
@@ -1855,14 +1852,14 @@ class Accounting extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Day Book — page ───────────────────────────────────────────────────────
+    // â”€â”€ Day Book â€” page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function daybook(): void {
         if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
         $this->pageData['CashBankLedgers'] = $this->accountledger_model->getCashBankLedgers();
         $this->load->view('accounting/day_book/view', $this->pageData);
     }
 
-    // ── Day Book — AJAX entries ───────────────────────────────────────────────
+    // â”€â”€ Day Book â€” AJAX entries â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getDayBookAjax(): void {
         $this->EndReturnData = new stdClass();
         try {
@@ -1880,7 +1877,7 @@ class Accounting extends MY_Controller {
 
             $rows = $this->accountledger_model->getDayBookRows($dateFrom, $dateTo, $cashBankOnly, $ledgerUID);
 
-            // Group flat rows into days → journals → entries
+            // Group flat rows into days â†’ journals â†’ entries
             $days = [];
             foreach ($rows as $row) {
                 $date = $row->JournalDate;
@@ -1930,7 +1927,7 @@ class Accounting extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Private: build list HTML ──────────────────────────────────────────────
+    // â”€â”€ Private: build list HTML â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private function _buildListHtml(array $rows, int $offset): string {
         $JwtData = $this->pageData['JwtData'];
         return $this->load->view('accounting/chart_of_accounts/list',

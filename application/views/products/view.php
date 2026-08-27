@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php $this->load->view('common/header'); ?>
 
@@ -46,7 +46,7 @@
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">Stock Value</div>
                             <div class="apex-stat-bottom">
-                                <span class="apex-stat-count"><?php echo $cur . ' ' . number_format((float)($s->TotalStockValue ?? 0), $dec); ?></span>
+                                <span class="apex-stat-count"><?php echo $cur . ' ' . smartDecimal($s->TotalStockValue ?? 0); ?></span>
                                 <span class="apex-stat-amount">&nbsp;</span>
                             </div>
                         </div>

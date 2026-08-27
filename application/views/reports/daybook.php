@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 
 $_today      = date('Y-m-d');
 $_listFmt    = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';

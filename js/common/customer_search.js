@@ -41,7 +41,10 @@
         if (_uid > 0 && typeof CustomerForm !== 'undefined') {
             CustomerForm.open('edit', _uid, {
                 onSaveSuccess: function (response) {
-                    _refreshCustomerUI((response && response.Customer) ? response.Customer : null);
+                    _refreshCustomerUI(
+                        (response && response.Customer) ? response.Customer : null,
+                        response.Message || 'Customer updated successfully.'
+                    );
                 }
             });
         }
@@ -496,7 +499,7 @@
      * @param {Object|null} c  Customer data from PHP response
      * @returns {void}
      */
-    function _refreshCustomerUI(c) {
+    function _refreshCustomerUI(c, successMsg) {
         if (!c) return;
         var uid    = parseInt(c.CustomerUID, 10) || parseInt($('#customerSearch').val(), 10) || 0;
         var name   = c.Name         || '';
@@ -516,10 +519,7 @@
             _s2d.name   = name;
             _s2d.area   = area;
             _s2d.mobile = mobile;
-            $opt.data('data', _s2d);
         }
-        // Full select2 re-render: restores × clear button and applies templateSelection
-        $select.trigger('change');
 
         // Resolve billing address from Address array
         var addrObj = null;
@@ -528,6 +528,42 @@
             c.Address.forEach(function (a) { if (a.AddressType === 'Billing') _pick = a; });
             if (_pick.Line1) addrObj = _pick;
         }
+
+        // Patch select2 option address data so future select2:select events read fresh values
+        if (_s2d) {
+            if (addrObj) {
+                _s2d.address = {
+                    Line1   : addrObj.Line1     || '',
+                    Line2   : addrObj.Line2     || '',
+                    City    : addrObj.CityText  || '',
+                    State   : addrObj.StateText || '',
+                    Pincode : addrObj.Pincode   || '',
+                };
+            }
+            $opt.data('data', _s2d);
+        }
+
+        // Sync window._currentCustAddr so address edit modal pre-fills with fresh data
+        if (addrObj) {
+            window._currentCustAddr = {
+                customerUID : uid,
+                Line1       : addrObj.Line1     || '',
+                Line2       : addrObj.Line2     || '',
+                City        : addrObj.CityText  || '',
+                State       : addrObj.StateText || '',
+                Pincode     : addrObj.Pincode   || '',
+            };
+        }
+
+        // Directly overwrite select2's rendered label — trigger('change') does not
+        // flush the cached display when the selected UID is unchanged.
+        var _s2Instance = $select.data('select2');
+        if (_s2Instance && _s2Instance.$container) {
+            _s2Instance.$container.find('.select2-selection__rendered')
+                .text(displayText).attr('title', displayText);
+        }
+
+        showToastNotification(successMsg || 'Customer updated successfully.', 'success');
 
         if (addrObj) {
             $('#customerAddressBox').find('span').text(_buildAddrLine({

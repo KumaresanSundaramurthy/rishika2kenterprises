@@ -140,7 +140,7 @@ foreach ($_qaMenus as $_qaMM) {
             </div>
         </div>
         <!-- Help -->
-        <button class="apex-nav-btn" title="<?php echo t('lbl_help', 'Help'); ?>" type="button">
+        <button class="apex-nav-btn" id="apexHelpBtn" title="<?php echo t('lbl_help', 'Help'); ?>" type="button">
             <i class="bx bx-help-circle"></i>
         </button>
         <!-- Notifications -->

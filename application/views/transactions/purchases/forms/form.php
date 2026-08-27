@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php
 $isEdit      = isset($PurchData);
 $isDraftEdit = $isEdit && ($PurchData->DocStatus === 'Draft');
@@ -212,7 +212,21 @@ if ($isEdit) {
 
                             </div>
 
-                            <div id="vendorAddressBox" class="trans-addr-strip d-none"><i class="bx bx-map-pin"></i><span></span></div>
+                            <?php
+                            $_vAddrText = '';
+                            if ($isEdit && isset($VendorAddr) && !empty($VendorAddr)) {
+                                $_vLineParts = array_filter([trim($VendorAddr->Line1 ?? ''), trim($VendorAddr->Line2 ?? '')]);
+                                $_vLocParts  = array_filter([trim($VendorAddr->CityText ?? ''), trim($VendorAddr->StateText ?? '')]);
+                                $_vLoc = implode(', ', $_vLocParts);
+                                if (!empty(trim($VendorAddr->Pincode ?? ''))) $_vLoc .= ' – ' . trim($VendorAddr->Pincode);
+                                $_vAddrParts = array_filter([implode(', ', $_vLineParts), $_vLoc]);
+                                $_vAddrText  = implode(' · ', $_vAddrParts);
+                            }
+                            ?>
+                            <div id="vendorAddressBox" class="trans-addr-strip <?php echo !empty($_vAddrText) ? '' : 'd-none'; ?>">
+                                <i class="bx bx-map-pin"></i>
+                                <span><?php echo htmlspecialchars($_vAddrText); ?></span><button type="button" id="btnEditVendAddr" class="trans-addr-edit-btn" title="Edit billing address"><i class="bx bx-edit"></i></button>
+                            </div>
                             <hr id="vendorAddrDivider" class="mt-3 d-none"/>
 
                             <?php $this->load->view('transactions/partials/form_products_add', [
@@ -293,7 +307,7 @@ var _transFormData = <?php echo json_encode([
     'returnTab'     => $_returnTab,
     'returnPage'    => (int)$_returnPage,
     'currency'               => $JwtData->GenSettings->CurrenySymbol ?? '₹',
-    'decimals'               => (int)($JwtData->GenSettings->DecimalPoints ?? 2),
+    'decimals'               => 9,
     'autoUpdatePurchasePrice' => strtolower($JwtData->TransSettings->AutoUpdatePurchasePrice ?? 'off'),
     'editData'      => $isEdit ? [
         'transUID'          => $transUID,
@@ -302,6 +316,11 @@ var _transFormData = <?php echo json_encode([
         'vendorArea'        => $PurchData->PartyArea   ?? '',
         'vendorMobile'      => $PurchData->PartyMobile ?? '',
         'vendorState'       => isset($VendorAddr) ? ($VendorAddr->StateText ?? '') : '',
+        'vendBillLine1'     => isset($VendorAddr) ? ($VendorAddr->Line1     ?? '') : '',
+        'vendBillLine2'     => isset($VendorAddr) ? ($VendorAddr->Line2     ?? '') : '',
+        'vendBillCity'      => isset($VendorAddr) ? ($VendorAddr->CityText  ?? '') : '',
+        'vendBillState'     => isset($VendorAddr) ? ($VendorAddr->StateText ?? '') : '',
+        'vendBillPincode'   => isset($VendorAddr) ? ($VendorAddr->Pincode   ?? '') : '',
         'extraDiscAmount'   => (float)($PurchData->ExtraDiscAmount ?? 0),
         'extraDiscType'     => $PurchData->ExtraDiscType ?? '',
         'globalDiscPercent' => (float)($PurchData->GlobalDiscPercent ?? 0),

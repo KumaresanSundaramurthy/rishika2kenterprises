@@ -228,12 +228,12 @@ class Organisation_model extends CI_Model {
 
     /**
      * Returns the best dispatch address for an org.
-     * Priority: Shipping → Billing → NULL (if neither exists).
+     * Priority: Shipping â†’ Billing â†’ NULL (if neither exists).
      * Reusable from any controller that needs the org's dispatch address.
      *
      * @param  int        $orgUID
      * @return object|null  Single row with OrgAddressUID, AddressType, Line1, Line2,
-     *                      Pincode, CityText, StateText — or NULL if no address found.
+     *                      Pincode, CityText, StateText â€” or NULL if no address found.
      */
     public function getAllOrgDispatchAddresses(int $orgUID): array {
         try {
@@ -381,7 +381,7 @@ class Organisation_model extends CI_Model {
                 return $this->EndReturnData;
             }
 
-            // Cache miss — fetch from DB
+            // Cache miss â€” fetch from DB
             $result = $this->getOrgForReceipt($orgUID);
             if ($result->Error === FALSE && !empty($result->Data)) {
                 $result->Data->Logo = resolveCdnUrl($result->Data->Logo ?? '');
@@ -453,7 +453,7 @@ class Organisation_model extends CI_Model {
 
     }
 
-    /** Look up a print theme config by ModuleUID — avoids string-matching on TransType. */
+    /** Look up a print theme config by ModuleUID â€” avoids string-matching on TransType. */
     public function getPrintThemeByModule(int $orgUID, int $moduleUID): object {
 
         $this->EndReturnData = new stdClass();
@@ -663,7 +663,7 @@ class Organisation_model extends CI_Model {
 
     }
 
-    // ── Bank Accounts ────────────────────────────────────────────────────────
+    // â”€â”€ Bank Accounts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /** Get all active bank accounts (including Cash) for an org. */
     public function getBankAccountList(int $orgUID): object {
@@ -889,7 +889,7 @@ class Organisation_model extends CI_Model {
 
     }
 
-    // ── Prefix Configuration ─────────────────────────────────────────────────
+    // â”€â”€ Prefix Configuration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /** Get all modules that support prefix numbering (IsPrefix = 1). */
     public function getPrefixModules(): object {
@@ -903,7 +903,6 @@ class Organisation_model extends CI_Model {
             $this->EndReturnData->Data  = $this->ReadDb->get()->result();
         } catch (Exception $e) {
             notifyError('Organisation_model::getPrefixModules', $e);
-            log_message('error', 'Organisation_model::getPrefixModules — ' . $e->getMessage());
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -922,7 +921,6 @@ class Organisation_model extends CI_Model {
             $this->EndReturnData->Data  = $this->ReadDb->get()->result();
         } catch (Exception $e) {
             notifyError('Organisation_model::getPrintTemplateModules', $e);
-            log_message('error', 'Organisation_model::getPrintTemplateModules — ' . $e->getMessage());
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -947,7 +945,6 @@ class Organisation_model extends CI_Model {
             $this->EndReturnData->Data  = $this->ReadDb->get()->result();
         } catch (Exception $e) {
             notifyError('Organisation_model::getPrefixConfigList', $e);
-            log_message('error', 'Organisation_model::getPrefixConfigList — ' . $e->getMessage());
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -966,14 +963,13 @@ class Organisation_model extends CI_Model {
             $this->EndReturnData->Data  = $this->ReadDb->get()->row();
         } catch (Exception $e) {
             notifyError('Organisation_model::getPrefixByUID', $e);
-            log_message('error', 'Organisation_model::getPrefixByUID — ' . $e->getMessage());
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
         return $this->EndReturnData;
     }
 
-    // ── Additional Charges ────────────────────────────────────────────────────
+    // â”€â”€ Additional Charges â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /** Get all active additional charges for an org, joined with default tax info. */
     public function getAdditionalChargesList(int $orgUID): object {
@@ -993,7 +989,6 @@ class Organisation_model extends CI_Model {
             $this->EndReturnData->Data  = $this->ReadDb->get()->result();
         } catch (Exception $e) {
             notifyError('Organisation_model::getAdditionalChargesList', $e);
-            log_message('error', 'Organisation_model::getAdditionalChargesList — ' . $e->getMessage());
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             $this->EndReturnData->Data    = [];
@@ -1013,7 +1008,6 @@ class Organisation_model extends CI_Model {
             $this->EndReturnData->Data  = $this->ReadDb->get()->row();
         } catch (Exception $e) {
             notifyError('Organisation_model::getAdditionalChargeByUID', $e);
-            log_message('error', 'Organisation_model::getAdditionalChargeByUID — ' . $e->getMessage());
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             $this->EndReturnData->Data    = null;
@@ -1021,7 +1015,7 @@ class Organisation_model extends CI_Model {
         return $this->EndReturnData;
     }
 
-    /** Count all active charges (system + custom) — used for the per-org limit check. */
+    /** Count all active charges (system + custom) â€” used for the per-org limit check. */
     public function getCustomChargesCount(int $orgUID): int {
         try {
             $this->ReadDb->from('Settings.AdditionalChargesTbl');

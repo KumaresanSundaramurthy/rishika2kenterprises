@@ -1,26 +1,26 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 /**
- * Cachehelper — centralised customer and vendor Upstash cache operations.
+ * Cachehelper â€” centralised customer and vendor Upstash cache operations.
  *
  * All methods are fire-and-forget: every Upstash call is wrapped in a
  * try/catch so a cache failure NEVER surfaces as an application error.
  *
- * Autoloaded — available in every controller as $this->cachehelper.
+ * Autoloaded â€” available in every controller as $this->cachehelper.
  *
  * Customer methods:
- *   upsertCustomer($uid)  — full refresh of one entry in the bulk search map
- *   removeCustomer($uid)  — remove from bulk map + invalidate individual key
- *   touchCustomer($uid)   — stamp LastTransactionAt (no DB round-trip)
+ *   upsertCustomer($uid)  â€” full refresh of one entry in the bulk search map
+ *   removeCustomer($uid)  â€” remove from bulk map + invalidate individual key
+ *   touchCustomer($uid)   â€” stamp LastTransactionAt (no DB round-trip)
  *
  * Vendor methods:
- *   upsertVendor($uid)    — same as above for vendors
- *   removeVendor($uid)    — removes from bulk map + individual + vendor-products keys
- *   touchVendor($uid)     — stamp LastTransactionAt (no DB round-trip)
+ *   upsertVendor($uid)    â€” same as above for vendors
+ *   removeVendor($uid)    â€” removes from bulk map + individual + vendor-products keys
+ *   touchVendor($uid)     â€” stamp LastTransactionAt (no DB round-trip)
  */
 class Cachehelper {
 
-    // ── Customer ──────────────────────────────────────────────────────────────
+    // â”€â”€ Customer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /**
      * Add or refresh a single customer entry in the org bulk search map.
@@ -70,7 +70,7 @@ class Cachehelper {
                     'PaymentUID'          => (int)$r['PaymentUID'],
                     'Amount'              => (float)$r['Amount'],
                     'CreatedOn'           => $r['CreatedOn'] ?? '',
-                    'SourceInvoiceNumber' => $r['SourceInvoiceNumber'] ?? '—',
+                    'SourceInvoiceNumber' => $r['SourceInvoiceNumber'] ?? 'â€”',
                 ];
             }, $onAccountRows);
 
@@ -148,7 +148,7 @@ class Cachehelper {
             $uid      = (int)$customerUID;
             $cacheKey = $CI->redisservice->orgKey('customers');
 
-            // Read the current entry — HGET returns decoded array or null on MISS
+            // Read the current entry â€” HGET returns decoded array or null on MISS
             $entry = $CI->upstashservice->hget($cacheKey, (string)$uid);
             if (!is_array($entry) || empty($entry)) return; // not in cache, nothing to do
 
@@ -163,7 +163,7 @@ class Cachehelper {
         } catch (Exception $e) {}
     }
 
-    // ── Vendor ────────────────────────────────────────────────────────────────
+    // â”€â”€ Vendor â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /**
      * Add or refresh a single vendor entry in the org bulk search map.
@@ -211,11 +211,9 @@ class Cachehelper {
             if ($obRow !== null) {
                 $closingBalance = (float)$obRow->PendingBalance;
                 $closingBalType = (string)$obRow->PendingBalType;
-                log_message('debug', '[VBAL-FLOW] upsertVendor SOURCE=VendOpeningBalanceTbl VendorUID=' . $uid . ' PendingBalance=' . $closingBalance . '(' . $closingBalType . ') OpeningBalance=' . $openingBalance . '(' . $openingBalType . ')');
             } else {
                 $closingBalance = $balFresh['balance'];
                 $closingBalType = $balFresh['balType'];
-                log_message('debug', '[VBAL-FLOW] upsertVendor SOURCE=ChartOfAccounts (no OB row) VendorUID=' . $uid . ' ClosingBalance=' . $closingBalance . '(' . $closingBalType . ')');
             }
 
             $cacheKey = $CI->redisservice->orgKey('vendors');
@@ -247,11 +245,9 @@ class Cachehelper {
                 ['HSET', $cacheKey, (string)$uid, json_encode($entry, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)],
                 ['DEL',  Upstashservice::keyVendor($uid)],
             ]);
-            log_message('debug', '[VBAL-FLOW] upsertVendor CACHE WRITTEN VendorUID=' . $uid . ' ClosingBalance=' . $closingBalance . '(' . $closingBalType . ') into key=' . $cacheKey);
 
         } catch (Exception $e) {
             notifyError($e, 'Cachehelper::upsertVendor');
-            log_message('error', '[VBAL-FLOW] upsertVendor EXCEPTION VendorUID=' . ($uid ?? '?') . ': ' . $e->getMessage());
         }
     }
 
@@ -282,7 +278,7 @@ class Cachehelper {
             $uid      = (int)$vendorUID;
             $cacheKey = $CI->redisservice->orgKey('vendors');
 
-            // Read the current entry — HGET returns decoded array or null on MISS
+            // Read the current entry â€” HGET returns decoded array or null on MISS
             $entry = $CI->upstashservice->hget($cacheKey, (string)$uid);
             if (!is_array($entry) || empty($entry)) return; // not in cache, nothing to do
 
@@ -297,7 +293,7 @@ class Cachehelper {
         } catch (Exception $e) {}
     }
 
-    // ── Product ───────────────────────────────────────────────────────────────
+    // â”€â”€ Product â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /**
      * Add or refresh a single product entry in the org bulk search map.
@@ -314,7 +310,7 @@ class Cachehelper {
             $prod = $CI->products_model->getProductForCache($orgUID, $uid);
             if (!$prod) return;
 
-            // NotForSale items must never live in the cache — remove if present
+            // NotForSale items must never live in the cache â€” remove if present
             if ((int)($prod->NotForSale ?? 0) === 1) {
                 $this->removeProduct($uid);
                 return;
@@ -378,7 +374,7 @@ class Cachehelper {
         } catch (Exception $e) {}
     }
 
-    // ── Composite product ─────────────────────────────────────────────────────
+    // â”€â”€ Composite product â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /**
      * Write a composite product into the same orgKey('products') hash used by
@@ -387,11 +383,11 @@ class Cachehelper {
      * Stored JSON shape (same as upsertProduct + items):
      *   { ...all standard product fields..., "items": [ {"uid":N,"qty":N}, ... ] }
      *
-     * Component uid+qty only — name/price are always read live from the products
+     * Component uid+qty only â€” name/price are always read live from the products
      * hash entries of the child products, so they never go stale.
      *
      * Call after addComboItem / editComboItem (post-commit so ReadDB sees new rows).
-     * For delete, call the existing removeProduct() — it handles HDEL from the same hash.
+     * For delete, call the existing removeProduct() â€” it handles HDEL from the same hash.
      */
     public function upsertComboProduct($productUID) {
         try {
@@ -404,7 +400,7 @@ class Cachehelper {
             $prod = $CI->products_model->getProductForCache($orgUID, $uid);
             if (!$prod) return;
 
-            // NotForSale items must never live in the cache — remove if present
+            // NotForSale items must never live in the cache â€” remove if present
             if ((int)($prod->NotForSale ?? 0) === 1) {
                 $this->removeProduct($uid);
                 return;
@@ -462,7 +458,7 @@ class Cachehelper {
         } catch (Exception $e) {}
     }
 
-    // ── Customer Group ────────────────────────────────────────────────────────
+    // â”€â”€ Customer Group â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /**
      * Add or refresh a single customer group entry in the org dropdown hash.
@@ -502,7 +498,7 @@ class Cachehelper {
         } catch (Exception $e) {}
     }
 
-    // ── Vendor Group ─────────────────────────────────────────────────────────
+    // â”€â”€ Vendor Group â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /**
      * Add or refresh a single vendor group entry in the org dropdown hash.
@@ -546,7 +542,7 @@ class Cachehelper {
         } catch (Exception $e) {}
     }
 
-    // ── Category ──────────────────────────────────────────────────────────────
+    // â”€â”€ Category â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /**
      * Add or refresh a single category entry in the org bulk map.

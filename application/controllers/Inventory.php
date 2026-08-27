@@ -21,7 +21,7 @@ class Inventory extends MY_Controller {
         $this->load->model(['inventory_model', 'dbwrite_model']);
     }
 
-    // ── Main page ───────────────────────────────────────────────────────
+    // â”€â”€ Main page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public function index() {
 
@@ -60,13 +60,12 @@ class Inventory extends MY_Controller {
 
         } catch (Throwable $e) {
             notifyError('Inventory::index', $e);
-            log_message('error', 'Inventory::index — ' . $e->getMessage());
             redirect('dashboard', 'refresh');
         }
 
     }
 
-    // ── AJAX pagination ─────────────────────────────────────────────────
+    // â”€â”€ AJAX pagination â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public function getPageDetails($pageNo = 1) {
 
@@ -104,7 +103,7 @@ class Inventory extends MY_Controller {
 
     }
 
-    // ── Stock In ───────────────────────────────────────────────────────
+    // â”€â”€ Stock In â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public function stockIn() {
 
@@ -155,13 +154,12 @@ class Inventory extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            // Post inventory journal entry (non-fatal — stock is already committed)
+            // Post inventory journal entry (non-fatal â€” stock is already committed)
             try {
                 $this->load->library('accountledger');
                 $adjFY = (int)date('Y', strtotime($recordDate));
                 $this->accountledger->postStockAdjustmentJournal($adjUID, $recordDate, $adjFY, 'IN', $stockValue, $userUID);
             } catch (Exception $ledgerEx) {
-                log_message('error', 'Ledger failed after stock-in #' . $adjUID . ': ' . $ledgerEx->getMessage());
             }
 
             // Sync updated AvailableQuantity into the Upstash bulk cache
@@ -234,13 +232,12 @@ class Inventory extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            // Post inventory journal entry (non-fatal — stock is already committed)
+            // Post inventory journal entry (non-fatal â€” stock is already committed)
             try {
                 $this->load->library('accountledger');
                 $adjFY = (int)date('Y', strtotime($recordDate));
                 $this->accountledger->postStockAdjustmentJournal($adjUID, $recordDate, $adjFY, 'OUT', $stockValue, $userUID);
             } catch (Exception $ledgerEx) {
-                log_message('error', 'Ledger failed after stock-out #' . $adjUID . ': ' . $ledgerEx->getMessage());
             }
 
             // Sync updated AvailableQuantity into the Upstash bulk cache
@@ -297,7 +294,7 @@ class Inventory extends MY_Controller {
 
     }
 
-    // Delete a manual stock adjustment — reverses stock movement + accounting journal
+    // Delete a manual stock adjustment â€” reverses stock movement + accounting journal
 
     public function deleteAdj() {
 
@@ -334,7 +331,6 @@ class Inventory extends MY_Controller {
                 $this->load->library('accountledger');
                 $this->accountledger->reverseJournal('StockAdjustment', $adjUID, $userUID);
             } catch (Exception $ledgerEx) {
-                log_message('error', 'Ledger reverse failed after adj delete #' . $adjUID . ': ' . $ledgerEx->getMessage());
             }
 
             // Sync updated AvailableQuantity into Upstash cache
@@ -416,7 +412,7 @@ class Inventory extends MY_Controller {
 
     }
 
-    // ── Global Timeline page ───────────────────────────────────────────────
+    // â”€â”€ Global Timeline page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public function timelinePage() {
 
@@ -460,7 +456,7 @@ class Inventory extends MY_Controller {
 
     }
 
-    // ── Global Timeline AJAX pagination ─────────────────────────────────
+    // â”€â”€ Global Timeline AJAX pagination â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public function getTimelinePageDetails($pageNo = 1) {
 
@@ -498,7 +494,7 @@ class Inventory extends MY_Controller {
 
     }
 
-    // ── Product search (for timeline item filter) ─────────────────────────
+    // â”€â”€ Product search (for timeline item filter) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public function searchProducts() {
 
@@ -519,7 +515,7 @@ class Inventory extends MY_Controller {
 
     }
 
-    // ── Refresh stats only (AJAX) ─────────────────────────────────────────
+    // â”€â”€ Refresh stats only (AJAX) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public function getStats() {
 
@@ -538,7 +534,7 @@ class Inventory extends MY_Controller {
 
     }
 
-    // ── Export inventory list ───────────────────────────────────────────────
+    // â”€â”€ Export inventory list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function export() {
         try {
             $type   = $this->input->get('Type')   ?: 'CSV';
@@ -568,7 +564,7 @@ class Inventory extends MY_Controller {
         }
     }
 
-    // ── Export stock timeline ───────────────────────────────────────────────
+    // â”€â”€ Export stock timeline â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function exportTimeline() {
         try {
             $type   = $this->input->get('Type')   ?: 'CSV';
@@ -603,7 +599,7 @@ class Inventory extends MY_Controller {
         }
     }
 
-    // ── Private export helpers ───────────────────────────────────────────────
+    // â”€â”€ Private export helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private function _mapInventoryRow($i, $row) {
         $qty    = (float)($row->AvailableQuantity ?? 0);
         $low    = (float)($row->LowStockAlertAt   ?? 0);
@@ -629,10 +625,10 @@ class Inventory extends MY_Controller {
         $source    = $moduleLabels[$moduleUID] ?? 'Unknown';
         $ref       = ($moduleUID === 118)
                    ? (!empty($row->AdjUID) ? 'ADJ-' . (int)$row->AdjUID : ($row->AdjCategory ?: 'Manual'))
-                   : (!empty($row->UniqueNumber) ? $row->UniqueNumber : ($row->TransNumber ?: '—'));
+                   : (!empty($row->UniqueNumber) ? $row->UniqueNumber : ($row->TransNumber ?: 'â€”'));
         $date      = ($moduleUID === 118)
-                   ? ($row->AdjDate   ? format_datedisplay($row->AdjDate)   : '—')
-                   : ($row->TransDate ? format_datedisplay($row->TransDate) : '—');
+                   ? ($row->AdjDate   ? format_datedisplay($row->AdjDate)   : 'â€”')
+                   : ($row->TransDate ? format_datedisplay($row->TransDate) : 'â€”');
         return [
             $i,
             $date,
@@ -643,7 +639,7 @@ class Inventory extends MY_Controller {
             $row->MovementType  ?? '',
             $row->Quantity      ?? '',
             isset($row->SellingPrice) && $row->SellingPrice !== null ? $row->SellingPrice : ($row->UnitCost ?? ''),
-            $row->Remarks       ?? '—',
+            $row->Remarks       ?? 'â€”',
             $row->CreatedByName ?? '',
         ];
     }

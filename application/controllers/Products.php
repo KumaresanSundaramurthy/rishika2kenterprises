@@ -389,10 +389,13 @@ class Products extends MY_Controller {
         try {
             $ProductUID = (int) $this->input->post('ProductUID');
             $orgUID     = (int) $this->pageData['JwtData']->Org->OrgUID;
-            if (!$ProductUID) throw new Exception('Invalid product');
+            if (!$ProductUID) throw new ValidationException('Invalid product');
             $config = $this->products_model->getRentalConfig($ProductUID, $orgUID);
             $this->EndReturnData->Error  = false;
             $this->EndReturnData->Config = $config ?: null;
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Products::getRentalConfig', $e);
             $this->EndReturnData->Error   = true;
@@ -637,7 +640,7 @@ class Products extends MY_Controller {
 
             $ProductUID = (int) $this->input->post('ItemUID');
             if (!$ProductUID || $ProductUID <= 0) {
-                throw new Exception('Invalid Product Information');
+                throw new ValidationException('Invalid Product Information');
             }
 
             // Cache-Aside READ — check Upstash before hitting the database
@@ -655,7 +658,7 @@ class Products extends MY_Controller {
                 $this->load->model('products_model');
                 $GetProductData = $this->products_model->getProductsDetails(['Products.ProductUID' => $ProductUID]);
                 if (count($GetProductData) != 1) {
-                    throw new Exception('Product not found');
+                    throw new ValidationException('Product not found');
                 }
                 $data         = $GetProductData[0];
                 $rentalConfig = $this->products_model->getRentalConfig($ProductUID, $orgUID);
@@ -679,6 +682,9 @@ class Products extends MY_Controller {
             $this->EndReturnData->Attachments  = $attachments;
             $this->EndReturnData->Variants     = $variants;
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Products::retrieveProductDetails', $e);
             $this->EndReturnData->Error = TRUE;
@@ -821,7 +827,7 @@ class Products extends MY_Controller {
 
             $ProductUID = (int) $this->input->post('ProductUID');
             if (!$ProductUID || $ProductUID <= 0) {
-                throw new Exception('Invalid Product Information');
+                throw new ValidationException('Invalid Product Information');
             }
 
             // if ($this->productHasTransactions($ProductUID)) {
@@ -830,13 +836,13 @@ class Products extends MY_Controller {
 
             $this->load->model('products_model');
             if ($this->products_model->isProductLinkedToCombo($ProductUID)) {
-                throw new Exception('This item is already linked with a combo. You cannot delete it.');
+                throw new ValidationException('This item is already linked with a combo. You cannot delete it.');
             }
             if ($this->products_model->productHasTransactions($ProductUID)) {
-                throw new Exception('This item has been used in transactions. You cannot delete it.');
+                throw new ValidationException('This item has been used in transactions. You cannot delete it.');
             }
             if ($this->products_model->productUsedInComboWithTransactions($ProductUID)) {
-                throw new Exception('This item has been used in a combo that has transactions. You cannot delete it.');
+                throw new ValidationException('This item has been used in a combo that has transactions. You cannot delete it.');
             }
             $oldProductRows = $this->products_model->getProductsDetails(['Products.ProductUID' => $ProductUID]);
             $oldProductData = !empty($oldProductRows) ? (array) $oldProductRows[0] : [];
@@ -861,6 +867,9 @@ class Products extends MY_Controller {
                 []
             );
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Products::deleteProductDetails', $e);
             $this->EndReturnData->Error = TRUE;
@@ -887,7 +896,7 @@ class Products extends MY_Controller {
             } else {
                 $ProductUIDs = $this->input->post('ProductUIDs[]');
                 if(empty($ProductUIDs)) {
-                    throw new Exception('No products selected for deletion');
+                    throw new ValidationException('No products selected for deletion');
                 }
                 if (!is_array($ProductUIDs)) {
                     $ProductUIDs = [$ProductUIDs];
@@ -896,7 +905,7 @@ class Products extends MY_Controller {
             }
 
             if (empty($ProductUIDs)) {
-                throw new Exception('Invalid product IDs provided');
+                throw new ValidationException('Invalid product IDs provided');
             }
 
             // Check if any product has transactions
@@ -909,13 +918,13 @@ class Products extends MY_Controller {
             $this->load->model('products_model');
             foreach ($ProductUIDs as $uid) {
                 if ($this->products_model->isProductLinkedToCombo($uid)) {
-                    throw new Exception('One or more selected items are linked to a combo. Remove them from the combo before deleting.');
+                    throw new ValidationException('One or more selected items are linked to a combo. Remove them from the combo before deleting.');
                 }
                 if ($this->products_model->productHasTransactions($uid)) {
-                    throw new Exception('One or more selected items have been used in transactions and cannot be deleted.');
+                    throw new ValidationException('One or more selected items have been used in transactions and cannot be deleted.');
                 }
                 if ($this->products_model->productUsedInComboWithTransactions($uid)) {
-                    throw new Exception('One or more selected items have been used in a combo that has transactions and cannot be deleted.');
+                    throw new ValidationException('One or more selected items have been used in a combo that has transactions and cannot be deleted.');
                 }
             }
 
@@ -945,6 +954,9 @@ class Products extends MY_Controller {
                 []
             );
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Products::deleteBulkProduct', $e);
             $this->EndReturnData->Error = TRUE;
@@ -1228,7 +1240,7 @@ class Products extends MY_Controller {
         try {
             $comboUID = (int) $this->input->post('ComboUID');
             if (!$comboUID) {
-                throw new Exception('Invalid combo item.');
+                throw new ValidationException('Invalid combo item.');
             }
 
             $data = $this->products_model->getProductsDetails([
@@ -1236,13 +1248,16 @@ class Products extends MY_Controller {
                 'Products.IsComposite'  => 1,
             ]);
             if (empty($data)) {
-                throw new Exception('Combo item not found.');
+                throw new ValidationException('Combo item not found.');
             }
 
             $this->EndReturnData->Error      = false;
             $this->EndReturnData->Data       = $data[0];
             $this->EndReturnData->Components = $this->products_model->getProductBOM($comboUID);
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Products::retrieveComboDetails', $e);
             $this->EndReturnData->Error   = true;
@@ -1257,9 +1272,12 @@ class Products extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $productUID = (int) $this->input->post('ProductUID');
-            if (!$productUID) throw new Exception('Invalid product.');
+            if (!$productUID) throw new ValidationException('Invalid product.');
             $this->EndReturnData->Error      = false;
             $this->EndReturnData->Components = $this->products_model->getProductBOM($productUID);
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Products::getTransComboComponents', $e);
             $this->EndReturnData->Error   = true;
@@ -1275,7 +1293,7 @@ class Products extends MY_Controller {
         try {
             $comboUID = (int) $this->input->post('ComboUID');
             if (!$comboUID) {
-                throw new Exception('Invalid combo item.');
+                throw new ValidationException('Invalid combo item.');
             }
 
             $this->load->model('products_model');
@@ -1311,6 +1329,9 @@ class Products extends MY_Controller {
                 []
             );
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Products::deleteComboItem', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -1330,8 +1351,8 @@ class Products extends MY_Controller {
 
             $ProductUID = (int) $this->input->post('ProductUID');
             $newStatus  = (int) $this->input->post('IsActive');
-            if (!$ProductUID) throw new Exception('Product ID is missing');
-            if (!in_array($newStatus, [0, 1])) throw new Exception('Invalid status value');
+            if (!$ProductUID) throw new ValidationException('Product ID is missing');
+            if (!in_array($newStatus, [0, 1])) throw new ValidationException('Invalid status value');
 
             $this->load->model('dbwrite_model');
             $resp = $this->dbwrite_model->updateData(
@@ -1355,6 +1376,9 @@ class Products extends MY_Controller {
                 ['IsActive' => $newStatus]
             );
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Products::toggleProductStatus', $e);
             $this->EndReturnData->Error   = true;
@@ -1460,7 +1484,7 @@ class Products extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $productUID = (int)($this->input->post('ProductUID') ?? 0);
-            if ($productUID <= 0) throw new Exception('ProductUID is required.');
+            if ($productUID <= 0) throw new ValidationException('ProductUID is required.');
 
             $orgUID = (int)$this->pageData['JwtData']->Org->OrgUID;
 
@@ -1481,6 +1505,9 @@ class Products extends MY_Controller {
             $this->EndReturnData->Serials = $serials;
             $this->EndReturnData->Count   = count($serials);
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             $this->notifyError('Products::getAvailableSerials', $e);
             $this->EndReturnData->Error   = true;
@@ -1608,13 +1635,16 @@ class Products extends MY_Controller {
         try {
             $CategoryUID = (int) $this->input->post('CategoryUID');
             $OrgUID      = (int) $this->pageData['JwtData']->Org->OrgUID;
-            if ($CategoryUID <= 0) throw new Exception('Invalid Category.');
+            if ($CategoryUID <= 0) throw new ValidationException('Invalid Category.');
 
             $products = $this->products_model->getProductsByCategoryUID($CategoryUID, $OrgUID);
 
             $this->EndReturnData->Error    = false;
             $this->EndReturnData->Products = $products;
             $this->EndReturnData->Count    = count($products);
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Products::getProductsByCategory', $e);
             $this->EndReturnData->Error   = true;
@@ -1714,7 +1744,7 @@ class Products extends MY_Controller {
 
             $CategoryUID = (int) $this->input->post('CategoryUID');
             if (!$CategoryUID || $CategoryUID <= 0) {
-                throw new Exception('Invalid Category ID');
+                throw new ValidationException('Invalid Category ID');
             }
 
             // Cache-Aside READ
@@ -1729,7 +1759,7 @@ class Products extends MY_Controller {
                 $this->load->model('products_model');
                 $GetCatgData = $this->products_model->getCategoriesDetails(['Category.CategoryUID' => $CategoryUID]);
                 if (count($GetCatgData) != 1) {
-                    throw new Exception('Category not found');
+                    throw new ValidationException('Category not found');
                 }
                 $this->EndReturnData->Error   = FALSE;
                 $this->EndReturnData->Message = 'Retrieved Successfully';
@@ -1738,6 +1768,9 @@ class Products extends MY_Controller {
                 $this->upstashservice->set($cacheKey, ['Data' => $GetCatgData[0]], Upstashservice::TTL_CATEGORY);
             }
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Products::retrieveCategoryDetails', $e);
             $this->EndReturnData->Error = TRUE;
@@ -1826,19 +1859,19 @@ class Products extends MY_Controller {
 
             $CategoryUID = (int) $this->input->post('CategoryUID');
             if (!$CategoryUID || $CategoryUID <= 0) {
-                throw new Exception('Invalid Category ID');
+                throw new ValidationException('Invalid Category ID');
             }
 
             $this->load->model('products_model');
 
             $ExistsInProducts = $this->products_model->getProductsDetails([], '', ['Products.CategoryUID' => [$CategoryUID]]);
             if (!empty($ExistsInProducts)) {
-                throw new Exception('This category is linked to one or more products and cannot be deleted.');
+                throw new ValidationException('This category is linked to one or more products and cannot be deleted.');
             }
 
             $ExistsInProducts = $this->products_model->getProductsDetails(['Category.CategoryUID' => $CategoryUID]);
             if (!empty($ExistsInProducts) && count($ExistsInProducts) > 0) {
-                throw new Exception('Category is linked to Product(s). Cannot delete.');
+                throw new ValidationException('Category is linked to Product(s). Cannot delete.');
             }
             $oldCatgRows = $this->products_model->getCategoriesDetails(['Category.CategoryUID' => $CategoryUID]);
             $oldCatgData = !empty($oldCatgRows) ? (array) $oldCatgRows[0] : [];
@@ -1864,6 +1897,9 @@ class Products extends MY_Controller {
                 []
             );
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Products::deleteCategoryDetails', $e);
             $this->EndReturnData->Error = TRUE;
@@ -1881,7 +1917,7 @@ class Products extends MY_Controller {
 
             $CategoryUIDs = $this->input->post('CategoryUIDs[]');
             if(empty($CategoryUIDs)) {
-                throw new Exception('No categories selected for deletion');
+                throw new ValidationException('No categories selected for deletion');
             }
 
             // Validate and sanitize IDs
@@ -1894,14 +1930,14 @@ class Products extends MY_Controller {
             });
 
             if (empty($CategoryUIDs)) {
-                throw new Exception('Invalid category IDs provided');
+                throw new ValidationException('Invalid category IDs provided');
             }
 
             /** Cross Check with Products */
             $this->load->model('products_model');
             $ExistsInProducts = $this->products_model->getProductsDetails([], '', ['Products.CategoryUID' => $CategoryUIDs]);
             if(!empty($ExistsInProducts) && count($ExistsInProducts) > 0) {
-                throw new Exception('One or more categories are linked to Product(s). Cannot delete.');
+                throw new ValidationException('One or more categories are linked to Product(s). Cannot delete.');
             }
 
             $this->load->model('dbwrite_model');
@@ -1927,6 +1963,9 @@ class Products extends MY_Controller {
                 []
             );
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Products::deleteBulkCategory', $e);
             $this->EndReturnData->Error = TRUE;
@@ -2033,12 +2072,12 @@ class Products extends MY_Controller {
 
             $sizeName  = trim($post['SizeName'] ?? '');
 
-            if ($sizeName === '') throw new Exception('Size name is required.');
-            if (strlen($sizeName) > 100) throw new Exception('Size name is too long (max 100 characters).');
+            if ($sizeName === '') throw new ValidationException('Size name is required.');
+            if (strlen($sizeName) > 100) throw new ValidationException('Size name is too long (max 100 characters).');
 
             $this->load->model('products_model');
             if ($this->products_model->isDuplicateSizeName($orgUID, $sizeName)) {
-                throw new Exception('A size with this name already exists.');
+                throw new ValidationException('A size with this name already exists.');
             }
 
             $data = [
@@ -2079,6 +2118,9 @@ class Products extends MY_Controller {
             $this->EndReturnData->Message  = 'Size created successfully.';
             $this->EndReturnData->InsertId = $sizeUID;
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Products::addSizeDetails', $e);
             $this->EndReturnData->Error   = true;
@@ -2096,16 +2138,16 @@ class Products extends MY_Controller {
             $userUID = (int) $this->pageData['JwtData']->User->UserUID;
             $post    = $this->input->post(null, true);
             $sizeUID = (int) ($post['SizeUID'] ?? 0);
-            if ($sizeUID <= 0) throw new Exception('Invalid size.');
+            if ($sizeUID <= 0) throw new ValidationException('Invalid size.');
 
             $sizeName  = trim($post['SizeName'] ?? '');
 
-            if ($sizeName === '') throw new Exception('Size name is required.');
-            if (strlen($sizeName) > 100) throw new Exception('Size name is too long (max 100 characters).');
+            if ($sizeName === '') throw new ValidationException('Size name is required.');
+            if (strlen($sizeName) > 100) throw new ValidationException('Size name is too long (max 100 characters).');
 
             $this->load->model('products_model');
             if ($this->products_model->isDuplicateSizeName($orgUID, $sizeName, $sizeUID)) {
-                throw new Exception('A size with this name already exists.');
+                throw new ValidationException('A size with this name already exists.');
             }
 
             $data = [
@@ -2140,6 +2182,9 @@ class Products extends MY_Controller {
             $this->EndReturnData->Error   = false;
             $this->EndReturnData->Message = 'Size updated successfully.';
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Products::updateSizeDetails', $e);
             $this->EndReturnData->Error   = true;
@@ -2156,10 +2201,10 @@ class Products extends MY_Controller {
             $sizeUID = (int) $this->input->post('SizeUID');
             $orgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
             $userUID = (int) $this->pageData['JwtData']->User->UserUID;
-            if ($sizeUID <= 0) throw new Exception('Invalid size.');
+            if ($sizeUID <= 0) throw new ValidationException('Invalid size.');
 
             if ($this->products_model->isSizeInUse($sizeUID, $orgUID)) {
-                throw new Exception('This size is linked to one or more product variants and cannot be deleted.');
+                throw new ValidationException('This size is linked to one or more product variants and cannot be deleted.');
             }
 
             $this->load->model('dbwrite_model');
@@ -2179,6 +2224,9 @@ class Products extends MY_Controller {
             $this->EndReturnData->Error   = false;
             $this->EndReturnData->Message = 'Size deleted successfully.';
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Products::deleteSizeDetails', $e);
             $this->EndReturnData->Error   = true;
@@ -2193,11 +2241,11 @@ class Products extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $sizeUIDs = $this->input->post('SizeUIDs[]');
-            if (empty($sizeUIDs)) throw new Exception('No sizes selected for deletion.');
+            if (empty($sizeUIDs)) throw new ValidationException('No sizes selected for deletion.');
 
             if (!is_array($sizeUIDs)) { $sizeUIDs = [$sizeUIDs]; }
             $sizeUIDs = array_filter(array_map('intval', $sizeUIDs), fn($id) => $id > 0);
-            if (empty($sizeUIDs)) throw new Exception('Invalid size IDs provided.');
+            if (empty($sizeUIDs)) throw new ValidationException('Invalid size IDs provided.');
 
             $orgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
             $userUID = (int) $this->pageData['JwtData']->User->UserUID;
@@ -2205,7 +2253,7 @@ class Products extends MY_Controller {
             $inUse = $this->products_model->getInUseSizeUIDs(array_values($sizeUIDs), $orgUID);
             if (!empty($inUse)) {
                 $count = count($inUse);
-                throw new Exception($count . ' of the selected size' . ($count > 1 ? 's are' : ' is') . ' linked to product variants and cannot be deleted.');
+                throw new ValidationException($count . ' of the selected size' . ($count > 1 ? 's are' : ' is') . ' linked to product variants and cannot be deleted.');
             }
 
             $this->load->model('dbwrite_model');
@@ -2225,6 +2273,9 @@ class Products extends MY_Controller {
             $this->EndReturnData->Error   = false;
             $this->EndReturnData->Message = 'Deleted successfully.';
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Products::deleteBulkSize', $e);
             $this->EndReturnData->Error   = true;
@@ -2337,11 +2388,11 @@ class Products extends MY_Controller {
                 'BrandCode'   => $post['BrandCode'] ?? '',
                 'Description' => $post['Description'] ?? '',
             ]);
-            if ($valErr) throw new Exception($valErr);
+            if ($valErr) throw new ValidationException($valErr);
 
             $this->load->model('products_model');
             if ($this->products_model->isDuplicateBrandName($orgUID, $post['BrandName'] ?? '')) {
-                throw new Exception('A brand with this name already exists.');
+                throw new ValidationException('A brand with this name already exists.');
             }
 
             $data = $this->buildBrandFormData($post, true);
@@ -2367,6 +2418,9 @@ class Products extends MY_Controller {
             $this->EndReturnData->Message  = 'Brand created successfully.';
             $this->EndReturnData->InsertId = $brandUID;
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Products::addBrandDetails', $e);
             $this->EndReturnData->Error   = true;
@@ -2382,17 +2436,20 @@ class Products extends MY_Controller {
         try {
             $brandUID = (int) $this->input->post('BrandUID');
             $orgUID   = (int) $this->pageData['JwtData']->Org->OrgUID;
-            if ($brandUID <= 0) throw new Exception('Invalid brand.');
+            if ($brandUID <= 0) throw new ValidationException('Invalid brand.');
 
             $this->load->model('products_model');
             $brand = $this->products_model->getBrandByUID($brandUID, $orgUID);
-            if (!$brand) throw new Exception('Brand not found.');
+            if (!$brand) throw new ValidationException('Brand not found.');
 
             $attachments = $this->_getAttachmentsWithUrl('Brand', $brandUID, $orgUID);
 
             $this->EndReturnData->Error       = false;
             $this->EndReturnData->Data        = $brand;
             $this->EndReturnData->Attachments = $attachments;
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Products::retrieveBrandDetails', $e);
             $this->EndReturnData->Error   = true;
@@ -2410,7 +2467,7 @@ class Products extends MY_Controller {
             $userUID  = (int) $this->pageData['JwtData']->User->UserUID;
             $post     = $this->input->post(null, true);
             $brandUID = (int) ($post['BrandUID'] ?? 0);
-            if ($brandUID <= 0) throw new Exception('Invalid brand.');
+            if ($brandUID <= 0) throw new ValidationException('Invalid brand.');
 
             $this->load->model('formvalidation_model');
             $valErr = $this->formvalidation_model->brandValidateForm([
@@ -2419,11 +2476,11 @@ class Products extends MY_Controller {
                 'BrandCode'   => $post['BrandCode'] ?? '',
                 'Description' => $post['Description'] ?? '',
             ]);
-            if ($valErr) throw new Exception($valErr);
+            if ($valErr) throw new ValidationException($valErr);
 
             $this->load->model('products_model');
             if ($this->products_model->isDuplicateBrandName($orgUID, $post['BrandName'] ?? '', $brandUID)) {
-                throw new Exception('A brand with this name already exists.');
+                throw new ValidationException('A brand with this name already exists.');
             }
 
             $oldBrand = $this->products_model->getBrandByUID($brandUID, $orgUID);
@@ -2448,6 +2505,9 @@ class Products extends MY_Controller {
             $this->EndReturnData->Error    = false;
             $this->EndReturnData->Message  = 'Brand updated successfully.';
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Products::updateBrandDetails', $e);
             $this->EndReturnData->Error   = true;
@@ -2464,10 +2524,10 @@ class Products extends MY_Controller {
             $brandUID = (int) $this->input->post('BrandUID');
             $orgUID   = (int) $this->pageData['JwtData']->Org->OrgUID;
             $userUID  = (int) $this->pageData['JwtData']->User->UserUID;
-            if ($brandUID <= 0) throw new Exception('Invalid brand.');
+            if ($brandUID <= 0) throw new ValidationException('Invalid brand.');
 
             if ($this->products_model->isBrandInUse($brandUID, $orgUID)) {
-                throw new Exception('This brand is linked to one or more product variants and cannot be deleted.');
+                throw new ValidationException('This brand is linked to one or more product variants and cannot be deleted.');
             }
 
             $this->load->model('dbwrite_model');
@@ -2487,6 +2547,9 @@ class Products extends MY_Controller {
             $this->EndReturnData->Error    = false;
             $this->EndReturnData->Message  = 'Brand deleted successfully.';
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Products::deleteBrandDetails', $e);
             $this->EndReturnData->Error   = true;
@@ -2501,11 +2564,11 @@ class Products extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $brandUIDs = $this->input->post('BrandUIDs[]');
-            if (empty($brandUIDs)) throw new Exception('No brands selected for deletion.');
+            if (empty($brandUIDs)) throw new ValidationException('No brands selected for deletion.');
 
             if (!is_array($brandUIDs)) { $brandUIDs = [$brandUIDs]; }
             $brandUIDs = array_filter(array_map('intval', $brandUIDs), fn($id) => $id > 0);
-            if (empty($brandUIDs)) throw new Exception('Invalid brand IDs provided.');
+            if (empty($brandUIDs)) throw new ValidationException('Invalid brand IDs provided.');
 
             $orgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
             $userUID = (int) $this->pageData['JwtData']->User->UserUID;
@@ -2513,7 +2576,7 @@ class Products extends MY_Controller {
             $inUse = $this->products_model->getInUseBrandUIDs(array_values($brandUIDs), $orgUID);
             if (!empty($inUse)) {
                 $count = count($inUse);
-                throw new Exception($count . ' of the selected brand' . ($count > 1 ? 's are' : ' is') . ' linked to product variants and cannot be deleted.');
+                throw new ValidationException($count . ' of the selected brand' . ($count > 1 ? 's are' : ' is') . ' linked to product variants and cannot be deleted.');
             }
 
             $this->load->model('dbwrite_model');
@@ -2533,6 +2596,9 @@ class Products extends MY_Controller {
             $this->EndReturnData->Error    = false;
             $this->EndReturnData->Message  = 'Deleted Successfully.';
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Products::deleteBulkBrand', $e);
             $this->EndReturnData->Error   = true;
@@ -2548,7 +2614,7 @@ class Products extends MY_Controller {
         try {
             $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
             $sizes  = $this->products_model->getSizesForCache($orgUID);
-            if (empty($sizes)) throw new Exception('No active sizes found.');
+            if (empty($sizes)) throw new ValidationException('No active sizes found.');
 
             $cacheKey = $this->redisservice->orgKey('sizes');
             $this->upstashservice->del($cacheKey);
@@ -2577,6 +2643,9 @@ class Products extends MY_Controller {
             $this->EndReturnData->Message = count($sizes) . ' size(s) synced to cache.';
             $this->EndReturnData->Count   = count($sizes);
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Products::syncSizesCache', $e);
             $this->EndReturnData->Error   = true;
@@ -2592,7 +2661,7 @@ class Products extends MY_Controller {
         try {
             $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
             $brands = $this->products_model->getBrandsForCache($orgUID);
-            if (empty($brands)) throw new Exception('No active brands found.');
+            if (empty($brands)) throw new ValidationException('No active brands found.');
 
             $cacheKey = $this->redisservice->orgKey('brands');
             $this->upstashservice->del($cacheKey);
@@ -2613,6 +2682,9 @@ class Products extends MY_Controller {
             $this->EndReturnData->Message = count($brands) . ' brand(s) synced to cache.';
             $this->EndReturnData->Count   = count($brands);
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Products::syncBrandsCache', $e);
             $this->EndReturnData->Error   = true;
@@ -2636,7 +2708,7 @@ class Products extends MY_Controller {
 
             $this->load->model('products_model');
             $products = $this->products_model->getProductsForCache($orgUID);
-            if (empty($products)) throw new Exception('No active items found.');
+            if (empty($products)) throw new ValidationException('No active items found.');
 
             // Build BOM map: parentUID => [{uid, qty}, ...] — one query for all composites
             $bomRows      = $this->products_model->getAllProductBOMsForSync($orgUID);
@@ -2705,6 +2777,9 @@ class Products extends MY_Controller {
             $this->EndReturnData->Message = count($products) . ' item(s) synced to cache.';
             $this->EndReturnData->Count   = count($products);
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Products::syncProductsCache', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -2727,7 +2802,7 @@ class Products extends MY_Controller {
 
             $this->load->model('products_model');
             $categories = $this->products_model->getCategoriesForCache($orgUID);
-            if (empty($categories)) throw new Exception('No active categories found.');
+            if (empty($categories)) throw new ValidationException('No active categories found.');
 
             $cacheKey = $this->redisservice->orgKey('categories');
             $this->upstashservice->del($cacheKey);
@@ -2746,6 +2821,9 @@ class Products extends MY_Controller {
             $this->EndReturnData->Message = count($categories) . ' categorie(s) synced to cache.';
             $this->EndReturnData->Count   = count($categories);
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Products::syncCategoriesCache', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -2889,8 +2967,8 @@ class Products extends MY_Controller {
             $entityUID  = (int) $this->input->get_post('EntityUID');
             $orgUID     = (int) $this->pageData['JwtData']->Org->OrgUID;
 
-            if (!in_array($entityType, ['Product', 'Category', 'Brand'])) throw new Exception('Invalid entity type.');
-            if ($entityUID <= 0) throw new Exception('Invalid entity ID.');
+            if (!in_array($entityType, ['Product', 'Category', 'Brand'])) throw new ValidationException('Invalid entity type.');
+            if ($entityUID <= 0) throw new ValidationException('Invalid entity ID.');
 
             $this->load->model('products_model');
             $attachments = $this->products_model->getEntityAttachments($entityType, $entityUID, $orgUID);
@@ -2902,6 +2980,9 @@ class Products extends MY_Controller {
 
             $this->EndReturnData->Error       = false;
             $this->EndReturnData->Attachments = $attachments;
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Products::getAttachments', $e);
             $this->EndReturnData->Error   = true;
@@ -2921,8 +3002,8 @@ class Products extends MY_Controller {
             $maxFiles     = in_array($entityType, ['Category', 'Brand']) ? 3 : 5;
             $maxTotalMB   = in_array($entityType, ['Category', 'Brand']) ? 3 : 5;
 
-            if (!in_array($entityType, ['Product', 'Category', 'Brand'])) throw new Exception('Invalid entity type.');
-            if ($entityUID <= 0) throw new Exception('Invalid entity ID.');
+            if (!in_array($entityType, ['Product', 'Category', 'Brand'])) throw new ValidationException('Invalid entity type.');
+            if ($entityUID <= 0) throw new ValidationException('Invalid entity ID.');
 
             $files = $_FILES['Attachments'] ?? null;
             if (empty($files) || empty($files['name'][0])) {
@@ -2989,6 +3070,9 @@ class Products extends MY_Controller {
             $this->EndReturnData->Error   = false;
             $this->EndReturnData->Message = count($saved) . ' image(s) saved.';
             $this->EndReturnData->Saved   = $saved;
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Products::saveAttachments', $e);
             $this->EndReturnData->Error   = true;
@@ -3007,7 +3091,7 @@ class Products extends MY_Controller {
             $orgUID     = (int) $this->pageData['JwtData']->Org->OrgUID;
             $userUID    = (int) $this->pageData['JwtData']->User->UserUID;
 
-            if ($attachUID <= 0) throw new Exception('Invalid attachment.');
+            if ($attachUID <= 0) throw new ValidationException('Invalid attachment.');
 
             $this->load->model('dbwrite_model');
             $resp = $this->dbwrite_model->updateData('Products', 'EntityAttachmentsTbl',
@@ -3023,6 +3107,9 @@ class Products extends MY_Controller {
 
             $this->EndReturnData->Error   = false;
             $this->EndReturnData->Message = 'Attachment deleted.';
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Products::deleteAttachment', $e);
             $this->EndReturnData->Error   = true;
@@ -3051,7 +3138,6 @@ class Products extends MY_Controller {
             }
         } catch (Exception $e) {
             notifyError('Products::_syncPrimaryImage', $e);
-            log_message('error', '_syncPrimaryImage failed: ' . $e->getMessage());
         }
     }
 
@@ -3118,16 +3204,18 @@ class Products extends MY_Controller {
 
             $this->load->model('pricelists_model');
             $data = $this->pricelists_model->getForEdit($orgUID, $priceListUID);
-            if (!$data) throw new Exception('Price list not found.');
+            if (!$data) throw new ValidationException('Price list not found.');
 
             $this->EndReturnData->Error = false;
             $this->EndReturnData->Data  = $data;
         } catch (InvalidArgumentException $e) {
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Products::getPriceListForEdit', $e);
-            log_message('error', 'getPriceListForEdit: ' . $e->getMessage());
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = 'Failed to load price list data.';
         }
@@ -3166,7 +3254,7 @@ class Products extends MY_Controller {
             $this->load->model(['pricelists_model', 'dbwrite_model']);
 
             if ($isEdit && !$this->pricelists_model->getByUID($orgUID, $plUID))
-                throw new Exception('Price list not found.');
+                throw new ValidationException('Price list not found.');
 
             $headerData = [
                 'Name'           => $name,
@@ -3237,10 +3325,12 @@ class Products extends MY_Controller {
         } catch (InvalidArgumentException $e) {
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Products::savePriceList', $e);
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
-            log_message('error', 'savePriceList: ' . $e->getMessage());
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = 'Failed to save price list. Please try again.';
         }
@@ -3259,7 +3349,7 @@ class Products extends MY_Controller {
 
             $this->load->model(['pricelists_model', 'dbwrite_model']);
             if (!$this->pricelists_model->getByUID($orgUID, $priceListUID))
-                throw new Exception('Price list not found.');
+                throw new ValidationException('Price list not found.');
 
             // Capture old state before soft-delete (for audit log)
             $oldData = $this->pricelists_model->getForEdit($orgUID, $priceListUID);
@@ -3289,9 +3379,11 @@ class Products extends MY_Controller {
         } catch (InvalidArgumentException $e) {
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Products::deletePriceList', $e);
-            log_message('error', 'deletePriceList: ' . $e->getMessage());
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = 'Failed to delete price list. Please try again.';
         }
@@ -3340,7 +3432,6 @@ class Products extends MY_Controller {
             $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Products::deleteBulkPriceList', $e);
-            log_message('error', 'deleteBulkPriceList: ' . $e->getMessage());
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = 'Failed to delete price lists. Please try again.';
         }
@@ -3370,7 +3461,6 @@ class Products extends MY_Controller {
             $this->upstashservice->set($cacheKey, $current, 0);
         } catch (Exception $e) {
             notifyError('Products::_upsertOnePriceListCache', $e);
-            log_message('error', '_upsertOnePriceListCache: ' . $e->getMessage());
         }
     }
 
@@ -3388,7 +3478,6 @@ class Products extends MY_Controller {
             $this->upstashservice->set($cacheKey, $filtered, 0);
         } catch (Exception $e) {
             notifyError('Products::_removeOnePriceListCache', $e);
-            log_message('error', '_removeOnePriceListCache: ' . $e->getMessage());
         }
     }
 
@@ -3405,7 +3494,6 @@ class Products extends MY_Controller {
             $this->upstashservice->set($cacheKey, $lists, 0);
         } catch (Exception $e) {
             notifyError('Products::_syncPriceListCache', $e);
-            log_message('error', '_syncPriceListCache: ' . $e->getMessage());
         }
     }
 
@@ -3482,7 +3570,7 @@ class Products extends MY_Controller {
                     [$productUID, $orgUID]
                 )->row();
 
-                if (!$inv) throw new Exception('Product not found.');
+                if (!$inv) throw new ValidationException('Product not found.');
 
                 $ledger = $readDb->query(
                     'SELECT
@@ -3531,7 +3619,7 @@ class Products extends MY_Controller {
                     [$orgUID]
                 )->result();
 
-                if (empty($rows)) throw new Exception('No products found for this organisation.');
+                if (empty($rows)) throw new ValidationException('No products found for this organisation.');
 
                 // Update ProductStockTbl for every product
                 foreach ($rows as $r) {
@@ -3615,6 +3703,9 @@ class Products extends MY_Controller {
                 $this->EndReturnData->Count   = count($rows);
             }
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Products::recalcStock', $e);
             $this->EndReturnData->Error   = true;
@@ -3638,7 +3729,7 @@ class Products extends MY_Controller {
         try {
             $uid    = (int) $uid;
             $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
-            if ($uid <= 0) throw new Exception('Invalid product ID.');
+            if ($uid <= 0) throw new ValidationException('Invalid product ID.');
 
             $tab     = preg_replace('/[^a-z]/', '', strtolower($tab));
             $JwtData = $this->pageData['JwtData'];
@@ -3652,7 +3743,7 @@ class Products extends MY_Controller {
 
                 case 'overview':
                     $prod = $this->products_model->getProductProfile($uid, $orgUID);
-                    if (!$prod) throw new Exception('Product not found.');
+                    if (!$prod) throw new ValidationException('Product not found.');
                     $topCustomers = $this->products_model->getProductTopCustomers($uid, $orgUID);
                     $html = $this->load->view('products/modals/profile_overview', [
                         'Prod'        => $prod,
@@ -3702,12 +3793,15 @@ class Products extends MY_Controller {
                     break;
 
                 default:
-                    throw new Exception('Unknown tab.');
+                    throw new ValidationException('Unknown tab.');
             }
 
             $this->EndReturnData->Error = false;
             $this->EndReturnData->Html  = $html;
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Products::getProductProfileTab', $e);
             $this->EndReturnData->Error   = true;

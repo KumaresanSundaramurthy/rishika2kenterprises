@@ -10,7 +10,7 @@ if (!empty($DataLists)):
 
         $statusMap   = ['Pending' => 'bg-label-warning', 'Applied' => 'bg-label-success', 'Refunded' => 'bg-label-secondary', 'Cancelled' => 'bg-label-danger'];
         $statusClass = $statusMap[$cn->Status ?? ''] ?? 'bg-label-secondary';
-        $amt         = number_format((float)($cn->Amount ?? 0), $decimals);
+        $amt         = smartDecimal((float)($cn->Amount ?? 0));
         $isPending   = ($cn->Status ?? '') === 'Pending';
 
         // Created On — time ago

@@ -111,9 +111,9 @@ $statusColors = [
                         <tr>
                             <td class="px-3 fw-semibold"><?php echo htmlspecialchars($r['TransNo'] ?? '—'); ?></td>
                             <td><?php echo !empty($r['DocDate']) ? date($DateFormat, strtotime($r['DocDate'])) : '—'; ?></td>
-                            <td class="text-end"><?php echo $Cur . ' ' . number_format((float)($r['NetAmount'] ?? 0), $Dec); ?></td>
+                            <td class="text-end"><?php echo $Cur . ' ' . smartDecimal((float)($r['NetAmount'] ?? 0)); ?></td>
                             <td class="text-end <?php echo $bal > 0 ? 'text-danger' : 'text-success'; ?>">
-                                <?php echo $bal > 0 ? $Cur . ' ' . number_format($bal, $Dec) : '—'; ?>
+                                <?php echo $bal > 0 ? $Cur . ' ' . smartDecimal($bal) : '—'; ?>
                             </td>
                             <td><span class="badge bg-label-<?php echo $badgeCls; ?>"><?php echo htmlspecialchars($status); ?></span></td>
                         </tr>

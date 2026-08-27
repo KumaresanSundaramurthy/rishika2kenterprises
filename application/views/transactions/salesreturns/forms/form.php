@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php
 $isEdit      = isset($SRData);
 $isDraftEdit = $isEdit && ($SRData->DocStatus === 'Draft');
@@ -110,7 +110,9 @@ if ($isEdit) {
                                 <div class="col-md-4">
                                     <?php if ($isEdit && !$isDraftEdit): ?>
                                         <label class="trans-field-label mb-1">Customer</label>
-                                        <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
+                                        <div class="input-group input-group-sm input-group-merge customer-search-group" id="customerGroup_customerSearch">
+                                            <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
+                                        </div>
                                     <?php else: ?>
                                         <div class="d-flex align-items-center justify-content-between mb-1">
                                             <label for="customerSearch" class="trans-field-label mb-0">Customer <span class="text-danger">*</span></label>
@@ -118,23 +120,28 @@ if ($isEdit) {
                                         <div class="input-group input-group-sm input-group-merge customer-search-group" id="customerGroup_customerSearch">
                                             <span class="input-group-text p-2 cursor-pointer party-search-icon" id="openCustomerSearchModal" style="background:#f0efff;border-color:#d9d8ff;color:#696cff;"><i class="icon-base bx bx-search"></i></span>
                                             <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
-                                            <span class="party-edit-icon" id="editCustomerBtn" title="Edit Customer"><i class="bx bx-edit-alt"></i></span>
+                                            <span class="party-edit-icon" id="editCustomerBtn" title="Edit Customer"><i class="bx bx-edit"></i></span>
                                         </div>
                                     <?php endif; ?>
                                 </div>
                                 <?php if ($_srMethod !== 'Manual'): ?>
                                 <div class="col-md-3">
                                     <label for="fromInvoiceUID" class="trans-field-label">From Invoice</label>
-                                    <select id="fromInvoiceUID" name="fromInvoiceUID" class="form-select form-select-sm" disabled>
-                                        <option value="">-- Select Customer First --</option>
-                                    </select>
+                                    <div class="position-relative">
+                                        <select id="fromInvoiceUID" name="fromInvoiceUID" class="form-select form-select-sm" disabled>
+                                            <option value="">-- Select Customer First --</option>
+                                        </select>
+                                        <span id="fromInvoiceSpinner" class="d-none position-absolute" style="right:2rem;top:50%;transform:translateY(-50%);pointer-events:none;">
+                                            <span class="spinner-border spinner-border-sm text-primary" role="status"></span>
+                                        </span>
+                                    </div>
                                 </div>
                                 <?php endif; ?>
                                 <div class="col-auto" style="min-width:155px;">
                                     <label for="transDate" class="trans-field-label"><?php echo t('lbl_return_date', 'Return Date'); ?> <span class="text-danger">*</span></label>
                                     <?php $_fmt = $JwtData->GenSettings->FormDateFormat ?? 'd-m-Y'; ?>
                                     <?php if ($isEdit && !$isDraftEdit): ?>
-                                        <input type="hidden" name="transDate" value="<?php echo htmlspecialchars(format_datedisplay($SRData->TransDate, 'Y-m-d')); ?>" />
+                                        <input type="hidden" id="transDate" name="transDate" value="<?php echo htmlspecialchars(format_datedisplay($SRData->TransDate, 'Y-m-d')); ?>" />
                                         <div class="input-group input-group-sm input-group-merge">
                                             <span class="input-group-text bg-white"><i class="icon-base bx bx-calendar"></i></span>
                                             <input type="text" class="form-control form-control-sm bg-white text-muted" style="cursor:default;"
@@ -215,7 +222,7 @@ if ($isEdit) {
 <script src="/js/transactions/salesreturns.js"></script>
 <script src="/js/transactions/forms/bill_manager.js"></script>
 
-<script>window.R2K_CUST_HIDE_CREATE = true;</script>
+<script>window.R2K_CUST_HIDE_CREATE = true; window.R2K_SR_EDIT_UID = <?php echo $transUID; ?>;</script>
 <script src="/js/transactions/forms/transprefix.js"></script>
 <script src="/js/transactions/forms/modaladdress.js"></script>
 <script src="/js/common/category_form.js"></script>
@@ -241,16 +248,21 @@ var _transFormData = <?php echo json_encode([
     'returnTab'      => $_returnTab,
     'returnPage'     => (int)$_returnPage,
     'currency'       => $JwtData->GenSettings->CurrenySymbol ?? '₹',
-    'decimals'       => (int)($JwtData->GenSettings->DecimalPoints ?? 2),
+    'decimals'       => 9,
     'listDateFormat' => $JwtData->GenSettings->ListDateFormat ?? 'd M Y',
     'srItemMethod'   => $_srMethod,
     'transType'      => 'SalesReturn',
     'editData'       => $isEdit ? [
         'transUID'          => $transUID,
         'custUID'           => (int)($SRData->PartyUID ?? 0),
-        'custName'          => $SRData->PartyName  ?? '',
+        'custName'          => $SRData->PartyName   ?? '',
         'custArea'          => $SRData->PartyArea   ?? '',
         'custMobile'        => $SRData->PartyMobile ?? '',
+        'custBillLine1'     => $SRData->BillLine1   ?? '',
+        'custBillLine2'     => $SRData->BillLine2   ?? '',
+        'custBillCity'      => $SRData->BillCity    ?? '',
+        'custBillState'     => $SRData->BillState   ?? '',
+        'custBillPincode'   => $SRData->BillPincode ?? '',
         'extraDiscAmount'   => (float)($SRData->ExtraDiscount ?? 0),
         'extraDiscType'     => $SRData->ExtraDiscountType ?? '',
         'globalDiscPercent' => (float)($SRData->GlobalDiscPercent ?? 0),

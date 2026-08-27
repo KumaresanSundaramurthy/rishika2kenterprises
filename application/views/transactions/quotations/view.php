@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 $this->load->view('common/transactions/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -66,7 +66,7 @@ $this->load->view('common/transactions/header'); ?>
                             <div class="apex-stat-label"><?php echo $stat['label']; ?></div>
                             <div class="apex-stat-bottom">
                                 <span class="apex-stat-count"><?php echo $stat['count']; ?></span>
-                                <span class="apex-stat-amount"><?php echo $cur . ' ' . number_format((float)$stat['amount'], $dec); ?></span>
+                                <span class="apex-stat-amount"><?php echo $cur . ' ' . smartDecimal($stat['amount']); ?></span>
                             </div>
                         </div>
                     </div>
@@ -241,7 +241,7 @@ var _commOrgContext = <?php
 ?>;
 var _commGenSettings  = <?php echo json_encode([
     'CurrenySymbol' => $JwtData->GenSettings->CurrenySymbol ?? '₹',
-    'DecimalPoints' => (int)($JwtData->GenSettings->DecimalPoints ?? 2),
+    'DecimalPoints' => 9,
 ]); ?>;
 var _rawEmailTemplate = <?php echo json_encode($CommEmailTemplate ?? null); ?>;
 var _r2CdnBase        = <?php echo json_encode(rtrim(getenv('CFLARE_R2_CDN') ?: getenv('CDN_URL'), '/')); ?>;

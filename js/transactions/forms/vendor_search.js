@@ -232,6 +232,14 @@ function searchVendors(key) {
             $('#vendorAddressBox').addClass('d-none').find('span').text('');
             $('#vendorNoAddressBox').removeClass('d-none');
         }
+        window._currentVendAddr = {
+            vendorUID : parseInt(data.id, 10) || 0,
+            Line1     : (addrObj && addrObj.Line1)   ? addrObj.Line1   : '',
+            Line2     : (addrObj && addrObj.Line2)   ? addrObj.Line2   : '',
+            City      : (addrObj && addrObj.City)    ? addrObj.City    : '',
+            State     : (addrObj && addrObj.State)   ? addrObj.State   : '',
+            Pincode   : (addrObj && addrObj.Pincode) ? addrObj.Pincode : '',
+        };
 
         // State and vendor balance indicators
         _showVendTypeIndicator(data.state || '');
@@ -244,6 +252,7 @@ function searchVendors(key) {
         $('#isInterStateHidden').val('');
         $('#vendTypeIndicator').addClass('d-none').empty();
         $('#vendDebitNotesBadge').addClass('d-none');
+        window._currentVendAddr = { vendorUID: 0, Line1: '', Line2: '', City: '', State: '', Pincode: '' };
     }).on('select2:close', function () {
         ajaxLoading(1);
         vendorCache = null;
@@ -340,6 +349,14 @@ function searchVendors(key) {
             $('#vendorAddressBox').addClass('d-none').find('span').text('');
             $('#vendorNoAddressBox').removeClass('d-none');
         }
+        window._currentVendAddr = {
+            vendorUID : parseInt(vendUID, 10) || 0,
+            Line1     : (address && address.Line1)   ? address.Line1   : '',
+            Line2     : (address && address.Line2)   ? address.Line2   : '',
+            City      : (address && address.City)    ? address.City    : '',
+            State     : (address && address.State)   ? address.State   : '',
+            Pincode   : (address && address.Pincode) ? address.Pincode : '',
+        };
 
         if (typeof billManager !== 'undefined' && typeof _orgState !== 'undefined' && state) {
             billManager.setInterState(state.trim().toLowerCase() !== _orgState.trim().toLowerCase());
@@ -439,23 +456,35 @@ function searchVendors(key) {
             if (_pick.Line1) addrObj = _pick;
         }
         if (addrObj) {
-            $('#vendorAddressBox').find('span').text(_buildVendAddrLine({
+            var _addrDisplay = {
                 Line1:   addrObj.Line1     || '',
                 Line2:   addrObj.Line2     || '',
                 Pincode: addrObj.Pincode   || '',
                 City:    addrObj.CityText  || '',
                 State:   addrObj.StateText || '',
-            }));
+            };
+            $('#vendorAddressBox').find('span').text(_buildVendAddrLine(_addrDisplay));
             $('#vendorAddressBox').removeClass('d-none');
             $('#vendorNoAddressBox').addClass('d-none');
+            window._currentVendAddr = {
+                vendorUID : uid,
+                Line1     : _addrDisplay.Line1,
+                Line2     : _addrDisplay.Line2,
+                City      : _addrDisplay.City,
+                State     : _addrDisplay.State,
+                Pincode   : _addrDisplay.Pincode,
+            };
             if (typeof billManager !== 'undefined' && typeof _orgState !== 'undefined') {
-                billManager.setInterState((addrObj.StateText || '').trim().toLowerCase() !== _orgState.trim().toLowerCase());
+                billManager.setInterState((_addrDisplay.State || '').trim().toLowerCase() !== _orgState.trim().toLowerCase());
             }
         } else {
             $('#vendorAddressBox').addClass('d-none').find('span').text('');
             $('#vendorNoAddressBox').removeClass('d-none');
         }
 
+        if (typeof showToastNotification === 'function') {
+            showToastNotification('Vendor updated successfully.', 'success');
+        }
         vendCache = null; // force refresh on next search modal open
     }
 
@@ -719,3 +748,97 @@ function searchVendors(key) {
     }
 
 }());
+
+// ── Vendor billing address edit — open #addEditAddressModal ──────────────────
+$(function () {
+    'use strict';
+
+    var _vendAddrModalActive = false;
+
+    $('#AddrSaveBtn').on('click.vendBillAddr', function (e) {
+        if (!_vendAddrModalActive) return;
+        e.stopImmediatePropagation();
+        var addr = window._currentVendAddr || {};
+        if (!addr.vendorUID) return;
+        var line1     = $.trim($('#ModalAddrLine1').val());
+        var line2     = $.trim($('#ModalAddrLine2').val());
+        var pincode   = $.trim($('#ModalAddrPincode').val());
+        var stateText = $.trim($('#ModalAddrState option:selected').text());
+        var cityText  = $.trim($('#ModalAddrCity  option:selected').text());
+        if (stateText === '-- Select State --') stateText = '';
+        if (cityText  === '-- Select City --')  cityText  = '';
+        var stateId   = $('#ModalAddrState option:selected').val() || '';
+        var cityId    = $('#ModalAddrCity  option:selected').val() || '';
+        if (!line1) { showToastNotification('Address Line 1 is required.', 'error'); return; }
+        ajaxLoading(1);
+        $.ajax({
+            url    : '/vendors/updateBillingAddress',
+            method : 'POST',
+            data   : { VendorUID: addr.vendorUID, Line1: line1, Line2: line2, StateId: stateId, StateText: stateText, CityId: cityId, CityText: cityText, Pincode: pincode },
+            success: function (resp) {
+                ajaxLoading(0);
+                if (resp.Error) { showToastNotification(resp.Message || 'Failed to update address.', 'error'); return; }
+                var _lines = [line1, line2].filter(Boolean).join(', ');
+                var _loc   = [cityText, stateText].filter(Boolean).join(', ');
+                if (pincode) _loc += ' – ' + pincode;
+                var _text  = [_lines, _loc].filter(Boolean).join(' · ');
+                $('#vendorAddressBox').find('span').text(_text).end().removeClass('d-none');
+                $('#vendorAddrDivider').removeClass('d-none');
+                window._currentVendAddr = { vendorUID: addr.vendorUID, Line1: line1, Line2: line2, City: cityText, State: stateText, Pincode: pincode };
+                var $vendOpt = $('#vendorSearch').find('option[value="' + addr.vendorUID + '"]');
+                var _s2d = $vendOpt.data('data');
+                if (_s2d) { if (!_s2d.address) _s2d.address = {}; _s2d.address.Line1 = line1; _s2d.address.Line2 = line2; _s2d.address.City = cityText; _s2d.address.State = stateText; _s2d.address.Pincode = pincode; $vendOpt.data('data', _s2d); }
+                if (typeof _showVendTypeIndicator === 'function') {
+                    _showVendTypeIndicator(stateText);
+                }
+                if (typeof billManager !== 'undefined') {
+                    var _org = (typeof _orgState !== 'undefined' ? _orgState : '').trim().toLowerCase();
+                    var _vs  = stateText.trim().toLowerCase();
+                    billManager.setInterState(!!_vs && !!_org && _vs !== _org);
+                }
+                _vendAddrModalActive = false;
+                $('#addEditAddressModal').modal('hide');
+                showToastNotification(resp.Message || 'Address updated.', 'success');
+            },
+            error: function () { ajaxLoading(0); showToastNotification('Server error. Please try again.', 'error'); }
+        });
+    });
+
+    $(document).on('hide.bs.modal', '#addEditAddressModal', function () { _vendAddrModalActive = false; });
+
+    $(document).on('click', '#btnEditVendAddr', function () {
+        var addr = window._currentVendAddr || {};
+        if (!addr.vendorUID) { showToastNotification('Please select a vendor first.', 'error'); return; }
+        $('#addrModalTitle').text('Edit Billing Address');
+        $('#AddrUID').val(0);
+        $('#AddrType').val('Billing');
+        $('#ModalAddrLine1').val(addr.Line1 || '');
+        $('#ModalAddrLine2').val(addr.Line2 || '');
+        $('#ModalAddrPincode').val(addr.Pincode || '');
+        csc_loadStates('ModalAddrState', 'IN', '', function () {
+            var stateText = $.trim(addr.State || '').toLowerCase();
+            var stateISO2 = '';
+            if (stateText) {
+                $('#ModalAddrState option').each(function () {
+                    if ($.trim($(this).text()).toLowerCase() === stateText) {
+                        stateISO2 = $(this).data('iso2') || '';
+                        $('#ModalAddrState').val($(this).val());
+                        if ($('#ModalAddrState').hasClass('select2')) {
+                            $('#ModalAddrState').data('skipCityLoad', true);
+                            $('#ModalAddrState').trigger('change.select2');
+                        }
+                        return false;
+                    }
+                });
+            }
+            if (stateISO2) {
+                csc_loadCities('ModalAddrCity', 'IN', stateISO2, '', addr.City || '', null);
+            } else {
+                $('#ModalAddrCity').empty().append('<option value="">-- Select City --</option>');
+                if ($('#ModalAddrCity').hasClass('select2')) { $('#ModalAddrCity').select2({ width: '100%', dropdownParent: $('#addEditAddressModal .modal-content') }); }
+            }
+        });
+        _vendAddrModalActive = true;
+        $('#addEditAddressModal').modal('show');
+    });
+});

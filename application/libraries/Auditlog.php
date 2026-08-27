@@ -62,7 +62,7 @@ class Auditlog {
                 $module = $entityType;
             }
 
-            // Auto-resolve session, user-agent, device type — no caller needed
+            // Auto-resolve session, user-agent, device type â€” no caller needed
             $sessionId = session_id();
             $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
             $ua        = strtolower($userAgent);
@@ -108,7 +108,6 @@ class Auditlog {
             ]);
         } catch (Exception $e) {
             notifyError('Auditlog::log', $e);
-            log_message('error', 'Auditlog::log failed: ' . $e->getMessage());
         }
     }
 

@@ -66,10 +66,10 @@ $totCr   = 0;
                 </td>
                 <td class="text-muted"><?php echo htmlspecialchars($ln->Particulars ?? ''); ?></td>
                 <td class="text-end fw-semibold text-success">
-                    <?php echo $isDr ? ($cur . ' ' . number_format($amt, $dec)) : '—'; ?>
+                    <?php echo $isDr ? ($cur . ' ' . smartDecimal($amt)) : '—'; ?>
                 </td>
                 <td class="text-end fw-semibold text-danger">
-                    <?php echo !$isDr ? ($cur . ' ' . number_format($amt, $dec)) : '—'; ?>
+                    <?php echo !$isDr ? ($cur . ' ' . smartDecimal($amt)) : '—'; ?>
                 </td>
             </tr>
             <?php endforeach; ?>
@@ -77,8 +77,8 @@ $totCr   = 0;
         <tfoot>
             <tr style="background:#f8f5ff;font-weight:600;">
                 <td colspan="3" class="text-end text-muted" style="font-size:.8rem;">Totals</td>
-                <td class="text-end text-success"><?php echo $cur . ' ' . number_format($totDr, $dec); ?></td>
-                <td class="text-end text-danger"><?php echo $cur . ' ' . number_format($totCr, $dec); ?></td>
+                <td class="text-end text-success"><?php echo $cur . ' ' . smartDecimal($totDr); ?></td>
+                <td class="text-end text-danger"><?php echo $cur . ' ' . smartDecimal($totCr); ?></td>
             </tr>
         </tfoot>
     </table>
@@ -89,7 +89,7 @@ $isBalanced = abs($totDr - $totCr) < 0.01;
 $balClass   = $isBalanced ? 'alert-success' : 'alert-danger';
 $balMsg     = $isBalanced
     ? '<i class="bx bx-check-circle me-1"></i>Journal is balanced (Dr = Cr)'
-    : '<i class="bx bx-error me-1"></i>Journal is NOT balanced — Dr: ' . number_format($totDr,$dec) . ' / Cr: ' . number_format($totCr,$dec);
+    : '<i class="bx bx-error me-1"></i>Journal is NOT balanced — Dr: ' . smartDecimal($totDr) . ' / Cr: ' . smartDecimal($totCr);
 ?>
 <div class="alert <?php echo $balClass; ?> d-flex align-items-center py-2 px-3 mt-3 mb-0" style="font-size:.8rem;">
     <?php echo $balMsg; ?>

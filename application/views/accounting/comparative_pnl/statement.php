@@ -22,7 +22,7 @@ $p2Label = htmlspecialchars($P2Label ?? 'Period 2');
  */
 function _cmpFmt(float $n, string $cur, int $dec): string {
     if (abs($n) < 0.005) return '<span class="text-muted comp-dash">—</span>';
-    return $cur . ' ' . number_format(abs($n), $dec);
+    return $cur . ' ' . smartDecimal(abs($n));
 }
 
 /**
@@ -50,7 +50,7 @@ function _cmpVar(float $var, bool $higherIsBetter, string $cur, int $dec): strin
     $good = $higherIsBetter ? $var >= 0 : $var <= 0;
     $cls  = $good ? 'text-success' : 'text-danger';
     $sign = $var >= 0 ? '+' : '−';
-    return '<span class="' . $cls . ' fw-semibold">' . $sign . $cur . ' ' . number_format(abs($var), $dec) . '</span>';
+    return '<span class="' . $cls . ' fw-semibold">' . $sign . $cur . ' ' . smartDecimal(abs($var)) . '</span>';
 }
 ?>
 <div id="cmpStatement">

@@ -124,8 +124,8 @@ foreach ($Rows as $r) {
                     <?php echo smartDecimal($qty); ?>
                 <?php endif; ?>
             </td>
-            <td class="text-end text-nowrap"><?php echo $Cur . ' ' . number_format($unitPrice, $Dec); ?></td>
-            <td class="text-end text-nowrap fw-semibold"><?php echo $Cur . ' ' . number_format($amount, $Dec); ?></td>
+            <td class="text-end text-nowrap"><?php echo $Cur . ' ' . smartDecimal($unitPrice); ?></td>
+            <td class="text-end text-nowrap fw-semibold"><?php echo $Cur . ' ' . smartDecimal($amount); ?></td>
             <td><span class="badge bg-label-<?php echo $badgeCls; ?>"><?php echo htmlspecialchars($status); ?></span></td>
         </tr>
         <?php endforeach; ?>

@@ -44,6 +44,22 @@ $(function () {
         $('#vendorSearch')
             .append(new Option(_vendorLabel, _editData.vendorUID, true, true))
             .trigger('change');
+        $('#vendorSearch').closest('.vendor-search-group').addClass('party-has-selection');
+        (function () {
+            var _aLines = [_editData.vendBillLine1, _editData.vendBillLine2].filter(Boolean).join(', ');
+            var _aLoc   = [_editData.vendBillCity, _editData.vendBillState].filter(Boolean).join(', ');
+            if (_editData.vendBillPincode) _aLoc += ' – ' + _editData.vendBillPincode;
+            var _aText  = [_aLines, _aLoc].filter(Boolean).join(' · ');
+            if (_aText) { $('#vendorAddressBox').find('span').text(_aText).end().removeClass('d-none'); }
+        }());
+        window._currentVendAddr = {
+            vendorUID : _editData.vendorUID         || 0,
+            Line1     : _editData.vendBillLine1     || '',
+            Line2     : _editData.vendBillLine2     || '',
+            City      : _editData.vendBillCity      || '',
+            State     : _editData.vendBillState     || '',
+            Pincode   : _editData.vendBillPincode   || '',
+        };
         if (!_isDraftEdit) {
             $('#vendorSearch')
                 .on('select2:opening',  function (e) { e.preventDefault(); })

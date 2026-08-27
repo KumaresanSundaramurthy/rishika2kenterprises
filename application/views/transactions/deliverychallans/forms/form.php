@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var object|null $DCData */      $DCData      = $DCData      ?? null;
 /** @var object      $JwtData */
 /** @var array       $DCItems */     $DCItems      = $DCItems      ?? [];
@@ -310,7 +310,7 @@ $_addrLines = buildDispatchAddressLines($DispatchAddress ?? null);
                                             <option value="<?php echo (int)$DCData->PartyUID; ?>" selected="selected"><?php echo htmlspecialchars($_draftCustLabel); ?></option>
                                             <?php endif; ?>
                                         </select>
-                                        <span class="party-edit-icon" id="editCustomerBtn" title="Edit Customer"><i class="bx bx-edit-alt"></i></span>
+                                        <span class="party-edit-icon" id="editCustomerBtn" title="Edit Customer"><i class="bx bx-edit"></i></span>
                                     </div>
                                     <?php endif; ?>
                                 </div>
@@ -349,7 +349,7 @@ $_addrLines = buildDispatchAddressLines($DispatchAddress ?? null);
                                            value="<?php echo htmlspecialchars($_vehicleNo); ?>" />
                                 </div>
                             </div>
-                            <div id="customerAddressBox" class="trans-addr-strip d-none"><i class="bx bx-map-pin"></i><span></span></div>
+                            <div id="customerAddressBox" class="trans-addr-strip d-none"><i class="bx bx-map-pin"></i><span></span><button type="button" id="btnEditCustAddr" class="trans-addr-edit-btn" title="Edit billing address"><i class="bx bx-edit"></i></button></div>
 
                             <hr class="mt-3"/>
 
@@ -420,7 +420,7 @@ var _transFormData = <?php echo json_encode([
     'returnTab'    => $_returnTab,
     'returnPage'   => (int)$_returnPage,
     'currency'     => $JwtData->GenSettings->CurrenySymbol ?? '₹',
-    'decimals'     => (int)($JwtData->GenSettings->DecimalPoints ?? 2),
+    'decimals'     => 9,
     'orgState'     => $DispatchAddress->StateText ?? '',
     'editData'     => $isEdit ? [
         'transUID'          => $transUID,

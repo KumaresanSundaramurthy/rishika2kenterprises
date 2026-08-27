@@ -10,7 +10,7 @@ $dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 
 function _tbFmt(mixed $n, string $cur, int $dec): string {
     if (abs((float)$n) < 0.005) return '<span class="text-muted">—</span>';
-    return $cur . ' ' . number_format((float)$n, $dec);
+    return $cur . ' ' . smartDecimal((float)$n);
 }
 
 // Group rows by type
@@ -96,10 +96,10 @@ foreach (array_keys($grouped) as $t) {
         <!-- Grand Totals -->
         <tr style="background:#ede9ff;font-weight:700;font-size:.84rem;">
             <td colspan="4" class="text-end" style="color:#7c3aed;">Grand Totals</td>
-            <td class="text-end text-success"><?php echo $cur . ' ' . number_format($TotalObDr, $dec); ?></td>
-            <td class="text-end text-danger"> <?php echo $cur . ' ' . number_format($TotalObCr, $dec); ?></td>
-            <td class="text-end text-success"><?php echo $cur . ' ' . number_format($GrandDebit, $dec); ?></td>
-            <td class="text-end text-danger"> <?php echo $cur . ' ' . number_format($GrandCredit, $dec); ?></td>
+            <td class="text-end text-success"><?php echo $cur . ' ' . smartDecimal($TotalObDr); ?></td>
+            <td class="text-end text-danger"> <?php echo $cur . ' ' . smartDecimal($TotalObCr); ?></td>
+            <td class="text-end text-success"><?php echo $cur . ' ' . smartDecimal($GrandDebit); ?></td>
+            <td class="text-end text-danger"> <?php echo $cur . ' ' . smartDecimal($GrandCredit); ?></td>
             <td colspan="2"></td>
         </tr>
         <!-- Balance Check -->
@@ -111,7 +111,7 @@ foreach (array_keys($grouped) as $t) {
                     Trial Balance is <strong>BALANCED</strong> — Total Debit equals Total Credit
                 <?php else: ?>
                     <i class="bx bx-error me-1 text-danger"></i>
-                    Trial Balance is <strong>UNBALANCED</strong> — Difference: <?php echo $cur . ' ' . number_format($diff, $dec); ?>
+                    Trial Balance is <strong>UNBALANCED</strong> — Difference: <?php echo $cur . ' ' . smartDecimal($diff); ?>
                 <?php endif; ?>
             </td>
         </tr>

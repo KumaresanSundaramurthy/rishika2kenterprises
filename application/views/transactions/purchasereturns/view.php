@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 $this->load->view('common/transactions/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -54,7 +54,7 @@ $this->load->view('common/transactions/header'); ?>
                             <div class="apex-stat-label"><?php echo $stat['label']; ?></div>
                             <div class="apex-stat-bottom">
                                 <span class="apex-stat-count"><?php echo $stat['count']; ?></span>
-                                <span class="apex-stat-amount"><?php echo $cur . ' ' . number_format((float)$stat['amount'], $dec); ?></span>
+                                <span class="apex-stat-amount"><?php echo $cur . ' ' . smartDecimal($stat['amount']); ?></span>
                             </div>
                         </div>
                     </div>
@@ -707,7 +707,7 @@ $(function () {
         var paid    = parseFloat($el.data('paid'))    || 0;
         var pending = parseFloat($el.data('pending')) || 0;
         var _cur    = '<?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>';
-        var _vDec   = <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>;
+        var _vDec   = 9;
 
         $('#rpTransUID').val(uid);
         $('#rpInvNum').text(num || '—');
@@ -891,7 +891,7 @@ $(function () {
 (function () {
     'use strict';
     var _adCur     = '<?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>';
-    var _adDec     = <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>;
+    var _adDec     = 9;
     var _adBalance = 0;
     var _adSelect2 = null;
 

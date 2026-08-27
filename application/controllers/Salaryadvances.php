@@ -116,7 +116,7 @@ class Salaryadvances extends MY_Controller {
             );
             if ($res->Error) throw new Exception($res->Message);
 
-            // ── Post advance journal entry ─────────────────────────────────
+            // â”€â”€ Post advance journal entry â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             if ($advance) {
                 try {
                     $this->load->library('accountledger');
@@ -128,7 +128,6 @@ class Salaryadvances extends MY_Controller {
                         $this->_userUID()
                     );
                 } catch (Exception $ledgerEx) {
-                    log_message('error', 'Ledger failed after advance approval: ' . $ledgerEx->getMessage());
                 }
             }
 
@@ -182,13 +181,12 @@ class Salaryadvances extends MY_Controller {
             );
             if ($res->Error) throw new Exception($res->Message);
 
-            // ── Reverse journal only if advance was already Approved ───────
+            // â”€â”€ Reverse journal only if advance was already Approved â”€â”€â”€â”€â”€â”€â”€
             if ($wasApproved) {
                 try {
                     $this->load->library('accountledger');
                     $this->accountledger->reverseJournal('SalaryAdvance', $uid, $this->_userUID());
                 } catch (Exception $ledgerEx) {
-                    log_message('error', 'Ledger reverse failed after advance delete: ' . $ledgerEx->getMessage());
                 }
             }
 

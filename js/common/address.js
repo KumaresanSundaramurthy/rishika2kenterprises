@@ -85,8 +85,10 @@ function csc_loadCities(selectId, countryISO2, stateISO2, selectedVal, selectedN
     var $sel = $('#' + selectId);
     if (!stateISO2) {
         $sel.empty().append('<option value="">-- Select City --</option>');
-        if ($sel.hasClass('select2'))
+        if ($sel.hasClass('select2')) {
+            if ($sel.data('select2')) $sel.select2('destroy');
             $sel.select2({ width: '100%', dropdownParent: $('#addEditAddressModal .modal-content') });
+        }
         return;
     }
     var cISO2  = (countryISO2 || 'IN').toUpperCase();
@@ -98,8 +100,11 @@ function csc_loadCities(selectId, countryISO2, stateISO2, selectedVal, selectedN
         cities.forEach(function (c) {
             $sel.append($('<option></option>').val(c.id).text(c.name));
         });
-        if ($sel.hasClass('select2'))
+        if ($sel.hasClass('select2')) {
+            // Destroy before reinitialize so Select2 picks up the new option list.
+            if ($sel.data('select2')) $sel.select2('destroy');
             $sel.select2({ width: '100%', dropdownParent: $('#addEditAddressModal .modal-content') });
+        }
         var matched = false;
         if (selectedVal) {
             $sel.val(String(selectedVal));
@@ -121,8 +126,10 @@ function csc_loadCities(selectId, countryISO2, stateISO2, selectedVal, selectedN
 
     function _ajaxFallback() {
         $sel.empty().append('<option value="">Loading cities...</option>');
-        if ($sel.hasClass('select2'))
+        if ($sel.hasClass('select2')) {
+            if ($sel.data('select2')) $sel.select2('destroy');
             $sel.select2({ width: '100%', dropdownParent: $('#addEditAddressModal .modal-content') });
+        }
         $.ajax({
             url: '/globally/getCitiesOfState', method: 'POST',
             data: { CountryISO2: cISO2, StateISO2: sISO2 },
@@ -141,8 +148,10 @@ function csc_loadCities(selectId, countryISO2, stateISO2, selectedVal, selectedN
     if (!UpstashService.isEnabled()) { _ajaxFallback(); return; }
 
     $sel.empty().append('<option value="">Loading cities...</option>');
-    if ($sel.hasClass('select2'))
+    if ($sel.hasClass('select2')) {
+        if ($sel.data('select2')) $sel.select2('destroy');
         $sel.select2({ width: '100%', dropdownParent: $('#addEditAddressModal .modal-content') });
+    }
 
     // HGET — fetch only this state's cities, not the entire map
     UpstashService.hget(UpstashService.orgKey('loc-cities-by-state'), subKey).then(function (cities) {
@@ -230,11 +239,35 @@ function renderAddrSummary(addrType, data) {
 }
 
 // ── Modal state change → load cities ─────────────────────────────────────────
+// Handles native <select> changes and programmatic triggers (skipCityLoad guard).
+// When Select2 is active, user selections arrive via select2:select below.
 $(document).on('change', '#ModalAddrState', function () {
+    // Programmatic callers set this flag to prevent a competing city load.
+    if ($(this).data('skipCityLoad')) { $(this).removeData('skipCityLoad'); return; }
+    // Select2 fires select2:select (not change) for user selections — avoid double load.
+    if ($(this).data('select2')) return;
     var iso2      = $('#addEditAddressModal').data('activeIso2') ||
                     (typeof OrgCountryISO2 !== 'undefined' ? OrgCountryISO2 : 'IN');
-    var stateISO2 = $(this).find('option:selected').data('iso2') || '';
-    csc_loadCities('ModalAddrCity', iso2, stateISO2, '');
+    var stateISO2 = $(this).find('option:selected').attr('data-iso2') || '';
+    if (stateISO2) csc_loadCities('ModalAddrCity', iso2, stateISO2, '');
+});
+
+// select2:select fires only on real user interaction (not programmatic .val() + trigger).
+$(document).on('select2:select', '#ModalAddrState', function (e) {
+    var iso2 = $('#addEditAddressModal').data('activeIso2') ||
+               (typeof OrgCountryISO2 !== 'undefined' ? OrgCountryISO2 : 'IN');
+    // Try to get ISO2 from Select2's data object, then fall back to the option attribute,
+    // then search the session cache by state ID so we never silently get stateISO2 = ''.
+    var data      = e.params && e.params.data;
+    var stateISO2 = (data && data.iso2) || $(this).find('option:selected').attr('data-iso2') || '';
+    if (!stateISO2 && data && data.id) {
+        var cKey   = (typeof OrgCountryISO2 !== 'undefined' ? OrgCountryISO2 : 'IN').toUpperCase();
+        var states = _stateSessionCache[cKey] || [];
+        for (var i = 0; i < states.length; i++) {
+            if (String(states[i].id) === String(data.id)) { stateISO2 = states[i].iso2 || ''; break; }
+        }
+    }
+    if (stateISO2) csc_loadCities('ModalAddrCity', iso2, stateISO2, '');
 });
 
 // ── Address modal save button click ──────────────────────────────────────────

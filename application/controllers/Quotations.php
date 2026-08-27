@@ -37,9 +37,10 @@ class Quotations extends MY_Controller {
                 'listViewExtraData' => ['WhatsAppTemplate' => $templates['WhatsApp'] ?? null],
             ]);
             $this->load->view('transactions/quotations/view', $this->pageData);
+        } catch (ValidationException $e) {
+            redirect('dashboard', 'refresh');
         } catch (Exception $e) {
             notifyError('Quotations::index', $e);
-            log_message('error', '[Quotations::index] ' . $e->getMessage() . ' | ' . $e->getFile() . ':' . $e->getLine());
             redirect('dashboard', 'refresh');
         }
     }
@@ -137,6 +138,10 @@ class Quotations extends MY_Controller {
             } else {
                 throw $e;
             }
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Quotations::addQuotation', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -161,7 +166,7 @@ class Quotations extends MY_Controller {
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
             $transUID = (int) getPostValue($PostData, 'TransUID');
-            if ($transUID <= 0) throw new Exception('Quotation ID is required.');
+            if ($transUID <= 0) throw new ValidationException('Quotation ID is required.');
 
             $itemsJson = $this->_validateTransForm($PostData);
             $amounts   = $this->_extractTransAmounts($PostData, $itemsJson);
@@ -188,26 +193,26 @@ class Quotations extends MY_Controller {
                 $validityDate = date('Y-m-d', strtotime($amounts['transDate'] . " +{$validityDays} days"));
             }
 
-            // Load existing row to check current DocStatus (needed for draft → pending promotion)
+            // Load existing row to check current DocStatus (needed for draft â†’ pending promotion)
             $this->load->model('transactions_model');
             $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
             if (!$existing) throw new Exception('Quotation not found.');
 
-            // --- Build UniqueNumber when promoting Draft → Pending ---
+            // --- Build UniqueNumber when promoting Draft â†’ Pending ---
             $uniqueNumber = NULL;
             if ($existing->DocStatus === 'Draft' && !$isDraft) {
-                if ($prefixUID <= 0) throw new Exception('Please select a prefix to finalize this quotation.');
-                if ($transNumber <= 0) throw new Exception('Transaction number must be greater than 0.');
-                if ($transNumber > 2147483647) throw new Exception('Transaction number exceeds the maximum allowed value of 2,147,483,647. Please use a smaller number or create a new prefix series.');
+                if ($prefixUID <= 0) throw new ValidationException('Please select a prefix to finalize this quotation.');
+                if ($transNumber <= 0) throw new ValidationException('Transaction number must be greater than 0.');
+                if ($transNumber > 2147483647) throw new ValidationException('Transaction number exceeds the maximum allowed value of 2,147,483,647. Please use a smaller number or create a new prefix series.');
 
                 $prefixData = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.PrefixUID' => $prefixUID, 'Prefix.OrgUID' => $orgUID]);
-                if (empty($prefixData->Data)) throw new Exception('Invalid prefix selected.');
+                if (empty($prefixData->Data)) throw new ValidationException('Invalid prefix selected.');
                 $prefix = $prefixData->Data[0];
 
                 // Race condition guard for updateQuotation
                 if ($this->dbwrite_model->checkTransactionNumberExists($prefixUID, $transNumber, $orgUID)) {
                     $transNumber = $this->dbwrite_model->getNextAvailableTransNumber($prefixUID, $orgUID);
-                    if ($transNumber === -1) throw new Exception('This prefix series has reached its maximum (2,147,483,647). Please create a new prefix to continue.');
+                    if ($transNumber === -1) throw new ValidationException('This prefix series has reached its maximum (2,147,483,647). Please create a new prefix to continue.');
                 }
 
                 list($uniqueNumber) = $this->buildUniqueNumber($prefix, $transNumber, $amounts['transDate']);
@@ -308,6 +313,10 @@ class Quotations extends MY_Controller {
                 [], 'Updated quotation ' . ($uniqueNumber ?? $existing->UniqueNumber ?? ''), 'Quotations', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
             );
 
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Quotations::updateQuotation', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -332,14 +341,14 @@ class Quotations extends MY_Controller {
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
             $transUID = (int) getPostValue($PostData, 'TransUID');
-            if ($transUID <= 0) throw new Exception('Quotation ID is required.');
+            if ($transUID <= 0) throw new ValidationException('Quotation ID is required.');
 
             $this->load->model('transactions_model');
             $existing = $this->transactions_model->getTransactionPageList(1, 0, $this->pageModuleUID, [
                 'TransUID' => $transUID,
                 'OrgUID'   => $orgUID,
             ]);
-            if (empty($existing)) throw new Exception('Quotation not found.');
+            if (empty($existing)) throw new ValidationException('Quotation not found.');
 
             $now = time();
 
@@ -372,6 +381,10 @@ class Quotations extends MY_Controller {
 
             $this->_buildListResponse('transactions/quotations/list', '/transactions/getPageDetails/101');
 
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Quotations::deleteQuotation', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -392,7 +405,7 @@ class Quotations extends MY_Controller {
             $transUID      = (int) getPostValue($PostData, 'TransUID');
             $convertTarget = trim(getPostValue($PostData, 'ConvertTarget') ?: 'Invoice');
 
-            if ($transUID <= 0) throw new Exception('Invalid quotation.');
+            if ($transUID <= 0) throw new ValidationException('Invalid quotation.');
 
             // Do NOT change quotation status here.
             // Status is set to Converted only after the target document is saved.
@@ -406,6 +419,9 @@ class Quotations extends MY_Controller {
             $this->EndReturnData->Message     = 'Redirecting...';
             $this->EndReturnData->RedirectURL = $redirectURL;
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Quotations::convertQuotationToInvoice', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -428,7 +444,7 @@ class Quotations extends MY_Controller {
             $userUID   = $this->pageData['JwtData']->User->UserUID;
             $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
 
-            if ($transUID <= 0) throw new Exception('Invalid quotation.');
+            if ($transUID <= 0) throw new ValidationException('Invalid quotation.');
 
             $validTransitions = [
                 'Draft'     => ['Pending'],
@@ -440,11 +456,11 @@ class Quotations extends MY_Controller {
 
             $this->load->model('transactions_model');
             $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
-            if (!$existing) throw new Exception('Quotation not found.');
+            if (!$existing) throw new ValidationException('Quotation not found.');
 
             $current = $existing->DocStatus;
             if (!in_array($newStatus, $validTransitions[$current] ?? [])) {
-                throw new Exception("Cannot change status from {$current} to {$newStatus}.");
+                throw new ValidationException("Cannot change status from {$current} to {$newStatus}.");
             }
 
             $this->dbwrite_model->startTransaction();
@@ -479,6 +495,10 @@ class Quotations extends MY_Controller {
             );
             $this->EndReturnData->NewStatus = $newStatus;
 
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Quotations::updateQuotationStatus', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -543,6 +563,8 @@ class Quotations extends MY_Controller {
 
             $this->load->view('transactions/quotations/forms/form', $this->pageData);
 
+        } catch (ValidationException $e) {
+            redirect('dashboard', 'refresh');
         } catch (Exception $e) {
             notifyError('Quotations::create', $e);
             redirect('dashboard', 'refresh');
@@ -591,10 +613,10 @@ class Quotations extends MY_Controller {
             }
             $this->pageData['NextNumberMap'] = $nextNumberMap;
 
-            // Dispatch address — use same method as create so DispatchAddresses (plural) is set
+            // Dispatch address â€” use same method as create so DispatchAddresses (plural) is set
             $this->_getDispatchAddresses($orgUID);
 
-            // Attachments — load server-side to avoid AJAX call on page load
+            // Attachments â€” load server-side to avoid AJAX call on page load
             $this->pageData['QuotAttachments'] = $this->transactions_model->getTransactionAttachments($transUID, $orgUID);
 
             $this->pageData['fltStorageData'] = [];
@@ -615,6 +637,8 @@ class Quotations extends MY_Controller {
 
             $this->load->view('transactions/quotations/forms/form', $this->pageData);
 
+        } catch (ValidationException $e) {
+            redirect('quotations', 'refresh');
         } catch (Exception $e) {
             notifyError('Quotations::edit', $e);
             redirect('quotations', 'refresh');

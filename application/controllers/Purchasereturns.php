@@ -26,6 +26,8 @@ class Purchasereturns extends MY_Controller {
                 'paginationUrl'=> '/transactions/getPageDetails/108',
             ]);
             $this->load->view('transactions/purchasereturns/view', $this->pageData);
+        } catch (ValidationException $e) {
+            redirect('dashboard', 'refresh');
         } catch (Exception $e) {
             notifyError('Purchasereturns::index', $e);
             redirect('dashboard', 'refresh');
@@ -106,7 +108,7 @@ class Purchasereturns extends MY_Controller {
             $this->dbwrite_model->commitTransaction();
 
             if (!$isDraft) {
-                $this->_syncProductCacheFromItems($items); // after commit — ReadDB now sees updated stock
+                $this->_syncProductCacheFromItems($items); // after commit â€” ReadDB now sees updated stock
                 try {
                     $this->load->library('accountledger');
                     $this->accountledger->postPurchaseReturnJournal(
@@ -115,7 +117,6 @@ class Purchasereturns extends MY_Controller {
                         $vendorUID, $userUID
                     );
                 } catch (Exception $ledgerEx) {
-                    log_message('error', 'Ledger update failed after purchase return creation: ' . $ledgerEx->getMessage());
                 }
             }
 
@@ -162,6 +163,10 @@ class Purchasereturns extends MY_Controller {
             );
             $this->EndReturnData->TransUID = $transUID;
             $this->EndReturnData->Token    = $headerData['TransToken'];
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Purchasereturns::addPurchaseReturn', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -181,7 +186,7 @@ class Purchasereturns extends MY_Controller {
             $userUID  = $this->pageData['JwtData']->User->UserUID;
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
             $transUID = (int) getPostValue($PostData, 'TransUID');
-            if ($transUID <= 0) throw new Exception('Purchase Return ID is required.');
+            if ($transUID <= 0) throw new ValidationException('Purchase Return ID is required.');
 
             $itemsJson = $this->_validateTransForm($PostData);
             $amounts   = $this->_extractTransAmounts($PostData, $itemsJson);
@@ -205,19 +210,19 @@ class Purchasereturns extends MY_Controller {
 
             $this->load->model('transactions_model');
             $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
-            if (!$existing) throw new Exception('Purchase Return not found.');
+            if (!$existing) throw new ValidationException('Purchase Return not found.');
 
             $uniqueNumber = NULL;
             if ($existing->DocStatus === 'Draft' && !$isDraft) {
-                if ($prefixUID <= 0) throw new Exception('Please select a prefix to finalise this return.');
-                if ($transNumber <= 0) throw new Exception('Transaction number must be greater than 0.');
+                if ($prefixUID <= 0) throw new ValidationException('Please select a prefix to finalise this return.');
+                if ($transNumber <= 0) throw new ValidationException('Transaction number must be greater than 0.');
                 $prefixData = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.PrefixUID' => $prefixUID, 'Prefix.OrgUID' => $orgUID]);
-                if (empty($prefixData->Data)) throw new Exception('Invalid prefix selected.');
+                if (empty($prefixData->Data)) throw new ValidationException('Invalid prefix selected.');
                 $prefix   = $prefixData->Data[0];
                 $dupCheck = $this->transactions_model->getTransactionByPrefixAndNumber($prefixUID, $transNumber, $orgUID, $this->pageModuleUID);
                 if ($dupCheck) {
                     $nextSuggested = $this->transactions_model->getNextTransactionNumber($prefixUID, $orgUID, $this->pageModuleUID);
-                    throw new Exception("Transaction number {$transNumber} already exists. Next available: {$nextSuggested}.");
+                    throw new ValidationException("Transaction number {$transNumber} already exists. Next available: {$nextSuggested}.");
                 }
                 [$uniqueNumber] = $this->buildUniqueNumber($prefix, $transNumber, $amounts['transDate']);
             }
@@ -292,7 +297,7 @@ class Purchasereturns extends MY_Controller {
             $activeTransUID = $newTransUID ?? $transUID;
             $this->_saveTransCharges($activeTransUID, $orgUID, $userUID, $PostData);
             $this->dbwrite_model->commitTransaction();
-            if (!$isDraft) { $this->_syncProductCacheByTransUID($activeTransUID); } // after commit — ReadDB now sees updated stock
+            if (!$isDraft) { $this->_syncProductCacheByTransUID($activeTransUID); } // after commit â€” ReadDB now sees updated stock
             $this->_saveAttachments($activeTransUID);
             $this->_softDeleteAttachments($this->input->post('RemovedAttachIDs') ?? '');
             $this->_touchVendorCache($vendorUID);
@@ -305,6 +310,10 @@ class Purchasereturns extends MY_Controller {
                 'UPDATE_PURCHASE_RETURN', 'PurchaseReturn', (int) $activeTransUID, (string) ($uniqueNumber ?? $existing->UniqueNumber ?? ''),
                 [], 'Updated purchase return ' . ($uniqueNumber ?? $existing->UniqueNumber ?? ''), 'PurchaseReturns', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
             );
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Purchasereturns::updatePurchaseReturn', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -323,10 +332,10 @@ class Purchasereturns extends MY_Controller {
             $userUID  = $this->pageData['JwtData']->User->UserUID;
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
             $transUID = (int) getPostValue($PostData, 'TransUID');
-            if ($transUID <= 0) throw new Exception('Purchase Return ID is required.');
+            if ($transUID <= 0) throw new ValidationException('Purchase Return ID is required.');
             $this->load->model('transactions_model');
             $existing = $this->transactions_model->getTransactionPageList(1, 0, $this->pageModuleUID, ['TransUID' => $transUID, 'OrgUID' => $orgUID]);
-            if (empty($existing)) throw new Exception('Purchase Return not found.');
+            if (empty($existing)) throw new ValidationException('Purchase Return not found.');
 
             $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
 
@@ -337,14 +346,13 @@ class Purchasereturns extends MY_Controller {
             $deleteResp = $this->dbwrite_model->updateData('Transaction', 'TransactionsTbl', $deleteData, ['TransUID' => $transUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
             if ($deleteResp->Error) throw new Exception($deleteResp->Message);
             $this->dbwrite_model->commitTransaction();
-            $this->_syncProductCacheByTransUID($transUID); // after commit — ReadDB now sees reverted stock
+            $this->_syncProductCacheByTransUID($transUID); // after commit â€” ReadDB now sees reverted stock
 
             // Reverse journal entry for the purchase return (non-fatal)
             try {
                 $this->load->library('accountledger');
                 $this->accountledger->reverseJournal('PurchaseReturn', $transUID, $userUID);
             } catch (Exception $ledgerEx) {
-                log_message('error', 'Ledger reverse failed after purchase return delete #' . $transUID . ': ' . $ledgerEx->getMessage());
             }
 
             if (!empty($existing->PartyUID)) {
@@ -360,6 +368,10 @@ class Purchasereturns extends MY_Controller {
             );
 
             $this->_buildListResponse('transactions/purchasereturns/list', '/transactions/getPageDetails/108');
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Purchasereturns::deletePurchaseReturn', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -378,15 +390,15 @@ class Purchasereturns extends MY_Controller {
             $srcUID   = (int) getPostValue($PostData, 'TransUID');
             $userUID  = $this->pageData['JwtData']->User->UserUID;
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
-            if ($srcUID <= 0) throw new Exception('Invalid purchase return.');
+            if ($srcUID <= 0) throw new ValidationException('Invalid purchase return.');
             $this->load->model('transactions_model');
             $src = $this->transactions_model->getTransactionById($srcUID, $orgUID, $this->pageModuleUID);
-            if (!$src) throw new Exception('Purchase Return not found.');
+            if (!$src) throw new ValidationException('Purchase Return not found.');
 
             $nextNumber   = $this->transactions_model->getNextTransactionNumber($src->PrefixUID, $orgUID, $this->pageModuleUID);
             $prefixResult = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.PrefixUID' => $src->PrefixUID, 'Prefix.OrgUID' => $orgUID]);
             $prefix       = $prefixResult->Data[0] ?? null;
-            if (!$prefix) throw new Exception('Prefix not found.');
+            if (!$prefix) throw new ValidationException('Prefix not found.');
 
             $sep   = $prefix->Separator ?? '-';
             $parts = [strtoupper($prefix->Name)];
@@ -506,6 +518,10 @@ class Purchasereturns extends MY_Controller {
             );
             $this->EndReturnData->TransUID = $newTransUID;
             $this->EndReturnData->EditURL  = '/purchasereturns/edit/' . $newTransUID;
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Purchasereturns::duplicatePurchaseReturn', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -524,7 +540,7 @@ class Purchasereturns extends MY_Controller {
             $newStatus = trim(getPostValue($PostData, 'Status'));
             $userUID   = $this->pageData['JwtData']->User->UserUID;
             $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
-            if ($transUID <= 0) throw new Exception('Invalid purchase return.');
+            if ($transUID <= 0) throw new ValidationException('Invalid purchase return.');
 
             $validTransitions = [
                 'Draft'     => ['Approved', 'Cancelled'],
@@ -537,13 +553,13 @@ class Purchasereturns extends MY_Controller {
 
             $this->load->model('transactions_model');
             $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
-            if (!$existing) throw new Exception('Purchase Return not found.');
+            if (!$existing) throw new ValidationException('Purchase Return not found.');
             $current = $existing->DocStatus;
-            if (!in_array($newStatus, $validTransitions[$current] ?? [])) throw new Exception("Cannot change status from {$current} to {$newStatus}.");
+            if (!in_array($newStatus, $validTransitions[$current] ?? [])) throw new ValidationException("Cannot change status from {$current} to {$newStatus}.");
 
             $this->dbwrite_model->startTransaction();
 
-            // â”€â”€ Pre-cancel dependency checks (before any DB write) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // Ã¢â€â‚¬Ã¢â€â‚¬ Pre-cancel dependency checks (before any DB write) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
             $hasCashRefunds = false;
             $cancelAction   = '';
             $totalRefunded  = 0;
@@ -555,7 +571,7 @@ class Purchasereturns extends MY_Controller {
                 if ($hasCashRefunds) {
                     $cancelAction = trim($this->input->post('CancelPaymentAction') ?? '');
                     if (!in_array($cancelAction, ['recover', 'writeoff'])) {
-                        // No valid action â€” tell frontend to show action dialog
+                        // No valid action Ã¢â‚¬â€ tell frontend to show action dialog
                         $this->dbwrite_model->rollbackTransaction();
                         $this->EndReturnData->Error          = FALSE;
                         $this->EndReturnData->RequiresAction = TRUE;
@@ -586,12 +602,12 @@ class Purchasereturns extends MY_Controller {
                     $wdb = $this->dbwrite_model->getWriteDb();
                     $wdb->db_debug = FALSE;
                     if ($cancelAction === 'writeoff') {
-                        // Keep the vendor's refund as a business gain â€” mark payments written off
+                        // Keep the vendor's refund as a business gain Ã¢â‚¬â€ mark payments written off
                         $wdb->where(['TransUID' => $transUID, 'IsDeleted' => 0])
                             ->where('PaymentTypeUID !=', 0)
                             ->update('Transaction.PaymentsTbl', ['IsCancelled' => 1, 'UpdatedBy' => $userUID]);
                     } else {
-                        // Recover â€” void the refund payments; we owe vendor back, tracked via VendorCreditNote
+                        // Recover Ã¢â‚¬â€ void the refund payments; we owe vendor back, tracked via VendorCreditNote
                         $wdb->where(['TransUID' => $transUID, 'IsDeleted' => 0])
                             ->where('PaymentTypeUID !=', 0)
                             ->update('Transaction.PaymentsTbl', ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID]);
@@ -630,7 +646,7 @@ class Purchasereturns extends MY_Controller {
             }
 
             $this->dbwrite_model->commitTransaction();
-            if ($newStatus === 'Cancelled') { $this->_syncProductCacheByTransUID($transUID); } // after commit — ReadDB now sees reverted stock
+            if ($newStatus === 'Cancelled') { $this->_syncProductCacheByTransUID($transUID); } // after commit â€” ReadDB now sees reverted stock
 
             $docNum = $existing->UniqueNumber ?? '';
             $prefix = $docNum ? "{$docNum} " : '';
@@ -650,6 +666,10 @@ class Purchasereturns extends MY_Controller {
                 ['NewStatus' => $newStatus], 'Updated purchase return status to ' . $newStatus, 'PurchaseReturns', 'TRANSACTION'
             );
             $this->EndReturnData->NewStatus = $newStatus;
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Purchasereturns::updatePurchaseReturnStatus', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -664,17 +684,20 @@ class Purchasereturns extends MY_Controller {
         try {
             $transUID = (int) $this->input->post('TransUID');
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
-            if ($transUID <= 0) throw new Exception('Invalid purchase return.');
+            if ($transUID <= 0) throw new ValidationException('Invalid purchase return.');
 
             $this->load->model('transactions_model');
             $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
-            if (!$existing) throw new Exception('Purchase Return not found.');
+            if (!$existing) throw new ValidationException('Purchase Return not found.');
 
             $totalRefunded = $this->transactions_model->getPRTotalRefunded($transUID);
 
             $this->EndReturnData->Error        = FALSE;
             $this->EndReturnData->HasRefunds   = $totalRefunded > 0;
             $this->EndReturnData->RefundAmount = $totalRefunded;
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Purchasereturns::getPRCancelDependencies', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -688,11 +711,14 @@ class Purchasereturns extends MY_Controller {
         try {
             $vendorUID = (int) $this->input->post('VendorUID');
             $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
-            if ($vendorUID <= 0) throw new Exception('Invalid vendor.');
+            if ($vendorUID <= 0) throw new ValidationException('Invalid vendor.');
 
             $this->load->model('transactions_model');
             $this->EndReturnData->Error     = false;
             $this->EndReturnData->Purchases = $this->transactions_model->getVendorPurchasesWithReturnableItems($vendorUID, $orgUID);
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Purchasereturns::getVendorPurchases', $e);
             $this->EndReturnData->Error   = true;
@@ -706,11 +732,11 @@ class Purchasereturns extends MY_Controller {
         try {
             $transUID = (int) $this->input->post('TransUID');
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
-            if ($transUID <= 0) throw new Exception('Invalid purchase.');
+            if ($transUID <= 0) throw new ValidationException('Invalid purchase.');
 
             $this->load->model('transactions_model');
             $header = $this->transactions_model->getTransactionById($transUID, $orgUID, 105);
-            if (!$header) throw new Exception('Purchase not found.');
+            if (!$header) throw new ValidationException('Purchase not found.');
             $items  = $this->transactions_model->getTransactionItems($transUID, $orgUID);
 
             // Annotate each item with how much quantity has already been returned
@@ -728,6 +754,9 @@ class Purchasereturns extends MY_Controller {
             $this->EndReturnData->Error  = false;
             $this->EndReturnData->Header = $header;
             $this->EndReturnData->Items  = $items;
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Purchasereturns::getPurchaseItems', $e);
             $this->EndReturnData->Error   = true;
@@ -763,6 +792,8 @@ class Purchasereturns extends MY_Controller {
             $this->pageData['IsEditMode']         = false;
 
             $this->load->view('transactions/purchasereturns/forms/form', $this->pageData);
+        } catch (ValidationException $e) {
+            redirect('purchasereturns', 'refresh');
         } catch (Exception $e) {
             notifyError('Purchasereturns::create', $e);
             redirect('purchasereturns', 'refresh');
@@ -795,16 +826,22 @@ class Purchasereturns extends MY_Controller {
             $this->pageData['AdditionalCharges']  = $this->_getAdditionalChargesForOrg((int)$orgUID, true);
             $this->pageData['TransactionCharges'] = $this->transactions_model->getTransactionCharges($transUID, (int)$orgUID);
             $this->pageData['TaxList']            = $this->_getTaxList();
+            $this->load->model('vendors_model');
+            $vendorAddrArr                = $this->vendors_model->getVendorAddress(['VendAddress.VendorUID' => (int)$transData->PartyUID, 'VendAddress.OrgUID' => $orgUID]);
+            $this->pageData['VendorAddr'] = !empty($vendorAddrArr) ? $vendorAddrArr[0] : null;
+
             $this->pageData['IsEditMode']         = true;
             $this->pageData['PRSerialsByProd']    = $this->_getTransSerialsGrouped($transUID, $orgUID, 'PurchaseReturn');
 
             $this->_getDispatchAddresses($orgUID);
             $this->_loadUpstashConfig();
 
-            // Attachments — load server-side to avoid AJAX call on page load
+            // Attachments â€” load server-side to avoid AJAX call on page load
             $this->pageData['PRAttachments'] = $this->transactions_model->getTransactionAttachments($transUID, $orgUID);
 
             $this->load->view('transactions/purchasereturns/forms/form', $this->pageData);
+        } catch (ValidationException $e) {
+            redirect('purchasereturns', 'refresh');
         } catch (Exception $e) {
             notifyError('Purchasereturns::edit', $e);
             redirect('purchasereturns', 'refresh');
@@ -830,24 +867,24 @@ class Purchasereturns extends MY_Controller {
             $referenceNo    =         getPostValue($PostData, 'ReferenceNo') ?: NULL;
             $notes          =         getPostValue($PostData, 'Notes') ?: NULL;
 
-            if ($transUID <= 0)       throw new Exception('Invalid transaction.');
-            if ($paymentTypeUID <= 0) throw new Exception('Please select a payment type.');
-            if ($amount <= 0)         throw new Exception('Amount must be greater than 0.');
+            if ($transUID <= 0)       throw new ValidationException('Invalid transaction.');
+            if ($paymentTypeUID <= 0) throw new ValidationException('Please select a payment type.');
+            if ($amount <= 0)         throw new ValidationException('Amount must be greater than 0.');
 
             $this->load->model('transactions_model');
             $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
-            if (!$existing) throw new Exception('Purchase Return not found.');
-            if ($existing->DocStatus === 'Draft')                          throw new Exception('Cannot record payment for a Draft.');
-            if (in_array($existing->DocStatus, ['Cancelled', 'Rejected'])) throw new Exception('Purchase Return is cancelled.');
+            if (!$existing) throw new ValidationException('Purchase Return not found.');
+            if ($existing->DocStatus === 'Draft')                          throw new ValidationException('Cannot record payment for a Draft.');
+            if (in_array($existing->DocStatus, ['Cancelled', 'Rejected'])) throw new ValidationException('Purchase Return is cancelled.');
 
             if (!$this->dbwrite_model->lockTransactionRow($transUID, $orgUID)) {
-                throw new Exception('Purchase Return not found.');
+                throw new ValidationException('Purchase Return not found.');
             }
             $alreadyPaid = $this->dbwrite_model->sumTransactionPayments($transUID, $orgUID);
             $pending     = max(0, round((float)$existing->NetAmount - $alreadyPaid, $this->_decimals()));
 
             if ($amount > $pending + 0.01) {
-                throw new Exception('Amount exceeds remaining balance (' . number_format($pending, 2) . '). A concurrent payment may have just been recorded.');
+                throw new ValidationException('Amount exceeds remaining balance (' . smartDecimal($pending) . '). A concurrent payment may have just been recorded.');
             }
 
             $newTotalPaid = $alreadyPaid + $amount;
@@ -921,13 +958,17 @@ class Purchasereturns extends MY_Controller {
             }
 
             $this->EndReturnData->Error   = FALSE;
-            $this->EndReturnData->Message = 'Refund of ' . number_format($amount, 2) . ' recorded successfully.';
+            $this->EndReturnData->Message = 'Refund of ' . smartDecimal($amount) . ' recorded successfully.';
             $this->auditlog->log(
                 (int) $orgUID, (int) $userUID,
                 'RECORD_PR_PAYMENT', 'PurchaseReturn', (int) $transUID, (string) ($existing->UniqueNumber ?? ''),
                 ['Amount' => $amount], 'Recorded refund of ' . $amount . ' for purchase return ' . ($existing->UniqueNumber ?? ''), 'PurchaseReturns', 'PAYMENT'
             );
 
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Purchasereturns::recordPayment', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -944,16 +985,19 @@ class Purchasereturns extends MY_Controller {
         try {
             $prUID  = (int) $this->input->post('PurchaseReturnUID');
             $orgUID = $this->pageData['JwtData']->Org->OrgUID;
-            if ($prUID <= 0) throw new Exception('Invalid purchase return.');
+            if ($prUID <= 0) throw new ValidationException('Invalid purchase return.');
 
             $this->load->model('transactions_model');
             $pr = $this->transactions_model->getTransactionById($prUID, $orgUID, $this->pageModuleUID);
-            if (!$pr) throw new Exception('Purchase Return not found.');
+            if (!$pr) throw new ValidationException('Purchase Return not found.');
 
             $vendorUID = (int) $pr->PartyUID;
 
             $this->EndReturnData->Error     = false;
             $this->EndReturnData->Purchases = $this->transactions_model->getVendorPendingPurchases($vendorUID, $orgUID);
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Purchasereturns::getPendingPurchases', $e);
             $this->EndReturnData->Error   = true;
@@ -976,34 +1020,34 @@ class Purchasereturns extends MY_Controller {
             $amount     = (float) getPostValue($PostData, 'Amount', 'Array', 0);
             $notes      = getPostValue($PostData, 'Notes') ?: NULL;
 
-            if ($prUID <= 0)    throw new Exception('Invalid purchase return.');
-            if ($purchUID <= 0) throw new Exception('Please select a purchase.');
-            if ($amount <= 0)   throw new Exception('Amount must be greater than 0.');
+            if ($prUID <= 0)    throw new ValidationException('Invalid purchase return.');
+            if ($purchUID <= 0) throw new ValidationException('Please select a purchase.');
+            if ($amount <= 0)   throw new ValidationException('Amount must be greater than 0.');
 
             $pr = $this->transactions_model->getTransactionById($prUID, $orgUID, $this->pageModuleUID);
-            if (!$pr) throw new Exception('Purchase Return not found.');
+            if (!$pr) throw new ValidationException('Purchase Return not found.');
             if (in_array($pr->DocStatus, ['Draft', 'Cancelled', 'Rejected'])) {
-                throw new Exception('Cannot apply debit for this Purchase Return.');
+                throw new ValidationException('Cannot apply debit for this Purchase Return.');
             }
 
             $prPaid    = (float)($pr->PaidAmount    ?? 0);
             $prBalance = max(0, round((float)$pr->NetAmount - $prPaid, $this->_decimals()));
-            if ($prBalance <= 0) throw new Exception('No debit balance available on this Purchase Return.');
+            if ($prBalance <= 0) throw new ValidationException('No debit balance available on this Purchase Return.');
 
             $purchase = $this->transactions_model->getTransactionById($purchUID, $orgUID, 105);
-            if (!$purchase) throw new Exception('Purchase not found.');
-            if ($purchase->PartyUID != $pr->PartyUID) throw new Exception('Purchase does not belong to the same vendor.');
+            if (!$purchase) throw new ValidationException('Purchase not found.');
+            if ($purchase->PartyUID != $pr->PartyUID) throw new ValidationException('Purchase does not belong to the same vendor.');
             if (in_array($purchase->DocStatus, ['Draft', 'Cancelled', 'Paid'])) {
-                throw new Exception('This purchase cannot receive a debit adjustment.');
+                throw new ValidationException('This purchase cannot receive a debit adjustment.');
             }
 
             $purchPaid    = (float)($purchase->PaidAmount    ?? 0);
             $purchBalance = max(0, round((float)$purchase->NetAmount - $purchPaid, $this->_decimals()));
-            if ($purchBalance <= 0) throw new Exception('Purchase has no pending balance.');
+            if ($purchBalance <= 0) throw new ValidationException('Purchase has no pending balance.');
 
             $maxAmount = min($prBalance, $purchBalance);
             if ($amount > $maxAmount + 0.01) {
-                throw new Exception('Amount exceeds available debit (' . number_format($maxAmount, 2) . ').');
+                throw new ValidationException('Amount exceeds available debit (' . smartDecimal($maxAmount) . ').');
             }
             $amount = min($amount, $maxAmount);
 
@@ -1086,8 +1130,12 @@ class Purchasereturns extends MY_Controller {
             $this->dbwrite_model->commitTransaction();
 
             $this->EndReturnData->Error   = FALSE;
-            $this->EndReturnData->Message = 'Debit of ' . number_format($amount, 2) . ' applied to purchase ' . ($purchase->UniqueNumber ?? '#' . $purchUID) . '.';
+            $this->EndReturnData->Message = 'Debit of ' . smartDecimal($amount) . ' applied to purchase ' . ($purchase->UniqueNumber ?? '#' . $purchUID) . '.';
 
+        } catch (ValidationException $e) {
+            if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Purchasereturns::applyDebit', $e);
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();

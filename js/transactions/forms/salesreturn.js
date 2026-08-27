@@ -44,15 +44,18 @@ $(function () {
     });
 
     function loadCustomerInvoices(custUID) {
-        var $inv = $('#fromInvoiceUID');
-        $inv.prop('disabled', true).html('<option value="">Loading...</option>');
+        var $inv     = $('#fromInvoiceUID');
+        var $spinner = $('#fromInvoiceSpinner');
+        $inv.prop('disabled', true).html('<option value="">Fetching invoices…</option>');
+        $spinner.removeClass('d-none');
         ajaxLoading(0);
         $.ajax({
             url    : '/salesreturns/getCustomerInvoices',
             method : 'POST',
-            data   : { CustomerUID: custUID, [CsrfName]: CsrfToken },
+            data   : { CustomerUID: custUID, ExcludeSrUID: window.R2K_SR_EDIT_UID || 0, [CsrfName]: CsrfToken },
             success: function (res) {
                 ajaxLoading(1);
+                $spinner.addClass('d-none');
                 if (res.Error || !res.Invoices || res.Invoices.length === 0) {
                     $inv.html('<option value="">-- No Invoices Found --</option>').prop('disabled', true);
                     return;
@@ -73,12 +76,14 @@ $(function () {
             },
             error: function () {
                 ajaxLoading(1);
+                $spinner.addClass('d-none');
                 $inv.html('<option value="">-- Error Loading --</option>').prop('disabled', true);
             }
         });
     }
 
     function resetInvoiceDropdown() {
+        $('#fromInvoiceSpinner').addClass('d-none');
         $('#fromInvoiceUID').html('<option value="">-- Select Customer First --</option>').prop('disabled', true);
     }
 
@@ -92,6 +97,7 @@ $(function () {
 
     // ── Invoice items modal ──────────────────────────────────────────────────
     var _invoiceItems       = [];
+    var _linkedInvoiceUIDs  = [];
     var _lastInvoiceUID     = 0;
     var _invoiceTotalItems  = {};
     var _invoiceProductUIDs = {};
@@ -128,7 +134,7 @@ $(function () {
         $.ajax({
             url    : '/salesreturns/getInvoiceItems',
             method : 'POST',
-            data   : { TransUID: transUID, [CsrfName]: CsrfToken },
+            data   : { TransUID: transUID, ExcludeSrUID: window.R2K_SR_EDIT_UID || 0, [CsrfName]: CsrfToken },
             success: function (res) {
                 ajaxLoading(1);
                 $('#invItemsLoading').addClass('d-none');
@@ -220,6 +226,7 @@ $(function () {
                 unitPrice        : parseFloat(item.UnitPrice)        || 0,
                 sellingPrice     : parseFloat(item.SellingPrice)     || 0,
                 purchasePrice    : parseFloat(item.PurchasePrice)    || 0,
+                mrp              : parseFloat(item.MRP)              || 0,
                 taxAmount        : parseFloat(item.TaxAmount)        || 0,
                 availableQuantity: 0,
                 hsnCode          : item.HSNCode           || '',
@@ -276,6 +283,9 @@ $(function () {
 
         $('#invoiceItemsModal').modal('hide');
 
+        if (_lastInvoiceUID > 0 && added > 0 && _linkedInvoiceUIDs.indexOf(_lastInvoiceUID) === -1) {
+            _linkedInvoiceUIDs.push(_lastInvoiceUID);
+        }
         var $inv = $('#fromInvoiceUID');
         $inv.val(null).trigger('change');
         _lastInvoiceUID = 0;
@@ -298,6 +308,15 @@ $(function () {
             $('#customerSearch')
                 .append(new Option(_custLabel, _editData.custUID, true, true))
                 .trigger('change');
+
+            // Populate address strip from PHP-supplied billing address
+            var _addrLines = [_editData.custBillLine1, _editData.custBillLine2].filter(Boolean).join(', ');
+            var _addrLoc   = [_editData.custBillCity, _editData.custBillState].filter(Boolean).join(', ');
+            if (_editData.custBillPincode) _addrLoc += ' – ' + _editData.custBillPincode;
+            var _addrText  = [_addrLines, _addrLoc].filter(Boolean).join(' · ');
+            if (_addrText) {
+                $('#customerAddressBox').find('span').text(_addrText).end().removeClass('d-none');
+            }
             if (!_isDraftEdit) {
                 $('#customerSearch')
                     .on('select2:opening',  function (e) { e.preventDefault(); })
@@ -384,6 +403,7 @@ $(function () {
                 transDate              : transDate,
                 customerSearch         : customerUID,
                 fromInvoiceUID         : parseInt($('#fromInvoiceUID').val(), 10) || 0,
+                fromInvoiceUIDs        : JSON.stringify(_linkedInvoiceUIDs),
                 returnType             : $('[name="returnType"]').val() || 'Regular',
                 dispatchFrom           : $('[name="dispatchFrom"]').val() || '',
                 referenceDetails       : $.trim($('#referenceDetails').val()),

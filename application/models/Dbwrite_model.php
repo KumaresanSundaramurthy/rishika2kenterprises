@@ -63,7 +63,7 @@ class Dbwrite_model extends CI_Model {
     /**
      * Acquires an exclusive row-level lock on the transaction row for the duration of
      * the current WriteDB transaction. Must be called inside startTransaction() and before
-     * reading the paid total — blocks any concurrent request trying to lock the same row,
+     * reading the paid total â€” blocks any concurrent request trying to lock the same row,
      * so the balance check that follows always sees fully committed data.
      *
      * @param int $transUID
@@ -99,7 +99,7 @@ class Dbwrite_model extends CI_Model {
 
     // Disable/enable FK checks on the write connection.
     // Use when inserting into a child table whose parent row was inserted
-    // in the same open transaction — InnoDB lock wait timeout would occur otherwise.
+    // in the same open transaction â€” InnoDB lock wait timeout would occur otherwise.
     public function setForeignKeyChecks($enabled) {
         $this->WriteDB->query('SET FOREIGN_KEY_CHECKS = ' . ($enabled ? '1' : '0'));
     }
@@ -376,7 +376,7 @@ class Dbwrite_model extends CI_Model {
 
     }
 
-    // ── Transaction Number Helpers (WriteDB — avoids read-replica lag) ─────────
+    // â”€â”€ Transaction Number Helpers (WriteDB â€” avoids read-replica lag) â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public function checkTransactionNumberExists($prefixUID, $transNumber, $orgUID) {
         $this->WriteDB->db_debug = FALSE;
@@ -415,7 +415,7 @@ class Dbwrite_model extends CI_Model {
         return $next;
     }
 
-    // ── Stock Movement Methods ─────────────────────────────────────────────────
+    // â”€â”€ Stock Movement Methods â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /**
      * Stock movement direction by ModuleUID.
@@ -428,7 +428,7 @@ class Dbwrite_model extends CI_Model {
         106 => 'IN',    // Sales Returns
         107 => 'IN',    // Credit Notes
         108 => 'OUT',   // Purchase Returns
-        112 => 'OUT',   // Delivery Challans (all modes: Non-Returnable / Returnable / Job Work — goods leave warehouse on dispatch)
+        112 => 'OUT',   // Delivery Challans (all modes: Non-Returnable / Returnable / Job Work â€” goods leave warehouse on dispatch)
     ];
 
     /**
@@ -579,7 +579,7 @@ class Dbwrite_model extends CI_Model {
                         // Record stock movement for this component
                         $this->_applyStockMovement($transUID, $moduleUID, $orgUID, $userUID, $componentUID, $componentQty, $unitCost, $movementType, $transProdUID, $sellingPrice, $taxAmount, null, $branchUID);
 
-                        // Insert BOM snapshot — full component details frozen at transaction time
+                        // Insert BOM snapshot â€” full component details frozen at transaction time
                         if ($transProdUID !== null && $cd !== null) {
                             // Use user-adjusted price from transaction form if available; fall back to master price
                             $sp      = isset($passedCompPrices[$componentUID])
@@ -708,7 +708,7 @@ class Dbwrite_model extends CI_Model {
             throw new Exception('Stock ledger insert failed (ProductUID=' . $productUID . '): ' . ($err['message'] ?? 'unknown DB error'));
         }
 
-        // Update ProductStockTbl — allow negative (oversold) values.
+        // Update ProductStockTbl â€” allow negative (oversold) values.
         // CAST to SIGNED prevents UNSIGNED underflow wrapping to a huge positive number.
         if ($movementType === 'IN') {
             $this->WriteDB->set('AvailableQty', 'CAST(AvailableQty AS SIGNED) + ' . $qty, false);
@@ -788,7 +788,7 @@ class Dbwrite_model extends CI_Model {
     }
 
     /**
-     * Upsert one product variant row (brand × size combination).
+     * Upsert one product variant row (brand Ã— size combination).
      * Uses LAST_INSERT_ID trick to return VariantUID in both INSERT and UPDATE paths.
      * @param int    $productUID
      * @param int    $orgUID
@@ -893,7 +893,7 @@ class Dbwrite_model extends CI_Model {
     /**
      * Reverse all stock movements for a transaction (used on edit of non-draft or on delete).
      * Soft-deletes the ledger rows and adds back / subtracts the quantities.
-     * Safe to call on draft transactions — finds no ledger rows and does nothing.
+     * Safe to call on draft transactions â€” finds no ledger rows and does nothing.
      *
      * @param int $transUID  Transaction UID whose stock movements to reverse
      * @param int $orgUID    Organisation UID
@@ -974,7 +974,7 @@ class Dbwrite_model extends CI_Model {
                 $rows
             );
             throw new Exception(
-                'Cannot cancel: reversing stock would result in negative quantity for — ' .
+                'Cannot cancel: reversing stock would result in negative quantity for â€” ' .
                 implode('; ', $details) . '. Please adjust stock manually first.'
             );
         }
@@ -1074,13 +1074,13 @@ class Dbwrite_model extends CI_Model {
         }
     }
 
-    // ── Conversion Tracking ───────────────────────────────────────────────────
+    // â”€â”€ Conversion Tracking â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /**
      * Record a document conversion in TransConversionTbl.
      * Module UIDs: 101=Quotation, 102=SalesOrder, 103=Invoice.
      * ConversionType: QuotToOrder | QuotToInvoice | OrderToInvoice
-     * Skips silently if the exact same source→target pair is already recorded.
+     * Skips silently if the exact same sourceâ†’target pair is already recorded.
      */
     /**
      * Update DocStatus on a transaction row using a raw parameterized query.
@@ -1112,7 +1112,7 @@ class Dbwrite_model extends CI_Model {
         $this->WriteDB->insert('Security.UserAuditLogTbl', $data);
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // Payment read helpers (use WriteDB to avoid read-replica lag)
 
     public function getOnAccountPayment($paymentUID, $orgUID) {
@@ -1140,7 +1140,7 @@ class Dbwrite_model extends CI_Model {
         return $this->WriteDB->get()->row();
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // Payment write helpers
 
     public function restoreOnAccountPayment($sourceOAUID, $orgUID, $restoredAmount, $userUID) {
@@ -1219,7 +1219,6 @@ class Dbwrite_model extends CI_Model {
             $ok = $this->WriteDB->where('TransUID', (int)$transUID)->update($table, $flag);
             if ($ok === false) {
                 $err = $this->WriteDB->error();
-                log_message('error', "cancelTransactionChildRecords failed on {$table} (TransUID={$transUID}): " . ($err['message'] ?? 'unknown'));
             }
         }
     }
@@ -1251,7 +1250,7 @@ class Dbwrite_model extends CI_Model {
         ]);
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // Settings upserts
 
     public function upsertProductSettings($orgUID, $productTypeUID, $discountTypeUID, $productTaxUID, $taxDetailUID, $userUID) {
@@ -1334,7 +1333,7 @@ class Dbwrite_model extends CI_Model {
 
         $this->WriteDB->db_debug = FALSE;
 
-        // Duplicate guard — uses WriteDB to avoid read-replica lag
+        // Duplicate guard â€” uses WriteDB to avoid read-replica lag
         $this->WriteDB->select('ConversionUID');
         $this->WriteDB->from('Transaction.TransConversionTbl');
         $this->WriteDB->where(['SourceTransUID' => (int)$sourceUID, 'TargetTransUID' => (int)$targetUID]);
@@ -1348,12 +1347,32 @@ class Dbwrite_model extends CI_Model {
             'TargetTransUID'  => (int) $targetUID,
             'TargetModuleUID' => (int) $targetModuleUID,
             'ConversionType'  => $conversionType,
-            'ConvertedBy'     => (int) $userUID,
+            'CreatedBy'       => (int) $userUID,
         ]);
 
     }
 
-    // ── Sync user→branch access assignments (wipe + re-insert) ───────────────
+    public function markConversionDeleted(int $targetTransUID, int $orgUID, int $userUID): void {
+        $this->WriteDB->db_debug = FALSE;
+        $this->WriteDB->where(['TargetTransUID' => $targetTransUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0])
+                      ->update('Transaction.TransConversionTbl', [
+                          'IsDeleted' => 1,
+                          'UpdatedBy' => $userUID,
+                          'UpdatedOn' => date('Y-m-d H:i:s'),
+                      ]);
+    }
+
+    public function markConversionCancelled(int $targetTransUID, int $orgUID, int $userUID): void {
+        $this->WriteDB->db_debug = FALSE;
+        $this->WriteDB->where(['TargetTransUID' => $targetTransUID, 'OrgUID' => $orgUID, 'IsCancelled' => 0, 'IsDeleted' => 0])
+                      ->update('Transaction.TransConversionTbl', [
+                          'IsCancelled' => 1,
+                          'UpdatedBy'   => $userUID,
+                          'UpdatedOn'   => date('Y-m-d H:i:s'),
+                      ]);
+    }
+
+    // â”€â”€ Sync userâ†’branch access assignments (wipe + re-insert) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function syncUserBranchAccess(int $userUID, int $orgUID, array $branches, int $callerUID, string $now): void {
         $this->WriteDB->db_debug = FALSE;
         $this->WriteDB->query(

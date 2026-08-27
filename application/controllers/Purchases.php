@@ -28,6 +28,8 @@ class Purchases extends MY_Controller {
                 'paginationUrl'=> '/transactions/getPageDetails/105',
             ]);
             $this->load->view('transactions/purchases/view', $this->pageData);
+        } catch (ValidationException $e) {
+            redirect('dashboard', 'refresh');
         } catch (Exception $e) {
             notifyError('Purchases::index', $e);
             redirect('dashboard', 'refresh');
@@ -61,6 +63,8 @@ class Purchases extends MY_Controller {
 
             $this->load->view('transactions/purchases/payments', $this->pageData);
 
+        } catch (ValidationException $e) {
+            redirect('purchases', 'refresh');
         } catch (Exception $e) {
             notifyError('Purchases::purchasePayments', $e);
             redirect('purchases', 'refresh');
@@ -102,6 +106,9 @@ class Purchases extends MY_Controller {
             $this->EndReturnData->TotalCount     = $allDataCount;
             $this->EndReturnData->Totals         = $this->transactions_model->getPaymentsTotals($orgUID, $filter);
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Purchases::getPurchasePaymentsPageDetails', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -203,7 +210,7 @@ class Purchases extends MY_Controller {
             $this->dbwrite_model->commitTransaction();
             $transCommitted = true;
 
-            // ── Post-commit steps (each isolated so one failure cannot crash the response) ──
+            // â”€â”€ Post-commit steps (each isolated so one failure cannot crash the response) â”€â”€
 
             if (!$isDraft) {
                 try {
@@ -218,41 +225,35 @@ class Purchases extends MY_Controller {
                         $vendorUID, $userUID
                     );
                 } catch (Exception $ledgerEx) {
-                    log_message('error', 'Ledger update failed after purchase create #' . $transUID . ': ' . $ledgerEx->getMessage());
                 }
             }
 
             try {
                 $this->_saveAttachments($transUID);
             } catch (Exception $attEx) {
-                log_message('error', 'Attachment save failed after purchase create #' . $transUID . ': ' . $attEx->getMessage());
             }
 
             try {
                 $this->_touchVendorCache($vendorUID);
             } catch (Exception $vcEx) {
-                log_message('error', 'Vendor cache update failed after purchase create #' . $transUID . ': ' . $vcEx->getMessage());
             }
 
             if (!$isDraft) {
                 try {
                     $this->_syncProductCacheFromItems($items);
                 } catch (Exception $syncEx) {
-                    log_message('error', 'Product cache sync failed after purchase create #' . $transUID . ': ' . $syncEx->getMessage());
                 }
 
                 if ((int) getPostValue($PostData, 'UpdatePurchasePrices') === 1) {
                     try {
                         $this->_applyPurchasePriceUpdates($orgUID, $userUID, $PostData);
                     } catch (Exception $priceUpEx) {
-                        log_message('error', 'Purchase price update failed after create #' . $transUID . ': ' . $priceUpEx->getMessage());
                     }
                 }
 
                 try {
                     $this->_recalcVendorBalance($orgUID, $vendorUID, $userUID);
                 } catch (Exception $balEx) {
-                    log_message('error', 'Vendor balance recalc failed after purchase create #' . $transUID . ': ' . $balEx->getMessage());
                 }
 
                 try {
@@ -263,7 +264,6 @@ class Purchases extends MY_Controller {
                         $userUID, $items
                     );
                 } catch (Exception $pplEx) {
-                    log_message('error', 'Purchase price list upsert failed after create #' . $transUID . ': ' . $pplEx->getMessage());
                 }
             }
 
@@ -276,11 +276,16 @@ class Purchases extends MY_Controller {
                     [], 'Created purchase ' . $uniqueNumber, 'Purchases', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
                 );
             } catch (Exception $auditEx) {
-                log_message('error', 'Audit log failed after purchase create #' . $transUID . ': ' . $auditEx->getMessage());
             }
             $this->EndReturnData->TransUID = $transUID;
             $this->EndReturnData->Token    = $headerData['TransToken'];
 
+        } catch (ValidationException $e) {
+            if (empty($transCommitted)) {
+                $this->dbwrite_model->rollbackTransaction();
+            }
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Purchases::addPurchase', $e);
             if (empty($transCommitted)) {
@@ -307,7 +312,7 @@ class Purchases extends MY_Controller {
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
             $transUID = (int) getPostValue($PostData, 'TransUID');
-            if ($transUID <= 0) throw new Exception('Purchase bill ID is required.');
+            if ($transUID <= 0) throw new ValidationException('Purchase bill ID is required.');
 
             $itemsJson = $this->_validateTransForm($PostData);
             $amounts   = $this->_extractTransAmounts($PostData, $itemsJson);
@@ -332,21 +337,21 @@ class Purchases extends MY_Controller {
 
             $this->load->model('transactions_model');
             $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
-            if (!$existing) throw new Exception('Purchase bill not found.');
+            if (!$existing) throw new ValidationException('Purchase bill not found.');
 
             $uniqueNumber = NULL;
             if ($existing->DocStatus === 'Draft' && !$isDraft) {
-                if ($prefixUID <= 0) throw new Exception('Please select a prefix to finalise this purchase bill.');
-                if ($transNumber <= 0) throw new Exception('Transaction number must be greater than 0.');
+                if ($prefixUID <= 0) throw new ValidationException('Please select a prefix to finalise this purchase bill.');
+                if ($transNumber <= 0) throw new ValidationException('Transaction number must be greater than 0.');
 
                 $prefixData = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.PrefixUID' => $prefixUID, 'Prefix.OrgUID' => $orgUID]);
-                if (empty($prefixData->Data)) throw new Exception('Invalid prefix selected.');
+                if (empty($prefixData->Data)) throw new ValidationException('Invalid prefix selected.');
                 $prefix = $prefixData->Data[0];
 
                 $dupCheck = $this->transactions_model->getTransactionByPrefixAndNumber($prefixUID, $transNumber, $orgUID, $this->pageModuleUID);
                 if ($dupCheck) {
                     $nextSuggested = $this->transactions_model->getNextTransactionNumber($prefixUID, $orgUID, $this->pageModuleUID);
-                    throw new Exception('Transaction number ' . $transNumber . ' already exists. Next available: ' . $nextSuggested . '.');
+                    throw new ValidationException('Transaction number ' . $transNumber . ' already exists. Next available: ' . $nextSuggested . '.');
                 }
 
                 [$uniqueNumber] = $this->buildUniqueNumber($prefix, $transNumber, $amounts['transDate']);
@@ -466,7 +471,6 @@ class Purchases extends MY_Controller {
                         $vendorUID, $userUID
                     );
                 } catch (Exception $ledgerEx) {
-                    log_message('error', 'Ledger update failed after purchase update: ' . $ledgerEx->getMessage());
                 }
             }
 
@@ -477,12 +481,11 @@ class Purchases extends MY_Controller {
             $this->dbwrite_model->commitTransaction();
             $transCommitted = true;
 
-            // ── Post-commit steps (each isolated so one failure cannot crash the response) ──
+            // â”€â”€ Post-commit steps (each isolated so one failure cannot crash the response) â”€â”€
 
             try {
                 $this->_touchVendorCache($vendorUID);
             } catch (Exception $vcEx) {
-                log_message('error', 'Vendor cache update failed after purchase update #' . $activeTransUID . ': ' . $vcEx->getMessage());
             }
 
             if (!$isDraft) {
@@ -490,21 +493,18 @@ class Purchases extends MY_Controller {
                     foreach ($items as $_item) { $u = (int)($_item['id'] ?? 0); if ($u > 0) $_cacheUIDs[$u] = true; }
                     foreach (array_keys($_cacheUIDs) as $_uid) { $this->cachehelper->upsertProduct($_uid); }
                 } catch (Exception $cacheEx) {
-                    log_message('error', 'Product cache sync failed after purchase update #' . $activeTransUID . ': ' . $cacheEx->getMessage());
                 }
 
                 if ((int) getPostValue($PostData, 'UpdatePurchasePrices') === 1) {
                     try {
                         $this->_applyPurchasePriceUpdates($orgUID, $userUID, $PostData);
                     } catch (Exception $priceUpEx) {
-                        log_message('error', 'Purchase price update failed after update #' . $activeTransUID . ': ' . $priceUpEx->getMessage());
                     }
                 }
 
                 try {
                     $this->_recalcVendorBalance($orgUID, $vendorUID, $userUID);
                 } catch (Exception $balEx) {
-                    log_message('error', 'Vendor balance recalc failed after purchase update #' . $activeTransUID . ': ' . $balEx->getMessage());
                 }
 
                 try {
@@ -516,14 +516,12 @@ class Purchases extends MY_Controller {
                         $userUID, $items
                     );
                 } catch (Exception $pplEx) {
-                    log_message('error', 'Purchase price list upsert failed after update #' . $activeTransUID . ': ' . $pplEx->getMessage());
                 }
             }
 
             try {
                 $this->transactions_model->generateAndStorePdf($activeTransUID, $orgUID, $this->pageModuleUID);
             } catch (Exception $pdfEx) {
-                log_message('error', 'PDF generation failed after purchase update #' . $activeTransUID . ': ' . $pdfEx->getMessage());
             }
 
             $this->EndReturnData->Error   = FALSE;
@@ -536,9 +534,14 @@ class Purchases extends MY_Controller {
                     [], 'Updated purchase ' . ($uniqueNumber ?? $existing->UniqueNumber ?? ''), 'Purchases', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
                 );
             } catch (Exception $auditEx) {
-                log_message('error', 'Audit log failed after purchase update #' . $activeTransUID . ': ' . $auditEx->getMessage());
             }
 
+        } catch (ValidationException $e) {
+            if (empty($transCommitted)) {
+                $this->dbwrite_model->rollbackTransaction();
+            }
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Purchases::updatePurchase', $e);
             if (empty($transCommitted)) {
@@ -565,7 +568,7 @@ class Purchases extends MY_Controller {
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
             $transUID = (int) getPostValue($PostData, 'TransUID');
-            if ($transUID <= 0) throw new Exception('Purchase bill ID is required.');
+            if ($transUID <= 0) throw new ValidationException('Purchase bill ID is required.');
 
             // Point 5: JWT setting as default; POST overrides for 'ask' mode
             $transSettings       = $this->pageData['JwtData']->TransSettings ?? null;
@@ -577,9 +580,9 @@ class Purchases extends MY_Controller {
 
             $this->load->model('transactions_model');
             $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
-            if (!$existing) throw new Exception('Purchase bill not found.');
+            if (!$existing) throw new ValidationException('Purchase bill not found.');
 
-            // Point 4: guard — block delete if a debit note credit has already been applied to this purchase
+            // Point 4: guard â€” block delete if a debit note credit has already been applied to this purchase
             $readDb = $this->load->database('ReadDB', TRUE);
             $readDb->db_debug = FALSE;
             $debitAppliedCheck = $readDb->query(
@@ -590,7 +593,7 @@ class Purchases extends MY_Controller {
                 [$transUID, $orgUID, 'S']
             )->row();
             if ($debitAppliedCheck) {
-                throw new Exception(
+                throw new ValidationException(
                     'A debit note credit has already been applied to this purchase bill. ' .
                     'Please remove the debit note payment entry first, then delete this bill.'
                 );
@@ -638,14 +641,13 @@ class Purchases extends MY_Controller {
             if ($existing->DocStatus !== 'Draft' && $existing->PartyType === 'S' && $existing->PartyUID > 0) {
                 try {
                     $this->load->library('accountledger');
-                    // Only reverse the unpaid portion — payments already reduced vendor balance
+                    // Only reverse the unpaid portion â€” payments already reduced vendor balance
                     $remaining = max(0, round((float)$existing->NetAmount - $alreadyPaid, $this->_decimals()));
                     if ($remaining > 0) {
                         $this->accountledger->applyLedgerEntry($existing->PartyUID, 'Vendor', $remaining, 'Debit', $transUID);
                     }
                     $this->accountledger->reverseJournal('Purchase', $transUID, $userUID);
                 } catch (Exception $ledgerEx) {
-                    log_message('error', 'Ledger reversal failed after purchase delete: ' . $ledgerEx->getMessage());
                 }
                 $this->_recalcVendorBalance($orgUID, $existing->PartyUID, $userUID);
             }
@@ -660,6 +662,10 @@ class Purchases extends MY_Controller {
 
             $this->_buildListResponse('transactions/purchases/list', '/transactions/getPageDetails/105');
 
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Purchases::deletePurchase', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -684,16 +690,16 @@ class Purchases extends MY_Controller {
             $userUID  = $this->pageData['JwtData']->User->UserUID;
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
-            if ($srcUID <= 0) throw new Exception('Invalid purchase bill.');
+            if ($srcUID <= 0) throw new ValidationException('Invalid purchase bill.');
 
             $this->load->model('transactions_model');
             $src = $this->transactions_model->getTransactionById($srcUID, $orgUID, $this->pageModuleUID);
-            if (!$src) throw new Exception('Purchase bill not found.');
+            if (!$src) throw new ValidationException('Purchase bill not found.');
 
             $nextNumber   = $this->transactions_model->getNextTransactionNumber($src->PrefixUID, $orgUID, $this->pageModuleUID);
             $prefixResult = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.PrefixUID' => $src->PrefixUID, 'Prefix.OrgUID' => $orgUID]);
             $prefix       = $prefixResult->Data[0] ?? null;
-            if (!$prefix) throw new Exception('Prefix not found.');
+            if (!$prefix) throw new ValidationException('Prefix not found.');
 
             $sep   = $prefix->Separator ?? '-';
             $parts = [strtoupper($prefix->Name)];
@@ -819,6 +825,10 @@ class Purchases extends MY_Controller {
             $this->EndReturnData->TransUID = $newTransUID;
             $this->EndReturnData->EditURL  = '/purchases/edit/' . $newTransUID;
 
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Purchases::duplicatePurchase', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -842,7 +852,7 @@ class Purchases extends MY_Controller {
             $userUID   = $this->pageData['JwtData']->User->UserUID;
             $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
 
-            if ($transUID <= 0) throw new Exception('Invalid purchase bill.');
+            if ($transUID <= 0) throw new ValidationException('Invalid purchase bill.');
 
             $validTransitions = [
                 'Draft'     => ['Received'],
@@ -862,11 +872,11 @@ class Purchases extends MY_Controller {
 
             $this->load->model('transactions_model');
             $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
-            if (!$existing) throw new Exception('Purchase bill not found.');
+            if (!$existing) throw new ValidationException('Purchase bill not found.');
 
             $current = $existing->DocStatus;
             if (!in_array($newStatus, $validTransitions[$current] ?? [])) {
-                throw new Exception("Cannot change status from {$current} to {$newStatus}.");
+                throw new ValidationException("Cannot change status from {$current} to {$newStatus}.");
             }
 
             // Block cancel if a debit note credit has already been applied to this purchase
@@ -881,7 +891,7 @@ class Purchases extends MY_Controller {
                     [$transUID, $orgUID, 'S']
                 )->row();
                 if ($dnApplied) {
-                    throw new Exception(
+                    throw new ValidationException(
                         'A debit note credit has already been applied to this purchase bill. ' .
                         'Please remove the debit note payment entry first, then cancel this bill.'
                     );
@@ -917,7 +927,7 @@ class Purchases extends MY_Controller {
 
             if ($newStatus === 'Cancelled') {
                 if ($existing->DocStatus !== 'Draft' && !empty($existing->PartyUID)) {
-                    // Payment handling — only when a paid amount exists
+                    // Payment handling â€” only when a paid amount exists
                     $payments    = $this->transactions_model->getTransactionPayments($transUID, $orgUID);
                     $alreadyPaid = array_sum(array_column((array) $payments, 'Amount'));
 
@@ -937,14 +947,13 @@ class Purchases extends MY_Controller {
 
                     try {
                         $this->load->library('accountledger');
-                        // Reverse only the unpaid portion — payments already reduced vendor balance
+                        // Reverse only the unpaid portion â€” payments already reduced vendor balance
                         $remaining = max(0, round((float)$existing->NetAmount - $alreadyPaid, $this->_decimals()));
                         if ($remaining > 0) {
                             $this->accountledger->applyLedgerEntry($existing->PartyUID, 'Vendor', $remaining, 'Debit', $transUID);
                         }
                         $this->accountledger->reverseJournal('Purchase', $transUID, $userUID);
                     } catch (Exception $ledgerEx) {
-                        log_message('error', 'Ledger reversal failed after purchase cancel #' . $transUID . ': ' . $ledgerEx->getMessage());
                     }
                     $this->_recalcVendorBalance($orgUID, $existing->PartyUID, $userUID);
                 }
@@ -972,10 +981,14 @@ class Purchases extends MY_Controller {
                 (int) $orgUID, (int) $userUID,
                 'UPDATE_PURCHASE_STATUS', 'Purchase', (int) $transUID, (string) ($existing->UniqueNumber ?? ''),
                 ['NewStatus' => $newStatus, 'CancelPaymentAction' => $cancelPaymentAction, 'CancelReason' => $cancelReason],
-                'Updated purchase status #' . $transUID . ($cancelReason ? ' — ' . $cancelReason : ''), 'Purchases', 'TRANSACTION'
+                'Updated purchase status #' . $transUID . ($cancelReason ? ' â€” ' . $cancelReason : ''), 'Purchases', 'TRANSACTION'
             );
             $this->EndReturnData->NewStatus = $newStatus;
 
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Purchases::updatePurchaseStatus', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -1033,6 +1046,8 @@ class Purchases extends MY_Controller {
 
             $this->load->view('transactions/purchases/forms/form', $this->pageData);
 
+        } catch (ValidationException $e) {
+            redirect('purchases', 'refresh');
         } catch (Exception $e) {
             notifyError('Purchases::create', $e);
             redirect('purchases', 'refresh');
@@ -1091,6 +1106,8 @@ class Purchases extends MY_Controller {
 
             $this->load->view('transactions/purchases/forms/form', $this->pageData);
 
+        } catch (ValidationException $e) {
+            redirect('purchases', 'refresh');
         } catch (Exception $e) {
             notifyError('Purchases::edit', $e);
             redirect('purchases', 'refresh');
@@ -1171,40 +1188,40 @@ class Purchases extends MY_Controller {
             $referenceNo    =         getPostValue($PostData, 'ReferenceNo') ?: NULL;
             $notes          =         getPostValue($PostData, 'Notes') ?: NULL;
 
-            if ($transUID <= 0) throw new Exception('Invalid transaction.');
-            if ($amount <= 0 && $debitNoteAmt <= 0) throw new Exception('Enter a payment amount or select a debit note.');
-            if ($amount > 0 && $paymentTypeUID <= 0) throw new Exception('Please select a payment type.');
+            if ($transUID <= 0) throw new ValidationException('Invalid transaction.');
+            if ($amount <= 0 && $debitNoteAmt <= 0) throw new ValidationException('Enter a payment amount or select a debit note.');
+            if ($amount > 0 && $paymentTypeUID <= 0) throw new ValidationException('Please select a payment type.');
 
             $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
-            if (!$existing)                                                throw new Exception('Purchase not found.');
-            if ($existing->DocStatus === 'Draft')                          throw new Exception('Cannot record payment for a Draft purchase.');
-            if (in_array($existing->DocStatus, ['Cancelled', 'Rejected'])) throw new Exception('Purchase is cancelled.');
+            if (!$existing)                                                throw new ValidationException('Purchase not found.');
+            if ($existing->DocStatus === 'Draft')                          throw new ValidationException('Cannot record payment for a Draft purchase.');
+            if (in_array($existing->DocStatus, ['Cancelled', 'Rejected'])) throw new ValidationException('Purchase is cancelled.');
 
             // Validate debit note before locking
             $debitNote = null;
             if ($debitNoteUID > 0 && $debitNoteAmt > 0) {
                 $debitNote = $this->transactions_model->getVendorDebitNote($debitNoteUID, $orgUID);
-                if (!$debitNote) throw new Exception('Debit note not found.');
-                if ($debitNote->Status !== 'Pending') throw new Exception('This debit note has already been applied.');
+                if (!$debitNote) throw new ValidationException('Debit note not found.');
+                if ($debitNote->Status !== 'Pending') throw new ValidationException('This debit note has already been applied.');
                 if ((int)$debitNote->PartyUID !== (int)$existing->PartyUID) {
-                    throw new Exception('Debit note does not belong to this vendor.');
+                    throw new ValidationException('Debit note does not belong to this vendor.');
                 }
                 if ($debitNoteAmt > (float)$debitNote->Amount + 0.01) {
-                    throw new Exception('Debit note amount exceeds available balance.');
+                    throw new ValidationException('Debit note amount exceeds available balance.');
                 }
             }
 
             $this->dbwrite_model->startTransaction();
 
             if (!$this->dbwrite_model->lockTransactionRow($transUID, $orgUID)) {
-                throw new Exception('Purchase not found.');
+                throw new ValidationException('Purchase not found.');
             }
             $alreadyPaid   = $this->dbwrite_model->sumTransactionPayments($transUID, $orgUID);
             $pending       = max(0, round((float)$existing->NetAmount - $alreadyPaid, $this->_decimals()));
             $effectivePaid = round($amount + $debitNoteAmt, $this->_decimals());
 
             if ($effectivePaid > $pending + 0.01) {
-                throw new Exception('Total payment (' . $effectivePaid . ') exceeds remaining balance (' . $pending . ').');
+                throw new ValidationException('Total payment (' . $effectivePaid . ') exceeds remaining balance (' . $pending . ').');
             }
 
             $newTotalPaid  = round($alreadyPaid + $effectivePaid, $this->_decimals());
@@ -1318,12 +1335,11 @@ class Purchases extends MY_Controller {
                         $amount, $existing->PartyUID, 'Vendor', $userUID
                     );
                 } catch (Exception $ledgerEx) {
-                    log_message('error', 'Ledger debit failed after purchase payment: ' . $ledgerEx->getMessage());
                 }
                 $this->_writeBankLedgerEntry(
                     $orgUID, $bankAccountUID, 'DR', $amount,
                     'Purchase', $transUID, 111,
-                    $referenceNo, 'Payment made to vendor — ' . ($existing->UniqueNumber ?? '#' . $transUID),
+                    $referenceNo, 'Payment made to vendor â€” ' . ($existing->UniqueNumber ?? '#' . $transUID),
                     $paymentDate, $userUID
                 );
             }
@@ -1345,6 +1361,10 @@ class Purchases extends MY_Controller {
 
             $this->_buildPaymentListResponse('transactions/purchases/list', '/transactions/getPageDetails/105');
 
+        } catch (ValidationException $e) {
+            if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Purchases::recordPurchasePayment', $e);
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
@@ -1368,6 +1388,9 @@ class Purchases extends MY_Controller {
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $rows;
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Purchases::getVendorDebitNotes', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -1390,34 +1413,34 @@ class Purchases extends MY_Controller {
             $amount        = (float) getPostValue($PostData, 'Amount', 'Array', 0);
             $notes         = getPostValue($PostData, 'Notes') ?: NULL;
 
-            if ($transUID     <= 0) throw new Exception('Invalid purchase.');
-            if ($debitNoteUID <= 0) throw new Exception('Invalid debit note.');
-            if ($amount       <= 0) throw new Exception('Amount must be greater than 0.');
+            if ($transUID     <= 0) throw new ValidationException('Invalid purchase.');
+            if ($debitNoteUID <= 0) throw new ValidationException('Invalid debit note.');
+            if ($amount       <= 0) throw new ValidationException('Amount must be greater than 0.');
 
             $purchase = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
-            if (!$purchase) throw new Exception('Purchase not found.');
+            if (!$purchase) throw new ValidationException('Purchase not found.');
             if (in_array($purchase->DocStatus, ['Draft', 'Cancelled', 'Rejected'])) {
-                throw new Exception('Cannot apply debit to this purchase.');
+                throw new ValidationException('Cannot apply debit to this purchase.');
             }
 
             // Load the debit note row
             $debitNote = $this->transactions_model->getVendorDebitNote($debitNoteUID, $orgUID);
-            if (!$debitNote) throw new Exception('Debit note not found.');
-            if ($debitNote->Status !== 'Pending') throw new Exception('This debit note has already been fully applied.');
+            if (!$debitNote) throw new ValidationException('Debit note not found.');
+            if ($debitNote->Status !== 'Pending') throw new ValidationException('This debit note has already been fully applied.');
             if ((int)$debitNote->PartyUID !== (int)$purchase->PartyUID) {
-                throw new Exception('Debit note does not belong to the same vendor as this purchase.');
+                throw new ValidationException('Debit note does not belong to the same vendor as this purchase.');
             }
 
             $dnBalance    = (float)$debitNote->Amount;
             $purchPaid    = (float)($purchase->PaidAmount ?? 0);
             $purchBalance = max(0, round((float)$purchase->NetAmount - $purchPaid, $this->_decimals()));
 
-            if ($purchBalance <= 0) throw new Exception('Purchase has no pending balance.');
-            if ($dnBalance    <= 0) throw new Exception('Debit note has no remaining balance.');
+            if ($purchBalance <= 0) throw new ValidationException('Purchase has no pending balance.');
+            if ($dnBalance    <= 0) throw new ValidationException('Debit note has no remaining balance.');
 
             $maxAmount = min($dnBalance, $purchBalance);
             if ($amount > $maxAmount + 0.01) {
-                throw new Exception('Amount exceeds available debit (' . number_format($maxAmount, 2) . ').');
+                throw new ValidationException('Amount exceeds available debit (' . smartDecimal($maxAmount) . ').');
             }
             $amount = min($amount, $maxAmount);
 
@@ -1436,7 +1459,7 @@ class Purchases extends MY_Controller {
             $payUniqueNum  = ($payPrefix && $paymentNumber > 0) ? $this->_buildPaymentUniqueNumber($payPrefix, $today, $paymentNumber) : null;
             $receiptToken  = $this->transactions_model->_generateReceiptToken();
 
-            // Insert PaymentsTbl row — PaymentTypeUID=0 = debit adjustment
+            // Insert PaymentsTbl row â€” PaymentTypeUID=0 = debit adjustment
             $paymentData = [
                 'OrgUID'           => $orgUID,
                 'PaymentDate'      => $today,
@@ -1490,7 +1513,7 @@ class Purchases extends MY_Controller {
             $this->_recalcVendorBalance($orgUID, $purchase->PartyUID, $userUID);
 
             $this->EndReturnData->Error   = FALSE;
-            $this->EndReturnData->Message = 'Debit note credit of ' . number_format($amount, 2) . ' applied to purchase ' . ($purchase->UniqueNumber ?? '#' . $transUID) . '.';
+            $this->EndReturnData->Message = 'Debit note credit of ' . smartDecimal($amount) . ' applied to purchase ' . ($purchase->UniqueNumber ?? '#' . $transUID) . '.';
             $this->EndReturnData->IsFullyPaid = $purchFullyPaid;
             $this->auditlog->log(
                 (int)$orgUID, (int)$userUID,
@@ -1501,6 +1524,10 @@ class Purchases extends MY_Controller {
 
             $this->_buildPaymentListResponse('transactions/purchases/list', '/transactions/getPageDetails/105');
 
+        } catch (ValidationException $e) {
+            if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Purchases::applyDebitNote', $e);
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
@@ -1510,22 +1537,22 @@ class Purchases extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Debit Note: refund (vendor pays back in cash) ──────────────────────────
+    // â”€â”€ Debit Note: refund (vendor pays back in cash) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function refundDebitNote(): void {
         $this->EndReturnData = new stdClass();
         try {
             $orgUID       = $this->pageData['JwtData']->Org->OrgUID;
             $userUID      = $this->pageData['JwtData']->User->UserUID;
             $debitNoteUID = (int)$this->input->post('DebitNoteUID');
-            if ($debitNoteUID <= 0) throw new Exception('Debit note ID is required.');
+            if ($debitNoteUID <= 0) throw new ValidationException('Debit note ID is required.');
 
             $readDb = $this->load->database('ReadDB', TRUE);
             $readDb->db_debug = FALSE;
             $readDb->from('Transaction.TransDebitNoteTbl');
             $readDb->where(['DebitNoteUID' => $debitNoteUID, 'OrgUID' => (int)$orgUID, 'IsDeleted' => 0, 'IsCancelled' => 0]);
             $dn = $readDb->get()->row();
-            if (!$dn) throw new Exception('Debit note not found.');
-            if ($dn->Status !== 'Pending') throw new Exception('Only Pending debit notes can be refunded. This one is ' . $dn->Status . '.');
+            if (!$dn) throw new ValidationException('Debit note not found.');
+            if ($dn->Status !== 'Pending') throw new ValidationException('Only Pending debit notes can be refunded. This one is ' . $dn->Status . '.');
 
             $this->load->model('dbwrite_model');
             $this->dbwrite_model->startTransaction();
@@ -1543,6 +1570,10 @@ class Purchases extends MY_Controller {
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Debit note marked as refunded.';
+        } catch (ValidationException $e) {
+            if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Purchases::refundDebitNote', $e);
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
@@ -1552,22 +1583,22 @@ class Purchases extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Debit Note: delete a Pending note ──────────────────────────────────────
+    // â”€â”€ Debit Note: delete a Pending note â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function deleteDebitNote(): void {
         $this->EndReturnData = new stdClass();
         try {
             $orgUID       = $this->pageData['JwtData']->Org->OrgUID;
             $userUID      = $this->pageData['JwtData']->User->UserUID;
             $debitNoteUID = (int)$this->input->post('DebitNoteUID');
-            if ($debitNoteUID <= 0) throw new Exception('Debit note ID is required.');
+            if ($debitNoteUID <= 0) throw new ValidationException('Debit note ID is required.');
 
             $readDb = $this->load->database('ReadDB', TRUE);
             $readDb->db_debug = FALSE;
             $readDb->from('Transaction.TransDebitNoteTbl');
             $readDb->where(['DebitNoteUID' => $debitNoteUID, 'OrgUID' => (int)$orgUID, 'IsDeleted' => 0]);
             $dn = $readDb->get()->row();
-            if (!$dn) throw new Exception('Debit note not found.');
-            if ($dn->Status !== 'Pending') throw new Exception('Only Pending debit notes can be deleted. This one is ' . $dn->Status . '.');
+            if (!$dn) throw new ValidationException('Debit note not found.');
+            if ($dn->Status !== 'Pending') throw new ValidationException('Only Pending debit notes can be deleted. This one is ' . $dn->Status . '.');
 
             $this->load->model('dbwrite_model');
             $this->dbwrite_model->startTransaction();
@@ -1585,6 +1616,10 @@ class Purchases extends MY_Controller {
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Debit note deleted successfully.';
+        } catch (ValidationException $e) {
+            if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Purchases::deleteDebitNote', $e);
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
@@ -1594,7 +1629,7 @@ class Purchases extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Debit Notes: paginated list for the Debit Notes tab ────────────────────
+    // â”€â”€ Debit Notes: paginated list for the Debit Notes tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getDebitNotesList(): void {
         $this->EndReturnData = new stdClass();
         try {
@@ -1645,7 +1680,7 @@ class Purchases extends MY_Controller {
             $readDb->limit($limit, $offset);
             $rows = $readDb->get()->result();
 
-            $cur      = $this->pageData['JwtData']->GenSettings->CurrenySymbol  ?? '₹';
+            $cur      = $this->pageData['JwtData']->GenSettings->CurrenySymbol  ?? 'â‚¹';
             $dec      = (int)($this->pageData['JwtData']->GenSettings->DecimalPoints ?? 2);
             $timezone = $this->pageData['JwtData']->User->Timezone ?? 'UTC';
 
@@ -1664,8 +1699,8 @@ class Purchases extends MY_Controller {
                     $canRefund  = $dn->Status === 'Pending';
                     $dnModType  = ((int)$dn->SourceModuleUID === 105) ? 'purchase' : 'purchasereturn';
                     $sourceLink = $dn->SourceTransUID
-                        ? '<a href="javascript:void(0)" class="viewTransaction fw-semibold" data-uid="' . (int)$dn->SourceTransUID . '" data-module="' . (int)$dn->SourceModuleUID . '" data-type="' . $dnModType . '" data-number="' . htmlspecialchars($dn->SourceTransNumber ?? '') . '">' . htmlspecialchars($dn->SourceTransNumber ?? '—') . '</a>'
-                        : htmlspecialchars($dn->SourceTransNumber ?? '—');
+                        ? '<a href="javascript:void(0)" class="viewTransaction fw-semibold" data-uid="' . (int)$dn->SourceTransUID . '" data-module="' . (int)$dn->SourceModuleUID . '" data-type="' . $dnModType . '" data-number="' . htmlspecialchars($dn->SourceTransNumber ?? '') . '">' . htmlspecialchars($dn->SourceTransNumber ?? 'â€”') . '</a>'
+                        : htmlspecialchars($dn->SourceTransNumber ?? 'â€”');
 
                     $dnActions = '<div class="d-flex align-items-center justify-content-end gap-1">'
                         . ($canRefund
@@ -1683,10 +1718,10 @@ class Purchases extends MY_Controller {
 
                     $html .= '<tr>'
                         . '<td class="text-muted small">' . ($offset + $i + 1) . '</td>'
-                        . '<td>' . $sourceLink . '<div class="text-muted small">' . htmlspecialchars($dn->VendorName ?? '—') . '</div></td>'
+                        . '<td>' . $sourceLink . '<div class="text-muted small">' . htmlspecialchars($dn->VendorName ?? 'â€”') . '</div></td>'
                         . '<td>' . $statusBadge . '</td>'
                         . '<td class="fw-semibold text-success">' . htmlspecialchars($cur) . ' ' . number_format((float)$dn->Amount, $dec) . '</td>'
-                        . '<td class="text-muted small">' . changeTimeZonefromDateTime($dn->CreatedOn, $timezone, 2) . '<br><span>' . htmlspecialchars($dn->CreatorName ?? '—') . '</span></td>'
+                        . '<td class="text-muted small">' . changeTimeZonefromDateTime($dn->CreatedOn, $timezone, 2) . '<br><span>' . htmlspecialchars($dn->CreatorName ?? 'â€”') . '</span></td>'
                         . '<td>' . $dnActions . '</td>'
                         . '</tr>';
                 }
@@ -1699,6 +1734,9 @@ class Purchases extends MY_Controller {
                 '/purchases/getDebitNotesList', $totalCount, $pageNo, $limit
             );
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Purchases::getDebitNotesList', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -1714,7 +1752,7 @@ class Purchases extends MY_Controller {
 
             $transUID = (int) $this->input->post('TransUID');
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
-            if ($transUID <= 0) throw new Exception('Invalid transaction.');
+            if ($transUID <= 0) throw new ValidationException('Invalid transaction.');
 
             $this->load->model('transactions_model');
             $payments = $this->transactions_model->getTransactionPayments($transUID, $orgUID);
@@ -1733,6 +1771,9 @@ class Purchases extends MY_Controller {
             $this->EndReturnData->Error       = FALSE;
             $this->EndReturnData->Attachments = $attachments;
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Purchases::getPaymentAttachments', $e);
             $this->EndReturnData->Error   = TRUE;

@@ -16,7 +16,7 @@ class Transactions_model extends MY_Model {
 
     /**
      * Returns distinct ProductUIDs for all line items of a transaction.
-     * No IsDeleted filter — must find products even after soft-delete (delete flow).
+     * No IsDeleted filter â€” must find products even after soft-delete (delete flow).
      *
      * @param  int   $transUID
      * @return int[]
@@ -31,7 +31,6 @@ class Transactions_model extends MY_Model {
             return array_map('intval', array_column($query->result_array(), 'ProductUID'));
         } catch (Throwable $e) {
             notifyError('Transactions_model::getProductUIDsByTransUID', $e);
-            log_message('error', 'getProductUIDsByTransUID failed for TransUID=' . $transUID . ': ' . $e->getMessage());
             return [];
         }
     }
@@ -42,8 +41,8 @@ class Transactions_model extends MY_Model {
 
             $this->ReadDb->db_debug = FALSE;
 
-            // ── Smart COUNT path ──────────────────────────────────────────────────
-            // No expensive JOINs or correlated subqueries — only join what the
+            // â”€â”€ Smart COUNT path â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // No expensive JOINs or correlated subqueries â€” only join what the
             // active filter actually needs. Everything else uses Ts.* columns only.
             if ($isCount) {
                 $this->ReadDb->from('Transaction.TransactionsTbl as Ts');
@@ -56,7 +55,7 @@ class Transactions_model extends MY_Model {
                 $this->applyFilters($filter, true);
                 return (int) $this->ReadDb->count_all_results();
             }
-            // ─────────────────────────────────────────────────────────────────────
+            // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
             $this->ReadDb->select([
                 'Ts.TransUID AS TransUID',
@@ -89,12 +88,12 @@ class Transactions_model extends MY_Model {
                 '(SELECT COUNT(*) FROM Transaction.TransAttachmentsTbl AT WHERE AT.TransUID = Ts.TransUID AND AT.IsDeleted = 0 AND AT.IsActive = 1) AS AttachmentCount',
                 'Ts.PdfPath AS PdfPath',
                 'Ts.DocType AS DocType',
-                // Advance credit link flags — used for immediate frontend guards on delete/cancel
+                // Advance credit link flags â€” used for immediate frontend guards on delete/cancel
                 '(SELECT COUNT(*) FROM Transaction.PaymentsTbl adv WHERE adv.TransUID = Ts.TransUID AND adv.IsExcessApplied = 1 AND adv.IsDeleted = 0 AND adv.IsCancelled = 0) AS HasAdvanceIn',
                 '(SELECT COUNT(*) FROM Transaction.PaymentsTbl src INNER JOIN Transaction.PaymentsTbl memo ON memo.ExcessSourcePaymentUID = src.PaymentUID WHERE src.TransUID = Ts.TransUID AND src.IsDeleted = 0 AND src.IsCancelled = 0 AND memo.IsDeleted = 0 AND memo.IsCancelled = 0) AS HasAdvanceOut',
                 '(SELECT COUNT(*) FROM Transaction.PaymentsTbl oa WHERE oa.TransUID = Ts.TransUID AND oa.OnAccountSourcePaymentUID > 0 AND oa.IsDeleted = 0 AND oa.IsCancelled = 0) AS HasOnAccountIn',
                 '(SELECT COUNT(*) FROM Transaction.PaymentsTbl cnp WHERE cnp.TransUID = Ts.TransUID AND cnp.SourceType = \'CreditNote\' AND cnp.IsDeleted = 0 AND cnp.IsCancelled = 0) AS HasCreditNoteIn',
-                'CASE WHEN EXISTS (SELECT 1 FROM Transaction.TransConversionTbl CV INNER JOIN Transaction.TransactionsTbl RTC ON RTC.TransUID = CV.TargetTransUID WHERE CV.SourceTransUID = Ts.TransUID AND CV.TargetModuleUID = 106 AND CV.OrgUID = Ts.OrgUID AND RTC.IsDeleted = 0 AND RTC.IsCancelled = 0 UNION ALL SELECT 1 FROM Transaction.TransProductsTbl RP INNER JOIN Transaction.TransactionsTbl RTP ON RTP.TransUID = RP.TransUID WHERE RP.SourceTransProdUID IN (SELECT TransProdUID FROM Transaction.TransProductsTbl WHERE TransUID = Ts.TransUID AND IsDeleted = 0 AND IsActive = 1) AND RTP.ModuleUID = 106 AND RTP.IsDeleted = 0 AND RTP.IsCancelled = 0 AND RP.IsDeleted = 0 AND RP.IsActive = 1) THEN 1 ELSE 0 END AS HasSalesReturn',
+                '(SELECT COUNT(*) FROM Transaction.TransProductsTbl RP INNER JOIN Transaction.TransactionsTbl RTP ON RTP.TransUID = RP.TransUID WHERE RP.SourceTransProdUID IN (SELECT TransProdUID FROM Transaction.TransProductsTbl WHERE TransUID = Ts.TransUID AND IsDeleted = 0 AND IsActive = 1) AND RTP.ModuleUID = 106 AND RTP.OrgUID = Ts.OrgUID AND RTP.IsDeleted = 0 AND RTP.IsCancelled = 0 AND RP.IsDeleted = 0 AND RP.IsActive = 1) AS HasSalesReturn',
             ]);
             $this->ReadDb->from('Transaction.TransactionsTbl as Ts');
             $this->ReadDb->join('Customers.CustomerTbl as Cust', 'Cust.CustomerUID = Ts.PartyUID AND Ts.PartyType = \'C\'', 'LEFT');
@@ -132,7 +131,6 @@ class Transactions_model extends MY_Model {
 
         } catch (Throwable $e) {
             notifyError('Transactions_model::getTransactionPageList', $e);
-            log_message('error', 'getTransactionPageList: ' . $e->getMessage());
             return $isCount ? 0 : [];
         }
 
@@ -241,7 +239,7 @@ class Transactions_model extends MY_Model {
     }
 
     /**
-     * Tab label → DB DocStatus mapping.
+     * Tab label â†’ DB DocStatus mapping.
      * 'All' (or empty) excludes Draft.
      * Any other tab filters to a specific DocStatus.
      */
@@ -312,7 +310,7 @@ class Transactions_model extends MY_Model {
         } elseif ($tab === 'Draft') {
             $this->ReadDb->where('Ts.DocStatus', 'Draft');
         } else {
-            // All — exclude Draft and Cancelled
+            // All â€” exclude Draft and Cancelled
             $this->ReadDb->where_not_in('Ts.DocStatus', ['Draft', 'Cancelled', 'Rejected']);
         }
 
@@ -330,7 +328,7 @@ class Transactions_model extends MY_Model {
             $this->ReadDb->where('Ts.NetAmount <=', $filter['MaxAmount']);
         }
 
-        // ── Filter bar filters ─────────────────────────────────────────────
+        // â”€â”€ Filter bar filters â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         if (!empty($filter['PaymentStatus'])) {
             $ps = $filter['PaymentStatus'];
@@ -506,7 +504,7 @@ class Transactions_model extends MY_Model {
     /**
      * Fetch prefix rows.
      * $FilterArray may include OrgUID (required for org-scoped queries).
-     * ModuleUID is NO LONGER used as a filter — prefixes are org-level and
+     * ModuleUID is NO LONGER used as a filter â€” prefixes are org-level and
      * shared across all transaction types.  The caller should pass at minimum:
      *   ['Prefix.OrgUID' => $orgUID]
      * For a specific prefix by PK, pass:
@@ -728,7 +726,6 @@ class Transactions_model extends MY_Model {
             return $this->ReadDb->get()->row() ?: null;
         } catch (Exception $e) {
             notifyError('Transactions_model::getVendorDebitNote', $e);
-            log_message('error', 'getVendorDebitNote failed: ' . $e->getMessage());
             return null;
         }
     }
@@ -752,7 +749,6 @@ class Transactions_model extends MY_Model {
             return $result ?: [];
         } catch (Exception $e) {
             notifyError('Transactions_model::getVendorAvailableDebitNotes', $e);
-            log_message('error', 'getVendorAvailableDebitNotes failed: ' . $e->getMessage());
             return [];
         }
     }
@@ -852,7 +848,7 @@ class Transactions_model extends MY_Model {
     }
 
     // Returns the ISO-2 country code for a customer (e.g. 'IN', 'US'). NULL if not found.
-    // Uses CountryISO2 — CountryCode stores the full country name, not the ISO code.
+    // Uses CountryISO2 â€” CountryCode stores the full country name, not the ISO code.
     public function getCustomerCountryCode(int $customerUID): ?string {
         if ($customerUID <= 0) return NULL;
         $this->ReadDb->select('CountryISO2');
@@ -864,7 +860,7 @@ class Transactions_model extends MY_Model {
         return $row ? ($row->CountryISO2 ?: NULL) : NULL;
     }
 
-    // Returns the billing address StateText for a customer — used as PlaceOfSupply on invoices.
+    // Returns the billing address StateText for a customer â€” used as PlaceOfSupply on invoices.
     public function getCustomerBillingState(int $customerUID): ?string {
         if ($customerUID <= 0) return NULL;
         $this->ReadDb->select('StateText');
@@ -1017,7 +1013,7 @@ class Transactions_model extends MY_Model {
 
     }
 
-    // ── Payment Methods ──────────────────────────────────────────
+    // â”€â”€ Payment Methods â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public function getPaymentTypesList(): array {
         try {
@@ -1042,7 +1038,7 @@ class Transactions_model extends MY_Model {
     }
 
     // Returns ONE bank account for print templates.
-    // Priority: IsDefault=1 & IsCash=0  →  any IsCash=0  →  NULL
+    // Priority: IsDefault=1 & IsCash=0  â†’  any IsCash=0  â†’  NULL
     public function getPrintBankAccount(int $orgUID): ?object {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -1245,7 +1241,7 @@ class Transactions_model extends MY_Model {
         return ($query && $query->num_rows() > 0) ? $query->result() : [];
     }
 
-    // Shared for Expenses and Indirect Income — both use ExpenseIncomeAttachmentsTbl, SourceType differentiates them
+    // Shared for Expenses and Indirect Income â€” both use ExpenseIncomeAttachmentsTbl, SourceType differentiates them
     public function getExpenseIncomeAttachments(int $uid, int $orgUID, string $sourceType): array {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select('AttachUID, FileName, FilePath, FileType, FileSize, SortOrder');
@@ -1505,7 +1501,7 @@ class Transactions_model extends MY_Model {
             if (!empty($filter['DateFrom']))         $this->ReadDb->where('DATE(P.CreatedOn) >=', $filter['DateFrom']);
             if (!empty($filter['DateTo']))           $this->ReadDb->where('DATE(P.CreatedOn) <=', $filter['DateTo']);
 
-            // Cash payments: BankAccountUID IS NULL → one group; each bank account gets its own row
+            // Cash payments: BankAccountUID IS NULL â†’ one group; each bank account gets its own row
             $this->ReadDb->group_by('BA.BankAccountUID, PT.IsCash');
             $this->ReadDb->order_by('MAX(PT.IsCash)', 'DESC');
             $this->ReadDb->order_by('SUM(P.Amount)', 'DESC');
@@ -1573,31 +1569,31 @@ class Transactions_model extends MY_Model {
         $org   = $org   ?? new stdClass();
         $theme = $theme ?? new stdClass();
 
-        // ── Load template ────────────────────────────────────────────
+        // â”€â”€ Load template â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         $tplHtml = $theme->TemplateHtmlContent ?? null;
         if (!$tplHtml) {
-            // No template assigned — use built-in generic layout
+            // No template assigned â€” use built-in generic layout
             return $this->_renderGenericA4Html($h, $items, $org);
         }
 
-        // ── Helpers ──────────────────────────────────────────────────
+        // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         $e   = fn($v) => htmlspecialchars((string)($v ?? ''), ENT_QUOTES);
         // Read print formats and org timezone from GenSettings JWT
         try {
             $CI          = &get_instance();
-            $cur         = ($CI->pageData['JwtData']->GenSettings->CurrenySymbol  ?? '₹') . ' ';
+            $cur         = ($CI->pageData['JwtData']->GenSettings->CurrenySymbol  ?? 'â‚¹') . ' ';
             $dec         = (int)($CI->pageData['JwtData']->GenSettings->DecimalPoints ?? 2);
             $_printFmt   = $CI->pageData['JwtData']->GenSettings->PrintDateFormat ?? 'd M Y';
             $_timezone   = $CI->pageData['JwtData']->User->Timezone               ?? 'UTC';
         } catch (Exception $_) {
-            $cur         = '₹ ';
+            $cur         = 'â‚¹ ';
             $dec         = 2;
             $_printFmt   = 'd M Y';
             $_timezone   = 'UTC';
         }
-        // Formats user-set date fields (TransDate, ValidityDate) — no timezone shift needed.
+        // Formats user-set date fields (TransDate, ValidityDate) â€” no timezone shift needed.
         $fmt = function(string $date) use ($_printFmt): string {
-            if (!$date) return '—';
+            if (!$date) return 'â€”';
             $d = date_create($date);
             return $d ? date_format($d, $_printFmt) : $date;
         };
@@ -1618,7 +1614,7 @@ class Transactions_model extends MY_Model {
             return implode('<br>', array_filter([$e($l1), $e($l2), $cs]));
         };
 
-        // ── Items table ──────────────────────────────────────────────
+        // â”€â”€ Items table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         $itemRows = '';
         foreach ($items as $i => $item) {
             $taxAmt = round((float)($item->CgstAmount ?? 0) + (float)($item->SgstAmount ?? 0) + (float)($item->IgstAmount ?? 0), $dec);
@@ -1647,7 +1643,7 @@ class Transactions_model extends MY_Model {
             '<th style="border:1px solid #ddd;padding:5px;text-align:right;">Amount</th>' .
             '</tr></thead><tbody>' . $itemRows . '</tbody></table>';
 
-        // ── Totals ───────────────────────────────────────────────────
+        // â”€â”€ Totals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         $totals =
             '<table style="width:100%;border-collapse:collapse;font-size:8.5pt;margin-bottom:8px;">' .
             '<tr><td style="border:1px solid #ddd;padding:5px;text-align:right;font-weight:600;">Sub Total</td>' .
@@ -1658,7 +1654,7 @@ class Transactions_model extends MY_Model {
             '<td style="border:1px solid #ddd;padding:5px;text-align:right;font-weight:700;">' . $cur . number_format((float)($h->NetAmount ?? 0), $dec) . '</td></tr>' .
             '</table>';
 
-        // ── Customer Addresses ────────────────────────────────────────────────
+        // â”€â”€ Customer Addresses â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         $billAddr = $addr($h->BillLine1 ?? '', $h->BillLine2 ?? '', $h->BillCity ?? '', $h->BillState ?? '', $h->BillPincode ?? '') ?: '';
         $shipAddr     = $addr($h->ShipLine1 ?? '', $h->ShipLine2 ?? '', $h->ShipCity ?? '', $h->ShipState ?? '', $h->ShipPincode ?? '') ?: '';
         $shipAddrHtml = $addrHtmlFmt($h->ShipLine1 ?? '', $h->ShipLine2 ?? '', $h->ShipCity ?? '', $h->ShipState ?? '', $h->ShipPincode ?? '');
@@ -1668,7 +1664,7 @@ class Transactions_model extends MY_Model {
             $custAddrHtml = $addrHtml($h->ShipLine1 ?? '', $h->ShipLine2 ?? '', $h->ShipCity ?? '', $h->ShipState ?? '', $h->ShipPincode ?? '');
         }
 
-        // Dispatch From: OrgAddressUID in DispatchFrom field — populates SHIPPING_ADDRESS token
+        // Dispatch From: OrgAddressUID in DispatchFrom field â€” populates SHIPPING_ADDRESS token
         $dispatchFromUID = (int)($h->DispatchFrom ?? 0);
         if ($dispatchFromUID > 0) {
             try {
@@ -1689,12 +1685,12 @@ class Transactions_model extends MY_Model {
             } catch (Exception $_) {}
         }
 
-        // ── Org logo ─────────────────────────────────────────────────
+        // â”€â”€ Org logo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         $logoHtml = !empty($org->Logo)
             ? '<img src="' . $e($org->Logo) . '" style="max-width:100px;max-height:100px;" alt="Logo">'
             : '';
 
-        // ── Org address lines ────────────────────────────────────────
+        // â”€â”€ Org address lines â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         $orgAddr1     = $e($org->Line1 ?? '');
         $orgAddr2     = $e($org->Line2 ?? '');
         $orgCityState = implode(', ', array_filter([$org->CityText ?? '', $org->StateText ?? '']));
@@ -1702,11 +1698,11 @@ class Transactions_model extends MY_Model {
         $orgCityPin   = implode(' - ', array_filter([$e($orgCityState), $e($org->Pincode ?? '')]));
         $orgInfoLines = implode('<br>', array_filter([$orgAddr1, $orgAddr2, $orgCityPin, $orgGstinLine]));
 
-        // ── Notes + Terms ────────────────────────────────────────────
+        // â”€â”€ Notes + Terms â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         $notesPart = !empty($h->Notes)           ? '<p style="font-size:8pt;margin-top:4px;"><strong>Notes:</strong> ' . nl2br($e($h->Notes)) . '</p>' : '';
         $termsPart = !empty($h->TermsConditions) ? '<p style="font-size:8pt;margin-top:4px;"><strong>Terms:</strong> ' . nl2br($e($h->TermsConditions)) . '</p>' : '';
 
-        // ── Bank Account (for print templates) ───────────────────────
+        // â”€â”€ Bank Account (for print templates) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         $bank        = $bankAccount ?? null;
         $bankName    = $bank ? $e($bank->BankName      ?? '') : '';
         $bankAccName = $bank ? $e($bank->AccountName   ?? '') : '';
@@ -1725,14 +1721,14 @@ class Transactions_model extends MY_Model {
         // Signature block: show actual signature if selected, otherwise empty space
         $signatureSpaceHtml = $this->_buildSignatureHtml((int)($h->SignatureUID ?? 0));
 
-        // ── Summary totals — read directly from TransactionsTbl (no item-level summing) ──
+        // â”€â”€ Summary totals â€” read directly from TransactionsTbl (no item-level summing) â”€â”€
         $totalItemsCount = (int)($h->TotalItems    ?? count($items));
         $totalQty        = (float)($h->TotalQuantity ?? 0);
         $totalCgst       = (float)($h->CgstAmount    ?? 0);
         $totalSgst       = (float)($h->SgstAmount    ?? 0);
         $totalIgst       = (float)($h->IgstAmount    ?? 0);
 
-        // ── HSN summary totals — computed from item-level data (matches HSN loop rows) ──
+        // â”€â”€ HSN summary totals â€” computed from item-level data (matches HSN loop rows) â”€â”€
         $CI              = &get_instance();
         $dec2            = (int)($CI->pageData['JwtData']->GenSettings->DecimalPoints ?? 2);
         $hsnTotalTaxable = array_sum(array_map(
@@ -1744,7 +1740,7 @@ class Transactions_model extends MY_Model {
         $hsnTotalIgst    = array_sum(array_map(fn($it) => (float)($it->IgstAmount ?? 0), $items));
         $hsnTotalTax     = round($hsnTotalCgst + $hsnTotalSgst + $hsnTotalIgst, $dec2);
 
-        // ── Party closing balance ─────────────────────────────────────
+        // â”€â”€ Party closing balance â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         $partyBalAmt  = '';
         $partyBalShow = '';
         if (!empty($theme->ShowPartyBalance)) {
@@ -1776,7 +1772,7 @@ class Transactions_model extends MY_Model {
             } catch (Exception $_) {}
         }
 
-        // ── Token map ────────────────────────────────────────────────
+        // â”€â”€ Token map â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         $tokens = [
             '{{PRIMARY_COLOR}}'        => $theme->PrimaryColor  ?? '#1a3c6e',
             '{{ACCENT_COLOR}}'         => $theme->AccentColor   ?? '#f59e0b',
@@ -1799,11 +1795,11 @@ class Transactions_model extends MY_Model {
             '{{ORG_BRANCH}}'           => $e($org->Branch ?? ''),
             '{{ORG_UPI_ID}}'           => $e($org->UpiId ?? ''),
             '{{ORG_INFO_LINES}}'       => $orgInfoLines,
-            '{{PLACE_OF_SUPPLY}}'      => $e(!empty($h->PlaceOfSupplyCode) ? $h->PlaceOfSupplyCode . ' – ' . ($h->PlaceOfSupplyName ?? '') : ($h->PlaceOfSupplyName ?? $org->StateText ?? '')),
+            '{{PLACE_OF_SUPPLY}}'      => $e(!empty($h->PlaceOfSupplyCode) ? $h->PlaceOfSupplyCode . ' â€“ ' . ($h->PlaceOfSupplyName ?? '') : ($h->PlaceOfSupplyName ?? $org->StateText ?? '')),
             '{{BANK_DETAILS_LINES}}'   => implode('<br>', array_filter([$e($org->BankName ?? ''), !empty($org->AccountNo) ? 'A/C: ' . $e($org->AccountNo) : '', !empty($org->IFSC) ? 'IFSC: ' . $e($org->IFSC) : ''])),
             '{{CURRENCY}}'             => $cur,
             /** Customer Details */
-            '{{CUSTOMER_NAME}}'        => $e($h->PartyName ?? '—'),
+            '{{CUSTOMER_NAME}}'        => $e($h->PartyName ?? 'â€”'),
             '{{CUSTOMER_PHONE}}'       => $e($h->PartyMobile ?? ''),
             '{{CUSTOMER_GSTIN}}'       => $e($h->PartyGSTIN ?? ''),
             '{{BILLING_ADDRESS}}'      => $e($billAddr),
@@ -1815,7 +1811,7 @@ class Transactions_model extends MY_Model {
             '{{PARTY_GSTIN_LINE}}'     => !empty($h->PartyGSTIN) ? 'GSTIN: ' . $e($h->PartyGSTIN) : '',
             /** Transaction Type Details */
             '{{DOC_TYPE}}'             => $e($h->TransType ?? 'Document'),
-            '{{DOC_NUMBER}}'           => $e($h->UniqueNumber ?? '—'),
+            '{{DOC_NUMBER}}'           => $e($h->UniqueNumber ?? 'â€”'),
             '{{DOC_DATE}}'             => $fmt($h->TransDate ?? ''),
             '{{DOC_TIME}}'             => (!empty($h->CreatedOn) && ($theme->ShowTime ?? 0)) ? $fmtTime($h->CreatedOn) : '',
             '{{PARTY_CLOSING_BALANCE}}' => $partyBalAmt,
@@ -1866,7 +1862,7 @@ class Transactions_model extends MY_Model {
             '{{BANK_QR_HTML}}'         => $bankQrHtml,
             /** Signature */
             '{{SIGNATURE_SPACE}}'      => $signatureSpaceHtml,
-            /** Copy label — JS replaces __COPY_LABEL__ client-side based on user selection */
+            /** Copy label â€” JS replaces __COPY_LABEL__ client-side based on user selection */
             '{{COPY_LABEL}}'           => '__COPY_LABEL__',
             /** HSN Summary TOTAL row tokens (match the summed rows in the loop) */
             '{{HSN_TOTAL_TAXABLE}}'    => number_format($hsnTotalTaxable, $dec2),
@@ -1894,14 +1890,14 @@ class Transactions_model extends MY_Model {
             . '.r2k-watermark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-45deg);font-size:72px;font-weight:800;letter-spacing:4px;color:rgba(0,0,0,0.045);white-space:nowrap;pointer-events:none;z-index:9999;}'
             . '</style>';
 
-        // For Google Fonts: inject <link> tag — rendered via Blob URL so external requests load correctly
+        // For Google Fonts: inject <link> tag â€” rendered via Blob URL so external requests load correctly
         if (!in_array($fontFamily, $systemFonts)) {
             $headInject .= '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family='. str_replace(' ', '+', $fontFamily). ':wght@400;600;700&display=swap">';
         }
 
         $html = str_replace('</head>', $headInject . '</head>', $html);
 
-        // Watermark: inject as a <div> into <body> — avoids CSS content: escaping issues
+        // Watermark: inject as a <div> into <body> â€” avoids CSS content: escaping issues
         $wmText = htmlspecialchars($org->BrandName ?? $org->Name ?? '', ENT_QUOTES, 'UTF-8');
         if (!empty($wmText)) {
             $wmDiv = '<div class="r2k-watermark">' . $wmText . '</div>';
@@ -1915,10 +1911,10 @@ class Transactions_model extends MY_Model {
     private function _processLoops(string $html, array $items): string {
         try {
             $CI  = &get_instance();
-            $cur = ($CI->pageData['JwtData']->GenSettings->CurrenySymbol  ?? '₹') . ' ';
+            $cur = ($CI->pageData['JwtData']->GenSettings->CurrenySymbol  ?? 'â‚¹') . ' ';
             $dec = (int)($CI->pageData['JwtData']->GenSettings->DecimalPoints ?? 2);
         } catch (Exception $_) {
-            $cur = '₹ ';
+            $cur = 'â‚¹ ';
             $dec = 2;
         }
         $e   = fn($v) => htmlspecialchars((string)($v ?? ''), ENT_QUOTES);
@@ -1964,10 +1960,10 @@ class Transactions_model extends MY_Model {
     private function _processHsnSummary(string $html, array $items): string {
         try {
             $CI  = &get_instance();
-            $cur = ($CI->pageData['JwtData']->GenSettings->CurrenySymbol  ?? '₹') . ' ';
+            $cur = ($CI->pageData['JwtData']->GenSettings->CurrenySymbol  ?? 'â‚¹') . ' ';
             $dec = (int)($CI->pageData['JwtData']->GenSettings->DecimalPoints ?? 2);
         } catch (Exception $_) {
-            $cur = '₹ ';
+            $cur = 'â‚¹ ';
             $dec = 2;
         }
         $e   = fn($v) => htmlspecialchars((string)($v ?? ''), ENT_QUOTES);
@@ -2012,7 +2008,7 @@ class Transactions_model extends MY_Model {
                         '{{HSN.SNO}}'           => $sno++,
                         '{{HSN.CODE}}'          => $e($g['hsn']),
                         '{{HSN.TAXABLE_VALUE}}' => number_format($g['taxableValue'], $dec),
-                        // Rate tokens — plain numbers, no % suffix (add % in template if needed)
+                        // Rate tokens â€” plain numbers, no % suffix (add % in template if needed)
                         '{{HSN.TAX_RATE}}'      => number_format($g['taxPct'], 0),
                         '{{HSN.CGST_RATE}}'     => number_format($splitRate, 0),
                         '{{HSN.SGST_RATE}}'     => number_format($splitRate, 0),
@@ -2021,7 +2017,7 @@ class Transactions_model extends MY_Model {
                         '{{HSN.CGST_AMT}}'      => number_format($cgstAmt, $dec),
                         '{{HSN.SGST_AMT}}'      => number_format($sgstAmt, $dec),
                         '{{HSN.IGST_AMT}}'      => number_format($igstAmt, $dec),
-                        // Combined tax for this HSN row (CGST+SGST OR IGST — whichever applies)
+                        // Combined tax for this HSN row (CGST+SGST OR IGST â€” whichever applies)
                         '{{HSN.TAX_AMT}}'       => number_format($totalTax, $dec),
                         '{{HSN.TOTAL_TAX}}'     => number_format($totalTax, $dec),
                     ];
@@ -2041,13 +2037,13 @@ class Transactions_model extends MY_Model {
             $gs        = $CI->pageData['JwtData']->GenSettings;
             $_printFmt = $gs->PrintDateFormat ?? 'd M Y';
             $dec       = (int)($gs->DecimalPoints ?? 2);
-            $cur       = ($gs->CurrenySymbol ?? '₹') . ' ';
+            $cur       = ($gs->CurrenySymbol ?? 'â‚¹') . ' ';
         } catch (Exception $_) {
             $_printFmt = 'd M Y';
             $dec       = 2;
-            $cur       = '₹ ';
+            $cur       = 'â‚¹ ';
         }
-        $fmt = function(string $date) use ($_printFmt): string { if (!$date) return '—'; $d = date_create($date); return $d ? date_format($d, $_printFmt) : $date; };
+        $fmt = function(string $date) use ($_printFmt): string { if (!$date) return 'â€”'; $d = date_create($date); return $d ? date_format($d, $_printFmt) : $date; };
         $label = strtoupper($h->TransType ?? 'Document');
         $partyLabel = in_array($label, ['PURCHASE ORDER', 'PURCHASE BILL']) ? 'Vendor' : 'Customer';
 
@@ -2074,12 +2070,12 @@ class Transactions_model extends MY_Model {
                 '<div><strong style="font-size:14px">' . $e($org->BrandName ?? $org->Name ?? '') . '</strong>' .
                 (!empty($org->GSTIN) ? '<br><span style="color:#666">GSTIN: ' . $e($org->GSTIN) . '</span>' : '') . '</div>' .
                 '<div style="text-align:right"><strong style="font-size:16px">' . $label . '</strong><br>' .
-                '<span style="color:#666">' . $e($h->UniqueNumber ?? '—') . '</span><br>' .
+                '<span style="color:#666">' . $e($h->UniqueNumber ?? 'â€”') . '</span><br>' .
                 '<span style="color:#666">Date: ' . $fmt($h->TransDate ?? '') . '</span>' .
                 (!empty($h->ValidityDate) ? '<br><span style="color:#666">Valid Until: ' . $fmt($h->ValidityDate) . '</span>' : '') . '</div>' .
             '</div>' .
             '<div style="background:#f9f9f9;padding:8px;border-radius:4px;margin-bottom:12px">' .
-                '<strong>' . $partyLabel . ':</strong> ' . $e($h->PartyName ?? '—') . '</div>' .
+                '<strong>' . $partyLabel . ':</strong> ' . $e($h->PartyName ?? 'â€”') . '</div>' .
             '<table><thead><tr><th style="width:30px">#</th><th>Product</th>' .
                 '<th style="width:60px;text-align:center">Qty</th>' .
                 '<th style="width:90px;text-align:right">Unit Price</th>' .
@@ -2100,8 +2096,8 @@ class Transactions_model extends MY_Model {
         $org   = $org   ?? new stdClass();
         $theme = $theme ?? new stdClass();
         $e      = fn($v) => htmlspecialchars((string)($v ?? ''), ENT_QUOTES);
-        $fmt    = function($d) { if (!$d) return '—'; $dt = date_create($d); return $dt ? date_format($dt, 'd M Y') : $d; };
-        $cur    = $org->CurrenySymbol ?? '₹';
+        $fmt    = function($d) { if (!$d) return 'â€”'; $dt = date_create($d); return $dt ? date_format($dt, 'd M Y') : $d; };
+        $cur    = $org->CurrenySymbol ?? 'â‚¹';
         try {
             $CI        = &get_instance();
             $dec       = (int)($CI->pageData['JwtData']->GenSettings->DecimalPoints ?? 2);
@@ -2114,7 +2110,7 @@ class Transactions_model extends MY_Model {
         }
         $fmtAmt = fn($v) => number_format((float)$v, $dec, '.', ',');
         $fmt = function(string $date) use ($_printFmt): string {
-            if (!$date) return '—';
+            if (!$date) return 'â€”';
             $d = date_create($date);
             return $d ? date_format($d, $_printFmt) : $date;
         };
@@ -2130,7 +2126,7 @@ class Transactions_model extends MY_Model {
         $direction  = ($p->PartyType === 'C') ? 'Payment Received' : 'Payment Made';
         $partyLabel = ($p->PartyType === 'C') ? 'Customer' : 'Vendor';
 
-        // Phase 1 — module-based document title
+        // Phase 1 â€” module-based document title
         // Real module UIDs: 103=Invoices, 105=Purchases, 106=SalesReturns, 108=PurchaseReturns, 114=Expenses, 115=IndirectIncome
         $moduleDocTypeMap = [
             103 => 'Payment Receipt',
@@ -2143,7 +2139,7 @@ class Transactions_model extends MY_Model {
         $moduleUID = (int)($p->ModuleUID ?? 0);
         $docType   = $moduleDocTypeMap[$moduleUID] ?? $direction;
 
-        // Phase 5 — context-aware document number label
+        // Phase 5 â€” context-aware document number label
         $docNumberLabelMap = [
             103 => 'Receipt No.',
             105 => 'Voucher No.',
@@ -2154,7 +2150,7 @@ class Transactions_model extends MY_Model {
         ];
         $docNumberLabel = $docNumberLabelMap[$moduleUID] ?? 'Payment No.';
 
-        // Phases 3 & 4 — invoice summary block
+        // Phases 3 & 4 â€” invoice summary block
         // Check the LINKED transaction's ModuleUID (reliable) OR the payment's own ModuleUID as fallback.
         // Invoice module UID = 103 (Invoices controller pageModuleUID).
         $transModuleUID   = (int)($p->TransModuleUID ?? 0);
@@ -2171,7 +2167,7 @@ class Transactions_model extends MY_Model {
             ? $e($p->BankName) . (!empty($p->AccountName) ? ' (' . $e($p->AccountName) . ')' : '')
             : '';
         
-        // ── Org logo ─────────────────────────────────────────────────
+        // â”€â”€ Org logo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         $logoHtml = !empty($org->Logo)
             ? '<img src="' . $e($org->Logo) . '" style="max-width:100px;max-height:100px;" alt="Logo">'
             : '';
@@ -2200,7 +2196,7 @@ class Transactions_model extends MY_Model {
             $payRefText = 'Amount received as <b>' . $e($p->TransNumber ?? '') . '</b>';
         }
 
-        // 1st preference: template HTML from DB — replace {{}} tokens and return
+        // 1st preference: template HTML from DB â€” replace {{}} tokens and return
         if (!empty($theme->TemplateHtmlContent)) {
             $tokens = [
                 /** Theme */
@@ -2255,7 +2251,7 @@ class Transactions_model extends MY_Model {
                 '{{TOTAL_AMOUNT}}'       => $fmtAmt($p->Amount),
                 '{{AMOUNT_IN_WORDS}}'    => print_number_to_words((float)($p->Amount ?? 0)),
                 /** Payment bank (the account that received/made the payment) */
-                '{{PAYMENT_MODE}}'       => $e($p->PaymentTypeName ?? '—'),
+                '{{PAYMENT_MODE}}'       => $e($p->PaymentTypeName ?? 'â€”'),
                 '{{BANK_LINE}}'          => $bankLine,
                 '{{BANK_NAME}}'          => $e($p->BankName      ?? ''),
                 '{{BANK_ACCOUNT_NAME}}'  => $e($p->AccountName   ?? ''),
@@ -2280,7 +2276,7 @@ class Transactions_model extends MY_Model {
                 '{{CURRENCY}}'           => $cur,
                 '{{PAYMENTS_REF}}'       => $payRefText,
                 '{{COPY_LABEL}}'         => '__COPY_LABEL__',
-                /** Invoice payment summary — {{IF:INVOICE_SUMMARY}} block is shown only for ModuleUID = 100 */
+                /** Invoice payment summary â€” {{IF:INVOICE_SUMMARY}} block is shown only for ModuleUID = 100 */
                 '{{INVOICE_SUMMARY}}'        => $isInvoicePayment ? '1' : '',
                 '{{INVOICE_NUMBER}}'         => ($isInvoicePayment && $invSummary) ? $e($invSummary['invoice_number'])         : '',
                 '{{INVOICE_DATE}}'           => ($isInvoicePayment && $invSummary) ? $fmt($invSummary['invoice_date'])          : '',
@@ -2321,7 +2317,7 @@ class Transactions_model extends MY_Model {
         $font    = $theme->FontFamily   ?? 'Arial';
         $footer  = $theme->FooterText   ?? 'Thank you for your business!';
 
-        // Table-based layout — dompdf cannot render flex/grid reliably
+        // Table-based layout â€” dompdf cannot render flex/grid reliably
         return '<!DOCTYPE html><html><head><meta charset="UTF-8">'
             . '<style>
                 @page{size:A4;margin:10mm 5mm;}
@@ -2361,7 +2357,7 @@ class Transactions_model extends MY_Model {
                     <tr>
                         <td width="49%" class="info-card">
                             <b>' . $e($partyLabel) . '</b><br>
-                            ' . $e($p->PartyName ?? '—') . '<br>'
+                            ' . $e($p->PartyName ?? 'â€”') . '<br>'
                             . (!empty($p->PartyMobile) ? 'Ph: ' . $e($p->PartyMobile) : '') . '
                         </td>
                         <td width="2%"></td>
@@ -2421,7 +2417,7 @@ class Transactions_model extends MY_Model {
         ];
     }
 
-    // ── Shared PDF generation ─────────────────────────────────────────────────
+    // â”€â”€ Shared PDF generation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function generatePaymentReceiptPdfBytes(int $paymentUID, int $orgUID, string $paperSize = 'A4'): ?string {
 
         $payment = $this->getPaymentDetailById($paymentUID, $orgUID);
@@ -2450,7 +2446,7 @@ class Transactions_model extends MY_Model {
 
     }
 
-    // ── Invoice PDF generation (used by getInvoicePdfBase64 for email attachment) ─
+    // â”€â”€ Invoice PDF generation (used by getInvoicePdfBase64 for email attachment) â”€
     public function generateInvoicePdfBytes(int $transUID, int $orgUID, string $paperSize = 'A4'): ?string {
 
         $paperSize = strtoupper(trim($paperSize));
@@ -2459,7 +2455,7 @@ class Transactions_model extends MY_Model {
         return $this->generateTransactionPdfBytes($transUID, $orgUID, $moduleUID, $paperSize);
     }
 
-    // ── Generic transaction PDF generation (works for any moduleUID) ──────────
+    // â”€â”€ Generic transaction PDF generation (works for any moduleUID) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function generateTransactionPdfBytes(int $transUID, int $orgUID, int $moduleUID, string $paperSize = 'A4'): ?string {
 
         $paperSize   = strtoupper(trim($paperSize));
@@ -2475,7 +2471,7 @@ class Transactions_model extends MY_Model {
 
         $html = $this->_renderA4Html($moduleUID, $header, $items, $orgInfo->Data ?? null, $printThemeResult->Data ?? null, $printBankAccount);
 
-        // Replace copy-label placeholder — JS replacement doesn't run server-side
+        // Replace copy-label placeholder â€” JS replacement doesn't run server-side
         $html = str_replace('__COPY_LABEL__', 'ORIGINAL FOR RECIPIENT', $html);
 
         // Extract watermark text before CSS-strip pass removes its positioning.
@@ -2539,7 +2535,7 @@ class Transactions_model extends MY_Model {
         return $dompdf->output();
     }
 
-    // ── Eager PDF generation: called on every create/update ───────────────────
+    // â”€â”€ Eager PDF generation: called on every create/update â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // Generates a fresh PDF, uploads to R2, and saves the path in TransactionsTbl.
     // Does nothing when PDF_STORAGE_MODE is not 'r2'.
     public function generateAndStorePdf(int $transUID, int $orgUID, int $moduleUID): void {
@@ -2563,10 +2559,10 @@ class Transactions_model extends MY_Model {
         }
     }
 
-    // ── PDF storage: R2 lazy-cache or live generation ─────────────────────────
-    // PDF_STORAGE_MODE=r2  → serve from Cloudflare R2 (generate + upload on first access,
+    // â”€â”€ PDF storage: R2 lazy-cache or live generation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // PDF_STORAGE_MODE=r2  â†’ serve from Cloudflare R2 (generate + upload on first access,
     //                         A4 only; non-A4 always generated live)
-    // PDF_STORAGE_MODE=live → generate fresh on every request (default)
+    // PDF_STORAGE_MODE=live â†’ generate fresh on every request (default)
     public function getOrGeneratePdfBytes(int $transUID, int $orgUID, int $moduleUID, string $paperSize = 'A4'): ?string {
         $paperSize = strtoupper(trim($paperSize));
 
@@ -2583,7 +2579,7 @@ class Transactions_model extends MY_Model {
                 if ($bytes) return $bytes;
             }
 
-            // Not in R2 yet — generate, upload, save path
+            // Not in R2 yet â€” generate, upload, save path
             $bytes = $this->generateTransactionPdfBytes($transUID, $orgUID, $moduleUID, 'A4');
             if ($bytes) {
                 $relPath = $this->_getModuleFolder($moduleUID) . '/' . $transUID . '/pdf/' . $transUID . '.pdf';
@@ -2683,7 +2679,7 @@ class Transactions_model extends MY_Model {
                         $mime         = $finfo->buffer($data) ?: 'image/png';
                         $cache[$url]  = 'data:' . $mime . ';base64,' . base64_encode($data);
                     } else {
-                        $cache[$url] = null; // fetch failed — leave URL as-is
+                        $cache[$url] = null; // fetch failed â€” leave URL as-is
                     }
                 }
                 return $cache[$url] ? ($m[1] . $cache[$url] . $m[3]) : $m[0];
@@ -2694,7 +2690,7 @@ class Transactions_model extends MY_Model {
 
     // Composites the QR code + logo overlay into a single base64 PNG so dompdf
     // can render it without position:absolute support.
-    // QR is generated locally via chillerlan/php-qrcode — no external HTTP call.
+    // QR is generated locally via chillerlan/php-qrcode â€” no external HTTP call.
     private function _compositeQrForPdf(string $html): string {
         $pattern = '/<div[^>]*>\s*<img[^>]+src="(https:\/\/api\.qrserver\.com[^"]+)"[^>]*>\s*<div[^>]*class="qr-logo-overlay"[^>]*>\s*<img[^>]+src="([^"]+)"[^>]*>\s*<\/div>\s*<\/div>/is';
 
@@ -2771,9 +2767,9 @@ class Transactions_model extends MY_Model {
     }
 
     private function _applyPaymentPdfCssFixes(string $html, string $paperSize): string {
-        // Strip Google Fonts — dompdf cannot load WOFF2/web fonts
+        // Strip Google Fonts â€” dompdf cannot load WOFF2/web fonts
         $html = preg_replace('/<link[^>]*fonts\.googleapis\.com[^>]*>/i', '', $html);
-        // Override body padding — @page margin handles spacing in PDF
+        // Override body padding â€” @page margin handles spacing in PDF
         $html = str_replace('</head>',
             '<style>body{padding:0!important;margin:0!important;}.page{margin:0!important;}</style></head>',
             $html);
@@ -2815,7 +2811,7 @@ class Transactions_model extends MY_Model {
         return generate_uuid4();
     }
 
-    // ── Build signature HTML for {{SIGNATURE_SPACE}} token ────────────────────
+    // â”€â”€ Build signature HTML for {{SIGNATURE_SPACE}} token â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // Returns the actual signature (image + label) if SignatureUID is set,
     // otherwise returns an empty space div (same as before).
 
@@ -2835,12 +2831,12 @@ class Transactions_model extends MY_Model {
                 return '<div style="min-height:65px;"></div>';
             }
 
-            // Resolve image source — same logic as Profile.php getSignaturesJson()
+            // Resolve image source â€” same logic as Profile.php getSignaturesJson()
             $sigType = strtolower($sig->SignatureType ?? '');
             if ($sigType === 'draw' && !empty($sig->DrawData)) {
                 // DrawData is already a full data URL (data:image/png;base64,...)
                 $drawRaw = $sig->DrawData;
-                // Ensure it's a valid data URL — prefix if stored as raw base64
+                // Ensure it's a valid data URL â€” prefix if stored as raw base64
                 if (strpos($drawRaw, 'data:image/') === 0) {
                     $imgSrc = $drawRaw;
                 } else {
@@ -2848,7 +2844,7 @@ class Transactions_model extends MY_Model {
                     $imgSrc = 'data:' . $mime . ';base64,' . $drawRaw;
                 }
             } elseif (!empty($sig->ImagePath)) {
-                // Uploaded image — build CDN URL from environment (same as Profile controller)
+                // Uploaded image â€” build CDN URL from environment (same as Profile controller)
                 $cdnBase = getenv('FILE_UPLOAD') === 'amazonaws'
                     ? getenv('CDN_URL')
                     : getenv('CFLARE_R2_CDN');
@@ -2867,7 +2863,7 @@ class Transactions_model extends MY_Model {
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // SR / Sales Return query helpers
 
     public function getSRCreditApplied(string $srUniqueNumber): float {
@@ -2937,13 +2933,16 @@ class Transactions_model extends MY_Model {
         return $this->ReadDb->get()->result();
     }
 
-    public function getReturnedQtyMapForItems(array $transProdUIDs, int $orgUID): array {
+    public function getReturnedQtyMapForItems(array $transProdUIDs, int $orgUID, int $excludeTransUID = 0): array {
         if (empty($transProdUIDs)) return [];
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select('SourceTransProdUID, SUM(Quantity) AS ReturnedQty');
         $this->ReadDb->from('Transaction.TransProductsTbl');
         $this->ReadDb->where_in('SourceTransProdUID', $transProdUIDs);
         $this->ReadDb->where(['OrgUID' => (int)$orgUID, 'IsDeleted' => 0, 'IsActive' => 1]);
+        if ($excludeTransUID > 0) {
+            $this->ReadDb->where('TransUID !=', $excludeTransUID);
+        }
         $this->ReadDb->group_by('SourceTransProdUID');
         $map = [];
         foreach ($this->ReadDb->get()->result() as $r) {
@@ -2952,8 +2951,38 @@ class Transactions_model extends MY_Model {
         return $map;
     }
 
-    public function getCustomerInvoicesWithReturnableItems(int $customerUID, int $orgUID): array {
+    /**
+     * Returns true if any non-cancelled Sales Return exists against this invoice's items.
+     * @param int $transUID  Invoice TransUID
+     * @param int $orgUID
+     * @returns bool
+     */
+    public function hasActiveSalesReturns(int $transUID, int $orgUID): bool {
         $this->ReadDb->db_debug = FALSE;
+        $result = $this->ReadDb->query(
+            'SELECT COUNT(*) AS cnt
+             FROM Transaction.TransProductsTbl RP
+             INNER JOIN Transaction.TransactionsTbl RTP ON RTP.TransUID = RP.TransUID
+             WHERE RP.SourceTransProdUID IN (
+                 SELECT TransProdUID FROM Transaction.TransProductsTbl
+                 WHERE TransUID = ? AND IsDeleted = 0 AND IsActive = 1
+             )
+             AND RTP.ModuleUID = 106
+             AND RTP.OrgUID    = ?
+             AND RTP.IsDeleted = 0
+             AND RTP.IsCancelled = 0
+             AND RP.IsDeleted  = 0
+             AND RP.IsActive   = 1',
+            [$transUID, $orgUID]
+        )->row();
+        return $result && (int) $result->cnt > 0;
+    }
+
+    public function getCustomerInvoicesWithReturnableItems(int $customerUID, int $orgUID, int $excludeTransUID = 0): array {
+        $this->ReadDb->db_debug = FALSE;
+        $excludeClause = $excludeTransUID > 0
+            ? 'AND RP.TransUID != ' . (int)$excludeTransUID
+            : '';
         $sql = "
             SELECT Ts.TransUID, Ts.UniqueNumber, Ts.TransDate, Ts.NetAmount, Ts.DocStatus
             FROM Transaction.TransactionsTbl AS Ts
@@ -2978,6 +3007,7 @@ class Transactions_model extends MY_Model {
                           AND RP.OrgUID             = Ts.OrgUID
                           AND RP.IsDeleted          = 0
                           AND RP.IsActive           = 1
+                          {$excludeClause}
                     ), 0)
               )
             ORDER BY Ts.TransUID DESC
@@ -3072,7 +3102,7 @@ class Transactions_model extends MY_Model {
         return $this->ReadDb->get()->row();
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // PR / Purchase Return query helpers
 
     public function getPRTotalRefunded(int $transUID): float {
@@ -3138,11 +3168,11 @@ class Transactions_model extends MY_Model {
         return $query ? $query->result() : [];
     }
 
-    // ── DC Partial Return helpers ─────────────────────────────────────────────
+    // â”€â”€ DC Partial Return helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /**
      * Returns total already-returned qty per TransProdUID for a DC.
-     * Keyed by TransProdUID (int) → total returned (float).
+     * Keyed by TransProdUID (int) â†’ total returned (float).
      *
      * @param int $transUID
      * @param int $orgUID
@@ -3168,7 +3198,7 @@ class Transactions_model extends MY_Model {
         }
     }
 
-    // ── Transaction Additional Charges ─────────────────────────────────────────
+    // â”€â”€ Transaction Additional Charges â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /**
      * Load all active (non-deleted) charge rows saved for a given transaction.
@@ -3190,16 +3220,15 @@ class Transactions_model extends MY_Model {
             return $query ? $query->result() : [];
         } catch (Exception $e) {
             notifyError('Transactions_model::getTransactionCharges', $e);
-            log_message('error', 'Transactions_model::getTransactionCharges — ' . $e->getMessage());
             return [];
         }
     }
 
     /**
      * Soft-delete diff save for transaction charge rows (same pattern as item rows).
-     * - Charges removed by the user → soft-deleted (IsDeleted=1, IsActive=0).
-     * - Charges unchanged by the user → updated in place.
-     * - New charges added by the user → inserted.
+     * - Charges removed by the user â†’ soft-deleted (IsDeleted=1, IsActive=0).
+     * - Charges unchanged by the user â†’ updated in place.
+     * - New charges added by the user â†’ inserted.
      * Zero-amount charges are treated as not submitted (skipped / soft-deleted if previously saved).
      * Caller must manage DB transaction boundaries.
      * @param int   $transactionUID
@@ -3210,7 +3239,7 @@ class Transactions_model extends MY_Model {
      */
     public function saveTransactionCharges(int $transactionUID, int $orgUID, int $userUID, array $charges): void {
 
-        // Step 1: Load existing active charges → map ChargeUID => TransChargeUID
+        // Step 1: Load existing active charges â†’ map ChargeUID => TransChargeUID
         $this->ReadDb->select('TransChargeUID, ChargeUID');
         $this->ReadDb->from('Transaction.TransactionChargesTbl');
         $this->ReadDb->where([
@@ -3270,7 +3299,7 @@ class Transactions_model extends MY_Model {
             ];
 
             if (isset($existingMap[$chargeUID])) {
-                // Same charge — update amounts/tax in the existing row
+                // Same charge â€” update amounts/tax in the existing row
                 $updResp = $this->dbwrite_model->updateData(
                     'Transaction', 'TransactionChargesTbl',
                     $rowData,
@@ -3278,7 +3307,7 @@ class Transactions_model extends MY_Model {
                 );
                 if ($updResp->Error) throw new Exception('Failed to update charge: ' . $updResp->Message);
             } else {
-                // New charge — insert a fresh row
+                // New charge â€” insert a fresh row
                 $insResp = $this->dbwrite_model->insertData('Transaction', 'TransactionChargesTbl', array_merge($rowData, [
                     'OrgUID'         => $orgUID,
                     'TransactionUID' => $transactionUID,
@@ -3310,7 +3339,7 @@ class Transactions_model extends MY_Model {
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // Day Book
 
     /**
@@ -3392,7 +3421,6 @@ class Transactions_model extends MY_Model {
 
         } catch (Exception $e) {
             notifyError('Transactions_model::getDayBookEntries', $e);
-            log_message('error', 'getDayBookEntries: ' . $e->getMessage());
             return [];
         }
     }
@@ -3420,13 +3448,12 @@ class Transactions_model extends MY_Model {
             return array_column($query->result_array(), 'TransUID');
         } catch (Exception $e) {
             notifyError('Transactions_model::getTransactionUIDsByFilter', $e);
-            log_message('error', 'getTransactionUIDsByFilter: ' . $e->getMessage());
             return [];
         }
     }
 
 
-    // ── Payment DB Operations ─────────────────────────────────────────────────
+    // â”€â”€ Payment DB Operations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // All raw queries related to payment recording and deletion live here so
     // that Payments controller only handles request/response flow.
 

@@ -101,7 +101,7 @@ if (!empty($DataLists)):
     <!-- Stock In -->
     <td style="text-align:right;">
         <?php if ($isIN): ?>
-        <span class="fw-bold" style="color:#16a34a;font-size:.92rem;"><?php echo number_format($qty, 0); ?></span>
+        <span class="fw-bold" style="color:#16a34a;font-size:.92rem;"><?php echo smartDecimal($qty); ?></span>
         <span style="font-size:.78rem;color:#6c757d;margin-left:3px;"><?php echo htmlspecialchars($row->UnitName ?? 'PCS'); ?></span>
         <?php else: ?>
         <span class="text-muted">—</span>
@@ -111,7 +111,7 @@ if (!empty($DataLists)):
     <!-- Stock Out -->
     <td style="text-align:right;">
         <?php if (!$isIN): ?>
-        <span class="fw-bold" style="color:#dc2626;font-size:.92rem;"><?php echo number_format($qty, 0); ?></span>
+        <span class="fw-bold" style="color:#dc2626;font-size:.92rem;"><?php echo smartDecimal($qty); ?></span>
         <span style="font-size:.78rem;color:#6c757d;margin-left:3px;"><?php echo htmlspecialchars($row->UnitName ?? 'PCS'); ?></span>
         <?php else: ?>
         <span class="text-muted">—</span>
@@ -120,7 +120,7 @@ if (!empty($DataLists)):
 
     <!-- Price -->
     <td style="text-align:right;font-size:.85rem;font-weight:600;">
-        <?php echo $cost > 0 ? ($currency . ' ' . number_format($cost, $decimals)) : '<span class="text-muted" style="font-weight:400;">—</span>'; ?>
+        <?php echo $cost > 0 ? ($currency . ' ' . smartDecimal($cost)) : '<span class="text-muted" style="font-weight:400;">—</span>'; ?>
     </td>
 
     <!-- Source: click opens viewTransModal; Manual Adj. shown as plain text -->

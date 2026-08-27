@@ -65,8 +65,8 @@ class Assistant extends MY_Controller {
             $ctx = $this->assistant_model->buildContext($orgUID, $branchUID);
 
             // Format a number value
-            $fmt = static function (float $v) use ($dec): string {
-                return number_format($v, $dec);
+            $fmt = static function (float $v): string {
+                return smartDecimal($v);
             };
 
             $sales = $ctx['sales'];

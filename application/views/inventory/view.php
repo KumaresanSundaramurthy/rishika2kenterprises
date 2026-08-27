@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 $this->load->view('common/transactions/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -28,7 +28,7 @@ $this->load->view('common/transactions/header'); ?>
                 $categories = $Categories ?? [];
 
                 function invFmt($val, $sym, $dec) {
-                    return $sym . ' ' . number_format((float)$val, $dec, '.', ',');
+                    return $sym . ' ' . smartDecimal((float)$val);
                 }
                 ?>
 
@@ -40,7 +40,7 @@ $this->load->view('common/transactions/header'); ?>
                             <div class="apex-stat-label">Positive Stock</div>
                             <div class="apex-stat-bottom">
                                 <span class="apex-stat-count" id="statPositiveCount"><?php echo number_format($posCount); ?> Items</span>
-                                <span class="apex-stat-amount" id="statPositiveQty"><?php echo number_format($posQty, $dec); ?> Qty</span>
+                                <span class="apex-stat-amount" id="statPositiveQty"><?php echo smartDecimal($posQty); ?> Qty</span>
                             </div>
                         </div>
                     </div>
@@ -50,7 +50,7 @@ $this->load->view('common/transactions/header'); ?>
                             <div class="apex-stat-label">Low / Out of Stock</div>
                             <div class="apex-stat-bottom">
                                 <span class="apex-stat-count" id="statLowCount"><?php echo number_format($lowCount); ?> Items</span>
-                                <span class="apex-stat-amount" id="statLowQty"><?php echo number_format($lowQty, $dec); ?> Qty</span>
+                                <span class="apex-stat-amount" id="statLowQty"><?php echo smartDecimal($lowQty); ?> Qty</span>
                             </div>
                         </div>
                     </div>

@@ -17,7 +17,7 @@
                     $totalPaid = (float)($totals->TotalPaid ?? 0);
 
                     function ppFmt($val, $sym, $dec) {
-                        return $sym . ' ' . number_format((float)$val, $dec, '.', ',');
+                        return $sym . ' ' . smartDecimal((float)$val);
                     }
                     ?>
 

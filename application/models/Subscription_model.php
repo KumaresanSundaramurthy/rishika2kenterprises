@@ -9,7 +9,7 @@ class Subscription_model extends CI_Model {
         $this->ReadDb = $this->load->database('ReadDB', TRUE);
     }
 
-    // ── User subscription info (UserTbl) ──────────────────────────────────────
+    // â”€â”€ User subscription info (UserTbl) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getUserSubscription(int $userUID): object {
         $result = new stdClass();
         try {
@@ -24,7 +24,6 @@ class Subscription_model extends CI_Model {
             $result->Data  = ($query && $query->num_rows() > 0) ? $query->row() : null;
         } catch (Exception $e) {
             notifyError($e, 'Subscription_model::getUserSubscription');
-            log_message('error', 'Subscription_model::getUserSubscription — ' . $e->getMessage());
             $result->Error   = TRUE;
             $result->Message = $e->getMessage();
             $result->Data    = null;
@@ -32,7 +31,7 @@ class Subscription_model extends CI_Model {
         return $result;
     }
 
-    // ── User email info for notifications ─────────────────────────────────────
+    // â”€â”€ User email info for notifications â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getUserEmailInfo(int $userUID): object {
         $result = new stdClass();
         try {
@@ -46,7 +45,6 @@ class Subscription_model extends CI_Model {
             $result->Data  = ($query && $query->num_rows() > 0) ? $query->row() : null;
         } catch (Exception $e) {
             notifyError($e, 'Subscription_model::getUserEmailInfo');
-            log_message('error', 'Subscription_model::getUserEmailInfo — ' . $e->getMessage());
             $result->Error   = TRUE;
             $result->Message = $e->getMessage();
             $result->Data    = null;
@@ -54,7 +52,7 @@ class Subscription_model extends CI_Model {
         return $result;
     }
 
-    // ── Check if an expiry-warning notification was already sent today ─────────
+    // â”€â”€ Check if an expiry-warning notification was already sent today â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function isNotificationSentToday(int $userUID, string $notificationType, string $today): object {
         $result = new stdClass();
         try {
@@ -71,7 +69,6 @@ class Subscription_model extends CI_Model {
             $result->AlreadySent = ($query && $query->num_rows() > 0);
         } catch (Exception $e) {
             notifyError($e, 'Subscription_model::isNotificationSentToday');
-            log_message('error', 'Subscription_model::isNotificationSentToday — ' . $e->getMessage());
             $result->Error      = TRUE;
             $result->Message    = $e->getMessage();
             $result->AlreadySent = false;
@@ -79,7 +76,7 @@ class Subscription_model extends CI_Model {
         return $result;
     }
 
-    // ── All subscription plans ────────────────────────────────────────────────
+    // â”€â”€ All subscription plans â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getSubscriptionPlans(bool $activeOnly = true): object {
         $result = new stdClass();
         try {
@@ -95,7 +92,6 @@ class Subscription_model extends CI_Model {
             $result->Data  = $query ? $query->result() : [];
         } catch (Exception $e) {
             notifyError($e, 'Subscription_model::getSubscriptionPlans');
-            log_message('error', 'Subscription_model::getSubscriptionPlans — ' . $e->getMessage());
             $result->Error   = TRUE;
             $result->Message = $e->getMessage();
             $result->Data    = [];
@@ -115,12 +111,11 @@ class Subscription_model extends CI_Model {
             return $query ? $query->result() : [];
         } catch (Exception $e) {
             notifyError($e, 'Subscription_model::getUserSubscriptionHistory');
-            log_message('error', 'Subscription_model::getUserSubscriptionHistory — ' . $e->getMessage());
             return [];
         }
     }
 
-    // ── Single active plan by plan code ──────────────────────────────────────
+    // â”€â”€ Single active plan by plan code â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getPlanByCode(string $planCode): object {
         $result = new stdClass();
         try {
@@ -135,7 +130,6 @@ class Subscription_model extends CI_Model {
             $result->Data  = ($query && $query->num_rows() > 0) ? $query->row() : null;
         } catch (Exception $e) {
             notifyError($e, 'Subscription_model::getPlanByCode');
-            log_message('error', 'Subscription_model::getPlanByCode — ' . $e->getMessage());
             $result->Error   = TRUE;
             $result->Message = $e->getMessage();
             $result->Data    = null;

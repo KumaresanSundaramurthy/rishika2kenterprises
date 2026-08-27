@@ -1,7 +1,7 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 /**
- * Customerbalance — single source of truth for customer balance management.
+ * Customerbalance â€” single source of truth for customer balance management.
  *
  * Used across all modules that affect a customer's outstanding balance:
  * Invoices, Payments, Sales Returns, Customer form, etc.
@@ -9,13 +9,13 @@
  * Public method:
  *   recalcAndSync($orgUID, $customerUID, $userUID)
  *     Recalculates closing balance from all active transactions and syncs:
- *       1. Customers.CustOpeningBalanceTbl  — PendingBalance / PendingBalType
- *       2. Accounting.ChartOfAccounts       — CurrentBalance / CurrentBalanceType
- *       3. Upstash cache                    — ClosingBalance / ClosingBalType
+ *       1. Customers.CustOpeningBalanceTbl  â€” PendingBalance / PendingBalType
+ *       2. Accounting.ChartOfAccounts       â€” CurrentBalance / CurrentBalanceType
+ *       3. Upstash cache                    â€” ClosingBalance / ClosingBalType
  *     Returns ['balance' => float, 'type' => string] or null on failure.
  *
  * Formula:
- *   ClosingBalance = OpeningBalance + TotalInvoiced − TotalReceived − TotalReturned
+ *   ClosingBalance = OpeningBalance + TotalInvoiced âˆ’ TotalReceived âˆ’ TotalReturned
  */
 class Customerbalance {
 
@@ -25,7 +25,7 @@ class Customerbalance {
         $this->CI =& get_instance();
     }
 
-    // ── Credit Note: create when a paid/partial invoice is cancelled ──────────
+    // â”€â”€ Credit Note: create when a paid/partial invoice is cancelled â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public function createCreditNote(int $orgUID, int $customerUID, int $transUID, int $userUID, string $invoiceNumber = ''): ?array {
         try {
@@ -135,26 +135,22 @@ class Customerbalance {
                     'Invoices', 'TRANSACTION'
                 );
             } catch (Exception $auditEx) {
-                log_message('error', 'Customerbalance::createCreditNote audit failed: ' . $auditEx->getMessage());
             }
 
             return ['creditNoteUID' => $creditNoteUID, 'amount' => $paidTotal];
 
         } catch (Exception $e) {
             notifyError($e, 'Customerbalance::createCreditNote');
-            log_message('error', 'Customerbalance::createCreditNote failed: ' . $e->getMessage());
             return null;
         }
     }
 
-    // ── Credit Note: create when a SR is saved without payment ───────────────
+    // â”€â”€ Credit Note: create when a SR is saved without payment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public function createSalesReturnCreditNote($orgUID, $customerUID, $srTransUID, $srUniqueNumber, $amount, $userUID, $transDate = null) {
         try {
-            log_message('debug', '[CN-TRACE] Start: orgUID=' . $orgUID . ' customerUID=' . $customerUID . ' srTransUID=' . $srTransUID . ' srUniqueNumber=' . $srUniqueNumber . ' amount=' . $amount);
 
             if ($amount <= 0) {
-                log_message('debug', '[CN-TRACE] Abort: amount <= 0');
                 return null;
             }
 
@@ -167,15 +163,12 @@ class Customerbalance {
             ]);
             $prefix    = !empty($prefixData->Data) ? $prefixData->Data[0] : null;
             $prefixUID = $prefix ? (int)$prefix->PrefixUID : null;
-            log_message('debug', '[CN-TRACE] Prefix lookup: prefixUID=' . ($prefixUID ?? 'NULL') . ' prefixName=' . ($prefix->Name ?? 'NOT FOUND') . ' totalFound=' . count($prefixData->Data ?? []));
 
             if (!$prefix) {
-                log_message('error', '[CN-TRACE] WARNING: No prefix configured for Credit Notes (ModuleUID=107, OrgUID=' . $orgUID . '). CreditNoteNumber will be NULL.');
             }
 
             // Next sequential number (org-wide, never re-issues)
             $seq = $this->CI->transactions_model->getNextCreditNoteNumber($orgUID);
-            log_message('debug', '[CN-TRACE] Next seq=' . $seq);
 
             // Build formatted number (same logic used across all transaction types)
             $cnNumber = null;
@@ -198,7 +191,6 @@ class Customerbalance {
                 $parts[] = $pad > 1 ? str_pad($seq, $pad, '0', STR_PAD_LEFT) : (string)$seq;
                 $cnNumber = implode($sep, $parts);
             }
-            log_message('debug', '[CN-TRACE] cnNumber=' . ($cnNumber ?? 'NULL'));
 
             $writeDb = $this->CI->load->database('WriteDB', TRUE);
             $writeDb->db_debug = FALSE;
@@ -223,18 +215,15 @@ class Customerbalance {
                 'IsActive'           => 1,
                 'IsDeleted'          => 0,
             ];
-            log_message('debug', '[CN-TRACE] About to INSERT into Transaction.TransCreditNoteTbl with columns: ' . implode(', ', array_keys($insertData)));
 
             $insertOk = $writeDb->insert('Transaction.TransCreditNoteTbl', $insertData);
             $dbErr    = $writeDb->error();
 
             if (!$insertOk || !empty($dbErr['code'])) {
-                log_message('error', '[CN-TRACE] INSERT FAILED — code=' . ($dbErr['code'] ?? '?') . ' message=' . ($dbErr['message'] ?? '?'));
                 return null;
             }
 
             $creditNoteUID = (int)$writeDb->insert_id();
-            log_message('debug', '[CN-TRACE] INSERT OK — CreditNoteUID=' . $creditNoteUID . ' Number=' . $cnNumber . ' SR=' . $srUniqueNumber . ' Amount=' . $amount);
 
             try {
                 $cnLabel = $cnNumber ?: '#' . $creditNoteUID;
@@ -247,19 +236,17 @@ class Customerbalance {
                     'SalesReturns', 'TRANSACTION'
                 );
             } catch (Exception $auditEx) {
-                log_message('error', 'Customerbalance::createSalesReturnCreditNote audit failed: ' . $auditEx->getMessage());
             }
 
             return ['creditNoteUID' => $creditNoteUID, 'creditNoteNumber' => $cnNumber, 'amount' => $amount];
 
         } catch (Exception $e) {
             notifyError($e, 'Customerbalance::createSalesReturnCreditNote');
-            log_message('error', '[CN-TRACE] EXCEPTION in createSalesReturnCreditNote: ' . $e->getMessage() . ' | File=' . $e->getFile() . ':' . $e->getLine());
             return null;
         }
     }
 
-    // ── Debit Note: create when a paid SR is cancelled with Recover action ──────
+    // â”€â”€ Debit Note: create when a paid SR is cancelled with Recover action â”€â”€â”€â”€â”€â”€
 
     public function createDebitNote($orgUID, $customerUID, $sourceTransUID, $sourceTransNumber, $amount, $userUID, $writeDb = null) {
         try {
@@ -324,17 +311,15 @@ class Customerbalance {
             ]);
 
             $debitNoteUID = (int)$writeDb->insert_id();
-            log_message('debug', '[DN-CREATE] DebitNoteUID=' . $debitNoteUID . ' Number=' . $dnNumber . ' SR=' . $sourceTransNumber . ' Amount=' . $amount);
 
             return ['debitNoteUID' => $debitNoteUID, 'debitNoteNumber' => $dnNumber, 'amount' => $amount];
         } catch (Exception $e) {
             notifyError($e, 'Customerbalance::createDebitNote');
-            log_message('error', 'Customerbalance::createDebitNote failed: ' . $e->getMessage());
             return null;
         }
     }
 
-    // ── Debit Note: get pending notes for a customer ──────────────────────────
+    // â”€â”€ Debit Note: get pending notes for a customer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public function getPendingDebitNotes($orgUID, $customerUID) {
         try {
@@ -357,7 +342,7 @@ class Customerbalance {
         }
     }
 
-    // ── Credit Note: apply to a future invoice ────────────────────────────────
+    // â”€â”€ Credit Note: apply to a future invoice â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public function applyCreditNote($orgUID, $creditNoteUID, $targetTransUID, $userUID, $moduleUID = 103) {
         try {
@@ -366,7 +351,7 @@ class Customerbalance {
             $writeDb->db_debug = FALSE;
             $writeDb->query("SET SESSION sql_mode = ''");
 
-            // Use WriteDB to fetch — ensures we always see the latest committed data
+            // Use WriteDB to fetch â€” ensures we always see the latest committed data
             $writeDb->from('Transaction.TransCreditNoteTbl');
             $writeDb->where(['CreditNoteUID' => (int)$creditNoteUID, 'Status' => 'Pending', 'IsDeleted' => 0]);
             $cn = $writeDb->get()->row();
@@ -443,7 +428,6 @@ class Customerbalance {
             ]);
             if ($writeDb->affected_rows() < 1) {
                 $updateErr = $writeDb->error();
-                log_message('error', 'Customerbalance::applyCreditNote — TransCreditNoteTbl STATUS UPDATE did not affect any rows. CreditNoteUID=' . $creditNoteUID . ' error=' . json_encode($updateErr));
             }
 
             $this->recalcAndSync($orgUID, $cn->PartyUID, $userUID);
@@ -460,26 +444,24 @@ class Customerbalance {
                     'Invoices', 'TRANSACTION'
                 );
             } catch (Exception $auditEx) {
-                log_message('error', 'Customerbalance::applyCreditNote audit failed: ' . $auditEx->getMessage());
             }
 
             return ['paymentUID' => $paymentUID];
 
         } catch (Exception $e) {
             notifyError($e, 'Customerbalance::applyCreditNote');
-            log_message('error', 'Customerbalance::applyCreditNote failed: ' . $e->getMessage());
             throw $e;
         }
     }
 
-    // ── Credit Note: mark as refunded (org physically returns money) ──────────
+    // â”€â”€ Credit Note: mark as refunded (org physically returns money) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public function refundCreditNote($orgUID, $creditNoteUID, $userUID) {
         try {
             $writeDb = $this->CI->load->database('WriteDB', TRUE);
             $writeDb->db_debug = FALSE;
 
-            // Use WriteDB (not ReadDB) to look up the credit note — guarantees
+            // Use WriteDB (not ReadDB) to look up the credit note â€” guarantees
             // we see our own writes when called immediately after createCreditNote()
             $writeDb->from('Transaction.TransCreditNoteTbl');
             $writeDb->where(['CreditNoteUID' => (int)$creditNoteUID, 'Status' => 'Pending', 'IsDeleted' => 0]);
@@ -493,7 +475,7 @@ class Customerbalance {
                 'UpdatedBy' => (int)$userUID,
             ]);
 
-            // Mark the original payment(s) as IsCancelled = 1 — payment is reversed/voided
+            // Mark the original payment(s) as IsCancelled = 1 â€” payment is reversed/voided
             $writeDb->where([
                 'TransUID'                  => (int)$cn->SourceTransUID,
                 'PartyType'                 => 'C',
@@ -520,19 +502,17 @@ class Customerbalance {
                     'Invoices', 'TRANSACTION'
                 );
             } catch (Exception $auditEx) {
-                log_message('error', 'Customerbalance::refundCreditNote audit failed: ' . $auditEx->getMessage());
             }
 
             return true;
 
         } catch (Exception $e) {
             notifyError($e, 'Customerbalance::refundCreditNote');
-            log_message('error', 'Customerbalance::refundCreditNote failed: ' . $e->getMessage());
             throw $e;
         }
     }
 
-    // ── Get pending credit notes for a customer ───────────────────────────────
+    // â”€â”€ Get pending credit notes for a customer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public function getPendingCreditNotes($orgUID, $customerUID) {
         try {
@@ -558,8 +538,8 @@ class Customerbalance {
         }
     }
 
-    // ── Pending credit/debit notes ────────────────────────────────────────────
-    // Delegates to customers_model which holds the shared WriteDb connection —
+    // â”€â”€ Pending credit/debit notes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Delegates to customers_model which holds the shared WriteDb connection â€”
     // avoids opening new TCP connections on every recalcAndSync call.
 
     private function _getPendingNoteTotals($orgUID, $customerUID) {
@@ -567,7 +547,7 @@ class Customerbalance {
         return $this->CI->customers_model->getCustomerPendingNoteTotals($orgUID, $customerUID);
     }
 
-    // ── Balance recalculation ─────────────────────────────────────────────────
+    // â”€â”€ Balance recalculation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public function recalcAndSync($orgUID, $customerUID, $userUID) {
         try {
@@ -575,7 +555,6 @@ class Customerbalance {
 
             // Log existing balance before recalc
             $preOB = $this->CI->customers_model->getCustomerOpeningBalance($orgUID, $customerUID);
-            log_message('debug', '[BalanceRecalc-BEFORE] CustomerUID=' . $customerUID
                 . ' PendingBalance=' . ($preOB ? $preOB->PendingBalance : 'NULL')
                 . ' PendingBalType=' . ($preOB ? $preOB->PendingBalType : 'NULL'));
 
@@ -583,7 +562,6 @@ class Customerbalance {
                 (int)$orgUID, (int)$customerUID
             );
             if (empty($custRows)) {
-                log_message('debug', '[BalanceRecalc] CustomerUID=' . $customerUID . ' — customer not found or inactive, recalc skipped');
                 return null;
             }
 
@@ -593,7 +571,7 @@ class Customerbalance {
             $totalReceived  = $this->CI->customers_model->getCustomerTotalReceived($orgUID, $customerUID);
             $totalReturned  = $this->CI->customers_model->getCustomerTotalReturned($orgUID, $customerUID);
             // SRs that already have a pending/applied credit note must not be
-            // subtracted a second time via totalReturned — pendingCreditNotes covers them.
+            // subtracted a second time via totalReturned â€” pendingCreditNotes covers them.
             $srCoveredByCN     = $this->CI->customers_model->getCustomerSRCoveredByCreditNote($orgUID, $customerUID);
             $effectiveReturned = max(0.0, $totalReturned - $srCoveredByCN);
             [$pendingCreditNotes, $pendingDebitNotes] = $this->_getPendingNoteTotals($orgUID, $customerUID);
@@ -609,7 +587,6 @@ class Customerbalance {
             $newBalance    = abs($signedBalance);
             $newBalType    = ($signedBalance >= 0) ? 'Debit' : 'Credit';
 
-            log_message('debug', '[BalanceRecalc-FORMULA] CustomerUID=' . $customerUID
                 . ' Opening=' . $cust->OpeningBalance . '(' . $cust->OpeningBalType . ')'
                 . ' Invoiced=' . $totalInvoiced
                 . ' Received=' . $totalReceived
@@ -621,29 +598,27 @@ class Customerbalance {
                 . ' SignedBalance=' . $signedBalance
                 . ' => NEW=' . $newBalance . '(' . $newBalType . ')');
 
-            // 1. Update CustOpeningBalanceTbl → PendingBalance (closing balance)
+            // 1. Update CustOpeningBalanceTbl â†’ PendingBalance (closing balance)
             $this->CI->customers_model->updateCustomerPendingBalance(
                 $orgUID, $customerUID, $newBalance, $newBalType, $userUID
             );
 
-            log_message('debug', '[BalanceRecalc-AFTER] CustomerUID=' . $customerUID
                 . ' Written=' . $newBalance . '(' . $newBalType . ')');
 
-            // 2. Update Accounting.ChartOfAccounts → CurrentBalance
+            // 2. Update Accounting.ChartOfAccounts â†’ CurrentBalance
             if (!empty($cust->LedgerUID)) {
                 $this->CI->customers_model->updateCustomerBalanceInLedger(
                     $cust->LedgerUID, $newBalance, $newBalType, $userUID
                 );
             }
 
-            // 3. Sync Upstash cache → ClosingBalance
+            // 3. Sync Upstash cache â†’ ClosingBalance
             $this->CI->cachehelper->upsertCustomer((int)$customerUID);
 
             return ['balance' => $newBalance, 'type' => $newBalType];
 
         } catch (Exception $e) {
             notifyError($e, 'Customerbalance::recalcAndSync');
-            log_message('error', 'Customerbalance::recalcAndSync failed for CustomerUID=' . $customerUID . ': ' . $e->getMessage());
             return null;
         }
     }

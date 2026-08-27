@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var array $CashBankLedgers */ $CashBankLedgers = $CashBankLedgers ?? [];
 $cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? 'â‚¹');
 $dec = (int)($JwtData->GenSettings->DecimalPoints ?? 2);

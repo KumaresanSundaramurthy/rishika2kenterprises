@@ -99,10 +99,10 @@ $dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
                 <label for="CM_DebitCreditAmount" class="form-label">Opening Balance</label>
                 <div class="input-group input-group-merge">
                     <span class="input-group-text"><?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?></span>
-                    <input type="number" class="form-control" name="DebitCreditAmount" id="CM_DebitCreditAmount"
-                        min="0" placeholder="Debit / Credit Amount" maxlength="6" pattern="[0-9]*"
-                        onkeypress="return (event.charCode!=8 && event.charCode==0 || (event.charCode>=48 && event.charCode<=57))"
-                        oninput="this.value=this.value.slice(0,this.maxLength)"
+                    <input type="text" inputmode="decimal" class="form-control" name="DebitCreditAmount" id="CM_DebitCreditAmount"
+                        placeholder="0"
+                        onkeypress="return (event.charCode===8||event.charCode===0||(event.charCode>=48&&event.charCode<=57)||(event.charCode===46&&this.value.indexOf('.')===-1))"
+                        oninput="var p=this.value.split('.');if(p.length>1&&p[1].length>9)this.value=p[0]+'.'+p[1].slice(0,9);"
                         value="<?php echo $isEdit ? smartDecimal($d->DebitCreditAmount ?? 0) : '0'; ?>" />
                     <select id="CM_DebitCreditCheck" name="DebitCreditCheck" class="select2 form-select border-start ps-2">
                         <option value="Debit" <?php echo (!$isEdit || ($d->DebitCreditType ?? '') === 'Debit') ? 'selected' : ''; ?>>To Collect</option>
@@ -326,7 +326,7 @@ $dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
                         <input class="form-control" type="text" inputmode="decimal" id="CM_DiscountPercent" name="DiscountPercent"
                             placeholder="Discount (%)"
                             onkeypress="return (event.charCode===8||event.charCode===0||(event.charCode>=48&&event.charCode<=57)||(event.charCode===46&&this.value.indexOf('.')===-1))"
-                            oninput="var p=this.value.split('.');if(p.length>1&&p[1].length><?php echo $dec; ?>)this.value=p[0]+'.'+p[1].slice(0,<?php echo $dec; ?>);var v=parseFloat(this.value);if(!isNaN(v)&&v>100)this.value='100';"
+                            oninput="var p=this.value.split('.');if(p.length>1&&p[1].length>2)this.value=p[0]+'.'+p[1].slice(0,2);var v=parseFloat(this.value);if(!isNaN(v)&&v>100)this.value='100';"
                             value="<?php echo $isEdit ? smartDecimal($d->DiscountPercent ?? 0) : '0'; ?>" />
                     </div>
                     <div class="mb-3 col-md-4">
@@ -339,10 +339,10 @@ $dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
                     </div>
                     <div class="mb-3 col-md-4">
                         <label for="CM_CreditLimit" class="form-label">Credit Limit</label>
-                        <input type="number" class="form-control" name="CreditLimit" id="CM_CreditLimit"
-                            min="0" placeholder="Credit Limit" maxlength="6" pattern="[0-9]*"
-                            onkeypress="return (event.charCode!=8 && event.charCode==0 || (event.charCode>=48 && event.charCode<=57))"
-                            oninput="this.value=this.value.slice(0,this.maxLength)"
+                        <input type="text" inputmode="decimal" class="form-control" name="CreditLimit" id="CM_CreditLimit"
+                            placeholder="0"
+                            onkeypress="return (event.charCode===8||event.charCode===0||(event.charCode>=48&&event.charCode<=57)||(event.charCode===46&&this.value.indexOf('.')===-1))"
+                            oninput="var p=this.value.split('.');if(p.length>1&&p[1].length>9)this.value=p[0]+'.'+p[1].slice(0,9);"
                             value="<?php echo $isEdit ? smartDecimal($d->CreditLimit ?? 0) : '0'; ?>" />
                     </div>
                     <div class="mb-3 col-md-12">

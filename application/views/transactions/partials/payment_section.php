@@ -429,7 +429,7 @@ $currSymbol       = $JwtData->GenSettings->CurrenySymbol ?? '₹';
 <script>
 window._paymentCurrSymbol  = '<?php echo addslashes($currSymbol); ?>';
 window._paymentPartyType   = '<?php echo addslashes($paymentPartyType); ?>';
-var _psDecimal = <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>;
+var _psDecimal = 9;
 
 function _hasItems() {
     return typeof billManager !== 'undefined' && billManager.getAllItems().length > 0;

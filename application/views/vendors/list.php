@@ -131,7 +131,7 @@ if (!empty($DataLists)):
                 $balClass = $bal == 0 ? 'text-muted' : (($balType === 'Credit') ? 'text-danger' : 'text-success');
                 $balLabel = $bal == 0 ? '' : (($balType === 'Credit') ? 'To Pay' : 'To Collect');
             ?>
-                <div class="fw-semibold <?php echo $balClass; ?>"><?php echo $currency . ' ' . number_format($bal, $dec); ?></div>
+                <div class="fw-semibold <?php echo $balClass; ?>"><?php echo $currency . ' ' . smartDecimal($bal); ?></div>
                 <div style="font-size:.72rem;color:#aaa;"><?php echo $balLabel; ?></div>
         </td>
 

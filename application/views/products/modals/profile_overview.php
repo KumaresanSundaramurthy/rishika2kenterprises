@@ -11,8 +11,8 @@
  * @var int         $ProductUID
  */
 
-$fmt = function (float $v) use ($Cur, $Dec): string {
-    return $Cur . ' ' . number_format($v, $Dec);
+$fmt = function (float $v) use ($Cur): string {
+    return $Cur . ' ' . smartDecimal($v);
 };
 
 $name    = htmlspecialchars($Prod->ItemName ?? '');

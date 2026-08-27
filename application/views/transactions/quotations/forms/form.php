@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php
 $isEdit      = isset($QuotData);
 $isDraftEdit = $isEdit && ($QuotData->DocStatus === 'Draft');
@@ -111,7 +111,10 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                                 <div class="col-md-4">
                                     <?php if ($isEdit && !$isDraftEdit): ?>
                                     <label class="trans-field-label mb-1">Customer</label>
-                                    <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
+                                    <div class="input-group input-group-sm input-group-merge customer-search-group party-has-selection" id="customerGroup_customerSearch">
+                                        <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
+                                        <span class="party-edit-icon" id="editCustomerBtn" title="Edit Customer"><i class="bx bx-edit"></i></span>
+                                    </div>
                                     <?php else: ?>
                                     <div class="d-flex align-items-center justify-content-between mb-2">
                                         <label for="customerSearch" class="trans-field-label mb-0">Select Customer <span class="text-danger">*</span></label>
@@ -120,7 +123,7 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                                     <div class="input-group input-group-sm input-group-merge customer-search-group" id="customerGroup_customerSearch">
                                         <span class="input-group-text p-2 cursor-pointer party-search-icon" id="openCustomerSearchModal" style="background:#f0efff;border-color:#d9d8ff;color:#696cff;"><i class="icon-base bx bx-search"></i></span>
                                         <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
-                                        <span class="party-edit-icon" id="editCustomerBtn" title="Edit Customer"><i class="bx bx-edit-alt"></i></span>
+                                        <span class="party-edit-icon" id="editCustomerBtn" title="Edit Customer"><i class="bx bx-edit"></i></span>
                                     </div>
                                     <?php endif; ?>
                                 </div>
@@ -174,7 +177,7 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                             ?>
                             <div id="customerAddressBox" class="trans-addr-strip <?php echo !empty($_addrText) ? '' : 'd-none'; ?>">
                                 <i class="bx bx-map-pin"></i>
-                                <span><?php echo htmlspecialchars($_addrText); ?></span>
+                                <span><?php echo htmlspecialchars($_addrText); ?></span><button type="button" id="btnEditCustAddr" class="trans-addr-edit-btn" title="Edit billing address"><i class="bx bx-edit"></i></button>
                             </div>
 
                             <hr class="mt-3"/>
@@ -251,12 +254,17 @@ var _transFormData = <?php echo json_encode([
     'returnTab'    => $_returnTab,
     'returnPage'   => (int)$_returnPage,
     'currency'     => $JwtData->GenSettings->CurrenySymbol ?? '₹',
-    'decimals'     => (int)($JwtData->GenSettings->DecimalPoints ?? 2),
+    'decimals'     => 9,
     'editData'     => $isEdit ? [
         'custUID'           => (int)($QuotData->PartyUID ?? 0),
         'custName'          => $QuotData->PartyName  ?? '',
         'custArea'          => $QuotData->PartyArea   ?? '',
         'custMobile'        => $QuotData->PartyMobile ?? '',
+        'custBillLine1'     => $QuotData->BillLine1   ?? '',
+        'custBillLine2'     => $QuotData->BillLine2   ?? '',
+        'custBillCity'      => $QuotData->BillCity    ?? '',
+        'custBillState'     => $QuotData->BillState   ?? '',
+        'custBillPincode'   => $QuotData->BillPincode ?? '',
         'custState'         => $CustAddr->StateText ?? '',
         'priceListUID'      => (int)($QuotData->PriceListUID ?? 0),
         'priceListData'     => !empty($QuotData->PriceListData) ? $QuotData->PriceListData : null,

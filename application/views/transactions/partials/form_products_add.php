@@ -72,7 +72,7 @@ $_showCompliment = !empty($transShowCompliment);
             </div>
             <div style="width: 10%;">
                 <div class="align-items-center position-relative">
-                    <input type="text" inputmode="decimal" class="form-control" name="prodQuantity" id="prodQuantity" min="0" step="1" placeholder="Quantity" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $JwtData->GenSettings->QtyMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" maxLength="<?php echo $JwtData->GenSettings->QtyMaxLength; ?>" pattern="^\d{1,<?php echo $JwtData->GenSettings->QtyMaxLength; ?>}(\.\d{0,<?php echo $JwtData->GenSettings->DecimalPoints; ?>})?$" onpaste="handlePricePaste(event, <?php echo $JwtData->GenSettings->QtyMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" ondrop="handlePriceDrop(event, <?php echo $JwtData->GenSettings->QtyMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" />
+                    <input type="text" inputmode="decimal" class="form-control" name="prodQuantity" id="prodQuantity" min="0" step="1" placeholder="Quantity" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $JwtData->GenSettings->QtyMaxLength; ?>, 9)" maxLength="<?php echo $JwtData->GenSettings->QtyMaxLength; ?>" pattern="^\d{1,<?php echo $JwtData->GenSettings->QtyMaxLength; ?>}(\.\d{0,9})?$" onpaste="handlePricePaste(event, <?php echo $JwtData->GenSettings->QtyMaxLength; ?>, 9)" ondrop="handlePriceDrop(event, <?php echo $JwtData->GenSettings->QtyMaxLength; ?>, 9)" />
                     <div id="errorProdQty" class="transerror-tooltip"><span class="icon">!</span>Please enter quantity.</div>
                 </div>
             </div>
@@ -119,7 +119,7 @@ $_showCompliment = !empty($transShowCompliment);
                         // Inline styles on drag-handle and description cells match what formationTableBillItems generates.
                         $INTEGER_ONLY_UOMS_PHP = ['PCS', 'NOS', 'UNT', 'BOX', 'PAC', 'EACH', 'SET', 'BTL', 'BAG', 'CASE', 'PRS', 'SLOT', 'PKTS', 'DOZ'];
                         $preCur    = $JwtData->GenSettings->CurrenySymbol ?? '₹';
-                        $preDec    = (int)($JwtData->GenSettings->DecimalPoints   ?? 2);
+                        $preDec    = 9;
                         $preQtyMax = (int)($JwtData->GenSettings->QtyMaxLength    ?? 7);
                         $prePrcMax = (int)($JwtData->GenSettings->PriceMaxLength  ?? 10);
                         $preShowDesc = !empty($JwtData->TransSettings->ShowProductDescription);
@@ -143,6 +143,8 @@ $_showCompliment = !empty($transShowCompliment);
                         $preTaxPct = (float)($_ei->TaxPercentage ?? 0);
                         $preIsInt  = in_array(strtoupper($preUnit), $INTEGER_ONLY_UOMS_PHP);
                         $preDiscCls = $preDisc ? '' : ' d-none';
+                        $_preRetMap = isset($ReturnedQtyMap) ? $ReturnedQtyMap : [];
+                        $preSrLocked = (($_preRetMap[(int)($_ei->TransProdUID ?? 0)] ?? 0) > 0) ? 1 : 0;
                         $preRowIdx++;
                         if ($preDisc > 0) {
                             $preSPTot   = round($preSP * $preQty, $preDec);
@@ -154,14 +156,14 @@ $_showCompliment = !empty($transShowCompliment);
                             $preEffUP = $preUP;
                         }
                     ?>
-                    <tr data-id="<?php echo $prePid; ?>">
+                    <tr data-id="<?php echo $prePid; ?>" data-sr-locked="<?php echo $preSrLocked; ?>">
                         <td class="drag-handle" style="width:20px;padding:4px 2px;vertical-align:middle;text-align:center;cursor:grab;" title="Drag to reorder">
                             <i class="bx bx-grid-vertical" style="font-size:1.1rem;color:#c0c7cf;"></i>
                         </td>
                         <td>
                             <div class="d-flex align-items-center justify-content-between">
                                 <span class="text-primary fw-semibold"><?php echo $preName; ?></span>
-                                <?php if ($_showCompliment): ?>
+                                <?php if ($_showCompliment && !$preSrLocked): ?>
                                 <label class="compliment-inline-lbl d-inline-flex align-items-center gap-1 mb-0 ms-2"
                                        style="cursor:<?php echo $preCompLocked ? 'not-allowed' : 'pointer'; ?>;flex-shrink:0;">
                                     <input type="checkbox" class="form-check-input compliment-chk"
@@ -201,9 +203,9 @@ $_showCompliment = !empty($transShowCompliment);
                         <td>
                             <div class="input-group input-group-merge input-group-sm">
                                 <?php if ($preIsInt): ?>
-                                <input type="text" inputmode="numeric" class="form-control form-control-sm updateAllBillAmounts" name="bm_<?php echo $prePid; ?>_qty" id="bm_<?php echo $prePid; ?>_qty" min="0" placeholder="Quantity" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); handleOnlyNumbers(this)" maxlength="<?php echo $preQtyMax; ?>" pattern="[0-9]*" value="<?php echo smartDecimal($preQty); ?>" onpaste="pasteOnlyNumbers(event)" ondrop="dropOnlyNumbers(event)">
+                                <input type="text" inputmode="numeric" class="form-control form-control-sm updateAllBillAmounts" name="bm_<?php echo $prePid; ?>_qty" id="bm_<?php echo $prePid; ?>_qty" min="0" placeholder="Quantity" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); handleOnlyNumbers(this)" maxlength="<?php echo $preQtyMax; ?>" pattern="[0-9]*" value="<?php echo smartDecimal($preQty); ?>"<?php if ($preSrLocked): ?> readonly<?php endif; ?> onpaste="pasteOnlyNumbers(event)" ondrop="dropOnlyNumbers(event)">
                                 <?php else: ?>
-                                <input type="text" inputmode="decimal" class="form-control form-control-sm updateAllBillAmounts" name="bm_<?php echo $prePid; ?>_qty" id="bm_<?php echo $prePid; ?>_qty" min="0" placeholder="Quantity" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $preQtyMax; ?>, <?php echo $preDec; ?>)" maxlength="<?php echo $preQtyMax; ?>" pattern="^\d{1,<?php echo $preQtyMax; ?>}(\.\d{0,<?php echo $preDec; ?>})?$" onpaste="handlePricePaste(event, <?php echo $preQtyMax; ?>, <?php echo $preDec; ?>)" ondrop="handlePriceDrop(event, <?php echo $preQtyMax; ?>, <?php echo $preDec; ?>)" value="<?php echo smartDecimal($preQty); ?>">
+                                <input type="text" inputmode="decimal" class="form-control form-control-sm updateAllBillAmounts" name="bm_<?php echo $prePid; ?>_qty" id="bm_<?php echo $prePid; ?>_qty" min="0" placeholder="Quantity" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $preQtyMax; ?>, <?php echo $preDec; ?>)" maxlength="<?php echo $preQtyMax; ?>" pattern="^\d{1,<?php echo $preQtyMax; ?>}(\.\d{0,<?php echo $preDec; ?>})?$" onpaste="handlePricePaste(event, <?php echo $preQtyMax; ?>, <?php echo $preDec; ?>)" ondrop="handlePriceDrop(event, <?php echo $preQtyMax; ?>, <?php echo $preDec; ?>)" value="<?php echo smartDecimal($preQty); ?>"<?php if ($preSrLocked): ?> readonly<?php endif; ?>>
                                 <?php endif; ?>
                                 <input type="text" readonly class="form-control form-control-sm" value="<?php echo htmlspecialchars($preUnit); ?>">
                             </div>
@@ -211,21 +213,21 @@ $_showCompliment = !empty($transShowCompliment);
                         <td>
                             <div class="input-group input-group-merge">
                                 <span class="input-group-text"><?php echo htmlspecialchars($preCur); ?></span>
-                                <input type="text" inputmode="decimal" class="form-control form-control-sm updateAllBillAmounts" name="bm_<?php echo $prePid; ?>_unitPrice" id="bm_<?php echo $prePid; ?>_unitPrice" min="0" placeholder="Unit Price" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $prePrcMax; ?>, 8)" maxlength="<?php echo $prePrcMax + 9; ?>" pattern="^\d{1,<?php echo $prePrcMax; ?>}(\.\d{0,8})?$" onpaste="handlePricePaste(event, <?php echo $prePrcMax; ?>, 8)" ondrop="handlePriceDrop(event, <?php echo $prePrcMax; ?>, 8)" value="<?php echo smartDecimal($preUP, 8); ?>">
+                                <input type="text" inputmode="decimal" class="form-control form-control-sm updateAllBillAmounts" name="bm_<?php echo $prePid; ?>_unitPrice" id="bm_<?php echo $prePid; ?>_unitPrice" min="0" placeholder="Unit Price" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $prePrcMax; ?>, 8)" maxlength="<?php echo $prePrcMax + 9; ?>" pattern="^\d{1,<?php echo $prePrcMax; ?>}(\.\d{0,8})?$" onpaste="handlePricePaste(event, <?php echo $prePrcMax; ?>, 8)" ondrop="handlePriceDrop(event, <?php echo $prePrcMax; ?>, 8)" value="<?php echo smartDecimal($preUP, 8); ?>"<?php if ($preSrLocked): ?> readonly<?php endif; ?>>
                             </div>
                             <div class="transtext-small text-muted text-warning bm_efft_<?php echo $prePid; ?>_price<?php echo $preDiscCls; ?>">aft disc: <span id="bm_<?php echo $prePid; ?>_aftdisc_unitPrice"><?php echo smartDecimal($preEffUP, 8); ?></span></div>
                         </td>
                         <td>
                             <div class="input-group input-group-merge">
                                 <span class="input-group-text"><?php echo htmlspecialchars($preCur); ?></span>
-                                <input type="text" inputmode="decimal" class="form-control form-control-sm updateAllBillAmounts" name="bm_<?php echo $prePid; ?>_sellingPrice" id="bm_<?php echo $prePid; ?>_sellingPrice" min="0" placeholder="Tax Price" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $prePrcMax; ?>, <?php echo $preDec; ?>)" maxlength="<?php echo $prePrcMax; ?>" pattern="^\d{1,<?php echo $prePrcMax; ?>}(\.\d{0,<?php echo $preDec; ?>})?$" onpaste="handlePricePaste(event, <?php echo $prePrcMax; ?>, <?php echo $preDec; ?>)" ondrop="handlePriceDrop(event, <?php echo $prePrcMax; ?>, <?php echo $preDec; ?>)" value="<?php echo smartDecimal($preSP, $preDec); ?>">
+                                <input type="text" inputmode="decimal" class="form-control form-control-sm updateAllBillAmounts" name="bm_<?php echo $prePid; ?>_sellingPrice" id="bm_<?php echo $prePid; ?>_sellingPrice" min="0" placeholder="Tax Price" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $prePrcMax; ?>, <?php echo $preDec; ?>)" maxlength="<?php echo $prePrcMax; ?>" pattern="^\d{1,<?php echo $prePrcMax; ?>}(\.\d{0,<?php echo $preDec; ?>})?$" onpaste="handlePricePaste(event, <?php echo $prePrcMax; ?>, <?php echo $preDec; ?>)" ondrop="handlePriceDrop(event, <?php echo $prePrcMax; ?>, <?php echo $preDec; ?>)" value="<?php echo smartDecimal($preSP, $preDec); ?>"<?php if ($preSrLocked): ?> readonly<?php endif; ?>>
                             </div>
                             <div class="transtext-small text-muted text-warning bm_efft_<?php echo $prePid; ?>_price<?php echo $preDiscCls; ?>">aft disc: <span id="bm_<?php echo $prePid; ?>_aftdisc_sellingPrice"><?php echo smartDecimal($preEffSP, $preDec); ?></span></div>
                         </td>
                         <td>
                             <div class="input-group input-group-merge w-75">
-                                <input class="form-control form-control-sm updateAllBillAmounts" type="text" inputmode="decimal" id="bm_<?php echo $prePid; ?>_discount" name="bm_<?php echo $prePid; ?>_discount" min="0" step="any" placeholder="Discount" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $prePrcMax; ?>, <?php echo $preDec; ?>)" maxlength="<?php echo $prePrcMax; ?>" pattern="^\d{1,<?php echo $prePrcMax; ?>}(\.\d{0,<?php echo $preDec; ?>})?$" onpaste="handlePricePaste(event, <?php echo $prePrcMax; ?>, <?php echo $preDec; ?>)" ondrop="handlePriceDrop(event, <?php echo $prePrcMax; ?>, <?php echo $preDec; ?>)" value="<?php echo $preDisc ?: 0; ?>">
-                                <select class="form-select form-select-sm px-2 w-auto discTypeActionBillAmounts" id="bm_<?php echo $prePid; ?>_discountType" name="bm_<?php echo $prePid; ?>_discountType">
+                                <input class="form-control form-control-sm updateAllBillAmounts" type="text" inputmode="decimal" id="bm_<?php echo $prePid; ?>_discount" name="bm_<?php echo $prePid; ?>_discount" min="0" step="any" placeholder="Discount" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $prePrcMax; ?>, <?php echo $preDec; ?>)" maxlength="<?php echo $prePrcMax; ?>" pattern="^\d{1,<?php echo $prePrcMax; ?>}(\.\d{0,<?php echo $preDec; ?>})?$" onpaste="handlePricePaste(event, <?php echo $prePrcMax; ?>, <?php echo $preDec; ?>)" ondrop="handlePriceDrop(event, <?php echo $prePrcMax; ?>, <?php echo $preDec; ?>)" value="<?php echo $preDisc ?: 0; ?>"<?php if ($preSrLocked): ?> readonly<?php endif; ?>>
+                                <select class="form-select form-select-sm px-2 w-auto discTypeActionBillAmounts" id="bm_<?php echo $prePid; ?>_discountType" name="bm_<?php echo $prePid; ?>_discountType"<?php if ($preSrLocked): ?> disabled<?php endif; ?>>
                                     <option value="Percentage" selected>%</option>
                                     <option value="Amount"><?php echo htmlspecialchars($preCur); ?></option>
                                 </select>
@@ -234,7 +236,11 @@ $_showCompliment = !empty($transShowCompliment);
                         <td class="align-middle">
                             <div class="d-flex align-items-center justify-content-between h-100">
                                 <div class="flex-shrink-0 me-3">
+                                    <?php if ($preSrLocked): ?>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled title="Cannot remove — a sales return exists for this item"><i class="bx bx-trash"></i></button>
+                                    <?php else: ?>
                                     <button type="button" class="btn btn-sm btn-outline-danger deleteBillItem" data-id="<?php echo $prePid; ?>" title="Remove item"><i class="bx bx-trash"></i></button>
+                                    <?php endif; ?>
                                 </div>
                                 <div class="text-end flex-grow-1">
                                     <div class="text-primary fw-semibold"><?php echo htmlspecialchars($preCur); ?> <span id="bm_<?php echo $prePid; ?>_netamount"><?php echo smartDecimal($preNet, $preDec, true); ?></span></div>
@@ -260,7 +266,7 @@ $_showCompliment = !empty($transShowCompliment);
                     <tr>
                         <td colspan="2" class="small fw-semibold">#Items: <span class="sumItemCount text-primary">0</span></td>
                         <td colspan="4" class="small fw-semibold">Qty: <span class="sumTotalQty text-primary">0</span></td>
-                        <td colspan="1" class="small fw-semibold text-end">Net Total: <?php echo $JwtData->GenSettings->CurrenySymbol; ?><span class="sumNetTotal ms-1 text-primary"><?php echo smartDecimal(0, $JwtData->GenSettings->DecimalPoints, true); ?></span></td>
+                        <td colspan="1" class="small fw-semibold text-end">Net Total: <?php echo $JwtData->GenSettings->CurrenySymbol; ?><span class="sumNetTotal ms-1 text-primary"><?php echo smartDecimal(0); ?></span></td>
                     </tr>
                 </tfoot>
             </table>
@@ -269,7 +275,7 @@ $_showCompliment = !empty($transShowCompliment);
                     <div class="col-md-4">
                         <label for="globalDiscount" class="form-label fw-semibold mb-0"><?php echo t('lbl_apply_discount', 'Apply Discount (%) to all items in the cart'); ?></label>
                         <div class="input-group input-group-merge input-group-sm mt-1 w-50">
-                            <input type="text" inputmode="decimal" class="form-control form-control-sm" name="globalDiscount" id="globalDiscount" min="0" step="0.01" max="50" placeholder="Discount (%)" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" maxLength="<?php echo $JwtData->GenSettings->PriceMaxLength; ?>" pattern="^\d{1,<?php echo $JwtData->GenSettings->PriceMaxLength; ?>}(\.\d{0,<?php echo $JwtData->GenSettings->DecimalPoints; ?>})?$" onpaste="handlePricePaste(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" ondrop="handlePriceDrop(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" value="0" />
+                            <input type="text" inputmode="decimal" class="form-control form-control-sm" name="globalDiscount" id="globalDiscount" min="0" step="0.01" max="50" placeholder="Discount (%)" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, 9)" maxLength="<?php echo $JwtData->GenSettings->PriceMaxLength; ?>" pattern="^\d{1,<?php echo $JwtData->GenSettings->PriceMaxLength; ?>}(\.\d{0,9})?$" onpaste="handlePricePaste(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, 9)" ondrop="handlePriceDrop(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, 9)" value="0" />
                             <button class="btn btn-sm btn-outline-danger" type="button" id="clearGlobalDiscount"><i class="bx bx-x"></i></button>
                         </div>
                         <div class="form-text transtext-small text-danger small mt-1">This discount will be applied to all items. Individual discounts will be overridden.</div>
@@ -406,34 +412,34 @@ $_showCompliment = !empty($transShowCompliment);
                         <div class="input-group input-group-merge w-70">
                             <select class="form-select form-select-sm" id="extDiscountType" name="extDiscountType">
                             </select>
-                            <input class="form-control form-control-sm ps-1 w-30 text-end" type="text" inputmode="decimal" id="extraDiscount" name="extraDiscount" min="0" step="0.01" placeholder="Extra Discount" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" maxlength="<?php echo $JwtData->GenSettings->PriceMaxLength; ?>" value="0">
+                            <input class="form-control form-control-sm ps-1 w-30 text-end" type="text" inputmode="decimal" id="extraDiscount" name="extraDiscount" min="0" step="0.01" placeholder="Extra Discount" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, 9)" maxlength="<?php echo $JwtData->GenSettings->PriceMaxLength; ?>" value="0">
                         </div>
                     </div>
                     <div class="d-flex align-items-center justify-content-end mt-2 d-none" id="shippingRow">
                         <div class="d-flex justify-content-end w-70"><label class="form-label small fw-semibold">Shipping Charges</label></div>
-                        <div class="d-flex justify-content-end w-70 me-1"><span class="me-1"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span><span id="shippingChargeAmt"><?php echo smartDecimal(0, $JwtData->GenSettings->DecimalPoints, true); ?></span></div>
+                        <div class="d-flex justify-content-end w-70 me-1"><span class="me-1"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span><span id="shippingChargeAmt"><?php echo smartDecimal(0); ?></span></div>
                     </div>
                     <div class="d-flex align-items-center justify-content-end mt-2 d-none" id="packingRow">
                         <div class="d-flex justify-content-end w-70"><label class="form-label small fw-semibold">Packaging Charges</label></div>
-                        <div class="d-flex justify-content-end w-70 me-1"><span class="me-1"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span><span id="packingChargeAmt"><?php echo smartDecimal(0, $JwtData->GenSettings->DecimalPoints, true); ?></span></div>
+                        <div class="d-flex justify-content-end w-70 me-1"><span class="me-1"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span><span id="packingChargeAmt"><?php echo smartDecimal(0); ?></span></div>
                     </div>
                     <div class="d-flex align-items-center justify-content-end mt-2 d-none" id="handlingRow">
                         <div class="d-flex justify-content-end w-70"><label class="form-label small fw-semibold">Handling Charges</label></div>
-                        <div class="d-flex justify-content-end w-70 me-1"><span class="me-1"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span><span id="handlingChargeAmt"><?php echo smartDecimal(0, $JwtData->GenSettings->DecimalPoints, true); ?></span></div>
+                        <div class="d-flex justify-content-end w-70 me-1"><span class="me-1"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span><span id="handlingChargeAmt"><?php echo smartDecimal(0); ?></span></div>
                     </div>
                     <div class="d-flex align-items-center justify-content-end mt-2 d-none" id="othersRow">
                         <div class="d-flex justify-content-end w-70"><label class="form-label small fw-semibold">Other Charges</label></div>
-                        <div class="d-flex justify-content-end w-70 me-1"><span class="me-1"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span><span id="othersChargeAmt"><?php echo smartDecimal(0, $JwtData->GenSettings->DecimalPoints, true); ?></span></div>
+                        <div class="d-flex justify-content-end w-70 me-1"><span class="me-1"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span><span id="othersChargeAmt"><?php echo smartDecimal(0); ?></span></div>
                     </div>
                     <div class="d-flex align-items-center justify-content-end mt-2 d-none">
                         <div class="d-flex justify-content-end w-70"><label class="form-label small fw-semibold">Taxable Amount</label></div>
-                        <div class="d-flex justify-content-end w-70 me-1"><span class="me-1"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span><span class="bill_taxable_amt"><?php echo smartDecimal(0, $JwtData->GenSettings->DecimalPoints, true); ?></span></div>
+                        <div class="d-flex justify-content-end w-70 me-1"><span class="me-1"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span><span class="bill_taxable_amt"><?php echo smartDecimal(0); ?></span></div>
                     </div>
                     <div id="totalTaxSummaryRow" class="d-flex align-items-center justify-content-end mt-2">
                         <div class="d-flex justify-content-end w-70">
                             <label class="form-label small fw-semibold">Total Tax <button type="button" class="btn btn-sm btn-link p-0 border-0" id="taxBreakupToggle"><i id="showHideTaxBreakUp" class="bx bxs-show tax-toggle-icon ms-1 fs-6 d-none"></i></button></label>
                         </div>
-                        <div class="d-flex justify-content-end w-70 me-1"><span class="me-1"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span><span class="bill_tot_tax_amt"><?php echo smartDecimal(0, $JwtData->GenSettings->DecimalPoints, true); ?></span></div>
+                        <div class="d-flex justify-content-end w-70 me-1"><span class="me-1"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span><span class="bill_tot_tax_amt"><?php echo smartDecimal(0); ?></span></div>
                     </div>
                     <div class="d-flex align-items-center justify-content-end mt-2">
                         <div class="d-flex justify-content-end w-70">
@@ -442,15 +448,15 @@ $_showCompliment = !empty($transShowCompliment);
                                 <input class="form-check-input" type="checkbox" name="roundOffToggle" id="roundOffToggle" checked />
                             </div>
                         </div>
-                        <div class="d-flex justify-content-end w-70 me-1"><span class="me-1"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span><span class="bill_rndoff_amt"><?php echo smartDecimal(0, $JwtData->GenSettings->DecimalPoints, true); ?></span></div>
+                        <div class="d-flex justify-content-end w-70 me-1"><span class="me-1"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span><span class="bill_rndoff_amt"><?php echo smartDecimal(0); ?></span></div>
                     </div>
                     <div class="d-flex align-items-center justify-content-end mt-2">
                         <div class="d-flex justify-content-end w-70"><label class="form-label fw-semibold fs-4 text-primary">Total Amount</label></div>
-                        <div class="d-flex justify-content-end w-70 me-1"><span class="me-1 fs-4 text-primary"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span><span class="bill_tot_amt fw-semibold fs-4 text-primary"><?php echo smartDecimal(0, $JwtData->GenSettings->DecimalPoints, true); ?></span></div>
+                        <div class="d-flex justify-content-end w-70 me-1"><span class="me-1 fs-4 text-primary"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span><span class="bill_tot_amt fw-semibold fs-4 text-primary"><?php echo smartDecimal(0); ?></span></div>
                     </div>
                     <div class="d-flex align-items-center justify-content-end mt-2">
                         <div class="d-flex justify-content-end w-70"><label class="form-label small fw-semibold">Total Discount</label></div>
-                        <div class="d-flex justify-content-end w-70 me-1"><span class="me-1"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span><span class="bill_tot_disc_amt"><?php echo smartDecimal(0, $JwtData->GenSettings->DecimalPoints, true); ?></span></div>
+                        <div class="d-flex justify-content-end w-70 me-1"><span class="me-1"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span><span class="bill_tot_disc_amt"><?php echo smartDecimal(0); ?></span></div>
                     </div>
                 </div>
             </div>

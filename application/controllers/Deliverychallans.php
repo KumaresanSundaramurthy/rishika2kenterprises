@@ -36,6 +36,8 @@ class Deliverychallans extends MY_Controller {
                 'paginationUrl'=> '/transactions/getPageDetails/112',
             ]);
             $this->load->view('transactions/deliverychallans/view', $this->pageData);
+        } catch (ValidationException $e) {
+            redirect('dashboard', 'refresh');
         } catch (Exception $e) {
             $this->notifyError('Deliverychallans::index', $e);
             redirect('dashboard', 'refresh');
@@ -96,6 +98,8 @@ class Deliverychallans extends MY_Controller {
             }
 
             $this->load->view('transactions/deliverychallans/forms/form', $this->pageData);
+        } catch (ValidationException $e) {
+            redirect('deliverychallan', 'refresh');
         } catch (Exception $e) {
             $this->notifyError('Deliverychallans::create', $e);
             redirect('deliverychallan', 'refresh');
@@ -157,6 +161,8 @@ class Deliverychallans extends MY_Controller {
             }
 
             $this->load->view('transactions/deliverychallans/forms/form', $this->pageData);
+        } catch (ValidationException $e) {
+            redirect('deliverychallan', 'refresh');
         } catch (Exception $e) {
             $this->notifyError('Deliverychallans::edit', $e);
             redirect('deliverychallan', 'refresh');
@@ -192,7 +198,7 @@ class Deliverychallans extends MY_Controller {
                 $soItems = $soData ? $this->transactions_model->getTransactionItems($fromSOUID, $orgUID) : [];
 
                 if ($soData && (int)$soData->PartyUID !== $customerUID) {
-                    throw new Exception('Customer cannot be changed on a challan linked to a Sales Order.');
+                    throw new ValidationException('Customer cannot be changed on a challan linked to a Sales Order.');
                 }
 
                 $soQtyMap = [];
@@ -203,11 +209,11 @@ class Deliverychallans extends MY_Controller {
                 foreach ($items as $item) {
                     $pid = (int)($item['productUID'] ?? $item['id'] ?? 0);
                     if (!isset($soQtyMap[$pid])) {
-                        throw new Exception('Item "' . ($item['itemName'] ?? 'Unknown') . '" is not part of the Sales Order and cannot be dispatched.');
+                        throw new ValidationException('Item "' . ($item['itemName'] ?? 'Unknown') . '" is not part of the Sales Order and cannot be dispatched.');
                     }
                     $dispatchedQty = (float)($item['quantity'] ?? 0);
                     if ($dispatchedQty > $soQtyMap[$pid]) {
-                        throw new Exception('Quantity for "' . ($item['itemName'] ?? 'Unknown') . '" (' . $dispatchedQty . ') exceeds the Sales Order quantity (' . $soQtyMap[$pid] . ').');
+                        throw new ValidationException('Quantity for "' . ($item['itemName'] ?? 'Unknown') . '" (' . $dispatchedQty . ') exceeds the Sales Order quantity (' . $soQtyMap[$pid] . ').');
                     }
                 }
             }
@@ -288,6 +294,10 @@ class Deliverychallans extends MY_Controller {
             );
             $this->EndReturnData->TransUID = $transUID;
             $this->EndReturnData->Token    = $headerData['TransToken'];
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             $this->notifyError('Deliverychallans::addDeliveryChallan', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -309,7 +319,7 @@ class Deliverychallans extends MY_Controller {
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
             $transUID = (int) getPostValue($PostData, 'TransUID');
-            if ($transUID <= 0) throw new Exception('Delivery Challan ID is required.');
+            if ($transUID <= 0) throw new ValidationException('Delivery Challan ID is required.');
 
             $itemsJson = $this->_validateTransForm($PostData);
             $amounts   = $this->_extractTransAmounts($PostData, $itemsJson);
@@ -334,21 +344,21 @@ class Deliverychallans extends MY_Controller {
 
             $this->load->model('transactions_model');
             $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
-            if (!$existing) throw new Exception('Delivery Challan not found.');
+            if (!$existing) throw new ValidationException('Delivery Challan not found.');
 
             $uniqueNumber = NULL;
             if ($existing->DocStatus === 'Draft' && !$isDraft) {
-                if ($prefixUID <= 0) throw new Exception('Please select a prefix to finalize this challan.');
-                if ($transNumber <= 0) throw new Exception('Transaction number must be greater than 0.');
+                if ($prefixUID <= 0) throw new ValidationException('Please select a prefix to finalize this challan.');
+                if ($transNumber <= 0) throw new ValidationException('Transaction number must be greater than 0.');
 
                 $prefixData = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.PrefixUID' => $prefixUID, 'Prefix.OrgUID' => $orgUID]);
-                if (empty($prefixData->Data)) throw new Exception('Invalid prefix selected.');
+                if (empty($prefixData->Data)) throw new ValidationException('Invalid prefix selected.');
                 $prefix = $prefixData->Data[0];
 
                 $dupCheck = $this->transactions_model->getTransactionByPrefixAndNumber($prefixUID, $transNumber, $orgUID, $this->pageModuleUID);
                 if ($dupCheck) {
                     $nextSuggested = $this->transactions_model->getNextTransactionNumber($prefixUID, $orgUID, $this->pageModuleUID);
-                    throw new Exception("Transaction number {$transNumber} already exists. Next available: {$nextSuggested}.");
+                    throw new ValidationException("Transaction number {$transNumber} already exists. Next available: {$nextSuggested}.");
                 }
 
                 [$uniqueNumber] = $this->buildUniqueNumber($prefix, $transNumber, $amounts['transDate']);
@@ -426,6 +436,10 @@ class Deliverychallans extends MY_Controller {
                 'UPDATE_DELIVERY_CHALLAN', 'DeliveryChallan', (int) $transUID, (string) ($uniqueNumber ?? $existing->UniqueNumber ?? ''),
                 [], 'Updated delivery challan ' . ($uniqueNumber ?? $existing->UniqueNumber ?? ''), 'DeliveryChallans', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
             );
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             $this->notifyError('Deliverychallans::updateDeliveryChallan', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -446,11 +460,11 @@ class Deliverychallans extends MY_Controller {
             $userUID  = $this->pageData['JwtData']->User->UserUID;
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
             $transUID = (int) getPostValue($PostData, 'TransUID');
-            if ($transUID <= 0) throw new Exception('Delivery Challan ID is required.');
+            if ($transUID <= 0) throw new ValidationException('Delivery Challan ID is required.');
 
             $this->load->model('transactions_model');
             $existing = $this->transactions_model->getTransactionPageList(1, 0, $this->pageModuleUID, ['TransUID' => $transUID, 'OrgUID' => $orgUID]);
-            if (empty($existing)) throw new Exception('Delivery Challan not found.');
+            if (empty($existing)) throw new ValidationException('Delivery Challan not found.');
             // getTransactionPageList aliases DocStatus as 'Status'; also reverse stock for Delivered/Partially Returned
             $currentStatus      = $existing[0]->Status ?? '';
             $needsStockReversal = in_array($currentStatus, ['Dispatched', 'Delivered', 'Partially Returned', 'Converted']);
@@ -484,6 +498,10 @@ class Deliverychallans extends MY_Controller {
                 [], 'Deleted delivery challan #' . $transUID, 'DeliveryChallans', 'TRANSACTION'
             );
             $this->_buildListResponse('transactions/deliverychallans/list', '/transactions/getPageDetails/112');
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             $this->notifyError('Deliverychallans::deleteDeliveryChallan', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -504,16 +522,16 @@ class Deliverychallans extends MY_Controller {
             $srcUID   = (int) getPostValue($PostData, 'TransUID');
             $userUID  = $this->pageData['JwtData']->User->UserUID;
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
-            if ($srcUID <= 0) throw new Exception('Invalid delivery challan.');
+            if ($srcUID <= 0) throw new ValidationException('Invalid delivery challan.');
 
             $this->load->model('transactions_model');
             $src = $this->transactions_model->getTransactionById($srcUID, $orgUID, $this->pageModuleUID);
-            if (!$src) throw new Exception('Delivery Challan not found.');
+            if (!$src) throw new ValidationException('Delivery Challan not found.');
 
             $nextNumber   = $this->transactions_model->getNextTransactionNumber($src->PrefixUID, $orgUID, $this->pageModuleUID);
             $prefixResult = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.PrefixUID' => $src->PrefixUID, 'Prefix.OrgUID' => $orgUID]);
             $prefix       = $prefixResult->Data[0] ?? null;
-            if (!$prefix) throw new Exception('Prefix not found.');
+            if (!$prefix) throw new ValidationException('Prefix not found.');
 
             $sep   = $prefix->Separator ?? '-';
             $parts = [strtoupper($prefix->Name)];
@@ -613,6 +631,10 @@ class Deliverychallans extends MY_Controller {
             );
             $this->EndReturnData->TransUID = $newTransUID;
             $this->EndReturnData->EditURL  = '/deliverychallan/' . $newTransUID . '/edit';
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             $this->notifyError('Deliverychallans::duplicateDeliveryChallan', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -632,11 +654,11 @@ class Deliverychallans extends MY_Controller {
             $newStatus = trim(getPostValue($PostData, 'Status'));
             $userUID   = $this->pageData['JwtData']->User->UserUID;
             $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
-            if ($transUID <= 0) throw new Exception('Invalid delivery challan.');
+            if ($transUID <= 0) throw new ValidationException('Invalid delivery challan.');
 
             $this->load->model('transactions_model');
             $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
-            if (!$existing) throw new Exception('Delivery Challan not found.');
+            if (!$existing) throw new ValidationException('Delivery Challan not found.');
 
             $current    = $existing->DocStatus;
             $challanMode = $existing->DocType ?? 'Non-Returnable';
@@ -656,7 +678,7 @@ class Deliverychallans extends MY_Controller {
             ];
 
             if (!in_array($newStatus, $validTransitions[$current] ?? [])) {
-                throw new Exception("Cannot change status from {$current} to {$newStatus}.");
+                throw new ValidationException("Cannot change status from {$current} to {$newStatus}.");
             }
 
             $this->dbwrite_model->startTransaction();
@@ -683,6 +705,10 @@ class Deliverychallans extends MY_Controller {
             );
             $this->EndReturnData->NewStatus      = $newStatus;
             $this->_buildListResponse('transactions/deliverychallans/list', '/transactions/getPageDetails/112');
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             $this->notifyError('Deliverychallans::updateDeliveryChallanStatus', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -698,15 +724,15 @@ class Deliverychallans extends MY_Controller {
         try {
             $transUID = (int) $this->input->post('TransUID');
             $orgUID   = (int) $this->pageData['JwtData']->Org->OrgUID;
-            if ($transUID <= 0) throw new Exception('Invalid DC.');
+            if ($transUID <= 0) throw new ValidationException('Invalid DC.');
 
             $this->load->model('transactions_model');
             $dc    = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
-            if (!$dc) throw new Exception('Delivery Challan not found.');
+            if (!$dc) throw new ValidationException('Delivery Challan not found.');
 
             $allowedStatuses = ['Dispatched', 'Partially Returned'];
             if (!in_array($dc->DocStatus, $allowedStatuses)) {
-                throw new Exception('Partial return is only allowed for Dispatched or Partially Returned challans.');
+                throw new ValidationException('Partial return is only allowed for Dispatched or Partially Returned challans.');
             }
 
             $items      = $this->transactions_model->getTransactionItems($transUID, $orgUID);
@@ -731,6 +757,9 @@ class Deliverychallans extends MY_Controller {
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->DC      = ['UniqueNumber' => $dc->UniqueNumber, 'DocStatus' => $dc->DocStatus];
             $this->EndReturnData->Items   = $itemData;
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             $this->notifyError('Deliverychallans::getPartialReturnData', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -751,20 +780,20 @@ class Deliverychallans extends MY_Controller {
             $userUID    = (int) $this->pageData['JwtData']->User->UserUID;
             $returnJson = $this->input->post('ReturnItems');
             $notes      = trim($this->input->post('Notes') ?? '');
-            if ($transUID <= 0) throw new Exception('Invalid DC.');
+            if ($transUID <= 0) throw new ValidationException('Invalid DC.');
 
             $returnItems = json_decode($returnJson, true);
             if (empty($returnItems) || !is_array($returnItems)) {
-                throw new Exception('No items to return.');
+                throw new ValidationException('No items to return.');
             }
 
             $this->load->model('transactions_model');
             $dc = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
-            if (!$dc) throw new Exception('Delivery Challan not found.');
+            if (!$dc) throw new ValidationException('Delivery Challan not found.');
 
             $allowedStatuses = ['Dispatched', 'Partially Returned'];
             if (!in_array($dc->DocStatus, $allowedStatuses)) {
-                throw new Exception('Cannot process return for status: ' . $dc->DocStatus);
+                throw new ValidationException('Cannot process return for status: ' . $dc->DocStatus);
             }
 
             // Load dispatched items and already-returned map
@@ -786,14 +815,14 @@ class Deliverychallans extends MY_Controller {
                 if ($returnQty <= 0) continue;
 
                 $item = $dcItemMap[$transProdUID] ?? null;
-                if (!$item) throw new Exception('Invalid item reference: TransProdUID=' . $transProdUID);
+                if (!$item) throw new ValidationException('Invalid item reference: TransProdUID=' . $transProdUID);
 
                 $dispatched      = (float)$item->Quantity;
                 $alreadyReturned = (float)($returnedMap[$transProdUID] ?? 0);
                 $stillOut        = $dispatched - $alreadyReturned;
 
                 if ($returnQty > $stillOut + 0.001) {
-                    throw new Exception('"' . $item->ProductName . '": return qty (' . $returnQty . ') exceeds quantity still out (' . $stillOut . ').');
+                    throw new ValidationException('"' . $item->ProductName . '": return qty (' . $returnQty . ') exceeds quantity still out (' . $stillOut . ').');
                 }
 
                 // Insert DCReturnItemsTbl row
@@ -827,7 +856,7 @@ class Deliverychallans extends MY_Controller {
                 $totalStillOut += max(0, $stillOut - $returnQty);
             }
 
-            if (!$anyReturn) throw new Exception('No valid return quantities provided.');
+            if (!$anyReturn) throw new ValidationException('No valid return quantities provided.');
 
             // Recalculate remaining still-out across ALL items (including those not in this batch)
             foreach ($dcItems as $item) {
@@ -869,6 +898,10 @@ class Deliverychallans extends MY_Controller {
             $this->EndReturnData->NewStatus      = $newStatus;
             $this->_buildListResponse('transactions/deliverychallans/list', '/transactions/getPageDetails/112');
 
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             $this->notifyError('Deliverychallans::partialReturn', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -887,12 +920,12 @@ class Deliverychallans extends MY_Controller {
             $transUID = (int) getPostValue($PostData, 'TransUID');
             $userUID  = $this->pageData['JwtData']->User->UserUID;
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
-            if ($transUID <= 0) throw new Exception('Invalid delivery challan.');
+            if ($transUID <= 0) throw new ValidationException('Invalid delivery challan.');
 
             $this->load->model('transactions_model');
             $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
-            if (!$existing) throw new Exception('Delivery Challan not found.');
-            if ($existing->DocStatus !== 'Delivered') throw new Exception('Only Delivered challans can be converted to an Invoice.');
+            if (!$existing) throw new ValidationException('Delivery Challan not found.');
+            if ($existing->DocStatus !== 'Delivered') throw new ValidationException('Only Delivered challans can be converted to an Invoice.');
 
             $this->dbwrite_model->startTransaction();
             $resp = $this->dbwrite_model->updateData(
@@ -911,6 +944,10 @@ class Deliverychallans extends MY_Controller {
                 [], 'Converted delivery challan ' . ($existing->UniqueNumber ?? '') . ' to invoice', 'DeliveryChallans', 'TRANSACTION'
             );
             $this->EndReturnData->RedirectURL = '/invoices/create?fromChallan=' . $transUID;
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             $this->notifyError('Deliverychallans::convertChallanToInvoice', $e);
             $this->dbwrite_model->rollbackTransaction();

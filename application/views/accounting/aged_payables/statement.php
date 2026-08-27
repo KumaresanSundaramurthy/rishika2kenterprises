@@ -15,7 +15,7 @@ $asOfDisp = date($dateFmt, strtotime($AsOfDate));
  */
 function _apFmt(float $n, string $cur, int $dec): string {
     if (abs($n) < 0.005) return '<span class="text-muted aged-dash">—</span>';
-    return $cur . ' ' . number_format($n, $dec);
+    return $cur . ' ' . smartDecimal($n);
 }
 ?>
 <div class="aged-statement pl-print-header" id="apStatement">
@@ -48,7 +48,7 @@ function _apFmt(float $n, string $cur, int $dec): string {
             if ($pct < 0.1) continue;
         ?>
         <div class="aged-bar-seg <?php echo $b['cls']; ?>" style="width:<?php echo $pct; ?>%;"
-             title="<?php echo $b['label'] . ': ' . $cur . ' ' . number_format($Totals[$b['key']], $dec); ?>">
+             title="<?php echo $b['label'] . ': ' . $cur . ' ' . smartDecimal($Totals[$b['key']]); ?>">
         </div>
         <?php endforeach; ?>
     </div>
@@ -102,19 +102,19 @@ function _apFmt(float $n, string $cur, int $dec): string {
             <tr class="aged-tfoot aged-tfoot-ap">
                 <td class="fw-bold">TOTAL</td>
                 <td class="text-end fw-bold" style="color:#92400e;">
-                    <?php echo $cur . ' ' . number_format((float)($Totals['outstanding'] ?? 0), $dec); ?>
+                    <?php echo $cur . ' ' . smartDecimal($Totals['outstanding'] ?? 0); ?>
                 </td>
                 <td class="text-end fw-bold aged-col-current">
-                    <?php echo $cur . ' ' . number_format((float)($Totals['0to30'] ?? 0), $dec); ?>
+                    <?php echo $cur . ' ' . smartDecimal($Totals['0to30'] ?? 0); ?>
                 </td>
                 <td class="text-end fw-bold aged-col-warn1">
-                    <?php echo $cur . ' ' . number_format((float)($Totals['31to60'] ?? 0), $dec); ?>
+                    <?php echo $cur . ' ' . smartDecimal($Totals['31to60'] ?? 0); ?>
                 </td>
                 <td class="text-end fw-bold aged-col-warn2">
-                    <?php echo $cur . ' ' . number_format((float)($Totals['61to90'] ?? 0), $dec); ?>
+                    <?php echo $cur . ' ' . smartDecimal($Totals['61to90'] ?? 0); ?>
                 </td>
                 <td class="text-end fw-bold aged-col-overdue">
-                    <?php echo $cur . ' ' . number_format((float)($Totals['90plus'] ?? 0), $dec); ?>
+                    <?php echo $cur . ' ' . smartDecimal($Totals['90plus'] ?? 0); ?>
                 </td>
             </tr>
         </tfoot>

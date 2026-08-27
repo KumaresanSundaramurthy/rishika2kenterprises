@@ -26,6 +26,8 @@ class Salesreturns extends MY_Controller {
                 'paginationUrl'=> '/transactions/getPageDetails/106',
             ]);
             $this->load->view('transactions/salesreturns/view', $this->pageData);
+        } catch (ValidationException $e) {
+            redirect('dashboard', 'refresh');
         } catch (Exception $e) {
             notifyError('Salesreturns::index', $e);
             redirect('dashboard', 'refresh');
@@ -54,13 +56,16 @@ class Salesreturns extends MY_Controller {
             $sgstAmount    = $amounts['sgstAmount'];
             $igstAmount    = $amounts['igstAmount'];
             $transDate     = $amounts['transDate'];
-            $customerUID   = (int) getPostValue($PostData, 'customerSearch');
-            $fromInvoiceUID = (int) getPostValue($PostData, 'fromInvoiceUID');
+            $customerUID      = (int) getPostValue($PostData, 'customerSearch');
+            $rawInvoiceUIDs   = $this->input->post('fromInvoiceUIDs');
+            $decodedUIDs      = (is_string($rawInvoiceUIDs) && $rawInvoiceUIDs !== '')
+                                ? (json_decode($rawInvoiceUIDs, true) ?: [])
+                                : [];
+            $fromInvoiceUIDs  = array_values(array_filter(array_map('intval', $decodedUIDs)));
 
             // Log customer balance before SR creation
             $this->load->model('customers_model');
             $_preSR = $this->customers_model->getCustomerOpeningBalance($orgUID, $customerUID);
-            log_message('debug', '[SR-CREATE-BEFORE] CustomerUID=' . $customerUID . ' OrgUID=' . $orgUID
                 . ' SRAmount=' . $netAmount
                 . ' PendingBalance=' . ($_preSR ? $_preSR->PendingBalance : 'NULL')
                 . ' PendingBalType=' . ($_preSR ? $_preSR->PendingBalType : 'NULL'));
@@ -111,9 +116,9 @@ class Salesreturns extends MY_Controller {
             if (!$isDraft) {
                 $this->_saveTransSerials($transUID, $orgUID, $userUID, 'SalesReturn', $items, $customerUID);
                 $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items, $this->_branchUID());
-                if ($fromInvoiceUID > 0) {
+                foreach ($fromInvoiceUIDs as $invUID) {
                     $this->dbwrite_model->insertConversionRecord(
-                        $orgUID, $fromInvoiceUID, 103, $transUID, $this->pageModuleUID, 'InvoiceToSalesReturn', $userUID
+                        $orgUID, $invUID, 103, $transUID, $this->pageModuleUID, 'InvoiceToSalesReturn', $userUID
                     );
                 }
             }
@@ -121,7 +126,7 @@ class Salesreturns extends MY_Controller {
             $this->dbwrite_model->commitTransaction();
 
             if (!$isDraft) {
-                $this->_syncProductCacheFromItems($items); // after commit — ReadDB now sees updated stock
+                $this->_syncProductCacheFromItems($items); // after commit â€” ReadDB now sees updated stock
                 try {
                     $this->load->library('accountledger');
                     $this->accountledger->postSaleReturnJournal(
@@ -130,14 +135,13 @@ class Salesreturns extends MY_Controller {
                         $customerUID, $userUID
                     );
                 } catch (Exception $ledgerEx) {
-                    log_message('error', 'Ledger update failed after sales return creation: ' . $ledgerEx->getMessage());
                 }
             }
 
             $this->_saveAttachments($transUID);
             if ($isDraft) $this->cachehelper->touchCustomer($customerUID);
 
-            // â”€â”€ Save payment if recorded on create â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // Ã¢â€â‚¬Ã¢â€â‚¬ Save payment if recorded on create Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
             $hasPayment = false;
             if (!$isDraft && (int) getPostValue($PostData, 'RecordPayment') === 1) {
                 $payResult = $this->_savePaymentRecord($transUID, $orgUID, $userUID, 'C', $customerUID, $netAmount, $PostData, 'Out', $transDate);
@@ -155,7 +159,6 @@ class Salesreturns extends MY_Controller {
             }
 
             if (!$isDraft) {
-                log_message('debug', '[SR-CN-TRACE] Step1: TransUID=' . $transUID
                     . ' hasPayment=' . ($hasPayment ? 'true' : 'false')
                     . ' netAmount=' . $netAmount
                     . ' uniqueNumber=' . $uniqueNumber
@@ -163,44 +166,36 @@ class Salesreturns extends MY_Controller {
                     . ' orgUID=' . $orgUID
                     . ' RecordPayment_POST=' . (int)getPostValue($PostData, 'RecordPayment'));
 
-                // â”€â”€ Create credit note for the outstanding balance â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-                // No payment  â†’ CN for full NetAmount
-                // Partial pay â†’ CN for remaining BalanceAmount
-                // Full pay    â†’ no CN (balanceAmount = 0)
+                // Ã¢â€â‚¬Ã¢â€â‚¬ Create credit note for the outstanding balance Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+                // No payment  Ã¢â€ â€™ CN for full NetAmount
+                // Partial pay Ã¢â€ â€™ CN for remaining BalanceAmount
+                // Full pay    Ã¢â€ â€™ no CN (balanceAmount = 0)
                 $cnAmount = $hasPayment ? ($balanceAmount ?? 0) : $netAmount;
-                log_message('debug', '[SR-CN-TRACE] Step2: cnAmount=' . $cnAmount
                     . ' hasPayment=' . ($hasPayment ? 'true' : 'false')
                     . ' netAmount=' . $netAmount
                     . ' balanceAmount=' . ($balanceAmount ?? 'N/A'));
 
                 if ($cnAmount > 0) {
-                    log_message('debug', '[SR-CN-TRACE] Step2: Calling createSalesReturnCreditNote');
                     $this->load->library('customerbalance');
                     $cnResult = $this->customerbalance->createSalesReturnCreditNote(
                         $orgUID, $customerUID, $transUID, $uniqueNumber, $cnAmount, $userUID, $transDate
                     );
-                    log_message('debug', '[SR-CN-TRACE] Step3: createSalesReturnCreditNote returned=' . ($cnResult ? json_encode($cnResult) : 'NULL â€” check error log for DB failure'));
                     if ($cnResult) {
                         $this->EndReturnData->CreditNoteUID    = $cnResult['creditNoteUID'];
                         $this->EndReturnData->CreditNoteNumber = $cnResult['creditNoteNumber'];
                     } else {
-                        log_message('error', '[SR-CN-TRACE] CN creation FAILED for SR=' . $uniqueNumber . ' Amount=' . $cnAmount);
                     }
                 } else {
-                    log_message('debug', '[SR-CN-TRACE] Step2: CN creation SKIPPED â€” fully paid (cnAmount=0)');
                 }
 
                 $balResult = $this->_recalcCustomerBalance($orgUID, $customerUID, $userUID);
                 if ($balResult) {
                     $this->EndReturnData->CustomerBalance     = $balResult['balance'];
                     $this->EndReturnData->CustomerBalanceType = $balResult['type'];
-                    log_message('debug', '[SR-CN-TRACE] Step4-Balance: CustomerUID=' . $customerUID
                         . ' NewBalance=' . $balResult['balance'] . '(' . $balResult['type'] . ')');
                 } else {
-                    log_message('error', '[SR-CN-TRACE] Step4-Balance: recalcAndSync returned null for CustomerUID=' . $customerUID);
                 }
             } else {
-                log_message('debug', '[SR-CN-TRACE] Step1: isDraft=true â€” whole CN+balance block skipped');
             }
 
             $this->EndReturnData->Error    = FALSE;
@@ -212,6 +207,10 @@ class Salesreturns extends MY_Controller {
             );
             $this->EndReturnData->TransUID = $transUID;
             $this->EndReturnData->Token    = $headerData['TransToken'];
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Salesreturns::addSalesReturn', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -231,7 +230,7 @@ class Salesreturns extends MY_Controller {
             $userUID  = $this->pageData['JwtData']->User->UserUID;
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
             $transUID = (int) getPostValue($PostData, 'TransUID');
-            if ($transUID <= 0) throw new Exception('Sales Return ID is required.');
+            if ($transUID <= 0) throw new ValidationException('Sales Return ID is required.');
 
             $itemsJson = $this->_validateTransForm($PostData);
             $amounts   = $this->_extractTransAmounts($PostData, $itemsJson);
@@ -255,19 +254,19 @@ class Salesreturns extends MY_Controller {
 
             $this->load->model('transactions_model');
             $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
-            if (!$existing) throw new Exception('Sales Return not found.');
+            if (!$existing) throw new ValidationException('Sales Return not found.');
 
             $uniqueNumber = NULL;
             if ($existing->DocStatus === 'Draft' && !$isDraft) {
-                if ($prefixUID <= 0) throw new Exception('Please select a prefix to finalise this return.');
-                if ($transNumber <= 0) throw new Exception('Transaction number must be greater than 0.');
+                if ($prefixUID <= 0) throw new ValidationException('Please select a prefix to finalise this return.');
+                if ($transNumber <= 0) throw new ValidationException('Transaction number must be greater than 0.');
                 $prefixData = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.PrefixUID' => $prefixUID, 'Prefix.OrgUID' => $orgUID]);
-                if (empty($prefixData->Data)) throw new Exception('Invalid prefix selected.');
+                if (empty($prefixData->Data)) throw new ValidationException('Invalid prefix selected.');
                 $prefix   = $prefixData->Data[0];
                 $dupCheck = $this->transactions_model->getTransactionByPrefixAndNumber($prefixUID, $transNumber, $orgUID, $this->pageModuleUID);
                 if ($dupCheck) {
                     $nextSuggested = $this->transactions_model->getNextTransactionNumber($prefixUID, $orgUID, $this->pageModuleUID);
-                    throw new Exception("Transaction number {$transNumber} already exists. Next available: {$nextSuggested}.");
+                    throw new ValidationException("Transaction number {$transNumber} already exists. Next available: {$nextSuggested}.");
                 }
                 [$uniqueNumber] = $this->buildUniqueNumber($prefix, $transNumber, $amounts['transDate']);
             }
@@ -345,8 +344,61 @@ class Salesreturns extends MY_Controller {
 
             $activeTransUID = $newTransUID ?? $transUID;
             $this->_saveTransCharges($activeTransUID, $orgUID, $userUID, $PostData);
+
+            // Sync TransConversionTbl: soft-delete records for invoices that no longer
+            // have any active items linked to this SR (items removed during edit).
+            $wdb = $this->dbwrite_model->getWriteDb();
+            $wdb->db_debug = FALSE;
+            $activeInvoiceRows = $wdb->query(
+                'SELECT DISTINCT src.TransUID
+                 FROM Transaction.TransProductsTbl sr
+                 INNER JOIN Transaction.TransProductsTbl src ON src.TransProdUID = sr.SourceTransProdUID
+                 WHERE sr.TransUID = ? AND sr.IsDeleted = 0 AND sr.IsActive = 1
+                   AND src.IsDeleted = 0',
+                [$activeTransUID]
+            )->result_array();
+            $activeInvoiceUIDs = array_column($activeInvoiceRows, 'TransUID');
+            $wdb->where(['TargetTransUID' => $activeTransUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
+            if (!empty($activeInvoiceUIDs)) {
+                $wdb->where_not_in('SourceTransUID', $activeInvoiceUIDs);
+            }
+            $wdb->update('Transaction.TransConversionTbl', [
+                'IsDeleted' => 1,
+                'UpdatedBy' => $userUID,
+                'UpdatedOn' => date('Y-m-d H:i:s'),
+            ]);
+
+            // Insert or restore conversion records for invoices newly linked in this edit.
+            foreach ($activeInvoiceUIDs as $invUID) {
+                $invUID   = (int) $invUID;
+                $existing = $wdb->query(
+                    'SELECT ConversionUID, IsDeleted FROM Transaction.TransConversionTbl
+                     WHERE SourceTransUID = ? AND TargetTransUID = ? LIMIT 1',
+                    [$invUID, $activeTransUID]
+                )->row();
+
+                if ($existing) {
+                    if ((int) $existing->IsDeleted === 1) {
+                        // Previously removed â€” restore it
+                        $wdb->where('ConversionUID', $existing->ConversionUID)
+                            ->update('Transaction.TransConversionTbl', [
+                                'IsDeleted'   => 0,
+                                'IsCancelled' => 0,
+                                'UpdatedBy'   => $userUID,
+                                'UpdatedOn'   => date('Y-m-d H:i:s'),
+                            ]);
+                    }
+                    // else: record is already active â€” nothing to do
+                } else {
+                    // Brand new invoice added in this edit â€” insert fresh record
+                    $this->dbwrite_model->insertConversionRecord(
+                        $orgUID, $invUID, 103, $activeTransUID, $this->pageModuleUID, 'InvoiceToSalesReturn', $userUID
+                    );
+                }
+            }
+
             $this->dbwrite_model->commitTransaction();
-            if (!$isDraft) { $this->_syncProductCacheByTransUID($activeTransUID); } // after commit — ReadDB now sees updated stock
+            if (!$isDraft) { $this->_syncProductCacheByTransUID($activeTransUID); } // after commit â€” ReadDB now sees updated stock
             $this->_saveAttachments($activeTransUID);
             $this->_softDeleteAttachments($this->input->post('RemovedAttachIDs') ?? '');
             $this->cachehelper->touchCustomer($customerUID);
@@ -359,6 +411,10 @@ class Salesreturns extends MY_Controller {
                 'UPDATE_SALES_RETURN', 'SalesReturn', (int) $activeTransUID, (string) ($uniqueNumber ?? $existing->UniqueNumber ?? ''),
                 [], 'Updated sales return ' . ($uniqueNumber ?? $existing->UniqueNumber ?? ''), 'SalesReturns', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
             );
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Salesreturns::updateSalesReturn', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -376,25 +432,25 @@ class Salesreturns extends MY_Controller {
             $userUID  = $this->pageData['JwtData']->User->UserUID;
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
             $transUID = (int) getPostValue($PostData, 'TransUID');
-            if ($transUID <= 0) throw new Exception('Sales Return ID is required.');
+            if ($transUID <= 0) throw new ValidationException('Sales Return ID is required.');
             $this->load->model('transactions_model');
             $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
-            if (!$existing) throw new Exception('Sales Return not found.');
+            if (!$existing) throw new ValidationException('Sales Return not found.');
 
             if (!in_array($existing->DocStatus, ['Draft', 'Approved', 'Partial', 'Paid'])) {
-                throw new Exception('Only Draft, Approved, Partial, or fully paid sales returns can be deleted.');
+                throw new ValidationException('Only Draft, Approved, Partial, or fully paid sales returns can be deleted.');
             }
 
-            // Check 1: block if credit was applied via applyCredit() â€” PaymentsTbl path
+            // Check 1: block if credit was applied via applyCredit() Ã¢â‚¬â€ PaymentsTbl path
             $creditApplied = $this->_getSRCreditApplied($existing->UniqueNumber, $orgUID);
             if ($creditApplied > 0) {
-                throw new Exception(
+                throw new ValidationException(
                     'This Sales Return has already been applied to one or more invoices. ' .
                     'Please reverse the credit allocations before deleting.'
                 );
             }
 
-            // Check 2: block if CN was applied via applyCreditNote() â€” CN Status path
+            // Check 2: block if CN was applied via applyCreditNote() Ã¢â‚¬â€ CN Status path
             $readDb = $this->load->database('ReadDB', TRUE);
             $readDb->db_debug = FALSE;
             $readDb->from('Transaction.TransCreditNoteTbl');
@@ -406,7 +462,7 @@ class Salesreturns extends MY_Controller {
                 'Status'          => 'Applied',
             ]);
             if ($readDb->get()->num_rows() > 0) {
-                throw new Exception(
+                throw new ValidationException(
                     'This Sales Return\'s credit note has been applied to an invoice. ' .
                     'Please reverse the credit allocation before deleting.'
                 );
@@ -443,8 +499,9 @@ class Salesreturns extends MY_Controller {
             $deleteData['IsActive'] = 0;
             $deleteResp = $this->dbwrite_model->updateData('Transaction', 'TransactionsTbl', $deleteData, ['TransUID' => $transUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
             if ($deleteResp->Error) throw new Exception($deleteResp->Message);
+            $this->dbwrite_model->markConversionDeleted($transUID, $orgUID, $userUID);
             $this->dbwrite_model->commitTransaction();
-            $this->_syncProductCacheByTransUID($transUID); // after commit — ReadDB now sees reverted stock
+            $this->_syncProductCacheByTransUID($transUID); // after commit â€” ReadDB now sees reverted stock
 
             $this->_recalcCustomerBalance($orgUID, (int)$existing->PartyUID, $userUID);
 
@@ -453,7 +510,6 @@ class Salesreturns extends MY_Controller {
                 $this->load->library('accountledger');
                 $this->accountledger->reverseJournal('SalesReturn', $transUID, $userUID);
             } catch (Exception $ledgerEx) {
-                log_message('error', 'Ledger reverse failed after sales return delete #' . $transUID . ': ' . $ledgerEx->getMessage());
             }
 
             $this->EndReturnData->Error   = FALSE;
@@ -465,6 +521,10 @@ class Salesreturns extends MY_Controller {
             );
 
             $this->_buildListResponse('transactions/salesreturns/list', '/transactions/getPageDetails/106');
+        } catch (ValidationException $e) {
+            if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Salesreturns::deleteSalesReturn', $e);
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
@@ -483,15 +543,15 @@ class Salesreturns extends MY_Controller {
             $srcUID   = (int) getPostValue($PostData, 'TransUID');
             $userUID  = $this->pageData['JwtData']->User->UserUID;
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
-            if ($srcUID <= 0) throw new Exception('Invalid sales return.');
+            if ($srcUID <= 0) throw new ValidationException('Invalid sales return.');
             $this->load->model('transactions_model');
             $src = $this->transactions_model->getTransactionById($srcUID, $orgUID, $this->pageModuleUID);
-            if (!$src) throw new Exception('Sales Return not found.');
+            if (!$src) throw new ValidationException('Sales Return not found.');
 
             $nextNumber   = $this->transactions_model->getNextTransactionNumber($src->PrefixUID, $orgUID, $this->pageModuleUID);
             $prefixResult = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.PrefixUID' => $src->PrefixUID, 'Prefix.OrgUID' => $orgUID]);
             $prefix       = $prefixResult->Data[0] ?? null;
-            if (!$prefix) throw new Exception('Prefix not found.');
+            if (!$prefix) throw new ValidationException('Prefix not found.');
 
             $sep   = $prefix->Separator ?? '-';
             $parts = [strtoupper($prefix->Name)];
@@ -613,6 +673,10 @@ class Salesreturns extends MY_Controller {
             );
             $this->EndReturnData->TransUID = $newTransUID;
             $this->EndReturnData->EditURL  = '/salesreturns/edit/' . $newTransUID;
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Salesreturns::duplicateSalesReturn', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -631,7 +695,7 @@ class Salesreturns extends MY_Controller {
             $newStatus = trim(getPostValue($PostData, 'Status'));
             $userUID   = $this->pageData['JwtData']->User->UserUID;
             $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
-            if ($transUID <= 0) throw new Exception('Invalid sales return.');
+            if ($transUID <= 0) throw new ValidationException('Invalid sales return.');
 
             $validTransitions = [
                 'Draft'     => ['Approved', 'Cancelled'],
@@ -648,13 +712,13 @@ class Salesreturns extends MY_Controller {
             $this->load->model('customers_model');
 
             $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
-            if (!$existing) throw new Exception('Sales Return not found.');
+            if (!$existing) throw new ValidationException('Sales Return not found.');
             $current = $existing->DocStatus;
-            if (!in_array($newStatus, $validTransitions[$current] ?? [])) throw new Exception("Cannot change status from {$current} to {$newStatus}.");
+            if (!in_array($newStatus, $validTransitions[$current] ?? [])) throw new ValidationException("Cannot change status from {$current} to {$newStatus}.");
 
             $this->dbwrite_model->startTransaction();
 
-            // â”€â”€ Pre-cancel dependency checks (before any DB write) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // Ã¢â€â‚¬Ã¢â€â‚¬ Pre-cancel dependency checks (before any DB write) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
             $hasCashRefunds = false;
             $cancelAction   = '';
             $totalRefunded  = 0;
@@ -664,7 +728,7 @@ class Salesreturns extends MY_Controller {
                 // User must manually reverse those allocations before cancelling.
                 $creditApplied = $this->_getSRCreditApplied($existing->UniqueNumber, $orgUID);
                 if ($creditApplied > 0) {
-                    throw new Exception(
+                    throw new ValidationException(
                         'This Sales Return has already been applied to one or more invoices. ' .
                         'Please reverse the credit allocations before cancelling.'
                     );
@@ -676,7 +740,7 @@ class Salesreturns extends MY_Controller {
                 if ($hasCashRefunds) {
                     $cancelAction = trim($this->input->post('CancelPaymentAction') ?? '');
                     if (!in_array($cancelAction, ['recover', 'writeoff'])) {
-                        // No valid action supplied â€” tell the frontend to show the action dialog.
+                        // No valid action supplied Ã¢â‚¬â€ tell the frontend to show the action dialog.
                         $this->dbwrite_model->rollbackTransaction();
                         $this->EndReturnData->Error          = FALSE;
                         $this->EndReturnData->RequiresAction = TRUE;
@@ -707,7 +771,7 @@ class Salesreturns extends MY_Controller {
                     $wdb = $this->dbwrite_model->getWriteDb();
                     $wdb->db_debug = FALSE;
                     if ($cancelAction === 'writeoff') {
-                        // Accept the refund as a business loss â€” mark payments written off
+                        // Accept the refund as a business loss Ã¢â‚¬â€ mark payments written off
                         $wdb->where(['TransUID' => $transUID, 'IsDeleted' => 0])
                             ->where('PaymentTypeUID !=', 0)
                             ->update('Transaction.PaymentsTbl', ['IsCancelled' => 1, 'UpdatedBy' => $userUID]);
@@ -753,10 +817,14 @@ class Salesreturns extends MY_Controller {
                 ]);
             }
 
+            if ($newStatus === 'Cancelled') {
+                $this->dbwrite_model->markConversionCancelled($transUID, $orgUID, $userUID);
+            }
+
             // Commit BEFORE recalculating balance so ReadDB sees DocStatus='Cancelled'
             // and getCustomerTotalReturned correctly excludes the cancelled SR.
             $this->dbwrite_model->commitTransaction();
-            if ($newStatus === 'Cancelled') { $this->_syncProductCacheByTransUID($transUID); } // after commit — ReadDB now sees reverted stock
+            if ($newStatus === 'Cancelled') { $this->_syncProductCacheByTransUID($transUID); } // after commit â€” ReadDB now sees reverted stock
 
             if ($newStatus === 'Cancelled') {
                 $balResult = $this->_recalcCustomerBalance($orgUID, (int)$existing->PartyUID, $userUID);
@@ -784,6 +852,10 @@ class Salesreturns extends MY_Controller {
                 ['NewStatus' => $newStatus], 'Updated sales return status to ' . $newStatus, 'SalesReturns', 'TRANSACTION'
             );
             $this->EndReturnData->NewStatus = $newStatus;
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Salesreturns::updateSalesReturnStatus', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -798,11 +870,11 @@ class Salesreturns extends MY_Controller {
         try {
             $transUID = (int) $this->input->post('TransUID');
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
-            if ($transUID <= 0) throw new Exception('Invalid sales return.');
+            if ($transUID <= 0) throw new ValidationException('Invalid sales return.');
 
             $this->load->model('transactions_model');
             $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
-            if (!$existing) throw new Exception('Sales Return not found.');
+            if (!$existing) throw new ValidationException('Sales Return not found.');
 
             $creditApplied = $this->_getSRCreditApplied($existing->UniqueNumber, $orgUID);
             $totalRefunded = $this->_getSRTotalRefunded($transUID, $orgUID);
@@ -812,6 +884,9 @@ class Salesreturns extends MY_Controller {
             $this->EndReturnData->CreditAmount     = $creditApplied;
             $this->EndReturnData->HasRefunds       = $totalRefunded > 0;
             $this->EndReturnData->RefundAmount     = $totalRefunded;
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Salesreturns::getSRCancelDependencies', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -824,19 +899,22 @@ class Salesreturns extends MY_Controller {
     public function getInvoiceItems() {
         $this->EndReturnData = new stdClass();
         try {
-            $transUID = (int) $this->input->post('TransUID');
-            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
-            if ($transUID <= 0) throw new Exception('Invalid invoice.');
+            $transUID     = (int) $this->input->post('TransUID');
+            $excludeSrUID = (int) $this->input->post('ExcludeSrUID');
+            $orgUID       = $this->pageData['JwtData']->Org->OrgUID;
+            if ($transUID <= 0) throw new ValidationException('Invalid invoice.');
 
             $this->load->model('transactions_model');
             $header = $this->transactions_model->getTransactionById($transUID, $orgUID, 103);
-            if (!$header) throw new Exception('Invoice not found.');
+            if (!$header) throw new ValidationException('Invoice not found.');
             $items  = $this->transactions_model->getTransactionItems($transUID, $orgUID);
 
-            // Annotate each item with how much quantity has already been returned
+            // Annotate each item with how much quantity has already been returned.
+            // When editing an SR, exclude the current SR's own items from the count
+            // so the user can re-add items they just removed from the bill.
             if (!empty($items)) {
                 $transProdUIDs = array_map(fn($i) => (int)$i->TransProdUID, $items);
-                $returnedMap   = $this->transactions_model->getReturnedQtyMapForItems($transProdUIDs, $orgUID);
+                $returnedMap   = $this->transactions_model->getReturnedQtyMapForItems($transProdUIDs, $orgUID, $excludeSrUID);
                 foreach ($items as $item) {
                     $item->ReturnedQty  = $returnedMap[(int)$item->TransProdUID] ?? 0;
                     $item->RemainingQty = max(0, (float)$item->Quantity - $item->ReturnedQty);
@@ -848,6 +926,9 @@ class Salesreturns extends MY_Controller {
             $this->EndReturnData->Error   = false;
             $this->EndReturnData->Header  = $header;
             $this->EndReturnData->Items   = $items;
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Salesreturns::getInvoiceItems', $e);
             $this->EndReturnData->Error   = true;
@@ -859,14 +940,18 @@ class Salesreturns extends MY_Controller {
     public function getCustomerInvoices() {
         $this->EndReturnData = new stdClass();
         try {
-            $customerUID = (int) $this->input->post('CustomerUID');
-            $orgUID      = $this->pageData['JwtData']->Org->OrgUID;
-            if ($customerUID <= 0) throw new Exception('Invalid customer.');
+            $customerUID  = (int) $this->input->post('CustomerUID');
+            $excludeSrUID = (int) $this->input->post('ExcludeSrUID');
+            $orgUID       = $this->pageData['JwtData']->Org->OrgUID;
+            if ($customerUID <= 0) throw new ValidationException('Invalid customer.');
 
             $this->load->model('transactions_model');
 
             $this->EndReturnData->Error    = false;
-            $this->EndReturnData->Invoices = $this->transactions_model->getCustomerInvoicesWithReturnableItems($customerUID, $orgUID);
+            $this->EndReturnData->Invoices = $this->transactions_model->getCustomerInvoicesWithReturnableItems($customerUID, $orgUID, $excludeSrUID);
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Salesreturns::getCustomerInvoices', $e);
             $this->EndReturnData->Error   = true;
@@ -900,6 +985,8 @@ class Salesreturns extends MY_Controller {
             $this->pageData['IsEditMode']         = false;
 
             $this->load->view('transactions/salesreturns/forms/form', $this->pageData);
+        } catch (ValidationException $e) {
+            redirect('salesreturns', 'refresh');
         } catch (Exception $e) {
             notifyError('Salesreturns::create', $e);
             redirect('salesreturns', 'refresh');
@@ -937,10 +1024,12 @@ class Salesreturns extends MY_Controller {
             $this->pageData['IsEditMode']         = true;
             $this->pageData['SRSerialsByProd']    = $this->_getTransSerialsGrouped($transUID, $orgUID, 'SalesReturn');
 
-            // Attachments — load server-side to avoid AJAX call on page load
+            // Attachments â€” load server-side to avoid AJAX call on page load
             $this->pageData['SRAttachments'] = $this->transactions_model->getTransactionAttachments($transUID, $orgUID);
 
             $this->load->view('transactions/salesreturns/forms/form', $this->pageData);
+        } catch (ValidationException $e) {
+            redirect('salesreturns', 'refresh');
         } catch (Exception $e) {
             notifyError('Salesreturns::edit', $e);
             redirect('salesreturns', 'refresh');
@@ -959,7 +1048,7 @@ class Salesreturns extends MY_Controller {
         try {
             $transUID = (int) $this->input->post('TransUID');
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
-            if ($transUID <= 0) throw new Exception('Invalid transaction.');
+            if ($transUID <= 0) throw new ValidationException('Invalid transaction.');
             $this->load->model('transactions_model');
             $payments    = $this->transactions_model->getTransactionPayments($transUID, $orgUID);
             $attachments = [];
@@ -974,6 +1063,9 @@ class Salesreturns extends MY_Controller {
             }
             $this->EndReturnData->Error       = FALSE;
             $this->EndReturnData->Attachments = $attachments;
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Salesreturns::getPaymentAttachments', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -1001,24 +1093,24 @@ class Salesreturns extends MY_Controller {
             $referenceNo    =         getPostValue($PostData, 'ReferenceNo') ?: NULL;
             $notes          =         getPostValue($PostData, 'Notes') ?: NULL;
 
-            if ($transUID <= 0)       throw new Exception('Invalid transaction.');
-            if ($paymentTypeUID <= 0) throw new Exception('Please select a payment type.');
-            if ($amount <= 0)         throw new Exception('Amount must be greater than 0.');
+            if ($transUID <= 0)       throw new ValidationException('Invalid transaction.');
+            if ($paymentTypeUID <= 0) throw new ValidationException('Please select a payment type.');
+            if ($amount <= 0)         throw new ValidationException('Amount must be greater than 0.');
 
             $this->load->model('transactions_model');
             $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
-            if (!$existing) throw new Exception('Sales Return not found.');
-            if ($existing->DocStatus === 'Draft')                          throw new Exception('Cannot record payment for a Draft.');
-            if (in_array($existing->DocStatus, ['Cancelled', 'Rejected'])) throw new Exception('Sales Return is cancelled.');
+            if (!$existing) throw new ValidationException('Sales Return not found.');
+            if ($existing->DocStatus === 'Draft')                          throw new ValidationException('Cannot record payment for a Draft.');
+            if (in_array($existing->DocStatus, ['Cancelled', 'Rejected'])) throw new ValidationException('Sales Return is cancelled.');
 
             if (!$this->dbwrite_model->lockTransactionRow($transUID, $orgUID)) {
-                throw new Exception('Sales Return not found.');
+                throw new ValidationException('Sales Return not found.');
             }
             $alreadyPaid = $this->dbwrite_model->sumTransactionPayments($transUID, $orgUID);
             $pending     = max(0, round((float)$existing->NetAmount - $alreadyPaid, $this->_decimals()));
 
             if ($amount > $pending + 0.01) {
-                throw new Exception('Amount exceeds remaining balance (' . $pending . '). A concurrent payment may have just been recorded.');
+                throw new ValidationException('Amount exceeds remaining balance (' . $pending . '). A concurrent payment may have just been recorded.');
             }
 
             $newTotalPaid = $alreadyPaid + $amount;
@@ -1084,7 +1176,7 @@ class Salesreturns extends MY_Controller {
             $this->dbwrite_model->updateTransIsFullyPaid($transUID, $isFullyPaid, $newTotalPaid, $balanceAmount, $userUID);
             $this->dbwrite_model->updateTransDocStatus($transUID, $orgUID, $newStatus, $userUID);
 
-            // â”€â”€ Reduce linked Credit Note by the payment amount â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // Ã¢â€â‚¬Ã¢â€â‚¬ Reduce linked Credit Note by the payment amount Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
             // Only acts when a Pending CN exists (partial SR scenario).
             // Full-payment SR never has a CN, so this block is a no-op there.
             $wdb = $this->dbwrite_model->getWriteDb();
@@ -1128,6 +1220,10 @@ class Salesreturns extends MY_Controller {
                 ['Amount' => $amount], 'Recorded payment of ' . $amount . ' for sales return ' . ($existing->UniqueNumber ?? ''), 'SalesReturns', 'PAYMENT'
             );
 
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Salesreturns::recordPayment', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -1235,16 +1331,19 @@ class Salesreturns extends MY_Controller {
         try {
             $srUID  = (int) $this->input->post('SalesReturnUID');
             $orgUID = $this->pageData['JwtData']->Org->OrgUID;
-            if ($srUID <= 0) throw new Exception('Invalid sales return.');
+            if ($srUID <= 0) throw new ValidationException('Invalid sales return.');
 
             $this->load->model('transactions_model');
             $sr = $this->transactions_model->getTransactionById($srUID, $orgUID, $this->pageModuleUID);
-            if (!$sr) throw new Exception('Sales Return not found.');
+            if (!$sr) throw new ValidationException('Sales Return not found.');
 
             $customerUID = (int) $sr->PartyUID;
 
             $this->EndReturnData->Error    = false;
             $this->EndReturnData->Invoices = $this->transactions_model->getPendingInvoicesForCustomer($customerUID, $orgUID);
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Salesreturns::getPendingInvoices', $e);
             $this->EndReturnData->Error   = true;
@@ -1267,34 +1366,34 @@ class Salesreturns extends MY_Controller {
             $amount     = (float) getPostValue($PostData, 'Amount', 'Array', 0);
             $notes      = getPostValue($PostData, 'Notes') ?: NULL;
 
-            if ($srUID <= 0)      throw new Exception('Invalid sales return.');
-            if ($invoiceUID <= 0) throw new Exception('Please select an invoice.');
-            if ($amount <= 0)     throw new Exception('Amount must be greater than 0.');
+            if ($srUID <= 0)      throw new ValidationException('Invalid sales return.');
+            if ($invoiceUID <= 0) throw new ValidationException('Please select an invoice.');
+            if ($amount <= 0)     throw new ValidationException('Amount must be greater than 0.');
 
             $sr = $this->transactions_model->getTransactionById($srUID, $orgUID, $this->pageModuleUID);
-            if (!$sr) throw new Exception('Sales Return not found.');
+            if (!$sr) throw new ValidationException('Sales Return not found.');
             if (in_array($sr->DocStatus, ['Draft', 'Cancelled', 'Rejected'])) {
-                throw new Exception('Cannot apply credit for this Sales Return.');
+                throw new ValidationException('Cannot apply credit for this Sales Return.');
             }
 
             $srPaid    = (float)($sr->PaidAmount    ?? 0);
             $srBalance = max(0, round((float)$sr->NetAmount - $srPaid, $this->_decimals()));
-            if ($srBalance <= 0) throw new Exception('No credit balance available on this Sales Return.');
+            if ($srBalance <= 0) throw new ValidationException('No credit balance available on this Sales Return.');
 
             $invoice = $this->transactions_model->getTransactionById($invoiceUID, $orgUID, 103);
-            if (!$invoice) throw new Exception('Invoice not found.');
-            if ($invoice->PartyUID != $sr->PartyUID) throw new Exception('Invoice does not belong to the same customer.');
+            if (!$invoice) throw new ValidationException('Invoice not found.');
+            if ($invoice->PartyUID != $sr->PartyUID) throw new ValidationException('Invoice does not belong to the same customer.');
             if (in_array($invoice->DocStatus, ['Draft', 'Cancelled', 'Paid'])) {
-                throw new Exception('This invoice cannot receive a credit adjustment.');
+                throw new ValidationException('This invoice cannot receive a credit adjustment.');
             }
 
             $invPaid    = (float)($invoice->PaidAmount    ?? 0);
             $invBalance = max(0, round((float)$invoice->NetAmount - $invPaid, $this->_decimals()));
-            if ($invBalance <= 0) throw new Exception('Invoice has no pending balance.');
+            if ($invBalance <= 0) throw new ValidationException('Invoice has no pending balance.');
 
             $maxAmount = min($srBalance, $invBalance);
             if ($amount > $maxAmount + 0.01) {
-                throw new Exception('Amount exceeds available credit (' . number_format($maxAmount, 2) . ').');
+                throw new ValidationException('Amount exceeds available credit (' . smartDecimal($maxAmount) . ').');
             }
             $amount = min($amount, $maxAmount);
 
@@ -1377,8 +1476,12 @@ class Salesreturns extends MY_Controller {
             $this->dbwrite_model->commitTransaction();
 
             $this->EndReturnData->Error   = FALSE;
-            $this->EndReturnData->Message = 'Credit of ' . number_format($amount, 2) . ' applied to invoice ' . ($invoice->UniqueNumber ?? '#' . $invoiceUID) . '.';
+            $this->EndReturnData->Message = 'Credit of ' . smartDecimal($amount) . ' applied to invoice ' . ($invoice->UniqueNumber ?? '#' . $invoiceUID) . '.';
 
+        } catch (ValidationException $e) {
+            if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Salesreturns::applyCredit', $e);
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();

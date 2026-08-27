@@ -392,7 +392,7 @@ class Transactions extends MY_Controller {
     // ----------------------------------------------------------------
     // GET|POST /transactions/getTransactionDetail
     // Common function to fetch transaction header, items, org info,
-    // thermal config and print theme — used by all transaction pages.
+    // thermal config and print theme â€” used by all transaction pages.
     // ----------------------------------------------------------------
     public function getTransactionDetail() {
 
@@ -415,7 +415,7 @@ class Transactions extends MY_Controller {
             $this->EndReturnData->Header = $header;
 
             if ($printType === 'a4') {
-                // A4 / A5 print — server renders HTML; JS only needs Header + PrintHtml
+                // A4 / A5 print â€” server renders HTML; JS only needs Header + PrintHtml
                 $items = $this->transactions_model->getTransactionItems($transUID, $orgUID);
                 $this->load->model('organisation_model');
                 $orgInfo          = $this->organisation_model->getOrgInfoCached($orgUID);
@@ -434,7 +434,7 @@ class Transactions extends MY_Controller {
                 }
 
             } elseif ($printType === 'thermal') {
-                // Thermal print — JS builds the receipt; needs Header + Items + OrgInfo + ThermalConfig
+                // Thermal print â€” JS builds the receipt; needs Header + Items + OrgInfo + ThermalConfig
                 $this->EndReturnData->Items = $this->transactions_model->getTransactionItems($transUID, $orgUID);
                 $this->load->model('organisation_model');
                 $orgInfo          = $this->organisation_model->getOrgInfoCached($orgUID);
@@ -443,7 +443,7 @@ class Transactions extends MY_Controller {
                 $this->EndReturnData->ThermalConfig = $thermalCfgResult->Data ?? null;
 
             } elseif ($printType === 'view') {
-                // View modal — JS renders detail panel; needs Header + Items + Payments + PaidTotal + Attachments + OrgInfo
+                // View modal â€” JS renders detail panel; needs Header + Items + Payments + PaidTotal + Attachments + OrgInfo
                 $this->EndReturnData->Items       = $this->transactions_model->getTransactionItems($transUID, $orgUID);
                 $payments                          = $this->transactions_model->getTransactionPayments($transUID, $orgUID);
                 $this->EndReturnData->Payments    = $payments;
@@ -453,12 +453,12 @@ class Transactions extends MY_Controller {
                 $orgInfo                          = $this->organisation_model->getOrgInfoCached($orgUID);
                 $this->EndReturnData->OrgInfo     = $orgInfo->Data ?? null;
 
-                // AmountInWords — for email template token replacement
+                // AmountInWords â€” for email template token replacement
                 $header->AmountInWords = function_exists('print_number_to_words')
                     ? print_number_to_words((float)($header->NetAmount ?? 0))
                     : '';
 
-                // Permissions — separate object so callers (viewTransModal, future modals) can gate UI actions
+                // Permissions â€” separate object so callers (viewTransModal, future modals) can gate UI actions
                 $_nonEditableStatuses = ['Converted', 'Cancelled', 'Rejected'];
                 $permissions          = new stdClass();
                 $permissions->CanEdit = !in_array($header->DocStatus ?? '', $_nonEditableStatuses);
@@ -476,7 +476,7 @@ class Transactions extends MY_Controller {
     }
 
     // Composites the QR code and logo overlay into a single base64 PNG using GD.
-    // This is called only for PDF output — Dompdf cannot handle position:absolute overlays.
+    // This is called only for PDF output â€” Dompdf cannot handle position:absolute overlays.
     private function _compositeQrForPdf(string $html): string {
         $pattern = '/<div[^>]*>\s*<img[^>]+src="(https:\/\/api\.qrserver\.com[^"]+)"[^>]*>\s*<div[^>]*class="qr-logo-overlay"[^>]*>\s*<img[^>]+src="([^"]+)"[^>]*>\s*<\/div>\s*<\/div>/is';
 
@@ -526,7 +526,7 @@ class Transactions extends MY_Controller {
     // ----------------------------------------------------------------
     // POST /transactions/downloadA4Pdf
     // Renders the transaction as HTML, converts to PDF via DomPDF,
-    // ── Generic attachment fetch for all modules ─────────────────────────────
+    // â”€â”€ Generic attachment fetch for all modules â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // Single endpoint for all 9 modules: transactions, expenses, indirect income.
     // POST: TransUID, ModuleUID
     // ModuleUID 114 = Expenses, 115 = Indirect Income, all others = standard transactions.
@@ -560,7 +560,7 @@ class Transactions extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Generic PDF base64 for email auto-attach (all transaction modules) ───
+    // â”€â”€ Generic PDF base64 for email auto-attach (all transaction modules) â”€â”€â”€
     // Replaces the old per-module getQuotationPdfBase64 endpoint.
     // POST: TransUID, ModuleUID, PaperSize
     public function getTransactionPdfBase64() {
@@ -584,7 +584,7 @@ class Transactions extends MY_Controller {
             $this->load->model('organisation_model');
             $themeResult = $this->organisation_model->getPrintThemeByModule($orgUID, $moduleUID);
             if (empty($themeResult->Data) || empty($themeResult->Data->TemplateHtmlContent)) {
-                throw new Exception('Print template not configured for "' . $header->TransType . '". Please set it up in Settings → Print Templates before sending.');
+                throw new Exception('Print template not configured for "' . $header->TransType . '". Please set it up in Settings â†’ Print Templates before sending.');
             }
 
             $pdfBytes = $this->transactions_model->getOrGeneratePdfBytes($transUID, $orgUID, $moduleUID, $paperSize);
@@ -717,7 +717,7 @@ class Transactions extends MY_Controller {
 
     }
 
-    // ── Bulk delete transactions ─────────────────────────────────────────────
+    // â”€â”€ Bulk delete transactions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function deleteMultipleTransactions(int $moduleUID = 0): void {
         $this->EndReturnData = new stdClass();
         try {
@@ -866,7 +866,6 @@ class Transactions extends MY_Controller {
                 }
                 $this->accountledger->reverseJournal('Invoice', $transUID, $userUID);
             } catch (Throwable $e) {
-                log_message('error', 'Bulk inv delete ledger #' . $transUID . ': ' . $e->getMessage());
             }
         }
 
@@ -877,7 +876,6 @@ class Transactions extends MY_Controller {
                 $this->accountledger->applyLedgerEntry($existing->PartyUID, 'Vendor', (float)($existing->NetAmount ?? 0), 'Debit', $transUID);
                 $this->accountledger->reverseJournal('Purchase', $transUID, $userUID);
             } catch (Throwable $e) {
-                log_message('error', 'Bulk purch delete ledger #' . $transUID . ': ' . $e->getMessage());
             }
             $this->_recalcVendorBalance($orgUID, (int)$existing->PartyUID, $userUID);
         }
@@ -888,7 +886,6 @@ class Transactions extends MY_Controller {
                 $this->load->library('accountledger');
                 $this->accountledger->reverseJournal('SalesReturn', $transUID, $userUID);
             } catch (Throwable $e) {
-                log_message('error', 'Bulk SR delete ledger #' . $transUID . ': ' . $e->getMessage());
             }
         }
 
@@ -898,7 +895,6 @@ class Transactions extends MY_Controller {
                 $this->load->library('accountledger');
                 $this->accountledger->reverseJournal('PurchaseReturn', $transUID, $userUID);
             } catch (Throwable $e) {
-                log_message('error', 'Bulk PR delete ledger #' . $transUID . ': ' . $e->getMessage());
             }
         }
     }

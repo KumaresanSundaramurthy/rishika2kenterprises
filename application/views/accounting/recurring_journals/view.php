@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var object $Stats */ $Stats    = $Stats    ?? new stdClass();
 /** @var int $TotalCount */ $TotalCount = $TotalCount ?? 0;
 $dateFmt = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';

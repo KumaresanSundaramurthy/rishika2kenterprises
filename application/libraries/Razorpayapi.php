@@ -1,10 +1,10 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
 
 /**
- * Razorpayapi — cURL wrapper for Razorpay REST API v1.
+ * Razorpayapi â€” cURL wrapper for Razorpay REST API v1.
  * Reads credentials from environment variables:
- *   RAZORPAY_KEY_ID      — rzp_live_xxx or rzp_test_xxx
- *   RAZORPAY_KEY_SECRET  — secret key
+ *   RAZORPAY_KEY_ID      â€” rzp_live_xxx or rzp_test_xxx
+ *   RAZORPAY_KEY_SECRET  â€” secret key
  *
  * No external SDK required; works in the existing Docker/PHP environment.
  */
@@ -92,7 +92,6 @@ class Razorpayapi {
 
         if (!empty($data['error'])) {
             $msg = $data['error']['description'] ?? ($data['error']['code'] ?? 'Razorpay error');
-            log_message('error', '[Razorpay] API error (HTTP ' . $code . '): ' . json_encode($data['error']));
             throw new Exception($msg);
         }
 

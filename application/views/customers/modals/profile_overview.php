@@ -23,8 +23,8 @@
  * @var string      $DateFormat
  */
 
-$fmt     = function (float $v) use ($Cur, $Dec): string {
-    return $Cur . ' ' . number_format($v, $Dec);
+$fmt     = function (float $v) use ($Cur): string {
+    return $Cur . ' ' . smartDecimal($v);
 };
 $tags    = !empty($Cust->Tags) ? array_filter(explode(',', $Cust->Tags)) : [];
 $name    = htmlspecialchars($Cust->Name ?? '');
@@ -187,7 +187,7 @@ $initials = strtoupper(substr($words[0] ?? '', 0, 1)) . strtoupper(substr($words
                         <?php if (!empty($Cust->DiscountPercent) && $Cust->DiscountPercent > 0): ?>
                         <div class="col-sm-6">
                             <div class="text-muted mb-1" style="font-size:.72rem;">Default Discount</div>
-                            <div><?php echo number_format((float)$Cust->DiscountPercent, 2); ?>%</div>
+                            <div><?php echo smartDecimal($Cust->DiscountPercent ?? 0); ?>%</div>
                         </div>
                         <?php endif; ?>
 
@@ -375,7 +375,7 @@ $initials = strtoupper(substr($words[0] ?? '', 0, 1)) . strtoupper(substr($words
                             $monthLbl = substr($row['MonthLabel'], 0, 3);
                         ?>
                         <div class="d-flex flex-column align-items-center gap-1 flex-grow-1">
-                            <div class="text-muted" style="font-size:.65rem;" title="<?php echo $Cur . ' ' . number_format($row['Total'], $Dec); ?>">
+                            <div class="text-muted" style="font-size:.65rem;" title="<?php echo $Cur . ' ' . smartDecimal($row['Total']); ?>">
                                 <?php echo $Cur . number_format($row['Total'] / 1000, 1); ?>k
                             </div>
                             <div class="w-100 rounded-top" style="height:<?php echo max(4, $pct); ?>px;background:#696cff;opacity:.8;min-width:20px;"></div>

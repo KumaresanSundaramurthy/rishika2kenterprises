@@ -14,7 +14,7 @@ class Expenses extends MY_Controller {
         $this->load->model('transactions_model');
     }
 
-    // ── Add Expense page ─────────────────────────────────────────────────────
+    // â”€â”€ Add Expense page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function openCreate(): void {
         if (!$this->_loadPageTitle($this->pageModuleUID)) {
             $this->load->view('common/module_error', $this->pageData);
@@ -30,14 +30,15 @@ class Expenses extends MY_Controller {
             $this->pageData['ExpenseItems']      = [];
             $this->pageData['ExpenseAttachments']= [];
             $this->load->view('transactions/expenses/forms/form', $this->pageData);
+        } catch (ValidationException $e) {
+            redirect('expenses', 'refresh');
         } catch (Throwable $e) {
             notifyError('Expenses::openCreate', $e);
-            log_message('error', 'Expenses::createForm — ' . $e->getMessage());
             redirect('expenses', 'refresh');
         }
     }
 
-    // ── Edit Expense page ─────────────────────────────────────────────────────
+    // â”€â”€ Edit Expense page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function openEdit(int $expenseUID = 0): void {
         if (!$this->_loadPageTitle($this->pageModuleUID)) {
             $this->load->view('common/module_error', $this->pageData);
@@ -57,7 +58,7 @@ class Expenses extends MY_Controller {
             $this->load->model('transactions_model');
             $this->pageData['ExpenseAttachments'] = $this->transactions_model->getExpenseIncomeAttachments($expenseUID, $orgUID, 'Expense');
 
-            // Vendor billing state — used by view to determine intra/inter-state GST
+            // Vendor billing state â€” used by view to determine intra/inter-state GST
             $vendorStateCode = '';
             if ((int)($expense->VendorUID ?? 0) > 0) {
                 $this->load->model('vendors_model');
@@ -70,14 +71,15 @@ class Expenses extends MY_Controller {
             $this->pageData['VendorStateCode'] = $vendorStateCode;
 
             $this->load->view('transactions/expenses/forms/form', $this->pageData);
+        } catch (ValidationException $e) {
+            redirect('expenses', 'refresh');
         } catch (Throwable $e) {
             notifyError('Expenses::openEdit', $e);
-            log_message('error', 'Expenses::editForm — ' . $e->getMessage());
             redirect('expenses', 'refresh');
         }
     }
 
-    // ── List page ────────────────────────────────────────────────────────────
+    // â”€â”€ List page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function index() {
         if (!$this->_loadPageTitle($this->pageModuleUID)) {
             $this->load->view('common/module_error', $this->pageData);
@@ -123,14 +125,15 @@ class Expenses extends MY_Controller {
 
             $this->load->view('transactions/expenses/view', $this->pageData);
 
+        } catch (ValidationException $e) {
+            redirect('dashboard', 'refresh');
         } catch (Throwable $e) {
             notifyError('Expenses::index', $e);
-            log_message('error', 'Expenses::index — ' . $e->getMessage());
             redirect('dashboard', 'refresh');
         }
     }
 
-    // ── AJAX pagination ──────────────────────────────────────────────────────
+    // â”€â”€ AJAX pagination â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getPageDetails($pageNo = 1) {
         $this->EndReturnData = new stdClass();
         try {
@@ -160,6 +163,9 @@ class Expenses extends MY_Controller {
                 $this->EndReturnData->SummaryStats = $this->expenses_model->getExpenseSummaryStats($orgUID, $this->_branchUID());
             }
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Throwable $e) {
             notifyError('Expenses::getPageDetails', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -168,7 +174,7 @@ class Expenses extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Add expense (modal AJAX) ──────────────────────────────────────────────
+    // â”€â”€ Add expense (modal AJAX) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function addExpense() {
         $this->EndReturnData = new stdClass();
         try {
@@ -221,7 +227,6 @@ class Expenses extends MY_Controller {
                     );
                 }
             } catch (Exception $ledgerEx) {
-                log_message('error', 'Ledger update failed after expense creation: ' . $ledgerEx->getMessage());
             }
 
             $vendorUID = (int)($data['VendorUID'] ?? 0);
@@ -230,7 +235,6 @@ class Expenses extends MY_Controller {
                     $this->load->library('cachehelper');
                     $this->cachehelper->upsertVendor($vendorUID);
                 } catch (Exception $cacheEx) {
-                    log_message('error', 'Vendor cache sync failed after expense creation: ' . $cacheEx->getMessage());
                 }
             }
 
@@ -247,6 +251,10 @@ class Expenses extends MY_Controller {
             $this->EndReturnData->ExpenseUID    = $expenseUID;
             $this->EndReturnData->ExpenseNumber = $expenseNumber;
 
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Throwable $e) {
             notifyError('Expenses::addExpense', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -257,7 +265,7 @@ class Expenses extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Update expense (modal AJAX) ───────────────────────────────────────────
+    // â”€â”€ Update expense (modal AJAX) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function updateExpense() {
         $this->EndReturnData = new stdClass();
         try {
@@ -266,13 +274,12 @@ class Expenses extends MY_Controller {
             $userUID    = $this->pageData['JwtData']->User->UserUID;
             $orgUID     = $this->pageData['JwtData']->Org->OrgUID;
 
-            if ($expenseUID <= 0) throw new Exception('Invalid expense record.');
+            if ($expenseUID <= 0) throw new ValidationException('Invalid expense record.');
 
             $existing = $this->expenses_model->getExpenseById($expenseUID, $orgUID);
-            if (!$existing) throw new Exception('Expense not found.');
-            if ($existing->DocStatus === 'Cancelled') throw new Exception('This expense cannot be edited.');
+            if (!$existing) throw new ValidationException('Expense not found.');
+            if ($existing->DocStatus === 'Cancelled') throw new ValidationException('This expense cannot be edited.');
 
-            log_message('debug', '[EXP-BAL] updateExpense START → expenseUID=' . $expenseUID
                 . ' DocStatus=' . $existing->DocStatus
                 . ' NetAmount=' . $existing->NetAmount
                 . ' PaidAmount=' . ($existing->PaidAmount ?? 0)
@@ -283,14 +290,14 @@ class Expenses extends MY_Controller {
             unset($data['CreatedBy'], $data['CreatedOn'], $data['OrgUID'], $data['ModuleUID']);
 
             // Recalculate payment status: PaidAmount in DB is what was actually paid,
-            // the new NetAmount is the updated expense total — derive DocStatus from their difference.
+            // the new NetAmount is the updated expense total â€” derive DocStatus from their difference.
             $dec        = $this->_decimals();
             $paidAmount = round((float)($existing->PaidAmount ?? 0), $dec);
             $newNetAmt  = (float)$data['NetAmount'];
 
             // Server-side guard: new amount cannot drop below what was already paid
             if ($paidAmount > 0 && $newNetAmt < $paidAmount - 0.001) {
-                throw new Exception(
+                throw new ValidationException(
                     'Amount cannot be less than ' . $this->_currency() . ' ' .
                     number_format($paidAmount, $dec) . ' (already paid).'
                 );
@@ -329,7 +336,6 @@ class Expenses extends MY_Controller {
             $this->_saveAttachments($expenseUID, 'Expense');
 
             // Reverse old journal and re-post with new amount/date (non-fatal)
-            log_message('debug', '[EXP-BAL] updateExpense → new NetAmount=' . $data['NetAmount'] . ' BalanceAmount=' . ($data['BalanceAmount'] ?? 'n/a') . ' PaidAmount=' . ($data['PaidAmount'] ?? 'n/a') . ' VendorUID=' . ($data['VendorUID'] ?? 'NULL'));
             try {
                 $this->load->library('accountledger');
                 $this->accountledger->reverseJournal('Expense', $expenseUID, $userUID);
@@ -351,7 +357,6 @@ class Expenses extends MY_Controller {
                     $this->accountledger->ensurePaymentJournals($expenseUID, $journalVendorUID, $userUID);
                 }
             } catch (Exception $ledgerEx) {
-                log_message('error', 'Ledger update failed after expense edit #' . $expenseUID . ': ' . $ledgerEx->getMessage());
             }
 
             $vendorUID = (int)($data['VendorUID'] ?? 0);
@@ -360,7 +365,6 @@ class Expenses extends MY_Controller {
                     $this->load->library('cachehelper');
                     $this->cachehelper->upsertVendor($vendorUID);
                 } catch (Exception $cacheEx) {
-                    log_message('error', 'Vendor cache sync failed after expense update: ' . $cacheEx->getMessage());
                 }
             }
 
@@ -373,6 +377,10 @@ class Expenses extends MY_Controller {
                 [], 'Updated expense ' . ($existing->ExpenseNumber ?? ''), 'Expenses', 'TRANSACTION', 'SUCCESS', '', 'WEB', [], [], $PostData
             );
 
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Throwable $e) {
             notifyError('Expenses::updateExpense', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -383,7 +391,7 @@ class Expenses extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Delete expense ───────────────────────────────────────────────────────
+    // â”€â”€ Delete expense â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function deleteExpense() {
         $this->EndReturnData = new stdClass();
         try {
@@ -392,11 +400,11 @@ class Expenses extends MY_Controller {
             $userUID    = $this->pageData['JwtData']->User->UserUID;
             $orgUID     = $this->pageData['JwtData']->Org->OrgUID;
 
-            if ($expenseUID <= 0) throw new Exception('Invalid expense record.');
+            if ($expenseUID <= 0) throw new ValidationException('Invalid expense record.');
 
             $existing = $this->expenses_model->getExpenseById($expenseUID, $orgUID);
-            if (!$existing) throw new Exception('Expense not found.');
-            if ($existing->DocStatus === 'Cancelled') throw new Exception('Cancelled expenses cannot be deleted.');
+            if (!$existing) throw new ValidationException('Expense not found.');
+            if ($existing->DocStatus === 'Cancelled') throw new ValidationException('Cancelled expenses cannot be deleted.');
 
             $deleteData = $this->globalservice->baseDeleteArrayDetails();
             $deleteData['IsActive'] = 0;
@@ -421,7 +429,6 @@ class Expenses extends MY_Controller {
                 $this->load->library('accountledger');
                 $this->accountledger->reverseJournal('Expense', $expenseUID, $userUID);
             } catch (Exception $ledgerEx) {
-                log_message('error', 'Ledger reverse failed after expense delete #' . $expenseUID . ': ' . $ledgerEx->getMessage());
             }
 
             $this->EndReturnData->Error   = FALSE;
@@ -432,6 +439,9 @@ class Expenses extends MY_Controller {
                 [], 'Deleted expense ' . ($existing->ExpenseNumber ?? ''), 'Expenses', 'TRANSACTION'
             );
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Throwable $e) {
             notifyError('Expenses::deleteExpense', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -445,7 +455,7 @@ class Expenses extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Duplicate expense (creates a Pending copy dated today) ───────────────
+    // â”€â”€ Duplicate expense (creates a Pending copy dated today) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function duplicateExpense() {
         $this->EndReturnData = new stdClass();
         try {
@@ -454,10 +464,10 @@ class Expenses extends MY_Controller {
             $userUID    = $this->pageData['JwtData']->User->UserUID;
             $orgUID     = $this->pageData['JwtData']->Org->OrgUID;
 
-            if ($expenseUID <= 0) throw new Exception('Invalid expense record.');
+            if ($expenseUID <= 0) throw new ValidationException('Invalid expense record.');
 
             $src = $this->expenses_model->getExpenseById($expenseUID, $orgUID);
-            if (!$src) throw new Exception('Expense not found.');
+            if (!$src) throw new ValidationException('Expense not found.');
 
             $data = [
                 'OrgUID'        => $orgUID,
@@ -502,6 +512,9 @@ class Expenses extends MY_Controller {
                 [], 'Duplicated expense ' . $newNumber, 'Expenses', 'TRANSACTION'
             );
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Throwable $e) {
             notifyError('Expenses::duplicateExpense', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -515,7 +528,7 @@ class Expenses extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Record payment via shared modal ─────────────────────────────────────────
+    // â”€â”€ Record payment via shared modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function recordPayment() {
         $this->EndReturnData = new stdClass();
         try {
@@ -524,12 +537,12 @@ class Expenses extends MY_Controller {
             $userUID    = $this->pageData['JwtData']->User->UserUID;
             $orgUID     = $this->pageData['JwtData']->Org->OrgUID;
 
-            if ($expenseUID <= 0) throw new Exception('Invalid expense record.');
+            if ($expenseUID <= 0) throw new ValidationException('Invalid expense record.');
 
             $existing = $this->expenses_model->getExpenseById($expenseUID, $orgUID);
-            if (!$existing) throw new Exception('Expense not found.');
+            if (!$existing) throw new ValidationException('Expense not found.');
             if (!in_array($existing->DocStatus, ['Pending', 'Partial'])) {
-                throw new Exception('Payment can only be recorded for Pending or Partially Paid expenses.');
+                throw new ValidationException('Payment can only be recorded for Pending or Partially Paid expenses.');
             }
 
             $paymentTypeUID = (int)getPostValue($PostData, 'PaymentTypeUID') ?: NULL;
@@ -539,15 +552,15 @@ class Expenses extends MY_Controller {
             $notes          = getPostValue($PostData, 'Notes')       ?: NULL;
             $paymentAmount  = round((float)getPostValue($PostData, 'Amount'), $this->_decimals());
 
-            if (!$paymentTypeUID) throw new Exception('Please select a payment type.');
-            if ($paymentAmount <= 0) throw new Exception('Payment amount must be greater than 0.');
+            if (!$paymentTypeUID) throw new ValidationException('Please select a payment type.');
+            if ($paymentAmount <= 0) throw new ValidationException('Payment amount must be greater than 0.');
 
             $netAmount     = round((float)$existing->NetAmount, $this->_decimals());
             $existingPaid  = round((float)($existing->PaidAmount ?? 0), $this->_decimals());
             $newPaidAmount = round($existingPaid + $paymentAmount, $this->_decimals());
 
             if ($newPaidAmount > $netAmount + 0.01) {
-                throw new Exception('Total payments (' . $newPaidAmount . ') cannot exceed the expense amount (' . $netAmount . ').');
+                throw new ValidationException('Total payments (' . $newPaidAmount . ') cannot exceed the expense amount (' . $netAmount . ').');
             }
 
             $newPaidAmount  = min($newPaidAmount, $netAmount);
@@ -626,7 +639,7 @@ class Expenses extends MY_Controller {
                     'SourceUID'      => $expenseUID,
                     'ModuleUID'      => $this->pageModuleUID,
                     'ReferenceNo'    => $referenceNo,
-                    'Narration'      => ($isFullyPaid ? 'Expense paid' : 'Expense partially paid') . ' — ' . $existing->ExpenseNumber,
+                    'Narration'      => ($isFullyPaid ? 'Expense paid' : 'Expense partially paid') . ' â€” ' . $existing->ExpenseNumber,
                     'IsActive'       => 1,
                     'IsDeleted'      => 0,
                     'CreatedBy'      => $userUID,
@@ -642,7 +655,7 @@ class Expenses extends MY_Controller {
 
             // Sync vendor ledger journals and Upstash cache.
             // ensurePaymentJournals back-fills any historical payments that predate
-            // the journaling fix, then journals the current payment — so the vendor
+            // the journaling fix, then journals the current payment â€” so the vendor
             // balance always equals the true outstanding BalanceAmount.
             $vendorUID = (int)($existing->VendorUID ?? 0);
             if ($vendorUID > 0) {
@@ -650,13 +663,11 @@ class Expenses extends MY_Controller {
                     $this->load->library('accountledger');
                     $this->accountledger->ensurePaymentJournals($expenseUID, $vendorUID, $userUID);
                 } catch (Throwable $jEx) {
-                    log_message('error', 'Expense payment journal failed: ' . $jEx->getMessage());
                 }
                 try {
                     $this->load->library('cachehelper');
                     $this->cachehelper->upsertVendor($vendorUID);
                 } catch (Throwable $cEx) {
-                    log_message('error', 'Vendor cache sync failed after expense payment: ' . $cEx->getMessage());
                 }
             }
 
@@ -670,6 +681,10 @@ class Expenses extends MY_Controller {
                 ['Amount' => $paymentAmount], 'Recorded payment for expense ' . ($existing->ExpenseNumber ?? ''), 'Expenses', 'PAYMENT'
             );
 
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Throwable $e) {
             notifyError('Expenses::recordPayment', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -684,13 +699,13 @@ class Expenses extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Payment history popup ────────────────────────────────────────────────
+    // â”€â”€ Payment history popup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getPaymentHistory() {
         $this->EndReturnData = new stdClass();
         try {
             $expenseUID = (int)$this->input->post('TransUID');
             $orgUID     = $this->pageData['JwtData']->Org->OrgUID;
-            if ($expenseUID <= 0) throw new Exception('Invalid expense.');
+            if ($expenseUID <= 0) throw new ValidationException('Invalid expense.');
 
             $this->load->model('transactions_model');
             $payments = $this->transactions_model->getTransactionPayments($expenseUID, $orgUID);
@@ -707,6 +722,9 @@ class Expenses extends MY_Controller {
 
             $this->EndReturnData->Error    = FALSE;
             $this->EndReturnData->Payments = $list;
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Expenses::getPaymentHistory', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -715,13 +733,13 @@ class Expenses extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Payment attachments ──────────────────────────────────────────────────
+    // â”€â”€ Payment attachments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getPaymentAttachments() {
         $this->EndReturnData = new stdClass();
         try {
             $expenseUID = (int)$this->input->post('TransUID');
             $orgUID     = $this->pageData['JwtData']->Org->OrgUID;
-            if ($expenseUID <= 0) throw new Exception('Invalid expense.');
+            if ($expenseUID <= 0) throw new ValidationException('Invalid expense.');
 
             $this->load->model('transactions_model');
             $payments    = $this->transactions_model->getTransactionPayments($expenseUID, $orgUID);
@@ -738,6 +756,9 @@ class Expenses extends MY_Controller {
 
             $this->EndReturnData->Error       = FALSE;
             $this->EndReturnData->Attachments = $attachments;
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
             notifyError('Expenses::getPaymentAttachments', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -746,7 +767,7 @@ class Expenses extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Update status (Pending → Paid / Cancelled, Paid → Cancelled) ─────────
+    // â”€â”€ Update status (Pending â†’ Paid / Cancelled, Paid â†’ Cancelled) â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function updateExpenseStatus() {
         $this->EndReturnData = new stdClass();
         try {
@@ -756,11 +777,11 @@ class Expenses extends MY_Controller {
             $userUID    = $this->pageData['JwtData']->User->UserUID;
             $orgUID     = $this->pageData['JwtData']->Org->OrgUID;
 
-            if ($expenseUID <= 0)  throw new Exception('Invalid expense record.');
-            if (empty($newStatus)) throw new Exception('Status is required.');
+            if ($expenseUID <= 0)  throw new ValidationException('Invalid expense record.');
+            if (empty($newStatus)) throw new ValidationException('Status is required.');
 
             $existing = $this->expenses_model->getExpenseById($expenseUID, $orgUID);
-            if (!$existing) throw new Exception('Expense not found.');
+            if (!$existing) throw new ValidationException('Expense not found.');
 
             $allowed = [
                 'Pending' => ['Paid', 'Cancelled'],
@@ -768,7 +789,7 @@ class Expenses extends MY_Controller {
             ];
 
             if (!isset($allowed[$existing->DocStatus]) || !in_array($newStatus, $allowed[$existing->DocStatus])) {
-                throw new Exception('Invalid status transition.');
+                throw new ValidationException('Invalid status transition.');
             }
 
             $this->dbwrite_model->startTransaction();
@@ -817,7 +838,6 @@ class Expenses extends MY_Controller {
                     );
                 }
             } catch (Exception $ledgerEx) {
-                log_message('error', 'Ledger failed on expense status change #' . $expenseUID . ': ' . $ledgerEx->getMessage());
             }
 
             $vendorUID = (int)($existing->VendorUID ?? 0);
@@ -826,7 +846,6 @@ class Expenses extends MY_Controller {
                     $this->load->library('cachehelper');
                     $this->cachehelper->upsertVendor($vendorUID);
                 } catch (Exception $cacheEx) {
-                    log_message('error', 'Vendor cache sync failed after expense status change: ' . $cacheEx->getMessage());
                 }
             }
 
@@ -838,6 +857,10 @@ class Expenses extends MY_Controller {
                 ['NewStatus' => $newStatus], 'Updated expense status ' . ($existing->ExpenseNumber ?? ''), 'Expenses', 'TRANSACTION'
             );
 
+        } catch (ValidationException $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Throwable $e) {
             notifyError('Expenses::updateExpenseStatus', $e);
             $this->dbwrite_model->rollbackTransaction();
@@ -852,9 +875,9 @@ class Expenses extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Get attachments for a single expense ────────────────────────────────
+    // â”€â”€ Get attachments for a single expense â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-    // ── Get single expense detail ────────────────────────────────────────────
+    // â”€â”€ Get single expense detail â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getExpenseDetail() {
         $this->EndReturnData = new stdClass();
         try {
@@ -862,15 +885,18 @@ class Expenses extends MY_Controller {
             $expenseUID = (int)getPostValue($PostData, 'ExpenseUID');
             $orgUID     = $this->pageData['JwtData']->Org->OrgUID;
 
-            if ($expenseUID <= 0) throw new Exception('Invalid expense record.');
+            if ($expenseUID <= 0) throw new ValidationException('Invalid expense record.');
 
             $expense = $this->expenses_model->getExpenseById($expenseUID, $orgUID);
-            if (!$expense) throw new Exception('Expense not found.');
+            if (!$expense) throw new ValidationException('Expense not found.');
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $expense;
             $this->EndReturnData->Items = $this->expenses_model->getExpenseItems($expenseUID, $orgUID);
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Throwable $e) {
             notifyError('Expenses::getExpenseDetail', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -879,13 +905,16 @@ class Expenses extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Get category list ─────────────────────────────────────────────────────
+    // â”€â”€ Get category list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getCategories() {
         $this->EndReturnData = new stdClass();
         try {
             $orgUID = $this->pageData['JwtData']->Org->OrgUID;
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $this->expenses_model->getCategories($orgUID);
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Throwable $e) {
             notifyError('Expenses::getCategories', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -894,13 +923,16 @@ class Expenses extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── TDS Sections dropdown data ────────────────────────────────────────────
+    // â”€â”€ TDS Sections dropdown data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getTdsSections(): void {
         $this->EndReturnData = new stdClass();
         try {
             $sections = $this->expenses_model->getTdsSections();
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $sections;
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Throwable $e) {
             notifyError('Expenses::getTdsSections', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -909,7 +941,7 @@ class Expenses extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Add new category ──────────────────────────────────────────────────────
+    // â”€â”€ Add new category â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function addCategory() {
         $this->EndReturnData = new stdClass();
         try {
@@ -918,7 +950,7 @@ class Expenses extends MY_Controller {
             $orgUID       = $this->pageData['JwtData']->Org->OrgUID;
             $userUID      = $this->pageData['JwtData']->User->UserUID;
 
-            if (empty($categoryName)) throw new Exception('Category name is required.');
+            if (empty($categoryName)) throw new ValidationException('Category name is required.');
 
             $resp = $this->dbwrite_model->insertData('Transaction', 'ExpenseCategoryTbl', [
                 'OrgUID'       => $orgUID,
@@ -944,6 +976,9 @@ class Expenses extends MY_Controller {
             $this->EndReturnData->CategoryName = $categoryName;
             $this->_appendCategoryListResponse($orgUID);
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Throwable $e) {
             notifyError('Expenses::addCategory', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -952,7 +987,7 @@ class Expenses extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Category list (paginated, for manager modal) ─────────────────────────
+    // â”€â”€ Category list (paginated, for manager modal) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getCategoryList() {
         $this->EndReturnData = new stdClass();
         try {
@@ -967,6 +1002,9 @@ class Expenses extends MY_Controller {
             $this->EndReturnData->RecordHtmlData = $this->_buildCategoryListHtml($list);
             $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml('/expenses/getCategoryList', $total, $pageNo, $limit);
             $this->EndReturnData->TotalCount     = $total;
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Throwable $e) {
             notifyError('Expenses::getCategoryList', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -975,7 +1013,7 @@ class Expenses extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Update category name ──────────────────────────────────────────────────
+    // â”€â”€ Update category name â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function updateCategory() {
         $this->EndReturnData = new stdClass();
         try {
@@ -985,8 +1023,8 @@ class Expenses extends MY_Controller {
             $userUID     = $this->pageData['JwtData']->User->UserUID;
             $name        = trim(getPostValue($PostData, 'CategoryName'));
 
-            if ($categoryUID <= 0) throw new Exception('Invalid category.');
-            if (empty($name))      throw new Exception('Category name is required.');
+            if ($categoryUID <= 0) throw new ValidationException('Invalid category.');
+            if (empty($name))      throw new ValidationException('Category name is required.');
 
             $resp = $this->dbwrite_model->updateData(
                 'Transaction', 'ExpenseCategoryTbl',
@@ -1005,6 +1043,9 @@ class Expenses extends MY_Controller {
             $this->EndReturnData->CategoryUID  = $categoryUID;
             $this->EndReturnData->CategoryName = $name;
             $this->_appendCategoryListResponse($orgUID);
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Throwable $e) {
             notifyError('Expenses::updateCategory', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -1013,7 +1054,7 @@ class Expenses extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Delete category ───────────────────────────────────────────────────────
+    // â”€â”€ Delete category â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function deleteCategory() {
         $this->EndReturnData = new stdClass();
         try {
@@ -1022,10 +1063,10 @@ class Expenses extends MY_Controller {
             $orgUID      = $this->pageData['JwtData']->Org->OrgUID;
             $userUID     = $this->pageData['JwtData']->User->UserUID;
 
-            if ($categoryUID <= 0) throw new Exception('Invalid category.');
+            if ($categoryUID <= 0) throw new ValidationException('Invalid category.');
 
             if ($this->expenses_model->isCategoryLinked($categoryUID, $orgUID)) {
-                throw new Exception('This category is linked to one or more expenses and cannot be deleted. Please reassign those expenses first.');
+                throw new ValidationException('This category is linked to one or more expenses and cannot be deleted. Please reassign those expenses first.');
             }
 
             $resp = $this->dbwrite_model->updateData(
@@ -1044,6 +1085,9 @@ class Expenses extends MY_Controller {
             );
             $this->EndReturnData->CategoryUID = $categoryUID;
             $this->_appendCategoryListResponse($orgUID);
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Throwable $e) {
             notifyError('Expenses::deleteCategory', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -1052,9 +1096,9 @@ class Expenses extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ═══════════════════════════════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     // Private helpers
-    // ═══════════════════════════════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
     // Builds refreshed list HTML + pagination + optional stats and appends to EndReturnData
     private function _appendListResponse($orgUID) {
@@ -1140,25 +1184,25 @@ class Expenses extends MY_Controller {
         $notes       =      getPostValue($PostData, 'Notes') ?: null;
         $taxApplicable = (int)getPostValue($PostData, 'TaxApplicable') ? 1 : 0;
         $vendorUID   = (int)getPostValue($PostData, 'VendorUID') ?: null;
-        if ($taxApplicable && !$vendorUID) throw new Exception('Please select a vendor.');
+        if ($taxApplicable && !$vendorUID) throw new ValidationException('Please select a vendor.');
         $supplierDate=      getPostValue($PostData, 'SupplierInvoiceDate') ?: null;
         $supplierRef =      getPostValue($PostData, 'SupplierInvoiceSerialNo') ?: null;
         $amountType  =      getPostValue($PostData, 'AmountType') ?: 'TotalAmount';
         if ($amountType === 'TaxableAmount') $amountType = 'NetAmount'; // normalise legacy value
         if (!in_array($amountType, ['NetAmount', 'TotalAmount'])) $amountType = 'TotalAmount';
 
-        if (empty($expenseDate)) throw new Exception('Expense date is required.');
+        if (empty($expenseDate)) throw new ValidationException('Expense date is required.');
         if ($isCreate && $isPaid && !(int)getPostValue($PostData, 'PaymentTypeUID')) {
-            throw new Exception('Please select a payment type.');
+            throw new ValidationException('Please select a payment type.');
         }
 
-        // ── Tax mode branch ───────────────────────────────────────────────────
+        // â”€â”€ Tax mode branch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         if (!$taxApplicable) $amountType = null;
         $simpleAmount  = 0.0;
 
         if (!$taxApplicable) {
             $simpleAmount = round((float)getPostValue($PostData, 'SimpleAmount'), $dec);
-            if ($simpleAmount <= 0) throw new Exception('Expense amount must be greater than 0.');
+            if ($simpleAmount <= 0) throw new ValidationException('Expense amount must be greater than 0.');
             $taxableSum = $simpleAmount;
             $taxAmtSum  = 0.0;
             $cgstSum    = 0.0;
@@ -1169,7 +1213,7 @@ class Expenses extends MY_Controller {
             $itemsJson = getPostValue($PostData, 'Items');
             $rawItems  = $itemsJson ? json_decode($itemsJson, true) : [];
             if (!is_array($rawItems) || empty($rawItems)) {
-                throw new Exception('At least one expense item is required.');
+                throw new ValidationException('At least one expense item is required.');
             }
             $taxableSum = 0.0;
             $taxAmtSum  = 0.0;
@@ -1191,27 +1235,27 @@ class Expenses extends MY_Controller {
             $sgstSum    = round($sgstSum,    $dec);
             $igstSum    = round($igstSum,    $dec);
             $totalSum   = round($totalSum,   $dec);
-            if ($taxableSum <= 0 && $totalSum <= 0) throw new Exception('Expense amount must be greater than 0.');
+            if ($taxableSum <= 0 && $totalSum <= 0) throw new ValidationException('Expense amount must be greater than 0.');
         }
         $taxPct        = $taxApplicable ? round((float)getPostValue($PostData, 'TaxPercentage'), 2) : 0.0;
 
-        // ── TDS ───────────────────────────────────────────────────────────────
+        // â”€â”€ TDS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         $tdsApplicable  = (int)getPostValue($PostData, 'TDSApplicable') ? 1 : 0;
         $tdsSectionUID  = $tdsApplicable ? max(0, (int)getPostValue($PostData, 'TdsSectionUID')) : 0;
         if ($tdsApplicable && $tdsSectionUID <= 0) {
-            throw new Exception('Please select a TDS section.');
+            throw new ValidationException('Please select a TDS section.');
         }
         $tdsPct         = $tdsApplicable ? round((float)getPostValue($PostData, 'TDSPercentage'), 2) : 0.0;
         $tdsAmt         = $tdsApplicable ? round($totalSum * $tdsPct / 100, $dec) : 0.0;
 
-        // ── RCM ───────────────────────────────────────────────────────────────
+        // â”€â”€ RCM â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         $rcmApplicable = (int)getPostValue($PostData, 'RCMApplicable') ? 1 : 0;
         $rcmAmount     = $rcmApplicable ? round((float)getPostValue($PostData, 'RCMAmount'), $dec) : 0.0;
 
-        // ── Round Off ─────────────────────────────────────────────────────────
+        // â”€â”€ Round Off â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         $roundOff = round((float)getPostValue($PostData, 'RoundOff'), $dec);
 
-        // ── Final amounts ─────────────────────────────────────────────────────
+        // â”€â”€ Final amounts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         $netAmount = round($totalSum + $roundOff - $tdsAmt, $dec);
 
         $data = [
@@ -1257,12 +1301,12 @@ class Expenses extends MY_Controller {
         return $data;
     }
 
-    // Saves parsed items to ExpenseItemsTbl — skipped entirely for without-tax mode.
-    // On create: all items have UID=0 → INSERT.
+    // Saves parsed items to ExpenseItemsTbl â€” skipped entirely for without-tax mode.
+    // On create: all items have UID=0 â†’ INSERT.
     // On update:
-    //   - UID > 0 → UPDATE that specific row in place
-    //   - UID = 0 → INSERT as new row
-    //   - DeletedItemUIDs (sent explicitly by frontend) → soft-delete those rows
+    //   - UID > 0 â†’ UPDATE that specific row in place
+    //   - UID = 0 â†’ INSERT as new row
+    //   - DeletedItemUIDs (sent explicitly by frontend) â†’ soft-delete those rows
     private function _saveExpenseItems(array $PostData, int $expenseUID, int $orgUID, int $actorUID): void {
         if (!(int)getPostValue($PostData, 'TaxApplicable')) return;
 
@@ -1324,7 +1368,7 @@ class Expenses extends MY_Controller {
         $paymentDate    = getPostValue($PostData, 'PaymentDate') ?: $fallbackDate;
         $paymentNotes   = getPostValue($PostData, 'PaymentNotes') ?: NULL;
 
-        if (!$paymentTypeUID) throw new Exception('Please select a payment type.');
+        if (!$paymentTypeUID) throw new ValidationException('Please select a payment type.');
 
         $payTransYear  = (int)date('Y', strtotime($paymentDate));
         $payPrefixData = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.OrgUID' => $orgUID, 'Prefix.ModuleUID' => $this->pageModuleUID]);
@@ -1382,7 +1426,7 @@ class Expenses extends MY_Controller {
                 'SourceUID'      => $expenseUID,
                 'ModuleUID'      => $this->pageModuleUID,
                 'ReferenceNo'    => null,
-                'Narration'      => 'Expense paid — ' . $expenseNumber,
+                'Narration'      => 'Expense paid â€” ' . $expenseNumber,
                 'IsActive'       => 1,
                 'IsDeleted'      => 0,
                 'CreatedBy'      => $userUID,
@@ -1398,7 +1442,7 @@ class Expenses extends MY_Controller {
         ];
     }
 
-    // ── Bulk delete expenses ─────────────────────────────────────────────────
+    // â”€â”€ Bulk delete expenses â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function deleteMultipleExpenses(): void {
         $this->EndReturnData = new stdClass();
         try {
@@ -1418,7 +1462,7 @@ class Expenses extends MY_Controller {
                     : [];
             }
 
-            if (empty($expenseUIDs)) throw new Exception('No records selected.');
+            if (empty($expenseUIDs)) throw new ValidationException('No records selected.');
 
             $deleted = 0;
             $errors  = [];
@@ -1448,16 +1492,17 @@ class Expenses extends MY_Controller {
                         $this->load->library('accountledger');
                         $this->accountledger->reverseJournal('Expense', (int)$expenseUID, $userUID);
                     } catch (Throwable $ledgerEx) {
-                        log_message('error', 'Bulk expense delete ledger #' . $expenseUID . ': ' . $ledgerEx->getMessage());
                     }
 
                     $deleted++;
+                } catch (ValidationException $e) {
+                    $errors[] = '#' . $expenseUID . ': ' . $e->getMessage();
                 } catch (Throwable $e) {
                     $errors[] = '#' . $expenseUID . ': ' . $e->getMessage();
                 }
             }
 
-            if ($deleted === 0) throw new Exception(implode('; ', $errors) ?: 'No records deleted.');
+            if ($deleted === 0) throw new ValidationException(implode('; ', $errors) ?: 'No records deleted.');
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = $deleted . ' expense(s) deleted.' .
@@ -1468,6 +1513,9 @@ class Expenses extends MY_Controller {
                 [], 'Bulk deleted ' . $deleted . ' expense(s)', 'Expenses', 'TRANSACTION'
             );
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Throwable $e) {
             notifyError('Expenses::deleteMultipleExpenses', $e);
             $this->EndReturnData->Error   = TRUE;

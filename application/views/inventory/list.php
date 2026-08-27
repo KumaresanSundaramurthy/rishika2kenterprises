@@ -95,11 +95,11 @@ if (!empty($DataLists)):
     <!-- Qty -->
     <td>
         <div class="fw-semibold" style="font-size:.9rem;<?php echo $qtyColor; ?>">
-            <?php echo number_format($qty, 2); ?>
+            <?php echo smartDecimal($qty); ?>
             <span style="font-size:.72rem;font-weight:400;color:#6c757d;"><?php echo htmlspecialchars($row->UnitName ?? ''); ?></span>
         </div>
         <?php if ($threshold > 0): ?>
-        <div class="text-muted" style="font-size:.68rem;">Alert at <?php echo number_format($threshold, 0); ?></div>
+        <div class="text-muted" style="font-size:.68rem;">Alert at <?php echo smartDecimal($threshold); ?></div>
         <?php endif; ?>
     </td>
 
@@ -113,7 +113,7 @@ if (!empty($DataLists)):
 
     <!-- Purchase Price -->
     <td>
-        <div style="font-size:.85rem;"><?php echo $currency . ' ' . number_format((float)$row->PurchasePrice, $decimals); ?></div>
+        <div style="font-size:.85rem;"><?php echo $currency . ' ' . smartDecimal($row->PurchasePrice); ?></div>
         <?php if ($row->TaxPercentage > 0): ?>
         <div class="text-muted" style="font-size:.7rem;"><?php echo $row->TaxPercentage; ?>% tax</div>
         <?php endif; ?>
@@ -121,7 +121,7 @@ if (!empty($DataLists)):
 
     <!-- Sale Price -->
     <td>
-        <div class="trans-amount-main"><?php echo $currency . ' ' . number_format((float)$row->SellingPrice, $decimals); ?></div>
+        <div class="trans-amount-main"><?php echo $currency . ' ' . smartDecimal($row->SellingPrice); ?></div>
     </td>
 
     <!-- Last Updated -->

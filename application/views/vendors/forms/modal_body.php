@@ -96,11 +96,11 @@ $d       = $FormData;
                 <label for="VM_DebitCreditAmount" class="form-label">Opening Balance</label>
                 <div class="input-group input-group-merge">
                     <span class="input-group-text"><?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?></span>
-                    <input type="number" class="form-control" name="DebitCreditAmount" id="VM_DebitCreditAmount"
-                        min="0" placeholder="Debit / Credit Amount" maxlength="6" pattern="[0-9]*"
-                        onkeypress="return (event.charCode!=8 && event.charCode==0 || (event.charCode>=48 && event.charCode<=57))"
-                        oninput="this.value=this.value.slice(0,this.maxLength)"
-                        value="0" />
+                    <input type="text" inputmode="decimal" class="form-control" name="DebitCreditAmount" id="VM_DebitCreditAmount"
+                        placeholder="0"
+                        onkeypress="return (event.charCode===8||event.charCode===0||(event.charCode>=48&&event.charCode<=57)||(event.charCode===46&&this.value.indexOf('.')===-1))"
+                        oninput="var p=this.value.split('.');if(p.length>1&&p[1].length>9)this.value=p[0]+'.'+p[1].slice(0,9);"
+                        value="<?php echo $isEdit ? smartDecimal($d->DebitCreditAmount ?? 0) : '0'; ?>" />
                     <select id="VM_DebitCreditCheck" name="DebitCreditCheck" class="select2 form-select border-start ps-2">
                         <option value="Debit">To Collect</option>
                         <option value="Credit" selected>To Pay</option>

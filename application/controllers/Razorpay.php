@@ -1,12 +1,12 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
 
 /**
- * Razorpay — public payment endpoints for customer invoice self-pay.
- * No JWT authentication required — security is provided by Razorpay HMAC-SHA256 signature.
+ * Razorpay â€” public payment endpoints for customer invoice self-pay.
+ * No JWT authentication required â€” security is provided by Razorpay HMAC-SHA256 signature.
  *
  * Routes:
- *   POST razorpay/createOrder/{token}      — create a Razorpay order for the invoice
- *   POST razorpay/verifyAndRecord/{token}  — verify signature and record payment in ERP
+ *   POST razorpay/createOrder/{token}      â€” create a Razorpay order for the invoice
+ *   POST razorpay/verifyAndRecord/{token}  â€” verify signature and record payment in ERP
  */
 class Razorpay extends CI_Controller {
 
@@ -56,7 +56,7 @@ class Razorpay extends CI_Controller {
                 ENT_QUOTES, 'UTF-8'
             );
 
-            // Amount in paise (INR × 100, no decimals)
+            // Amount in paise (INR Ã— 100, no decimals)
             $amountPaise = (int)round($pendingAmt * 100);
             $receiptId   = 'r2k_' . preg_replace('/[^A-Za-z0-9]/', '', $stub->UniqueNumber ?? '') . '_' . time();
 
@@ -108,9 +108,8 @@ class Razorpay extends CI_Controller {
 
             $this->load->library('Razorpayapi');
 
-            // ── Signature verification — PRIMARY security gate ────────────────
+            // â”€â”€ Signature verification â€” PRIMARY security gate â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             if (!$this->razorpayapi->verifySignature($rpOrderId, $rpPaymentId, $rpSignature)) {
-                log_message('error', '[Razorpay] Signature mismatch for token=' . $token . ' payment=' . $rpPaymentId);
                 throw new Exception('Payment verification failed. Please contact support if money was deducted.');
             }
 
@@ -122,7 +121,7 @@ class Razorpay extends CI_Controller {
 
             $pendingAmt = max(0.0, round((float)($stub->BalanceAmount ?? 0), 2));
 
-            // ── Idempotency: prevent double-recording if browser retries ──────
+            // â”€â”€ Idempotency: prevent double-recording if browser retries â”€â”€â”€â”€â”€â”€
             $this->load->model('razorpay_model');
             $existing = $this->razorpay_model->getPaymentByRazorpayRef($rpPaymentId, (int)$stub->OrgUID);
             if ($existing) {
@@ -142,14 +141,14 @@ class Razorpay extends CI_Controller {
                 return;
             }
 
-            // ── Get customer & payment type ───────────────────────────────────
+            // â”€â”€ Get customer & payment type â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             $custInfo   = $this->razorpay_model->getInvoicePartyInfo((int)$stub->TransUID);
             if (!$custInfo) throw new Exception('Customer information could not be resolved.');
 
             $payTypeUID = $this->razorpay_model->getOnlinePaymentTypeUID((int)$stub->OrgUID);
             if (!$payTypeUID) throw new Exception('No online payment type is configured in Settings.');
 
-            // ── Record payment ────────────────────────────────────────────────
+            // â”€â”€ Record payment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             $this->load->model('dbwrite_model');
             $this->dbwrite_model->startTransaction();
 
@@ -181,16 +180,15 @@ class Razorpay extends CI_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            // ── Recalculate customer outstanding balance ───────────────────────
+            // â”€â”€ Recalculate customer outstanding balance â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             try {
                 $this->load->library('customerbalance');
                 $this->customerbalance->recalcAndSync((int)$stub->OrgUID, (int)$custInfo->PartyUID, 0);
             } catch (Throwable $e) {
-                log_message('error', '[Razorpay] Balance recalc failed after payment: ' . $e->getMessage());
             }
 
             $out->Error      = false;
-            $out->Message    = 'Payment of ₹' . number_format($pendingAmt, 2) . ' recorded successfully.';
+            $out->Message    = 'Payment of â‚¹' . number_format($pendingAmt, 2) . ' recorded successfully.';
             $out->ReceiptUrl = base_url('receipt/' . $receiptToken);
 
         } catch (Exception $e) {

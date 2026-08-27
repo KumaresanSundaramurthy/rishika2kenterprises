@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 
 $this->load->view('common/transactions/header'); ?>
 
@@ -63,7 +63,7 @@ $this->load->view('common/transactions/header'); ?>
                             <div class="apex-stat-label"><?php echo $stat['label']; ?></div>
                             <div class="apex-stat-bottom">
                                 <span class="apex-stat-count"><?php echo $stat['count']; ?></span>
-                                <span class="apex-stat-amount"><?php echo $cur . ' ' . number_format((float)$stat['amount'], $dec); ?></span>
+                                <span class="apex-stat-amount"><?php echo $cur . ' ' . smartDecimal($stat['amount']); ?></span>
                             </div>
                         </div>
                     </div>
@@ -897,11 +897,10 @@ function updateSummaryStats(stats) {
     if (!document.querySelector('.apex-stats-strip')) return;
     if (!stats) return;
     var cur = '<?php echo addslashes(htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹')); ?>';
-    var dec = <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>;
     function cnt(s) { return (stats[s] && stats[s].count)  ? parseInt(stats[s].count)   : 0; }
     function amt(s) { return (stats[s] && stats[s].amount) ? parseFloat(stats[s].amount) : 0; }
     function fmtAmt(v) {
-        return cur + ' ' + parseFloat(v).toLocaleString('en-IN', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+        return cur + ' ' + smartDecimal(parseFloat(v));
     }
     var cntAll     = cnt('Issued') + cnt('Partial') + cnt('Paid');
     var amtAll     = amt('Issued') + amt('Partial') + amt('Paid');

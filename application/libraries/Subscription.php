@@ -10,7 +10,7 @@ class Subscription {
         $this->CI->load->model('dbwrite_model');
     }
 
-    // ── Check if user subscription is valid ───────────────────────────────────
+    // â”€â”€ Check if user subscription is valid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function checkSubscription($userUID) {
         $result = new stdClass();
         $result->isValid       = false;
@@ -86,7 +86,7 @@ class Subscription {
         return $result;
     }
 
-    // ── Update subscription status ────────────────────────────────────────────
+    // â”€â”€ Update subscription status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function updateSubscriptionStatus($userUID, $status) {
         try {
             $updateResult = $this->CI->dbwrite_model->updateData(
@@ -97,12 +97,11 @@ class Subscription {
             return $updateResult->Error === FALSE;
         } catch (Exception $e) {
             notifyError('Subscription::updateSubscriptionStatus', $e);
-            log_message('error', 'Subscription::updateSubscriptionStatus — ' . $e->getMessage());
             return false;
         }
     }
 
-    // ── Extend subscription by N days ─────────────────────────────────────────
+    // â”€â”€ Extend subscription by N days â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function extendSubscription($userUID, $days, $planCode = null) {
         try {
             $userResult = $this->CI->subscription_model->getUserSubscription($userUID);
@@ -149,7 +148,7 @@ class Subscription {
         }
     }
 
-    // ── Log subscription history ──────────────────────────────────────────────
+    // â”€â”€ Log subscription history â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private function _logSubscriptionHistory($userUID, $status, $days = 0) {
         try {
             // Re-read after the update so StartDate/EndDate reflect the new values
@@ -169,11 +168,10 @@ class Subscription {
             ]);
         } catch (Exception $e) {
             notifyError('Subscription::_logSubscriptionHistory', $e);
-            log_message('error', 'Subscription::_logSubscriptionHistory — ' . $e->getMessage());
         }
     }
 
-    // ── Send expiry warning notification ──────────────────────────────────────
+    // â”€â”€ Send expiry warning notification â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private function sendExpiryWarning($userUID, $daysRemaining) {
         try {
             if (!in_array($daysRemaining, [7, 3, 1])) return;
@@ -209,7 +207,6 @@ class Subscription {
                     $sent = $this->_sendExpiryEmail($user->EmailAddress, $fullName ?: 'Valued Customer', (int)$daysRemaining);
                 } catch (Throwable $e) {
                     notifyError('Subscription::sendExpiryWarning', $e);
-                    log_message('error', '[Subscription] Email send failed: ' . $e->getMessage());
                 }
                 if ($sent) {
                     $this->CI->dbwrite_model->updateData(
@@ -220,15 +217,13 @@ class Subscription {
                 }
             }
 
-            log_message('info', "Expiry warning ({$daysRemaining} days) processed for user {$userUID}");
 
         } catch (Throwable $e) {
             notifyError('Subscription::sendExpiryWarning', $e);
-            log_message('error', 'Subscription::sendExpiryWarning — ' . $e->getMessage());
         }
     }
 
-    // ── Log login attempt ─────────────────────────────────────────────────────
+    // â”€â”€ Log login attempt â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function logLoginAttempt($userUID, $username, $status, $subscriptionStatus, $errorMessage = null) {
         try {
             $this->CI->dbwrite_model->insertData('Users', 'LoginAttemptLogTbl', [
@@ -243,17 +238,16 @@ class Subscription {
             ]);
         } catch (Exception $e) {
             notifyError('Subscription::logLoginAttempt', $e);
-            log_message('error', 'Subscription::logLoginAttempt — ' . $e->getMessage());
         }
     }
 
-    // ── Get subscription plans ────────────────────────────────────────────────
+    // â”€â”€ Get subscription plans â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function getSubscriptionPlans($activeOnly = true) {
         $result = $this->CI->subscription_model->getSubscriptionPlans($activeOnly);
         return ($result->Error === FALSE) ? $result->Data : [];
     }
 
-    // ── Activate subscription with plan ──────────────────────────────────────
+    // â”€â”€ Activate subscription with plan â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public function activateSubscription($userUID, $planCode, $paymentData = []) {
         try {
             $planResult = $this->CI->subscription_model->getPlanByCode($planCode);
@@ -313,14 +307,13 @@ class Subscription {
         }
     }
 
-    // ── Send expiry warning email via Brevo REST API ──────────────────────────
+    // â”€â”€ Send expiry warning email via Brevo REST API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private function _sendExpiryEmail(string $toEmail, string $toName, int $daysRemaining): bool {
         $apiKey    = getenv('BREVO_API_KEY');
         $fromEmail = getenv('MAIL_FROM_EMAIL') ?: 'noreply@rishika2kenterprises.com';
         $fromName  = getenv('MAIL_FROM_NAME')  ?: 'Rishika 2K Enterprises';
 
         if (empty($apiKey)) {
-            log_message('error', '[Subscription] BREVO_API_KEY not configured — expiry email not sent');
             return false;
         }
 
@@ -336,7 +329,6 @@ class Subscription {
 
         $ch = curl_init('https://api.brevo.com/v3/smtp/email');
         if ($ch === false) {
-            log_message('error', '[Subscription] curl_init failed');
             return false;
         }
 
@@ -358,14 +350,13 @@ class Subscription {
         curl_close($ch);
 
         if ($curlErr || $httpCode < 200 || $httpCode >= 300) {
-            log_message('error', '[Subscription] Expiry email failed — HTTP ' . $httpCode . ' ' . ($curlErr ?: $response));
             return false;
         }
 
         return true;
     }
 
-    // ── Build HTML body for expiry warning email ──────────────────────────────
+    // â”€â”€ Build HTML body for expiry warning email â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private function _buildExpiryEmailHtml(string $name, int $days): string {
         $dayText  = $days === 1 ? '1 day' : "{$days} days";
         $fromName = getenv('MAIL_FROM_NAME') ?: 'Rishika 2K Enterprises';

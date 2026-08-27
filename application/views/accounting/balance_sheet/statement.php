@@ -23,7 +23,7 @@ $isLoss   = $NetProfit < 0;
  */
 function _bsFmt(float $n, string $cur, int $dec): string {
     if (abs($n) < 0.005) return '<span class="text-muted" style="font-size:.78rem;">—</span>';
-    return $cur . ' ' . number_format(abs($n), $dec);
+    return $cur . ' ' . smartDecimal(abs($n));
 }
 ?>
 <div class="bs-statement" id="bsStatement">
@@ -92,7 +92,7 @@ function _bsFmt(float $n, string $cur, int $dec): string {
                     <tr style="background:#1d4ed8;color:#fff;font-weight:700;">
                         <td colspan="2" style="padding:10px 12px;">TOTAL ASSETS</td>
                         <td class="text-end" style="padding:10px 12px;font-size:.9rem;white-space:nowrap;">
-                            <?php echo $cur . ' ' . number_format($TotalAssets, $dec); ?>
+                            <?php echo $cur . ' ' . smartDecimal($TotalAssets); ?>
                         </td>
                     </tr>
                 </tfoot>
@@ -165,7 +165,7 @@ function _bsFmt(float $n, string $cur, int $dec): string {
                     <tr style="background:#7c2d12;color:#fff;font-weight:700;">
                         <td colspan="2" style="padding:10px 12px;">TOTAL LIABILITIES + NET PROFIT</td>
                         <td class="text-end" style="padding:10px 12px;font-size:.9rem;white-space:nowrap;">
-                            <?php echo $cur . ' ' . number_format($totalLE, $dec); ?>
+                            <?php echo $cur . ' ' . smartDecimal($totalLE); ?>
                         </td>
                     </tr>
                 </tfoot>
@@ -181,7 +181,7 @@ function _bsFmt(float $n, string $cur, int $dec): string {
         <?php else: ?>
             <i class="bx bx-error me-2"></i>
             <strong>UNBALANCED</strong> — Difference of
-            <?php echo $cur . ' ' . number_format($diff, $dec); ?>.
+            <?php echo $cur . ' ' . smartDecimal($diff); ?>.
             Check if all transactions are posted through this system.
         <?php endif; ?>
     </div>

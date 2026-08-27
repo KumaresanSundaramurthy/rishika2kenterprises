@@ -24,7 +24,7 @@
               <div class="apex-stat-label"><?php echo t('stat_total_advances', 'Total Advances'); ?></div>
               <div class="apex-stat-bottom">
                 <span class="apex-stat-count adv-s-total"><?php echo number_format((int)($st->TotalCount ?? 0)); ?></span>
-                <span class="apex-stat-amount adv-s-total-amt"><?php echo $cur . ' ' . number_format((float)($st->TotalAmount ?? 0), $dec); ?></span>
+                <span class="apex-stat-amount adv-s-total-amt"><?php echo $cur . ' ' . smartDecimal($st->TotalAmount ?? 0); ?></span>
               </div>
             </div>
           </a>
@@ -35,7 +35,7 @@
               <div class="apex-stat-label"><?php echo t('stat_requested', 'Requested'); ?></div>
               <div class="apex-stat-bottom">
                 <span class="apex-stat-count adv-s-requested"><?php echo number_format((int)($st->RequestedCount ?? 0)); ?></span>
-                <span class="apex-stat-amount adv-s-requested-amt"><?php echo $cur . ' ' . number_format((float)($st->RequestedAmount ?? 0), $dec); ?></span>
+                <span class="apex-stat-amount adv-s-requested-amt"><?php echo $cur . ' ' . smartDecimal($st->RequestedAmount ?? 0); ?></span>
               </div>
             </div>
           </a>
@@ -46,7 +46,7 @@
               <div class="apex-stat-label"><?php echo t('stat_approved_pending', 'Approved (Pending Recovery)'); ?></div>
               <div class="apex-stat-bottom">
                 <span class="apex-stat-count adv-s-approved"><?php echo number_format((int)($st->ApprovedCount ?? 0)); ?></span>
-                <span class="apex-stat-amount adv-s-approved-amt"><?php echo $cur . ' ' . number_format((float)($st->ApprovedAmount ?? 0), $dec); ?></span>
+                <span class="apex-stat-amount adv-s-approved-amt"><?php echo $cur . ' ' . smartDecimal($st->ApprovedAmount ?? 0); ?></span>
               </div>
             </div>
           </a>
@@ -57,7 +57,7 @@
               <div class="apex-stat-label"><?php echo t('stat_settled', 'Settled'); ?></div>
               <div class="apex-stat-bottom">
                 <span class="apex-stat-count adv-s-settled"><?php echo number_format((int)($st->SettledCount ?? 0)); ?></span>
-                <span class="apex-stat-amount adv-s-settled-amt"><?php echo $cur . ' ' . number_format((float)($st->SettledAmount ?? 0), $dec); ?></span>
+                <span class="apex-stat-amount adv-s-settled-amt"><?php echo $cur . ' ' . smartDecimal($st->SettledAmount ?? 0); ?></span>
               </div>
             </div>
           </a>

@@ -130,7 +130,7 @@ $_vendArea   = htmlspecialchars($Vend->Area ?? '');
                 <tr class="table-light">
                     <td colspan="5" class="px-2 fw-semibold">Opening Balance</td>
                     <td class="text-end fw-semibold <?php echo $obSigned >= 0 ? 'text-danger' : 'text-success'; ?>">
-                        <?php echo number_format(abs($obSigned), $Dec); ?>
+                        <?php echo smartDecimal(abs($obSigned)); ?>
                         <span class="badge bg-label-secondary ms-1 cp-stmt-badge-dr">
                             <?php echo $obSigned >= 0 ? 'Payable' : 'Advance'; ?>
                         </span>
@@ -161,13 +161,13 @@ $_vendArea   = htmlspecialchars($Vend->Area ?? '');
                     </td>
                     <td class="fw-semibold"><?php echo htmlspecialchars($row['RefNo'] ?? '—'); ?></td>
                     <td class="text-end <?php echo $debit > 0 ? 'text-success' : 'text-muted'; ?>">
-                        <?php echo $debit > 0 ? number_format($debit, $Dec) : '—'; ?>
+                        <?php echo $debit > 0 ? smartDecimal($debit) : '—'; ?>
                     </td>
                     <td class="text-end <?php echo $credit > 0 ? 'text-danger' : 'text-muted'; ?>">
-                        <?php echo $credit > 0 ? number_format($credit, $Dec) : '—'; ?>
+                        <?php echo $credit > 0 ? smartDecimal($credit) : '—'; ?>
                     </td>
                     <td class="text-end fw-semibold <?php echo $bal >= 0 ? 'text-danger' : 'text-success'; ?>">
-                        <?php echo number_format(abs($bal), $Dec); ?>
+                        <?php echo smartDecimal(abs($bal)); ?>
                         <span class="text-muted cp-stmt-badge-bal"><?php echo $bal >= 0 ? 'Payable' : 'Advance'; ?></span>
                     </td>
                 </tr>
@@ -178,7 +178,7 @@ $_vendArea   = htmlspecialchars($Vend->Area ?? '');
                 <tr class="table-active fw-bold">
                     <td colspan="5" class="px-2">Closing Balance</td>
                     <td class="text-end <?php echo $closingBalance >= 0 ? 'text-danger' : 'text-success'; ?>">
-                        <?php echo number_format(abs($closingBalance), $Dec); ?>
+                        <?php echo smartDecimal(abs($closingBalance)); ?>
                         <span class="badge ms-1 cp-stmt-badge-dr <?php echo $closingBalance >= 0 ? 'bg-danger' : 'bg-success'; ?>">
                             <?php echo $closingBalance >= 0 ? 'To Pay' : 'Advance'; ?>
                         </span>

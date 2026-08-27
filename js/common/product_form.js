@@ -741,21 +741,21 @@
                 '<td><input type="text" class="form-control form-control-sm var-part-no" placeholder="Part No" value="' +
                     esc(row.PartNumber) + '" maxlength="100"></td>' +
                 '<td><div class="input-group input-group-sm">' +
-                    '<input type="number" class="form-control form-control-sm var-purchase-price text-end" placeholder="0.00" min="0" step="any" value="' +
-                        (row.PurchasePrice || '') + '">' +
+                    '<input type="text" inputmode="decimal" class="form-control form-control-sm var-purchase-price text-end" placeholder="0" value="' +
+                        (row.PurchasePrice || '') + '" onkeypress="return (event.charCode===8||event.charCode===0||(event.charCode>=48&&event.charCode<=57)||(event.charCode===46&&this.value.indexOf(\'.\')===−1))" oninput="var p=this.value.split(\'.\');if(p.length>1&&p[1].length>9)this.value=p[0]+\'.\'+p[1].slice(0,9);">' +
                     '<select class="form-select form-select-sm var-tax-sel var-purchase-tax">' +
                         _buildTaxOptions(row.PurchaseTaxUID || defTaxUID) +
                     '</select>' +
                 '</div></td>' +
                 '<td><div class="input-group input-group-sm">' +
-                    '<input type="number" class="form-control form-control-sm var-selling-price text-end" placeholder="0.00" min="0" step="any" value="' +
-                        (row.SellingPrice || '') + '">' +
+                    '<input type="text" inputmode="decimal" class="form-control form-control-sm var-selling-price text-end" placeholder="0" value="' +
+                        (row.SellingPrice || '') + '" onkeypress="return (event.charCode===8||event.charCode===0||(event.charCode>=48&&event.charCode<=57)||(event.charCode===46&&this.value.indexOf(\'.\')===−1))" oninput="var p=this.value.split(\'.\');if(p.length>1&&p[1].length>9)this.value=p[0]+\'.\'+p[1].slice(0,9);">' +
                     '<select class="form-select form-select-sm var-tax-sel var-selling-tax">' +
                         _buildTaxOptions(row.SellingTaxUID || defTaxUID) +
                     '</select>' +
                 '</div></td>' +
-                '<td><input type="number" class="form-control form-control-sm var-opening-qty text-end" placeholder="0" min="0" step="1" value="' +
-                    (row.OpeningQty || 0) + '"></td>' +
+                '<td><input type="text" inputmode="decimal" class="form-control form-control-sm var-opening-qty text-end" placeholder="0" value="' +
+                    (row.OpeningQty || 0) + '" onkeypress="return (event.charCode===8||event.charCode===0||(event.charCode>=48&&event.charCode<=57)||(event.charCode===46&&this.value.indexOf(\'.\')===−1))" oninput="var p=this.value.split(\'.\');if(p.length>1&&p[1].length>9)this.value=p[0]+\'.\'+p[1].slice(0,9);"></td>' +
                 '</tr>';
         });
         $('#variantTableBody').html(html);
@@ -767,7 +767,6 @@
      */
     function _updateVariantHidden() {
         var total = 0;
-        var dec   = (typeof decimalPlaces !== 'undefined') ? decimalPlaces : 2;
         $('#variantTableBody .var-row').each(function () {
             var idx = parseInt($(this).data('idx'), 10);
             if (!_variantRows[idx]) return;
@@ -782,7 +781,7 @@
         $('#VariantData').val(JSON.stringify(_variantRows));
         $('#OpeningQuantity').val(total > 0 ? total : 0);
         var $badge = $('#variantTotalQty');
-        $badge.text('Total Qty: ' + total.toFixed(dec));
+        $badge.text('Total Qty: ' + smartDecimal(total));
         if (total > 0) { $badge.removeClass('bg-label-secondary').addClass('bg-label-primary'); }
         else            { $badge.removeClass('bg-label-primary').addClass('bg-label-secondary'); }
     }

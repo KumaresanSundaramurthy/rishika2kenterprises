@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php
 $isEdit      = isset($InvData);
 $isDraftEdit = $isEdit && ($InvData->DocStatus === 'Draft');
@@ -210,12 +210,12 @@ if ($isEdit) {
                                 'transShowCompliment'   => true,
                             ]); ?>
 
-                            <?php $this->load->view('transactions/partials/trans_summary_bar', ['_barIsSticky' => false, '_barSections' => 'full4', '_barButtonLayout' => 'invoice', '_barShowPrint' => 'draft_or_create', '_barUseDcClasses' => false, '_barIsEdit' => $isEdit, '_barIsDraftEdit' => $isDraftEdit]); ?>
+                            <?php $this->load->view('transactions/partials/trans_summary_bar', ['_barIsSticky' => false, '_barSections' => 'full4', '_barButtonLayout' => 'save_only', '_barShowPrint' => 'draft_or_create', '_barUseDcClasses' => false, '_barIsEdit' => $isEdit, '_barIsDraftEdit' => $isDraftEdit]); ?>
 
                         </div>
                     </div>
 
-                    <?php $this->load->view('transactions/partials/trans_summary_bar', ['_barIsSticky' => true, '_barSections' => 'full4', '_barButtonLayout' => 'invoice', '_barShowPrint' => 'draft_or_create', '_barUseDcClasses' => false, '_barIsEdit' => $isEdit, '_barIsDraftEdit' => $isDraftEdit]); ?>
+                    <?php $this->load->view('transactions/partials/trans_summary_bar', ['_barIsSticky' => true, '_barSections' => 'full4', '_barButtonLayout' => 'save_only', '_barShowPrint' => 'draft_or_create', '_barUseDcClasses' => false, '_barIsEdit' => $isEdit, '_barIsDraftEdit' => $isDraftEdit]); ?>
 
                     <?php echo form_close(); ?>
 
@@ -273,7 +273,7 @@ var _transFormData = <?php echo json_encode([
     'returnTab'    => $_returnTab,
     'returnPage'   => (int)$_returnPage,
     'currency'     => $JwtData->GenSettings->CurrenySymbol ?? '₹',
-    'decimals'     => 9,
+    'decimals'      => 2,
     'editData'     => $isEdit ? [
         'transUID'          => (int)($InvData->TransUID ?? 0),
         'custUID'           => (int)($InvData->PartyUID ?? 0),

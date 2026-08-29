@@ -542,6 +542,16 @@ class Formvalidation_model extends CI_Model {
             if ($lineTotal < 0) {
                 return "Row {$row}: Line total cannot be negative.";
             }
+
+            // Brand — required when IsBrandApplicable is set and no variant was selected.
+            // A selected variant (variantUID > 0) encodes brand+size together — no separate brandUID needed.
+            if (!empty($item['IsBrandApplicable']) && (int)$item['IsBrandApplicable'] === 1) {
+                $brandUID   = isset($item['brandUID'])   ? (int)$item['brandUID']   : 0;
+                $variantUID = isset($item['variantUID']) ? (int)$item['variantUID'] : 0;
+                if ($brandUID <= 0 && $variantUID <= 0) {
+                    return "Row {$row}: Brand selection is required for '{$item['itemName']}'.";
+                }
+            }
         }
 
         return '';

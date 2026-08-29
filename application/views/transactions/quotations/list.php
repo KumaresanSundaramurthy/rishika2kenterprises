@@ -7,6 +7,7 @@ $moduleContext = 'quotation';
 include(APPPATH . 'views/transactions/partials/status_config.php');
 
 $currency      = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
+$dec           = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 $showSerial    = $JwtData->GenSettings->SerialNoDisplay == 1;
 $quotModuleUID = 101;
 $today         = time();
@@ -69,7 +70,7 @@ if (!empty($DataLists)):
         $quotNum    = $list->UniqueNumber ?? 'Draft';
         $quotLink   = (getenv('APP_URL') ?: 'http://localhost:8080') . '/quotation/' . ($list->TransToken ?? '');
         $netAmt     = (float)($list->NetAmount ?? 0);
-        $numericAmt = smartDecimal($netAmt);
+        $numericAmt = number_format($netAmt, $dec, '.', '');
         $billAmount = $currency . ' ' . $numericAmt;
         $transDate  = !empty($list->TransDate) ? format_datedisplay($list->TransDate) : '';
         $quotStatus = $status;
@@ -174,7 +175,7 @@ if (!empty($DataLists)):
             <?php if ($isDraft && $netAmt == 0): ?>
                 <span class="text-muted">—</span>
             <?php else: ?>
-                <div class="trans-amount-main"><?php echo $currency . ' ' . smartDecimal($netAmt); ?></div>
+                <div class="trans-amount-main"><?php echo $currency . ' ' . number_format($netAmt, $dec, '.', ''); ?></div>
             <?php endif; ?>
         </td>
 

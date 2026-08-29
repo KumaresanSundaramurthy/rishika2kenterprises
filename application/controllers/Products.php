@@ -752,6 +752,27 @@ class Products extends MY_Controller {
                 $isVariant   = !empty($prodFormData['IsBrandApplicable']) || !empty($prodFormData['IsSizeApplicable']);
                 if ($isVariant) {
                     $variantArr = json_decode($this->input->post('VariantData') ?? '[]', true) ?: [];
+
+                    // Guard: reject if a variant already used in transactions has been removed or changed
+                    $this->load->model('products_model');
+                    $usedVariants = $this->products_model->getUsedVariants($ProductUID, $orgUID);
+                    if (!empty($usedVariants)) {
+                        $submittedKeys = [];
+                        foreach ($variantArr as $sv) {
+                            $sk = ((int)($sv['SizeUID'] ?? 0)) . '-' . ((int)($sv['BrandUID'] ?? 0));
+                            $submittedKeys[$sk] = true;
+                        }
+                        foreach ($usedVariants as $uv) {
+                            $uk = ((int)$uv->SizeUID) . '-' . ((int)$uv->BrandUID);
+                            if (!isset($submittedKeys[$uk])) {
+                                throw new ValidationException(
+                                    'One or more variants are used in transactions and cannot be removed. ' .
+                                    'Please update or cancel those transactions first.'
+                                );
+                            }
+                        }
+                    }
+
                     foreach ($variantArr as $v) {
                         $brandUID   = (int)($v['BrandUID']      ?? 0);
                         $sizeUID    = (int)($v['SizeUID']       ?? 0);
@@ -2307,6 +2328,26 @@ class Products extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
+    /**
+     * Return variants that are already referenced in StockLedgerTbl (cannot be removed/changed).
+     * @returns void
+     */
+    public function getUsedVariants(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $productUID = (int)$this->input->post('ProductUID');
+            if ($productUID <= 0) throw new InvalidArgumentException('Invalid ProductUID');
+            $orgUID = (int)$this->pageData['JwtData']->Org->OrgUID;
+            $this->EndReturnData->Error = false;
+            $this->EndReturnData->Data  = $this->products_model->getUsedVariants($productUID, $orgUID);
+        } catch (Throwable $e) {
+            notifyError('Products::getUsedVariants', $e);
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
     public function getProductVariantsForPricelist(): void {
         $this->EndReturnData = new stdClass();
         try {
@@ -2763,6 +2804,7 @@ class Products extends MY_Controller {
                     'IsComposite'                 => $isComposite,
                     'IsSerialTracked'             => (int)($prod->IsSerialTracked      ?? 0),
                     'IsBrandApplicable'           => (int)($prod->IsBrandApplicable    ?? 0),
+                    'IsSizeApplicable'            => (int)($prod->IsSizeApplicable     ?? 0),
                     'Variants'                    => $variantsByProduct[(string)$uid] ?? [],
                 ];
                 if ($isComposite) {
@@ -3643,8 +3685,9 @@ class Products extends MY_Controller {
                 }
 
                 // Rebuild the org products hash (same logic as syncProductsCache)
-                $products    = $this->products_model->getProductsForCache($orgUID);
-                $bomRows     = $this->products_model->getAllProductBOMsForSync($orgUID);
+                $products          = $this->products_model->getProductsForCache($orgUID);
+                $bomRows           = $this->products_model->getAllProductBOMsForSync($orgUID);
+                $variantsByProduct = $this->products_model->getAllProductVariantsForSync($orgUID);
                 $bomByParent = [];
                 foreach ($bomRows as $b) {
                     $pUID = (string)(int)$b->ParentProductUID;
@@ -3688,6 +3731,8 @@ class Products extends MY_Controller {
                         'IsComposite'                 => $isComposite,
                         'IsSerialTracked'             => (int)($prod->IsSerialTracked      ?? 0),
                         'IsBrandApplicable'           => (int)($prod->IsBrandApplicable    ?? 0),
+                        'IsSizeApplicable'            => (int)($prod->IsSizeApplicable     ?? 0),
+                        'Variants'                    => $variantsByProduct[(string)$uid]  ?? [],
                     ];
                     if ($isComposite) {
                         $entry['items'] = $bomByParent[(string)$uid] ?? [];
@@ -3735,7 +3780,9 @@ class Products extends MY_Controller {
             $JwtData = $this->pageData['JwtData'];
             $cur     = $JwtData->GenSettings->CurrenySymbol ?? '₹';
             $dec     = 2;
-            $dateFmt = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
+            $dateFmt   = $JwtData->GenSettings->ListDateFormat     ?? 'd M Y';
+            $dtFmt     = $JwtData->GenSettings->ListDateTimeFormat ?? 'd M Y H:i';
+            $timezone  = $JwtData->GenSettings->Timezone           ?? 'Asia/Kolkata';
 
             $html = '';
 
@@ -3746,34 +3793,31 @@ class Products extends MY_Controller {
                     if (!$prod) throw new ValidationException('Product not found.');
                     $topCustomers = $this->products_model->getProductTopCustomers($uid, $orgUID);
                     $html = $this->load->view('products/modals/profile_overview', [
-                        'Prod'        => $prod,
-                        'TopCustomers'=> $topCustomers,
-                        'JwtData'     => $JwtData,
-                        'Cur'         => $cur,
-                        'Dec'         => $dec,
-                        'DateFormat'  => $dateFmt,
-                        'ProductUID'  => $uid,
+                        'Prod'           => $prod,
+                        'TopCustomers'   => $topCustomers,
+                        'JwtData'        => $JwtData,
+                        'Cur'            => $cur,
+                        'Dec'            => $dec,
+                        'DateFormat'     => $dateFmt,
+                        'DateTimeFormat' => $dtFmt,
+                        'Timezone'       => $timezone,
+                        'ProductUID'     => $uid,
                     ], TRUE);
                     break;
 
                 case 'transactions':
                     $rows = $this->products_model->getProductTransactionHistory($uid, $orgUID);
-                    $html = $this->load->view('products/modals/profile_transactions', [
-                        'Rows'       => $rows,
-                        'JwtData'    => $JwtData,
-                        'Cur'        => $cur,
-                        'Dec'        => $dec,
-                        'DateFormat' => $dateFmt,
-                        'ProductUID' => $uid,
-                    ], TRUE);
+                    $this->EndReturnData->Rows = $rows;
                     break;
 
                 case 'stock':
-                    $prod  = $this->products_model->getProductProfile($uid, $orgUID);
-                    $moves = $this->products_model->getProductStockMovements($uid, $orgUID);
-                    $html  = $this->load->view('products/modals/profile_stock', [
+                    $prod     = $this->products_model->getProductProfile($uid, $orgUID);
+                    $moves    = $this->products_model->getProductStockMovements($uid, $orgUID);
+                    $variants = $this->products_model->getProductVariants($uid, $orgUID);
+                    $html     = $this->load->view('products/modals/profile_stock', [
                         'Prod'       => $prod,
                         'Moves'      => $moves,
+                        'Variants'   => $variants,
                         'JwtData'    => $JwtData,
                         'Cur'        => $cur,
                         'Dec'        => $dec,

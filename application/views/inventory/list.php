@@ -159,6 +159,14 @@ if (!empty($DataLists)):
                     style="font-size:.75rem;">
                 <i class="bx bx-minus me-1"></i>Out
             </button>
+            <?php if ((int)($row->IsBrandApplicable ?? 0) === 1): ?>
+            <button class="btn btn-icon btn-sm text-secondary invVariantStockBtn"
+                    data-uid="<?php echo (int)$row->ProductUID; ?>"
+                    data-name="<?php echo htmlspecialchars($row->ItemName); ?>"
+                    title="View Variant Stock">
+                <i class="bx bx-layer"></i>
+            </button>
+            <?php endif; ?>
             <button class="btn btn-icon btn-sm text-primary invTimelineBtn"
                     data-uid="<?php echo (int)$row->ProductUID; ?>"
                     data-name="<?php echo htmlspecialchars($row->ItemName); ?>"
@@ -169,6 +177,13 @@ if (!empty($DataLists)):
     </td>
 
 </tr>
+<?php if ((int)($row->IsBrandApplicable ?? 0) === 1): ?>
+<tr class="inv-variant-row d-none" data-product-uid="<?php echo (int)$row->ProductUID; ?>">
+    <td colspan="10" class="p-0">
+        <div class="inv-variant-panel px-4 py-3"></div>
+    </td>
+</tr>
+<?php endif; ?>
 <?php
     endforeach;
 else:

@@ -8,11 +8,13 @@
  * @var string      $Cur
  * @var int         $Dec
  * @var string      $DateFormat
+ * @var string      $DateTimeFormat
+ * @var string      $Timezone
  * @var int         $ProductUID
  */
 
-$fmt = function (float $v) use ($Cur): string {
-    return $Cur . ' ' . smartDecimal($v);
+$fmt = function (float $v) use ($Cur, $Dec): string {
+    return $Cur . ' ' . number_format($v, $Dec, '.', '');
 };
 
 $name    = htmlspecialchars($Prod->ItemName ?? '');
@@ -75,7 +77,7 @@ $descText = !empty($Prod->Description)
     </div>
     <?php endif; ?>
 
-    <?php if ($Prod->NotForSale): ?>
+    <?php if (($Prod->NotForSale ?? '') === 'Yes'): ?>
     <div class="alert alert-secondary d-flex align-items-center gap-2 py-2 mb-3">
         <i class="bx bx-block fs-5"></i>
         <span>This item is marked <strong>Not For Sale</strong>.</span>
@@ -263,13 +265,21 @@ $descText = !empty($Prod->Description)
                     <?php if (!empty($Prod->CreatedOn)): ?>
                     <div class="pp-detail-row">
                         <span class="pp-detail-key">Created</span>
-                        <span class="pp-detail-val"><?php echo date($DateFormat, strtotime($Prod->CreatedOn)); ?></span>
+                        <span class="pp-detail-val"><?php
+                            $dt = new DateTime($Prod->CreatedOn, new DateTimeZone('UTC'));
+                            $dt->setTimezone(new DateTimeZone($Timezone));
+                            echo $dt->format($DateTimeFormat);
+                        ?></span>
                     </div>
                     <?php endif; ?>
                     <?php if (!empty($Prod->UpdatedOn) && $Prod->UpdatedOn !== $Prod->CreatedOn): ?>
                     <div class="pp-detail-row">
                         <span class="pp-detail-key">Last Updated</span>
-                        <span class="pp-detail-val"><?php echo date($DateFormat, strtotime($Prod->UpdatedOn)); ?></span>
+                        <span class="pp-detail-val"><?php
+                            $dt = new DateTime($Prod->UpdatedOn, new DateTimeZone('UTC'));
+                            $dt->setTimezone(new DateTimeZone($Timezone));
+                            echo $dt->format($DateTimeFormat);
+                        ?></span>
                     </div>
                     <?php endif; ?>
                 </div>

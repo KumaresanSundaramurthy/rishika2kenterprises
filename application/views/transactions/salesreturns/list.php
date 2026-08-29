@@ -7,6 +7,7 @@ $moduleContext = 'salesreturn';
 include(APPPATH . 'views/transactions/partials/status_config.php');
 
 $currency      = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
+$dec           = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 $showSerial    = $JwtData->GenSettings->SerialNoDisplay == 1;
 $srModuleUID   = 106;
 
@@ -56,7 +57,7 @@ if (!empty($DataLists)):
         $partyName  = $list->PartyName   ?? 'Customer';
         $returnNum  = $list->UniqueNumber ?? 'Draft';
         $transDate  = !empty($list->TransDate) ? format_datedisplay($list->TransDate) : '';
-        $billAmount = $currency . ' ' . smartDecimal($netAmt);
+        $billAmount = $currency . ' ' . number_format($netAmt, $dec, '.', '');
 
         $waMessage  = "Hello *{$partyName}*,\n\n";
         $waMessage .= "Sales Return: *{$returnNum}*\n";
@@ -122,10 +123,10 @@ if (!empty($DataLists)):
             <?php if ($isDraft && $netAmt == 0): ?>
                 <span class="text-muted">—</span>
             <?php else: ?>
-                <div class="trans-amount-main"><?php echo $currency . ' ' . smartDecimal($netAmt); ?></div>
+                <div class="trans-amount-main"><?php echo $currency . ' ' . number_format($netAmt, $dec, '.', ''); ?></div>
                 <?php if ($showPending): ?>
                     <div style="font-size:.68rem;color:#d33;font-weight:500;">
-                        Bal <?php echo $currency . ' ' . smartDecimal($pendingAmt); ?>
+                        Bal <?php echo $currency . ' ' . number_format($pendingAmt, $dec, '.', ''); ?>
                     </div>
                 <?php endif; ?>
             <?php endif; ?>
@@ -277,7 +278,7 @@ if (!empty($DataLists)):
                         data-total="<?php echo $netAmt; ?>"
                         data-paid="<?php echo $paidAmt; ?>"
                         data-pending="<?php echo $pendingAmt; ?>"
-                        title="Refund Payment — <?php echo $currency . ' ' . smartDecimal($pendingAmt); ?> pending">
+                        title="Refund Payment — <?php echo $currency . ' ' . number_format($pendingAmt, $dec, '.', ''); ?> pending">
                     <?php echo $currency; ?>
                 </button>
                 <?php endif; ?>

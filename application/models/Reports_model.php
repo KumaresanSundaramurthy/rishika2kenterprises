@@ -1454,4 +1454,85 @@ class Reports_model extends CI_Model
         );
         return $q ? $q->result_array() : [];
     }
+
+    // ── Brand Wise Sales ──────────────────────────────────────────────────────
+
+    /**
+     * Sales totals grouped by brand for a date range (Invoices ModuleUID=103).
+     *
+     * @param int    $orgUID
+     * @param string $from   Y-m-d
+     * @param string $to     Y-m-d
+     * @return array
+     */
+    public function getBrandWiseSalesData(int $orgUID, string $from, string $to): array
+    {
+        $q = $this->ReadDb->query(
+            "SELECT
+                 Tprod.BrandUID,
+                 COALESCE(b.Name, 'No Brand')           AS BrandName,
+                 COUNT(DISTINCT Tprod.ProductUID)        AS ProductCount,
+                 COUNT(DISTINCT Ts.TransUID)             AS InvoiceCount,
+                 SUM(Tprod.Quantity)                     AS TotalQty,
+                 SUM(Tprod.Quantity * Tprod.UnitPrice)   AS TotalValue,
+                 AVG(Tprod.UnitPrice)                    AS AvgPrice
+             FROM Transaction.TransProductsTbl AS Tprod
+             JOIN Transaction.TransactionsTbl  AS Ts
+                  ON  Ts.TransUID  = Tprod.TransUID
+                  AND Ts.OrgUID    = Tprod.OrgUID
+                  AND Ts.ModuleUID = 103
+                  AND Ts.IsDeleted = 0
+                  AND Ts.IsActive  = 1
+                  AND Ts.DocStatus NOT IN ('Draft','Cancelled','Rejected')
+                  AND Ts.TransDate BETWEEN ? AND ?
+             LEFT JOIN Products.BrandTbl b ON b.BrandUID = Tprod.BrandUID
+             WHERE Tprod.OrgUID    = ?
+               AND Tprod.IsDeleted = 0
+               AND Tprod.IsActive  = 1
+               AND Tprod.BrandUID IS NOT NULL
+             GROUP BY Tprod.BrandUID
+             ORDER BY TotalValue DESC
+             LIMIT 500",
+            [$from, $to, $orgUID]
+        );
+        return $q ? $q->result_array() : [];
+    }
+
+    // ── Variant Stock Summary ─────────────────────────────────────────────────
+
+    /**
+     * Current stock position for every active brand × size variant.
+     *
+     * @param int $orgUID
+     * @return array
+     */
+    public function getVariantStockData(int $orgUID): array
+    {
+        $q = $this->ReadDb->query(
+            "SELECT
+                 pv.VariantUID,
+                 pv.ProductUID,
+                 p.ItemName,
+                 COALESCE(b.Name, '—') AS BrandName,
+                 COALESCE(s.Name, '—') AS SizeName,
+                 pv.PartNumber,
+                 pv.PurchasePrice,
+                 pv.SellingPrice,
+                 COALESCE(pvs.AvailableQty, 0)                         AS StockQty,
+                 COALESCE(pvs.AvailableQty, 0) * pv.PurchasePrice      AS StockValue
+             FROM Products.ProductVariantTbl pv
+             JOIN Products.ProductTbl p
+                  ON p.ProductUID = pv.ProductUID AND p.OrgUID = pv.OrgUID AND p.IsDeleted = 0
+             LEFT JOIN Products.BrandTbl b  ON b.BrandUID = pv.BrandUID
+             LEFT JOIN Products.SizeTbl  s  ON s.SizeUID  = pv.SizeUID
+             LEFT JOIN Products.ProductVariantStockTbl pvs
+                  ON pvs.VariantUID = pv.VariantUID AND pvs.OrgUID = pv.OrgUID
+             WHERE pv.OrgUID    = ?
+               AND pv.IsActive  = 1
+             ORDER BY b.Name ASC, s.Name ASC, p.ItemName ASC
+             LIMIT 2000",
+            [$orgUID]
+        );
+        return $q ? $q->result_array() : [];
+    }
 }

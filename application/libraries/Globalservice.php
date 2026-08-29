@@ -1008,15 +1008,18 @@ Class Globalservice {
 
     }
 
-    public function sendJsonResponse($data) {
+    public function sendJsonResponse($data): void {
         $json = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PARTIAL_OUTPUT_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE);
         if ($json === false) {
             $json = json_encode(['Error' => true, 'Message' => 'Response encoding failed: ' . json_last_error_msg()]);
         }
-        $this->CI->output->set_status_header(200)
-            ->set_content_type('application/json', 'utf-8')
-            ->set_output($json)
-            ->_display();
+        // Discard any stray output (BOM, whitespace) buffered from included PHP files
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+        http_response_code(200);
+        header('Content-Type: application/json; charset=utf-8');
+        echo $json;
         exit;
     }
 

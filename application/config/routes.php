@@ -468,6 +468,7 @@ $route['products/deleteSizeDetails']  = 'products/deleteSizeDetails';
 $route['products/deleteBulkSize']     = 'products/deleteBulkSize';
 $route['products/syncSizesCache']                   = 'products/syncSizesCache';
 $route['products/getProductVariantsForPricelist']   = 'products/getProductVariantsForPricelist';
+$route['products/getUsedVariants']                  = 'products/getUsedVariants';
 
 // Inventory
 $route['inventory']                              = 'inventory/index';
@@ -545,6 +546,10 @@ $route['reports/low-stock-alert']            = 'reports/lowStockAlert';
 $route['reports/getLowStockAlertData']       = 'reports/getLowStockAlertData';
 $route['reports/stock-summary']                  = 'reports/stockSummary';
 $route['reports/getStockSummaryData']            = 'reports/getStockSummaryData';
+$route['reports/brand-wise-sales']               = 'reports/brandWiseSales';
+$route['reports/getBrandWiseSalesData']          = 'reports/getBrandWiseSalesData';
+$route['reports/variant-stock']                  = 'reports/variantStock';
+$route['reports/getVariantStockData']            = 'reports/getVariantStockData';
 $route['reports/invoice-itemwise']               = 'reports/invoiceItemwise';
 $route['reports/getInvoiceItemwiseData']         = 'reports/getInvoiceItemwiseData';
 $route['reports/purchase-itemwise']              = 'reports/purchaseItemwise';

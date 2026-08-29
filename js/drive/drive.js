@@ -235,7 +235,7 @@
             html += '<tr data-uid="' + item.uid + '" data-type="' + item.type + '"' + (isFolder ? ' style="cursor:pointer;"' : '') + '>' +
                 '<td><i class="bx ' + fi.icon + '" style="color:' + fi.color + ';font-size:1.1rem;"></i></td>' +
                 '<td><span style="font-weight:600;">' + esc(item.name) + '</span></td>' +
-                '<td style="color:#94a3b8;">' + (item.size ? fmtSize(item.size) : '—') + '</td>' +
+                '<td style="color:#94a3b8;">' + (item.size ? fmtSize(item.size) : '-') + '</td>' +
                 '<td style="color:#94a3b8;">' + fmtDate(item.createdOn) + '</td>' +
                 '<td class="row-acts">' +
                 (isFolder ? '' : '<button class="drive-act-btn me-1" data-da="preview"  data-uid="' + item.uid + '" title="Preview"><i class="bx bx-show-alt"></i></button>') +

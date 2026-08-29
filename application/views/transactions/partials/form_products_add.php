@@ -72,7 +72,7 @@ $_showCompliment = !empty($transShowCompliment);
             </div>
             <div style="width: 10%;">
                 <div class="align-items-center position-relative">
-                    <input type="text" inputmode="decimal" class="form-control" name="prodQuantity" id="prodQuantity" min="0" step="1" placeholder="Quantity" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $JwtData->GenSettings->QtyMaxLength; ?>, 9)" maxLength="<?php echo $JwtData->GenSettings->QtyMaxLength; ?>" pattern="^\d{1,<?php echo $JwtData->GenSettings->QtyMaxLength; ?>}(\.\d{0,9})?$" onpaste="handlePricePaste(event, <?php echo $JwtData->GenSettings->QtyMaxLength; ?>, 9)" ondrop="handlePriceDrop(event, <?php echo $JwtData->GenSettings->QtyMaxLength; ?>, 9)" />
+                    <input type="text" inputmode="decimal" class="form-control" name="prodQuantity" id="prodQuantity" min="0" step="1" placeholder="Quantity" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $JwtData->GenSettings->QtyMaxLength + 10; ?>, 9)" maxLength="<?php echo $JwtData->GenSettings->QtyMaxLength + 10; ?>" pattern="^\d{1,<?php echo $JwtData->GenSettings->QtyMaxLength; ?>}(\.\d{0,9})?$" onpaste="handlePricePaste(event, <?php echo $JwtData->GenSettings->QtyMaxLength + 10; ?>, 9)" ondrop="handlePriceDrop(event, <?php echo $JwtData->GenSettings->QtyMaxLength + 10; ?>, 9)" />
                     <div id="errorProdQty" class="transerror-tooltip"><span class="icon">!</span>Please enter quantity.</div>
                 </div>
             </div>
@@ -119,8 +119,9 @@ $_showCompliment = !empty($transShowCompliment);
                         // Inline styles on drag-handle and description cells match what formationTableBillItems generates.
                         $INTEGER_ONLY_UOMS_PHP = ['PCS', 'NOS', 'UNT', 'BOX', 'PAC', 'EACH', 'SET', 'BTL', 'BAG', 'CASE', 'PRS', 'SLOT', 'PKTS', 'DOZ'];
                         $preCur    = $JwtData->GenSettings->CurrenySymbol ?? '₹';
-                        $preDec    = 9;
-                        $preQtyMax = (int)($JwtData->GenSettings->QtyMaxLength    ?? 7);
+                        $preDec     = 8;
+                        $preDispDec = (int)($JwtData->GenSettings->DecimalPoints   ?? 2);
+                        $preQtyMax  = (int)($JwtData->GenSettings->QtyMaxLength    ?? 7);
                         $prePrcMax = (int)($JwtData->GenSettings->PriceMaxLength  ?? 10);
                         $preShowDesc = !empty($JwtData->TransSettings->ShowProductDescription);
                         $preRowIdx   = 0;
@@ -199,6 +200,33 @@ $_showCompliment = !empty($transShowCompliment);
                                 <span class="bill-desc-text transtext-small" style="color:#adb5bd;font-style:italic;">Add description</span>
                             </div>
                             <?php endif; ?>
+                            <?php if (!empty($_ei->HSNCode)): ?>
+                            <div class="transtext-small text-muted"><span style="font-weight:600;color:#495057;">HSN:</span> <?php echo htmlspecialchars($_ei->HSNCode); ?></div>
+                            <?php endif; ?>
+                            <?php
+                                $preVariantUID    = (int)($_ei->VariantUID   ?? 0);
+                                $preVariantLabel  = htmlspecialchars($_ei->VariantLabel  ?? '');
+                                $preVarPartNo     = htmlspecialchars($_ei->VariantPartNumber ?? '');
+                                $preProdPartNo    = htmlspecialchars($_ei->ProductPartNumber ?? '');
+                                $preIsBrand       = (int)($_ei->IsBrandApplicable ?? 0);
+                                $preBrandUID      = (int)($_ei->BrandUID  ?? 0);
+                                $preBrandName     = htmlspecialchars($_ei->BrandName ?? '');
+                            ?>
+                            <?php if (!$preVariantUID && $preProdPartNo): ?>
+                            <div class="mt-1"><span class="bill-partno-badge"><?php echo $preProdPartNo; ?></span></div>
+                            <?php endif; ?>
+                            <?php if ($preIsBrand === 1): ?>
+                                <?php if ($preVariantUID > 0): ?>
+                                <div class="mt-1 d-flex align-items-center flex-wrap gap-1">
+                                    <span class="variant-chip selected" data-id="<?php echo $prePid; ?>"><i class="bx bx-layer me-1"></i><?php echo $preVariantLabel; ?></span>
+                                    <?php if ($preVarPartNo): ?><span class="bill-partno-badge"><?php echo $preVarPartNo; ?></span><?php endif; ?>
+                                </div>
+                                <?php elseif ($preBrandUID > 0): ?>
+                                <div class="mt-1"><span class="brand-chip selected" data-id="<?php echo $prePid; ?>"><i class="bx bx-purchase-tag-alt me-1"></i><?php echo $preBrandName; ?></span></div>
+                                <?php else: ?>
+                                <div class="mt-1"><span class="variant-chip empty" data-id="<?php echo $prePid; ?>"><i class="bx bx-layer me-1"></i><?php echo t('lbl_select_variant', 'Select Variant'); ?></span></div>
+                                <?php endif; ?>
+                            <?php endif; ?>
                         </td>
                         <td>
                             <div class="input-group input-group-merge input-group-sm">
@@ -213,16 +241,16 @@ $_showCompliment = !empty($transShowCompliment);
                         <td>
                             <div class="input-group input-group-merge">
                                 <span class="input-group-text"><?php echo htmlspecialchars($preCur); ?></span>
-                                <input type="text" inputmode="decimal" class="form-control form-control-sm updateAllBillAmounts" name="bm_<?php echo $prePid; ?>_unitPrice" id="bm_<?php echo $prePid; ?>_unitPrice" min="0" placeholder="Unit Price" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $prePrcMax; ?>, 8)" maxlength="<?php echo $prePrcMax + 9; ?>" pattern="^\d{1,<?php echo $prePrcMax; ?>}(\.\d{0,8})?$" onpaste="handlePricePaste(event, <?php echo $prePrcMax; ?>, 8)" ondrop="handlePriceDrop(event, <?php echo $prePrcMax; ?>, 8)" value="<?php echo smartDecimal($preUP, 8); ?>"<?php if ($preSrLocked): ?> readonly<?php endif; ?>>
+                                <input type="text" inputmode="decimal" class="form-control form-control-sm updateAllBillAmounts" name="bm_<?php echo $prePid; ?>_unitPrice" id="bm_<?php echo $prePid; ?>_unitPrice" min="0" placeholder="Unit Price" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, 19, 8)" maxlength="19" pattern="^\d{1,10}(\.\d{0,8})?$" onpaste="handlePricePaste(event, 19, 8)" ondrop="handlePriceDrop(event, 19, 8)" value="<?php echo smartDecimal($preUP, 8); ?>"<?php if ($preSrLocked): ?> readonly<?php endif; ?>>
                             </div>
                             <div class="transtext-small text-muted text-warning bm_efft_<?php echo $prePid; ?>_price<?php echo $preDiscCls; ?>">aft disc: <span id="bm_<?php echo $prePid; ?>_aftdisc_unitPrice"><?php echo smartDecimal($preEffUP, 8); ?></span></div>
                         </td>
                         <td>
                             <div class="input-group input-group-merge">
                                 <span class="input-group-text"><?php echo htmlspecialchars($preCur); ?></span>
-                                <input type="text" inputmode="decimal" class="form-control form-control-sm updateAllBillAmounts" name="bm_<?php echo $prePid; ?>_sellingPrice" id="bm_<?php echo $prePid; ?>_sellingPrice" min="0" placeholder="Tax Price" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $prePrcMax; ?>, <?php echo $preDec; ?>)" maxlength="<?php echo $prePrcMax; ?>" pattern="^\d{1,<?php echo $prePrcMax; ?>}(\.\d{0,<?php echo $preDec; ?>})?$" onpaste="handlePricePaste(event, <?php echo $prePrcMax; ?>, <?php echo $preDec; ?>)" ondrop="handlePriceDrop(event, <?php echo $prePrcMax; ?>, <?php echo $preDec; ?>)" value="<?php echo smartDecimal($preSP, $preDec); ?>"<?php if ($preSrLocked): ?> readonly<?php endif; ?>>
+                                <input type="text" inputmode="decimal" class="form-control form-control-sm updateAllBillAmounts" name="bm_<?php echo $prePid; ?>_sellingPrice" id="bm_<?php echo $prePid; ?>_sellingPrice" min="0" placeholder="Tax Price" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, 19, 8)" maxlength="19" pattern="^\d{1,10}(\.\d{0,8})?$" onpaste="handlePricePaste(event, 19, 8)" ondrop="handlePriceDrop(event, 19, 8)" value="<?php echo smartDecimal($preSP, 8); ?>"<?php if ($preSrLocked): ?> readonly<?php endif; ?>>
                             </div>
-                            <div class="transtext-small text-muted text-warning bm_efft_<?php echo $prePid; ?>_price<?php echo $preDiscCls; ?>">aft disc: <span id="bm_<?php echo $prePid; ?>_aftdisc_sellingPrice"><?php echo smartDecimal($preEffSP, $preDec); ?></span></div>
+                            <div class="transtext-small text-muted text-warning bm_efft_<?php echo $prePid; ?>_price<?php echo $preDiscCls; ?>">aft disc: <span id="bm_<?php echo $prePid; ?>_aftdisc_sellingPrice"><?php echo smartDecimal($preEffSP, 8); ?></span></div>
                         </td>
                         <td>
                             <div class="input-group input-group-merge w-75">
@@ -243,8 +271,8 @@ $_showCompliment = !empty($transShowCompliment);
                                     <?php endif; ?>
                                 </div>
                                 <div class="text-end flex-grow-1">
-                                    <div class="text-primary fw-semibold"><?php echo htmlspecialchars($preCur); ?> <span id="bm_<?php echo $prePid; ?>_netamount"><?php echo smartDecimal($preNet, $preDec, true); ?></span></div>
-                                    <div class="transtext-small text-muted"><span id="bm_<?php echo $prePid; ?>_tot_unit_amount"><?php echo smartDecimal($preLT, $preDec, true); ?></span> + <span id="bm_<?php echo $prePid; ?>_taxAmount"><?php echo smartDecimal($preTax, $preDec, true); ?></span> (<?php echo $preTaxPct; ?>%)</div>
+                                    <div class="text-primary fw-semibold"><?php echo htmlspecialchars($preCur); ?> <span id="bm_<?php echo $prePid; ?>_netamount"><?php echo smartDecimal($preNet, $preDispDec, true); ?></span></div>
+                                    <div class="transtext-small text-muted"><span id="bm_<?php echo $prePid; ?>_tot_unit_amount"><?php echo smartDecimal($preLT, $preDispDec, true); ?></span> + <span id="bm_<?php echo $prePid; ?>_taxAmount"><?php echo smartDecimal($preTax, $preDispDec, true); ?></span> (<?php echo $preTaxPct; ?>%)</div>
                                 </div>
                             </div>
                         </td>

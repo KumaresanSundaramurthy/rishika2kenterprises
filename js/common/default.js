@@ -1020,41 +1020,50 @@ function validatePriceInput(input, maxLength, decimalLength) {
     // Remove all characters except digits and one dot
     val = val.replace(/[^0-9.]/g, '');
 
-    // Remove multiple dots
+    // Remove multiple dots — keep only the first
     const firstDot = val.indexOf('.');
     if (firstDot !== -1 && val.lastIndexOf('.') !== firstDot) {
         const beforeDot = val.slice(0, firstDot);
-        const afterDot = val.slice(firstDot + 1).replace(/\./g, '');
+        const afterDot  = val.slice(firstDot + 1).replace(/\./g, '');
         val = beforeDot + '.' + afterDot;
     }
 
-    // Split into integer and decimal parts
-    const parts = val.split('.');
-    let integerPart = parts[0];
-    let decimalPart = parts[1] || '';
+    const hasDot    = val.indexOf('.') !== -1;
+    const parts     = val.split('.');
+    let integerPart = parts[0] || '';
+    // null  = no dot typed; '' = dot typed but no digits yet; 'NNN' = decimal digits
+    let decimalPart = parts.length > 1 ? parts[1] : null;
 
-    // Remove leading zeros unless it's just '0'
+    // Remove leading zeros unless just '0'
     if (integerPart.length > 1) {
         integerPart = integerPart.replace(/^0+/, '');
         if (integerPart === '') integerPart = '0';
     }
 
-    // Limit integer part to allowed length
-    const maxIntLen = maxLength - decimalLength - 1;
+    // Limit integer part
+    const maxIntLen = Math.max(1, maxLength - decimalLength - 1);
     integerPart = integerPart.slice(0, maxIntLen);
 
-    // Limit decimal part
-    decimalPart = decimalPart.slice(0, decimalLength);
+    let showDot = hasDot;
+
+    if (decimalPart !== null && decimalPart.length > decimalLength) {
+        // Exceeds decimal limit → round to decimalLength places, then strip trailing zeros
+        const fullNum  = parseFloat(integerPart + '.' + decimalPart);
+        const rounded  = isNaN(fullNum) ? '0.' + '0'.repeat(decimalLength) : fullNum.toFixed(decimalLength);
+        const rParts   = rounded.split('.');
+        integerPart    = rParts[0];
+        decimalPart    = (rParts[1] || '').replace(/0+$/, '');
+        showDot        = decimalPart.length > 0;
+    }
 
     // Compose final value
-    if (val.endsWith('.') && decimalPart === '') {
+    if (decimalPart) {
+        input.value = integerPart + '.' + decimalPart;
+    } else if (showDot) {
         input.value = integerPart + '.';
-    } else if (decimalPart) {
-        input.value = `${integerPart}.${decimalPart}`;
     } else {
         input.value = integerPart;
     }
-
 }
 
 function validateDiscountInput(input, maxLength, decimalLength, forcedValue = null) {
@@ -1553,6 +1562,21 @@ function smartDecimal(number, maxDecimals = 9, digReq = false) {
     // Remove unnecessary trailing zeros and decimal point if not needed
     formatted = formatted.replace(/\.?0+$/, '');
     return formatted;
+}
+
+/**
+ * Format a price for dropdown display.
+ * Min 2 decimal places; if the value has 3+ significant decimals, show exactly 3 (rounded).
+ * Examples: 240 → "240.00", 240.1 → "240.10", 240.131 → "240.131", 240.1398625 → "240.140"
+ * @param {number|string} n
+ * @returns {string}
+ */
+function fmtDropdownPrice(n) {
+    var v   = parseFloat(n) || 0;
+    var str = v.toString();
+    var dot = str.indexOf('.');
+    var sig = dot === -1 ? 0 : str.length - dot - 1;
+    return sig >= 3 ? v.toFixed(3) : v.toFixed(2);
 }
 
 function hasValue(val) {

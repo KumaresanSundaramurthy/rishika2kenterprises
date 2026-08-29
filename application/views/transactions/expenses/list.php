@@ -5,6 +5,7 @@ $moduleContext = 'expense';
 include(APPPATH . 'views/transactions/partials/status_config.php');
 
 $currency   = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
+$dec        = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 $showSerial = $JwtData->GenSettings->SerialNoDisplay == 1;
 
 $terminalExp = ['Paid', 'Cancelled'];
@@ -42,7 +43,7 @@ if (!empty($DataLists)):
                    data-uid="<?php echo (int)$list->ExpenseUID; ?>"
                    data-num="<?php echo htmlspecialchars($list->ExpenseNumber); ?>"
                    data-date="<?php echo htmlspecialchars(format_datedisplay($list->ExpenseDate)); ?>"
-                   data-amount="<?php echo $currency . ' ' . smartDecimal($list->Amount); ?>"
+                   data-amount="<?php echo $currency . ' ' . number_format((float)($list->Amount ?? 0), $dec, '.', ''); ?>"
                    data-status="<?php echo htmlspecialchars($status); ?>"
                    data-badge="<?php echo htmlspecialchars($badgeClass); ?>"
                    data-icon="<?php echo htmlspecialchars($icon); ?>"
@@ -75,9 +76,9 @@ if (!empty($DataLists)):
 
         <!-- Amount -->
         <td>
-            <div class="trans-amount-main"><?php echo $currency . ' ' . smartDecimal($list->NetAmount); ?></div>
+            <div class="trans-amount-main"><?php echo $currency . ' ' . number_format((float)($list->NetAmount ?? 0), $dec, '.', ''); ?></div>
             <?php if ($status === 'Partial' && $pendingAmt > 0): ?>
-                <div style="font-size:.7rem;color:#dc3545;margin-top:2px;"><?php echo t('lbl_bal', 'Bal'); ?> <?php echo $currency . ' ' . smartDecimal($pendingAmt); ?></div>
+                <div style="font-size:.7rem;color:#dc3545;margin-top:2px;"><?php echo t('lbl_bal', 'Bal'); ?> <?php echo $currency . ' ' . number_format($pendingAmt, $dec, '.', ''); ?></div>
             <?php endif; ?>
         </td>
 

@@ -7,6 +7,7 @@ $moduleContext = 'invoice';
 include(APPPATH . 'views/transactions/partials/status_config.php');
 
 $currency   = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
+$dec        = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 $showSerial = $JwtData->GenSettings->SerialNoDisplay == 1;
 $invModuleUID = 103;
 
@@ -51,9 +52,9 @@ if (!empty($DataLists)):
         $partyName   = $list->PartyName   ?? 'Customer';
         $invoiceNum  = $list->UniqueNumber ?? 'Draft';
         $invoiceLink = (getenv('APP_URL') ?: 'http://localhost:8080') . '/invoice/' . ($list->TransToken ?? '');
-        $numericAmt  = smartDecimal($netAmt);
+        $numericAmt  = number_format($netAmt,     $dec, '.', '');
         $billAmount  = $currency . ' ' . $numericAmt;
-        $pendingFmt  = $currency . ' ' . smartDecimal($pendingAmt);
+        $pendingFmt  = $currency . ' ' . number_format($pendingAmt, $dec, '.', '');
         $transDate   = !empty($list->TransDate) ? format_datedisplay($list->TransDate) : '';
 
         if (!empty($waTemplate)) {
@@ -163,10 +164,10 @@ if (!empty($DataLists)):
             <?php if ($isDraft && $netAmt == 0): ?>
                 <span class="text-muted">—</span>
             <?php else: ?>
-                <div class="trans-amount-main"><?php echo $currency . ' ' . smartDecimal($netAmt); ?></div>
+                <div class="trans-amount-main"><?php echo $currency . ' ' . number_format($netAmt, $dec, '.', ''); ?></div>
                 <?php if ($showPending): ?>
                     <div style="font-size:.68rem;color:#d33;font-weight:500;">
-                        Bal <?php echo $currency . ' ' . smartDecimal($pendingAmt); ?>
+                        Bal <?php echo $currency . ' ' . number_format($pendingAmt, $dec, '.', ''); ?>
                     </div>
                 <?php endif; ?>
             <?php endif; ?>
@@ -337,7 +338,7 @@ if (!empty($DataLists)):
                         data-pending="<?php echo $pendingAmt; ?>"
                         data-bs-toggle="tooltip"
                         data-bs-trigger="hover"
-                        title="Record Payment — <?php echo $currency . ' ' . smartDecimal($pendingAmt); ?> pending">
+                        title="Record Payment — <?php echo $currency . ' ' . number_format($pendingAmt, $dec, '.', ''); ?> pending">
                     <?php echo $currency; ?>
                 </button>
                 <?php endif; ?>

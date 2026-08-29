@@ -155,10 +155,12 @@ $this->load->view('common/transactions/header'); ?>
                             'color'   => '#10b981',
                             'bg'      => '#d1fae5',
                             'reports' => [
-                                ['name' => 'Item Wise Sales',     'desc' => 'Product-wise total sales quantity and value',   'url' => '/reports/item-sales',   'icon' => 'bx-trending-up'],
-                                ['name' => 'Item Wise Purchase',  'desc' => 'Product-wise total purchase quantity and cost', 'url' => '/reports/item-purchase','icon' => 'bx-trending-down'],
-                                ['name' => 'Low Stock Alert',     'desc' => 'Products below minimum stock threshold',        'url' => '/reports/low-stock',    'icon' => 'bx-error'],
-                                ['name' => 'Stock Summary',       'desc' => 'Current stock position for all products',       'url' => '/reports/stock-summary','icon' => 'bx-layer'],
+                                ['name' => 'Item Wise Sales',     'desc' => 'Product-wise total sales quantity and value',   'url' => '/reports/item-sales',        'icon' => 'bx-trending-up'],
+                                ['name' => 'Item Wise Purchase',  'desc' => 'Product-wise total purchase quantity and cost', 'url' => '/reports/item-purchase',     'icon' => 'bx-trending-down'],
+                                ['name' => 'Low Stock Alert',     'desc' => 'Products below minimum stock threshold',        'url' => '/reports/low-stock',         'icon' => 'bx-error'],
+                                ['name' => 'Stock Summary',       'desc' => 'Current stock position for all products',       'url' => '/reports/stock-summary',     'icon' => 'bx-layer'],
+                                ['name' => 'Brand Wise Sales',    'desc' => 'Sales quantity and value grouped by brand',     'url' => '/reports/brand-wise-sales',  'icon' => 'bx-purchase-tag-alt'],
+                                ['name' => 'Variant Stock',       'desc' => 'Current stock position per brand and size',     'url' => '/reports/variant-stock',     'icon' => 'bx-git-branch'],
                             ],
                         ],
                         [

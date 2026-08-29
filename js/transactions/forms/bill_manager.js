@@ -2052,7 +2052,7 @@ $(document).ready(function () {
                         function () { ajaxLoading(1); success({ Lists: [], more: false }); }
                     );
                 },
-                delay: 1000,
+                delay: 300,
                 data: function (params) {
                     ajaxLoading(0);
                     return { term: params.term, page: params.page || 1 };
@@ -2838,7 +2838,7 @@ $(document).ready(function () {
             $chip.attr('data-id', newComposite)
                  .removeClass('empty').addClass('selected')
                  .html('<i class="bx bx-layer me-1"></i>' + variantLabel);
-        });
+        }, { singleMode: true });
     });
 
 });
@@ -2918,7 +2918,7 @@ function updateTableRow(productRow) {
         // Always show original prices in inputs
         $row.find('#bm_'+pid+'_qty').val(productRow.quantity);
         $row.find('#bm_'+pid+'_unitPrice').val(smartDecimal(productRow.orgunitprice, 8));
-        $row.find('#bm_'+pid+'_sellingPrice').val(smartDecimal(productRow.orgselngprice, genSettings.DecimalPoints));
+        $row.find('#bm_'+pid+'_sellingPrice').val(smartDecimal(productRow.orgselngprice, 8));
         
         // Update discount field
         $row.find('#bm_'+pid+'_discount').val(productRow.discount);
@@ -2930,7 +2930,7 @@ function updateTableRow(productRow) {
         if (productRow.discount > 0) {
             $row.find('.bm_efft_'+pid+'_price').removeClass('d-none');
             $row.find('#bm_'+pid+'_aftdisc_unitPrice').text(smartDecimal(productRow.effectiveUnitPrice || productRow.unitPrice, 8));
-            $row.find('#bm_'+pid+'_aftdisc_sellingPrice').text(smartDecimal(productRow.effectiveSellingPrice || productRow.sellingPrice, genSettings.DecimalPoints));
+            $row.find('#bm_'+pid+'_aftdisc_sellingPrice').text(smartDecimal(productRow.effectiveSellingPrice || productRow.sellingPrice, 8));
         } else {
             $row.find('.bm_efft_'+pid+'_price').addClass('d-none');
         }
@@ -3503,17 +3503,39 @@ function searchProductInfo() {
     var PAGE_SIZE = 30;
 
 
+    /**
+     * Filter + paginate the product cache. If a term matches a variant's PartNumber,
+     * the product is included and tagged with _matchedVariantUID for barcode auto-push.
+     * @param {Array}  list
+     * @param {string} term
+     * @param {number} catgUID
+     * @param {number} page
+     * @returns {{Lists:Array, more:boolean}}
+     */
     function _paginate(list, term, catgUID, page) {
         var filtered = catgUID
             ? list.filter(function (p) { return p.categoryUID === catgUID; })
             : list;
         if (term) {
-            var t = term.toLowerCase();
-            filtered = filtered.filter(function (p) {
-                return (p.text        && p.text.toLowerCase().includes(t))       ||
-                       (p.hsnCode     && p.hsnCode.toLowerCase().includes(t))    ||
-                       (p.partNumber  && p.partNumber.toLowerCase().includes(t));
+            var t       = term.toLowerCase();
+            var matched = [];
+            filtered.forEach(function (p) {
+                if ((p.text       && p.text.toLowerCase().includes(t))    ||
+                    (p.hsnCode    && p.hsnCode.toLowerCase().includes(t)) ||
+                    (p.partNumber && p.partNumber.toLowerCase().includes(t))) {
+                    matched.push(p);
+                    return;
+                }
+                if (Array.isArray(p.variants)) {
+                    var mv = p.variants.find(function (v) {
+                        return v.PartNumber && v.PartNumber.toLowerCase().includes(t);
+                    });
+                    if (mv) {
+                        matched.push(Object.assign({}, p, { _matchedVariantUID: parseInt(mv.VariantUID, 10) }));
+                    }
+                }
             });
+            filtered = matched;
         }
         var start = (page - 1) * PAGE_SIZE;
         return { Lists: filtered.slice(start, start + PAGE_SIZE), more: (start + PAGE_SIZE) < filtered.length };
@@ -3551,9 +3573,35 @@ function searchProductInfo() {
                 var page    = params.data.page  || 1;
                 var catgUID = parseInt($('#prodCategory').val() || 0, 10);
 
+                /**
+                 * Exact-barcode auto-push: if there is exactly 1 result and the search
+                 * term exactly matches a variant's PartNumber, add that variant directly
+                 * without opening the picker.
+                 * @param {{Lists:Array,more:boolean}} result
+                 * @param {Function} successCb
+                 * @returns {boolean} true if auto-push fired (caller must not call successCb again)
+                 */
+                function _tryBarcode(result, successCb) {
+                    if (!term || result.Lists.length !== 1 || !result.Lists[0]._matchedVariantUID) return false;
+                    var p     = result.Lists[0];
+                    var tLow  = term.toLowerCase();
+                    var exactV = (p.variants || []).find(function (v) {
+                        return v.PartNumber && v.PartNumber.toLowerCase() === tLow;
+                    });
+                    if (!exactV) return false;
+                    var autoQty = Math.max(1, parseInt($('#prodQuantity').val(), 10) || 1);
+                    $('#searchProductInfo').select2('close');
+                    pushBillItems(p, autoQty, parseInt(exactV.VariantUID, 10));
+                    $('#searchProductInfo').val(null).trigger('change');
+                    $('#prodQuantity').val('');
+                    successCb({ Lists: [], more: false });
+                    return true;
+                }
+
                 if (prodCache) {
                     ajaxLoading(1);
-                    success(_paginate(prodCache, term, catgUID, page));
+                    var r = _paginate(prodCache, term, catgUID, page);
+                    if (!_tryBarcode(r, success)) success(r);
                     return;
                 }
 
@@ -3561,7 +3609,9 @@ function searchProductInfo() {
                     function (products) {
                         prodCache = products;
                         ajaxLoading(1);
-                        success(_paginate(prodCache, term, catgUID, page));
+                        var r = _paginate(prodCache, term, catgUID, page);
+                        if (_tryBarcode(r, success)) return;
+                        success(r);
                         setTimeout(function () { $('#searchProductInfo').select2('open'); }, 0);
                     },
                     function () { ajaxLoading(1); success({ Lists: [], more: false }); }
@@ -3583,7 +3633,7 @@ function searchProductInfo() {
 
             const priceHtml = `
                 <div class="text-end ms-3 flex-shrink-0">
-                    <div class="fw-semibold" style="color:#696cff;">${genSettings.CurrenySymbol} ${smartDecimal(window._withoutGstMode ? data.unitPrice : data.sellingPrice, genSettings.DecimalPoints, true)}</div>
+                    <div class="fw-semibold" style="color:#696cff;">${genSettings.CurrenySymbol} ${fmtDropdownPrice(window._withoutGstMode ? data.unitPrice : data.sellingPrice)}</div>
                     <div class="prod-info-tax transtext-small">incl tax: ${data.taxPercent || '0'}%</div>
                 </div>`;
 
@@ -3694,6 +3744,19 @@ function searchProductInfo() {
         $option.attr('data-allfields', JSON.stringify(data));
         $option.attr('data-primaryunit', data.primaryUnit);
         prodCache = null;
+
+        // If the product has variants, open picker immediately on selection
+        var _isBrand = parseInt(data.IsBrandApplicable, 10) === 1;
+        var _isSize  = parseInt(data.IsSizeApplicable,  10) === 1;
+        if (_isBrand || _isSize) {
+            var _hasVariants = Array.isArray(data.variants) && data.variants.length > 0;
+            if (_hasVariants) {
+                var autoQty = Math.max(1, parseInt($('#prodQuantity').val(), 10) || 1);
+                pushBillItems(data, autoQty, data._matchedVariantUID || 0);
+                return; // picker modal handles the rest; don't focus qty field
+            }
+        }
+
         $('#prodQuantity').focus();
     }).on('select2:close', function () {
         lastTerm  = '';
@@ -3704,7 +3767,13 @@ function searchProductInfo() {
     });
 }
 
-function pushBillItems(productData, qty) {
+/**
+ * @param {Object} productData
+ * @param {number} qty
+ * @param {number} [forcedVariantUID=0]  When > 0, skips the picker and adds this variant directly (barcode scan path).
+ * @returns {void}
+ */
+function pushBillItems(productData, qty, forcedVariantUID) {
     if (window._withoutGstMode) {
         productData = Object.assign({}, productData, {
             _origTaxPercent:    parseFloat(productData.taxPercent)    || 0,
@@ -3715,29 +3784,89 @@ function pushBillItems(productData, qty) {
             taxPercent: 0, cgstPercent: 0, sgstPercent: 0, igstPercent: 0, taxDetailsUID: 0,
         });
     }
-    if (parseInt(productData.IsBrandApplicable, 10) === 1) {
+    var _isBrand = parseInt(productData.IsBrandApplicable, 10) === 1;
+    var _isSize  = parseInt(productData.IsSizeApplicable,  10) === 1;
+
+    if (_isBrand || _isSize) {
         var _variants = (Array.isArray(productData.variants) && productData.variants.length > 0)
             ? productData.variants : [];
 
         if (_variants.length > 0) {
-            // Product has specific variants — use VariantPicker (Brand + Size)
-            VariantPicker.open(productData, qty, function (variantUID, variantLabel) {
-                var origUID     = parseInt(productData.id, 10);
-                var compositeId = origUID * 100000 + parseInt(variantUID, 10);
-                if (billManager.getItemById(compositeId)) {
-                    Swal.fire({icon: 'error', title: t('swal_oops', 'Oops...'), text: t('swal_item_variant_in_cart', 'This item with the selected variant is already in the cart.')});
+            // Barcode scan: exact variant PartNumber matched — skip picker, add directly
+            var fUID = parseInt(forcedVariantUID, 10) || 0;
+            if (fUID > 0) {
+                var fv = _variants.find(function (v) { return parseInt(v.VariantUID, 10) === fUID; });
+                if (fv) {
+                    var origUID     = parseInt(productData.id, 10);
+                    var compositeId = origUID * 100000 + fUID;
+                    if (billManager.getItemById(compositeId)) {
+                        Swal.fire({icon: 'error', title: t('swal_oops', 'Oops...'), text: t('swal_item_in_cart', 'Item already moved to cart.')});
+                        return;
+                    }
+                    var vSP    = parseFloat(fv.SellingPrice || productData.sellingPrice || 0);
+                    var taxPct = parseFloat(productData.taxPercent || 0);
+                    var vUP    = taxPct > 0 ? vSP / (1 + taxPct / 100) : vSP;
+                    _doAddBillItem(Object.assign({}, productData, {
+                        productUID         : origUID,
+                        id                 : compositeId,
+                        variantUID         : fUID,
+                        variantLabel       : fv.Label      || '',
+                        variantPartNumber  : fv.PartNumber || '',
+                        sellingPrice       : vSP,
+                        unitPrice          : vUP,
+                        taxAmount          : vSP - vUP,
+                        brandUID           : parseInt(fv.BrandUID, 10) || 0,
+                        brandName          : fv.BrandName  || '',
+                    }), qty);
+                    $('#searchProductInfo').val(null).trigger('change');
+                    $('#prodQuantity').val('').trigger('change');
                     return;
                 }
-                productData = Object.assign({}, productData, {
-                    productUID  : origUID,
-                    id          : compositeId,
-                    variantUID  : variantUID,
-                    variantLabel: variantLabel,
+            }
+            // Product has variants — open VariantPicker in multi-select mode
+            VariantPicker.open(productData, qty, function (selections) {
+                var origUID  = parseInt(productData.id, 10);
+                var skipped  = [];
+                selections.forEach(function (sel) {
+                    var compositeId = origUID * 100000 + parseInt(sel.variantUID, 10);
+                    if (billManager.getItemById(compositeId)) {
+                        skipped.push(sel.variantLabel);
+                        return;
+                    }
+                    // Override selling/unit price with variant-specific price
+                    var vSP     = parseFloat(sel.variantSellingPrice || productData.sellingPrice || 0);
+                    var taxPct  = parseFloat(productData.taxPercent || 0);
+                    var vUP     = taxPct > 0 ? vSP / (1 + taxPct / 100) : vSP;
+                    var pd = Object.assign({}, productData, {
+                        productUID        : origUID,
+                        id                : compositeId,
+                        variantUID        : sel.variantUID,
+                        variantLabel      : sel.variantLabel,
+                        variantPartNumber : sel.partNumber || '',
+                        sellingPrice      : vSP,
+                        unitPrice         : vUP,
+                        taxAmount         : vSP - vUP,
+                        brandUID          : sel.brandUID  || 0,
+                        brandName         : sel.brandName || '',
+                    });
+                    _doAddBillItem(pd, sel.qty);
                 });
-                _doAddBillItem(productData, qty);
+                // Clear the inline form after adding
+                $('#searchProductInfo').val(null).trigger('change');
+                $('#prodQuantity').val('').trigger('change');
+                if (skipped.length) {
+                    Swal.fire({
+                        icon : 'warning',
+                        title: t('swal_oops', 'Oops...'),
+                        html : t('swal_item_variant_in_cart', 'Already in cart:') +
+                               '<ul class="text-start mt-2 mb-0">' +
+                               skipped.map(function (l) { return '<li>' + l + '</li>'; }).join('') +
+                               '</ul>',
+                    });
+                }
             });
-        } else {
-            // Brand-applicable but no variants cached — fall back to BrandPicker
+        } else if (_isBrand) {
+            // Brand-applicable but no variants in cache — fall back to BrandPicker
             BrandPicker.open(productData, qty, function (brandUID, brandName) {
                 var origUID     = parseInt(productData.id, 10);
                 var compositeId = origUID * 100000 + parseInt(brandUID, 10);
@@ -3753,6 +3882,9 @@ function pushBillItems(productData, qty) {
                 });
                 _doAddBillItem(productData, qty);
             });
+        } else {
+            // Size-applicable but no variants in cache — prompt to sync
+            Swal.fire({icon: 'warning', title: t('swal_no_variants_title', 'No Sizes Found'), text: t('swal_no_variants_text', 'This product has no size variants in cache. Try syncing Items Cache first.')});
         }
         return;
     }
@@ -3794,7 +3926,7 @@ function validateBrandItems() {
     var items  = billManager.getAllItems();
     var failed = [];
     items.forEach(function (item) {
-        if (parseInt(item.IsBrandApplicable, 10) === 1 && !item.brandUID) {
+        if (parseInt(item.IsBrandApplicable, 10) === 1 && !item.brandUID && !item.variantUID) {
             failed.push(item.itemName || item.text || ('#' + item.id));
             var $chip = $('.brand-chip[data-id="' + item.id + '"]');
             $chip.addClass('brand-chip-error');
@@ -4046,7 +4178,7 @@ function formationTableBillItems(productRow) {
     if (INTEGER_ONLY_UOMS.includes(getPrimUnit)) {
         qtyHtml = `<input type="text" inputmode="numeric" class="form-control form-control-sm updateAllBillAmounts" name="bm_${productRow.id}_qty" id="bm_${productRow.id}_qty" min="0" placeholder="Quantity" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); handleOnlyNumbers(this)" maxLength="${genSettings.QtyMaxLength}" pattern="[0-9]*" value="${productRow.quantity}" onpaste="pasteOnlyNumbers(event)" ondrop="dropOnlyNumbers(event)" />`;
     } else {
-        qtyHtml = `<input type="text" inputmode="decimal" class="form-control form-control-sm updateAllBillAmounts" name="bm_${productRow.id}_qty" id="bm_${productRow.id}_qty" min="0" placeholder="Quantity" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, ${genSettings.QtyMaxLength}, ${genSettings.DecimalPoints})" maxLength="${genSettings.QtyMaxLength}" pattern="^\\d{1,${genSettings.QtyMaxLength}}(\\.\\d{0,${genSettings.DecimalPoints}})?$" onpaste="handlePricePaste(event, ${genSettings.QtyMaxLength}, ${genSettings.DecimalPoints})" ondrop="handlePriceDrop(event, ${genSettings.QtyMaxLength}, ${genSettings.DecimalPoints})" value="${productRow.quantity}" />`;
+        qtyHtml = `<input type="text" inputmode="decimal" class="form-control form-control-sm updateAllBillAmounts" name="bm_${productRow.id}_qty" id="bm_${productRow.id}_qty" min="0" placeholder="Quantity" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, ${genSettings.QtyMaxLength + genSettings.DecimalPoints + 1}, ${genSettings.DecimalPoints})" maxLength="${genSettings.QtyMaxLength + genSettings.DecimalPoints + 1}" pattern="^\\d{1,${genSettings.QtyMaxLength}}(\\.\\d{0,${genSettings.DecimalPoints}})?$" onpaste="handlePricePaste(event, ${genSettings.QtyMaxLength + genSettings.DecimalPoints + 1}, ${genSettings.DecimalPoints})" ondrop="handlePriceDrop(event, ${genSettings.QtyMaxLength + genSettings.DecimalPoints + 1}, ${genSettings.DecimalPoints})" value="${productRow.quantity}" />`;
     }
 
     let discBfrPrice = parseInt(productRow.discount, 10) ? '' : 'd-none';
@@ -4086,9 +4218,13 @@ function formationTableBillItems(productRow) {
                 </div>
                 ${descText}
                 ${hsnText}
+                ${productRow.partNumber && !productRow.variantUID ? `<div class="mt-1"><span class="bill-partno-badge">${productRow.partNumber}</span></div>` : ''}
                 ${parseInt(productRow.IsBrandApplicable, 10) === 1
                     ? (productRow.variantUID
-                        ? `<div class="mt-1"><span class="variant-chip selected" data-id="${productRow.id}"><i class="bx bx-layer me-1"></i>${productRow.variantLabel || ''}</span></div>`
+                        ? `<div class="mt-1 d-flex align-items-center flex-wrap gap-1">
+                               <span class="variant-chip selected" data-id="${productRow.id}"><i class="bx bx-layer me-1"></i>${productRow.variantLabel || ''}</span>
+                               ${productRow.variantPartNumber ? `<span class="bill-partno-badge">${productRow.variantPartNumber}</span>` : ''}
+                           </div>`
                         : (productRow.brandUID
                             ? `<div class="mt-1"><span class="brand-chip selected" data-id="${productRow.id}"><i class="bx bx-purchase-tag-alt me-1"></i>${productRow.brandName}</span></div>`
                             : `<div class="mt-1"><span class="variant-chip empty" data-id="${productRow.id}"><i class="bx bx-layer me-1"></i>${t('lbl_select_variant', 'Select Variant')}</span></div>`))
@@ -4106,16 +4242,16 @@ function formationTableBillItems(productRow) {
             <td>
                 <div class="input-group input-group-merge">
                     <span class="input-group-text">${genSettings.CurrenySymbol}</span>
-                    <input type="text" inputmode="decimal" class="form-control form-control-sm updateAllBillAmounts" name="bm_${productRow.id}_unitPrice" id="bm_${productRow.id}_unitPrice" min="0" placeholder="Unit Price" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, ${genSettings.PriceMaxLength}, 8)" maxLength="${genSettings.PriceMaxLength + 9}" pattern="^\\d{1,${genSettings.PriceMaxLength}}(\\.\\d{0,8})?$" onpaste="handlePricePaste(event, ${genSettings.PriceMaxLength}, 8)" ondrop="handlePriceDrop(event, ${genSettings.PriceMaxLength}, 8)" value="${smartDecimal(productRow.orgunitprice, 8)}" />
+                    <input type="text" inputmode="decimal" class="form-control form-control-sm updateAllBillAmounts" name="bm_${productRow.id}_unitPrice" id="bm_${productRow.id}_unitPrice" min="0" placeholder="Unit Price" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, 19, 8)" maxLength="19" pattern="^\\d{1,10}(\\.\\d{0,8})?$" onpaste="handlePricePaste(event, 19, 8)" ondrop="handlePriceDrop(event, 19, 8)" value="${smartDecimal(productRow.orgunitprice, 8)}" />
                 </div>
                 <div class="transtext-small text-muted text-warning bm_efft_${productRow.id}_price ${discBfrPrice}">aft disc: <span id="bm_${productRow.id}_aftdisc_unitPrice">${smartDecimal(productRow.effectiveUnitPrice || productRow.unitPrice, 8)}</span></div>
             </td>
             <td>
                 <div class="input-group input-group-merge">
                     <span class="input-group-text">${genSettings.CurrenySymbol}</span>
-                    <input type="text" inputmode="decimal" class="form-control form-control-sm updateAllBillAmounts" name="bm_${productRow.id}_sellingPrice" id="bm_${productRow.id}_sellingPrice" min="0" placeholder="Tax Price" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, ${genSettings.PriceMaxLength}, ${genSettings.DecimalPoints})" maxLength="${genSettings.PriceMaxLength}" pattern="^\\d{1,${genSettings.PriceMaxLength}}(\\.\\d{0,${genSettings.DecimalPoints}})?$" onpaste="handlePricePaste(event, ${genSettings.PriceMaxLength}, ${genSettings.DecimalPoints})" ondrop="handlePriceDrop(event, ${genSettings.PriceMaxLength}, ${genSettings.DecimalPoints})" value="${smartDecimal(productRow.orgselngprice, genSettings.DecimalPoints)}" />
+                    <input type="text" inputmode="decimal" class="form-control form-control-sm updateAllBillAmounts" name="bm_${productRow.id}_sellingPrice" id="bm_${productRow.id}_sellingPrice" min="0" placeholder="Tax Price" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, 19, 8)" maxLength="19" pattern="^\\d{1,10}(\\.\\d{0,8})?$" onpaste="handlePricePaste(event, 19, 8)" ondrop="handlePriceDrop(event, 19, 8)" value="${smartDecimal(productRow.orgselngprice, 8)}" />
                 </div>
-                <div class="transtext-small text-muted text-warning bm_efft_${productRow.id}_price ${discBfrPrice}">aft disc: <span id="bm_${productRow.id}_aftdisc_sellingPrice">${smartDecimal(productRow.effectiveSellingPrice || productRow.sellingPrice, genSettings.DecimalPoints)}</span></div>
+                <div class="transtext-small text-muted text-warning bm_efft_${productRow.id}_price ${discBfrPrice}">aft disc: <span id="bm_${productRow.id}_aftdisc_sellingPrice">${smartDecimal(productRow.effectiveSellingPrice || productRow.sellingPrice, 8)}</span></div>
             </td>
             <td>
                 <div class="input-group input-group-merge w-75">

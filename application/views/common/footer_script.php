@@ -45,7 +45,7 @@ var delBankData = [];
 var delAddrDetailFlag = 0;
 var delAddrData = [];
 const currencySymbol  = '<?php echo $JwtData->GenSettings->CurrenySymbol ?? '₹'; ?>';
-const decimalPlaces   = 9;
+const decimalPlaces   = 2;
 $(function() {
 	'use strict'
 

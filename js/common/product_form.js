@@ -252,6 +252,9 @@
         $('#TaxPercentage').val(defTaxD).trigger('change');
         $('#PrimaryUnit,#Category,#StorageUID,#BrandUID').val(null).trigger('change');
         _variantRows = [];
+        _usedVariantKeys.clear();
+        _usedSizeUIDs.clear();
+        _usedBrandUIDs.clear();
         $('#VariantSizeSelect,#VariantBrandSelect').val(null).trigger('change.select2');
         $('#variantSection,#variantSizeRow,#variantBrandRow,#variantTableWrap').addClass('d-none');
         $('#variantEmptyHint').removeClass('d-none');
@@ -266,23 +269,45 @@
     }
 
     // ── Load for edit/clone ───────────────────────────────────────────────
+    /**
+     * @param {number} uid
+     * @param {boolean} isClone
+     * @returns {void}
+     */
     function _loadForEdit(uid, isClone) {
-        $.ajax({
-            url    : '/products/retrieveProductDetails',
-            method : 'POST',
-            data   : { ItemUID: uid, [CsrfName]: CsrfToken },
-            success: function (response) {
-                if (response.Error) {
-                    Swal.fire({ icon: 'error', title: 'Oops...', text: response.Message });
-                    return;
-                }
-                DropdownCache.ready().then(function (data) {
-                    if (data) DropdownCache.populateProductModal(data);
-                    _resetProductModal();
-                    _pfFillForm(response, isClone);
-                    $('#ProductFormModal').modal('show');
-                });
+        var detailsReq = $.ajax({
+            url   : '/products/retrieveProductDetails',
+            method: 'POST',
+            data  : { ItemUID: uid, [CsrfName]: CsrfToken }
+        });
+        // Only check used variants in edit mode — clones start fresh
+        var usedReq = !isClone
+            ? $.ajax({ url: '/products/getUsedVariants', method: 'POST', data: { ProductUID: uid, [CsrfName]: CsrfToken } })
+            : $.Deferred().resolve({ Error: false, Data: [] }).promise();
+
+        $.when(detailsReq, usedReq).then(function (detailsArgs, usedArgs) {
+            var response = detailsArgs[0];
+            var usedResp = usedArgs[0];
+            if (response.Error) {
+                Swal.fire({ icon: 'error', title: 'Oops...', text: response.Message });
+                return;
             }
+            // Capture used-variant data before the async chain clears the sets in _resetProductModal
+            var usedData = (!isClone && !usedResp.Error && usedResp.Data) ? usedResp.Data : [];
+            DropdownCache.ready().then(function (data) {
+                if (data) DropdownCache.populateProductModal(data);
+                _resetProductModal();
+                // Repopulate used-variant sets after reset (reset clears them)
+                usedData.forEach(function (uv) {
+                    var sUID = parseInt(uv.SizeUID,  10) || 0;
+                    var bUID = parseInt(uv.BrandUID, 10) || 0;
+                    _usedVariantKeys.add(sUID + '-' + bUID);
+                    if (sUID > 0) _usedSizeUIDs.add(sUID);
+                    if (bUID > 0) _usedBrandUIDs.add(bUID);
+                });
+                _pfFillForm(response, isClone);
+                $('#ProductFormModal').modal('show');
+            });
         });
     }
 
@@ -615,7 +640,10 @@
 
     // ── Variant Builder ──────────────────────────────────────────────────────────
 
-    var _variantRows = [];
+    var _variantRows     = [];
+    var _usedVariantKeys = new Set(); // "SizeUID-BrandUID" — locked variants (edit mode only)
+    var _usedSizeUIDs    = new Set(); // size UIDs present in at least one used variant
+    var _usedBrandUIDs   = new Set(); // brand UIDs present in at least one used variant
 
     /**
      * Build tax <option> HTML for a variant row's price tax selector.
@@ -732,12 +760,16 @@
         var html     = '';
         var defTaxUID = parseInt($('#SellingTaxOption').val()) || 0;
         _variantRows.forEach(function (row, idx) {
-            var esc = function (s) { return $('<span>').text(s || '').html(); };
-            var sc  = isSizeApp  ? '<td class="var-col-size">'  + esc(row.SizeName)  + '</td>'
+            var esc     = function (s) { return $('<span>').text(s || '').html(); };
+            var varKey  = (row.SizeUID || 0) + '-' + (row.BrandUID || 0);
+            var isUsed  = _usedVariantKeys.has(varKey);
+            var lockBadge = isUsed ? ' <span class="badge bg-label-warning ms-1 var-locked-badge" title="Used in transactions — cannot be removed"><i class="bx bx-lock-alt"></i></span>' : '';
+            var sc  = isSizeApp  ? '<td class="var-col-size">'  + esc(row.SizeName)  + lockBadge + '</td>'
                                  : '<td class="var-col-size d-none"></td>';
-            var bc  = isBrandApp ? '<td class="var-col-brand">' + esc(row.BrandName) + '</td>'
-                                 : '<td class="var-col-brand d-none"></td>';
-            html += '<tr class="var-row" data-idx="' + idx + '">' + sc + bc +
+            var bc  = (!isSizeApp && isBrandApp) ? '<td class="var-col-brand">' + esc(row.BrandName) + lockBadge + '</td>'
+                    : isBrandApp                 ? '<td class="var-col-brand">' + esc(row.BrandName) + '</td>'
+                                                 : '<td class="var-col-brand d-none"></td>';
+            html += '<tr class="var-row' + (isUsed ? ' var-row-locked' : '') + '" data-idx="' + idx + '">' + sc + bc +
                 '<td><input type="text" class="form-control form-control-sm var-part-no" placeholder="Part No" value="' +
                     esc(row.PartNumber) + '" maxlength="100"></td>' +
                 '<td><div class="input-group input-group-sm">' +
@@ -996,6 +1028,32 @@
 
     $(document).on('change', '#VariantSizeSelect',  function () { _buildVariantMatrix(); });
     $(document).on('change', '#VariantBrandSelect', function () { _buildVariantMatrix(); });
+
+    /**
+     * Block deselecting a size that is part of a used variant.
+     * @param {jQuery.Event} e
+     * @returns {void}
+     */
+    $(document).on('select2:unselecting', '#VariantSizeSelect', function (e) {
+        var sUID = parseInt(e.params.args.data.id, 10);
+        if (_usedSizeUIDs.has(sUID)) {
+            e.preventDefault();
+            showToastNotification('This size is used in transactions and cannot be removed.', 'error');
+        }
+    });
+
+    /**
+     * Block deselecting a brand that is part of a used variant.
+     * @param {jQuery.Event} e
+     * @returns {void}
+     */
+    $(document).on('select2:unselecting', '#VariantBrandSelect', function (e) {
+        var bUID = parseInt(e.params.args.data.id, 10);
+        if (_usedBrandUIDs.has(bUID)) {
+            e.preventDefault();
+            showToastNotification('This brand is used in transactions and cannot be removed.', 'error');
+        }
+    });
 
     $(document).on('input change', '#variantTableBody input, #variantTableBody select', function () { _updateVariantHidden(); });
 

@@ -25,7 +25,7 @@ const INTEGER_ONLY_UOMS = ['PCS', 'NOS', 'UNT', 'BOX', 'PAC', 'EACH', 'SET', 'BT
 let billItems = [];
 let billMap = {};
 const genSettings = <?php echo json_encode($JwtData->GenSettings ?? new stdClass()); ?>;
-genSettings.DecimalPoints = 9;
+genSettings.DecimalPoints = 2;
 // Date & DateTime format settings from GenSettings JWT
 var _comboPriceDist             = '<?php echo addslashes($JwtData->TransSettings->ComboPriceDistribution ?? 'ratio'); ?>';
 var _belowPurchasePriceAction   = '<?php echo addslashes($JwtData->TransSettings->BelowPurchasePriceAction ?? 'warn'); ?>';

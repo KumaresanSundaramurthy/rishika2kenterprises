@@ -5,6 +5,7 @@ $moduleContext = 'indirectincome';
 include(APPPATH . 'views/transactions/partials/status_config.php');
 
 $currency   = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
+$dec        = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 $showSerial = $JwtData->GenSettings->SerialNoDisplay == 1;
 
 if (!empty($DataLists)):
@@ -64,9 +65,9 @@ if (!empty($DataLists)):
 
         <!-- Amount -->
         <td>
-            <div class="trans-amount-main"><?php echo $currency . ' ' . smartDecimal($list->Amount); ?></div>
+            <div class="trans-amount-main"><?php echo $currency . ' ' . number_format((float)($list->Amount ?? 0), $dec, '.', ''); ?></div>
             <?php if ($status === 'Partial' && $pendingAmt > 0): ?>
-                <div style="font-size:.7rem;color:#dc3545;margin-top:2px;"><?php echo t('lbl_bal', 'Bal'); ?> <?php echo $currency . ' ' . smartDecimal($pendingAmt); ?></div>
+                <div style="font-size:.7rem;color:#dc3545;margin-top:2px;"><?php echo t('lbl_bal', 'Bal'); ?> <?php echo $currency . ' ' . number_format($pendingAmt, $dec, '.', ''); ?></div>
             <?php endif; ?>
         </td>
 

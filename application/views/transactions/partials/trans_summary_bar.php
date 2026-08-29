@@ -127,6 +127,12 @@ $_bShowPrintBtn = ($_bShowPrint === 'create_only') ? !$_bIsEdit : (!$_bIsEdit ||
             <i class="bx bx-check me-1"></i>Save
         </button>
 
+        <?php elseif ($_bBtnLayout === 'save_only'): ?>
+        <button type="button" class="btn btn-sm btn-primary px-3" id="<?php echo $_bSaveId; ?>"
+                data-bs-toggle="tooltip" data-bs-placement="top" title="<?php echo t('tooltip_save', 'Save transaction'); ?>">
+            <i class="bx bx-check me-1"></i>Save
+        </button>
+
         <?php else: /* split layout */ ?>
         <div class="btn-group">
             <button type="button" class="btn btn-sm btn-primary px-3" id="<?php echo $_bSaveId; ?>"

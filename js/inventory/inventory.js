@@ -364,6 +364,42 @@ function invRenderTimeline(rows) {
     $('#tlTableBody').html(html);
 }
 
+// ── Variant stock breakdown renderer ─────────────────────────────────────────
+
+/**
+ * Build an inline table HTML string for variant stock rows.
+ * @param {Array} variants  Array from /inventory/getVariantStock
+ * @returns {string}
+ */
+function invRenderVariantStock(variants) {
+    var html = '<div style="font-size:.78rem;padding:.25rem 0;">'
+        + '<table class="table table-sm mb-0" style="font-size:.78rem;">'
+        + '<thead class="table-light"><tr>'
+        + '<th style="font-weight:600;">Brand</th>'
+        + '<th style="font-weight:600;">Size</th>'
+        + '<th style="font-weight:600;">Part #</th>'
+        + '<th style="font-weight:600;text-align:right;">Purchase Price</th>'
+        + '<th style="font-weight:600;text-align:right;">Selling Price</th>'
+        + '<th style="font-weight:600;text-align:right;">Stock</th>'
+        + '</tr></thead><tbody>';
+
+    variants.forEach(function (v) {
+        var qty    = parseFloat(v.AvailableQty || 0);
+        var qtyClr = qty <= 0 ? 'color:#dc2626;' : (qty < 5 ? 'color:#d97706;' : 'color:#16a34a;');
+        html += '<tr>'
+            + '<td>' + escHtml(v.BrandName || '—') + '</td>'
+            + '<td>' + escHtml(v.SizeName  || '—') + '</td>'
+            + '<td>' + escHtml(v.PartNumber || '—') + '</td>'
+            + '<td style="text-align:right;">' + (InvCurrency + ' ' + parseFloat(v.PurchasePrice || 0).toFixed(InvDecimals)) + '</td>'
+            + '<td style="text-align:right;">' + (InvCurrency + ' ' + parseFloat(v.SellingPrice  || 0).toFixed(InvDecimals)) + '</td>'
+            + '<td style="text-align:right;font-weight:600;' + qtyClr + '">' + invSmartQty(qty) + '</td>'
+            + '</tr>';
+    });
+
+    html += '</tbody></table></div>';
+    return html;
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function escHtml(str) {
     return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -514,6 +550,40 @@ $(document).ready(function () {
             $(this).data('unit'),
             parseFloat($(this).data('selling-price')) || 0
         );
+    });
+
+    // Variant stock breakdown button (per row)
+    $(document).on('click', '.invVariantStockBtn', function () {
+        var uid  = $(this).data('uid');
+        var $row = $(this).closest('tr').next('.inv-variant-row[data-product-uid="' + uid + '"]');
+        if (!$row.length) return;
+
+        if (!$row.hasClass('d-none')) {
+            $row.addClass('d-none');
+            $(this).find('i').removeClass('text-primary');
+            return;
+        }
+
+        var $panel = $row.find('.inv-variant-panel');
+        $panel.html('<div class="text-center py-2"><div class="spinner-border spinner-border-sm text-secondary"></div></div>');
+        $row.removeClass('d-none');
+        $(this).find('i').addClass('text-primary');
+
+        $.ajax({
+            url: '/inventory/getVariantStock',
+            method: 'POST',
+            data: { ProductUID: uid, [CsrfName]: CsrfToken },
+            success: function (r) {
+                if (r.Error || !r.Variants || !r.Variants.length) {
+                    $panel.html('<div class="text-muted py-2" style="font-size:.8rem;">No variant stock data found.</div>');
+                    return;
+                }
+                $panel.html(invRenderVariantStock(r.Variants));
+            },
+            error: function () {
+                $panel.html('<div class="text-danger py-2" style="font-size:.8rem;">Failed to load variant stock.</div>');
+            }
+        });
     });
 
     // Timeline button (per row)

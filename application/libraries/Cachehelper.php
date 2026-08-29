@@ -347,6 +347,7 @@ class Cachehelper {
                 'IsComposite'                => (int)($prod->IsComposite          ?? 0),
                 'IsSerialTracked'            => (int)($prod->IsSerialTracked      ?? 0),
                 'IsBrandApplicable'          => (int)($prod->IsBrandApplicable    ?? 0),
+                'IsSizeApplicable'           => (int)($prod->IsSizeApplicable     ?? 0),
                 'Image'                      => $prod->Image                      ?? '',
                 'Variants'                   => $CI->products_model->getProductVariantsForPricelist($uid, $orgUID),
             ];
@@ -445,7 +446,9 @@ class Cachehelper {
                 'IsComposite'                => (int)($prod->IsComposite          ?? 0),
                 'IsSerialTracked'            => (int)($prod->IsSerialTracked      ?? 0),
                 'IsBrandApplicable'          => (int)($prod->IsBrandApplicable    ?? 0),
+                'IsSizeApplicable'           => (int)($prod->IsSizeApplicable     ?? 0),
                 'Image'                      => $prod->Image                      ?? '',
+                'Variants'                   => $CI->products_model->getProductVariantsForPricelist($uid, $orgUID),
                 'items'                      => $items,
             ];
 

@@ -114,6 +114,7 @@ class Inventory extends MY_Controller {
             $branchUID = $this->_branchUID();
 
             $productUID = (int)   $this->input->post('ProductUID');
+            $variantUID = (int)   ($this->input->post('VariantUID') ?: 0);
             $qty        = (float) $this->input->post('Qty');
             $category   = $this->input->post('AdjCategory') ?: 'Miscellaneous';
             $price      = (float) $this->input->post('Price');
@@ -132,6 +133,7 @@ class Inventory extends MY_Controller {
                 'OrgUID'      => $orgUID,
                 'BranchUID'   => $branchUID,
                 'ProductUID'  => $productUID,
+                'VariantUID'  => $variantUID > 0 ? $variantUID : null,
                 'ModuleUID'   => 118,
                 'AdjType'     => 'IN',
                 'Qty'         => $qty,
@@ -150,7 +152,7 @@ class Inventory extends MY_Controller {
 
             $adjUID = (int) $insertResp->ID;
             if ($adjUID <= 0) throw new Exception('Failed to retrieve adjustment ID after insert.');
-            $this->dbwrite_model->applyManualStockAdjustment($adjUID, $orgUID, $userUID, $productUID, $qty, $price, 'IN', $branchUID);
+            $this->dbwrite_model->applyManualStockAdjustment($adjUID, $orgUID, $userUID, $productUID, $qty, $price, 'IN', $branchUID, $variantUID);
 
             $this->dbwrite_model->commitTransaction();
 
@@ -192,6 +194,7 @@ class Inventory extends MY_Controller {
             $branchUID = $this->_branchUID();
 
             $productUID = (int)   $this->input->post('ProductUID');
+            $variantUID = (int)   ($this->input->post('VariantUID') ?: 0);
             $qty        = (float) $this->input->post('Qty');
             $category   = $this->input->post('AdjCategory') ?: 'Miscellaneous';
             $price      = (float) $this->input->post('Price');
@@ -210,6 +213,7 @@ class Inventory extends MY_Controller {
                 'OrgUID'      => $orgUID,
                 'BranchUID'   => $branchUID,
                 'ProductUID'  => $productUID,
+                'VariantUID'  => $variantUID > 0 ? $variantUID : null,
                 'ModuleUID'   => 118,
                 'AdjType'     => 'OUT',
                 'Qty'         => $qty,
@@ -228,7 +232,7 @@ class Inventory extends MY_Controller {
 
             $adjUID = (int) $insertResp->ID;
             if ($adjUID <= 0) throw new Exception('Failed to retrieve adjustment ID after insert.');
-            $this->dbwrite_model->applyManualStockAdjustment($adjUID, $orgUID, $userUID, $productUID, $qty, $price, 'OUT', $branchUID);
+            $this->dbwrite_model->applyManualStockAdjustment($adjUID, $orgUID, $userUID, $productUID, $qty, $price, 'OUT', $branchUID, $variantUID);
 
             $this->dbwrite_model->commitTransaction();
 
@@ -378,6 +382,35 @@ class Inventory extends MY_Controller {
 
         } catch (Exception $e) {
             notifyError('Inventory::updateLedgerRemarks', $e);
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    // Variant stock breakdown for a product (AJAX)
+
+    public function getVariantStock(): void {
+
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID     = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $productUID = (int) $this->input->post('ProductUID');
+
+            if ($productUID <= 0) throw new ValidationException('Invalid product.');
+
+            $variants = $this->inventory_model->getVariantStockByProduct($productUID, $orgUID);
+
+            $this->EndReturnData->Error    = FALSE;
+            $this->EndReturnData->Variants = $variants;
+
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        } catch (Exception $e) {
+            notifyError('Inventory::getVariantStock', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }

@@ -1283,4 +1283,65 @@ class Reports extends MY_Controller {
         }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
+
+    // ── Brand Wise Sales ──────────────────────────────────────────────────────
+
+    public function brandWiseSales(): void
+    {
+        if (empty($this->pageData['JwtData'])) { redirect('portal'); return; }
+        $rawFrom = $this->input->get('from') ?? '';
+        $rawTo   = $this->input->get('to')   ?? '';
+        $this->pageData['_bwsInitFrom'] = preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawFrom) ? $rawFrom : date('Y-01-01');
+        $this->pageData['_bwsInitTo']   = preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawTo)   ? $rawTo   : date('Y-m-d');
+        $this->load->view('reports/brand_wise_sales', $this->pageData);
+    }
+
+    public function getBrandWiseSalesData(): void
+    {
+        $this->EndReturnData = new stdClass();
+        try {
+            if (empty($this->pageData['JwtData'])) { throw new Exception('Unauthorised'); }
+            $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $from   = $this->input->get('from') ?: date('Y-01-01');
+            $to     = $this->input->get('to')   ?: date('Y-m-d');
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $from) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $to)) {
+                throw new Exception('Invalid date format.');
+            }
+            $this->load->model('reports_model');
+            $rows = $this->reports_model->getBrandWiseSalesData($orgUID, $from, $to);
+            $this->EndReturnData->Status = 'Success';
+            $this->EndReturnData->rows   = $rows;
+        } catch (Exception $e) {
+            $this->notifyError('Reports::getBrandWiseSalesData', $e);
+            $this->EndReturnData->Status  = 'Error';
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    // ── Variant Stock ─────────────────────────────────────────────────────────
+
+    public function variantStock(): void
+    {
+        if (empty($this->pageData['JwtData'])) { redirect('portal'); return; }
+        $this->load->view('reports/variant_stock', $this->pageData);
+    }
+
+    public function getVariantStockData(): void
+    {
+        $this->EndReturnData = new stdClass();
+        try {
+            if (empty($this->pageData['JwtData'])) { throw new Exception('Unauthorised'); }
+            $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $this->load->model('reports_model');
+            $rows = $this->reports_model->getVariantStockData($orgUID);
+            $this->EndReturnData->Status = 'Success';
+            $this->EndReturnData->rows   = $rows;
+        } catch (Exception $e) {
+            $this->notifyError('Reports::getVariantStockData', $e);
+            $this->EndReturnData->Status  = 'Error';
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
 }

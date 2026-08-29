@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php $this->load->view('common/header'); ?>
 
@@ -1855,6 +1855,17 @@ var _plProductCache   = null; // null = not yet loaded; Array = full product lis
 var _plTierHeadHtml   = '';   // cached thead HTML for tier sub-tables inside product blocks
 var _plCurSym              = '<?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>';
 var _plBelowPurchaseAction = '<?php echo addslashes($JwtData->TransSettings->BelowPurchasePriceAction ?? 'warn'); ?>';
+var _ppListDateFormat      = '<?php echo addslashes($JwtData->GenSettings->ListDateFormat ?? 'd M Y'); ?>';
+var _ppCurSym              = '<?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>';
+var _ppDecPlaces           = <?php echo (int)($JwtData->GenSettings->DecimalPlaces ?? 2); ?>;
+var _ppOrgName    = <?php echo json_encode((string)($JwtData->Org->OrgName        ?? '')); ?>;
+var _ppOrgPhone   = <?php echo json_encode((string)($JwtData->Org->OrgMobile      ?? ($JwtData->Org->MobileNumber ?? ''))); ?>;
+var _ppOrgEmail   = <?php echo json_encode((string)($JwtData->Org->EmailAddress   ?? '')); ?>;
+var _ppOrgGSTIN   = <?php echo json_encode((string)($JwtData->Org->GSTIN          ?? '')); ?>;
+var _ppOrgAddress = <?php $_b2 = (string)($JwtData->Org->BLine2 ?? ''); echo json_encode(trim((string)($JwtData->Org->BLine1 ?? '') . ($_b2 ? ', ' . $_b2 : ''))); ?>;
+var _ppOrgCity    = <?php echo json_encode((string)($JwtData->Org->BCityText      ?? '')); ?>;
+var _ppOrgState   = <?php echo json_encode((string)($JwtData->Org->StateName      ?? '')); ?>;
+var _ppOrgPincode = <?php echo json_encode((string)($JwtData->Org->BPincode       ?? '')); ?>;
 
 /**
  * Load all products via ProductAppend (Upstash → AJAX fallback), cached after first load.
@@ -2243,8 +2254,7 @@ $(document).on('change', '.pl-global-type', function () {
 });
 $(document).on('keydown', '.pl-global-val, .pl-ct-price', function (e) {
     if (!/^\d$/.test(e.key)) return;
-    var dec = (typeof JwtData !== 'undefined' && JwtData.GenSettings)
-        ? 2;
+    var dec = (typeof JwtData !== 'undefined' && JwtData.GenSettings) ? 2 : 2;
     var raw = this.value;
     var dot = raw.indexOf('.');
     if (dot === -1) return;
@@ -2270,7 +2280,7 @@ $(document).on('blur', '.pl-ct-price', function () {
         if (parseInt(_plProductCache[_bi].id, 10) === prodUID) { prodObj = _plProductCache[_bi]; break; }
     }
     if (!prodObj || !(prodObj.purchasePrice > 0)) return;
-    var dec   = (typeof JwtData !== 'undefined' && JwtData.GenSettings) ? 2;
+    var dec   = (typeof JwtData !== 'undefined' && JwtData.GenSettings) ? 2 : 2;
     var effPP = (prodObj.purchasePriceTaxUID === 1)
         ? prodObj.purchasePrice
         : prodObj.purchasePrice * (1 + (prodObj.taxPercent || 0) / 100);
@@ -2336,7 +2346,7 @@ function _plAddTierRow($tbody, tierData) {
     var t          = tierData || {};
     var maxVal     = (t.MaxQty !== null && t.MaxQty !== undefined && t.MaxQty !== 0) ? t.MaxQty : '';
     var curSym     = $('<span>').text(_plCurSym).html();
-    var dec        = (typeof JwtData !== 'undefined' && JwtData.GenSettings) ? 2;
+    var dec        = (typeof JwtData !== 'undefined' && JwtData.GenSettings) ? 2 : 2;
     var maxLen     = (typeof JwtData !== 'undefined' && JwtData.GenSettings) ? (parseInt(JwtData.GenSettings.PriceMaxLength, 10) || 15) : 15;
 
     var priceCells = '';
@@ -2769,11 +2779,11 @@ $(document).on('click', '#NewPriceList, #NewPriceListEmpty', function (e) {
  * @returns {number}
  */
 function _plSmartDec(v) {
-    var dec = (typeof JwtData !== 'undefined' && JwtData.GenSettings) ? 2;
+    var dec = (typeof JwtData !== 'undefined' && JwtData.GenSettings) ? 2 : 2;
     return parseFloat(parseFloat(v || 0).toFixed(dec));
 }
 function _plDecStep() {
-    var dec = (typeof JwtData !== 'undefined' && JwtData.GenSettings) ? 2;
+    var dec = (typeof JwtData !== 'undefined' && JwtData.GenSettings) ? 2 : 2;
     return (1 / Math.pow(10, dec)).toFixed(dec);
 }
 
@@ -3144,7 +3154,7 @@ function _validateAllRules() {
                         if (parseInt(_plProductCache[_pi].id, 10) === prodUID2) { prodObj = _plProductCache[_pi]; break; }
                     }
                     if (prodObj && prodObj.purchasePrice > 0) {
-                        var dec2  = (typeof JwtData !== 'undefined' && JwtData.GenSettings) ? 2;
+                        var dec2  = (typeof JwtData !== 'undefined' && JwtData.GenSettings) ? 2 : 2;
                         var effPP = (prodObj.purchasePriceTaxUID === 1)
                             ? prodObj.purchasePrice
                             : prodObj.purchasePrice * (1 + (prodObj.taxPercent || 0) / 100);
@@ -3326,7 +3336,7 @@ $(document).on('click', '.catg-prod-count-btn', function () {
     var catgName = $(this).data('catgname');
     var prodCount = parseInt($(this).text()) || 0;
     var sym = (typeof currencySymbol !== 'undefined') ? currencySymbol : '\u20b9';
-    var dec = typeof JwtData !== 'undefined' && JwtData.GenSettings ? 2;
+    var dec = typeof JwtData !== 'undefined' && JwtData.GenSettings ? 2 : 2;
 
     // Show banner + skeleton immediately — no blank page
     var skeleton =
@@ -3536,6 +3546,11 @@ var _ppTabLoaded  = {};
 window.openProductProfile = function (uid) {
     _ppCurrentUID = uid;
     _ppTabLoaded  = {};
+    // Clear stale header from previous open before AJAX fills it
+    $('#ppModalTitle').text('');
+    $('#ppModalSubtitle').text('');
+    $('#ppBtnEdit').removeAttr('data-uid');
+    $('#ppAvatarWrap').html('<span id="ppAvatarInitials" class="cp-avatar-initials"></span>');
     $('#ppTabContent .pp-tab-pane').empty().removeClass('d-block').addClass('d-none');
     $('#ppTabContent_overview').removeClass('d-none').addClass('d-block');
     $('#ppTabNav .pp-tab-link').removeClass('active');
@@ -3544,14 +3559,512 @@ window.openProductProfile = function (uid) {
     _loadPPTab('overview');
 };
 
+// ── Product Profile: Transaction Tab Data ────────────────────────────────────
+var _ppTxAllRows      = [];   // full row set from last AJAX fetch
+var _ppTxVisibleRows  = [];   // rows currently visible after filter
+
+/** @type {{[key:number]: {label:string,color:string,dir:string}}} */
+var _ppTxModuleMap = {
+    101: { label: 'Quotation',        color: 'warning',   dir: 'none' },
+    102: { label: 'Sales Order',      color: 'info',      dir: 'none' },
+    103: { label: 'Invoice',          color: 'primary',   dir: 'out'  },
+    104: { label: 'Purchase Order',   color: 'secondary', dir: 'none' },
+    105: { label: 'Purchase',         color: 'success',   dir: 'in'   },
+    106: { label: 'Sales Return',     color: 'danger',    dir: 'in'   },
+    108: { label: 'Purchase Return',  color: 'danger',    dir: 'out'  },
+    109: { label: 'Debit Note',       color: 'secondary', dir: 'none' },
+    112: { label: 'Delivery Challan', color: 'info',      dir: 'out'  },
+    113: { label: 'Proforma Invoice', color: 'secondary', dir: 'none' }
+};
+
+/** @type {{[key:string]: string}} */
+var _ppTxStatusColors = {
+    Confirmed: 'primary', Issued: 'primary',
+    Partial: 'warning', Completed: 'success', Paid: 'success',
+    Cancelled: 'danger', Rejected: 'danger', Pending: 'warning'
+};
+
+/**
+ * Format a MySQL date string using _ppListDateFormat.
+ * @param {string} mysqlDate
+ * @returns {string}
+ */
+function _ppFmtDate(mysqlDate) {
+    if (!mysqlDate) return '—';
+    var parts = mysqlDate.split('-');
+    if (parts.length < 3) return mysqlDate;
+    var d = parseInt(parts[2], 10);
+    var m = parseInt(parts[1], 10) - 1;
+    var y = parseInt(parts[0], 10);
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var fmt = _ppListDateFormat || 'd M Y';
+    return fmt
+        .replace('d',  String(d).padStart(2,'0'))
+        .replace('j',  String(d))
+        .replace('M',  months[m])
+        .replace('m',  String(m+1).padStart(2,'0'))
+        .replace('Y',  String(y))
+        .replace('y',  String(y).slice(-2));
+}
+
+/**
+ * Format a number to decimal places.
+ * @param {number|string} val
+ * @returns {string}
+ */
+function _ppFmtNum(val) {
+    var n = parseFloat(val) || 0;
+    return n.toLocaleString('en-IN', { minimumFractionDigits: _ppDecPlaces, maximumFractionDigits: _ppDecPlaces });
+}
+
+/**
+ * Escape HTML entities.
+ * @param {string} str
+ * @returns {string}
+ */
+function _ppEsc(str) {
+    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/**
+ * Render the static transaction tab shell (filter bar + export + spinner grid) immediately.
+ * @param {jQuery} $pane
+ * @returns {void}
+ */
+function _initPPTxShell($pane) {
+    var modOpts = '<option value="">All Modules</option>';
+    $.each(_ppTxModuleMap, function(mid, m) {
+        modOpts += '<option value="' + mid + '">' + _ppEsc(m.label) + '</option>';
+    });
+    var stOpts = '<option value="">All Status</option>';
+    $.each(_ppTxStatusColors, function(st) {
+        stOpts += '<option value="' + _ppEsc(st) + '">' + _ppEsc(st) + '</option>';
+    });
+
+    $pane.html(
+        '<div class="pp-tx-topbar">' +
+            '<div class="pp-tx-filters">' +
+                '<select class="form-select pp-tx-filter-sel" id="ppTxModuleFilter">' + modOpts + '</select>' +
+                '<select class="form-select pp-tx-filter-sel" id="ppTxStatusFilter">' + stOpts + '</select>' +
+                '<button class="btn btn-primary btn-sm" id="ppTxFilterBtn"><i class="bx bx-filter-alt me-1"></i>Filter</button>' +
+                '<span class="pp-tx-reset" id="ppTxResetBtn">Reset</span>' +
+            '</div>' +
+            '<div class="pp-tx-actions">' +
+                '<span class="pp-tx-count" id="ppTxVisibleCount">Loading…</span>' +
+                '<div class="dropdown">' +
+                    '<button class="pp-tx-export-btn" data-bs-toggle="dropdown" disabled>' +
+                        '<i class="bx bx-download"></i>' +
+                        '<span>Export</span>' +
+                        '<i class="bx bx-chevron-down pp-tx-export-caret"></i>' +
+                    '</button>' +
+                    '<ul class="dropdown-menu dropdown-menu-end pp-tx-export-menu">' +
+                        '<li class="pp-tx-export-section">Print</li>' +
+                        '<li><a class="pp-tx-export-item" id="ppTxExportPrint" href="#">' +
+                            '<span class="pp-tx-export-icon pp-tx-ei-print"><i class="bx bx-printer"></i></span>' +
+                            '<span class="pp-tx-export-label"><strong>Print Preview</strong><small>Opens print dialog</small></span>' +
+                        '</a></li>' +
+                        '<li><a class="pp-tx-export-item" id="ppTxExportPdf" href="#">' +
+                            '<span class="pp-tx-export-icon pp-tx-ei-pdf"><i class="bx bxs-file-pdf"></i></span>' +
+                            '<span class="pp-tx-export-label"><strong>PDF</strong><small>Save as PDF file</small></span>' +
+                        '</a></li>' +
+                        '<li class="pp-tx-export-section">Download</li>' +
+                        '<li><a class="pp-tx-export-item" id="ppTxExportCsv" href="#">' +
+                            '<span class="pp-tx-export-icon pp-tx-ei-csv"><i class="bx bx-table"></i></span>' +
+                            '<span class="pp-tx-export-label"><strong>CSV</strong><small>Comma-separated values</small></span>' +
+                        '</a></li>' +
+                        '<li><a class="pp-tx-export-item" id="ppTxExportExcel" href="#">' +
+                            '<span class="pp-tx-export-icon pp-tx-ei-xls"><i class="bx bxs-spreadsheet"></i></span>' +
+                            '<span class="pp-tx-export-label"><strong>Excel</strong><small>Microsoft Excel (.xls)</small></span>' +
+                        '</a></li>' +
+                    '</ul>' +
+                '</div>' +
+            '</div>' +
+        '</div>' +
+        '<div id="ppTxGridWrap">' +
+            '<div class="d-flex justify-content-center align-items-center py-5">' +
+            '<div class="spinner-border text-success" role="status"></div></div>' +
+        '</div>'
+    );
+}
+
+/**
+ * Build a single table row string from a row data object.
+ * @param {Object} r
+ * @param {boolean} hasVariants
+ * @returns {string}
+ */
+function _buildPPTxRow(r, hasVariants) {
+    var muid    = parseInt(r.ModuleUID, 10) || 0;
+    var mMeta   = _ppTxModuleMap[muid] || { label: 'Module ' + muid, color: 'secondary', dir: 'none' };
+    var status  = r.DocStatus || '—';
+    var badgeCls= _ppTxStatusColors[status] || 'secondary';
+    var party   = r.PartyType === 'C' ? (r.CustomerName || '—') : (r.VendorName || '—');
+    var qty     = Math.abs(parseFloat(r.Quantity) || 0);
+    var up      = parseFloat(r.UnitPrice) || 0;
+    var amount  = parseFloat(r.LineAmount) || (qty * up);
+    var dir     = mMeta.dir;
+    var variant = r.VariantLabel || '';
+    var qtyHtml = dir === 'in'
+        ? '<span class="pp-tx-qty-in">' + qty + '</span>'
+        : dir === 'out'
+            ? '<span class="pp-tx-qty-out">' + qty + '</span>'
+            : '<span class="pp-tx-qty-neutral">' + qty + '</span>';
+    var varCol  = hasVariants
+        ? '<td>' + (variant ? '<span class="pp-tx-variant-chip">' + _ppEsc(variant) + '</span>' : '<span class="text-muted">—</span>') + '</td>'
+        : '';
+    return '<tr data-module="' + muid + '" data-status="' + _ppEsc(status) + '">' +
+        '<td><div class="pp-tx-ref">' + _ppEsc(r.UniqueNumber || '—') + '</div>' +
+            '<div class="pp-tx-date">' + _ppFmtDate(r.TransDate) + '</div></td>' +
+        '<td><span class="badge bg-label-' + mMeta.color + ' pp-tx-badge">' + _ppEsc(mMeta.label) + '</span></td>' +
+        '<td><div class="pp-tx-party" title="' + _ppEsc(party) + '">' + _ppEsc(party) + '</div></td>' +
+        varCol +
+        '<td class="text-end text-nowrap">' + qtyHtml + '</td>' +
+        '<td class="text-end text-nowrap text-muted pp-tx-up">' + _ppCurSym + ' ' + _ppFmtNum(up) + '</td>' +
+        '<td class="text-end text-nowrap pp-tx-amt">' + _ppCurSym + ' ' + _ppFmtNum(amount) + '</td>' +
+        '<td><span class="badge bg-label-' + badgeCls + ' pp-tx-badge">' + _ppEsc(status) + '</span></td>' +
+    '</tr>';
+}
+
+/**
+ * Inject rows into the grid after AJAX returns, wire up filter + export.
+ * @param {Array} rows
+ * @returns {void}
+ */
+function _renderPPTxGrid(rows) {
+    _ppTxAllRows     = rows.filter(function(r) { return r.DocStatus !== 'Draft'; });
+    _ppTxVisibleRows = _ppTxAllRows.slice();
+    var hasVariants  = _ppTxAllRows.some(function(r) { return !!r.VariantLabel; });
+
+    var thead = '<tr>' +
+        '<th>Date &amp; Ref</th><th>Module</th><th>Party</th>' +
+        (hasVariants ? '<th>Variant</th>' : '') +
+        '<th class="text-end">Qty</th><th class="text-end">Unit Price</th>' +
+        '<th class="text-end">Amount</th><th>Status</th></tr>';
+
+    var tbody = _ppTxAllRows.length
+        ? _ppTxAllRows.map(function(r) { return _buildPPTxRow(r, hasVariants); }).join('')
+        : '<tr><td colspan="' + (hasVariants ? 8 : 7) + '" class="text-center py-5">' +
+          '<div class="pp-tx-empty"><i class="bx bx-receipt"></i>' +
+          '<div class="pp-tx-empty-title">No transactions found for this product</div></div></td></tr>';
+
+    var tableHtml =
+        '<div class="pp-tx-wrap">' +
+        '<table class="pp-tx-tbl" id="ppTxTable">' +
+        '<thead>' + thead + '</thead>' +
+        '<tbody>' + tbody + '</tbody>' +
+        '</table></div>';
+
+    if (_ppTxAllRows.length) {
+        tableHtml += '<div class="pp-tx-footer-note">Showing up to 100 most recent transactions — use the transaction pages for full history.</div>';
+    }
+
+    $('#ppTxGridWrap').html(tableHtml);
+    $('#ppTxVisibleCount').text(_ppTxAllRows.length + ' record' + (_ppTxAllRows.length !== 1 ? 's' : ''));
+    $('.pp-tx-export-btn').prop('disabled', _ppTxAllRows.length === 0);
+}
+
+/**
+ * Apply filter to table rows on Filter button click.
+ * @returns {void}
+ */
+function _applyPPTxFilter() {
+    var mod = $('#ppTxModuleFilter').val();
+    var st  = $('#ppTxStatusFilter').val();
+    _ppTxVisibleRows = _ppTxAllRows.filter(function(r) {
+        var matchMod = !mod || String(r.ModuleUID) === String(mod);
+        var matchSt  = !st  || r.DocStatus === st;
+        return matchMod && matchSt;
+    });
+    $('#ppTxTable tbody tr').each(function() {
+        var $tr      = $(this);
+        var matchMod = !mod || String($tr.data('module')) === String(mod);
+        var matchSt  = !st  || $tr.data('status') === st;
+        $tr.toggle(matchMod && matchSt);
+    });
+    $('#ppTxVisibleCount').text(_ppTxVisibleRows.length + ' record' + (_ppTxVisibleRows.length !== 1 ? 's' : ''));
+}
+
+/**
+ * Trigger file download with given content.
+ * @param {string} content
+ * @param {string} filename
+ * @param {string} mime
+ * @returns {void}
+ */
+function _ppTxDownload(content, filename, mime) {
+    var blob = new Blob([content], { type: mime });
+    var url  = URL.createObjectURL(blob);
+    var a    = document.createElement('a');
+    a.href   = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    setTimeout(function() { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+}
+
+/**
+ * Build CSV string from visible rows, with org header lines at top.
+ * @returns {string}
+ */
+function _ppTxBuildCsv() {
+    var hasVar  = _ppTxVisibleRows.some(function(r) { return !!r.VariantLabel; });
+    var now     = new Date().toLocaleString();
+    var csvEsc  = function(v) { v = String(v||''); return v.indexOf(',')>-1||v.indexOf('"')>-1||v.indexOf('\n')>-1 ? '"'+v.replace(/"/g,'""')+'"' : v; };
+    var lines   = [];
+    if (_ppOrgName)  lines.push(csvEsc(_ppOrgName));
+    var addr = [_ppOrgAddress, _ppOrgCity, _ppOrgState, _ppOrgPincode].filter(Boolean).join(', ');
+    if (addr)        lines.push(csvEsc(addr));
+    if (_ppOrgGSTIN) lines.push(csvEsc('GSTIN: ' + _ppOrgGSTIN));
+    var contact = [_ppOrgPhone ? 'Ph: ' + _ppOrgPhone : '', _ppOrgEmail ? 'Email: ' + _ppOrgEmail : ''].filter(Boolean).join(' | ');
+    if (contact)     lines.push(csvEsc(contact));
+    lines.push(csvEsc('Printed on: ' + now));
+    lines.push('');
+    var headers = ['Date','Ref No','Module','Party'];
+    if (hasVar) headers.push('Variant');
+    headers.push('Qty','Unit Price','Amount','Status');
+    lines.push(headers.map(csvEsc).join(','));
+    _ppTxVisibleRows.forEach(function(r) {
+        var muid = parseInt(r.ModuleUID,10)||0;
+        var mod  = (_ppTxModuleMap[muid]||{}).label||('Module '+muid);
+        var party= r.PartyType==='C'?(r.CustomerName||''):(r.VendorName||'');
+        var row  = [_ppFmtDate(r.TransDate), r.UniqueNumber||'', mod, party];
+        if (hasVar) row.push(r.VariantLabel||'');
+        row.push(r.Quantity||0, parseFloat(r.UnitPrice||0).toFixed(_ppDecPlaces),
+                 parseFloat(r.LineAmount||0).toFixed(_ppDecPlaces), r.DocStatus||'');
+        lines.push(row.map(csvEsc).join(','));
+    });
+    return lines.join('\r\n');
+}
+
+/**
+ * Build Excel-compatible HTML table from visible rows, with org header rows at top.
+ * @returns {string}
+ */
+function _ppTxBuildExcelHtml() {
+    var hasVar    = _ppTxVisibleRows.some(function(r) { return !!r.VariantLabel; });
+    var colCount  = hasVar ? 9 : 8;
+    var now       = new Date().toLocaleString();
+    var th        = function(v) { return '<th style="background:#f0f0f0;font-weight:bold;border:1px solid #ccc;padding:6px 10px">' + _ppEsc(v) + '</th>'; };
+    var td        = function(v,align) { return '<td style="border:1px solid #ccc;padding:5px 10px;text-align:'+(align||'left')+'">' + _ppEsc(String(v||'')) + '</td>'; };
+    var orgTd     = function(v,style) { return '<td colspan="'+colCount+'" style="border:none;padding:4px 6px;'+(style||'')+'">' + _ppEsc(String(v||'')) + '</td>'; };
+    var addr      = [_ppOrgAddress, _ppOrgCity, _ppOrgState, _ppOrgPincode].filter(Boolean).join(', ');
+    var contact   = [_ppOrgPhone ? 'Ph: ' + _ppOrgPhone : '', _ppOrgEmail ? 'Email: ' + _ppOrgEmail : ''].filter(Boolean).join('  |  ');
+    var orgRows   = '';
+    if (_ppOrgName)  orgRows += '<tr>' + orgTd(_ppOrgName, 'font-weight:bold;font-size:14px') + '</tr>';
+    if (addr)        orgRows += '<tr>' + orgTd(addr, 'color:#555') + '</tr>';
+    if (_ppOrgGSTIN) orgRows += '<tr>' + orgTd('GSTIN: ' + _ppOrgGSTIN, 'color:#555') + '</tr>';
+    if (contact)     orgRows += '<tr>' + orgTd(contact, 'color:#555') + '</tr>';
+    orgRows += '<tr>' + orgTd('Printed on: ' + now, 'color:#888;font-size:11px') + '</tr>';
+    orgRows += '<tr><td colspan="'+colCount+'" style="border:none;padding:6px 0"></td></tr>';
+    var headers = [th('Date'),th('Ref No'),th('Module'),th('Party')];
+    if (hasVar) headers.push(th('Variant'));
+    headers.push(th('Qty'),th('Unit Price'),th('Amount'),th('Status'));
+    var rows = _ppTxVisibleRows.map(function(r) {
+        var muid  = parseInt(r.ModuleUID,10)||0;
+        var mod   = (_ppTxModuleMap[muid]||{}).label||('Module '+muid);
+        var party = r.PartyType==='C'?(r.CustomerName||''):(r.VendorName||'');
+        var cells = [td(_ppFmtDate(r.TransDate)),td(r.UniqueNumber||''),td(mod),td(party)];
+        if (hasVar) cells.push(td(r.VariantLabel||''));
+        cells.push(
+            td(r.Quantity||0,'right'),
+            td(parseFloat(r.UnitPrice||0).toFixed(_ppDecPlaces),'right'),
+            td(parseFloat(r.LineAmount||0).toFixed(_ppDecPlaces),'right'),
+            td(r.DocStatus||'')
+        );
+        return '<tr>' + cells.join('') + '</tr>';
+    });
+    return '<table border="1" cellspacing="0">' +
+           '<tbody>' + orgRows + '</tbody>' +
+           '<thead><tr>' + headers.join('') + '</tr></thead>' +
+           '<tbody>' + rows.join('') + '</tbody>' +
+           '</table>';
+}
+
+/**
+ * Open a clean print window with org header and visible transaction rows.
+ * @returns {void}
+ */
+function _ppTxPrint() {
+    var hasVar   = _ppTxVisibleRows.some(function(r) { return !!r.VariantLabel; });
+    var title    = ($('#ppModalTitle').text() || 'Product') + ' — Transactions';
+    var now      = new Date().toLocaleString();
+    var th       = function(v,cls) { return '<th' + (cls?' class="'+cls+'"':'') + '>' + _ppEsc(v) + '</th>'; };
+    var tHead    = '<tr>' + th('Date') + th('Ref No') + th('Module') + th('Party') +
+                   (hasVar?th('Variant'):'') + th('Qty','num') + th('Unit Price','num') + th('Amount','num') + th('Status') + '</tr>';
+    var tRows    = _ppTxVisibleRows.map(function(r) {
+        var muid  = parseInt(r.ModuleUID,10)||0;
+        var mod   = (_ppTxModuleMap[muid]||{}).label||('Module '+muid);
+        var party = r.PartyType==='C'?(r.CustomerName||'—'):(r.VendorName||'—');
+        var qty   = parseFloat(r.Quantity)||0;
+        var amt   = parseFloat(r.LineAmount)||(qty*parseFloat(r.UnitPrice||0));
+        return '<tr>' +
+            '<td>' + _ppFmtDate(r.TransDate) + '</td>' +
+            '<td><strong>' + _ppEsc(r.UniqueNumber||'—') + '</strong></td>' +
+            '<td>' + _ppEsc(mod) + '</td>' +
+            '<td>' + _ppEsc(party) + '</td>' +
+            (hasVar ? '<td>' + _ppEsc(r.VariantLabel||'—') + '</td>' : '') +
+            '<td class="num">' + qty + '</td>' +
+            '<td class="num">' + _ppCurSym + ' ' + _ppFmtNum(parseFloat(r.UnitPrice||0)) + '</td>' +
+            '<td class="num">' + _ppCurSym + ' ' + _ppFmtNum(amt) + '</td>' +
+            '<td>' + _ppEsc(r.DocStatus||'—') + '</td>' +
+            '</tr>';
+    }).join('');
+    var addr    = [_ppOrgAddress, _ppOrgCity, _ppOrgState, _ppOrgPincode].filter(Boolean).join(', ');
+    var contact = [_ppOrgPhone ? 'Ph: ' + _ppOrgPhone : '', _ppOrgEmail ? _ppOrgEmail : ''].filter(Boolean).join('  |  ');
+    var orgHtml = '<div class="org-hdr">' +
+        (_ppOrgName  ? '<div class="org-name">' + _ppEsc(_ppOrgName) + '</div>' : '') +
+        (addr        ? '<div class="org-line">' + _ppEsc(addr) + '</div>' : '') +
+        (_ppOrgGSTIN ? '<div class="org-line">GSTIN: ' + _ppEsc(_ppOrgGSTIN) + '</div>' : '') +
+        (contact     ? '<div class="org-line">' + _ppEsc(contact) + '</div>' : '') +
+        '</div>';
+    var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + _ppEsc(title) + '</title>' +
+        '<style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px}' +
+        '.org-hdr{margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid #333}' +
+        '.org-name{font-size:16px;font-weight:bold;color:#111;margin-bottom:3px}' +
+        '.org-line{font-size:11px;color:#555;margin-top:2px}' +
+        'h2{font-size:14px;margin:10px 0 4px}' +
+        '.print-meta{margin:0 0 12px;color:#666;font-size:11px}' +
+        'table{border-collapse:collapse;width:100%}' +
+        'th{background:#f0f0f0;border:1px solid #ccc;padding:6px 8px;font-size:11px;text-align:left}' +
+        'td{border:1px solid #ddd;padding:5px 8px;font-size:11px}' +
+        '.num{text-align:right}' +
+        'tr:nth-child(even) td{background:#fafafa}' +
+        '@media print{@page{margin:1cm}}</style>' +
+        '</head><body>' +
+        orgHtml +
+        '<h2>' + _ppEsc(title) + '</h2>' +
+        '<p class="print-meta">Printed on ' + _ppEsc(now) + ' &nbsp;|&nbsp; ' + _ppTxVisibleRows.length + ' record(s)</p>' +
+        '<table><thead>' + tHead + '</thead><tbody>' + tRows + '</tbody></table>' +
+        '</body></html>';
+    var win = window.open('', '_blank', 'width=900,height=650');
+    if (!win) { showToastNotification('Please allow pop-ups to use Print Preview.', 'warning'); return; }
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    setTimeout(function() { win.print(); }, 400);
+}
+
+/**
+ * Export visible transaction rows as a PDF file using jsPDF + autoTable (lazy-loaded).
+ * @returns {void}
+ */
+function _ppTxExportPdf() {
+    if (!_ppTxVisibleRows.length) return;
+
+    function _buildPdf() {
+        var hasVar       = _ppTxVisibleRows.some(function(r) { return !!r.VariantLabel; });
+        var doc          = new window.jspdf.jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+        var pageW        = doc.internal.pageSize.getWidth();
+        var margin       = 40;
+        var y            = 30;
+
+        // ── Org header ────────────────────────────────────────────────────────
+        if (_ppOrgName) {
+            doc.setFontSize(14); doc.setFont(undefined, 'bold');
+            doc.text(_ppOrgName, margin, y); y += 18;
+        }
+        doc.setFontSize(8.5); doc.setFont(undefined, 'normal');
+        var addr = [_ppOrgAddress, _ppOrgCity, _ppOrgState, _ppOrgPincode].filter(Boolean).join(', ');
+        if (addr)        { doc.text(addr, margin, y); y += 12; }
+        if (_ppOrgGSTIN) { doc.text('GSTIN: ' + _ppOrgGSTIN, margin, y); y += 12; }
+        var contact = [_ppOrgPhone ? 'Ph: ' + _ppOrgPhone : '', _ppOrgEmail || ''].filter(Boolean).join('   |   ');
+        if (contact)     { doc.text(contact, margin, y); y += 12; }
+
+        // ── Separator line ────────────────────────────────────────────────────
+        y += 4;
+        doc.setDrawColor(180); doc.setLineWidth(0.5);
+        doc.line(margin, y, pageW - margin, y); y += 10;
+
+        // ── Report title + meta ───────────────────────────────────────────────
+        var title = ($('#ppModalTitle').text() || 'Product') + ' — Transactions';
+        doc.setFontSize(11); doc.setFont(undefined, 'bold');
+        doc.text(title, margin, y); y += 14;
+        doc.setFontSize(8); doc.setFont(undefined, 'normal');
+        doc.text('Printed on: ' + new Date().toLocaleString() + '   |   ' + _ppTxVisibleRows.length + ' record(s)', margin, y);
+
+        // ── Table ─────────────────────────────────────────────────────────────
+        var head = [['Date', 'Ref No', 'Module', 'Party']];
+        if (hasVar) head[0].push('Variant');
+        head[0].push('Qty', 'Unit Price', 'Amount', 'Status');
+
+        var body = _ppTxVisibleRows.map(function(r) {
+            var muid  = parseInt(r.ModuleUID, 10) || 0;
+            var mod   = (_ppTxModuleMap[muid] || {}).label || ('Module ' + muid);
+            var party = r.PartyType === 'C' ? (r.CustomerName || '—') : (r.VendorName || '—');
+            var qty   = Math.abs(parseFloat(r.Quantity) || 0);
+            var up    = parseFloat(r.UnitPrice  || 0);
+            var amt   = parseFloat(r.LineAmount || 0) || (qty * up);
+            var row   = [_ppFmtDate(r.TransDate), r.UniqueNumber || '—', mod, party];
+            if (hasVar) row.push(r.VariantLabel || '—');
+            row.push(qty, up.toFixed(_ppDecPlaces), amt.toFixed(_ppDecPlaces), r.DocStatus || '—');
+            return row;
+        });
+
+        var numStart    = hasVar ? 5 : 4;
+        var colStyles   = {};
+        colStyles[numStart]     = { halign: 'right' };
+        colStyles[numStart + 1] = { halign: 'right' };
+        colStyles[numStart + 2] = { halign: 'right' };
+
+        doc.autoTable({
+            startY       : y + 10,
+            head         : head,
+            body         : body,
+            styles       : { fontSize: 8, cellPadding: 4, overflow: 'linebreak' },
+            headStyles   : { fillColor: [240, 242, 245], textColor: [60, 60, 60], fontStyle: 'bold', lineWidth: 0.3, lineColor: [200, 200, 200] },
+            alternateRowStyles: { fillColor: [250, 250, 252] },
+            columnStyles : colStyles,
+            margin       : { left: margin, right: margin },
+        });
+
+        doc.save('transactions.pdf');
+    }
+
+    // Lazy-load jsPDF + autoTable on first call
+    if (window.jspdf && window.jspdf.jsPDF) { _buildPdf(); return; }
+    ajaxLoading(1);
+    var s1 = document.createElement('script');
+    s1.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    s1.onload = function() {
+        var s2 = document.createElement('script');
+        s2.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js';
+        s2.onload  = function() { ajaxLoading(0); _buildPdf(); };
+        s2.onerror = function() { ajaxLoading(0); showToastNotification('Failed to load PDF library.', 'danger'); };
+        document.head.appendChild(s2);
+    };
+    s1.onerror = function() { ajaxLoading(0); showToastNotification('Failed to load PDF library.', 'danger'); };
+    document.head.appendChild(s1);
+}
+
 /**
  * Loads a product profile tab via AJAX (fetched once, cached thereafter).
+ * Transactions tab renders a static shell immediately, then fetches rows separately.
  * @param {string} tab - Tab name: overview | transactions | stock | history
  * @returns {void}
  */
 function _loadPPTab(tab) {
     var $pane = $('#ppTabContent_' + tab);
     if (_ppTabLoaded[tab]) return;
+
+    if (tab === 'transactions') {
+        _initPPTxShell($pane);
+        ajaxLoading(0);
+        $.ajax({
+            url      : '/products/getProductProfileTab/' + _ppCurrentUID + '/transactions',
+            type     : 'GET',
+            dataType : 'json',
+            success  : function(res) {
+                if (!res || res.Error) {
+                    $('#ppTxGridWrap').html('<div class="alert alert-danger m-4">' + _ppEsc(res && res.Message ? res.Message : 'Failed to load.') + '</div>');
+                    return;
+                }
+                _renderPPTxGrid(res.Rows || []);
+                _ppTabLoaded['transactions'] = true;
+            },
+            error: function() {
+                $('#ppTxGridWrap').html('<div class="alert alert-danger m-4">An error occurred. Please try again.</div>');
+            }
+        });
+        return;
+    }
 
     $pane.html(
         '<div class="d-flex justify-content-center align-items-center py-5">' +
@@ -3603,32 +4116,55 @@ $(document).on('click', '#ppBtnEdit', function () {
     }, 350);
 });
 
-// Transaction tab: client-side module + status filter
-$(document).on('change', '#ppTxModuleFilter, #ppTxStatusFilter', function () {
-    var moduleVal = $('#ppTxModuleFilter').val();
-    var statusVal = $('#ppTxStatusFilter').val();
-    var $rows     = $('#ppTxTable tbody tr');
-    var visible   = 0;
-    $rows.each(function () {
-        var $tr        = $(this);
-        var rowModule  = $tr.data('module') ? String($tr.data('module')) : '';
-        var rowStatus  = $tr.data('status') || '';
-        var matchMod   = !moduleVal || rowModule === moduleVal;
-        var matchStat  = !statusVal || rowStatus === statusVal;
-        if (matchMod && matchStat) {
-            $tr.show();
-            visible++;
-        } else {
-            $tr.hide();
-        }
-    });
-    $('#ppTxVisibleCount').text(visible + ' record' + (visible !== 1 ? 's' : ''));
+// Transaction tab: Filter button
+$(document).on('click', '#ppTxFilterBtn', function() { _applyPPTxFilter(); });
+
+// Transaction tab: Reset button
+$(document).on('click', '#ppTxResetBtn', function() {
+    $('#ppTxModuleFilter').val('');
+    $('#ppTxStatusFilter').val('');
+    $('#ppTxTable tbody tr').show();
+    _ppTxVisibleRows = _ppTxAllRows.slice();
+    $('#ppTxVisibleCount').text(_ppTxAllRows.length + ' record' + (_ppTxAllRows.length !== 1 ? 's' : ''));
+});
+
+// Transaction tab: Export — Print Preview
+$(document).on('click', '#ppTxExportPrint', function(e) {
+    e.preventDefault(); _ppTxPrint();
+});
+
+// Transaction tab: Export — PDF (auto-download via jsPDF)
+$(document).on('click', '#ppTxExportPdf', function(e) {
+    e.preventDefault(); _ppTxExportPdf();
+});
+
+// Transaction tab: Export — CSV
+$(document).on('click', '#ppTxExportCsv', function(e) {
+    e.preventDefault();
+    if (!_ppTxVisibleRows.length) return;
+    _ppTxDownload(_ppTxBuildCsv(), 'transactions.csv', 'text/csv;charset=utf-8;');
+});
+
+// Transaction tab: Export — Excel
+$(document).on('click', '#ppTxExportExcel', function(e) {
+    e.preventDefault();
+    if (!_ppTxVisibleRows.length) return;
+    var xls = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">' +
+              '<head><meta charset="utf-8"><style>td,th{mso-number-format:"@"}</style></head>' +
+              '<body>' + _ppTxBuildExcelHtml() + '</body></html>';
+    _ppTxDownload(xls, 'transactions.xls', 'application/vnd.ms-excel');
 });
 
 // Reset modal state when fully hidden
 $('#productProfileModal').on('hidden.bs.modal', function () {
-    _ppTabLoaded  = {};
-    _ppCurrentUID = 0;
+    _ppTabLoaded     = {};
+    _ppCurrentUID    = 0;
+    _ppTxAllRows     = [];
+    _ppTxVisibleRows = [];
     $('#ppTabContent .pp-tab-pane').empty();
+    $('#ppModalTitle').text('');
+    $('#ppModalSubtitle').text('');
+    $('#ppBtnEdit').removeAttr('data-uid');
+    $('#ppAvatarWrap').html('<span id="ppAvatarInitials" class="cp-avatar-initials"></span>');
 });
 </script>

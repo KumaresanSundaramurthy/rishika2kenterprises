@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 
 class Dbwrite_model extends CI_Model {
 
@@ -63,7 +63,7 @@ class Dbwrite_model extends CI_Model {
     /**
      * Acquires an exclusive row-level lock on the transaction row for the duration of
      * the current WriteDB transaction. Must be called inside startTransaction() and before
-     * reading the paid total â€” blocks any concurrent request trying to lock the same row,
+     * reading the paid total â€" blocks any concurrent request trying to lock the same row,
      * so the balance check that follows always sees fully committed data.
      *
      * @param int $transUID
@@ -99,7 +99,7 @@ class Dbwrite_model extends CI_Model {
 
     // Disable/enable FK checks on the write connection.
     // Use when inserting into a child table whose parent row was inserted
-    // in the same open transaction â€” InnoDB lock wait timeout would occur otherwise.
+    // in the same open transaction â€" InnoDB lock wait timeout would occur otherwise.
     public function setForeignKeyChecks($enabled) {
         $this->WriteDB->query('SET FOREIGN_KEY_CHECKS = ' . ($enabled ? '1' : '0'));
     }
@@ -376,7 +376,7 @@ class Dbwrite_model extends CI_Model {
 
     }
 
-    // â”€â”€ Transaction Number Helpers (WriteDB â€” avoids read-replica lag) â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â"€â"€ Transaction Number Helpers (WriteDB â€" avoids read-replica lag) â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     public function checkTransactionNumberExists($prefixUID, $transNumber, $orgUID) {
         $this->WriteDB->db_debug = FALSE;
@@ -415,7 +415,7 @@ class Dbwrite_model extends CI_Model {
         return $next;
     }
 
-    // â”€â”€ Stock Movement Methods â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â"€â"€ Stock Movement Methods â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     /**
      * Stock movement direction by ModuleUID.
@@ -428,7 +428,7 @@ class Dbwrite_model extends CI_Model {
         106 => 'IN',    // Sales Returns
         107 => 'IN',    // Credit Notes
         108 => 'OUT',   // Purchase Returns
-        112 => 'OUT',   // Delivery Challans (all modes: Non-Returnable / Returnable / Job Work â€” goods leave warehouse on dispatch)
+        112 => 'OUT',   // Delivery Challans (all modes: Non-Returnable / Returnable / Job Work â€" goods leave warehouse on dispatch)
     ];
 
     /**
@@ -450,7 +450,7 @@ class Dbwrite_model extends CI_Model {
         // Bulk-fetch TransProdUID, SellingPrice, TaxAmount, FinancialYear for this transaction
         $this->WriteDB->db_debug = FALSE;
         $tpQuery = $this->WriteDB->query(
-            "SELECT TransProdUID, ProductUID, UnitPrice, FinancialYear,
+            "SELECT TransProdUID, ProductUID, VariantUID, UnitPrice, FinancialYear,
                     (COALESCE(CgstAmount,0)+COALESCE(SgstAmount,0)+COALESCE(IgstAmount,0)) AS TaxAmt
              FROM Transaction.TransProductsTbl
              WHERE TransUID = ? AND IsDeleted = 0
@@ -461,9 +461,11 @@ class Dbwrite_model extends CI_Model {
         $txFinancialYear = '';
         if ($tpQuery) {
             foreach ($tpQuery->result() as $tp) {
-                $pid = (int)$tp->ProductUID;
-                if (!isset($tpMap[$pid])) {
-                    $tpMap[$pid] = [
+                // Key by "ProductUID-VariantUID" so multiple variant rows of the
+                // same product each get their own transProdUID entry.
+                $mapKey = ((int)$tp->ProductUID) . '-' . ((int)($tp->VariantUID ?? 0));
+                if (!isset($tpMap[$mapKey])) {
+                    $tpMap[$mapKey] = [
                         'transProdUID' => (int)$tp->TransProdUID,
                         'sellingPrice' => (float)$tp->UnitPrice,
                         'taxAmount'    => (float)$tp->TaxAmt,
@@ -479,7 +481,11 @@ class Dbwrite_model extends CI_Model {
         // eliminating the N individual per-item SELECTs that cause N+1 round trips.
         $productUIDs = [];
         foreach ($items as $item) {
-            $pid = isset($item['id']) ? (int)$item['id'] : 0;
+            // For variant items the JS sets id = productUID*100000+variantUID; read the
+            // real productUID field first, falling back to id for non-variant rows.
+            $pid = (isset($item['productUID']) && (int)$item['productUID'] > 0)
+                ? (int)$item['productUID']
+                : (isset($item['id']) ? (int)$item['id'] : 0);
             if ($pid > 0 && strtolower($item['productType'] ?? '') !== 'service') {
                 $productUIDs[] = $pid;
             }
@@ -506,15 +512,21 @@ class Dbwrite_model extends CI_Model {
         }
 
         foreach ($items as $item) {
-            $productUID  = isset($item['id'])          ? (int)   $item['id']          : 0;
+            // For variant items the JS sets id = productUID*100000+variantUID; use the
+            // real productUID field first, falling back to id for plain (non-variant) rows.
+            $productUID  = (isset($item['productUID']) && (int)$item['productUID'] > 0)
+                ? (int)$item['productUID']
+                : (isset($item['id']) ? (int)$item['id'] : 0);
             $qty         = isset($item['quantity'])     ? (float) $item['quantity']    : 0;
             $unitCost    = isset($item['unitPrice'])    ? (float) $item['unitPrice']   : 0;
             $productType = isset($item['productType'])  ?         $item['productType'] : 'Product';
+            $variantUID  = isset($item['variantUID'])   ? (int)   $item['variantUID']  : 0;
 
             if ($productUID <= 0 || $qty <= 0)         continue;
             if (strtolower($productType) === 'service') continue;
 
-            $tpInfo       = $tpMap[$productUID] ?? null;
+            $tpMapKey     = $productUID . '-' . $variantUID;
+            $tpInfo       = $tpMap[$tpMapKey] ?? null;
             $transProdUID = $tpInfo ? $tpInfo['transProdUID'] : null;
             $sellingPrice = $tpInfo ? $tpInfo['sellingPrice'] : null;
             $taxAmount    = $tpInfo ? $tpInfo['taxAmount']    : null;
@@ -579,7 +591,7 @@ class Dbwrite_model extends CI_Model {
                         // Record stock movement for this component
                         $this->_applyStockMovement($transUID, $moduleUID, $orgUID, $userUID, $componentUID, $componentQty, $unitCost, $movementType, $transProdUID, $sellingPrice, $taxAmount, null, $branchUID);
 
-                        // Insert BOM snapshot â€” full component details frozen at transaction time
+                        // Insert BOM snapshot â€" full component details frozen at transaction time
                         if ($transProdUID !== null && $cd !== null) {
                             // Use user-adjusted price from transaction form if available; fall back to master price
                             $sp      = isset($passedCompPrices[$componentUID])
@@ -649,13 +661,13 @@ class Dbwrite_model extends CI_Model {
                     }
                 }
             } else {
-                $this->_applyStockMovement($transUID, $moduleUID, $orgUID, $userUID, $productUID, $qty, $unitCost, $movementType, $transProdUID, $sellingPrice, $taxAmount, $prodData, $branchUID);
+                $this->_applyStockMovement($transUID, $moduleUID, $orgUID, $userUID, $productUID, $qty, $unitCost, $movementType, $transProdUID, $sellingPrice, $taxAmount, $prodData, $branchUID, $variantUID);
             }
         }
 
     }
 
-    private function _applyStockMovement($transUID, $moduleUID, $orgUID, $userUID, $productUID, $qty, $unitCost, $movementType, $transProdUID = null, $sellingPrice = null, $taxAmount = null, $snap = null, int $branchUID = 0) {
+    private function _applyStockMovement($transUID, $moduleUID, $orgUID, $userUID, $productUID, $qty, $unitCost, $movementType, $transProdUID = null, $sellingPrice = null, $taxAmount = null, $snap = null, int $branchUID = 0, int $variantUID = 0) {
 
         $this->WriteDB->db_debug = FALSE;
 
@@ -678,6 +690,7 @@ class Dbwrite_model extends CI_Model {
         $insOk = $this->WriteDB->insert('Products.StockLedgerTbl', [
             'OrgUID'             => $orgUID,
             'ProductUID'         => $productUID,
+            'VariantUID'         => $variantUID > 0 ? $variantUID : null,
             'TransUID'           => $transUID,
             'TransProdUID'       => $transProdUID,
             'ModuleUID'          => $moduleUID,
@@ -708,7 +721,7 @@ class Dbwrite_model extends CI_Model {
             throw new Exception('Stock ledger insert failed (ProductUID=' . $productUID . '): ' . ($err['message'] ?? 'unknown DB error'));
         }
 
-        // Update ProductStockTbl â€” allow negative (oversold) values.
+        // Update ProductStockTbl — allow negative (oversold) values.
         // CAST to SIGNED prevents UNSIGNED underflow wrapping to a huge positive number.
         if ($movementType === 'IN') {
             $this->WriteDB->set('AvailableQty', 'CAST(AvailableQty AS SIGNED) + ' . $qty, false);
@@ -720,6 +733,26 @@ class Dbwrite_model extends CI_Model {
         if ($updOk === false) {
             $err = $this->WriteDB->error();
             throw new Exception('Stock quantity update failed (ProductUID=' . $productUID . '): ' . ($err['message'] ?? 'unknown DB error'));
+        }
+
+        // Update variant stock when a specific variant was selected on this line item.
+        // Uses upsert so variants without an opening stock row are initialised automatically.
+        if ($variantUID > 0) {
+            if ($movementType === 'IN') {
+                $this->WriteDB->query(
+                    "INSERT INTO Products.ProductVariantStockTbl (VariantUID, OrgUID, OpeningQty, AvailableQty)
+                     VALUES (?, ?, 0, ?)
+                     ON DUPLICATE KEY UPDATE AvailableQty = CAST(AvailableQty AS SIGNED) + ?",
+                    [$variantUID, (int)$orgUID, $qty, $qty]
+                );
+            } else {
+                $this->WriteDB->query(
+                    "INSERT INTO Products.ProductVariantStockTbl (VariantUID, OrgUID, OpeningQty, AvailableQty)
+                     VALUES (?, ?, 0, ?)
+                     ON DUPLICATE KEY UPDATE AvailableQty = CAST(AvailableQty AS SIGNED) - ?",
+                    [$variantUID, (int)$orgUID, -$qty, $qty]
+                );
+            }
         }
 
     }
@@ -866,10 +899,10 @@ class Dbwrite_model extends CI_Model {
         );
     }
 
-    public function applyManualStockAdjustment($adjUID, $orgUID, $userUID, $productUID, $qty, $unitCost, $adjType, int $branchUID = 0) {
+    public function applyManualStockAdjustment($adjUID, $orgUID, $userUID, $productUID, $qty, $unitCost, $adjType, int $branchUID = 0, int $variantUID = 0): void {
 
         $movementType = ($adjType === 'IN') ? 'IN' : 'OUT';
-        $this->_applyStockMovement((int)$adjUID, 118, (int)$orgUID, (int)$userUID, (int)$productUID, (float)$qty, (float)$unitCost, $movementType, null, null, null, null, $branchUID);
+        $this->_applyStockMovement((int)$adjUID, 118, (int)$orgUID, (int)$userUID, (int)$productUID, (float)$qty, (float)$unitCost, $movementType, null, null, null, null, $branchUID, $variantUID);
 
     }
 
@@ -893,7 +926,7 @@ class Dbwrite_model extends CI_Model {
     /**
      * Reverse all stock movements for a transaction (used on edit of non-draft or on delete).
      * Soft-deletes the ledger rows and adds back / subtracts the quantities.
-     * Safe to call on draft transactions â€” finds no ledger rows and does nothing.
+     * Safe to call on draft transactions â€" finds no ledger rows and does nothing.
      *
      * @param int $transUID  Transaction UID whose stock movements to reverse
      * @param int $orgUID    Organisation UID
@@ -902,7 +935,7 @@ class Dbwrite_model extends CI_Model {
     public function reverseStockMovements($transUID, $orgUID, $userUID) {
 
         $this->WriteDB->db_debug = FALSE;
-        $this->WriteDB->select('LedgerUID, ProductUID, MovementType, Quantity');
+        $this->WriteDB->select('LedgerUID, ProductUID, VariantUID, MovementType, Quantity');
         $this->WriteDB->from('Products.StockLedgerTbl');
         $this->WriteDB->where(['TransUID' => $transUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
         $query      = $this->WriteDB->get();
@@ -914,9 +947,11 @@ class Dbwrite_model extends CI_Model {
 
         foreach ($ledgerRows as $row) {
             if ($row->MovementType === 'IN') {
-                $qtyExpr = 'CAST(AvailableQty AS SIGNED) - ' . (float)$row->Quantity;
+                $qtyExpr    = 'CAST(AvailableQty AS SIGNED) - ' . (float)$row->Quantity;
+                $varQtyExpr = 'CAST(AvailableQty AS SIGNED) - ' . (float)$row->Quantity;
             } else {
-                $qtyExpr = 'AvailableQty + ' . (float)$row->Quantity;
+                $qtyExpr    = 'AvailableQty + ' . (float)$row->Quantity;
+                $varQtyExpr = 'AvailableQty + ' . (float)$row->Quantity;
             }
 
             $ok = $this->WriteDB->query(
@@ -926,6 +961,13 @@ class Dbwrite_model extends CI_Model {
             if ($ok === false) {
                 $err = $this->WriteDB->error();
                 throw new Exception('Stock quantity reversal failed (ProductUID=' . $row->ProductUID . '): ' . ($err['message'] ?? 'unknown error'));
+            }
+
+            if (!empty($row->VariantUID)) {
+                $this->WriteDB->query(
+                    "UPDATE Products.ProductVariantStockTbl SET AvailableQty = {$varQtyExpr} WHERE VariantUID = ? AND OrgUID = ?",
+                    [(int)$row->VariantUID, (int)$orgUID]
+                );
             }
 
             $ok = $this->WriteDB->query(
@@ -974,7 +1016,7 @@ class Dbwrite_model extends CI_Model {
                 $rows
             );
             throw new Exception(
-                'Cannot cancel: reversing stock would result in negative quantity for â€” ' .
+                'Cannot cancel: reversing stock would result in negative quantity for - ' .
                 implode('; ', $details) . '. Please adjust stock manually first.'
             );
         }
@@ -1074,7 +1116,7 @@ class Dbwrite_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Conversion Tracking â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â"€â"€ Conversion Tracking â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     /**
      * Record a document conversion in TransConversionTbl.
@@ -1112,7 +1154,7 @@ class Dbwrite_model extends CI_Model {
         $this->WriteDB->insert('Security.UserAuditLogTbl', $data);
     }
 
-    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
     // Payment read helpers (use WriteDB to avoid read-replica lag)
 
     public function getOnAccountPayment($paymentUID, $orgUID) {
@@ -1140,7 +1182,7 @@ class Dbwrite_model extends CI_Model {
         return $this->WriteDB->get()->row();
     }
 
-    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
     // Payment write helpers
 
     public function restoreOnAccountPayment($sourceOAUID, $orgUID, $restoredAmount, $userUID) {
@@ -1250,7 +1292,7 @@ class Dbwrite_model extends CI_Model {
         ]);
     }
 
-    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
     // Settings upserts
 
     public function upsertProductSettings($orgUID, $productTypeUID, $discountTypeUID, $productTaxUID, $taxDetailUID, $userUID) {
@@ -1333,7 +1375,7 @@ class Dbwrite_model extends CI_Model {
 
         $this->WriteDB->db_debug = FALSE;
 
-        // Duplicate guard â€” uses WriteDB to avoid read-replica lag
+        // Duplicate guard â€" uses WriteDB to avoid read-replica lag
         $this->WriteDB->select('ConversionUID');
         $this->WriteDB->from('Transaction.TransConversionTbl');
         $this->WriteDB->where(['SourceTransUID' => (int)$sourceUID, 'TargetTransUID' => (int)$targetUID]);
@@ -1372,7 +1414,7 @@ class Dbwrite_model extends CI_Model {
                       ]);
     }
 
-    // â”€â”€ Sync userâ†’branch access assignments (wipe + re-insert) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â"€â"€ Sync userâ†’branch access assignments (wipe + re-insert) â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
     public function syncUserBranchAccess(int $userUID, int $orgUID, array $branches, int $callerUID, string $now): void {
         $this->WriteDB->db_debug = FALSE;
         $this->WriteDB->query(

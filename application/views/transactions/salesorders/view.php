@@ -211,7 +211,7 @@ var _commOrgContext = <?php
 ?>;
 var _commGenSettings  = <?php echo json_encode([
     'CurrenySymbol' => $JwtData->GenSettings->CurrenySymbol ?? '₹',
-    'DecimalPoints' => 9,
+    'DecimalPoints' => 2,
 ]); ?>;
 var _rawEmailTemplate = <?php echo json_encode($CommEmailTemplate ?? null); ?>;
 var _r2CdnBase        = <?php echo json_encode(rtrim(getenv('CFLARE_R2_CDN') ?: getenv('CDN_URL'), '/')); ?>;

@@ -1870,11 +1870,11 @@ tr:hover .apex-party-actions {
 
 /* Equal top & bottom modal margin — dialog fills viewport minus 2.5rem on each side */
 .profile-modal-dialog {
-    --bs-modal-margin : 2.5rem;
-    margin-top        : 2.5rem;
-    margin-bottom     : 2.5rem;
-    height            : calc(100vh - 5rem);
-    max-height        : calc(100vh - 5rem);
+    --bs-modal-margin : 1rem;
+    margin-top        : 1rem;
+    margin-bottom     : 1rem;
+    height            : calc(100vh - 2rem);
+    max-height        : calc(100vh - 2rem);
 }
 
 .cust-profile-link { cursor: pointer; }
@@ -3016,6 +3016,28 @@ tr:hover .apex-party-actions {
 :root[data-theme="light"] .vp-selected-chip      { background: #ede7ff; color: #5c1fbe; border-color: #c9b3f8; }
 :root[data-theme="light"] .variant-chip.selected { background: #ede7ff; color: #5c1fbe; border-color: #c9b3f8; }
 :root[data-theme="light"] .variant-chip.empty    { background: #fff3cd; color: #664d03; border-color: #ffc107; }
+
+/* ── Variant PartNumber badge in bill row ───────────────────────────────────── */
+.bill-partno-badge {
+    display: inline-flex;
+    align-items: center;
+    font-family: ui-monospace, 'Cascadia Code', 'Courier New', monospace;
+    font-size: .68rem;
+    font-weight: 600;
+    letter-spacing: .3px;
+    padding: 1px 7px;
+    border-radius: 5px;
+    background: rgba(79,70,229,.08);
+    color: #4f46e5;
+    border: 1px solid rgba(79,70,229,.2);
+    white-space: nowrap;
+    user-select: all;
+}
+@media (prefers-color-scheme: dark) {
+    .bill-partno-badge { background: rgba(79,70,229,.18); color: #a5b4fc; border-color: rgba(79,70,229,.35); }
+}
+:root[data-theme="dark"]  .bill-partno-badge { background: rgba(79,70,229,.18); color: #a5b4fc; border-color: rgba(79,70,229,.35); }
+:root[data-theme="light"] .bill-partno-badge { background: rgba(79,70,229,.08); color: #4f46e5; border-color: rgba(79,70,229,.2); }
 
 /* ── Inventory Timeline ─────────────────────────────────────────────────────── */
 .tl-movement-select { width: 140px; }

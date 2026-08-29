@@ -57,6 +57,7 @@ class Inventory_model extends CI_Model {
             'p.TaxPercentage',
             'p.ProductType',
             'p.IsRentable',
+            'p.IsBrandApplicable',
             'p.UpdatedOn',
             'p.HSNSACCode',
             'p.Description',
@@ -182,6 +183,41 @@ class Inventory_model extends CI_Model {
         $col = $allowed[$filter['SortBy'] ?? ''] ?? 'p.ItemName';
         $dir = (isset($filter['SortDir']) && strtoupper($filter['SortDir']) === 'DESC') ? 'DESC' : 'ASC';
         $this->ReadDb->order_by($col, $dir);
+
+    }
+
+    // ── Variant-level stock breakdown for a product ──────────────────────────
+
+    /**
+     * Return each active variant for a product with its current AvailableQty.
+     * Used to render the brand/size stock breakdown in the inventory row detail.
+     *
+     * @param int $productUID
+     * @param int $orgUID
+     * @returns array
+     */
+    public function getVariantStockByProduct(int $productUID, int $orgUID): array {
+
+        $this->ReadDb->db_debug = FALSE;
+        $sql = "
+            SELECT
+                pv.VariantUID,
+                b.Name  AS BrandName,
+                s.Name  AS SizeName,
+                pv.PartNumber,
+                pv.SellingPrice,
+                pv.PurchasePrice,
+                COALESCE(pvs.AvailableQty, 0) AS AvailableQty
+            FROM Products.ProductVariantTbl pv
+            LEFT JOIN Products.BrandTbl  b   ON b.BrandUID  = pv.BrandUID
+            LEFT JOIN Products.SizeTbl   s   ON s.SizeUID   = pv.SizeUID
+            LEFT JOIN Products.ProductVariantStockTbl pvs
+                   ON pvs.VariantUID = pv.VariantUID AND pvs.OrgUID = pv.OrgUID
+            WHERE pv.ProductUID = ? AND pv.OrgUID = ? AND pv.IsActive = 1
+            ORDER BY b.Name ASC, s.Name ASC
+        ";
+        $query = $this->ReadDb->query($sql, [(int)$productUID, (int)$orgUID]);
+        return $query ? $query->result_array() : [];
 
     }
 

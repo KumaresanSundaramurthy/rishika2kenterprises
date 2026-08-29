@@ -85,6 +85,7 @@ window.ProductAppend = (function () {
                 image               : p.Image                 || '',
                 notForSale          : parseInt(p.NotForSale   || 0, 10),
                 IsBrandApplicable   : parseInt(p.IsBrandApplicable || 0, 10),
+                IsSizeApplicable    : parseInt(p.IsSizeApplicable  || 0, 10),
                 variants            : Array.isArray(p.Variants) ? p.Variants : [],
             };
         }).filter(function (p) {

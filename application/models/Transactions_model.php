@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Transactions_model extends MY_Model {
 
@@ -483,9 +483,12 @@ class Transactions_model extends MY_Model {
             'Product.HSNSACCode AS HSNCode',
             'Product.SellingPrice AS CatalogSellingPrice',
             'Product.IsBrandApplicable AS IsBrandApplicable',
-        ]);
+            'Product.PartNumber AS ProductPartNumber',
+            'COALESCE(Variant.PartNumber, \'\') AS VariantPartNumber',
+        ], false);
         $this->ReadDb->from('Transaction.TransProductsTbl as Tprod');
-        $this->ReadDb->join('Products.ProductTbl AS Product', 'Product.ProductUID = Tprod.ProductUID', 'LEFT');
+        $this->ReadDb->join('Products.ProductTbl AS Product',         'Product.ProductUID = Tprod.ProductUID',   'LEFT');
+        $this->ReadDb->join('Products.ProductVariantTbl AS Variant',  'Variant.VariantUID = Tprod.VariantUID',  'LEFT');
         $this->ReadDb->where(['Tprod.TransUID' => $transUID, 'Tprod.OrgUID' => $orgUID, 'Tprod.IsDeleted' => 0]);
         $this->ReadDb->order_by('Tprod.ItemSequence', 'ASC');
         return $this->ReadDb->get()->result();
@@ -1794,7 +1797,7 @@ class Transactions_model extends MY_Model {
             '{{ORG_BRANCH}}'           => $e($org->Branch ?? ''),
             '{{ORG_UPI_ID}}'           => $e($org->UpiId ?? ''),
             '{{ORG_INFO_LINES}}'       => $orgInfoLines,
-            '{{PLACE_OF_SUPPLY}}'      => $e(!empty($h->PlaceOfSupplyCode) ? $h->PlaceOfSupplyCode . ' â€“ ' . ($h->PlaceOfSupplyName ?? '') : ($h->PlaceOfSupplyName ?? $org->StateText ?? '')),
+            '{{PLACE_OF_SUPPLY}}'      => $e(!empty($h->PlaceOfSupplyCode) ? $h->PlaceOfSupplyCode . ' - ' . ($h->PlaceOfSupplyName ?? '') : ($h->PlaceOfSupplyName ?? $org->StateText ?? '')),
             '{{BANK_DETAILS_LINES}}'   => implode('<br>', array_filter([$e($org->BankName ?? ''), !empty($org->AccountNo) ? 'A/C: ' . $e($org->AccountNo) : '', !empty($org->IFSC) ? 'IFSC: ' . $e($org->IFSC) : ''])),
             '{{CURRENCY}}'             => $cur,
             /** Customer Details */
@@ -1959,7 +1962,8 @@ class Transactions_model extends MY_Model {
         try {
             $CI  = &get_instance();
             $cur = ($CI->pageData['JwtData']->GenSettings->CurrenySymbol  ?? 'â‚¹') . ' ';
-                    } catch (Exception $_) {
+            $dec = 2;
+        } catch (Exception $_) {
             $cur = 'â‚¹ ';
             $dec = 2;
         }

@@ -150,8 +150,8 @@ function rntOpenCreate() {
     }
 
     // Populate deposit payment type dropdown
-    var $dpType = $('#rntDepositPayType').empty().append('<option value="">— Select method —</option>');
-    var $dpBank = $('#rntDepositBankUID').empty().append('<option value="">— Select bank —</option>');
+    var $dpType = $('#rntDepositPayType').empty().append('<option value="">- Select method -</option>');
+    var $dpBank = $('#rntDepositBankUID').empty().append('<option value="">- Select bank -</option>');
     if (typeof _rntPayTypes !== 'undefined') {
         _rntPayTypes.forEach(function (t) {
             $dpType.append('<option value="' + t.PaymentTypeUID + '" data-is-cash="' + t.IsCash + '">' + _rntEsc(t.Name) + '</option>');
@@ -159,7 +159,7 @@ function rntOpenCreate() {
     }
     if (typeof _rntBankAccts !== 'undefined') {
         _rntBankAccts.forEach(function (b) {
-            $dpBank.append('<option value="' + b.BankAccountUID + '">' + _rntEsc(b.BankName) + ' — ' + _rntEsc(b.AccountName) + '</option>');
+            $dpBank.append('<option value="' + b.BankAccountUID + '">' + _rntEsc(b.BankName) + ' - ' + _rntEsc(b.AccountName) + '</option>');
         });
     }
 
@@ -341,10 +341,10 @@ function rntOpenReturn(rentalUID, rentalNum, itemUID, itemName, itemStatus) {
     $('#rtnRentalUID').val(rentalUID);
     $('#rtnRentalItemUID').val(itemUID);
     $('#rtnItemLabel').text(itemName);
-    $('#rtnRentalNum').text(rentalNum || '—');
-    $('#rtnRentalType').text('—');
-    $('#rtnStartDate').text('—');
-    $('#rtnDueDate').text('—');
+    $('#rtnRentalNum').text(rentalNum || '-');
+    $('#rtnRentalType').text('-');
+    $('#rtnStartDate').text('-');
+    $('#rtnDueDate').text('-');
     $('#rtnReturnedQty').val(1);
     $('#rtnDamagedQty').val(0);
     $('#rtnExtraHourCharge').val(0);

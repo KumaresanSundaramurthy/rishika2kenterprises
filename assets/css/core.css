@@ -101,8 +101,31 @@
     overflow-x: clip;
 }
 
-/* Zero top gap so header sits flush at the content area top */
+/* Zero top gap so header sits flush at the content area top.
+   Vendor rule .layout-content-navbar .layout-page at core.css:26619 adds navbar-height
+   padding to layout-page. Its own override at core.css:26789 uses specificity (0,3,1).
+   We need (0,4,1) — prefix html.layout-menu-fixed — to guarantee our zero wins. */
+html.layout-menu-fixed .layout-horizontal.transactionPage .layout-page,
+html.layout-menu-fixed-offcanvas .layout-horizontal.transactionPage .layout-page {
+    padding-block-start: 0 !important;
+    padding-top: 0 !important;
+}
+html.layout-menu-fixed .layout-horizontal.transactionPage .layout-page .container-p-y,
+html.layout-menu-fixed-offcanvas .layout-horizontal.transactionPage .layout-page .container-p-y {
+    padding-block-start: 0 !important;
+    padding-top: 0 !important;
+}
+
+/* Fallback for non-fixed menu layouts */
 .transactionPage .layout-page .container-p-y {
+    padding-block-start: 0 !important;
+    padding-top: 0 !important;
+}
+
+/* menu-horizontal sibling case: vendor adds 5.25rem via adjacent-sibling rule (0,5,0);
+   this rule at (0,5,0) zeros it for transaction pages in both nav states. */
+.layout-menu-fixed .layout-horizontal.transactionPage .layout-page .menu-horizontal + [class*=container-],
+.layout-menu-fixed-offcanvas .layout-horizontal.transactionPage .layout-page .menu-horizontal + [class*=container-] {
     padding-block-start: 0 !important;
 }
 
@@ -1073,3 +1096,180 @@ input[type="number"] {
     justify-content: center;
 }
 
+/* ── Variant Picker Modal ─────────────────────────────────────────────────── */
+/* ── Header banner ───────────────────────── */
+.vp-modal-banner {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 18px;
+    background: linear-gradient(135deg, #5f5c83 0%, #5f5c83 100%);
+    border-radius: 7px 7px 0 0;
+    flex-shrink: 0;
+}
+.vp-banner-icon {
+    width: 45px; height: 45px; flex-shrink: 0;
+    border-radius: 13px;
+    background: rgba(255,255,255,.18);
+    display: flex; align-items: center; justify-content: center;
+}
+.vp-banner-icon .bx { font-size: 1.5rem; color: #fff; }
+.vp-banner-text { flex: 1; min-width: 0; }
+.vp-banner-title {
+    font-size: 1rem; font-weight: 700; color: #fff; line-height: 1.3;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.vp-banner-product {
+    font-size: .82rem; font-weight: 600; color: rgba(255,255,255,.78);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.vp-banner-close {
+    width: 34px; height: 34px; flex-shrink: 0;
+    border: none; border-radius: 9px;
+    background: rgba(255,255,255,.15);
+    color: #fff; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .15s;
+}
+.vp-banner-close:hover { background: rgba(255,255,255,.28); }
+.vp-banner-close .bx { font-size: 1.3rem; }
+
+/* ── Scrollable table wrapper ────────────── */
+.vp-table-wrap {
+    max-height: 340px; overflow-y: auto; overflow-x: auto;
+}
+
+/* ── Table ───────────────────────────────── */
+.vp-table {
+    width: 100%; border-collapse: collapse;
+    table-layout: fixed;   /* column widths come from <th> — prevents auto-expand */
+    font-size: .875rem;
+}
+
+/* Column widths (fixed layout reads first <thead> row — set on base class so
+   both <th> and <td> carry the width, ensuring fixed layout picks them up) */
+.vp-col-check  { width: 44px; }
+.vp-col-brand,
+.vp-col-size   { width: 120px; }
+.vp-col-partno { width: 110px; }
+.vp-col-uprice,
+.vp-col-sprice { width: 105px; }
+.vp-col-tax    { width: 88px; }
+.vp-col-qty    { width: 80px; }
+
+/* Sticky on <th> directly — sticky on <tr> detaches thead from fixed-layout
+   column-width algorithm, causing the first column to absorb all leftover space */
+.vp-th {
+    position: sticky; top: 0; z-index: 1;
+    padding: .4rem .8rem;
+    background: rgba(79,70,229,.07);
+    border-bottom: 2px solid rgba(79,70,229,.18);
+    font-size: .75rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .05em; color: #4f46e5;
+    white-space: nowrap;
+}
+.vp-th.vp-col-check  { text-align: center; }
+.vp-th.vp-col-uprice,
+.vp-th.vp-col-tax,
+.vp-th.vp-col-sprice { text-align: right; }
+.vp-th.vp-col-qty    { text-align: center; }
+
+/* ── Variant rows ────────────────────────── */
+.vp-row {
+    cursor: pointer;
+    transition: background .1s;
+}
+.vp-row td {
+    padding: .5rem .8rem;
+    border-bottom: 1px solid var(--bs-border-color);
+    vertical-align: middle;
+}
+.vp-row:last-child td { border-bottom: none; }
+.vp-row:hover          { background: var(--bs-tertiary-bg); }
+.vp-row.vp-checked     { background: rgba(var(--bs-success-rgb), .06); }
+.vp-row.vp-checked td:first-child {
+    box-shadow: inset 3px 0 0 var(--bs-success);
+}
+
+/* Cell alignment — color rules scoped to td so they don't bleed into th */
+.vp-col-check             { text-align: center; }
+.vp-col-uprice,
+.vp-col-sprice            { text-align: right; white-space: nowrap; }
+.vp-col-tax               { text-align: right; white-space: nowrap; }
+.vp-col-qty               { text-align: right; white-space: nowrap; }
+td.vp-col-uprice,
+td.vp-col-sprice          { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--bs-body-color); }
+.vp-tax-pct    { display: block; font-size: .8rem; font-weight: 700; color: var(--bs-body-color); line-height: 1.2; }
+.vp-tax-amt    { display: block; font-size: .72rem; color: var(--bs-secondary-color); line-height: 1.2; }
+
+/* Tags */
+.vp-tag {
+    display: inline-block;
+    padding: .2rem .6rem; border-radius: 5px;
+    font-size: .78rem; font-weight: 600;
+    border: 1px solid transparent; line-height: 1.3;
+    max-width: 100%; overflow: hidden;
+    white-space: nowrap; text-overflow: ellipsis;
+}
+.vp-tag-brand {
+    background: rgba(var(--bs-primary-rgb), .1);
+    color: var(--bs-primary);
+    border-color: rgba(var(--bs-primary-rgb), .2);
+}
+.vp-tag-size  {
+    background: rgba(var(--bs-success-rgb), .1);
+    color: var(--bs-success);
+    border-color: rgba(var(--bs-success-rgb), .2);
+}
+.vp-tag-none   { font-size: .8rem; color: var(--bs-secondary-color); }
+.vp-partno-badge {
+    display: inline-block;
+    font-family: ui-monospace, 'Cascadia Code', 'Courier New', monospace;
+    font-size: .75rem;
+    font-weight: 600;
+    letter-spacing: .3px;
+    padding: 2px 8px;
+    border-radius: 5px;
+    background: rgba(79,70,229,.08);
+    color: #4f46e5;
+    border: 1px solid rgba(79,70,229,.18);
+    white-space: nowrap;
+}
+
+/* Qty stepper */
+.vp-qty-input {
+    width: 60px; height: 32px;
+    border: 1px solid var(--bs-border-color); border-radius: 6px;
+    padding: .2rem .35rem; font-size: .85rem; text-align: center;
+    background: var(--bs-body-bg); color: var(--bs-body-color);
+    transition: border-color .15s, box-shadow .15s;
+    font-variant-numeric: tabular-nums;
+}
+.vp-qty-input:focus {
+    outline: none; border-color: var(--bs-primary);
+    box-shadow: 0 0 0 2px rgba(var(--bs-primary-rgb), .15);
+}
+.vp-qty-input:disabled {
+    opacity: .28; background: var(--bs-secondary-bg); cursor: not-allowed;
+}
+
+/* ── Footer ──────────────────────────────── */
+.vp-footer {
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    padding: .75rem 1.25rem;
+    border-top: 1px solid var(--bs-border-color);
+    background: var(--bs-tertiary-bg);
+}
+.vp-footer-info   { display: flex; flex-direction: column; gap: .08rem; min-width: 0; }
+.vp-footer-actions { display: flex; gap: .5rem; align-items: center; flex-shrink: 0; }
+.vp-sel-count     { font-size: .78rem; color: var(--bs-secondary-color); }
+.vp-total-label   {
+    font-size: .7rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .06em; color: var(--bs-secondary-color);
+}
+.vp-total-val     {
+    font-size: 1.4rem; font-weight: 800; color: var(--bs-success);
+    font-variant-numeric: tabular-nums; line-height: 1;
+}
+
+
+.var-row-locked { background-color: rgba(var(--bs-warning-rgb), 0.06); }
+.var-locked-badge { font-size: 0.65rem; vertical-align: middle; }

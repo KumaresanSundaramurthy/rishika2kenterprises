@@ -1,7 +1,7 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 /**
- * Customerbalance â€” single source of truth for customer balance management.
+ * Customerbalance Ã¢â‚¬â€ single source of truth for customer balance management.
  *
  * Used across all modules that affect a customer's outstanding balance:
  * Invoices, Payments, Sales Returns, Customer form, etc.
@@ -9,13 +9,13 @@
  * Public method:
  *   recalcAndSync($orgUID, $customerUID, $userUID)
  *     Recalculates closing balance from all active transactions and syncs:
- *       1. Customers.CustOpeningBalanceTbl  â€” PendingBalance / PendingBalType
- *       2. Accounting.ChartOfAccounts       â€” CurrentBalance / CurrentBalanceType
- *       3. Upstash cache                    â€” ClosingBalance / ClosingBalType
+ *       1. Customers.CustOpeningBalanceTbl  Ã¢â‚¬â€ PendingBalance / PendingBalType
+ *       2. Accounting.ChartOfAccounts       Ã¢â‚¬â€ CurrentBalance / CurrentBalanceType
+ *       3. Upstash cache                    Ã¢â‚¬â€ ClosingBalance / ClosingBalType
  *     Returns ['balance' => float, 'type' => string] or null on failure.
  *
  * Formula:
- *   ClosingBalance = OpeningBalance + TotalInvoiced âˆ’ TotalReceived âˆ’ TotalReturned
+ *   ClosingBalance = OpeningBalance + TotalInvoiced Ã¢Ë†â€™ TotalReceived Ã¢Ë†â€™ TotalReturned
  */
 class Customerbalance {
 
@@ -25,7 +25,7 @@ class Customerbalance {
         $this->CI =& get_instance();
     }
 
-    // â”€â”€ Credit Note: create when a paid/partial invoice is cancelled â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Ã¢â€â‚¬Ã¢â€â‚¬ Credit Note: create when a paid/partial invoice is cancelled Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
     public function createCreditNote(int $orgUID, int $customerUID, int $transUID, int $userUID, string $invoiceNumber = ''): ?array {
         try {
@@ -145,7 +145,7 @@ class Customerbalance {
         }
     }
 
-    // â”€â”€ Credit Note: create when a SR is saved without payment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Ã¢â€â‚¬Ã¢â€â‚¬ Credit Note: create when a SR is saved without payment Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
     public function createSalesReturnCreditNote($orgUID, $customerUID, $srTransUID, $srUniqueNumber, $amount, $userUID, $transDate = null) {
         try {
@@ -246,7 +246,7 @@ class Customerbalance {
         }
     }
 
-    // â”€â”€ Debit Note: create when a paid SR is cancelled with Recover action â”€â”€â”€â”€â”€â”€
+    // Ã¢â€â‚¬Ã¢â€â‚¬ Debit Note: create when a paid SR is cancelled with Recover action Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
     public function createDebitNote($orgUID, $customerUID, $sourceTransUID, $sourceTransNumber, $amount, $userUID, $writeDb = null) {
         try {
@@ -319,7 +319,7 @@ class Customerbalance {
         }
     }
 
-    // â”€â”€ Debit Note: get pending notes for a customer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Ã¢â€â‚¬Ã¢â€â‚¬ Debit Note: get pending notes for a customer Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
     public function getPendingDebitNotes($orgUID, $customerUID) {
         try {
@@ -342,7 +342,7 @@ class Customerbalance {
         }
     }
 
-    // â”€â”€ Credit Note: apply to a future invoice â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Ã¢â€â‚¬Ã¢â€â‚¬ Credit Note: apply to a future invoice Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
     public function applyCreditNote($orgUID, $creditNoteUID, $targetTransUID, $userUID, $moduleUID = 103) {
         try {
@@ -351,7 +351,7 @@ class Customerbalance {
             $writeDb->db_debug = FALSE;
             $writeDb->query("SET SESSION sql_mode = ''");
 
-            // Use WriteDB to fetch â€” ensures we always see the latest committed data
+            // Use WriteDB to fetch Ã¢â‚¬â€ ensures we always see the latest committed data
             $writeDb->from('Transaction.TransCreditNoteTbl');
             $writeDb->where(['CreditNoteUID' => (int)$creditNoteUID, 'Status' => 'Pending', 'IsDeleted' => 0]);
             $cn = $writeDb->get()->row();
@@ -454,14 +454,14 @@ class Customerbalance {
         }
     }
 
-    // â”€â”€ Credit Note: mark as refunded (org physically returns money) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Ã¢â€â‚¬Ã¢â€â‚¬ Credit Note: mark as refunded (org physically returns money) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
     public function refundCreditNote($orgUID, $creditNoteUID, $userUID) {
         try {
             $writeDb = $this->CI->load->database('WriteDB', TRUE);
             $writeDb->db_debug = FALSE;
 
-            // Use WriteDB (not ReadDB) to look up the credit note â€” guarantees
+            // Use WriteDB (not ReadDB) to look up the credit note Ã¢â‚¬â€ guarantees
             // we see our own writes when called immediately after createCreditNote()
             $writeDb->from('Transaction.TransCreditNoteTbl');
             $writeDb->where(['CreditNoteUID' => (int)$creditNoteUID, 'Status' => 'Pending', 'IsDeleted' => 0]);
@@ -475,7 +475,7 @@ class Customerbalance {
                 'UpdatedBy' => (int)$userUID,
             ]);
 
-            // Mark the original payment(s) as IsCancelled = 1 â€” payment is reversed/voided
+            // Mark the original payment(s) as IsCancelled = 1 Ã¢â‚¬â€ payment is reversed/voided
             $writeDb->where([
                 'TransUID'                  => (int)$cn->SourceTransUID,
                 'PartyType'                 => 'C',
@@ -512,7 +512,7 @@ class Customerbalance {
         }
     }
 
-    // â”€â”€ Get pending credit notes for a customer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Ã¢â€â‚¬Ã¢â€â‚¬ Get pending credit notes for a customer Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
     public function getPendingCreditNotes($orgUID, $customerUID) {
         try {
@@ -538,8 +538,8 @@ class Customerbalance {
         }
     }
 
-    // â”€â”€ Pending credit/debit notes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    // Delegates to customers_model which holds the shared WriteDb connection â€”
+    // Ã¢â€â‚¬Ã¢â€â‚¬ Pending credit/debit notes Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+    // Delegates to customers_model which holds the shared WriteDb connection Ã¢â‚¬â€
     // avoids opening new TCP connections on every recalcAndSync call.
 
     private function _getPendingNoteTotals($orgUID, $customerUID) {
@@ -547,16 +547,13 @@ class Customerbalance {
         return $this->CI->customers_model->getCustomerPendingNoteTotals($orgUID, $customerUID);
     }
 
-    // â”€â”€ Balance recalculation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Ã¢â€â‚¬Ã¢â€â‚¬ Balance recalculation Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
     public function recalcAndSync($orgUID, $customerUID, $userUID) {
         try {
             $this->CI->load->model('customers_model');
 
-            // Log existing balance before recalc
             $preOB = $this->CI->customers_model->getCustomerOpeningBalance($orgUID, $customerUID);
-                . ' PendingBalance=' . ($preOB ? $preOB->PendingBalance : 'NULL')
-                . ' PendingBalType=' . ($preOB ? $preOB->PendingBalType : 'NULL'));
 
             $custRows = $this->CI->customers_model->getCustomersWithLedgerForBalance(
                 (int)$orgUID, (int)$customerUID
@@ -571,7 +568,7 @@ class Customerbalance {
             $totalReceived  = $this->CI->customers_model->getCustomerTotalReceived($orgUID, $customerUID);
             $totalReturned  = $this->CI->customers_model->getCustomerTotalReturned($orgUID, $customerUID);
             // SRs that already have a pending/applied credit note must not be
-            // subtracted a second time via totalReturned â€” pendingCreditNotes covers them.
+            // subtracted a second time via totalReturned Ã¢â‚¬â€ pendingCreditNotes covers them.
             $srCoveredByCN     = $this->CI->customers_model->getCustomerSRCoveredByCreditNote($orgUID, $customerUID);
             $effectiveReturned = max(0.0, $totalReturned - $srCoveredByCN);
             [$pendingCreditNotes, $pendingDebitNotes] = $this->_getPendingNoteTotals($orgUID, $customerUID);
@@ -587,32 +584,21 @@ class Customerbalance {
             $newBalance    = abs($signedBalance);
             $newBalType    = ($signedBalance >= 0) ? 'Debit' : 'Credit';
 
-                . ' Opening=' . $cust->OpeningBalance . '(' . $cust->OpeningBalType . ')'
-                . ' Invoiced=' . $totalInvoiced
-                . ' Received=' . $totalReceived
-                . ' ReturnedRaw=' . $totalReturned
-                . ' SRCoveredByCN=' . $srCoveredByCN
-                . ' EffectiveReturned=' . $effectiveReturned
-                . ' CreditNotes=' . $pendingCreditNotes
-                . ' DebitNotes=' . $pendingDebitNotes
-                . ' SignedBalance=' . $signedBalance
-                . ' => NEW=' . $newBalance . '(' . $newBalType . ')');
 
-            // 1. Update CustOpeningBalanceTbl â†’ PendingBalance (closing balance)
+            // 1. Update CustOpeningBalanceTbl Ã¢â€ â€™ PendingBalance (closing balance)
             $this->CI->customers_model->updateCustomerPendingBalance(
                 $orgUID, $customerUID, $newBalance, $newBalType, $userUID
             );
 
-                . ' Written=' . $newBalance . '(' . $newBalType . ')');
 
-            // 2. Update Accounting.ChartOfAccounts â†’ CurrentBalance
+            // 2. Update Accounting.ChartOfAccounts Ã¢â€ â€™ CurrentBalance
             if (!empty($cust->LedgerUID)) {
                 $this->CI->customers_model->updateCustomerBalanceInLedger(
                     $cust->LedgerUID, $newBalance, $newBalType, $userUID
                 );
             }
 
-            // 3. Sync Upstash cache â†’ ClosingBalance
+            // 3. Sync Upstash cache Ã¢â€ â€™ ClosingBalance
             $this->CI->cachehelper->upsertCustomer((int)$customerUID);
 
             return ['balance' => $newBalance, 'type' => $newBalType];

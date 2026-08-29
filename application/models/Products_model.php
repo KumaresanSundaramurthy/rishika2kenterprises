@@ -168,7 +168,7 @@ class Products_model extends CI_Model {
                 'Products.SKU AS SKU',
                 'Products.Description AS Description',
                 'Products.OpeningQuantity AS OpeningQuantity',
-                'COALESCE(ProductStock.AvailableQty, 0) AS AvailableQuantity',
+                'CASE WHEN (Products.IsSizeApplicable = 1 OR Products.IsBrandApplicable = 1) THEN COALESCE((SELECT SUM(pvs2.AvailableQty) FROM Products.ProductVariantStockTbl pvs2 JOIN Products.ProductVariantTbl pv2 ON pv2.VariantUID = pvs2.VariantUID AND pv2.OrgUID = pvs2.OrgUID WHERE pv2.ProductUID = Products.ProductUID AND pvs2.OrgUID = Products.OrgUID AND pv2.IsActive = 1), 0) ELSE COALESCE(ProductStock.AvailableQty, 0) END AS AvailableQuantity',
                 'Products.OpeningPurchasePrice AS OpeningPurchasePrice',
                 'Products.OpeningStockValue AS OpeningStockValue',
                 'Products.Discount AS Discount',
@@ -506,7 +506,7 @@ class Products_model extends CI_Model {
                 'Products.IsBrandApplicable AS IsBrandApplicable',
                 'Products.IsSizeApplicable AS IsSizeApplicable',
                 'Products.LowStockAlertAt AS LowStockAlertAt',
-                'COALESCE(ProductStock.AvailableQty, 0) AS AvailableQuantity',
+                'CASE WHEN (Products.IsSizeApplicable = 1 OR Products.IsBrandApplicable = 1) THEN COALESCE((SELECT SUM(pvs2.AvailableQty) FROM Products.ProductVariantStockTbl pvs2 JOIN Products.ProductVariantTbl pv2 ON pv2.VariantUID = pvs2.VariantUID AND pv2.OrgUID = pvs2.OrgUID WHERE pv2.ProductUID = Products.ProductUID AND pvs2.OrgUID = Products.OrgUID AND pv2.IsActive = 1), 0) ELSE COALESCE(ProductStock.AvailableQty, 0) END AS AvailableQuantity',
                 'Products.UpdatedOn AS UpdatedOn',
                 'Products.IsActive AS IsActive',
                 "CONCAT(User.FirstName, ' ', User.LastName) AS UpdatedBy",
@@ -584,7 +584,7 @@ class Products_model extends CI_Model {
                 'Products.SellingPrice AS SellingPrice',
                 'Products.TaxPercentage AS TaxPercentage',
                 'Products.PurchasePrice AS PurchasePrice',
-                'COALESCE(ProductStock.AvailableQty, 0) AS AvailableQuantity',
+                'CASE WHEN (Products.IsSizeApplicable = 1 OR Products.IsBrandApplicable = 1) THEN COALESCE((SELECT SUM(pvs2.AvailableQty) FROM Products.ProductVariantStockTbl pvs2 JOIN Products.ProductVariantTbl pv2 ON pv2.VariantUID = pvs2.VariantUID AND pv2.OrgUID = pvs2.OrgUID WHERE pv2.ProductUID = Products.ProductUID AND pvs2.OrgUID = Products.OrgUID AND pv2.IsActive = 1), 0) ELSE COALESCE(ProductStock.AvailableQty, 0) END AS AvailableQuantity',
                 'Products.IsActive AS IsActive',
                 'Products.UpdatedOn AS UpdatedOn',
                 "CONCAT(User.FirstName, ' ', User.LastName) AS UpdatedBy",
@@ -699,7 +699,7 @@ class Products_model extends CI_Model {
                 'Products.SellingPrice AS SellingPrice',
                 'Products.MRP AS MRP',
                 'Products.PurchasePrice AS PurchasePrice',
-                'COALESCE(ProductStock.AvailableQty, 0) AS AvailableQuantity',
+                'CASE WHEN (Products.IsSizeApplicable = 1 OR Products.IsBrandApplicable = 1) THEN COALESCE((SELECT SUM(pvs2.AvailableQty) FROM Products.ProductVariantStockTbl pvs2 JOIN Products.ProductVariantTbl pv2 ON pv2.VariantUID = pvs2.VariantUID AND pv2.OrgUID = pvs2.OrgUID WHERE pv2.ProductUID = Products.ProductUID AND pvs2.OrgUID = Products.OrgUID AND pv2.IsActive = 1), 0) ELSE COALESCE(ProductStock.AvailableQty, 0) END AS AvailableQuantity',
                 'Products.ProductType AS ProductType',
                 'Products.IsComposite AS IsComposite',
             ]);
@@ -815,7 +815,7 @@ class Products_model extends CI_Model {
                 'p.CGST',
                 'p.SGST',
                 'p.IGST',
-                'COALESCE(ps.AvailableQty, 0) AS AvailableQuantity',
+                'CASE WHEN (p.IsSizeApplicable = 1 OR p.IsBrandApplicable = 1) THEN COALESCE((SELECT SUM(pvs2.AvailableQty) FROM Products.ProductVariantStockTbl pvs2 JOIN Products.ProductVariantTbl pv2 ON pv2.VariantUID = pvs2.VariantUID AND pv2.OrgUID = pvs2.OrgUID WHERE pv2.ProductUID = p.ProductUID AND pvs2.OrgUID = p.OrgUID AND pv2.IsActive = 1), 0) ELSE COALESCE(ps.AvailableQty, 0) END AS AvailableQuantity',
                 'p.Discount',
                 'p.DiscountTypeUID',
                 'p.LowStockAlertAt',
@@ -823,6 +823,8 @@ class Products_model extends CI_Model {
                 'p.IsComboItem',
                 'p.IsComposite',
                 'p.IsSerialTracked',
+                'p.IsBrandApplicable',
+                'p.IsSizeApplicable',
             ]);
             $this->ReadDb->from('Products.ProductTbl p');
             $this->ReadDb->join('Products.CategoryTbl cat',  'cat.CategoryUID = p.CategoryUID',      'left');
@@ -973,7 +975,7 @@ class Products_model extends CI_Model {
                 'p.CGST',
                 'p.SGST',
                 'p.IGST',
-                'COALESCE(ps.AvailableQty, 0) AS AvailableQuantity',
+                'CASE WHEN (p.IsSizeApplicable = 1 OR p.IsBrandApplicable = 1) THEN COALESCE((SELECT SUM(pvs2.AvailableQty) FROM Products.ProductVariantStockTbl pvs2 JOIN Products.ProductVariantTbl pv2 ON pv2.VariantUID = pvs2.VariantUID AND pv2.OrgUID = pvs2.OrgUID WHERE pv2.ProductUID = p.ProductUID AND pvs2.OrgUID = p.OrgUID AND pv2.IsActive = 1), 0) ELSE COALESCE(ps.AvailableQty, 0) END AS AvailableQuantity',
                 'p.Discount',
                 'p.DiscountTypeUID',
                 'p.LowStockAlertAt',
@@ -982,6 +984,7 @@ class Products_model extends CI_Model {
                 'p.IsComposite',
                 'p.IsSerialTracked',
                 'p.IsBrandApplicable',
+                'p.IsSizeApplicable',
             ]);
             $this->ReadDb->from('Products.ProductTbl p');
             $this->ReadDb->join('Products.CategoryTbl cat',    'cat.CategoryUID = p.CategoryUID',      'left');
@@ -1248,6 +1251,13 @@ class Products_model extends CI_Model {
         $this->ReadDb->from('Products.ProductVariantTbl');
         $this->ReadDb->where(['BrandUID' => $brandUID, 'OrgUID' => $orgUID, 'IsActive' => 1]);
         $this->ReadDb->limit(1);
+        if ((int) $this->ReadDb->get()->num_rows() > 0) return true;
+
+        $this->ReadDb->db_debug = FALSE;
+        $this->ReadDb->select('1');
+        $this->ReadDb->from('Transaction.TransProductsTbl');
+        $this->ReadDb->where(['BrandUID' => $brandUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
+        $this->ReadDb->limit(1);
         return (int) $this->ReadDb->get()->num_rows() > 0;
     }
 
@@ -1272,7 +1282,18 @@ class Products_model extends CI_Model {
         $this->ReadDb->where('OrgUID', $orgUID);
         $this->ReadDb->where('IsActive', 1);
         $this->ReadDb->where_in('BrandUID', $brandUIDs);
-        return array_column($this->ReadDb->get()->result_array(), 'BrandUID');
+        $fromVariants = array_column($this->ReadDb->get()->result_array(), 'BrandUID');
+
+        $this->ReadDb->db_debug = FALSE;
+        $this->ReadDb->distinct();
+        $this->ReadDb->select('BrandUID');
+        $this->ReadDb->from('Transaction.TransProductsTbl');
+        $this->ReadDb->where('OrgUID', $orgUID);
+        $this->ReadDb->where('IsDeleted', 0);
+        $this->ReadDb->where_in('BrandUID', $brandUIDs);
+        $fromTrans = array_column($this->ReadDb->get()->result_array(), 'BrandUID');
+
+        return array_values(array_unique(array_merge($fromVariants, $fromTrans)));
     }
 
     public function isDuplicateBrandName(int $orgUID, string $name, int $excludeUID = 0): bool {
@@ -1362,7 +1383,7 @@ class Products_model extends CI_Model {
                 'SelTax.Name AS SellingTaxType',
                 'PurTax.Name AS PurchaseTaxType',
                 'Unit.ShortName AS UnitShortName',
-                'COALESCE(PS.AvailableQty, 0) AS AvailableQty',
+                'CASE WHEN (P.IsSizeApplicable = 1 OR P.IsBrandApplicable = 1) THEN COALESCE((SELECT SUM(pvs2.AvailableQty) FROM Products.ProductVariantStockTbl pvs2 JOIN Products.ProductVariantTbl pv2 ON pv2.VariantUID = pvs2.VariantUID AND pv2.OrgUID = pvs2.OrgUID WHERE pv2.ProductUID = P.ProductUID AND pvs2.OrgUID = P.OrgUID AND pv2.IsActive = 1), 0) ELSE COALESCE(PS.AvailableQty, 0) END AS AvailableQty',
             ]);
             $this->ReadDb->from('Products.ProductTbl AS P');
             $this->ReadDb->join('Products.CategoryTbl AS Cat', 'Cat.CategoryUID = P.CategoryUID', 'LEFT');
@@ -1429,7 +1450,7 @@ class Products_model extends CI_Model {
             $this->ReadDb->db_debug = FALSE;
             $q = $this->ReadDb->query(
                 "SELECT
-                    COALESCE(Cust.DisplayName, Cust.CompanyName) AS CustomerName,
+                    Cust.Name AS CustomerName,
                     COUNT(DISTINCT Ts.TransUID) AS TxCount,
                     SUM(Tp.Quantity) AS TotalQty
                  FROM Transaction.TransProductsTbl AS Tp
@@ -1465,20 +1486,20 @@ class Products_model extends CI_Model {
                 "SELECT
                     Ts.TransUID, Ts.UniqueNumber, Ts.TransDate, Ts.ModuleUID, Ts.DocStatus,
                     Ts.PartyType,
-                    COALESCE(Cust.DisplayName, Cust.CompanyName) AS CustomerName,
-                    COALESCE(Vend.DisplayName, Vend.CompanyName) AS VendorName,
-                    Tp.Quantity, Tp.UnitPrice,
-                    (Tp.Quantity * Tp.UnitPrice) AS LineAmount
+                    Cust.Name AS CustomerName,
+                    Vend.Name AS VendorName,
+                    Tp.Quantity, Tp.UnitPrice, Tp.NetAmount AS LineAmount,
+                    Tp.VariantLabel
                  FROM Transaction.TransProductsTbl AS Tp
                  JOIN Transaction.TransactionsTbl AS Ts
-                      ON Ts.TransUID = Tp.TransUID AND Ts.IsDeleted = 0 AND Ts.IsActive = 1
+                      ON Ts.TransUID = Tp.TransUID AND Ts.IsDeleted = 0
                  LEFT JOIN Customers.CustomerTbl AS Cust
                       ON Cust.CustomerUID = Ts.PartyUID AND Ts.PartyType = 'C'
                  LEFT JOIN Vendors.VendorTbl AS Vend
                       ON Vend.VendorUID = Ts.PartyUID AND Ts.PartyType = 'S'
                  WHERE Tp.ProductUID = ? AND Tp.OrgUID = ? AND Tp.IsDeleted = 0
                  ORDER BY Ts.TransDate DESC, Ts.TransUID DESC
-                 LIMIT 200",
+                 LIMIT 100",
                 [(int) $productUID, (int) $orgUID]
             );
             return $q ? $q->result_array() : [];
@@ -1504,12 +1525,12 @@ class Products_model extends CI_Model {
                 "SELECT
                     Ts.TransUID, Ts.UniqueNumber, Ts.TransDate, Ts.ModuleUID, Ts.DocStatus,
                     Ts.PartyType,
-                    COALESCE(Cust.DisplayName, Cust.CompanyName) AS CustomerName,
-                    COALESCE(Vend.DisplayName, Vend.CompanyName) AS VendorName,
+                    Cust.Name AS CustomerName,
+                    Vend.Name AS VendorName,
                     Tp.Quantity
                  FROM Transaction.TransProductsTbl AS Tp
                  JOIN Transaction.TransactionsTbl AS Ts
-                      ON Ts.TransUID = Tp.TransUID AND Ts.IsDeleted = 0 AND Ts.IsActive = 1
+                      ON Ts.TransUID = Tp.TransUID AND Ts.IsDeleted = 0
                          AND Ts.ModuleUID IN (103,105,106,108,112)
                          AND Ts.DocStatus NOT IN ('Draft','Cancelled')
                  LEFT JOIN Customers.CustomerTbl AS Cust
@@ -1613,6 +1634,30 @@ class Products_model extends CI_Model {
     }
 
     /**
+     * Return distinct variants of a product that appear in at least one stock ledger entry
+     * (i.e. have been used in a transaction). Used to lock size/brand on the edit form.
+     * @param int $productUID
+     * @param int $orgUID
+     * @return array  Each row: {VariantUID, SizeUID, BrandUID}
+     */
+    public function getUsedVariants(int $productUID, int $orgUID): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('pv.VariantUID, pv.SizeUID, pv.BrandUID');
+            $this->ReadDb->from('Products.StockLedgerTbl sl');
+            $this->ReadDb->join('Products.ProductVariantTbl pv', 'pv.VariantUID = sl.VariantUID', 'INNER');
+            $this->ReadDb->where('pv.ProductUID', $productUID);
+            $this->ReadDb->where('pv.OrgUID',     $orgUID);
+            $this->ReadDb->where('sl.VariantUID IS NOT NULL', null, false);
+            $this->ReadDb->group_by('pv.VariantUID');
+            return $this->ReadDb->get()->result();
+        } catch (Throwable $e) {
+            notifyError('Products_model::getUsedVariants', $e);
+            return [];
+        }
+    }
+
+    /**
      * Slim variant list for the Price List rule builder.
      * Returns VariantUID + human-readable Label (BrandName / SizeName).
      * @param int $productUID
@@ -1622,7 +1667,7 @@ class Products_model extends CI_Model {
     public function getProductVariantsForPricelist(int $productUID, int $orgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
-            $this->ReadDb->select('pv.VariantUID, COALESCE(b.BrandName, \'\') AS BrandName, COALESCE(s.Name, \'\') AS SizeName', false);
+            $this->ReadDb->select('pv.VariantUID, pv.BrandUID, pv.SizeUID, pv.PartNumber, pv.SellingPrice, pv.SellingTaxUID, COALESCE(b.BrandName, \'\') AS BrandName, COALESCE(s.Name, \'\') AS SizeName', false);
             $this->ReadDb->from('Products.ProductVariantTbl pv');
             $this->ReadDb->join('Products.BrandTbl b', 'b.BrandUID = pv.BrandUID AND pv.BrandUID > 0', 'LEFT');
             $this->ReadDb->join('Products.SizeTbl s',  's.SizeUID  = pv.SizeUID  AND pv.SizeUID  > 0', 'LEFT');
@@ -1634,10 +1679,15 @@ class Products_model extends CI_Model {
             foreach ($rows as $row) {
                 $parts    = array_filter([$row->BrandName, $row->SizeName]);
                 $result[] = [
-                    'VariantUID' => (int) $row->VariantUID,
-                    'BrandName'  => $row->BrandName,
-                    'SizeName'   => $row->SizeName,
-                    'Label'      => $parts ? implode(' / ', $parts) : ('Variant #' . $row->VariantUID),
+                    'VariantUID'    => (int)  $row->VariantUID,
+                    'BrandUID'      => (int)  ($row->BrandUID ?? 0),
+                    'SizeUID'       => (int)  ($row->SizeUID  ?? 0),
+                    'PartNumber'    => $row->PartNumber ?? '',
+                    'SellingPrice'  => (float)$row->SellingPrice,
+                    'SellingTaxUID' => (int)  $row->SellingTaxUID,
+                    'BrandName'     => $row->BrandName,
+                    'SizeName'      => $row->SizeName,
+                    'Label'         => $parts ? implode(' / ', $parts) : ('Variant #' . $row->VariantUID),
                 ];
             }
             return $result;
@@ -1656,7 +1706,7 @@ class Products_model extends CI_Model {
     public function getAllProductVariantsForSync(int $orgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
-            $this->ReadDb->select('pv.ProductUID, pv.VariantUID, COALESCE(b.BrandName, \'\') AS BrandName, COALESCE(s.Name, \'\') AS SizeName', false);
+            $this->ReadDb->select('pv.ProductUID, pv.VariantUID, pv.BrandUID, pv.SizeUID, pv.PartNumber, pv.SellingPrice, pv.SellingTaxUID, COALESCE(b.BrandName, \'\') AS BrandName, COALESCE(s.Name, \'\') AS SizeName', false);
             $this->ReadDb->from('Products.ProductVariantTbl pv');
             $this->ReadDb->join('Products.BrandTbl b', 'b.BrandUID = pv.BrandUID AND pv.BrandUID > 0', 'LEFT');
             $this->ReadDb->join('Products.SizeTbl s',  's.SizeUID  = pv.SizeUID  AND pv.SizeUID  > 0', 'LEFT');
@@ -1670,10 +1720,15 @@ class Products_model extends CI_Model {
                 $pKey  = (string)(int)$row->ProductUID;
                 $parts = array_filter([$row->BrandName, $row->SizeName]);
                 $result[$pKey][] = [
-                    'VariantUID' => (int) $row->VariantUID,
-                    'BrandName'  => $row->BrandName,
-                    'SizeName'   => $row->SizeName,
-                    'Label'      => $parts ? implode(' / ', $parts) : ('Variant #' . (int)$row->VariantUID),
+                    'VariantUID'    => (int)  $row->VariantUID,
+                    'BrandUID'      => (int)  ($row->BrandUID ?? 0),
+                    'SizeUID'       => (int)  ($row->SizeUID  ?? 0),
+                    'PartNumber'    => $row->PartNumber ?? '',
+                    'SellingPrice'  => (float)$row->SellingPrice,
+                    'SellingTaxUID' => (int)  $row->SellingTaxUID,
+                    'BrandName'     => $row->BrandName,
+                    'SizeName'      => $row->SizeName,
+                    'Label'         => $parts ? implode(' / ', $parts) : ('Variant #' . (int)$row->VariantUID),
                 ];
             }
             return $result;

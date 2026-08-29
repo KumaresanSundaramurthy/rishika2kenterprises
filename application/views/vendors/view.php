@@ -151,10 +151,10 @@
                                 ?>
                                 <!-- Group stats — visible only in groups mode when stats are enabled -->
                                 <li id="vgrpTabStats" class="<?php echo $vGrpStatsVis ? 'd-flex' : 'd-none'; ?> align-items-center gap-3 ms-auto pe-2" style="font-size:.81rem;list-style:none;">
-                                    <span class="text-muted"><?php echo t('lbl_total', 'Total'); ?>: <strong class="vg-stat-total text-body"><?php echo $vGrpS ? (int)($vGrpS->TotalCount ?? 0) : '—'; ?></strong></span>
-                                    <span class="text-muted"><?php echo t('lbl_active', 'Active'); ?>: <strong class="vg-stat-active text-success"><?php echo $vGrpS ? (int)($vGrpS->ActiveCount ?? 0) : '—'; ?></strong></span>
-                                    <span class="text-muted"><?php echo t('lbl_inactive', 'Inactive'); ?>: <strong class="vg-stat-inactive text-danger"><?php echo $vGrpS ? (int)($vGrpS->InactiveCount ?? 0) : '—'; ?></strong></span>
-                                    <span class="text-muted"><?php echo t('col_members', 'Members'); ?>: <strong class="vg-stat-members text-body"><?php echo $vGrpS ? (int)($vGrpS->TotalMembers ?? 0) : '—'; ?></strong></span>
+                                    <span class="text-muted"><?php echo t('lbl_total', 'Total'); ?>: <strong class="vg-stat-total text-body"><?php echo $vGrpS ? (int)($vGrpS->TotalCount ?? 0) : '-'; ?></strong></span>
+                                    <span class="text-muted"><?php echo t('lbl_active', 'Active'); ?>: <strong class="vg-stat-active text-success"><?php echo $vGrpS ? (int)($vGrpS->ActiveCount ?? 0) : '-'; ?></strong></span>
+                                    <span class="text-muted"><?php echo t('lbl_inactive', 'Inactive'); ?>: <strong class="vg-stat-inactive text-danger"><?php echo $vGrpS ? (int)($vGrpS->InactiveCount ?? 0) : '-'; ?></strong></span>
+                                    <span class="text-muted"><?php echo t('col_members', 'Members'); ?>: <strong class="vg-stat-members text-body"><?php echo $vGrpS ? (int)($vGrpS->TotalMembers ?? 0) : '-'; ?></strong></span>
                                 </li>
                             </ul>
                         </div>
@@ -437,7 +437,7 @@ $(function () {
         var payAmt    = parseFloat(ov ? ov.TotalPayable    : 0);
 
         $('#vgrpDetailIconWrap').css({ background: tc.bg, color: tc.c });
-        $('#vgrpDetailTitle').text(g.GroupName || '—');
+        $('#vgrpDetailTitle').text(g.GroupName || '-');
 
         var badges = '';
         if (g.GroupCode) {
@@ -477,7 +477,7 @@ $(function () {
                 '</div>' +
                 '<div class="col-6 col-md-3">' +
                     '<div class="p-3 rounded-3 text-center" style="background:#f5f3ff;">' +
-                        '<div style="font-size:.85rem;font-weight:600;color:#7c3aed;">' + _vesc(g.ContactPerson || '—') + '</div>' +
+                        '<div style="font-size:.85rem;font-weight:600;color:#7c3aed;">' + _vesc(g.ContactPerson || '-') + '</div>' +
                         '<div class="text-muted" style="font-size:.74rem;">' + _vesc(g.Mobile || 'Contact Person') + '</div>' +
                     '</div>' +
                 '</div>' +
@@ -502,7 +502,7 @@ $(function () {
                         '</div>' +
                         (m.Area ? '<div class="text-muted" style="font-size:.74rem;">' + _vesc(m.Area) + '</div>' : '') +
                     '</td>' +
-                    '<td class="text-muted" style="font-size:.82rem;">' + _vesc(m.MobileNumber || '—') + '</td>' +
+                    '<td class="text-muted" style="font-size:.82rem;">' + _vesc(m.MobileNumber || '-') + '</td>' +
                     '<td class="text-end" style="font-weight:600;color:' + balColor + ';width:150px;">' +
                         _currency + ' ' + bal.toFixed(_dec) +
                         '<div class="text-muted fw-normal" style="font-size:.7rem;">' + (balType === 'Credit' ? 'Payable' : 'Receivable') + '</div>' +

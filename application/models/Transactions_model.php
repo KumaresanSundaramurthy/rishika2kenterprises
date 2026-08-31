@@ -1625,11 +1625,11 @@ class Transactions_model extends MY_Model {
                     '<td style="text-align:center">' . ($i + 1) . '</td>' .
                     '<td>' . $e($item->ProductName) . '</td>' .
                     '<td style="text-align:center">' . $e($item->HSNCode ?? '-') . '</td>' .
-                    '<td style="text-align:right">'  . smartDecimal((float)($item->UnitPrice ?? 0)) . '</td>' .
+                    '<td style="text-align:right">'  . smartDecimal((float)($item->UnitPrice ?? 0), $dec, true) . '</td>' .
                     '<td style="text-align:center">' . smartDecimal($item->Quantity ?? 0) . ' ' . $e($item->PrimaryUnitName ?? '') . '</td>' .
-                    '<td style="text-align:right">'  . smartDecimal((float)($item->UnitPrice ?? 0) * (float)($item->Quantity ?? 0)) . '</td>' .
-                    '<td style="text-align:right">'  . ($taxAmt ? smartDecimal($taxAmt) . ' (' . number_format((float)($item->TaxPercentage ?? 0), 0) . '%)' : '') . '</td>' .
-                    '<td style="text-align:right">'  . smartDecimal((float)($item->NetAmount ?? 0)) . '</td>' .
+                    '<td style="text-align:right">'  . smartDecimal(round((float)($item->UnitPrice ?? 0) * (float)($item->Quantity ?? 0), $dec), $dec, true) . '</td>' .
+                    '<td style="text-align:right">'  . ($taxAmt ? smartDecimal($taxAmt, $dec, true) . ' (' . number_format((float)($item->TaxPercentage ?? 0), 0) . '%)' : '') . '</td>' .
+                    '<td style="text-align:right">'  . smartDecimal((float)($item->NetAmount ?? 0), $dec, true) . '</td>' .
                 '</tr>';
         }
         $itemsTable =
@@ -1649,11 +1649,11 @@ class Transactions_model extends MY_Model {
         $totals =
             '<table style="width:100%;border-collapse:collapse;font-size:8.5pt;margin-bottom:8px;">' .
             '<tr><td style="border:1px solid #ddd;padding:5px;text-align:right;font-weight:600;">Sub Total</td>' .
-            '<td style="border:1px solid #ddd;padding:5px;text-align:right;width:120px;">' . $cur . smartDecimal((float)($h->SubTotal ?? 0)) . '</td></tr>' .
-            ((float)($h->DiscountAmount ?? 0) > 0 ? '<tr><td style="border:1px solid #ddd;padding:5px;text-align:right;color:#c00;">Discount</td><td style="border:1px solid #ddd;padding:5px;text-align:right;color:#c00;">- ' . $cur . smartDecimal((float)$h->DiscountAmount) . '</td></tr>' : '') .
-            ((float)($h->TaxAmount ?? 0) > 0 ? '<tr><td style="border:1px solid #ddd;padding:5px;text-align:right;">Tax</td><td style="border:1px solid #ddd;padding:5px;text-align:right;">' . $cur . smartDecimal((float)$h->TaxAmount) . '</td></tr>' : '') .
+            '<td style="border:1px solid #ddd;padding:5px;text-align:right;width:120px;">' . $cur . smartDecimal((float)($h->SubTotal ?? 0), $dec, true) . '</td></tr>' .
+            ((float)($h->DiscountAmount ?? 0) > 0 ? '<tr><td style="border:1px solid #ddd;padding:5px;text-align:right;color:#c00;">Discount</td><td style="border:1px solid #ddd;padding:5px;text-align:right;color:#c00;">- ' . $cur . smartDecimal((float)$h->DiscountAmount, $dec, true) . '</td></tr>' : '') .
+            ((float)($h->TaxAmount ?? 0) > 0 ? '<tr><td style="border:1px solid #ddd;padding:5px;text-align:right;">Tax</td><td style="border:1px solid #ddd;padding:5px;text-align:right;">' . $cur . smartDecimal((float)$h->TaxAmount, $dec, true) . '</td></tr>' : '') .
             '<tr><td style="border:1px solid #ddd;padding:5px;text-align:right;font-weight:700;">Net Amount</td>' .
-            '<td style="border:1px solid #ddd;padding:5px;text-align:right;font-weight:700;">' . $cur . smartDecimal((float)($h->NetAmount ?? 0)) . '</td></tr>' .
+            '<td style="border:1px solid #ddd;padding:5px;text-align:right;font-weight:700;">' . $cur . smartDecimal((float)($h->NetAmount ?? 0), $dec, true) . '</td></tr>' .
             '</table>';
 
         // â”€â”€ Customer Addresses â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -1845,13 +1845,13 @@ class Transactions_model extends MY_Model {
             /** Summary Totals */
             '{{TOTAL_ITEMS_COUNT}}'    => $totalItemsCount,
             '{{TOTAL_QTY}}'            => smartDecimal($totalQty),
-            '{{TOTAL_TAXABLE_AMOUNT}}' => smartDecimal((float)($h->SubTotal ?? 0)),
-            '{{TOTAL_CGST}}'           => smartDecimal(round($totalCgst, 9)),
-            '{{TOTAL_SGST}}'           => smartDecimal(round($totalSgst, 9)),
-            '{{TOTAL_IGST}}'           => smartDecimal(round($totalIgst, 9)),
-            '{{TOTAL_TAX}}'            => smartDecimal((float)($h->TaxAmount ?? 0)),
-            '{{TOTAL_DISCOUNT}}'       => smartDecimal((float)($h->DiscountAmount ?? 0)),
-            '{{NET_AMOUNT}}'           => smartDecimal((float)($h->NetAmount ?? 0)),
+            '{{TOTAL_TAXABLE_AMOUNT}}' => smartDecimal((float)($h->SubTotal ?? 0), $dec2, true),
+            '{{TOTAL_CGST}}'           => smartDecimal(round($totalCgst, $dec2), $dec2, true),
+            '{{TOTAL_SGST}}'           => smartDecimal(round($totalSgst, $dec2), $dec2, true),
+            '{{TOTAL_IGST}}'           => smartDecimal(round($totalIgst, $dec2), $dec2, true),
+            '{{TOTAL_TAX}}'            => smartDecimal((float)($h->TaxAmount ?? 0), $dec2, true),
+            '{{TOTAL_DISCOUNT}}'       => smartDecimal((float)($h->DiscountAmount ?? 0), $dec2, true),
+            '{{NET_AMOUNT}}'           => smartDecimal((float)($h->NetAmount ?? 0), $dec2, true),
             '{{AMOUNT_IN_WORDS}}'      => print_number_to_words((float)($h->NetAmount ?? 0)),
             '{{UPI_QR_CODE}}'          => $e($org->UpiId ?? ''),
             /** Bank Account */
@@ -1867,11 +1867,11 @@ class Transactions_model extends MY_Model {
             /** Copy label â€” JS replaces __COPY_LABEL__ client-side based on user selection */
             '{{COPY_LABEL}}'           => '__COPY_LABEL__',
             /** HSN Summary TOTAL row tokens (match the summed rows in the loop) */
-            '{{HSN_TOTAL_TAXABLE}}'    => smartDecimal($hsnTotalTaxable),
-            '{{HSN_TOTAL_CGST}}'       => smartDecimal(round($hsnTotalCgst, 9)),
-            '{{HSN_TOTAL_SGST}}'       => smartDecimal(round($hsnTotalSgst, 9)),
-            '{{HSN_TOTAL_IGST}}'       => smartDecimal(round($hsnTotalIgst, 9)),
-            '{{HSN_TOTAL_TAX}}'        => smartDecimal($hsnTotalTax),
+            '{{HSN_TOTAL_TAXABLE}}'    => smartDecimal($hsnTotalTaxable, $dec2, true),
+            '{{HSN_TOTAL_CGST}}'       => smartDecimal(round($hsnTotalCgst, $dec2), $dec2, true),
+            '{{HSN_TOTAL_SGST}}'       => smartDecimal(round($hsnTotalSgst, $dec2), $dec2, true),
+            '{{HSN_TOTAL_IGST}}'       => smartDecimal(round($hsnTotalIgst, $dec2), $dec2, true),
+            '{{HSN_TOTAL_TAX}}'        => smartDecimal($hsnTotalTax, $dec2, true),
         ];
 
         $html = $this->_processLoops($tplHtml, $items);
@@ -1940,14 +1940,14 @@ class Transactions_model extends MY_Model {
                         '{{ITEM.SNO}}'          => $i + 1,
                         '{{ITEM.PRODUCT_NAME}}' => $e($item->ProductName ?? ''),
                         '{{ITEM.HSN_CODE}}'     => $e($item->HSNCode ?? $item->HSNSACCode ?? ''),
-                        '{{ITEM.UNIT_PRICE}}'   => $cur . smartDecimal($unitPrice),
+                        '{{ITEM.UNIT_PRICE}}'   => $cur . smartDecimal($unitPrice, $dec, true),
                         '{{ITEM.QTY}}'          => $e($item->Quantity ?? ''),
                         '{{ITEM.UNIT}}'         => $e($item->PrimaryUnitName ?? ''),
-                        '{{ITEM.TAXABLE_VALUE}}'=> $cur . smartDecimal($taxableVal),
+                        '{{ITEM.TAXABLE_VALUE}}'=> $cur . smartDecimal($taxableVal, $dec, true),
                         '{{ITEM.TAX_PCT}}'      => number_format($taxPct, 2),
-                        '{{ITEM.TAX_AMT}}'      => $cur . smartDecimal($taxAmt),
-                        '{{ITEM.NET_AMOUNT}}'   => $cur . smartDecimal((float)($item->NetAmount ?? 0)),
-                        '{{ITEM.DISCOUNT}}'     => $cur . smartDecimal((float)($item->DiscountAmount ?? 0)),
+                        '{{ITEM.TAX_AMT}}'      => $cur . smartDecimal($taxAmt, $dec, true),
+                        '{{ITEM.NET_AMOUNT}}'   => $cur . smartDecimal((float)($item->NetAmount ?? 0), $dec, true),
+                        '{{ITEM.DISCOUNT}}'     => $cur . smartDecimal((float)($item->DiscountAmount ?? 0), $dec, true),
                         '{{ITEM.PART_NUMBER}}'  => $e($item->PartNumber ?? ''),
                     ];
                     $rows .= str_replace(array_keys($map), array_values($map), $rowTpl);
@@ -2008,19 +2008,19 @@ class Transactions_model extends MY_Model {
                     $map = [
                         '{{HSN.SNO}}'           => $sno++,
                         '{{HSN.CODE}}'          => $e($g['hsn']),
-                        '{{HSN.TAXABLE_VALUE}}' => smartDecimal($g['taxableValue']),
-                        // Rate tokens â€” plain numbers, no % suffix (add % in template if needed)
+                        '{{HSN.TAXABLE_VALUE}}' => smartDecimal($g['taxableValue'], $dec, true),
+                        // Rate tokens — plain numbers, no % suffix (add % in template if needed)
                         '{{HSN.TAX_RATE}}'      => number_format($g['taxPct'], 0),
                         '{{HSN.CGST_RATE}}'     => number_format($splitRate, 0),
                         '{{HSN.SGST_RATE}}'     => number_format($splitRate, 0),
                         '{{HSN.IGST_RATE}}'     => number_format($g['taxPct'], 0),
                         // Amount tokens
-                        '{{HSN.CGST_AMT}}'      => smartDecimal($cgstAmt),
-                        '{{HSN.SGST_AMT}}'      => smartDecimal($sgstAmt),
-                        '{{HSN.IGST_AMT}}'      => smartDecimal($igstAmt),
-                        // Combined tax for this HSN row (CGST+SGST OR IGST â€” whichever applies)
-                        '{{HSN.TAX_AMT}}'       => smartDecimal($totalTax),
-                        '{{HSN.TOTAL_TAX}}'     => smartDecimal($totalTax),
+                        '{{HSN.CGST_AMT}}'      => smartDecimal($cgstAmt, $dec, true),
+                        '{{HSN.SGST_AMT}}'      => smartDecimal($sgstAmt, $dec, true),
+                        '{{HSN.IGST_AMT}}'      => smartDecimal($igstAmt, $dec, true),
+                        // Combined tax for this HSN row (CGST+SGST OR IGST — whichever applies)
+                        '{{HSN.TAX_AMT}}'       => smartDecimal($totalTax, $dec, true),
+                        '{{HSN.TOTAL_TAX}}'     => smartDecimal($totalTax, $dec, true),
                     ];
                     $rows .= str_replace(array_keys($map), array_values($map), $rowTpl);
                 }
@@ -2053,8 +2053,8 @@ class Transactions_model extends MY_Model {
                 '<td style="text-align:center">' . ($i + 1) . '</td>' .
                 '<td>' . $e($item->ProductName) . '</td>' .
                 '<td style="text-align:center">' . smartDecimal($item->Quantity ?? 0) . ' ' . $e($item->PrimaryUnitName ?? '') . '</td>' .
-                '<td style="text-align:right">' . $cur . smartDecimal((float)($item->UnitPrice ?? 0)) . '</td>' .
-                '<td style="text-align:right">' . $cur . smartDecimal((float)($item->NetAmount ?? 0)) . '</td>' .
+                '<td style="text-align:right">' . $cur . smartDecimal((float)($item->UnitPrice ?? 0), 2, true) . '</td>' .
+                '<td style="text-align:right">' . $cur . smartDecimal((float)($item->NetAmount ?? 0), 2, true) . '</td>' .
                 '</tr>';
         }
 
@@ -2081,10 +2081,10 @@ class Transactions_model extends MY_Model {
                 '<th style="width:90px;text-align:right">Unit Price</th>' .
                 '<th style="width:90px;text-align:right">Amount</th></tr></thead>' .
             '<tbody>' . $rows . '</tbody><tfoot>' .
-                '<tr><td colspan="4" style="text-align:right;font-weight:bold">Sub Total</td><td style="text-align:right">' . $cur . smartDecimal((float)($h->SubTotal ?? 0)) . '</td></tr>' .
-                ((float)($h->DiscountAmount ?? 0) > 0 ? '<tr><td colspan="4" style="text-align:right;color:#c00">Discount</td><td style="text-align:right;color:#c00">- ' . $cur . smartDecimal((float)$h->DiscountAmount) . '</td></tr>' : '') .
-                ((float)($h->TaxAmount ?? 0) > 0 ? '<tr><td colspan="4" style="text-align:right">Tax</td><td style="text-align:right">' . $cur . smartDecimal((float)$h->TaxAmount) . '</td></tr>' : '') .
-                '<tr><td colspan="4" style="text-align:right;font-weight:bold">Net Amount</td><td style="text-align:right;font-weight:bold">' . $cur . smartDecimal((float)($h->NetAmount ?? 0)) . '</td></tr>' .
+                '<tr><td colspan="4" style="text-align:right;font-weight:bold">Sub Total</td><td style="text-align:right">' . $cur . smartDecimal((float)($h->SubTotal ?? 0), 2, true) . '</td></tr>' .
+                ((float)($h->DiscountAmount ?? 0) > 0 ? '<tr><td colspan="4" style="text-align:right;color:#c00">Discount</td><td style="text-align:right;color:#c00">- ' . $cur . smartDecimal((float)$h->DiscountAmount, 2, true) . '</td></tr>' : '') .
+                ((float)($h->TaxAmount ?? 0) > 0 ? '<tr><td colspan="4" style="text-align:right">Tax</td><td style="text-align:right">' . $cur . smartDecimal((float)$h->TaxAmount, 2, true) . '</td></tr>' : '') .
+                '<tr><td colspan="4" style="text-align:right;font-weight:bold">Net Amount</td><td style="text-align:right;font-weight:bold">' . $cur . smartDecimal((float)($h->NetAmount ?? 0), 2, true) . '</td></tr>' .
             '</tfoot></table>' .
             (!empty($h->Notes) ? '<p style="margin-top:12px;font-size:11px;color:#666"><strong>Notes:</strong> ' . $e($h->Notes) . '</p>' : '') .
             (!empty($h->TermsConditions) ? '<p style="font-size:11px;color:#666"><strong>Terms:</strong> ' . $e($h->TermsConditions) . '</p>' : '') .

@@ -19,7 +19,8 @@ if (!function_exists('format_disp_column_value')) {
         if ($column->IsAmountField) {
             $balanceType = $list->{'Closing Balance Type'} ?? '';
             $numericValue = (float) $value;
-            $value = smartDecimal($value);
+            $dec = (int)($GenSettings->DecimalPoints ?? 2);
+            $value = smartDecimal($value, $dec, true);
             if ($column->CurrencySymbol == 1 && $type !== 'excel') {
                 $value = $GenSettings->CurrenySymbol . ' ' . $value;
                 if ($numericValue > 0) {

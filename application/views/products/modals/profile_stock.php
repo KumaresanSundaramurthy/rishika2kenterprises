@@ -46,12 +46,14 @@ if ($hasVariants) {
 }
 
 // Determine which columns are present in the variants
-$hasSize  = false;
-$hasBrand = false;
+$hasSize   = false;
+$hasBrand  = false;
+$hasPartNo = false;
 if ($hasVariants) {
     foreach ($Variants as $vr) {
-        if (!empty($vr->SizeName))  $hasSize  = true;
-        if (!empty($vr->BrandName)) $hasBrand = true;
+        if (!empty($vr->SizeName))  $hasSize   = true;
+        if (!empty($vr->BrandName)) $hasBrand  = true;
+        if (!empty($vr->PartNumber)) $hasPartNo = true;
     }
 }
 
@@ -196,6 +198,9 @@ $stockClass = $currentStock < 0 ? 'pp-sk-stat-red' : ($currentStock === 0.0 ? 'p
                     <?php endif; ?>
                     <?php if ($hasSize && !empty($vr->SizeName)): ?>
                         <span class="pp-sk-chip-size"><?php echo htmlspecialchars($vr->SizeName); ?></span>
+                    <?php endif; ?>
+                    <?php if ($hasPartNo && !empty($vr->PartNumber)): ?>
+                        <span class="bill-partno-badge"><?php echo htmlspecialchars($vr->PartNumber); ?></span>
                     <?php endif; ?>
                 </div>
                 <div class="text-end">

@@ -3823,6 +3823,8 @@ function pushBillItems(productData, qty, forcedVariantUID) {
                     return;
                 }
             }
+            // Clear the search field now so closing the picker (cancel/X) leaves it clean
+            $('#searchProductInfo').val(null).trigger('change');
             // Product has variants — open VariantPicker in multi-select mode
             VariantPicker.open(productData, qty, function (selections) {
                 var origUID  = parseInt(productData.id, 10);
@@ -3851,8 +3853,6 @@ function pushBillItems(productData, qty, forcedVariantUID) {
                     });
                     _doAddBillItem(pd, sel.qty);
                 });
-                // Clear the inline form after adding
-                $('#searchProductInfo').val(null).trigger('change');
                 $('#prodQuantity').val('').trigger('change');
                 if (skipped.length) {
                     Swal.fire({
@@ -3867,6 +3867,8 @@ function pushBillItems(productData, qty, forcedVariantUID) {
             });
         } else if (_isBrand) {
             // Brand-applicable but no variants in cache — fall back to BrandPicker
+            // Clear search now so closing the picker (cancel/X) leaves it clean
+            $('#searchProductInfo').val(null).trigger('change');
             BrandPicker.open(productData, qty, function (brandUID, brandName) {
                 var origUID     = parseInt(productData.id, 10);
                 var compositeId = origUID * 100000 + parseInt(brandUID, 10);

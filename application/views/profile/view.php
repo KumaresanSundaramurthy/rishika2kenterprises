@@ -52,46 +52,7 @@ $attachments = $userAttachments ?? [];
 
 <?php $this->load->view('common/header'); ?>
 <link rel="stylesheet" href="/css/transactions-theme.css">
-
-<style>
-.profile-sidebar        { width:255px; min-width:255px; background:#fff; }
-.profile-nav-link       { display:flex; align-items:center; gap:10px; padding:9px 14px; border-radius:8px;
-                          color:#566a7f; text-decoration:none; font-size:.85rem; font-weight:500;
-                          margin-bottom:2px; transition:background .15s, color .15s; }
-.profile-nav-link:hover { background:#f0f0f5; color:#7c3aed; }
-.profile-nav-link.active{ background:#ede9fe; color:#7c3aed; font-weight:600; }
-.profile-nav-link i     { font-size:1.1rem; flex-shrink:0; width:20px; text-align:center; }
-.profile-nav-label      { font-size:.76rem; font-weight:600; letter-spacing:.04em; text-transform:uppercase;
-                          color:#a0aab4; padding:14px 14px 4px; }
-.profile-avatar-wrap    { width:80px; height:80px; border-radius:50%; overflow:hidden;
-                          border:3px solid #ede9fe; margin:0 auto 10px; }
-.profile-avatar-wrap img{ width:100%; height:100%; object-fit:cover; }
-.profile-avatar-initials{ width:80px; height:80px; border-radius:50%; background:#7c3aed;
-                          color:#fff; font-size:1.5rem; font-weight:700; display:flex;
-                          align-items:center; justify-content:center; margin:0 auto 10px; }
-.profile-section-hdr    { display:flex; align-items:center; justify-content:space-between;
-                          margin-bottom:1.5rem; padding-bottom:.75rem; border-bottom:1px solid #e9eaec; }
-.wf-group-label         { font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em;
-                          color:#8592a3; margin-bottom:.6rem; padding-bottom:.3rem;
-                          border-bottom:1px solid #f0f0f5; }
-.profile-section-hdr h5 { margin:0; font-weight:600; font-size:1rem; }
-.profile-section-hdr p  { margin:0; font-size:.78rem; color:#8a92a0; }
-.info-row               { display:flex; flex-wrap:wrap; gap:1rem; }
-.info-card              { flex:1; min-width:180px; background:#f8f8fb; border-radius:8px;
-                          padding:14px 16px; border:1px solid #e9eaec; }
-.info-card-label        { font-size:.73rem; text-transform:uppercase; letter-spacing:.04em;
-                          color:#a0aab4; font-weight:600; margin-bottom:4px; }
-.info-card-value        { font-size:.9rem; font-weight:600; color:#3d3d4e; }
-.addr-col-header        { font-size:.76rem; text-transform:uppercase; letter-spacing:.04em;
-                          color:#7c3aed; font-weight:700; margin-bottom:.75rem; }
-.profile-addr-box       { min-height:110px; border:2px dashed #d0d5e8; border-radius:8px;
-                          padding:16px; cursor:pointer; transition:border-color .2s, background .2s; }
-.profile-addr-box:hover { border-color:#7367f0; background:#f5f4ff; }
-.profile-addr-box.has-addr { border-style:solid; border-color:#c8ceeb; background:#fafbff; }
-.profile-addr-empty     { color:#adb5bd; font-size:.84rem; text-align:center; padding-top:14px; }
-.profile-addr-text      { font-size:.86rem; line-height:1.7; color:#556070; }
-.addr-edit-hint         { font-size:.75rem; color:#b0b8c8; margin-top:.4rem; }
-</style>
+<link rel="stylesheet" href="/css/profile.css">
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
     <div class="layout-container">
@@ -108,9 +69,9 @@ $attachments = $userAttachments ?? [];
                     'pageDescription' => $PageDescription ?? '',
                 ]); ?>
 
-                <div class="container-xxl flex-grow-1 container-p-y p-2">
+                <div class="container-xxl flex-grow-1">
                     <div class="card p-0 overflow-hidden">
-                        <div class="d-flex" style="min-height:520px;">
+                        <div class="d-flex profile-layout-wrap">
 
                             <!-- ══ LEFT SIDEBAR ════════════════════════════════ -->
                             <div class="profile-sidebar border-end d-flex flex-column">
@@ -124,12 +85,12 @@ $attachments = $userAttachments ?? [];
                                     <?php else: ?>
                                     <div class="profile-avatar-initials" id="sidebarAvatarInitials"><?php echo htmlspecialchars($initials); ?></div>
                                     <?php endif; ?>
-                                    <div class="fw-semibold mt-1" style="font-size:.93rem;"><?php echo htmlspecialchars($firstName . ' ' . $lastName); ?></div>
+                                    <div class="fw-semibold mt-1 profile-sidebar-name"><?php echo htmlspecialchars($firstName . ' ' . $lastName); ?></div>
                                     <?php if ($desigName !== '—'): ?>
-                                    <div class="text-muted" style="font-size:.77rem;"><?php echo htmlspecialchars($desigName); ?></div>
+                                    <div class="text-muted profile-sidebar-desig"><?php echo htmlspecialchars($desigName); ?></div>
                                     <?php endif; ?>
                                     <?php if ($empCode !== '—'): ?>
-                                    <div class="badge bg-label-primary mt-1" style="font-size:.7rem;"><?php echo htmlspecialchars($empCode); ?></div>
+                                    <div class="badge bg-label-primary mt-1 profile-badge-sm"><?php echo htmlspecialchars($empCode); ?></div>
                                     <?php endif; ?>
                                 </div>
 
@@ -154,7 +115,7 @@ $attachments = $userAttachments ?? [];
                                         <i class="bx bx-paperclip"></i>
                                         <span>Documents</span>
                                         <?php if (count($attachments) > 0): ?>
-                                        <span class="badge bg-label-secondary ms-auto" style="font-size:.68rem;"><?php echo count($attachments); ?></span>
+                                        <span class="badge bg-label-secondary ms-auto profile-badge-xs"><?php echo count($attachments); ?></span>
                                         <?php endif; ?>
                                     </a>
                                     <a href="javascript:void(0)" id="nav-signatures" class="profile-nav-link" data-section="signatures">
@@ -219,7 +180,7 @@ $attachments = $userAttachments ?? [];
                                                 <div class="col-md-6">
                                                     <label class="form-label form-label-sm">Username</label>
                                                     <input type="text" class="form-control form-control-sm bg-light" disabled value="<?php echo htmlspecialchars($userName); ?>">
-                                                    <div class="form-text" style="font-size:.72rem;">Cannot be changed.</div>
+                                                    <div class="form-text form-text-xs">Cannot be changed.</div>
                                                 </div>
                                                 <div class="col-md-6">
                                                     <label class="form-label form-label-sm">Email Address</label>
@@ -228,7 +189,7 @@ $attachments = $userAttachments ?? [];
                                                 <div class="col-md-8">
                                                     <label class="form-label form-label-sm">Mobile Number <span class="text-danger">*</span></label>
                                                     <div class="d-flex gap-2">
-                                                        <select id="CountryCode" name="CountryCode" class="form-select form-select-sm" style="max-width:170px;">
+                                                        <select id="CountryCode" name="CountryCode" class="form-select form-select-sm country-code-sel">
                                                             <option value="">-- Country Code --</option>
                                                         </select>
                                                         <input type="number" id="MobileNumber" name="MobileNumber"
@@ -360,7 +321,7 @@ $attachments = $userAttachments ?? [];
                                                    placeholder="Select date" value="<?php echo htmlspecialchars($probationEndDate); ?>" autocomplete="off" readonly>
                                         </div>
                                         <div class="col-md-4">
-                                            <label class="form-label form-label-sm">Notice Period <span class="text-muted" style="font-size:.75rem;">(days)</span></label>
+                                            <label class="form-label form-label-sm">Notice Period <span class="text-muted label-unit">(days)</span></label>
                                             <input type="number" id="wfNoticePeriodDays" class="form-control form-control-sm"
                                                    placeholder="e.g. 30" min="0" max="365"
                                                    value="<?php echo htmlspecialchars((string)$noticePeriodDays); ?>">
@@ -408,13 +369,13 @@ $attachments = $userAttachments ?? [];
                                         <div class="col-md-6">
                                             <div class="d-flex align-items-center justify-content-between mb-2">
                                                 <div class="addr-col-header mb-0"><i class="bx bx-map-pin me-1"></i>Current Address</div>
-                                                <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 d-none" id="btnCopyToCurr" style="font-size:.74rem;">
+                                                <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 d-none profile-copy-btn" id="btnCopyToCurr">
                                                     <i class="bx bx-copy-alt me-1"></i>Copy from Permanent
                                                 </button>
                                             </div>
                                             <div id="profCurrAddrBox" class="profile-addr-box">
                                                 <div class="profile-addr-empty">
-                                                    <i class="bx bx-map-alt" style="font-size:2rem;opacity:.35;display:block;margin-bottom:.4rem;"></i>
+                                                    <i class="bx bx-map-alt profile-addr-empty-icon"></i>
                                                     Click to add current address
                                                 </div>
                                             </div>
@@ -423,13 +384,13 @@ $attachments = $userAttachments ?? [];
                                         <div class="col-md-6">
                                             <div class="d-flex align-items-center justify-content-between mb-2">
                                                 <div class="addr-col-header mb-0"><i class="bx bx-home me-1"></i>Permanent Address</div>
-                                                <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 d-none" id="btnCopyToPerm" style="font-size:.74rem;">
+                                                <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 d-none profile-copy-btn" id="btnCopyToPerm">
                                                     <i class="bx bx-copy-alt me-1"></i>Copy from Current
                                                 </button>
                                             </div>
                                             <div id="profPermAddrBox" class="profile-addr-box">
                                                 <div class="profile-addr-empty">
-                                                    <i class="bx bx-map-alt" style="font-size:2rem;opacity:.35;display:block;margin-bottom:.4rem;"></i>
+                                                    <i class="bx bx-map-alt profile-addr-empty-icon"></i>
                                                     Click to add permanent address
                                                 </div>
                                             </div>
@@ -448,17 +409,6 @@ $attachments = $userAttachments ?? [];
                                     </div>
 
                                     <!-- Upload Zone -->
-                                    <style>
-                                    .doc-upload-zone{border:2px dashed #c8cfe3;border-radius:10px;background:#f8f9ff;text-align:center;padding:14px 24px 12px;cursor:pointer;transition:border-color .2s,background .2s;position:relative;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:12px;}
-                                    .doc-upload-zone:hover,.doc-upload-zone.dz-over{border-color:#7367f0;background:#f0effe;}
-                                    .doc-upload-zone input[type=file]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;}
-                                    .doc-upload-zone .dz-icon{font-size:2rem;color:#7367f0;flex-shrink:0;line-height:1;}
-                                    .doc-upload-zone .dz-body{text-align:left;}
-                                    .doc-upload-zone .dz-title{font-size:.88rem;font-weight:600;color:#2d2d3b;margin-bottom:1px;}
-                                    .doc-upload-zone .dz-sub{font-size:.78rem;color:#7367f0;margin-bottom:2px;}
-                                    .doc-upload-zone .dz-hint{font-size:.69rem;color:#a4afc5;}
-                                    .doc-queue-item .progress{height:3px;}
-                                    </style>
                                     <div class="doc-upload-zone" id="docUploadZone">
                                         <i class="bx bx-cloud-upload dz-icon"></i>
                                         <div class="dz-body">
@@ -477,12 +427,12 @@ $attachments = $userAttachments ?? [];
                                         <table class="table table-sm table-hover align-middle mb-0" id="docTable">
                                             <thead class="r2k-thead">
                                                 <tr>
-                                                    <th style="width:36px;text-align:center;">#</th>
+                                                    <th class="col-idx">#</th>
                                                     <th>File Name</th>
-                                                    <th style="width:105px;">Type</th>
-                                                    <th style="width:72px;text-align:right;">Size</th>
-                                                    <th style="width:120px;">Uploaded On</th>
-                                                    <th style="width:80px;text-align:center;">Actions</th>
+                                                    <th class="col-type-105">Type</th>
+                                                    <th class="col-size-72">Size</th>
+                                                    <th class="col-date-120">Uploaded On</th>
+                                                    <th class="col-actions">Actions</th>
                                                 </tr>
                                             </thead>
                                             <tbody id="docTableBody">
@@ -504,7 +454,7 @@ $attachments = $userAttachments ?? [];
                                             <i class="bx bx-plus me-1"></i>Add Signature
                                         </button>
                                     </div>
-                                    <div class="alert alert-info d-flex align-items-center py-2 px-3 mb-3" style="font-size:.8rem;">
+                                    <div class="alert alert-info d-flex align-items-center py-2 px-3 mb-3 alert-sm-text">
                                         <i class="bx bx-info-circle flex-shrink-0 me-2"></i>
                                         Only one signature can be set as default at a time.
                                     </div>
@@ -535,12 +485,12 @@ $attachments = $userAttachments ?? [];
                                         </div>
                                         <div id="eduTableWrap">
                                             <div class="table-responsive">
-                                                <table class="table table-sm table-bordered table-hover align-middle mb-0" style="font-size:.84rem;">
+                                                <table class="table table-sm table-bordered table-hover align-middle mb-0 table-sm-text">
                                                     <thead class="r2k-thead">
                                                         <tr>
-                                                            <th style="width:36px;text-align:center;">#</th>
+                                                            <th class="col-idx">#</th>
                                                             <th>Institution</th><th>Degree</th><th>Field of Study</th><th>CGPA</th><th>Completion</th>
-                                                            <th style="width:80px;text-align:center;">Actions</th>
+                                                            <th class="col-actions">Actions</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody id="eduTbody">
@@ -561,12 +511,12 @@ $attachments = $userAttachments ?? [];
                                         </div>
                                         <div id="expTableWrap">
                                             <div class="table-responsive">
-                                                <table class="table table-sm table-bordered table-hover align-middle mb-0" style="font-size:.84rem;">
+                                                <table class="table table-sm table-bordered table-hover align-middle mb-0 table-sm-text">
                                                     <thead class="r2k-thead">
                                                         <tr>
-                                                            <th style="width:36px;text-align:center;">#</th>
+                                                            <th class="col-idx">#</th>
                                                             <th>Employer Name</th><th>Job Title</th><th>Start Date</th><th>End Date</th><th>Job Description</th>
-                                                            <th style="width:80px;text-align:center;">Actions</th>
+                                                            <th class="col-actions">Actions</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody id="workExpTbody">
@@ -590,7 +540,7 @@ $attachments = $userAttachments ?? [];
                                             <i class="bx bx-plus me-1"></i>Add Contact
                                         </button>
                                     </div>
-                                    <div id="emgNoPrimaryAlert" class="alert alert-warning d-flex align-items-center py-2 px-3 mb-3" style="font-size:.8rem;">
+                                    <div id="emgNoPrimaryAlert" class="alert alert-warning d-flex align-items-center py-2 px-3 mb-3 alert-sm-text">
                                         <i class="bx bx-info-circle flex-shrink-0 me-2"></i>
                                         At least one emergency contact should be marked as the primary contact.
                                     </div>
@@ -623,13 +573,13 @@ $attachments = $userAttachments ?? [];
                                         <div class="col-12">
                                             <label class="form-label form-label-sm">IFSC / Sort Code / Routing Number</label>
                                             <div class="input-group input-group-sm">
-                                                <input type="text" class="form-control form-control-sm text-uppercase" id="ifscCode" placeholder="e.g. SBIN0001234" maxlength="50" style="text-transform:uppercase;">
+                                                <input type="text" class="form-control form-control-sm text-uppercase" id="ifscCode" placeholder="e.g. SBIN0001234" maxlength="50">
                                                 <button class="btn btn-outline-primary" type="button" id="btnFetchIFSC" title="Auto-fill bank name and branch from IFSC">
                                                     <span class="spinner-border spinner-border-sm d-none me-1" id="spinnerIFSC"></span>
                                                     <i class="bx bx-search-alt me-1" id="iconIFSC"></i>Fetch
                                                 </button>
                                             </div>
-                                            <div class="form-text" style="font-size:.72rem;">Enter IFSC code and click Fetch to auto-fill bank name &amp; branch.</div>
+                                            <div class="form-text form-text-xs">Enter IFSC code and click Fetch to auto-fill bank name &amp; branch.</div>
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label form-label-sm">Bank Name</label>
@@ -651,7 +601,7 @@ $attachments = $userAttachments ?? [];
                                         <div class="col-md-6">
                                             <label class="form-label form-label-sm">Confirm Account Number</label>
                                             <input type="text" class="form-control form-control-sm" id="confirmAccountNumber" placeholder="Re-enter account number" maxlength="50" autocomplete="off">
-                                            <div class="text-danger" id="accNoMismatch" style="display:none;font-size:.72rem;"><i class="bx bx-error-circle me-1"></i>Account numbers do not match.</div>
+                                            <div class="text-danger d-none acc-mismatch-msg" id="accNoMismatch"><i class="bx bx-error-circle me-1"></i>Account numbers do not match.</div>
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label form-label-sm">Account Holder Name</label>
@@ -662,11 +612,11 @@ $attachments = $userAttachments ?? [];
                                             <div class="d-flex gap-4 mt-1">
                                                 <div class="form-check">
                                                     <input class="form-check-input" type="radio" name="accountType" id="accTypeSaving" value="Saving">
-                                                    <label class="form-check-label" for="accTypeSaving" style="font-size:.84rem;">Savings Account</label>
+                                                    <label class="form-check-label form-check-label-sm" for="accTypeSaving">Savings Account</label>
                                                 </div>
                                                 <div class="form-check">
                                                     <input class="form-check-input" type="radio" name="accountType" id="accTypeCurrent" value="Current">
-                                                    <label class="form-check-label" for="accTypeCurrent" style="font-size:.84rem;">Current Account</label>
+                                                    <label class="form-check-label form-check-label-sm" for="accTypeCurrent">Current Account</label>
                                                 </div>
                                             </div>
                                         </div>
@@ -679,7 +629,7 @@ $attachments = $userAttachments ?? [];
                                         <div class="col-md-6">
                                             <label class="form-label form-label-sm">UPI ID</label>
                                             <input type="text" class="form-control form-control-sm" id="upiId" placeholder="e.g. name@okaxis or 9876543210@upi" maxlength="100">
-                                            <div class="invalid-feedback" id="upiIdFeedback" style="display:none;font-size:.72rem;"></div>
+                                            <div class="invalid-feedback d-none form-text-xs" id="upiIdFeedback"></div>
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label form-label-sm">UPI Mobile Number</label>
@@ -785,8 +735,8 @@ $attachments = $userAttachments ?? [];
                             <div class="form-text">PNG or JPG · Max 500 KB · Recommended: 400×150 px · White or transparent background.</div>
                         </div>
                         <div id="sigUploadPreview" class="d-none">
-                            <div class="d-flex align-items-center justify-content-center p-3 rounded" style="background:#f8f9fc;border:2px dashed #d0d5dd;min-height:100px;">
-                                <img id="sigUploadPreviewImg" src="" alt="Preview" style="max-width:100%;max-height:120px;object-fit:contain;">
+                            <div class="sig-upload-preview-box">
+                                <img id="sigUploadPreviewImg" src="" alt="Preview" class="sig-preview-img">
                             </div>
                             <div id="sigUploadMeta" class="text-muted small mt-2"></div>
                         </div>
@@ -797,12 +747,12 @@ $attachments = $userAttachments ?? [];
                             <label class="form-label mb-0">Draw your signature below</label>
                             <div class="d-flex align-items-center gap-2">
                                 <label class="form-label mb-0 small text-muted">Color</label>
-                                <input type="color" id="sigPenColor" value="#000000" class="form-control form-control-color" style="width:36px;height:32px;padding:2px;">
+                                <input type="color" id="sigPenColor" value="#000000" class="form-control form-control-color sig-color-picker">
                                 <button type="button" class="btn btn-sm btn-outline-secondary" id="btnClearCanvas"><i class="bx bx-eraser me-1"></i>Clear</button>
                             </div>
                         </div>
-                        <div style="border:2px solid #d0d5dd;border-radius:8px;background:#fff;overflow:hidden;touch-action:none;">
-                            <canvas id="signatureCanvas" style="display:block;width:100%;height:200px;cursor:crosshair;"></canvas>
+                        <div class="sig-canvas-wrap">
+                            <canvas id="signatureCanvas" class="sig-canvas"></canvas>
                         </div>
                         <div class="form-text mt-2">Use mouse or touch to sign. Tap Clear to start over.</div>
                         <div id="sigDrawError" class="alert alert-danger d-none mt-2"></div>
@@ -1138,7 +1088,7 @@ $attachments = $userAttachments ?? [];
                             <input type="text" class="form-control" id="expAmount" placeholder="0"
                                 onkeydown="return handleDotOnly(event)"
                                 oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo (int)($JwtData->GenSettings->PriceMaxLength ?? 12); ?>, 9)"
-                                maxlength="<?php echo (int)($JwtData->GenSettings->PriceMaxLength ?? 12); ?>"
+                                maxlength="<?php echo (int)($JwtData->GenSettings->PriceMaxLength ?? 12) + 10; ?>"
                                 onpaste="handlePricePaste(event, <?php echo (int)($JwtData->GenSettings->PriceMaxLength ?? 12); ?>, 9)"
                                 ondrop="handlePriceDrop(event, <?php echo (int)($JwtData->GenSettings->PriceMaxLength ?? 12); ?>, 9)"
                                 value="">
@@ -1162,7 +1112,7 @@ $attachments = $userAttachments ?? [];
                     <!-- Receipts -->
                     <div class="col-12">
                         <label class="form-label fw-semibold">Receipts</label>
-                        <div class="doc-upload-zone" id="expReceiptZone" style="margin-bottom:10px;">
+                        <div class="doc-upload-zone mb-2" id="expReceiptZone">
                             <i class="bx bx-receipt dz-icon"></i>
                             <div class="dz-body">
                                 <div class="dz-title">Drag &amp; drop receipts here</div>
@@ -1178,14 +1128,14 @@ $attachments = $userAttachments ?? [];
                             <table class="table table-sm table-hover align-middle mb-0">
                                 <thead class="r2k-thead">
                                     <tr>
-                                        <th style="width:30px;text-align:center;">#</th>
+                                        <th class="col-idx-30">#</th>
                                         <th>File</th>
-                                        <th style="width:65px;text-align:right;">Size</th>
-                                        <th style="width:70px;text-align:center;">Actions</th>
+                                        <th class="col-size-65">Size</th>
+                                        <th class="col-center-70">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="expReceiptTbody">
-                                    <tr><td colspan="4" class="text-center py-3 text-muted" style="font-size:.82rem;">No receipts attached yet.</td></tr>
+                                    <tr><td colspan="4" class="text-center py-3 text-muted queue-item-text">No receipts attached yet.</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -1249,7 +1199,7 @@ $(function () {
         $('#section-' + id).removeClass('d-none');
         $('#nav-' + id).addClass('active');
         _currentSection = id;
-        history.replaceState(null, '', window.location.pathname + '#' + id);
+        history.replaceState(null, '', window.location.pathname + '?tab=' + id);
 
         if (id === 'workinfo' && !_wfInitDone) { _wfInitDone = true; }
         if (id === 'signatures' && !_sigListLoaded) {
@@ -1288,9 +1238,9 @@ $(function () {
     $(document).on('click', '#profCurrAddrBox', function () { _openProfileAddrModal('current'); });
     $(document).on('click', '#profPermAddrBox', function () { _openProfileAddrModal('permanent'); });
 
-    // ── Init section from URL hash ────────────────────────────────────────────
-    var _hash = window.location.hash.replace('#', '');
-    switchSection(_profileSections.indexOf(_hash) !== -1 ? _hash : 'personal');
+    // ── Init section from URL ?tab= param ────────────────────────────────────
+    var _initTab = new URLSearchParams(window.location.search).get('tab') || '';
+    switchSection(_profileSections.indexOf(_initTab) !== -1 ? _initTab : 'personal');
     _isInitialLoad = false;
 
     $(document).on('click', '.profile-nav-link', function () {
@@ -1314,7 +1264,7 @@ $(function () {
                      error:   function ()  { _done([]); } });
         }
         if (UpstashService.isEnabled()) {
-            UpstashService.get(UpstashService.orgKey('loc-countries')).then(function (data) {
+            UpstashService.get(UpstashService.globalKey('loc-countries')).then(function (data) {
                 Array.isArray(data) && data.length > 0 ? _done(data) : _ajax();
             });
         } else { _ajax(); }
@@ -1522,7 +1472,7 @@ $(function () {
         if (!a.Line1 && !a.State && !a.Pincode) {
             $box.removeClass('has-addr').html(
                 '<div class="profile-addr-empty">' +
-                '<i class="bx bx-map-alt" style="font-size:2rem;opacity:.35;display:block;margin-bottom:.4rem;"></i>' +
+                '<i class="bx bx-map-alt profile-addr-empty-icon"></i>' +
                 'Click to add ' + label + '</div>'
             );
             return;
@@ -1701,8 +1651,8 @@ $(function () {
         if (!list || list.length === 0) {
             $('#docTableBody').html(
                 '<tr><td colspan="6" class="text-center text-muted py-5">' +
-                '<i class="bx bx-folder-open d-block mx-auto mb-2" style="font-size:2.5rem;opacity:.35;"></i>' +
-                '<span style="font-size:.84rem;">No documents uploaded yet. Drag &amp; drop or click above to upload.</span>' +
+                '<i class="bx bx-folder-open d-block mx-auto mb-2 empty-state-icon"></i>' +
+                '<span class="empty-state-text">No documents uploaded yet. Drag &amp; drop or click above to upload.</span>' +
                 '</td></tr>'
             );
             return;
@@ -1721,14 +1671,14 @@ $(function () {
             var safeType = $('<s>').text(docType).html();
 
             html += '<tr>';
-            html += '<td class="text-center" style="font-size:.78rem;color:#a4afc5;">' + (i + 1) + '</td>';
+            html += '<td class="text-center doc-seq-cell">' + (i + 1) + '</td>';
             html += '<td><div class="d-flex align-items-center gap-2">';
-            html += '<i class="bx ' + iconCls + ' profile-attach-preview-btn flex-shrink-0" data-enc="' + encUrl + '" data-ftype="' + ftype + '" data-fname="' + safeName + '" style="font-size:1.3rem;cursor:pointer;" title="Preview"></i>';
-            html += '<span class="text-truncate profile-attach-preview-btn fw-medium" data-enc="' + encUrl + '" data-ftype="' + ftype + '" data-fname="' + safeName + '" style="cursor:pointer;font-size:.83rem;max-width:220px;" title="' + safeName + '">' + safeName + '</span>';
+            html += '<i class="bx ' + iconCls + ' profile-attach-preview-btn flex-shrink-0 profile-attach-icon" data-enc="' + encUrl + '" data-ftype="' + ftype + '" data-fname="' + safeName + '" title="Preview"></i>';
+            html += '<span class="text-truncate profile-attach-preview-btn fw-medium profile-attach-name" data-enc="' + encUrl + '" data-ftype="' + ftype + '" data-fname="' + safeName + '" title="' + safeName + '">' + safeName + '</span>';
             html += '</div></td>';
-            html += '<td><span class="badge bg-label-' + color + '" style="font-size:.7rem;">' + safeType + '</span></td>';
-            html += '<td class="text-end" style="font-size:.78rem;color:#6c757d;">' + (_docFormatSize(a.FileSize) || '—') + '</td>';
-            html += '<td style="font-size:.78rem;color:#6c757d;">' + (_docFormatDate(a.CreatedOn) || '—') + '</td>';
+            html += '<td><span class="badge bg-label-' + color + ' profile-badge-sm">' + safeType + '</span></td>';
+            html += '<td class="text-end doc-meta-cell">' + (_docFormatSize(a.FileSize) || '—') + '</td>';
+            html += '<td class="doc-meta-cell">' + (_docFormatDate(a.CreatedOn) || '—') + '</td>';
             html += '<td class="text-center"><div class="d-flex align-items-center justify-content-center gap-1">';
             html += '<button type="button" class="btn btn-icon btn-sm text-warning profile-attach-preview-btn" data-enc="' + encUrl + '" data-ftype="' + ftype + '" data-fname="' + safeName + '" title="Preview"><i class="bx bx-show"></i></button>';
             html += '<button type="button" class="btn btn-icon btn-sm text-danger profile-attach-delete-btn" data-uid="' + a.AttachUID + '" title="Delete"><i class="bx bx-trash"></i></button>';
@@ -1742,11 +1692,11 @@ $(function () {
         var url  = decodeURIComponent(encUrl);
         var body = '';
         if (type === 'img') {
-            body = '<img src="' + url + '" style="max-width:100%;max-height:80vh;display:block;margin:auto;" onerror="this.outerHTML=\'<div class=text-white text-center py-5>Image could not be loaded.</div>\'">';
+            body = '<img src="' + url + '" class="preview-img-full" onerror="this.outerHTML=\'<div class=text-white text-center py-5>Image could not be loaded.</div>\'">';
         } else if (type === 'pdf') {
-            body = '<iframe src="' + url + '" style="width:100%;height:80vh;border:none;"></iframe>';
+            body = '<iframe src="' + url + '" class="preview-iframe"></iframe>';
         } else {
-            body = '<div class="text-white text-center py-5"><i class="bx bx-download" style="font-size:3rem;"></i><br><a href="' + url + '" target="_blank" class="btn btn-light mt-3"><i class="bx bx-download me-1"></i>Download File</a></div>';
+            body = '<div class="text-white text-center py-5"><i class="bx bx-download download-icon-lg"></i><br><a href="' + url + '" target="_blank" class="btn btn-light mt-3"><i class="bx bx-download me-1"></i>Download File</a></div>';
         }
         $('#attachPreviewTitle').text(name || 'Preview');
         $('#attachPreviewBody').html(body);
@@ -1761,7 +1711,7 @@ $(function () {
     function _updateDocBadge(cnt) {
         var $badge = $('#nav-documents .badge');
         if (cnt > 0) {
-            if (!$badge.length) $('#nav-documents').append('<span class="badge bg-label-secondary ms-auto" style="font-size:.68rem;">' + cnt + '</span>');
+            if (!$badge.length) $('#nav-documents').append('<span class="badge bg-label-secondary ms-auto profile-badge-xs">' + cnt + '</span>');
             else $badge.text(cnt);
         } else { $badge.remove(); }
     }
@@ -1779,9 +1729,9 @@ $(function () {
         var iconCls  = _docFileIcon(file.type, file.name);
         var safeName = $('<s>').text(file.name).html();
         $('#docUploadQueue').append(
-            '<div class="d-flex align-items-center gap-2 border rounded px-3 py-2 mb-2 doc-queue-item" id="' + id + '" style="font-size:.82rem;">' +
-            '<i class="bx ' + iconCls + ' flex-shrink-0" style="font-size:1.25rem;"></i>' +
-            '<div style="flex:1;min-width:0;">' +
+            '<div class="d-flex align-items-center gap-2 border rounded px-3 py-2 mb-2 doc-queue-item queue-item-text" id="' + id + '">' +
+            '<i class="bx ' + iconCls + ' flex-shrink-0 queue-item-icon"></i>' +
+            '<div class="queue-item-info">' +
             '<div class="text-truncate fw-medium">' + safeName + '</div>' +
             '<div class="progress mt-1"><div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" style="width:100%;"></div></div>' +
             '</div>' +
@@ -2196,18 +2146,18 @@ $(function () {
         if (!list || list.length === 0) {
             $wrap.html(
                 '<div class="text-center text-muted py-5">' +
-                '<i class="bx bx-phone-call" style="font-size:3rem;display:block;opacity:.3;margin-bottom:8px;"></i>' +
-                '<div style="font-size:.84rem;">No emergency contacts added yet.</div>' +
+                '<i class="bx bx-phone-call empty-state-icon-lg"></i>' +
+                '<div class="empty-state-text">No emergency contacts added yet.</div>' +
                 '</div>'
             );
             return;
         }
-        var html = '<div class="table-responsive"><table class="table table-sm table-bordered table-hover align-middle mb-0" style="font-size:.84rem;">' +
+        var html = '<div class="table-responsive"><table class="table table-sm table-bordered table-hover align-middle mb-0 table-sm-text">' +
             '<thead class="r2k-thead"><tr>' +
-            '<th style="width:36px;text-align:center;">#</th>' +
+            '<th class="col-idx">#</th>' +
             '<th>Name</th><th>Relationship</th><th>Phone Number</th><th>Address</th>' +
-            '<th style="width:120px;text-align:center;">Primary Contact</th>' +
-            '<th style="width:80px;text-align:center;">Actions</th>' +
+            '<th class="col-center-120">Primary Contact</th>' +
+            '<th class="col-actions">Actions</th>' +
             '</tr></thead><tbody>';
         list.forEach(function (r, i) {
             _emgData[r.EmgContactUID] = r;
@@ -2215,8 +2165,8 @@ $(function () {
             var addrText  = addrParts.length ? $('<s>').text(addrParts.join(', ')).html() : '<span class="text-muted">—</span>';
             var isPrimary    = r.IsPrimary == 1;
             var primaryBadge = isPrimary
-                ? '<span class="badge bg-success" style="font-size:.72rem;">Primary</span>'
-                : '<button type="button" class="btn btn-xs btn-outline-secondary setEmgPrimaryBtn py-0 px-2" data-uid="' + r.EmgContactUID + '" style="font-size:.72rem;">Set Primary</button>';
+                ? '<span class="badge bg-success profile-badge-sm">Primary</span>'
+                : '<button type="button" class="btn btn-xs btn-outline-secondary setEmgPrimaryBtn py-0 px-2 profile-badge-sm" data-uid="' + r.EmgContactUID + '">Set Primary</button>';
             html += '<tr>' +
                 '<td class="text-center text-muted">' + (i + 1) + '</td>' +
                 '<td class="fw-medium">' + $('<s>').text(r.Name         || '').html() + '</td>' +
@@ -2376,7 +2326,7 @@ $(function () {
         _eduData = {};
         var $tbody = $('#eduTbody');
         if (!list || list.length === 0) {
-            $tbody.html('<tr><td colspan="7" class="text-center text-muted py-5"><i class="bx bx-book-open d-block mx-auto mb-2" style="font-size:2.5rem;opacity:.3;"></i><span style="font-size:.84rem;">No education records added yet.</span></td></tr>');
+            $tbody.html('<tr><td colspan="7" class="text-center text-muted py-5"><i class="bx bx-book-open d-block mx-auto mb-2 empty-state-icon"></i><span class="empty-state-text">No education records added yet.</span></td></tr>');
             return;
         }
         var html = '';
@@ -2401,7 +2351,7 @@ $(function () {
         _expData = {};
         var $tbody = $('#workExpTbody');
         if (!list || list.length === 0) {
-            $tbody.html('<tr><td colspan="7" class="text-center text-muted py-5"><i class="bx bx-briefcase d-block mx-auto mb-2" style="font-size:2.5rem;opacity:.3;"></i><span style="font-size:.84rem;">No experience records added yet.</span></td></tr>');
+            $tbody.html('<tr><td colspan="7" class="text-center text-muted py-5"><i class="bx bx-briefcase d-block mx-auto mb-2 empty-state-icon"></i><span class="empty-state-text">No experience records added yet.</span></td></tr>');
             return;
         }
         var html = '';
@@ -2409,7 +2359,7 @@ $(function () {
             _expData[r.ExpUID] = r;
             var endDt = r.EndDate
                 ? _fmtEduDate(r.EndDate)
-                : '<span class="badge bg-label-success" style="font-size:.7rem;">Current</span>';
+                : '<span class="badge bg-label-success profile-badge-sm">Current</span>';
             var descText = $('<s>').text(r.JobDescription || '—').html();
             html += '<tr>' +
                 '<td class="text-center text-muted">' + (i + 1) + '</td>' +
@@ -2417,7 +2367,7 @@ $(function () {
                 '<td>'                  + $('<s>').text(r.JobTitle      || '—').html() + '</td>' +
                 '<td>'                  + _fmtEduDate(r.StartDate) + '</td>' +
                 '<td>'                  + endDt + '</td>' +
-                '<td class="text-truncate" style="max-width:200px;" title="' + $('<s>').text(r.JobDescription || '').html() + '">' + descText + '</td>' +
+                '<td class="text-truncate col-desc-truncate" title="' + $('<s>').text(r.JobDescription || '').html() + '">' + descText + '</td>' +
                 '<td class="text-center"><div class="d-flex align-items-center justify-content-center gap-1">' +
                 '<button type="button" class="btn btn-icon btn-sm text-warning editWorkExpBtn" data-uid="' + r.ExpUID + '" title="Edit"><i class="bx bx-edit"></i></button>' +
                 '<button type="button" class="btn btn-icon btn-sm text-danger delWorkExpBtn" data-uid="' + r.ExpUID + '" title="Delete"><i class="bx bx-trash"></i></button>' +
@@ -2809,7 +2759,7 @@ $(function () {
     function _renderExpReceiptTable(list) {
         var cdnUrl = (typeof CDN_URL !== 'undefined' && CDN_URL) ? CDN_URL : '';
         if (!list || list.length === 0) {
-            $('#expReceiptTbody').html('<tr><td colspan="4" class="text-center py-3 text-muted" style="font-size:.82rem;">No receipts attached yet.</td></tr>');
+            $('#expReceiptTbody').html('<tr><td colspan="4" class="text-center py-3 text-muted queue-item-text">No receipts attached yet.</td></tr>');
             return;
         }
         var html = '';
@@ -2821,12 +2771,12 @@ $(function () {
             var ftype    = _docFileType(a.FileType || '', name);
             var iconCls  = _docFileIcon(a.FileType || '', name);
             html += '<tr>';
-            html += '<td class="text-center" style="font-size:.78rem;color:#a4afc5;">' + (i + 1) + '</td>';
+            html += '<td class="text-center doc-seq-cell">' + (i + 1) + '</td>';
             html += '<td><div class="d-flex align-items-center gap-2">';
-            html += '<i class="bx ' + iconCls + ' exp-receipt-preview-btn flex-shrink-0" data-enc="' + encUrl + '" data-ftype="' + ftype + '" data-fname="' + safeName + '" style="font-size:1.2rem;cursor:pointer;"></i>';
-            html += '<span class="text-truncate exp-receipt-preview-btn" data-enc="' + encUrl + '" data-ftype="' + ftype + '" data-fname="' + safeName + '" style="cursor:pointer;font-size:.82rem;max-width:170px;" title="' + safeName + '">' + safeName + '</span>';
+            html += '<i class="bx ' + iconCls + ' exp-receipt-preview-btn flex-shrink-0 profile-attach-icon-sm" data-enc="' + encUrl + '" data-ftype="' + ftype + '" data-fname="' + safeName + '"></i>';
+            html += '<span class="text-truncate exp-receipt-preview-btn receipt-attach-name" data-enc="' + encUrl + '" data-ftype="' + ftype + '" data-fname="' + safeName + '" title="' + safeName + '">' + safeName + '</span>';
             html += '</div></td>';
-            html += '<td class="text-end" style="font-size:.78rem;color:#6c757d;">' + (_docFormatSize(a.FileSize) || '—') + '</td>';
+            html += '<td class="text-end doc-meta-cell">' + (_docFormatSize(a.FileSize) || '—') + '</td>';
             html += '<td class="text-center"><button type="button" class="btn btn-icon btn-sm text-danger exp-receipt-delete-btn" data-uid="' + a.AttachUID + '" title="Delete"><i class="bx bx-trash"></i></button></td>';
             html += '</tr>';
         });
@@ -2839,14 +2789,14 @@ $(function () {
             var iconCls  = _docFileIcon(f.type, f.name);
             var safeName = $('<s>').text(f.name).html();
             $wrap.append(
-                '<div class="d-flex align-items-center gap-2 border rounded px-2 py-1 mb-1 bg-light" style="font-size:.8rem;">' +
-                '<i class="bx ' + iconCls + ' flex-shrink-0" style="font-size:1.1rem;"></i>' +
-                '<div style="flex:1;min-width:0;">' +
+                '<div class="d-flex align-items-center gap-2 border rounded px-2 py-1 mb-1 bg-light queue-item-text">' +
+                '<i class="bx ' + iconCls + ' flex-shrink-0 queue-item-icon-sm"></i>' +
+                '<div class="queue-item-info">' +
                 '<div class="text-truncate fw-medium">' + safeName + '</div>' +
-                '<div style="font-size:.7rem;color:#a4afc5;">' + (_docFormatSize(f.size) || '') + '</div>' +
+                '<div class="queue-item-size">' + (_docFormatSize(f.size) || '') + '</div>' +
                 '</div>' +
-                '<span class="badge bg-label-warning" style="font-size:.68rem;">New</span>' +
-                '<button type="button" class="btn btn-icon btn-sm text-muted exp-pending-remove ms-1" data-idx="' + idx + '" style="width:18px;height:18px;padding:0;"><i class="bx bx-x" style="font-size:.9rem;"></i></button>' +
+                '<span class="badge bg-label-warning profile-badge-xs">New</span>' +
+                '<button type="button" class="btn btn-icon btn-sm text-muted exp-pending-remove ms-1 queue-item-remove" data-idx="' + idx + '"><i class="bx bx-x queue-item-remove-icon"></i></button>' +
                 '</div>'
             );
         });
@@ -2926,7 +2876,7 @@ $(function () {
     function _renderExpenseTable(data) {
         _expList = data || [];
         if (!_expList.length) {
-            $('#expTableBody').html('<tr><td colspan="6" class="text-center text-muted py-5"><i class="bx bx-receipt d-block mx-auto mb-2" style="font-size:2.5rem;color:#c0c9d5;"></i><span style="font-size:.88rem;">No expense records yet. Click <strong>Add Expense</strong> to get started.</span></td></tr>');
+            $('#expTableBody').html('<tr><td colspan="6" class="text-center text-muted py-5"><i class="bx bx-receipt d-block mx-auto mb-2 empty-state-icon-color"></i><span class="empty-state-text-lg">No expense records yet. Click <strong>Add Expense</strong> to get started.</span></td></tr>');
             return;
         }
         var html = '';
@@ -2934,11 +2884,11 @@ $(function () {
             var _pDec = (typeof decimalPlaces !== 'undefined') ? decimalPlaces : 2;
             var amt = r.Amount ? (typeof currencySymbol !== 'undefined' ? currencySymbol : '₹') + ' ' + parseFloat(r.Amount).toLocaleString('en-IN', { minimumFractionDigits: _pDec, maximumFractionDigits: _pDec }) : '—';
             html += '<tr>';
-            html += '<td style="white-space:nowrap;">' + _fmtExpDate(r.ExpenseDate) + '</td>';
+            html += '<td class="col-nowrap">' + _fmtExpDate(r.ExpenseDate) + '</td>';
             html += '<td>' + (r.ReimbursementType || '—') + '</td>';
             html += '<td>' + (r.Category || '—') + '</td>';
             html += '<td>' + (r.Merchant || '—') + '</td>';
-            html += '<td class="text-end" style="white-space:nowrap;">' + amt + '</td>';
+            html += '<td class="text-end col-nowrap">' + amt + '</td>';
             html += '<td class="text-center"><div class="d-flex gap-1 justify-content-center">';
             html += '<button type="button" class="btn btn-icon btn-sm text-warning editExpBtn" data-uid="' + r.ExpenseUID + '" title="Edit"><i class="bx bx-edit"></i></button>';
             html += '<button type="button" class="btn btn-icon btn-sm text-danger delExpBtn" data-uid="' + r.ExpenseUID + '" title="Delete"><i class="bx bx-trash"></i></button>';

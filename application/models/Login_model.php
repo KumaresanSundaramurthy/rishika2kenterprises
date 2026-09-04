@@ -55,8 +55,8 @@ class Login_model extends CI_Model {
             $JwtOrgData['StateCode']    = $UserData->OrgStateCode    ?? '';
             $JwtOrgData['StateName']    = $UserData->OrgStateName    ?? '';
 
-            $MainModule = $this->getRoleMainMenus($UserData->UserRoleUID)->Data;
-            $SubModule  = $this->getRoleSubMenus($UserData->UserRoleUID)->Data;
+            $MainModule = $this->getRoleMainMenus($UserData->UserRoleUID, $UserData->UserOrgUID)->Data;
+            $SubModule  = $this->getRoleSubMenus($UserData->UserRoleUID, $UserData->UserOrgUID)->Data;
 
             // Organisation Settings
             $GeneralSettings = $this->getOrgGeneralSettings($UserData->UserOrgUID)->Data[0];
@@ -161,10 +161,19 @@ class Login_model extends CI_Model {
     }
 
     // â”€â”€ Role-based menu queries â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    public function getRoleMainMenus(int $RoleUID): object {
+    public function getRoleMainMenus(int $RoleUID, int $OrgUID = 0): object {
 
         $this->EndReturnData = new stdClass();
         try {
+
+            $cacheKey    = 'r2k-role-menus-' . $OrgUID . '-' . $RoleUID;
+            $cacheResult = $this->redisservice->getCache($cacheKey);
+            if (!$cacheResult->Error && $cacheResult->Value !== null) {
+                $this->EndReturnData->Error   = FALSE;
+                $this->EndReturnData->Message = 'Success';
+                $this->EndReturnData->Data    = $cacheResult->Value;
+                return $this->EndReturnData;
+            }
 
             $this->ReadDb->select('RMM.RoleMainMenuUID, RMM.MainMenuUID, MainMenu.Name as MainMenuName, MainMenu.Icon as MainMenuIcons, MainMenu.IsDirectLink, MainMenu.DirectUrl, RMM.Sorting, RMM.CanView, RMM.CanCreate, RMM.CanEdit, RMM.CanDelete');
             $this->ReadDb->from('UserRole.RoleMainMenusTbl as RMM');
@@ -174,11 +183,13 @@ class Login_model extends CI_Model {
             $this->ReadDb->where('RMM.IsDeleted', 0);
             $this->ReadDb->where('RMM.CanView', 1);
             $this->ReadDb->order_by('RMM.Sorting', 'ASC');
-            $query = $this->ReadDb->get();
+            $result = $this->ReadDb->get()->result();
+
+            $this->redisservice->setCache($cacheKey, $result, 86400);
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Success';
-            $this->EndReturnData->Data    = $query->result();
+            $this->EndReturnData->Data    = $result;
 
             return $this->EndReturnData;
 
@@ -192,10 +203,19 @@ class Login_model extends CI_Model {
 
     }
 
-    public function getRoleSubMenus(int $RoleUID): object {
+    public function getRoleSubMenus(int $RoleUID, int $OrgUID = 0): object {
 
         $this->EndReturnData = new stdClass();
         try {
+
+            $cacheKey    = 'r2k-role-submenus-' . $OrgUID . '-' . $RoleUID;
+            $cacheResult = $this->redisservice->getCache($cacheKey);
+            if (!$cacheResult->Error && $cacheResult->Value !== null) {
+                $this->EndReturnData->Error   = FALSE;
+                $this->EndReturnData->Message = 'Success';
+                $this->EndReturnData->Data    = $cacheResult->Value;
+                return $this->EndReturnData;
+            }
 
             $this->ReadDb->select("RSM.RoleSubMenuUID, Sub.MainMenuUID, RSM.SubMenuUID, Sub.Name as SubMenuName, Sub.UrlPath, Sub.ParentSubMenuUID, Sub.IsParent, Sub.Icon as SubMenuIcon, COALESCE(Mod.ControllerName, '') as ControllerName, RSM.Sorting, RSM.CanView, RSM.CanCreate, RSM.CanEdit, RSM.CanDelete");
             $this->ReadDb->from('UserRole.RoleSubMenusTbl as RSM');
@@ -206,11 +226,13 @@ class Login_model extends CI_Model {
             $this->ReadDb->where('RSM.IsDeleted', 0);
             $this->ReadDb->where('RSM.CanView', 1);
             $this->ReadDb->order_by('RSM.Sorting', 'ASC');
-            $query = $this->ReadDb->get();
+            $result = $this->ReadDb->get()->result();
+
+            $this->redisservice->setCache($cacheKey, $result, 86400);
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Success';
-            $this->EndReturnData->Data    = $query->result();
+            $this->EndReturnData->Data    = $result;
 
             return $this->EndReturnData;
 
@@ -318,22 +340,33 @@ class Login_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
+            $cacheKey    = 'r2k-org-modules-' . $OrgUID;
+            $cacheResult = $this->redisservice->getCache($cacheKey);
+            if (!$cacheResult->Error && $cacheResult->Value !== null) {
+                $this->EndReturnData->Error   = FALSE;
+                $this->EndReturnData->Message = 'Success';
+                $this->EndReturnData->Data    = $cacheResult->Value;
+                return $this->EndReturnData;
+            }
+
             $this->ReadDb->select('Module.ModuleUID as ModuleUID, Module.Name as Name, Module.DisplayName as DisplayName, Module.Description as Description, Module.Icon as Icon, Module.IconBg as IconBg, Module.IconColor as IconColor, Module.OrgUID as OrgUID, Module.ControllerName as ControllerName, Module.DatabaseName as DatabaseName, Module.MasterTableName as MasterTableName, Module.ParentModuleUID as ParentModuleUID, Module.IsMainModule as IsMainModule, Module.IsModuleEnabled as IsModuleEnabled, Module.EditOnPage as EditOnPage');
             $this->ReadDb->from('Modules.ModuleTbl as Module');
             $this->ReadDb->where('Module.OrgUID', $OrgUID);
             $this->ReadDb->where('Module.IsDeleted', 0);
             $this->ReadDb->where('Module.IsActive', 1);
-            $query = $this->ReadDb->get();
+            $result = $this->ReadDb->get()->result();
 
-            $this->EndReturnData->Error = FALSE;
+            $this->redisservice->setCache($cacheKey, $result, 86400);
+
+            $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Success';
-            $this->EndReturnData->Data = $query->result();
+            $this->EndReturnData->Data    = $result;
 
             return $this->EndReturnData;
 
         } catch(Exception $e) {
 
-            $this->EndReturnData->Error = TRUE;
+            $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
 
@@ -424,6 +457,12 @@ class Login_model extends CI_Model {
 
     private function getAttachCfg(): array {
         try {
+            $cacheKey    = 'r2k-global-attach-cfg';
+            $cacheResult = $this->redisservice->getCache($cacheKey);
+            if (!$cacheResult->Error && $cacheResult->Value !== null) {
+                return (array)$cacheResult->Value;
+            }
+
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('SlotKey, IsEnabled, MaxFiles, MaxFileSizeMB, MaxTotalSizeMB, AllowMultiple, AcceptedTypes');
             $this->ReadDb->from('Modules.ModuleAttachmentCfgTbl');
@@ -440,6 +479,8 @@ class Login_model extends CI_Model {
                     'AcceptedTypes'  => $row->AcceptedTypes,
                 ];
             }
+
+            $this->redisservice->setCache($cacheKey, $cfg, 86400);
             return $cfg;
         } catch (Exception $e) {
             notifyError($e, 'Login_model::getAttachCfg');

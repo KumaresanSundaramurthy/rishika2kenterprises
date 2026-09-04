@@ -94,6 +94,8 @@ $route['auth/refreshTokens']      = 'auth/refreshTokens';
 $route['launch/sendEnquiry'] = 'launch/sendEnquiry';
 
 // Forgot / Reset password (public)
+$route['login/validate-username']   = 'login/validateUsername';
+$route['login/clear-pending']       = 'login/clearPendingSession';
 $route['forgot-password']          = 'login/forgotPassword';
 $route['forgot-password/send']     = 'login/sendResetLink';
 $route['reset-password/update']    = 'login/doForgotReset';
@@ -230,6 +232,8 @@ $route['settings/branches/getPageDetails']           = 'branches/getPageDetails'
 $route['settings/branches/save']                     = 'branches/save';
 $route['settings/branches/delete']                   = 'branches/delete';
 $route['settings/branches/getList']                  = 'branches/getList';
+$route['settings/branches/setHeadOffice']             = 'branches/setHeadOffice';
+$route['settings/branches/toggleStatus']              = 'branches/toggleStatus';
 
 // Roles
 $route['settings/roles']                         = 'roles/index';
@@ -486,6 +490,12 @@ $route['inventory/exportTimeline']               = 'inventory/exportTimeline';
 $route['inventory/updateAdj']                    = 'inventory/updateAdj';
 $route['inventory/deleteAdj']                    = 'inventory/deleteAdj';
 $route['inventory/updateLedgerRemarks']          = 'inventory/updateLedgerRemarks';
+$route['inventory/serials']                      = 'inventory/serialsPage';
+$route['inventory/serials/getPageDetails']       = 'inventory/getSerialsPageDetails';
+$route['inventory/serials/getPageDetails/(:num)']= 'inventory/getSerialsPageDetails/$1';
+$route['inventory/serials/add']                  = 'inventory/addSerial';
+$route['inventory/serials/updateStatus']         = 'inventory/updateSerialStatus';
+$route['inventory/serials/searchProducts']       = 'inventory/searchSerialProducts';
 
 // Purchase Price List
 $route['purchasepricelist']                              = 'purchasepricelist/index';

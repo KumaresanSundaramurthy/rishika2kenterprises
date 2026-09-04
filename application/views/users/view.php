@@ -19,63 +19,64 @@ $stats = $StaffStats ?? null;
                     'pageTitle'       => $PageTitle ?? 'Staff',
                     'pageDescription' => $PageDescription ?? '',
                 ]); ?>
-                <div class="container-xxl flex-grow-1 container-p-y pt-2">
+                <div class="container-xxl flex-grow-1">
 
-                    <!-- ── Stat Cards ── -->
-                    <div class="row g-3 mb-3">
-                        <div class="col-6 col-md-3 col-lg">
-                            <div class="trans-stat-card stat-all staff-stat-tab" data-filter-status="All" style="cursor:pointer;">
-                                <div class="trans-stat-label">Total Staff</div>
-                                <div class="trans-stat-count" id="statTotal"><?php echo number_format((int)($stats->Total ?? 0)); ?></div>
-                                <div class="trans-stat-amount">&nbsp;</div>
-                                <i class="bx bx-group trans-stat-icon"></i>
+                    <?php if ($JwtData->GenSettings->ShowStats ?? 1): ?>
+                    <!-- ── Stats Strip ── -->
+                    <div class="apex-stats-strip">
+                        <a href="javascript:void(0);" class="apex-stat-item active" data-filter-status="All" style="--stat-color:#0ea5e9">
+                            <div class="apex-stat-icon" style="background:#e0f2fe"><i class="bx bxs-group" style="color:#0ea5e9"></i></div>
+                            <div class="apex-stat-body">
+                                <div class="apex-stat-label">Total Staff</div>
+                                <div class="apex-stat-bottom"><span class="apex-stat-count" id="statTotal"><?php echo number_format((int)($stats->Total ?? 0)); ?></span></div>
                             </div>
-                        </div>
-                        <div class="col-6 col-md-3 col-lg">
-                            <div class="trans-stat-card stat-active staff-stat-tab" data-filter-status="Active" style="cursor:pointer;">
-                                <div class="trans-stat-label">Active</div>
-                                <div class="trans-stat-count" id="statActive"><?php echo number_format((int)($stats->Active ?? 0)); ?></div>
-                                <div class="trans-stat-amount">&nbsp;</div>
-                                <i class="bx bx-check-circle trans-stat-icon"></i>
+                        </a>
+                        <a href="javascript:void(0);" class="apex-stat-item" data-filter-status="Active" style="--stat-color:#16a34a">
+                            <div class="apex-stat-icon" style="background:#dcfce7"><i class="bx bx-check-circle" style="color:#16a34a"></i></div>
+                            <div class="apex-stat-body">
+                                <div class="apex-stat-label">Active</div>
+                                <div class="apex-stat-bottom"><span class="apex-stat-count" id="statActive"><?php echo number_format((int)($stats->Active ?? 0)); ?></span></div>
                             </div>
-                        </div>
-                        <div class="col-6 col-md-3 col-lg">
-                            <div class="trans-stat-card stat-draft staff-stat-tab" data-filter-status="Resigned" style="cursor:pointer;">
-                                <div class="trans-stat-label">Resigned</div>
-                                <div class="trans-stat-count" id="statResigned"><?php echo number_format((int)($stats->Resigned ?? 0)); ?></div>
-                                <div class="trans-stat-amount">&nbsp;</div>
-                                <i class="bx bx-log-out trans-stat-icon"></i>
+                        </a>
+                        <a href="javascript:void(0);" class="apex-stat-item" data-filter-status="Resigned" style="--stat-color:#f59e0b">
+                            <div class="apex-stat-icon" style="background:#fef3c7"><i class="bx bx-log-out" style="color:#f59e0b"></i></div>
+                            <div class="apex-stat-body">
+                                <div class="apex-stat-label">Resigned</div>
+                                <div class="apex-stat-bottom"><span class="apex-stat-count" id="statResigned"><?php echo number_format((int)($stats->Resigned ?? 0)); ?></span></div>
                             </div>
-                        </div>
-                        <div class="col-6 col-md-3 col-lg">
-                            <div class="trans-stat-card stat-converted staff-stat-tab" data-filter-status="Terminated" style="cursor:pointer;">
-                                <div class="trans-stat-label">Terminated</div>
-                                <div class="trans-stat-count" id="statTerminated"><?php echo number_format((int)($stats->Terminated ?? 0)); ?></div>
-                                <div class="trans-stat-amount">&nbsp;</div>
-                                <i class="bx bx-x-circle trans-stat-icon"></i>
+                        </a>
+                        <a href="javascript:void(0);" class="apex-stat-item" data-filter-status="Terminated" style="--stat-color:#dc2626">
+                            <div class="apex-stat-icon" style="background:#fee2e2"><i class="bx bx-x-circle" style="color:#dc2626"></i></div>
+                            <div class="apex-stat-body">
+                                <div class="apex-stat-label">Terminated</div>
+                                <div class="apex-stat-bottom"><span class="apex-stat-count" id="statTerminated"><?php echo number_format((int)($stats->Terminated ?? 0)); ?></span></div>
                             </div>
-                        </div>
-                        <div class="col-6 col-md-3 col-lg">
-                            <div class="trans-stat-card staff-stat-tab" data-filter-login="1" style="cursor:pointer; border-color:rgba(124,58,237,.2);">
-                                <div class="trans-stat-label">Login Users</div>
-                                <div class="trans-stat-count" id="statLogin" style="color:#7c3aed;"><?php echo number_format((int)($stats->LoginUsers ?? 0)); ?></div>
-                                <div class="trans-stat-amount">&nbsp;</div>
-                                <i class="bx bx-log-in-circle trans-stat-icon" style="color:rgba(124,58,237,.15);"></i>
+                        </a>
+                        <a href="javascript:void(0);" class="apex-stat-item" data-filter-login="1" style="--stat-color:#7c3aed">
+                            <div class="apex-stat-icon" style="background:#ede9fe"><i class="bx bx-log-in-circle" style="color:#7c3aed"></i></div>
+                            <div class="apex-stat-body">
+                                <div class="apex-stat-label">Login Users</div>
+                                <div class="apex-stat-bottom"><span class="apex-stat-count" id="statLogin"><?php echo number_format((int)($stats->LoginUsers ?? 0)); ?></span></div>
                             </div>
-                        </div>
+                        </a>
                     </div>
+                    <?php endif; ?>
 
                     <!-- ── Main Card ── -->
                     <div class="card">
 
                         <!-- Toolbar -->
                         <div class="trans-toolbar">
+                            <?php
+                                $initStatus  = $InitStatus ?? 'All';
+                                $allCount    = (int)($ModAllCount ?? 0);
+                            ?>
                             <ul class="nav trans-status-tabs gap-1" role="tablist">
-                                <li class="nav-item"><a class="nav-link active staff-status-tab" data-status="All"        href="javascript:void(0);">All        <span class="trans-tab-count ms-1"><?php echo $ModAllCount; ?></span></a></li>
-                                <li class="nav-item"><a class="nav-link staff-status-tab"        data-status="Active"     href="javascript:void(0);">Active</a></li>
-                                <li class="nav-item"><a class="nav-link staff-status-tab"        data-status="Resigned"   href="javascript:void(0);">Resigned</a></li>
-                                <li class="nav-item"><a class="nav-link staff-status-tab"        data-status="Terminated" href="javascript:void(0);">Terminated</a></li>
-                                <li class="nav-item"><a class="nav-link staff-status-tab"        data-status="OnLeave"    href="javascript:void(0);">On Leave</a></li>
+                                <li class="nav-item"><a class="nav-link<?php echo $initStatus === 'All'        ? ' active' : ''; ?> staff-status-tab" data-status="All"        href="javascript:void(0);">All        <span class="trans-tab-count ms-1<?php echo ($initStatus === 'All' && $allCount > 0) ? '' : ' d-none'; ?>"><?php echo $initStatus === 'All' ? $allCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link<?php echo $initStatus === 'Active'     ? ' active' : ''; ?> staff-status-tab" data-status="Active"     href="javascript:void(0);">Active     <span class="trans-tab-count ms-1 d-none"></span></a></li>
+                                <li class="nav-item"><a class="nav-link<?php echo $initStatus === 'Resigned'   ? ' active' : ''; ?> staff-status-tab" data-status="Resigned"   href="javascript:void(0);">Resigned   <span class="trans-tab-count ms-1 d-none"></span></a></li>
+                                <li class="nav-item"><a class="nav-link<?php echo $initStatus === 'Terminated' ? ' active' : ''; ?> staff-status-tab" data-status="Terminated" href="javascript:void(0);">Terminated <span class="trans-tab-count ms-1 d-none"></span></a></li>
+                                <li class="nav-item"><a class="nav-link<?php echo $initStatus === 'OnLeave'    ? ' active' : ''; ?> staff-status-tab" data-status="OnLeave"    href="javascript:void(0);">On Leave   <span class="trans-tab-count ms-1 d-none"></span></a></li>
                             </ul>
 
                             <div class="d-flex align-items-center gap-2">
@@ -134,9 +135,9 @@ $stats = $StaffStats ?? null;
             </div>
 
             <?php $this->load->view('common/settings_modal'); ?>
-            <?php $this->load->view('common/footer_desc'); ?>
             <?php $this->load->view('users/modals/user'); ?>
             <?php $this->load->view('common/form/address_form'); ?>
+            <?php $this->load->view('common/footer_desc'); ?>
 
         </div>
     </div>
@@ -145,6 +146,7 @@ $stats = $StaffStats ?? null;
 <?php $this->load->view('common/footer'); ?>
 
 <script src="/js/common/address.js"></script>
+<script src="/js/common/phone_cc_dropdown.js"></script>
 <script>
 var CsrfName        = '<?php echo $this->security->get_csrf_token_name(); ?>';
 var CsrfToken       = '<?php echo $this->security->get_csrf_hash(); ?>';
@@ -154,6 +156,16 @@ var Filter          = { EmpStatus: 'All' };
 var OrgCountryISO2  = <?php echo json_encode($JwtData->Org->OrgCISO2 ?? 'IN'); ?>;
 var NextEmpCode     = <?php echo json_encode($NextEmpCode ?? 'EMP-0001'); ?>;
 var CanSeeSalary    = <?php echo ($CanSeeSalary ?? false) ? 'true' : 'false'; ?>;
+var _usersInitStatus = <?php echo json_encode($InitStatus ?? 'All'); ?>;
+
+var _umCCCfg = {
+    btn      : '#UM_MobileCCBtn',
+    dropdown : '#UM_CCDropdown',
+    search   : '#UM_CCSearch',
+    list     : '#UM_CCList',
+    codeInput: '#UM_CountryCode',
+    iso2Input: '#UM_CountryISO2'
+};
 
 var _origOpenAddressModal = openAddressModal;
 openAddressModal = function (addrType) {
@@ -163,6 +175,39 @@ openAddressModal = function (addrType) {
 
 $(function () {
     'use strict';
+
+    PhoneCCDropdown.init(_umCCCfg);
+
+    // ── Date of Joining picker ─────────────────────────────────────────
+    flatpickr('#UserDOJ', {
+        dateFormat   : 'Y-m-d',
+        altInput     : true,
+        altFormat    : _transFormDateFormat,
+        allowInput   : false,
+        disableMobile: true,
+        static       : true,
+        position     : 'below left',
+    });
+
+    // ── URL state helper ───────────────────────────────────────────────
+    function _updateUrl(status) {
+        var slug = (status || 'All').toLowerCase().replace(' ', '');
+        var qs   = slug === 'all' ? window.location.pathname : window.location.pathname + '?status=' + slug;
+        history.replaceState(null, '', qs);
+    }
+
+    // ── Restore initial tab from URL ───────────────────────────────────
+    (function () {
+        var s = _usersInitStatus || 'All';
+        if (s !== 'All') {
+            Filter.EmpStatus = s;
+            $('.staff-status-tab').removeClass('active');
+            $('.staff-status-tab[data-status="' + s + '"]').addClass('active');
+            $('.apex-stat-item').removeClass('active');
+            $('.apex-stat-item[data-filter-status="' + s + '"]').addClass('active');
+            _loadStaff();
+        }
+    }());
 
     // ── Stats update ───────────────────────────────────────────────────
     function _updateStats(s) {
@@ -174,11 +219,15 @@ $(function () {
         $('#statLogin').text(s.LoginUsers || 0);
     }
 
+    function _syncSticky() {}
+
     // ── List refresh ───────────────────────────────────────────────────
     function _renderList(resp) {
         $('#staffTable tbody').html(resp.RecordHtmlData);
         $('.staffPagination').html(resp.Pagination);
-        $('.staff-status-tab.active .trans-tab-count').text(resp.TotalCount > 0 ? resp.TotalCount : '');
+        $('.staff-status-tab .trans-tab-count').text('').addClass('d-none');
+        var $badge = $('.staff-status-tab.active .trans-tab-count');
+        if (resp.TotalCount > 0) { $badge.text(resp.TotalCount).removeClass('d-none'); }
         if (resp.Stats) _updateStats(resp.Stats);
         _syncSticky();
     }
@@ -199,17 +248,24 @@ $(function () {
     // ── Status tabs ────────────────────────────────────────────────────
     $(document).on('click', '.staff-status-tab', function (e) {
         e.preventDefault();
+        var status = $(this).data('status') || 'All';
         $('.staff-status-tab').removeClass('active');
         $(this).addClass('active');
-        Filter.EmpStatus = $(this).data('status') || 'All';
+        // Sync active state on the stats strip
+        $('.apex-stat-item').removeClass('active');
+        $('.apex-stat-item[data-filter-status="' + status + '"]').addClass('active');
+        Filter.EmpStatus = status;
         delete Filter.LoginAccess;
+        _updateUrl(status);
         PageNo = 1; _loadStaff();
     });
 
     // ── Stat card click ────────────────────────────────────────────────
-    $(document).on('click', '.staff-stat-tab', function () {
+    $(document).on('click', '.apex-stat-item', function () {
         var status = $(this).data('filter-status');
         var login  = $(this).data('filter-login');
+        $('.apex-stat-item').removeClass('active');
+        $(this).addClass('active');
         Filter = { EmpStatus: 'All' };
         if (status && status !== 'All') Filter.EmpStatus = status;
         if (login !== undefined)        { Filter.LoginAccess = login; Filter.EmpStatus = 'All'; }
@@ -217,6 +273,7 @@ $(function () {
         if (status) {
             $('.staff-status-tab[data-status="' + (status || 'All') + '"]').addClass('active');
         }
+        _updateUrl(login !== undefined ? 'All' : (status || 'All'));
         PageNo = 1; _loadStaff();
     });
 
@@ -279,8 +336,9 @@ $(function () {
         $m.find('input[type=text], input[type=email], input[type=number]').val('');
         $('#UserModalUID').val(0);
         // Personal
-        $('#UserCountryCode').val('+91');
-        $('#UserCountryISO2').val('IN');
+        $('#UM_MobileCCBtn').text('+91');
+        $('#UM_CountryCode').val('+91');
+        $('#UM_CountryISO2').val('IN');
         // Employment
         $('#UserEmpCode').val(NextEmpCode);
         $('#UserDeptUID').val('');
@@ -312,11 +370,8 @@ $(function () {
         $('#userAttachFile').val('');
         $('#userAttachFileName').text('No file chosen');
         $('#btnUploadAttach').addClass('d-none');
-        // Branch access — clear all selections
+        // Branch access — clear selection
         $('.branch-access-chk').prop('checked', false);
-        $('.branch-default-wrap').addClass('d-none');
-        $('.branch-default-badge').addClass('d-none');
-        $('.branch-set-default').removeClass('d-none');
         // Go to first tab
         $('#staffFormTabs a[data-bs-target="#tabPersonal"]').tab('show');
     }
@@ -353,8 +408,10 @@ $(function () {
                 $('#UserLastName').val(d.LastName     || '');
                 $('#UserEmail').val(d.EmailAddress    || '');
                 $('#UserMobile').val(d.MobileNumber   || '');
-                $('#UserCountryCode').val(d.CountryCode || '+91');
-                $('#UserCountryISO2').val(d.CountryISO2 || 'IN');
+                var _cc = d.CountryCode || '+91';
+                $('#UM_MobileCCBtn').text(_cc);
+                $('#UM_CountryCode').val(_cc);
+                $('#UM_CountryISO2').val(d.CountryISO2 || 'IN');
 
                 // Employment
                 $('#UserEmpCode').val(d.EmployeeCode  || '');
@@ -404,18 +461,11 @@ $(function () {
                 $('#attachTabNavItem').removeClass('d-none');
                 _renderUserAttachments(resp.Attachments || []);
 
-                // Branch access — check assigned branches
-                (resp.BranchAccess || []).forEach(function(ba) {
-                    var $chk = $('#branchChk_' + parseInt(ba.BranchUID));
-                    if (!$chk.length) return;
-                    $chk.prop('checked', true);
-                    var $row = $chk.closest('.branch-access-row');
-                    $row.find('.branch-default-wrap').removeClass('d-none');
-                    if (parseInt(ba.IsDefault) === 1) {
-                        $row.find('.branch-default-badge').removeClass('d-none');
-                        $row.find('.branch-set-default').addClass('d-none');
-                    }
-                });
+                // Branch access — select the default (or first assigned) branch
+                var _baList = resp.BranchAccess || [];
+                var _defBranch = _baList.find(function(ba) { return parseInt(ba.IsDefault) === 1; })
+                               || _baList[0];
+                if (_defBranch) $('#branchChk_' + parseInt(_defBranch.BranchUID)).prop('checked', true);
 
                 $('#userModal').modal('show');
             }
@@ -425,26 +475,6 @@ $(function () {
     // ── Toggle login section visibility ────────────────────────────────
     $(document).on('change', '#UserHasLoginAccess', function () {
         $('#loginAccessSection').toggle($(this).is(':checked'));
-    });
-
-    // ── Branch access: show/hide default button on checkbox change ─────
-    $(document).on('change', '.branch-access-chk', function () {
-        var $row = $(this).closest('.branch-access-row');
-        if ($(this).is(':checked')) {
-            $row.find('.branch-default-wrap').removeClass('d-none');
-        } else {
-            $row.find('.branch-default-wrap').addClass('d-none');
-            $row.find('.branch-default-badge').addClass('d-none');
-            $row.find('.branch-set-default').removeClass('d-none');
-        }
-    });
-
-    // ── Branch access: set one branch as default ───────────────────────
-    $(document).on('click', '.branch-set-default', function () {
-        $('.branch-default-badge').addClass('d-none');
-        $('.branch-set-default').removeClass('d-none');
-        $(this).addClass('d-none');
-        $(this).closest('.branch-default-wrap').find('.branch-default-badge').removeClass('d-none');
     });
 
     // ── Save ───────────────────────────────────────────────────────────
@@ -458,8 +488,9 @@ $(function () {
         var roleUID  = $('#UserRoleUID').val();
 
         if (!firstName)                        { showToastNotification('First name is required.', 'error'); return; }
+        if (!email)                            { showToastNotification('Email address is required.', 'error'); return; }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToastNotification('Enter a valid email address.', 'error'); return; }
         if (hasLogin && !isEdit && !username)  { showToastNotification('Username is required for login access.', 'error'); return; }
-        if (hasLogin && !isEdit && !email)     { showToastNotification('Email is required for login access.', 'error'); return; }
         if (hasLogin && !roleUID)              { showToastNotification('Please select a role for login access.', 'error'); return; }
 
         var $btn = $(this).prop('disabled', true);
@@ -472,8 +503,8 @@ $(function () {
         fd.append('FirstName',        firstName);
         fd.append('LastName',         $.trim($('#UserLastName').val()));
         fd.append('Mobile',           $.trim($('#UserMobile').val()));
-        fd.append('CountryCode',      $.trim($('#UserCountryCode').val()) || '+91');
-        fd.append('CountryISO2',      $('#UserCountryISO2').val() || 'IN');
+        fd.append('CountryCode',      $('#UM_CountryCode').val() || '+91');
+        fd.append('CountryISO2',      $('#UM_CountryISO2').val() || 'IN');
         fd.append('Email',            email);
         // Employment
         fd.append('EmployeeCode',     $.trim($('#UserEmpCode').val()));
@@ -514,15 +545,10 @@ $(function () {
         if (typeof delAddrData !== 'undefined' && delAddrData.length > 0) {
             fd.append('DelAddrUIDs', delAddrData.join(','));
         }
-        // Branch access
+        // Branch access — radio so at most one selected; that branch is always default
         var branchAccess = [];
-        var hasDefaultBranch = false;
-        $('.branch-access-chk:checked').each(function() {
-            var isDef = $(this).closest('.branch-access-row').find('.branch-default-badge').not('.d-none').length > 0 ? 1 : 0;
-            if (isDef) hasDefaultBranch = true;
-            branchAccess.push({ BranchUID: parseInt($(this).val()), IsDefault: isDef });
-        });
-        if (branchAccess.length > 0 && !hasDefaultBranch) { branchAccess[0].IsDefault = 1; }
+        var $selBranch = $('.branch-access-chk:checked');
+        if ($selBranch.length) branchAccess.push({ BranchUID: parseInt($selBranch.val()), IsDefault: 1 });
         fd.append('BranchAccessJson', JSON.stringify(branchAccess));
         fd.append('Filter',   JSON.stringify(Filter));
         fd.append('RowLimit', RowLimit);
@@ -539,6 +565,7 @@ $(function () {
                 if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
                 _userIsDirty      = false;
                 _userIsCreateMode = false;
+                if (resp.NextEmpCode) NextEmpCode = resp.NextEmpCode;
                 $('#userModal').modal('hide');
                 _renderList(resp);
                 showToastNotification(resp.Message, 'success');

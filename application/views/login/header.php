@@ -6,7 +6,7 @@
 <head>
 
     <meta charset="utf-8">
-    <title>Sign In :: <?php echo getSiteConfiguration()->ShortName; ?></title>
+    <title>Sign In &#8212; <?php echo getSiteConfiguration()->ShortName; ?></title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link rel="shortcut icon" href="/images/logo/favicon_io/android-chrome-512x512-1.png" type="image/png">

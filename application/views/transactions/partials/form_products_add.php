@@ -122,7 +122,7 @@ $_showCompliment = !empty($transShowCompliment);
                         $preDec     = 8;
                         $preDispDec = (int)($JwtData->GenSettings->DecimalPoints   ?? 2);
                         $preQtyMax  = (int)($JwtData->GenSettings->QtyMaxLength    ?? 7);
-                        $prePrcMax = (int)($JwtData->GenSettings->PriceMaxLength  ?? 10);
+                        $prePrcMax = (int)($JwtData->GenSettings->PriceMaxLength  ?? 10) + 10;
                         $preShowDesc = !empty($JwtData->TransSettings->ShowProductDescription);
                         $preRowIdx   = 0;
                     ?>

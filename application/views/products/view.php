@@ -2347,7 +2347,7 @@ function _plAddTierRow($tbody, tierData) {
     var maxVal     = (t.MaxQty !== null && t.MaxQty !== undefined && t.MaxQty !== 0) ? t.MaxQty : '';
     var curSym     = $('<span>').text(_plCurSym).html();
     var dec        = (typeof JwtData !== 'undefined' && JwtData.GenSettings) ? 2 : 2;
-    var maxLen     = (typeof JwtData !== 'undefined' && JwtData.GenSettings) ? (parseInt(JwtData.GenSettings.PriceMaxLength, 10) || 15) : 15;
+    var maxLen     = (typeof JwtData !== 'undefined' && JwtData.GenSettings) ? (parseInt(JwtData.GenSettings.PriceMaxLength, 10) || 15) + 10 : 25;
 
     var priceCells = '';
     if (isSpecific || !types.length) {

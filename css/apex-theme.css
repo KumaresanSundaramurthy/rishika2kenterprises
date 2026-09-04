@@ -3246,3 +3246,30 @@ body.apex-help-open {
 :root[data-theme="dark"] .apex-help-tip span {
     color: #94a3b8;
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   Full-height modal — header fixed, body scrollable, no viewport gap
+   Usage: add .modal-fullheight to .modal-dialog
+   ══════════════════════════════════════════════════════════════════ */
+.modal-fullheight {
+    --bs-modal-margin: 0px;
+    height: 100%;
+}
+.modal-fullheight .modal-content {
+    height: 100%;
+    border-radius: 0;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Settings — Branches
+   ══════════════════════════════════════════════════════════════════ */
+.branch-addr-box {
+    cursor: pointer;
+    min-height: 58px;
+    display: flex;
+    align-items: center;
+    font-size: .875rem;
+    line-height: 1.4;
+    user-select: none;
+}
+.branch-code-hint { font-size: .72rem; }

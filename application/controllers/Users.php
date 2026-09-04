@@ -23,6 +23,11 @@ class Users extends MY_Controller {
             $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
             $limit   = $GeneralSettings->RowLimit ?? 10;
             $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
+
+            $statusSlugMap = ['all' => 'All', 'active' => 'Active', 'resigned' => 'Resigned', 'terminated' => 'Terminated', 'onleave' => 'OnLeave'];
+            $statusSlug    = strtolower(trim($this->input->get('status') ?: 'all'));
+            $initStatus    = $statusSlugMap[$statusSlug] ?? 'All';
+
             $filter  = ['EmpStatus' => 'All'];
 
             $allData      = $this->users_model->getUsersList($orgUID, $filter, $limit, 0);
@@ -46,6 +51,7 @@ class Users extends MY_Controller {
             $this->pageData['CanSeeSalary']    = $this->_canSeeSalary();
             $this->load->model('branches_model');
             $this->pageData['BranchesList'] = $this->branches_model->getBranchList($orgUID);
+            $this->pageData['InitStatus']   = $initStatus;
 
             $this->load->view('users/view', $this->pageData);
 
@@ -213,7 +219,12 @@ class Users extends MY_Controller {
             $isActive = (int)($this->input->post('IsActive') ?? 0);
             $JwtData  = $this->pageData['JwtData'];
 
-            if ($userUID <= 0) throw new Exception('Invalid user.');
+            if ($userUID <= 0) throw new ValidationException('Invalid user.');
+
+            $target = $this->users_model->getUserById($userUID, $JwtData->Org->OrgUID);
+            if ($target && ($target->RoleName ?? '') === 'Super Admin') {
+                throw new ValidationException('Super Admin account status cannot be changed.');
+            }
 
             $result = $this->dbwrite_model->updateData('Users', 'UserTbl',
                 ['IsActive' => $isActive, 'UpdatedBy' => $JwtData->User->UserUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
@@ -225,6 +236,9 @@ class Users extends MY_Controller {
             $this->EndReturnData->Message = 'Status updated successfully.';
             $this->_appendListResponse($JwtData->Org->OrgUID);
 
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Throwable $e) {
             notifyError('Users::toggleStatus', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -268,7 +282,10 @@ class Users extends MY_Controller {
             }
 
             // â”€â”€ HR / Employment fields â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-            $EmployeeCode   = trim($PostData['EmployeeCode']   ?? '');
+            // On create: generate atomically; on edit: keep whatever is stored
+            $EmployeeCode = ($UserUID === 0)
+                ? $this->users_model->claimNextEmployeeCode($orgUID)
+                : trim($PostData['EmployeeCode'] ?? '');
             $DepartmentUID  = !empty($PostData['DepartmentUID'])  ? (int)$PostData['DepartmentUID']  : NULL;
             $DesignationUID = !empty($PostData['DesignationUID']) ? (int)$PostData['DesignationUID'] : NULL;
             $DateOfJoining  = !empty($PostData['DateOfJoining'])  ? $PostData['DateOfJoining']       : NULL;
@@ -567,5 +584,6 @@ class Users extends MY_Controller {
         $this->EndReturnData->TotalCount     = $allCount;
         $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml('/settings/users/getPageDetails', $allCount, 1, $limit);
         $this->EndReturnData->Stats          = $this->users_model->getUserStats($orgUID);
+        $this->EndReturnData->NextEmpCode    = $this->users_model->getNextEmployeeCode($orgUID);
     }
 }

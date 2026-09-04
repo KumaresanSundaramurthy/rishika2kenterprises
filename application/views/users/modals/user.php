@@ -8,7 +8,7 @@ if (!isset($BranchesList))    { $BranchesList    = []; }
 ?>
 
 <div class="modal fade" id="userModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-scrollable modal-xl">
+    <div class="modal-dialog modal-dialog-scrollable modal-xl modal-fullheight">
         <div class="modal-content">
 
             <!-- Header -->
@@ -34,7 +34,7 @@ if (!isset($BranchesList))    { $BranchesList    = []; }
 
             <!-- Tabs -->
             <div class="border-bottom px-3 pt-2 bg-white">
-                <ul class="nav nav-tabs border-0 gap-1" id="staffFormTabs" role="tablist" style="font-size:.83rem;">
+                <ul class="nav nav-tabs border-0 gap-1" id="staffFormTabs" role="tablist">
                     <li class="nav-item">
                         <a class="nav-link active px-3 py-2" data-bs-toggle="tab" data-bs-target="#tabPersonal" href="#">
                             <i class="bx bx-user me-1"></i>Personal
@@ -80,55 +80,64 @@ if (!isset($BranchesList))    { $BranchesList    = []; }
                 <div class="tab-content">
 
                     <!-- ══ TAB 1: Personal Info ════════════════════════════════ -->
-                    <div class="tab-pane fade show active p-4" id="tabPersonal">
+                    <div class="tab-pane fade show active" id="tabPersonal">
                         <div class="row g-3">
 
                             <!-- First Name -->
                             <div class="col-md-4">
-                                <label class="form-label" style="font-size:.83rem;">First Name <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control form-control-sm" id="UserFirstName" maxlength="100" placeholder="First name" autocomplete="off">
+                                <label class="form-label">First Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="UserFirstName" maxlength="100" placeholder="First name" autocomplete="off">
                             </div>
 
                             <!-- Last Name -->
                             <div class="col-md-4">
-                                <label class="form-label" style="font-size:.83rem;">Last Name</label>
-                                <input type="text" class="form-control form-control-sm" id="UserLastName" maxlength="100" placeholder="Last name" autocomplete="off">
+                                <label class="form-label">Last Name</label>
+                                <input type="text" class="form-control" id="UserLastName" maxlength="100" placeholder="Last name" autocomplete="off">
                             </div>
 
                             <!-- Mobile -->
                             <div class="col-md-4">
-                                <label class="form-label" style="font-size:.83rem;">Mobile Number</label>
-                                <div class="input-group input-group-sm">
-                                    <input type="text" class="form-control" id="UserCountryCode" style="max-width:72px;" placeholder="+91" maxlength="6" value="+91">
+                                <label class="form-label">Mobile Number</label>
+                                <div class="input-group position-relative">
+                                    <button type="button" class="btn btn-outline-secondary fw-semibold flex-shrink-0 r2k-cc-btn"
+                                            id="UM_MobileCCBtn" tabindex="-1">+91</button>
+                                    <div id="UM_CCDropdown" class="r2k-cc-dropdown">
+                                        <div class="p-2 border-bottom">
+                                            <input type="text" class="form-control form-control-sm" id="UM_CCSearch"
+                                                   placeholder="Search country..." autocomplete="off">
+                                        </div>
+                                        <div id="UM_CCList" class="r2k-cc-list"></div>
+                                    </div>
+                                    <input type="hidden" id="UM_CountryCode" value="+91">
+                                    <input type="hidden" id="UM_CountryISO2" value="IN">
                                     <input type="text" class="form-control" id="UserMobile" maxlength="15" placeholder="98765 43210">
                                 </div>
-                                <input type="hidden" id="UserCountryISO2" value="IN">
                             </div>
 
                             <!-- Email -->
-                            <div class="col-md-6">
-                                <label class="form-label" style="font-size:.83rem;">Email Address</label>
-                                <input type="email" class="form-control form-control-sm" id="UserEmail" maxlength="200" placeholder="email@example.com" autocomplete="off">
+                            <div class="col-md-4">
+                                <label class="form-label">Email Address <span class="text-danger">*</span></label>
+                                <input type="email" class="form-control" id="UserEmail" maxlength="200" placeholder="email@example.com" autocomplete="off">
                             </div>
 
                         </div>
                     </div>
 
                     <!-- ══ TAB 2: Employment ═══════════════════════════════════ -->
-                    <div class="tab-pane fade p-4" id="tabEmployment">
+                    <div class="tab-pane fade" id="tabEmployment">
                         <div class="row g-3">
 
                             <!-- Employee Code -->
                             <div class="col-md-4">
-                                <label class="form-label" style="font-size:.83rem;">Employee Code</label>
-                                <input type="text" class="form-control form-control-sm" id="UserEmpCode" maxlength="50" placeholder="EMP-0001" autocomplete="off">
-                                <div class="form-text" style="font-size:.72rem;">Auto-generated. Can be changed.</div>
+                                <label class="form-label">Employee Code</label>
+                                <input type="text" class="form-control bg-light" id="UserEmpCode" maxlength="50" readonly>
+                                <div class="form-text">Auto-generated.</div>
                             </div>
 
                             <!-- Department -->
                             <div class="col-md-4">
-                                <label class="form-label" style="font-size:.83rem;">Department</label>
-                                <select class="form-select form-select-sm" id="UserDeptUID">
+                                <label class="form-label">Department</label>
+                                <select class="form-select" id="UserDeptUID">
                                     <option value="">— Select Department —</option>
                                     <?php foreach ($DepartmentList as $dept): ?>
                                     <option value="<?php echo (int)$dept->DepartmentUID; ?>"><?php echo htmlspecialchars($dept->DepartmentName); ?></option>
@@ -138,8 +147,8 @@ if (!isset($BranchesList))    { $BranchesList    = []; }
 
                             <!-- Designation -->
                             <div class="col-md-4">
-                                <label class="form-label" style="font-size:.83rem;">Designation</label>
-                                <select class="form-select form-select-sm" id="UserDesigUID">
+                                <label class="form-label">Designation</label>
+                                <select class="form-select" id="UserDesigUID">
                                     <option value="">— Select Designation —</option>
                                     <?php foreach ($DesignationList as $desig): ?>
                                     <option value="<?php echo (int)$desig->DesignationUID; ?>"><?php echo htmlspecialchars($desig->DesignationName); ?></option>
@@ -149,14 +158,14 @@ if (!isset($BranchesList))    { $BranchesList    = []; }
 
                             <!-- Date of Joining -->
                             <div class="col-md-4">
-                                <label class="form-label" style="font-size:.83rem;">Date of Joining</label>
-                                <input type="text" class="form-control form-control-sm flatpickr-date" id="UserDOJ" placeholder="Select date" autocomplete="off">
+                                <label class="form-label">Date of Joining</label>
+                                <input type="text" class="form-control flatpickr-date" id="UserDOJ" placeholder="Select date" autocomplete="off">
                             </div>
 
                             <!-- Employee Status -->
                             <div class="col-md-4">
-                                <label class="form-label" style="font-size:.83rem;">Employment Status</label>
-                                <select class="form-select form-select-sm" id="UserEmpStatus">
+                                <label class="form-label">Employment Status</label>
+                                <select class="form-select" id="UserEmpStatus">
                                     <option value="Active">Active</option>
                                     <option value="Resigned">Resigned</option>
                                     <option value="Terminated">Terminated</option>
@@ -169,13 +178,13 @@ if (!isset($BranchesList))    { $BranchesList    = []; }
 
                     <!-- ══ TAB 3: Salary (Admin only) ═════════════════════════ -->
                     <?php if ($CanSeeSalary): ?>
-                    <div class="tab-pane fade p-4" id="tabSalary">
+                    <div class="tab-pane fade" id="tabSalary">
                         <div class="row g-3">
 
                             <!-- Salary Type -->
                             <div class="col-md-4">
-                                <label class="form-label" style="font-size:.83rem;">Salary Type</label>
-                                <select class="form-select form-select-sm" id="UserSalaryType">
+                                <label class="form-label">Salary Type</label>
+                                <select class="form-select" id="UserSalaryType">
                                     <option value="Monthly">Monthly Salary</option>
                                     <option value="Daily">Daily Wage</option>
                                     <option value="Hourly">Hourly Wage</option>
@@ -184,8 +193,8 @@ if (!isset($BranchesList))    { $BranchesList    = []; }
 
                             <!-- Basic Salary -->
                             <div class="col-md-4">
-                                <label class="form-label" style="font-size:.83rem;" id="lblBasicSalary">Basic Salary</label>
-                                <div class="input-group input-group-sm">
+                                <label class="form-label" id="lblBasicSalary">Basic Salary</label>
+                                <div class="input-group">
                                     <span class="input-group-text">₹</span>
                                     <input type="number" class="form-control" id="UserBasicSalary" min="0" step="any" placeholder="0.00">
                                 </div>
@@ -193,8 +202,8 @@ if (!isset($BranchesList))    { $BranchesList    = []; }
 
                             <!-- Allowances -->
                             <div class="col-md-4">
-                                <label class="form-label" style="font-size:.83rem;">Allowances</label>
-                                <div class="input-group input-group-sm">
+                                <label class="form-label">Allowances</label>
+                                <div class="input-group">
                                     <span class="input-group-text">₹</span>
                                     <input type="number" class="form-control" id="UserAllowances" min="0" step="any" placeholder="0.00">
                                 </div>
@@ -202,8 +211,8 @@ if (!isset($BranchesList))    { $BranchesList    = []; }
 
                             <!-- Incentives -->
                             <div class="col-md-4">
-                                <label class="form-label" style="font-size:.83rem;">Incentives</label>
-                                <div class="input-group input-group-sm">
+                                <label class="form-label">Incentives</label>
+                                <div class="input-group">
                                     <span class="input-group-text">₹</span>
                                     <input type="number" class="form-control" id="UserIncentives" min="0" step="any" placeholder="0.00">
                                 </div>
@@ -211,12 +220,12 @@ if (!isset($BranchesList))    { $BranchesList    = []; }
 
                             <!-- Fixed Deductions -->
                             <div class="col-md-4">
-                                <label class="form-label" style="font-size:.83rem;">Fixed Deductions</label>
-                                <div class="input-group input-group-sm">
+                                <label class="form-label">Fixed Deductions</label>
+                                <div class="input-group">
                                     <span class="input-group-text">₹</span>
                                     <input type="number" class="form-control" id="UserFixedDeductions" min="0" step="any" placeholder="0.00">
                                 </div>
-                                <div class="form-text" style="font-size:.72rem;">Applied every payroll cycle.</div>
+                                <div class="form-text">Applied every payroll cycle.</div>
                             </div>
 
                             <!-- Gross summary hint -->
@@ -232,7 +241,7 @@ if (!isset($BranchesList))    { $BranchesList    = []; }
                     <?php endif; ?>
 
                     <!-- ══ TAB 4: Address ══════════════════════════════════════ -->
-                    <div class="tab-pane fade p-4" id="tabAddress">
+                    <div class="tab-pane fade" id="tabAddress">
                         <div class="row g-3">
                             <!-- Current Address -->
                             <div class="col-md-6">
@@ -269,7 +278,7 @@ if (!isset($BranchesList))    { $BranchesList    = []; }
                     </div>
 
                     <!-- ══ TAB 5: Login Access ═════════════════════════════════ -->
-                    <div class="tab-pane fade p-4" id="tabLogin">
+                    <div class="tab-pane fade" id="tabLogin">
 
                         <!-- Toggle -->
                         <div class="d-flex align-items-center gap-3 mb-4 p-3 rounded" style="background:#f8f7ff; border:1px solid rgba(124,58,237,.15);">
@@ -288,8 +297,8 @@ if (!isset($BranchesList))    { $BranchesList    = []; }
                             <!-- User Code (edit-only) -->
                             <div class="row g-3 mb-3 d-none" id="userCodeWrap">
                                 <div class="col-md-4">
-                                    <label class="form-label" style="font-size:.83rem;">User Code</label>
-                                    <input type="text" class="form-control form-control-sm bg-light" id="UserCodeDisplay" readonly placeholder="Auto-generated">
+                                    <label class="form-label">User Code</label>
+                                    <input type="text" class="form-control bg-light" id="UserCodeDisplay" readonly placeholder="Auto-generated">
                                 </div>
                             </div>
 
@@ -297,18 +306,18 @@ if (!isset($BranchesList))    { $BranchesList    = []; }
 
                                 <!-- Username -->
                                 <div class="col-md-6">
-                                    <label class="form-label" style="font-size:.83rem;">Username <span class="text-danger">*</span></label>
-                                    <div class="input-group input-group-sm">
+                                    <label class="form-label">Username <span class="text-danger">*</span></label>
+                                    <div class="input-group">
                                         <span class="input-group-text text-muted">@</span>
                                         <input type="text" class="form-control" id="UserUsername" maxlength="100" placeholder="e.g. john.doe" autocomplete="off">
                                     </div>
-                                    <div class="form-text" style="font-size:.72rem;">Cannot be changed after creation.</div>
+                                    <div class="form-text">Cannot be changed after creation.</div>
                                 </div>
 
                                 <!-- Role -->
                                 <div class="col-md-6">
-                                    <label class="form-label" style="font-size:.83rem;">Role <span class="text-danger">*</span></label>
-                                    <select class="form-select form-select-sm" id="UserRoleUID">
+                                    <label class="form-label">Role <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="UserRoleUID">
                                         <option value="">— Select Role —</option>
                                         <?php foreach ($RolesList as $role): ?>
                                         <?php if (strtolower(trim($role->Name)) === 'super admin') continue; ?>
@@ -321,7 +330,7 @@ if (!isset($BranchesList))    { $BranchesList    = []; }
                                 <div class="col-md-6">
                                     <div class="form-check form-switch mt-1">
                                         <input class="form-check-input" type="checkbox" id="UserIsActive" checked>
-                                        <label class="form-check-label" style="font-size:.83rem;" for="UserIsActive">Active Account</label>
+                                        <label class="form-check-label" for="UserIsActive">Active Account</label>
                                     </div>
                                     <div class="text-muted" style="font-size:.75rem;">Inactive users cannot log in.</div>
                                 </div>
@@ -330,7 +339,7 @@ if (!isset($BranchesList))    { $BranchesList    = []; }
                                 <div class="col-md-6 d-none" id="userLockedRow">
                                     <div class="form-check form-switch mt-1">
                                         <input class="form-check-input" type="checkbox" id="UserIsLocked">
-                                        <label class="form-check-label" style="font-size:.83rem;" for="UserIsLocked">
+                                        <label class="form-check-label" for="UserIsLocked">
                                             <span class="text-danger">Lock Account</span>
                                         </label>
                                     </div>
@@ -358,7 +367,7 @@ if (!isset($BranchesList))    { $BranchesList    = []; }
                     </div>
 
                     <!-- ══ TAB 6: Branch Access ══════════════════════════════ -->
-                    <div class="tab-pane fade p-4" id="tabBranchAccess">
+                    <div class="tab-pane fade" id="tabBranchAccess">
                         <?php if (empty($BranchesList)): ?>
                         <div class="text-muted text-center py-4" style="font-size:.83rem;">
                             <i class="bx bx-buildings me-1"></i>No active branches found. Add branches in <strong>Settings &gt; Branches</strong> first.
@@ -371,8 +380,9 @@ if (!isset($BranchesList))    { $BranchesList    = []; }
                             <?php foreach ($BranchesList as $b): ?>
                             <div class="d-flex align-items-center gap-3 py-2 border-bottom branch-access-row" data-branch-uid="<?php echo (int)$b->BranchUID; ?>">
                                 <div class="form-check mb-0">
-                                    <input class="form-check-input branch-access-chk" type="checkbox"
+                                    <input class="form-check-input branch-access-chk" type="radio"
                                            id="branchChk_<?php echo (int)$b->BranchUID; ?>"
+                                           name="branchAccessRadio"
                                            value="<?php echo (int)$b->BranchUID; ?>">
                                 </div>
                                 <div class="flex-grow-1">
@@ -384,12 +394,6 @@ if (!isset($BranchesList))    { $BranchesList    = []; }
                                 <?php if ($b->IsHeadOffice): ?>
                                 <span class="badge bg-label-primary" style="font-size:.7rem;">Head Office</span>
                                 <?php endif; ?>
-                                <div class="branch-default-wrap d-flex align-items-center gap-2 d-none">
-                                    <button type="button" class="btn btn-sm btn-outline-secondary branch-set-default py-0 px-2" style="font-size:.74rem;" data-branch-uid="<?php echo (int)$b->BranchUID; ?>">
-                                        Set Default
-                                    </button>
-                                    <span class="badge bg-success branch-default-badge d-none" style="font-size:.7rem;">Default</span>
-                                </div>
                             </div>
                             <?php endforeach; ?>
                         </div>
@@ -397,7 +401,7 @@ if (!isset($BranchesList))    { $BranchesList    = []; }
                     </div>
 
                     <!-- ══ TAB 7: Attachments ════════════════════════════════ -->
-                    <div class="tab-pane fade p-4" id="tabAttachments">
+                    <div class="tab-pane fade" id="tabAttachments">
 
                         <!-- Upload row -->
                         <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">

@@ -410,6 +410,26 @@
                                                     </div>
                                                 </div>
 
+                                                <!-- Security -->
+                                                <?php $gsTwoStep = !empty($gs->TwoStepLogin); ?>
+                                                <div class="border rounded p-3 mb-3">
+                                                    <div class="d-flex align-items-center gap-2 mb-3">
+                                                        <i class="bx bx-shield-alt-2 text-primary" style="font-size:1rem;"></i>
+                                                        <span class="fw-semibold" style="font-size:.82rem;">Login Security</span>
+                                                    </div>
+                                                    <div class="row g-3">
+                                                        <div class="col-md-6">
+                                                            <div class="form-check form-switch">
+                                                                <input class="form-check-input" type="checkbox" role="switch"
+                                                                       id="gs_TwoStepLogin" name="TwoStepLogin"
+                                                                       <?php echo $gsTwoStep ? 'checked' : ''; ?>>
+                                                                <label class="form-check-label fw-semibold" for="gs_TwoStepLogin">Enable Two-Step Login</label>
+                                                            </div>
+                                                            <div class="form-text ms-4 ps-2">When enabled, users enter their username first (validated server-side), then the password on a second screen — similar to Google or Microsoft login. Prevents password entry for non-existent accounts.</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
                                                 <hr class="my-3">
 
                                                 <!-- ══════════════════════════════════════════════════
@@ -1409,6 +1429,7 @@ RowLimit               : $('#gs_RowLimit').val(),
                 ShowStats              : $('#gs_ShowStats').is(':checked')          ? 1 : 0,
                 StatsDefaultOpen       : $('#gs_StatsDefaultOpen').is(':checked')   ? 1 : 0,
                 EnableAIAssistant      : $('#gs_EnableAIAssistant').is(':checked')  ? 1 : 0,
+                TwoStepLogin           : $('#gs_TwoStepLogin').is(':checked')       ? 1 : 0,
                 MaxShippingAddr        : $('#gs_MaxShippingAddr').val(),
                 QtyMaxLength           : $('#gs_QtyMaxLength').val(),
                 PriceMaxLength         : $('#gs_PriceMaxLength').val(),

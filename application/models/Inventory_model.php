@@ -564,6 +564,27 @@ class Inventory_model extends CI_Model {
 
     }
 
+    /**
+     * Search only serial-tracked products (for Add Serial modal).
+     * @param int    $orgUID
+     * @param string $term
+     * @return array
+     */
+    public function searchSerialProducts(int $orgUID, string $term = ''): array {
+
+        $this->ReadDb->db_debug = FALSE;
+        $this->ReadDb->select('p.ProductUID, p.ItemName');
+        $this->ReadDb->from('Products.ProductTbl p');
+        $this->ReadDb->where(['p.OrgUID' => (int)$orgUID, 'p.IsDeleted' => 0, 'p.IsActive' => 1, 'p.IsSerialTracked' => 1]);
+        if ($term) {
+            $this->ReadDb->like('p.ItemName', $this->ReadDb->escape_like_str($term), 'both');
+        }
+        $this->ReadDb->order_by('p.ItemName', 'ASC');
+        $this->ReadDb->limit(50);
+        return $this->ReadDb->get()->result();
+
+    }
+
     // ── Category list (for filter dropdown) ──────────────────────────────────
 
     public function getCategories(int $orgUID): array {
@@ -601,6 +622,165 @@ class Inventory_model extends CI_Model {
         $this->ReadDb->where(['LedgerUID' => (int)$ledgerUID, 'OrgUID' => (int)$orgUID, 'IsDeleted' => 0]);
         $query = $this->ReadDb->get();
         return $query->row();
+
+    }
+
+    // ── Serial number management ──────────────────────────────────────────────
+
+    /**
+     * @param int    $orgUID
+     * @param array  $filter  Keys: Status, search
+     * @param int    $limit
+     * @param int    $offset
+     * @return array
+     */
+    public function getSerialsList(int $orgUID, array $filter, int $limit, int $offset): array {
+
+        $this->ReadDb->db_debug = FALSE;
+
+        $sql = "
+            SELECT
+                ps.SerialUID,
+                ps.SerialNumber,
+                ps.Status,
+                ps.Notes,
+                ps.PurchaseTransUID,
+                ps.SaleTransUID,
+                ps.ReturnTransUID,
+                ps.CreatedAt,
+                p.ProductUID,
+                p.ItemName,
+                p.PartNumber,
+                CASE WHEN ps.PurchaseTransUID IS NOT NULL THEN 'Purchase' ELSE 'Manual' END AS SourceType,
+                pt.UniqueNumber AS PurchaseTransNo,
+                st.UniqueNumber AS SaleTransNo,
+                rt.UniqueNumber AS ReturnTransNo
+            FROM Transaction.ProductSerialsTbl ps
+            JOIN Products.ProductTbl p
+                ON p.ProductUID = ps.ProductUID AND p.IsDeleted = 0
+            LEFT JOIN Transaction.TransactionsTbl pt ON pt.TransUID = ps.PurchaseTransUID
+            LEFT JOIN Transaction.TransactionsTbl st ON st.TransUID = ps.SaleTransUID
+            LEFT JOIN Transaction.TransactionsTbl rt ON rt.TransUID = ps.ReturnTransUID
+            WHERE ps.OrgUID = ? AND ps.IsDeleted = 0
+        ";
+        $params = [$orgUID];
+
+        if (!empty($filter['Status'])) {
+            $sql     .= ' AND ps.Status = ?';
+            $params[] = $filter['Status'];
+        }
+        if (!empty($filter['search'])) {
+            $like     = '%' . $filter['search'] . '%';
+            $sql     .= ' AND (ps.SerialNumber LIKE ? OR p.ItemName LIKE ?)';
+            $params[] = $like;
+            $params[] = $like;
+        }
+        if (!empty($filter['ProductUID'])) {
+            $sql     .= ' AND ps.ProductUID = ?';
+            $params[] = (int)$filter['ProductUID'];
+        }
+
+        $sql .= ' ORDER BY ps.CreatedAt DESC LIMIT ' . (int)$limit . ' OFFSET ' . (int)$offset;
+
+        $query = $this->ReadDb->query($sql, $params);
+        if (!$query) {
+            $err = $this->ReadDb->error();
+            throw new Exception('getSerialsList: ' . ($err['message'] ?? 'Query failed'));
+        }
+        return $query->result();
+
+    }
+
+    /**
+     * @param int   $orgUID
+     * @param array $filter
+     * @return int
+     */
+    public function getSerialsCount(int $orgUID, array $filter): int {
+
+        $this->ReadDb->db_debug = FALSE;
+
+        $sql = "
+            SELECT COUNT(*) AS cnt
+            FROM Transaction.ProductSerialsTbl ps
+            JOIN Products.ProductTbl p ON p.ProductUID = ps.ProductUID AND p.IsDeleted = 0
+            WHERE ps.OrgUID = ? AND ps.IsDeleted = 0
+        ";
+        $params = [$orgUID];
+
+        if (!empty($filter['Status'])) {
+            $sql     .= ' AND ps.Status = ?';
+            $params[] = $filter['Status'];
+        }
+        if (!empty($filter['search'])) {
+            $like     = '%' . $filter['search'] . '%';
+            $sql     .= ' AND (ps.SerialNumber LIKE ? OR p.ItemName LIKE ?)';
+            $params[] = $like;
+            $params[] = $like;
+        }
+        if (!empty($filter['ProductUID'])) {
+            $sql     .= ' AND ps.ProductUID = ?';
+            $params[] = (int)$filter['ProductUID'];
+        }
+
+        $query = $this->ReadDb->query($sql, $params);
+        if (!$query) {
+            $err = $this->ReadDb->error();
+            throw new Exception('getSerialsCount: ' . ($err['message'] ?? 'Query failed'));
+        }
+        return (int)($query->row()->cnt ?? 0);
+
+    }
+
+    /**
+     * @param int    $orgUID
+     * @param int    $productUID
+     * @param string $serialNumber
+     * @return bool  true if duplicate exists
+     */
+    public function serialExists(int $orgUID, int $productUID, string $serialNumber): bool {
+
+        $this->ReadDb->db_debug = FALSE;
+        $query = $this->ReadDb->query(
+            'SELECT 1 FROM Transaction.ProductSerialsTbl
+              WHERE OrgUID = ? AND ProductUID = ? AND SerialNumber = ? AND IsDeleted = 0 LIMIT 1',
+            [$orgUID, $productUID, $serialNumber]
+        );
+        if (!$query) {
+            $err = $this->ReadDb->error();
+            throw new Exception('serialExists: ' . ($err['message'] ?? 'Query failed'));
+        }
+        return (bool)$query->row();
+
+    }
+
+    /**
+     * @param int    $orgUID
+     * @param string $status
+     * @return array  ['Available'=>n, 'Sold'=>n, 'Returned'=>n, 'Damaged'=>n, 'total'=>n]
+     */
+    public function getSerialsStats(int $orgUID): array {
+
+        $this->ReadDb->db_debug = FALSE;
+        $query = $this->ReadDb->query(
+            "SELECT Status, COUNT(*) AS cnt
+               FROM Transaction.ProductSerialsTbl
+              WHERE OrgUID = ? AND IsDeleted = 0
+              GROUP BY Status",
+            [$orgUID]
+        );
+        if (!$query) {
+            $err = $this->ReadDb->error();
+            throw new Exception('getSerialsStats: ' . ($err['message'] ?? 'Query failed'));
+        }
+        $rows = $query->result();
+
+        $stats = ['Available' => 0, 'Sold' => 0, 'Returned' => 0, 'Damaged' => 0, 'total' => 0];
+        foreach ($rows as $r) {
+            $stats[$r->Status] = (int)$r->cnt;
+            $stats['total']   += (int)$r->cnt;
+        }
+        return $stats;
 
     }
 

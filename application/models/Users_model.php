@@ -210,19 +210,71 @@ class Users_model extends CI_Model {
     }
 
     // â”€â”€ Next employee code â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    private function _parseEmpCodeFormat(?object $fmt): array {
+        $prefix    = strtoupper(trim($fmt->EmpCodePrefix ?? 'EMP'));
+        $separator = $fmt->EmpCodeSeparator ?? '-';
+        $digits    = (int)($fmt->EmpCodeDigits ?? 4);
+        if (!$prefix || !preg_match('/^[A-Z0-9]{1,10}$/', $prefix)) $prefix = 'EMP';
+        if ($separator === 'none') $separator = '';
+        if (!in_array($separator, ['-', '/', ''])) $separator = '-';
+        if ($digits < 3 || $digits > 6) $digits = 4;
+        return [$prefix, $separator, $digits];
+    }
+
     public function getNextEmployeeCode(int $orgUID): string {
         try {
             $this->ReadDb->db_debug = FALSE;
-            $this->ReadDb->select('MAX(CAST(SUBSTRING_INDEX(EmployeeCode, \'-\', -1) AS UNSIGNED)) AS MaxNum');
-            $this->ReadDb->from('Users.UserTbl');
-            $this->ReadDb->where('OrgUID',    (int)$orgUID);
-            $this->ReadDb->where('IsDeleted', 0);
-            $this->ReadDb->like('EmployeeCode', 'EMP-', 'after');
-            $row = $this->ReadDb->get()->row();
-            $next = (int)($row->MaxNum ?? 0) + 1;
-            return 'EMP-' . str_pad($next, 4, '0', STR_PAD_LEFT);
+            $fmt = $this->ReadDb->select('EmpCodePrefix, EmpCodeSeparator, EmpCodeDigits')
+                                ->get_where('Settings.OrgSettingsTbl', ['OrgUID' => $orgUID])
+                                ->row();
+            [$prefix, $separator, $digits] = $this->_parseEmpCodeFormat($fmt);
+
+            $row     = $this->ReadDb->select('EmpCodeLastNum')
+                                    ->get_where('Settings.OrgCreditSettingsTbl', ['OrgUID' => $orgUID])
+                                    ->row();
+            $nextNum = (int)($row->EmpCodeLastNum ?? 0) + 1;
+
+            return $prefix . $separator . str_pad($nextNum, $digits, '0', STR_PAD_LEFT);
         } catch (Exception $e) {
             notifyError('Users_model::getNextEmployeeCode', $e);
+            return 'EMP-0001';
+        }
+    }
+
+    public function claimNextEmployeeCode(int $orgUID): string {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $fmt = $this->ReadDb->select('EmpCodePrefix, EmpCodeSeparator, EmpCodeDigits')
+                                ->get_where('Settings.OrgSettingsTbl', ['OrgUID' => $orgUID])
+                                ->row();
+            [$prefix, $separator, $digits] = $this->_parseEmpCodeFormat($fmt);
+
+            $this->load->model('dbwrite_model');
+            $db = $this->dbwrite_model->getWriteDb();
+            $db->db_debug = FALSE;
+            $db->set('EmpCodeLastNum', 'EmpCodeLastNum + 1', FALSE)
+               ->set('UpdatedAt', date('Y-m-d H:i:s'))
+               ->where('OrgUID', $orgUID)
+               ->update('Settings.OrgCreditSettingsTbl');
+
+            if ($db->affected_rows() > 0) {
+                $row     = $this->ReadDb->select('EmpCodeLastNum')
+                                        ->get_where('Settings.OrgCreditSettingsTbl', ['OrgUID' => $orgUID])
+                                        ->row();
+                $nextNum = (int)($row->EmpCodeLastNum ?? 1);
+            } else {
+                // OrgCreditSettingsTbl row not yet seeded — fall back to MAX scan
+                $this->ReadDb->select('COALESCE(MAX(CAST(REGEXP_REPLACE(EmployeeCode, "[^0-9]", "") AS UNSIGNED)), 0) + 1 AS NextNum');
+                $this->ReadDb->from('Users.UserTbl');
+                $this->ReadDb->where('OrgUID', $orgUID);
+                $this->ReadDb->where('IsDeleted', 0);
+                $maxRow  = $this->ReadDb->get()->row();
+                $nextNum = max(1, (int)($maxRow->NextNum ?? 1));
+            }
+
+            return $prefix . $separator . str_pad($nextNum, $digits, '0', STR_PAD_LEFT);
+        } catch (Exception $e) {
+            notifyError('Users_model::claimNextEmployeeCode', $e);
             return 'EMP-0001';
         }
     }

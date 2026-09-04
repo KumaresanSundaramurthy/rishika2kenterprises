@@ -33,8 +33,11 @@ class Branches_model extends CI_Model {
             // ── List query ─────────────────────────────────────────────────
             $this->ReadDb->select([
                 'b.BranchUID', 'b.Name', 'b.BranchCode', 'b.ShortDescription',
-                'b.ContactPerson', 'b.MobileNumber', 'b.EmailAddress',
-                'b.GSTIN', 'b.IsHeadOffice', 'b.IsActive',
+                'b.ContactPerson', 'b.MobileNumber', 'b.AlternateNumber', 'b.CountryCode', 'b.CountryISO2', 'b.EmailAddress',
+                'b.GSTIN', 'b.PANNumber', 'b.BranchTypeUID', 'b.IsHeadOffice', 'b.IsActive',
+                'b.AddressLine1', 'b.AddressLine2', 'b.Pincode', 'b.Landmark',
+                'b.StateId', 'b.StateText', 'b.CityId', 'b.CityText',
+                'b.IsWarehouse', 'b.IsDispatchPoint', 'b.IsSalesPoint', 'b.IsServiceCenter',
                 'b.CreatedOn', 'b.UpdatedOn',
                 'bt.Name AS BranchTypeName',
             ]);
@@ -78,6 +81,41 @@ class Branches_model extends CI_Model {
             return $query ? $query->result() : [];
         } catch (Exception $e) {
             notifyError($e, 'Branches_model::getBranchList');
+            return [];
+        }
+    }
+
+    /**
+     * Returns true if the branch has any linked records in transaction tables.
+     * @param int $uid
+     * @param int $orgUID
+     * @returns bool
+     */
+    public function hasLinkedRecords(int $uid, int $orgUID): bool {
+        try {
+            $sql = "SELECT 1 FROM Transaction.TransactionsTbl    WHERE BranchUID = ? AND OrgUID = ? AND IsDeleted = 0 LIMIT 1
+                    UNION ALL
+                    SELECT 1 FROM Transaction.ExpensesTbl         WHERE BranchUID = ? AND OrgUID = ? AND IsDeleted = 0 LIMIT 1
+                    UNION ALL
+                    SELECT 1 FROM Transaction.IndirectIncomeTbl   WHERE BranchUID = ? AND OrgUID = ? AND IsDeleted = 0 LIMIT 1
+                    UNION ALL
+                    SELECT 1 FROM Transaction.PayrollTbl          WHERE BranchUID = ? AND OrgUID = ? AND IsDeleted = 0 LIMIT 1";
+            $query = $this->ReadDb->query($sql, [$uid, $orgUID, $uid, $orgUID, $uid, $orgUID, $uid, $orgUID]);
+            return $query && $query->num_rows() > 0;
+        } catch (Exception $e) {
+            notifyError($e, 'Branches_model::hasLinkedRecords');
+            return FALSE;
+        }
+    }
+
+    public function getBranchTypesList(): array {
+        try {
+            $query = $this->ReadDb->query(
+                'SELECT BranchTypeUID, Name FROM Organisation.BranchTypesTbl ORDER BY Name ASC'
+            );
+            return $query ? $query->result() : [];
+        } catch (Exception $e) {
+            notifyError($e, 'Branches_model::getBranchTypesList');
             return [];
         }
     }

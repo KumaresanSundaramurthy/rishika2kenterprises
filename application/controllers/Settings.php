@@ -176,6 +176,7 @@ class Settings extends MY_Controller {
             $statsDefaultOpen   = getPostValue($post, 'StatsDefaultOpen')   ? 1 : 0;
             if (!$showStats) $statsDefaultOpen = 0;
             $enableAIAssistant  = getPostValue($post, 'EnableAIAssistant') ? 'Yes' : 'No';
+            $twoStepLogin       = getPostValue($post, 'TwoStepLogin')       ? 1 : 0;
 
             // Validate date/datetime formats before building $data
             $validFormats   = ['d-m-Y', 'd/m/Y', 'Y-m-d', 'Y/m/d', 'd.m.Y', 'm/d/Y', 'd M Y'];
@@ -224,6 +225,7 @@ class Settings extends MY_Controller {
                 'ShowStats'            => $showStats,
                 'StatsDefaultOpen'     => $statsDefaultOpen,
                 'EnableAIAssistant'    => $enableAIAssistant,
+                'TwoStepLogin'         => $twoStepLogin,
                 'EmpCodePrefix'        => $empCodePrefix,
                 'EmpCodeSeparator'     => $empCodeSeparator,
                 'EmpCodeDigits'        => $empCodeDigits,

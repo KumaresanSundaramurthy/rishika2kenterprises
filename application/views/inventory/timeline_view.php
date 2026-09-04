@@ -16,7 +16,8 @@ $this->load->view('common/transactions/header'); ?>
 
                     <?php
                         $cur           = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-                                                $defaultFilter = $DefaultFilter ?? ['DateFrom' => date('Y-m-01'), 'DateTo' => date('Y-m-t')];
+                        $dec           = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
+                        $defaultFilter = $DefaultFilter ?? ['DateFrom' => date('Y-m-01'), 'DateTo' => date('Y-m-t')];
                         $categories    = $Categories ?? [];
                     ?>
 

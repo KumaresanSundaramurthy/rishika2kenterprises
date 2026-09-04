@@ -29489,6 +29489,15 @@ body:not(.modal-open) .layout-content-navbar .layout-navbar {
 }
 .trans-actions-btn:hover { background: #f8f9fa; color: #495057; border-color: #dee2e6; }
 
+/* ── More-actions dropdown menu ── */
+.r2k-action-menu {
+    font-size: .82rem;
+    min-width: 160px;
+    border-radius: 12px;
+    border: 1px solid #c4c6f8;
+    box-shadow: 0 8px 32px rgba(105, 108, 255, .18);
+}
+
 /* ── Table ── */
 .trans-table thead th {
     font-size: 0.71rem; font-weight: 700;
@@ -30080,4 +30089,10 @@ body:not(.modal-open) .layout-content-navbar .layout-navbar {
 .last-col-sticky td:last-child:focus-within,
 .last-col-sticky tr.show td:last-child {
     z-index: 10 !important;
+}
+
+.r2k-profile-link:hover {
+    text-decoration: underline !important;
+    text-decoration-color: #696cff !important;
+    color: #696cff !important;
 }

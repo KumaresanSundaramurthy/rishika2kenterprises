@@ -459,8 +459,10 @@ class Inventory extends MY_Controller {
             $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
             $limit = (int) ($GeneralSettings->RowLimit ?? 10);
 
-            $fmt           = $GeneralSettings->ListDateFormat ?? 'd M Y';
-            $defaultFilter = ['DateFrom' => date('Y-m-01'), 'DateTo' => date('Y-m-t')];
+            $fmt      = $GeneralSettings->ListDateFormat ?? 'd M Y';
+            $datePref = $this->getDateFilterPreference('inventory');
+
+            $defaultFilter = ['DateFrom' => $datePref['from'], 'DateTo' => $datePref['to']];
 
             $listData   = $this->inventory_model->getGlobalTimeline($orgUID, $defaultFilter, $limit, 0);
             $totalCount = $this->inventory_model->getGlobalTimelineCount($orgUID, $defaultFilter);
@@ -471,14 +473,14 @@ class Inventory extends MY_Controller {
                 'SerialNo'  => 0,
                 'JwtData'   => $this->pageData['JwtData'],
             ], TRUE);
-            $this->pageData['ModPagination']      = $this->globalservice->buildPagePaginationHtml('/inventory/timeline/getPageDetails', $totalCount, 1, $limit);
-            $this->pageData['ModAllCount']         = $totalCount;
-            $this->pageData['DefaultFilter']       = $defaultFilter;
-            $this->pageData['Categories']          = $categories;
-            $this->pageData['SavedDateRange']      = 'this_month';
-            $this->pageData['SavedDateLabel']      = 'This Month';
-            $this->pageData['SavedDateFromDisplay'] = date($fmt, strtotime($defaultFilter['DateFrom']));
-            $this->pageData['SavedDateToDisplay']   = date($fmt, strtotime($defaultFilter['DateTo']));
+            $this->pageData['ModPagination']       = $this->globalservice->buildPagePaginationHtml('/inventory/timeline/getPageDetails', $totalCount, 1, $limit);
+            $this->pageData['ModAllCount']          = $totalCount;
+            $this->pageData['DefaultFilter']        = $defaultFilter;
+            $this->pageData['Categories']           = $categories;
+            $this->pageData['SavedDateRange']       = $datePref['range'];
+            $this->pageData['SavedDateLabel']       = $datePref['label'];
+            $this->pageData['SavedDateFromDisplay'] = date($fmt, strtotime($datePref['from']));
+            $this->pageData['SavedDateToDisplay']   = date($fmt, strtotime($datePref['to']));
 
             $this->load->view('inventory/timeline_view', $this->pageData);
 
@@ -677,5 +679,202 @@ class Inventory extends MY_Controller {
         ];
     }
 
+    // ── Search serial-tracked products (for Add Serial modal) ────────────────
+
+    public function searchSerialProducts(): void {
+
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $term    = trim($this->input->post('search') ?: '');
+            $results = $this->inventory_model->searchSerialProducts($orgUID, $term);
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Data  = $results;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    // ── Serial Numbers Page ───────────────────────────────────────────────────
+
+    public function serialsPage(): void {
+
+        if (!$this->_loadPageTitle($this->pageModuleUID)) {
+            $this->load->view('common/module_error', $this->pageData);
+            return;
+        }
+
+        try {
+            $orgUID     = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $limit      = (int)($this->pageData['JwtData']->GenSettings->RowLimit ?? 10);
+            $_showStats = (bool)($this->pageData['JwtData']->GenSettings->ShowStats ?? 1);
+
+            $validStatuses = ['Available', 'Sold', 'Returned', 'Damaged'];
+            $initStatus    = ucfirst(strtolower($this->input->get('status') ?: ''));
+            if (!in_array($initStatus, $validStatuses, true)) $initStatus = '';
+            $initSearch    = trim($this->input->get('search') ?: '');
+
+            $filter = [];
+            if ($initStatus) $filter['Status'] = $initStatus;
+            if ($initSearch) $filter['search'] = $initSearch;
+
+            $listData   = $this->inventory_model->getSerialsList($orgUID, $filter, $limit, 0);
+            $totalCount = $this->inventory_model->getSerialsCount($orgUID, $filter);
+            $stats      = $_showStats ? $this->inventory_model->getSerialsStats($orgUID) : null;
+
+            $this->pageData['ModRowData']    = $this->load->view('inventory/serials_list', [
+                'DataLists'    => $listData,
+                'SerialNumber' => 0,
+                'JwtData'      => $this->pageData['JwtData'],
+            ], TRUE);
+            $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/inventory/serials/getPageDetails', $totalCount, 1, $limit);
+            $this->pageData['ModAllCount']   = $totalCount;
+            $this->pageData['Stats']         = $stats;
+            $this->pageData['InitStatus']    = $initStatus;
+            $this->pageData['InitSearch']    = $initSearch;
+
+            $this->load->view('inventory/serials_view', $this->pageData);
+
+        } catch (Throwable $e) {
+            notifyError('Inventory::serialsPage', $e);
+            redirect('inventory', 'refresh');
+        }
+    }
+
+    /**
+     * AJAX pagination for serials page.
+     * @param int $pageNo
+     * @return void
+     */
+    public function getSerialsPageDetails(int $pageNo = 1): void {
+
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $limit  = (int)($this->input->post('RowLimit') ?: 10);
+            $offset = (max(1, $pageNo) - 1) * $limit;
+            $filter = [];
+            $rawFilter = $this->input->post('Filter');
+            if (is_array($rawFilter)) $filter = $rawFilter;
+
+            $_showStats = (bool)($this->pageData['JwtData']->GenSettings->ShowStats ?? 1);
+            $listData   = $this->inventory_model->getSerialsList($orgUID, $filter, $limit, $offset);
+            $totalCount = $this->inventory_model->getSerialsCount($orgUID, $filter);
+
+            $rowHtml = $this->load->view('inventory/serials_list', [
+                'DataLists'    => $listData,
+                'SerialNumber' => $offset,
+                'JwtData'      => $this->pageData['JwtData'],
+            ], TRUE);
+
+            $this->EndReturnData->Error          = FALSE;
+            $this->EndReturnData->RecordHtmlData = $rowHtml;
+            $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml('/inventory/serials/getPageDetails', $totalCount, $pageNo, $limit);
+            $this->EndReturnData->TotalCount     = $totalCount;
+            $this->EndReturnData->Stats          = $_showStats ? $this->inventory_model->getSerialsStats($orgUID) : null;
+
+        } catch (Exception $e) {
+            notifyError('Inventory::getSerialsPageDetails', $e);
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    /**
+     * AJAX — manually add a serial number (opening stock / ad-hoc entry).
+     * POST: ProductUID, SerialNumber, Notes
+     * @return void
+     */
+    public function addSerial(): void {
+
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID       = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $userUID      = (int) $this->pageData['JwtData']->User->UserUID;
+            $productUID   = (int) $this->input->post('ProductUID');
+            $serialNumber = trim((string)($this->input->post('SerialNumber') ?? ''));
+            $notes        = trim((string)($this->input->post('Notes') ?? ''));
+
+            if ($productUID <= 0)    throw new ValidationException('Please select a product.');
+            if ($serialNumber === '') throw new ValidationException('Serial number is required.');
+
+            if ($this->inventory_model->serialExists($orgUID, $productUID, $serialNumber)) {
+                throw new ValidationException('Serial number “' . $serialNumber . '” already exists for this product.');
+            }
+
+            $this->load->model('dbwrite_model');
+            $resp = $this->dbwrite_model->insertData('Transaction', 'ProductSerialsTbl', [
+                'OrgUID'       => $orgUID,
+                'ProductUID'   => $productUID,
+                'SerialNumber' => $serialNumber,
+                'Status'       => 'Available',
+                'Notes'        => $notes ?: null,
+                'IsDeleted'    => 0,
+                'CreatedBy'    => $userUID,
+                'UpdatedBy'    => $userUID,
+            ]);
+            if ($resp->Error) throw new Exception($resp->Message);
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Serial number added successfully.';
+
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        } catch (Exception $e) {
+            notifyError('Inventory::addSerial', $e);
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    /**
+     * AJAX — update a serial's status (mark Damaged / restore Available).
+     * POST: SerialUID, Status
+     * @return void
+     */
+    public function updateSerialStatus(): void {
+
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID    = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $userUID   = (int) $this->pageData['JwtData']->User->UserUID;
+            $serialUID = (int) $this->input->post('SerialUID');
+            $status    = trim((string)($this->input->post('Status') ?? ''));
+
+            $allowed = ['Available', 'Damaged'];
+            if (!in_array($status, $allowed, true)) {
+                throw new ValidationException('Invalid status. Allowed: ' . implode(', ', $allowed));
+            }
+            if ($serialUID <= 0) throw new ValidationException('SerialUID is required.');
+
+            $this->load->model('dbwrite_model');
+            $resp = $this->dbwrite_model->updateData(
+                'Transaction', 'ProductSerialsTbl',
+                ['Status' => $status, 'UpdatedBy' => $userUID],
+                ['SerialUID' => $serialUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
+            );
+            if ($resp->Error) throw new Exception($resp->Message);
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Status updated.';
+
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        } catch (Exception $e) {
+            notifyError('Inventory::updateSerialStatus', $e);
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
 
 }

@@ -360,6 +360,29 @@ class Organisation_model extends CI_Model {
     }
 
     /**
+     * Reads org-level settings needed on the pre-auth login page (no JWT available).
+     * @return object {TwoStepLogin: int}
+     */
+    public function getDefaultOrgSettings(): object {
+        $result = (object)['TwoStepLogin' => 0];
+        try {
+            $this->ReadDb->select('s.TwoStepLogin');
+            $this->ReadDb->from('Organisation.OrganisationTbl o');
+            $this->ReadDb->join('Settings.OrgSettingsTbl s', 's.OrgUID = o.OrgUID', 'left');
+            $this->ReadDb->where('o.IsDeleted', 0);
+            $this->ReadDb->where('o.IsActive', 1);
+            $this->ReadDb->limit(1);
+            $row = $this->ReadDb->get()->row();
+            if ($row) {
+                $result->TwoStepLogin = (int)($row->TwoStepLogin ?? 0);
+            }
+        } catch (Exception $e) {
+            notifyError('Organisation_model::getDefaultOrgSettings', $e);
+        }
+        return $result;
+    }
+
+    /**
      * Returns org receipt info from Redis cache.
      * Key format: {OrgToken}-{S|P}-org-info  (falls back to org-info-{OrgUID})
      * On cache miss, fetches from DB, resolves the Logo to a full CDN URL,

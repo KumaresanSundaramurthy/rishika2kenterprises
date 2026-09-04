@@ -627,6 +627,103 @@
                 <h2><span>RISHIKA 2K</span> ENTERPRISES</h2>
             </div>
 
+            <?php if (!empty($TwoStepEnabled)): ?>
+            <!-- ── TWO-STEP FLOW ────────────────────────────────────── -->
+
+            <!-- Step 1: Username -->
+            <div id="lrStep1Panel">
+                <div class="lr-form-head">
+                    <h3>Sign in</h3>
+                    <p>Enter your username to continue</p>
+                </div>
+
+                <div id="lrStep1Error" class="lr-alerts" style="display:none;">
+                    <div class="alert"></div>
+                </div>
+
+                <div class="lr-field">
+                    <label for="UserName">Username or Email</label>
+                    <div class="lr-input-wrap">
+                        <input type="text" id="UserName" name="UserName" placeholder="Enter your username"
+                               autocomplete="username" />
+                        <i class="bx bx-user lr-input-icon"></i>
+                    </div>
+                </div>
+
+                <button type="button" class="lr-btn" id="lrContinueBtn">
+                    <span>
+                        <i class="bx bx-right-arrow-circle" style="font-size:18px"></i>
+                        Continue
+                    </span>
+                </button>
+
+                <!-- Social sign-in -->
+                <div class="lr-social-divider"><span>or continue with</span></div>
+                <div class="lr-social-btns">
+                    <a href="/auth/google" class="lr-social-btn lr-social-google">
+                        <svg class="lr-social-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
+                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                        </svg>
+                        Continue with Google
+                    </a>
+                </div>
+            </div>
+
+            <!-- Step 2: Password (hidden until step 1 succeeds) -->
+            <div id="lrStep2Panel" style="display:none;">
+
+                <!-- Confirmed-user card -->
+                <div class="lr-user-card" id="lrUserCard">
+                    <div class="lr-user-avatar">
+                        <i class="bx bx-user-circle"></i>
+                    </div>
+                    <div class="lr-user-info">
+                        <div class="lr-user-name" id="lrWelcomeName"></div>
+                        <a href="javascript:void(0);" class="lr-not-you" id="lrNotYou">Not you?</a>
+                    </div>
+                </div>
+
+                <?php $FormAttribute2 = array('id' => 'doLoginForm', 'name' => 'doLoginForm', 'autocomplete' => 'on');
+                echo form_open('login/doLoginForm', $FormAttribute2); ?>
+
+                <input type="hidden" id="step2UserName" name="UserName" value="">
+
+                <div id="lrStep2AlertWrap" class="lr-alerts">
+                    <?php $this->load->view('login/alerts'); ?>
+                </div>
+
+                <div class="lr-field">
+                    <label for="UserPassword">Password</label>
+                    <div class="lr-input-wrap">
+                        <input type="password" id="UserPassword" name="UserPassword"
+                               placeholder="Enter your password" autocomplete="current-password" required />
+                        <i class="bx bx-lock-alt lr-input-icon"></i>
+                        <button type="button" class="lr-pw-toggle" id="pwToggle" aria-label="Toggle password visibility">
+                            <i class="bx bx-hide" id="pwIcon"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="lr-bottom-row" style="justify-content:flex-end;">
+                    <a href="/forgot-password" class="lr-forgot">Forgot password?</a>
+                </div>
+
+                <button type="submit" class="lr-btn" id="lrSubmit">
+                    <span>
+                        <i class="bx bx-log-in-circle" style="font-size:18px"></i>
+                        Sign In
+                    </span>
+                </button>
+
+                <?php echo form_close(); ?>
+            </div>
+
+            <?php else: ?>
+            <!-- ── SINGLE-STEP FLOW (default) ───────────────────────── -->
+
             <div class="lr-form-head">
                 <h3>Welcome back</h3>
                 <p>Sign in to manage your billing operations</p>
@@ -688,6 +785,8 @@
                 </a>
             </div>
 
+            <?php endif; ?>
+
             <p class="lr-footer-note">&copy; <?php echo date('Y'); ?> <span><?php echo getSiteConfiguration()->ShortName; ?></span>. All rights reserved.</p>
         </div>
     </div>
@@ -696,20 +795,84 @@
 
 <?php $this->load->view('login/footer'); ?>
 
+<style>
+/* ── Two-step user card ──────────────────────────────────────── */
+.lr-user-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    border: 1.5px solid rgba(245,158,11,0.2);
+    background: rgba(245,158,11,0.05);
+    margin-bottom: 28px;
+}
+
+.lr-user-avatar {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: rgba(245,158,11,0.12);
+    border: 1.5px solid rgba(245,158,11,0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #f59e0b;
+    font-size: 26px;
+    flex-shrink: 0;
+}
+
+.lr-user-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.lr-user-name {
+    font-weight: 700;
+    font-size: 15px;
+    color: #e2e8f0;
+    letter-spacing: 0.1px;
+}
+
+.lr-not-you {
+    font-size: 12px;
+    color: #f59e0b;
+    text-decoration: none;
+    font-weight: 500;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+
+.lr-not-you:hover { opacity: 1; }
+
+/* Slide transition between steps */
+#lrStep1Panel, #lrStep2Panel {
+    animation: lrFadeSlide 0.3s ease-out both;
+}
+
+@keyframes lrFadeSlide {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+</style>
+
 <script>
 (function () {
+    var twoStep = <?php echo !empty($TwoStepEnabled) ? 'true' : 'false'; ?>;
+
     // Hide template customizer
     document.addEventListener('DOMContentLoaded', function () {
         var el = document.getElementById('template-customizer');
         if (el) el.classList.add('d-none');
     });
 
-    // Password toggle
-    var pwToggle = document.getElementById('pwToggle');
-    var pwInput  = document.getElementById('UserPassword');
-    var pwIcon   = document.getElementById('pwIcon');
-
-    if (pwToggle) {
+    // ── Shared: password toggle ──────────────────────────────────────────────
+    function initPwToggle() {
+        var pwToggle = document.getElementById('pwToggle');
+        var pwInput  = document.getElementById('UserPassword');
+        var pwIcon   = document.getElementById('pwIcon');
+        if (!pwToggle) return;
         pwToggle.addEventListener('click', function () {
             if (pwInput.type === 'password') {
                 pwInput.type = 'text';
@@ -721,65 +884,217 @@
         });
     }
 
-    // Ripple on submit button
-    var lrBtn = document.getElementById('lrSubmit');
-    if (lrBtn) {
-        lrBtn.addEventListener('click', function (e) {
+    // ── Shared: ripple effect ────────────────────────────────────────────────
+    function addRipple(btn) {
+        if (!btn) return;
+        btn.addEventListener('click', function (e) {
             var r = document.createElement('span');
-            var d = Math.max(lrBtn.clientWidth, lrBtn.clientHeight);
-            var rect = lrBtn.getBoundingClientRect();
+            var d = Math.max(btn.clientWidth, btn.clientHeight);
+            var rect = btn.getBoundingClientRect();
             r.className = 'lr-ripple';
             r.style.cssText = 'width:' + d + 'px;height:' + d + 'px;left:' + (e.clientX - rect.left - d/2) + 'px;top:' + (e.clientY - rect.top - d/2) + 'px';
-            lrBtn.appendChild(r);
+            btn.appendChild(r);
             setTimeout(function () { r.remove(); }, 700);
         });
     }
 
-    // ── Prevent double-submit: lock the entire form on first submit ───────────
-    var loginForm = document.getElementById('doLoginForm');
-    if (loginForm) {
-        loginForm.addEventListener('submit', function () {
-            // 1. Disable & show spinner on Sign In button
-            if (lrBtn) {
-                lrBtn.disabled = true;
-                lrBtn.innerHTML =
-                    '<span style="display:flex;align-items:center;justify-content:center;gap:10px;">' +
-                        '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 0.8s linear infinite;flex-shrink:0;">' +
-                            '<path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>' +
-                        '</svg>' +
-                        'Signing in...' +
-                    '</span>';
-                lrBtn.style.opacity = '0.75';
-                lrBtn.style.cursor  = 'not-allowed';
-            }
+    // ── Shared: spinner HTML ─────────────────────────────────────────────────
+    var _spinnerHtml =
+        '<span style="display:flex;align-items:center;justify-content:center;gap:10px;">' +
+            '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 0.8s linear infinite;flex-shrink:0;">' +
+                '<path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>' +
+            '</svg>' +
+            '{label}' +
+        '</span>';
 
-            // 2. Disable social login buttons so they can't be clicked mid-request
-            document.querySelectorAll('.lr-social-btn').forEach(function (btn) {
-                btn.style.pointerEvents = 'none';
-                btn.style.opacity       = '0.4';
-            });
-        });
+    function spinBtn(btn, label) {
+        btn.disabled = true;
+        btn.innerHTML = _spinnerHtml.replace('{label}', label);
+        btn.style.opacity = '0.75';
+        btn.style.cursor  = 'not-allowed';
     }
 
-    // Re-enable everything if user presses browser Back button (bfcache restore)
-    window.addEventListener('pageshow', function (e) {
-        if (e.persisted) {
-            if (lrBtn) {
-                lrBtn.disabled = false;
-                lrBtn.style.opacity = '';
-                lrBtn.style.cursor  = '';
-                lrBtn.innerHTML =
-                    '<span><i class="bx bx-log-in-circle" style="font-size:18px"></i> Sign In</span>';
+    function resetBtn(btn, iconClass, label) {
+        btn.disabled = false;
+        btn.innerHTML = '<span><i class="bx ' + iconClass + '" style="font-size:18px"></i> ' + label + '</span>';
+        btn.style.opacity = '';
+        btn.style.cursor  = '';
+    }
+
+    if (twoStep) {
+        // ── TWO-STEP FLOW ────────────────────────────────────────────────────
+
+        var csrfInput = document.querySelector('#doLoginForm input[name^="csrf"]') ||
+                        document.querySelector('#lrStep1Panel input[name^="csrf"]');
+        var csrfName  = csrfInput ? csrfInput.name  : '';
+        var csrfVal   = csrfInput ? csrfInput.value : '';
+
+        var step1Panel   = document.getElementById('lrStep1Panel');
+        var step2Panel   = document.getElementById('lrStep2Panel');
+        var continueBtn  = document.getElementById('lrContinueBtn');
+        var step1Error   = document.getElementById('lrStep1Error');
+        var welcomeName  = document.getElementById('lrWelcomeName');
+        var step2Name    = document.getElementById('step2UserName');
+        var notYouLink   = document.getElementById('lrNotYou');
+        var submitBtn    = document.getElementById('lrSubmit');
+        var loginForm    = document.getElementById('doLoginForm');
+        var unameInput   = document.getElementById('UserName');
+
+
+        function showStep1Error(msg) {
+            step1Error.querySelector('.alert').textContent = msg;
+            step1Error.style.display = 'block';
+        }
+
+        function clearStep1Error() {
+            step1Error.style.display = 'none';
+        }
+
+        function goToStep2(displayName, username, imageUrl) {
+            welcomeName.textContent = displayName;
+            step2Name.value = username;
+
+            // Show profile photo if available, otherwise keep the generic icon
+            var avatarEl = document.querySelector('#lrUserCard .lr-user-avatar');
+            if (avatarEl) {
+                if (imageUrl) {
+                    avatarEl.innerHTML = '<img src="' + imageUrl + '" alt="' + displayName + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';
+                } else {
+                    avatarEl.innerHTML = '<i class="bx bx-user-circle"></i>';
+                }
             }
-            document.querySelectorAll('.lr-social-btn').forEach(function (btn) {
-                btn.style.pointerEvents = '';
-                btn.style.opacity       = '';
+
+            step1Panel.style.animation = 'none';
+            step1Panel.style.display   = 'none';
+            step2Panel.style.animation = '';
+            step2Panel.style.display   = 'block';
+            var pw = document.getElementById('UserPassword');
+            if (pw) setTimeout(function () { pw.focus(); }, 100);
+        }
+
+        function goToStep1() {
+            // Fire-and-forget: clear the pending session on the server
+            fetch('/login/clear-pending', { method: 'POST' });
+            step2Panel.style.display = 'none';
+            step1Panel.style.display = 'block';
+            clearStep1Error();
+            if (unameInput) unameInput.focus();
+        }
+
+        function setSocialDisabled(disabled) {
+            document.querySelectorAll('#lrStep1Panel .lr-social-btn').forEach(function (b) {
+                b.style.pointerEvents = disabled ? 'none' : '';
+                b.style.opacity       = disabled ? '0.4'  : '';
             });
         }
-    });
 
-    // Auto-focus username
-    var un = document.getElementById('UserName');
-    if (un) setTimeout(function () { un.focus(); }, 400);
+        function doValidate() {
+            var username = unameInput ? unameInput.value.trim() : '';
+            if (!username) { showStep1Error('Please enter your username or email.'); return; }
+            clearStep1Error();
+            spinBtn(continueBtn, 'Checking...');
+            setSocialDisabled(true);
+
+            var body = 'UserName=' + encodeURIComponent(username);
+            if (csrfName && csrfVal) body += '&' + encodeURIComponent(csrfName) + '=' + encodeURIComponent(csrfVal);
+
+            fetch('/login/validate-username', {
+                method : 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body   : body,
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                resetBtn(continueBtn, 'bx-right-arrow-circle', 'Continue');
+                setSocialDisabled(false);
+                if (data.Error) {
+                    showStep1Error(data.Message || 'Something went wrong. Please try again.');
+                    return;
+                }
+                goToStep2(data.DisplayName || data.Username, data.Username || username, data.ImageUrl || '');
+            })
+            .catch(function () {
+                resetBtn(continueBtn, 'bx-right-arrow-circle', 'Continue');
+                setSocialDisabled(false);
+                showStep1Error('Connection failed. Please try again.');
+            });
+        }
+
+        // Continue button
+        if (continueBtn) {
+            addRipple(continueBtn);
+            continueBtn.addEventListener('click', doValidate);
+        }
+
+        // Enter key on username
+        if (unameInput) {
+            unameInput.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') { e.preventDefault(); doValidate(); }
+            });
+        }
+
+        // Not you link
+        if (notYouLink) {
+            notYouLink.addEventListener('click', goToStep1);
+        }
+
+        // Step 2 form submit
+        if (loginForm) {
+            addRipple(submitBtn);
+            loginForm.addEventListener('submit', function () {
+                if (submitBtn) {
+                    spinBtn(submitBtn, 'Signing in...');
+                }
+                document.querySelectorAll('.lr-social-btn').forEach(function (b) {
+                    b.style.pointerEvents = 'none';
+                    b.style.opacity       = '0.4';
+                });
+            });
+        }
+
+        // Auto-focus username on load
+        if (unameInput && step1Panel.style.display !== 'none') {
+            setTimeout(function () { unameInput.focus(); }, 400);
+        }
+
+        initPwToggle();
+
+    } else {
+        // ── SINGLE-STEP FLOW ─────────────────────────────────────────────────
+
+        var lrBtn     = document.getElementById('lrSubmit');
+        var loginForm = document.getElementById('doLoginForm');
+
+        addRipple(lrBtn);
+
+        if (loginForm) {
+            loginForm.addEventListener('submit', function () {
+                if (lrBtn) {
+                    spinBtn(lrBtn, 'Signing in...');
+                }
+                document.querySelectorAll('.lr-social-btn').forEach(function (btn) {
+                    btn.style.pointerEvents = 'none';
+                    btn.style.opacity       = '0.4';
+                });
+            });
+        }
+
+        // Re-enable on back/bfcache
+        window.addEventListener('pageshow', function (e) {
+            if (e.persisted) {
+                if (lrBtn) resetBtn(lrBtn, 'bx-log-in-circle', 'Sign In');
+                document.querySelectorAll('.lr-social-btn').forEach(function (btn) {
+                    btn.style.pointerEvents = '';
+                    btn.style.opacity       = '';
+                });
+            }
+        });
+
+        // Auto-focus username
+        var un = document.getElementById('UserName');
+        if (un) setTimeout(function () { un.focus(); }, 400);
+
+        initPwToggle();
+    }
 })();
 </script>

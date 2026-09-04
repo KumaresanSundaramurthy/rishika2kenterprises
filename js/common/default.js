@@ -1040,8 +1040,8 @@ function validatePriceInput(input, maxLength, decimalLength) {
         if (integerPart === '') integerPart = '0';
     }
 
-    // Limit integer part
-    const maxIntLen = Math.max(1, maxLength - decimalLength - 1);
+    // Limit integer part (maxLength = max integer digits allowed)
+    const maxIntLen = Math.max(1, maxLength);
     integerPart = integerPart.slice(0, maxIntLen);
 
     let showDot = hasDot;

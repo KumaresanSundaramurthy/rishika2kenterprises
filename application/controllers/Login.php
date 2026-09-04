@@ -23,7 +23,13 @@ class Login extends CI_Controller {
             redirect('dashboard', 'refresh');
             return;
         }
-        $this->load->view('login/view', ['OrgLogo' => $this->_getDefaultOrgLogo()]);
+        $this->load->model('organisation_model');
+        $orgSettings    = $this->organisation_model->getDefaultOrgSettings();
+        $twoStepEnabled = (bool)$orgSettings->TwoStepLogin;
+        $this->load->view('login/view', [
+            'OrgLogo'        => $this->_getDefaultOrgLogo(),
+            'TwoStepEnabled' => $twoStepEnabled,
+        ]);
     }
 
     public function doLoginForm() {
@@ -33,11 +39,34 @@ class Login extends CI_Controller {
             $this->load->model('formvalidation_model');
 
             $PostData = $this->input->post();
+
+            // Two-step flow: override UserName from session if a validated pending login exists
+            $pendingUsername = $this->session->userdata('login_pending_username');
+            $pendingUid      = (int)($this->session->userdata('login_pending_uid') ?: 0);
+            $pendingExpires  = (int)($this->session->userdata('login_pending_expires') ?: 0);
+            $isTwoStep       = ($pendingUsername && time() < $pendingExpires);
+            if ($isTwoStep) {
+                $this->session->unset_userdata('login_pending_username');
+                $this->session->unset_userdata('login_pending_uid');
+                $this->session->unset_userdata('login_pending_expires');
+                $PostData['UserName'] = $pendingUsername;
+            }
+
+            // IP rate limiting — block after 10 failures within a 15-minute window
+            $ipKey   = 'login-fail-ip-' . $this->input->ip_address();
+            $ipCache = $this->redisservice->getCache($ipKey);
+            $ipCount = (!$ipCache->Error && $ipCache->Value !== null) ? (int)$ipCache->Value : 0;
+            if ($ipCount >= 10) {
+                throw new Exception('Too many failed login attempts from your location. Please try again in 15 minutes.');
+            }
+
             $ErrorInForm = $this->formvalidation_model->validateForm($PostData);
             if(empty($ErrorInForm)) {
 
                 $this->load->model('user_model');
-                $UserData = $this->user_model->getUserByEmailOrUsername($PostData['UserName']);
+                $UserData = ($isTwoStep && $pendingUid > 0)
+                    ? $this->user_model->getUserByUID($pendingUid)
+                    : $this->user_model->getUserByEmailOrUsername($PostData['UserName']);
 
                 if($UserData->Error === FALSE && count($UserData->Data) > 0 && sizeof($UserData->Data) == 1) {
 
@@ -46,8 +75,23 @@ class Login extends CI_Controller {
                         throw new Exception('Account is locked. Contact administrator.');
                     }
 
-                    $UserPassword = base64_decode($UserData->Data[0]->UserPassword);
-                    if($PostData['UserPassword'] === $UserPassword) {
+                    $storedPassword  = $UserData->Data[0]->UserPassword;
+                    $inputPassword   = $PostData['UserPassword'];
+                    $isBcrypt        = (substr($storedPassword, 0, 4) === '$2y$');
+                    $passwordMatches = $isBcrypt
+                        ? password_verify($inputPassword, $storedPassword)
+                        : ($inputPassword === base64_decode($storedPassword));
+
+                    if ($passwordMatches) {
+
+                        // Lazy bcrypt migration — upgrade base64 hash on first successful login
+                        if (!$isBcrypt) {
+                            $this->load->model('dbwrite_model');
+                            $this->dbwrite_model->updateData('Users', 'UserTbl',
+                                ['Password' => password_hash($inputPassword, PASSWORD_BCRYPT)],
+                                ['UserUID'  => $UserData->Data[0]->UserUID]
+                            );
+                        }
 
                         // Check subscription status
                         $this->load->library('subscription');
@@ -115,24 +159,8 @@ class Login extends CI_Controller {
                                 $this->redisservice->setUserCache('permissions', $userUID, $newPayload->JWTData['Permissions']    ?? [], $loginExpiry, $orgToken);
                                 $this->redisservice->setUserCache('userinfo',    $userUID, $UserData->Data[0],                         $loginExpiry, $orgToken);
 
-                                $orgUID = $UserData->Data[0]->UserOrgUID ?? null;
-                                if ($orgUID) {
-                                    $this->load->model('users_model');
-                                    $orgUsers = $this->users_model->getOrgUsersForCache((int)$orgUID);
-                                    $this->redisservice->setCache($this->redisservice->orgKey('org-users', $orgToken), $orgUsers, $loginExpiry);
-
-                                    // Pre-warm org info cache (full CDN-resolved URL stored)
-                                    $this->load->model('organisation_model');
-                                    $this->organisation_model->getOrgInfoCached((int)$orgUID, $orgToken);
-
-                                    // Cache all active dispatch addresses
-                                    $dispatchAddresses = $this->organisation_model->getAllOrgDispatchAddresses((int)$orgUID);
-                                    $this->redisservice->setCache(
-                                        $this->redisservice->orgKey('org-dispatch-addresses', $orgToken),
-                                        $dispatchAddresses,
-                                        $loginExpiry
-                                    );
-                                }
+                                // Clear IP failure counter on successful login
+                                $this->redisservice->deleteCache($ipKey);
 
                                 // Redirect to where the user was before session expired
                                 $intendedUrl = $this->session->userdata('intended_url');
@@ -147,6 +175,7 @@ class Login extends CI_Controller {
 
                     } else {
                         $this->logLoginFailure($PostData['UserName'], 'Invalid credentials');
+                        $this->redisservice->setCache($ipKey, $ipCount + 1, 900);
 
                         $this->load->model('login_model');
                         $failedAttempts = $this->login_model->getFailedAttempts($PostData['UserName']);
@@ -154,15 +183,16 @@ class Login extends CI_Controller {
 
                             $this->load->model('dbwrite_model');
                             $this->dbwrite_model->updateData('Users', 'UserTbl', ['IsLocked' => 1], array('UserName' => $PostData['UserName']));
-                            
+
                             $this->logLoginFailure($PostData['UserName'], 'Account locked - too many attempts');
                         }
 
-                        $this->session->set_flashdata('danger', 'Oops! Password is incorrect.');
+                        $this->session->set_flashdata('danger', 'Oops! Invalid username or password.');
                     }
 
                 } else {
-                    $this->session->set_flashdata('danger', 'Oops! User Account not found.');
+                    $this->redisservice->setCache($ipKey, $ipCount + 1, 900);
+                    $this->session->set_flashdata('danger', 'Oops! Invalid username or password.');
                 }
 
             } else {
@@ -378,8 +408,8 @@ class Login extends CI_Controller {
                 return;
             }
 
-            if (strlen($password) < 6) {
-                $this->session->set_flashdata('danger', 'Password must be at least 6 characters.');
+            if (strlen($password) < 8) {
+                $this->session->set_flashdata('danger', 'Password must be at least 8 characters.');
                 redirect('reset-password/' . $token, 'refresh');
                 return;
             }
@@ -393,16 +423,29 @@ class Login extends CI_Controller {
                 return;
             }
 
+            if (!empty($tokenInfo->IsLocked)) {
+                $this->session->set_flashdata('danger', 'Your account is locked. Please contact your administrator.');
+                redirect('forgot-password', 'refresh');
+                return;
+            }
+
             $this->load->model('dbwrite_model');
 
             $this->dbwrite_model->updateData('Users', 'UserTbl',
-                ['Password' => base64_encode($password)],
+                ['Password' => password_hash($password, PASSWORD_BCRYPT)],
                 ['UserUID'  => $tokenInfo->UserUID]
             );
 
             $this->dbwrite_model->updateData('Users', 'PasswordResetTbl',
                 ['IsUsed' => 1],
                 ['Token'  => $token]
+            );
+
+            // Kill any active session so the old password can no longer be used
+            $this->redisservice->deleteCache('UserActiveSession_' . $tokenInfo->UserUID);
+            $this->dbwrite_model->updateData('Users', 'UserTbl',
+                ['CurrentSessionToken' => null],
+                ['UserUID' => $tokenInfo->UserUID]
             );
 
             $this->_sendPasswordChangedEmail($tokenInfo);
@@ -594,21 +637,48 @@ class Login extends CI_Controller {
             if(empty($ErrorInForm)) {
 
                 $this->load->model('user_model');
-                $UserData = $this->user_model->getUserByUserInfo(array('User.UserUID' => $PostData['UserUID']));
-                if($PostData['OldPassword'] !== base64_decode($UserData->Data[0]->UserPassword)) {
+                $UserData    = $this->user_model->getUserByUserInfo(array('User.UserUID' => $PostData['UserUID']));
+                $stored      = $UserData->Data[0]->UserPassword;
+                $oldMatches  = (substr($stored, 0, 4) === '$2y$')
+                    ? password_verify($PostData['OldPassword'], $stored)
+                    : ($PostData['OldPassword'] === base64_decode($stored));
+
+                if (!$oldMatches) {
 
                     throw new Exception('Old Password do not match. Please try again.!', 200);
+
+                } elseif (strlen($PostData['ConfirmPassword'] ?? '') < 8) {
+
+                    throw new Exception('New password must be at least 8 characters.', 200);
 
                 } else {
 
                     $this->load->model('dbwrite_model');
-                    $UpdateDataResp = $this->dbwrite_model->updateData('Users', 'UserTbl', ['Password' => base64_encode($PostData['ConfirmPassword'])], array('UserUID' => $PostData['UserUID']));
+                    $userUID        = (int)$PostData['UserUID'];
+                    $UpdateDataResp = $this->dbwrite_model->updateData('Users', 'UserTbl', ['Password' => password_hash($PostData['ConfirmPassword'], PASSWORD_BCRYPT)], ['UserUID' => $userUID]);
 
                     if($UpdateDataResp->Error === FALSE) {
-                        $this->EndReturnData->Error = FALSE;
-                        $this->EndReturnData->Message = 'Updated Successfully';
+
+                        // Kill the active session — user must re-login with the new password
+                        $this->redisservice->deleteCache('UserActiveSession_' . $userUID);
+                        $this->dbwrite_model->updateData('Users', 'UserTbl', ['CurrentSessionToken' => null], ['UserUID' => $userUID]);
+
+                        // Also evict the JWT session blob from Redis if the cookie is readable
+                        try {
+                            $jwtEncoded = get_cookie(getenv('JWT_COOKIE_NAME'));
+                            if ($jwtEncoded) {
+                                $jwtDecoded = JWT::decode($jwtEncoded, new Key(getenv('JWT_KEY'), 'HS256'));
+                                if (isset($jwtDecoded->key)) {
+                                    $this->redisservice->deleteCache($jwtDecoded->key);
+                                }
+                            }
+                        } catch (Throwable $e) { /* JWT expired or invalid — nothing to evict */ }
+
+                        $this->EndReturnData->Error        = FALSE;
+                        $this->EndReturnData->Message      = 'Updated Successfully';
+                        $this->EndReturnData->RequireReLogin = TRUE;
                     } else {
-                        $this->EndReturnData->Error = TRUE;
+                        $this->EndReturnData->Error   = TRUE;
                         $this->EndReturnData->Message = 'Error occured';
                     }
 
@@ -631,6 +701,80 @@ class Login extends CI_Controller {
             ->_display();
         exit;
 
+    }
+
+    /**
+     * Clears the server-side pending-login session created by Step 1.
+     * Called fire-and-forget when the user clicks "Not you?" in the two-step UI.
+     */
+    public function clearPendingSession(): void {
+        $this->session->unset_userdata('login_pending_username');
+        $this->session->unset_userdata('login_pending_uid');
+        $this->session->unset_userdata('login_pending_expires');
+        $this->output->set_status_header(200)
+            ->set_content_type('application/json', 'utf-8')
+            ->set_output('{"ok":true}')
+            ->_display();
+        exit;
+    }
+
+    /**
+     * Step 1 of the two-step login flow.
+     * Validates username existence, lock status, and subscription.
+     * On success stores a 5-minute session token and returns the user's display name.
+     */
+    public function validateUsername(): void {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $this->load->helper('auth');
+            if (is_authenticated()) {
+                throw new Exception('Already authenticated.');
+            }
+
+            $username = trim($this->input->post('UserName') ?: '');
+            if (!$username) {
+                throw new Exception('Please enter your username or email.');
+            }
+
+            // Lean single-table query — no Roles/Org/Branch joins, no subscription check
+            $this->load->model('user_model');
+            $user = $this->user_model->getUserForStepOne($username);
+
+            if (!$user) {
+                throw new Exception('User account not found.');
+            }
+
+            if ($user->IsLocked == 1) {
+                throw new Exception('Account is locked. Contact your administrator.');
+            }
+
+            // Store confirmed identity for Step 2 — expires in 5 minutes
+            $this->session->set_userdata('login_pending_username', $user->UserName);
+            $this->session->set_userdata('login_pending_uid',      (int)$user->UserUID);
+            $this->session->set_userdata('login_pending_expires',  time() + 300);
+
+            $displayName = trim(($user->FirstName ?? '') . ' ' . ($user->LastName ?? ''));
+            if (!$displayName) $displayName = $user->UserName;
+
+            $imageUrl = !empty($user->Image) ? resolveCdnUrl($user->Image) : '';
+
+            $this->EndReturnData->Error       = false;
+            $this->EndReturnData->Username    = $user->UserName;
+            $this->EndReturnData->DisplayName = $displayName;
+            $this->EndReturnData->ImageUrl    = $imageUrl;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->output->set_status_header(200)
+            ->set_content_type('application/json', 'utf-8')
+            ->set_output(json_encode($this->EndReturnData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES))
+            ->_display();
+        exit;
     }
 
     public function logout() {
@@ -670,22 +814,23 @@ class Login extends CI_Controller {
                         $this->dbwrite_model->updateData('Users', 'UserTbl', ['CurrentSessionToken' => null], ['UserUID' => $userUID]);
                     }
 
+                    // Flush all org/user caches — Org object exists in new JWT structure;
+                    // fall back to User for old cached JWTs
+                    $logoutOrgToken = $getAuditInfo->Value->Org->OrgToken ?? ($getAuditInfo->Value->User->OrgToken ?? '');
+                    if ($userUID) {
+                        $this->redisservice->deleteAllUserCache($userUID, $logoutOrgToken);
+                    }
+
+                    $orgUID = $getAuditInfo->Value->Org->OrgUID ?? ($getAuditInfo->Value->User->OrgUID ?? null);
+                    if ($orgUID) {
+                        $this->redisservice->deleteCache($this->redisservice->orgKey('org-users', $logoutOrgToken));
+                    }
+
                 }
 
 				$this->redisservice->deleteCache($JwtData->key);
 
 			}
-
-            // Org object exists in new JWT structure; fall back to User for old cached JWTs
-            $logoutOrgToken = $getAuditInfo->Value->Org->OrgToken ?? ($getAuditInfo->Value->User->OrgToken ?? '');
-            if ($userUID) {
-                $this->redisservice->deleteAllUserCache($userUID, $logoutOrgToken);
-            }
-
-            $orgUID = $getAuditInfo->Value->Org->OrgUID ?? ($getAuditInfo->Value->User->OrgUID ?? null);
-            if ($orgUID) {
-                $this->redisservice->deleteCache($this->redisservice->orgKey('org-users', $logoutOrgToken));
-            }
 
 			delete_cookie(getenv('JWT_COOKIE_NAME'));
 

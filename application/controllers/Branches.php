@@ -10,7 +10,7 @@ class Branches extends MY_Controller {
         parent::__construct();
 
         $this->pageModuleUID = 50;
-        
+
     }
 
     private function _fetchTableData(int $pageNo, int $limit, array $filter = []): object {
@@ -33,12 +33,14 @@ class Branches extends MY_Controller {
         $this->_loadPageTitle($this->pageModuleUID);
         if (empty($this->pageData['PageTitle'])) $this->pageData['PageTitle'] = 'Branches';
         try {
+            $this->load->model('branches_model');
             $limit = $this->_rowLimit();
             $pd    = $this->_fetchTableData(1, $limit);
             $this->pageData['ModRowData']    = $pd->RecordHtmlData;
             $this->pageData['ModPagination'] = $pd->Pagination;
+            $this->pageData['BranchTypes']   = $this->branches_model->getBranchTypesList();
             $this->load->view('settings/branches/view', $this->pageData);
-        } catch (Exception $e) { $this->notifyError('Branches::index', $e); redirect('dashboard', 'refresh'); }
+        } catch (Exception $e) { notifyError('Branches::index', $e); redirect('dashboard', 'refresh'); }
     }
 
     public function getPageDetails(int $pageNo = 0): void {
@@ -51,7 +53,7 @@ class Branches extends MY_Controller {
             $this->EndReturnData->Pagination     = $pd->Pagination;
             $this->EndReturnData->TotalCount     = $pd->TotalCount;
         } catch (Exception $e) {
-            $this->notifyError('Branches::getPageDetails', $e);
+            notifyError('Branches::getPageDetails', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -61,39 +63,69 @@ class Branches extends MY_Controller {
     public function save(): void {
         $this->EndReturnData = new stdClass();
         try {
-            $p      = $this->input->post();
-            $uid    = (int)($p['BranchUID'] ?? 0);
-            $pageNo = max(1, (int)($p['CurrentPage'] ?? 1));
-            $filter = is_array($p['Filter'] ?? null) ? $p['Filter'] : [];
-            $name   = trim($p['Name'] ?? '');
-            $code   = strtoupper(trim($p['BranchCode'] ?? ''));
+            $p    = $this->input->post();
+            $uid  = (int)($p['BranchUID'] ?? 0);
+            $name = trim($p['Name'] ?? '');
+            $code = strtoupper(trim($p['BranchCode'] ?? ''));
 
-            if (empty($name)) throw new Exception('Branch name is required.');
-            if (empty($code)) throw new Exception('Branch code is required.');
+            if (empty($name)) throw new ValidationException('Branch name is required.');
+            if (empty($code)) throw new ValidationException('Branch code is required.');
 
             $this->load->model('branches_model');
             $this->load->model('dbwrite_model');
 
             if ($this->branches_model->getBranchCodeExists($this->_orgUID(), $code, $uid)) {
-                throw new Exception('Branch code "' . $code . '" is already in use.');
+                throw new ValidationException('Branch code "' . $code . '" is already in use.');
+            }
+
+            $isHQ = (int)(bool)($p['IsHeadOffice'] ?? 0);
+
+            // On CREATE: if marking as HQ, clear HQ from all other branches first.
+            // On EDIT: IsHeadOffice is never set to 0 via this form — HQ can only be
+            // reassigned through the dedicated setHeadOffice action, so the flag is
+            // excluded from the update payload when the checkbox is unchecked.
+            if ($isHQ === 1) {
+                $this->dbwrite_model->updateData(
+                    'Organisation', 'BranchesTbl',
+                    ['IsHeadOffice' => 0, 'UpdatedBy' => $this->_userUID()],
+                    ['OrgUID' => $this->_orgUID(), 'IsDeleted' => 0]
+                );
             }
 
             $data = [
                 'OrgUID'          => $this->_orgUID(),
                 'Name'            => $name,
                 'BranchCode'      => $code,
-                'ShortDescription'=> trim($p['ShortDescription'] ?? ''),
-                'ContactPerson'   => trim($p['ContactPerson']    ?? ''),
-                'MobileNumber'    => trim($p['MobileNumber']     ?? ''),
-                'EmailAddress'    => trim($p['EmailAddress']     ?? ''),
-                'AddressLine1'    => trim($p['AddressLine1']     ?? ''),
-                'AddressLine2'    => trim($p['AddressLine2']     ?? ''),
-                'Pincode'         => trim($p['Pincode']          ?? ''),
-                'GSTIN'           => strtoupper(trim($p['GSTIN'] ?? '')),
-                'IsHeadOffice'    => (int)(bool)($p['IsHeadOffice'] ?? 0),
+                'ShortDescription'=> trim($p['ShortDescription']  ?? ''),
+                'BranchTypeUID'   => !empty($p['BranchTypeUID']) ? (int)$p['BranchTypeUID'] : null,
+                'ContactPerson'   => trim($p['ContactPerson']     ?? ''),
+                'MobileNumber'    => trim($p['MobileNumber']      ?? ''),
+                'AlternateNumber' => trim($p['AlternateNumber']   ?? ''),
+                'CountryCode'     => trim($p['CountryCode']       ?? ''),
+                'CountryISO2'     => trim($p['CountryISO2']       ?? ''),
+                'EmailAddress'    => trim($p['EmailAddress']      ?? ''),
+                'PANNumber'       => strtoupper(trim($p['PANNumber'] ?? '')),
+                'GSTIN'           => strtoupper(trim($p['GSTIN']  ?? '')),
+                'AddressLine1'    => trim($p['AddressLine1']      ?? ''),
+                'AddressLine2'    => trim($p['AddressLine2']      ?? ''),
+                'Pincode'         => trim($p['Pincode']           ?? ''),
+                'StateId'         => trim($p['StateId']           ?? ''),
+                'StateText'       => trim($p['StateText']         ?? ''),
+                'CityId'          => trim($p['CityId']            ?? ''),
+                'CityText'        => trim($p['CityText']          ?? ''),
+                'Landmark'        => trim($p['Landmark']          ?? ''),
+                'IsWarehouse'     => (int)(bool)($p['IsWarehouse']     ?? 0),
+                'IsDispatchPoint' => (int)(bool)($p['IsDispatchPoint'] ?? 0),
+                'IsSalesPoint'    => (int)(bool)($p['IsSalesPoint']    ?? 0),
+                'IsServiceCenter' => (int)(bool)($p['IsServiceCenter'] ?? 0),
                 'IsActive'        => 1,
                 'UpdatedBy'       => $this->_userUID(),
             ];
+
+            // Only include IsHeadOffice in the payload when explicitly setting it to 1
+            if ($isHQ === 1) {
+                $data['IsHeadOffice'] = 1;
+            }
 
             if ($uid === 0) {
                 $data['CreatedBy'] = $this->_userUID();
@@ -103,15 +135,40 @@ class Branches extends MY_Controller {
             }
             if ($res->Error) throw new Exception($res->Message);
 
+            $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = $uid ? 'Branch updated.' : 'Branch created.';
-
-            $pd = $this->_fetchTableData($pageNo, $this->_rowLimit(), $filter);
-            $this->EndReturnData->Error          = FALSE;
-            $this->EndReturnData->RecordHtmlData = $pd->RecordHtmlData;
-            $this->EndReturnData->Pagination     = $pd->Pagination;
-            $this->EndReturnData->TotalCount     = $pd->TotalCount;
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
-            $this->notifyError('Branches::save', $e);
+            notifyError('Branches::save', $e);
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function toggleStatus(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $uid      = (int)$this->input->post('BranchUID');
+            $isActive = (int)$this->input->post('IsActive');
+            if (!$uid) throw new ValidationException('Invalid branch.');
+            $newStatus = $isActive === 1 ? 0 : 1;
+            $this->load->model('dbwrite_model');
+            $res = $this->dbwrite_model->updateData(
+                'Organisation', 'BranchesTbl',
+                ['IsActive' => $newStatus, 'UpdatedBy' => $this->_userUID()],
+                ['BranchUID' => $uid, 'OrgUID' => $this->_orgUID()]
+            );
+            if ($res->Error) throw new Exception($res->Message);
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = $newStatus ? 'Branch activated.' : 'Branch deactivated.';
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        } catch (Exception $e) {
+            notifyError('Branches::toggleStatus', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -122,7 +179,11 @@ class Branches extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $uid = (int)$this->input->post('BranchUID');
-            if (!$uid) throw new Exception('Invalid branch.');
+            if (!$uid) throw new ValidationException('Invalid branch.');
+            $this->load->model('branches_model');
+            if ($this->branches_model->hasLinkedRecords($uid, $this->_orgUID())) {
+                throw new ValidationException('This branch cannot be deleted because it has linked transactions or records.');
+            }
             $this->load->model('dbwrite_model');
             $res = $this->dbwrite_model->updateData(
                 'Organisation', 'BranchesTbl',
@@ -132,8 +193,11 @@ class Branches extends MY_Controller {
             if ($res->Error) throw new Exception($res->Message);
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Branch deleted.';
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
-            $this->notifyError('Branches::delete', $e);
+            notifyError('Branches::delete', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -147,7 +211,43 @@ class Branches extends MY_Controller {
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $this->branches_model->getBranchList($this->_orgUID());
         } catch (Exception $e) {
-            $this->notifyError('Branches::getList', $e);
+            notifyError('Branches::getList', $e);
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function setHeadOffice(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $uid = (int)$this->input->post('BranchUID');
+            if (!$uid) throw new ValidationException('Invalid branch.');
+
+            $this->load->model('dbwrite_model');
+
+            // Clear HQ from all branches in this org, then set the target
+            $this->dbwrite_model->updateData(
+                'Organisation', 'BranchesTbl',
+                ['IsHeadOffice' => 0, 'UpdatedBy' => $this->_userUID()],
+                ['OrgUID' => $this->_orgUID(), 'IsDeleted' => 0]
+            );
+
+            $res = $this->dbwrite_model->updateData(
+                'Organisation', 'BranchesTbl',
+                ['IsHeadOffice' => 1, 'UpdatedBy' => $this->_userUID()],
+                ['BranchUID' => $uid, 'OrgUID' => $this->_orgUID()]
+            );
+
+            if ($res->Error) throw new Exception($res->Message);
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Head office updated successfully.';
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        } catch (Exception $e) {
+            notifyError('Branches::setHeadOffice', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -158,7 +258,7 @@ class Branches extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $requestedUID = (int)$this->input->post('BranchUID');
-            if (!$requestedUID) throw new Exception('Invalid branch.');
+            if (!$requestedUID) throw new ValidationException('Invalid branch.');
 
             $jwtData  = $this->pageData['JwtData'];
             $redisKey = $this->pageData['JwtUserKey'] ?? null;
@@ -170,7 +270,7 @@ class Branches extends MY_Controller {
             foreach ($accessible as $b) {
                 if ((int)$b->BranchUID === $requestedUID) { $target = $b; break; }
             }
-            if (!$target) throw new Exception('You do not have access to this branch.');
+            if (!$target) throw new ValidationException('You do not have access to this branch.');
 
             // Already on this branch — no-op
             if ((int)$jwtData->Org->BranchUID === $requestedUID) {
@@ -197,8 +297,11 @@ class Branches extends MY_Controller {
             $this->EndReturnData->BranchUID  = $requestedUID;
             $this->EndReturnData->BranchName = $target->BranchName ?? '';
             $this->EndReturnData->BranchCode = $target->BranchCode ?? '';
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         } catch (Exception $e) {
-            $this->notifyError('Branches::switchBranch', $e);
+            notifyError('Branches::switchBranch', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }

@@ -79,23 +79,31 @@ if (!empty($DataLists)):
         </td>
 
         <!-- Employment Status -->
+        <?php $isSuperAdmin = ($list->RoleName ?? '') === 'Super Admin'; ?>
         <td>
-            <div class="dropdown d-inline-block">
-                <span class="badge <?php echo $statusBadge[$empStatus] ?? 'bg-label-secondary'; ?> cursor-pointer"
-                      style="font-size:.72rem;" data-bs-toggle="dropdown">
+            <?php if ($isSuperAdmin): ?>
+                <span class="badge <?php echo $statusBadge[$empStatus] ?? 'bg-label-secondary'; ?>"
+                      style="font-size:.72rem;" title="Super Admin is always active">
                     <?php echo $empStatus === 'OnLeave' ? 'On Leave' : htmlspecialchars($empStatus); ?>
-                    <i class="bx bx-chevron-down" style="font-size:.65rem;"></i>
                 </span>
-                <ul class="dropdown-menu shadow-sm" style="min-width:150px;font-size:.82rem;">
-                    <li><button class="dropdown-item staff-status-toggle" data-uid="<?php echo $uid; ?>" data-newstatus="<?php echo $isActive ? 0 : 1; ?>">
-                        <?php if ($isActive): ?>
-                            <i class="bx bx-x-circle me-2 text-danger"></i>Mark Inactive
-                        <?php else: ?>
-                            <i class="bx bx-check-circle me-2 text-success"></i>Mark Active
-                        <?php endif; ?>
-                    </button></li>
-                </ul>
-            </div>
+            <?php else: ?>
+                <div class="dropdown d-inline-block">
+                    <span class="badge <?php echo $statusBadge[$empStatus] ?? 'bg-label-secondary'; ?> cursor-pointer"
+                          style="font-size:.72rem;" data-bs-toggle="dropdown">
+                        <?php echo $empStatus === 'OnLeave' ? 'On Leave' : htmlspecialchars($empStatus); ?>
+                        <i class="bx bx-chevron-down" style="font-size:.65rem;"></i>
+                    </span>
+                    <ul class="dropdown-menu shadow-sm" style="min-width:150px;font-size:.82rem;">
+                        <li><button class="dropdown-item staff-status-toggle" data-uid="<?php echo $uid; ?>" data-newstatus="<?php echo $isActive ? 0 : 1; ?>">
+                            <?php if ($isActive): ?>
+                                <i class="bx bx-x-circle me-2 text-danger"></i>Mark Inactive
+                            <?php else: ?>
+                                <i class="bx bx-check-circle me-2 text-success"></i>Mark Active
+                            <?php endif; ?>
+                        </button></li>
+                    </ul>
+                </div>
+            <?php endif; ?>
         </td>
 
         <!-- Joining Date -->

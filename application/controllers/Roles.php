@@ -139,6 +139,11 @@ class Roles extends MY_Controller {
                 $this->roles_model->saveRolePermissions($RoleUID, $PostData, $JwtData->User->UserUID);
             }
 
+            // Bust role-level menu caches so the next login picks up fresh permissions
+            $orgUID = $JwtData->Org->OrgUID;
+            $this->redisservice->deleteCache('r2k-role-menus-'    . $orgUID . '-' . $RoleUID);
+            $this->redisservice->deleteCache('r2k-role-submenus-' . $orgUID . '-' . $RoleUID);
+
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = $RoleUID > 0 ? 'Role updated successfully.' : 'Role created successfully.';
 
@@ -164,6 +169,11 @@ class Roles extends MY_Controller {
             $this->load->model('roles_model');
             $JwtData = $this->pageData['JwtData'];
             $this->roles_model->saveRolePermissions($RoleUID, $PostData, $JwtData->User->UserUID);
+
+            // Bust role-level menu caches so the next login picks up fresh permissions
+            $orgUID = $JwtData->Org->OrgUID;
+            $this->redisservice->deleteCache('r2k-role-menus-'    . $orgUID . '-' . $RoleUID);
+            $this->redisservice->deleteCache('r2k-role-submenus-' . $orgUID . '-' . $RoleUID);
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Permissions saved successfully.';

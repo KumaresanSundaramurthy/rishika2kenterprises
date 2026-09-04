@@ -1115,11 +1115,69 @@ tr:hover .inv-row-action {
     z-index: 1080 !important;
 }
 
-/* ── More-actions dropdown — matches date filter panel style ─────── */
-.r2k-action-menu {
-    font-size: .82rem;
-    min-width: 160px;
-    border-radius: 12px;
-    border: 1px solid #c4c6f8;
-    box-shadow: 0 8px 32px rgba(105, 108, 255, .18);
+
+/* ── Serial number panel (Purchase: text entry; Invoice: select picker) ─── */
+.bm-serial-panel {
+    margin-top: 8px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px dashed #c4c6f8;
+    background: rgba(105, 108, 255, .03);
+}
+.bm-serial-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+.bm-serial-label {
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: #696cff;
+}
+.bm-serial-count {
+    font-size: .72rem;
+    font-weight: 600;
+}
+.bm-serial-inputs {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 4px;
+}
+.bm-serial-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.bm-serial-row .bm-serial-text-input,
+.bm-serial-row .bm-serial-select-input {
+    flex: 1;
+    font-size: .78rem;
+}
+.bm-serial-remove-btn {
+    flex-shrink: 0;
+    font-size: .85rem;
+    line-height: 1;
+}
+.bm-serial-add-btn {
+    font-size: .75rem;
+    padding: 0;
+    color: #696cff;
+}
+.bm-serial-add-btn:hover {
+    color: #5f61e6;
+}
+
+:root[data-theme="dark"] .bm-serial-panel {
+    border-color: rgba(105, 108, 255, .3);
+    background: rgba(105, 108, 255, .06);
+}
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .bm-serial-panel {
+        border-color: rgba(105, 108, 255, .3);
+        background: rgba(105, 108, 255, .06);
+    }
 }

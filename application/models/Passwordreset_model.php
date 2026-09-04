@@ -28,7 +28,7 @@ class Passwordreset_model extends CI_Model {
      */
     public function getValidToken(string $token): ?object {
         $this->ReadDb->db_debug = FALSE;
-        $this->ReadDb->select('r.ResetUID, r.UserUID, r.ExpiresAt, u.FirstName, u.EmailAddress');
+        $this->ReadDb->select('r.ResetUID, r.UserUID, r.ExpiresAt, u.FirstName, u.EmailAddress, u.IsLocked');
         $this->ReadDb->from('Users.PasswordResetTbl r');
         $this->ReadDb->join('Users.UserTbl u', 'u.UserUID = r.UserUID', 'left');
         $this->ReadDb->where('r.Token', $token);

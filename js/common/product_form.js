@@ -350,8 +350,12 @@
         if (_isSizeApp || _isBrandApp) {
             _updateVariantSectionVisibility();
             _applyVariants(response.Variants || [], _isSizeApp, _isBrandApp);
+            _applyVariantMutex();
         }
-        if (d.IsSerialTracked   == 1) { $('#IsSerialTracked').prop('checked', true); }
+        if (d.IsSerialTracked == 1) {
+            $('#IsSerialTracked').prop('checked', true);
+            _applySerialMutex();
+        }
 
         // Reset state, load existing attachments from response (no AJAX — already in response)
         if (!isClone) {
@@ -1000,7 +1004,47 @@
         }
     }
 
+    /**
+     * Enforce Serial ↔ Variant mutual exclusion after IsSerialTracked changes.
+     * @returns {void}
+     */
+    function _applySerialMutex() {
+        var serialOn = $('#IsSerialTracked').is(':checked');
+        if (serialOn) {
+            $('#IsBrandApplicable,#IsSizeApplicable').prop('checked', false).prop('disabled', true);
+            if ($('#VariantBrandSelect').hasClass('select2-hidden-accessible')) {
+                $('#VariantBrandSelect').select2('destroy');
+            }
+            $('#VariantBrandSelect').empty();
+            _buildVariantMatrix();
+            _updateVariantSectionVisibility();
+        } else {
+            var eitherVariantOn = $('#IsBrandApplicable').is(':checked') || $('#IsSizeApplicable').is(':checked');
+            if (!eitherVariantOn) {
+                $('#IsBrandApplicable,#IsSizeApplicable').prop('disabled', false);
+            }
+        }
+    }
+
+    /**
+     * Enforce Variant ↔ Serial mutual exclusion after IsBrandApplicable/IsSizeApplicable changes.
+     * @returns {void}
+     */
+    function _applyVariantMutex() {
+        var eitherVariantOn = $('#IsBrandApplicable').is(':checked') || $('#IsSizeApplicable').is(':checked');
+        if (eitherVariantOn) {
+            $('#IsSerialTracked').prop('checked', false).prop('disabled', true);
+        } else {
+            $('#IsSerialTracked').prop('disabled', false);
+        }
+    }
+
+    $(document).on('change', '#IsSerialTracked', function () {
+        _applySerialMutex();
+    });
+
     $(document).on('change', '#IsSizeApplicable', function () {
+        _applyVariantMutex();
         if (!$('#VariantSizeSelect').hasClass('select2-hidden-accessible')) {
             $('#VariantSizeSelect').select2({ placeholder: 'Select sizes...', allowClear: true, dropdownParent: $('#ProductFormModal') });
         }
@@ -1013,6 +1057,7 @@
     });
 
     $(document).on('change', '#IsBrandApplicable', function () {
+        _applyVariantMutex();
         _updateVariantSectionVisibility();
         if ($(this).is(':checked')) {
             // _loadBrandOptions handles select2 destroy + populate + re-init

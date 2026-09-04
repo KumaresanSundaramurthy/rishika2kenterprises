@@ -12,11 +12,11 @@
  * To disable a channel, comment out its line — no controller code changes needed.
  *
  * @param string         $location  Human-readable label: "Controller::method"
- * @param Exception|null $e         The caught exception (optional)
+ * @param Throwable|null $e         The caught exception or error (optional)
  * @param array          $context   Extra key→value pairs (e.g. TransUID, OrgUID override)
  * @return void
  */
-function notifyError(string $location, ?Exception $e = null, array $context = []): void
+function notifyError(string $location, ?Throwable $e = null, array $context = []): void
 {
     $CI  = &get_instance();
     $jwt = $CI->pageData['JwtData'] ?? null;

@@ -101,7 +101,7 @@ if (!empty($DataLists)) {
                     </div>
 
                     <div>
-                        <a href="javascript:void(0);" class="prod-profile-link text-dark fw-semibold text-decoration-none"
+                        <a href="javascript:void(0);" class="prod-profile-link r2k-profile-link text-dark fw-semibold text-decoration-none"
                            data-uid="<?php echo $uid; ?>"
                            title="View Profile"><?php echo htmlspecialchars($row->ItemName); ?></a><?php echo $comboBadge; ?><?php if (!empty($row->IsBrandApplicable) || !empty($row->IsSizeApplicable)): ?>
                         <i class="bx bx-grid-alt BrandStockModalBtn bsm-name-tag"

@@ -34,7 +34,7 @@ class Razorpay_model extends CI_Model {
             $q = $this->ReadDb->get();
             return ($q !== false) ? ($q->row() ?? null) : null;
         } catch (Exception $e) {
-            notifyError($e, 'Razorpay_model::getInvoicePartyInfo');
+            notifyError('Razorpay_model::getInvoicePartyInfo', $e);
             return null;
         }
     }
@@ -60,7 +60,7 @@ class Razorpay_model extends CI_Model {
             $q = $this->ReadDb->get();
             return ($q !== false) ? ($q->row() ?? null) : null;
         } catch (Exception $e) {
-            notifyError($e, 'Razorpay_model::getPaymentByRazorpayRef');
+            notifyError('Razorpay_model::getPaymentByRazorpayRef', $e);
             return null;
         }
     }
@@ -105,7 +105,7 @@ class Razorpay_model extends CI_Model {
             return isset($rows[0]) ? (int)$rows[0]->PaymentTypeUID : 0;
 
         } catch (Exception $e) {
-            notifyError($e, 'Razorpay_model::getOnlinePaymentTypeUID');
+            notifyError('Razorpay_model::getOnlinePaymentTypeUID', $e);
             return 0;
         }
     }

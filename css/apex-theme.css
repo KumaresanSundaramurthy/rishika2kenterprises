@@ -877,6 +877,13 @@
 [data-theme="dark"] .r2k-sal-link { color: #9396ff; }
 [data-theme="dark"] .r2k-sal-link:hover { color: #b0b2ff; }
 [data-theme="dark"] .r2k-sal-clear { color: #f06070; }
+/* Select (dept/role dropdowns) inside filter row */
+.apex-filter-select { min-width: 130px; max-width: 200px; font-size: 0.82rem; }
+
+/* General Settings section labels & sub-group headings */
+.gs-section-label { font-size: .75rem; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: #6c757d; margin-bottom: .75rem; }
+.gs-group-label   { font-size: .82rem; font-weight: 600; margin-bottom: .75rem; }
+
 /* Date filter button adapts to apex style when inside filter row */
 .apex-filter-row .r2k-dd-btn {
     font-size: 0.8rem;

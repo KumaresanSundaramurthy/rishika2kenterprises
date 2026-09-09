@@ -533,18 +533,7 @@ class Deliverychallans extends MY_Controller {
             $prefix       = $prefixResult->Data[0] ?? null;
             if (!$prefix) throw new ValidationException('Prefix not found.');
 
-            $sep   = $prefix->Separator ?? '-';
-            $parts = [strtoupper($prefix->Name)];
-            if (!empty($prefix->IncludeShortName) && !empty($prefix->ShortName)) $parts[] = strtoupper($prefix->ShortName);
-            if (!empty($prefix->IncludeFiscalYear)) {
-                $m  = (int) date('m'); $yr = (int) date('Y'); $fy = $m >= 4 ? $yr : $yr - 1;
-                $parts[] = ($prefix->FiscalYearFormat ?? 'SHORT') === 'LONG'
-                    ? $fy . '-' . ($fy + 1)
-                    : str_pad($fy % 100, 2, '0', STR_PAD_LEFT) . '-' . str_pad(($fy + 1) % 100, 2, '0', STR_PAD_LEFT);
-            }
-            $pad = (int)($prefix->NumberPadding ?? 1);
-            $parts[] = $pad > 1 ? str_pad($nextNumber, $pad, '0', STR_PAD_LEFT) : (string) $nextNumber;
-            $uniqueNumber = implode($sep, $parts);
+            [$uniqueNumber] = $this->buildUniqueNumber($prefix, $nextNumber, date('Y-m-d'));
 
             $headerData = [
                 'OrgUID'            => $orgUID,

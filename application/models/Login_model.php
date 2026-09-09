@@ -93,7 +93,9 @@ class Login_model extends CI_Model {
             // Branches the user can switch to (populated from UserBranchAccessTbl)
             $JwtOrgData['AccessibleBranches'] = $this->_loadAccessibleBranches((int)$UserData->UserUID, (int)$UserData->UserOrgUID);
 
-            $jwtPayload = array('User' => $JwtUserData, 'Org' => $JwtOrgData, 'UserMainModule' => $MainModule, 'UserSubModule' => $SubModule, 'Permissions' => $Permissions, 'GenSettings' => $GeneralSettings, 'ProdSettings' => $ProductSettings, 'TransSettings' => $TransSettings, 'ModuleInfo' => $ModuleInfo, 'AttachCfg' => $AttachCfg);
+            $Subscription = $this->_loadOrgSubscription((int)$UserData->UserOrgUID);
+
+            $jwtPayload = array('User' => $JwtUserData, 'Org' => $JwtOrgData, 'UserMainModule' => $MainModule, 'UserSubModule' => $SubModule, 'Permissions' => $Permissions, 'GenSettings' => $GeneralSettings, 'ProdSettings' => $ProductSettings, 'TransSettings' => $TransSettings, 'ModuleInfo' => $ModuleInfo, 'AttachCfg' => $AttachCfg, 'Subscription' => $Subscription);
 
             try {
                 $plResult  = $this->ReadDb->query('SELECT COUNT(*) AS cnt FROM Products.PriceListTbl WHERE OrgUID = ? AND Status = 1 AND IsDeleted = 0', [(int)$UserData->UserOrgUID]);
@@ -182,6 +184,10 @@ class Login_model extends CI_Model {
             $this->ReadDb->where('RMM.IsActive', 1);
             $this->ReadDb->where('RMM.IsDeleted', 0);
             $this->ReadDb->where('RMM.CanView', 1);
+            /* Scope to this org so shared global roles don't leak other orgs' menus */
+            if ($OrgUID > 0) {
+                $this->ReadDb->where('MainMenu.OrgUID', $OrgUID);
+            }
             $this->ReadDb->order_by('RMM.Sorting', 'ASC');
             $result = $this->ReadDb->get()->result();
 
@@ -225,6 +231,10 @@ class Login_model extends CI_Model {
             $this->ReadDb->where('RSM.IsActive', 1);
             $this->ReadDb->where('RSM.IsDeleted', 0);
             $this->ReadDb->where('RSM.CanView', 1);
+            /* Scope to this org so shared global roles don't leak other orgs' sub-menus */
+            if ($OrgUID > 0) {
+                $this->ReadDb->where('Sub.OrgUID', $OrgUID);
+            }
             $this->ReadDb->order_by('RSM.Sorting', 'ASC');
             $result = $this->ReadDb->get()->result();
 
@@ -251,7 +261,7 @@ class Login_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->ReadDb->select("GeneralSettg.CurrenySymbol, GeneralSettg.PriceMaxLength, GeneralSettg.RowLimit, GeneralSettg.EnableStorage, GeneralSettg.MandatoryStorage, GeneralSettg.SerialNoDisplay, GeneralSettg.QtyMaxLength, GeneralSettg.FYStartMonth, GeneralSettg.MaxShippingAddr, GeneralSettg.DefaultSalutationUID, COALESCE(GeneralSettg.FormDateFormat,'d-m-Y') AS FormDateFormat, COALESCE(GeneralSettg.ListDateFormat,'d-m-Y') AS ListDateFormat, COALESCE(GeneralSettg.PrintDateFormat,'d-m-Y') AS PrintDateFormat, COALESCE(GeneralSettg.FormDateTimeFormat,'d-m-Y H:i') AS FormDateTimeFormat, COALESCE(GeneralSettg.ListDateTimeFormat,'d-m-Y H:i') AS ListDateTimeFormat, COALESCE(GeneralSettg.PrintDateTimeFormat,'d-m-Y H:i') AS PrintDateTimeFormat, COALESCE(GeneralSettg.ShowStats, 1) AS ShowStats, COALESCE(GeneralSettg.StatsDefaultOpen, 1) AS StatsDefaultOpen, COALESCE(GeneralSettg.EmpCodePrefix,'EMP') AS EmpCodePrefix, COALESCE(GeneralSettg.EmpCodeSeparator,'-') AS EmpCodeSeparator, COALESCE(GeneralSettg.EmpCodeDigits, 4) AS EmpCodeDigits, COALESCE(GeneralSettg.EnableAIAssistant,'No') AS EnableAIAssistant");
+            $this->ReadDb->select("GeneralSettg.CurrenySymbol, GeneralSettg.RowLimit, GeneralSettg.EnableStorage, GeneralSettg.MandatoryStorage, GeneralSettg.SerialNoDisplay, GeneralSettg.QtyMaxLength, GeneralSettg.FYStartMonth, GeneralSettg.MaxShippingAddr, GeneralSettg.DefaultSalutationUID, COALESCE(GeneralSettg.FormDateFormat,'d-m-Y') AS FormDateFormat, COALESCE(GeneralSettg.ListDateFormat,'d-m-Y') AS ListDateFormat, COALESCE(GeneralSettg.PrintDateFormat,'d-m-Y') AS PrintDateFormat, COALESCE(GeneralSettg.FormDateTimeFormat,'d-m-Y H:i') AS FormDateTimeFormat, COALESCE(GeneralSettg.ListDateTimeFormat,'d-m-Y H:i') AS ListDateTimeFormat, COALESCE(GeneralSettg.PrintDateTimeFormat,'d-m-Y H:i') AS PrintDateTimeFormat, COALESCE(GeneralSettg.ShowStats, 1) AS ShowStats, COALESCE(GeneralSettg.StatsDefaultOpen, 1) AS StatsDefaultOpen, COALESCE(GeneralSettg.EmpCodePrefix,'EMP') AS EmpCodePrefix, COALESCE(GeneralSettg.EmpCodeSeparator,'-') AS EmpCodeSeparator, COALESCE(GeneralSettg.EmpCodeDigits, 4) AS EmpCodeDigits, COALESCE(GeneralSettg.EnableAIAssistant,'No') AS EnableAIAssistant");
             $this->ReadDb->from('Settings.OrgSettingsTbl as GeneralSettg');
             $this->ReadDb->where('GeneralSettg.OrgUID', $OrgUID);
             $this->ReadDb->limit(1);
@@ -287,7 +297,7 @@ class Login_model extends CI_Model {
             $this->EndReturnData->Data  = $query->result();
             return $this->EndReturnData;
         } catch (Exception $e) {
-            notifyError($e, 'Login_model::getProductSettings');
+            notifyError('Login_model::getProductSettings', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
@@ -326,7 +336,7 @@ class Login_model extends CI_Model {
             $this->EndReturnData->Data  = [$row];
             return $this->EndReturnData;
         } catch (Exception $e) {
-            notifyError($e, 'Login_model::getOrgTransactionSettings');
+            notifyError('Login_model::getOrgTransactionSettings', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             $this->EndReturnData->Data    = [];
@@ -393,7 +403,7 @@ class Login_model extends CI_Model {
             return $query->num_rows();
 
         } catch (Exception $e) {
-            notifyError($e, 'Login_model::getFailedAttempts');
+            notifyError('Login_model::getFailedAttempts', $e);
             throw new Exception($e->getMessage());
         }
 
@@ -420,7 +430,7 @@ class Login_model extends CI_Model {
             return $query->result();
 
         } catch (Exception $e) {
-            notifyError($e, 'Login_model::getUserAuditInfo');
+            notifyError('Login_model::getUserAuditInfo', $e);
             throw new Exception($e->getMessage());
         }
 
@@ -448,7 +458,7 @@ class Login_model extends CI_Model {
             }
             return $list;
         } catch (Exception $e) {
-            notifyError($e, 'Login_model::_loadUserSignatures');
+            notifyError('Login_model::_loadUserSignatures', $e);
             return [];
         }
     }
@@ -483,9 +493,42 @@ class Login_model extends CI_Model {
             $this->redisservice->setCache($cacheKey, $cfg, 86400);
             return $cfg;
         } catch (Exception $e) {
-            notifyError($e, 'Login_model::getAttachCfg');
+            notifyError('Login_model::getAttachCfg', $e);
             return [];
         }
+    }
+
+    private function _loadOrgSubscription(int $orgUID): object {
+        $sub = new stdClass();
+        $sub->PlanCode  = 'TRIAL';
+        $sub->PlanName  = 'Free Trial';
+        $sub->Status    = 'Active';
+        $sub->EndDate   = '';
+        $sub->IsExpired = false;
+
+        try {
+            $row = $this->ReadDb->select('s.PlanCode, s.PlanName, os.Status, os.EndDate')
+                ->from('Organisation.OrgSubscriptionTbl os')
+                ->join('Organisation.SubscriptionPlansTbl s', 's.PlanUID = os.PlanUID', 'left')
+                ->where('os.OrgUID', $orgUID)
+                ->where_in('os.Status', ['Active', 'Trial', 'Grace'])
+                ->order_by('os.EndDate', 'DESC')
+                ->limit(1)
+                ->get();
+
+            if ($row && $row->num_rows() > 0) {
+                $r             = $row->row();
+                $sub->PlanCode  = $r->PlanCode  ?? 'TRIAL';
+                $sub->PlanName  = $r->PlanName  ?? 'Free Trial';
+                $sub->Status    = $r->Status    ?? 'Active';
+                $sub->EndDate   = $r->EndDate   ?? '';
+                $sub->IsExpired = (!empty($r->EndDate) && strtotime($r->EndDate) < strtotime(date('Y-m-d')));
+            }
+        } catch (Throwable $e) {
+            // Fail open — let the user log in; middleware will re-check
+        }
+
+        return $sub;
     }
 
     private function _loadAccessibleBranches(int $userUID, int $orgUID): array {
@@ -502,7 +545,7 @@ class Login_model extends CI_Model {
             );
             return $query ? $query->result() : [];
         } catch (Throwable $e) {
-            notifyError($e, 'Login_model::_loadAccessibleBranches');
+            notifyError('Login_model::_loadAccessibleBranches', $e);
             return [];
         }
     }

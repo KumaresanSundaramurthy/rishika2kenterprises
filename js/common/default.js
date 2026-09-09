@@ -247,6 +247,25 @@ $(document).ready(function () {
         document.querySelectorAll('body > .tooltip.show').forEach(function (tip) { tip.remove(); });
     });
 
+    // Global 402 handler — subscription expired mid-session
+    $(document).ajaxError(function (event, xhr) {
+        if (xhr.status !== 402) return;
+        try {
+            var resp = JSON.parse(xhr.responseText || '{}');
+            if (!resp.SubscriptionExpired) return;
+        } catch (e) { return; }
+        ajaxLoading(0);
+        Swal.fire({
+            icon: 'warning',
+            title: 'Subscription Expired',
+            text: 'Your subscription has expired. Please renew your plan to continue.',
+            confirmButtonText: 'View Plans',
+            allowOutsideClick: false,
+        }).then(function () {
+            window.location.href = '/subscription/expired';
+        });
+    });
+
     $("input[type=number]").click(function () {
         $(this).select();
     });

@@ -974,6 +974,15 @@ class Organisation_model extends CI_Model {
         return $this->EndReturnData;
     }
 
+    /** Count active prefix configurations for a specific org + module. */
+    public function countPrefixesForModule(int $orgUID, int $moduleUID): int {
+        $this->ReadDb->select('COUNT(*) AS cnt');
+        $this->ReadDb->from('Settings.TransactionPrefixTbl');
+        $this->ReadDb->where(['OrgUID' => $orgUID, 'ModuleUID' => $moduleUID, 'IsDeleted' => 0]);
+        $row = $this->ReadDb->get()->row();
+        return (int)($row->cnt ?? 0);
+    }
+
     /** Get a single prefix row by PrefixUID (for validation before delete). */
     public function getPrefixByUID(int $prefixUID, int $orgUID): object {
         $this->EndReturnData = new stdClass();

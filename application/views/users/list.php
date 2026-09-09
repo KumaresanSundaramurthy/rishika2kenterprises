@@ -46,9 +46,6 @@ if (!empty($DataLists)):
                         <?php if (!empty($list->EmployeeCode)): ?>
                             <span class="me-1"><?php echo htmlspecialchars($list->EmployeeCode); ?></span>
                         <?php endif; ?>
-                        <?php if (!empty($list->UserCode)): ?>
-                            <span class="text-muted">#<?php echo htmlspecialchars($list->UserCode); ?></span>
-                        <?php endif; ?>
                     </div>
                 </div>
             </div>

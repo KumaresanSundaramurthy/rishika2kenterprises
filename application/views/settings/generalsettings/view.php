@@ -98,7 +98,6 @@
                                             $gsShowStats     = isset($gs->ShowStats)       ? !empty($gs->ShowStats)       : true;
                                             $gsStatsDefault  = isset($gs->StatsDefaultOpen) ? !empty($gs->StatsDefaultOpen) : true;
                                             $gsQtyMax        = (int)($gs->QtyMaxLength   ?? 6);
-                                            $gsPriceMax      = (int)($gs->PriceMaxLength ?? 12);
                                             ?>
                                             <div class="tab-pane fade show active" id="tab-general" role="tabpanel" aria-labelledby="tab-general-tab">
 
@@ -243,70 +242,79 @@
                                                 <hr class="my-3">
 
                                                 <!-- ══════════════════════════════════════════════════
-                                                     SECTION 4 — Date Formats
+                                                     SECTION 4 & 5 — Date / DateTime Formats
                                                 ══════════════════════════════════════════════════ -->
-                                                <p class="text-muted fw-semibold mb-2" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;">Date Formats</p>
-                                                <div class="row g-3 mb-3">
-                                                    <div class="col-md-4">
-                                                        <label class="form-label">Form Page</label>
-                                                        <select class="form-select" id="FormDateFormat" name="FormDateFormat">
-                                                            <?php foreach ($dateFormatOptions as $val => $lbl): ?>
-                                                            <option value="<?php echo $val; ?>" <?php echo $formDateFormat === $val ? 'selected' : ''; ?>><?php echo htmlspecialchars($lbl); ?></option>
-                                                            <?php endforeach; ?>
-                                                        </select>
-                                                        <div class="form-text">Used in Create / Edit form date pickers.</div>
+                                                <p class="gs-section-label">Date &amp; Time Formats</p>
+
+                                                <!-- Date Formats sub-group -->
+                                                <div class="border rounded p-3 mb-3">
+                                                    <div class="d-flex align-items-center gap-2 gs-group-label">
+                                                        <i class="bx bx-calendar text-primary"></i>Date Formats
                                                     </div>
-                                                    <div class="col-md-4">
-                                                        <label class="form-label">List Page</label>
-                                                        <select class="form-select" id="ListDateFormat" name="ListDateFormat">
-                                                            <?php foreach ($dateFormatOptions as $val => $lbl): ?>
-                                                            <option value="<?php echo $val; ?>" <?php echo $listDateFormat === $val ? 'selected' : ''; ?>><?php echo htmlspecialchars($lbl); ?></option>
-                                                            <?php endforeach; ?>
-                                                        </select>
-                                                        <div class="form-text">Used in list page date columns.</div>
-                                                    </div>
-                                                    <div class="col-md-4">
-                                                        <label class="form-label">Print / PDF</label>
-                                                        <select class="form-select" id="PrintDateFormat" name="PrintDateFormat">
-                                                            <?php foreach ($dateFormatOptions as $val => $lbl): ?>
-                                                            <option value="<?php echo $val; ?>" <?php echo $printDateFormat === $val ? 'selected' : ''; ?>><?php echo htmlspecialchars($lbl); ?></option>
-                                                            <?php endforeach; ?>
-                                                        </select>
-                                                        <div class="form-text">Used in print templates &amp; PDF exports.</div>
+                                                    <div class="row g-3">
+                                                        <div class="col-md-4">
+                                                            <label class="form-label">Form Page</label>
+                                                            <select class="form-select" id="FormDateFormat" name="FormDateFormat">
+                                                                <?php foreach ($dateFormatOptions as $val => $lbl): ?>
+                                                                <option value="<?php echo $val; ?>" <?php echo $formDateFormat === $val ? 'selected' : ''; ?>><?php echo htmlspecialchars($lbl); ?></option>
+                                                                <?php endforeach; ?>
+                                                            </select>
+                                                            <div class="form-text">Used in Create / Edit form date pickers.</div>
+                                                        </div>
+                                                        <div class="col-md-4">
+                                                            <label class="form-label">List Page</label>
+                                                            <select class="form-select" id="ListDateFormat" name="ListDateFormat">
+                                                                <?php foreach ($dateFormatOptions as $val => $lbl): ?>
+                                                                <option value="<?php echo $val; ?>" <?php echo $listDateFormat === $val ? 'selected' : ''; ?>><?php echo htmlspecialchars($lbl); ?></option>
+                                                                <?php endforeach; ?>
+                                                            </select>
+                                                            <div class="form-text">Used in list page date columns.</div>
+                                                        </div>
+                                                        <div class="col-md-4">
+                                                            <label class="form-label">Print / PDF</label>
+                                                            <select class="form-select" id="PrintDateFormat" name="PrintDateFormat">
+                                                                <?php foreach ($dateFormatOptions as $val => $lbl): ?>
+                                                                <option value="<?php echo $val; ?>" <?php echo $printDateFormat === $val ? 'selected' : ''; ?>><?php echo htmlspecialchars($lbl); ?></option>
+                                                                <?php endforeach; ?>
+                                                            </select>
+                                                            <div class="form-text">Used in print templates &amp; PDF exports.</div>
+                                                        </div>
                                                     </div>
                                                 </div>
 
-                                                <!-- ══════════════════════════════════════════════════
-                                                     SECTION 5 — Date & Time Formats
-                                                ══════════════════════════════════════════════════ -->
-                                                <p class="text-muted fw-semibold mb-2" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;">Date &amp; Time Formats</p>
-                                                <div class="row g-3 mb-3">
-                                                    <div class="col-md-4">
-                                                        <label class="form-label">Form Page</label>
-                                                        <select class="form-select" id="FormDateTimeFormat" name="FormDateTimeFormat">
-                                                            <?php foreach ($dtFormatOptions as $val => $lbl): ?>
-                                                            <option value="<?php echo $val; ?>" <?php echo $formDtFormat === $val ? 'selected' : ''; ?>><?php echo htmlspecialchars($lbl); ?></option>
-                                                            <?php endforeach; ?>
-                                                        </select>
-                                                        <div class="form-text">Used for datetime fields in forms (e.g. created on).</div>
+                                                <!-- Date & Time Formats sub-group -->
+                                                <div class="border rounded p-3 mb-3">
+                                                    <div class="d-flex align-items-center gap-2 gs-group-label">
+                                                        <i class="bx bx-time-five text-primary"></i>Date &amp; Time Formats
                                                     </div>
-                                                    <div class="col-md-4">
-                                                        <label class="form-label">List Page</label>
-                                                        <select class="form-select" id="ListDateTimeFormat" name="ListDateTimeFormat">
-                                                            <?php foreach ($dtFormatOptions as $val => $lbl): ?>
-                                                            <option value="<?php echo $val; ?>" <?php echo $listDtFormat === $val ? 'selected' : ''; ?>><?php echo htmlspecialchars($lbl); ?></option>
-                                                            <?php endforeach; ?>
-                                                        </select>
-                                                        <div class="form-text">Used for datetime columns in list pages.</div>
-                                                    </div>
-                                                    <div class="col-md-4">
-                                                        <label class="form-label">Print / PDF</label>
-                                                        <select class="form-select" id="PrintDateTimeFormat" name="PrintDateTimeFormat">
-                                                            <?php foreach ($dtFormatOptions as $val => $lbl): ?>
-                                                            <option value="<?php echo $val; ?>" <?php echo $printDtFormat === $val ? 'selected' : ''; ?>><?php echo htmlspecialchars($lbl); ?></option>
-                                                            <?php endforeach; ?>
-                                                        </select>
-                                                        <div class="form-text">Used for datetime in print templates &amp; PDFs.</div>
+                                                    <div class="row g-3">
+                                                        <div class="col-md-4">
+                                                            <label class="form-label">Form Page</label>
+                                                            <select class="form-select" id="FormDateTimeFormat" name="FormDateTimeFormat">
+                                                                <?php foreach ($dtFormatOptions as $val => $lbl): ?>
+                                                                <option value="<?php echo $val; ?>" <?php echo $formDtFormat === $val ? 'selected' : ''; ?>><?php echo htmlspecialchars($lbl); ?></option>
+                                                                <?php endforeach; ?>
+                                                            </select>
+                                                            <div class="form-text">Used for datetime fields in forms (e.g. created on).</div>
+                                                        </div>
+                                                        <div class="col-md-4">
+                                                            <label class="form-label">List Page</label>
+                                                            <select class="form-select" id="ListDateTimeFormat" name="ListDateTimeFormat">
+                                                                <?php foreach ($dtFormatOptions as $val => $lbl): ?>
+                                                                <option value="<?php echo $val; ?>" <?php echo $listDtFormat === $val ? 'selected' : ''; ?>><?php echo htmlspecialchars($lbl); ?></option>
+                                                                <?php endforeach; ?>
+                                                            </select>
+                                                            <div class="form-text">Used for datetime columns in list pages.</div>
+                                                        </div>
+                                                        <div class="col-md-4">
+                                                            <label class="form-label">Print / PDF</label>
+                                                            <select class="form-select" id="PrintDateTimeFormat" name="PrintDateTimeFormat">
+                                                                <?php foreach ($dtFormatOptions as $val => $lbl): ?>
+                                                                <option value="<?php echo $val; ?>" <?php echo $printDtFormat === $val ? 'selected' : ''; ?>><?php echo htmlspecialchars($lbl); ?></option>
+                                                                <?php endforeach; ?>
+                                                            </select>
+                                                            <div class="form-text">Used for datetime in print templates &amp; PDFs.</div>
+                                                        </div>
                                                     </div>
                                                 </div>
 
@@ -323,12 +331,7 @@
                                                                min="1" max="15" value="<?php echo $gsQtyMax; ?>" />
                                                         <div class="form-text">Maximum digits allowed when entering a product quantity (e.g. 6 allows up to 999,999). Includes decimal digits.</div>
                                                     </div>
-                                                    <div class="col-md-4">
-                                                        <label class="form-label">Price Max Length</label>
-                                                        <input type="number" class="form-control" id="gs_PriceMaxLength" name="PriceMaxLength"
-                                                               min="1" max="20" value="<?php echo $gsPriceMax; ?>" />
-                                                        <div class="form-text">Maximum digits allowed when entering a price or amount (e.g. 12 allows up to ₹99,99,99,999.99). Includes decimal digits.</div>
-                                                    </div>
+
                                                     <div class="col-md-4">
                                                         <label class="form-label">Max Shipping Addresses</label>
                                                         <input type="number" class="form-control" id="gs_MaxShippingAddr" name="MaxShippingAddr"
@@ -1432,7 +1435,7 @@ RowLimit               : $('#gs_RowLimit').val(),
                 TwoStepLogin           : $('#gs_TwoStepLogin').is(':checked')       ? 1 : 0,
                 MaxShippingAddr        : $('#gs_MaxShippingAddr').val(),
                 QtyMaxLength           : $('#gs_QtyMaxLength').val(),
-                PriceMaxLength         : $('#gs_PriceMaxLength').val(),
+
                 FormDateFormat         : $('#FormDateFormat').val(),
                 ListDateFormat         : $('#ListDateFormat').val(),
                 PrintDateFormat        : $('#PrintDateFormat').val(),

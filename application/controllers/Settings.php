@@ -162,8 +162,6 @@ class Settings extends MY_Controller {
             $qtyMaxLength = (int)getPostValue($post, 'QtyMaxLength');
             if ($qtyMaxLength < 1 || $qtyMaxLength > 15) $qtyMaxLength = 6;
 
-            $priceMaxLength = (int)getPostValue($post, 'PriceMaxLength');
-            if ($priceMaxLength < 1 || $priceMaxLength > 20) $priceMaxLength = 12;
 
             $maxShippingAddr = (int)getPostValue($post, 'MaxShippingAddr');
             if ($maxShippingAddr < 1 || $maxShippingAddr > 5) $maxShippingAddr = 3;
@@ -211,7 +209,7 @@ class Settings extends MY_Controller {
                 'FYStartMonth'         => $fyStartMonth,
                 'RowLimit'             => $rowLimit,
                 'QtyMaxLength'         => $qtyMaxLength,
-                'PriceMaxLength'       => $priceMaxLength,
+
                 'EnableStorage'        => $enableStorage,
                 'MandatoryStorage'     => $mandatoryStorage,
                 'MaxShippingAddr'      => $maxShippingAddr,
@@ -1181,11 +1179,11 @@ class Settings extends MY_Controller {
                 throw new Exception('Please select a module.');
             }
 
-            $validSeps = ['-', '/', '|', '_', '.'];
-            $sep = getPostValue($PostData, 'prefixSeparator') ?: '-';
-            if (!in_array($sep, $validSeps)) $sep = '-';
+            $validSeps = ['', '-', '/', '|', '_', '.'];
+            $sep = getPostValue($PostData, 'prefixSeparator') ?? '';
+            if (!in_array($sep, $validSeps, true)) $sep = '-';
 
-            $validPads = ['1', '3', '5'];
+            $validPads = ['1', '3'];
             $pad = (string)(getPostValue($PostData, 'numberPadding') ?: '3');
             if (!in_array($pad, $validPads)) $pad = '3';
 
@@ -1198,7 +1196,19 @@ class Settings extends MY_Controller {
                 throw new Exception('Company short name is required when enabled.');
             }
 
+            $componentConfigRaw = getPostValue($PostData, 'componentConfig');
+            $componentConfig    = null;
+            if ($componentConfigRaw) {
+                $decoded = json_decode($componentConfigRaw, true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    $componentConfig = $componentConfigRaw;
+                }
+            }
+
+            $isDefault = getPostValue($PostData, 'isDefault') ? 1 : 0;
+
             $this->load->model('dbwrite_model');
+            $this->load->model('organisation_model');
 
             $data = [
                 'Name'              => $name,
@@ -1208,10 +1218,34 @@ class Settings extends MY_Controller {
                 'ShortName'         => $incShort ? $shortName : '',
                 'Separator'         => $sep,
                 'NumberPadding'     => (int)$pad,
+                'ComponentConfig'   => $componentConfig,
                 'UpdatedBy'         => $userUID,
             ];
 
             if ($prefixUID > 0) {
+                /* Fetch existing row to get ModuleUID and current IsDefault status */
+                $existingRow = $this->organisation_model->getPrefixByUID($prefixUID, $orgUID);
+                if ($existingRow->Error || !$existingRow->Data) {
+                    throw new Exception('Prefix not found.');
+                }
+                $existingModuleUID = (int)($existingRow->Data->ModuleUID ?? 0);
+                $currentlyDefault  = (int)($existingRow->Data->IsDefault ?? 0);
+
+                /* Cannot unset the only default — silently keep it */
+                if ($currentlyDefault && !$isDefault) {
+                    $isDefault = 1;
+                }
+
+                if ($isDefault) {
+                    /* Clear all other defaults for this module, then this update sets IsDefault=1 */
+                    $this->dbwrite_model->updateData(
+                        'Settings', 'TransactionPrefixTbl',
+                        ['IsDefault' => 0, 'UpdatedBy' => $userUID],
+                        ['OrgUID' => $orgUID, 'ModuleUID' => $existingModuleUID, 'IsDeleted' => 0]
+                    );
+                }
+
+                $data['IsDefault'] = $isDefault;
                 $resp = $this->dbwrite_model->updateData(
                     'Settings', 'TransactionPrefixTbl', $data,
                     ['PrefixUID' => $prefixUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
@@ -1219,9 +1253,22 @@ class Settings extends MY_Controller {
                 if ($resp->Error) throw new Exception($resp->Message);
                 $this->EndReturnData->Message = 'Prefix updated successfully.';
             } else {
+                /* First prefix for this module → auto-set as default regardless of checkbox */
+                if ($this->organisation_model->countPrefixesForModule($orgUID, $moduleUID) === 0) {
+                    $isDefault = 1;
+                }
+
+                if ($isDefault) {
+                    $this->dbwrite_model->updateData(
+                        'Settings', 'TransactionPrefixTbl',
+                        ['IsDefault' => 0, 'UpdatedBy' => $userUID],
+                        ['OrgUID' => $orgUID, 'ModuleUID' => $moduleUID, 'IsDeleted' => 0]
+                    );
+                }
+
                 $data['OrgUID']    = $orgUID;
                 $data['ModuleUID'] = $moduleUID ?: null;
-                $data['IsDefault'] = 0;
+                $data['IsDefault'] = $isDefault;
                 $data['IsActive']  = 1;
                 $data['IsDeleted'] = 0;
                 $data['CreatedBy'] = $userUID;
@@ -1284,7 +1331,7 @@ class Settings extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    /** AJAX POST: promote a prefix to the org-wide default */
+    /** AJAX POST: promote a prefix to the module default (scoped per module, not org-wide) */
     public function setDefaultPrefixConfig() {
         $this->EndReturnData = new stdClass();
         try {
@@ -1294,11 +1341,19 @@ class Settings extends MY_Controller {
             $prefixUID = (int) getPostValue($PostData, 'prePrefixUID');
             if ($prefixUID <= 0) throw new Exception('Invalid prefix ID.');
 
+            $this->load->model('organisation_model');
+            $existingRow = $this->organisation_model->getPrefixByUID($prefixUID, $orgUID);
+            if ($existingRow->Error || !$existingRow->Data) {
+                throw new Exception('Prefix not found.');
+            }
+            $moduleUID = (int)($existingRow->Data->ModuleUID ?? 0);
+
             $this->load->model('dbwrite_model');
+            /* Clear defaults only within this module, not across the entire org */
             $this->dbwrite_model->updateData(
                 'Settings', 'TransactionPrefixTbl',
                 ['IsDefault' => 0, 'UpdatedBy' => $userUID],
-                ['OrgUID' => $orgUID, 'IsDeleted' => 0]
+                ['OrgUID' => $orgUID, 'ModuleUID' => $moduleUID, 'IsDeleted' => 0]
             );
             $resp = $this->dbwrite_model->updateData(
                 'Settings', 'TransactionPrefixTbl',

@@ -46,7 +46,7 @@ class Signature_model extends CI_Model {
             $this->EndReturnData->Data  = $query->result();
 
         } catch (Exception $e) {
-            notifyError($e, 'Signature_model::getSignatureList');
+            notifyError('Signature_model::getSignatureList', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             $this->EndReturnData->Data    = [];
@@ -83,7 +83,7 @@ class Signature_model extends CI_Model {
             $this->EndReturnData->Data  = $query->row();
 
         } catch (Exception $e) {
-            notifyError($e, 'Signature_model::getSignatureByUID');
+            notifyError('Signature_model::getSignatureByUID', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             $this->EndReturnData->Data    = null;

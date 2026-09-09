@@ -122,7 +122,7 @@ $_showCompliment = !empty($transShowCompliment);
                         $preDec     = 8;
                         $preDispDec = (int)($JwtData->GenSettings->DecimalPoints   ?? 2);
                         $preQtyMax  = (int)($JwtData->GenSettings->QtyMaxLength    ?? 7);
-                        $prePrcMax = (int)($JwtData->GenSettings->PriceMaxLength  ?? 10) + 10;
+                        $prePrcMax = 28; /* decimal(18,8) → 18 integer digits + 10 buffer */
                         $preShowDesc = !empty($JwtData->TransSettings->ShowProductDescription);
                         $preRowIdx   = 0;
                     ?>
@@ -303,7 +303,7 @@ $_showCompliment = !empty($transShowCompliment);
                     <div class="col-md-4">
                         <label for="globalDiscount" class="form-label fw-semibold mb-0"><?php echo t('lbl_apply_discount', 'Apply Discount (%) to all items in the cart'); ?></label>
                         <div class="input-group input-group-merge input-group-sm mt-1 w-50">
-                            <input type="text" inputmode="decimal" class="form-control form-control-sm" name="globalDiscount" id="globalDiscount" min="0" step="0.01" max="50" placeholder="Discount (%)" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, 9)" maxLength="<?php echo $JwtData->GenSettings->PriceMaxLength; ?>" pattern="^\d{1,<?php echo $JwtData->GenSettings->PriceMaxLength; ?>}(\.\d{0,9})?$" onpaste="handlePricePaste(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, 9)" ondrop="handlePriceDrop(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, 9)" value="0" />
+                            <input type="text" inputmode="decimal" class="form-control form-control-sm" name="globalDiscount" id="globalDiscount" min="0" step="0.01" max="50" placeholder="Discount (%)" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, 18, 8)" maxLength="28" pattern="^\d{1,18}(\.\d{0,8})?$" onpaste="handlePricePaste(event, 18, 8)" ondrop="handlePriceDrop(event, 18, 8)" value="0" />
                             <button class="btn btn-sm btn-outline-danger" type="button" id="clearGlobalDiscount"><i class="bx bx-x"></i></button>
                         </div>
                         <div class="form-text transtext-small text-danger small mt-1">This discount will be applied to all items. Individual discounts will be overridden.</div>
@@ -440,7 +440,7 @@ $_showCompliment = !empty($transShowCompliment);
                         <div class="input-group input-group-merge w-70">
                             <select class="form-select form-select-sm" id="extDiscountType" name="extDiscountType">
                             </select>
-                            <input class="form-control form-control-sm ps-1 w-30 text-end" type="text" inputmode="decimal" id="extraDiscount" name="extraDiscount" min="0" step="0.01" placeholder="Extra Discount" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, 9)" maxlength="<?php echo $JwtData->GenSettings->PriceMaxLength; ?>" value="0">
+                            <input class="form-control form-control-sm ps-1 w-30 text-end" type="text" inputmode="decimal" id="extraDiscount" name="extraDiscount" min="0" step="0.01" placeholder="Extra Discount" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, 18, 8)" maxlength="28" value="0">
                         </div>
                     </div>
                     <div class="d-flex align-items-center justify-content-end mt-2 d-none" id="shippingRow">

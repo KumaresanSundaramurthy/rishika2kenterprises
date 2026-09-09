@@ -9,26 +9,44 @@ class Subscription_model extends CI_Model {
         $this->ReadDb = $this->load->database('ReadDB', TRUE);
     }
 
-    // â”€â”€ User subscription info (UserTbl) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── User subscription info (OrgSubscriptionTbl) ──────────────────────────────
     public function getUserSubscription(int $userUID): object {
         $result = new stdClass();
         try {
             $this->ReadDb->db_debug = FALSE;
-            $this->ReadDb->select('UserUID, OrgUID, SubscriptionStatus, SubscriptionPlan,
-                                   SubscriptionStartDate, SubscriptionEndDate, GracePeriodDays');
-            $this->ReadDb->from('Users.UserTbl');
-            $this->ReadDb->where('UserUID', (int)$userUID);
+            /* Aliases preserve the field names the Subscription library depends on */
+            $this->ReadDb->select('U.UserUID, U.OrgUID,
+                OS.Status        AS SubscriptionStatus,
+                OS.PlanCode      AS SubscriptionPlan,
+                OS.StartDate     AS SubscriptionStartDate,
+                OS.EndDate       AS SubscriptionEndDate,
+                OS.GracePeriodDays');
+            $this->ReadDb->from('Users.UserTbl AS U');
+            $this->ReadDb->join('Organisation.OrgSubscriptionTbl AS OS', 'OS.OrgUID = U.OrgUID AND OS.Status != \'Cancelled\'', 'left');
+            $this->ReadDb->where('U.UserUID', (int)$userUID);
+            $this->ReadDb->order_by('OS.StartDate', 'DESC');
             $this->ReadDb->limit(1);
             $query = $this->ReadDb->get();
             $result->Error = FALSE;
             $result->Data  = ($query && $query->num_rows() > 0) ? $query->row() : null;
         } catch (Exception $e) {
-            notifyError($e, 'Subscription_model::getUserSubscription');
+            notifyError('Subscription_model::getUserSubscription', $e);
             $result->Error   = TRUE;
             $result->Message = $e->getMessage();
             $result->Data    = null;
         }
         return $result;
+    }
+
+    // ── Get OrgUID for a user (used when writing back to OrgSubscriptionTbl) ──
+    public function getOrgUIDByUser(int $userUID): int {
+        $this->ReadDb->db_debug = FALSE;
+        $row = $this->ReadDb->select('OrgUID')
+            ->from('Users.UserTbl')
+            ->where('UserUID', (int)$userUID)
+            ->limit(1)
+            ->get()->row();
+        return $row ? (int)$row->OrgUID : 0;
     }
 
     // â”€â”€ User email info for notifications â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -44,7 +62,7 @@ class Subscription_model extends CI_Model {
             $result->Error = FALSE;
             $result->Data  = ($query && $query->num_rows() > 0) ? $query->row() : null;
         } catch (Exception $e) {
-            notifyError($e, 'Subscription_model::getUserEmailInfo');
+            notifyError('Subscription_model::getUserEmailInfo', $e);
             $result->Error   = TRUE;
             $result->Message = $e->getMessage();
             $result->Data    = null;
@@ -68,7 +86,7 @@ class Subscription_model extends CI_Model {
             $result->Error    = FALSE;
             $result->AlreadySent = ($query && $query->num_rows() > 0);
         } catch (Exception $e) {
-            notifyError($e, 'Subscription_model::isNotificationSentToday');
+            notifyError('Subscription_model::isNotificationSentToday', $e);
             $result->Error      = TRUE;
             $result->Message    = $e->getMessage();
             $result->AlreadySent = false;
@@ -82,7 +100,7 @@ class Subscription_model extends CI_Model {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('*');
-            $this->ReadDb->from('Users.SubscriptionPlanTbl');
+            $this->ReadDb->from('Organisation.SubscriptionPlansTbl');
             if ($activeOnly) {
                 $this->ReadDb->where('IsActive', 1);
             }
@@ -91,7 +109,7 @@ class Subscription_model extends CI_Model {
             $result->Error = FALSE;
             $result->Data  = $query ? $query->result() : [];
         } catch (Exception $e) {
-            notifyError($e, 'Subscription_model::getSubscriptionPlans');
+            notifyError('Subscription_model::getSubscriptionPlans', $e);
             $result->Error   = TRUE;
             $result->Message = $e->getMessage();
             $result->Data    = [];
@@ -110,7 +128,7 @@ class Subscription_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
-            notifyError($e, 'Subscription_model::getUserSubscriptionHistory');
+            notifyError('Subscription_model::getUserSubscriptionHistory', $e);
             return [];
         }
     }
@@ -121,7 +139,7 @@ class Subscription_model extends CI_Model {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('*');
-            $this->ReadDb->from('Users.SubscriptionPlanTbl');
+            $this->ReadDb->from('Organisation.SubscriptionPlansTbl');
             $this->ReadDb->where('PlanCode', $planCode);
             $this->ReadDb->where('IsActive', 1);
             $this->ReadDb->limit(1);
@@ -129,7 +147,7 @@ class Subscription_model extends CI_Model {
             $result->Error = FALSE;
             $result->Data  = ($query && $query->num_rows() > 0) ? $query->row() : null;
         } catch (Exception $e) {
-            notifyError($e, 'Subscription_model::getPlanByCode');
+            notifyError('Subscription_model::getPlanByCode', $e);
             $result->Error   = TRUE;
             $result->Message = $e->getMessage();
             $result->Data    = null;

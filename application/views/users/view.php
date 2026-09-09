@@ -65,39 +65,40 @@ $stats = $StaffStats ?? null;
                     <!-- ── Main Card ── -->
                     <div class="card">
 
-                        <!-- Toolbar -->
-                        <div class="trans-toolbar">
-                            <?php
-                                $initStatus  = $InitStatus ?? 'All';
-                                $allCount    = (int)($ModAllCount ?? 0);
-                            ?>
-                            <ul class="nav trans-status-tabs gap-1" role="tablist">
-                                <li class="nav-item"><a class="nav-link<?php echo $initStatus === 'All'        ? ' active' : ''; ?> staff-status-tab" data-status="All"        href="javascript:void(0);">All        <span class="trans-tab-count ms-1<?php echo ($initStatus === 'All' && $allCount > 0) ? '' : ' d-none'; ?>"><?php echo $initStatus === 'All' ? $allCount : ''; ?></span></a></li>
-                                <li class="nav-item"><a class="nav-link<?php echo $initStatus === 'Active'     ? ' active' : ''; ?> staff-status-tab" data-status="Active"     href="javascript:void(0);">Active     <span class="trans-tab-count ms-1 d-none"></span></a></li>
-                                <li class="nav-item"><a class="nav-link<?php echo $initStatus === 'Resigned'   ? ' active' : ''; ?> staff-status-tab" data-status="Resigned"   href="javascript:void(0);">Resigned   <span class="trans-tab-count ms-1 d-none"></span></a></li>
-                                <li class="nav-item"><a class="nav-link<?php echo $initStatus === 'Terminated' ? ' active' : ''; ?> staff-status-tab" data-status="Terminated" href="javascript:void(0);">Terminated <span class="trans-tab-count ms-1 d-none"></span></a></li>
-                                <li class="nav-item"><a class="nav-link<?php echo $initStatus === 'OnLeave'    ? ' active' : ''; ?> staff-status-tab" data-status="OnLeave"    href="javascript:void(0);">On Leave   <span class="trans-tab-count ms-1 d-none"></span></a></li>
-                            </ul>
-
-                            <div class="d-flex align-items-center gap-2">
-                                <!-- Department filter -->
-                                <select class="form-select form-select-sm" id="filterDept" style="width:160px;">
-                                    <option value="">All Departments</option>
-                                    <?php foreach ($DepartmentList as $dept): ?>
-                                    <option value="<?php echo (int)$dept->DepartmentUID; ?>"><?php echo htmlspecialchars($dept->DepartmentName); ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                                <a href="javascript:void(0);" class="btn btn-sm btn-outline-secondary p-1 pageRefresh" title="Refresh">
-                                    <i class="bx bx-refresh fs-5"></i>
-                                </a>
-                                <div class="input-group input-group-sm" style="width:210px">
-                                    <span class="input-group-text bg-transparent border-end-0"><i class="bx bx-search text-muted"></i></span>
-                                    <input type="text" class="form-control border-start-0" id="searchStaffData" placeholder="Name, code, mobile...">
-                                </div>
-                                <button type="button" class="btn btn-primary btn-sm" id="addStaffBtn">
-                                    <i class="bx bx-plus me-1"></i>Add Staff
-                                </button>
+                        <!-- Filter Row -->
+                        <div class="apex-filter-row">
+                            <div class="r2k-search-wrap">
+                                <i class="bx bx-search r2k-si"></i>
+                                <input type="text" id="searchStaffData" placeholder="Name, code, mobile...">
+                                <i class="bx bx-x r2k-clear d-none" id="clearStaffSearch"></i>
                             </div>
+                            <a href="javascript:void(0);" id="deptFilterBtn" class="apex-filter-btn" title="Filter by Department">
+                                <i class="bx bx-building-house"></i>Department
+                            </a>
+                            <div class="apex-filter-spacer"></div>
+                            <a href="javascript:void(0);" class="apex-filter-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
+                            <button type="button" class="btn btn-primary btn-sm" id="addStaffBtn">
+                                <i class="bx bx-plus me-1"></i>Add Staff
+                            </button>
+                        </div>
+
+                        <!-- Tabs Row -->
+                        <?php
+                            $initStatus = $InitStatus ?? 'All';
+                            $initCount  = (int)($ModAllCount ?? 0);
+                            function _uTabBadge(string $s, string $initStatus, int $initCount): string {
+                                $show = ($s === $initStatus && $initCount > 0);
+                                return '<span class="trans-tab-count ms-1' . ($show ? '' : ' d-none') . '">' . ($show ? $initCount : '') . '</span>';
+                            }
+                        ?>
+                        <div class="apex-tabs-row">
+                            <ul class="nav trans-status-tabs" role="tablist">
+                                <li class="nav-item"><a class="nav-link<?php echo $initStatus === 'All'        ? ' active' : ''; ?> staff-status-tab" data-status="All"        href="javascript:void(0);">All        <?php echo _uTabBadge('All',        $initStatus, $initCount); ?></a></li>
+                                <li class="nav-item"><a class="nav-link<?php echo $initStatus === 'Active'     ? ' active' : ''; ?> staff-status-tab" data-status="Active"     href="javascript:void(0);">Active     <?php echo _uTabBadge('Active',     $initStatus, $initCount); ?></a></li>
+                                <li class="nav-item"><a class="nav-link<?php echo $initStatus === 'Resigned'   ? ' active' : ''; ?> staff-status-tab" data-status="Resigned"   href="javascript:void(0);">Resigned   <?php echo _uTabBadge('Resigned',   $initStatus, $initCount); ?></a></li>
+                                <li class="nav-item"><a class="nav-link<?php echo $initStatus === 'Terminated' ? ' active' : ''; ?> staff-status-tab" data-status="Terminated" href="javascript:void(0);">Terminated <?php echo _uTabBadge('Terminated', $initStatus, $initCount); ?></a></li>
+                                <li class="nav-item"><a class="nav-link<?php echo $initStatus === 'OnLeave'    ? ' active' : ''; ?> staff-status-tab" data-status="OnLeave"    href="javascript:void(0);">On Leave   <?php echo _uTabBadge('OnLeave',    $initStatus, $initCount); ?></a></li>
+                            </ul>
                         </div>
 
                         <!-- Table -->
@@ -145,8 +146,23 @@ $stats = $StaffStats ?? null;
 
 <?php $this->load->view('common/footer'); ?>
 
+<?php $this->load->view('common/filter_panels/col_filter_box', [
+    'ColFilterConfig' => [
+        'id'        => 'deptFilterBox',
+        'triggerId' => 'deptFilterBtn',
+        'checkClass'=> 'dept-chk',
+        'title'     => 'Department',
+        'icon'      => 'bx-building-house',
+        'filterKey' => 'DeptUIDs',
+        'items'     => array_map(function ($d) {
+            return ['value' => (string)(int)$d->DepartmentUID, 'label' => $d->DepartmentName];
+        }, $DepartmentList ?? []),
+    ],
+]); ?>
+
 <script src="/js/common/address.js"></script>
 <script src="/js/common/phone_cc_dropdown.js"></script>
+<script src="<?php echo _assetV('/js/core/col_filter.js'); ?>"></script>
 <script>
 var CsrfName        = '<?php echo $this->security->get_csrf_token_name(); ?>';
 var CsrfToken       = '<?php echo $this->security->get_csrf_hash(); ?>';
@@ -176,6 +192,8 @@ openAddressModal = function (addrType) {
 $(function () {
     'use strict';
 
+    var _deptFilter;
+
     PhoneCCDropdown.init(_umCCCfg);
 
     // ── Date of Joining picker ─────────────────────────────────────────
@@ -196,16 +214,15 @@ $(function () {
         history.replaceState(null, '', qs);
     }
 
-    // ── Restore initial tab from URL ───────────────────────────────────
+    // ── Restore initial tab from URL (no AJAX — data pre-rendered by PHP) ─
     (function () {
         var s = _usersInitStatus || 'All';
+        Filter.EmpStatus = s;
         if (s !== 'All') {
-            Filter.EmpStatus = s;
             $('.staff-status-tab').removeClass('active');
             $('.staff-status-tab[data-status="' + s + '"]').addClass('active');
             $('.apex-stat-item').removeClass('active');
             $('.apex-stat-item[data-filter-status="' + s + '"]').addClass('active');
-            _loadStaff();
         }
     }());
 
@@ -232,15 +249,33 @@ $(function () {
         _syncSticky();
     }
 
+    function _showTableSpinner() {
+        var cols = $('#staffTable thead tr:first th:visible').length || 6;
+        $('#staffTable tbody').html(
+            '<tr><td colspan="' + cols + '" class="text-center py-4">' +
+            '<span class="spinner-border spinner-border-sm text-primary me-2"></span>' +
+            '<span class="text-muted" style="font-size:.85rem;">Loading...</span>' +
+            '</td></tr>'
+        );
+        $('.staffPagination').empty();
+    }
+
     function _loadStaff() {
+        ajaxLoading(0);
+        _showTableSpinner();
+        var f = $.extend({}, Filter, _deptFilter ? _deptFilter.getState() : {});
         $.ajax({
             url: '/settings/users/getPageDetails/' + PageNo,
             method: 'POST',
-            data: { RowLimit: RowLimit, PageNo: PageNo, Filter: Filter, [CsrfName]: CsrfToken },
+            data: { RowLimit: RowLimit, PageNo: PageNo, Filter: f, [CsrfName]: CsrfToken },
             success: function (resp) {
+                ajaxLoading(1);
                 CsrfToken = resp.NewCsrfToken || CsrfToken;
                 if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
                 _renderList(resp);
+            },
+            error: function () {
+                ajaxLoading(1);
             }
         });
     }
@@ -282,9 +317,13 @@ $(function () {
         e.preventDefault(); PageNo = 1; _loadStaff();
     });
 
-    // ── Dept filter ────────────────────────────────────────────────────
-    $('#filterDept').on('change', function () {
-        Filter.DeptUID = $(this).val(); PageNo = 1; _loadStaff();
+    // ── Department filter ──────────────────────────────────────────────
+    _deptFilter = new TransColFilter({
+        boxId      : 'deptFilterBox',
+        triggerId  : 'deptFilterBtn',
+        filterKey  : 'DeptUIDs',
+        activeClass: 'has-filter',
+        onApply    : function () { PageNo = 1; _loadStaff(); }
     });
 
     // ── Search ────────────────────────────────────────────────────────
@@ -292,9 +331,16 @@ $(function () {
     $('#searchStaffData').on('input', function () {
         clearTimeout(_debounce);
         var val = $.trim($(this).val());
+        var hasVal = val.length > 0;
+        $('#clearStaffSearch').toggleClass('d-none', !hasVal);
+        $(this).closest('.r2k-search-wrap').toggleClass('r2k-search-active', hasVal);
         _debounce = setTimeout(function () {
-            Filter.Name = val; PageNo = 1; _loadStaff();
+            Filter.Name = val || undefined; PageNo = 1; _loadStaff();
         }, 1500);
+    });
+
+    $('#clearStaffSearch').on('click', function () {
+        $('#searchStaffData').val('').trigger('input');
     });
 
     // ── Pagination ─────────────────────────────────────────────────────
@@ -438,7 +484,7 @@ $(function () {
                     $('#UserRoleUID').val(d.RoleUID || '');
                     $('#UserIsActive').prop('checked', parseInt(d.IsActive) === 1);
                     $('#userCodeWrap').removeClass('d-none');
-                    $('#UserCodeDisplay').val(d.UserCode || '');
+                    $('#UserCodeDisplay').val(d.EmployeeCode || '');
                     $('#userLockedRow').removeClass('d-none');
                     $('#UserIsLocked').prop('checked', parseInt(d.IsLocked) === 1);
                     $('#lastLoginCard').removeClass('d-none');
@@ -490,6 +536,10 @@ $(function () {
         if (!firstName)                        { showToastNotification('First name is required.', 'error'); return; }
         if (!email)                            { showToastNotification('Email address is required.', 'error'); return; }
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToastNotification('Enter a valid email address.', 'error'); return; }
+        var deptUID  = $('#UserDeptUID').val();
+        var desigUID = $('#UserDesigUID').val();
+        if (!deptUID)  { showToastNotification('Department is required.', 'error'); return; }
+        if (!desigUID) { showToastNotification('Designation is required.', 'error'); return; }
         if (hasLogin && !isEdit && !username)  { showToastNotification('Username is required for login access.', 'error'); return; }
         if (hasLogin && !roleUID)              { showToastNotification('Please select a role for login access.', 'error'); return; }
 

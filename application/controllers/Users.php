@@ -28,7 +28,7 @@ class Users extends MY_Controller {
             $statusSlug    = strtolower(trim($this->input->get('status') ?: 'all'));
             $initStatus    = $statusSlugMap[$statusSlug] ?? 'All';
 
-            $filter  = ['EmpStatus' => 'All'];
+            $filter  = ['EmpStatus' => $initStatus];
 
             $allData      = $this->users_model->getUsersList($orgUID, $filter, $limit, 0);
             $allDataCount = $this->users_model->getUsersCount($orgUID, $filter);
@@ -288,6 +288,9 @@ class Users extends MY_Controller {
                 : trim($PostData['EmployeeCode'] ?? '');
             $DepartmentUID  = !empty($PostData['DepartmentUID'])  ? (int)$PostData['DepartmentUID']  : NULL;
             $DesignationUID = !empty($PostData['DesignationUID']) ? (int)$PostData['DesignationUID'] : NULL;
+
+            if (!$DepartmentUID)  throw new ValidationException('Department is required.');
+            if (!$DesignationUID) throw new ValidationException('Designation is required.');
             $DateOfJoining  = !empty($PostData['DateOfJoining'])  ? $PostData['DateOfJoining']       : NULL;
             $EmployeeStatus = in_array($PostData['EmployeeStatus'] ?? '', ['Active','Resigned','Terminated','OnLeave'])
                               ? $PostData['EmployeeStatus'] : 'Active';
@@ -338,7 +341,6 @@ class Users extends MY_Controller {
                 $msg = 'Staff record updated successfully.';
             } else {
                 // Create
-                $userData['UserCode']     = '';
                 $userData['Password']     = '';
                 $userData['IsPasswordSet']= 0;
                 $userData['CreatedBy']    = $JwtData->User->UserUID;
@@ -359,8 +361,6 @@ class Users extends MY_Controller {
                 if ($result->Error) throw new Exception($result->Message);
 
                 $UserUID  = (int)$result->ID;
-                $userCode = 'U-' . str_pad($UserUID, 4, '0', STR_PAD_LEFT);
-                $this->dbwrite_model->updateData('Users', 'UserTbl', ['UserCode' => $userCode], ['UserUID' => $UserUID]);
 
                 if ($HasLoginAccess && !empty($Email)) {
                     $this->_sendPasswordSetupEmail($Email, $FirstName, $token);

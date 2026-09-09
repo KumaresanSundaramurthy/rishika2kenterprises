@@ -136,7 +136,7 @@ if (!isset($BranchesList))    { $BranchesList    = []; }
 
                             <!-- Department -->
                             <div class="col-md-4">
-                                <label class="form-label">Department</label>
+                                <label class="form-label">Department <span class="text-danger">*</span></label>
                                 <select class="form-select" id="UserDeptUID">
                                     <option value="">— Select Department —</option>
                                     <?php foreach ($DepartmentList as $dept): ?>
@@ -147,7 +147,7 @@ if (!isset($BranchesList))    { $BranchesList    = []; }
 
                             <!-- Designation -->
                             <div class="col-md-4">
-                                <label class="form-label">Designation</label>
+                                <label class="form-label">Designation <span class="text-danger">*</span></label>
                                 <select class="form-select" id="UserDesigUID">
                                     <option value="">— Select Designation —</option>
                                     <?php foreach ($DesignationList as $desig): ?>
@@ -297,7 +297,7 @@ if (!isset($BranchesList))    { $BranchesList    = []; }
                             <!-- User Code (edit-only) -->
                             <div class="row g-3 mb-3 d-none" id="userCodeWrap">
                                 <div class="col-md-4">
-                                    <label class="form-label">User Code</label>
+                                    <label class="form-label">Employee Code</label>
                                     <input type="text" class="form-control bg-light" id="UserCodeDisplay" readonly placeholder="Auto-generated">
                                 </div>
                             </div>

@@ -13,7 +13,7 @@
                     'pageTitle'       => $PageTitle       ?? 'Additional Charges',
                     'pageDescription' => $PageDescription ?? '',
                 ]); ?>
-                <div class="container-xxl flex-grow-1 container-p-y pt-2">
+                <div class="container-xxl flex-grow-1">
 
                     <div class="card">
 

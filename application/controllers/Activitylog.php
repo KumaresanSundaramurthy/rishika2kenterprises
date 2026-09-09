@@ -23,8 +23,11 @@ class Activitylog extends MY_Controller {
         $orgUID   = $this->_orgUID();
         $rowLimit = $this->_rowLimit();
 
-        // Default filter: this month
-        $filter = ['DateFrom' => date('Y-m-01'), 'DateTo' => date('Y-m-d')];
+        $datePref = $this->getDateFilterPreference('settings_activitylog');
+        $this->pageData['SavedDateRange'] = $datePref['range'];
+        $this->pageData['SavedDateLabel'] = $datePref['label'];
+
+        $filter = ['DateFrom' => $datePref['from'], 'DateTo' => $datePref['to']];
 
         $total  = $this->activitylog_model->getAuditLogCount($orgUID, $filter);
         $logs   = $this->activitylog_model->getAuditLogs($orgUID, $filter, $rowLimit, 0);

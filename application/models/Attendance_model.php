@@ -142,7 +142,7 @@ class Attendance_model extends CI_Model {
             'SA.AdvanceDate', 'SA.AdvanceAmount', 'SA.AdvanceStatus',
             'SA.Reason AS Remarks', 'SA.BalancePending', 'SA.IsSettled',
             "CONCAT(U.FirstName, ' ', U.LastName) AS EmployeeName",
-            'U.UserCode AS EmployeeCode',
+            'U.EmployeeCode',
         ]);
         $this->ReadDb->from('Transaction.SalaryAdvanceTbl SA');
         $this->ReadDb->join('Users.UserTbl U', 'U.UserUID = SA.UserUID AND U.IsDeleted = 0');

@@ -41,6 +41,55 @@ if (!empty($PrefixData)) {
 if (!function_exists('buildTransInitialPrefixSegment')) {
     function buildTransInitialPrefixSegment(?object $cfg): string {
         if (!$cfg) return '';
+
+        /* ── ComponentConfig path ─────────────────────────────────────── */
+        if (!empty($cfg->ComponentConfig)) {
+            $pcfg = @json_decode($cfg->ComponentConfig, true);
+            if (is_array($pcfg) && !empty($pcfg['order'])) {
+                $order     = $pcfg['order'];
+                $seps      = $pcfg['seps']      ?? [];
+                $active    = $pcfg['active']    ?? [];
+                $shortname = strtoupper($pcfg['shortname'] ?? '');
+                $fiscalFmt = $pcfg['fiscalFmt'] ?? 'SHORT';
+                $alwaysOn  = ['prefix' => true, 'number' => true];
+
+                $m  = (int)date('m');
+                $yr = (int)date('Y');
+                $fy = $m >= 4 ? $yr : $yr - 1;
+                $fyStr = $fiscalFmt === 'LONG'
+                    ? $fy . '-' . ($fy + 1)
+                    : str_pad($fy % 100, 2, '0', STR_PAD_LEFT) . '-' . str_pad(($fy + 1) % 100, 2, '0', STR_PAD_LEFT);
+
+                /* Collect active components that appear before 'number' */
+                $parts = [];
+                foreach ($order as $pos => $key) {
+                    if ($key === 'number') break;
+                    if (empty($alwaysOn[$key]) && empty($active[$key])) continue;
+                    switch ($key) {
+                        case 'prefix':    $val = strtoupper($cfg->Name ?? ''); break;
+                        case 'shortname': $val = $shortname;                   break;
+                        case 'fiscal':    $val = $fyStr;                       break;
+                        default:          $val = '';
+                    }
+                    if ($val === '') continue;
+                    $parts[] = ['val' => $val, 'idx' => (int)$pos];
+                }
+
+                if (empty($parts)) return ''; /* number is first — no prefix segment */
+
+                $result = '';
+                $last   = count($parts) - 1;
+                foreach ($parts as $i => $part) {
+                    $result .= $part['val'];
+                    if ($i < $last) $result .= $seps[$part['idx']] ?? '-';
+                }
+                /* Trailing separator between the last pre-number component and the number slot */
+                $result .= $seps[$parts[$last]['idx']] ?? '-';
+                return $result;
+            }
+        }
+
+        /* ── Old-column fallback ──────────────────────────────────────── */
         $sep   = $cfg->Separator ?? '-';
         $parts = [$cfg->Name];
         if (!empty($cfg->IncludeShortName) && !empty($cfg->ShortName)) {
@@ -74,6 +123,7 @@ $initialPrefixSeg = buildTransInitialPrefixSegment($defaultPrefixConfig);
                 data-short-name="<?php echo htmlspecialchars($preData->ShortName ?? ''); ?>"
                 data-padding="<?php echo (int)($preData->NumberPadding ?? 3); ?>"
                 data-next-number="<?php echo $nextNum > 0 ? $nextNum : 1; ?>"
+                data-component-config="<?php echo !empty($preData->ComponentConfig) ? htmlspecialchars($preData->ComponentConfig, ENT_QUOTES) : ''; ?>"
                 <?php echo $isSelected; ?>><?php echo htmlspecialchars($preData->Name); ?></option>
         <?php } } else { ?>
             <option value="">No prefixes configured</option>

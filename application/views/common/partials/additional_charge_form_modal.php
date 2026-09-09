@@ -11,7 +11,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
      Add / Edit Additional Charge Modal  (shared partial)
 ================================================================ -->
 <div class="modal fade" id="additionalChargeModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-md modal-dialog-centered">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
 
             <div class="modal-header p-0">
@@ -26,10 +26,12 @@ defined('BASEPATH') or exit('No direct script access allowed');
                                 <div id="acModalSubtitle" style="font-size:.77rem;color:#6c757d;margin-top:4px;">Define a charge type for use in transactions</div>
                             </div>
                         </div>
-                        <button type="button" data-bs-dismiss="modal" aria-label="Close"
-                            style="background:rgba(255,255,255,.85);border:none;border-radius:50%;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.15);padding:0;flex-shrink:0;">
-                            <i class="bx bx-x" style="font-size:1.2rem;color:#555;line-height:1;"></i>
-                        </button>
+                        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal"><?php echo t('cancel', 'Cancel'); ?></button>
+                            <button type="button" class="btn btn-primary btn-sm" id="saveAdditionalChargeBtn">
+                                <i class="bx bx-save me-1"></i><?php echo t('save_charge', 'Save Charge'); ?>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -107,13 +109,6 @@ defined('BASEPATH') or exit('No direct script access allowed');
                 </div>
 
             </div><!-- /modal-body -->
-
-            <div class="modal-footer py-3" style="background:#f8f9fa;border-top:1px solid #dee2e6;">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"><?php echo t('cancel', 'Cancel'); ?></button>
-                <button type="button" class="btn btn-primary" id="saveAdditionalChargeBtn">
-                    <i class="bx bx-save me-1"></i>Save Charge
-                </button>
-            </div>
 
         </div>
     </div>

@@ -17,11 +17,15 @@ class Roles_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->ReadDb->select('R.RoleUID, R.Name, R.IsDefault, R.IsActive, R.CreatedOn,
-                (SELECT COUNT(*) FROM Users.UserTbl U WHERE U.RoleUID = R.RoleUID AND U.IsDeleted = 0) AS UserCount');
+            $this->ReadDb->select("R.RoleUID, R.Name, R.IsDefault, R.IsGlobal, R.IsActive, R.CreatedOn,
+                (SELECT COUNT(*) FROM Users.UserTbl U WHERE U.RoleUID = R.RoleUID AND U.OrgUID = {$OrgUID} AND U.IsDeleted = 0) AS UserCount");
             $this->ReadDb->from('UserRole.RolesTbl AS R');
+            $this->ReadDb->group_start();
             $this->ReadDb->where('R.OrgUID', $OrgUID);
+            $this->ReadDb->or_where('R.IsGlobal', 1);
+            $this->ReadDb->group_end();
             $this->ReadDb->where('R.IsDeleted', 0);
+            $this->ReadDb->order_by('R.IsGlobal', 'DESC'); // global roles listed first
             $this->ReadDb->order_by('R.RoleUID', 'ASC');
             $query = $this->ReadDb->get();
 
@@ -30,7 +34,7 @@ class Roles_model extends CI_Model {
             $this->EndReturnData->Data    = $query->result();
 
         } catch (Exception $e) {
-            notifyError($e, 'Roles_model::getRolesList');
+            notifyError('Roles_model::getRolesList', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -71,7 +75,7 @@ class Roles_model extends CI_Model {
             $this->EndReturnData->Data    = ['main' => $mainMenus, 'sub' => $subMenus];
 
         } catch (Exception $e) {
-            notifyError($e, 'Roles_model::getAllMenusForMatrix');
+            notifyError('Roles_model::getAllMenusForMatrix', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -107,7 +111,7 @@ class Roles_model extends CI_Model {
             $this->EndReturnData->Data    = ['main' => $mainPerms, 'sub' => $subPerms];
 
         } catch (Exception $e) {
-            notifyError($e, 'Roles_model::getRolePermissions');
+            notifyError('Roles_model::getRolePermissions', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -232,6 +236,19 @@ class Roles_model extends CI_Model {
         $this->ReadDb->limit(1);
         $row = $this->ReadDb->get()->row();
         return $row && (int)$row->IsDefault === 1;
+
+    }
+
+    // ── Check if role is a global (shared across all orgs) role ──────
+
+    public function isGlobalRole(int $RoleUID): bool {
+
+        $this->ReadDb->select('IsGlobal');
+        $this->ReadDb->from('UserRole.RolesTbl');
+        $this->ReadDb->where('RoleUID', $RoleUID);
+        $this->ReadDb->limit(1);
+        $row = $this->ReadDb->get()->row();
+        return $row && (int)(bool)$row->IsGlobal === 1;
 
     }
 

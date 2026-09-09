@@ -13,7 +13,7 @@ $mobile     = $u->MobileNumber ?? ($uInfo->UserMobileNumber ?? '');
 $countryCode= $u->CountryCode  ?? ($uInfo->UserCountryCode ?? '+91');
 $userUID    = $u->UserUID      ?? ($uInfo->UserUID         ?? 0);
 
-$empCode    = $u->UserCode ?? '';
+$empCode    = $u->EmployeeCode ?? '';
 $deptName   = $u->DepartmentName  ?? '—';
 $desigName  = $u->DesignationName ?? '—';
 $empStatus  = $u->EmployeeStatus  ?? 'Active';
@@ -1087,10 +1087,10 @@ $attachments = $userAttachments ?? [];
                             <span class="input-group-text"><?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?></span>
                             <input type="text" class="form-control" id="expAmount" placeholder="0"
                                 onkeydown="return handleDotOnly(event)"
-                                oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo (int)($JwtData->GenSettings->PriceMaxLength ?? 12); ?>, 9)"
-                                maxlength="<?php echo (int)($JwtData->GenSettings->PriceMaxLength ?? 12) + 10; ?>"
-                                onpaste="handlePricePaste(event, <?php echo (int)($JwtData->GenSettings->PriceMaxLength ?? 12); ?>, 9)"
-                                ondrop="handlePriceDrop(event, <?php echo (int)($JwtData->GenSettings->PriceMaxLength ?? 12); ?>, 9)"
+                                oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, 18, 8)"
+                                maxlength="28"
+                                onpaste="handlePricePaste(event, 18, 8)"
+                                ondrop="handlePriceDrop(event, 18, 8)"
                                 value="">
                         </div>
                     </div>

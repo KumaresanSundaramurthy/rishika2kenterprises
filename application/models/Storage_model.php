@@ -41,7 +41,7 @@ class Storage_model extends CI_Model {
             $this->EndReturnData->sortOperation = $sortOperation;
 
         } catch (Exception $e) {
-            notifyError($e, 'Storage_model::storageFilterFormation');
+            notifyError('Storage_model::storageFilterFormation', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             $this->EndReturnData->SearchDirectQuery = '';
@@ -96,7 +96,7 @@ class Storage_model extends CI_Model {
             return $this->EndReturnData->Data;
 
         } catch (Exception $e) {
-            notifyError($e, 'Storage_model::getStorageDetails');
+            notifyError('Storage_model::getStorageDetails', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);

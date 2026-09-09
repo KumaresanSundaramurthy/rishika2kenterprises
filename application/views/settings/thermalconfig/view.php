@@ -13,7 +13,7 @@
                     'pageTitle'       => $PageTitle       ?? 'Thermal Print Config',
                     'pageDescription' => $PageDescription ?? '',
                 ]); ?>
-                <div class="container-xxl flex-grow-1 container-p-y pt-2">
+                <div class="container-xxl flex-grow-1">
 
                     <div class="card">
 
@@ -68,9 +68,14 @@
                                 <h5 class="modal-title mb-0" id="thermalModalTitle"><i class="bx bx-printer me-2 text-primary"></i>Thermal Print Settings</h5>
                                 <small class="text-muted" id="thermalModalSubtitle">Add a new configuration</small>
                             </div>
-                            <button type="button" class="btn btn-sm btn-danger ms-auto" data-bs-dismiss="modal">
-                                <i class="bx bx-x me-1"></i><?php echo t('btn_cancel', 'Cancel'); ?>
-                            </button>
+                            <div class="d-flex align-items-center gap-2 ms-auto">
+                                <button type="button" class="btn btn-sm btn-primary" id="saveThermalConfigBtn">
+                                    <i class="bx bx-save me-1"></i><?php echo t('btn_save', 'Save'); ?>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-danger" data-bs-dismiss="modal">
+                                    <i class="bx bx-x me-1"></i><?php echo t('btn_cancel', 'Cancel'); ?>
+                                </button>
+                            </div>
                         </div>
 
                         <div class="modal-body p-0 d-flex" style="min-height:540px;max-height:78vh;overflow:hidden;">
@@ -233,16 +238,60 @@
 
                         </div><!-- /modal-body -->
 
-                        <div class="modal-footer py-3">
-                            <button type="button" class="btn btn-primary" id="saveThermalConfigBtn">
-                                <i class="bx bx-save me-1"></i><?php echo t('btn_save', 'Save'); ?>
-                            </button>
-                        </div>
 
                     </div>
                 </div>
             </div>
             <!-- / Thermal Print Config Modal -->
+
+            <!-- ============================================================
+                 Thermal Receipt Preview Modal (read-only)
+            ============================================================ -->
+            <div class="modal fade" id="thermalPreviewModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered" style="max-width:580px;">
+                    <div class="modal-content border-0 tprev-card">
+
+                        <!-- Header -->
+                        <div class="tprev-header">
+                            <!-- Left: icon + title block -->
+                            <div class="tprev-icon-wrap">
+                                <i class="bx bx-receipt"></i>
+                            </div>
+                            <div class="tprev-title-block">
+                                <div class="tprev-title" id="thermalPrevTitle">Receipt Preview</div>
+                                <div class="tprev-subtitle">Sample layout based on current configuration</div>
+                            </div>
+                            <!-- Right: badge + edit + close -->
+                            <div class="tprev-header-actions">
+                                <span class="tprev-width-badge" id="thermalPrevWidthBadge">80mm</span>
+                                <button type="button" class="tprev-edit-btn" id="thermalPrevEditBtn">
+                                    <i class="bx bx-edit"></i> Edit
+                                </button>
+                                <button type="button" class="tprev-close-btn" data-bs-dismiss="modal" aria-label="Close">
+                                    <i class="bx bx-x"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Receipt Paper Area -->
+                        <div class="tprev-body">
+                            <div class="tprev-paper-wrap">
+                                <div class="tprev-tape"></div>
+                                <div id="thermalPrevBox" class="tprev-paper"></div>
+                                <div class="tprev-tear"></div>
+                            </div>
+                        </div>
+
+                        <!-- Footer hint -->
+                        <div class="tprev-footer">
+                            <i class="bx bx-info-circle me-1"></i>
+                            This is a sample preview. Actual values will differ on real receipts.
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+            <!-- / Thermal Receipt Preview Modal -->
 
             <?php $this->load->view('common/footer_desc'); ?>
 
@@ -252,37 +301,6 @@
 </div>
 
 <?php $this->load->view('common/footer'); ?>
-
-<style>
-.thermal-form-panel {
-    flex: 0 0 58%;
-    overflow-y: auto;
-    border-right: 1px solid var(--bs-border-color);
-}
-.thermal-preview-panel {
-    flex: 0 0 42%;
-    display: flex;
-    flex-direction: column;
-    background: var(--bs-tertiary-bg, #f8f9fa);
-    overflow: hidden;
-}
-.thermal-section-header {
-    font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em;
-    text-transform: uppercase; color: var(--bs-secondary-color, #6c757d);
-}
-.thermal-setting-label  { font-size: 0.82rem; font-weight: 600; color: var(--bs-body-color); margin-bottom: 2px; }
-.thermal-setting-desc   { font-size: 0.72rem; color: var(--bs-secondary-color, #6c757d); line-height: 1.35; }
-.thermal-toggle-cell    { background: var(--bs-body-bg); }
-.thermal-toggle-cell:hover { background: var(--bs-tertiary-bg, #f8f9fa); }
-.thermal-switch { width: 2.4em !important; height: 1.3em !important; cursor: pointer; flex-shrink: 0; }
-.thermal-upload-btn {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 32px; height: 32px; border: 1.5px dashed var(--bs-border-color);
-    border-radius: 6px; cursor: pointer; color: var(--bs-secondary-color, #6c757d);
-    font-size: 1rem; transition: border-color 0.15s, color 0.15s;
-}
-.thermal-upload-btn:hover { border-color: var(--bs-primary); color: var(--bs-primary); }
-</style>
 
 <script>
 var CsrfName  = '<?php echo $this->security->get_csrf_token_name(); ?>';
@@ -301,6 +319,119 @@ window.addEventListener('load', function() {
 
     var PAYMENT_MODULE_UIDS = [110, 111];
 
+    // PHP-rendered org data — shared by both the live preview and the read-only preview modal
+    var _orgPreview = {
+        name  : <?php echo json_encode($OrgPreviewData->Name ?? ''); ?>,
+        addr  : <?php
+            $addrParts = array_filter([
+                $OrgPreviewData->Line1     ?? '',
+                $OrgPreviewData->Line2     ?? '',
+                $OrgPreviewData->CityText  ?? '',
+                $OrgPreviewData->StateText ?? '',
+                $OrgPreviewData->Pincode   ?? '',
+            ]);
+            echo json_encode(implode(', ', $addrParts));
+        ?>,
+        gstin : <?php echo json_encode($OrgPreviewData->GSTIN        ?? ''); ?>,
+        mobile: <?php echo json_encode($OrgPreviewData->MobileNumber ?? ''); ?>,
+        date  : <?php echo json_encode(date('d-m-Y')); ?>,
+    };
+
+    /**
+     * Builds receipt preview HTML from a plain config object.
+     * @param {Object} cfg        Fields matching the DB columns (ShowHSN, PaperWidth, …)
+     * @param {string} transLabel Transaction type display name
+     * @returns {{html:string, maxWidth:string, paperWidth:string}}
+     */
+    function buildReceiptHtml(cfg, transLabel) {
+        var transType    = transLabel || cfg.ModuleName || 'Transaction';
+        var footerMsg    = cfg.FooterMessage || 'Thank you for your business!';
+        var paperWidth   = cfg.PaperWidth || '80mm';
+        var orgFontSize  = Math.max(10, Math.min(28, parseInt(cfg.OrgNameFontSize)     || 16));
+        var coFontSize   = Math.max(9,  Math.min(22, parseInt(cfg.CompanyNameFontSize) || 14));
+        var prodFontSize = Math.max(8,  Math.min(20, parseInt(cfg.ProductInfoFontSize) || 12));
+
+        var showCo       = cfg.ShowCompanyDetails  == 1;
+        var showGSTIN    = cfg.ShowGSTIN           == 1;
+        var showMobile   = cfg.ShowMobile          == 1;
+        var showHSN      = cfg.ShowHSN             == 1;
+        var showTax      = cfg.ShowTaxBreakdown    == 1;
+        var showTaxable  = cfg.ShowTaxableAmount   == 1;
+        var showCash     = cfg.ShowCashReceived    == 1;
+        var showLogo     = cfg.ShowLogo            == 1;
+        var showPayQR    = cfg.ShowPaymentQR       == 1;
+        var showRevQR    = cfg.ShowGoogleReviewQR  == 1;
+        var showTerms    = cfg.ShowTerms           == 1;
+        var showItemDesc = cfg.ShowItemDescription == 1;
+
+        var maxWidth = paperWidth === '58mm' ? '220px' : '300px';
+        var d  = '';
+        var hr = '<hr style="border:none;border-top:1px dashed #000;margin:4px 0">';
+        var row = function(l, r) {
+            return '<div style="display:flex;justify-content:space-between"><span>' + l + '</span><span>' + r + '</span></div>';
+        };
+        var taxFontSize = Math.max(6, prodFontSize - 2);
+
+        if (showLogo) d += '<div style="text-align:center;margin:0 0 4px"><div style="display:inline-block;border:1px solid #ccc;padding:2px 8px;font-size:9px;color:#aaa">[ LOGO ]</div></div>';
+        d += '<div style="text-align:center;font-weight:bold;font-size:' + orgFontSize + 'px">' + escHtml(_orgPreview.name || 'Store Name') + '</div>';
+
+        if (showCo) {
+            if (_orgPreview.addr)                 d += '<div style="text-align:center;font-size:' + coFontSize + 'px">' + escHtml(_orgPreview.addr) + '</div>';
+            if (showGSTIN  && _orgPreview.gstin)  d += '<div style="text-align:center;font-size:' + coFontSize + 'px">GSTIN: ' + escHtml(_orgPreview.gstin)  + '</div>';
+            if (showMobile && _orgPreview.mobile) d += '<div style="text-align:center;font-size:' + coFontSize + 'px">Ph: '    + escHtml(_orgPreview.mobile) + '</div>';
+        }
+
+        d += hr;
+        d += row('<strong>' + escHtml(transType) + '</strong>', 'EST/0001');
+        d += row('Date:', _orgPreview.date);
+        d += row('Customer:', 'Sample Customer');
+        d += hr;
+        d += row('<span style="font-weight:bold">Item</span>', '<span style="font-weight:bold">Amount</span>');
+        d += hr;
+
+        d += '<div style="font-weight:bold;font-size:' + prodFontSize + 'px">Sample Product</div>';
+        if (showItemDesc) d += '<div style="font-size:' + (prodFontSize - 2) + 'px;font-style:italic;color:#777">Premium quality rotavator blade - heavy duty</div>';
+        if (showHSN)      d += '<div style="font-size:' + prodFontSize + 'px;color:#555">HSN: 8432 90 00</div>';
+        var displayPrice = showTaxable ? '₹500.00' : '₹590.00';
+        d += '<div style="display:flex;justify-content:space-between;font-size:' + prodFontSize + 'px"><span>2 Nos × ' + displayPrice + '</span><span>₹1,180.00</span></div>';
+        if (showTaxable && showTax) {
+            d += '<div style="display:flex;justify-content:space-between;font-size:' + taxFontSize + 'px;font-style:italic"><span>CGST 9%</span><span>₹90.00</span></div>';
+            d += '<div style="display:flex;justify-content:space-between;font-size:' + taxFontSize + 'px;font-style:italic"><span>SGST 9%</span><span>₹90.00</span></div>';
+        }
+        d += hr;
+
+        if (showTaxable) {
+            d += '<div style="display:flex;justify-content:space-between;font-size:' + prodFontSize + 'px"><span>Subtotal:</span><span>₹1,000.00</span></div>';
+            if (showTax) {
+                d += '<div style="display:flex;justify-content:space-between;font-size:' + taxFontSize + 'px;font-style:italic"><span>Total Tax:</span><span>₹180.00</span></div>';
+                d += '<div style="display:flex;justify-content:space-between;font-size:' + taxFontSize + 'px;font-style:italic;color:#555"><span>  CGST:</span><span>₹90.00</span></div>';
+                d += '<div style="display:flex;justify-content:space-between;font-size:' + taxFontSize + 'px;font-style:italic;color:#555"><span>  SGST:</span><span>₹90.00</span></div>';
+            }
+        }
+        d += '<div style="display:flex;justify-content:space-between;font-weight:bold;font-size:' + prodFontSize + 'px;border-top:1px solid #000;padding-top:3px;margin-top:3px"><span>Total:</span><span>₹1,180.00</span></div>';
+        if (showCash) d += '<div style="display:flex;justify-content:space-between;font-size:' + prodFontSize + 'px"><span>Cash Received:</span><span>₹1,200.00</span></div>';
+
+        d += hr;
+
+        if (showPayQR || showRevQR) {
+            d += '<div style="display:flex;justify-content:center;gap:10px;margin:4px 0">';
+            if (showPayQR) d += '<div style="text-align:center"><div style="border:1px solid #000;padding:4px;font-size:9px;display:inline-block">&#9632;&#9632;<br>&#9632;&#9632;</div><div style="font-size:9px;margin-top:2px">Pay</div></div>';
+            if (showRevQR) d += '<div style="text-align:center"><div style="border:1px solid #000;padding:4px;font-size:9px;display:inline-block">&#9633;&#9633;<br>&#9633;&#9633;</div><div style="font-size:9px;margin-top:2px">Review</div></div>';
+            d += '</div>';
+        }
+
+        if (showTerms) {
+            d += hr;
+            d += '<div style="font-size:' + (prodFontSize - 2) + 'px;font-style:italic;color:#555">Goods once sold will not be taken back or exchanged.</div>';
+        }
+
+        footerMsg.split('\n').forEach(function(line) {
+            if (line.trim()) d += '<div style="text-align:center;font-size:' + prodFontSize + 'px">' + escHtml(line) + '</div>';
+        });
+
+        return { html: d, maxWidth: maxWidth, paperWidth: paperWidth };
+    }
+
     function togglePaymentFields(moduleUID) {
         var isPayment = PAYMENT_MODULE_UIDS.indexOf(parseInt(moduleUID, 10)) !== -1;
         $('#thermalItemDescCell, #thermalTaxableAmtCell, #thermalHSNCell, #thermalTaxBreakdownCell')
@@ -317,109 +448,29 @@ window.addEventListener('load', function() {
     });
 
     function updateThermalPreview() {
-        var transType    = $('#ThermalTransType option:selected').text().trim() || 'Transaction';
-        var footerMsg    = $('#ThermalFooterMessage').val().trim() || 'Thank you for your business!';
-        var paperWidth   = $('#ThermalPaperWidthSelect').val() || '80mm';
-        var orgFontSize  = Math.max(10, Math.min(28, parseInt($('#ThermalOrgNameFontSize').val()) || 16));
-        var coFontSize   = Math.max(9,  Math.min(22, parseInt($('#ThermalCompanyNameFontSize').val()) || 14));
-        var prodFontSize = Math.max(8,  Math.min(20, parseInt($('#ThermalProductInfoFontSize').val()) || 12));
-
-        var showCo       = $('#ThermalShowCompanyDetails').is(':checked');
-        var showGSTIN    = $('#ThermalShowGSTIN').is(':checked');
-        var showMobile   = $('#ThermalShowMobile').is(':checked');
-        var showHSN      = $('#ThermalShowHSN').is(':checked');
-        var showTax      = $('#ThermalShowTaxBreakdown').is(':checked');
-        var showTaxable  = $('#ThermalShowTaxableAmount').is(':checked');
-        var showCash     = $('#ThermalShowCashReceived').is(':checked');
-        var showLogo     = $('#ThermalShowLogo').is(':checked');
-        var showPayQR    = $('#ThermalShowPaymentQR').is(':checked');
-        var showRevQR    = $('#ThermalShowGoogleReviewQR').is(':checked');
-        var showTerms    = $('#ThermalShowTerms').is(':checked');
-        var showItemDesc = $('#ThermalShowItemDescription').is(':checked');
-
-        var maxWidth = paperWidth === '58mm' ? '200px' : '270px';
-
-        var d = '';
-        var hr = '<hr style="border:none;border-top:1px dashed #000;margin:4px 0">';
-        var flex = function(l,r,bold,small) {
-            var s = small ? 'font-size:10px;' : '';
-            var b = bold  ? 'font-weight:bold;' : '';
-            return '<div style="display:flex;justify-content:space-between;'+s+b+'"><span>'+l+'</span><span>'+r+'</span></div>';
+        var cfg = {
+            PaperWidth          : $('#ThermalPaperWidthSelect').val()              || '80mm',
+            FooterMessage       : $('#ThermalFooterMessage').val().trim()           || 'Thank you for your business!',
+            OrgNameFontSize     : parseInt($('#ThermalOrgNameFontSize').val())     || 16,
+            CompanyNameFontSize : parseInt($('#ThermalCompanyNameFontSize').val()) || 14,
+            ProductInfoFontSize : parseInt($('#ThermalProductInfoFontSize').val()) || 12,
+            ShowCompanyDetails  : $('#ThermalShowCompanyDetails').is(':checked')  ? 1 : 0,
+            ShowGSTIN           : $('#ThermalShowGSTIN').is(':checked')           ? 1 : 0,
+            ShowMobile          : $('#ThermalShowMobile').is(':checked')          ? 1 : 0,
+            ShowHSN             : $('#ThermalShowHSN').is(':checked')             ? 1 : 0,
+            ShowTaxBreakdown    : $('#ThermalShowTaxBreakdown').is(':checked')    ? 1 : 0,
+            ShowTaxableAmount   : $('#ThermalShowTaxableAmount').is(':checked')   ? 1 : 0,
+            ShowCashReceived    : $('#ThermalShowCashReceived').is(':checked')    ? 1 : 0,
+            ShowLogo            : $('#ThermalShowLogo').is(':checked')            ? 1 : 0,
+            ShowPaymentQR       : $('#ThermalShowPaymentQR').is(':checked')       ? 1 : 0,
+            ShowGoogleReviewQR  : $('#ThermalShowGoogleReviewQR').is(':checked')  ? 1 : 0,
+            ShowTerms           : $('#ThermalShowTerms').is(':checked')           ? 1 : 0,
+            ShowItemDescription : $('#ThermalShowItemDescription').is(':checked') ? 1 : 0,
         };
-
-        if (showLogo) d += '<div style="text-align:center;margin:0 0 4px"><div style="display:inline-block;border:1px solid #ccc;padding:2px 8px;font-size:9px;color:#aaa">[ LOGO ]</div></div>';
-
-        var orgName = <?php echo json_encode($OrgPreviewData->Name ?? ''); ?>;
-        d += '<div style="text-align:center;font-weight:bold;font-size:'+orgFontSize+'px">' + escHtml(orgName || 'Store Name') + '</div>';
-
-        if (showCo) {
-            var orgAddr = [<?php
-                $parts = array_filter([
-                    $OrgPreviewData->Line1    ?? '',
-                    $OrgPreviewData->Line2    ?? '',
-                    $OrgPreviewData->CityText ?? '',
-                    $OrgPreviewData->StateText ?? '',
-                    $OrgPreviewData->Pincode  ?? '',
-                ]);
-                echo json_encode(implode(', ', $parts));
-            ?>][0];
-            if (orgAddr) d += '<div style="text-align:center;font-size:'+coFontSize+'px">' + escHtml(orgAddr) + '</div>';
-            if (showGSTIN)  d += '<div style="text-align:center;font-size:'+coFontSize+'px">GSTIN: <?php echo addslashes($OrgPreviewData->GSTIN ?? ''); ?></div>';
-            if (showMobile) d += '<div style="text-align:center;font-size:'+coFontSize+'px">Ph: <?php echo addslashes($OrgPreviewData->MobileNumber ?? ''); ?></div>';
-        }
-
-        d += hr;
-        d += flex('<strong>'+escHtml(transType)+'</strong>', 'EST/0001');
-        d += flex('Date:', '<?php echo date("d-m-Y"); ?>');
-        d += flex('Customer:', 'Sample Customer');
-        d += hr;
-        d += flex('<span style="font-weight:bold">Item</span>', '<span style="font-weight:bold">Amount</span>');
-        d += hr;
-
-        var taxFontSize = Math.max(6, prodFontSize - 2);
-        d += '<div style="font-weight:bold;font-size:'+prodFontSize+'px">Sample Product</div>';
-        if (showItemDesc) d += '<div style="font-size:'+(prodFontSize-2)+'px;font-style:italic;color:#777">Premium quality rotavator blade - heavy duty</div>';
-        if (showHSN)      d += '<div style="font-size:'+prodFontSize+'px;color:#555">HSN: 8432 90 00</div>';
-        var displayPrice = showTaxable ? '₹500.00' : '₹590.00';
-        d += '<div style="display:flex;justify-content:space-between;font-size:'+prodFontSize+'px"><span>2 Nos × '+displayPrice+'</span><span>₹1,180.00</span></div>';
-        if (showTaxable && showTax) {
-            d += '<div style="display:flex;justify-content:space-between;font-size:'+taxFontSize+'px;font-style:italic"><span>CGST 9%</span><span>₹90.00</span></div>';
-            d += '<div style="display:flex;justify-content:space-between;font-size:'+taxFontSize+'px;font-style:italic"><span>SGST 9%</span><span>₹90.00</span></div>';
-        }
-        d += hr;
-
-        if (showTaxable) {
-            d += '<div style="display:flex;justify-content:space-between;font-size:'+prodFontSize+'px"><span>Subtotal:</span><span>₹1,000.00</span></div>';
-            if (showTax) {
-                d += '<div style="display:flex;justify-content:space-between;font-size:'+taxFontSize+'px;font-style:italic"><span>Total Tax:</span><span>₹180.00</span></div>';
-                d += '<div style="display:flex;justify-content:space-between;font-size:'+taxFontSize+'px;font-style:italic;color:#555"><span>  CGST:</span><span>₹90.00</span></div>';
-                d += '<div style="display:flex;justify-content:space-between;font-size:'+taxFontSize+'px;font-style:italic;color:#555"><span>  SGST:</span><span>₹90.00</span></div>';
-            }
-        }
-        d += '<div style="display:flex;justify-content:space-between;font-weight:bold;font-size:'+prodFontSize+'px;border-top:1px solid #000;padding-top:3px;margin-top:3px"><span>Total:</span><span>₹1,180.00</span></div>';
-        if (showCash) d += '<div style="display:flex;justify-content:space-between;font-size:'+prodFontSize+'px"><span>Cash Received:</span><span>₹1,200.00</span></div>';
-
-        d += hr;
-
-        if (showPayQR || showRevQR) {
-            d += '<div style="display:flex;justify-content:center;gap:10px;margin:4px 0">';
-            if (showPayQR) d += '<div style="text-align:center"><div style="border:1px solid #000;padding:4px;font-size:9px;display:inline-block">&#9632;&#9632;<br>&#9632;&#9632;</div><div style="font-size:9px;margin-top:2px">Pay</div></div>';
-            if (showRevQR) d += '<div style="text-align:center"><div style="border:1px solid #000;padding:4px;font-size:9px;display:inline-block">&#9633;&#9633;<br>&#9633;&#9633;</div><div style="font-size:9px;margin-top:2px">Review</div></div>';
-            d += '</div>';
-        }
-
-        if (showTerms) {
-            d += hr;
-            d += '<div style="font-size:'+(prodFontSize-2)+'px;font-style:italic;color:#555">Goods once sold will not be taken back or exchanged.</div>';
-        }
-
-        var footerLines = footerMsg.split('\n');
-        footerLines.forEach(function(line) {
-            if (line.trim()) d += '<div style="text-align:center;font-size:'+prodFontSize+'px">'+escHtml(line)+'</div>';
-        });
-
-        $('#thermalPreviewWidthBadge').text(paperWidth);
-        $('#thermalPreviewBox').html(d).css('max-width', maxWidth);
+        var transLabel = $('#ThermalTransType option:selected').text().trim() || 'Transaction';
+        var result = buildReceiptHtml(cfg, transLabel);
+        $('#thermalPreviewWidthBadge').text(result.paperWidth);
+        $('#thermalPreviewBox').html(result.html).css('max-width', result.maxWidth);
     }
 
     $(document).on('input change', '#thermalConfigModal input, #thermalConfigModal select, #thermalConfigModal textarea', function() {
@@ -484,10 +535,7 @@ window.addEventListener('load', function() {
 
     var typeLabels = thermalAllTypes;
 
-    $(document).on('click', '.EditThermalConfig', function() {
-        var cfg = $(this).data('config');
-        if (!cfg) return;
-
+    function openEditModal(cfg) {
         resetThermalModal();
         $('#thermalModalSubtitle').text('Editing: ' + (cfg.ModuleName || typeLabels[cfg.ModuleUID] || cfg.ModuleUID));
         $('#HThermalConfigUID').val(cfg.ThermalConfigUID);
@@ -508,10 +556,16 @@ window.addEventListener('load', function() {
         $('#ThermalShowLogo').prop('checked',            cfg.ShowLogo            == 1);
         $('#ThermalShowGoogleReviewQR').prop('checked',  cfg.ShowGoogleReviewQR  == 1);
         $('#ThermalShowPaymentQR').prop('checked',       cfg.ShowPaymentQR       == 1);
-        $('#ThermalOrgNameFontSize').val(cfg.OrgNameFontSize       || 16);
+        $('#ThermalOrgNameFontSize').val(cfg.OrgNameFontSize        || 16);
         $('#ThermalCompanyNameFontSize').val(cfg.CompanyNameFontSize || 14);
         $('#ThermalProductInfoFontSize').val(cfg.ProductInfoFontSize || 12);
         $('#thermalConfigModal').modal('show');
+    }
+
+    $(document).on('click', '.EditThermalConfig', function() {
+        var cfg = $(this).data('config');
+        if (!cfg) return;
+        openEditModal(cfg);
     });
 
     $('#saveThermalConfigBtn').on('click', function() {
@@ -611,6 +665,29 @@ window.addEventListener('load', function() {
     }
 
     $('#thermalConfigModal').on('hidden.bs.modal', function() { resetThermalModal(); });
+
+    // ── Read-only preview from list row click ────────────────────────────────
+
+    var _thermalPrevCfg = null;
+
+    $(document).on('click', '.PreviewThermalConfig', function() {
+        var cfg = $(this).data('config');
+        if (!cfg) return;
+        _thermalPrevCfg = cfg;
+        var result = buildReceiptHtml(cfg, cfg.ModuleName || 'Transaction');
+        $('#thermalPrevTitle').text(cfg.ModuleName || 'Receipt Preview');
+        $('#thermalPrevWidthBadge').text(result.paperWidth);
+        $('#thermalPrevBox').html(result.html).css('max-width', result.maxWidth);
+        new bootstrap.Modal(document.getElementById('thermalPreviewModal')).show();
+    });
+
+    $('#thermalPrevEditBtn').on('click', function() {
+        if (!_thermalPrevCfg) return;
+        var cfg = _thermalPrevCfg;
+        var $m = bootstrap.Modal.getInstance(document.getElementById('thermalPreviewModal'));
+        if ($m) { $m.hide(); }
+        $('#thermalPreviewModal').one('hidden.bs.modal', function() { openEditModal(cfg); });
+    });
 
 });
 </script>

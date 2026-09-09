@@ -55,7 +55,14 @@ foreach ($DataLists as $row):
 ?>
 <tr>
     <td class="text-center align-middle"><?php echo $idx++; ?></td>
-    <td class="align-middle fw-semibold"><?php echo htmlspecialchars($typeLabel); ?></td>
+    <td class="align-middle">
+        <a href="javascript:void(0);" class="PreviewThermalConfig fw-semibold link-body-emphasis text-decoration-none"
+           data-config='<?php echo $editData; ?>'
+           title="Preview receipt template">
+            <?php echo htmlspecialchars($typeLabel); ?>
+            <i class="bx bx-receipt ms-1 text-secondary" style="font-size:.8rem;vertical-align:middle;"></i>
+        </a>
+    </td>
     <td class="align-middle">
         <span class="badge bg-label-<?php echo ($row->PaperWidth ?? '80mm') === '58mm' ? 'success' : 'primary'; ?>">
             <?php echo htmlspecialchars($row->PaperWidth ?? '80mm'); ?>
@@ -75,19 +82,11 @@ foreach ($DataLists as $row):
         <div class="text-muted r2k-col-date-by">by <?php echo $updatedByName; ?></div>
     </td>
     <td class="text-center align-middle">
-        <div class="d-flex align-items-center justify-content-center gap-1">
-            <a href="javascript:void(0);" class="btn btn-icon btn-sm text-warning EditThermalConfig"
-                data-config='<?php echo $editData; ?>'
-                title="Edit">
-                <i class="bx bx-edit"></i>
-            </a>
-            <a href="javascript:void(0);" class="btn btn-icon btn-sm text-danger DeleteThermalConfig"
-                data-uid="<?php echo (int)$row->ThermalConfigUID; ?>"
-                data-type="<?php echo htmlspecialchars($typeLabel); ?>"
-                title="Delete">
-                <i class="bx bx-trash"></i>
-            </a>
-        </div>
+        <a href="javascript:void(0);" class="btn btn-icon btn-sm text-warning EditThermalConfig"
+            data-config='<?php echo $editData; ?>'
+            title="Edit">
+            <i class="bx bx-edit"></i>
+        </a>
     </td>
 </tr>
 <?php endforeach; ?>

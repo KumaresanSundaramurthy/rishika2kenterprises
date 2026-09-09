@@ -61,7 +61,7 @@ class RedisService {
             $this->connected = true;
             $this->log('INFO', 'Connection established');
         } catch (Exception $e) {
-            notifyError($e, 'Redisservice::connect');
+            notifyError('Redisservice::connect', $e);
             $this->connected = false;
             $this->log('ERROR', 'Connection failed: ' . $e->getMessage());
         } finally {

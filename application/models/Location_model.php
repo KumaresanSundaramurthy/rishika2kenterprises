@@ -31,7 +31,7 @@ class Location_model extends CI_Model {
             $this->EndReturnData->Message = 'Data Retrieved Successfully';
             $this->EndReturnData->Data    = $query->result_array();
         } catch (Exception $e) {
-            notifyError($e, 'Location_model::getCountriesFromDB');
+            notifyError('Location_model::getCountriesFromDB', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -76,7 +76,7 @@ class Location_model extends CI_Model {
             $this->EndReturnData->Message = 'Data Retrieved Successfully';
             $this->EndReturnData->Data    = $data;
         } catch (Exception $e) {
-            notifyError($e, 'Location_model::getStatesFromDB');
+            notifyError('Location_model::getStatesFromDB', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -123,7 +123,7 @@ class Location_model extends CI_Model {
             $this->EndReturnData->Message = 'Data Retrieved Successfully';
             $this->EndReturnData->Data    = $data;
         } catch (Exception $e) {
-            notifyError($e, 'Location_model::getCitiesOfStateFromDB');
+            notifyError('Location_model::getCitiesOfStateFromDB', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -168,7 +168,7 @@ class Location_model extends CI_Model {
             $this->EndReturnData->Message = 'Data Retrieved Successfully';
             $this->EndReturnData->Data    = $data;
         } catch (Exception $e) {
-            notifyError($e, 'Location_model::getAllCitiesOfCountryFromDB');
+            notifyError('Location_model::getAllCitiesOfCountryFromDB', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }

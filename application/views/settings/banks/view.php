@@ -337,7 +337,7 @@ window.addEventListener('load', function() {
                 var isNeg  = bal < 0;
                 var color  = isNeg ? '#dc3545' : '#28a745';
                 var sign   = isNeg ? '' : '+';
-                var fmt    = 'currencySymbol + ' ' + sign + bal.toLocaleString('en-IN', { minimumFractionDigits: decimalPlaces, maximumFractionDigits: decimalPlaces });
+                var fmt    = currencySymbol + ' ' + sign + bal.toLocaleString('en-IN', { minimumFractionDigits: decimalPlaces, maximumFractionDigits: decimalPlaces });
                 $val.text(fmt).css({ 'color': color, 'text-decoration': 'none' });
                 $row.data('loaded', true).data('display', fmt).data('color', color);
             },

@@ -62,7 +62,7 @@ class Branches_model extends CI_Model {
             return $this->EndReturnData;
 
         } catch (Exception $e) {
-            notifyError($e, 'Branches_model::getBranchListPaginated');
+            notifyError('Branches_model::getBranchListPaginated', $e);
             $this->EndReturnData->rows       = [];
             $this->EndReturnData->totalCount = 0;
             return $this->EndReturnData;
@@ -80,7 +80,7 @@ class Branches_model extends CI_Model {
             );
             return $query ? $query->result() : [];
         } catch (Exception $e) {
-            notifyError($e, 'Branches_model::getBranchList');
+            notifyError('Branches_model::getBranchList', $e);
             return [];
         }
     }
@@ -103,7 +103,7 @@ class Branches_model extends CI_Model {
             $query = $this->ReadDb->query($sql, [$uid, $orgUID, $uid, $orgUID, $uid, $orgUID, $uid, $orgUID]);
             return $query && $query->num_rows() > 0;
         } catch (Exception $e) {
-            notifyError($e, 'Branches_model::hasLinkedRecords');
+            notifyError('Branches_model::hasLinkedRecords', $e);
             return FALSE;
         }
     }
@@ -115,7 +115,7 @@ class Branches_model extends CI_Model {
             );
             return $query ? $query->result() : [];
         } catch (Exception $e) {
-            notifyError($e, 'Branches_model::getBranchTypesList');
+            notifyError('Branches_model::getBranchTypesList', $e);
             return [];
         }
     }
@@ -131,7 +131,7 @@ class Branches_model extends CI_Model {
             $query = $this->ReadDb->get();
             return $query && $query->num_rows() > 0;
         } catch (Exception $e) {
-            notifyError($e, 'Branches_model::getBranchCodeExists');
+            notifyError('Branches_model::getBranchCodeExists', $e);
             return FALSE;
         }
     }

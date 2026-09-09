@@ -44,15 +44,86 @@ if (!function_exists('trans_build_close_url')) {
 
 // ── Transaction form preamble helpers ────────────────────────────────────────
 
+if (!function_exists('_buildPrefixSegmentFromComponentConfig')) {
+    /**
+     * Build the form display prefix segment from a ComponentConfig array.
+     * Returns everything before the number slot, including the trailing separator.
+     * e.g. for order=[prefix,fiscal,number] with seps=['-','/'] → "INV-26-27/"
+     *
+     * @param array  $pcfg Decoded ComponentConfig JSON
+     * @param object $cfg  Prefix DB row
+     * @return string
+     */
+    function _buildPrefixSegmentFromComponentConfig(array $pcfg, object $cfg): string {
+        $order     = $pcfg['order']     ?? ['prefix', 'shortname', 'fiscal', 'number'];
+        $seps      = $pcfg['seps']      ?? [];
+        $active    = $pcfg['active']    ?? [];
+        $shortname = strtoupper($pcfg['shortname'] ?? '');
+        $fiscalFmt = $pcfg['fiscalFmt'] ?? ($cfg->FiscalYearFormat ?? 'SHORT');
+        $alwaysOn  = ['prefix' => true, 'number' => true];
+
+        $m   = (int)date('m');
+        $yr  = (int)date('Y');
+        $fy  = $m >= 4 ? $yr : $yr - 1;
+        $fyStr = $fiscalFmt === 'LONG'
+            ? $fy . '-' . ($fy + 1)
+            : str_pad($fy % 100, 2, '0', STR_PAD_LEFT) . '-' . str_pad(($fy + 1) % 100, 2, '0', STR_PAD_LEFT);
+
+        /* Collect active parts in order, including 'number' as a sentinel */
+        $activeParts = [];
+        foreach ($order as $idx => $key) {
+            $isActive = !empty($alwaysOn[$key]) || !empty($active[$key]);
+            if (!$isActive) continue;
+            switch ($key) {
+                case 'prefix':    $val = strtoupper($cfg->Name ?? ''); break;
+                case 'shortname': $val = $shortname;                    break;
+                case 'fiscal':    $val = $fyStr;                        break;
+                case 'number':    $val = null;                          break; /* sentinel */
+                default:          $val = '';
+            }
+            $activeParts[] = ['val' => $val, 'idx' => (int)$idx, 'key' => $key];
+        }
+
+        /* Build segment: all parts before 'number', then append the separator that precedes it */
+        $result = '';
+        foreach ($activeParts as $i => $part) {
+            if ($part['key'] === 'number') {
+                /* Append the separator between the last non-number part and the number */
+                if ($i > 0) {
+                    $prevIdx = $activeParts[$i - 1]['idx'];
+                    $result .= $seps[$prevIdx] ?? '-';
+                }
+                break;
+            }
+            if ((string)$part['val'] === '') continue;
+            $result .= $part['val'];
+            /* Separator after this part only if the next part is also not 'number' */
+            if (isset($activeParts[$i + 1]) && $activeParts[$i + 1]['key'] !== 'number') {
+                $result .= $seps[$part['idx']] ?? '-';
+            }
+        }
+        return $result;
+    }
+}
+
 if (!function_exists('buildTransPrefixSegment')) {
     /**
      * Build the display prefix segment string (e.g. "INV-FY24-") from a prefix config object.
-     * Replaces all 9 per-module buildXxxPrefixSegment() functions — body was identical.
+     * Uses ComponentConfig (new builder format) when present; falls back to old columns.
+     *
      * @param object|null $cfg
      * @return string
      */
     function buildTransPrefixSegment(?object $cfg): string {
         if (!$cfg) return '';
+
+        if (!empty($cfg->ComponentConfig)) {
+            $pcfg = @json_decode($cfg->ComponentConfig, true);
+            if (is_array($pcfg) && !empty($pcfg['order'])) {
+                return _buildPrefixSegmentFromComponentConfig($pcfg, $cfg);
+            }
+        }
+
         $sep   = $cfg->Separator ?? '-';
         $parts = [$cfg->Name];
         if (!empty($cfg->IncludeShortName) && !empty($cfg->ShortName)) {
@@ -67,6 +138,84 @@ if (!function_exists('buildTransPrefixSegment')) {
                 : str_pad($fy % 100, 2, '0', STR_PAD_LEFT) . '-' . str_pad(($fy + 1) % 100, 2, '0', STR_PAD_LEFT);
         }
         return implode($sep, $parts) . $sep;
+    }
+}
+
+if (!function_exists('buildTransactionUniqueNumber')) {
+    /**
+     * Assemble a full transaction number string from a prefix config row.
+     * Uses ComponentConfig (drag-order + per-gap separators) when present;
+     * falls back to old individual columns for rows saved before the builder.
+     *
+     * @param object $prefix      Prefix DB row (must have Name, NumberPadding, etc.)
+     * @param int    $transNumber The sequential number to embed
+     * @param string $date        Transaction date (Y-m-d)
+     * @return string
+     */
+    function buildTransactionUniqueNumber(object $prefix, int $transNumber, string $date): string {
+        if (!empty($prefix->ComponentConfig)) {
+            $cfg = @json_decode($prefix->ComponentConfig, true);
+            if (is_array($cfg) && !empty($cfg['order'])) {
+                $order     = $cfg['order'];
+                $seps      = $cfg['seps']      ?? [];
+                $active    = $cfg['active']    ?? [];
+                $shortname = strtoupper($cfg['shortname'] ?? '');
+                $fiscalFmt = $cfg['fiscalFmt'] ?? ($prefix->FiscalYearFormat ?? 'SHORT');
+                $alwaysOn  = ['prefix' => true, 'number' => true];
+
+                $txMonth = (int)date('m', strtotime($date));
+                $txYear  = (int)date('Y', strtotime($date));
+                $fyStart = $txMonth >= 4 ? $txYear : $txYear - 1;
+                $fyStr   = $fiscalFmt === 'LONG'
+                    ? $fyStart . '-' . ($fyStart + 1)
+                    : str_pad($fyStart % 100, 2, '0', STR_PAD_LEFT) . '-' . str_pad(($fyStart + 1) % 100, 2, '0', STR_PAD_LEFT);
+
+                $pad    = (int)($prefix->NumberPadding ?? 1);
+                $numStr = $pad > 1 ? str_pad($transNumber, $pad, '0', STR_PAD_LEFT) : (string)$transNumber;
+
+                $activeParts = [];
+                foreach ($order as $idx => $key) {
+                    $isActive = !empty($alwaysOn[$key]) || !empty($active[$key]);
+                    if (!$isActive) continue;
+                    switch ($key) {
+                        case 'prefix':    $val = strtoupper($prefix->Name ?? ''); break;
+                        case 'shortname': $val = $shortname;                       break;
+                        case 'fiscal':    $val = $fyStr;                           break;
+                        case 'number':    $val = $numStr;                          break;
+                        default:          $val = '';
+                    }
+                    if ($val === '') continue;
+                    $activeParts[] = ['val' => $val, 'idx' => (int)$idx];
+                }
+
+                $result = '';
+                foreach ($activeParts as $i => $part) {
+                    $result .= $part['val'];
+                    if ($i < count($activeParts) - 1) {
+                        $result .= $seps[$part['idx']] ?? '-';
+                    }
+                }
+                return $result;
+            }
+        }
+
+        /* Old-style fallback */
+        $sep   = $prefix->Separator ?? '-';
+        $parts = [strtoupper($prefix->Name ?? '')];
+        if (!empty($prefix->IncludeShortName) && !empty($prefix->ShortName)) {
+            $parts[] = strtoupper($prefix->ShortName);
+        }
+        if (!empty($prefix->IncludeFiscalYear)) {
+            $txMonth = (int)date('m', strtotime($date));
+            $txYear  = (int)date('Y', strtotime($date));
+            $fyStart = $txMonth >= 4 ? $txYear : $txYear - 1;
+            $parts[] = ($prefix->FiscalYearFormat ?? 'SHORT') === 'LONG'
+                ? $fyStart . '-' . ($fyStart + 1)
+                : str_pad($fyStart % 100, 2, '0', STR_PAD_LEFT) . '-' . str_pad(($fyStart + 1) % 100, 2, '0', STR_PAD_LEFT);
+        }
+        $pad     = (int)($prefix->NumberPadding ?? 1);
+        $parts[] = $pad > 1 ? str_pad($transNumber, $pad, '0', STR_PAD_LEFT) : (string)$transNumber;
+        return implode($sep, $parts);
     }
 }
 
@@ -240,7 +389,7 @@ if (!function_exists('format_datedisplay')) {
             }
             return $dt->format($format);
         } catch (Exception $e) {
-            notifyError($e, 'transaction_helper::format_datedisplay');
+            notifyError('transaction_helper::format_datedisplay', $e);
             return $default;
         }
     }

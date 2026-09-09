@@ -41,6 +41,31 @@ class Userpreferences extends MY_Controller {
 
             $this->dbwrite_model->upsertPreference($orgUID, $branchUID, $userUID, $key, $value);
 
+            $keyModuleMap = [
+                'df_invoices'              => 'Invoices',
+                'df_purchases'             => 'Purchases',
+                'df_salesorders'           => 'Sales Orders',
+                'df_quotations'            => 'Quotations',
+                'df_deliverychallans'      => 'Delivery Challans',
+                'df_purchasereturns'       => 'Purchase Returns',
+                'df_salesreturns'          => 'Sales Returns',
+                'df_proformainvoices'      => 'Proforma Invoices',
+                'df_payments'              => 'Payments',
+                'df_expenses'              => 'Expenses',
+                'df_indirectincome'        => 'Indirect Income',
+                'df_inventory'             => 'Inventory',
+                'df_settings_activitylog'  => 'Activity Log',
+            ];
+            $moduleName = $keyModuleMap[$key] ?? 'User Preferences';
+
+            $this->auditlog->log(
+                $orgUID, $userUID,
+                'UPDATE_PREFERENCE', 'UserPreference', $userUID, $key,
+                ['PreferenceKey' => $key, 'PreferenceValue' => $value],
+                'User preference updated: ' . $key . ' = ' . $value,
+                $moduleName, 'SETTINGS', 'SUCCESS'
+            );
+
             $out->Error = false;
         } catch (Throwable $e) {
             $this->notifyError('Userpreferences::save', $e);

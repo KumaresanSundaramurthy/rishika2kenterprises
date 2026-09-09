@@ -529,6 +529,7 @@ class Transactions_model extends MY_Model {
                 'Prefix.Separator          as Separator',
                 'Prefix.NumberPadding      as NumberPadding',
                 'Prefix.IsDefault          as IsDefault',
+                'Prefix.ComponentConfig    as ComponentConfig',
             ]);
             $this->ReadDb->from('Settings.TransactionPrefixTbl as Prefix');
             $cleanFilter = $FilterArray;

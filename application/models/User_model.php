@@ -76,7 +76,7 @@ class User_model extends CI_Model {
             return $this->EndReturnData;
 
         } catch(Exception $e) {
-            notifyError($e, 'User_model::getUserByEmailOrUsername');
+            notifyError('User_model::getUserByEmailOrUsername', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
@@ -148,7 +148,7 @@ class User_model extends CI_Model {
             $this->EndReturnData->Data    = $query->result();
             return $this->EndReturnData;
         } catch (Exception $e) {
-            notifyError($e, 'User_model::getUserByUID');
+            notifyError('User_model::getUserByUID', $e);
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
@@ -200,7 +200,7 @@ class User_model extends CI_Model {
             return $row ? $row->CurrentSessionToken : null;
 
         } catch (Exception $e) {
-            notifyError($e, 'User_model::getCurrentSessionToken');
+            notifyError('User_model::getCurrentSessionToken', $e);
             return null;
         }
 
@@ -262,7 +262,7 @@ class User_model extends CI_Model {
             return $this->EndReturnData;
 
         } catch(Exception $e) {
-            notifyError($e, 'User_model::getUserByUserInfo');
+            notifyError('User_model::getUserByUserInfo', $e);
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);

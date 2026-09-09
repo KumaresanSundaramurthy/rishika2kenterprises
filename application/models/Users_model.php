@@ -29,7 +29,7 @@ class Users_model extends CI_Model {
     public function getEmployeeDropdownList(int $orgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
-            $this->ReadDb->select("UserUID AS EmployeeUID, UserCode AS EmployeeCode, CONCAT(FirstName, ' ', LastName) AS EmployeeName, HasLoginAccess, SalaryType, BasicSalary, Allowances, Incentives, FixedDeductions");
+            $this->ReadDb->select("UserUID AS EmployeeUID, EmployeeCode, CONCAT(FirstName, ' ', LastName) AS EmployeeName, HasLoginAccess, SalaryType, BasicSalary, Allowances, Incentives, FixedDeductions");
             $this->ReadDb->from('Users.UserTbl');
             $this->ReadDb->where(['OrgUID' => (int)$orgUID, 'IsDeleted' => 0, 'IsActive' => 1]);
             $this->ReadDb->where("EmployeeStatus !=", 'Terminated');
@@ -69,7 +69,7 @@ class Users_model extends CI_Model {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select(
-                'u.UserUID, u.UserCode, u.FirstName, u.LastName, u.UserName,
+                'u.UserUID, u.EmployeeCode, u.FirstName, u.LastName, u.UserName,
                  u.EmailAddress, u.MobileNumber,
                  u.HasLoginAccess,
                  u.RoleUID, r.Name AS RoleName,
@@ -122,7 +122,7 @@ class Users_model extends CI_Model {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select(
-                'u.UserUID, u.UserCode, u.FirstName, u.LastName, u.UserName,
+                'u.UserUID, u.EmployeeCode, u.FirstName, u.LastName, u.UserName,
                  u.EmailAddress, u.MobileNumber, u.CountryCode, u.CountryISO2,
                  u.HasLoginAccess,
                  u.RoleUID, u.IsActive, u.IsLocked, u.LastLoginOn,
@@ -252,16 +252,21 @@ class Users_model extends CI_Model {
             $this->load->model('dbwrite_model');
             $db = $this->dbwrite_model->getWriteDb();
             $db->db_debug = FALSE;
-            $db->set('EmpCodeLastNum', 'EmpCodeLastNum + 1', FALSE)
-               ->set('UpdatedAt', date('Y-m-d H:i:s'))
-               ->where('OrgUID', $orgUID)
-               ->update('Settings.OrgCreditSettingsTbl');
+
+            // LAST_INSERT_ID(expr) stores the value per-connection, so the
+            // subsequent SELECT LAST_INSERT_ID() returns THIS request's claimed
+            // number even if another request incremented the counter in between.
+            $db->query(
+                'UPDATE Settings.OrgCreditSettingsTbl
+                    SET EmpCodeLastNum = LAST_INSERT_ID(EmpCodeLastNum + 1),
+                        UpdatedAt      = NOW()
+                  WHERE OrgUID = ?',
+                [$orgUID]
+            );
 
             if ($db->affected_rows() > 0) {
-                $row     = $this->ReadDb->select('EmpCodeLastNum')
-                                        ->get_where('Settings.OrgCreditSettingsTbl', ['OrgUID' => $orgUID])
-                                        ->row();
-                $nextNum = (int)($row->EmpCodeLastNum ?? 1);
+                $row     = $db->query('SELECT LAST_INSERT_ID() AS ClaimedNum')->row();
+                $nextNum = (int)($row->ClaimedNum ?? 1);
             } else {
                 // OrgCreditSettingsTbl row not yet seeded — fall back to MAX scan
                 $this->ReadDb->select('COALESCE(MAX(CAST(REGEXP_REPLACE(EmployeeCode, "[^0-9]", "") AS UNSIGNED)), 0) + 1 AS NextNum');
@@ -618,8 +623,9 @@ class Users_model extends CI_Model {
         if (isset($filter['LoginAccess']) && $filter['LoginAccess'] !== '') {
             $this->ReadDb->where('u.HasLoginAccess', (int)$filter['LoginAccess']);
         }
-        if (!empty($filter['DeptUID'])) {
-            $this->ReadDb->where('u.DepartmentUID', (int)$filter['DeptUID']);
+        if (!empty($filter['DeptUIDs'])) {
+            $uids = array_values(array_filter(array_map('intval', (array)$filter['DeptUIDs'])));
+            if ($uids) $this->ReadDb->where_in('u.DepartmentUID', $uids);
         }
         if (!empty($filter['Name'])) {
             $term = $this->ReadDb->escape_like_str($filter['Name']);

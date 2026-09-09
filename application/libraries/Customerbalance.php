@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
+<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 /**
  * Customerbalance Ã¢â‚¬â€ single source of truth for customer balance management.
@@ -62,26 +62,7 @@ class Customerbalance {
             $seq = $this->CI->transactions_model->getNextCreditNoteNumber($orgUID);
 
             // Build formatted CN number (same logic as all other transaction types)
-            $cnNumber = null;
-            if ($prefix) {
-                $date    = date('Y-m-d');
-                $sep     = $prefix->Separator ?? '-';
-                $parts   = [strtoupper($prefix->Name)];
-                if (!empty($prefix->IncludeShortName) && !empty($prefix->ShortName)) {
-                    $parts[] = strtoupper($prefix->ShortName);
-                }
-                if (!empty($prefix->IncludeFiscalYear)) {
-                    $m       = (int)date('m', strtotime($date));
-                    $yr      = (int)date('Y', strtotime($date));
-                    $fyStart = $m >= 4 ? $yr : $yr - 1;
-                    $parts[] = ($prefix->FiscalYearFormat ?? 'SHORT') === 'LONG'
-                        ? $fyStart . '-' . ($fyStart + 1)
-                        : str_pad($fyStart % 100, 2, '0', STR_PAD_LEFT) . '-' . str_pad(($fyStart + 1) % 100, 2, '0', STR_PAD_LEFT);
-                }
-                $pad     = (int)($prefix->NumberPadding ?? 1);
-                $parts[] = $pad > 1 ? str_pad($seq, $pad, '0', STR_PAD_LEFT) : (string)$seq;
-                $cnNumber = implode($sep, $parts);
-            }
+            $cnNumber = $prefix ? buildTransactionUniqueNumber($prefix, $seq, date('Y-m-d')) : null;
 
             $writeDb = $this->CI->load->database('WriteDB', TRUE);
             $writeDb->db_debug = FALSE;
@@ -140,7 +121,7 @@ class Customerbalance {
             return ['creditNoteUID' => $creditNoteUID, 'amount' => $paidTotal];
 
         } catch (Exception $e) {
-            notifyError($e, 'Customerbalance::createCreditNote');
+            notifyError('Customerbalance::createCreditNote', $e);
             return null;
         }
     }
@@ -241,7 +222,7 @@ class Customerbalance {
             return ['creditNoteUID' => $creditNoteUID, 'creditNoteNumber' => $cnNumber, 'amount' => $amount];
 
         } catch (Exception $e) {
-            notifyError($e, 'Customerbalance::createSalesReturnCreditNote');
+            notifyError('Customerbalance::createSalesReturnCreditNote', $e);
             return null;
         }
     }
@@ -314,7 +295,7 @@ class Customerbalance {
 
             return ['debitNoteUID' => $debitNoteUID, 'debitNoteNumber' => $dnNumber, 'amount' => $amount];
         } catch (Exception $e) {
-            notifyError($e, 'Customerbalance::createDebitNote');
+            notifyError('Customerbalance::createDebitNote', $e);
             return null;
         }
     }
@@ -337,7 +318,7 @@ class Customerbalance {
             ]);
             return $readDb->get()->result();
         } catch (Exception $e) {
-            notifyError($e, 'Customerbalance::getPendingDebitNotes');
+            notifyError('Customerbalance::getPendingDebitNotes', $e);
             return [];
         }
     }
@@ -449,7 +430,7 @@ class Customerbalance {
             return ['paymentUID' => $paymentUID];
 
         } catch (Exception $e) {
-            notifyError($e, 'Customerbalance::applyCreditNote');
+            notifyError('Customerbalance::applyCreditNote', $e);
             throw $e;
         }
     }
@@ -507,7 +488,7 @@ class Customerbalance {
             return true;
 
         } catch (Exception $e) {
-            notifyError($e, 'Customerbalance::refundCreditNote');
+            notifyError('Customerbalance::refundCreditNote', $e);
             throw $e;
         }
     }
@@ -533,7 +514,7 @@ class Customerbalance {
             ]);
             return $readDb->get()->result();
         } catch (Exception $e) {
-            notifyError($e, 'Customerbalance::getPendingCreditNotes');
+            notifyError('Customerbalance::getPendingCreditNotes', $e);
             return [];
         }
     }
@@ -604,7 +585,7 @@ class Customerbalance {
             return ['balance' => $newBalance, 'type' => $newBalType];
 
         } catch (Exception $e) {
-            notifyError($e, 'Customerbalance::recalcAndSync');
+            notifyError('Customerbalance::recalcAndSync', $e);
             return null;
         }
     }

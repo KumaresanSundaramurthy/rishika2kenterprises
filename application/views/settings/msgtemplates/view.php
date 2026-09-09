@@ -13,14 +13,16 @@
                     'pageTitle'       => $PageTitle       ?? 'Message Templates',
                     'pageDescription' => $PageDescription ?? '',
                 ]); ?>
-                <div class="container-xxl flex-grow-1 container-p-y">
+                <div class="container-xxl flex-grow-1">
 
-                    <div class="card">
+                    <div class="card mb-4">
 
-                        <div class="d-flex justify-content-end mb-3">
-                            <button class="btn btn-primary btn-sm px-3 me-1" id="btnAddMsgTemplate">
-                                <i class="bx bx-plus me-1"></i><?php echo t('btn_add_template', 'Add Template'); ?>
-                            </button>
+                        <div class="px-3 py-2 border-bottom d-flex align-items-center">
+                            <div class="ms-auto">
+                                <button class="btn btn-primary btn-sm" id="btnAddMsgTemplate">
+                                    <i class="bx bx-plus me-1"></i><?php echo t('btn_add_template', 'Add Template'); ?>
+                                </button>
+                            </div>
                         </div>
 
                         <!-- Table -->

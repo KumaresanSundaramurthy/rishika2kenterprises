@@ -246,7 +246,7 @@ class Cachehelper {
             ]);
 
         } catch (Exception $e) {
-            notifyError($e, 'Cachehelper::upsertVendor');
+            notifyError('Cachehelper::upsertVendor', $e);
         }
     }
 

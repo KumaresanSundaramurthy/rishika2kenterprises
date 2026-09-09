@@ -45,6 +45,50 @@ $(document).ready(function () {
         return parts.length ? parts.join(sep) + sep : '';
     }
 
+    /**
+     * Build the prefix segment from a ComponentConfig object.
+     * @param {Object} cc  - parsed ComponentConfig (order, seps, active, shortname, fiscalFmt)
+     * @param {string} name - prefix name (from option text)
+     * @returns {string}
+     */
+    function buildPrefixSegmentFromCC(cc, name) {
+        var order    = cc.order    || ['prefix', 'shortname', 'fiscal', 'number'];
+        var seps     = cc.seps    || [];
+        var active   = cc.active  || {};
+        var sname    = (cc.shortname || '').toUpperCase();
+        var fyFmt    = cc.fiscalFmt || 'SHORT';
+        var alwaysOn = { prefix: true, number: true };
+
+        /* Collect active parts before 'number' */
+        var parts = [];
+        for (var i = 0; i < order.length; i++) {
+            var key = order[i];
+            if (key === 'number') break;
+            if (!alwaysOn[key] && !active[key]) continue;
+            var val = '';
+            if (key === 'prefix')    val = (name || '').toUpperCase();
+            if (key === 'shortname') val = sname;
+            if (key === 'fiscal')    val = getFiscalYear(fyFmt);
+            if (!val) continue;
+            parts.push({ val: val, idx: i });
+        }
+
+        if (!parts.length) return ''; /* number is first — no segment */
+
+        var result = '';
+        for (var j = 0; j < parts.length; j++) {
+            result += parts[j].val;
+            if (j < parts.length - 1) {
+                var s = seps[parts[j].idx];
+                result += (s != null ? s : '-');
+            }
+        }
+        /* Trailing separator leading into the number slot */
+        var lastSep = seps[parts[parts.length - 1].idx];
+        result += (lastSep != null ? lastSep : '-');
+        return result;
+    }
+
     /* ----------------------------------------------------------------
        Live preview in the Add/Edit form
     ---------------------------------------------------------------- */
@@ -436,27 +480,30 @@ $(document).ready(function () {
 
     /** Add or update a <option> in transPrefixSelect with data attrs. */
     function addOrUpdateMainOption(prefixUID, p) {
+        var ccVal = p.ComponentConfig || '';
         var existing = $('#transPrefixSelect option[value="' + prefixUID + '"]');
         if (existing.length) {
             existing
                 .text(p.Name)
-                .attr('data-sep',           p.Separator         || '-')
-                .attr('data-fiscal',        p.IncludeFiscalYear ? '1' : '0')
-                .attr('data-fiscal-format', p.FiscalYearFormat  || 'SHORT')
-                .attr('data-inc-short',     p.IncludeShortName  ? '1' : '0')
-                .attr('data-short-name',    p.ShortName         || '')
-                .attr('data-padding',       p.NumberPadding     || 1);
+                .attr('data-sep',              p.Separator         || '-')
+                .attr('data-fiscal',           p.IncludeFiscalYear ? '1' : '0')
+                .attr('data-fiscal-format',    p.FiscalYearFormat  || 'SHORT')
+                .attr('data-inc-short',        p.IncludeShortName  ? '1' : '0')
+                .attr('data-short-name',       p.ShortName         || '')
+                .attr('data-padding',          p.NumberPadding     || 1)
+                .attr('data-component-config', ccVal);
         } else {
             $('#transPrefixSelect').append(
                 $('<option></option>')
                     .val(prefixUID)
                     .text(p.Name)
-                    .attr('data-sep',           p.Separator         || '-')
-                    .attr('data-fiscal',        p.IncludeFiscalYear ? '1' : '0')
-                    .attr('data-fiscal-format', p.FiscalYearFormat  || 'SHORT')
-                    .attr('data-inc-short',     p.IncludeShortName  ? '1' : '0')
-                    .attr('data-short-name',    p.ShortName         || '')
-                    .attr('data-padding',       p.NumberPadding     || 1)
+                    .attr('data-sep',              p.Separator         || '-')
+                    .attr('data-fiscal',           p.IncludeFiscalYear ? '1' : '0')
+                    .attr('data-fiscal-format',    p.FiscalYearFormat  || 'SHORT')
+                    .attr('data-inc-short',        p.IncludeShortName  ? '1' : '0')
+                    .attr('data-short-name',       p.ShortName         || '')
+                    .attr('data-padding',          p.NumberPadding     || 1)
+                    .attr('data-component-config', ccVal)
             );
         }
         if ($.fn.select2) $('#transPrefixSelect').trigger('change.select2');
@@ -477,15 +524,25 @@ $(document).ready(function () {
     function syncPrefixDisplayFromSelect() {
         var opt     = $('#transPrefixSelect option:selected');
         var name    = opt.text().trim();
-        var sep     = opt.attr('data-sep')           || '-';
-        var fiscal  = opt.attr('data-fiscal')        === '1';
-        var fmtFy   = opt.attr('data-fiscal-format') || 'SHORT';
-        var incShrt = opt.attr('data-inc-short')     === '1';
-        var sName   = opt.attr('data-short-name')    || '';
         var padding = parseInt(opt.attr('data-padding'), 10) || 1;
 
-        // 1. Update prefix segment span
-        var seg = buildPrefixSegment(name, sep, fiscal, fmtFy, incShrt, sName);
+        // 1. Update prefix segment span — prefer ComponentConfig
+        var seg = '';
+        var rawCC = opt.attr('data-component-config') || '';
+        if (rawCC) {
+            try {
+                var cc = JSON.parse(rawCC);
+                seg = buildPrefixSegmentFromCC(cc, name);
+            } catch (e) { rawCC = ''; }
+        }
+        if (!rawCC) {
+            var sep     = opt.attr('data-sep')           || '-';
+            var fiscal  = opt.attr('data-fiscal')        === '1';
+            var fmtFy   = opt.attr('data-fiscal-format') || 'SHORT';
+            var incShrt = opt.attr('data-inc-short')     === '1';
+            var sName   = opt.attr('data-short-name')    || '';
+            seg = buildPrefixSegment(name, sep, fiscal, fmtFy, incShrt, sName);
+        }
         $('#appendPrefixVal').text(seg);
 
         // 2. Update the padded placeholder shown next to the number input

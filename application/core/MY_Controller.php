@@ -44,7 +44,7 @@ class MY_Controller extends CI_Controller {
                 'UpdatedBy'      => $userUID,
             ]);
         } catch (Exception $e) {
-            notifyError($e, 'MY_Controller::_writeBankLedgerEntry');
+            notifyError('MY_Controller::_writeBankLedgerEntry', $e);
         }
     }
 
@@ -71,7 +71,7 @@ class MY_Controller extends CI_Controller {
                 $this->cachehelper->upsertProduct($uid);
             }
         } catch (Throwable $e) {
-            notifyError($e, 'MY_Controller::_syncProductCacheByTransUID');
+            notifyError('MY_Controller::_syncProductCacheByTransUID', $e);
         }
     }
 
@@ -82,7 +82,7 @@ class MY_Controller extends CI_Controller {
             $this->load->library('vendorbalance');
             $this->vendorbalance->recalcAndSync($orgUID, $vendorUID, $userUID);
         } catch (Exception $e) {
-            notifyError($e, 'MY_Controller::_recalcVendorBalance');
+            notifyError('MY_Controller::_recalcVendorBalance', $e);
         }
     }
 
@@ -91,7 +91,7 @@ class MY_Controller extends CI_Controller {
             $this->load->library('customerbalance');
             $this->customerbalance->recalcAndSync($orgUID, $customerUID, $userUID);
         } catch (Exception $e) {
-            notifyError($e, 'MY_Controller::_recalcCustomerBalance');
+            notifyError('MY_Controller::_recalcCustomerBalance', $e);
         }
     }
 
@@ -531,9 +531,69 @@ class MY_Controller extends CI_Controller {
 
     // â”€â”€ Transaction number helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
+    /**
+     * Assemble a transaction number using ComponentConfig (drag-order + per-gap separators).
+     * Falls back to old individual columns when ComponentConfig is absent.
+     *
+     * @param array  $cfg         Decoded ComponentConfig JSON
+     * @param object $prefix      Prefix DB row
+     * @param string $date        Transaction date (Y-m-d or any strtotime-compatible)
+     * @param int    $transNumber The sequential number to embed
+     * @return string
+     */
+    private function _buildNumberFromComponentConfig(array $cfg, object $prefix, string $date, int $transNumber): string {
+        $order     = $cfg['order']     ?? ['prefix', 'shortname', 'fiscal', 'number'];
+        $seps      = $cfg['seps']      ?? [];
+        $active    = $cfg['active']    ?? [];
+        $shortname = strtoupper($cfg['shortname'] ?? '');
+        $fiscalFmt = $cfg['fiscalFmt'] ?? ($prefix->FiscalYearFormat ?? 'SHORT');
+        $alwaysOn  = ['prefix' => true, 'number' => true];
+
+        $txMonth = (int)date('m', strtotime($date));
+        $txYear  = (int)date('Y', strtotime($date));
+        $fyStart = $txMonth >= 4 ? $txYear : $txYear - 1;
+        $fyStr   = $fiscalFmt === 'LONG'
+            ? $fyStart . '-' . ($fyStart + 1)
+            : str_pad($fyStart % 100, 2, '0', STR_PAD_LEFT) . '-' . str_pad(($fyStart + 1) % 100, 2, '0', STR_PAD_LEFT);
+
+        $pad    = (int)($prefix->NumberPadding ?? 1);
+        $numStr = $pad > 1 ? str_pad($transNumber, $pad, '0', STR_PAD_LEFT) : (string)$transNumber;
+
+        $activeParts = [];
+        foreach ($order as $idx => $key) {
+            $isActive = !empty($alwaysOn[$key]) || !empty($active[$key]);
+            if (!$isActive) continue;
+            switch ($key) {
+                case 'prefix':    $val = strtoupper($prefix->Name ?? ''); break;
+                case 'shortname': $val = $shortname;                       break;
+                case 'fiscal':    $val = $fyStr;                           break;
+                case 'number':    $val = $numStr;                          break;
+                default:          $val = '';
+            }
+            if ($val === '') continue;
+            $activeParts[] = ['val' => $val, 'idx' => (int)$idx];
+        }
+
+        $result = '';
+        foreach ($activeParts as $i => $part) {
+            $result .= $part['val'];
+            if ($i < count($activeParts) - 1) {
+                $result .= $seps[$part['idx']] ?? '-';
+            }
+        }
+        return $result;
+    }
+
     // Builds the formatted UniqueNumber from prefix config + transaction number + date.
     // e.g. EST/26-27/001, INV-2026-2027-0042
+    // Uses ComponentConfig (new builder format) when present; falls back to old columns.
     protected function buildUniqueNumber($prefix, $transNumber, $transDate) {
+        if (!empty($prefix->ComponentConfig)) {
+            $cfg = @json_decode($prefix->ComponentConfig, true);
+            if (is_array($cfg) && !empty($cfg['order'])) {
+                return [$this->_buildNumberFromComponentConfig($cfg, $prefix, $transDate, $transNumber), $transNumber];
+            }
+        }
         $sep   = $prefix->Separator ?? '-';
         $parts = [strtoupper($prefix->Name)];
         if (!empty($prefix->IncludeShortName) && !empty($prefix->ShortName)) {
@@ -1852,6 +1912,12 @@ class MY_Controller extends CI_Controller {
      * @return string
      */
     protected function _buildPaymentUniqueNumber(object $prefix, string $paymentDate, int $paymentNumber): string {
+        if (!empty($prefix->ComponentConfig)) {
+            $cfg = @json_decode($prefix->ComponentConfig, true);
+            if (is_array($cfg) && !empty($cfg['order'])) {
+                return $this->_buildNumberFromComponentConfig($cfg, $prefix, $paymentDate, $paymentNumber);
+            }
+        }
         $sep   = $prefix->Separator ?? '-';
         $parts = [strtoupper($prefix->Name)];
         if (!empty($prefix->IncludeShortName) && !empty($prefix->ShortName)) {

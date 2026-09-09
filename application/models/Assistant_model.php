@@ -76,7 +76,7 @@ class Assistant_model extends CI_Model {
                 'last_month' => (float)($row->last_month ?? 0),
             ];
         } catch (Exception $e) {
-            notifyError($e, 'Assistant_model::_getSalesSummary');
+            notifyError('Assistant_model::_getSalesSummary', $e);
             return ['this_month' => 0, 'this_count' => 0, 'last_month' => 0];
         }
     }
@@ -94,7 +94,7 @@ class Assistant_model extends CI_Model {
             $row = $this->_row();
             return (float)($row->total ?? 0);
         } catch (Exception $e) {
-            notifyError($e, 'Assistant_model::_getReceivable');
+            notifyError('Assistant_model::_getReceivable', $e);
             return 0.0;
         }
     }
@@ -112,7 +112,7 @@ class Assistant_model extends CI_Model {
             $row = $this->_row();
             return (float)($row->total ?? 0);
         } catch (Exception $e) {
-            notifyError($e, 'Assistant_model::_getPayable');
+            notifyError('Assistant_model::_getPayable', $e);
             return 0.0;
         }
     }
@@ -140,7 +140,7 @@ class Assistant_model extends CI_Model {
             $row = $this->_row();
             return (int)($row->cnt ?? 0);
         } catch (Exception $e) {
-            notifyError($e, 'Assistant_model::_getOverdueCount');
+            notifyError('Assistant_model::_getOverdueCount', $e);
             return 0;
         }
     }
@@ -160,7 +160,7 @@ class Assistant_model extends CI_Model {
             $row = $this->_row();
             return (int)($row->cnt ?? 0);
         } catch (Exception $e) {
-            notifyError($e, 'Assistant_model::_getLowStockCount');
+            notifyError('Assistant_model::_getLowStockCount', $e);
             return 0;
         }
     }
@@ -190,7 +190,7 @@ class Assistant_model extends CI_Model {
             $this->ReadDb->limit(5);
             return $this->_result();
         } catch (Exception $e) {
-            notifyError($e, 'Assistant_model::_getTopCustomers');
+            notifyError('Assistant_model::_getTopCustomers', $e);
             return [];
         }
     }
@@ -216,7 +216,7 @@ class Assistant_model extends CI_Model {
             $this->ReadDb->limit(5);
             return $this->_result();
         } catch (Exception $e) {
-            notifyError($e, 'Assistant_model::_getTopProducts');
+            notifyError('Assistant_model::_getTopProducts', $e);
             return [];
         }
     }
@@ -246,7 +246,7 @@ class Assistant_model extends CI_Model {
                 'payments' => (int)($row->payments  ?? 0),
             ];
         } catch (Exception $e) {
-            notifyError($e, 'Assistant_model::_getTodayActivity');
+            notifyError('Assistant_model::_getTodayActivity', $e);
             return ['total' => 0, 'invoices' => 0, 'purchases' => 0, 'payments' => 0];
         }
     }

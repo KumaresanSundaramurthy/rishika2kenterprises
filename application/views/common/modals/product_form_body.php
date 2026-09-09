@@ -60,11 +60,11 @@ if (!empty($_JwtData->GenSettings->EnableStorage)) {
                         <span class="input-group-text"><?= $_JwtData->GenSettings->CurrenySymbol ?></span>
                         <input type="text" class="form-control" name="SellingPrice" id="SellingPrice" min="0" placeholder="Enter Selling Price"
                             onkeydown="return handleDotOnly(event)"
-                            oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)"
-                            maxLength="<?= (int)$_JwtData->GenSettings->PriceMaxLength + 10 ?>"
-                            pattern="^\d{1,<?= $_JwtData->GenSettings->PriceMaxLength ?>}(\.\d{0,9})?$"
-                            onpaste="handlePricePaste(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)"
-                            ondrop="handlePriceDrop(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)" required />
+                            oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, 18, 8)"
+                            maxLength="28"
+                            pattern="^\d{1,18}(\.\d{0,8})?$"
+                            onpaste="handlePricePaste(event, 18, 8)"
+                            ondrop="handlePriceDrop(event, 18, 8)" required />
                         <select class="form-select tax-option-select" id="SellingTaxOption" name="SellingTaxOption">
                         </select>
                     </div>
@@ -75,11 +75,11 @@ if (!empty($_JwtData->GenSettings->EnableStorage)) {
                         <span class="input-group-text"><?= $_JwtData->GenSettings->CurrenySymbol ?></span>
                         <input type="text" class="form-control" name="MRP" id="MRP" min="0" placeholder="Enter MRP"
                             onkeydown="return handleDotOnly(event)"
-                            oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)"
-                            maxLength="<?= (int)$_JwtData->GenSettings->PriceMaxLength + 10 ?>"
-                            pattern="^\d{1,<?= $_JwtData->GenSettings->PriceMaxLength ?>}(\.\d{0,9})?$"
-                            onpaste="handlePricePaste(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)"
-                            ondrop="handlePriceDrop(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)" value="0" />
+                            oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, 18, 8)"
+                            maxLength="28"
+                            pattern="^\d{1,18}(\.\d{0,8})?$"
+                            onpaste="handlePricePaste(event, 18, 8)"
+                            ondrop="handlePriceDrop(event, 18, 8)" value="0" />
                     </div>
                 </div>
                 <div class="mb-3 col-md-6">
@@ -88,11 +88,11 @@ if (!empty($_JwtData->GenSettings->EnableStorage)) {
                         <span class="input-group-text"><?= $_JwtData->GenSettings->CurrenySymbol ?></span>
                         <input type="text" class="form-control" name="PurchasePrice" id="PurchasePrice" min="0" placeholder="Enter Purchase Price"
                             onkeydown="return handleDotOnly(event)"
-                            oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)"
-                            maxLength="<?= (int)$_JwtData->GenSettings->PriceMaxLength + 10 ?>"
-                            pattern="^\d{1,<?= $_JwtData->GenSettings->PriceMaxLength ?>}(\.\d{0,9})?$"
-                            onpaste="handlePricePaste(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)"
-                            ondrop="handlePriceDrop(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)" />
+                            oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, 18, 8)"
+                            maxLength="28"
+                            pattern="^\d{1,18}(\.\d{0,8})?$"
+                            onpaste="handlePricePaste(event, 18, 8)"
+                            ondrop="handlePriceDrop(event, 18, 8)" />
                         <select class="form-select tax-option-select" id="PurchaseTaxOption" name="PurchaseTaxOption">
                         </select>
                     </div>
@@ -261,43 +261,43 @@ if (!empty($_JwtData->GenSettings->EnableStorage)) {
                     <label for="OpeningQuantity" class="form-label">Opening Quantity</label>
                     <input type="text" class="form-control" name="OpeningQuantity" id="OpeningQuantity" min="0" placeholder="Enter Opening Quantity"
                         onkeydown="return handleDotOnly(event)"
-                        oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)"
-                        maxLength="<?= (int)$_JwtData->GenSettings->PriceMaxLength + 10 ?>"
-                        pattern="^\d{1,<?= $_JwtData->GenSettings->PriceMaxLength ?>}(\.\d{0,9})?$" value="0"
-                        onpaste="handlePricePaste(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)"
-                        ondrop="handlePriceDrop(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)" />
+                        oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, 18, 8)"
+                        maxLength="28"
+                        pattern="^\d{1,18}(\.\d{0,8})?$" value="0"
+                        onpaste="handlePricePaste(event, 18, 8)"
+                        ondrop="handlePriceDrop(event, 18, 8)" />
                     <div class="form-text text-secondary">* Quantity available in your existing inventory</div>
                 </div>
                 <div class="mb-3 col-md-4 OpeningStockDiv">
                     <label for="OpeningPurchasePrice" class="form-label">Opening Purchase Price (with Tax)</label>
                     <input type="text" class="form-control" name="OpeningPurchasePrice" id="OpeningPurchasePrice" min="0" placeholder="Enter Opening Purchase Price"
                         onkeydown="return handleDotOnly(event)"
-                        oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)"
-                        maxLength="<?= (int)$_JwtData->GenSettings->PriceMaxLength + 10 ?>"
-                        pattern="^\d{1,<?= $_JwtData->GenSettings->PriceMaxLength ?>}(\.\d{0,9})?$" value="0"
-                        onpaste="handlePricePaste(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)"
-                        ondrop="handlePriceDrop(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)" />
+                        oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, 18, 8)"
+                        maxLength="28"
+                        pattern="^\d{1,18}(\.\d{0,8})?$" value="0"
+                        onpaste="handlePricePaste(event, 18, 8)"
+                        ondrop="handlePriceDrop(event, 18, 8)" />
                 </div>
                 <div class="mb-3 col-md-4 OpeningStockDiv">
                     <label for="OpeningStockValue" class="form-label">Opening Stock Value (with Tax)</label>
                     <input type="text" class="form-control" name="OpeningStockValue" id="OpeningStockValue" min="0" placeholder="Enter Opening Stock Value"
                         onkeydown="return handleDotOnly(event)"
-                        oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)"
-                        maxLength="<?= (int)$_JwtData->GenSettings->PriceMaxLength + 10 ?>"
-                        pattern="^\d{1,<?= $_JwtData->GenSettings->PriceMaxLength ?>}(\.\d{0,9})?$" value="0"
-                        onpaste="handlePricePaste(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)"
-                        ondrop="handlePriceDrop(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)" />
+                        oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, 18, 8)"
+                        maxLength="28"
+                        pattern="^\d{1,18}(\.\d{0,8})?$" value="0"
+                        onpaste="handlePricePaste(event, 18, 8)"
+                        ondrop="handlePriceDrop(event, 18, 8)" />
                 </div>
                 <div class="mb-3 col-md-4">
                     <label for="Discount" class="form-label">Discount (<span id="discTextPercentHelp" class="form-text text-danger">Percentage (%)</span><span id="discTextAmountHelp" class="form-text text-danger d-none">Flat Amount (<?= $_JwtData->GenSettings->CurrenySymbol ?>)</span>)</label>
                     <div class="input-group input-group-merge">
                         <input class="form-control" type="text" id="Discount" name="Discount" min="0" placeholder="Enter Discount Percentage"
                             onkeydown="return handleDotOnly(event)"
-                            oninput="this.value=this.value.slice(0,this.maxLength); validateDiscountInput(this, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)"
-                            maxLength="<?= (int)$_JwtData->GenSettings->PriceMaxLength + 10 ?>"
-                            pattern="^\d{1,<?= $_JwtData->GenSettings->PriceMaxLength ?>}(\.\d{0,9})?$"
-                            onpaste="handleDiscountPaste(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)"
-                            ondrop="handleDiscountDrop(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)" value="0" />
+                            oninput="this.value=this.value.slice(0,this.maxLength); validateDiscountInput(this, 18, 8)"
+                            maxLength="28"
+                            pattern="^\d{1,18}(\.\d{0,8})?$"
+                            onpaste="handleDiscountPaste(event, 18, 8)"
+                            ondrop="handleDiscountDrop(event, 18, 8)" value="0" />
                         <select class="form-select w-30" id="DiscountOption" name="DiscountOption">
                         </select>
                     </div>
@@ -306,11 +306,11 @@ if (!empty($_JwtData->GenSettings->EnableStorage)) {
                     <label for="LowStockAlert" class="form-label">Low Stock Alert at</label>
                     <input type="text" class="form-control" name="LowStockAlert" id="LowStockAlert" min="0" placeholder="Low Stock Alert"
                         onkeydown="return handleDotOnly(event)"
-                        oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)"
-                        maxLength="<?= (int)$_JwtData->GenSettings->PriceMaxLength + 10 ?>"
-                        pattern="^\d{1,<?= $_JwtData->GenSettings->PriceMaxLength ?>}(\.\d{0,9})?$"
-                        onpaste="handlePricePaste(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)"
-                        ondrop="handlePriceDrop(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, 9)" value="0" />
+                        oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, 18, 8)"
+                        maxLength="28"
+                        pattern="^\d{1,18}(\.\d{0,8})?$"
+                        onpaste="handlePricePaste(event, 18, 8)"
+                        ondrop="handlePriceDrop(event, 18, 8)" value="0" />
                 </div>
                 <div class="mb-3 col-md-4">
                     <label for="NotForSale" class="form-label d-block">Not For Sale</label>

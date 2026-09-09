@@ -29,6 +29,7 @@ class Login extends CI_Controller {
         $this->load->view('login/view', [
             'OrgLogo'        => $this->_getDefaultOrgLogo(),
             'TwoStepEnabled' => $twoStepEnabled,
+            'CdnBase'        => rtrim(getenv('CFLARE_R2_CDN'), '/'),
         ]);
     }
 
@@ -748,6 +749,13 @@ class Login extends CI_Controller {
 
             if ($user->IsLocked == 1) {
                 throw new Exception('Account is locked. Contact your administrator.');
+            }
+
+            // Check subscription before allowing Step 2
+            $this->load->library('subscription');
+            $subscriptionCheck = $this->subscription->checkSubscription($user->UserUID);
+            if (!$subscriptionCheck->isValid) {
+                throw new Exception($subscriptionCheck->message);
             }
 
             // Store confirmed identity for Step 2 — expires in 5 minutes

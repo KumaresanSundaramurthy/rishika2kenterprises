@@ -90,7 +90,7 @@ class Todo_model extends CI_Model {
             $this->ReadDb->limit($limit, $offset);
             $result->rows = $this->ReadDb->get()->result();
         } catch (Exception $e) {
-            notifyError($e, 'Todo_model::getTodoListPaginated');
+            notifyError('Todo_model::getTodoListPaginated', $e);
         }
         return $result;
     }
@@ -116,7 +116,7 @@ class Todo_model extends CI_Model {
             if (!$query || $query->num_rows() === 0) return null;
             return $query->row();
         } catch (Exception $e) {
-            notifyError($e, 'Todo_model::getTodoById');
+            notifyError('Todo_model::getTodoById', $e);
             return null;
         }
     }
@@ -149,7 +149,7 @@ class Todo_model extends CI_Model {
                 'today'     => (int)($row->today      ?? 0),
             ];
         } catch (Exception $e) {
-            notifyError($e, 'Todo_model::getTodoStats');
+            notifyError('Todo_model::getTodoStats', $e);
             return ['total' => 0, 'active' => 0, 'completed' => 0, 'overdue' => 0, 'today' => 0];
         }
     }
@@ -171,7 +171,7 @@ class Todo_model extends CI_Model {
             $row = $query ? $query->row() : null;
             return (int)($row->cnt ?? 0);
         } catch (Exception $e) {
-            notifyError($e, 'Todo_model::getPendingBadgeCount');
+            notifyError('Todo_model::getPendingBadgeCount', $e);
             return 0;
         }
     }
@@ -191,7 +191,7 @@ class Todo_model extends CI_Model {
             );
             return $query ? $query->result() : [];
         } catch (Exception $e) {
-            notifyError($e, 'Todo_model::getUserList');
+            notifyError('Todo_model::getUserList', $e);
             return [];
         }
     }
@@ -216,7 +216,7 @@ class Todo_model extends CI_Model {
             );
             return $query ? $query->result() : [];
         } catch (Exception $e) {
-            notifyError($e, 'Todo_model::getLinkedTodos');
+            notifyError('Todo_model::getLinkedTodos', $e);
             return [];
         }
     }

@@ -13,201 +13,139 @@
     overflow: hidden;
 }
 
-/* ── LEFT BRAND PANEL ──────────────────────────────────────── */
+/* ── LEFT BRAND PANEL — Time-of-Day Adaptive ──────────────── */
 .lr-brand {
     position: relative;
-    width: 55%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    width: 50%;
+    min-height: 100vh;
     overflow: hidden;
-    background: #040b18;
+    background: #01020a;
+    transition: background 1.2s ease;
 }
 
-.lr-brand::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background:
-        radial-gradient(ellipse 70% 60% at 30% 40%, rgba(245,158,11,0.14) 0%, transparent 70%),
-        radial-gradient(ellipse 50% 50% at 75% 70%, rgba(16,185,129,0.07) 0%, transparent 60%);
-    z-index: 0;
-}
+/* Gradient fallbacks when image is unavailable */
+.lr-brand.time-morning { background: linear-gradient(160deg, #1a0800 0%, #6b3510 45%, #d4842a 100%); }
+.lr-brand.time-day     { background: linear-gradient(160deg, #071a36 0%, #0e4a7a 55%, #2596d0 100%); }
+.lr-brand.time-evening { background: linear-gradient(160deg, #1a0510 0%, #8b2250 55%, #f07040 100%); }
+.lr-brand.time-night   { background: linear-gradient(160deg, #01020a 0%, #080c22 55%, #10153a 100%); }
 
-/* Animated geometric shapes */
-.lr-shapes { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
-
-.lr-shape {
-    position: absolute;
-    border-radius: 50%;
-    border: 1px solid rgba(245,158,11,0.18);
-    animation: drift linear infinite;
-}
-
-.lr-shape:nth-child(1) { width:320px;height:320px; top:-60px; left:-80px; animation-duration:22s; border-color:rgba(245,158,11,0.12); }
-.lr-shape:nth-child(2) { width:180px;height:180px; top:40%; right:-40px; animation-duration:18s; animation-delay:-7s; border-color:rgba(16,185,129,0.14); }
-.lr-shape:nth-child(3) { width:240px;height:240px; bottom:-60px; left:20%; animation-duration:26s; animation-delay:-12s; border-color:rgba(245,158,11,0.08); }
-.lr-shape:nth-child(4) { width:100px;height:100px; top:20%; right:20%; animation-duration:15s; animation-delay:-3s; border-radius:18px; rotate:45deg; border-color:rgba(245,158,11,0.22); }
-.lr-shape:nth-child(5) { width:60px;height:60px; bottom:25%; left:12%; animation-duration:20s; animation-delay:-9s; border-radius:12px; rotate:30deg; border-color:rgba(16,185,129,0.18); }
-
-@keyframes drift {
-    0%   { transform: translateY(0px) rotate(0deg); }
-    33%  { transform: translateY(-18px) rotate(4deg); }
-    66%  { transform: translateY(10px) rotate(-3deg); }
-    100% { transform: translateY(0px) rotate(0deg); }
-}
-
-/* Gold diagonal accent bar */
 .lr-brand::after {
     content: '';
     position: absolute;
     top: 0; right: 0;
-    width: 3px;
-    height: 100%;
-    background: linear-gradient(to bottom, transparent 0%, rgba(245,158,11,0.6) 35%, rgba(245,158,11,0.6) 65%, transparent 100%);
+    width: 1px; height: 100%;
+    background: linear-gradient(to bottom, transparent 0%, rgba(100,150,190,0.45) 35%, rgba(100,150,190,0.45) 65%, transparent 100%);
+    z-index: 20;
+}
+
+/* Image background */
+.lr-img-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    transform: translate3d(0, 0, 0) scale(1.06);
+    transition: transform 0.1s linear;
+    will-change: transform;
+    z-index: 0;
+}
+
+/* Multi-layer depth overlay */
+.lr-video-overlay {
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(to right,  rgba(0,0,0,0.18) 0%, transparent 30%),
+        linear-gradient(to bottom, rgba(0,0,0,0.5)  0%, transparent 38%),
+        linear-gradient(to top,    rgba(0,0,0,0.65) 0%, transparent 42%);
     z-index: 1;
 }
 
-/* Floating gold dots */
-.lr-dots { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
-.lr-dot {
+/* Glassmorphism card */
+.lr-glass-card {
     position: absolute;
-    width: 4px; height: 4px;
-    border-radius: 50%;
-    background: rgba(245,158,11,0.5);
-    animation: floatDot ease-in-out infinite;
-}
-.lr-dot:nth-child(1)  { top:15%; left:25%; animation-duration:6s; animation-delay:0s; }
-.lr-dot:nth-child(2)  { top:30%; left:60%; animation-duration:8s; animation-delay:-2s; }
-.lr-dot:nth-child(3)  { top:55%; left:18%; animation-duration:7s; animation-delay:-4s; }
-.lr-dot:nth-child(4)  { top:70%; left:75%; animation-duration:9s; animation-delay:-1s; }
-.lr-dot:nth-child(5)  { top:82%; left:40%; animation-duration:6.5s; animation-delay:-3s; }
-.lr-dot:nth-child(6)  { top:22%; left:82%; animation-duration:7.5s; animation-delay:-5s; }
-.lr-dot:nth-child(7)  { top:45%; left:45%; animation-duration:8.5s; animation-delay:-1.5s; background:rgba(16,185,129,0.4); }
-.lr-dot:nth-child(8)  { top:10%; left:48%; animation-duration:5.5s; animation-delay:-6s; }
-
-@keyframes floatDot {
-    0%,100% { transform: translateY(0); opacity:0.5; }
-    50% { transform: translateY(-14px); opacity:1; }
-}
-
-.lr-brand-content {
-    position: relative;
-    z-index: 2;
-    padding: 60px 56px;
-    max-width: 520px;
-    animation: fadeInLeft 0.9s ease-out both;
+    bottom: 40px;
+    left: 40px;
+    right: 40px;
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+    padding: 28px 32px;
+    box-shadow:
+        0 20px 40px rgba(0, 0, 0, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    z-index: 10;
+    transition: transform 0.12s ease-out;
+    will-change: transform;
+    animation: lrCardFloat 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.35s both;
 }
 
-@keyframes fadeInLeft {
-    from { opacity:0; transform:translateX(-30px); }
-    to   { opacity:1; transform:translateX(0); }
+@keyframes lrCardFloat {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
-.lr-brand-logo {
-    margin-bottom: 36px;
-}
-
-.lr-brand-logo img {
-    width: 68px; height: 68px;
-    border-radius: 18px;
-    box-shadow: 0 0 0 1px rgba(245,158,11,0.3), 0 8px 32px rgba(245,158,11,0.2);
-}
-
-.lr-brand-name {
-    font-size: 42px;
-    font-weight: 800;
-    line-height: 1.15;
-    letter-spacing: -0.5px;
-    margin-bottom: 14px;
-}
-
-.lr-brand-name .gold { color: #f59e0b; display: block; }
-.lr-brand-name .white { color: #f1f5f9; display: block; }
-
-.lr-brand-sub {
-    font-size: 14px;
-    font-weight: 500;
-    color: #64748b;
-    letter-spacing: 2px;
+.lr-glass-greeting {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
-    margin-bottom: 48px;
+    color: #94a3b8;
+    margin-bottom: 10px;
 }
 
-.lr-features {
+.lr-glass-clock {
+    font-size: 40px;
+    font-weight: 700;
+    color: #f8fafc;
+    letter-spacing: -0.5px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    margin-bottom: 18px;
+}
+
+.lr-glass-status {
     display: flex;
-    flex-direction: column;
-    gap: 18px;
-}
-
-.lr-feat {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    opacity: 0;
-    animation: featIn 0.5s ease-out forwards;
-}
-
-.lr-feat:nth-child(1) { animation-delay: 0.5s; }
-.lr-feat:nth-child(2) { animation-delay: 0.7s; }
-.lr-feat:nth-child(3) { animation-delay: 0.9s; }
-
-@keyframes featIn {
-    from { opacity:0; transform:translateX(-16px); }
-    to   { opacity:1; transform:translateX(0); }
-}
-
-.lr-feat-icon {
-    width: 42px; height: 42px;
-    border-radius: 12px;
-    background: rgba(245,158,11,0.1);
-    border: 1px solid rgba(245,158,11,0.2);
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-    color: #f59e0b;
-    font-size: 20px;
-    transition: all 0.3s;
-}
-
-.lr-feat:hover .lr-feat-icon {
-    background: rgba(245,158,11,0.18);
-    box-shadow: 0 0 20px rgba(245,158,11,0.15);
-}
-
-.lr-feat-text strong {
-    display: block;
-    color: #e2e8f0;
-    font-size: 14px;
-    font-weight: 600;
-}
-
-.lr-feat-text span {
-    color: #64748b;
-    font-size: 12px;
-}
-
-.lr-brand-badge {
-    display: inline-flex;
     align-items: center;
     gap: 8px;
-    margin-top: 52px;
-    padding: 10px 16px;
-    border-radius: 50px;
-    background: rgba(245,158,11,0.08);
-    border: 1px solid rgba(245,158,11,0.2);
-    color: #f59e0b;
     font-size: 12px;
+    color: #64748b;
     font-weight: 500;
-    letter-spacing: 0.5px;
-    opacity: 0;
-    animation: featIn 0.5s ease-out 1.1s forwards;
 }
 
-.lr-brand-badge i { font-size: 15px; }
+.lr-status-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #22c55e;
+    box-shadow: 0 0 6px rgba(34, 197, 94, 0.7);
+    flex-shrink: 0;
+    animation: lr-pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes lr-pulse-dot {
+    0%, 100% { opacity: 1;   box-shadow: 0 0 6px  rgba(34,197,94,0.7); }
+    50%       { opacity: 0.6; box-shadow: 0 0 12px rgba(34,197,94,0.35); }
+}
+
+/* Logo + heading inline, vertically centered */
+.lr-head-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+.lr-form-head-logo {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 1px rgba(245,158,11,0.28), 0 4px 20px rgba(245,158,11,0.16);
+}
 
 /* ── RIGHT FORM PANEL ──────────────────────────────────────── */
 .lr-form-panel {
-    width: 45%;
+    flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -230,12 +168,12 @@
     max-width: 400px;
     position: relative;
     z-index: 1;
-    animation: fadeInRight 0.8s ease-out 0.2s both;
+    animation: lrFadeUp 0.4s ease-out 0.1s both;
 }
 
-@keyframes fadeInRight {
-    from { opacity:0; transform:translateY(24px); }
-    to   { opacity:1; transform:translateY(0); }
+@keyframes lrFadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
 /* Mobile logo (hidden on desktop) */
@@ -268,12 +206,12 @@
     font-size: 28px;
     font-weight: 700;
     color: #f1f5f9;
-    margin-bottom: 8px;
+    margin-bottom: -6px;
     letter-spacing: -0.3px;
 }
 
 .lr-form-head p {
-    color: #64748b;
+    color: #94a3b8;
     font-size: 14px;
 }
 
@@ -312,20 +250,30 @@
     background: rgba(255,255,255,0.04);
     border: 1.5px solid rgba(255,255,255,0.08);
     border-radius: 12px;
-    padding: 13px 14px 13px 44px;
+    padding: 14px 16px 14px 42px;
     color: #f1f5f9;
     font-size: 14px;
     font-family: inherit;
     outline: none;
-    transition: all 0.25s;
+    transition: all 0.2s ease-in-out;
     -webkit-appearance: none;
     appearance: none;
 }
 
 .lr-input-wrap input:focus {
     background: rgba(245,158,11,0.05);
-    border-color: rgba(245,158,11,0.5);
-    box-shadow: 0 0 0 3px rgba(245,158,11,0.08);
+    border-color: #f59e0b;
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.15);
+}
+
+/* ── Browser autofill override ── */
+.lr-input-wrap input:-webkit-autofill,
+.lr-input-wrap input:-webkit-autofill:hover,
+.lr-input-wrap input:-webkit-autofill:focus {
+    -webkit-text-fill-color: #f1f5f9;
+    -webkit-box-shadow: 0 0 0px 1000px #1a1a24 inset;
+    caret-color: #f1f5f9;
+    transition: background-color 5000s ease-in-out 0s;
 }
 
 .lr-input-wrap input:focus + .lr-input-icon,
@@ -333,7 +281,8 @@
     color: #f59e0b;
 }
 
-.lr-input-wrap input::placeholder { color: #334155; }
+.lr-input-wrap input::placeholder { color: #94a3b8; opacity: 1; }
+.lr-input-wrap input.form-control::placeholder { color: #94a3b8 !important; opacity: 1; }
 
 /* Fix browser autofill — forces dark background + light text so autofilled values are readable */
 .lr-input-wrap input:-webkit-autofill,
@@ -404,7 +353,7 @@
     position: relative;
     overflow: hidden;
     transition: all 0.3s;
-    box-shadow: 0 4px 20px rgba(245,158,11,0.3);
+    box-shadow: 0 4px 12px rgba(245,158,11,0.3);
     font-family: inherit;
 }
 
@@ -418,8 +367,8 @@
 }
 
 .lr-btn:hover::before { opacity: 1; }
-.lr-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(245,158,11,0.4); }
-.lr-btn:active { transform: translateY(0); box-shadow: 0 4px 16px rgba(245,158,11,0.3); }
+.lr-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(245,158,11,0.35); }
+.lr-btn:active { transform: translateY(0); box-shadow: 0 4px 12px rgba(245,158,11,0.25); }
 
 .lr-btn span { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; gap: 8px; }
 
@@ -474,7 +423,7 @@
     align-items: center;
     gap: 12px;
     margin: 24px 0 16px;
-    color: #334155;
+    color: #94a3b8;
     font-size: 12px;
     letter-spacing: 0.5px;
     text-transform: uppercase;
@@ -538,6 +487,95 @@
 
 .lr-footer-note span { color: #f59e0b; }
 
+.lr-signup-note { margin-bottom: -8px; }
+.lr-signup-note a { color: #60a5fa; text-decoration: none; font-weight: 500; }
+.lr-signup-note a:hover { text-decoration: underline; }
+
+
+/* ── Language switcher ─────────────────────────────────────── */
+.lr-lang-switch {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    z-index: 10;
+}
+
+.lr-lang-trigger {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 13px;
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 100px;
+    color: #94a3b8;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    line-height: 1;
+}
+
+.lr-lang-trigger:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #f1f5f9;
+    border-color: rgba(255, 255, 255, 0.16);
+}
+
+.lr-lang-chevron {
+    font-size: 14px;
+    transition: transform 0.2s ease;
+    display: flex;
+}
+
+.lr-lang-switch.open .lr-lang-chevron { transform: rotate(180deg); }
+
+.lr-lang-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 140px;
+    background: rgba(8, 16, 38, 0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+    display: none;
+}
+
+.lr-lang-switch.open .lr-lang-dropdown {
+    display: block;
+    animation: lrDropIn 0.18s ease-out both;
+}
+
+@keyframes lrDropIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.lr-lang-opt {
+    display: block;
+    width: 100%;
+    padding: 10px 16px;
+    background: none;
+    border: none;
+    color: #94a3b8;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.lr-lang-opt:hover { background: rgba(255,255,255,0.06); color: #f1f5f9; }
+.lr-lang-opt.lr-lang-active { color: #f59e0b; }
+
 /* ── RESPONSIVE ────────────────────────────────────────────── */
 @media (max-width: 900px) {
     .lr-brand { display: none; }
@@ -555,68 +593,156 @@
 
 <div class="lr-root">
 
-    <!-- ── LEFT: Brand Panel ── -->
-    <div class="lr-brand">
-        <div class="lr-shapes">
-            <div class="lr-shape"></div>
-            <div class="lr-shape"></div>
-            <div class="lr-shape"></div>
-            <div class="lr-shape"></div>
-            <div class="lr-shape"></div>
-        </div>
-        <div class="lr-dots">
-            <div class="lr-dot"></div><div class="lr-dot"></div><div class="lr-dot"></div>
-            <div class="lr-dot"></div><div class="lr-dot"></div><div class="lr-dot"></div>
-            <div class="lr-dot"></div><div class="lr-dot"></div>
-        </div>
-
-        <div class="lr-brand-content">
-            <div class="lr-brand-logo">
-                <?php if (!empty($OrgLogo)): ?>
-                <img src="<?php echo htmlspecialchars($OrgLogo); ?>" alt="<?php echo getSiteConfiguration()->ShortName; ?>">
-                <?php endif; ?>
-            </div>
-
-            <div class="lr-brand-name">
-                <span class="gold">RISHIKA 2K</span>
-                <span class="white">ENTERPRISES</span>
-            </div>
-
-            <p class="lr-brand-sub">Agricultural Machinery · Tamil Nadu</p>
-
-            <div class="lr-features">
-                <div class="lr-feat">
-                    <div class="lr-feat-icon"><i class="bx bx-shield-quarter"></i></div>
-                    <div class="lr-feat-text">
-                        <strong>Secure Billing</strong>
-                        <span>End-to-end encrypted transactions</span>
-                    </div>
-                </div>
-                <div class="lr-feat">
-                    <div class="lr-feat-icon"><i class="bx bx-bolt-circle"></i></div>
-                    <div class="lr-feat-text">
-                        <strong>Instant Invoicing</strong>
-                        <span>Generate &amp; share invoices in seconds</span>
-                    </div>
-                </div>
-                <div class="lr-feat">
-                    <div class="lr-feat-icon"><i class="bx bx-bar-chart-alt-2"></i></div>
-                    <div class="lr-feat-text">
-                        <strong>Smart Reports</strong>
-                        <span>Real-time sales &amp; inventory insights</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="lr-brand-badge">
-                <i class="bx bx-certification"></i>
-                Authorized Dealer — Rotoking &amp; Bharat Baler
+    <!-- ── LEFT: Time-of-Day Adaptive Panel ── -->
+    <div class="lr-brand time-night" id="lrBrand">
+        <img id="lrBgImg" class="lr-img-bg" src="" alt="">
+        <div class="lr-video-overlay"></div>
+        <div class="lr-glass-card" id="lrGlassCard">
+            <div class="lr-glass-greeting" id="lrGreeting">Good Evening</div>
+            <div class="lr-glass-clock" id="lrLiveClock">--:--:-- --</div>
+            <div class="lr-glass-status">
+                <span class="lr-status-dot"></span>
+                System Operational &bull; 99.9% Uptime
             </div>
         </div>
+        <div style="display:none" class="lr-agri-scene">
+            <svg viewBox="0 0 900 195" preserveAspectRatio="xMidYMax meet" xmlns="http://www.w3.org/2000/svg">
+                <!-- Far hills -->
+                <path d="M0 195 L0 128 Q150 65 300 108 Q450 150 600 78 Q750 8 900 58 L900 195 Z" fill="#040f06"/>
+                <!-- Mid hills -->
+                <path d="M0 195 L0 152 Q100 116 220 142 Q340 168 460 132 Q580 96 700 126 Q800 150 900 138 L900 195 Z" fill="#061508"/>
+                <!-- Foreground ground -->
+                <path d="M0 195 L0 172 Q220 163 450 168 Q660 173 900 165 L900 195 Z" fill="#08200b"/>
+
+                <!-- Wheat stalks — LEFT -->
+                <g stroke="#13381a" stroke-linecap="round" fill="none">
+                    <line x1="42" y1="190" x2="44" y2="163" stroke-width="1.5"/><ellipse cx="44" cy="161" rx="3" ry="5" fill="#13381a" stroke="none"/>
+                    <line x1="44" y1="163" x2="39" y2="168" stroke-width="1"/><line x1="44" y1="163" x2="49" y2="168" stroke-width="1"/>
+                    <line x1="44" y1="169" x2="39" y2="174" stroke-width="1"/><line x1="44" y1="169" x2="49" y2="174" stroke-width="1"/>
+
+                    <line x1="72" y1="190" x2="74" y2="157" stroke-width="1.5"/><ellipse cx="74" cy="155" rx="3" ry="5" fill="#13381a" stroke="none"/>
+                    <line x1="74" y1="157" x2="69" y2="162" stroke-width="1"/><line x1="74" y1="157" x2="79" y2="162" stroke-width="1"/>
+                    <line x1="74" y1="163" x2="69" y2="168" stroke-width="1"/><line x1="74" y1="163" x2="79" y2="168" stroke-width="1"/>
+                    <line x1="74" y1="169" x2="69" y2="174" stroke-width="1"/><line x1="74" y1="169" x2="79" y2="174" stroke-width="1"/>
+
+                    <line x1="100" y1="190" x2="102" y2="161" stroke-width="1.5"/><ellipse cx="102" cy="159" rx="3" ry="5" fill="#13381a" stroke="none"/>
+                    <line x1="102" y1="161" x2="97" y2="166" stroke-width="1"/><line x1="102" y1="161" x2="107" y2="166" stroke-width="1"/>
+                    <line x1="102" y1="167" x2="97" y2="172" stroke-width="1"/><line x1="102" y1="167" x2="107" y2="172" stroke-width="1"/>
+
+                    <line x1="128" y1="190" x2="130" y2="166" stroke-width="1.5"/><ellipse cx="130" cy="164" rx="2.5" ry="4" fill="#13381a" stroke="none"/>
+                    <line x1="130" y1="166" x2="125" y2="171" stroke-width="1"/><line x1="130" y1="166" x2="135" y2="171" stroke-width="1"/>
+                    <line x1="130" y1="172" x2="125" y2="177" stroke-width="1"/><line x1="130" y1="172" x2="135" y2="177" stroke-width="1"/>
+
+                    <line x1="155" y1="190" x2="157" y2="159" stroke-width="1.5"/><ellipse cx="157" cy="157" rx="3" ry="5" fill="#13381a" stroke="none"/>
+                    <line x1="157" y1="159" x2="152" y2="164" stroke-width="1"/><line x1="157" y1="159" x2="162" y2="164" stroke-width="1"/>
+                    <line x1="157" y1="165" x2="152" y2="170" stroke-width="1"/><line x1="157" y1="165" x2="162" y2="170" stroke-width="1"/>
+                    <line x1="157" y1="171" x2="152" y2="176" stroke-width="1"/><line x1="157" y1="171" x2="162" y2="176" stroke-width="1"/>
+
+                    <line x1="183" y1="190" x2="185" y2="162" stroke-width="1.5"/><ellipse cx="185" cy="160" rx="3" ry="5" fill="#13381a" stroke="none"/>
+                    <line x1="185" y1="162" x2="180" y2="167" stroke-width="1"/><line x1="185" y1="162" x2="190" y2="167" stroke-width="1"/>
+                    <line x1="185" y1="168" x2="180" y2="173" stroke-width="1"/><line x1="185" y1="168" x2="190" y2="173" stroke-width="1"/>
+                    <line x1="185" y1="174" x2="180" y2="179" stroke-width="1"/><line x1="185" y1="174" x2="190" y2="179" stroke-width="1"/>
+
+                    <line x1="213" y1="190" x2="215" y2="164" stroke-width="1.5"/><ellipse cx="215" cy="162" rx="2.5" ry="4.5" fill="#13381a" stroke="none"/>
+                    <line x1="215" y1="164" x2="210" y2="169" stroke-width="1"/><line x1="215" y1="164" x2="220" y2="169" stroke-width="1"/>
+                    <line x1="215" y1="170" x2="210" y2="175" stroke-width="1"/><line x1="215" y1="170" x2="220" y2="175" stroke-width="1"/>
+
+                    <line x1="248" y1="190" x2="250" y2="161" stroke-width="1.5"/><ellipse cx="250" cy="159" rx="3" ry="5" fill="#13381a" stroke="none"/>
+                    <line x1="250" y1="161" x2="245" y2="166" stroke-width="1"/><line x1="250" y1="161" x2="255" y2="166" stroke-width="1"/>
+                    <line x1="250" y1="167" x2="245" y2="172" stroke-width="1"/><line x1="250" y1="167" x2="255" y2="172" stroke-width="1"/>
+                    <line x1="250" y1="173" x2="245" y2="178" stroke-width="1"/><line x1="250" y1="173" x2="255" y2="178" stroke-width="1"/>
+
+                    <line x1="278" y1="190" x2="280" y2="165" stroke-width="1.5"/><ellipse cx="280" cy="163" rx="2.5" ry="4" fill="#13381a" stroke="none"/>
+                    <line x1="280" y1="165" x2="275" y2="170" stroke-width="1"/><line x1="280" y1="165" x2="285" y2="170" stroke-width="1"/>
+                    <line x1="280" y1="171" x2="275" y2="176" stroke-width="1"/><line x1="280" y1="171" x2="285" y2="176" stroke-width="1"/>
+
+                    <line x1="308" y1="190" x2="310" y2="158" stroke-width="1.5"/><ellipse cx="310" cy="156" rx="3" ry="5" fill="#13381a" stroke="none"/>
+                    <line x1="310" y1="158" x2="305" y2="163" stroke-width="1"/><line x1="310" y1="158" x2="315" y2="163" stroke-width="1"/>
+                    <line x1="310" y1="164" x2="305" y2="169" stroke-width="1"/><line x1="310" y1="164" x2="315" y2="169" stroke-width="1"/>
+                    <line x1="310" y1="170" x2="305" y2="175" stroke-width="1"/><line x1="310" y1="170" x2="315" y2="175" stroke-width="1"/>
+                </g>
+
+                <!-- Windmill (center x=450) -->
+                <polygon points="438,193 462,193 455,108 445,108" fill="#071208" stroke="#13381a" stroke-width="0.5"/>
+                <rect x="436" y="108" width="28" height="5" rx="2" fill="#0d2010"/>
+                <circle cx="450" cy="110" r="5" fill="#1a4520"/>
+                <g fill="#1a4520" opacity="0.88">
+                    <rect x="447" y="74" width="6" height="34" rx="3"/>
+                    <rect x="450" y="107" width="34" height="6" rx="3"/>
+                    <rect x="447" y="110" width="6" height="34" rx="3"/>
+                    <rect x="416" y="107" width="34" height="6" rx="3"/>
+                    <animateTransform attributeName="transform" type="rotate"
+                        from="0 450 110" to="360 450 110" dur="7s" repeatCount="indefinite"/>
+                </g>
+
+                <!-- Wheat stalks — RIGHT -->
+                <g stroke="#13381a" stroke-linecap="round" fill="none">
+                    <line x1="590" y1="190" x2="592" y2="164" stroke-width="1.5"/><ellipse cx="592" cy="162" rx="2.5" ry="4" fill="#13381a" stroke="none"/>
+                    <line x1="592" y1="164" x2="587" y2="169" stroke-width="1"/><line x1="592" y1="164" x2="597" y2="169" stroke-width="1"/>
+                    <line x1="592" y1="170" x2="587" y2="175" stroke-width="1"/><line x1="592" y1="170" x2="597" y2="175" stroke-width="1"/>
+
+                    <line x1="620" y1="190" x2="622" y2="159" stroke-width="1.5"/><ellipse cx="622" cy="157" rx="3" ry="5" fill="#13381a" stroke="none"/>
+                    <line x1="622" y1="159" x2="617" y2="164" stroke-width="1"/><line x1="622" y1="159" x2="627" y2="164" stroke-width="1"/>
+                    <line x1="622" y1="165" x2="617" y2="170" stroke-width="1"/><line x1="622" y1="165" x2="627" y2="170" stroke-width="1"/>
+                    <line x1="622" y1="171" x2="617" y2="176" stroke-width="1"/><line x1="622" y1="171" x2="627" y2="176" stroke-width="1"/>
+
+                    <line x1="648" y1="190" x2="650" y2="162" stroke-width="1.5"/><ellipse cx="650" cy="160" rx="3" ry="5" fill="#13381a" stroke="none"/>
+                    <line x1="650" y1="162" x2="645" y2="167" stroke-width="1"/><line x1="650" y1="162" x2="655" y2="167" stroke-width="1"/>
+                    <line x1="650" y1="168" x2="645" y2="173" stroke-width="1"/><line x1="650" y1="168" x2="655" y2="173" stroke-width="1"/>
+                    <line x1="650" y1="174" x2="645" y2="179" stroke-width="1"/><line x1="650" y1="174" x2="655" y2="179" stroke-width="1"/>
+
+                    <line x1="676" y1="190" x2="678" y2="165" stroke-width="1.5"/><ellipse cx="678" cy="163" rx="2.5" ry="4.5" fill="#13381a" stroke="none"/>
+                    <line x1="678" y1="165" x2="673" y2="170" stroke-width="1"/><line x1="678" y1="165" x2="683" y2="170" stroke-width="1"/>
+                    <line x1="678" y1="171" x2="673" y2="176" stroke-width="1"/><line x1="678" y1="171" x2="683" y2="176" stroke-width="1"/>
+
+                    <line x1="706" y1="190" x2="708" y2="161" stroke-width="1.5"/><ellipse cx="708" cy="159" rx="3" ry="5" fill="#13381a" stroke="none"/>
+                    <line x1="708" y1="161" x2="703" y2="166" stroke-width="1"/><line x1="708" y1="161" x2="713" y2="166" stroke-width="1"/>
+                    <line x1="708" y1="167" x2="703" y2="172" stroke-width="1"/><line x1="708" y1="167" x2="713" y2="172" stroke-width="1"/>
+                    <line x1="708" y1="173" x2="703" y2="178" stroke-width="1"/><line x1="708" y1="173" x2="713" y2="178" stroke-width="1"/>
+
+                    <line x1="734" y1="190" x2="736" y2="163" stroke-width="1.5"/><ellipse cx="736" cy="161" rx="3" ry="5" fill="#13381a" stroke="none"/>
+                    <line x1="736" y1="163" x2="731" y2="168" stroke-width="1"/><line x1="736" y1="163" x2="741" y2="168" stroke-width="1"/>
+                    <line x1="736" y1="169" x2="731" y2="174" stroke-width="1"/><line x1="736" y1="169" x2="741" y2="174" stroke-width="1"/>
+                    <line x1="736" y1="175" x2="731" y2="180" stroke-width="1"/><line x1="736" y1="175" x2="741" y2="180" stroke-width="1"/>
+
+                    <line x1="762" y1="190" x2="764" y2="158" stroke-width="1.5"/><ellipse cx="764" cy="156" rx="3" ry="5" fill="#13381a" stroke="none"/>
+                    <line x1="764" y1="158" x2="759" y2="163" stroke-width="1"/><line x1="764" y1="158" x2="769" y2="163" stroke-width="1"/>
+                    <line x1="764" y1="164" x2="759" y2="169" stroke-width="1"/><line x1="764" y1="164" x2="769" y2="169" stroke-width="1"/>
+                    <line x1="764" y1="170" x2="759" y2="175" stroke-width="1"/><line x1="764" y1="170" x2="769" y2="175" stroke-width="1"/>
+
+                    <line x1="790" y1="190" x2="792" y2="166" stroke-width="1.5"/><ellipse cx="792" cy="164" rx="2.5" ry="4" fill="#13381a" stroke="none"/>
+                    <line x1="792" y1="166" x2="787" y2="171" stroke-width="1"/><line x1="792" y1="166" x2="797" y2="171" stroke-width="1"/>
+                    <line x1="792" y1="172" x2="787" y2="177" stroke-width="1"/><line x1="792" y1="172" x2="797" y2="177" stroke-width="1"/>
+
+                    <line x1="820" y1="190" x2="822" y2="161" stroke-width="1.5"/><ellipse cx="822" cy="159" rx="3" ry="5" fill="#13381a" stroke="none"/>
+                    <line x1="822" y1="161" x2="817" y2="166" stroke-width="1"/><line x1="822" y1="161" x2="827" y2="166" stroke-width="1"/>
+                    <line x1="822" y1="167" x2="817" y2="172" stroke-width="1"/><line x1="822" y1="167" x2="827" y2="172" stroke-width="1"/>
+                    <line x1="822" y1="173" x2="817" y2="178" stroke-width="1"/><line x1="822" y1="173" x2="827" y2="178" stroke-width="1"/>
+
+                    <line x1="850" y1="190" x2="852" y2="164" stroke-width="1.5"/><ellipse cx="852" cy="162" rx="2.5" ry="4.5" fill="#13381a" stroke="none"/>
+                    <line x1="852" y1="164" x2="847" y2="169" stroke-width="1"/><line x1="852" y1="164" x2="857" y2="169" stroke-width="1"/>
+                    <line x1="852" y1="170" x2="847" y2="175" stroke-width="1"/><line x1="852" y1="170" x2="857" y2="175" stroke-width="1"/>
+                </g>
+            </svg>
+        </div>
+
     </div>
 
     <!-- ── RIGHT: Form Panel ── -->
     <div class="lr-form-panel">
+
+        <!-- Language switcher pill -->
+        <div class="lr-lang-switch" id="lrLangSwitch">
+            <button class="lr-lang-trigger" id="lrLangTrigger" type="button" aria-label="Switch language">
+                <span id="lrLangLabel">En</span>
+                <i class="bx bx-chevron-down lr-lang-chevron"></i>
+            </button>
+            <div class="lr-lang-dropdown" id="lrLangDropdown">
+                <button class="lr-lang-opt lr-lang-active" data-lang="en" type="button">&#127760; English</button>
+                <button class="lr-lang-opt" data-lang="ta" type="button">&#127760; Tamil (த)</button>
+            </div>
+        </div>
+
         <div class="lr-form-card">
 
             <!-- Mobile-only logo -->
@@ -633,8 +759,13 @@
             <!-- Step 1: Username -->
             <div id="lrStep1Panel">
                 <div class="lr-form-head">
-                    <h3>Sign in</h3>
-                    <p>Enter your username to continue</p>
+                    <div class="lr-head-row">
+                        <?php if (!empty($OrgLogo)): ?>
+                        <img class="lr-form-head-logo" src="<?php echo htmlspecialchars($OrgLogo); ?>" alt="<?php echo getSiteConfiguration()->ShortName; ?>">
+                        <?php endif; ?>
+                        <h3>Sign in</h3>
+                    </div>
+                    <p>Enter your credentials to continue</p>
                 </div>
 
                 <div id="lrStep1Error" class="lr-alerts" style="display:none;">
@@ -725,8 +856,13 @@
             <!-- ── SINGLE-STEP FLOW (default) ───────────────────────── -->
 
             <div class="lr-form-head">
-                <h3>Welcome back</h3>
-                <p>Sign in to manage your billing operations</p>
+                <div class="lr-head-row">
+                    <?php if (!empty($OrgLogo)): ?>
+                    <img class="lr-form-head-logo" src="<?php echo htmlspecialchars($OrgLogo); ?>" alt="<?php echo getSiteConfiguration()->ShortName; ?>">
+                    <?php endif; ?>
+                    <h3>Sign in</h3>
+                </div>
+                <p>Enter your credentials to continue</p>
             </div>
 
             <?php $FormAttribute = array('id' => 'doLoginForm', 'name' => 'doLoginForm', 'autocomplete' => 'on');
@@ -786,6 +922,10 @@
             </div>
 
             <?php endif; ?>
+
+            <p class="lr-footer-note lr-signup-note">
+                New here? <a href="/signup">Create your account</a>
+            </p>
 
             <p class="lr-footer-note">&copy; <?php echo date('Y'); ?> <span><?php echo getSiteConfiguration()->ShortName; ?></span>. All rights reserved.</p>
         </div>
@@ -1096,5 +1236,265 @@
 
         initPwToggle();
     }
+
+    // ── i18n translation strings ─────────────────────────────────────────────
+    var _lrStrings = {
+        en: {
+            heading    : 'Sign in',
+            sub        : 'Enter your credentials to continue',
+            labelUser  : 'Username or Email',
+            phUser     : 'Enter your username',
+            labelPass  : 'Password',
+            phPass     : 'Enter your password',
+            forgot     : 'Forgot password?',
+            notYou     : 'Not you?',
+            divider    : 'or continue with',
+            btnContinue: 'Continue',
+            btnSignin  : 'Sign In',
+            btnGoogle  : 'Continue with Google',
+            signupPre  : 'New here?',
+            signupLink : 'Create your account'
+        },
+        ta: {
+            heading    : 'உள்நுழைக',
+            sub        : 'தொடர உங்கள் விவரங்களை உள்ளிடவும்',
+            labelUser  : 'பயனர்பெயர் அல்லது மின்னஞ்சல்',
+            phUser     : 'உங்கள் பயனர்பெயரை உள்ளிடவும்',
+            labelPass  : 'கடவுச்சொல்',
+            phPass     : 'உங்கள் கடவுச்சொல்லை உள்ளிடவும்',
+            forgot     : 'கடவுச்சொல் மறந்துவிட்டதா?',
+            notYou     : 'நீங்கள் இல்லையா?',
+            divider    : 'அல்லது இதன் மூலம் தொடரவும்',
+            btnContinue: 'தொடரவும்',
+            btnSignin  : 'உள்நுழைக',
+            btnGoogle  : 'Google மூலம் தொடரவும்',
+            signupPre  : 'புதியவரா?',
+            signupLink : 'கணக்கு உருவாக்கவும்'
+        }
+    };
+
+    /**
+     * Returns the last non-empty text node child of el.
+     * @param {Element} el
+     * @returns {Text|null}
+     */
+    function _lastTextNode(el) {
+        if (!el) return null;
+        var node = el.lastChild;
+        while (node) {
+            if (node.nodeType === 3 && node.textContent.trim() !== '') return node;
+            node = node.previousSibling;
+        }
+        return null;
+    }
+
+    /**
+     * Applies translated strings to all visible page elements without reloading.
+     * Text nodes inside icon-buttons are updated individually to preserve the icon.
+     * @param {string} lang - 'en' | 'ta'
+     * @returns {void}
+     */
+    function applyI18n(lang) {
+        var s = _lrStrings[lang] || _lrStrings.en;
+
+        // Pure text elements — safe to set textContent directly
+        document.querySelectorAll('.lr-form-head h3').forEach(function (el) { el.textContent = s.heading; });
+        document.querySelectorAll('.lr-form-head p').forEach(function (el) { el.textContent = s.sub; });
+        document.querySelectorAll('label[for="UserName"]').forEach(function (el) { el.textContent = s.labelUser; });
+        document.querySelectorAll('label[for="UserPassword"]').forEach(function (el) { el.textContent = s.labelPass; });
+        document.querySelectorAll('.lr-forgot').forEach(function (el) { el.textContent = s.forgot; });
+        document.querySelectorAll('.lr-not-you').forEach(function (el) { el.textContent = s.notYou; });
+        document.querySelectorAll('.lr-social-divider span').forEach(function (el) { el.textContent = s.divider; });
+
+        // Input placeholders
+        document.querySelectorAll('#UserName').forEach(function (el) { el.placeholder = s.phUser; });
+        document.querySelectorAll('#UserPassword').forEach(function (el) { el.placeholder = s.phPass; });
+
+        // Continue button — update trailing text node, leave icon intact
+        var contBtn = document.getElementById('lrContinueBtn');
+        if (contBtn) {
+            var tn = _lastTextNode(contBtn.querySelector('span'));
+            if (tn) tn.textContent = ' ' + s.btnContinue;
+        }
+
+        // Sign In button(s) — update trailing text node, leave icon intact
+        document.querySelectorAll('button.lr-btn[type="submit"] > span').forEach(function (span) {
+            var tn = _lastTextNode(span);
+            if (tn) tn.textContent = ' ' + s.btnSignin;
+        });
+
+        // Google button(s) — update trailing text node, leave SVG intact
+        document.querySelectorAll('.lr-social-google').forEach(function (el) {
+            var tn = _lastTextNode(el);
+            if (tn) tn.textContent = ' ' + s.btnGoogle + ' ';
+        });
+
+        // Footer signup note — "New here?" text + link
+        var signupPara = document.querySelector('.lr-signup-note');
+        if (signupPara) {
+            var firstTn = signupPara.firstChild;
+            while (firstTn && firstTn.nodeType !== 3) firstTn = firstTn.nextSibling;
+            if (firstTn) firstTn.textContent = ' ' + s.signupPre + ' ';
+            var signupAnchor = signupPara.querySelector('a');
+            if (signupAnchor) signupAnchor.textContent = s.signupLink;
+        }
+    }
+
+    // ── Language switcher ────────────────────────────────────────────────────
+    (function () {
+        var switchEl   = document.getElementById('lrLangSwitch');
+        var triggerEl  = document.getElementById('lrLangTrigger');
+        var labelEl    = document.getElementById('lrLangLabel');
+        var opts       = document.querySelectorAll('.lr-lang-opt');
+        if (!switchEl || !triggerEl) return;
+
+        triggerEl.addEventListener('click', function (e) {
+            e.stopPropagation();
+            switchEl.classList.toggle('open');
+        });
+
+        opts.forEach(function (opt) {
+            opt.addEventListener('click', function () {
+                var lang = opt.getAttribute('data-lang');
+                labelEl.textContent = lang === 'ta' ? 'த' : 'En';
+                opts.forEach(function (o) { o.classList.remove('lr-lang-active'); });
+                opt.classList.add('lr-lang-active');
+                switchEl.classList.remove('open');
+                applyI18n(lang);
+            });
+        });
+
+        document.addEventListener('click', function () {
+            switchEl.classList.remove('open');
+        });
+    }());
 })();
+</script>
+
+<script>
+/* ── Time-of-Day Adaptive Panel ────────────────────────────── */
+(function ($) {
+
+    // ── Image sources — served from Cloudflare R2 CDN ─────────
+    var _cdnBase = '<?= $CdnBase ?>';
+    var IMAGE_SOURCES = {
+        morning: _cdnBase + '/Global/landing%20page/r2k_morning.jpg',
+        day    : _cdnBase + '/Global/landing%20page/r2k_day.jpg',
+        evening: _cdnBase + '/Global/landing%20page/r2k_evening.jpg',
+        night  : _cdnBase + '/Global/landing%20page/r2k_night.jpg'
+    };
+
+    /**
+     * @returns {string} 'morning' | 'day' | 'evening' | 'night'
+     */
+    function getTimeSlot() {
+        var h = new Date().getHours();
+        if (h >= 5  && h < 12) return 'morning';
+        if (h >= 12 && h < 17) return 'day';
+        if (h >= 17 && h < 20) return 'evening';
+        return 'night';
+    }
+
+    /**
+     * @returns {string} greeting text based on current hour
+     */
+    function getGreeting() {
+        var h = new Date().getHours();
+        if (h >= 5  && h < 12) return 'Good Morning';
+        if (h >= 12 && h < 17) return 'Good Afternoon';
+        if (h >= 17 && h < 20) return 'Good Evening';
+        return 'Working Late';
+    }
+
+    /**
+     * @returns {string} formatted HH:MM:SS AM/PM
+     */
+    function formatClock() {
+        var now  = new Date();
+        var h    = now.getHours();
+        var m    = now.getMinutes();
+        var s    = now.getSeconds();
+        var ampm = h >= 12 ? 'PM' : 'AM';
+        h = h % 12 || 12;
+        return (
+            String(h).padStart(2, '0') + ':' +
+            String(m).padStart(2, '0') + ':' +
+            String(s).padStart(2, '0') + ' ' + ampm
+        );
+    }
+
+    /**
+     * Starts the live clock, updating every second.
+     * @returns {void}
+     */
+    function startClock() {
+        var el = document.getElementById('lrLiveClock');
+        if (!el) return;
+        function tick() { el.textContent = formatClock(); }
+        tick();
+        setInterval(tick, 1000);
+    }
+
+    /**
+     * Applies the time-slot gradient class and loads the matching image.
+     * @returns {void}
+     */
+    function initImage() {
+        var slot  = getTimeSlot();
+        var brand = document.getElementById('lrBrand');
+        var img   = document.getElementById('lrBgImg');
+        if (!brand) return;
+
+        ['time-morning', 'time-day', 'time-evening', 'time-night'].forEach(function (c) {
+            brand.classList.remove(c);
+        });
+        brand.classList.add('time-' + slot);
+
+        if (img && IMAGE_SOURCES[slot]) {
+            img.src = IMAGE_SOURCES[slot];
+        }
+    }
+
+    /**
+     * Wires mouse-parallax on the brand panel.
+     * Video shifts opposite to cursor; glass card shifts with cursor for 5D depth.
+     * @param {MouseEvent} e - mouse event (internal)
+     * @returns {void}
+     */
+    function initParallax() {
+        var panel = document.getElementById('lrBrand');
+        var img   = document.getElementById('lrBgImg');
+        var card  = document.getElementById('lrGlassCard');
+        if (!panel) return;
+
+        panel.addEventListener('mousemove', function (e) {
+            var rect = panel.getBoundingClientRect();
+            var dx   = (e.clientX - rect.left - rect.width  / 2) / rect.width;
+            var dy   = (e.clientY - rect.top  - rect.height / 2) / rect.height;
+
+            if (img) {
+                img.style.transform =
+                    'translate3d(' + (dx * -20) + 'px, ' + (dy * -15) + 'px, 0) scale(1.06)';
+            }
+            if (card) {
+                card.style.transform =
+                    'translate3d(' + (dx * 11) + 'px, ' + (dy * 9) + 'px, 0)';
+            }
+        });
+
+        panel.addEventListener('mouseleave', function () {
+            if (img)  img.style.transform  = 'translate3d(0, 0, 0) scale(1.06)';
+            if (card) card.style.transform  = 'translate3d(0, 0, 0)';
+        });
+    }
+
+    // ── Boot ───────────────────────────────────────────────────
+    var greetEl = document.getElementById('lrGreeting');
+    if (greetEl) greetEl.textContent = getGreeting();
+
+    startClock();
+    initImage();
+    initParallax();
+
+}(jQuery));
 </script>

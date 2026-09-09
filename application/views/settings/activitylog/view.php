@@ -145,12 +145,9 @@ $this->load->view('common/transactions/header'); ?>
     var PageNo   = 1;
     var RowLimit = <?php echo (int)($JwtData->GenSettings->RowLimit ?? 25); ?>;
 
-    // Seed with this month (matching PHP default)
-    var _now            = new Date();
-    var _monthStart     = _now.getFullYear() + '-' + String(_now.getMonth() + 1).padStart(2, '0') + '-01';
-    var _today          = _now.toISOString().slice(0, 10);
-    Filter.DateFrom = _monthStart;
-    Filter.DateTo   = _today;
+    // Seed from server — keeps JS and controller in sync (no extra AJAX on load)
+    Filter.DateFrom = <?php echo json_encode($InitFilter['DateFrom'] ?? date('Y-m-01')); ?>;
+    Filter.DateTo   = <?php echo json_encode($InitFilter['DateTo']   ?? date('Y-m-d')); ?>;
 
     // ── Fetch list ───────────────────────────────────────────────────────────
 

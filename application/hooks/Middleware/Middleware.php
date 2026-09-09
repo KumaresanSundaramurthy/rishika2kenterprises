@@ -12,7 +12,7 @@ class Middleware {
 		$Controller = trim($CI->router->fetch_class());  //Controller name
 		$Method     = trim($CI->router->fetch_method());  //Method name
 
-		$ExcludeController = array("website", "login", "receipt", "launch", "oauth", "doc");
+		$ExcludeController = array("website", "login", "receipt", "launch", "oauth", "doc", "signup", "subscription");
 	    
 		if(in_array($Controller, $ExcludeController)) {
 			return;
@@ -111,6 +111,30 @@ class Middleware {
 						}
 					}
 					// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+					// ── Subscription expiry check ─────────────────────────────────────────────
+					$sub = $CI->pageData['JwtData']->Subscription ?? null;
+					if ($sub) {
+						$isExpired = !empty($sub->EndDate) && strtotime($sub->EndDate) < strtotime(date('Y-m-d'));
+						if (!$isExpired && isset($sub->Status)) {
+							$isExpired = ($sub->Status === 'Expired' || $sub->Status === 'Cancelled' || $sub->Status === 'Suspended');
+						}
+						if ($isExpired) {
+							if ($CI->input->is_ajax_request()) {
+								$CI->output
+									->set_status_header(402)
+									->set_content_type('application/json', 'utf-8')
+									->set_output(json_encode([
+										'Error'               => true,
+										'SubscriptionExpired' => true,
+										'Message'             => 'Your subscription has expired. Please renew your plan to continue.',
+									]))
+									->_display();
+								exit;
+							}
+							redirect('subscription/expired', 'refresh');
+						}
+					}
 
 					// Load per-user language file for t() helper
 					$_uiLang = $CI->pageData['JwtData']->User->UILanguage ?? 'en';

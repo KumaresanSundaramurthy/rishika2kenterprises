@@ -72,6 +72,9 @@ class Subscription {
             } elseif ($user->SubscriptionStatus === 'Cancelled') {
                 $result->isValid = false;
                 $result->message = 'Your subscription has been cancelled.';
+            } else {
+                $result->isValid = false;
+                $result->message = 'No active subscription found for your organisation. Please contact support.';
             }
 
             if ($result->isValid && $daysRemaining > 0 && $daysRemaining <= 7) {
@@ -86,15 +89,18 @@ class Subscription {
         return $result;
     }
 
-    // â”€â”€ Update subscription status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Update subscription status ────────────────────────────────────────────
     public function updateSubscriptionStatus($userUID, $status) {
         try {
-            $updateResult = $this->CI->dbwrite_model->updateData(
-                'Users', 'UserTbl',
-                ['SubscriptionStatus' => $status, 'UpdatedOn' => date('Y-m-d H:i:s')],
-                ['UserUID' => (int)$userUID]
-            );
-            return $updateResult->Error === FALSE;
+            $orgUID = $this->CI->subscription_model->getOrgUIDByUser((int)$userUID);
+            if (!$orgUID) return false;
+            $db  = $this->CI->dbwrite_model->getWriteDb();
+            $sql = 'UPDATE Organisation.OrgSubscriptionTbl'
+                 . ' SET Status = ?, UpdatedOn = NOW()'
+                 . ' WHERE OrgUID = ? AND Status != ?'
+                 . ' ORDER BY StartDate DESC LIMIT 1';
+            $db->query($sql, [$status, $orgUID, 'Cancelled']);
+            return $db->affected_rows() >= 0;
         } catch (Exception $e) {
             notifyError('Subscription::updateSubscriptionStatus', $e);
             return false;
@@ -118,20 +124,22 @@ class Subscription {
                 : clone $currentEndDate;
             $newEndDate->modify("+{$days} days");
 
-            $updateData = [
-                'SubscriptionStatus'  => 'Active',
-                'SubscriptionEndDate' => $newEndDate->format('Y-m-d H:i:s'),
-                'UpdatedOn'           => date('Y-m-d H:i:s'),
-            ];
-            if ($planCode) {
-                $updateData['SubscriptionPlan'] = $planCode;
-            }
+            $orgUID = $this->CI->subscription_model->getOrgUIDByUser((int)$userUID);
+            if (!$orgUID) return ['success' => false, 'message' => 'Org not found for user'];
 
-            $updateResult = $this->CI->dbwrite_model->updateData(
-                'Users', 'UserTbl', $updateData, ['UserUID' => (int)$userUID]
-            );
-            if ($updateResult->Error) {
-                return ['success' => false, 'message' => $updateResult->Message];
+            $db    = $this->CI->dbwrite_model->getWriteDb();
+            $sql   = 'UPDATE Organisation.OrgSubscriptionTbl'
+                   . ' SET Status = ?, EndDate = ?, UpdatedOn = NOW()'
+                   . ($planCode ? ', PlanCode = ?' : '')
+                   . ' WHERE OrgUID = ? AND Status != ?'
+                   . ' ORDER BY StartDate DESC LIMIT 1';
+            $binds = ['Active', $newEndDate->format('Y-m-d H:i:s')];
+            if ($planCode) $binds[] = $planCode;
+            $binds[] = $orgUID;
+            $binds[] = 'Cancelled';
+            $db->query($sql, $binds);
+            if ($db->affected_rows() === 0) {
+                return ['success' => false, 'message' => 'No active subscription record found to extend'];
             }
 
             $this->_logSubscriptionHistory($userUID, 'Renewed', $days);
@@ -260,40 +268,24 @@ class Subscription {
             $endDate = clone $now;
             $endDate->modify("+{$plan->DurationDays} days");
 
-            // Update user subscription
-            $updateResult = $this->CI->dbwrite_model->updateData(
-                'Users', 'UserTbl',
-                [
-                    'SubscriptionStatus'    => 'Active',
-                    'SubscriptionStartDate' => $now->format('Y-m-d H:i:s'),
-                    'SubscriptionEndDate'   => $endDate->format('Y-m-d H:i:s'),
-                    'SubscriptionPlan'      => $plan->PlanName,
-                    'UpdatedOn'             => date('Y-m-d H:i:s'),
-                ],
-                ['UserUID' => (int)$userUID]
-            );
-            if ($updateResult->Error) {
-                return ['success' => false, 'message' => $updateResult->Message];
-            }
+            $orgUID = $this->CI->subscription_model->getOrgUIDByUser((int)$userUID);
+            if (!$orgUID) return ['success' => false, 'message' => 'Org not found for user'];
 
-            // Get OrgUID for history record
-            $userResult = $this->CI->subscription_model->getUserSubscription($userUID);
-            $orgUID     = ($userResult->Error === FALSE && $userResult->Data) ? $userResult->Data->OrgUID : null;
-
-            // Insert subscription history
-            $this->CI->dbwrite_model->insertData('Users', 'SubscriptionHistoryTbl', [
-                'UserUID'            => (int)$userUID,
-                'OrgUID'             => $orgUID,
-                'PlanUID'            => $plan->PlanUID,
-                'SubscriptionStatus' => 'Active',
-                'StartDate'          => $now->format('Y-m-d H:i:s'),
-                'EndDate'            => $endDate->format('Y-m-d H:i:s'),
-                'Amount'             => $plan->Price,
-                'PaymentStatus'      => $paymentData['status']      ?? 'Paid',
-                'PaymentMethod'      => $paymentData['method']      ?? null,
-                'TransactionID'      => $paymentData['transactionId'] ?? null,
-                'CreatedOn'          => date('Y-m-d H:i:s'),
+            /* Insert a new subscription record; previous records are kept as history */
+            $insertResult = $this->CI->dbwrite_model->insertData('Organisation', 'OrgSubscriptionTbl', [
+                'OrgUID'      => $orgUID,
+                'PlanUID'     => (int)$plan->PlanUID,
+                'PlanCode'    => $plan->PlanCode,
+                'Status'      => 'Active',
+                'StartDate'   => $now->format('Y-m-d'),
+                'EndDate'     => $endDate->format('Y-m-d'),
+                'AutoRenew'   => 0,
+                'PaidAmount'  => $paymentData['amount']        ?? $plan->Price ?? 0,
+                'PaymentRef'  => $paymentData['transactionId'] ?? '',
             ]);
+            if ($insertResult->Error) {
+                return ['success' => false, 'message' => $insertResult->Message];
+            }
 
             return [
                 'success' => true,

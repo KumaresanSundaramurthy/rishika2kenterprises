@@ -9,8 +9,69 @@ if (empty($DataLists)) { ?>
     </tr>
 <?php return; }
 
-// Build the preview string from prefix components (PHP version of the JS preview)
-function buildPrefixPreviewStr($row) {
+/**
+ * Build the preview number from ComponentConfig JSON (new builder format).
+ *
+ * @param array  $cfg ComponentConfig decoded array
+ * @param object $row DB row
+ * @return string
+ */
+function _buildPreviewFromConfig(array $cfg, $row): string {
+    $order     = $cfg['order']     ?? ['prefix', 'shortname', 'fiscal', 'number'];
+    $seps      = $cfg['seps']      ?? ['-', '-', '-'];
+    $active    = $cfg['active']    ?? [];
+    $shortname = strtoupper($cfg['shortname'] ?? '');
+    $fiscalFmt = $cfg['fiscalFmt'] ?? 'SHORT';
+
+    $m  = (int)date('m');
+    $yr = (int)date('Y');
+    $fy = $m >= 4 ? $yr : $yr - 1;
+    $fyShort = str_pad($fy % 100, 2, '0', STR_PAD_LEFT) . '-' . str_pad(($fy + 1) % 100, 2, '0', STR_PAD_LEFT);
+    $fyLong  = $fy . '-' . ($fy + 1);
+    $pad     = (int)($row->NumberPadding ?? 3);
+    $numStr  = $pad > 1 ? str_pad('1', $pad, '0', STR_PAD_LEFT) : '1';
+    $alwaysOn = ['prefix' => true, 'number' => true];
+
+    /* Collect active parts with their order index for separator lookup */
+    $activeParts = [];
+    foreach ($order as $idx => $key) {
+        $isActive = !empty($alwaysOn[$key]) || !empty($active[$key]);
+        if (!$isActive) continue;
+        switch ($key) {
+            case 'prefix':    $val = strtoupper($row->Name ?? '');                   break;
+            case 'shortname': $val = $shortname;                                     break;
+            case 'fiscal':    $val = $fiscalFmt === 'LONG' ? $fyLong : $fyShort;    break;
+            case 'number':    $val = $numStr;                                        break;
+            default:          $val = '';
+        }
+        if ($val === '') continue;
+        $activeParts[] = ['val' => $val, 'idx' => (int)$idx];
+    }
+
+    $result = '';
+    foreach ($activeParts as $i => $part) {
+        $result .= $part['val'];
+        if ($i < count($activeParts) - 1) {
+            $result .= $seps[$part['idx']] ?? '-';
+        }
+    }
+    return $result;
+}
+
+/**
+ * Build the preview string for a prefix config row.
+ *
+ * @param object $row
+ * @return string
+ */
+function buildPrefixPreviewStr($row): string {
+    if (!empty($row->ComponentConfig)) {
+        $cfg = @json_decode($row->ComponentConfig, true);
+        if (is_array($cfg) && !empty($cfg['order'])) {
+            return _buildPreviewFromConfig($cfg, $row);
+        }
+    }
+    /* Fallback: old-style individual columns */
     $sep   = $row->Separator ?? '-';
     $parts = [strtoupper($row->Name ?? '')];
     if ($row->IncludeShortName && $row->ShortName) {
@@ -35,28 +96,51 @@ foreach ($DataLists as $row):
     $preview    = htmlspecialchars(buildPrefixPreviewStr($row));
     $moduleName = htmlspecialchars($row->ModuleName ?? '—');
 
-    // Configuration badges
+    /* Configuration badges derived from ComponentConfig when present */
     $cfgBadges = '';
-    if (!empty($row->IncludeFiscalYear)) {
-        $fyLabel    = ($row->FiscalYearFormat ?? 'SHORT') === 'LONG' ? t('lbl_full_year', 'Full year') : t('lbl_short_year', 'Short year');
-        $cfgBadges .= '<span class="badge bg-label-info me-1 mb-1">FY ' . $fyLabel . '</span>';
+    if (!empty($row->ComponentConfig)) {
+        $cfg       = @json_decode($row->ComponentConfig, true);
+        $cfgActive = is_array($cfg) ? ($cfg['active'] ?? []) : [];
+        $cfgSeps   = is_array($cfg) ? ($cfg['seps']   ?? []) : [];
+        $cfgFmt    = is_array($cfg) ? ($cfg['fiscalFmt'] ?? ($row->FiscalYearFormat ?? 'SHORT')) : ($row->FiscalYearFormat ?? 'SHORT');
+        $cfgSName  = is_array($cfg) ? ($cfg['shortname'] ?? '') : '';
+
+        if (!empty($cfgActive['fiscal'])) {
+            $fyLabel    = $cfgFmt === 'LONG' ? t('lbl_full_year', 'Full year') : t('lbl_short_year', 'Short year');
+            $cfgBadges .= '<span class="badge bg-label-info me-1 mb-1">FY ' . $fyLabel . '</span>';
+        }
+        if (!empty($cfgActive['shortname']) && $cfgSName) {
+            $cfgBadges .= '<span class="badge bg-label-warning me-1 mb-1">' . htmlspecialchars($cfgSName) . '</span>';
+        }
+        /* Show unique separator values */
+        $uniqueSeps = array_unique(array_filter($cfgSeps, fn($s) => $s !== ''));
+        if (empty($uniqueSeps)) {
+            $cfgBadges .= '<span class="badge bg-label-secondary me-1 mb-1">No sep</span>';
+        } else {
+            foreach ($uniqueSeps as $s) {
+                $cfgBadges .= '<span class="badge bg-label-secondary me-1 mb-1">Sep: <code>' . htmlspecialchars($s) . '</code></span>';
+            }
+        }
+    } else {
+        if (!empty($row->IncludeFiscalYear)) {
+            $fyLabel    = ($row->FiscalYearFormat ?? 'SHORT') === 'LONG' ? t('lbl_full_year', 'Full year') : t('lbl_short_year', 'Short year');
+            $cfgBadges .= '<span class="badge bg-label-info me-1 mb-1">FY ' . $fyLabel . '</span>';
+        }
+        if (!empty($row->IncludeShortName) && !empty($row->ShortName)) {
+            $cfgBadges .= '<span class="badge bg-label-warning me-1 mb-1">' . htmlspecialchars($row->ShortName) . '</span>';
+        }
+        $sepLabels  = ['-' => t('lbl_separator_hyphen', 'Hyphen (–)'), '/' => t('lbl_separator_slash', 'Slash (/)'), '|' => 'Pipe (|)', '_' => 'Underscore (_)', '.' => 'Dot (.)'];
+        $cfgBadges .= '<span class="badge bg-label-secondary me-1 mb-1">Sep: ' . htmlspecialchars($sepLabels[$row->Separator] ?? $row->Separator) . '</span>';
     }
-    if (!empty($row->IncludeShortName) && !empty($row->ShortName)) {
-        $cfgBadges .= '<span class="badge bg-label-warning me-1 mb-1">' . htmlspecialchars($row->ShortName) . '</span>';
-    }
-    $sepLabels  = ['-' => t('lbl_separator_hyphen', 'Hyphen (–)'), '/' => t('lbl_separator_slash', 'Slash (/)'), '|' => 'Pipe (|)', '_' => 'Underscore (_)', '.' => 'Dot (.)'];
-    $cfgBadges .= '<span class="badge bg-label-secondary me-1 mb-1">Sep: ' . htmlspecialchars($sepLabels[$row->Separator] ?? $row->Separator) . '</span>';
     $padLabel   = (int)$row->NumberPadding > 1 ? (int)$row->NumberPadding . ' digits' : 'No pad';
     $cfgBadges .= '<span class="badge bg-label-secondary me-1 mb-1">Pad: ' . $padLabel . '</span>';
 
-    // Last-updated display (UpdatedOn may be stored as unix int by Transactions controller)
     $updatedOnStr  = !empty($row->UpdatedOn)
         ? (is_numeric($row->UpdatedOn) ? date('Y-m-d H:i:s', (int)$row->UpdatedOn) : $row->UpdatedOn)
         : null;
     $updatedTs     = viewPageDateTimeFormat($updatedOnStr, $JwtData->User->Timezone ?? 'UTC', 2);
     $updatedByName = htmlspecialchars(trim($row->UpdatedByName ?? '—'));
 
-    // JSON payload for Edit button (use htmlspecialchars to prevent XSS)
     $editData = htmlspecialchars(json_encode([
         'PrefixUID'         => (int)$row->PrefixUID,
         'ModuleUID'         => (int)$row->ModuleUID,
@@ -69,6 +153,7 @@ foreach ($DataLists as $row):
         'Separator'         => $row->Separator ?? '-',
         'NumberPadding'     => (int)($row->NumberPadding ?? 3),
         'IsDefault'         => (int)($row->IsDefault ?? 0),
+        'ComponentConfig'   => $row->ComponentConfig ?? null,
     ]), ENT_QUOTES);
 ?>
 <tr>
@@ -133,10 +218,6 @@ foreach ($DataLists as $row):
                     data-name="<?php echo htmlspecialchars($row->Name ?? ''); ?>"
                     title="Delete">
                 <i class="bx bx-trash"></i>
-            </button>
-            <?php else: ?>
-            <button type="button" class="btn btn-icon btn-sm text-muted" disabled title="Default prefix cannot be deleted">
-                <i class="bx bx-lock-alt"></i>
             </button>
             <?php endif; ?>
         </div>

@@ -367,7 +367,8 @@ $(document).on('click', '.date-option[data-range]', function (e) {
     var _ddInst = bootstrap.Dropdown.getInstance($btn[0]);
     if (_ddInst) _ddInst.hide();
 
-    var pageKey = location.pathname.split('/').filter(Boolean)[0] || '';
+    var _dfParts = location.pathname.split('/').filter(Boolean);
+    var pageKey  = (_dfParts[0] === 'settings' && _dfParts[1]) ? _dfParts[0] + '_' + _dfParts[1] : (_dfParts[0] || '');
     if (pageKey) _r2kSavePref('df_' + pageKey, String(range));
 
     $(document).trigger('r2k:datechange', [{ range: range, from: dr.from, to: dr.to }]);
@@ -472,7 +473,8 @@ $(document).on('click', '#r2kCrApply', function () {
         onApply(from, to);
     } else {
         // Standard #dateFilterBtn — persist + broadcast
-        var _pk = location.pathname.split('/').filter(Boolean)[0] || '';
+        var _crParts = location.pathname.split('/').filter(Boolean);
+        var _pk = (_crParts[0] === 'settings' && _crParts[1]) ? _crParts[0] + '_' + _crParts[1] : (_crParts[0] || '');
         if (_pk) _r2kSavePref('df_' + _pk, 'custom|' + from + '|' + to);
         $(document).trigger('r2k:datechange', [{ range: 'custom', from: from, to: to }]);
     }

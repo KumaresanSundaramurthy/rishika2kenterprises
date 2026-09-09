@@ -105,7 +105,10 @@ class Roles extends MY_Controller {
             $this->load->model('dbwrite_model');
             $JwtData = $this->pageData['JwtData'];
 
-            // Block editing default roles
+            // Block editing global or default roles
+            if ($RoleUID > 0 && $this->roles_model->isGlobalRole($RoleUID)) {
+                throw new Exception('Global roles cannot be modified.');
+            }
             if ($RoleUID > 0 && $this->roles_model->isDefaultRole($RoleUID)) {
                 throw new Exception('Default roles cannot be renamed.');
             }
@@ -158,7 +161,7 @@ class Roles extends MY_Controller {
 
     // ── AJAX: save permissions only (matrix submit) ─────────────────
 
-    public function saveRolePermissions() {
+    public function saveRolePermissions(): void {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -167,13 +170,55 @@ class Roles extends MY_Controller {
             if (!$RoleUID) throw new Exception('RoleUID is required.');
 
             $this->load->model('roles_model');
-            $JwtData = $this->pageData['JwtData'];
-            $this->roles_model->saveRolePermissions($RoleUID, $PostData, $JwtData->User->UserUID);
+            $JwtData     = $this->pageData['JwtData'];
+            $userUID     = $JwtData->User->UserUID;
+            $orgUID      = $JwtData->Org->OrgUID;
+            $roleUID     = $JwtData->User->RoleUID;
+            $orgToken    = $JwtData->Org->OrgToken ?? '';
+            $loginExpiry = (int) getenv('LOGIN_EXPIRE_SECS');
+
+            $this->roles_model->saveRolePermissions($RoleUID, $PostData, $userUID);
 
             // Bust role-level menu caches so the next login picks up fresh permissions
-            $orgUID = $JwtData->Org->OrgUID;
             $this->redisservice->deleteCache('r2k-role-menus-'    . $orgUID . '-' . $RoleUID);
             $this->redisservice->deleteCache('r2k-role-submenus-' . $orgUID . '-' . $RoleUID);
+
+            // Rebuild the current user's Redis cache so new permissions take effect
+            // immediately on the next request — same logic as auth/refreshTokens
+            $this->load->model('login_model');
+            $this->load->model('user_model');
+
+            $menus       = $this->login_model->getRoleMainMenus($roleUID, $orgUID)->Data;
+            $submenus    = $this->login_model->getRoleSubMenus($roleUID, $orgUID)->Data;
+            $modules     = $this->login_model->getModuleDetails($orgUID)->Data;
+            $userInfoRes = $this->user_model->getUserByUserInfo(['User.UserUID' => $userUID]);
+            $userInfo    = ($userInfoRes->Error === FALSE && !empty($userInfoRes->Data)) ? $userInfoRes->Data[0] : null;
+
+            $permissions = [];
+            foreach ($submenus as $sm) {
+                if (!empty($sm->ControllerName)) {
+                    $permissions[$sm->ControllerName] = [
+                        'CanView'   => (int)$sm->CanView,
+                        'CanCreate' => (int)$sm->CanCreate,
+                        'CanEdit'   => (int)$sm->CanEdit,
+                        'CanDelete' => (int)$sm->CanDelete,
+                    ];
+                }
+            }
+
+            $this->redisservice->setUserCache('menus',       $userUID, $menus,       $loginExpiry, $orgToken);
+            $this->redisservice->setUserCache('submenus',    $userUID, $submenus,    $loginExpiry, $orgToken);
+            $this->redisservice->setUserCache('modules',     $userUID, $modules,     $loginExpiry, $orgToken);
+            $this->redisservice->setUserCache('permissions', $userUID, $permissions, $loginExpiry, $orgToken);
+            if ($userInfo) {
+                $this->redisservice->setUserCache('userinfo', $userUID, $userInfo, $loginExpiry, $orgToken);
+            }
+
+            $this->globalservice->refreshUserCache();
+
+            $this->redisservice->deleteCache($this->redisservice->orgKey('org-info'));
+            $this->load->model('organisation_model');
+            $this->organisation_model->getOrgInfoCached($orgUID);
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Permissions saved successfully.';
@@ -184,6 +229,7 @@ class Roles extends MY_Controller {
             $this->EndReturnData->Message = $e->getMessage();
         }
 
+        $this->EndReturnData->NewCsrfToken = $this->security->get_csrf_hash();
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
@@ -199,7 +245,10 @@ class Roles extends MY_Controller {
 
             $this->load->model('roles_model');
 
-            // Block deleting any default role
+            // Block deleting global or default roles
+            if ($this->roles_model->isGlobalRole($RoleUID)) {
+                throw new Exception('Global roles cannot be deleted.');
+            }
             if ($this->roles_model->isDefaultRole($RoleUID)) {
                 throw new Exception('Default roles cannot be deleted.');
             }

@@ -346,7 +346,20 @@ if (!isset($BranchesList))    { $BranchesList    = []; }
                                     <div class="text-muted" style="font-size:.75rem;">Locked users are blocked from signing in.</div>
                                 </div>
 
+                                <!-- Portal access expiry -->
+                                <div class="col-md-6">
+                                    <label class="form-label">Portal Access Expiry</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="UserLoginExpiry" placeholder="No expiry (permanent)" autocomplete="off" readonly>
+                                        <button type="button" class="btn btn-outline-secondary" id="UserLoginExpiryClear" title="Clear expiry (permanent access)">
+                                            <i class="bx bx-x"></i>
+                                        </button>
+                                    </div>
+                                    <div class="text-muted" style="font-size:.75rem;">After this date the user cannot sign in. Leave blank for permanent access.</div>
+                                </div>
+
                                 <!-- Password notice (create-only) -->
+                                <div class="col-md-6 d-none d-md-block"></div>
                                 <div class="col-12" id="pwdSetupInfo">
                                     <div class="alert alert-info py-2 px-3 mb-0" style="font-size:.8rem;line-height:1.5;">
                                         <i class="bx bx-envelope me-1"></i>

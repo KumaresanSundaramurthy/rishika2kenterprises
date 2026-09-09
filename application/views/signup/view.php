@@ -1,6 +1,6 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
-<?php $this->load->view('login/header'); ?>
+<?php $pageTitle = 'Sign Up'; $this->load->view('login/header', ['pageTitle' => $pageTitle]); ?>
 
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -131,9 +131,9 @@
     height: 100vh;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: center;
-    padding: 2.5rem 3rem;
+    padding: 3rem 3rem 2.5rem;
     background: #0a1628;
     overflow-y: auto;
 }
@@ -147,7 +147,7 @@
 .su-steps {
     display: flex;
     align-items: center;
-    margin-bottom: 2.5rem;
+    margin-bottom: 1.5rem;
 }
 
 .su-step {
@@ -564,6 +564,81 @@
     .su-brand { display: none; }
     .su-form-panel { width: 100%; padding: 2rem 1.5rem; }
 }
+
+/* ── Language switcher ─────────────────────────────────────── */
+.su-lang-switch {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    z-index: 10;
+}
+.su-lang-trigger {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 13px;
+    background: rgba(255,255,255,0.06);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 100px;
+    color: #94a3b8;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    line-height: 1;
+}
+.su-lang-trigger:hover {
+    background: rgba(255,255,255,0.1);
+    color: #f1f5f9;
+    border-color: rgba(255,255,255,0.16);
+}
+.su-lang-chevron {
+    font-size: 14px;
+    transition: transform 0.2s ease;
+    display: flex;
+}
+.su-lang-switch.open .su-lang-chevron { transform: rotate(180deg); }
+.su-lang-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 140px;
+    background: rgba(8,16,38,0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.45);
+    display: none;
+}
+.su-lang-switch.open .su-lang-dropdown {
+    display: block;
+    animation: suDropIn 0.18s ease-out both;
+}
+@keyframes suDropIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.su-lang-opt {
+    display: block;
+    width: 100%;
+    padding: 10px 16px;
+    background: none;
+    border: none;
+    color: #94a3b8;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.su-lang-opt:hover { background: rgba(255,255,255,0.06); color: #f1f5f9; }
+.su-lang-opt.su-lang-active { color: #f59e0b; }
 </style>
 
 <div class="su-root">
@@ -595,6 +670,19 @@
             <div class="su-overlay-spinner"></div>
             <div class="su-overlay-text">Creating your account…</div>
         </div>
+
+        <!-- Language switcher pill -->
+        <div class="su-lang-switch" id="suLangSwitch">
+            <button class="su-lang-trigger" id="suLangTrigger" type="button" aria-label="Switch language">
+                <span id="suLangLabel">En</span>
+                <i class="bx bx-chevron-down su-lang-chevron"></i>
+            </button>
+            <div class="su-lang-dropdown" id="suLangDropdown">
+                <button class="su-lang-opt su-lang-active" data-lang="en" type="button">&#127760; English</button>
+                <button class="su-lang-opt" data-lang="ta" type="button">&#127760; Tamil (த)</button>
+            </div>
+        </div>
+
         <div class="su-form-wrap">
 
             <!-- Step indicator -->
@@ -620,6 +708,21 @@
             <div id="suFormStep1">
                 <h2 class="su-step-title">Organisation Details</h2>
                 <p class="su-step-hint">Basic information about your business.</p>
+
+                <!-- Google One Tap fill -->
+                <?php if (!empty(getenv('GOOGLE_CLIENT_ID'))): ?>
+                <div id="suGoogleWrap" style="margin-bottom:1.25rem;">
+                    <button type="button" id="suGoogleFillBtn" onclick="suTriggerGoogle()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:0.7rem;padding:0.68rem 1rem;border-radius:8px;border:1px solid rgba(96,165,200,0.22);background:rgba(255,255,255,0.04);color:#c8dff0;font-size:0.88rem;font-weight:500;cursor:pointer;font-family:inherit;transition:all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='rgba(255,255,255,0.04)'">
+                        <svg width="17" height="17" viewBox="0 0 18 18" style="flex-shrink:0;"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z"/></svg>
+                        Sign up with Google
+                    </button>
+                </div>
+                <div style="display:flex;align-items:center;gap:0.7rem;margin-bottom:1.25rem;">
+                    <div style="flex:1;height:1px;background:rgba(96,165,200,0.13);"></div>
+                    <span class="su-or-divider" style="font-size:0.72rem;color:rgba(160,190,215,0.38);white-space:nowrap;">or fill manually</span>
+                    <div style="flex:1;height:1px;background:rgba(96,165,200,0.13);"></div>
+                </div>
+                <?php endif; ?>
 
                 <div class="su-field-row" style="grid-template-columns: 1fr 140px;">
                     <div class="su-field">
@@ -778,11 +881,16 @@
 
             <!-- ── SUCCESS SCREEN ── -->
             <div class="su-success" id="suSuccess">
-                <div class="su-success-icon"><i class="bx bx-check"></i></div>
-                <h2 class="su-success-title">You're all set!</h2>
+                <div class="su-success-icon"><i class="bx bx-envelope"></i></div>
+                <h2 class="su-success-title">Verify your email</h2>
                 <p class="su-success-msg">
-                    Your organisation has been created successfully.<br>
-                    Log in with your username <strong id="suSuccessUsername"></strong> to get started.
+                    Your organisation account has been created successfully!<br><br>
+                    We've sent a verification link to<br>
+                    <strong id="suSuccessEmail"></strong><br><br>
+                    Please check your inbox and click the link to verify your email address.<br>
+                    <span style="color:rgba(248,113,113,0.9);font-size:0.82rem;">
+                        You will not be able to log in until your email is verified.
+                    </span>
                 </p>
                 <a href="/portal" class="su-btn su-btn-primary" style="display:inline-flex;text-decoration:none;justify-content:center;">
                     <i class="bx bx-log-in-circle"></i> Go to Sign In
@@ -799,6 +907,148 @@
 
 <script>
 (function () {
+
+    /* ── Language switcher ─────────────────────────────────────────── */
+    var _suStrings = {
+        en: {
+            stepOrg:          'Organisation',
+            stepAdmin:         'Admin',
+            titleOrg:          'Organisation Details',
+            hintOrg:           'Basic information about your business.',
+            titleAdmin:        'Admin Account',
+            hintAdmin:         'This account will have full access to your organisation.',
+            btnNext:           'Next',
+            btnCreate:         'Create Account',
+            btnBack:           'Back',
+            btnSignin:         'Already have an account?',
+            btnSigninLink:     'Sign in',
+            labelOrgName:      'Organisation Name',
+            labelShortCode:    'Short Code',
+            hintShortCode:     '3 letters · org prefix',
+            labelMobile:       'Mobile Number',
+            labelEmail:        'Email Address',
+            labelState:        'State',
+            labelTimezone:     'Timezone',
+            labelGSTIN:        'GSTIN',
+            labelFirstName:    'First Name',
+            labelLastName:     'Last Name',
+            labelUsername:     'Username',
+            labelPassword:     'Password',
+            labelConfirm:      'Confirm Password',
+            optional:          '(optional)',
+            orFill:            'or fill manually',
+        },
+        ta: {
+            stepOrg:          'நிறுவனம்',
+            stepAdmin:         'நிர்வாகி',
+            titleOrg:          'நிறுவன விவரங்கள்',
+            hintOrg:           'உங்கள் வணிகம் பற்றிய அடிப்படை தகவல்.',
+            titleAdmin:        'நிர்வாகி கணக்கு',
+            hintAdmin:         'இந்த கணக்கிற்கு உங்கள் நிறுவனத்தில் முழு அணுகல் இருக்கும்.',
+            btnNext:           'அடுத்தது',
+            btnCreate:         'கணக்கை உருவாக்கு',
+            btnBack:           'திரும்பு',
+            btnSignin:         'ஏற்கனவே கணக்கு உள்ளதா?',
+            btnSigninLink:     'உள்நுழைக',
+            labelOrgName:      'நிறுவனத்தின் பெயர்',
+            labelShortCode:    'குறுகிய குறியீடு',
+            hintShortCode:     '3 எழுத்துகள் · org முன்னொட்டு',
+            labelMobile:       'கைபேசி எண்',
+            labelEmail:        'மின்னஞ்சல் முகவரி',
+            labelState:        'மாநிலம்',
+            labelTimezone:     'நேர மண்டலம்',
+            labelGSTIN:        'ஜிஎஸ்டிஐஎன்',
+            labelFirstName:    'முதல் பெயர்',
+            labelLastName:     'கடைசி பெயர்',
+            labelUsername:     'பயனர்பெயர்',
+            labelPassword:     'கடவுச்சொல்',
+            labelConfirm:      'கடவுச்சொல்லை உறுதிப்படுத்தவும்',
+            optional:          '(விருப்பமானது)',
+            orFill:            'அல்லது கைமுறையாக நிரப்பவும்',
+        }
+    };
+
+    function _suApplyI18n(lang) {
+        var s   = _suStrings[lang] || _suStrings.en;
+        var txt = function (sel, val) { var el = document.querySelector(sel); if (el) el.textContent = val; };
+        /* Set a label that may contain an (optional) span — replaces text node only */
+        var lbl = function (forId, val, hasOptional) {
+            var el = document.querySelector('label[for="' + forId + '"]');
+            if (!el) return;
+            if (hasOptional) {
+                el.innerHTML = val + ' <span class="su-optional">' + s.optional + '</span>';
+            } else {
+                el.textContent = val;
+            }
+        };
+
+        /* Step indicators */
+        txt('#suStep1Ind .su-step-label',  s.stepOrg);
+        txt('#suStep2Ind .su-step-label',  s.stepAdmin);
+
+        /* Section titles */
+        txt('#suFormStep1 .su-step-title', s.titleOrg);
+        txt('#suFormStep1 .su-step-hint',  s.hintOrg);
+        txt('#suFormStep2 .su-step-title', s.titleAdmin);
+        txt('#suFormStep2 .su-step-hint',  s.hintAdmin);
+
+        /* Step 1 labels */
+        lbl('suOrgName',  s.labelOrgName,  false);
+        lbl('suShortCode',s.labelShortCode,false);
+        lbl('suOrgMobile',s.labelMobile,   false);
+        lbl('suOrgEmail', s.labelEmail,    false);
+        lbl('suState',    s.labelState,    false);
+        lbl('suTimezone', s.labelTimezone, false);
+        lbl('suGSTIN',    s.labelGSTIN,    true);
+        txt('.su-field-hint', s.hintShortCode);
+
+        /* Step 2 labels */
+        lbl('suFirstName',      s.labelFirstName, false);
+        lbl('suLastName',       s.labelLastName,  true);
+        lbl('suUsername',       s.labelUsername,  false);
+        lbl('suPassword',       s.labelPassword,  false);
+        lbl('suConfirmPassword',s.labelConfirm,   false);
+
+        /* Buttons */
+        var nextBtn = document.getElementById('suNextBtn');
+        if (nextBtn) nextBtn.innerHTML = s.btnNext + ' <i class="bx bx-right-arrow-alt"></i>';
+        txt('#suSubmitLabel', s.btnCreate);
+        var backBtn = document.querySelector('#suFormStep2 .su-btn-ghost');
+        if (backBtn) backBtn.innerHTML = '<i class="bx bx-left-arrow-alt"></i> ' + s.btnBack;
+
+        /* Divider & login link */
+        document.querySelectorAll('.su-or-divider').forEach(function(el){ el.textContent = s.orFill; });
+        var loginLink = document.getElementById('suLoginLink');
+        if (loginLink) loginLink.innerHTML = s.btnSignin + ' <a href="/portal">' + s.btnSigninLink + '</a>';
+    }
+
+    (function () {
+        var switchEl  = document.getElementById('suLangSwitch');
+        var triggerEl = document.getElementById('suLangTrigger');
+        var labelEl   = document.getElementById('suLangLabel');
+        var opts      = document.querySelectorAll('.su-lang-opt');
+        if (!switchEl || !triggerEl) return;
+
+        triggerEl.addEventListener('click', function (e) {
+            e.stopPropagation();
+            switchEl.classList.toggle('open');
+        });
+
+        opts.forEach(function (opt) {
+            opt.addEventListener('click', function () {
+                var lang = opt.getAttribute('data-lang');
+                labelEl.textContent = lang === 'ta' ? 'த' : 'En';
+                opts.forEach(function (o) { o.classList.remove('su-lang-active'); });
+                opt.classList.add('su-lang-active');
+                switchEl.classList.remove('open');
+                _suApplyI18n(lang);
+            });
+        });
+
+        document.addEventListener('click', function () {
+            switchEl.classList.remove('open');
+        });
+    }());
 
     /* ── State ─────────────────────────────────────────────────────── */
     var currentStep = 1;
@@ -1551,8 +1801,8 @@
                 document.getElementById('suStepIndicator').style.display = 'none';
                 document.getElementById('suFormStep2').style.display = 'none';
                 document.getElementById('suLoginLink').style.display = 'none';
-                document.getElementById('suSuccessUsername').textContent =
-                    document.getElementById('suUsername').value.trim().toLowerCase();
+                document.getElementById('suSuccessEmail').textContent =
+                    document.getElementById('suOrgEmail').value.trim().toLowerCase();
                 document.getElementById('suSuccess').classList.add('show');
             }
         })
@@ -1562,8 +1812,69 @@
         });
     };
 
+    /* ── Google One Tap ───────────────────────────────────────────── */
+    <?php if (!empty(getenv('GOOGLE_CLIENT_ID'))): ?>
+    var _suGoogleClientId = <?php echo json_encode(getenv('GOOGLE_CLIENT_ID')); ?>;
+
+    /**
+     * Called by Google Identity Services when the user confirms One Tap or clicks the button.
+     * POSTs the raw credential to the server for verification and account creation/login.
+     * @param {{credential: string}} response
+     */
+    function _onGoogleCredential(response) {
+        if (!response || !response.credential) return;
+
+        var overlay = document.getElementById('suProcessingOverlay');
+        if (overlay) overlay.classList.add('show');
+
+        var fd = new FormData();
+        fd.append('credential', response.credential);
+
+        fetch('<?php echo base_url('signup/google-auth'); ?>', {
+            method: 'POST',
+            body:   fd,
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (data.Error) {
+                if (overlay) overlay.classList.remove('show');
+                showAlert(data.Message || 'Google sign-in failed. Please try again.');
+            } else {
+                window.location.href = data.Redirect || '<?php echo base_url('dashboard'); ?>';
+            }
+        })
+        .catch(function () {
+            if (overlay) overlay.classList.remove('show');
+            showAlert('An error occurred. Please try again.');
+        });
+    }
+
+    function _initGoogleOneTap() {
+        if (!window.google || !window.google.accounts) return;
+        google.accounts.id.initialize({
+            client_id:             _suGoogleClientId,
+            callback:              _onGoogleCredential,
+            auto_select:           true,
+            cancel_on_tap_outside: true,
+        });
+        google.accounts.id.prompt();
+    }
+
+    window.suTriggerGoogle = function () {
+        window.location.href = '<?php echo base_url('auth/google'); ?>';
+    };
+
+    /* Wait for the async Google script, then initialise */
+    window._suGoogleReady = _initGoogleOneTap;
+    <?php endif; ?>
+
 }());
 </script>
+
+<!-- Google Identity Services (One Tap) -->
+<?php if (!empty(getenv('GOOGLE_CLIENT_ID'))): ?>
+<script src="https://accounts.google.com/gsi/client" async defer onload="window._suGoogleReady && window._suGoogleReady()"></script>
+<?php endif; ?>
 
 </body>
 </html>

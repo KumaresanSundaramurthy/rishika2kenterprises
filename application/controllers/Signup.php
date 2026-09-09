@@ -80,6 +80,126 @@ class Signup extends CI_Controller {
         }
     }
 
+    public function googleAuth(): void {
+        header('Content-Type: application/json');
+        $this->EndReturnData->Error   = false;
+        $this->EndReturnData->Message = '';
+        try {
+
+            $idToken  = trim($this->input->post('credential') ?? '');
+            if (empty($idToken)) throw new ValidationException('No credential received.');
+
+            /* ── Verify token with Google ────────────────────────────────── */
+            $ch = curl_init('https://oauth2.googleapis.com/tokeninfo?id_token=' . urlencode($idToken));
+            curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 10, CURLOPT_SSL_VERIFYPEER => true]);
+            $raw      = curl_exec($ch);
+            $curlErr  = curl_error($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+            if ($curlErr || $httpCode !== 200) throw new Exception('Google token verification failed.');
+
+            $g = json_decode($raw, true);
+            if (empty($g['email']) || empty($g['sub'])) throw new ValidationException('Incomplete Google profile.');
+
+            $clientId = getenv('GOOGLE_CLIENT_ID');
+            if (!empty($clientId) && ($g['aud'] ?? '') !== $clientId) throw new ValidationException('Token audience mismatch.');
+
+            $email = strtolower(trim($g['email']));
+
+            /* ── Check if email already registered ───────────────────────── */
+            $this->load->model('signup_model');
+            $this->load->model('user_model');
+
+            $ReadDb = $this->load->database('ReadDB', TRUE);
+            $ReadDb->db_debug = FALSE;
+
+            $orgExists = $ReadDb->where('EmailAddress', $email)->where('IsDeleted', 0)->count_all_results('Organisation.OrganisationTbl') > 0;
+            $userRow   = $ReadDb->where('EmailAddress', $email)->where('IsDeleted', 0)->where('IsActive', 1)->where('HasLoginAccess', 1)->limit(1)->get('Users.UserTbl')->row();
+
+            if ($orgExists || $userRow) {
+                /* ── Existing account — log them in ──────────────────────── */
+                $userData = $this->user_model->getUserByEmailOrUsername($email);
+                if ($userData->Error || empty($userData->Data)) throw new ValidationException('Unable to load account.');
+                $user = $userData->Data[0];
+
+                if ($user->IsLocked == 1) throw new ValidationException('Account is locked. Contact your administrator.');
+                if (!empty($user->LoginExpiryDateTime) && strtotime($user->LoginExpiryDateTime) < time()) {
+                    $expiryDate = date('d M Y', strtotime($user->LoginExpiryDateTime));
+                    throw new ValidationException('Your portal access expired on ' . $expiryDate . '. Please contact your administrator.');
+                }
+
+                $this->load->library('subscription');
+                $sub = $this->subscription->checkSubscription($user->UserUID);
+                if (!$sub->isValid) throw new ValidationException($sub->message);
+
+                $this->_createLoginSession($user, 'google');
+                $this->EndReturnData->Redirect = base_url('dashboard');
+            } else {
+                /* ── New account — create org + user ─────────────────────── */
+                $result = $this->signup_model->registerOrganisationViaGoogle($g);
+                if ($result->Error) throw new Exception('Registration failed. Please try again.');
+
+                $userData = $this->user_model->getUserByEmailOrUsername($email);
+                if ($userData->Error || empty($userData->Data)) throw new Exception('Account created but login failed.');
+                $user = $userData->Data[0];
+
+                $this->_createLoginSession($user, 'google');
+                $this->EndReturnData->Redirect = base_url('dashboard');
+            }
+
+        } catch (ValidationException $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        } catch (Exception $e) {
+            notifyError('Signup::googleAuth', $e);
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = 'Something went wrong. Please try again.';
+        }
+
+        echo json_encode($this->EndReturnData);
+    }
+
+    /**
+     * Build JWT + Redis session for the given user object (same logic as Login::doLoginForm).
+     * @param object $user   Row from getUserByEmailOrUsername()
+     * @param string $provider 'google' | 'local'
+     */
+    private function _createLoginSession(object $user, string $provider): void {
+        $this->load->model('login_model');
+        $this->load->model('dbwrite_model');
+
+        $jwtPayload = $this->login_model->formatJWTPayload($user);
+        if ($jwtPayload->Error) throw new Exception('JWT build failed: ' . $jwtPayload->Message);
+
+        $newPayload   = clone $jwtPayload;
+        $orgToken     = $newPayload->JWTData['Org']['OrgToken'] ?? '';
+        $sessionToken = bin2hex(random_bytes(32));
+        $jwtPayload->JWTData['User']['SessionToken'] = $sessionToken;
+        $jwtPayload->JWTData['User']['auditId']      = 0;
+
+        $jwtResult = $this->login_model->setJwtToken($user, $jwtPayload);
+        if ($jwtResult->Error) throw new Exception('JWT sign failed: ' . $jwtResult->Message);
+
+        $this->dbwrite_model->updateData('Users', 'UserTbl', [
+            'LastLogin'           => date('Y-m-d H:i:s'),
+            'CurrentSessionToken' => $sessionToken,
+            'LastLoginOn'         => date('Y-m-d H:i:s'),
+            'LastLoginIP'         => $this->input->ip_address(),
+            'LastLoginDevice'     => $provider . ' oauth',
+        ], ['UserUID' => $user->UserUID]);
+
+        $loginExpiry = (int) getenv('LOGIN_EXPIRE_SECS');
+        $userUID     = $user->UserUID;
+
+        $this->redisservice->setCache('UserActiveSession_' . $userUID, $sessionToken, $loginExpiry);
+        $this->redisservice->setUserCache('menus',       $userUID, $newPayload->JWTData['UserMainModule'] ?? [], $loginExpiry, $orgToken);
+        $this->redisservice->setUserCache('submenus',    $userUID, $newPayload->JWTData['UserSubModule']  ?? [], $loginExpiry, $orgToken);
+        $this->redisservice->setUserCache('modules',     $userUID, $newPayload->JWTData['ModuleInfo']     ?? [], $loginExpiry, $orgToken);
+        $this->redisservice->setUserCache('permissions', $userUID, $newPayload->JWTData['Permissions']    ?? [], $loginExpiry, $orgToken);
+        $this->redisservice->setUserCache('userinfo',    $userUID, $user,                                        $loginExpiry, $orgToken);
+    }
+
     public function doSignup(): void {
         try {
             $post = $this->input->post();

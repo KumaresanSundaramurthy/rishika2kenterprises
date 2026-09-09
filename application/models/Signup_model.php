@@ -247,6 +247,13 @@ class Signup_model extends CI_Model {
 
             $this->dbwrite_model->commitTransaction();
 
+            // Send verification email after commit (non-critical — failure does not roll back)
+            $this->sendVerificationEmail(
+                $orgUID,
+                trim($formData['AdminFirstName']),
+                strtolower(trim($formData['OrgEmail']))
+            );
+
             $this->EndReturnData->Error   = false;
             $this->EndReturnData->Message = 'Success';
             $this->EndReturnData->OrgUID  = $orgUID;
@@ -316,6 +323,314 @@ class Signup_model extends CI_Model {
             $exists = $this->ReadDb->where('OrgToken', $token)->count_all_results('Organisation.OrganisationTbl');
         } while ($exists > 0);
         return $token;
+    }
+
+    /**
+     * @param array<string,string> $g  Verified Google profile fields
+     */
+    public function registerOrganisationViaGoogle(array $g): object {
+
+        $this->EndReturnData = new stdClass();
+        $this->load->model('dbwrite_model');
+
+        try {
+
+            $this->dbwrite_model->startTransaction();
+            $WriteDb = $this->dbwrite_model->getWriteDb();
+            $now = date('Y-m-d H:i:s');
+
+            $firstName = trim($g['given_name']  ?? '');
+            $lastName  = trim($g['family_name'] ?? '');
+            $email     = strtolower(trim($g['email']   ?? ''));
+            $picture   = trim($g['picture']  ?? '');
+            $googleSub = trim($g['sub']      ?? '');
+            $locale    = trim($g['locale']   ?? '');
+            $hd        = trim($g['hd']       ?? '');
+
+            $orgName   = $firstName ?: 'Organisation';
+            $shortCode = $this->_generateShortCode($orgName);
+            $orgToken  = $this->_generateOrgToken();
+            $username  = $this->_generateUniqueUsername($firstName);
+
+            /* ── OrganisationTbl ──────────────────────────────────────── */
+            $orgResult = $this->dbwrite_model->insertData('Organisation', 'OrganisationTbl', [
+                'Name'            => $orgName,
+                'BrandName'       => $orgName,
+                'ShortCode'       => $shortCode,
+                'OrgToken'        => $orgToken,
+                'CountryCode'     => '+91',
+                'CountryISO2'     => 'IN',
+                'MobileNumber'    => null,
+                'EmailAddress'    => $email,
+                'GSTIN'           => null,
+                'StateCode'       => null,
+                'StateName'       => null,
+                'TimezoneUID'     => 181,
+                'IsEmailVerified' => 1,
+                'IsActive'        => 1,
+                'IsDeleted'       => 0,
+                'CreatedBy'       => 0,
+                'UpdatedBy'       => 0,
+                'CreatedOn'       => $now,
+            ]);
+            if ($orgResult->Error) throw new Exception('Organisation insert failed: ' . $orgResult->Message);
+            $orgUID = (int) $orgResult->ID;
+
+            /* ── BranchesTbl ─────────────────────────────────────────── */
+            $branchResult = $this->dbwrite_model->insertData('Organisation', 'BranchesTbl', [
+                'OrgUID'          => $orgUID,
+                'Name'            => $orgName,
+                'BranchCode'      => $shortCode,
+                'ContactPerson'   => trim($firstName . ' ' . $lastName),
+                'MobileNumber'    => null,
+                'CountryCode'     => '+91',
+                'CountryISO2'     => 'IN',
+                'EmailAddress'    => $email,
+                'GSTIN'           => null,
+                'StateText'       => null,
+                'IsHeadOffice'    => 1,
+                'IsWarehouse'     => 1,
+                'IsSalesPoint'    => 1,
+                'IsDispatchPoint' => 1,
+                'IsServiceCenter' => 0,
+                'IsActive'        => 1,
+                'IsDeleted'       => 0,
+                'CreatedBy'       => 0,
+                'UpdatedBy'       => 0,
+                'CreatedOn'       => $now,
+            ]);
+            if ($branchResult->Error) throw new Exception('Branch insert failed: ' . $branchResult->Message);
+            $branchUID = (int) $branchResult->ID;
+
+            /* ── OrgSettingsTbl ──────────────────────────────────────── */
+            $settingsResult = $this->dbwrite_model->insertData('Settings', 'OrgSettingsTbl', [
+                'OrgSettingsUID'      => $orgUID,
+                'OrgUID'              => $orgUID,
+                'CurrenySymbol'       => '₹',
+                'FYStartMonth'        => 4,
+                'RowLimit'            => 10,
+                'QtyMaxLength'        => 2,
+                'SerialNoDisplay'     => 0,
+                'EnableStorage'       => 0,
+                'MandatoryStorage'    => 0,
+                'MaxShippingAddr'     => 3,
+                'FormDateFormat'      => 'd-m-Y',
+                'ListDateFormat'      => 'd-m-Y',
+                'PrintDateFormat'     => 'd-m-Y',
+                'FormDateTimeFormat'  => 'd-m-Y h:i A',
+                'ListDateTimeFormat'  => 'd-m-Y h:i A',
+                'PrintDateTimeFormat' => 'd-m-Y h:i A',
+                'ShowStats'           => 0,
+                'StatsDefaultOpen'    => 0,
+                'EnableAIAssistant'   => 'No',
+                'TwoStepLogin'        => 1,
+                'EmpCodePrefix'       => $shortCode,
+                'EmpCodeSeparator'    => '-',
+                'EmpCodeDigits'       => 4,
+            ]);
+            if ($settingsResult->Error) throw new Exception('Settings insert failed: ' . $settingsResult->Message);
+
+            /* ── RolesTbl — Super Admin ───────────────────────────────── */
+            $roleResult = $this->dbwrite_model->insertData('UserRole', 'RolesTbl', [
+                'Name'      => 'Super Admin',
+                'OrgUID'    => $orgUID,
+                'BranchUID' => $branchUID,
+                'IsDefault' => 1,
+                'IsGlobal'  => 0,
+                'IsActive'  => 1,
+                'IsDeleted' => 0,
+                'CreatedBy' => 0,
+                'UpdatedBy' => 0,
+                'CreatedOn' => $now,
+            ]);
+            if ($roleResult->Error) throw new Exception('Role insert failed: ' . $roleResult->Message);
+            $roleUID = (int) $roleResult->ID;
+
+            /* ── UserTbl ─────────────────────────────────────────────── */
+            $userCode   = $shortCode . '-' . str_pad(1, 4, '0', STR_PAD_LEFT);
+            $userResult = $this->dbwrite_model->insertData('Users', 'UserTbl', [
+                'EmployeeCode'   => $userCode,
+                'FirstName'      => $firstName,
+                'LastName'       => $lastName ?: null,
+                'UserName'       => $username,
+                'EmailAddress'   => $email,
+                'Password'       => null,
+                'Image'          => $picture   ?: null,
+                'GoogleSub'      => $googleSub ?: null,
+                'GoogleLocale'   => $locale    ?: null,
+                'GoogleHD'       => $hd        ?: null,
+                'AuthProvider'   => 'google',
+                'OrgUID'         => $orgUID,
+                'BranchUID'      => $branchUID,
+                'RoleUID'        => $roleUID,
+                'CountryCode'    => '+91',
+                'CountryISO2'    => 'IN',
+                'MobileNumber'   => null,
+                'HasLoginAccess' => 1,
+                'IsPasswordSet'  => 0,
+                'IsActive'       => 1,
+                'IsDeleted'      => 0,
+                'UILanguage'     => 'en',
+                'CreatedBy'      => 0,
+                'UpdatedBy'      => 0,
+                'CreatedOn'      => $now,
+            ]);
+            if ($userResult->Error) throw new Exception('User insert failed: ' . $userResult->Message);
+            $userUID = (int) $userResult->ID;
+
+            /* Back-fill CreatedBy/UpdatedBy */
+            $WriteDb->db_debug = FALSE;
+            $WriteDb->where('OrgUID',    $orgUID)->update('Organisation.OrganisationTbl', ['CreatedBy' => $userUID, 'UpdatedBy' => $userUID]);
+            $WriteDb->where('BranchUID', $branchUID)->update('Organisation.BranchesTbl', ['CreatedBy' => $userUID, 'UpdatedBy' => $userUID]);
+            $WriteDb->where('RoleUID',   $roleUID)->update('UserRole.RolesTbl',           ['CreatedBy' => $userUID, 'UpdatedBy' => $userUID]);
+            $WriteDb->where('UserUID',   $userUID)->update('Users.UserTbl',               ['CreatedBy' => $userUID, 'UpdatedBy' => $userUID]);
+
+            /* Additional default roles */
+            foreach (['Admin', 'Sales Manager', 'Sales Executive', 'Accountant'] as $roleName) {
+                $this->dbwrite_model->insertData('UserRole', 'RolesTbl', [
+                    'Name'      => $roleName,
+                    'OrgUID'    => $orgUID,
+                    'BranchUID' => $branchUID,
+                    'IsDefault' => 1,
+                    'IsGlobal'  => 0,
+                    'IsActive'  => 1,
+                    'IsDeleted' => 0,
+                    'CreatedBy' => $userUID,
+                    'UpdatedBy' => $userUID,
+                    'CreatedOn' => $now,
+                ]);
+            }
+
+            /* UserBranchAccessTbl */
+            $this->dbwrite_model->insertData('Users', 'UserBranchAccessTbl', [
+                'UserUID'   => $userUID,
+                'OrgUID'    => $orgUID,
+                'BranchUID' => $branchUID,
+                'IsDefault' => 1,
+                'IsActive'  => 1,
+            ]);
+
+            $this->_assignTrialSubscription($WriteDb, $orgUID, $now);
+            $this->_copyMenusFromTemplate($WriteDb, $orgUID, $roleUID, $userUID);
+
+            $this->dbwrite_model->commitTransaction();
+
+            $this->EndReturnData->Error   = false;
+            $this->EndReturnData->Message = 'Success';
+            $this->EndReturnData->OrgUID  = $orgUID;
+            return $this->EndReturnData;
+
+        } catch (Exception $e) {
+            try { $this->dbwrite_model->rollbackTransaction(); } catch (Exception $_) {}
+            notifyError('Signup_model::registerOrganisationViaGoogle', $e);
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+            return $this->EndReturnData;
+        }
+
+    }
+
+    private function _generateUniqueUsername(string $name): string {
+        $base    = strtolower(preg_replace('/[^a-z0-9]/i', '', $name));
+        $base    = substr($base ?: 'user', 0, 12);
+        $attempt = $base;
+        $i       = 1;
+        $this->ReadDb->db_debug = FALSE;
+        while ($this->ReadDb->where('UserName', $attempt)->where('IsDeleted', 0)->count_all_results('Users.UserTbl') > 0) {
+            $attempt = $base . $i++;
+        }
+        return $attempt;
+    }
+
+    public function sendVerificationEmail(int $orgUID, string $firstName, string $email): void {
+        $this->load->library('telegramnotifier');
+        try {
+            /* ── Step 1: validate inputs ──────────────────────────────────── */
+            if ($orgUID <= 0 || empty($email)) {
+                throw new Exception('sendVerificationEmail called with invalid orgUID or empty email. orgUID=' . $orgUID . ' email=' . $email);
+            }
+
+            /* ── Step 2: generate token and update DB ─────────────────────── */
+            $this->load->model('dbwrite_model');
+            $token   = bin2hex(random_bytes(32));
+            $expiry  = date('Y-m-d H:i:s', strtotime('+24 hours'));
+            $WriteDb = $this->dbwrite_model->getWriteDb();
+            $WriteDb->db_debug = FALSE;
+
+            $updated = $WriteDb->where('OrgUID', $orgUID)->update('Organisation.OrganisationTbl', [
+                'EmailVerifyToken'  => $token,
+                'EmailVerifyExpiry' => $expiry,
+            ]);
+
+            if (!$updated) {
+                $dbErr = $WriteDb->error();
+                throw new Exception('DB update failed for OrgUID=' . $orgUID . '. ' . ($dbErr['message'] ?? 'Unknown DB error'));
+            }
+
+            /* ── Step 3: build and send email via Brevo ───────────────────── */
+            $verifyUrl = base_url('verify-email/' . $token);
+            $fromEmail = getenv('MAIL_FROM_EMAIL') ?: getenv('MAIL_USERNAME');
+            $fromName  = getenv('MAIL_FROM_NAME')  ?: 'R2K Enterprises';
+            $apiKey    = getenv('BREVO_API_KEY');
+
+            if (empty($apiKey)) {
+                throw new Exception('BREVO_API_KEY is not set in .env');
+            }
+            if (empty($fromEmail)) {
+                throw new Exception('MAIL_FROM_EMAIL is not set in .env');
+            }
+
+            $htmlBody = '<!DOCTYPE html><html><head><meta charset="UTF-8">'
+                . '<style>body{font-family:Arial,sans-serif;font-size:14px;color:#333;line-height:1.6;margin:0;padding:20px;}'
+                . '.btn{display:inline-block;padding:12px 28px;background:#f59e0b;color:#0a1628;text-decoration:none;border-radius:8px;font-size:14px;font-weight:700;}'
+                . '</style></head><body>'
+                . '<p>Hi ' . htmlspecialchars($firstName) . ',</p>'
+                . '<p>Thank you for signing up! Please verify your email address by clicking the button below:</p>'
+                . '<p style="margin:24px 0;"><a class="btn" href="' . $verifyUrl . '">Verify Email Address</a></p>'
+                . '<p>If the button does not work, copy and paste this link into your browser:<br>'
+                . '<a href="' . $verifyUrl . '">' . $verifyUrl . '</a></p>'
+                . '<p>This link will expire in <strong>24 hours</strong>.</p>'
+                . '<p>Regards,<br>' . $fromName . '</p>'
+                . '</body></html>';
+
+            $payload = json_encode([
+                'sender'      => ['name' => $fromName, 'email' => $fromEmail],
+                'to'          => [['email' => $email, 'name' => $firstName]],
+                'subject'     => 'Verify your email address — ' . $fromName,
+                'htmlContent' => $htmlBody,
+            ]);
+
+            $ch = curl_init('https://api.brevo.com/v3/smtp/email');
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST           => true,
+                CURLOPT_POSTFIELDS     => $payload,
+                CURLOPT_HTTPHEADER     => [
+                    'accept: application/json',
+                    'api-key: ' . $apiKey,
+                    'content-type: application/json',
+                ],
+                CURLOPT_TIMEOUT => 30,
+            ]);
+            $response = curl_exec($ch);
+            $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlErr  = curl_error($ch);
+            curl_close($ch);
+
+            if ($curlErr) {
+                throw new Exception('Brevo cURL error: ' . $curlErr);
+            }
+            if ($httpCode < 200 || $httpCode >= 300) {
+                throw new Exception('Brevo API HTTP ' . $httpCode . ' — ' . $response);
+            }
+
+        } catch (Throwable $e) {
+            Telegramnotifier::error('Signup_model::sendVerificationEmail', $e, [
+                'OrgUID'    => $orgUID,
+                'ToEmail'   => $email,
+                'FirstName' => $firstName,
+            ]);
+        }
     }
 
     private function _copyMenusFromTemplate(object $WriteDb, int $orgUID, int $roleUID, int $userUID): void {

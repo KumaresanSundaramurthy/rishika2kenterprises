@@ -329,6 +329,16 @@ class Users extends MY_Controller {
             if ($Incentives  !== NULL)     $userData['Incentives']      = $Incentives;
             if ($FixedDeductions !== NULL) $userData['FixedDeductions'] = $FixedDeductions;
 
+            // Portal access expiry — only meaningful for login users; store end-of-day (23:59:59)
+            $LoginExpiryDateTime = NULL;
+            if ($HasLoginAccess) {
+                $rawExpiry = trim($PostData['LoginExpiryDateTime'] ?? '');
+                if (!empty($rawExpiry)) {
+                    $LoginExpiryDateTime = date('Y-m-d', strtotime($rawExpiry)) . ' 23:59:59';
+                }
+                $userData['LoginExpiryDateTime'] = $LoginExpiryDateTime;
+            }
+
             if ($UserUID > 0) {
                 // Edit
                 if ($HasLoginAccess) {

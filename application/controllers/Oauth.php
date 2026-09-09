@@ -114,8 +114,11 @@ class Oauth extends CI_Controller {
                 throw new Exception('Your Google email address is not verified. Please verify it and try again.');
             }
 
-            $this->_completeOAuthLogin($googleUser['email'], 'GOOGLE');
+            $this->_completeOAuthLogin($googleUser['email'], 'GOOGLE', $googleUser);
 
+        } catch (ValidationException $e) {
+            $this->session->set_flashdata('danger', $e->getMessage());
+            redirect('portal', 'refresh');
         } catch (Exception $e) {
             notifyError('Oauth::googleCallback', $e);
             $this->session->set_flashdata('danger', $e->getMessage());
@@ -181,6 +184,9 @@ class Oauth extends CI_Controller {
 
             $this->_completeOAuthLogin($fbUser['email'], 'FACEBOOK');
 
+        } catch (ValidationException $e) {
+            $this->session->set_flashdata('danger', $e->getMessage());
+            redirect('portal', 'refresh');
         } catch (Exception $e) {
             notifyError('Oauth::facebookCallback', $e);
             $this->session->set_flashdata('danger', $e->getMessage());
@@ -191,18 +197,50 @@ class Oauth extends CI_Controller {
     /* ===================================================================
      * Shared — complete login after OAuth email verified
      * =================================================================== */
-    private function _completeOAuthLogin($email, $provider) {
+    private function _completeOAuthLogin(string $email, string $provider, array $googleProfile = []) {
         $this->load->model('user_model');
         $userData = $this->user_model->getUserByEmailOrUsername($email);
 
         if ($userData->Error || count($userData->Data) !== 1) {
-            throw new Exception('No account found for ' . htmlspecialchars($email, ENT_QUOTES) . '. Please contact your administrator.');
+            /* Email not found — create new account if this is a Google login */
+            if ($provider === 'GOOGLE' && !empty($googleProfile)) {
+                $this->load->model('signup_model');
+                $result = $this->signup_model->registerOrganisationViaGoogle($googleProfile);
+                if ($result->Error) throw new Exception('Account creation failed. Please try again.');
+                $userData = $this->user_model->getUserByEmailOrUsername($email);
+                if ($userData->Error || count($userData->Data) !== 1) {
+                    throw new Exception('Account created but login failed. Please contact support.');
+                }
+            } else {
+                throw new Exception('No account found for ' . htmlspecialchars($email, ENT_QUOTES) . '. Please contact your administrator.');
+            }
         }
 
         $user = $userData->Data[0];
 
         if ((int)$user->IsLocked === 1) {
             throw new Exception('Account is locked. Please contact your administrator.');
+        }
+
+        // Check user-level portal access expiry
+        if (!empty($user->LoginExpiryDateTime) && strtotime($user->LoginExpiryDateTime) < time()) {
+            $expiryDate = date('d M Y', strtotime($user->LoginExpiryDateTime));
+            throw new ValidationException('Your portal access expired on ' . $expiryDate . '. Please contact your administrator.');
+        }
+
+        // Check org email verification — skip for Google/social OAuth (provider already verified the email)
+        if ($provider === 'LOCAL') {
+            $ReadDb = $this->load->database('ReadDB', TRUE);
+            $ReadDb->db_debug = FALSE;
+            $org = $ReadDb->select('IsEmailVerified, EmailAddress')
+                ->from('Organisation.OrganisationTbl')
+                ->where('OrgUID', (int)$user->UserOrgUID)
+                ->limit(1)
+                ->get()->row();
+            if ($org && !(int)(bool)$org->IsEmailVerified) {
+                $this->session->set_flashdata('unverified_org_email', strtolower(trim($org->EmailAddress ?? '')));
+                throw new ValidationException('Your organisation email address has not been verified. Please check your inbox for the verification link.');
+            }
         }
 
         // Subscription check — same as normal login

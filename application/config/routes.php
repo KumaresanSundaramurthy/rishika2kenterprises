@@ -88,8 +88,16 @@ $route['subscription']            = 'subscription/index';
 // Signup (public — no JWT required)
 $route['signup']                  = 'signup/index';
 $route['signup/doSignup']         = 'signup/doSignup';
+$route['signup/google-auth']      = 'signup/googleAuth';
 $route['signup/checkEmail']       = 'signup/checkEmail';
 $route['signup/checkUsername']    = 'signup/checkUsername';
+$route['signup/checkMobile']      = 'signup/checkMobile';
+$route['signup/checkGSTIN']       = 'signup/checkGSTIN';
+
+// Email verification (public — no JWT required)
+$route['verify-email/(:any)']     = 'login/verifyEmail/$1';
+$route['verify-email']            = 'login/verifyEmail';
+$route['resend-verification']     = 'login/resendVerificationEmail';
 
 // Login
 $route['portal'] = 'login/login';

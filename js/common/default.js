@@ -2276,3 +2276,30 @@ function loadCachedFilterData(cacheKey, fallbackUrl, useOrgKey) {
 
     return loadFromApi();
 }
+
+/* ── Tab Idle Reload ─────────────────────────────────────────────────────────
+ * When the user returns to this tab after being away for more than 30 minutes,
+ * reload the page so the server can redirect to /portal if the session expired.
+ * lastActiveTime is refreshed on any user interaction so genuine active sessions
+ * are never disrupted mid-work.
+ * ─────────────────────────────────────────────────────────────────────────── */
+(function () {
+    var IDLE_THRESHOLD_MS = 30 * 60 * 1000; /* 30 minutes */
+    var lastActiveTime    = Date.now();
+
+    /* Update timestamp on any meaningful user interaction */
+    ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'].forEach(function (evt) {
+        document.addEventListener(evt, function () {
+            lastActiveTime = Date.now();
+        }, { passive: true, capture: true });
+    });
+
+    /* On tab return, check how long the user was away */
+    document.addEventListener('visibilitychange', function () {
+        if (document.hidden) return;
+        var awayMs = Date.now() - lastActiveTime;
+        if (awayMs >= IDLE_THRESHOLD_MS) {
+            window.location.reload();
+        }
+    });
+}());

@@ -33,6 +33,111 @@ class Login extends CI_Controller {
         ]);
     }
 
+    public function verifyEmail(string $token = ''): void {
+        $token   = trim($token ?: $this->input->get('token'));
+        $status  = 'invalid';
+        $message = 'This verification link is invalid. It may have already been used or the link is incorrect.';
+
+        if (!empty($token)) {
+            try {
+                $ReadDb = $this->load->database('ReadDB', TRUE);
+                $ReadDb->db_debug = FALSE;
+
+                /* Fetch the token row regardless of expiry to distinguish all cases */
+                $row = $ReadDb->select('OrgUID, IsEmailVerified, EmailVerifyExpiry')
+                    ->from('Organisation.OrganisationTbl')
+                    ->where('EmailVerifyToken', $token)
+                    ->limit(1)
+                    ->get()->row();
+
+                if (!$row) {
+                    /* Token not found — invalid or already cleared after previous success */
+                    $status  = 'invalid';
+                    $message = 'This verification link is invalid. It may have already been used or the link is incorrect.';
+                } elseif ((int)(bool)$row->IsEmailVerified === 1) {
+                    /* Email already verified */
+                    $status  = 'already_verified';
+                    $message = 'Your email address has already been verified. You can log in now.';
+                } elseif (strtotime($row->EmailVerifyExpiry) < time()) {
+                    /* Token found but expired */
+                    $status  = 'expired';
+                    $message = 'This verification link has expired. Links are valid for 24 hours only. Please request a new one below.';
+                } else {
+                    /* Valid — verify now */
+                    $this->load->model('dbwrite_model');
+                    $WriteDb = $this->dbwrite_model->getWriteDb();
+                    $WriteDb->db_debug = FALSE;
+                    $WriteDb->where('OrgUID', (int)$row->OrgUID)->update('Organisation.OrganisationTbl', [
+                        'IsEmailVerified'   => 1,
+                        'EmailVerifyToken'  => null,
+                        'EmailVerifyExpiry' => null,
+                    ]);
+                    $status  = 'success';
+                    $message = 'Your email address has been verified successfully. You can now log in.';
+                }
+            } catch (Throwable $e) {
+                notifyError('Login::verifyEmail', $e);
+            }
+        }
+
+        $this->load->view('login/verify_email', [
+            'status'  => $status,
+            'message' => $message,
+        ]);
+    }
+
+    public function resendVerificationEmail(): void {
+        header('Content-Type: application/json');
+        $this->load->library('telegramnotifier');
+
+        $result          = new stdClass();
+        $result->Error   = false;
+        /* Generic success always returned — prevents account enumeration */
+        $result->Message = 'If this account is registered and unverified, a new verification link has been sent. Please check your inbox.';
+
+        try {
+            $identifier = strtolower(trim($this->input->post('identifier') ?? ''));
+            if (empty($identifier)) {
+                throw new Exception('Please enter your username or email.');
+            }
+
+            $ReadDb = $this->load->database('ReadDB', TRUE);
+            $ReadDb->db_debug = FALSE;
+
+            /* Look up the org directly by its email address, then join to get admin's first name */
+            $row = $ReadDb->select('O.OrgUID, O.EmailAddress AS OrgEmail, U.FirstName')
+                ->from('Organisation.OrganisationTbl O')
+                ->join('Users.UserTbl U', 'U.OrgUID = O.OrgUID AND U.IsActive = 1 AND U.IsDeleted = 0', 'left')
+                ->where('O.EmailAddress',    $identifier)
+                ->where('O.IsEmailVerified', 0)
+                ->order_by('U.UserUID', 'ASC')
+                ->limit(1)
+                ->get()->row();
+
+            if (!$row || empty($row->OrgUID)) {
+                Telegramnotifier::alert('resendVerificationEmail: user/org not found', [
+                    'Identifier' => $identifier,
+                    'LastQuery'  => $ReadDb->last_query(),
+                ]);
+            } else {
+                $this->load->model('signup_model');
+                $this->signup_model->sendVerificationEmail(
+                    (int) $row->OrgUID,
+                    $row->FirstName ?: 'there',
+                    strtolower(trim($row->OrgEmail))
+                );
+            }
+        } catch (Exception $e) {
+            $result->Error   = true;
+            $result->Message = $e->getMessage();
+            Telegramnotifier::error('Login::resendVerificationEmail', $e, ['Identifier' => $this->input->post('identifier') ?? '']);
+        } catch (Throwable $e) {
+            Telegramnotifier::error('Login::resendVerificationEmail', $e, ['Identifier' => $this->input->post('identifier') ?? '']);
+        }
+
+        echo json_encode($result);
+    }
+
     public function doLoginForm() {
 
         try {
@@ -749,6 +854,29 @@ class Login extends CI_Controller {
 
             if ($user->IsLocked == 1) {
                 throw new Exception('Account is locked. Contact your administrator.');
+            }
+
+            if (($user->AuthProvider ?? 'local') === 'google') {
+                throw new Exception('This account was created with Google. Please use Continue with Google to sign in.');
+            }
+
+            // Check user-level portal access expiry (NULL = no expiry, inherits org subscription)
+            if (!empty($user->LoginExpiryDateTime) && strtotime($user->LoginExpiryDateTime) < time()) {
+                $expiryDate = date('d M Y', strtotime($user->LoginExpiryDateTime));
+                throw new Exception('Your portal access expired on ' . $expiryDate . '. Please contact your administrator.');
+            }
+
+            // Check org email verification before allowing Step 2
+            if (!(int)(bool)$user->IsEmailVerified) {
+                $this->EndReturnData->Error                  = true;
+                $this->EndReturnData->NeedsEmailVerification = true;
+                $this->EndReturnData->OrgEmail               = strtolower(trim($user->OrgEmail ?? ''));
+                $this->EndReturnData->Message                = 'Your organisation email address has not been verified. Please check your inbox for the verification link.';
+                $this->output->set_status_header(200)
+                    ->set_content_type('application/json', 'utf-8')
+                    ->set_output(json_encode($this->EndReturnData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES))
+                    ->_display();
+                exit;
             }
 
             // Check subscription before allowing Step 2

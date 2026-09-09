@@ -207,6 +207,21 @@ $(function () {
         position     : 'below left',
     });
 
+    // ── Portal Access Expiry picker ────────────────────────────────────
+    var _loginExpiryFp = flatpickr('#UserLoginExpiry', {
+        dateFormat   : 'Y-m-d',
+        altInput     : true,
+        altFormat    : _transFormDateFormat,
+        allowInput   : false,
+        disableMobile: true,
+        static       : true,
+        position     : 'below left',
+        minDate      : 'today',
+    });
+    $(document).on('click', '#UserLoginExpiryClear', function () {
+        _loginExpiryFp.clear();
+    });
+
     // ── URL state helper ───────────────────────────────────────────────
     function _updateUrl(status) {
         var slug = (status || 'All').toLowerCase().replace(' ', '');
@@ -399,6 +414,7 @@ $(function () {
         $('#UserRoleUID').val('');
         $('#UserIsActive').prop('checked', true);
         $('#UserIsLocked').prop('checked', false);
+        _loginExpiryFp.clear();
         // Reset address
         if (typeof resetAddrData === 'function') resetAddrData();
         // Show/hide create-only vs edit-only
@@ -491,6 +507,12 @@ $(function () {
                     $('#lastLoginDisplay').text(d.LastLoginOn || '—');
                     $('#pwdSetupInfo').addClass('d-none');
                     $('#UserEmail').prop('readonly', true);
+                    // Portal access expiry
+                    if (d.LoginExpiryDateTime) {
+                        _loginExpiryFp.setDate(d.LoginExpiryDateTime.substring(0, 10), false);
+                    } else {
+                        _loginExpiryFp.clear();
+                    }
                 }
 
                 // Addresses
@@ -573,9 +595,10 @@ $(function () {
         // Login
         if (hasLogin) {
             if (!isEdit) fd.append('UserName', username);
-            fd.append('RoleUID',   roleUID);
-            fd.append('IsActive',  $('#UserIsActive').is(':checked') ? 1 : 0);
-            fd.append('IsLocked',  $('#UserIsLocked').is(':checked') ? 1 : 0);
+            fd.append('RoleUID',            roleUID);
+            fd.append('IsActive',           $('#UserIsActive').is(':checked') ? 1 : 0);
+            fd.append('IsLocked',           $('#UserIsLocked').is(':checked') ? 1 : 0);
+            fd.append('LoginExpiryDateTime', $('#UserLoginExpiry').val() || '');
         }
         // Addresses
         if (billingAddrData)  {

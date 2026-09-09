@@ -49,7 +49,9 @@ class User_model extends CI_Model {
                 'Org.StateName as OrgStateName',
                 'User.UILanguage as UILanguage',
                 'User.LastLoginOn as LastLoginOn',
-                'User.LastLoginDevice as LastLoginDevice'
+                'User.LastLoginDevice as LastLoginDevice',
+                'User.LoginExpiryDateTime as LoginExpiryDateTime',
+                'User.AuthProvider as AuthProvider'
             ]);
             $this->ReadDb->from('Users.UserTbl as User');
             $this->ReadDb->join('UserRole.RolesTbl as Roles', 'Roles.RoleUID = User.RoleUID', 'left');
@@ -165,15 +167,16 @@ class User_model extends CI_Model {
     public function getUserForStepOne(string $identifier): ?object {
         try {
             $this->ReadDb->db_debug = FALSE;
-            $this->ReadDb->select('UserUID, UserName, FirstName, LastName, IsLocked, Image');
-            $this->ReadDb->from('Users.UserTbl');
+            $this->ReadDb->select('U.UserUID, U.UserName, U.FirstName, U.LastName, U.IsLocked, U.Image, U.OrgUID, U.LoginExpiryDateTime, U.AuthProvider, O.IsEmailVerified, O.EmailAddress AS OrgEmail');
+            $this->ReadDb->from('Users.UserTbl U');
+            $this->ReadDb->join('Organisation.OrganisationTbl O', 'O.OrgUID = U.OrgUID', 'left');
             $this->ReadDb->group_start();
-            $this->ReadDb->where('UserName', $identifier);
-            $this->ReadDb->or_where('EmailAddress', $identifier);
+            $this->ReadDb->where('U.UserName', $identifier);
+            $this->ReadDb->or_where('U.EmailAddress', $identifier);
             $this->ReadDb->group_end();
-            $this->ReadDb->where('IsActive',       1);
-            $this->ReadDb->where('IsDeleted',      0);
-            $this->ReadDb->where('HasLoginAccess', 1);
+            $this->ReadDb->where('U.IsActive',       1);
+            $this->ReadDb->where('U.IsDeleted',      0);
+            $this->ReadDb->where('U.HasLoginAccess', 1);
             $this->ReadDb->limit(1);
             $row = $this->ReadDb->get()->row();
             return $row ?: null;

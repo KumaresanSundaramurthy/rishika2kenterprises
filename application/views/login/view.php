@@ -409,6 +409,74 @@
     color: #6ee7b7;
 }
 
+/* Email sub-line shown only for OAuth redirect errors */
+.lr-error-sub {
+    margin-top: 6px;
+    font-size: 12px;
+    color: rgba(252,165,165,0.75);
+    word-break: break-all;
+}
+
+/* Resend verification link inside alert */
+.lr-resend-wrap {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(252,165,165,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+.lr-resend-hint {
+    font-size: 12px;
+    color: rgba(252,165,165,0.7);
+}
+.lr-resend-btn {
+    flex-shrink: 0;
+    padding: 5px 12px;
+    border: 1px solid rgba(252,165,165,0.4);
+    border-radius: 6px;
+    background: transparent;
+    color: #fca5a5;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+.lr-resend-btn:hover:not(:disabled) {
+    background: rgba(252,165,165,0.12);
+    border-color: rgba(252,165,165,0.7);
+}
+.lr-resend-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Toast notification */
+.lr-toast {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%) translateY(16px);
+    background: #0f1f3a;
+    border: 1px solid rgba(52,211,153,0.4);
+    color: #6ee7b7;
+    padding: 11px 20px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    z-index: 9999;
+    pointer-events: none;
+}
+.lr-toast.lr-toast--error {
+    border-color: rgba(248,113,113,0.4);
+    color: #fca5a5;
+}
+.lr-toast.lr-toast--show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
 /* Divider */
 .lr-divider {
     height: 1px;
@@ -769,7 +837,14 @@
                 </div>
 
                 <div id="lrStep1Error" class="lr-alerts" style="display:none;">
-                    <div class="alert"></div>
+                    <div class="alert">
+                        <span id="lrStep1ErrorMsg"></span>
+                        <div id="lrStep1ErrorSub" class="lr-error-sub" style="display:none;"></div>
+                        <div id="lrResendWrap" class="lr-resend-wrap" style="display:none;">
+                            <span class="lr-resend-hint">Didn't receive it?</span>
+                            <button type="button" id="lrResendBtn" class="lr-resend-btn">Resend Email</button>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="lr-field">
@@ -1079,15 +1154,130 @@
         var submitBtn    = document.getElementById('lrSubmit');
         var loginForm    = document.getElementById('doLoginForm');
         var unameInput   = document.getElementById('UserName');
+        var resendWrap    = document.getElementById('lrResendWrap');
+        var resendBtn     = document.getElementById('lrResendBtn');
+        var step1ErrorMsg = document.getElementById('lrStep1ErrorMsg');
+        var step1ErrorSub = document.getElementById('lrStep1ErrorSub');
 
+        /* ── Toast ──────────────────────────────────────────────────── */
+        var _lrToastTimer = null;
+        function lrToast(msg, isError) {
+            var el = document.getElementById('lrToast');
+            if (!el) {
+                el = document.createElement('div');
+                el.id = 'lrToast';
+                el.className = 'lr-toast';
+                document.body.appendChild(el);
+            }
+            clearTimeout(_lrToastTimer);
+            el.textContent = msg;
+            el.className   = 'lr-toast' + (isError ? ' lr-toast--error' : '');
+            requestAnimationFrame(function () {
+                requestAnimationFrame(function () { el.classList.add('lr-toast--show'); });
+            });
+            _lrToastTimer = setTimeout(function () {
+                el.classList.remove('lr-toast--show');
+            }, 4000);
+        }
 
-        function showStep1Error(msg) {
-            step1Error.querySelector('.alert').textContent = msg;
+        /* ── Resend verification ─────────────────────────────────────── */
+        var _pendingOrgEmail = '';
+
+        function setStep1FormDisabled(disabled) {
+            if (unameInput) {
+                unameInput.disabled = disabled;
+                unameInput.style.opacity = disabled ? '0.5' : '';
+            }
+            if (continueBtn) {
+                continueBtn.disabled      = disabled;
+                continueBtn.style.opacity = disabled ? '0.6'          : '';
+                continueBtn.style.cursor  = disabled ? 'not-allowed'  : '';
+            }
+            setSocialDisabled(disabled);
+            if (resendBtn) resendBtn.disabled = disabled;
+        }
+
+        function doResendVerification() {
+            if (!_pendingOrgEmail) return;
+
+            setStep1FormDisabled(true);
+            resendBtn.textContent = 'Sending…';
+
+            var emailToSend = _pendingOrgEmail;
+
+            fetch('/resend-verification', {
+                method : 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest'},
+                body   : 'identifier=' + encodeURIComponent(emailToSend),
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                _pendingOrgEmail = '';
+                setStep1FormDisabled(false);
+                clearStep1Error();
+                if (data.Error) {
+                    lrToast(data.Message || 'Failed to resend. Please try again.', true);
+                } else {
+                    lrToast('Verification email sent! Please check your inbox.', false);
+                }
+            })
+            .catch(function () {
+                setStep1FormDisabled(false);
+                resendBtn.textContent = 'Resend Email';
+                lrToast('Network error. Please try again.', true);
+            });
+        }
+
+        if (resendBtn) resendBtn.addEventListener('click', doResendVerification);
+
+        /* ── Initialise from OAuth redirect (Google / Facebook) ─────────── */
+        <?php
+            $oauthFlashMsg   = $this->session->flashdata('danger');
+            $oauthOrgEmail   = $this->session->flashdata('unverified_org_email');
+        ?>
+        <?php if (!empty($oauthFlashMsg) && !empty($oauthOrgEmail)): ?>
+        _pendingOrgEmail = <?php echo json_encode($oauthOrgEmail); ?>;
+        showStep1Error(
+            <?php echo json_encode($oauthFlashMsg); ?>,
+            true,
+            'Verification link sent to: ' + <?php echo json_encode($oauthOrgEmail); ?>
+        );
+        <?php elseif (!empty($oauthFlashMsg)): ?>
+        showStep1Error(<?php echo json_encode($oauthFlashMsg); ?>, false);
+        <?php endif; ?>
+
+        /* Clear the error and pending email whenever the user edits the identifier field */
+        if (unameInput) {
+            unameInput.addEventListener('input', function () {
+                if (_pendingOrgEmail) {
+                    _pendingOrgEmail = '';
+                    clearStep1Error();
+                }
+            });
+        }
+
+        /* subMsg — optional email line shown only for OAuth flow; omit for manual login */
+        function showStep1Error(msg, showResend, subMsg) {
+            if (step1ErrorMsg) step1ErrorMsg.textContent = msg;
+            if (step1ErrorSub) {
+                if (subMsg) {
+                    step1ErrorSub.textContent = subMsg;
+                    step1ErrorSub.style.display = 'block';
+                } else {
+                    step1ErrorSub.textContent   = '';
+                    step1ErrorSub.style.display = 'none';
+                }
+            }
             step1Error.style.display = 'block';
+            if (resendWrap) resendWrap.style.display = showResend ? 'flex' : 'none';
+            if (resendBtn && showResend) { resendBtn.disabled = false; resendBtn.textContent = 'Resend Email'; }
         }
 
         function clearStep1Error() {
             step1Error.style.display = 'none';
+            if (resendWrap) resendWrap.style.display = 'none';
+            if (step1ErrorSub) { step1ErrorSub.textContent = ''; step1ErrorSub.style.display = 'none'; }
+            _pendingOrgEmail = '';
         }
 
         function goToStep2(displayName, username, imageUrl) {
@@ -1126,11 +1316,16 @@
                 b.style.pointerEvents = disabled ? 'none' : '';
                 b.style.opacity       = disabled ? '0.4'  : '';
             });
+            var signupLink = document.querySelector('.lr-signup-note a');
+            if (signupLink) {
+                signupLink.style.pointerEvents = disabled ? 'none' : '';
+                signupLink.style.opacity       = disabled ? '0.4'  : '';
+            }
         }
 
         function doValidate() {
             var username = unameInput ? unameInput.value.trim() : '';
-            if (!username) { showStep1Error('Please enter your username or email.'); return; }
+            if (!username) { showStep1Error('Please enter your username or email.', false); return; }
             clearStep1Error();
             spinBtn(continueBtn, 'Checking...');
             setSocialDisabled(true);
@@ -1148,7 +1343,8 @@
                 resetBtn(continueBtn, 'bx-right-arrow-circle', 'Continue');
                 setSocialDisabled(false);
                 if (data.Error) {
-                    showStep1Error(data.Message || 'Something went wrong. Please try again.');
+                    if (data.NeedsEmailVerification) _pendingOrgEmail = data.OrgEmail || '';
+                    showStep1Error(data.Message || 'Something went wrong. Please try again.', !!data.NeedsEmailVerification);
                     return;
                 }
                 goToStep2(data.DisplayName || data.Username, data.Username || username, data.ImageUrl || '');
@@ -1156,7 +1352,7 @@
             .catch(function () {
                 resetBtn(continueBtn, 'bx-right-arrow-circle', 'Continue');
                 setSocialDisabled(false);
-                showStep1Error('Connection failed. Please try again.');
+                showStep1Error('Connection failed. Please try again.', false);
             });
         }
 
@@ -1185,10 +1381,7 @@
                 if (submitBtn) {
                     spinBtn(submitBtn, 'Signing in...');
                 }
-                document.querySelectorAll('.lr-social-btn').forEach(function (b) {
-                    b.style.pointerEvents = 'none';
-                    b.style.opacity       = '0.4';
-                });
+                setSocialDisabled(true);
             });
         }
 
@@ -1212,10 +1405,7 @@
                 if (lrBtn) {
                     spinBtn(lrBtn, 'Signing in...');
                 }
-                document.querySelectorAll('.lr-social-btn').forEach(function (btn) {
-                    btn.style.pointerEvents = 'none';
-                    btn.style.opacity       = '0.4';
-                });
+                setSocialDisabled(true);
             });
         }
 

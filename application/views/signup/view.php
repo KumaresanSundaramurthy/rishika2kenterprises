@@ -727,7 +727,7 @@
                 <div class="su-field-row" style="grid-template-columns: 1fr 140px;">
                     <div class="su-field">
                         <label class="su-label" for="suOrgName">Organisation Name</label>
-                        <input type="text" id="suOrgName" name="OrgName" class="su-input" placeholder="e.g. Rishika 2K Enterprises" autocomplete="organization" maxlength="150">
+                        <input type="text" id="suOrgName" name="OrgName" class="su-input" placeholder="e.g. Rishika 2K Enterprises" autocomplete="off" maxlength="150">
                         <div class="su-field-err" id="suOrgNameErr"></div>
                     </div>
                     <div class="su-field">
@@ -741,13 +741,13 @@
                 <div class="su-field-row">
                     <div class="su-field">
                         <label class="su-label" for="suOrgMobile">Mobile Number</label>
-                        <input type="tel" id="suOrgMobile" name="OrgMobile" class="su-input" placeholder="10-digit number" maxlength="10" pattern="[0-9]{10}">
+                        <input type="tel" id="suOrgMobile" name="OrgMobile" class="su-input" placeholder="10-digit number" autocomplete="off" maxlength="10" pattern="[0-9]{10}">
                         <div class="su-field-err" id="suOrgMobileErr"></div>
                         <div class="su-field-ok" id="suOrgMobileOk">Mobile is available</div>
                     </div>
                     <div class="su-field">
                         <label class="su-label" for="suOrgEmail">Email Address</label>
-                        <input type="email" id="suOrgEmail" name="OrgEmail" class="su-input" placeholder="admin@company.com" autocomplete="email">
+                        <input type="email" id="suOrgEmail" name="OrgEmail" class="su-input" placeholder="admin@company.com" autocomplete="off">
                         <div class="su-field-err" id="suOrgEmailErr"></div>
                         <div class="su-field-ok" id="suOrgEmailOk">Email is available</div>
                     </div>
@@ -771,7 +771,7 @@
 
                 <div class="su-field">
                     <label class="su-label" for="suGSTIN">GSTIN <span class="su-optional">(optional)</span></label>
-                    <input type="text" id="suGSTIN" name="GSTIN" class="su-input" placeholder="22AAAAA0000A1Z5" maxlength="15" style="text-transform:uppercase;">
+                    <input type="text" id="suGSTIN" name="GSTIN" class="su-input" placeholder="22AAAAA0000A1Z5" autocomplete="off" maxlength="15" style="text-transform:uppercase;">
                     <div class="su-field-err" id="suGSTINErr"></div>
                     <div class="su-field-ok" id="suGSTINOk">GSTIN is available</div>
                 </div>
@@ -791,18 +791,18 @@
                 <div class="su-field-row">
                     <div class="su-field">
                         <label class="su-label" for="suFirstName">First Name</label>
-                        <input type="text" id="suFirstName" name="AdminFirstName" class="su-input" placeholder="First name" autocomplete="given-name" maxlength="80">
+                        <input type="text" id="suFirstName" name="AdminFirstName" class="su-input" placeholder="First name" autocomplete="off" maxlength="80">
                         <div class="su-field-err" id="suFirstNameErr"></div>
                     </div>
                     <div class="su-field">
                         <label class="su-label" for="suLastName">Last Name <span class="su-optional">(optional)</span></label>
-                        <input type="text" id="suLastName" name="AdminLastName" class="su-input" placeholder="Last name" autocomplete="family-name" maxlength="80">
+                        <input type="text" id="suLastName" name="AdminLastName" class="su-input" placeholder="Last name" autocomplete="off" maxlength="80">
                     </div>
                 </div>
 
                 <div class="su-field">
                     <label class="su-label" for="suUsername">Username</label>
-                    <input type="text" id="suUsername" name="AdminUsername" class="su-input" placeholder="Used to log in" autocomplete="username" maxlength="80">
+                    <input type="text" id="suUsername" name="AdminUsername" class="su-input" placeholder="Used to log in" autocomplete="off" maxlength="80">
                     <div class="su-field-err" id="suUsernameErr"></div>
                     <div class="su-field-ok" id="suUsernameOk">Username is available</div>
                 </div>
@@ -810,7 +810,7 @@
                 <div class="su-field">
                     <label class="su-label" for="suPassword">Password</label>
                     <div class="su-pw-wrap">
-                        <input type="password" id="suPassword" name="AdminPassword" class="su-input" placeholder="At least 8 characters" autocomplete="new-password" maxlength="64">
+                        <input type="password" id="suPassword" name="AdminPassword" class="su-input" placeholder="At least 8 characters" autocomplete="off" maxlength="64">
                     </div>
                     <div class="su-strength" id="suPwStrength">
                         <div class="su-strength-seg" id="suSeg1"></div>
@@ -858,7 +858,7 @@
                 <div class="su-field">
                     <label class="su-label" for="suConfirmPassword">Confirm Password</label>
                     <div class="su-pw-wrap">
-                        <input type="password" id="suConfirmPassword" name="ConfirmPassword" class="su-input" placeholder="Re-enter password" autocomplete="new-password" maxlength="100">
+                        <input type="password" id="suConfirmPassword" name="ConfirmPassword" class="su-input" placeholder="Re-enter password" autocomplete="off" maxlength="100">
                         <button type="button" class="su-pw-toggle" onclick="suTogglePw('suConfirmPassword', this)" tabindex="-1">
                             <i class="bx bx-hide"></i>
                         </button>
@@ -937,6 +937,18 @@
             labelConfirm:      'Confirm Password',
             optional:          '(optional)',
             orFill:            'or fill manually',
+            phOrgName:         'e.g. Rishika 2K Enterprises',
+            phShortCode:       'ABC',
+            phMobile:          '10-digit number',
+            phEmail:           'admin@company.com',
+            phStateSelect:     'Select state...',
+            phTimezoneSelect:  'Select timezone...',
+            phGSTIN:           '22AAAAA0000A1Z5',
+            phFirstName:       'First name',
+            phLastName:        'Last name',
+            phUsername:        'Used to log in',
+            phPassword:        'At least 8 characters',
+            phConfirm:         'Re-enter password',
         },
         ta: {
             stepOrg:          'நிறுவனம்',
@@ -965,6 +977,18 @@
             labelConfirm:      'கடவுச்சொல்லை உறுதிப்படுத்தவும்',
             optional:          '(விருப்பமானது)',
             orFill:            'அல்லது கைமுறையாக நிரப்பவும்',
+            phOrgName:         'எ.கா. ரிஷிகா 2கே எண்டர்பிரைசஸ்',
+            phShortCode:       'ABC',
+            phMobile:          '10-இலக்க எண்',
+            phEmail:           'admin@company.com',
+            phStateSelect:     'மாநிலத்தைத் தேர்ந்தெடுக்கவும்...',
+            phTimezoneSelect:  'நேர மண்டலத்தைத் தேர்ந்தெடுக்கவும்...',
+            phGSTIN:           '22AAAAA0000A1Z5',
+            phFirstName:       'முதல் பெயர்',
+            phLastName:        'கடைசி பெயர்',
+            phUsername:        'உள்நுழைய பயன்படுகிறது',
+            phPassword:        'குறைந்தது 8 எழுத்துகள்',
+            phConfirm:         'கடவுச்சொல்லை மீண்டும் உள்ளிடவும்',
         }
     };
 
@@ -1016,6 +1040,22 @@
         var backBtn = document.querySelector('#suFormStep2 .su-btn-ghost');
         if (backBtn) backBtn.innerHTML = '<i class="bx bx-left-arrow-alt"></i> ' + s.btnBack;
 
+        /* Placeholders */
+        var ph = function (id, val) { var el = document.getElementById(id); if (el) el.placeholder = val; };
+        var phOpt = function (id, val) { var el = document.querySelector('#' + id + ' option[value=""]'); if (el) el.textContent = val; };
+        ph('suOrgName',         s.phOrgName);
+        ph('suShortCode',       s.phShortCode);
+        ph('suOrgMobile',       s.phMobile);
+        ph('suOrgEmail',        s.phEmail);
+        ph('suGSTIN',           s.phGSTIN);
+        ph('suFirstName',       s.phFirstName);
+        ph('suLastName',        s.phLastName);
+        ph('suUsername',        s.phUsername);
+        ph('suPassword',        s.phPassword);
+        ph('suConfirmPassword', s.phConfirm);
+        phOpt('suState',    s.phStateSelect);
+        phOpt('suTimezone', s.phTimezoneSelect);
+
         /* Divider & login link */
         document.querySelectorAll('.su-or-divider').forEach(function(el){ el.textContent = s.orFill; });
         var loginLink = document.getElementById('suLoginLink');
@@ -1055,7 +1095,9 @@
     var emailCheckTimer    = null;
     var usernameCheckTimer = null;
     var _emailTaken        = false;
+    var _emailAvailable    = false;
     var _mobileTaken       = false;
+    var _mobileAvailable   = false;
     var _emailChecking     = false;
     var _mobileChecking    = false;
     var _gstinTaken        = false;
@@ -1074,9 +1116,9 @@
         var sc = document.getElementById('suShortCode').value.toUpperCase().trim();
         if (!/^[A-Z]{3}$/.test(sc)) ok = false;
         var mobile = document.getElementById('suOrgMobile').value.replace(/\D/g, '');
-        if (mobile.length !== 10 || _mobileTaken || _mobileChecking) ok = false;
+        if (mobile.length !== 10 || !_mobileAvailable || _mobileTaken || _mobileChecking) ok = false;
         var email = document.getElementById('suOrgEmail').value.trim();
-        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || _emailTaken || _emailChecking) ok = false;
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !_emailAvailable || _emailTaken || _emailChecking) ok = false;
         if (!document.getElementById('suState').value) ok = false;
         if (!document.getElementById('suTimezone').value) ok = false;
         var gstin = document.getElementById('suGSTIN').value.trim().toUpperCase();
@@ -1452,7 +1494,8 @@
 
     /* ── Async checks ──────────────────────────────────────────────── */
     document.getElementById('suOrgEmail').addEventListener('input', function () {
-        _emailTaken = false;
+        _emailTaken      = false;
+        _emailAvailable  = false;
         document.getElementById('suOrgEmailOk').classList.remove('show');
         clearErr('suOrgEmail');
         _syncNextBtn();
@@ -1475,12 +1518,14 @@
                 var okEl  = document.getElementById('suOrgEmailOk');
                 var errEl = document.getElementById('suOrgEmailErr');
                 if (data.available) {
-                    _emailTaken = false;
+                    _emailTaken     = false;
+                    _emailAvailable = true;
                     okEl.classList.add('show');
                     errEl.classList.remove('show');
                     setInputState('suOrgEmail', true);
                 } else {
-                    _emailTaken = true;
+                    _emailTaken     = true;
+                    _emailAvailable = false;
                     okEl.classList.remove('show');
                     showErr('suOrgEmail', 'This email is already registered.');
                     setInputState('suOrgEmail', false);
@@ -1495,7 +1540,8 @@
     });
 
     document.getElementById('suOrgMobile').addEventListener('input', function () {
-        _mobileTaken = false;
+        _mobileTaken     = false;
+        _mobileAvailable = false;
         document.getElementById('suOrgMobileOk').classList.remove('show');
         clearErr('suOrgMobile');
         _syncNextBtn();
@@ -1515,12 +1561,14 @@
         .then(function (data) {
             var okEl = document.getElementById('suOrgMobileOk');
             if (data.available) {
-                _mobileTaken = false;
+                _mobileTaken     = false;
+                _mobileAvailable = true;
                 okEl.classList.add('show');
                 clearErr('suOrgMobile');
                 setInputState('suOrgMobile', true);
             } else {
-                _mobileTaken = true;
+                _mobileTaken     = true;
+                _mobileAvailable = false;
                 okEl.classList.remove('show');
                 showErr('suOrgMobile', 'This mobile number is already registered.');
                 setInputState('suOrgMobile', false);

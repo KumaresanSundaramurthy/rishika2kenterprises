@@ -51,7 +51,8 @@ class User_model extends CI_Model {
                 'User.LastLoginOn as LastLoginOn',
                 'User.LastLoginDevice as LastLoginDevice',
                 'User.LoginExpiryDateTime as LoginExpiryDateTime',
-                'User.AuthProvider as AuthProvider'
+                'User.AuthProvider as AuthProvider',
+                'User.PasswordChangedOn as PasswordChangedOn'
             ]);
             $this->ReadDb->from('Users.UserTbl as User');
             $this->ReadDb->join('UserRole.RolesTbl as Roles', 'Roles.RoleUID = User.RoleUID', 'left');
@@ -129,6 +130,8 @@ class User_model extends CI_Model {
                 'User.UILanguage as UILanguage',
                 'User.LastLoginOn as LastLoginOn',
                 'User.LastLoginDevice as LastLoginDevice',
+                'User.AuthProvider as AuthProvider',
+                'User.PasswordChangedOn as PasswordChangedOn'
             ]);
             $this->ReadDb->from('Users.UserTbl as User');
             $this->ReadDb->join('UserRole.RolesTbl as Roles',          'Roles.RoleUID = User.RoleUID',          'left');
@@ -167,7 +170,7 @@ class User_model extends CI_Model {
     public function getUserForStepOne(string $identifier): ?object {
         try {
             $this->ReadDb->db_debug = FALSE;
-            $this->ReadDb->select('U.UserUID, U.UserName, U.FirstName, U.LastName, U.IsLocked, U.Image, U.OrgUID, U.LoginExpiryDateTime, U.AuthProvider, O.IsEmailVerified, O.EmailAddress AS OrgEmail');
+            $this->ReadDb->select('U.UserUID, U.UserName, U.FirstName, U.LastName, U.IsLocked, U.Image, U.OrgUID, U.LoginExpiryDateTime, U.AuthProvider, U.Password, O.IsEmailVerified, O.EmailAddress AS OrgEmail');
             $this->ReadDb->from('Users.UserTbl U');
             $this->ReadDb->join('Organisation.OrganisationTbl O', 'O.OrgUID = U.OrgUID', 'left');
             $this->ReadDb->group_start();

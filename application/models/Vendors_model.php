@@ -1441,7 +1441,6 @@ class Vendors_model extends CI_Model {
             'Note'       => $note,
             'UserUID'    => $userUID,
             'IsDeleted'  => 0,
-            'CreatedOn'  => date('Y-m-d H:i:s'),
         ]);
         if ($res->Error) throw new Exception($res->Message ?? 'Note insert failed.');
     }

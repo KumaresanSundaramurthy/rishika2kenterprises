@@ -365,7 +365,6 @@ class Salesreturns extends MY_Controller {
             $wdb->update('Transaction.TransConversionTbl', [
                 'IsDeleted' => 1,
                 'UpdatedBy' => $userUID,
-                'UpdatedOn' => date('Y-m-d H:i:s'),
             ]);
 
             // Insert or restore conversion records for invoices newly linked in this edit.
@@ -385,7 +384,6 @@ class Salesreturns extends MY_Controller {
                                 'IsDeleted'   => 0,
                                 'IsCancelled' => 0,
                                 'UpdatedBy'   => $userUID,
-                                'UpdatedOn'   => date('Y-m-d H:i:s'),
                             ]);
                     }
                     // else: record is already active â€” nothing to do
@@ -753,7 +751,7 @@ class Salesreturns extends MY_Controller {
 
             // Update DocStatus
             $resp = $this->dbwrite_model->updateData('Transaction', 'TransactionsTbl',
-                ['DocStatus' => $newStatus, 'UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
+                ['DocStatus' => $newStatus, 'UpdatedBy' => $userUID],
                 ['TransUID' => $transUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
             );
             if ($resp->Error) throw new Exception($resp->Message);
@@ -762,7 +760,7 @@ class Salesreturns extends MY_Controller {
                 // Soft-delete all line items
                 $this->dbwrite_model->updateData(
                     'Transaction', 'TransProductsTbl',
-                    ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
+                    ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
                     ['TransUID' => $transUID, 'IsDeleted' => 0]
                 );
 

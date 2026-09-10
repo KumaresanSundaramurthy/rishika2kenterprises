@@ -123,12 +123,10 @@ class Roles extends MY_Controller {
 
             if ($RoleUID > 0) {
                 $RoleData['UpdatedBy'] = $JwtData->User->UserUID;
-                $RoleData['UpdatedOn'] = date('Y-m-d H:i:s');
                 $result = $this->dbwrite_model->updateData('UserRole', 'RolesTbl', $RoleData, ['RoleUID' => $RoleUID]);
                 $this->EndReturnData->UID = $RoleUID;
             } else {
                 $RoleData['CreatedBy'] = $JwtData->User->UserUID;
-                $RoleData['CreatedOn'] = date('Y-m-d H:i:s');
                 $result = $this->dbwrite_model->insertData('UserRole', 'RolesTbl', $RoleData);
                 $this->EndReturnData->UID = $result->ID ?? 0;
                 $RoleUID = $this->EndReturnData->UID;
@@ -259,7 +257,7 @@ class Roles extends MY_Controller {
             $this->load->model('dbwrite_model');
             $JwtData = $this->pageData['JwtData'];
             $result  = $this->dbwrite_model->updateData('UserRole', 'RolesTbl',
-                ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $JwtData->User->UserUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
+                ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $JwtData->User->UserUID],
                 ['RoleUID' => $RoleUID]
             );
 

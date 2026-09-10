@@ -901,7 +901,6 @@ class Purchases extends MY_Controller {
             $updateFields = [
                 'DocStatus' => $newStatus,
                 'UpdatedBy' => $userUID,
-                'UpdatedOn' => date('Y-m-d H:i:s'),
             ];
             // Point 1 + 2: set IsCancelled flag and persist CancelReason
             if ($newStatus === 'Cancelled') {

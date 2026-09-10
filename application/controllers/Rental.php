@@ -143,8 +143,6 @@ class Rental extends MY_Controller {
                 'IsDeleted'           => 0,
                 'CreatedBy'           => $userUID,
                 'UpdatedBy'           => $userUID,
-                'CreatedOn'           => date('Y-m-d H:i:s'),
-                'UpdatedOn'           => date('Y-m-d H:i:s'),
             ];
 
             $resp = $this->dbwrite_model->insertData('Transaction', 'RentalMasterTbl', $masterData);
@@ -185,8 +183,6 @@ class Rental extends MY_Controller {
                     'IsDeleted'               => 0,
                     'CreatedBy'               => $userUID,
                     'UpdatedBy'               => $userUID,
-                    'CreatedOn'               => date('Y-m-d H:i:s'),
-                    'UpdatedOn'               => date('Y-m-d H:i:s'),
                 ];
                 $itemResp = $this->dbwrite_model->insertData('Transaction', 'RentalItemsTbl', $itemData);
                 if ($itemResp->Error) throw new Exception($itemResp->Message);
@@ -206,8 +202,6 @@ class Rental extends MY_Controller {
                     'IsDeleted'      => 0,
                     'CreatedBy'      => $userUID,
                     'UpdatedBy'      => $userUID,
-                    'CreatedOn'      => date('Y-m-d H:i:s'),
-                    'UpdatedOn'      => date('Y-m-d H:i:s'),
                 ]);
                 if ($pmtResp->Error) throw new Exception($pmtResp->Message);
             }
@@ -303,7 +297,6 @@ class Rental extends MY_Controller {
                     'ItemStatus'           => 'Returned',
                     'ReturnNotes'          => $returnNotes,
                     'UpdatedBy'            => $userUID,
-                    'UpdatedOn'            => date('Y-m-d H:i:s'),
                 ],
                 ['RentalItemUID' => $rentalItemUID, 'RentalUID' => $rentalUID, 'IsDeleted' => 0]
             );
@@ -324,8 +317,6 @@ class Rental extends MY_Controller {
                 'Notes'                => $returnNotes,
                 'CreatedBy'            => $userUID,
                 'UpdatedBy'            => $userUID,
-                'CreatedOn'            => date('Y-m-d H:i:s'),
-                'UpdatedOn'            => date('Y-m-d H:i:s'),
             ]);
 
             $newExtraCharges = round((float)$rental->ExtraCharges + $totalChargeForReturn, $this->_decimals());
@@ -350,7 +341,6 @@ class Rental extends MY_Controller {
                     'RentalStatus'         => $newStatus,
                     'ActualReturnDateTime' => $allDone ? $actualReturn : null,
                     'UpdatedBy'            => $userUID,
-                    'UpdatedOn'            => date('Y-m-d H:i:s'),
                 ],
                 ['RentalUID' => $rentalUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
             );
@@ -414,8 +404,6 @@ class Rental extends MY_Controller {
                 'IsDeleted'      => 0,
                 'CreatedBy'      => $userUID,
                 'UpdatedBy'      => $userUID,
-                'CreatedOn'      => date('Y-m-d H:i:s'),
-                'UpdatedOn'      => date('Y-m-d H:i:s'),
             ]);
             if ($pmtResp->Error) throw new Exception($pmtResp->Message);
 
@@ -432,7 +420,6 @@ class Rental extends MY_Controller {
                     'BalanceAmount' => $newBalance,
                     'PaymentStatus' => $newPayStatus,
                     'UpdatedBy'     => $userUID,
-                    'UpdatedOn'     => date('Y-m-d H:i:s'),
                 ],
                 ['RentalUID' => $rentalUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
             );
@@ -487,7 +474,7 @@ class Rental extends MY_Controller {
 
             $this->dbwrite_model->updateData(
                 'Transaction', 'RentalMasterTbl',
-                ['RentalStatus' => 'Cancelled', 'UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
+                ['RentalStatus' => 'Cancelled', 'UpdatedBy' => $userUID],
                 ['RentalUID' => $rentalUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
             );
 

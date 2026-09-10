@@ -147,7 +147,6 @@ class Organisation extends MY_Controller {
                 if ($uid > 0) {
                     $this->dbwrite_model->updateData('Organisation', 'OrgAddressTbl', $shipData, ['OrgAddressUID' => $uid]);
                 } else {
-                    $shipData['CreatedOn'] = $now;
                     $shipData['CreatedBy'] = $userUID;
                     $this->dbwrite_model->insertData('Organisation', 'OrgAddressTbl', $shipData);
                 }
@@ -310,7 +309,6 @@ class Organisation extends MY_Controller {
                     'StateText'   => $stateText,
                     'State'       => $stateId ?: null,
                     'Pincode'     => $pincode,
-                    'CreatedOn'   => $now,
                     'CreatedBy'   => $userUID,
                     'UpdatedBy'   => $userUID,
                 ]);
@@ -429,7 +427,6 @@ class Organisation extends MY_Controller {
 
         if (empty($PostData[$addrUIDField])) {
             $AddressData['AddressType'] = $type;
-            $AddressData['CreatedOn']   = $now;
             $AddressData['CreatedBy']   = $userUID;
 
             $InsertResp = $this->dbwrite_model->insertData('Organisation', 'OrgAddressTbl', $AddressData);

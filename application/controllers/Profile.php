@@ -128,7 +128,7 @@ class Profile extends MY_Controller {
             $currentUser = $this->users_model->getUserById($userUID, $orgUID);
             if ($currentUser && (int)$currentUser->RoleUID === 1) $empStatus = 'Active';
 
-            $data = ['UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')];
+            $data = ['UpdatedBy' => $userUID];
 
             if ($deptUID  > 0) $data['DepartmentUID']  = $deptUID;
             if ($desigUID > 0) $data['DesignationUID'] = $desigUID;
@@ -201,7 +201,6 @@ class Profile extends MY_Controller {
                 'IsActive'  => 1,
                 'IsDeleted' => 0,
                 'CreatedBy' => $userUID,
-                'CreatedOn' => date('Y-m-d H:i:s'),
             ]);
             if ($res->Error) throw new Exception($res->Message);
 
@@ -308,7 +307,6 @@ class Profile extends MY_Controller {
                 'IsActive'  => 1,
                 'IsDeleted' => 0,
                 'CreatedBy' => $userUID,
-                'CreatedOn' => date('Y-m-d H:i:s'),
             ]);
             if ($res->Error) throw new Exception($res->Message);
 
@@ -802,7 +800,7 @@ class Profile extends MY_Controller {
             // If marking as primary — clear existing primary for this user first
             if ($isPrimary) {
                 $this->dbwrite_model->updateData('Users', 'UserEmergencyContactTbl',
-                    ['IsPrimary' => 0, 'UpdatedBy' => $userUID, 'UpdatedOn' => $now],
+                    ['IsPrimary' => 0, 'UpdatedBy' => $userUID],
                     ['UserUID' => $userUID, 'IsDeleted' => 0]
                 );
             }
@@ -819,7 +817,6 @@ class Profile extends MY_Controller {
                 'Country'      => substr(trim($p['Country']      ?? ''), 0, 100) ?: null,
                 'IsPrimary'    => $isPrimary,
                 'UpdatedBy'    => $userUID,
-                'UpdatedOn'    => $now,
             ];
 
             if ($emgUID > 0) {
@@ -829,7 +826,6 @@ class Profile extends MY_Controller {
                 $data['IsActive']  = 1;
                 $data['IsDeleted'] = 0;
                 $data['CreatedBy'] = $userUID;
-                $data['CreatedOn'] = $now;
                 $res = $this->dbwrite_model->insertData('Users', 'UserEmergencyContactTbl', $data);
             }
             if ($res->Error) throw new Exception($res->Message);
@@ -854,7 +850,7 @@ class Profile extends MY_Controller {
             if ($emgUID <= 0) throw new Exception('Invalid record.');
             $this->load->model('dbwrite_model');
             $res = $this->dbwrite_model->updateData('Users', 'UserEmergencyContactTbl',
-                ['IsDeleted' => 1, 'IsActive' => 0, 'IsPrimary' => 0, 'UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
+                ['IsDeleted' => 1, 'IsActive' => 0, 'IsPrimary' => 0, 'UpdatedBy' => $userUID],
                 ['EmgContactUID' => $emgUID, 'UserUID' => $userUID]
             );
             if ($res->Error) throw new Exception($res->Message);
@@ -886,12 +882,12 @@ class Profile extends MY_Controller {
             // Step 1: clear all primaries for this user
             $db->where(['UserUID' => $userUID, 'IsDeleted' => 0]);
             $db->update('Users.UserEmergencyContactTbl',
-                ['IsPrimary' => 0, 'UpdatedBy' => $userUID, 'UpdatedOn' => $now]);
+                ['IsPrimary' => 0, 'UpdatedBy' => $userUID]);
 
             // Step 2: set the chosen contact as primary
             $db->where(['EmgContactUID' => $emgUID, 'UserUID' => $userUID]);
             $db->update('Users.UserEmergencyContactTbl',
-                ['IsPrimary' => 1, 'UpdatedBy' => $userUID, 'UpdatedOn' => $now]);
+                ['IsPrimary' => 1, 'UpdatedBy' => $userUID]);
 
             $db->trans_complete();
 
@@ -946,7 +942,6 @@ class Profile extends MY_Controller {
                 'UpiId'         => substr(trim($p['UpiId']         ?? ''), 0, 100) ?: null,
                 'UpiNumber'     => substr(trim($p['UpiNumber']     ?? ''), 0, 20)  ?: null,
                 'UpdatedBy'     => $userUID,
-                'UpdatedOn'     => $now,
             ];
 
             $this->load->model('dbwrite_model');
@@ -958,7 +953,6 @@ class Profile extends MY_Controller {
                 $data['IsActive']  = 1;
                 $data['IsDeleted'] = 0;
                 $data['CreatedBy'] = $userUID;
-                $data['CreatedOn'] = $now;
                 $res = $this->dbwrite_model->insertData('Users', 'UserBankDetailsTbl', $data);
             }
             if ($res->Error) throw new Exception($res->Message);
@@ -1014,7 +1008,6 @@ class Profile extends MY_Controller {
                 'CGPA'             => substr($cgpa,   0, 20)  ?: null,
                 'DateOfCompletion' => ($doc && strtotime($doc)) ? date('Y-m-d', strtotime($doc)) : null,
                 'UpdatedBy'        => $userUID,
-                'UpdatedOn'        => $now,
             ];
             $this->load->model('dbwrite_model');
             if ($eduUID > 0) {
@@ -1024,7 +1017,6 @@ class Profile extends MY_Controller {
                 $data['IsActive']  = 1;
                 $data['IsDeleted'] = 0;
                 $data['CreatedBy'] = $userUID;
-                $data['CreatedOn'] = $now;
                 $res = $this->dbwrite_model->insertData('Users', 'UserEducationTbl', $data);
             }
             if ($res->Error) throw new Exception($res->Message);
@@ -1048,7 +1040,7 @@ class Profile extends MY_Controller {
             if ($eduUID <= 0) throw new Exception('Invalid record.');
             $this->load->model('dbwrite_model');
             $res = $this->dbwrite_model->updateData('Users', 'UserEducationTbl',
-                ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
+                ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
                 ['EduUID' => $eduUID, 'UserUID' => $userUID]
             );
             if ($res->Error) throw new Exception($res->Message);
@@ -1084,7 +1076,6 @@ class Profile extends MY_Controller {
                 'EndDate'        => ($endDate   && strtotime($endDate))   ? date('Y-m-d', strtotime($endDate))   : null,
                 'JobDescription' => $jobDesc ?: null,
                 'UpdatedBy'      => $userUID,
-                'UpdatedOn'      => $now,
             ];
             $this->load->model('dbwrite_model');
             if ($expUID > 0) {
@@ -1094,7 +1085,6 @@ class Profile extends MY_Controller {
                 $data['IsActive']  = 1;
                 $data['IsDeleted'] = 0;
                 $data['CreatedBy'] = $userUID;
-                $data['CreatedOn'] = $now;
                 $res = $this->dbwrite_model->insertData('Users', 'UserExperienceTbl', $data);
             }
             if ($res->Error) throw new Exception($res->Message);
@@ -1118,7 +1108,7 @@ class Profile extends MY_Controller {
             if ($expUID <= 0) throw new Exception('Invalid record.');
             $this->load->model('dbwrite_model');
             $res = $this->dbwrite_model->updateData('Users', 'UserExperienceTbl',
-                ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
+                ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
                 ['ExpUID' => $expUID, 'UserUID' => $userUID]
             );
             if ($res->Error) throw new Exception($res->Message);
@@ -1184,7 +1174,6 @@ class Profile extends MY_Controller {
                 'Reference'         => substr(trim($p['Reference']   ?? ''), 0, 200) ?: null,
                 'Description'       => trim($p['Description'] ?? '') ?: null,
                 'UpdatedBy'         => $userUID,
-                'UpdatedOn'         => $now,
             ];
 
             $this->load->model('dbwrite_model');
@@ -1199,7 +1188,6 @@ class Profile extends MY_Controller {
                 $data['IsActive']  = 1;
                 $data['IsDeleted'] = 0;
                 $data['CreatedBy'] = $userUID;
-                $data['CreatedOn'] = $now;
                 $res = $this->dbwrite_model->insertData('Users', 'UserExpenseTbl', $data);
                 if ($res->Error) throw new Exception($res->Message);
                 $expenseUID = (int)$res->ID;
@@ -1230,7 +1218,6 @@ class Profile extends MY_Controller {
                         'IsActive'  => 1,
                         'IsDeleted' => 0,
                         'CreatedBy' => $userUID,
-                        'CreatedOn' => $now,
                     ]);
                 }
             }
@@ -1258,7 +1245,7 @@ class Profile extends MY_Controller {
             if ($expenseUID <= 0) throw new Exception('Invalid record.');
             $this->load->model('dbwrite_model');
             $res = $this->dbwrite_model->updateData('Users', 'UserExpenseTbl',
-                ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
+                ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
                 ['ExpenseUID' => $expenseUID, 'UserUID' => $userUID]
             );
             if ($res->Error) throw new Exception($res->Message);

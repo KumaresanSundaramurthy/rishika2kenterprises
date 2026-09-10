@@ -949,7 +949,6 @@ class Accounting extends MY_Controller {
                     'StartDate' => $startDate,
                     'EndDate'   => $endDate ?: null,
                     'UpdatedBy' => $userUID,
-                    'UpdatedOn' => date('Y-m-d H:i:s'),
                 ], ['RecurUID' => $recurUID, 'OrgUID' => $orgUID]);
 
                 // Hard-delete old lines and re-insert
@@ -968,7 +967,6 @@ class Accounting extends MY_Controller {
                     'NextRunDate' => $startDate,
                     'IsActive'    => 1,
                     'CreatedBy'   => $userUID,
-                    'CreatedOn'   => date('Y-m-d H:i:s'),
                 ]);
                 if ($insertResult->Error) throw new Exception('Failed to save recurring journal.');
                 $recurUID = (int)$insertResult->ID;
@@ -1046,7 +1044,6 @@ class Accounting extends MY_Controller {
                 'TotalRuns'   => (int)$journal->TotalRuns + 1,
                 'IsActive'    => $ended ? 0 : (int)$journal->IsActive,
                 'UpdatedBy'   => $userUID,
-                'UpdatedOn'   => date('Y-m-d H:i:s'),
             ], ['RecurUID' => $recurUID, 'OrgUID' => $orgUID]);
 
             $this->EndReturnData->Error       = FALSE;
@@ -1112,7 +1109,6 @@ class Accounting extends MY_Controller {
                         'TotalRuns'   => (int)$fullJournal->TotalRuns + 1,
                         'IsActive'    => $ended ? 0 : 1,
                         'UpdatedBy'   => $userUID,
-                        'UpdatedOn'   => date('Y-m-d H:i:s'),
                     ], ['RecurUID' => (int)$fullJournal->RecurUID, 'OrgUID' => $orgUID]);
 
                     $posted++;
@@ -1151,7 +1147,6 @@ class Accounting extends MY_Controller {
             $this->dbwrite_model->updateData('Accounting', 'RecurringJournals', [
                 'IsActive'  => $newStatus,
                 'UpdatedBy' => $userUID,
-                'UpdatedOn' => date('Y-m-d H:i:s'),
             ], ['RecurUID' => $recurUID, 'OrgUID' => $orgUID]);
 
             $this->EndReturnData->Error     = FALSE;
@@ -1180,7 +1175,6 @@ class Accounting extends MY_Controller {
                 'IsDeleted' => 1,
                 'IsActive'  => 0,
                 'UpdatedBy' => $userUID,
-                'UpdatedOn' => date('Y-m-d H:i:s'),
             ], ['RecurUID' => $recurUID, 'OrgUID' => $orgUID]);
 
             $this->EndReturnData->Error   = FALSE;
@@ -1256,7 +1250,6 @@ class Accounting extends MY_Controller {
                 $this->dbwrite_model->updateData('Accounting', 'PeriodLock', [
                     'LockedUpTo' => $lockDate,
                     'UpdatedBy'  => $userUID,
-                    'UpdatedOn'  => $now,
                 ], ['OrgUID' => $orgUID]);
             } else {
                 $this->dbwrite_model->insertData('Accounting', 'PeriodLock', [

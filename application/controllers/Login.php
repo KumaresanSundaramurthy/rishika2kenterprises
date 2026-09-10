@@ -190,6 +190,18 @@ class Login extends CI_Controller {
 
                     if ($passwordMatches) {
 
+                        // Password expiry — force change after 180 days
+                        $pwChangedOn = $UserData->Data[0]->PasswordChangedOn ?? null;
+                        if (!empty($pwChangedOn) && ($UserData->Data[0]->AuthProvider ?? 'local') !== 'google') {
+                            $daysSince = (time() - strtotime($pwChangedOn)) / 86400;
+                            if ($daysSince > 180) {
+                                $this->session->set_userdata('force_pw_uid',   (int)$UserData->Data[0]->UserUID);
+                                $this->session->set_userdata('force_pw_exp',   time() + 900);
+                                redirect('change-password/forced', 'refresh');
+                                return;
+                            }
+                        }
+
                         // Lazy bcrypt migration — upgrade base64 hash on first successful login
                         if (!$isBcrypt) {
                             $this->load->model('dbwrite_model');
@@ -535,12 +547,25 @@ class Login extends CI_Controller {
                 return;
             }
 
+            $this->load->model('user_model');
+            $userData    = $this->user_model->getUserByUID((int)$tokenInfo->UserUID);
+            $currentHash = (!$userData->Error && !empty($userData->Data)) ? $userData->Data[0]->UserPassword : '';
+
+            if ($this->_isPasswordReused((int)$tokenInfo->UserUID, $password)) {
+                $this->session->set_flashdata('danger', 'You cannot reuse one of your last 3 passwords.');
+                redirect('reset-password/' . $token, 'refresh');
+                return;
+            }
+
             $this->load->model('dbwrite_model');
 
+            $now = date('Y-m-d H:i:s');
             $this->dbwrite_model->updateData('Users', 'UserTbl',
-                ['Password' => password_hash($password, PASSWORD_BCRYPT)],
+                ['Password' => password_hash($password, PASSWORD_BCRYPT), 'PasswordChangedOn' => $now],
                 ['UserUID'  => $tokenInfo->UserUID]
             );
+
+            $this->_recordPasswordHistory((int)$tokenInfo->UserUID, $currentHash);
 
             $this->dbwrite_model->updateData('Users', 'PasswordResetTbl',
                 ['IsUsed' => 1],
@@ -567,6 +592,64 @@ class Login extends CI_Controller {
             } else {
                 redirect('forgot-password', 'refresh');
             }
+        }
+    }
+
+    /* ── Password history helpers ─────────────────────────────────── */
+
+    /**
+     * @param int    $uid
+     * @param string $newPw plain-text candidate password
+     * @return bool true if newPw matches any of the last 3 stored hashes for uid
+     */
+    private function _isPasswordReused(int $uid, string $newPw): bool {
+        try {
+            $db = $this->load->database('ReadDB', TRUE);
+            $db->db_debug = FALSE;
+            $db->select('Password');
+            $db->from('Users.PasswordHistoryTbl');
+            $db->where('UserUID', $uid);
+            $db->order_by('CreatedOn', 'DESC');
+            $db->limit(3);
+            $query = $db->get();
+            if (!$query) return false;
+            foreach ($query->result() as $row) {
+                if (password_verify($newPw, $row->Password)) return true;
+            }
+        } catch (Throwable $t) { /* table not yet migrated — skip silently */ }
+        return false;
+    }
+
+    /**
+     * Stores oldHash in PasswordHistoryTbl and prunes to the 5 most recent per user.
+     * @param int    $uid
+     * @param string $oldHash bcrypt hash that was just replaced
+     * @return void
+     */
+    private function _recordPasswordHistory(int $uid, string $oldHash): void {
+        if (empty($oldHash)) return;
+        try {
+            $db = $this->load->database('WriteDB', TRUE);
+            $db->db_debug = FALSE;
+            $db->insert('Users.PasswordHistoryTbl', [
+                'UserUID'  => $uid,
+                'Password' => $oldHash,
+            ]);
+            $db->query(
+                "DELETE FROM Users.PasswordHistoryTbl
+                  WHERE UserUID = ?
+                    AND HistoryUID NOT IN (
+                        SELECT h FROM (
+                            SELECT HistoryUID AS h FROM Users.PasswordHistoryTbl
+                             WHERE UserUID = ?
+                             ORDER BY CreatedOn DESC
+                             LIMIT 5
+                        ) tmp
+                    )",
+                [$uid, $uid]
+            );
+        } catch (Throwable $t) {
+            error_log('[PasswordHistory] ' . $t->getMessage());
         }
     }
 
@@ -729,6 +812,67 @@ class Login extends CI_Controller {
         }
     }
 
+    // ── Forced password change (expired after 180 days) ──────────────────────
+
+    public function forcedPasswordChange(): void {
+        $this->load->helper('auth');
+        if (is_authenticated()) { redirect('dashboard', 'refresh'); return; }
+
+        $uid = (int)($this->session->userdata('force_pw_uid') ?? 0);
+        $exp = (int)($this->session->userdata('force_pw_exp') ?? 0);
+
+        if (!$uid || time() > $exp) {
+            redirect('portal', 'refresh');
+            return;
+        }
+
+        if ($this->input->server('REQUEST_METHOD') === 'POST') {
+            $newPw  = (string)$this->input->post('NewPassword');
+            $confPw = (string)$this->input->post('ConfirmPassword');
+
+            if (strlen($newPw) < 8) {
+                $this->session->set_flashdata('danger', 'Password must be at least 8 characters.');
+                redirect('change-password/forced', 'refresh');
+                return;
+            }
+            if ($newPw !== $confPw) {
+                $this->session->set_flashdata('danger', 'Passwords do not match.');
+                redirect('change-password/forced', 'refresh');
+                return;
+            }
+
+            $this->load->model('user_model');
+            $userData    = $this->user_model->getUserByUID($uid);
+            $currentHash = (!$userData->Error && !empty($userData->Data)) ? $userData->Data[0]->UserPassword : '';
+
+            if ($this->_isPasswordReused($uid, $newPw)) {
+                $this->session->set_flashdata('danger', 'You cannot reuse one of your last 3 passwords.');
+                redirect('change-password/forced', 'refresh');
+                return;
+            }
+
+            $this->load->model('dbwrite_model');
+            $this->dbwrite_model->updateData('Users', 'UserTbl',
+                ['Password' => password_hash($newPw, PASSWORD_BCRYPT), 'PasswordChangedOn' => date('Y-m-d H:i:s')],
+                ['UserUID'  => $uid]
+            );
+
+            $this->_recordPasswordHistory($uid, $currentHash);
+
+            $this->session->unset_userdata('force_pw_uid');
+            $this->session->unset_userdata('force_pw_exp');
+
+            $this->session->set_flashdata('success', 'Password updated. Please sign in with your new password.');
+            redirect('portal', 'refresh');
+            return;
+        }
+
+        $this->PageData['pageTitle'] = 'Update Your Password';
+        $this->load->view('login/header', ['pageTitle' => 'Change Password']);
+        $this->load->view('login/forced_pw_change', $this->PageData);
+        $this->load->view('login/footer');
+    }
+
     // ── In-app password change (authenticated user) ───────────────────────────
 
     public function resetPassword() {
@@ -757,13 +901,19 @@ class Login extends CI_Controller {
 
                     throw new Exception('New password must be at least 8 characters.', 200);
 
+                } elseif ($this->_isPasswordReused((int)$PostData['UserUID'], (string)$PostData['ConfirmPassword'])) {
+
+                    throw new Exception('You cannot reuse one of your last 3 passwords.', 200);
+
                 } else {
 
                     $this->load->model('dbwrite_model');
                     $userUID        = (int)$PostData['UserUID'];
-                    $UpdateDataResp = $this->dbwrite_model->updateData('Users', 'UserTbl', ['Password' => password_hash($PostData['ConfirmPassword'], PASSWORD_BCRYPT)], ['UserUID' => $userUID]);
+                    $UpdateDataResp = $this->dbwrite_model->updateData('Users', 'UserTbl', ['Password' => password_hash($PostData['ConfirmPassword'], PASSWORD_BCRYPT), 'PasswordChangedOn' => date('Y-m-d H:i:s')], ['UserUID' => $userUID]);
 
                     if($UpdateDataResp->Error === FALSE) {
+
+                        $this->_recordPasswordHistory($userUID, $stored);
 
                         // Kill the active session — user must re-login with the new password
                         $this->redisservice->deleteCache('UserActiveSession_' . $userUID);
@@ -858,6 +1008,10 @@ class Login extends CI_Controller {
 
             if (($user->AuthProvider ?? 'local') === 'google') {
                 throw new Exception('This account was created with Google. Please use Continue with Google to sign in.');
+            }
+
+            if (empty($user->Password)) {
+                throw new Exception('No password has been set for this account. Please use Forgot Password to set one.');
             }
 
             // Check user-level portal access expiry (NULL = no expiry, inherits org subscription)

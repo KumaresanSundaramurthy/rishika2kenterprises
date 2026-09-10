@@ -297,7 +297,7 @@ class Indirectincome extends MY_Controller {
             if (!empty($existing->PaymentUID)) {
                 $this->dbwrite_model->updateData(
                     'Transaction', 'PaymentsTbl',
-                    ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
+                    ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
                     ['PaymentUID' => (int)$existing->PaymentUID, 'OrgUID' => $orgUID]
                 );
             }
@@ -364,8 +364,6 @@ class Indirectincome extends MY_Controller {
                 'IsDeleted'     => 0,
                 'CreatedBy'     => $userUID,
                 'UpdatedBy'     => $userUID,
-                'CreatedOn'     => date('Y-m-d H:i:s'),
-                'UpdatedOn'     => date('Y-m-d H:i:s'),
             ];
 
             $resp = $this->dbwrite_model->insertData('Transaction', 'IndirectIncomeTbl', $data);
@@ -453,7 +451,6 @@ class Indirectincome extends MY_Controller {
                     'PaidAmount'    => $newPaidAmount,
                     'BalanceAmount' => $balanceAmount,
                     'UpdatedBy'     => $userUID,
-                    'UpdatedOn'     => date('Y-m-d H:i:s'),
                 ],
                 ['IncomeUID' => $incomeUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
             );
@@ -519,8 +516,6 @@ class Indirectincome extends MY_Controller {
                     'IsDeleted'      => 0,
                     'CreatedBy'      => $userUID,
                     'UpdatedBy'      => $userUID,
-                    'CreatedOn'      => date('Y-m-d H:i:s'),
-                    'UpdatedOn'      => date('Y-m-d H:i:s'),
                 ]);
                 if ($ledgerResp->Error) throw new Exception('Ledger entry failed: ' . $ledgerResp->Message);
             }
@@ -654,7 +649,6 @@ class Indirectincome extends MY_Controller {
                 'DocStatus'  => $newStatus,
                 'IsReceived' => ($newStatus === 'Received') ? 1 : 0,
                 'UpdatedBy'  => $userUID,
-                'UpdatedOn'  => date('Y-m-d H:i:s'),
             ];
 
             $resp = $this->dbwrite_model->updateData(
@@ -672,7 +666,7 @@ class Indirectincome extends MY_Controller {
             } elseif ($newStatus === 'Cancelled' && !empty($existing->PaymentUID)) {
                 $this->dbwrite_model->updateData(
                     'Transaction', 'PaymentsTbl',
-                    ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
+                    ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
                     ['PaymentUID' => (int)$existing->PaymentUID, 'OrgUID' => $orgUID]
                 );
             }
@@ -783,8 +777,6 @@ class Indirectincome extends MY_Controller {
                 'IsDeleted'    => 0,
                 'CreatedBy'    => $userUID,
                 'UpdatedBy'    => $userUID,
-                'CreatedOn'    => date('Y-m-d H:i:s'),
-                'UpdatedOn'    => date('Y-m-d H:i:s'),
             ]);
             if ($resp->Error) throw new Exception($resp->Message);
 
@@ -825,7 +817,6 @@ class Indirectincome extends MY_Controller {
             $resp = $this->dbwrite_model->updateData('Transaction', 'IndirectIncomeCategoryTbl', [
                 'CategoryName' => $name,
                 'UpdatedBy'    => $userUID,
-                'UpdatedOn'    => date('Y-m-d H:i:s'),
             ], ['CategoryUID' => $categoryUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
 
             if ($resp->Error) throw new Exception($resp->Message);
@@ -868,7 +859,6 @@ class Indirectincome extends MY_Controller {
                 'IsDeleted' => 1,
                 'IsActive'  => 0,
                 'UpdatedBy' => $userUID,
-                'UpdatedOn' => date('Y-m-d H:i:s'),
             ], ['CategoryUID' => $categoryUID, 'OrgUID' => $orgUID]);
 
             if ($resp->Error) throw new Exception($resp->Message);
@@ -1004,12 +994,10 @@ class Indirectincome extends MY_Controller {
             'IsActive'      => 1,
             'IsDeleted'     => 0,
             'UpdatedBy'     => $userUID,
-            'UpdatedOn'     => date('Y-m-d H:i:s'),
         ];
 
         if ($isCreate) {
             $data['CreatedBy'] = $userUID;
-            $data['CreatedOn'] = date('Y-m-d H:i:s');
         }
 
         return $data;
@@ -1088,8 +1076,6 @@ class Indirectincome extends MY_Controller {
                 'IsDeleted'      => 0,
                 'CreatedBy'      => $userUID,
                 'UpdatedBy'      => $userUID,
-                'CreatedOn'      => date('Y-m-d H:i:s'),
-                'UpdatedOn'      => date('Y-m-d H:i:s'),
             ]);
             if ($ledgerResp->Error) throw new Exception('Ledger entry failed: ' . $ledgerResp->Message);
         }
@@ -1136,7 +1122,7 @@ class Indirectincome extends MY_Controller {
                     if (!empty($existing->PaymentUID)) {
                         $this->dbwrite_model->updateData(
                             'Transaction', 'PaymentsTbl',
-                            ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
+                            ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
                             ['PaymentUID' => (int)$existing->PaymentUID, 'OrgUID' => $orgUID]
                         );
                     }

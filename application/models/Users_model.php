@@ -498,7 +498,6 @@ class Users_model extends CI_Model {
         $this->dbwrite_model->updateData('Users', 'UserTbl', [
             'Password'      => base64_encode($password),
             'IsPasswordSet' => 1,
-            'UpdatedOn'     => date('Y-m-d H:i:s'),
         ], ['UserUID' => (int)$userUID]);
     }
 

@@ -172,7 +172,6 @@ class Subscription {
                 'EndDate'            => $user->SubscriptionEndDate,
                 'ActualEndDate'      => date('Y-m-d H:i:s'),
                 'Notes'              => "Extended by {$days} days",
-                'CreatedOn'          => date('Y-m-d H:i:s'),
             ]);
         } catch (Exception $e) {
             notifyError('Subscription::_logSubscriptionHistory', $e);

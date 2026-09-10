@@ -165,7 +165,6 @@ class Users extends MY_Controller {
                 'IsActive'  => 1,
                 'IsDeleted' => 0,
                 'CreatedBy' => $JwtData->User->UserUID,
-                'CreatedOn' => date('Y-m-d H:i:s'),
             ]);
             if ($res->Error) throw new Exception($res->Message);
 
@@ -227,7 +226,7 @@ class Users extends MY_Controller {
             }
 
             $result = $this->dbwrite_model->updateData('Users', 'UserTbl',
-                ['IsActive' => $isActive, 'UpdatedBy' => $JwtData->User->UserUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
+                ['IsActive' => $isActive, 'UpdatedBy' => $JwtData->User->UserUID],
                 ['UserUID'  => $userUID]
             );
             if ($result->Error) throw new Exception($result->Message);

@@ -89,6 +89,7 @@ $route['subscription']            = 'subscription/index';
 $route['signup']                  = 'signup/index';
 $route['signup/doSignup']         = 'signup/doSignup';
 $route['signup/google-auth']      = 'signup/googleAuth';
+$route['change-password/forced']  = 'login/forcedPasswordChange';
 $route['signup/checkEmail']       = 'signup/checkEmail';
 $route['signup/checkUsername']    = 'signup/checkUsername';
 $route['signup/checkMobile']      = 'signup/checkMobile';

@@ -102,7 +102,6 @@ class Signup_model extends CI_Model {
                 'IsDeleted'    => 0,
                 'CreatedBy'    => 0,
                 'UpdatedBy'    => 0,
-                'CreatedOn'    => $now,
             ]);
             if ($orgResult->Error) throw new Exception('Organisation insert failed: ' . $orgResult->Message);
             $orgUID = (int) $orgResult->ID;
@@ -129,7 +128,6 @@ class Signup_model extends CI_Model {
                 'IsDeleted'       => 0,
                 'CreatedBy'       => 0,
                 'UpdatedBy'       => 0,
-                'CreatedOn'       => $now,
             ]);
             if ($branchResult->Error) throw new Exception('Branch insert failed: ' . $branchResult->Message);
             $branchUID = (int) $branchResult->ID;
@@ -174,7 +172,6 @@ class Signup_model extends CI_Model {
                 'IsDeleted' => 0,
                 'CreatedBy' => 0,
                 'UpdatedBy' => 0,
-                'CreatedOn' => $now,
             ]);
             if ($roleResult->Error) throw new Exception('Role insert failed: ' . $roleResult->Message);
             $roleUID = (int) $roleResult->ID;
@@ -187,8 +184,9 @@ class Signup_model extends CI_Model {
                 'LastName'       => !empty(trim($formData['AdminLastName'] ?? '')) ? trim($formData['AdminLastName']) : null,
                 'UserName'       => strtolower(trim($formData['AdminUsername'])),
                 'EmailAddress'   => strtolower(trim($formData['OrgEmail'])),
-                'Password'       => password_hash($formData['AdminPassword'], PASSWORD_BCRYPT),
-                'OrgUID'         => $orgUID,
+                'Password'          => ($pwHash = password_hash($formData['AdminPassword'], PASSWORD_BCRYPT)),
+                'PasswordChangedOn' => $now,
+                'OrgUID'            => $orgUID,
                 'BranchUID'      => $branchUID,
                 'RoleUID'        => $roleUID,
                 'CountryCode'    => '+91',
@@ -201,10 +199,15 @@ class Signup_model extends CI_Model {
                 'UILanguage'     => 'en',
                 'CreatedBy'      => 0,
                 'UpdatedBy'      => 0,
-                'CreatedOn'      => $now,
             ]);
             if ($userResult->Error) throw new Exception('User insert failed: ' . $userResult->Message);
             $userUID = (int) $userResult->ID;
+
+            /* Seed password history so the signup password counts toward the "last 3" rule */
+            $WriteDb->insert('Users.PasswordHistoryTbl', [
+                'UserUID'  => $userUID,
+                'Password' => $pwHash,
+            ]);
 
             /* Back-fill CreatedBy/UpdatedBy with the real user UID now that it exists */
             $WriteDb->db_debug = FALSE;
@@ -226,7 +229,6 @@ class Signup_model extends CI_Model {
                     'IsDeleted' => 0,
                     'CreatedBy' => $userUID,
                     'UpdatedBy' => $userUID,
-                    'CreatedOn' => $now,
                 ]);
             }
 
@@ -371,7 +373,6 @@ class Signup_model extends CI_Model {
                 'IsDeleted'       => 0,
                 'CreatedBy'       => 0,
                 'UpdatedBy'       => 0,
-                'CreatedOn'       => $now,
             ]);
             if ($orgResult->Error) throw new Exception('Organisation insert failed: ' . $orgResult->Message);
             $orgUID = (int) $orgResult->ID;
@@ -397,7 +398,6 @@ class Signup_model extends CI_Model {
                 'IsDeleted'       => 0,
                 'CreatedBy'       => 0,
                 'UpdatedBy'       => 0,
-                'CreatedOn'       => $now,
             ]);
             if ($branchResult->Error) throw new Exception('Branch insert failed: ' . $branchResult->Message);
             $branchUID = (int) $branchResult->ID;
@@ -441,7 +441,6 @@ class Signup_model extends CI_Model {
                 'IsDeleted' => 0,
                 'CreatedBy' => 0,
                 'UpdatedBy' => 0,
-                'CreatedOn' => $now,
             ]);
             if ($roleResult->Error) throw new Exception('Role insert failed: ' . $roleResult->Message);
             $roleUID = (int) $roleResult->ID;
@@ -473,7 +472,6 @@ class Signup_model extends CI_Model {
                 'UILanguage'     => 'en',
                 'CreatedBy'      => 0,
                 'UpdatedBy'      => 0,
-                'CreatedOn'      => $now,
             ]);
             if ($userResult->Error) throw new Exception('User insert failed: ' . $userResult->Message);
             $userUID = (int) $userResult->ID;
@@ -497,7 +495,6 @@ class Signup_model extends CI_Model {
                     'IsDeleted' => 0,
                     'CreatedBy' => $userUID,
                     'UpdatedBy' => $userUID,
-                    'CreatedOn' => $now,
                 ]);
             }
 

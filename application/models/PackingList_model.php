@@ -140,7 +140,6 @@ class Packinglist_model extends MY_Model {
                 'TransporterName' => $header['TransporterName'] ?: null,
                 'Notes'           => $header['Notes']           ?: null,
                 'UpdatedBy'       => $userUID,
-                'UpdatedOn'       => $now,
             ];
             $resp = $this->dbwrite_model->updateData(
                 'Transaction', 'PackingListTbl', $headerRow,
@@ -151,7 +150,7 @@ class Packinglist_model extends MY_Model {
             // Soft-delete existing items then re-insert
             $this->dbwrite_model->updateData(
                 'Transaction', 'PackingListItemsTbl',
-                ['IsDeleted' => 1, 'UpdatedBy' => $userUID, 'UpdatedOn' => $now],
+                ['IsDeleted' => 1, 'UpdatedBy' => $userUID],
                 ['PackingListUID' => $plUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
             );
         } else {
@@ -168,9 +167,7 @@ class Packinglist_model extends MY_Model {
                 'Notes'           => $header['Notes']           ?: null,
                 'IsDeleted'       => 0,
                 'CreatedBy'       => $userUID,
-                'CreatedOn'       => $now,
                 'UpdatedBy'       => $userUID,
-                'UpdatedOn'       => $now,
             ];
             $resp = $this->dbwrite_model->insertData('Transaction', 'PackingListTbl', $headerRow);
             if ($resp->Error) throw new Exception($resp->Message);
@@ -197,7 +194,6 @@ class Packinglist_model extends MY_Model {
                 'CBM'             => (float) ($item['CBM']              ?? 0),
                 'IsDeleted'       => 0,
                 'CreatedBy'       => $userUID,
-                'CreatedOn'       => $now,
             ];
         }
         if (!empty($itemRows)) {

@@ -419,7 +419,7 @@ class Expenses extends MY_Controller {
             if (!empty($existing->PaymentUID)) {
                 $this->dbwrite_model->updateData(
                     'Transaction', 'PaymentsTbl',
-                    ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
+                    ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
                     ['PaymentUID' => (int)$existing->PaymentUID, 'OrgUID' => $orgUID]
                 );
             }
@@ -489,8 +489,6 @@ class Expenses extends MY_Controller {
                 'IsDeleted'     => 0,
                 'CreatedBy'     => $userUID,
                 'UpdatedBy'     => $userUID,
-                'CreatedOn'     => date('Y-m-d H:i:s'),
-                'UpdatedOn'     => date('Y-m-d H:i:s'),
             ];
 
             $resp = $this->dbwrite_model->insertData('Transaction', 'ExpensesTbl', $data);
@@ -578,7 +576,6 @@ class Expenses extends MY_Controller {
                     'PaidAmount'    => $newPaidAmount,
                     'BalanceAmount' => $balanceAmount,
                     'UpdatedBy'     => $userUID,
-                    'UpdatedOn'     => date('Y-m-d H:i:s'),
                 ],
                 ['ExpenseUID' => $expenseUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
             );
@@ -644,8 +641,6 @@ class Expenses extends MY_Controller {
                     'IsDeleted'      => 0,
                     'CreatedBy'      => $userUID,
                     'UpdatedBy'      => $userUID,
-                    'CreatedOn'      => date('Y-m-d H:i:s'),
-                    'UpdatedOn'      => date('Y-m-d H:i:s'),
                 ]);
                 if ($ledgerResp->Error) throw new Exception('Ledger entry failed: ' . $ledgerResp->Message);
             }
@@ -798,7 +793,6 @@ class Expenses extends MY_Controller {
                 'DocStatus' => $newStatus,
                 'IsPaid'    => ($newStatus === 'Paid') ? 1 : 0,
                 'UpdatedBy' => $userUID,
-                'UpdatedOn' => date('Y-m-d H:i:s'),
             ];
 
             $resp = $this->dbwrite_model->updateData(
@@ -819,7 +813,7 @@ class Expenses extends MY_Controller {
                 // Void the linked payment record
                 $this->dbwrite_model->updateData(
                     'Transaction', 'PaymentsTbl',
-                    ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
+                    ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
                     ['PaymentUID' => (int)$existing->PaymentUID, 'OrgUID' => $orgUID]
                 );
             }
@@ -960,8 +954,6 @@ class Expenses extends MY_Controller {
                 'IsDeleted'    => 0,
                 'CreatedBy'    => $userUID,
                 'UpdatedBy'    => $userUID,
-                'CreatedOn'    => date('Y-m-d H:i:s'),
-                'UpdatedOn'    => date('Y-m-d H:i:s'),
             ]);
             if ($resp->Error) throw new Exception($resp->Message);
 
@@ -1028,7 +1020,7 @@ class Expenses extends MY_Controller {
 
             $resp = $this->dbwrite_model->updateData(
                 'Transaction', 'ExpenseCategoryTbl',
-                ['CategoryName' => $name, 'UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
+                ['CategoryName' => $name, 'UpdatedBy' => $userUID],
                 ['CategoryUID' => $categoryUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
             );
             if ($resp->Error) throw new Exception($resp->Message);
@@ -1071,7 +1063,7 @@ class Expenses extends MY_Controller {
 
             $resp = $this->dbwrite_model->updateData(
                 'Transaction', 'ExpenseCategoryTbl',
-                ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
+                ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
                 ['CategoryUID' => $categoryUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
             );
             if ($resp->Error) throw new Exception($resp->Message);
@@ -1288,12 +1280,10 @@ class Expenses extends MY_Controller {
             'IsActive'                => 1,
             'IsDeleted'               => 0,
             'UpdatedBy'               => $userUID,
-            'UpdatedOn'               => date('Y-m-d H:i:s'),
         ];
 
         if ($isCreate) {
             $data['CreatedBy']     = $userUID;
-            $data['CreatedOn']     = date('Y-m-d H:i:s');
             $data['PaidAmount']    = $isPaid ? $netAmount : 0;
             $data['BalanceAmount'] = $isPaid ? 0 : $netAmount;
         }
@@ -1483,7 +1473,7 @@ class Expenses extends MY_Controller {
                     if (!empty($existing->PaymentUID)) {
                         $this->dbwrite_model->updateData(
                             'Transaction', 'PaymentsTbl',
-                            ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
+                            ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
                             ['PaymentUID' => (int)$existing->PaymentUID, 'OrgUID' => $orgUID]
                         );
                     }

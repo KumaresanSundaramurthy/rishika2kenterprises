@@ -1400,7 +1400,6 @@ class Dbwrite_model extends CI_Model {
                       ->update('Transaction.TransConversionTbl', [
                           'IsDeleted' => 1,
                           'UpdatedBy' => $userUID,
-                          'UpdatedOn' => date('Y-m-d H:i:s'),
                       ]);
     }
 
@@ -1410,7 +1409,6 @@ class Dbwrite_model extends CI_Model {
                       ->update('Transaction.TransConversionTbl', [
                           'IsCancelled' => 1,
                           'UpdatedBy'   => $userUID,
-                          'UpdatedOn'   => date('Y-m-d H:i:s'),
                       ]);
     }
 

@@ -584,7 +584,7 @@ class Purchasereturns extends MY_Controller {
 
             // Update DocStatus
             $resp = $this->dbwrite_model->updateData('Transaction', 'TransactionsTbl',
-                ['DocStatus' => $newStatus, 'UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
+                ['DocStatus' => $newStatus, 'UpdatedBy' => $userUID],
                 ['TransUID' => $transUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
             );
             if ($resp->Error) throw new Exception($resp->Message);
@@ -593,7 +593,7 @@ class Purchasereturns extends MY_Controller {
                 // Soft-delete all line items
                 $this->dbwrite_model->updateData(
                     'Transaction', 'TransProductsTbl',
-                    ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
+                    ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
                     ['TransUID' => $transUID, 'IsDeleted' => 0]
                 );
 

@@ -154,7 +154,7 @@ class Drive_model extends CI_Model {
     public function moveItem(int $driveItemUID, int $newParentUID, int $orgUID, int $userUID, int $actorUID): bool {
         $wdb = $this->_wdb();
         $wdb->where(['DriveItemUID' => $driveItemUID, 'OrgUID' => $orgUID, 'UserUID' => $userUID]);
-        $wdb->update('Drive.DriveItemsTbl', ['ParentUID' => $newParentUID, 'UpdatedBy' => $actorUID, 'UpdatedOn' => date('Y-m-d H:i:s')]);
+        $wdb->update('Drive.DriveItemsTbl', ['ParentUID' => $newParentUID, 'UpdatedBy' => $actorUID]);
         return $wdb->affected_rows() > 0;
     }
 
@@ -169,7 +169,7 @@ class Drive_model extends CI_Model {
     public function renameItem(int $driveItemUID, string $newName, int $orgUID, int $userUID, int $actorUID): bool {
         $wdb = $this->_wdb();
         $wdb->where(['DriveItemUID' => $driveItemUID, 'OrgUID' => $orgUID, 'UserUID' => $userUID]);
-        $wdb->update('Drive.DriveItemsTbl', ['ItemName' => $newName, 'UpdatedBy' => $actorUID, 'UpdatedOn' => date('Y-m-d H:i:s')]);
+        $wdb->update('Drive.DriveItemsTbl', ['ItemName' => $newName, 'UpdatedBy' => $actorUID]);
         return $wdb->affected_rows() > 0;
     }
 
@@ -183,7 +183,7 @@ class Drive_model extends CI_Model {
     public function softDeleteItem(int $driveItemUID, int $orgUID, int $userUID, int $actorUID): void {
         $wdb = $this->_wdb();
         $wdb->where(['DriveItemUID' => $driveItemUID, 'OrgUID' => $orgUID, 'UserUID' => $userUID]);
-        $wdb->update('Drive.DriveItemsTbl', ['IsDeleted' => 1, 'UpdatedBy' => $actorUID, 'UpdatedOn' => date('Y-m-d H:i:s')]);
+        $wdb->update('Drive.DriveItemsTbl', ['IsDeleted' => 1, 'UpdatedBy' => $actorUID]);
         $this->_softDeleteChildren($driveItemUID, $orgUID, $userUID, $actorUID);
     }
 
@@ -205,7 +205,7 @@ class Drive_model extends CI_Model {
         $wdb = $this->_wdb();
         foreach ($children as $child) {
             $wdb->where(['DriveItemUID' => (int)$child->DriveItemUID, 'OrgUID' => $orgUID, 'UserUID' => $userUID]);
-            $wdb->update('Drive.DriveItemsTbl', ['IsDeleted' => 1, 'UpdatedBy' => $actorUID, 'UpdatedOn' => date('Y-m-d H:i:s')]);
+            $wdb->update('Drive.DriveItemsTbl', ['IsDeleted' => 1, 'UpdatedBy' => $actorUID]);
             if ($child->ItemType === 'Folder') {
                 $this->_softDeleteChildren((int)$child->DriveItemUID, $orgUID, $userUID, $actorUID);
             }

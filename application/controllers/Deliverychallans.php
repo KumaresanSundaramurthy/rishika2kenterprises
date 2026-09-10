@@ -673,7 +673,7 @@ class Deliverychallans extends MY_Controller {
             $this->dbwrite_model->startTransaction();
             $resp = $this->dbwrite_model->updateData(
                 'Transaction', 'TransactionsTbl',
-                ['DocStatus' => $newStatus, 'UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
+                ['DocStatus' => $newStatus, 'UpdatedBy' => $userUID],
                 ['TransUID' => $transUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
             );
             if ($resp->Error) throw new Exception($resp->Message);
@@ -919,7 +919,7 @@ class Deliverychallans extends MY_Controller {
             $this->dbwrite_model->startTransaction();
             $resp = $this->dbwrite_model->updateData(
                 'Transaction', 'TransactionsTbl',
-                ['DocStatus' => 'Converted', 'UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
+                ['DocStatus' => 'Converted', 'UpdatedBy' => $userUID],
                 ['TransUID' => $transUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
             );
             if ($resp->Error) throw new Exception($resp->Message);

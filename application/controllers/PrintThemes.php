@@ -370,7 +370,6 @@ class PrintThemes extends MY_Controller {
                 'PreviewHtmlContent' => $previewHtmlContent,
                 'PreviewImage'       => $previewImage,
                 'SortOrder'    => $sortOrder,
-                'UpdatedOn'    => date('Y-m-d H:i:s'),
             ];
 
             $this->load->model('dbwrite_model');

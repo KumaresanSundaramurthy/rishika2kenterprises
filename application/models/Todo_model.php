@@ -9,7 +9,7 @@ class Todo_model extends CI_Model {
         $this->ReadDb = $this->load->database('ReadDB', TRUE);
     }
 
-    // â”€â”€ Applies FROM / JOIN / WHERE conditions shared by count + list queries â”€â”€
+    // ── Applies FROM / JOIN / WHERE conditions shared by count + list queries ──
     private function _applyFilters(int $orgUID, int $userUID, array $filter): void {
         $myOnly   = !empty($filter['MyOnly']);
         $priority = trim($filter['Priority'] ?? '');

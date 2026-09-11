@@ -44,9 +44,9 @@ class Globally extends CI_Controller {
 
     }
 
-    // â”€â”€ GET /globally/geodata â€” all India states + cities as JSON â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── GET /globally/geodata — all India states + cities as JSON ────────────
     // address.js calls this once and stores the result in localStorage (24h TTL).
-    // Subsequent page loads read from localStorage â€” no AJAX, no server call.
+    // Subsequent page loads read from localStorage — no AJAX, no server call.
     public function geodata() {
         $this->EndReturnData = new stdClass();
         try {
@@ -58,7 +58,7 @@ class Globally extends CI_Controller {
             $citiesResult = $this->location_model->getAllCitiesOfCountryFromDB('IN');
             $allCities    = ($citiesResult->Error === FALSE) ? $citiesResult->Data : [];
 
-            // Group cities by state ISO2 â€” mirrors window._cityCache key format
+            // Group cities by state ISO2 — mirrors window._cityCache key format
             $citiesByState = [];
             foreach ($allCities as $city) {
                 $iso2 = strtoupper($city->state_code);
@@ -418,7 +418,7 @@ class Globally extends CI_Controller {
 	}
 
 
-    // â”€â”€ GET /globally/fetchGstinDetails?gstin=XXXX â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── GET /globally/fetchGstinDetails?gstin=XXXX ──────────────────────────
     public function fetchGstinDetails(): void {
 
         $this->EndReturnData = new stdClass();
@@ -431,7 +431,7 @@ class Globally extends CI_Controller {
                 throw new Exception('Please enter a valid 15-character GSTIN.');
             }
 
-            // â”€â”€ Credit check: reject immediately if GstinPoints is 0 â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── Credit check: reject immediately if GstinPoints is 0 ─────────
             if ($orgUID > 0) {
                 $this->load->model('customers_model');
                 $creditRow = $this->customers_model->getCreditSettings($orgUID);
@@ -464,7 +464,7 @@ class Globally extends CI_Controller {
                 throw new Exception($apiMsg ?: 'GSTIN not found or invalid. Please verify the number.');
             }
 
-            // â”€â”€ Deduct 1 credit + refresh Upstash cache â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── Deduct 1 credit + refresh Upstash cache ───────────────────────
             if ($orgUID > 0) {
                 try {
                     $this->load->model('dbwrite_model');
@@ -492,15 +492,15 @@ class Globally extends CI_Controller {
 
             $d = $data['data'] ?? [];
 
-            // Parse address string: "123 Business Park, Mumbai â€” 400001"
+            // Parse address string: "123 Business Park, Mumbai — 400001"
             $rawAddr   = trim($d['address'] ?? '');
             $addrLine1 = $rawAddr;
             $city      = '';
             $pincode   = '';
 
             if ($rawAddr !== '') {
-                // Split on em dash (â€”) to separate address+city from pincode
-                $dashPos = mb_strpos($rawAddr, 'â€”');
+                // Split on em dash (—) to separate address+city from pincode
+                $dashPos = mb_strpos($rawAddr, '—');
                 if ($dashPos !== false) {
                     $leftPart = trim(mb_substr($rawAddr, 0, $dashPos));
                     $pincode  = trim(preg_replace('/\D/', '', mb_substr($rawAddr, $dashPos + 1)));
@@ -558,7 +558,7 @@ class Globally extends CI_Controller {
     }
 
 
-    // â”€â”€ GET /globally/fetchIfscDetails?ifsc=XXXX â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── GET /globally/fetchIfscDetails?ifsc=XXXX ─────────────────────────────
     public function getCommTemplate() {
         $this->EndReturnData = new stdClass();
         try {
@@ -613,7 +613,7 @@ class Globally extends CI_Controller {
         $context = [];
         if ($recordUID <= 0) return $context;
 
-        // â”€â”€ Org info (common to all modules) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Org info (common to all modules) ─────────────────────────────────
         $this->load->model('organisation_model');
         $orgInfo = $this->organisation_model->getOrgInfoCached($orgUID);
         $org     = $orgInfo->Data ?? null;
@@ -629,7 +629,7 @@ class Globally extends CI_Controller {
             $context['OrgAddress'] = $orgAddr;
         }
 
-        // â”€â”€ Module 110: Payments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Module 110: Payments ──────────────────────────────────────────────
         if ((int)$moduleUID === 110) {
             $this->load->model('transactions_model');
             $payment = $this->transactions_model->getPaymentDetailById($recordUID, $orgUID);
@@ -659,7 +659,7 @@ class Globally extends CI_Controller {
             ];
         }
 
-        // â”€â”€ Module 103: Sales Invoice â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Module 103: Sales Invoice ─────────────────────────────────────────
         if ((int)$moduleUID === 103) {
             $this->load->model('transactions_model');
             $invoice = $this->transactions_model->getTransactionById($recordUID, $orgUID, 103);
@@ -701,7 +701,7 @@ class Globally extends CI_Controller {
             ];
         }
 
-        // â”€â”€ Add more modules here as needed â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Add more modules here as needed ───────────────────────────────────
 
         return $context;
     }
@@ -731,7 +731,7 @@ class Globally extends CI_Controller {
             ? smartDecimal((float)$context['Amount'])
             : '';
 
-        // â”€â”€ Common tokens â€” both UPPER_CASE and camelCase variants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Common tokens — both UPPER_CASE and camelCase variants ────────────
         $map = [
             // UPPER_CASE (standard)
             '{{PARTY_NAME}}'      => $context['PartyName']    ?? '',
@@ -760,7 +760,7 @@ class Globally extends CI_Controller {
             '{{CompanyAddress}}'  => $orgAddress,
         ];
 
-        // â”€â”€ Module 110: Payments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Module 110: Payments ──────────────────────────────────────────────
         if ((int)$moduleUID === 110) {
             $balFmt = isset($context['BalanceAmount'])
                 ? smartDecimal((float)$context['BalanceAmount'])
@@ -779,7 +779,7 @@ class Globally extends CI_Controller {
             $map['{{ReceiptDate}}']         = $context['DocDate']            ?? '';
             $map['{{PaymentMode}}']         = $context['PaymentMode']        ?? '';
             $map['{{PaymentStatus}}']       = $context['PaymentStatus']      ?? '';
-            // Plain number (no symbol) â€” templates that write "â‚¹ {{AmountReceived}}" use this
+            // Plain number (no symbol) — templates that write "â‚¹ {{AmountReceived}}" use this
             $map['{{AmountReceived}}']      = isset($context['Amount']) ? smartDecimal((float)$context['Amount']) : '';
             $map['{{ReceiptLink}}']         = $context['ReceiptLink']        ?? '';
             $map['{{BalanceAmount}}']       = $balFmt;
@@ -788,7 +788,7 @@ class Globally extends CI_Controller {
             $map['{{InvoiceNumber}}']       = $context['DocNumber']          ?? '';
         }
 
-        // â”€â”€ Module 103: Sales Invoice â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Module 103: Sales Invoice ───────────────────────────────────────────
         if ((int)$moduleUID === 103) {
             $balFmt = isset($context['BalanceAmount'])
                 ? smartDecimal((float)$context['BalanceAmount'])
@@ -832,7 +832,7 @@ class Globally extends CI_Controller {
             $map['{{BillAmount}}']       = $fmtAmt;
         }
 
-        // â”€â”€ Add more module-specific token blocks here â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Add more module-specific token blocks here ─────────────────────────
 
         return [
             'subject' => str_replace(array_keys($map), array_values($map), $subject),

@@ -1037,6 +1037,37 @@ class Login extends CI_Controller {
             $this->load->library('subscription');
             $subscriptionCheck = $this->subscription->checkSubscription($user->UserUID);
             if (!$subscriptionCheck->isValid) {
+                // Generate a short-lived renewal token so the renew page can identify the org
+                $rToken = bin2hex(random_bytes(16));
+                $this->redisservice->setCache('rnt_' . $rToken, ['orgUID' => (int)$user->OrgUID, 'createdAt' => time()], 1800);
+
+                // Fetch plan + end date for the modal display
+                $subDb     = $this->load->database('ReadDB', TRUE);
+                $subDb->db_debug = FALSE;
+                $subDetail = $subDb->select('OS.EndDate, COALESCE(SP.PlanName, \'Trial\') AS PlanName, O.Name AS OrgName')
+                    ->from('Billing.OrgSubscriptionTbl AS OS')
+                    ->join('Organisation.OrganisationTbl AS O',  'O.OrgUID  = OS.OrgUID',             'left')
+                    ->join('Billing.SectorPlanTbl AS SPT',       'SPT.SectorPlanUID = OS.SectorPlanUID', 'left')
+                    ->join('Billing.SubscriptionPlansTbl AS SP', 'SP.PlanUID = SPT.PlanUID',             'left')
+                    ->where('OS.OrgUID', (int)$user->OrgUID)
+                    ->where_not_in('OS.Status', ['Cancelled'])
+                    ->order_by('OS.StartDate', 'DESC')
+                    ->limit(1)
+                    ->get()->row();
+
+                $this->EndReturnData->SubscriptionExpired = true;
+                $this->EndReturnData->accessRef           = $rToken;
+                $this->EndReturnData->subPlanName         = $subDetail ? ($subDetail->PlanName ?: 'Trial') : '';
+                $this->EndReturnData->subEndDate          = $subDetail ? ($subDetail->EndDate  ?: '')      : '';
+                $this->EndReturnData->subOrgName          = $subDetail ? ($subDetail->OrgName  ?: '')      : '';
+
+                Telegramnotifier::alert('[LOGIN-STEP1] validateUsername BLOCKED at subscription check', [
+                    'UserUID'   => $user->UserUID,
+                    'UserName'  => $username,
+                    'isValid'   => 'FALSE',
+                    'status'    => $subscriptionCheck->status,
+                    'message'   => $subscriptionCheck->message,
+                ]);
                 throw new Exception($subscriptionCheck->message);
             }
 

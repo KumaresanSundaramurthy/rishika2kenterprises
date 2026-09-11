@@ -17,7 +17,7 @@ $this->load->view('common/header'); ?>
 
                 <div class="container-xxl flex-grow-1">
 
-                    <!-- â”€â”€ Filter Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+                    <!-- ── Filter Card ────────────────────────────────────── -->
                     <div class="card mb-3">
                         <div class="card-body p-3">
                             <div class="row g-3 align-items-end">
@@ -58,7 +58,7 @@ $this->load->view('common/header'); ?>
                         </div>
                     </div>
 
-                    <!-- â”€â”€ Dashboard Area â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+                    <!-- ── Dashboard Area ─────────────────────────────────── -->
                     <div id="ratioDashArea">
                         <div class="d-flex flex-column align-items-center py-5 text-muted" id="ratioEmptyState">
                             <i class="bx bx-analyse fs-1 mb-2" style="color:#ccc;"></i>

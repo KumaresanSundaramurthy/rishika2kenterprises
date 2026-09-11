@@ -613,10 +613,10 @@ class Quotations extends MY_Controller {
             }
             $this->pageData['NextNumberMap'] = $nextNumberMap;
 
-            // Dispatch address â€” use same method as create so DispatchAddresses (plural) is set
+            // Dispatch address — use same method as create so DispatchAddresses (plural) is set
             $this->_getDispatchAddresses($orgUID);
 
-            // Attachments â€” load server-side to avoid AJAX call on page load
+            // Attachments — load server-side to avoid AJAX call on page load
             $this->pageData['QuotAttachments'] = $this->transactions_model->getTransactionAttachments($transUID, $orgUID);
 
             $this->pageData['fltStorageData'] = [];

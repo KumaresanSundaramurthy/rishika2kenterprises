@@ -9,7 +9,7 @@ class Expenses_model extends CI_Model {
         $this->ReadDb = $this->load->database('ReadDB', TRUE);
     }
 
-    // â”€â”€ Paginated list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Paginated list ───────────────────────────────────────────────────────
     public function getExpenseList(int $orgUID, array $filter, int $limit, int $offset): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -64,7 +64,7 @@ class Expenses_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Count â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Count ────────────────────────────────────────────────────────────────
     public function getExpenseCount(int $orgUID, array $filter): int {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -83,7 +83,7 @@ class Expenses_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Single record â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Single record ────────────────────────────────────────────────────────
     public function getExpenseById(int $expenseUID, int $orgUID): ?object {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -123,7 +123,7 @@ class Expenses_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Summary stats for stat cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Summary stats for stat cards ─────────────────────────────────────────
     public function getExpenseSummaryStats(int $orgUID, int $branchUID = 0): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -146,7 +146,7 @@ class Expenses_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Categories (org-specific + system defaults) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Categories (org-specific + system defaults) ──────────────────────────
     public function getCategories(int $orgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -167,7 +167,7 @@ class Expenses_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Payment types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Payment types ────────────────────────────────────────────────────────
     public function getPaymentTypes(): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -183,7 +183,7 @@ class Expenses_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Bank accounts for org (excludes cash accounts) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Bank accounts for org (excludes cash accounts) ────────────────────────
     public function getBankAccounts(int $orgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -202,7 +202,7 @@ class Expenses_model extends CI_Model {
         }
     }
 
-    // â”€â”€ TDS Sections â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── TDS Sections ─────────────────────────────────────────────────────────
     public function getTdsSections(): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -219,7 +219,7 @@ class Expenses_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Default cash account for ledger entries â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Default cash account for ledger entries ──────────────────────────────
     public function getCashAccount(int $orgUID): ?object {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -238,7 +238,7 @@ class Expenses_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Category list (paginated, for manager modal) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Category list (paginated, for manager modal) ─────────────────────────
     public function getCategoryList(int $orgUID, string $search, int $limit, int $offset): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -264,7 +264,7 @@ class Expenses_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Category count â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Category count ───────────────────────────────────────────────────────
     public function getCategoryCount(int $orgUID, string $search): int {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -289,7 +289,7 @@ class Expenses_model extends CI_Model {
     }
 
 
-    // â”€â”€ Count existing payment rows for an expense (for UniqueNumber suffix) â”€â”€â”€
+    // ── Count existing payment rows for an expense (for UniqueNumber suffix) ───
     public function getPaymentCount(int $transUID, string $sourceType, int $orgUID): int {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -308,7 +308,7 @@ class Expenses_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Check if any active expense uses this category â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Check if any active expense uses this category ────────────────────────
     public function isCategoryLinked(int $categoryUID, int $orgUID): bool {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -326,12 +326,12 @@ class Expenses_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Write DB helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Write DB helper ──────────────────────────────────────────────────────
     private function _wdb(): CI_DB_driver {
         return $this->load->database('WriteDB', TRUE);
     }
 
-    // â”€â”€ Expense items â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Expense items ─────────────────────────────────────────────────────────
 
     /**
      * @param int   $expenseUID
@@ -421,7 +421,7 @@ class Expenses_model extends CI_Model {
         $wdb->update('Transaction.ExpenseItemsTbl', ['IsDeleted' => 1, 'UpdatedBy' => $actorUID]);
     }
 
-    // â”€â”€ Private filter helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Private filter helper ────────────────────────────────────────────────
     private function _applyFilters(array $filter): void {
         if (!empty($filter['BranchUID'])) {
             $this->ReadDb->where('e.BranchUID', (int)$filter['BranchUID']);

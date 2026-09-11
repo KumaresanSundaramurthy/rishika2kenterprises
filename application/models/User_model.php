@@ -52,7 +52,8 @@ class User_model extends CI_Model {
                 'User.LastLoginDevice as LastLoginDevice',
                 'User.LoginExpiryDateTime as LoginExpiryDateTime',
                 'User.AuthProvider as AuthProvider',
-                'User.PasswordChangedOn as PasswordChangedOn'
+                'User.PasswordChangedOn as PasswordChangedOn',
+                'Org.SectorUID as SectorUID'
             ]);
             $this->ReadDb->from('Users.UserTbl as User');
             $this->ReadDb->join('UserRole.RolesTbl as Roles', 'Roles.RoleUID = User.RoleUID', 'left');
@@ -131,7 +132,8 @@ class User_model extends CI_Model {
                 'User.LastLoginOn as LastLoginOn',
                 'User.LastLoginDevice as LastLoginDevice',
                 'User.AuthProvider as AuthProvider',
-                'User.PasswordChangedOn as PasswordChangedOn'
+                'User.PasswordChangedOn as PasswordChangedOn',
+                'Org.SectorUID as SectorUID'
             ]);
             $this->ReadDb->from('Users.UserTbl as User');
             $this->ReadDb->join('UserRole.RolesTbl as Roles',          'Roles.RoleUID = User.RoleUID',          'left');
@@ -244,7 +246,8 @@ class User_model extends CI_Model {
                 'Org.ShortCode as OrgShortCode',
                 'Org.OrgToken as OrgToken',
                 'Org.StateCode as OrgStateCode',
-                'Org.StateName as OrgStateName'
+                'Org.StateName as OrgStateName',
+                'Org.SectorUID as SectorUID'
             ]);
             $this->ReadDb->from('Users.UserTbl as User');
             $this->ReadDb->join('UserRole.RolesTbl as Roles', 'Roles.RoleUID = User.RoleUID', 'left');

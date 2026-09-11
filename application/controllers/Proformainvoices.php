@@ -12,7 +12,7 @@ class Proformainvoices extends MY_Controller {
         $this->load->helper('transaction');
     }
 
-    // â”€â”€ List page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── List page ────────────────────────────────────────────────
     public function index(): void {
         if (!$this->_loadPageTitle($this->pageModuleUID)) {
             $this->load->view('common/module_error', $this->pageData);
@@ -33,7 +33,7 @@ class Proformainvoices extends MY_Controller {
         }
     }
 
-    // â”€â”€ Create form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Create form ──────────────────────────────────────────────
     public function create() {
         try {
 
@@ -68,7 +68,7 @@ class Proformainvoices extends MY_Controller {
         }
     }
 
-    //â”€â”€ Edit form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    //── Edit form ────────────────────────────────────────────────
     public function edit($transUID = 0) {
         try {
             $transUID = (int) $transUID;
@@ -124,7 +124,7 @@ class Proformainvoices extends MY_Controller {
         }
     }
 
-    // â”€â”€ Save new Pro Forma â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Save new Pro Forma ───────────────────────────────────────
     public function addProFormaInvoice() {
         $this->EndReturnData = new stdClass();
         try {
@@ -208,7 +208,7 @@ class Proformainvoices extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Update existing Pro Forma â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Update existing Pro Forma ────────────────────────────────
     public function updateProFormaInvoice() {
         $this->EndReturnData = new stdClass();
         try {
@@ -327,7 +327,7 @@ class Proformainvoices extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Delete Pro Forma â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Delete Pro Forma ─────────────────────────────────────────
     public function deleteProFormaInvoice() {
         $this->EndReturnData = new stdClass();
         try {
@@ -376,7 +376,7 @@ class Proformainvoices extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Duplicate Pro Forma â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Duplicate Pro Forma ──────────────────────────────────────
     public function duplicateProFormaInvoice() {
         $this->EndReturnData = new stdClass();
         try {
@@ -503,7 +503,7 @@ class Proformainvoices extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Status update â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Status update ────────────────────────────────────────────
     public function updateProFormaStatus() {
         $this->EndReturnData = new stdClass();
         try {
@@ -558,7 +558,7 @@ class Proformainvoices extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Convert to Invoice â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Convert to Invoice ───────────────────────────────────────
     public function convertProFormaToInvoice() {
         $this->EndReturnData = new stdClass();
         try {
@@ -600,6 +600,6 @@ class Proformainvoices extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Detail (for print/view modal) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Detail (for print/view modal) ────────────────────────────
 
 }

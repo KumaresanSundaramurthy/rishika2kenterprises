@@ -126,7 +126,7 @@ class Salesreturns extends MY_Controller {
             $this->dbwrite_model->commitTransaction();
 
             if (!$isDraft) {
-                $this->_syncProductCacheFromItems($items); // after commit â€” ReadDB now sees updated stock
+                $this->_syncProductCacheFromItems($items); // after commit — ReadDB now sees updated stock
                 try {
                     $this->load->library('accountledger');
                     $this->accountledger->postSaleReturnJournal(
@@ -167,9 +167,9 @@ class Salesreturns extends MY_Controller {
                     . ' RecordPayment_POST=' . (int)getPostValue($PostData, 'RecordPayment'));
 
                 // Ã¢â€â‚¬Ã¢â€â‚¬ Create credit note for the outstanding balance Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
-                // No payment  Ã¢â€ â€™ CN for full NetAmount
-                // Partial pay Ã¢â€ â€™ CN for remaining BalanceAmount
-                // Full pay    Ã¢â€ â€™ no CN (balanceAmount = 0)
+                // No payment  Ã¢â€ ’ CN for full NetAmount
+                // Partial pay Ã¢â€ ’ CN for remaining BalanceAmount
+                // Full pay    Ã¢â€ ’ no CN (balanceAmount = 0)
                 $cnAmount = $hasPayment ? ($balanceAmount ?? 0) : $netAmount;
                     . ' hasPayment=' . ($hasPayment ? 'true' : 'false')
                     . ' netAmount=' . $netAmount
@@ -378,7 +378,7 @@ class Salesreturns extends MY_Controller {
 
                 if ($existing) {
                     if ((int) $existing->IsDeleted === 1) {
-                        // Previously removed â€” restore it
+                        // Previously removed — restore it
                         $wdb->where('ConversionUID', $existing->ConversionUID)
                             ->update('Transaction.TransConversionTbl', [
                                 'IsDeleted'   => 0,
@@ -386,9 +386,9 @@ class Salesreturns extends MY_Controller {
                                 'UpdatedBy'   => $userUID,
                             ]);
                     }
-                    // else: record is already active â€” nothing to do
+                    // else: record is already active — nothing to do
                 } else {
-                    // Brand new invoice added in this edit â€” insert fresh record
+                    // Brand new invoice added in this edit — insert fresh record
                     $this->dbwrite_model->insertConversionRecord(
                         $orgUID, $invUID, 103, $activeTransUID, $this->pageModuleUID, 'InvoiceToSalesReturn', $userUID
                     );
@@ -396,7 +396,7 @@ class Salesreturns extends MY_Controller {
             }
 
             $this->dbwrite_model->commitTransaction();
-            if (!$isDraft) { $this->_syncProductCacheByTransUID($activeTransUID); } // after commit â€” ReadDB now sees updated stock
+            if (!$isDraft) { $this->_syncProductCacheByTransUID($activeTransUID); } // after commit — ReadDB now sees updated stock
             $this->_saveAttachments($activeTransUID);
             $this->_softDeleteAttachments($this->input->post('RemovedAttachIDs') ?? '');
             $this->cachehelper->touchCustomer($customerUID);
@@ -499,7 +499,7 @@ class Salesreturns extends MY_Controller {
             if ($deleteResp->Error) throw new Exception($deleteResp->Message);
             $this->dbwrite_model->markConversionDeleted($transUID, $orgUID, $userUID);
             $this->dbwrite_model->commitTransaction();
-            $this->_syncProductCacheByTransUID($transUID); // after commit â€” ReadDB now sees reverted stock
+            $this->_syncProductCacheByTransUID($transUID); // after commit — ReadDB now sees reverted stock
 
             $this->_recalcCustomerBalance($orgUID, (int)$existing->PartyUID, $userUID);
 
@@ -822,7 +822,7 @@ class Salesreturns extends MY_Controller {
             // Commit BEFORE recalculating balance so ReadDB sees DocStatus='Cancelled'
             // and getCustomerTotalReturned correctly excludes the cancelled SR.
             $this->dbwrite_model->commitTransaction();
-            if ($newStatus === 'Cancelled') { $this->_syncProductCacheByTransUID($transUID); } // after commit â€” ReadDB now sees reverted stock
+            if ($newStatus === 'Cancelled') { $this->_syncProductCacheByTransUID($transUID); } // after commit — ReadDB now sees reverted stock
 
             if ($newStatus === 'Cancelled') {
                 $balResult = $this->_recalcCustomerBalance($orgUID, (int)$existing->PartyUID, $userUID);
@@ -1022,7 +1022,7 @@ class Salesreturns extends MY_Controller {
             $this->pageData['IsEditMode']         = true;
             $this->pageData['SRSerialsByProd']    = $this->_getTransSerialsGrouped($transUID, $orgUID, 'SalesReturn');
 
-            // Attachments â€” load server-side to avoid AJAX call on page load
+            // Attachments — load server-side to avoid AJAX call on page load
             $this->pageData['SRAttachments'] = $this->transactions_model->getTransactionAttachments($transUID, $orgUID);
 
             $this->load->view('transactions/salesreturns/forms/form', $this->pageData);

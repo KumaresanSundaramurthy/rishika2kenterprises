@@ -21,7 +21,7 @@ class Inventory extends MY_Controller {
         $this->load->model(['inventory_model', 'dbwrite_model']);
     }
 
-    // â”€â”€ Main page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Main page ───────────────────────────────────────────────────────
 
     public function index() {
 
@@ -65,7 +65,7 @@ class Inventory extends MY_Controller {
 
     }
 
-    // â”€â”€ AJAX pagination â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── AJAX pagination ─────────────────────────────────────────────────
 
     public function getPageDetails($pageNo = 1) {
 
@@ -103,7 +103,7 @@ class Inventory extends MY_Controller {
 
     }
 
-    // â”€â”€ Stock In â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Stock In ───────────────────────────────────────────────────────
 
     public function stockIn() {
 
@@ -156,7 +156,7 @@ class Inventory extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            // Post inventory journal entry (non-fatal â€” stock is already committed)
+            // Post inventory journal entry (non-fatal — stock is already committed)
             try {
                 $this->load->library('accountledger');
                 $adjFY = (int)date('Y', strtotime($recordDate));
@@ -236,7 +236,7 @@ class Inventory extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            // Post inventory journal entry (non-fatal â€” stock is already committed)
+            // Post inventory journal entry (non-fatal — stock is already committed)
             try {
                 $this->load->library('accountledger');
                 $adjFY = (int)date('Y', strtotime($recordDate));
@@ -298,7 +298,7 @@ class Inventory extends MY_Controller {
 
     }
 
-    // Delete a manual stock adjustment â€” reverses stock movement + accounting journal
+    // Delete a manual stock adjustment — reverses stock movement + accounting journal
 
     public function deleteAdj() {
 
@@ -445,7 +445,7 @@ class Inventory extends MY_Controller {
 
     }
 
-    // â”€â”€ Global Timeline page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Global Timeline page ───────────────────────────────────────────────
 
     public function timelinePage() {
 
@@ -491,7 +491,7 @@ class Inventory extends MY_Controller {
 
     }
 
-    // â”€â”€ Global Timeline AJAX pagination â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Global Timeline AJAX pagination ─────────────────────────────────
 
     public function getTimelinePageDetails($pageNo = 1) {
 
@@ -529,7 +529,7 @@ class Inventory extends MY_Controller {
 
     }
 
-    // â”€â”€ Product search (for timeline item filter) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Product search (for timeline item filter) ─────────────────────────
 
     public function searchProducts() {
 
@@ -550,7 +550,7 @@ class Inventory extends MY_Controller {
 
     }
 
-    // â”€â”€ Refresh stats only (AJAX) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Refresh stats only (AJAX) ─────────────────────────────────────────
 
     public function getStats() {
 
@@ -569,7 +569,7 @@ class Inventory extends MY_Controller {
 
     }
 
-    // â”€â”€ Export inventory list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Export inventory list ───────────────────────────────────────────────
     public function export() {
         try {
             $type   = $this->input->get('Type')   ?: 'CSV';
@@ -599,7 +599,7 @@ class Inventory extends MY_Controller {
         }
     }
 
-    // â”€â”€ Export stock timeline â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Export stock timeline ───────────────────────────────────────────────
     public function exportTimeline() {
         try {
             $type   = $this->input->get('Type')   ?: 'CSV';
@@ -634,7 +634,7 @@ class Inventory extends MY_Controller {
         }
     }
 
-    // â”€â”€ Private export helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Private export helpers ───────────────────────────────────────────────
     private function _mapInventoryRow($i, $row) {
         $qty    = (float)($row->AvailableQuantity ?? 0);
         $low    = (float)($row->LowStockAlertAt   ?? 0);
@@ -660,10 +660,10 @@ class Inventory extends MY_Controller {
         $source    = $moduleLabels[$moduleUID] ?? 'Unknown';
         $ref       = ($moduleUID === 118)
                    ? (!empty($row->AdjUID) ? 'ADJ-' . (int)$row->AdjUID : ($row->AdjCategory ?: 'Manual'))
-                   : (!empty($row->UniqueNumber) ? $row->UniqueNumber : ($row->TransNumber ?: 'â€”'));
+                   : (!empty($row->UniqueNumber) ? $row->UniqueNumber : ($row->TransNumber ?: '—'));
         $date      = ($moduleUID === 118)
-                   ? ($row->AdjDate   ? format_datedisplay($row->AdjDate)   : 'â€”')
-                   : ($row->TransDate ? format_datedisplay($row->TransDate) : 'â€”');
+                   ? ($row->AdjDate   ? format_datedisplay($row->AdjDate)   : '—')
+                   : ($row->TransDate ? format_datedisplay($row->TransDate) : '—');
         return [
             $i,
             $date,
@@ -674,7 +674,7 @@ class Inventory extends MY_Controller {
             $row->MovementType  ?? '',
             $row->Quantity      ?? '',
             isset($row->SellingPrice) && $row->SellingPrice !== null ? $row->SellingPrice : ($row->UnitCost ?? ''),
-            $row->Remarks       ?? 'â€”',
+            $row->Remarks       ?? '—',
             $row->CreatedByName ?? '',
         ];
     }

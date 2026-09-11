@@ -210,7 +210,7 @@ class Purchases extends MY_Controller {
             $this->dbwrite_model->commitTransaction();
             $transCommitted = true;
 
-            // â”€â”€ Post-commit steps (each isolated so one failure cannot crash the response) â”€â”€
+            // ── Post-commit steps (each isolated so one failure cannot crash the response) ──
 
             if (!$isDraft) {
                 try {
@@ -481,7 +481,7 @@ class Purchases extends MY_Controller {
             $this->dbwrite_model->commitTransaction();
             $transCommitted = true;
 
-            // â”€â”€ Post-commit steps (each isolated so one failure cannot crash the response) â”€â”€
+            // ── Post-commit steps (each isolated so one failure cannot crash the response) ──
 
             try {
                 $this->_touchVendorCache($vendorUID);
@@ -582,7 +582,7 @@ class Purchases extends MY_Controller {
             $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
             if (!$existing) throw new ValidationException('Purchase bill not found.');
 
-            // Point 4: guard â€” block delete if a debit note credit has already been applied to this purchase
+            // Point 4: guard — block delete if a debit note credit has already been applied to this purchase
             $readDb = $this->load->database('ReadDB', TRUE);
             $readDb->db_debug = FALSE;
             $debitAppliedCheck = $readDb->query(
@@ -641,7 +641,7 @@ class Purchases extends MY_Controller {
             if ($existing->DocStatus !== 'Draft' && $existing->PartyType === 'S' && $existing->PartyUID > 0) {
                 try {
                     $this->load->library('accountledger');
-                    // Only reverse the unpaid portion â€” payments already reduced vendor balance
+                    // Only reverse the unpaid portion — payments already reduced vendor balance
                     $remaining = max(0, round((float)$existing->NetAmount - $alreadyPaid, $this->_decimals()));
                     if ($remaining > 0) {
                         $this->accountledger->applyLedgerEntry($existing->PartyUID, 'Vendor', $remaining, 'Debit', $transUID);
@@ -926,7 +926,7 @@ class Purchases extends MY_Controller {
 
             if ($newStatus === 'Cancelled') {
                 if ($existing->DocStatus !== 'Draft' && !empty($existing->PartyUID)) {
-                    // Payment handling â€” only when a paid amount exists
+                    // Payment handling — only when a paid amount exists
                     $payments    = $this->transactions_model->getTransactionPayments($transUID, $orgUID);
                     $alreadyPaid = array_sum(array_column((array) $payments, 'Amount'));
 
@@ -946,7 +946,7 @@ class Purchases extends MY_Controller {
 
                     try {
                         $this->load->library('accountledger');
-                        // Reverse only the unpaid portion â€” payments already reduced vendor balance
+                        // Reverse only the unpaid portion — payments already reduced vendor balance
                         $remaining = max(0, round((float)$existing->NetAmount - $alreadyPaid, $this->_decimals()));
                         if ($remaining > 0) {
                             $this->accountledger->applyLedgerEntry($existing->PartyUID, 'Vendor', $remaining, 'Debit', $transUID);
@@ -980,7 +980,7 @@ class Purchases extends MY_Controller {
                 (int) $orgUID, (int) $userUID,
                 'UPDATE_PURCHASE_STATUS', 'Purchase', (int) $transUID, (string) ($existing->UniqueNumber ?? ''),
                 ['NewStatus' => $newStatus, 'CancelPaymentAction' => $cancelPaymentAction, 'CancelReason' => $cancelReason],
-                'Updated purchase status #' . $transUID . ($cancelReason ? ' â€” ' . $cancelReason : ''), 'Purchases', 'TRANSACTION'
+                'Updated purchase status #' . $transUID . ($cancelReason ? ' — ' . $cancelReason : ''), 'Purchases', 'TRANSACTION'
             );
             $this->EndReturnData->NewStatus = $newStatus;
 
@@ -1338,7 +1338,7 @@ class Purchases extends MY_Controller {
                 $this->_writeBankLedgerEntry(
                     $orgUID, $bankAccountUID, 'DR', $amount,
                     'Purchase', $transUID, 111,
-                    $referenceNo, 'Payment made to vendor â€” ' . ($existing->UniqueNumber ?? '#' . $transUID),
+                    $referenceNo, 'Payment made to vendor — ' . ($existing->UniqueNumber ?? '#' . $transUID),
                     $paymentDate, $userUID
                 );
             }
@@ -1458,7 +1458,7 @@ class Purchases extends MY_Controller {
             $payUniqueNum  = ($payPrefix && $paymentNumber > 0) ? $this->_buildPaymentUniqueNumber($payPrefix, $today, $paymentNumber) : null;
             $receiptToken  = $this->transactions_model->_generateReceiptToken();
 
-            // Insert PaymentsTbl row â€” PaymentTypeUID=0 = debit adjustment
+            // Insert PaymentsTbl row — PaymentTypeUID=0 = debit adjustment
             $paymentData = [
                 'OrgUID'           => $orgUID,
                 'PaymentDate'      => $today,
@@ -1536,7 +1536,7 @@ class Purchases extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Debit Note: refund (vendor pays back in cash) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Debit Note: refund (vendor pays back in cash) ──────────────────────────
     public function refundDebitNote(): void {
         $this->EndReturnData = new stdClass();
         try {
@@ -1582,7 +1582,7 @@ class Purchases extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Debit Note: delete a Pending note â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Debit Note: delete a Pending note ──────────────────────────────────────
     public function deleteDebitNote(): void {
         $this->EndReturnData = new stdClass();
         try {
@@ -1628,7 +1628,7 @@ class Purchases extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Debit Notes: paginated list for the Debit Notes tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Debit Notes: paginated list for the Debit Notes tab ────────────────────
     public function getDebitNotesList(): void {
         $this->EndReturnData = new stdClass();
         try {
@@ -1698,8 +1698,8 @@ class Purchases extends MY_Controller {
                     $canRefund  = $dn->Status === 'Pending';
                     $dnModType  = ((int)$dn->SourceModuleUID === 105) ? 'purchase' : 'purchasereturn';
                     $sourceLink = $dn->SourceTransUID
-                        ? '<a href="javascript:void(0)" class="viewTransaction fw-semibold" data-uid="' . (int)$dn->SourceTransUID . '" data-module="' . (int)$dn->SourceModuleUID . '" data-type="' . $dnModType . '" data-number="' . htmlspecialchars($dn->SourceTransNumber ?? '') . '">' . htmlspecialchars($dn->SourceTransNumber ?? 'â€”') . '</a>'
-                        : htmlspecialchars($dn->SourceTransNumber ?? 'â€”');
+                        ? '<a href="javascript:void(0)" class="viewTransaction fw-semibold" data-uid="' . (int)$dn->SourceTransUID . '" data-module="' . (int)$dn->SourceModuleUID . '" data-type="' . $dnModType . '" data-number="' . htmlspecialchars($dn->SourceTransNumber ?? '') . '">' . htmlspecialchars($dn->SourceTransNumber ?? '—') . '</a>'
+                        : htmlspecialchars($dn->SourceTransNumber ?? '—');
 
                     $dnActions = '<div class="d-flex align-items-center justify-content-end gap-1">'
                         . ($canRefund
@@ -1717,10 +1717,10 @@ class Purchases extends MY_Controller {
 
                     $html .= '<tr>'
                         . '<td class="text-muted small">' . ($offset + $i + 1) . '</td>'
-                        . '<td>' . $sourceLink . '<div class="text-muted small">' . htmlspecialchars($dn->VendorName ?? 'â€”') . '</div></td>'
+                        . '<td>' . $sourceLink . '<div class="text-muted small">' . htmlspecialchars($dn->VendorName ?? '—') . '</div></td>'
                         . '<td>' . $statusBadge . '</td>'
                         . '<td class="fw-semibold text-success">' . htmlspecialchars($cur) . ' ' . smartDecimal((float)$dn->Amount) . '</td>'
-                        . '<td class="text-muted small">' . changeTimeZonefromDateTime($dn->CreatedOn, $timezone, 2) . '<br><span>' . htmlspecialchars($dn->CreatorName ?? 'â€”') . '</span></td>'
+                        . '<td class="text-muted small">' . changeTimeZonefromDateTime($dn->CreatedOn, $timezone, 2) . '<br><span>' . htmlspecialchars($dn->CreatorName ?? '—') . '</span></td>'
                         . '<td>' . $dnActions . '</td>'
                         . '</tr>';
                 }

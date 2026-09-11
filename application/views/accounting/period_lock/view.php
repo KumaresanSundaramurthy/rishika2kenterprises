@@ -22,7 +22,7 @@ $this->load->view('common/header'); ?>
                     <div class="row justify-content-center">
                         <div class="col-md-8 col-lg-6">
 
-                            <!-- â”€â”€ Current Status Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+                            <!-- ── Current Status Card ─────────────────────── -->
                             <div class="card mb-3">
                                 <div class="card-body p-4">
                                     <div class="d-flex align-items-center gap-3">
@@ -58,7 +58,7 @@ $this->load->view('common/header'); ?>
                                 </div>
                             </div>
 
-                            <!-- â”€â”€ Set Lock Date Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+                            <!-- ── Set Lock Date Card ──────────────────────── -->
                             <div class="card">
                                 <div class="card-header" style="background:transparent;border-bottom:1px solid var(--bs-border-color);">
                                     <h6 class="mb-0 fw-semibold">
@@ -92,13 +92,13 @@ $this->load->view('common/header'); ?>
                                     <div class="mt-3 p-3 rounded" style="background:#fef9ee;border:1px solid #fde68a;font-size:.78rem;" id="plWarningBox">
                                         <i class="bx bx-info-circle me-1 text-warning"></i>
                                         <strong>Important:</strong> Once a period is locked, no journal can be posted or reversed
-                                        within that period â€” including invoices, payments, expenses, and manual entries.
+                                        within that period — including invoices, payments, expenses, and manual entries.
                                         Only remove the lock if a correction is genuinely required.
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- â”€â”€ Lock History Note â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+                            <!-- ── Lock History Note ───────────────────────── -->
                             <?php if ($isLocked): ?>
                             <div class="mt-3 text-center text-muted" style="font-size:.75rem;">
                                 Lock was set by user #<?php echo (int)$CurrentLock->LockedBy; ?>.
@@ -123,7 +123,7 @@ $this->load->view('common/header'); ?>
     var _isLocked = <?php echo $isLocked ? 'true' : 'false'; ?>;
     var _dateFmt  = '<?php echo $dateFmt; ?>';
 
-    // â”€â”€ Flatpickr â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Flatpickr ─────────────────────────────────────────────────────────────
     var _fpOptions = {
         static   : true,
         position : 'below left',
@@ -138,7 +138,7 @@ $this->load->view('common/header'); ?>
         flatpickr('#plLockDate', _fpOptions);
     }
 
-    // â”€â”€ Save / Advance lock â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Save / Advance lock ───────────────────────────────────────────────────
     document.getElementById('plSaveBtn').addEventListener('click', function () {
         var lockDate = document.getElementById('plLockDate').value;
         if (!lockDate) {
@@ -187,7 +187,7 @@ $this->load->view('common/header'); ?>
         });
     });
 
-    // â”€â”€ Remove lock â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Remove lock ───────────────────────────────────────────────────────────
     var removeBtn = document.getElementById('plRemoveBtn');
     if (removeBtn) {
         removeBtn.addEventListener('click', function () {

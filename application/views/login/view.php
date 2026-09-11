@@ -449,6 +449,30 @@
 }
 .lr-resend-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
+.lr-renew-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    justify-content: center;
+    padding: 9px 16px;
+    border: 1px solid rgba(245,158,11,0.45);
+    border-radius: 8px;
+    background: rgba(245,158,11,0.08);
+    color: #fbbf24;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+.lr-renew-btn:hover {
+    background: rgba(245,158,11,0.16);
+    border-color: rgba(245,158,11,0.75);
+    color: #fde68a;
+    text-decoration: none;
+    transform: translateY(-1px);
+}
+
 /* Toast notification */
 .lr-toast {
     position: fixed;
@@ -560,6 +584,47 @@
 .lr-signup-note a:hover { text-decoration: underline; }
 
 
+/* ── Home pill (top-left, mirrors language switcher) ──────── */
+.lr-home-link {
+    position: absolute;
+    top: 24px;
+    left: 24px;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 13px;
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 100px;
+    color: #94a3b8;
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    line-height: 1;
+    transition: all 0.2s ease-in-out;
+}
+
+.lr-home-link:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #f1f5f9;
+    border-color: rgba(255, 255, 255, 0.16);
+    text-decoration: none;
+    transform: translateX(-2px);
+}
+
+/* Make logo a subtle link */
+.lr-head-logo-link { display: contents; }
+.lr-head-logo-link img {
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.lr-head-logo-link:hover img {
+    box-shadow: 0 0 0 2px rgba(245,158,11,0.55), 0 4px 20px rgba(245,158,11,0.28);
+    transform: scale(1.05);
+}
+
 /* ── Language switcher ─────────────────────────────────────── */
 .lr-lang-switch {
     position: absolute;
@@ -643,6 +708,204 @@
 
 .lr-lang-opt:hover { background: rgba(255,255,255,0.06); color: #f1f5f9; }
 .lr-lang-opt.lr-lang-active { color: #f59e0b; }
+
+/* ── Subscription Expired Modal ─────────────────────────── */
+.se-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: rgba(0,0,0,0.88);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+.se-overlay.se-show { display: flex; animation: se-fade-in 0.25s ease-out both; }
+@keyframes se-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+.se-dialog {
+    background: linear-gradient(160deg, #0d1b36 0%, #08122a 100%);
+    border: 1px solid rgba(139,92,246,0.25);
+    border-radius: 24px;
+    width: 100%;
+    max-width: 460px;
+    padding: 36px 32px 28px;
+    text-align: center;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(139,92,246,0.1);
+    animation: se-slide-up 0.3s cubic-bezier(0.22,1,0.36,1) both;
+    position: relative;
+}
+@keyframes se-slide-up {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Logo with spinning ring */
+.se-logo-wrap {
+    position: relative;
+    width: 58px;
+    height: 58px;
+    margin: 0 auto 18px;
+}
+.se-ring {
+    position: absolute;
+    inset: -4px;       /* ring is 4px wide — tight border */
+    border-radius: 50%;
+    background: conic-gradient(from 0deg,
+        #7c3aed 0%,
+        #06b6d4 28%,
+        #ef4444 52%,
+        #f59e0b 76%,
+        #7c3aed 100%
+    );
+    animation: se-ring-rot 2.5s linear infinite;
+    z-index: 0;
+    filter: drop-shadow(0 0 5px rgba(124,58,237,0.6));
+}
+.se-ring::after {
+    content: '';
+    position: absolute;
+    inset: 4px;        /* dark mask cuts back to exactly the wrap boundary */
+    border-radius: 50%;
+    background: #08122a;
+}
+.se-logo-img {
+    position: absolute;
+    inset: 4px;        /* 4px breathing gap between logo and ring inner edge */
+    width: 50px; height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+    z-index: 1;
+}
+@keyframes se-ring-rot { to { transform: rotate(360deg); } }
+
+/* Badge */
+.se-expired-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 13px;
+    background: rgba(239,68,68,0.12);
+    border: 1px solid rgba(239,68,68,0.3);
+    border-radius: 100px;
+    color: #f87171;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+}
+
+/* Org name */
+.se-org-name {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #f1f5f9;
+    margin-bottom: 6px;
+    letter-spacing: -0.02em;
+}
+
+/* Plan + expiry row */
+.se-plan-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+.se-plan-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 12px;
+    background: rgba(139,92,246,0.1);
+    border: 1px solid rgba(139,92,246,0.25);
+    border-radius: 100px;
+    color: #c4b5fd;
+    font-size: 12px;
+    font-weight: 600;
+}
+.se-expiry-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 12px;
+    background: rgba(239,68,68,0.08);
+    border: 1px solid rgba(239,68,68,0.2);
+    border-radius: 100px;
+    color: #fca5a5;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+/* Validity info box */
+.se-validity-box {
+    background: rgba(245,158,11,0.07);
+    border: 1px solid rgba(245,158,11,0.2);
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    text-align: left;
+}
+.se-validity-icon {
+    color: #f59e0b;
+    font-size: 18px;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+.se-validity-text {
+    font-size: 12.5px;
+    color: #fde68a;
+    line-height: 1.55;
+}
+.se-validity-text strong { color: #fbbf24; }
+
+/* Buttons */
+.se-btn-renew {
+    width: 100%;
+    padding: 13px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: #040b18;
+    font-size: 14.5px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    letter-spacing: 0.2px;
+    transition: all 0.25s;
+    box-shadow: 0 4px 16px rgba(245,158,11,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    margin-bottom: 10px;
+}
+.se-btn-renew:hover { filter: brightness(1.1); transform: translateY(-1px); box-shadow: 0 6px 24px rgba(245,158,11,0.4); }
+
+.se-btn-close {
+    width: 100%;
+    padding: 11px;
+    border: 1.5px solid rgba(148,163,184,0.18);
+    border-radius: 12px;
+    background: transparent;
+    color: #64748b;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+}
+.se-btn-close:hover { border-color: rgba(148,163,184,0.4); color: #94a3b8; }
 
 /* ── RESPONSIVE ────────────────────────────────────────────── */
 @media (max-width: 900px) {
@@ -799,6 +1062,12 @@
     <!-- ── RIGHT: Form Panel ── -->
     <div class="lr-form-panel">
 
+        <!-- Home pill — top left -->
+        <a href="<?php echo base_url(); ?>" class="lr-home-link" title="Back to homepage">
+            <i class="bx bx-arrow-back" style="font-size:14px;"></i>
+            Home
+        </a>
+
         <!-- Language switcher pill -->
         <div class="lr-lang-switch" id="lrLangSwitch">
             <button class="lr-lang-trigger" id="lrLangTrigger" type="button" aria-label="Switch language">
@@ -829,7 +1098,9 @@
                 <div class="lr-form-head">
                     <div class="lr-head-row">
                         <?php if (!empty($OrgLogo)): ?>
-                        <img class="lr-form-head-logo" src="<?php echo htmlspecialchars($OrgLogo); ?>" alt="<?php echo getSiteConfiguration()->ShortName; ?>">
+                        <a href="<?php echo base_url(); ?>" class="lr-head-logo-link" title="Back to homepage">
+                            <img class="lr-form-head-logo" src="<?php echo htmlspecialchars($OrgLogo); ?>" alt="<?php echo getSiteConfiguration()->ShortName; ?>">
+                        </a>
                         <?php endif; ?>
                         <h3>Sign in</h3>
                     </div>
@@ -843,6 +1114,11 @@
                         <div id="lrResendWrap" class="lr-resend-wrap" style="display:none;">
                             <span class="lr-resend-hint">Didn't receive it?</span>
                             <button type="button" id="lrResendBtn" class="lr-resend-btn">Resend Email</button>
+                        </div>
+                        <div id="lrRenewWrap" style="display:none;margin-top:10px;">
+                            <a id="lrRenewBtn" href="#" class="lr-renew-btn">
+                                <i class="bx bx-refresh"></i> Renew Subscription
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -933,7 +1209,9 @@
             <div class="lr-form-head">
                 <div class="lr-head-row">
                     <?php if (!empty($OrgLogo)): ?>
-                    <img class="lr-form-head-logo" src="<?php echo htmlspecialchars($OrgLogo); ?>" alt="<?php echo getSiteConfiguration()->ShortName; ?>">
+                    <a href="<?php echo base_url(); ?>" class="lr-head-logo-link" title="Back to homepage">
+                        <img class="lr-form-head-logo" src="<?php echo htmlspecialchars($OrgLogo); ?>" alt="<?php echo getSiteConfiguration()->ShortName; ?>">
+                    </a>
                     <?php endif; ?>
                     <h3>Sign in</h3>
                 </div>
@@ -1006,6 +1284,59 @@
         </div>
     </div>
 
+</div>
+
+<!-- ── Subscription Expired Modal ──────────────────────────── -->
+<div class="se-overlay" id="seOverlay" role="dialog" aria-modal="true" aria-label="Subscription Expired">
+    <div class="se-dialog">
+
+        <!-- Logo with spinning ring -->
+        <div class="se-logo-wrap">
+            <div class="se-ring"></div>
+            <img src="https://pub-bb40942a33344637936ade1f3800ff8b.r2.dev/Global/favicon_io/android-chrome-512x512-1.png"
+                 class="se-logo-img" alt="Logo">
+        </div>
+
+        <!-- Status badge -->
+        <div class="se-expired-badge">
+            <i class="bx bx-error-circle"></i>
+            Subscription Expired
+        </div>
+
+        <!-- Org name -->
+        <p class="se-org-name" id="seOrgName"></p>
+
+        <!-- Plan + expiry row -->
+        <div class="se-plan-row">
+            <span class="se-plan-pill" id="sePlanPill">
+                <i class="bx bx-crown"></i>
+                <span id="sePlanName"></span>
+            </span>
+            <span class="se-expiry-pill" id="seExpiryPill">
+                <i class="bx bx-calendar-x"></i>
+                Expired <span id="seExpiryDate"></span>
+            </span>
+        </div>
+
+        <!-- Validity info box -->
+        <div class="se-validity-box">
+            <i class="bx bx-time-five se-validity-icon"></i>
+            <p class="se-validity-text">
+                Clicking <strong>Renew Now</strong> opens a secure renewal page.
+                The renewal link is valid for <strong>30 minutes</strong> — complete your payment before it expires.
+            </p>
+        </div>
+
+        <!-- Action buttons -->
+        <button type="button" class="se-btn-renew" id="seRenewBtn">
+            <i class="bx bx-refresh" style="font-size:18px;"></i>
+            Renew Subscription Now
+        </button>
+        <button type="button" class="se-btn-close" id="seCloseBtn">
+            Close
+        </button>
+
+    </div>
 </div>
 
 <?php $this->load->view('login/footer'); ?>
@@ -1277,8 +1608,83 @@
             step1Error.style.display = 'none';
             if (resendWrap) resendWrap.style.display = 'none';
             if (step1ErrorSub) { step1ErrorSub.textContent = ''; step1ErrorSub.style.display = 'none'; }
+            var renewWrap = document.getElementById('lrRenewWrap');
+            if (renewWrap) renewWrap.style.display = 'none';
             _pendingOrgEmail = '';
         }
+
+        /* ── Subscription expired modal ──────────────────────────── */
+        var _seAccessRef  = '';
+        var _seOverlay    = document.getElementById('seOverlay');
+        var _seRenewBtn   = document.getElementById('seRenewBtn');
+        var _seCloseBtn   = document.getElementById('seCloseBtn');
+
+        function showSubscriptionExpiredError(msg, accessRef, planName, endDate, orgName) {
+            _seAccessRef = accessRef;
+
+            var orgNameEl   = document.getElementById('seOrgName');
+            var planNameEl  = document.getElementById('sePlanName');
+            var expiryEl    = document.getElementById('seExpiryDate');
+            var planPillEl  = document.getElementById('sePlanPill');
+            var expiryPillEl= document.getElementById('seExpiryPill');
+
+            if (orgNameEl)  orgNameEl.textContent  = orgName  || '';
+            if (planNameEl) planNameEl.textContent  = planName || 'Subscription';
+
+            /* Format the expiry date nicely */
+            var expiryText = '';
+            if (endDate) {
+                try {
+                    var d = new Date(endDate.replace(' ', 'T'));
+                    expiryText = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+                } catch (e) {
+                    expiryText = endDate;
+                }
+            }
+            if (expiryEl) expiryEl.textContent = expiryText ? 'on ' + expiryText : '';
+            if (planPillEl)   planPillEl.style.display   = planName ? '' : 'none';
+            if (expiryPillEl) expiryPillEl.style.display = expiryText ? '' : 'none';
+
+            if (_seOverlay) _seOverlay.classList.add('se-show');
+        }
+
+        function _closeSubModal() {
+            if (_seOverlay) _seOverlay.classList.remove('se-show');
+        }
+
+        if (_seRenewBtn) {
+            _seRenewBtn.addEventListener('click', function () {
+                if (!_seAccessRef) return;
+                window.location.href = '/subscription/renew?sid=' + encodeURIComponent(_seAccessRef);
+            });
+        }
+
+        if (_seCloseBtn) {
+            _seCloseBtn.addEventListener('click', function () {
+                _closeSubModal();
+                /* Fire-and-forget: delete the Redis renewal token */
+                if (_seAccessRef) {
+                    var sid = _seAccessRef;
+                    _seAccessRef = '';
+                    var body = 'sid=' + encodeURIComponent(sid);
+                    var csrfInput2 = document.querySelector('input[name^="csrf"]');
+                    if (csrfInput2) body += '&' + encodeURIComponent(csrfInput2.name) + '=' + encodeURIComponent(csrfInput2.value);
+                    fetch('/subscription/renew/cancelToken', {
+                        method : 'POST',
+                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                        body   : body,
+                    });
+                }
+            });
+        }
+
+        /* Block ESC key from closing the modal — only Close button can dismiss it */
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && _seOverlay && _seOverlay.classList.contains('se-show')) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        }, true);
 
         function goToStep2(displayName, username, imageUrl) {
             welcomeName.textContent = displayName;
@@ -1344,7 +1750,17 @@
                 setSocialDisabled(false);
                 if (data.Error) {
                     if (data.NeedsEmailVerification) _pendingOrgEmail = data.OrgEmail || '';
-                    showStep1Error(data.Message || 'Something went wrong. Please try again.', !!data.NeedsEmailVerification);
+                    if (data.SubscriptionExpired && data.accessRef) {
+                        showSubscriptionExpiredError(
+                            data.Message,
+                            data.accessRef,
+                            data.subPlanName || '',
+                            data.subEndDate  || '',
+                            data.subOrgName  || ''
+                        );
+                    } else {
+                        showStep1Error(data.Message || 'Something went wrong. Please try again.', !!data.NeedsEmailVerification);
+                    }
                     return;
                 }
                 goToStep2(data.DisplayName || data.Username, data.Username || username, data.ImageUrl || '');

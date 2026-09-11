@@ -272,34 +272,61 @@ class Signup_model extends CI_Model {
     }
 
     private function _assignTrialSubscription(object $WriteDb, int $orgUID, string $now): void {
+
+        $trialDays = 30;
+        $startDate = date('Y-m-d H:i:s', strtotime($now));
+        $endDate   = date('Y-m-d H:i:s', strtotime($now . ' +' . $trialDays . ' days'));
+
+        /* Try to find a SectorPlan for this org's sector — may not exist yet if no plans are configured */
         $this->ReadDb->db_debug = FALSE;
-        $planRow = $this->ReadDb->select('PlanUID, PlanCode, DurationDays')
-            ->from('Organisation.SubscriptionPlansTbl')
-            ->where('PlanCode', 'TRIAL')
-            ->where('IsActive', 1)
+        $sectorPlanRow = $this->ReadDb->select('SP.SectorPlanUID, SP.TrialDays')
+            ->from('Organisation.OrganisationTbl AS O')
+            ->join('Billing.SectorPlanTbl AS SP', 'SP.SectorUID = O.SectorUID', 'left')
+            ->where('O.OrgUID', $orgUID)
+            ->where('SP.IsActive', 1)
+            ->order_by('SP.SectorPlanUID', 'ASC')
             ->limit(1)
             ->get();
 
-        if (!$planRow || $planRow->num_rows() === 0) return;
-
-        $plan      = $planRow->row();
-        $duration  = max(1, (int) $plan->DurationDays);
-        $startDate = date('Y-m-d H:i:s', strtotime($now));
-        $endDate   = date('Y-m-d', strtotime($now . ' +' . $duration . ' days')) . ' 23:59:59';
+        $sectorPlanUID = null;
+        if ($sectorPlanRow && $sectorPlanRow->num_rows() > 0) {
+            $sp            = $sectorPlanRow->row();
+            $sectorPlanUID = ($sp->SectorPlanUID > 0) ? (int) $sp->SectorPlanUID : null;
+            if ($sectorPlanUID && (int) $sp->TrialDays > 0) {
+                $trialDays = (int) $sp->TrialDays;
+                $endDate   = date('Y-m-d H:i:s', strtotime($now . ' +' . $trialDays . ' days'));
+            }
+        }
 
         $WriteDb->db_debug = FALSE;
-        $WriteDb->insert('Organisation.OrgSubscriptionTbl', [
+        $WriteDb->insert('Billing.OrgSubscriptionTbl', [
             'OrgUID'          => $orgUID,
-            'PlanUID'         => (int) $plan->PlanUID,
-            'PlanCode'        => $plan->PlanCode,
-            'Status'          => 'Trial',
+            'SectorPlanUID'   => $sectorPlanUID,
             'StartDate'       => $startDate,
             'EndDate'         => $endDate,
-            'GracePeriodDays' => 7,
+            'Status'          => 'Trial',
             'AutoRenew'       => 0,
-            'PaidAmount'      => 0.00,
-            'PaymentRef'      => '',
+            'GracePeriodDays' => 7,
+            'TrialDays'       => $trialDays,
         ]);
+        $orgSubUID = (int) $WriteDb->insert_id();
+
+        /* Log a matching order row so billing history is complete from day one */
+        if ($orgSubUID > 0) {
+            $WriteDb->insert('Billing.SubscriptionOrdersTbl', [
+                'OrgUID'        => $orgUID,
+                'SectorPlanUID' => $sectorPlanUID ?? 0,
+                'OrgSubUID'     => $orgSubUID,
+                'RenewalType'   => 'Trial',
+                'DueDate'       => $endDate,
+                'Amount'        => 0.00,
+                'DiscountAmount'=> 0.00,
+                'TaxAmount'     => 0.00,
+                'NetAmount'     => 0.00,
+                'Status'        => 'Waived',
+                'CreatedBy'     => null,
+            ]);
+        }
     }
 
     private function _generateShortCode(string $orgName): string {
@@ -658,6 +685,7 @@ class Signup_model extends CI_Model {
             $WriteDb->db_debug = FALSE;
             $WriteDb->insert('Modules.MainMenusTbl', [
                 'OrgUID'       => $orgUID,
+                'Source'       => 'Plan',
                 'Name'         => $mm->Name,
                 'Icon'         => $mm->Icon ?? '',
                 'IsDirectLink' => $mm->IsDirectLink ?? 0,
@@ -728,6 +756,7 @@ class Signup_model extends CI_Model {
             $WriteDb->db_debug = FALSE;
             $WriteDb->insert('Modules.SubMenusTbl', [
                 'OrgUID'           => $orgUID,
+                'Source'           => 'Plan',
                 'MainMenuUID'      => $newMMUID,
                 'Name'             => $sm->Name,
                 'UrlPath'          => $sm->UrlPath ?? '',

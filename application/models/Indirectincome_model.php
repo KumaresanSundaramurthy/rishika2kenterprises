@@ -9,7 +9,7 @@ class Indirectincome_model extends CI_Model {
         $this->ReadDb = $this->load->database('ReadDB', TRUE);
     }
 
-    // â”€â”€ Paginated list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Paginated list ───────────────────────────────────────────────────────
     public function getIncomeList(int $orgUID, array $filter, int $limit, int $offset): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -64,7 +64,7 @@ class Indirectincome_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Count â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Count ────────────────────────────────────────────────────────────────
     public function getIncomeCount(int $orgUID, array $filter): int {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -83,7 +83,7 @@ class Indirectincome_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Single record â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Single record ────────────────────────────────────────────────────────
     public function getIncomeById(int $incomeUID, int $orgUID): ?object {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -116,7 +116,7 @@ class Indirectincome_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Summary stats for stat cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Summary stats for stat cards ─────────────────────────────────────────
     public function getIncomeSummaryStats(int $orgUID, int $branchUID = 0): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -139,7 +139,7 @@ class Indirectincome_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Categories â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Categories ───────────────────────────────────────────────────────────
     public function getCategories(int $orgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -160,7 +160,7 @@ class Indirectincome_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Payment types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Payment types ────────────────────────────────────────────────────────
     public function getPaymentTypes(): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -176,7 +176,7 @@ class Indirectincome_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Bank accounts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Bank accounts ────────────────────────────────────────────────────────
     public function getBankAccounts(int $orgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -195,7 +195,7 @@ class Indirectincome_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Default cash account for ledger entries â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Default cash account for ledger entries ──────────────────────────────
     public function getCashAccount(int $orgUID): ?object {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -214,7 +214,7 @@ class Indirectincome_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Category list (paginated, for manager modal) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Category list (paginated, for manager modal) ─────────────────────────
     public function getCategoryList(int $orgUID, string $search, int $limit, int $offset): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -240,7 +240,7 @@ class Indirectincome_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Category count â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Category count ───────────────────────────────────────────────────────
     public function getCategoryCount(int $orgUID, string $search): int {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -265,7 +265,7 @@ class Indirectincome_model extends CI_Model {
     }
 
 
-    // â”€â”€ Count existing payment rows for an income (for UniqueNumber suffix) â”€â”€â”€â”€
+    // ── Count existing payment rows for an income (for UniqueNumber suffix) ────
     public function getPaymentCount(int $transUID, string $sourceType, int $orgUID): int {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -284,7 +284,7 @@ class Indirectincome_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Check if category is in use â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Check if category is in use ──────────────────────────────────────────
     public function isCategoryLinked(int $categoryUID, int $orgUID): bool {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -302,7 +302,7 @@ class Indirectincome_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Private filter helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Private filter helper ────────────────────────────────────────────────
     private function _applyFilters(array $filter): void {
         if (!empty($filter['BranchUID'])) {
             $this->ReadDb->where('i.BranchUID', (int)$filter['BranchUID']);

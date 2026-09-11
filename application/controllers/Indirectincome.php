@@ -14,7 +14,7 @@ class Indirectincome extends MY_Controller {
         $this->load->model('transactions_model');
     }
 
-    // â”€â”€ List page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── List page ────────────────────────────────────────────────────────────
     public function index() {
         if (!$this->_loadPageTitle($this->pageModuleUID)) {
             $this->load->view('common/module_error', $this->pageData);
@@ -68,7 +68,7 @@ class Indirectincome extends MY_Controller {
         }
     }
 
-    // â”€â”€ AJAX pagination â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── AJAX pagination ──────────────────────────────────────────────────────
     public function getPageDetails($pageNo = 1) {
         $this->EndReturnData = new stdClass();
         try {
@@ -108,7 +108,7 @@ class Indirectincome extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Add income (modal AJAX) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Add income (modal AJAX) ───────────────────────────────────────────────
     public function addIncome() {
         $this->EndReturnData = new stdClass();
         try {
@@ -178,7 +178,7 @@ class Indirectincome extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Update income (modal AJAX) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Update income (modal AJAX) ────────────────────────────────────────────
     public function updateIncome() {
         $this->EndReturnData = new stdClass();
         try {
@@ -269,7 +269,7 @@ class Indirectincome extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Delete income â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Delete income ─────────────────────────────────────────────────────────
     public function deleteIncome() {
         $this->EndReturnData = new stdClass();
         try {
@@ -333,7 +333,7 @@ class Indirectincome extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Duplicate income (creates a Pending copy dated today) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Duplicate income (creates a Pending copy dated today) ────────────────
     public function duplicateIncome() {
         $this->EndReturnData = new stdClass();
         try {
@@ -401,7 +401,7 @@ class Indirectincome extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Record payment via shared modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Record payment via shared modal ─────────────────────────────────────────
     public function recordPayment() {
         $this->EndReturnData = new stdClass();
         try {
@@ -511,7 +511,7 @@ class Indirectincome extends MY_Controller {
                     'SourceUID'      => $incomeUID,
                     'ModuleUID'      => $this->pageModuleUID,
                     'ReferenceNo'    => $referenceNo,
-                    'Narration'      => ($isFullyReceived ? 'Income received' : 'Income partially received') . ' â€” ' . $existing->IncomeNumber,
+                    'Narration'      => ($isFullyReceived ? 'Income received' : 'Income partially received') . ' — ' . $existing->IncomeNumber,
                     'IsActive'       => 1,
                     'IsDeleted'      => 0,
                     'CreatedBy'      => $userUID,
@@ -550,7 +550,7 @@ class Indirectincome extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Payment history popup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Payment history popup ────────────────────────────────────────────────
     public function getPaymentHistory() {
         $this->EndReturnData = new stdClass();
         try {
@@ -584,7 +584,7 @@ class Indirectincome extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Payment attachments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Payment attachments ──────────────────────────────────────────────────
     public function getPaymentAttachments() {
         $this->EndReturnData = new stdClass();
         try {
@@ -618,7 +618,7 @@ class Indirectincome extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Update status (Pending â†’ Received / Cancelled, Received â†’ Cancelled) â”€â”€
+    // ── Update status (Pending â†’ Received / Cancelled, Received â†’ Cancelled) ──
     public function updateIncomeStatus() {
         $this->EndReturnData = new stdClass();
         try {
@@ -708,9 +708,9 @@ class Indirectincome extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Get attachments for a single income record â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Get attachments for a single income record ───────────────────────────
 
-    // â”€â”€ Get single income detail â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Get single income detail ──────────────────────────────────────────────
     public function getIncomeDetail() {
         $this->EndReturnData = new stdClass();
         try {
@@ -740,7 +740,7 @@ class Indirectincome extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Get category list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Get category list ─────────────────────────────────────────────────────
     public function getCategories() {
         $this->EndReturnData = new stdClass();
         try {
@@ -758,7 +758,7 @@ class Indirectincome extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Add new category â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Add new category ──────────────────────────────────────────────────────
     public function addCategory() {
         $this->EndReturnData = new stdClass();
         try {
@@ -801,7 +801,7 @@ class Indirectincome extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Update category name â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Update category name ──────────────────────────────────────────────────
     public function updateCategory() {
         $this->EndReturnData = new stdClass();
         try {
@@ -841,7 +841,7 @@ class Indirectincome extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Delete category â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Delete category ───────────────────────────────────────────────────────
     public function deleteCategory() {
         $this->EndReturnData = new stdClass();
         try {
@@ -881,7 +881,7 @@ class Indirectincome extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Category list (paginated, for manager modal) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Category list (paginated, for manager modal) ──────────────────────────
     public function getCategoryList() {
         $this->EndReturnData = new stdClass();
         try {
@@ -907,7 +907,7 @@ class Indirectincome extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Renders category rows as list-group HTML â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Renders category rows as list-group HTML ──────────────────────────────
     private function _buildCategoryListHtml($list) {
         if (empty($list)) {
             return '<div class="text-center py-5 text-muted" style="font-size:.88rem;">No categories found.</div>';
@@ -929,7 +929,7 @@ class Indirectincome extends MY_Controller {
                 $html .= '<button class="btn btn-icon btn-sm text-primary incCatEditBtn" data-uid="' . $uid . '" data-name="' . $eName . '" title="Edit"><i class="bx bx-edit" style="font-size:1rem;"></i></button>';
                 $html .= '<button class="btn btn-icon btn-sm text-danger incCatDeleteBtn" data-uid="' . $uid . '" data-name="' . $eName . '" title="Delete"><i class="bx bx-trash" style="font-size:1rem;"></i></button>';
             } else {
-                $html .= '<span class="text-muted px-2" title="System category â€” cannot be modified"><i class="bx bx-lock-alt" style="font-size:.85rem;"></i></span>';
+                $html .= '<span class="text-muted px-2" title="System category — cannot be modified"><i class="bx bx-lock-alt" style="font-size:.85rem;"></i></span>';
             }
             $html .= '</div></li>';
         }
@@ -1071,7 +1071,7 @@ class Indirectincome extends MY_Controller {
                 'SourceUID'      => $incomeUID,
                 'ModuleUID'      => $this->pageModuleUID,
                 'ReferenceNo'    => null,
-                'Narration'      => 'Indirect income received â€” ' . $incomeNumber,
+                'Narration'      => 'Indirect income received — ' . $incomeNumber,
                 'IsActive'       => 1,
                 'IsDeleted'      => 0,
                 'CreatedBy'      => $userUID,
@@ -1081,7 +1081,7 @@ class Indirectincome extends MY_Controller {
         }
     }
 
-    // â”€â”€ Bulk delete indirect incomes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Bulk delete indirect incomes ─────────────────────────────────────────
     public function deleteMultipleIncomes(): void {
         $this->EndReturnData = new stdClass();
         try {

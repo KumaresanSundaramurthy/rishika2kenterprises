@@ -36,6 +36,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--fb);font-size:16px
 .btn{display:inline-flex;align-items:center;gap:8px;padding:13px 28px;border-radius:8px;font-weight:600;font-size:.9rem;cursor:pointer;border:none;text-decoration:none;transition:all .25s;font-family:var(--fb)}
 .btn-primary{background:linear-gradient(135deg,var(--gold),#d97706);color:#000;box-shadow:0 4px 24px rgba(245,158,11,.35)}
 .btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 36px rgba(245,158,11,.5)}
+.btn-outline{background:transparent;color:var(--gold);border:1.5px solid rgba(245,158,11,.5)}
+.btn-outline:hover{background:rgba(245,158,11,.08);border-color:var(--gold);transform:translateY(-2px)}
 .btn-outline{background:transparent;color:var(--text);border:1.5px solid var(--border)}
 .btn-outline:hover{border-color:var(--gold);color:var(--gold);transform:translateY(-2px)}
 .stag{display:inline-flex;align-items:center;gap:8px;font-size:.72rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--gold);margin-bottom:14px}
@@ -302,6 +304,7 @@ select.finput option{background:var(--card);color:var(--text)}
       <li><a href="#contact">Contact</a></li>
     </ul>
     <div class="nav-cta">
+      <a href="/portal" class="btn btn-outline" style="padding:10px 22px;font-size:.85rem;">Login</a>
       <a href="#contact" class="btn btn-primary" style="padding:10px 22px;font-size:.85rem;">Get Quote</a>
     </div>
     <div class="hamburger" id="hamburger" aria-label="Menu">
@@ -314,6 +317,7 @@ select.finput option{background:var(--card);color:var(--text)}
   <a href="#about">About</a>
   <a href="#services">Services</a>
   <a href="#contact">Contact</a>
+  <a href="/portal" class="btn btn-outline" style="text-align:center;justify-content:center">Login</a>
   <a href="#contact" class="btn btn-primary" style="text-align:center;justify-content:center">Get Quote</a>
 </div>
 

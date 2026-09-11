@@ -2876,7 +2876,7 @@ class Products extends MY_Controller {
 
     }
 
-    // â”€â”€ Product / Category Attachments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Product / Category Attachments ────────────────────────────────────────
 
     /**
      * Handles new file uploads and pending deletes in one call.

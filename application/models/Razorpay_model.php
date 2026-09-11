@@ -1,7 +1,7 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
 
 /**
- * Razorpay_model â€” data queries for the public payment flow.
+ * Razorpay_model — data queries for the public payment flow.
  * All reads use ReadDb; write uses the dbwrite_model via the controller.
  */
 class Razorpay_model extends CI_Model {
@@ -69,7 +69,7 @@ class Razorpay_model extends CI_Model {
      * Find the UID of a suitable "Online" / "UPI" / "Net Banking" payment type.
      * Falls back to the first available non-cash active type.
      *
-     * @param int $orgUID  (unused currently â€” PaymentTypes are global, not org-scoped)
+     * @param int $orgUID  (unused currently — PaymentTypes are global, not org-scoped)
      * @returns int  0 if none found
      */
     public function getOnlinePaymentTypeUID(int $orgUID = 0): int {

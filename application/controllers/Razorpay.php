@@ -1,12 +1,12 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
 
 /**
- * Razorpay â€” public payment endpoints for customer invoice self-pay.
- * No JWT authentication required â€” security is provided by Razorpay HMAC-SHA256 signature.
+ * Razorpay — public payment endpoints for customer invoice self-pay.
+ * No JWT authentication required — security is provided by Razorpay HMAC-SHA256 signature.
  *
  * Routes:
- *   POST razorpay/createOrder/{token}      â€” create a Razorpay order for the invoice
- *   POST razorpay/verifyAndRecord/{token}  â€” verify signature and record payment in ERP
+ *   POST razorpay/createOrder/{token}      — create a Razorpay order for the invoice
+ *   POST razorpay/verifyAndRecord/{token}  — verify signature and record payment in ERP
  */
 class Razorpay extends CI_Controller {
 
@@ -108,7 +108,7 @@ class Razorpay extends CI_Controller {
 
             $this->load->library('Razorpayapi');
 
-            // â”€â”€ Signature verification â€” PRIMARY security gate â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── Signature verification — PRIMARY security gate ────────────────
             if (!$this->razorpayapi->verifySignature($rpOrderId, $rpPaymentId, $rpSignature)) {
                 throw new Exception('Payment verification failed. Please contact support if money was deducted.');
             }
@@ -121,7 +121,7 @@ class Razorpay extends CI_Controller {
 
             $pendingAmt = max(0.0, round((float)($stub->BalanceAmount ?? 0), 2));
 
-            // â”€â”€ Idempotency: prevent double-recording if browser retries â”€â”€â”€â”€â”€â”€
+            // ── Idempotency: prevent double-recording if browser retries ──────
             $this->load->model('razorpay_model');
             $existing = $this->razorpay_model->getPaymentByRazorpayRef($rpPaymentId, (int)$stub->OrgUID);
             if ($existing) {
@@ -141,14 +141,14 @@ class Razorpay extends CI_Controller {
                 return;
             }
 
-            // â”€â”€ Get customer & payment type â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── Get customer & payment type ───────────────────────────────────
             $custInfo   = $this->razorpay_model->getInvoicePartyInfo((int)$stub->TransUID);
             if (!$custInfo) throw new Exception('Customer information could not be resolved.');
 
             $payTypeUID = $this->razorpay_model->getOnlinePaymentTypeUID((int)$stub->OrgUID);
             if (!$payTypeUID) throw new Exception('No online payment type is configured in Settings.');
 
-            // â”€â”€ Record payment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── Record payment ────────────────────────────────────────────────
             $this->load->model('dbwrite_model');
             $this->dbwrite_model->startTransaction();
 
@@ -180,7 +180,7 @@ class Razorpay extends CI_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            // â”€â”€ Recalculate customer outstanding balance â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── Recalculate customer outstanding balance ───────────────────────
             try {
                 $this->load->library('customerbalance');
                 $this->customerbalance->recalcAndSync((int)$stub->OrgUID, (int)$custInfo->PartyUID, 0);

@@ -17,7 +17,7 @@ $this->load->view('common/header'); ?>
 
                 <div class="container-xxl flex-grow-1">
 
-                    <!-- â”€â”€ Filter Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+                    <!-- ── Filter Card ────────────────────────────────────── -->
                     <div class="card mb-3">
                         <div class="card-body p-3">
                             <div class="row g-3 align-items-end">
@@ -45,7 +45,7 @@ $this->load->view('common/header'); ?>
                         </div>
                     </div>
 
-                    <!-- â”€â”€ Summary Cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+                    <!-- ── Summary Cards ──────────────────────────────────── -->
                     <div class="row g-3 mb-3 d-none" id="plSummaryRow">
                         <div class="col-md-4">
                             <div class="card h-100">
@@ -55,7 +55,7 @@ $this->load->view('common/header'); ?>
                                     </div>
                                     <div>
                                         <div class="text-muted" style="font-size:.75rem;">Total Income</div>
-                                        <div class="fw-bold text-success" style="font-size:1.1rem;" id="plSumIncome">â€”</div>
+                                        <div class="fw-bold text-success" style="font-size:1.1rem;" id="plSumIncome">—</div>
                                     </div>
                                 </div>
                             </div>
@@ -68,7 +68,7 @@ $this->load->view('common/header'); ?>
                                     </div>
                                     <div>
                                         <div class="text-muted" style="font-size:.75rem;">Total Expenses</div>
-                                        <div class="fw-bold text-danger" style="font-size:1.1rem;" id="plSumExpense">â€”</div>
+                                        <div class="fw-bold text-danger" style="font-size:1.1rem;" id="plSumExpense">—</div>
                                     </div>
                                 </div>
                             </div>
@@ -81,14 +81,14 @@ $this->load->view('common/header'); ?>
                                     </div>
                                     <div>
                                         <div class="text-muted" style="font-size:.75rem;" id="plSumNetLabel">Net Profit</div>
-                                        <div class="fw-bold" style="font-size:1.1rem;" id="plSumNet">â€”</div>
+                                        <div class="fw-bold" style="font-size:1.1rem;" id="plSumNet">—</div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- â”€â”€ Statement Area â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+                    <!-- ── Statement Area ─────────────────────────────────── -->
                     <div class="card">
                         <div class="card-body p-0" id="plStatementArea">
                             <div class="d-flex flex-column align-items-center py-5 text-muted" id="plEmptyState">
@@ -114,7 +114,7 @@ $this->load->view('common/header'); ?>
     var _cur     = '<?php echo $cur; ?>';
     var _dec     = 2;
 
-    // â”€â”€ Flatpickr â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Flatpickr ─────────────────────────────────────────────────────────────
     var _fpCfg = { static: true, position: 'below left', dateFormat: 'Y-m-d', altInput: true, altFormat: _transFormDateFormat || 'd M Y' };
     var _fpFrom, _fpTo;
     if (typeof flatpickr !== 'undefined') {
@@ -136,7 +136,7 @@ $this->load->view('common/header'); ?>
         return _cur + ' ' + Math.abs(n).toLocaleString('en-IN', { minimumFractionDigits: _dec, maximumFractionDigits: _dec });
     }
 
-    // â”€â”€ Load button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Load button ───────────────────────────────────────────────────────────
     document.getElementById('plLoadBtn').addEventListener('click', function () {
         var from = document.getElementById('plDateFrom').value;
         var to   = document.getElementById('plDateTo').value;
@@ -195,7 +195,7 @@ $this->load->view('common/header'); ?>
             });
     });
 
-    // â”€â”€ Print â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Print ─────────────────────────────────────────────────────────────────
     document.getElementById('plPrintBtn').addEventListener('click', function () {
         window.print();
     });

@@ -81,9 +81,13 @@ $route['dev/cache/getUpstashData']     = 'cachemonitor/getUpstashData';
 $route['dev/cache/deleteRedisKey']     = 'cachemonitor/deleteRedisKey';
 $route['dev/cache/deleteUpstashKey']   = 'cachemonitor/deleteUpstashKey';
 
-// Subscription (public — no JWT required; middleware excludes 'subscription')
-$route['subscription/expired']    = 'subscription/expired';
-$route['subscription']            = 'subscription/index';
+// Subscription (public — no JWT required; middleware excludes 'subscription' + 'subscriptionrenew')
+$route['subscription/expired']              = 'subscription/expired';
+$route['subscription']                      = 'subscription/index';
+$route['subscription/renew']               = 'subscriptionrenew/index';
+$route['subscription/renew/createOrder']   = 'subscriptionrenew/createOrder';
+$route['subscription/renew/confirmPayment']= 'subscriptionrenew/confirmPayment';
+$route['subscription/renew/cancelToken']   = 'subscriptionrenew/cancelToken';
 
 // Signup (public — no JWT required)
 $route['signup']                  = 'signup/index';

@@ -20,7 +20,7 @@ class Login_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            // User â€” personal identity fields only
+            // User — personal identity fields only
             $JwtUserData = [];
             $JwtUserData['UserUID']      = $UserData->UserUID;
             $JwtUserData['FirstName']    = $UserData->UserFirstName;
@@ -39,7 +39,7 @@ class Login_model extends CI_Model {
             $JwtUserData['LastLoginOn']     = $UserData->LastLoginOn       ?? null;
             $JwtUserData['LastLoginDevice'] = $UserData->LastLoginDevice   ?? null;
 
-            // Org â€” organisation-level fields
+            // Org — organisation-level fields
             $JwtOrgData = [];
             $JwtOrgData['OrgUID']       = $UserData->UserOrgUID;
             $JwtOrgData['BranchUID']    = $UserData->BranchUID;
@@ -54,21 +54,22 @@ class Login_model extends CI_Model {
             $JwtOrgData['OrgToken']     = $UserData->OrgToken        ?? '';
             $JwtOrgData['StateCode']    = $UserData->OrgStateCode    ?? '';
             $JwtOrgData['StateName']    = $UserData->OrgStateName    ?? '';
+            $JwtOrgData['SectorUID']    = (int)($UserData->SectorUID  ?? 1);
 
             $MainModule = $this->getRoleMainMenus($UserData->UserRoleUID, $UserData->UserOrgUID)->Data;
             $SubModule  = $this->getRoleSubMenus($UserData->UserRoleUID, $UserData->UserOrgUID)->Data;
 
             // Organisation Settings
             $GeneralSettings = $this->getOrgGeneralSettings($UserData->UserOrgUID)->Data[0];
-            $ModuleInfo      = $this->getModuleDetails($UserData->UserOrgUID)->Data;
+            $ModuleInfo      = $this->getModuleDetails()->Data;
 
-            // Product Settings (OrgProductSettingsTbl) â€” stored in main JWT payload
+            // Product Settings (OrgProductSettingsTbl) — stored in main JWT payload
             $productSettingsResult = $this->getProductSettings($UserData->UserOrgUID);
             $ProductSettings = (!$productSettingsResult->Error && !empty($productSettingsResult->Data))
                 ? $productSettingsResult->Data[0]
                 : new stdClass();
 
-            // Transaction Settings (TransactionSettingsTbl) â€” stored in main JWT payload
+            // Transaction Settings (TransactionSettingsTbl) — stored in main JWT payload
             $transSettingsResult = $this->getOrgTransactionSettings($UserData->UserOrgUID);
             $TransSettings = (!$transSettingsResult->Error && !empty($transSettingsResult->Data))
                 ? $transSettingsResult->Data[0]
@@ -87,7 +88,7 @@ class Login_model extends CI_Model {
                 }
             }
 
-            // Attachment config â€” loaded once at login, lives in JWT/Redis for session lifetime
+            // Attachment config — loaded once at login, lives in JWT/Redis for session lifetime
             $AttachCfg = $this->getAttachCfg();
 
             // Branches the user can switch to (populated from UserBranchAccessTbl)
@@ -162,7 +163,7 @@ class Login_model extends CI_Model {
 
     }
 
-    // â”€â”€ Role-based menu queries â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Role-based menu queries ──────────────────────────────────
     public function getRoleMainMenus(int $RoleUID, int $OrgUID = 0): object {
 
         $this->EndReturnData = new stdClass();
@@ -345,12 +346,12 @@ class Login_model extends CI_Model {
 
     }
 
-    public function getModuleDetails(int $OrgUID): object {
+    public function getModuleDetails(): object {
 
         $this->EndReturnData = new stdClass();
         try {
 
-            $cacheKey    = 'r2k-org-modules-' . $OrgUID;
+            $cacheKey    = 'r2k-global-modules';
             $cacheResult = $this->redisservice->getCache($cacheKey);
             if (!$cacheResult->Error && $cacheResult->Value !== null) {
                 $this->EndReturnData->Error   = FALSE;
@@ -359,9 +360,8 @@ class Login_model extends CI_Model {
                 return $this->EndReturnData;
             }
 
-            $this->ReadDb->select('Module.ModuleUID as ModuleUID, Module.Name as Name, Module.DisplayName as DisplayName, Module.Description as Description, Module.Icon as Icon, Module.IconBg as IconBg, Module.IconColor as IconColor, Module.OrgUID as OrgUID, Module.ControllerName as ControllerName, Module.DatabaseName as DatabaseName, Module.MasterTableName as MasterTableName, Module.ParentModuleUID as ParentModuleUID, Module.IsMainModule as IsMainModule, Module.IsModuleEnabled as IsModuleEnabled, Module.EditOnPage as EditOnPage');
+            $this->ReadDb->select('Module.ModuleUID as ModuleUID, Module.Name as Name, Module.DisplayName as DisplayName, Module.Description as Description, Module.Icon as Icon, Module.IconBg as IconBg, Module.IconColor as IconColor, Module.ControllerName as ControllerName, Module.DatabaseName as DatabaseName, Module.MasterTableName as MasterTableName, Module.ParentModuleUID as ParentModuleUID, Module.IsMainModule as IsMainModule, Module.IsModuleEnabled as IsModuleEnabled, Module.EditOnPage as EditOnPage');
             $this->ReadDb->from('Modules.ModuleTbl as Module');
-            $this->ReadDb->where('Module.OrgUID', $OrgUID);
             $this->ReadDb->where('Module.IsDeleted', 0);
             $this->ReadDb->where('Module.IsActive', 1);
             $result = $this->ReadDb->get()->result();
@@ -463,7 +463,7 @@ class Login_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Attachment config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Attachment config ─────────────────────────────────────────────────────
 
     private function getAttachCfg(): array {
         try {
@@ -500,28 +500,28 @@ class Login_model extends CI_Model {
 
     private function _loadOrgSubscription(int $orgUID): object {
         $sub = new stdClass();
-        $sub->PlanCode  = 'TRIAL';
         $sub->PlanName  = 'Free Trial';
-        $sub->Status    = 'Active';
+        $sub->Status    = 'Trial';
         $sub->EndDate   = '';
         $sub->IsExpired = false;
 
         try {
-            $row = $this->ReadDb->select('s.PlanCode, s.PlanName, os.Status, os.EndDate')
-                ->from('Organisation.OrgSubscriptionTbl os')
-                ->join('Organisation.SubscriptionPlansTbl s', 's.PlanUID = os.PlanUID', 'left')
+            $this->ReadDb->db_debug = FALSE;
+            $row = $this->ReadDb->select('COALESCE(sp.PlanName, \'Free Trial\') AS PlanName, os.Status, os.EndDate')
+                ->from('Billing.OrgSubscriptionTbl os')
+                ->join('Billing.SectorPlanTbl spt', 'spt.SectorPlanUID = os.SectorPlanUID', 'left')
+                ->join('Billing.SubscriptionPlansTbl sp', 'sp.PlanUID = spt.PlanUID', 'left')
                 ->where('os.OrgUID', $orgUID)
-                ->where_in('os.Status', ['Active', 'Trial', 'Grace'])
-                ->order_by('os.EndDate', 'DESC')
+                ->where_not_in('os.Status', ['Cancelled'])
+                ->order_by('os.StartDate', 'DESC')
                 ->limit(1)
                 ->get();
 
             if ($row && $row->num_rows() > 0) {
-                $r             = $row->row();
-                $sub->PlanCode  = $r->PlanCode  ?? 'TRIAL';
-                $sub->PlanName  = $r->PlanName  ?? 'Free Trial';
-                $sub->Status    = $r->Status    ?? 'Active';
-                $sub->EndDate   = $r->EndDate   ?? '';
+                $r              = $row->row();
+                $sub->PlanName  = $r->PlanName ?? 'Free Trial';
+                $sub->Status    = $r->Status   ?? 'Trial';
+                $sub->EndDate   = $r->EndDate  ?? '';
                 $sub->IsExpired = (!empty($r->EndDate) && strtotime($r->EndDate) < strtotime(date('Y-m-d')));
             }
         } catch (Throwable $e) {

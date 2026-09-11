@@ -9,7 +9,7 @@ class Customers extends MY_Controller {
         parent::__construct();
     }
 
-    // â”€â”€ Internal helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Internal helpers ──────────────────────────────────────────────────────
     private function _initModule() {
         $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
         $this->pageData['Limit'] = $GeneralSettings->RowLimit ?? 10;
@@ -38,7 +38,7 @@ class Customers extends MY_Controller {
         
     }
 
-    // â”€â”€ Page routes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Page routes ───────────────────────────────────────────────────────────
     public function index() {
         if (!$this->_loadPageTitle()) {
             $this->load->view('common/module_error', $this->pageData);
@@ -100,7 +100,7 @@ class Customers extends MY_Controller {
 
             $this->_loadUpstashConfig();
 
-            // Always sync cache from DB â€” DB is the source of truth for the sequence.
+            // Always sync cache from DB — DB is the source of truth for the sequence.
             try {
                 $_fyMonth  = (int) ($this->pageData['JwtData']->GenSettings->FYStartMonth ?? 4);
                 $_tz       = $this->pageData['JwtData']->User->Timezone ?? 'UTC';
@@ -285,7 +285,7 @@ class Customers extends MY_Controller {
                 );
             }
 
-            // Build Customer response from POST data â€” no extra DB query needed
+            // Build Customer response from POST data — no extra DB query needed
             $custName = getPostValue($PostData, 'Name');
             $custArea = getPostValue($PostData, 'Area');
             $cust_Data = [
@@ -305,7 +305,7 @@ class Customers extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            // Claim next customer number â€” 5-retry optimistic lock inside claimNextCustomerNumber.
+            // Claim next customer number — 5-retry optimistic lock inside claimNextCustomerNumber.
             // FY rollover is handled automatically: if financial year changed since last creation,
             // the first customer of the new year gets e.g. C-270001 with no manual action needed.
             $_cOrgUID   = (int) $this->pageData['JwtData']->Org->OrgUID;
@@ -341,7 +341,7 @@ class Customers extends MY_Controller {
                 );
             }
 
-            // Success is confirmed â€” customer is saved
+            // Success is confirmed — customer is saved
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Created Successfully';
             $this->auditlog->log(
@@ -364,9 +364,9 @@ class Customers extends MY_Controller {
                     $_showStats = (int)($this->pageData['JwtData']->GenSettings->ShowStats ?? 1) && (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
                     $this->EndReturnData->Stats      = $_showStats ? $this->customers_model->getCustomerStats($this->pageData['JwtData']->Org->OrgUID) : null;
                 } catch (ValidationException $e) {
-                    // non-fatal â€” list refresh failed but customer was created successfully
+                    // non-fatal — list refresh failed but customer was created successfully
                 } catch (Exception $e) {
-                    // non-fatal â€” list refresh failed but customer was created successfully
+                    // non-fatal — list refresh failed but customer was created successfully
                 }
             }
 
@@ -460,7 +460,7 @@ class Customers extends MY_Controller {
             $tz        = $this->pageData['JwtData']->User->Timezone ?? 'UTC';
             $creditKey = $this->redisservice->orgKey('credit-settings');
 
-            // Cache hit â€” return instantly, no DB call needed.
+            // Cache hit — return instantly, no DB call needed.
             $cached = $this->upstashservice->get($creditKey);
             if ($cached !== null && !empty($cached['cust_next_number'])) {
                 $this->EndReturnData->Error          = false;
@@ -469,7 +469,7 @@ class Customers extends MY_Controller {
                 return;
             }
 
-            // Cache cold â€” getOrInitCreditSettings handles FY rollover and returns
+            // Cache cold — getOrInitCreditSettings handles FY rollover and returns
             // a row with the correct CustomerNextNumber already stored in DB.
             $this->load->model('customers_model');
             $settings = $this->customers_model->getOrInitCreditSettings($orgUID, $userUID, $fyMonth, $tz);
@@ -509,7 +509,7 @@ class Customers extends MY_Controller {
             $customers = $this->customers_model->getCustomers(['Customers.OrgUID' => $orgUID]);
             if (empty($customers)) throw new ValidationException('No customers found.');
 
-            // Build the HSET map â€” DEL old key first to clear stale entries (handles migration from old STRING format)
+            // Build the HSET map — DEL old key first to clear stale entries (handles migration from old STRING format)
             $cacheKey = $this->redisservice->orgKey('customers');
             $this->upstashservice->del($cacheKey);
             $newMap   = [];
@@ -532,7 +532,7 @@ class Customers extends MY_Controller {
                 }
 
                 // Closing balance = outstanding after all invoices & payments
-                // (same logic as Cachehelper::upsertCustomer â€” PendingBalance is computed by the ledger query)
+                // (same logic as Cachehelper::upsertCustomer — PendingBalance is computed by the ledger query)
                 $obRow          = $this->customers_model->getCustomerOpeningBalance($orgUID, $uid);
                 $closingBalance = $obRow ? (float)($obRow->PendingBalance ?? $obRow->OpeningBalance) : 0.0;
                 $closingBalType = $obRow ? ($obRow->PendingBalType        ?? $obRow->OpeningBalType)  : 'Debit';
@@ -545,11 +545,11 @@ class Customers extends MY_Controller {
                         'PaymentUID'          => (int)$r['PaymentUID'],
                         'Amount'              => (float)$r['Amount'],
                         'CreatedOn'           => $r['CreatedOn']           ?? '',
-                        'SourceInvoiceNumber' => $r['SourceInvoiceNumber'] ?? 'â€”',
+                        'SourceInvoiceNumber' => $r['SourceInvoiceNumber'] ?? '—',
                     ];
                 }, $onAccountRows);
 
-                // Build customer entry â€” identical shape to Cachehelper::upsertCustomer
+                // Build customer entry — identical shape to Cachehelper::upsertCustomer
                 $newMap[(string)$uid] = [
                     'CustomerUID'      => $uid,
                     'Name'             => $cust->Name            ?? '',
@@ -581,7 +581,7 @@ class Customers extends MY_Controller {
                 ];
             }
 
-            // Store as HSET â€” one bulk command, one field per customer
+            // Store as HSET — one bulk command, one field per customer
             $this->upstashservice->hmset($cacheKey, $newMap);
 
             $this->EndReturnData->Error   = FALSE;
@@ -708,7 +708,7 @@ class Customers extends MY_Controller {
             $newName = getPostValue($PostData, 'Name');
             $newSgn  = ($newType === 'Debit') ? $newAmt : -$newAmt;
 
-            // Compare against CustOpeningBalanceTbl â€” the source of truth for opening balance.
+            // Compare against CustOpeningBalanceTbl — the source of truth for opening balance.
             // CustomerTbl.DebitCreditAmount can be stale/out-of-sync with the actual opening balance.
             $obRowPre = $this->customers_model->getCustomerOpeningBalance($orgUID, (int)$CustomerUID);
             $oldOpeningSigned = 0.0;
@@ -1141,7 +1141,7 @@ class Customers extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Send SMS / Email â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Send SMS / Email ─────────────────────────────────────────────────────
     public function sendCommunication() {
 
         $this->EndReturnData = new stdClass();
@@ -1346,7 +1346,7 @@ class Customers extends MY_Controller {
                     $newBalance     = abs($signedBalance);
                     $newBalanceType = ($signedBalance >= 0) ? 'Debit' : 'Credit';
 
-                    // Step 4: Persist â€” update ledger current balance + CustOpeningBalanceTbl pending balance.
+                    // Step 4: Persist — update ledger current balance + CustOpeningBalanceTbl pending balance.
                     // DebitCreditAmount in CustomerTbl is the adjustment-delta field; do NOT overwrite it here.
                     if (!empty($cust->LedgerUID)) {
                         $this->customers_model->updateCustomerBalanceInLedger(
@@ -1544,7 +1544,7 @@ class Customers extends MY_Controller {
      * Recalculate customer closing balance from scratch and sync to DB + Upstash.
      *
      * POST body:
-     *   CustomerUID (int, optional) â€” omit or 0 to recalculate ALL customers in the org.
+     *   CustomerUID (int, optional) — omit or 0 to recalculate ALL customers in the org.
      */
     public function updateBillingAddress(): void {
         $this->EndReturnData = new stdClass();
@@ -1620,7 +1620,7 @@ class Customers extends MY_Controller {
             $readDb->db_debug = FALSE;
 
             if ($customerUID > 0) {
-                // â”€â”€ Single customer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                // ── Single customer ────────────────────────────────────────
                 $result = $this->customerbalance->recalcAndSync($orgUID, $customerUID, $userUID);
                 if (!$result) throw new Exception('Customer not found or recalculation failed.');
 
@@ -1630,7 +1630,7 @@ class Customers extends MY_Controller {
                 $this->EndReturnData->BalanceType = $result['type'];
 
             } else {
-                // â”€â”€ All customers for this org â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                // ── All customers for this org ─────────────────────────────
                 $rows = $readDb->query(
                     'SELECT CustomerUID FROM Customers.CustomerTbl
                       WHERE OrgUID = ? AND IsDeleted = 0
@@ -1653,7 +1653,7 @@ class Customers extends MY_Controller {
                 }
 
                 $this->EndReturnData->Error   = false;
-                $this->EndReturnData->Message = "Recalculated {$success} of {$total} customers." . ($failed > 0 ? " {$failed} failed â€” check logs." : '');
+                $this->EndReturnData->Message = "Recalculated {$success} of {$total} customers." . ($failed > 0 ? " {$failed} failed — check logs." : '');
                 $this->EndReturnData->Total   = $total;
                 $this->EndReturnData->Success = $success;
                 $this->EndReturnData->Failed  = $failed;
@@ -2003,7 +2003,7 @@ class Customers extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // Global key â€” direct DB fetch, no Upstash check (JS already missed); no write back
+    // Global key — direct DB fetch, no Upstash check (JS already missed); no write back
     public function getCustomerTypes(): void {
         $this->EndReturnData = new stdClass();
         try {
@@ -2458,7 +2458,7 @@ class Customers extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Customer Attachments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Customer Attachments ──────────────────────────────────────────────────
 
     public function getCustomerAttachments() {
         $this->EndReturnData = new stdClass();

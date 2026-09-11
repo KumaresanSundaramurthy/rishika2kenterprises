@@ -116,7 +116,7 @@ class Salaryadvances extends MY_Controller {
             );
             if ($res->Error) throw new Exception($res->Message);
 
-            // â”€â”€ Post advance journal entry â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── Post advance journal entry ─────────────────────────────────
             if ($advance) {
                 try {
                     $this->load->library('accountledger');
@@ -181,7 +181,7 @@ class Salaryadvances extends MY_Controller {
             );
             if ($res->Error) throw new Exception($res->Message);
 
-            // â”€â”€ Reverse journal only if advance was already Approved â”€â”€â”€â”€â”€â”€â”€
+            // ── Reverse journal only if advance was already Approved ───────
             if ($wasApproved) {
                 try {
                     $this->load->library('accountledger');

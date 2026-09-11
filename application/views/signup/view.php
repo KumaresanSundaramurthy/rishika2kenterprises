@@ -565,6 +565,37 @@
     .su-form-panel { width: 100%; padding: 2rem 1.5rem; }
 }
 
+/* ── Home pill ─────────────────────────────────────────────── */
+.su-home-link {
+    position: absolute;
+    top: 24px;
+    left: 24px;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 13px;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(96, 165, 200, 0.18);
+    border-radius: 100px;
+    color: rgba(160, 200, 225, 0.7);
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    line-height: 1;
+    transition: all 0.2s ease-in-out;
+}
+.su-home-link:hover {
+    background: rgba(96, 165, 200, 0.1);
+    color: #c8e4f4;
+    border-color: rgba(96, 165, 200, 0.35);
+    text-decoration: none;
+    transform: translateX(-2px);
+}
+.su-home-link i { font-size: 14px; }
+
 /* ── Language switcher ─────────────────────────────────────── */
 .su-lang-switch {
     position: absolute;
@@ -666,6 +697,12 @@
 
     <!-- ── RIGHT FORM PANEL ── -->
     <div class="su-form-panel" style="position:relative;">
+
+        <a href="<?php echo base_url(); ?>" class="su-home-link" title="Back to homepage">
+            <i class="bx bx-arrow-back"></i>
+            Home
+        </a>
+
         <div class="su-overlay" id="suProcessingOverlay">
             <div class="su-overlay-spinner"></div>
             <div class="su-overlay-text">Creating your account…</div>

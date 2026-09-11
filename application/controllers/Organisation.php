@@ -15,7 +15,7 @@ class Organisation extends MY_Controller {
         $this->_loadPageTitle($this->pageModuleUID);
 
         // Ensure view-required keys always exist so footer_script.php never crashes
-        // OrgBussType / OrgIndusType / OrgBusRegType removed â€” lazy-loaded by JS via globalKey
+        // OrgBussType / OrgIndusType / OrgBusRegType removed — lazy-loaded by JS via globalKey
         $this->pageData['EditOrgData']    = null;
         $this->pageData['BillOrgAddrData'] = null;
         $this->pageData['ShipOrgAddrData'] = null;
@@ -39,7 +39,7 @@ class Organisation extends MY_Controller {
             $this->pageData['ShipOrgAddrList']  = (!$shipResult->Error) ? $shipResult->Data : [];
             $this->pageData['MaxShippingAddr']   = (int)($this->pageData['JwtData']->GenSettings->MaxShippingAddr ?? 3);
 
-            // Timezone list is loaded via AJAX after page render â€” not blocking here.
+            // Timezone list is loaded via AJAX after page render — not blocking here.
 
             $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
 
@@ -122,12 +122,12 @@ class Organisation extends MY_Controller {
                 }
             }
 
-            // Billing â€” single address
+            // Billing — single address
             if (!empty($PostData['BillAddrLine1'])) {
                 $this->handleAddress($PostData, 'Billing', $userUID, $now);
             }
 
-            // Shipping â€” multiple addresses via JSON array
+            // Shipping — multiple addresses via JSON array
             $shipAddresses = json_decode($PostData['ShipAddresses'] ?? '[]', true) ?: [];
             foreach ($shipAddresses as $sa) {
                 if (empty($sa['Line1'])) continue;

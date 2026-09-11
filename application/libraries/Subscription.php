@@ -8,9 +8,10 @@ class Subscription {
         $this->CI =& get_instance();
         $this->CI->load->model('subscription_model');
         $this->CI->load->model('dbwrite_model');
+        $this->CI->load->library('telegramnotifier');
     }
 
-    // â”€â”€ Check if user subscription is valid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Check if user subscription is valid ───────────────────────────────────
     public function checkSubscription($userUID) {
         $result = new stdClass();
         $result->isValid       = false;
@@ -22,6 +23,14 @@ class Subscription {
         try {
             $userResult = $this->CI->subscription_model->getUserSubscription($userUID);
             if ($userResult->Error || !$userResult->Data) {
+                Telegramnotifier::alert('[SUB-CHECK] getUserSubscription failed', [
+                    'UserUID'      => $userUID,
+                    'Error'        => $userResult->Error  ? 'TRUE' : 'FALSE',
+                    'Message'      => $userResult->Message ?? '—',
+                    'DataIsNull'   => is_null($userResult->Data) ? 'yes' : 'no',
+                    'LastQuery'    => method_exists($this->CI->subscription_model, 'getLastQuery')
+                                        ? $this->CI->subscription_model->getLastQuery() : '—',
+                ]);
                 $result->message = 'User not found';
                 return $result;
             }
@@ -33,7 +42,8 @@ class Subscription {
 
             if (in_array($user->SubscriptionStatus, ['Active', 'Trial'])) {
                 if ($user->SubscriptionEndDate) {
-                    $endDate = new DateTime($user->SubscriptionEndDate);
+                    /* Use explicit UTC for both sides to avoid server-timezone drift */
+                    $endDate = new DateTime($user->SubscriptionEndDate, new DateTimeZone('UTC'));
                     $now     = new DateTime('now', new DateTimeZone('UTC'));
                     $daysRemaining = (int)$now->diff($endDate)->format('%r%a');
 
@@ -57,15 +67,41 @@ class Subscription {
                             $result->isValid = false;
                             $result->message = 'Subscription expired. Please renew to continue.';
                             $this->updateSubscriptionStatus($userUID, 'Expired');
+
+                            Telegramnotifier::alert('[SUB-CHECK] Login BLOCKED — past grace', [
+                                'UserUID'         => $userUID,
+                                'Status_DB'       => $user->SubscriptionStatus,
+                                'EndDate_Raw'     => $user->SubscriptionEndDate,
+                                'EndDate_UTC'     => $endDate->format('Y-m-d H:i:s'),
+                                'Now_UTC'         => $now->format('Y-m-d H:i:s'),
+                                'DaysRemaining'   => $daysRemaining,
+                                'GracePeriodDays' => $gracePeriodDays,
+                                'GraceEnd_UTC'    => $gracePeriodEnd->format('Y-m-d H:i:s'),
+                                'isValid'         => 'FALSE',
+                            ]);
                         }
                     }
                 } else {
                     $result->isValid = false;
                     $result->message = 'No subscription end date set.';
+
+                    Telegramnotifier::alert('[SUB-CHECK] Login BLOCKED — no EndDate', [
+                        'UserUID'    => $userUID,
+                        'Status_DB'  => $user->SubscriptionStatus,
+                        'EndDate'    => 'NULL',
+                        'isValid'    => 'FALSE',
+                    ]);
                 }
             } elseif ($user->SubscriptionStatus === 'Expired') {
                 $result->isValid = false;
                 $result->message = 'Your subscription has expired. Please renew to continue using the service.';
+
+                Telegramnotifier::alert('[SUB-CHECK] Login BLOCKED — Status=Expired', [
+                    'UserUID'   => $userUID,
+                    'Status_DB' => $user->SubscriptionStatus,
+                    'EndDate'   => $user->SubscriptionEndDate ?? 'NULL',
+                    'isValid'   => 'FALSE',
+                ]);
             } elseif ($user->SubscriptionStatus === 'Suspended') {
                 $result->isValid = false;
                 $result->message = 'Your account has been suspended. Please contact support.';
@@ -75,6 +111,14 @@ class Subscription {
             } else {
                 $result->isValid = false;
                 $result->message = 'No active subscription found for your organisation. Please contact support.';
+
+                Telegramnotifier::alert('[SUB-CHECK] Login BLOCKED — no subscription row', [
+                    'UserUID'    => $userUID,
+                    'Status_DB'  => $user->SubscriptionStatus ?? 'NULL',
+                    'OrgSubUID'  => $user->OrgSubUID           ?? 'NULL',
+                    'OrgUID'     => $user->OrgUID              ?? 'NULL',
+                    'isValid'    => 'FALSE',
+                ]);
             }
 
             if ($result->isValid && $daysRemaining > 0 && $daysRemaining <= 7) {
@@ -95,8 +139,8 @@ class Subscription {
             $orgUID = $this->CI->subscription_model->getOrgUIDByUser((int)$userUID);
             if (!$orgUID) return false;
             $db  = $this->CI->dbwrite_model->getWriteDb();
-            $sql = 'UPDATE Organisation.OrgSubscriptionTbl'
-                 . ' SET Status = ?, UpdatedOn = NOW()'
+            $sql = 'UPDATE Billing.OrgSubscriptionTbl'
+                 . ' SET Status = ?'
                  . ' WHERE OrgUID = ? AND Status != ?'
                  . ' ORDER BY StartDate DESC LIMIT 1';
             $db->query($sql, [$status, $orgUID, 'Cancelled']);
@@ -107,8 +151,8 @@ class Subscription {
         }
     }
 
-    // â”€â”€ Extend subscription by N days â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    public function extendSubscription($userUID, $days, $planCode = null) {
+    // ── Extend subscription by N days ─────────────────────────────────────────
+    public function extendSubscription($userUID, $days) {
         try {
             $userResult = $this->CI->subscription_model->getUserSubscription($userUID);
             if ($userResult->Error || !$userResult->Data) {
@@ -128,15 +172,11 @@ class Subscription {
             if (!$orgUID) return ['success' => false, 'message' => 'Org not found for user'];
 
             $db    = $this->CI->dbwrite_model->getWriteDb();
-            $sql   = 'UPDATE Organisation.OrgSubscriptionTbl'
-                   . ' SET Status = ?, EndDate = ?, UpdatedOn = NOW()'
-                   . ($planCode ? ', PlanCode = ?' : '')
+            $sql   = 'UPDATE Billing.OrgSubscriptionTbl'
+                   . ' SET Status = ?, EndDate = ?'
                    . ' WHERE OrgUID = ? AND Status != ?'
                    . ' ORDER BY StartDate DESC LIMIT 1';
-            $binds = ['Active', $newEndDate->format('Y-m-d H:i:s')];
-            if ($planCode) $binds[] = $planCode;
-            $binds[] = $orgUID;
-            $binds[] = 'Cancelled';
+            $binds = ['Active', $newEndDate->format('Y-m-d H:i:s'), $orgUID, 'Cancelled'];
             $db->query($sql, $binds);
             if ($db->affected_rows() === 0) {
                 return ['success' => false, 'message' => 'No active subscription record found to extend'];
@@ -156,7 +196,7 @@ class Subscription {
         }
     }
 
-    // â”€â”€ Log subscription history â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Log subscription history ──────────────────────────────────────────────
     private function _logSubscriptionHistory($userUID, $status, $days = 0) {
         try {
             // Re-read after the update so StartDate/EndDate reflect the new values
@@ -178,7 +218,7 @@ class Subscription {
         }
     }
 
-    // â”€â”€ Send expiry warning notification â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Send expiry warning notification ──────────────────────────────────────
     private function sendExpiryWarning($userUID, $daysRemaining) {
         try {
             if (!in_array($daysRemaining, [7, 3, 1])) return;
@@ -230,7 +270,7 @@ class Subscription {
         }
     }
 
-    // â”€â”€ Log login attempt â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Log login attempt ─────────────────────────────────────────────────────
     public function logLoginAttempt($userUID, $username, $status, $subscriptionStatus, $errorMessage = null) {
         try {
             $this->CI->dbwrite_model->insertData('Users', 'LoginAttemptLogTbl', [
@@ -248,16 +288,16 @@ class Subscription {
         }
     }
 
-    // â”€â”€ Get subscription plans â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Get subscription plans ────────────────────────────────────────────────
     public function getSubscriptionPlans($activeOnly = true) {
         $result = $this->CI->subscription_model->getSubscriptionPlans($activeOnly);
         return ($result->Error === FALSE) ? $result->Data : [];
     }
 
-    // â”€â”€ Activate subscription with plan â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    public function activateSubscription($userUID, $planCode, $paymentData = []) {
+    // ── Activate subscription with a SectorPlan ──────────────────────────────────
+    public function activateSubscription($userUID, $sectorPlanUID, $paymentData = []) {
         try {
-            $planResult = $this->CI->subscription_model->getPlanByCode($planCode);
+            $planResult = $this->CI->subscription_model->getSectorPlanByUID((int)$sectorPlanUID);
             if ($planResult->Error || !$planResult->Data) {
                 return ['success' => false, 'message' => 'Invalid plan'];
             }
@@ -265,31 +305,49 @@ class Subscription {
 
             $now     = new DateTime('now', new DateTimeZone('UTC'));
             $endDate = clone $now;
-            $endDate->modify("+{$plan->DurationDays} days");
+            $endDate->modify('+' . (int)$plan->DurationDays . ' days');
 
             $orgUID = $this->CI->subscription_model->getOrgUIDByUser((int)$userUID);
             if (!$orgUID) return ['success' => false, 'message' => 'Org not found for user'];
 
-            /* Insert a new subscription record; previous records are kept as history */
-            $insertResult = $this->CI->dbwrite_model->insertData('Organisation', 'OrgSubscriptionTbl', [
-                'OrgUID'      => $orgUID,
-                'PlanUID'     => (int)$plan->PlanUID,
-                'PlanCode'    => $plan->PlanCode,
-                'Status'      => 'Active',
-                'StartDate'   => $now->format('Y-m-d'),
-                'EndDate'     => $endDate->format('Y-m-d'),
-                'AutoRenew'   => 0,
-                'PaidAmount'  => $paymentData['amount']        ?? $plan->Price ?? 0,
-                'PaymentRef'  => $paymentData['transactionId'] ?? '',
+            /* Insert new subscription row — previous rows kept as history */
+            $subResult = $this->CI->dbwrite_model->insertData('Billing', 'OrgSubscriptionTbl', [
+                'OrgUID'          => $orgUID,
+                'SectorPlanUID'   => (int)$plan->SectorPlanUID,
+                'StartDate'       => $now->format('Y-m-d H:i:s'),
+                'EndDate'         => $endDate->format('Y-m-d H:i:s'),
+                'Status'          => 'Active',
+                'AutoRenew'       => 0,
+                'GracePeriodDays' => 7,
             ]);
-            if ($insertResult->Error) {
-                return ['success' => false, 'message' => $insertResult->Message];
+            if ($subResult->Error) {
+                return ['success' => false, 'message' => $subResult->Message];
             }
+            $orgSubUID = (int)$subResult->ID;
+
+            /* Log the order */
+            $paidAmount = (float)($paymentData['amount'] ?? $plan->Price ?? 0);
+            $this->CI->dbwrite_model->insertData('Billing', 'SubscriptionOrdersTbl', [
+                'OrgUID'        => $orgUID,
+                'SectorPlanUID' => (int)$plan->SectorPlanUID,
+                'OrgSubUID'     => $orgSubUID,
+                'RenewalType'   => 'New',
+                'DueDate'       => $endDate->format('Y-m-d'),
+                'Amount'        => $paidAmount,
+                'DiscountAmount'=> 0.00,
+                'TaxAmount'     => 0.00,
+                'NetAmount'     => $paidAmount,
+                'Status'        => 'Paid',
+                'PaymentMode'   => $paymentData['mode']          ?? null,
+                'PaidOn'        => $now->format('Y-m-d H:i:s'),
+                'Notes'         => $paymentData['notes']         ?? null,
+                'CreatedBy'     => (int)$userUID ?: null,
+            ]);
 
             return [
                 'success' => true,
                 'message' => 'Subscription activated successfully',
-                'endDate' => $endDate->format('Y-m-d H:i:s'),
+                'endDate' => $endDate->format('Y-m-d'),
             ];
 
         } catch (Exception $e) {
@@ -298,7 +356,7 @@ class Subscription {
         }
     }
 
-    // â”€â”€ Send expiry warning email via Brevo REST API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Send expiry warning email via Brevo REST API ──────────────────────────
     private function _sendExpiryEmail(string $toEmail, string $toName, int $daysRemaining): bool {
         $apiKey    = getenv('BREVO_API_KEY');
         $fromEmail = getenv('MAIL_FROM_EMAIL') ?: 'noreply@rishika2kenterprises.com';
@@ -347,7 +405,7 @@ class Subscription {
         return true;
     }
 
-    // â”€â”€ Build HTML body for expiry warning email â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Build HTML body for expiry warning email ──────────────────────────────
     private function _buildExpiryEmailHtml(string $name, int $days): string {
         $dayText  = $days === 1 ? '1 day' : "{$days} days";
         $fromName = getenv('MAIL_FROM_NAME') ?: 'Rishika 2K Enterprises';

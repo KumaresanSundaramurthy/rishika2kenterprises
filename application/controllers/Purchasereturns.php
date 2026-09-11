@@ -108,7 +108,7 @@ class Purchasereturns extends MY_Controller {
             $this->dbwrite_model->commitTransaction();
 
             if (!$isDraft) {
-                $this->_syncProductCacheFromItems($items); // after commit â€” ReadDB now sees updated stock
+                $this->_syncProductCacheFromItems($items); // after commit — ReadDB now sees updated stock
                 try {
                     $this->load->library('accountledger');
                     $this->accountledger->postPurchaseReturnJournal(
@@ -297,7 +297,7 @@ class Purchasereturns extends MY_Controller {
             $activeTransUID = $newTransUID ?? $transUID;
             $this->_saveTransCharges($activeTransUID, $orgUID, $userUID, $PostData);
             $this->dbwrite_model->commitTransaction();
-            if (!$isDraft) { $this->_syncProductCacheByTransUID($activeTransUID); } // after commit â€” ReadDB now sees updated stock
+            if (!$isDraft) { $this->_syncProductCacheByTransUID($activeTransUID); } // after commit — ReadDB now sees updated stock
             $this->_saveAttachments($activeTransUID);
             $this->_softDeleteAttachments($this->input->post('RemovedAttachIDs') ?? '');
             $this->_touchVendorCache($vendorUID);
@@ -346,7 +346,7 @@ class Purchasereturns extends MY_Controller {
             $deleteResp = $this->dbwrite_model->updateData('Transaction', 'TransactionsTbl', $deleteData, ['TransUID' => $transUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
             if ($deleteResp->Error) throw new Exception($deleteResp->Message);
             $this->dbwrite_model->commitTransaction();
-            $this->_syncProductCacheByTransUID($transUID); // after commit â€” ReadDB now sees reverted stock
+            $this->_syncProductCacheByTransUID($transUID); // after commit — ReadDB now sees reverted stock
 
             // Reverse journal entry for the purchase return (non-fatal)
             try {
@@ -646,7 +646,7 @@ class Purchasereturns extends MY_Controller {
             }
 
             $this->dbwrite_model->commitTransaction();
-            if ($newStatus === 'Cancelled') { $this->_syncProductCacheByTransUID($transUID); } // after commit â€” ReadDB now sees reverted stock
+            if ($newStatus === 'Cancelled') { $this->_syncProductCacheByTransUID($transUID); } // after commit — ReadDB now sees reverted stock
 
             $docNum = $existing->UniqueNumber ?? '';
             $prefix = $docNum ? "{$docNum} " : '';
@@ -836,7 +836,7 @@ class Purchasereturns extends MY_Controller {
             $this->_getDispatchAddresses($orgUID);
             $this->_loadUpstashConfig();
 
-            // Attachments â€” load server-side to avoid AJAX call on page load
+            // Attachments — load server-side to avoid AJAX call on page load
             $this->pageData['PRAttachments'] = $this->transactions_model->getTransactionAttachments($transUID, $orgUID);
 
             $this->load->view('transactions/purchasereturns/forms/form', $this->pageData);

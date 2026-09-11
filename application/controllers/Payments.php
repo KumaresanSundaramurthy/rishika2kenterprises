@@ -81,7 +81,7 @@ class Payments extends MY_Controller {
             $offset = ($pageNo - 1) * $limit;
             $filter = $this->input->post('Filter') ?: [];
 
-            // Unified: show both In and Out â€” direction filter comes from client if set
+            // Unified: show both In and Out — direction filter comes from client if set
             $orgUID = $this->pageData['JwtData']->Org->OrgUID;
 
             $this->load->model('transactions_model');
@@ -211,7 +211,7 @@ class Payments extends MY_Controller {
                         throw new ValidationException(
                             'Payment exceeds the invoice balance. ' .
                             'Remaining: ' . smartDecimal($remaining) . '. ' .
-                            'Another payment may have been recorded simultaneously â€” please refresh and try again.'
+                            'Another payment may have been recorded simultaneously — please refresh and try again.'
                         );
                     }
                 }
@@ -219,7 +219,7 @@ class Payments extends MY_Controller {
 
             $excessAmount = $freshNetAmount > 0 ? max(0, $amount - $freshNetAmount) : 0;
 
-            // â”€â”€ On Account allocation guard (race-condition safe) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── On Account allocation guard (race-condition safe) ───────────────
             $lockedOnAccountSource = null;
             if ($onAccountAmount > 0 && $onAccountSourcePaymentUID > 0) {
                 $lockedOnAccountSource = $this->transactions_model->lockOnAccountSourcePayment(
@@ -227,14 +227,14 @@ class Payments extends MY_Controller {
                 );
                 if (!$lockedOnAccountSource) throw new ValidationException('On-account payment source not found.', 1001);
                 $availableOnAccount = round((float)($lockedOnAccountSource->Amount ?? 0), $this->_decimals());
-                if ($availableOnAccount <= 0) throw new ValidationException('No on-account balance available â€” it may have been used by another user. Please refresh and try again.', 1001);
+                if ($availableOnAccount <= 0) throw new ValidationException('No on-account balance available — it may have been used by another user. Please refresh and try again.', 1001);
                 $onAccountAmount = round($onAccountAmount, $this->_decimals());
                 if ($onAccountAmount > $availableOnAccount) {
                     throw new ValidationException('On-account amount (' . smartDecimal($onAccountAmount) . ') exceeds available balance (' . smartDecimal($availableOnAccount) . ').');
                 }
             }
 
-            // â”€â”€ Advance allocation guard (race-condition safe) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── Advance allocation guard (race-condition safe) ──────────────────
             // Lock the source payment row with FOR UPDATE so concurrent requests
             // queue here. After the lock, re-read ExcessAmount to ensure the advance
             // is still available and hasn't been consumed by another user.
@@ -255,7 +255,7 @@ class Payments extends MY_Controller {
                 }
                 $availableExcess = round((float)($lockedSource->ExcessAmount ?? 0), $this->_decimals());
                 if ($availableExcess <= 0) {
-                    throw new ValidationException('No advance balance available â€” it may have been used by another user. Please refresh and try again.', 1001);
+                    throw new ValidationException('No advance balance available — it may have been used by another user. Please refresh and try again.', 1001);
                 }
                 $advanceAmount = round($advanceAmount, $this->_decimals());
                 if ($advanceAmount > $availableExcess) {
@@ -263,7 +263,7 @@ class Payments extends MY_Controller {
                 }
             }
 
-            // â”€â”€ Insert fresh cash payment (if amount > 0) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── Insert fresh cash payment (if amount > 0) ──────────────────────
             $freshPaymentUID = null;
             if ($amount > 0) {
                 $paymentData = [
@@ -294,7 +294,7 @@ class Payments extends MY_Controller {
                 $freshPaymentUID = $resp->ID;
             }
 
-            // â”€â”€ Insert advance allocation memo row (if advanceAmount > 0) â”€â”€â”€â”€â”€â”€â”€
+            // ── Insert advance allocation memo row (if advanceAmount > 0) ───────
             // This row is excluded from customer balance (IsExcessApplied = 1).
             // It only increments the invoice PaidAmount so the invoice shows correctly.
             $advancePaymentUID = null;
@@ -331,7 +331,7 @@ class Payments extends MY_Controller {
                 $this->transactions_model->reduceExcessAmount($excessSourcePaymentUID, $orgUID, $newExcess, $userUID);
             }
 
-            // â”€â”€ Insert on-account allocation memo row (if onAccountAmount > 0) â”€â”€
+            // ── Insert on-account allocation memo row (if onAccountAmount > 0) ──
             $onAccountPaymentUID = null;
             if ($onAccountAmount > 0 && $lockedOnAccountSource !== null) {
                 $oaPaymentData = [
@@ -369,8 +369,8 @@ class Payments extends MY_Controller {
             if ($amount > 0 && $freshPaymentUID) {
                 $ledgerDirection = ($partyType === 'C') ? 'CR' : 'DR';
                 $ledgerNarration = ($partyType === 'C')
-                    ? 'Payment received from customer â€” #' . (int)$freshPaymentUID
-                    : 'Payment made to vendor â€” #' . (int)$freshPaymentUID;
+                    ? 'Payment received from customer — #' . (int)$freshPaymentUID
+                    : 'Payment made to vendor — #' . (int)$freshPaymentUID;
                 $this->_writeBankLedgerEntry(
                     $orgUID, $bankAccountUID, $ledgerDirection, $amount,
                     'Payment', (int)$freshPaymentUID, $moduleUID ?: $this->pageModuleUID,
@@ -495,7 +495,7 @@ class Payments extends MY_Controller {
             $payment = $this->transactions_model->getPaymentRow($paymentUID, $orgUID);
             if (!$payment) throw new ValidationException('Payment record not found or already deleted.');
 
-            // Guard 1 â€” Block cancellation of source On Account payment that was already applied
+            // Guard 1 — Block cancellation of source On Account payment that was already applied
             $appliedTransUID = (int)($payment->OnAccountAppliedTransUID ?? 0);
             if ($appliedTransUID > 0 && (int)($payment->IsOnAccount ?? 1) === 0) {
                 $linkedInv = $this->transactions_model->getTransactionBasicInfo($appliedTransUID, $orgUID);
@@ -508,7 +508,7 @@ class Payments extends MY_Controller {
                 }
             }
 
-            // Guard 2 â€” Block cancellation of source On Account if applied child payments exist
+            // Guard 2 — Block cancellation of source On Account if applied child payments exist
             $appliedChild = $this->dbwrite_model->getAppliedChildPayment($paymentUID, $orgUID);
             if ($appliedChild) {
                 throw new ValidationException(
@@ -518,9 +518,9 @@ class Payments extends MY_Controller {
                 );
             }
 
-            // Guard â€” Block if this payment is itself a source whose advance is still in use
+            // Guard — Block if this payment is itself a source whose advance is still in use
             if ((int)($payment->IsExcessApplied ?? 0) === 0 && (float)($payment->ExcessAmount ?? 0) == 0) {
-                // ExcessAmount may be 0 because advance was consumed â€” check for active links
+                // ExcessAmount may be 0 because advance was consumed — check for active links
                 $activeAdvLink = $this->transactions_model->getActiveAdvanceLink($paymentUID);
                 if ($activeAdvLink) {
                     throw new ValidationException(
@@ -529,20 +529,20 @@ class Payments extends MY_Controller {
                 }
             }
 
-            // Guard 3 â€” Block if payment was transferred to a Credit Note (invoice cancellation flow)
+            // Guard 3 — Block if payment was transferred to a Credit Note (invoice cancellation flow)
             if ((int)($payment->IsTransferredToCreditNote ?? 0) === 1) {
                 throw new ValidationException(
                     'This payment has been converted to a Credit Note. ' .
-                    'To remove it, delete the linked Credit Note from the Credit Notes tab â€” ' .
+                    'To remove it, delete the linked Credit Note from the Credit Notes tab — ' .
                     'that will automatically delete this payment and revert the customer balance.'
                 );
             }
 
-            // Guard 4 (On Account) â€” Block if payment is held as on-account customer credit
+            // Guard 4 (On Account) — Block if payment is held as on-account customer credit
             if ((int)($payment->IsOnAccount ?? 0) === 1) {
                 throw new ValidationException(
                     'This payment is held as an on-account credit for the customer (from a cancelled invoice). ' .
-                    'It cannot be cancelled or deleted directly â€” apply it to a new invoice to use the credit.'
+                    'It cannot be cancelled or deleted directly — apply it to a new invoice to use the credit.'
                 );
             }
 
@@ -551,7 +551,7 @@ class Payments extends MY_Controller {
                 ? $this->transactions_model->getSumPaidForTransaction($transUID, $orgUID)
                 : 0;
 
-            // Guard 4 â€” SR payment: block if linked Credit Note is already Applied to an invoice
+            // Guard 4 — SR payment: block if linked Credit Note is already Applied to an invoice
             $srCN = null;
             if ($transUID > 0 && (int)($payment->ModuleUID ?? 0) === 106) {
                 $srCN = $this->transactions_model->getSRCreditNoteBySourceTrans($transUID);
@@ -567,7 +567,7 @@ class Payments extends MY_Controller {
 
             $this->dbwrite_model->startTransaction();
 
-            // Re-check payment state from WriteDB with FOR UPDATE â€” locks the row so
+            // Re-check payment state from WriteDB with FOR UPDATE — locks the row so
             // concurrent delete/cancel requests queue up rather than racing each other.
             // Any commit by the first request makes this row visible as already processed
             // to every subsequent request waiting on the lock.
@@ -585,14 +585,14 @@ class Payments extends MY_Controller {
             if ((int)($freshPayment->IsTransferredToCreditNote ?? 0) === 1) {
                 throw new ValidationException(
                     'This payment has been converted to a Credit Note. ' .
-                    'To remove it, delete the linked Credit Note from the Credit Notes tab â€” ' .
+                    'To remove it, delete the linked Credit Note from the Credit Notes tab — ' .
                     'that will automatically delete this payment and revert the customer balance.'
                 );
             }
             if ((int)($freshPayment->IsOnAccount ?? 0) === 1) {
                 throw new ValidationException(
                     'This payment is held as an on-account credit for the customer (from a cancelled invoice). ' .
-                    'It cannot be cancelled or deleted directly â€” apply it to a new invoice to use the credit.'
+                    'It cannot be cancelled or deleted directly — apply it to a new invoice to use the credit.'
                 );
             }
 
@@ -679,7 +679,7 @@ class Payments extends MY_Controller {
 
             // 4. Reverse customer ledger entry (non-fatal)
             // Skip for advance memo rows (IsExcessApplied = 1), on-account applied rows
-            // (OnAccountSourcePaymentUID > 0), and credit note adjustments â€” none carry real new cash.
+            // (OnAccountSourcePaymentUID > 0), and credit note adjustments — none carry real new cash.
             if ($transUID > 0 && $payment->PartyType === 'C' && (int)$payment->PartyUID > 0
                 && (int)($payment->IsExcessApplied ?? 0) === 0
                 && (int)($payment->OnAccountSourcePaymentUID ?? 0) === 0
@@ -1124,7 +1124,7 @@ class Payments extends MY_Controller {
                 $this->EndReturnData->ThermalConfig = $thermalCfg->Data ?? null;
             }
 
-            // PrintTheme and PrintHtml are only needed for A4 preview â€” skip for thermal
+            // PrintTheme and PrintHtml are only needed for A4 preview — skip for thermal
             if (!$isThermal) {
                 $printTheme = $this->organisation_model->getPrintThemeByType($orgUID, 'Payment');
                 $themeData  = $printTheme->Data ?? null;

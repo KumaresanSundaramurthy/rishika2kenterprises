@@ -8,7 +8,7 @@ class Setpassword extends CI_Controller {
         $this->load->helper('url');
     }
 
-    // â”€â”€ Show form or status page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Show form or status page ──────────────────────────────────────────────
     public function index($token = '') {
         if (empty($token)) {
             $this->load->view('login/setpassword/index', ['state' => 'invalid']);
@@ -37,7 +37,7 @@ class Setpassword extends CI_Controller {
         ]);
     }
 
-    // â”€â”€ Handle form submission â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Handle form submission ────────────────────────────────────────────────
     public function submit() {
         $token = $this->input->post('token');
         $pwd   = $this->input->post('Password');

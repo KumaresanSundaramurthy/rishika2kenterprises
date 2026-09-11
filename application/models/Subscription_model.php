@@ -9,20 +9,24 @@ class Subscription_model extends CI_Model {
         $this->ReadDb = $this->load->database('ReadDB', TRUE);
     }
 
-    // ── User subscription info (OrgSubscriptionTbl) ──────────────────────────────
+    // ── User subscription info (Billing.OrgSubscriptionTbl) ─────────────────────
     public function getUserSubscription(int $userUID): object {
         $result = new stdClass();
         try {
             $this->ReadDb->db_debug = FALSE;
             /* Aliases preserve the field names the Subscription library depends on */
             $this->ReadDb->select('U.UserUID, U.OrgUID,
-                OS.Status        AS SubscriptionStatus,
-                OS.PlanCode      AS SubscriptionPlan,
-                OS.StartDate     AS SubscriptionStartDate,
-                OS.EndDate       AS SubscriptionEndDate,
+                OS.OrgSubUID,
+                OS.SectorPlanUID,
+                OS.Status                               AS SubscriptionStatus,
+                COALESCE(SP.PlanName, \'Trial\')        AS SubscriptionPlan,
+                OS.StartDate                            AS SubscriptionStartDate,
+                OS.EndDate                              AS SubscriptionEndDate,
                 OS.GracePeriodDays');
             $this->ReadDb->from('Users.UserTbl AS U');
-            $this->ReadDb->join('Organisation.OrgSubscriptionTbl AS OS', 'OS.OrgUID = U.OrgUID AND OS.Status != \'Cancelled\'', 'left');
+            $this->ReadDb->join('Billing.OrgSubscriptionTbl AS OS',       'OS.OrgUID = U.OrgUID AND OS.Status != \'Cancelled\'', 'left');
+            $this->ReadDb->join('Billing.SectorPlanTbl AS SPT',           'SPT.SectorPlanUID = OS.SectorPlanUID',                'left');
+            $this->ReadDb->join('Billing.SubscriptionPlansTbl AS SP',     'SP.PlanUID = SPT.PlanUID',                            'left');
             $this->ReadDb->where('U.UserUID', (int)$userUID);
             $this->ReadDb->order_by('OS.StartDate', 'DESC');
             $this->ReadDb->limit(1);
@@ -49,7 +53,7 @@ class Subscription_model extends CI_Model {
         return $row ? (int)$row->OrgUID : 0;
     }
 
-    // â”€â”€ User email info for notifications â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── User email info for notifications ─────────────────────────────────────
     public function getUserEmailInfo(int $userUID): object {
         $result = new stdClass();
         try {
@@ -70,7 +74,7 @@ class Subscription_model extends CI_Model {
         return $result;
     }
 
-    // â”€â”€ Check if an expiry-warning notification was already sent today â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Check if an expiry-warning notification was already sent today ─────────
     public function isNotificationSentToday(int $userUID, string $notificationType, string $today): object {
         $result = new stdClass();
         try {
@@ -94,17 +98,17 @@ class Subscription_model extends CI_Model {
         return $result;
     }
 
-    // â”€â”€ All subscription plans â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── All subscription plans (Billing.SubscriptionPlansTbl) ───────────────────
     public function getSubscriptionPlans(bool $activeOnly = true): object {
         $result = new stdClass();
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('*');
-            $this->ReadDb->from('Organisation.SubscriptionPlansTbl');
+            $this->ReadDb->from('Billing.SubscriptionPlansTbl');
             if ($activeOnly) {
                 $this->ReadDb->where('IsActive', 1);
             }
-            $this->ReadDb->order_by('Price', 'ASC');
+            $this->ReadDb->order_by('PlanUID', 'ASC');
             $query = $this->ReadDb->get();
             $result->Error = FALSE;
             $result->Data  = $query ? $query->result() : [];
@@ -133,21 +137,26 @@ class Subscription_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Single active plan by plan code â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    public function getPlanByCode(string $planCode): object {
+    // ── SectorPlan by UID — joins Plan + Sector details ──────────────────────────
+    public function getSectorPlanByUID(int $sectorPlanUID): object {
         $result = new stdClass();
         try {
             $this->ReadDb->db_debug = FALSE;
-            $this->ReadDb->select('*');
-            $this->ReadDb->from('Organisation.SubscriptionPlansTbl');
-            $this->ReadDb->where('PlanCode', $planCode);
-            $this->ReadDb->where('IsActive', 1);
+            $this->ReadDb->select('SPT.SectorPlanUID, SPT.SectorUID, SPT.PlanUID,
+                SPT.Price, SPT.DurationDays, SPT.MaxUsers, SPT.MaxBranches,
+                SP.PlanName, SP.PlanCode, SP.BillingCycle,
+                S.SectorCode, S.SectorName');
+            $this->ReadDb->from('Billing.SectorPlanTbl AS SPT');
+            $this->ReadDb->join('Billing.SubscriptionPlansTbl AS SP', 'SP.PlanUID = SPT.PlanUID');
+            $this->ReadDb->join('Billing.SectorsTbl AS S',            'S.SectorUID = SPT.SectorUID');
+            $this->ReadDb->where('SPT.SectorPlanUID', (int)$sectorPlanUID);
+            $this->ReadDb->where('SPT.IsActive', 1);
             $this->ReadDb->limit(1);
             $query = $this->ReadDb->get();
             $result->Error = FALSE;
             $result->Data  = ($query && $query->num_rows() > 0) ? $query->row() : null;
         } catch (Exception $e) {
-            notifyError('Subscription_model::getPlanByCode', $e);
+            notifyError('Subscription_model::getSectorPlanByUID', $e);
             $result->Error   = TRUE;
             $result->Message = $e->getMessage();
             $result->Data    = null;

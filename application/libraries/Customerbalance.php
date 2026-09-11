@@ -15,7 +15,7 @@
  *     Returns ['balance' => float, 'type' => string] or null on failure.
  *
  * Formula:
- *   ClosingBalance = OpeningBalance + TotalInvoiced Ã¢Ë†â€™ TotalReceived Ã¢Ë†â€™ TotalReturned
+ *   ClosingBalance = OpeningBalance + TotalInvoiced Ã¢Ë†’ TotalReceived Ã¢Ë†’ TotalReturned
  */
 class Customerbalance {
 
@@ -566,20 +566,20 @@ class Customerbalance {
             $newBalType    = ($signedBalance >= 0) ? 'Debit' : 'Credit';
 
 
-            // 1. Update CustOpeningBalanceTbl Ã¢â€ â€™ PendingBalance (closing balance)
+            // 1. Update CustOpeningBalanceTbl Ã¢â€ ’ PendingBalance (closing balance)
             $this->CI->customers_model->updateCustomerPendingBalance(
                 $orgUID, $customerUID, $newBalance, $newBalType, $userUID
             );
 
 
-            // 2. Update Accounting.ChartOfAccounts Ã¢â€ â€™ CurrentBalance
+            // 2. Update Accounting.ChartOfAccounts Ã¢â€ ’ CurrentBalance
             if (!empty($cust->LedgerUID)) {
                 $this->CI->customers_model->updateCustomerBalanceInLedger(
                     $cust->LedgerUID, $newBalance, $newBalType, $userUID
                 );
             }
 
-            // 3. Sync Upstash cache Ã¢â€ â€™ ClosingBalance
+            // 3. Sync Upstash cache Ã¢â€ ’ ClosingBalance
             $this->CI->cachehelper->upsertCustomer((int)$customerUID);
 
             return ['balance' => $newBalance, 'type' => $newBalType];

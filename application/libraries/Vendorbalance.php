@@ -1,16 +1,16 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 /**
- * Vendorbalance â€” vendor-side counterpart to Customerbalance.
+ * Vendorbalance — vendor-side counterpart to Customerbalance.
  *
  * Manages debit/credit notes created when Purchase Returns are saved or cancelled.
  * Both note types are stored in the unified TransDebitNoteTbl / TransCreditNoteTbl
  * with PartyType='S' to distinguish vendor records from customer records ('C').
  *
- * TransDebitNoteTbl  â€” vendor owes us (created when PR has no full cash refund yet)
- * TransCreditNoteTbl â€” we owe vendor back (created when PR is cancelled with 'recover')
+ * TransDebitNoteTbl  — vendor owes us (created when PR has no full cash refund yet)
+ * TransCreditNoteTbl — we owe vendor back (created when PR is cancelled with 'recover')
  *
- * Full vendor balance recalc (recalcAndSync) is stubbed â€” to be implemented
+ * Full vendor balance recalc (recalcAndSync) is stubbed — to be implemented
  * when the vendor balance tracking module is built.
  */
 class Vendorbalance {
@@ -22,7 +22,7 @@ class Vendorbalance {
         $this->CI =& get_instance();
     }
 
-    // â”€â”€ Debit Note: create when PR is saved without full cash refund received â”€â”€
+    // ── Debit Note: create when PR is saved without full cash refund received ──
 
     public function createPurchaseReturnDebitNote(int $orgUID, int $vendorUID, int $prTransUID, string $prUniqueNumber, float $amount, int $userUID, ?string $_transDate = null) {
         try {
@@ -108,7 +108,7 @@ class Vendorbalance {
         }
     }
 
-    // â”€â”€ Credit Note: create when PR is cancelled with 'recover' action â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Credit Note: create when PR is cancelled with 'recover' action ─────────
     // Tracks: we owe vendor back the refund they had already given us.
 
     public function createVendorCreditNote(int $orgUID, int $vendorUID, int $sourceTransUID, string $sourceTransNumber, float $amount, int $userUID, $writeDb = null) {
@@ -130,7 +130,7 @@ class Vendorbalance {
                 'CreditNoteToken'   => generate_uuid4(),
                 'Amount'            => (float)$amount,
                 'Status'            => 'Pending',
-                'Notes'             => 'Auto-created on PR cancellation (Recover â€” we owe vendor back)',
+                'Notes'             => 'Auto-created on PR cancellation (Recover — we owe vendor back)',
                 'CreatedBy'         => (int)$userUID,
                 'UpdatedBy'         => (int)$userUID,
                 'IsActive'          => 1,
@@ -147,15 +147,15 @@ class Vendorbalance {
         }
     }
 
-    // â”€â”€ Balance recalculation â€” mirrors Customerbalance::recalcAndSync â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Balance recalculation — mirrors Customerbalance::recalcAndSync ────────
     //
     // Formula (Credit = we owe vendor, Debit = vendor owes us):
     //   SignedBalance = signedOpening
     //                + TotalPurchased        (increases what we owe)
     //                âˆ’ TotalPaid             (decreases what we owe)
     //                âˆ’ EffectivePRReturned   (PRs not already covered by a debit note)
-    //                âˆ’ PendingDebitNotes     (vendor owes us â€” reduces payable)
-    //                + PendingCreditNotes    (we owe vendor back â€” increases payable)
+    //                âˆ’ PendingDebitNotes     (vendor owes us — reduces payable)
+    //                + PendingCreditNotes    (we owe vendor back — increases payable)
     //
     // Syncs to:
     //   1. Vendors.VendOpeningBalanceTbl  â†’ PendingBalance / PendingBalType

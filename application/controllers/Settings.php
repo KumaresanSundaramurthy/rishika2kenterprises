@@ -31,7 +31,7 @@ class Settings extends MY_Controller {
         parent::__construct();
     }
 
-    // â”€â”€ General Settings page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── General Settings page ────────────────────────────────────────────────
 
     public function generalsettings() {
         $this->_loadPageTitle();
@@ -43,7 +43,7 @@ class Settings extends MY_Controller {
             $this->load->model('login_model');
             $loginExpiry = (int) getenv('LOGIN_EXPIRE_SECS') ?: 86400;
 
-            // â”€â”€ General Settings â€” read from JWT payload (no Redis lookup) â”€â”€â”€
+            // ── General Settings — read from JWT payload (no Redis lookup) ───
             $genSettings = $this->pageData['JwtData']->GenSettings ?? null;
             if (empty($genSettings)) {
                 // Fallback: DB read if session predates this change
@@ -52,7 +52,7 @@ class Settings extends MY_Controller {
             }
             $this->pageData['GenSettings'] = $genSettings;
 
-            // â”€â”€ Product Settings â€” read from JWT payload (no Redis lookup) â”€â”€â”€
+            // ── Product Settings — read from JWT payload (no Redis lookup) ───
             $prodSettings = $this->pageData['JwtData']->ProdSettings ?? null;
             if (empty($prodSettings)) {
                 // Fallback: DB read if session predates this change
@@ -61,12 +61,12 @@ class Settings extends MY_Controller {
             }
             $this->pageData['ProdSettings'] = $prodSettings;
 
-            // â”€â”€ Transaction Settings â€” always read from DB on the settings page â”€â”€
+            // ── Transaction Settings — always read from DB on the settings page ──
             $result        = $this->login_model->getOrgTransactionSettings($orgUID);
             $transSettings = (!$result->Error && !empty($result->Data)) ? $result->Data[0] : new stdClass();
             $this->pageData['TransSettings'] = $transSettings;
 
-            // â”€â”€ Lookup dropdowns for Product Settings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── Lookup dropdowns for Product Settings ─────────────────────────
             $this->load->model('global_model');
             $this->pageData['DiscTypeInfo']    = $this->global_model->getDiscountTypeInfo()->Data ?? [];
             $this->pageData['ProdTypeInfo']    = $this->global_model->getProductTypeInfo()->Data  ?? [];
@@ -112,7 +112,7 @@ class Settings extends MY_Controller {
             $this->load->model('dbwrite_model');
             $this->dbwrite_model->upsertProductSettings($orgUID, $productTypeUID, $discountTypeUID, $productTaxUID, $taxDetailUID, $userUID);
 
-            // Patch ONLY ProdSettings in the main JWT payload â€” takes effect on very next request
+            // Patch ONLY ProdSettings in the main JWT payload — takes effect on very next request
             $this->load->model('login_model');
             $fresh = $this->login_model->getProductSettings($orgUID);
             if (!$fresh->Error && !empty($fresh->Data)) {
@@ -269,7 +269,7 @@ class Settings extends MY_Controller {
 
     }
 
-    /** AJAX GET: return all org additional charges (unfiltered) â€” used as Upstash cache-miss fallback */
+    /** AJAX GET: return all org additional charges (unfiltered) — used as Upstash cache-miss fallback */
     public function getAdditionalChargesCache(): void {
         $this->EndReturnData = new stdClass();
         try {
@@ -284,7 +284,7 @@ class Settings extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    /** AJAX GET: return salutation list â€” global key, direct DB fetch, no Upstash write */
+    /** AJAX GET: return salutation list — global key, direct DB fetch, no Upstash write */
     public function getSalutationList() {
         $this->EndReturnData = new stdClass();
         try {
@@ -418,7 +418,7 @@ class Settings extends MY_Controller {
 
     }
 
-    // â”€â”€ Separate settings pages â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Separate settings pages ──────────────────────────────────────────────
 
     public function thermalconfig() {
         $this->pageData['PageTitle']       = 'Thermal Print Config';
@@ -483,7 +483,7 @@ class Settings extends MY_Controller {
         }
     }
 
-    // â”€â”€ Thermal Print Config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Thermal Print Config ─────────────────────────────────────────────────
 
     /** AJAX: return table rows HTML + used types list */
     public function getThermalConfigList() {
@@ -538,7 +538,7 @@ class Settings extends MY_Controller {
                 throw new Exception('Invalid module / transaction type.');
             }
 
-            // Duplicate check â€” only one config per module per org
+            // Duplicate check — only one config per module per org
             if ($configUID <= 0) {
                 $this->load->model('organisation_model');
                 $existing = $this->organisation_model->getThermalPrintConfigByModule($orgUID, $moduleUID);
@@ -597,7 +597,7 @@ class Settings extends MY_Controller {
                 $this->EndReturnData->Message = 'Thermal print config saved.';
             }
 
-            // Return updated list inline â€” no second AJAX call needed
+            // Return updated list inline — no second AJAX call needed
             $updatedRows = $this->organisation_model->getThermalPrintConfigList($orgUID);
             $updatedData = $updatedRows->Error === FALSE ? $updatedRows->Data : [];
             $transTypes  = $this->getThermalTransTypes();
@@ -622,7 +622,7 @@ class Settings extends MY_Controller {
 
     }
 
-    // â”€â”€ Bank Accounts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Bank Accounts ────────────────────────────────────────────────────────
 
     /** AJAX: return bank list HTML */
     public function getBankList() {
@@ -917,7 +917,7 @@ class Settings extends MY_Controller {
 
             $transferUID = (int)$insertResp->ID;
 
-            // Post contra journal entry (non-fatal â€” transfer is already committed)
+            // Post contra journal entry (non-fatal — transfer is already committed)
             if ($transferUID > 0) {
                 try {
                     $this->load->library('accountledger');
@@ -930,7 +930,7 @@ class Settings extends MY_Controller {
             }
 
             // DR from source bank, CR to destination bank
-            $transferLabel = 'Fund transfer â€” Ref #' . $transferUID . ($referenceNo ? ' / ' . $referenceNo : '');
+            $transferLabel = 'Fund transfer — Ref #' . $transferUID . ($referenceNo ? ' / ' . $referenceNo : '');
             $this->_writeBankLedgerEntry(
                 $orgUID, $fromUID, 'DR', $amount,
                 'FundTransfer', $transferUID, null,
@@ -955,7 +955,7 @@ class Settings extends MY_Controller {
 
     }
 
-    // â”€â”€ Message Templates â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Message Templates ────────────────────────────────────────────────────
 
     private static $MSG_TOKENS = [
         // Common
@@ -1108,7 +1108,7 @@ class Settings extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Prefix Configuration page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Prefix Configuration page ────────────────────────────────────────────
 
     public function prefixconfig() {
         $this->pageData['PageTitle']       = 'Prefix Configuration';
@@ -1405,7 +1405,7 @@ class Settings extends MY_Controller {
 
     }
 
-    // â”€â”€ Additional Charges â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Additional Charges ───────────────────────────────────────────────────
 
     private const CHARGE_LIMIT = 5;
 

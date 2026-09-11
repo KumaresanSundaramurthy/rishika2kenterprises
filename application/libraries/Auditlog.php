@@ -62,7 +62,7 @@ class Auditlog {
                 $module = $entityType;
             }
 
-            // Auto-resolve session, user-agent, device type â€” no caller needed
+            // Auto-resolve session, user-agent, device type — no caller needed
             $sessionId = session_id();
             $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
             $ua        = strtolower($userAgent);

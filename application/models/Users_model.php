@@ -9,7 +9,7 @@ class Users_model extends CI_Model {
         $this->ReadDb = $this->load->database('ReadDB', TRUE);
     }
 
-    // â”€â”€ Login-users cache (HasLoginAccess=1 only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Login-users cache (HasLoginAccess=1 only) ─────────────────────────────
     public function getOrgUsersForCache(int $orgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -25,7 +25,7 @@ class Users_model extends CI_Model {
         }
     }
 
-    // â”€â”€ All staff dropdown (includes non-login employees) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── All staff dropdown (includes non-login employees) ────────────────────
     public function getEmployeeDropdownList(int $orgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -42,7 +42,7 @@ class Users_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Staff stats (for header cards) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Staff stats (for header cards) ───────────────────────────────────────
     public function getUserStats(int $orgUID): ?object {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -64,7 +64,7 @@ class Users_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Paginated list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Paginated list ────────────────────────────────────────────────────────
     public function getUsersList(int $orgUID, array $filter, int $limit, int $offset): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -99,7 +99,7 @@ class Users_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Count â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Count ─────────────────────────────────────────────────────────────────
     public function getUsersCount(int $orgUID, array $filter): int {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -117,7 +117,7 @@ class Users_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Single record + addresses + HR fields â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Single record + addresses + HR fields ─────────────────────────────────
     public function getUserById(int $userUID, int $orgUID): ?object {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -156,7 +156,7 @@ class Users_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Org users for reporting-manager dropdown â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Org users for reporting-manager dropdown ──────────────────────────────
     public function getOrgUsersForDropdown(int $orgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -172,7 +172,7 @@ class Users_model extends CI_Model {
         }
     }
 
-    // â”€â”€ User addresses â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── User addresses ────────────────────────────────────────────────────────
     public function getUserAddresses(int $userUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -209,7 +209,7 @@ class Users_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Next employee code â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Next employee code ────────────────────────────────────────────────────
     private function _parseEmpCodeFormat(?object $fmt): array {
         $prefix    = strtoupper(trim($fmt->EmpCodePrefix ?? 'EMP'));
         $separator = $fmt->EmpCodeSeparator ?? '-';
@@ -284,7 +284,7 @@ class Users_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Department paginated list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Department paginated list ─────────────────────────────────────────────
     public function getDepartmentListPaginated(int $orgUID, int $limit, int $offset, array $filter = []): object {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -335,7 +335,7 @@ class Users_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Designation paginated list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Designation paginated list ────────────────────────────────────────────
     public function getDesignationListPaginated(int $orgUID, int $limit, int $offset, array $filter = []): object {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -386,7 +386,7 @@ class Users_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Holiday paginated list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Holiday paginated list ────────────────────────────────────────────────
     public function getHolidayListPaginated(int $orgUID, int $limit, int $offset, array $filter = []): object {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -440,7 +440,7 @@ class Users_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Departments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Departments ───────────────────────────────────────────────────────────
     public function getDepartmentList(int $orgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -459,7 +459,7 @@ class Users_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Designations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Designations ──────────────────────────────────────────────────────────
     public function getDesignationList(int $orgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -478,7 +478,7 @@ class Users_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Password helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Password helpers ──────────────────────────────────────────────────────
     public function getUserByPasswordToken(string $token): ?object {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -501,7 +501,7 @@ class Users_model extends CI_Model {
         ], ['UserUID' => (int)$userUID]);
     }
 
-    // â”€â”€ User attachments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── User attachments ──────────────────────────────────────────────────────
     public function getUserAttachments(int $userUID, int $orgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -533,7 +533,7 @@ class Users_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Emergency contacts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Emergency contacts ────────────────────────────────────────────────────
     public function getEmergencyContacts(int $userUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -550,7 +550,7 @@ class Users_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Education list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Education list ────────────────────────────────────────────────────────
     public function getEducationList(int $userUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -566,7 +566,7 @@ class Users_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Experience list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Experience list ───────────────────────────────────────────────────────
     public function getExperienceList(int $userUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -582,7 +582,7 @@ class Users_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Bank details â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Bank details ──────────────────────────────────────────────────────────
     public function getBankDetails(int $userUID): ?object {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -598,7 +598,7 @@ class Users_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Expenses & Reimbursements â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Expenses & Reimbursements ─────────────────────────────────────────────
     public function getExpenseList(int $userUID, int $orgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -614,7 +614,7 @@ class Users_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Private filter helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Private filter helper ─────────────────────────────────────────────────
     private function _applyFilters(array $filter): void {
         if (!empty($filter['EmpStatus']) && $filter['EmpStatus'] !== 'All') {
             $this->ReadDb->where('u.EmployeeStatus', $filter['EmpStatus']);
@@ -639,7 +639,7 @@ class Users_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Branch access assignments for a user â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Branch access assignments for a user ──────────────────────────────────
     public function getUserBranchAccess(int $userUID, int $orgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;

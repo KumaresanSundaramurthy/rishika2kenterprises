@@ -1,7 +1,7 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
 
 /**
- * Geminiapi â€” thin cURL wrapper for Google Gemini Flash.
+ * Geminiapi — thin cURL wrapper for Google Gemini Flash.
  * No external dependencies; works in the existing Docker PHP environment.
  *
  * Usage (from a controller):

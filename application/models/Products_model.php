@@ -24,7 +24,7 @@ class Products_model extends CI_Model {
                 if (array_key_exists('SearchAllData', $Filter)) {
                     $s = $this->ReadDb->escape_like_str($Filter['SearchAllData']);
                     $t = $ModuleInfoData->TableAliasName;
-                    // Description excluded â€” it stores Quill HTML (can be KB per row) and leading-wildcard LIKE on it is a full scan killer
+                    // Description excluded — it stores Quill HTML (can be KB per row) and leading-wildcard LIKE on it is a full scan killer
                     $SearchDirectQuery .= "({$t}.ItemName LIKE '%{$s}%' OR {$t}.HSNSACCode LIKE '%{$s}%' OR {$t}.PartNumber LIKE '%{$s}%')";
                 }
                 if (array_key_exists('ProductType', $Filter)) {
@@ -468,9 +468,9 @@ class Products_model extends CI_Model {
 
     }
 
-    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─────────────────────────────────────────────────────────
     // Dedicated paginated list queries (replacing generic service)
-    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─────────────────────────────────────────────────────────
     public function getProductListPaginated(int $OrgUID, int $limit, int $offset, string $searchQuery = '', array $sortArr = []): object {
 
         try {
@@ -481,7 +481,7 @@ class Products_model extends CI_Model {
                 'Products.OrgUID'    => (int) $OrgUID,
             ];
 
-            // Count query â€” no CategoryTbl join needed; category filter uses Products.CategoryUID directly
+            // Count query — no CategoryTbl join needed; category filter uses Products.CategoryUID directly
             $this->ReadDb->select('COUNT(*) AS TotalCount');
             $this->ReadDb->from('Products.ProductTbl as Products');
             $this->ReadDb->where($baseWhere);
@@ -783,7 +783,7 @@ class Products_model extends CI_Model {
     }
 
 
-    // â”€â”€ Cache helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Cache helpers ─────────────────────────────────────────────────────────
 
     /**
      * Fetch all active products for org-level cache rebuild.
@@ -906,7 +906,7 @@ class Products_model extends CI_Model {
 
     /**
      * Returns true if the product is a BOM component of a combo that itself
-     * has active transaction lines â€” i.e. the item was used "hidden" through a combo.
+     * has active transaction lines — i.e. the item was used "hidden" through a combo.
      */
     public function productUsedInComboWithTransactions(int $productUID): bool {
         try {
@@ -1041,7 +1041,7 @@ class Products_model extends CI_Model {
 
     }
 
-    // â”€â”€ Brands â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Brands ────────────────────────────────────────────────────────────────
 
     public function brandFilterFormation(object $ModuleInfoData, array $Filter): object {
 
@@ -1312,7 +1312,7 @@ class Products_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Product / Category Attachments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Product / Category Attachments ────────────────────────────────────────
 
     /** Get all non-deleted attachments for an entity, ordered by SortOrder */
     public function getEntityAttachments(string $entityType, int $entityUID, int $orgUID): array {
@@ -1335,7 +1335,7 @@ class Products_model extends CI_Model {
         }
     }
 
-    /** Get the primary (first) attachment FilePath for an entity â€” used for list thumbnail */
+    /** Get the primary (first) attachment FilePath for an entity — used for list thumbnail */
     public function getEntityPrimaryImage(string $entityType, int $entityUID, int $orgUID): ?string {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -1358,9 +1358,9 @@ class Products_model extends CI_Model {
         }
     }
 
-    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─────────────────────────────────────────────────────────────────────────
     // Product Profile Modal
-    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─────────────────────────────────────────────────────────────────────────
 
     /**
      * Returns full product details plus live quick-stats for the profile overview tab.

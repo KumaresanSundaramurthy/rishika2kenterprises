@@ -28,7 +28,7 @@ class Auth extends MY_Controller {
 
             $menus       = $this->login_model->getRoleMainMenus($roleUID, $orgUID)->Data;
             $submenus    = $this->login_model->getRoleSubMenus($roleUID, $orgUID)->Data;
-            $modules     = $this->login_model->getModuleDetails($orgUID)->Data;
+            $modules     = $this->login_model->getModuleDetails()->Data;
             $userInfoRes = $this->user_model->getUserByUserInfo(['User.UserUID' => $userUID]);
             $userInfo    = ($userInfoRes->Error === FALSE && !empty($userInfoRes->Data)) ? $userInfoRes->Data[0] : null;
 

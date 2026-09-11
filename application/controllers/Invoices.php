@@ -92,7 +92,7 @@ class Invoices extends MY_Controller {
                     );
                     $this->pageData['CnInitCount'] = $cnTotal;
                 } catch (Exception $e) {
-                    // Fail silently â€” JS loadCreditNotes() fires as fallback
+                    // Fail silently — JS loadCreditNotes() fires as fallback
                 }
             }
 
@@ -129,7 +129,7 @@ class Invoices extends MY_Controller {
             $transDate     = $amounts['transDate'];
             $customerUID   = (int) getPostValue($PostData, 'customerSearch');
 
-            // Draft CN conflict check â€” block save if the selected CN is already Applied
+            // Draft CN conflict check — block save if the selected CN is already Applied
             if ($isDraft) {
                 $draftCnUID = (int) getPostValue($PostData, 'CreditNoteUID');
                 if ($draftCnUID > 0) {
@@ -404,7 +404,7 @@ class Invoices extends MY_Controller {
             $dueDate     = getPostValue($PostData, 'dueDate');
             $netAmount   = $amounts['netAmount'];
 
-            // Draft CN conflict check â€” block save if the selected CN is already Applied
+            // Draft CN conflict check — block save if the selected CN is already Applied
             if ($isDraft) {
                 $draftCnUID = (int) getPostValue($PostData, 'CreditNoteUID');
                 if ($draftCnUID > 0) {
@@ -491,7 +491,7 @@ class Invoices extends MY_Controller {
                 $existingDetail = $rDb->query('SELECT IsInterState FROM Transaction.TransDetailTbl WHERE TransUID = ? LIMIT 1', [$transUID])->row();
                 $existingIS     = $existingDetail ? (int)($existingDetail->IsInterState ?? 0) : 0;
                 if ($isInterState !== $existingIS && $this->transactions_model->hasActiveSalesReturns($transUID, (int)$orgUID)) {
-                    throw new ValidationException('Tax type cannot be changed â€” this invoice has items that have been returned.');
+                    throw new ValidationException('Tax type cannot be changed — this invoice has items that have been returned.');
                 }
             }
             $_cc               = $this->transactions_model->getCustomerCountryCode($customerUID);
@@ -732,7 +732,7 @@ class Invoices extends MY_Controller {
                 );
                 if (!$lockedOnAccountSource) throw new ValidationException('On-account payment source not found.');
                 $availableOnAccount = round((float)($lockedOnAccountSource->Amount ?? 0), $this->_decimals());
-                if ($availableOnAccount <= 0) throw new ValidationException('No on-account balance available â€” it may have been used by another user. Please refresh and try again.');
+                if ($availableOnAccount <= 0) throw new ValidationException('No on-account balance available — it may have been used by another user. Please refresh and try again.');
                 $onAccountAmount = round($onAccountAmount, $this->_decimals());
                 if ($onAccountAmount > $availableOnAccount) throw new ValidationException('On-account amount exceeds available balance.');
             }
@@ -754,7 +754,7 @@ class Invoices extends MY_Controller {
                 if ((int)($lockedSource->IsDeleted  ?? 0) === 1) throw new ValidationException('The advance payment source has been deleted.');
                 if ((int)($lockedSource->IsCancelled ?? 0) === 1) throw new ValidationException('The advance payment source has been cancelled.');
                 $availableExcess = round((float)($lockedSource->ExcessAmount ?? 0), $this->_decimals());
-                if ($availableExcess <= 0) throw new ValidationException('No advance balance available â€” it may have been used by another user. Please refresh and try again.');
+                if ($availableExcess <= 0) throw new ValidationException('No advance balance available — it may have been used by another user. Please refresh and try again.');
                 $advanceAmount = round($advanceAmount, $this->_decimals());
                 if ($advanceAmount > $availableExcess) throw new ValidationException('Advance amount exceeds available balance.');
             }
@@ -936,7 +936,7 @@ class Invoices extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            // Ledger entries only for real cash â€” advance memo rows carry no new money
+            // Ledger entries only for real cash — advance memo rows carry no new money
             if ($amount > 0) {
                 try {
                     $this->load->library('accountledger');
@@ -951,7 +951,7 @@ class Invoices extends MY_Controller {
                 $this->_writeBankLedgerEntry(
                     $orgUID, $bankAccountUID, 'CR', $amount,
                     'Invoice', $transUID, $this->pageModuleUID,
-                    $referenceNo, 'Payment received â€” ' . ($payUniqueNum ?? $existing->UniqueNumber ?? '#' . $transUID),
+                    $referenceNo, 'Payment received — ' . ($payUniqueNum ?? $existing->UniqueNumber ?? '#' . $transUID),
                     $paymentDate, $userUID
                 );
             }
@@ -1011,7 +1011,7 @@ class Invoices extends MY_Controller {
             $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
             if (!$existing) throw new ValidationException('Invoice not found.');
 
-            // Guard â€” On-Account credit applied: block delete
+            // Guard — On-Account credit applied: block delete
             $readDb = $this->load->database('ReadDB', TRUE);
             $readDb->db_debug = FALSE;
             $onAccountCheck = $readDb->query(
@@ -1029,7 +1029,7 @@ class Invoices extends MY_Controller {
                 );
             }
 
-            // Guard â€” Credit Note applied: block delete
+            // Guard — Credit Note applied: block delete
             $cnCheck = $readDb->query(
                 'SELECT PaymentUID FROM Transaction.PaymentsTbl
                  WHERE TransUID = ? AND SourceType = ? AND IsDeleted = 0 AND IsCancelled = 0
@@ -1043,7 +1043,7 @@ class Invoices extends MY_Controller {
                 );
             }
 
-            // Guard â€” Sales Return exists against this invoice: block delete
+            // Guard — Sales Return exists against this invoice: block delete
             $srCheck = $readDb->query(
                 'SELECT RP.TransProdUID FROM Transaction.TransProductsTbl RP
                  INNER JOIN Transaction.TransactionsTbl RTP ON RTP.TransUID = RP.TransUID
@@ -1073,7 +1073,7 @@ class Invoices extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            $this->_syncProductCacheByTransUID($transUID); // after commit â€” ReadDB now sees reverted stock
+            $this->_syncProductCacheByTransUID($transUID); // after commit — ReadDB now sees reverted stock
 
             // Reverse customer ledger AFTER commit Ã¢â‚¬â€ runs in auto-commit mode so
             // any audit-log failure cannot roll back the already-committed delete.
@@ -1341,12 +1341,12 @@ class Invoices extends MY_Controller {
                 throw new ValidationException("Cannot change status from {$current} to {$newStatus}.");
             }
 
-            // â”€â”€ Advance payment guards (runs before the write transaction) â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── Advance payment guards (runs before the write transaction) ────────
             if ($newStatus === 'Cancelled') {
                 $readDb = $this->load->database('ReadDB', TRUE);
                 $readDb->db_debug = FALSE;
 
-                // Guard A â€” Invoice 2 case: this invoice has an advance allocation row applied TO it
+                // Guard A — Invoice 2 case: this invoice has an advance allocation row applied TO it
                 $advOnThis = $readDb->query(
                     'SELECT p.PaymentUID, src.TransUID AS SourceTransUID
                      FROM Transaction.PaymentsTbl p
@@ -1363,7 +1363,7 @@ class Invoices extends MY_Controller {
                     );
                 }
 
-                // Guard B â€” Invoice 1 case: a payment on this invoice has its excess applied elsewhere
+                // Guard B — Invoice 1 case: a payment on this invoice has its excess applied elsewhere
                 $advFromThis = $readDb->query(
                     'SELECT linked.TransUID AS LinkedTransUID
                      FROM Transaction.PaymentsTbl src
@@ -1382,7 +1382,7 @@ class Invoices extends MY_Controller {
                     );
                 }
 
-                // Guard C â€” Invoice has an On-Account credit applied to it
+                // Guard C — Invoice has an On-Account credit applied to it
                 $onAccountOnThis = $readDb->query(
                     'SELECT PaymentUID FROM Transaction.PaymentsTbl
                      WHERE TransUID = ? AND OrgUID = ?
@@ -1398,7 +1398,7 @@ class Invoices extends MY_Controller {
                     );
                 }
 
-                // Guard D â€” Invoice has a Credit Note applied to it
+                // Guard D — Invoice has a Credit Note applied to it
                 $creditNoteOnThis = $readDb->query(
                     'SELECT PaymentUID FROM Transaction.PaymentsTbl
                      WHERE TransUID = ? AND SourceType = ? AND IsDeleted = 0 AND IsCancelled = 0
@@ -1412,7 +1412,7 @@ class Invoices extends MY_Controller {
                     );
                 }
 
-                // Guard E â€” Sales Return exists against this invoice: block cancel
+                // Guard E — Sales Return exists against this invoice: block cancel
                 $srOnThis = $readDb->query(
                     'SELECT RP.TransProdUID FROM Transaction.TransProductsTbl RP
                      INNER JOIN Transaction.TransactionsTbl RTP ON RTP.TransUID = RP.TransUID
@@ -1470,7 +1470,7 @@ class Invoices extends MY_Controller {
             $this->dbwrite_model->commitTransaction();
 
             if ($newStatus === 'Cancelled') {
-                $this->_syncProductCacheByTransUID($transUID); // after commit â€” ReadDB now sees reverted stock
+                $this->_syncProductCacheByTransUID($transUID); // after commit — ReadDB now sees reverted stock
             }
 
             $this->EndReturnData->Error     = FALSE;
@@ -1482,7 +1482,7 @@ class Invoices extends MY_Controller {
                 $this->load->library('customerbalance');
 
                 // Ã¢â€â‚¬Ã¢â€â‚¬ Determine cancel action Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
-                // Priority: explicit POST param (user made decision) Ã¢â€ â€™ JWT setting Ã¢â€ â€™ default 'ask'
+                // Priority: explicit POST param (user made decision) Ã¢â€ ’ JWT setting Ã¢â€ ’ default 'ask'
                 $transSettings = $this->pageData['JwtData']->TransSettings ?? null;
                 $cancelAction  = $transSettings->InvoiceCancelAction ?? 'ask';
 
@@ -1502,11 +1502,11 @@ class Invoices extends MY_Controller {
 
                 } elseif ($cancelAction === 'refund') {
                     // Directly set IsCancelled = 1 on all payments for this invoice.
-                    // Excludes them from TotalReceived Ã¢â€ â€™ balance returns to pre-invoice state.
+                    // Excludes them from TotalReceived Ã¢â€ ’ balance returns to pre-invoice state.
                     $this->dbwrite_model->markPaymentsRefunded($transUID, $orgUID, $userUID);
 
                 } else {
-                    // credit_note / ask Ã¢â€ â€™ create a Pending credit note for the paid portion
+                    // credit_note / ask Ã¢â€ ’ create a Pending credit note for the paid portion
                     $cnResult = $this->customerbalance->createCreditNote(
                         $orgUID, (int)$existing->PartyUID, $transUID, $userUID, $existing->UniqueNumber ?? ''
                     );
@@ -1854,7 +1854,7 @@ class Invoices extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Cancel a pending credit note + its linked payment (reversible flag only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Cancel a pending credit note + its linked payment (reversible flag only) ─────────────────
 
     public function cancelCreditNote(): void {
         $this->EndReturnData = new stdClass();
@@ -1881,7 +1881,7 @@ class Invoices extends MY_Controller {
             $wdb = $this->dbwrite_model->getWriteDb();
             $wdb->db_debug = FALSE;
 
-            // Revert the CN â€” clear applied links and restore to Pending
+            // Revert the CN — clear applied links and restore to Pending
             $cnUpdate = ['AppliedTransUID' => NULL, 'AppliedPaymentUID' => NULL, 'Status' => 'Pending', 'UpdatedBy' => $userUID];
             if ($notes !== '') $cnUpdate['CancelReason'] = $notes;
             $wdb->where(['CreditNoteUID' => $creditNoteUID, 'OrgUID' => (int)$orgUID]);
@@ -1928,7 +1928,7 @@ class Invoices extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Delete a pending credit note + its linked payment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Delete a pending credit note + its linked payment ────────────────────────────────────────
 
     public function deleteCreditNote(): void {
         $this->EndReturnData = new stdClass();

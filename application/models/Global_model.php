@@ -392,7 +392,6 @@ class Global_model extends CI_Model {
             $this->ReadDb->select([
                 'Modules.ModuleUID AS ModuleUID',
                 'Modules.Name AS Name',
-                'Modules.OrgUID AS OrgUID',
                 'Modules.ControllerName AS ControllerName',
                 'Modules.ModelName AS ModelName',
                 'Modules.FilterFunctionName AS FilterFunctionName',

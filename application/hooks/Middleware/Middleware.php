@@ -12,7 +12,7 @@ class Middleware {
 		$Controller = trim($CI->router->fetch_class());  //Controller name
 		$Method     = trim($CI->router->fetch_method());  //Method name
 
-		$ExcludeController = array("website", "login", "receipt", "launch", "oauth", "doc", "signup", "subscription");
+		$ExcludeController = array("website", "login", "receipt", "launch", "oauth", "doc", "signup", "subscription", "subscriptionrenew");
 	    
 		if(in_array($Controller, $ExcludeController)) {
 			return;
@@ -45,7 +45,7 @@ class Middleware {
 				if($RedisData->Error) {
 
 					if (!empty($RedisData->IsConnectionError)) {
-						// Redis host unreachable â€” show friendly error, never expose host details
+						// Redis host unreachable — show friendly error, never expose host details
 						if ($CI->input->is_ajax_request()) {
 							$CI->output
 								->set_status_header(503)
@@ -68,7 +68,7 @@ class Middleware {
 					$CI->pageData['JwtUserKey'] = $JwtData->key;
 
 
-					// â”€â”€ Single-session enforcement â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+					// ── Single-session enforcement ───────────────────────────
 					// Each login embeds a unique SessionToken in the Redis payload.
 					// A parallel login for the same user overwrites UserActiveSession_{uid}
 					// in Redis and CurrentSessionToken in DB, so this older token no longer
@@ -81,7 +81,7 @@ class Middleware {
 						$activeData = $CI->redisservice->getCache($activeKey);
 
 						if ($activeData->Error) {
-							// Redis entry expired or missing â€” fall back to DB
+							// Redis entry expired or missing — fall back to DB
 							$CI->load->model('user_model');
 							$activeToken = $CI->user_model->getCurrentSessionToken($userUID);
 						} else {
@@ -110,7 +110,7 @@ class Middleware {
 							redirect('portal', 'refresh');
 						}
 					}
-					// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+					// ────────────────────────────────────────────────────────
 
 					// ── Subscription expiry check ─────────────────────────────────────────────
 					$sub = $CI->pageData['JwtData']->Subscription ?? null;

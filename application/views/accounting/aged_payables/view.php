@@ -17,7 +17,7 @@ $this->load->view('common/header'); ?>
 
                 <div class="container-xxl flex-grow-1">
 
-                    <!-- â”€â”€ Filter Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+                    <!-- ── Filter Card ────────────────────────────────────── -->
                     <div class="card mb-3">
                         <div class="card-body p-3">
                             <div class="row g-3 align-items-end">
@@ -40,7 +40,7 @@ $this->load->view('common/header'); ?>
                         </div>
                     </div>
 
-                    <!-- â”€â”€ Summary Cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+                    <!-- ── Summary Cards ──────────────────────────────────── -->
                     <div class="row g-3 mb-3 d-none" id="apSummaryRow">
                         <div class="col-md-3">
                             <div class="card h-100">
@@ -50,7 +50,7 @@ $this->load->view('common/header'); ?>
                                     </div>
                                     <div>
                                         <div class="text-muted" style="font-size:.75rem;">Total Outstanding</div>
-                                        <div class="fw-bold" style="font-size:1rem;color:#92400e;" id="apSumTotal">â€”</div>
+                                        <div class="fw-bold" style="font-size:1rem;color:#92400e;" id="apSumTotal">—</div>
                                     </div>
                                 </div>
                             </div>
@@ -63,7 +63,7 @@ $this->load->view('common/header'); ?>
                                     </div>
                                     <div>
                                         <div class="text-muted" style="font-size:.75rem;">Current (0â€“30 days)</div>
-                                        <div class="fw-bold aged-val-current" style="font-size:1rem;" id="apSum0to30">â€”</div>
+                                        <div class="fw-bold aged-val-current" style="font-size:1rem;" id="apSum0to30">—</div>
                                     </div>
                                 </div>
                             </div>
@@ -76,7 +76,7 @@ $this->load->view('common/header'); ?>
                                     </div>
                                     <div>
                                         <div class="text-muted" style="font-size:.75rem;">31â€“90 days</div>
-                                        <div class="fw-bold aged-val-warn" style="font-size:1rem;" id="apSumMid">â€”</div>
+                                        <div class="fw-bold aged-val-warn" style="font-size:1rem;" id="apSumMid">—</div>
                                     </div>
                                 </div>
                             </div>
@@ -89,14 +89,14 @@ $this->load->view('common/header'); ?>
                                     </div>
                                     <div>
                                         <div class="text-muted" style="font-size:.75rem;">90+ days overdue</div>
-                                        <div class="fw-bold aged-val-overdue" style="font-size:1rem;" id="apSum90plus">â€”</div>
+                                        <div class="fw-bold aged-val-overdue" style="font-size:1rem;" id="apSum90plus">—</div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- â”€â”€ Statement Area â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+                    <!-- ── Statement Area ─────────────────────────────────── -->
                     <div class="card">
                         <div class="card-body p-0" id="apStatementArea">
                             <div class="d-flex flex-column align-items-center py-5 text-muted" id="apEmptyState">

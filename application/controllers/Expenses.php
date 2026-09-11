@@ -14,7 +14,7 @@ class Expenses extends MY_Controller {
         $this->load->model('transactions_model');
     }
 
-    // â”€â”€ Add Expense page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Add Expense page ─────────────────────────────────────────────────────
     public function openCreate(): void {
         if (!$this->_loadPageTitle($this->pageModuleUID)) {
             $this->load->view('common/module_error', $this->pageData);
@@ -38,7 +38,7 @@ class Expenses extends MY_Controller {
         }
     }
 
-    // â”€â”€ Edit Expense page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Edit Expense page ─────────────────────────────────────────────────────
     public function openEdit(int $expenseUID = 0): void {
         if (!$this->_loadPageTitle($this->pageModuleUID)) {
             $this->load->view('common/module_error', $this->pageData);
@@ -58,7 +58,7 @@ class Expenses extends MY_Controller {
             $this->load->model('transactions_model');
             $this->pageData['ExpenseAttachments'] = $this->transactions_model->getExpenseIncomeAttachments($expenseUID, $orgUID, 'Expense');
 
-            // Vendor billing state â€” used by view to determine intra/inter-state GST
+            // Vendor billing state — used by view to determine intra/inter-state GST
             $vendorStateCode = '';
             if ((int)($expense->VendorUID ?? 0) > 0) {
                 $this->load->model('vendors_model');
@@ -79,7 +79,7 @@ class Expenses extends MY_Controller {
         }
     }
 
-    // â”€â”€ List page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── List page ────────────────────────────────────────────────────────────
     public function index() {
         if (!$this->_loadPageTitle($this->pageModuleUID)) {
             $this->load->view('common/module_error', $this->pageData);
@@ -133,7 +133,7 @@ class Expenses extends MY_Controller {
         }
     }
 
-    // â”€â”€ AJAX pagination â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── AJAX pagination ──────────────────────────────────────────────────────
     public function getPageDetails($pageNo = 1) {
         $this->EndReturnData = new stdClass();
         try {
@@ -174,7 +174,7 @@ class Expenses extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Add expense (modal AJAX) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Add expense (modal AJAX) ──────────────────────────────────────────────
     public function addExpense() {
         $this->EndReturnData = new stdClass();
         try {
@@ -265,7 +265,7 @@ class Expenses extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Update expense (modal AJAX) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Update expense (modal AJAX) ───────────────────────────────────────────
     public function updateExpense() {
         $this->EndReturnData = new stdClass();
         try {
@@ -290,7 +290,7 @@ class Expenses extends MY_Controller {
             unset($data['CreatedBy'], $data['CreatedOn'], $data['OrgUID'], $data['ModuleUID']);
 
             // Recalculate payment status: PaidAmount in DB is what was actually paid,
-            // the new NetAmount is the updated expense total â€” derive DocStatus from their difference.
+            // the new NetAmount is the updated expense total — derive DocStatus from their difference.
             $dec        = $this->_decimals();
             $paidAmount = round((float)($existing->PaidAmount ?? 0), $dec);
             $newNetAmt  = (float)$data['NetAmount'];
@@ -391,7 +391,7 @@ class Expenses extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Delete expense â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Delete expense ───────────────────────────────────────────────────────
     public function deleteExpense() {
         $this->EndReturnData = new stdClass();
         try {
@@ -455,7 +455,7 @@ class Expenses extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Duplicate expense (creates a Pending copy dated today) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Duplicate expense (creates a Pending copy dated today) ───────────────
     public function duplicateExpense() {
         $this->EndReturnData = new stdClass();
         try {
@@ -526,7 +526,7 @@ class Expenses extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Record payment via shared modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Record payment via shared modal ─────────────────────────────────────────
     public function recordPayment() {
         $this->EndReturnData = new stdClass();
         try {
@@ -636,7 +636,7 @@ class Expenses extends MY_Controller {
                     'SourceUID'      => $expenseUID,
                     'ModuleUID'      => $this->pageModuleUID,
                     'ReferenceNo'    => $referenceNo,
-                    'Narration'      => ($isFullyPaid ? 'Expense paid' : 'Expense partially paid') . ' â€” ' . $existing->ExpenseNumber,
+                    'Narration'      => ($isFullyPaid ? 'Expense paid' : 'Expense partially paid') . ' — ' . $existing->ExpenseNumber,
                     'IsActive'       => 1,
                     'IsDeleted'      => 0,
                     'CreatedBy'      => $userUID,
@@ -650,7 +650,7 @@ class Expenses extends MY_Controller {
 
             // Sync vendor ledger journals and Upstash cache.
             // ensurePaymentJournals back-fills any historical payments that predate
-            // the journaling fix, then journals the current payment â€” so the vendor
+            // the journaling fix, then journals the current payment — so the vendor
             // balance always equals the true outstanding BalanceAmount.
             $vendorUID = (int)($existing->VendorUID ?? 0);
             if ($vendorUID > 0) {
@@ -694,7 +694,7 @@ class Expenses extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Payment history popup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Payment history popup ────────────────────────────────────────────────
     public function getPaymentHistory() {
         $this->EndReturnData = new stdClass();
         try {
@@ -728,7 +728,7 @@ class Expenses extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Payment attachments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Payment attachments ──────────────────────────────────────────────────
     public function getPaymentAttachments() {
         $this->EndReturnData = new stdClass();
         try {
@@ -762,7 +762,7 @@ class Expenses extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Update status (Pending â†’ Paid / Cancelled, Paid â†’ Cancelled) â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Update status (Pending â†’ Paid / Cancelled, Paid â†’ Cancelled) ─────────
     public function updateExpenseStatus() {
         $this->EndReturnData = new stdClass();
         try {
@@ -869,9 +869,9 @@ class Expenses extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Get attachments for a single expense â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Get attachments for a single expense ────────────────────────────────
 
-    // â”€â”€ Get single expense detail â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Get single expense detail ────────────────────────────────────────────
     public function getExpenseDetail() {
         $this->EndReturnData = new stdClass();
         try {
@@ -899,7 +899,7 @@ class Expenses extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Get category list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Get category list ─────────────────────────────────────────────────────
     public function getCategories() {
         $this->EndReturnData = new stdClass();
         try {
@@ -917,7 +917,7 @@ class Expenses extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ TDS Sections dropdown data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── TDS Sections dropdown data ────────────────────────────────────────────
     public function getTdsSections(): void {
         $this->EndReturnData = new stdClass();
         try {
@@ -935,7 +935,7 @@ class Expenses extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Add new category â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Add new category ──────────────────────────────────────────────────────
     public function addCategory() {
         $this->EndReturnData = new stdClass();
         try {
@@ -979,7 +979,7 @@ class Expenses extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Category list (paginated, for manager modal) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Category list (paginated, for manager modal) ─────────────────────────
     public function getCategoryList() {
         $this->EndReturnData = new stdClass();
         try {
@@ -1005,7 +1005,7 @@ class Expenses extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Update category name â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Update category name ──────────────────────────────────────────────────
     public function updateCategory() {
         $this->EndReturnData = new stdClass();
         try {
@@ -1046,7 +1046,7 @@ class Expenses extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Delete category â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Delete category ───────────────────────────────────────────────────────
     public function deleteCategory() {
         $this->EndReturnData = new stdClass();
         try {
@@ -1188,7 +1188,7 @@ class Expenses extends MY_Controller {
             throw new ValidationException('Please select a payment type.');
         }
 
-        // â”€â”€ Tax mode branch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Tax mode branch ───────────────────────────────────────────────────
         if (!$taxApplicable) $amountType = null;
         $simpleAmount  = 0.0;
 
@@ -1231,7 +1231,7 @@ class Expenses extends MY_Controller {
         }
         $taxPct        = $taxApplicable ? round((float)getPostValue($PostData, 'TaxPercentage'), 2) : 0.0;
 
-        // â”€â”€ TDS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── TDS ───────────────────────────────────────────────────────────────
         $tdsApplicable  = (int)getPostValue($PostData, 'TDSApplicable') ? 1 : 0;
         $tdsSectionUID  = $tdsApplicable ? max(0, (int)getPostValue($PostData, 'TdsSectionUID')) : 0;
         if ($tdsApplicable && $tdsSectionUID <= 0) {
@@ -1240,14 +1240,14 @@ class Expenses extends MY_Controller {
         $tdsPct         = $tdsApplicable ? round((float)getPostValue($PostData, 'TDSPercentage'), 2) : 0.0;
         $tdsAmt         = $tdsApplicable ? round($totalSum * $tdsPct / 100, $dec) : 0.0;
 
-        // â”€â”€ RCM â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── RCM ───────────────────────────────────────────────────────────────
         $rcmApplicable = (int)getPostValue($PostData, 'RCMApplicable') ? 1 : 0;
         $rcmAmount     = $rcmApplicable ? round((float)getPostValue($PostData, 'RCMAmount'), $dec) : 0.0;
 
-        // â”€â”€ Round Off â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Round Off ─────────────────────────────────────────────────────────
         $roundOff = round((float)getPostValue($PostData, 'RoundOff'), $dec);
 
-        // â”€â”€ Final amounts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Final amounts ─────────────────────────────────────────────────────
         $netAmount = round($totalSum + $roundOff - $tdsAmt, $dec);
 
         $data = [
@@ -1291,7 +1291,7 @@ class Expenses extends MY_Controller {
         return $data;
     }
 
-    // Saves parsed items to ExpenseItemsTbl â€” skipped entirely for without-tax mode.
+    // Saves parsed items to ExpenseItemsTbl — skipped entirely for without-tax mode.
     // On create: all items have UID=0 â†’ INSERT.
     // On update:
     //   - UID > 0 â†’ UPDATE that specific row in place
@@ -1416,7 +1416,7 @@ class Expenses extends MY_Controller {
                 'SourceUID'      => $expenseUID,
                 'ModuleUID'      => $this->pageModuleUID,
                 'ReferenceNo'    => null,
-                'Narration'      => 'Expense paid â€” ' . $expenseNumber,
+                'Narration'      => 'Expense paid — ' . $expenseNumber,
                 'IsActive'       => 1,
                 'IsDeleted'      => 0,
                 'CreatedBy'      => $userUID,
@@ -1432,7 +1432,7 @@ class Expenses extends MY_Controller {
         ];
     }
 
-    // â”€â”€ Bulk delete expenses â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Bulk delete expenses ─────────────────────────────────────────────────
     public function deleteMultipleExpenses(): void {
         $this->EndReturnData = new stdClass();
         try {

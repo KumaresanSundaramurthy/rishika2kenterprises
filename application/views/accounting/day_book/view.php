@@ -18,7 +18,7 @@ $this->load->view('common/header'); ?>
 
                 <div class="container-xxl flex-grow-1">
 
-                    <!-- â”€â”€ Filter Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+                    <!-- ── Filter Card ────────────────────────────────────── -->
                     <div class="card mb-3">
                         <div class="card-body p-3">
                             <div class="row g-3 align-items-end">
@@ -41,7 +41,7 @@ $this->load->view('common/header'); ?>
                                         <optgroup label="Specific Account">
                                             <?php foreach ($CashBankLedgers as $l): ?>
                                             <option value="ledger:<?php echo (int)$l->LedgerUID; ?>">
-                                                <?php echo htmlspecialchars($l->LedgerType . ' â€” ' . $l->LedgerName); ?>
+                                                <?php echo htmlspecialchars($l->LedgerType . ' — ' . $l->LedgerName); ?>
                                             </option>
                                             <?php endforeach; ?>
                                         </optgroup>
@@ -62,20 +62,20 @@ $this->load->view('common/header'); ?>
                         </div>
                     </div>
 
-                    <!-- â”€â”€ Summary bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+                    <!-- ── Summary bar ────────────────────────────────────── -->
                     <div class="d-none mb-3" id="dbSummaryBar">
                         <div class="d-flex gap-3 flex-wrap align-items-center">
                             <span class="badge bg-label-success" style="font-size:.8rem;">
-                                <i class="bx bx-trending-up me-1"></i>Total Dr: <strong id="dbSumDr">â€”</strong>
+                                <i class="bx bx-trending-up me-1"></i>Total Dr: <strong id="dbSumDr">—</strong>
                             </span>
                             <span class="badge bg-label-danger" style="font-size:.8rem;">
-                                <i class="bx bx-trending-down me-1"></i>Total Cr: <strong id="dbSumCr">â€”</strong>
+                                <i class="bx bx-trending-down me-1"></i>Total Cr: <strong id="dbSumCr">—</strong>
                             </span>
                             <span class="text-muted" style="font-size:.78rem;" id="dbDayCount"></span>
                         </div>
                     </div>
 
-                    <!-- â”€â”€ Entries Area â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+                    <!-- ── Entries Area ───────────────────────────────────── -->
                     <div class="card">
                         <div class="card-body p-0" id="dbEntriesArea">
                             <div class="d-flex flex-column align-items-center py-5 text-muted" id="dbEmptyState">

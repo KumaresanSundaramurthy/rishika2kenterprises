@@ -16,6 +16,7 @@ class SubscriptionCheck {
         'forgotpassword',
         'resetpassword',
         'subscription',
+        'subscriptionrenew',
         'payment',
         'webhook'
     ];

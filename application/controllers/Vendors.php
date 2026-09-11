@@ -9,7 +9,7 @@ class Vendors extends MY_Controller {
         parent::__construct();
     }
 
-    // â”€â”€ Internal helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Internal helpers ──────────────────────────────────────────────────────
 
     private function _initModule() {
         if (isset($this->pageData['ModuleId'])) return;
@@ -51,7 +51,7 @@ class Vendors extends MY_Controller {
         return $resp;
     }
 
-    // â”€â”€ Page routes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Page routes ───────────────────────────────────────────────────────────
     public function index() {
         if (!$this->_loadPageTitle()) {
             $this->load->view('common/module_error', $this->pageData);
@@ -301,7 +301,7 @@ class Vendors extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            // Claim next vendor number â€” 5-retry optimistic lock inside claimNextVendorNumber.
+            // Claim next vendor number — 5-retry optimistic lock inside claimNextVendorNumber.
             $_vOrgUID   = (int) $this->pageData['JwtData']->Org->OrgUID;
             $_fyMonth   = (int) ($this->pageData['JwtData']->GenSettings->FYStartMonth ?? 4);
             $_tz        = $this->pageData['JwtData']->User->Timezone ?? 'UTC';
@@ -544,7 +544,7 @@ class Vendors extends MY_Controller {
                 ];
             }
 
-            // Store as HSET â€” one bulk command, one field per vendor
+            // Store as HSET — one bulk command, one field per vendor
             $this->upstashservice->hmset($cacheKey, $newMap);
 
             $this->EndReturnData->Error   = FALSE;
@@ -681,7 +681,7 @@ class Vendors extends MY_Controller {
                 $newBalance    = abs($balanceSigned);
                 $newType       = ($balanceSigned >= 0) ? 'Credit' : 'Debit';
 
-                // Write via dbwrite_model (C1 â€” same connection as this transaction, no FK deadlock)
+                // Write via dbwrite_model (C1 — same connection as this transaction, no FK deadlock)
                 if ($obRow) {
                     $this->dbwrite_model->updateData('Vendors', 'VendOpeningBalanceTbl', [
                         'OpeningBalance' => $newBalance,
@@ -1531,7 +1531,7 @@ class Vendors extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Send SMS / Email â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Send SMS / Email ─────────────────────────────────────────────────────
     public function sendCommunication() {
 
         $this->EndReturnData = new stdClass();
@@ -1598,7 +1598,7 @@ class Vendors extends MY_Controller {
 
     }
 
-    // â”€â”€ Vendor Opening Balance â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Vendor Opening Balance ────────────────────────────────────────────────
 
     public function saveVendorOpeningBalance() {
 
@@ -1761,7 +1761,7 @@ class Vendors extends MY_Controller {
      * Recalculate vendor closing balance from scratch and sync to DB + Upstash.
      *
      * POST body:
-     *   VendorUID (int, optional) â€” omit or 0 to recalculate ALL vendors in the org.
+     *   VendorUID (int, optional) — omit or 0 to recalculate ALL vendors in the org.
      */
     public function recalcBalance(): void {
         $this->EndReturnData = new stdClass();
@@ -1775,7 +1775,7 @@ class Vendors extends MY_Controller {
             $readDb->db_debug = FALSE;
 
             if ($vendorUID > 0) {
-                // â”€â”€ Single vendor â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                // ── Single vendor ──────────────────────────────────────────
                 $result = $this->vendorbalance->recalcAndSync($orgUID, $vendorUID, $userUID);
                 if (!$result) throw new Exception('Vendor not found or recalculation failed.');
 
@@ -1785,7 +1785,7 @@ class Vendors extends MY_Controller {
                 $this->EndReturnData->BalanceType = $result['type'];
 
             } else {
-                // â”€â”€ All vendors for this org â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                // ── All vendors for this org ───────────────────────────────
                 $rows = $readDb->query(
                     'SELECT VendorUID FROM Vendors.VendorTbl
                       WHERE OrgUID = ? AND IsDeleted = 0
@@ -1808,7 +1808,7 @@ class Vendors extends MY_Controller {
                 }
 
                 $this->EndReturnData->Error   = false;
-                $this->EndReturnData->Message = "Recalculated {$success} of {$total} vendors." . ($failed > 0 ? " {$failed} failed â€” check logs." : '');
+                $this->EndReturnData->Message = "Recalculated {$success} of {$total} vendors." . ($failed > 0 ? " {$failed} failed — check logs." : '');
                 $this->EndReturnData->Total   = $total;
                 $this->EndReturnData->Success = $success;
                 $this->EndReturnData->Failed  = $failed;
@@ -1984,7 +1984,7 @@ class Vendors extends MY_Controller {
                     $newBalance     = abs($signedBalance);
                     $newBalanceType = ($signedBalance >= 0) ? 'Credit' : 'Debit';
 
-                    // Step 4: Persist â€” update ledger current balance + VendOpeningBalanceTbl pending balance.
+                    // Step 4: Persist — update ledger current balance + VendOpeningBalanceTbl pending balance.
                     if (!empty($vend->LedgerUID)) {
                         $this->vendors_model->updateVendorBalanceInLedger(
                             $vend->LedgerUID, $newBalance, $newBalanceType, $userUID
@@ -2035,7 +2035,7 @@ class Vendors extends MY_Controller {
 
     }
 
-    // â”€â”€ Vendor Attachments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Vendor Attachments ────────────────────────────────────────────────────
 
     public function getVendorAttachments() {
         $this->EndReturnData = new stdClass();
@@ -2165,7 +2165,7 @@ class Vendors extends MY_Controller {
         }
     }
 
-    // â”€â”€ Vendor Profile Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Vendor Profile Modal ───────────────────────────────────────────────
 
     /**
      * Loads a single vendor profile tab and returns rendered HTML.

@@ -188,7 +188,7 @@ class Vendors_model extends CI_Model {
 
             $baseWhere = ['Vendors.IsDeleted' => 0, 'Vendors.OrgUID' => $orgUID];
 
-            // ToCollect / ToPay filter â€” subquery, applied to both count and data queries
+            // ToCollect / ToPay filter — subquery, applied to both count and data queries
             $balanceSubquery = null;
             if (!empty($filter['BalanceType'])) {
                 $balType        = ($filter['BalanceType'] === 'Credit') ? 'Credit' : 'Debit';
@@ -224,7 +224,7 @@ class Vendors_model extends CI_Model {
             if (!$cntQuery) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
             $totalCount = (int) $cntQuery->row()->cnt;
 
-            // Data query â€” balance via correlated subqueries to prevent row multiplication
+            // Data query — balance via correlated subqueries to prevent row multiplication
             // from multi-ledger ELM rows (ELM+COA JOINs caused N rows per vendor if >1 ledger)
             $this->ReadDb->select([
                 'Vendors.VendorUID AS TablePrimaryUID',
@@ -408,10 +408,10 @@ class Vendors_model extends CI_Model {
                 "SUM(CASE WHEN V.CreatedOn >= '{$thisMonthStart}' AND V.CreatedOn < '{$nextMonthStart}' THEN 1 ELSE 0 END) AS MonthCount",
                 "SUM(CASE WHEN V.CreatedOn >= '{$fyStart}' THEN 1 ELSE 0 END) AS FYCount",
                 "SUM(CASE WHEN V.CreatedOn >= '{$lastMonthStart}' AND V.CreatedOn < '{$thisMonthStart}' THEN 1 ELSE 0 END) AS LastMonthCount",
-                // To Collect: vendors who owe us (Debit balance â€” advance paid to vendor)
+                // To Collect: vendors who owe us (Debit balance — advance paid to vendor)
                 "SUM(CASE WHEN VOB.PendingBalType = 'Debit' AND VOB.PendingBalance > 0 THEN 1 ELSE 0 END) AS ToCollectCount",
                 "COALESCE(SUM(CASE WHEN VOB.PendingBalType = 'Debit' AND VOB.PendingBalance > 0 THEN VOB.PendingBalance ELSE 0 END), 0) AS ToCollectAmount",
-                // To Pay: we owe vendors (Credit balance â€” standard payables)
+                // To Pay: we owe vendors (Credit balance — standard payables)
                 "SUM(CASE WHEN VOB.PendingBalType = 'Credit' AND VOB.PendingBalance > 0 THEN 1 ELSE 0 END) AS ToPayCount",
                 "COALESCE(SUM(CASE WHEN VOB.PendingBalType = 'Credit' AND VOB.PendingBalance > 0 THEN VOB.PendingBalance ELSE 0 END), 0) AS ToPayAmount",
             ]);
@@ -456,7 +456,7 @@ class Vendors_model extends CI_Model {
         }
     }
 
-    // â”€â”€ VendOpeningBalanceTbl (one row per vendor, no year) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── VendOpeningBalanceTbl (one row per vendor, no year) ───────────────────
 
     public function getVendorOpeningBalance(int $orgUID, int $vendorUID): ?object {
         try {
@@ -538,7 +538,7 @@ class Vendors_model extends CI_Model {
                 ], ['VendBalUID' => (int)$existing->VendBalUID]);
                 if ($res->Error) throw new Exception($res->Message ?? 'Vendor pending balance update failed.');
             } else {
-                // No opening balance row yet â€” create one so PendingBalance is always persisted.
+                // No opening balance row yet — create one so PendingBalance is always persisted.
                 $res = $this->dbwrite_model->insertData('Vendors', 'VendOpeningBalanceTbl', [
                     'OrgUID'         => (int)$orgUID,
                     'VendorUID'      => (int)$vendorUID,
@@ -559,7 +559,7 @@ class Vendors_model extends CI_Model {
         }
     }
 
-    // Purchase Returns already covered by a pending/applied debit note â€” excluded from effectiveReturned to avoid double-counting.
+    // Purchase Returns already covered by a pending/applied debit note — excluded from effectiveReturned to avoid double-counting.
     public function getVendorPRCoveredByDebitNote(int $orgUID, int $vendorUID): float {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -650,7 +650,7 @@ class Vendors_model extends CI_Model {
 
     // Applies a signed numeric delta (+/-) to the vendor running opening balance.
     // Returns ['balance' => float, 'type' => 'Debit'|'Credit'].
-    // â”€â”€ VendYearOpeningBalanceTbl (year-wise opening balance snapshot) â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── VendYearOpeningBalanceTbl (year-wise opening balance snapshot) ─────────
 
     // $onlyIfNew=true: insert-only, preserving the year-start snapshot.
     public function saveVendorYearOpening(int $orgUID, int $vendorUID, int $financialYear, float $openingBalance, string $openingBalType, int $userUID, bool $onlyIfNew = false): int {
@@ -716,7 +716,7 @@ class Vendors_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Balance recalculation helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Balance recalculation helpers ─────────────────────────────────────────
 
     public function getVendorsWithLedgerForBalance(int $orgUID, int $vendorUID = 0): array {
         try {
@@ -929,7 +929,7 @@ class Vendors_model extends CI_Model {
             $tblChk       = $this->ReadDb->query("SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA='Vendors' AND TABLE_NAME='VendorGroupMemberTbl' LIMIT 1");
             $hasMemberTbl = $tblChk && $tblChk->num_rows() > 0;
 
-            // â”€â”€ Count query â”€â”€
+            // ── Count query ──
             $this->ReadDb->select('COUNT(*) AS cnt', false);
             $this->ReadDb->from('Vendors.VendorGroupTbl VG');
             $this->ReadDb->where(['VG.OrgUID' => (int)$orgUID, 'VG.IsDeleted' => 0]);
@@ -955,7 +955,7 @@ class Vendors_model extends CI_Model {
             $countRow   = $this->ReadDb->get()->row();
             $totalCount = (int)($countRow->cnt ?? 0);
 
-            // â”€â”€ Step 1: Paginated groups â”€â”€
+            // ── Step 1: Paginated groups ──
             if ($hasMemberTbl) {
                 $this->ReadDb->select(
                     'VG.GroupUID, VG.GroupCode, VG.GroupName, VG.GroupType,
@@ -1004,7 +1004,7 @@ class Vendors_model extends CI_Model {
             $query = $this->ReadDb->get();
             $rows  = $query ? $query->result() : [];
 
-            // â”€â”€ Step 2: Balance totals (only when member table exists) â”€â”€
+            // ── Step 2: Balance totals (only when member table exists) ──
             if ($hasMemberTbl && !empty($rows)) {
                 $groupUIDs    = [];
                 foreach ($rows as $row) { $groupUIDs[] = (int)$row->GroupUID; }
@@ -1248,7 +1248,7 @@ class Vendors_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Vendor Attachments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Vendor Attachments ────────────────────────────────────────────────────
 
     public function getVendorAttachments(int $vendorUID, int $orgUID): array {
         try {
@@ -1281,7 +1281,7 @@ class Vendors_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Vendor Profile Modal methods â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Vendor Profile Modal methods ───────────────────────────────────────
 
     /**
      * Monthly purchase totals for the last 6 months (bar chart on overview).
@@ -1365,7 +1365,7 @@ class Vendors_model extends CI_Model {
         try {
             $this->ReadDb->db_debug = FALSE;
 
-            // Purchases (credit â€” we owe vendor)
+            // Purchases (credit — we owe vendor)
             $this->ReadDb->select("'Purchase' AS TxType, TransNumber AS RefNo, TransDate AS TxDate, 0 AS Debit, NetAmount AS Credit, DocStatus");
             $this->ReadDb->from('`Transaction`.TransactionsTbl');
             $this->ReadDb->where(['OrgUID' => $orgUID, 'PartyUID' => $vendorUID, 'PartyType' => 'V', 'ModuleUID' => 105, 'IsDeleted' => 0]);
@@ -1374,7 +1374,7 @@ class Vendors_model extends CI_Model {
             $q = $this->ReadDb->get();
             $purchases = $q ? $q->result_array() : [];
 
-            // Payments to vendor (debit â€” we pay off what we owe)
+            // Payments to vendor (debit — we pay off what we owe)
             $this->ReadDb->select("'Payment' AS TxType, '' AS RefNo, DATE(PaymentDate) AS TxDate, Amount AS Debit, 0 AS Credit, 'Paid' AS DocStatus");
             $this->ReadDb->from('`Transaction`.PaymentsTbl');
             $this->ReadDb->where(['OrgUID' => $orgUID, 'PartyUID' => $vendorUID, 'PartyType' => 'V', 'IsDeleted' => 0, 'IsCancelled' => 0]);
@@ -1382,7 +1382,7 @@ class Vendors_model extends CI_Model {
             $q = $this->ReadDb->get();
             $payments = $q ? $q->result_array() : [];
 
-            // Purchase Returns (debit â€” vendor credits us back)
+            // Purchase Returns (debit — vendor credits us back)
             $this->ReadDb->select("'Return' AS TxType, TransNumber AS RefNo, TransDate AS TxDate, NetAmount AS Debit, 0 AS Credit, DocStatus");
             $this->ReadDb->from('`Transaction`.TransactionsTbl');
             $this->ReadDb->where(['OrgUID' => $orgUID, 'PartyUID' => $vendorUID, 'PartyType' => 'V', 'IsDeleted' => 0]);
@@ -1481,7 +1481,7 @@ class Vendors_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Vendor Number â€” sequence claim (mirrors claimNextCustomerNumber) â”€â”€â”€â”€â”€â”€â”€
+    // ── Vendor Number — sequence claim (mirrors claimNextCustomerNumber) ───────
 
     /**
      * @param int    $fyStartMonth
@@ -1581,7 +1581,7 @@ class Vendors_model extends CI_Model {
 
     /**
      * Atomically claims the next vendor number for $orgUID.
-     * Mirrors claimNextCustomerNumber() â€” uses VendorSeq / VendorSeqYear / VendorNextNumber.
+     * Mirrors claimNextCustomerNumber() — uses VendorSeq / VendorSeqYear / VendorNextNumber.
      * Returns ['claimed' => 'V-260001', 'next' => 'V-260002'] on success, null on failure.
      * @param int    $orgUID
      * @param int    $fyStartMonth

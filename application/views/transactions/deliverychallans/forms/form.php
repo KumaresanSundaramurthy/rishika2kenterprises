@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var object|null $DCData */      $DCData      = $DCData      ?? null;
 /** @var object      $JwtData */
 /** @var array       $DCItems */     $DCItems      = $DCItems      ?? [];

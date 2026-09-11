@@ -19,7 +19,7 @@ class Payroll extends MY_Controller {
         return $r;
     }
 
-    // â”€â”€ Payroll list page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Payroll list page ─────────────────────────────────────────────────────
 
     public function index() {
         if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
@@ -45,7 +45,7 @@ class Payroll extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ Process page (select month + view employee calculations) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Process page (select month + view employee calculations) ─────────────
 
     public function process() {
         if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
@@ -58,7 +58,7 @@ class Payroll extends MY_Controller {
         } catch (Exception $e) { $this->notifyError('Payroll::process', $e); redirect('payroll', 'refresh'); }
     }
 
-    // â”€â”€ AJAX â€” compute employee lines for selected month â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── AJAX — compute employee lines for selected month ──────────────────────
 
     public function getPayrollEmployees() {
         $this->EndReturnData = new stdClass();
@@ -148,7 +148,7 @@ class Payroll extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // â”€â”€ AJAX â€” save processed payroll â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── AJAX — save processed payroll ─────────────────────────────────────────
 
     public function savePayroll() {
         $this->EndReturnData = new stdClass();
@@ -203,7 +203,7 @@ class Payroll extends MY_Controller {
                 }
             }
 
-            // â”€â”€ Post payroll journal entry â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── Post payroll journal entry ────────────────────────────────
             try {
                 $this->load->library('accountledger');
                 $payrollDate = date('Y-m-d', mktime(0, 0, 0, $month, date('t', mktime(0,0,0,$month,1,$year)), $year));
@@ -261,7 +261,7 @@ class Payroll extends MY_Controller {
             $res = $this->dbwrite_model->updateData('Transaction', 'PayrollTbl', ['PayrollStatus' => $status, 'UpdatedBy' => $this->_userUID()], ['PayrollUID' => $uid, 'OrgUID' => $this->_orgUID()]);
             if ($res->Error) throw new Exception($res->Message);
 
-            // â”€â”€ Reverse journal when payroll is cancelled â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── Reverse journal when payroll is cancelled ─────────────────
             if ($status === 'Cancelled') {
                 try {
                     $this->load->library('accountledger');
@@ -294,7 +294,7 @@ class Payroll extends MY_Controller {
             $res = $this->dbwrite_model->updateData('Transaction', 'PayrollTbl', ['IsDeleted' => 1, 'UpdatedBy' => $this->_userUID()], ['PayrollUID' => $uid, 'OrgUID' => $this->_orgUID()]);
             if ($res->Error) throw new Exception($res->Message);
 
-            // â”€â”€ Reverse payroll journal entry â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── Reverse payroll journal entry ─────────────────────────────
             try {
                 $this->load->library('accountledger');
                 $this->accountledger->reverseJournal('Payroll', $uid, $this->_userUID());

@@ -17,7 +17,7 @@ $this->load->view('common/header'); ?>
 
                 <div class="container-xxl flex-grow-1">
 
-                    <!-- â”€â”€ Filter Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+                    <!-- ── Filter Card ────────────────────────────────────── -->
                     <div class="card mb-3">
                         <div class="card-body p-3">
                             <div class="row g-3 align-items-end">
@@ -70,7 +70,7 @@ $this->load->view('common/header'); ?>
                         </div>
                     </div>
 
-                    <!-- â”€â”€ Summary Cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+                    <!-- ── Summary Cards ──────────────────────────────────── -->
                     <div class="row g-3 mb-3 d-none" id="cmpSummaryRow">
                         <div class="col-md-3">
                             <div class="card h-100">
@@ -78,8 +78,8 @@ $this->load->view('common/header'); ?>
                                     <div class="comp-sum-icon comp-icon-inc"><i class="bx bx-trending-up fs-4"></i></div>
                                     <div>
                                         <div class="text-muted" style="font-size:.75rem;">Income Variance</div>
-                                        <div class="fw-bold" style="font-size:1rem;" id="cmpSumIncVar">â€”</div>
-                                        <div class="text-muted" style="font-size:.72rem;" id="cmpSumIncPct">â€”</div>
+                                        <div class="fw-bold" style="font-size:1rem;" id="cmpSumIncVar">—</div>
+                                        <div class="text-muted" style="font-size:.72rem;" id="cmpSumIncPct">—</div>
                                     </div>
                                 </div>
                             </div>
@@ -90,8 +90,8 @@ $this->load->view('common/header'); ?>
                                     <div class="comp-sum-icon comp-icon-exp"><i class="bx bx-trending-down fs-4"></i></div>
                                     <div>
                                         <div class="text-muted" style="font-size:.75rem;">Expense Variance</div>
-                                        <div class="fw-bold" style="font-size:1rem;" id="cmpSumExpVar">â€”</div>
-                                        <div class="text-muted" style="font-size:.72rem;" id="cmpSumExpPct">â€”</div>
+                                        <div class="fw-bold" style="font-size:1rem;" id="cmpSumExpVar">—</div>
+                                        <div class="text-muted" style="font-size:.72rem;" id="cmpSumExpPct">—</div>
                                     </div>
                                 </div>
                             </div>
@@ -102,8 +102,8 @@ $this->load->view('common/header'); ?>
                                     <div class="comp-sum-icon comp-icon-net" id="cmpSumNetIcon"><i class="bx bx-money fs-4"></i></div>
                                     <div>
                                         <div class="text-muted" style="font-size:.75rem;">Period 1 Net</div>
-                                        <div class="fw-bold" style="font-size:1rem;" id="cmpSumNet1">â€”</div>
-                                        <div class="text-muted" style="font-size:.72rem;">P2: <span id="cmpSumNet2">â€”</span></div>
+                                        <div class="fw-bold" style="font-size:1rem;" id="cmpSumNet1">—</div>
+                                        <div class="text-muted" style="font-size:.72rem;">P2: <span id="cmpSumNet2">—</span></div>
                                     </div>
                                 </div>
                             </div>
@@ -114,15 +114,15 @@ $this->load->view('common/header'); ?>
                                     <div class="comp-sum-icon comp-icon-var" id="cmpSumVarIcon"><i class="bx bx-transfer fs-4"></i></div>
                                     <div>
                                         <div class="text-muted" style="font-size:.75rem;">Net Variance</div>
-                                        <div class="fw-bold" style="font-size:1rem;" id="cmpSumNetVar">â€”</div>
-                                        <div class="text-muted" style="font-size:.72rem;" id="cmpSumNetPct">â€”</div>
+                                        <div class="fw-bold" style="font-size:1rem;" id="cmpSumNetVar">—</div>
+                                        <div class="text-muted" style="font-size:.72rem;" id="cmpSumNetPct">—</div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- â”€â”€ Report Area â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+                    <!-- ── Report Area ────────────────────────────────────── -->
                     <div class="card">
                         <div class="card-body p-0" id="cmpReportArea">
                             <div class="d-flex flex-column align-items-center py-5 text-muted" id="cmpEmptyState">
@@ -176,7 +176,7 @@ $this->load->view('common/header'); ?>
      * @returns {string}
      */
     function _pctLabel(pct, higherIsBetter) {
-        if (pct === null || pct === undefined) return 'â€”';
+        if (pct === null || pct === undefined) return '—';
         var sign = pct >= 0 ? '+' : '';
         var good = higherIsBetter ? pct >= 0 : pct <= 0;
         return (good ? 'â–² ' : 'â–¼ ') + sign + pct + '%';

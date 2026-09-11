@@ -18,7 +18,7 @@ $this->load->view('common/header'); ?>
                     'pageIconColor'   => '#0284c7',
                 ]); ?>
 
-                <!-- â”€â”€ Stats Strip â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+                <!-- ── Stats Strip ──────────────────────────────────────────── -->
                 <div class="apex-stats-strip">
                     <a href="javascript:void(0);" class="apex-stat-item rj-stat-filter active" data-filter="All" style="--stat-color:#0284c7">
                         <div class="apex-stat-icon" style="background:#e0f2fe"><i class="bx bx-repeat" style="color:#0284c7"></i></div>
@@ -104,7 +104,7 @@ $this->load->view('common/header'); ?>
     </div>
 </div>
 
-<!-- â”€â”€ Recurring Journal Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+<!-- ── Recurring Journal Modal ─────────────────────────────────────────────── -->
 <div class="modal fade" id="recurJournalModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content">
@@ -203,7 +203,7 @@ $this->load->view('common/header'); ?>
     var _searchTimer   = null;
     var _rjRowIdx      = 0;
 
-    // â”€â”€ Row HTML â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Row HTML ──────────────────────────────────────────────────────────────
     /**
      * @param {number} idx
      * @returns {string}
@@ -292,16 +292,16 @@ $this->load->view('common/header'); ?>
         _rjAddRow();
     }
 
-    // â”€â”€ Flatpickr â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Flatpickr ─────────────────────────────────────────────────────────────
     if (typeof flatpickr !== 'undefined') {
         flatpickr('#rjStartDate', { static: true, position: 'below left', dateFormat: 'Y-m-d', altInput: true, altFormat: _transFormDateFormat || 'd M Y' });
         flatpickr('#rjEndDate',   { static: true, position: 'below left', dateFormat: 'Y-m-d', altInput: true, altFormat: _transFormDateFormat || 'd M Y' });
     }
 
-    // â”€â”€ Add row button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Add row button ────────────────────────────────────────────────────────
     document.getElementById('rjAddRowBtn').addEventListener('click', _rjAddRow);
 
-    // â”€â”€ Remove row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Remove row ────────────────────────────────────────────────────────────
     document.getElementById('rjLinesBody').addEventListener('click', function (e) {
         var btn = e.target.closest('.rj-remove-row');
         if (!btn) return;
@@ -311,14 +311,14 @@ $this->load->view('common/header'); ?>
         _rjUpdateTotals();
     });
 
-    // â”€â”€ New button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── New button ────────────────────────────────────────────────────────────
     document.getElementById('rjNewBtn').addEventListener('click', function () {
         _rjReset();
         var m = new bootstrap.Modal(document.getElementById('recurJournalModal'));
         m.show();
     });
 
-    // â”€â”€ Edit button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Edit button ───────────────────────────────────────────────────────────
     document.getElementById('rjTableBody').addEventListener('click', function (e) {
         var btn = e.target.closest('.rj-edit-btn');
         if (!btn) return;
@@ -361,7 +361,7 @@ $this->load->view('common/header'); ?>
             });
     });
 
-    // â”€â”€ Save button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Save button ───────────────────────────────────────────────────────────
     document.getElementById('rjSaveBtn').addEventListener('click', function () {
         var recurUID  = document.getElementById('rjRecurUID').value;
         var title     = document.getElementById('rjTitle').value.trim();
@@ -419,7 +419,7 @@ $this->load->view('common/header'); ?>
             .catch(function () { btn.disabled = false; btn.innerHTML = '<i class="bx bx-save me-1"></i>Save'; });
     });
 
-    // â”€â”€ Post Now button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Post Now button ───────────────────────────────────────────────────────
     document.getElementById('rjTableBody').addEventListener('click', function (e) {
         var btn = e.target.closest('.rj-post-btn');
         if (!btn) return;
@@ -439,14 +439,14 @@ $this->load->view('common/header'); ?>
                 .then(function (d) {
                     if (d.Error) { Swal.fire({ icon: 'error', title: 'Error', text: d.Message }); return; }
                     var msg = d.Message;
-                    if (d.Ended) msg += ' Schedule ended â€” journal paused.';
+                    if (d.Ended) msg += ' Schedule ended — journal paused.';
                     Swal.fire({ icon: 'success', title: 'Posted!', text: msg, timer: 2200, showConfirmButton: false })
                         .then(function () { _rjLoad(1); });
                 });
         });
     });
 
-    // â”€â”€ Post All Due â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Post All Due ──────────────────────────────────────────────────────────
     document.getElementById('rjPostAllBtn').addEventListener('click', function () {
         Swal.fire({
             title: 'Post All Due Journals?',
@@ -466,7 +466,7 @@ $this->load->view('common/header'); ?>
         });
     });
 
-    // â”€â”€ Toggle Pause/Resume â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Toggle Pause/Resume ───────────────────────────────────────────────────
     document.getElementById('rjTableBody').addEventListener('click', function (e) {
         var btn = e.target.closest('.rj-toggle-btn');
         if (!btn) return;
@@ -481,7 +481,7 @@ $this->load->view('common/header'); ?>
             });
     });
 
-    // â”€â”€ Delete â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Delete ────────────────────────────────────────────────────────────────
     document.getElementById('rjTableBody').addEventListener('click', function (e) {
         var btn = e.target.closest('.rj-delete-btn');
         if (!btn) return;
@@ -507,7 +507,7 @@ $this->load->view('common/header'); ?>
         });
     });
 
-    // â”€â”€ Stats filter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Stats filter ──────────────────────────────────────────────────────────
     document.querySelectorAll('.rj-stat-filter').forEach(function (el) {
         el.addEventListener('click', function () {
             document.querySelectorAll('.rj-stat-filter').forEach(function (x) { x.classList.remove('active'); });
@@ -517,7 +517,7 @@ $this->load->view('common/header'); ?>
         });
     });
 
-    // â”€â”€ Search â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Search ────────────────────────────────────────────────────────────────
     document.getElementById('rjSearch').addEventListener('input', function () {
         clearTimeout(_searchTimer);
         var val = this.value;
@@ -531,7 +531,7 @@ $this->load->view('common/header'); ?>
     });
     document.getElementById('rjRefresh').addEventListener('click', function () { _rjLoad(1); });
 
-    // â”€â”€ Load / paginate â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Load / paginate ───────────────────────────────────────────────────────
     /**
      * @param {number} pageNo
      * @returns {void}

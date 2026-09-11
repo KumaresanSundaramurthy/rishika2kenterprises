@@ -7,9 +7,9 @@ class MY_Controller extends CI_Controller {
     public    $pageData      = [];
     protected $pageModuleUID = 0;
 
-    // â”€â”€ Bank / Cash ledger entry (available in every controller) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Bank / Cash ledger entry (available in every controller) ─────────────
     // Writes a single CR or DR row to AccountLedgerTbl for a given bank account.
-    // Non-fatal â€” logs and returns on failure so callers are never blocked.
+    // Non-fatal — logs and returns on failure so callers are never blocked.
     // Skip entirely when $bankAccountUID is 0/null (cash payment with no account linked).
     protected function _writeBankLedgerEntry(
         int    $orgUID,
@@ -48,9 +48,9 @@ class MY_Controller extends CI_Controller {
         }
     }
 
-    // â”€â”€ Product cache sync helpers (available in every controller) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Product cache sync helpers (available in every controller) ───────────
 
-    // Call after saveStockMovements â€” syncs AvailableQty from ProductStockTbl into Upstash for each item.
+    // Call after saveStockMovements — syncs AvailableQty from ProductStockTbl into Upstash for each item.
     protected function _syncProductCacheFromItems(array $items): void {
         $seen = [];
         foreach ($items as $item) {
@@ -62,7 +62,7 @@ class MY_Controller extends CI_Controller {
         }
     }
 
-    // Call after reverseStockMovements â€” looks up affected products from TransProductsTbl and syncs each.
+    // Call after reverseStockMovements — looks up affected products from TransProductsTbl and syncs each.
     protected function _syncProductCacheByTransUID(int $transUID): void {
         try {
             $this->load->model('transactions_model');
@@ -75,7 +75,7 @@ class MY_Controller extends CI_Controller {
         }
     }
 
-    // â”€â”€ Balance recalc helpers (available in every controller) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Balance recalc helpers (available in every controller) ──────────────
 
     protected function _recalcVendorBalance(int $orgUID, int $vendorUID, int $userUID): void {
         try {
@@ -95,7 +95,7 @@ class MY_Controller extends CI_Controller {
         }
     }
 
-    // â”€â”€ JWT shorthand accessors (available in every controller) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── JWT shorthand accessors (available in every controller) ──────────────
 
     protected function _orgUID(): int        { return (int)($this->pageData['JwtData']->Org->OrgUID              ?? 0); }
     protected function _userUID(): int       { return (int)($this->pageData['JwtData']->User->UserUID             ?? 0); }
@@ -108,8 +108,8 @@ class MY_Controller extends CI_Controller {
 
     /**
      * Looks up the module record from the Redis module cache and sets:
-     *   $this->pageData['PageTitle']  â€” DisplayName (falls back to Name)
-     *   $this->pageData['PageIcon']   â€” Icon class string
+     *   $this->pageData['PageTitle']  — DisplayName (falls back to Name)
+     *   $this->pageData['PageIcon']   — Icon class string
      *
      * @param int|null $moduleUID  Pass a UID to search by ID; omit to search by controller name.
      * @return bool  true = found, false = module not configured in ModuleTbl
@@ -118,7 +118,7 @@ class MY_Controller extends CI_Controller {
         
         $modules = (array)($this->redisservice->getUserCache('modules') ?? []);
 
-        // Cache miss â€” don't block; title stays empty
+        // Cache miss — don't block; title stays empty
         if (empty($modules)) {
             $this->pageData['PageTitle'] = '';
             $this->pageData['PageIcon']  = '';
@@ -137,10 +137,10 @@ class MY_Controller extends CI_Controller {
             }
         }
 
-        // Cache stale â€” module added after last login; fall back to direct DB query
+        // Cache stale — module added after last login; fall back to direct DB query
         if (!$found) {
             $this->load->model('login_model');
-            $dbResult = $this->login_model->getModuleDetails($this->_orgUID());
+            $dbResult = $this->login_model->getModuleDetails();
             if ($dbResult->Error === FALSE && !empty($dbResult->Data)) {
                 if ($moduleUID !== null) {
                     foreach ($dbResult->Data as $m) {
@@ -162,13 +162,13 @@ class MY_Controller extends CI_Controller {
         $this->pageData['PageIconColor']   = $found->IconColor ?? '';
         $this->pageData['PageDescription'] = $found->Description ?? '';
 
-        // Load attachment config for all slots â€” 1-year Upstash cache, negligible overhead
+        // Load attachment config for all slots — 1-year Upstash cache, negligible overhead
         $this->pageData['AttachCfg'] = $this->_loadAttachCfg();
 
         return true;
     }
 
-    // â”€â”€ Dispatch address helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Dispatch address helper ───────────────────────────────────────────────
 
     /**
      * Loads active org SHIPPING addresses from Redis cache (Shipping type only).
@@ -192,7 +192,7 @@ class MY_Controller extends CI_Controller {
         $this->pageData['DispatchAddress']   = !empty($addresses) ? $addresses[0] : null;
     }
 
-    // â”€â”€ Shared export helpers (used by Inventory, Customers, etc.) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Shared export helpers (used by Inventory, Customers, etc.) ────────────
 
     protected function _sendExport($type, $fileName, $sheetName, $previewName, $headers, $rows, $org = null, $timezone = 'UTC', $colWidths = null) {
         if ($type === 'Print') {
@@ -246,7 +246,7 @@ class MY_Controller extends CI_Controller {
             if ($addrLine)   fputcsv($f, [$addrLine]);
             if ($contactLine) fputcsv($f, [$contactLine]);
             $genDate = (new DateTime('now', new DateTimeZone($timezone ?: 'UTC')))->format('d M Y, h:i A');
-            fputcsv($f, [$previewName . ' â€” Generated: ' . $genDate]);
+            fputcsv($f, [$previewName . ' — Generated: ' . $genDate]);
             fputcsv($f, []);
             fputcsv($f, $headers);
             foreach ($rows as $row) { fputcsv($f, $row); }
@@ -417,7 +417,7 @@ class MY_Controller extends CI_Controller {
     }
 
 
-    // â”€â”€ Upstash client config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Upstash client config ────────────────────────────────────────────────
     // Sets UpstashReadUrl, UpstashReadToken, CustomerCacheKey, VendorCacheKey
     // in pageData so every transaction list view has the JS vars it needs.
     // Prefers the read-only token; falls back to the main token if not set.
@@ -432,7 +432,7 @@ class MY_Controller extends CI_Controller {
         $this->pageData['HasPriceLists']    = ($hasPLFlag === true);
     }
 
-    // â”€â”€ Cache guard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Cache guard ─────────────────────────────────────────────────────────
     // Returns the cached value if present, otherwise renders the cache-refresh
     // error page and returns null so the caller can do: if (!$v) return;
     protected function _requireCache($cacheKey) {
@@ -444,9 +444,9 @@ class MY_Controller extends CI_Controller {
         return null;
     }
 
-    // â”€â”€ Unified attachment save â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    // $uid        â€” TransUID for standard transactions, SourceUID for expenses/income
-    // $sourceType â€” null for standard transactions; 'Expense' or 'IndirectIncome' for those pages
+    // ── Unified attachment save ──────────────────────────────────────────────
+    // $uid        — TransUID for standard transactions, SourceUID for expenses/income
+    // $sourceType — null for standard transactions; 'Expense' or 'IndirectIncome' for those pages
     //
     // Callers (unchanged):
     //   $this->_saveAttachments($transUID);                     â† 7 transaction controllers
@@ -529,7 +529,7 @@ class MY_Controller extends CI_Controller {
         }
     }
 
-    // â”€â”€ Transaction number helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Transaction number helpers ───────────────────────────────────────────
 
     /**
      * Assemble a transaction number using ComponentConfig (drag-order + per-gap separators).
@@ -623,13 +623,13 @@ class MY_Controller extends CI_Controller {
             if (!$result->Error) {
                 return $result;
             }
-            // Non-duplicate error â€” return immediately, let caller handle
+            // Non-duplicate error — return immediately, let caller handle
             if (stripos($result->Message ?? '', 'Duplicate entry') === false) {
                 return $result;
             }
-            // Draft or no prefix â€” cannot retry, return as-is
+            // Draft or no prefix — cannot retry, return as-is
             if ($prefix === null) return $result;
-            // All retries exhausted â€” user-friendly message
+            // All retries exhausted — user-friendly message
             if ($attempt >= 5) {
                 $result->Message = 'Could not assign a transaction number. Please try again.';
                 return $result;
@@ -730,7 +730,7 @@ class MY_Controller extends CI_Controller {
         }
     }
 
-    // â”€â”€ Attachment config loader â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Attachment config loader ──────────────────────────────────────────────
 
     /**
      * Loads attachment config for all slots from Global.ModuleAttachmentCfgTbl.
@@ -740,13 +740,13 @@ class MY_Controller extends CI_Controller {
      */
     protected function _loadAttachCfg(): array {
         // AttachCfg is loaded at login and stored in the JWT/Redis session.
-        // It's already in JwtData â€” no extra DB or cache query needed.
+        // It's already in JwtData — no extra DB or cache query needed.
         $cfg = $this->pageData['JwtData']->AttachCfg ?? null;
         if (!empty($cfg)) return (array)$cfg;
         return [];
     }
 
-    // â”€â”€ Date filter preference helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Date filter preference helper ─────────────────────────────────────────
 
     /**
      * Reads the saved date filter preference for a page from user_preferences,
@@ -854,7 +854,7 @@ class MY_Controller extends CI_Controller {
                 $to     = ($fyYear + 1) . '-03-31';
                 $label  = 'Previous FY'; break;
             case 'custom':
-                // Stored as 'custom' without dates â€” treat as no range
+                // Stored as 'custom' without dates — treat as no range
                 $from = ''; $to = ''; $label = 'This Month'; $range = 'this_month'; break;
             case '':
             case 'all':
@@ -942,7 +942,7 @@ class MY_Controller extends CI_Controller {
         }
     }
 
-    // â”€â”€ Private helpers shared by index-page loader and AJAX pagination â”€â”€â”€â”€â”€
+    // ── Private helpers shared by index-page loader and AJAX pagination ─────
 
     /**
      * Queries the transaction list, runs any module annotation, renders the
@@ -979,7 +979,7 @@ class MY_Controller extends CI_Controller {
         return $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $orgUID, $filter);
     }
 
-    // â”€â”€ Transaction page load helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Transaction page load helpers ────────────────────────────────────
 
     /**
      * Populates $this->pageData for the initial transaction list page render.
@@ -1367,7 +1367,7 @@ class MY_Controller extends CI_Controller {
      * Invoice:  marks existing rows Sold (Status='Sold', SaleTransUID, CustomerUID).
      *
      * Must be called AFTER _insertTransItems() and BEFORE commitTransaction().
-     * Only pass $items for a new (non-draft) transaction â€” skip on edits.
+     * Only pass $items for a new (non-draft) transaction — skip on edits.
      *
      * @param int    $transUID   The just-inserted transaction UID
      * @param int    $orgUID
@@ -1422,7 +1422,7 @@ class MY_Controller extends CI_Controller {
                 }
 
             } elseif ($transType === 'SalesReturn') {
-                // Customer returning goods â€” mark serials back to Available so they can be resold
+                // Customer returning goods — mark serials back to Available so they can be resold
                 foreach ($serials as $rawSN) {
                     $sn = trim((string)$rawSN);
                     if ($sn === '') continue;
@@ -1434,7 +1434,7 @@ class MY_Controller extends CI_Controller {
                 }
 
             } elseif ($transType === 'PurchaseReturn') {
-                // Returning goods to vendor â€” mark serials Returned (no longer in our stock)
+                // Returning goods to vendor — mark serials Returned (no longer in our stock)
                 foreach ($serials as $rawSN) {
                     $sn = trim((string)$rawSN);
                     if ($sn === '') continue;
@@ -1961,7 +1961,7 @@ class MY_Controller extends CI_Controller {
     /**
      * Rebuilds the transaction list response after recording a payment.
      * Reads CurrentPage from POST; reads RowLimit from JWT GenSettings (not POST).
-     * Also populates SummaryStats â€” needed after payment recording changes totals.
+     * Also populates SummaryStats — needed after payment recording changes totals.
      *
      * @param string $viewPath      CI view path, e.g. 'transactions/invoices/list'
      * @param string $paginationUrl Route for pagination links, e.g. '/transactions/getPageDetails/103'
@@ -1986,8 +1986,8 @@ class MY_Controller extends CI_Controller {
 
     /**
      * Saves payment rows submitted with a transaction form.
-     * Direction 'In'  = customer payment received (module 110, CR ledger) â€” used by Invoices.
-     * Direction 'Out' = vendor payment made     (module 111, DR ledger) â€” used by Purchases.
+     * Direction 'In'  = customer payment received (module 110, CR ledger) — used by Invoices.
+     * Direction 'Out' = vendor payment made     (module 111, DR ledger) — used by Purchases.
      *
      * @param int         $transUID
      * @param int         $orgUID

@@ -239,7 +239,7 @@ class Accountledger_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Trial Balance â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Trial Balance ────────────────────────────────────────────────────────
 
     /** Fetch all active ledgers with their debit/credit totals for a financial year */
     public function getTrialBalance(int $financialYear): array {
@@ -299,7 +299,7 @@ class Accountledger_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Journal list (paginated) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Journal list (paginated) ─────────────────────────────────────────────
 
     public function getJournalList(int $limit, int $offset, array $filter = []): array {
         try {
@@ -387,7 +387,7 @@ class Accountledger_model extends CI_Model {
         try {
             $this->ReadDb->db_debug = FALSE;
             $orgUID = $this->_orgUID();
-            // Header â€” scoped to this org
+            // Header — scoped to this org
             $this->ReadDb->select('*');
             $this->ReadDb->from('Accounting.GeneralJournal');
             $this->ReadDb->where('JournalUID', (int)$journalUID);
@@ -396,7 +396,7 @@ class Accountledger_model extends CI_Model {
             $header = $this->ReadDb->get()->row();
             if (!$header) return null;
 
-            // Lines with ledger name â€” scoped to this org
+            // Lines with ledger name — scoped to this org
             $this->ReadDb->select([
                 'je.EntryUID', 'je.LedgerUID', 'je.TransactionType', 'je.Amount', 'je.Particulars',
                 'ca.LedgerCode', 'ca.LedgerName', 'ca.LedgerType',
@@ -417,7 +417,7 @@ class Accountledger_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Chart of Accounts list (paginated) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Chart of Accounts list (paginated) ───────────────────────────────────
     public function getChartOfAccountsList(int $limit, int $offset, array $filter = []): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -493,7 +493,7 @@ class Accountledger_model extends CI_Model {
         }
     }
 
-    // â”€â”€ General Ledger statement â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── General Ledger statement ─────────────────────────────────────────────
 
     /** All journal lines for one ledger within a date range */
     public function getLedgerStatement(int $ledgerUID, ?string $dateFrom, ?string $dateTo): array {
@@ -561,7 +561,7 @@ class Accountledger_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Bank Reconciliation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Bank Reconciliation ──────────────────────────────────────────────────
 
     public function getBankAndCashLedgers(): array {
         try {
@@ -625,7 +625,7 @@ class Accountledger_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Recurring Journals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Recurring Journals ───────────────────────────────────────────────────
 
     public function getRecurringJournalList(int $limit, int $offset, array $filter = []): array {
         try {
@@ -755,7 +755,7 @@ class Accountledger_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Profit & Loss â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Profit & Loss ────────────────────────────────────────────────────────
 
     public function getPandLRows(string $dateFrom, string $dateTo): array {
         try {
@@ -794,7 +794,7 @@ class Accountledger_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Balance Sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Balance Sheet ─────────────────────────────────────────────────────────
 
     public function getBalanceSheetRows(string $asOfDate): array {
         try {
@@ -834,7 +834,7 @@ class Accountledger_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Cash Flow Statement â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Cash Flow Statement ───────────────────────────────────────────────────
 
     public function getCashFlowBalances(string $dateFrom, string $dateTo): array {
         try {
@@ -895,7 +895,7 @@ class Accountledger_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Budget vs Actual â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Budget vs Actual ──────────────────────────────────────────────────────
     // NOTE: Requires Accounting.Budgets table:
     //   BudgetUID INT AUTO_INCREMENT PK,
     //   OrgUID INT, LedgerUID INT, FinancialYear SMALLINT,
@@ -972,7 +972,7 @@ class Accountledger_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Aged Receivables â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Aged Receivables ──────────────────────────────────────────────────────
 
     public function getAgedReceivablesRows(string $asOfDate): array {
         try {
@@ -1009,7 +1009,7 @@ class Accountledger_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Aged Payables â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Aged Payables ─────────────────────────────────────────────────────────
 
     public function getAgedPayablesRows(string $asOfDate): array {
         try {
@@ -1046,7 +1046,7 @@ class Accountledger_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Day Book â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Day Book ─────────────────────────────────────────────────────────────
 
     public function getDayBookRows(string $dateFrom, string $dateTo, bool $cashBankOnly = false, int $ledgerUID = 0): array {
         try {
@@ -1100,7 +1100,7 @@ class Accountledger_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Period Lock â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Period Lock ───────────────────────────────────────────────────────────
 
     public function getPeriodLock(): ?object {
         try {

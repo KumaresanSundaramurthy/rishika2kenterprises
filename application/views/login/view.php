@@ -227,7 +227,6 @@
     color: #94a3b8;
     margin-bottom: 8px;
     letter-spacing: 0.3px;
-    text-transform: uppercase;
 }
 
 .lr-input-wrap {
@@ -1124,7 +1123,7 @@
                 </div>
 
                 <div class="lr-field">
-                    <label for="UserName">Username or Email</label>
+                    <label for="UserName">Username (or) Email</label>
                     <div class="lr-input-wrap">
                         <input type="text" id="UserName" name="UserName" placeholder="Enter your username"
                                autocomplete="username" />
@@ -1662,6 +1661,9 @@
         if (_seCloseBtn) {
             _seCloseBtn.addEventListener('click', function () {
                 _closeSubModal();
+                /* Clear username field and reset step 1 to a clean state */
+                if (unameInput) { unameInput.value = ''; unameInput.focus(); }
+                clearStep1Error();
                 /* Fire-and-forget: delete the Redis renewal token */
                 if (_seAccessRef) {
                     var sid = _seAccessRef;
@@ -1732,6 +1734,8 @@
         function doValidate() {
             var username = unameInput ? unameInput.value.trim() : '';
             if (!username) { showStep1Error('Please enter your username or email.', false); return; }
+            /* Blur first — forces the browser to close the native autocomplete dropdown */
+            if (unameInput) unameInput.blur();
             clearStep1Error();
             spinBtn(continueBtn, 'Checking...');
             setSocialDisabled(true);

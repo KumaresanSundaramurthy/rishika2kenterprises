@@ -219,7 +219,7 @@ class Signup_model extends CI_Model {
             // 6b. Additional default roles — no permissions seeded; admin configures via Roles settings
             $additionalRoles = ['Admin', 'Sales Manager', 'Sales Executive', 'Accountant'];
             foreach ($additionalRoles as $roleName) {
-                $this->dbwrite_model->insertData('UserRole', 'RolesTbl', [
+                $r = $this->dbwrite_model->insertData('UserRole', 'RolesTbl', [
                     'Name'      => $roleName,
                     'OrgUID'    => $orgUID,
                     'BranchUID' => $branchUID,
@@ -230,22 +230,25 @@ class Signup_model extends CI_Model {
                     'CreatedBy' => $userUID,
                     'UpdatedBy' => $userUID,
                 ]);
+                if ($r->Error) throw new Exception('Role insert failed (' . $roleName . '): ' . $r->Message);
             }
 
             // 7. UserBranchAccessTbl
-            $this->dbwrite_model->insertData('Users', 'UserBranchAccessTbl', [
+            $r = $this->dbwrite_model->insertData('Users', 'UserBranchAccessTbl', [
                 'UserUID'   => $userUID,
                 'OrgUID'    => $orgUID,
                 'BranchUID' => $branchUID,
                 'IsDefault' => 1,
                 'IsActive'  => 1,
+                'CreatedBy' => $userUID,
             ]);
+            if ($r->Error) throw new Exception('UserBranchAccess insert failed: ' . $r->Message);
 
             // 8. OrgSubscriptionTbl — auto-assign Free Trial (30 days)
-            $this->_assignTrialSubscription($WriteDb, $orgUID, $now);
+            $this->_assignTrialSubscription($orgUID, $now);
 
             // 9. Copy menus & permissions from template org
-            $this->_copyMenusFromTemplate($WriteDb, $orgUID, $roleUID, $userUID);
+            $this->_copyMenusFromTemplate($orgUID, $roleUID, $userUID);
 
             $this->dbwrite_model->commitTransaction();
 
@@ -271,7 +274,7 @@ class Signup_model extends CI_Model {
 
     }
 
-    private function _assignTrialSubscription(object $WriteDb, int $orgUID, string $now): void {
+    private function _assignTrialSubscription(int $orgUID, string $now): void {
 
         $trialDays = 30;
         $startDate = date('Y-m-d H:i:s', strtotime($now));
@@ -298,34 +301,35 @@ class Signup_model extends CI_Model {
             }
         }
 
-        $WriteDb->db_debug = FALSE;
-        $WriteDb->insert('Billing.OrgSubscriptionTbl', [
+        $rSub = $this->dbwrite_model->insertData('Billing', 'OrgSubscriptionTbl', [
             'OrgUID'          => $orgUID,
             'SectorPlanUID'   => $sectorPlanUID,
+            'FinancialYear'   => billing_fy('long'),
             'StartDate'       => $startDate,
             'EndDate'         => $endDate,
             'Status'          => 'Trial',
             'AutoRenew'       => 0,
             'GracePeriodDays' => 7,
-            'TrialDays'       => $trialDays,
         ]);
-        $orgSubUID = (int) $WriteDb->insert_id();
+        if ($rSub->Error) throw new Exception('OrgSubscriptionTbl insert failed: ' . $rSub->Message);
+        $orgSubUID = (int) $rSub->ID;
 
         /* Log a matching order row so billing history is complete from day one */
-        if ($orgSubUID > 0) {
-            $WriteDb->insert('Billing.SubscriptionOrdersTbl', [
-                'OrgUID'        => $orgUID,
-                'SectorPlanUID' => $sectorPlanUID ?? 0,
-                'OrgSubUID'     => $orgSubUID,
-                'RenewalType'   => 'Trial',
-                'DueDate'       => $endDate,
-                'Amount'        => 0.00,
-                'DiscountAmount'=> 0.00,
-                'TaxAmount'     => 0.00,
-                'NetAmount'     => 0.00,
-                'Status'        => 'Waived',
-                'CreatedBy'     => null,
+        if ($orgSubUID > 0 && $sectorPlanUID !== null) {
+            $rOrder = $this->dbwrite_model->insertData('Billing', 'SubscriptionOrdersTbl', [
+                'OrgUID'         => $orgUID,
+                'SectorPlanUID'  => $sectorPlanUID,
+                'OrgSubUID'      => $orgSubUID,
+                'RenewalType'    => 'Trial',
+                'DueDate'        => $endDate,
+                'Amount'         => 0.00,
+                'DiscountAmount' => 0.00,
+                'TaxAmount'      => 0.00,
+                'NetAmount'      => 0.00,
+                'Status'         => 'Waived',
+                'CreatedBy'      => null,
             ]);
+            if ($rOrder->Error) throw new Exception('SubscriptionOrdersTbl insert failed: ' . $rOrder->Message);
         }
     }
 
@@ -395,11 +399,12 @@ class Signup_model extends CI_Model {
                 'StateCode'       => null,
                 'StateName'       => null,
                 'TimezoneUID'     => 181,
-                'IsEmailVerified' => 1,
-                'IsActive'        => 1,
-                'IsDeleted'       => 0,
-                'CreatedBy'       => 0,
-                'UpdatedBy'       => 0,
+                'IsEmailVerified'      => 1,
+                'IsOnboardingComplete' => 0,
+                'IsActive'             => 1,
+                'IsDeleted'            => 0,
+                'CreatedBy'            => 0,
+                'UpdatedBy'            => 0,
             ]);
             if ($orgResult->Error) throw new Exception('Organisation insert failed: ' . $orgResult->Message);
             $orgUID = (int) $orgResult->ID;
@@ -512,7 +517,7 @@ class Signup_model extends CI_Model {
 
             /* Additional default roles */
             foreach (['Admin', 'Sales Manager', 'Sales Executive', 'Accountant'] as $roleName) {
-                $this->dbwrite_model->insertData('UserRole', 'RolesTbl', [
+                $r = $this->dbwrite_model->insertData('UserRole', 'RolesTbl', [
                     'Name'      => $roleName,
                     'OrgUID'    => $orgUID,
                     'BranchUID' => $branchUID,
@@ -523,19 +528,22 @@ class Signup_model extends CI_Model {
                     'CreatedBy' => $userUID,
                     'UpdatedBy' => $userUID,
                 ]);
+                if ($r->Error) throw new Exception('Role insert failed (' . $roleName . '): ' . $r->Message);
             }
 
             /* UserBranchAccessTbl */
-            $this->dbwrite_model->insertData('Users', 'UserBranchAccessTbl', [
+            $r = $this->dbwrite_model->insertData('Users', 'UserBranchAccessTbl', [
                 'UserUID'   => $userUID,
                 'OrgUID'    => $orgUID,
                 'BranchUID' => $branchUID,
                 'IsDefault' => 1,
                 'IsActive'  => 1,
+                'CreatedBy' => $userUID,
             ]);
+            if ($r->Error) throw new Exception('UserBranchAccess insert failed: ' . $r->Message);
 
-            $this->_assignTrialSubscription($WriteDb, $orgUID, $now);
-            $this->_copyMenusFromTemplate($WriteDb, $orgUID, $roleUID, $userUID);
+            $this->_assignTrialSubscription($orgUID, $now);
+            $this->_copyMenusFromTemplate($orgUID, $roleUID, $userUID);
 
             $this->dbwrite_model->commitTransaction();
 
@@ -657,7 +665,7 @@ class Signup_model extends CI_Model {
         }
     }
 
-    private function _copyMenusFromTemplate(object $WriteDb, int $orgUID, int $roleUID, int $userUID): void {
+    private function _copyMenusFromTemplate(int $orgUID, int $roleUID, int $userUID): void {
 
         // Use the lowest-OrgUID org as the menu template (the seed org)
         $this->ReadDb->db_debug = FALSE;
@@ -682,8 +690,7 @@ class Signup_model extends CI_Model {
 
         $mainMenuMap = [];
         foreach ($mainMenuRows as $mm) {
-            $WriteDb->db_debug = FALSE;
-            $WriteDb->insert('Modules.MainMenusTbl', [
+            $r = $this->dbwrite_model->insertData('Modules', 'MainMenusTbl', [
                 'OrgUID'       => $orgUID,
                 'Source'       => 'Plan',
                 'Name'         => $mm->Name,
@@ -696,11 +703,8 @@ class Signup_model extends CI_Model {
                 'CreatedBy'    => $userUID,
                 'UpdatedBy'    => $userUID,
             ]);
-            $dbErr = $WriteDb->error();
-            if (!empty($dbErr['code'])) {
-                throw new Exception('MainMenu insert failed [' . $dbErr['code'] . ']: ' . $dbErr['message'] . ' (Name=' . $mm->Name . ')');
-            }
-            $mainMenuMap[(int) $mm->MainMenuUID] = (int) $WriteDb->insert_id();
+            if ($r->Error) throw new Exception('MainMenu insert failed: ' . $r->Message . ' (Name=' . $mm->Name . ')');
+            $mainMenuMap[(int) $mm->MainMenuUID] = (int) $r->ID;
         }
 
         // ── Modules — global catalog with UNIQUE(Name); skip copy, use original UIDs ──
@@ -708,12 +712,10 @@ class Signup_model extends CI_Model {
         // SubMenusTbl.ModuleUID FK is satisfied as long as the original record exists.
 
         // ── RoleMainMenusTbl — inserted before SubMenus so RoleMainMenuUID is available ──
-        // oldMainMenuUID → RoleMainMenuUID
         $roleMainMenuMap = [];
         $sort = 1;
         foreach ($mainMenuMap as $newMMUID) {
-            $WriteDb->db_debug = FALSE;
-            $WriteDb->insert('UserRole.RoleMainMenusTbl', [
+            $r = $this->dbwrite_model->insertData('UserRole', 'RoleMainMenusTbl', [
                 'RoleUID'     => $roleUID,
                 'MainMenuUID' => $newMMUID,
                 'Sorting'     => $sort++,
@@ -726,11 +728,8 @@ class Signup_model extends CI_Model {
                 'CreatedBy'   => $userUID,
                 'UpdatedBy'   => $userUID,
             ]);
-            $dbErr = $WriteDb->error();
-            if (!empty($dbErr['code'])) {
-                throw new Exception('RoleMainMenu insert failed [' . $dbErr['code'] . ']: ' . $dbErr['message'] . ' (MainMenuUID=' . $newMMUID . ')');
-            }
-            $roleMainMenuMap[$newMMUID] = (int) $WriteDb->insert_id();
+            if ($r->Error) throw new Exception('RoleMainMenu insert failed: ' . $r->Message . ' (MainMenuUID=' . $newMMUID . ')');
+            $roleMainMenuMap[$newMMUID] = (int) $r->ID;
         }
 
         // ── Sub Menus — parents first ─────────────────────────────────────────
@@ -743,7 +742,7 @@ class Signup_model extends CI_Model {
             ->get()->result();
 
         $subMenuMap       = [];
-        $subMenuRoleMMMap = []; // newSubMenuUID => RoleMainMenuUID
+        $subMenuRoleMMMap = [];
 
         foreach ($subMenuRows as $sm) {
             $oldMain   = (int) $sm->MainMenuUID;
@@ -753,8 +752,7 @@ class Signup_model extends CI_Model {
             $newMMUID     = $mainMenuMap[$oldMain] ?? 0;
             $newRoleMMUID = $roleMainMenuMap[$newMMUID] ?? 0;
 
-            $WriteDb->db_debug = FALSE;
-            $WriteDb->insert('Modules.SubMenusTbl', [
+            $r = $this->dbwrite_model->insertData('Modules', 'SubMenusTbl', [
                 'OrgUID'           => $orgUID,
                 'Source'           => 'Plan',
                 'MainMenuUID'      => $newMMUID,
@@ -770,11 +768,8 @@ class Signup_model extends CI_Model {
                 'CreatedBy'        => $userUID,
                 'UpdatedBy'        => $userUID,
             ]);
-            $dbErr = $WriteDb->error();
-            if (!empty($dbErr['code'])) {
-                throw new Exception('SubMenu insert failed [' . $dbErr['code'] . ']: ' . $dbErr['message'] . ' (Name=' . $sm->Name . ', ModuleUID=' . ($origMod ?? 'null') . ', MainMenuUID=' . $newMMUID . ')');
-            }
-            $newSubUID                         = (int) $WriteDb->insert_id();
+            if ($r->Error) throw new Exception('SubMenu insert failed: ' . $r->Message . ' (Name=' . $sm->Name . ', ModuleUID=' . ($origMod ?? 'null') . ')');
+            $newSubUID                         = (int) $r->ID;
             $subMenuMap[(int) $sm->SubMenuUID] = $newSubUID;
             $subMenuRoleMMMap[$newSubUID]       = $newRoleMMUID;
         }
@@ -783,8 +778,7 @@ class Signup_model extends CI_Model {
         $sort = 1;
         foreach ($subMenuMap as $newSubUID) {
             $roleMMUID = $subMenuRoleMMMap[$newSubUID] ?? 0;
-            $WriteDb->db_debug = FALSE;
-            $WriteDb->insert('UserRole.RoleSubMenusTbl', [
+            $r = $this->dbwrite_model->insertData('UserRole', 'RoleSubMenusTbl', [
                 'RoleUID'         => $roleUID,
                 'RoleMainMenuUID' => $roleMMUID,
                 'SubMenuUID'      => $newSubUID,
@@ -796,10 +790,7 @@ class Signup_model extends CI_Model {
                 'IsActive'        => 1,
                 'IsDeleted'       => 0,
             ]);
-            $dbErr = $WriteDb->error();
-            if (!empty($dbErr['code'])) {
-                throw new Exception('RoleSubMenu insert failed [' . $dbErr['code'] . ']: ' . $dbErr['message'] . ' (SubMenuUID=' . $newSubUID . ', RoleMainMenuUID=' . $roleMMUID . ')');
-            }
+            if ($r->Error) throw new Exception('RoleSubMenu insert failed: ' . $r->Message . ' (SubMenuUID=' . $newSubUID . ', RoleUID=' . $roleUID . ')');
         }
 
     }

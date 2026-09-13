@@ -432,14 +432,32 @@ class MY_Controller extends CI_Controller {
         $this->pageData['HasPriceLists']    = ($hasPLFlag === true);
     }
 
-    // ── Cache guard ─────────────────────────────────────────────────────────
-    // Returns the cached value if present, otherwise renders the cache-refresh
-    // error page and returns null so the caller can do: if (!$v) return;
+    /*
+     * Cache guard — returns the cached value if present, otherwise attempts a
+     * DB rebuild for known key types. Falls back to the error page only when
+     * the rebuild also yields nothing, so new-org users never hit
+     * ERR_SESSION_CACHE_MISS after onboarding.
+     */
     protected function _requireCache($cacheKey) {
         $value = $this->redisservice->getCache($cacheKey)->Value;
         if ($value !== null && (!is_array($value) || !empty($value))) {
             return $value;
         }
+
+        /* Auto-rebuild: org-users ─────────────────────────────────────────── */
+        if (strpos($cacheKey, 'org-users') !== false) {
+            $orgUID = $this->_orgUID();
+            if ($orgUID > 0) {
+                $this->load->model('users_model');
+                $value = $this->users_model->getOrgUsersForCache($orgUID);
+                $loginExpiry = (int)getenv('LOGIN_EXPIRE_SECS') ?: 86400;
+                $this->redisservice->setCache($cacheKey, $value, $loginExpiry);
+                if (!empty($value)) {
+                    return $value;
+                }
+            }
+        }
+
         $this->load->view('common/cache_refresh', $this->pageData);
         return null;
     }

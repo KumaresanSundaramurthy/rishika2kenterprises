@@ -53,7 +53,8 @@ class User_model extends CI_Model {
                 'User.LoginExpiryDateTime as LoginExpiryDateTime',
                 'User.AuthProvider as AuthProvider',
                 'User.PasswordChangedOn as PasswordChangedOn',
-                'Org.SectorUID as SectorUID'
+                'Org.SectorUID as SectorUID',
+                'Org.IsOnboardingComplete as IsOnboardingComplete'
             ]);
             $this->ReadDb->from('Users.UserTbl as User');
             $this->ReadDb->join('UserRole.RolesTbl as Roles', 'Roles.RoleUID = User.RoleUID', 'left');
@@ -133,7 +134,8 @@ class User_model extends CI_Model {
                 'User.LastLoginDevice as LastLoginDevice',
                 'User.AuthProvider as AuthProvider',
                 'User.PasswordChangedOn as PasswordChangedOn',
-                'Org.SectorUID as SectorUID'
+                'Org.SectorUID as SectorUID',
+                'Org.IsOnboardingComplete as IsOnboardingComplete'
             ]);
             $this->ReadDb->from('Users.UserTbl as User');
             $this->ReadDb->join('UserRole.RolesTbl as Roles',          'Roles.RoleUID = User.RoleUID',          'left');

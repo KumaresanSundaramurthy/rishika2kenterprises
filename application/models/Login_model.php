@@ -52,9 +52,10 @@ class Login_model extends CI_Model {
             $JwtOrgData['OrgMobile']    = $UserData->UserOrgMobile   ?? '';
             $JwtOrgData['OrgShortCode'] = $UserData->OrgShortCode    ?? '';
             $JwtOrgData['OrgToken']     = $UserData->OrgToken        ?? '';
-            $JwtOrgData['StateCode']    = $UserData->OrgStateCode    ?? '';
-            $JwtOrgData['StateName']    = $UserData->OrgStateName    ?? '';
-            $JwtOrgData['SectorUID']    = (int)($UserData->SectorUID  ?? 1);
+            $JwtOrgData['StateCode']            = $UserData->OrgStateCode           ?? '';
+            $JwtOrgData['StateName']            = $UserData->OrgStateName           ?? '';
+            $JwtOrgData['SectorUID']            = (int)($UserData->SectorUID         ?? 1);
+            $JwtOrgData['IsOnboardingComplete'] = (int)($UserData->IsOnboardingComplete ?? 1);
 
             $MainModule = $this->getRoleMainMenus($UserData->UserRoleUID, $UserData->UserOrgUID)->Data;
             $SubModule  = $this->getRoleSubMenus($UserData->UserRoleUID, $UserData->UserOrgUID)->Data;

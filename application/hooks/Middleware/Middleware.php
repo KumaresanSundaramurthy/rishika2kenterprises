@@ -136,6 +136,20 @@ class Middleware {
 						}
 					}
 
+					// ── Onboarding check (Google signup only) ──────────────────
+					$isOnboardingDone = (int)($CI->pageData['JwtData']->Org->IsOnboardingComplete ?? 1);
+					if ($isOnboardingDone === 0 && $CI->router->fetch_class() !== 'onboarding') {
+						if ($CI->input->is_ajax_request()) {
+							$CI->output
+								->set_status_header(403)
+								->set_content_type('application/json', 'utf-8')
+								->set_output(json_encode(['Error' => true, 'OnboardingRequired' => true, 'Message' => 'Please complete your organisation setup first.']))
+								->_display();
+							exit;
+						}
+						redirect('onboarding', 'refresh');
+					}
+
 					// Load per-user language file for t() helper
 					$_uiLang = $CI->pageData['JwtData']->User->UILanguage ?? 'en';
 					$CI->lang->load('app', $_uiLang === 'ta' ? 'tamil' : 'english');

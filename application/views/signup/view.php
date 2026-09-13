@@ -528,7 +528,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 1rem;
+    gap: 1.25rem;
     z-index: 9999;
     opacity: 0;
     pointer-events: none;
@@ -540,7 +540,53 @@
     pointer-events: all;
 }
 
+/* Gradient ring logo — same pattern as subscription renew page */
+.su-overlay-logo-wrap {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+}
+
+.su-overlay-ring {
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg,
+        #7c3aed 0%,
+        #06b6d4 28%,
+        #6366f1 52%,
+        #a78bfa 76%,
+        #7c3aed 100%
+    );
+    animation: su-ring-spin 1.6s linear infinite;
+}
+
+.su-overlay-ring::after {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    border-radius: 50%;
+    background: #040b18;
+}
+
+.su-overlay-logo-img {
+    position: absolute;
+    inset: 5px;        /* 5px gap between logo and ring inner edge */
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    object-fit: cover;
+    z-index: 1;
+}
+
+@keyframes su-ring-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* keep the old spinner class stub so nothing breaks if referenced elsewhere */
 .su-overlay-spinner {
+    display: none;
     width: 48px;
     height: 48px;
     border: 3px solid rgba(96, 165, 200, 0.2);
@@ -559,6 +605,127 @@
     color: rgba(180, 210, 230, 0.85);
     letter-spacing: 0.02em;
 }
+
+/* ── Google confirmation overlay ───────────────────────────────── */
+.su-gconf-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(4, 11, 24, 0.82);
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9998;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.22s ease;
+}
+
+.su-gconf-overlay.show {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.su-gconf-card {
+    background: #0d1f38;
+    border: 1px solid rgba(96, 165, 200, 0.22);
+    border-radius: 16px;
+    padding: 2rem 2rem 1.75rem;
+    width: 100%;
+    max-width: 340px;
+    text-align: center;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+    transform: translateY(12px) scale(0.97);
+    transition: transform 0.22s ease;
+}
+
+.su-gconf-overlay.show .su-gconf-card {
+    transform: translateY(0) scale(1);
+}
+
+.su-gconf-site {
+    font-size: 0.75rem;
+    color: rgba(160, 190, 215, 0.45);
+    letter-spacing: 0.04em;
+    margin-bottom: 1.35rem;
+}
+
+.su-gconf-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(96, 165, 200, 0.3);
+    margin: 0 auto 0.85rem;
+    display: block;
+}
+
+.su-gconf-avatar-placeholder {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #1e5a82, #2870a0);
+    border: 2px solid rgba(96, 165, 200, 0.3);
+    margin: 0 auto 0.85rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #e2f0ff;
+}
+
+.su-gconf-name {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #e2f0ff;
+    margin-bottom: 0.3rem;
+}
+
+.su-gconf-email {
+    font-size: 0.82rem;
+    color: rgba(160, 190, 215, 0.6);
+    margin-bottom: 1.5rem;
+    word-break: break-all;
+}
+
+.su-gconf-btn-continue {
+    width: 100%;
+    padding: 0.72rem 1rem;
+    border-radius: 8px;
+    border: none;
+    background: linear-gradient(135deg, #1e5a82 0%, #1a4870 100%);
+    border: 1px solid rgba(96, 165, 200, 0.35);
+    color: #e2f0ff;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+    margin-bottom: 0.85rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.su-gconf-btn-continue:hover {
+    background: linear-gradient(135deg, #2870a0 0%, #1e5a82 100%);
+    border-color: rgba(96, 165, 200, 0.6);
+}
+
+.su-gconf-btn-switch {
+    background: none;
+    border: none;
+    color: rgba(96, 165, 200, 0.75);
+    font-size: 0.82rem;
+    cursor: pointer;
+    font-family: inherit;
+    padding: 0.3rem;
+    transition: color 0.2s;
+}
+
+.su-gconf-btn-switch:hover { color: #a3d0e8; }
 
 @media (max-width: 900px) {
     .su-brand { display: none; }
@@ -704,8 +871,28 @@
         </a>
 
         <div class="su-overlay" id="suProcessingOverlay">
-            <div class="su-overlay-spinner"></div>
+            <div class="su-overlay-logo-wrap">
+                <div class="su-overlay-ring"></div>
+                <img src="https://pub-bb40942a33344637936ade1f3800ff8b.r2.dev/Global/favicon_io/android-chrome-512x512-1.png"
+                     class="su-overlay-logo-img" alt="R2K">
+            </div>
             <div class="su-overlay-text">Creating your account…</div>
+        </div>
+
+        <!-- Google sign-in confirmation card -->
+        <div class="su-gconf-overlay" id="suGconfOverlay">
+            <div class="su-gconf-card">
+                <div class="su-gconf-site">Sign in to this application with Google</div>
+                <img class="su-gconf-avatar" id="suGconfAvatar" src="" alt="" style="display:none;">
+                <div class="su-gconf-avatar-placeholder" id="suGconfAvatarPlaceholder"></div>
+                <div class="su-gconf-name" id="suGconfName"></div>
+                <div class="su-gconf-email" id="suGconfEmail"></div>
+                <button type="button" class="su-gconf-btn-continue" id="suGconfContinueBtn" onclick="suConfirmGoogle()">
+                    <svg width="17" height="17" viewBox="0 0 18 18" style="flex-shrink:0;"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z"/></svg>
+                    Continue as <span id="suGconfFirstName"></span>
+                </button>
+                <button type="button" class="su-gconf-btn-switch" onclick="suCancelGoogle()">Use a different account</button>
+            </div>
         </div>
 
         <!-- Language switcher pill -->
@@ -1899,21 +2086,73 @@
 
     /* ── Google One Tap ───────────────────────────────────────────── */
     <?php if (!empty(getenv('GOOGLE_CLIENT_ID'))): ?>
-    var _suGoogleClientId = <?php echo json_encode(getenv('GOOGLE_CLIENT_ID')); ?>;
+    var _suGoogleClientId  = <?php echo json_encode(getenv('GOOGLE_CLIENT_ID')); ?>;
+    var _suPendingCred     = null;
 
     /**
-     * Called by Google Identity Services when the user confirms One Tap or clicks the button.
-     * POSTs the raw credential to the server for verification and account creation/login.
+     * Decodes the JWT payload (no signature verification — server does that).
+     * @param {string} token
+     * @returns {object}
+     */
+    function _decodeJwt(token) {
+        try {
+            var payload = token.split('.')[1];
+            var base64  = payload.replace(/-/g, '+').replace(/_/g, '/');
+            var padded  = base64 + '='.repeat((4 - base64.length % 4) % 4);
+            return JSON.parse(atob(padded));
+        } catch (e) {
+            return {};
+        }
+    }
+
+    /**
+     * Called by Google Identity Services. Shows confirmation card instead of posting directly.
      * @param {{credential: string}} response
      */
     function _onGoogleCredential(response) {
         if (!response || !response.credential) return;
+        _suPendingCred = response.credential;
+
+        var payload   = _decodeJwt(response.credential);
+        var name      = payload.name  || payload.email || 'You';
+        var email     = payload.email || '';
+        var picture   = payload.picture || '';
+        var firstName = (payload.given_name || name).split(' ')[0];
+
+        document.getElementById('suGconfName').textContent      = name;
+        document.getElementById('suGconfEmail').textContent     = email;
+        document.getElementById('suGconfFirstName').textContent = firstName;
+
+        var avatarImg = document.getElementById('suGconfAvatar');
+        var avatarPh  = document.getElementById('suGconfAvatarPlaceholder');
+        if (picture) {
+            avatarImg.src             = picture;
+            avatarImg.style.display   = 'block';
+            avatarPh.style.display    = 'none';
+        } else {
+            avatarPh.textContent      = firstName.charAt(0).toUpperCase();
+            avatarImg.style.display   = 'none';
+            avatarPh.style.display    = 'flex';
+        }
+
+        document.getElementById('suGconfOverlay').classList.add('show');
+    }
+
+    /**
+     * User confirmed — now POST the stored credential to the server.
+     * @returns {void}
+     */
+    window.suConfirmGoogle = function () {
+        if (!_suPendingCred) return;
+
+        document.getElementById('suGconfOverlay').classList.remove('show');
 
         var overlay = document.getElementById('suProcessingOverlay');
         if (overlay) overlay.classList.add('show');
 
         var fd = new FormData();
-        fd.append('credential', response.credential);
+        fd.append('credential', _suPendingCred);
+        _suPendingCred = null;
 
         fetch('<?php echo base_url('signup/google-auth'); ?>', {
             method: 'POST',
@@ -1932,7 +2171,20 @@
             if (overlay) overlay.classList.remove('show');
             showAlert('An error occurred. Please try again.');
         });
-    }
+    };
+
+    /**
+     * User wants a different account — dismiss card, re-prompt Google.
+     * @returns {void}
+     */
+    window.suCancelGoogle = function () {
+        _suPendingCred = null;
+        document.getElementById('suGconfOverlay').classList.remove('show');
+        if (window.google && window.google.accounts) {
+            google.accounts.id.cancel();
+            google.accounts.id.prompt();
+        }
+    };
 
     function _initGoogleOneTap() {
         if (!window.google || !window.google.accounts) return;
@@ -1953,6 +2205,12 @@
     window._suGoogleReady = _initGoogleOneTap;
     <?php endif; ?>
 
+}());
+
+/* Preload the overlay logo so it's in cache before the overlay opens */
+(function() {
+    var _img = new Image();
+    _img.src = 'https://pub-bb40942a33344637936ade1f3800ff8b.r2.dev/Global/favicon_io/android-chrome-512x512-1.png';
 }());
 </script>
 

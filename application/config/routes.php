@@ -108,6 +108,10 @@ $route['resend-verification']     = 'login/resendVerificationEmail';
 $route['portal'] = 'login/login';
 $route['logout'] = 'login/logout';
 
+// Onboarding (Google signup profile completion)
+$route['onboarding']          = 'onboarding/index';
+$route['onboarding/complete'] = 'onboarding/completeProfile';
+
 // Social OAuth
 $route['auth/google']             = 'oauth/googleRedirect';
 $route['auth/google/callback']    = 'oauth/googleCallback';

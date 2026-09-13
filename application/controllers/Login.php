@@ -159,7 +159,7 @@ class Login extends CI_Controller {
             }
 
             // IP rate limiting — block after 10 failures within a 15-minute window
-            $ipKey   = 'login-fail-ip-' . $this->input->ip_address();
+            $ipKey   = $this->redisservice->envKey('login-fail-ip-' . $this->input->ip_address());
             $ipCache = $this->redisservice->getCache($ipKey);
             $ipCount = (!$ipCache->Error && $ipCache->Value !== null) ? (int)$ipCache->Value : 0;
             if ($ipCount >= 10) {
@@ -264,7 +264,7 @@ class Login extends CI_Controller {
 
                                 // User-keyed Redis entry — new login overwrites old, invalidating previous session
                                 $this->redisservice->setCache(
-                                    'UserActiveSession_' . $UserData->Data[0]->UserUID,
+                                    $this->redisservice->envKey('UserActiveSession_' . $UserData->Data[0]->UserUID),
                                     $sessionToken,
                                     (int) getenv('LOGIN_EXPIRE_SECS')
                                 );
@@ -573,7 +573,7 @@ class Login extends CI_Controller {
             );
 
             // Kill any active session so the old password can no longer be used
-            $this->redisservice->deleteCache('UserActiveSession_' . $tokenInfo->UserUID);
+            $this->redisservice->deleteCache($this->redisservice->envKey('UserActiveSession_' . $tokenInfo->UserUID));
             $this->dbwrite_model->updateData('Users', 'UserTbl',
                 ['CurrentSessionToken' => null],
                 ['UserUID' => $tokenInfo->UserUID]
@@ -916,7 +916,7 @@ class Login extends CI_Controller {
                         $this->_recordPasswordHistory($userUID, $stored);
 
                         // Kill the active session — user must re-login with the new password
-                        $this->redisservice->deleteCache('UserActiveSession_' . $userUID);
+                        $this->redisservice->deleteCache($this->redisservice->envKey('UserActiveSession_' . $userUID));
                         $this->dbwrite_model->updateData('Users', 'UserTbl', ['CurrentSessionToken' => null], ['UserUID' => $userUID]);
 
                         // Also evict the JWT session blob from Redis if the cookie is readable
@@ -1039,7 +1039,7 @@ class Login extends CI_Controller {
             if (!$subscriptionCheck->isValid) {
                 // Generate a short-lived renewal token so the renew page can identify the org
                 $rToken = bin2hex(random_bytes(16));
-                $this->redisservice->setCache('rnt_' . $rToken, ['orgUID' => (int)$user->OrgUID, 'createdAt' => time()], 1800);
+                $this->redisservice->setCache($this->redisservice->envKey('rnt_' . $rToken), ['orgUID' => (int)$user->OrgUID, 'createdAt' => time()], 1800);
 
                 // Fetch plan + end date for the modal display
                 $subDb     = $this->load->database('ReadDB', TRUE);
@@ -1130,7 +1130,7 @@ class Login extends CI_Controller {
                     // Clear single-session token so the user-keyed entry is revoked
                     $userUID = $getAuditInfo->Value->User->UserUID ?? null;
                     if ($userUID) {
-                        $this->redisservice->deleteCache('UserActiveSession_' . $userUID);
+                        $this->redisservice->deleteCache($this->redisservice->envKey('UserActiveSession_' . $userUID));
                         $this->load->model('dbwrite_model');
                         $this->dbwrite_model->updateData('Users', 'UserTbl', ['CurrentSessionToken' => null], ['UserUID' => $userUID]);
                     }
@@ -1141,6 +1141,17 @@ class Login extends CI_Controller {
                     if ($userUID) {
                         $this->redisservice->deleteAllUserCache($userUID, $logoutOrgToken);
                     }
+
+                    // Delete role-level menu caches for this user's role
+                    $logoutRoleUID = $getAuditInfo->Value->User->RoleUID ?? null;
+                    if ($logoutRoleUID) {
+                        $this->redisservice->deleteCache($this->redisservice->orgKey('role-menus-'    . $logoutRoleUID, $logoutOrgToken));
+                        $this->redisservice->deleteCache($this->redisservice->orgKey('role-submenus-' . $logoutRoleUID, $logoutOrgToken));
+                    }
+
+                    // Delete global caches so they are rebuilt fresh on next login
+                    $this->redisservice->deleteCache($this->redisservice->globalKey('global-modules'));
+                    $this->redisservice->deleteCache($this->redisservice->globalKey('global-attach-cfg'));
 
                     $orgUID = $getAuditInfo->Value->Org->OrgUID ?? ($getAuditInfo->Value->User->OrgUID ?? null);
                     if ($orgUID) {

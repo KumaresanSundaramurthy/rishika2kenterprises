@@ -77,7 +77,7 @@ class Middleware {
 					$userUID     = $CI->pageData['JwtData']->User->UserUID ?? null;
 
 					if ($storedToken && $userUID) {
-						$activeKey  = 'UserActiveSession_' . $userUID;
+						$activeKey  = $CI->redisservice->envKey('UserActiveSession_' . $userUID);
 						$activeData = $CI->redisservice->getCache($activeKey);
 
 						if ($activeData->Error) {

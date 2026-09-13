@@ -192,7 +192,7 @@ class Signup extends CI_Controller {
         $loginExpiry = (int) getenv('LOGIN_EXPIRE_SECS');
         $userUID     = $user->UserUID;
 
-        $this->redisservice->setCache('UserActiveSession_' . $userUID, $sessionToken, $loginExpiry);
+        $this->redisservice->setCache($this->redisservice->envKey('UserActiveSession_' . $userUID), $sessionToken, $loginExpiry);
         $this->redisservice->setUserCache('menus',       $userUID, $newPayload->JWTData['UserMainModule'] ?? [], $loginExpiry, $orgToken);
         $this->redisservice->setUserCache('submenus',    $userUID, $newPayload->JWTData['UserSubModule']  ?? [], $loginExpiry, $orgToken);
         $this->redisservice->setUserCache('modules',     $userUID, $newPayload->JWTData['ModuleInfo']     ?? [], $loginExpiry, $orgToken);
@@ -203,6 +203,7 @@ class Signup extends CI_Controller {
     public function doSignup(): void {
         try {
             $post = $this->input->post();
+            $this->load->model('signup_model');
 
             $required = [
                 'OrgName'         => 'Organisation name',
@@ -254,8 +255,6 @@ class Signup extends CI_Controller {
                     throw new ValidationException('This GSTIN is already registered.');
                 }
             }
-
-            $this->load->model('signup_model');
 
             if ($this->signup_model->isEmailTaken(trim($post['OrgEmail']))) {
                 throw new ValidationException('This email address is already registered.');

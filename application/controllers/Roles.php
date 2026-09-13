@@ -141,9 +141,10 @@ class Roles extends MY_Controller {
             }
 
             // Bust role-level menu caches so the next login picks up fresh permissions
-            $orgUID = $JwtData->Org->OrgUID;
-            $this->redisservice->deleteCache('r2k-role-menus-'    . $orgUID . '-' . $RoleUID);
-            $this->redisservice->deleteCache('r2k-role-submenus-' . $orgUID . '-' . $RoleUID);
+            $orgUID   = $JwtData->Org->OrgUID;
+            $orgToken = $JwtData->Org->OrgToken ?? '';
+            $this->redisservice->deleteCache($this->redisservice->orgKey('role-menus-'    . $RoleUID, $orgToken));
+            $this->redisservice->deleteCache($this->redisservice->orgKey('role-submenus-' . $RoleUID, $orgToken));
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = $RoleUID > 0 ? 'Role updated successfully.' : 'Role created successfully.';
@@ -178,16 +179,16 @@ class Roles extends MY_Controller {
             $this->roles_model->saveRolePermissions($RoleUID, $PostData, $userUID);
 
             // Bust role-level menu caches so the next login picks up fresh permissions
-            $this->redisservice->deleteCache('r2k-role-menus-'    . $orgUID . '-' . $RoleUID);
-            $this->redisservice->deleteCache('r2k-role-submenus-' . $orgUID . '-' . $RoleUID);
+            $this->redisservice->deleteCache($this->redisservice->orgKey('role-menus-'    . $RoleUID, $orgToken));
+            $this->redisservice->deleteCache($this->redisservice->orgKey('role-submenus-' . $RoleUID, $orgToken));
 
             // Rebuild the current user's Redis cache so new permissions take effect
             // immediately on the next request — same logic as auth/refreshTokens
             $this->load->model('login_model');
             $this->load->model('user_model');
 
-            $menus       = $this->login_model->getRoleMainMenus($roleUID, $orgUID)->Data;
-            $submenus    = $this->login_model->getRoleSubMenus($roleUID, $orgUID)->Data;
+            $menus       = $this->login_model->getRoleMainMenus($roleUID, $orgUID, $orgToken)->Data;
+            $submenus    = $this->login_model->getRoleSubMenus($roleUID, $orgUID, $orgToken)->Data;
             $modules     = $this->login_model->getModuleDetails()->Data;
             $userInfoRes = $this->user_model->getUserByUserInfo(['User.UserUID' => $userUID]);
             $userInfo    = ($userInfoRes->Error === FALSE && !empty($userInfoRes->Data)) ? $userInfoRes->Data[0] : null;

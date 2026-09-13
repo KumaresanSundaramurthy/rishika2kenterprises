@@ -151,7 +151,7 @@ class Subscriptionrenew extends CI_Controller {
             if ($changeResult->Error) throw new Exception($changeResult->Message);
 
             /* Invalidate the renewal token so it can't be reused */
-            $this->redisservice->deleteCache('rnt_' . $this->input->post('sid'));
+            $this->redisservice->deleteCache($this->redisservice->envKey('rnt_' . $this->input->post('sid')));
 
             $out->Error   = false;
             $out->Message = 'Subscription activated successfully.';
@@ -171,7 +171,7 @@ class Subscriptionrenew extends CI_Controller {
         try {
             $sid = trim($this->input->post('sid') ?: '');
             if (empty($sid)) throw new Exception('No session reference provided.');
-            $this->redisservice->deleteCache('rnt_' . $sid);
+            $this->redisservice->deleteCache($this->redisservice->envKey('rnt_' . $sid));
             $out->Error   = false;
             $out->Message = 'Token cancelled.';
         } catch (Exception $e) {
@@ -190,7 +190,7 @@ class Subscriptionrenew extends CI_Controller {
 
     private function _getSessionData(string $sid): ?object {
         if (empty($sid)) return null;
-        $cached = $this->redisservice->getCache('rnt_' . $sid);
+        $cached = $this->redisservice->getCache($this->redisservice->envKey('rnt_' . $sid));
         if ($cached->Error || $cached->Value === null) return null;
         return is_object($cached->Value) ? $cached->Value : (object)$cached->Value;
     }

@@ -527,17 +527,28 @@ class BillingPlan_model extends CI_Model {
                 [$userUID, $orgUID]
             );
 
-            /* 4a-parent-role. Sync RoleSubMenusTbl for the now-active parent rows */
+            /* 4a-parent-role. Sync RoleSubMenusTbl for the now-active parent rows (all org roles) */
             $this->WriteDb->query(
                 "UPDATE UserRole.RoleSubMenusTbl rs
                  INNER JOIN Modules.SubMenusTbl sm ON sm.SubMenuUID = rs.SubMenuUID
                  SET rs.IsActive = 1, rs.IsDeleted = 0
-                 WHERE rs.RoleUID  = ?
-                   AND sm.OrgUID   = ?
+                 WHERE sm.OrgUID   = ?
                    AND sm.Source   = 'Plan'
                    AND sm.IsParent = 1
                    AND sm.IsActive = 1",
-                [$adminRoleUID, $orgUID]
+                [$orgUID]
+            );
+
+            /* 4-dl. Reactivate direct-link MainMenu rows for added modules (previously deactivated on downgrade) */
+            $addedInList = implode(',', $addedModuleUIDs);
+            $this->WriteDb->query(
+                "UPDATE Modules.MainMenusTbl mm
+                 SET mm.IsActive = 1, mm.IsDeleted = 0, mm.UpdatedBy = ?
+                 WHERE mm.OrgUID       = ?
+                   AND mm.Source       = 'Plan'
+                   AND mm.IsDirectLink = 1
+                   AND mm.ModuleUID IN ($addedInList)",
+                [$userUID, $orgUID]
             );
 
             /* 4b. Find modules that have NO row in org's SubMenusTbl yet (new sector config entries) */
@@ -570,32 +581,80 @@ class BillingPlan_model extends CI_Model {
                 [$userUID, $orgUID]
             );
 
-            /* 4d. Reactivate RoleSubMenusTbl rows for added modules */
+            /* 4d. Reactivate RoleSubMenusTbl rows for added modules (all org roles) */
             $inList = implode(',', $addedModuleUIDs);
             $this->WriteDb->query(
                 "UPDATE UserRole.RoleSubMenusTbl rs
                  INNER JOIN Modules.SubMenusTbl sm ON sm.SubMenuUID = rs.SubMenuUID
                  SET rs.IsActive = 1, rs.IsDeleted = 0
-                 WHERE rs.RoleUID   = ?
-                   AND sm.OrgUID    = ?
+                 WHERE sm.OrgUID    = ?
                    AND sm.Source    = 'Plan'
                    AND sm.IsActive  = 1
                    AND sm.IsDeleted = 0
                    AND sm.ModuleUID IN ($inList)",
-                [$adminRoleUID, $orgUID]
+                [$orgUID]
             );
 
-            /* 4e. Reactivate RoleMainMenusTbl rows whose main menu is now active */
+            /* 4e. Reactivate RoleMainMenusTbl rows whose main menu is now active (all org roles) */
             $this->WriteDb->query(
                 "UPDATE UserRole.RoleMainMenusTbl rm
                  INNER JOIN Modules.MainMenusTbl mm ON mm.MainMenuUID = rm.MainMenuUID
                  SET rm.IsActive = 1, rm.IsDeleted = 0
-                 WHERE rm.RoleUID   = ?
-                   AND mm.OrgUID    = ?
+                 WHERE mm.OrgUID    = ?
                    AND mm.Source    = 'Plan'
                    AND mm.IsActive  = 1
                    AND mm.IsDeleted = 0",
-                [$adminRoleUID, $orgUID]
+                [$orgUID]
+            );
+
+            /* 4f. Insert missing RoleSubMenusTbl entries for all org roles (covers brand-new module rows) */
+            $this->WriteDb->query(
+                "INSERT INTO UserRole.RoleSubMenusTbl
+                     (RoleUID, SubMenuUID, Sorting, CanView, CanCreate, CanEdit, CanDelete, IsActive, IsDeleted, CreatedBy, UpdatedBy)
+                 SELECT r.RoleUID, sm.SubMenuUID, sm.Sorting, 1, 1, 1, 1, 1, 0, ?, ?
+                 FROM Modules.SubMenusTbl sm
+                 INNER JOIN UserRole.RolesTbl r ON r.OrgUID = sm.OrgUID AND r.IsDeleted = 0
+                 WHERE sm.OrgUID    = ?
+                   AND sm.Source    = 'Plan'
+                   AND sm.IsActive  = 1
+                   AND sm.IsDeleted = 0
+                   AND sm.ModuleUID IN ($inList)
+                   AND NOT EXISTS (
+                       SELECT 1 FROM UserRole.RoleSubMenusTbl rs2
+                       WHERE rs2.RoleUID    = r.RoleUID
+                         AND rs2.SubMenuUID = sm.SubMenuUID
+                   )",
+                [$userUID, $userUID, $orgUID]
+            );
+
+            /* 4g. Insert missing RoleMainMenusTbl entries for all org roles (covers brand-new module rows) */
+            $this->WriteDb->query(
+                "INSERT INTO UserRole.RoleMainMenusTbl
+                     (RoleUID, MainMenuUID, Sorting, CanView, CanCreate, CanEdit, CanDelete, IsActive, IsDeleted, CreatedBy, UpdatedBy)
+                 SELECT r.RoleUID, mm.MainMenuUID, mm.Sorting, 1, 1, 1, 1, 1, 0, ?, ?
+                 FROM Modules.MainMenusTbl mm
+                 INNER JOIN UserRole.RolesTbl r ON r.OrgUID = mm.OrgUID AND r.IsDeleted = 0
+                 WHERE mm.OrgUID    = ?
+                   AND mm.Source    = 'Plan'
+                   AND mm.IsActive  = 1
+                   AND mm.IsDeleted = 0
+                   AND (
+                       (mm.IsDirectLink = 1 AND mm.ModuleUID IN ($inList))
+                       OR EXISTS (
+                           SELECT 1 FROM Modules.SubMenusTbl sm
+                           WHERE sm.MainMenuUID = mm.MainMenuUID
+                             AND sm.OrgUID      = mm.OrgUID
+                             AND sm.IsActive    = 1
+                             AND sm.IsDeleted   = 0
+                             AND sm.ModuleUID IN ($inList)
+                       )
+                   )
+                   AND NOT EXISTS (
+                       SELECT 1 FROM UserRole.RoleMainMenusTbl rm2
+                       WHERE rm2.RoleUID    = r.RoleUID
+                         AND rm2.MainMenuUID = mm.MainMenuUID
+                   )",
+                [$userUID, $userUID, $orgUID]
             );
         }
 
@@ -625,17 +684,16 @@ class BillingPlan_model extends CI_Model {
                 [$userUID, $orgUID]
             );
 
-            /* 5a-parent-role. Sync RoleSubMenusTbl for the now-inactive parent rows */
+            /* 5a-parent-role. Sync RoleSubMenusTbl for the now-inactive parent rows (all org roles) */
             $this->WriteDb->query(
                 "UPDATE UserRole.RoleSubMenusTbl rs
                  INNER JOIN Modules.SubMenusTbl sm ON sm.SubMenuUID = rs.SubMenuUID
                  SET rs.IsActive = 0, rs.IsDeleted = 1
-                 WHERE rs.RoleUID  = ?
-                   AND sm.OrgUID   = ?
+                 WHERE sm.OrgUID   = ?
                    AND sm.Source   = 'Plan'
                    AND sm.IsParent = 1
                    AND sm.IsActive = 0",
-                [$adminRoleUID, $orgUID]
+                [$orgUID]
             );
 
             /* 5b. Deactivate non-direct-link MainMenu rows that now have NO active submenus */
@@ -667,29 +725,27 @@ class BillingPlan_model extends CI_Model {
                 [$userUID, $orgUID]
             );
 
-            /* 5c. Deactivate RoleSubMenusTbl rows for removed modules */
+            /* 5c. Deactivate RoleSubMenusTbl rows for removed modules (all org roles) */
             $inList = implode(',', $removedModuleUIDs);
             $this->WriteDb->query(
                 "UPDATE UserRole.RoleSubMenusTbl rs
                  INNER JOIN Modules.SubMenusTbl sm ON sm.SubMenuUID = rs.SubMenuUID
                  SET rs.IsActive = 0, rs.IsDeleted = 1
-                 WHERE rs.RoleUID   = ?
-                   AND sm.OrgUID    = ?
+                 WHERE sm.OrgUID    = ?
                    AND sm.Source    = 'Plan'
                    AND sm.ModuleUID IN ($inList)",
-                [$adminRoleUID, $orgUID]
+                [$orgUID]
             );
 
-            /* 5d. Deactivate RoleMainMenusTbl rows whose main menu is now inactive */
+            /* 5d. Deactivate RoleMainMenusTbl rows whose main menu is now inactive (all org roles) */
             $this->WriteDb->query(
                 "UPDATE UserRole.RoleMainMenusTbl rm
                  INNER JOIN Modules.MainMenusTbl mm ON mm.MainMenuUID = rm.MainMenuUID
                  SET rm.IsActive = 0, rm.IsDeleted = 1
-                 WHERE rm.RoleUID  = ?
-                   AND mm.OrgUID   = ?
+                 WHERE mm.OrgUID   = ?
                    AND mm.Source   = 'Plan'
                    AND mm.IsActive = 0",
-                [$adminRoleUID, $orgUID]
+                [$orgUID]
             );
         }
     }

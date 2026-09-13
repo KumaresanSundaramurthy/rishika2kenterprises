@@ -57,8 +57,9 @@ class Login_model extends CI_Model {
             $JwtOrgData['SectorUID']            = (int)($UserData->SectorUID         ?? 1);
             $JwtOrgData['IsOnboardingComplete'] = (int)($UserData->IsOnboardingComplete ?? 1);
 
-            $MainModule = $this->getRoleMainMenus($UserData->UserRoleUID, $UserData->UserOrgUID)->Data;
-            $SubModule  = $this->getRoleSubMenus($UserData->UserRoleUID, $UserData->UserOrgUID)->Data;
+            $orgToken   = $UserData->OrgToken ?? '';
+            $MainModule = $this->getRoleMainMenus($UserData->UserRoleUID, $UserData->UserOrgUID, $orgToken)->Data;
+            $SubModule  = $this->getRoleSubMenus($UserData->UserRoleUID, $UserData->UserOrgUID, $orgToken)->Data;
 
             // Organisation Settings
             $GeneralSettings = $this->getOrgGeneralSettings($UserData->UserOrgUID)->Data[0];
@@ -165,12 +166,12 @@ class Login_model extends CI_Model {
     }
 
     // ── Role-based menu queries ──────────────────────────────────
-    public function getRoleMainMenus(int $RoleUID, int $OrgUID = 0): object {
+    public function getRoleMainMenus(int $RoleUID, int $OrgUID = 0, string $OrgToken = ''): object {
 
         $this->EndReturnData = new stdClass();
         try {
 
-            $cacheKey    = 'r2k-role-menus-' . $OrgUID . '-' . $RoleUID;
+            $cacheKey    = $this->redisservice->orgKey('role-menus-' . $RoleUID, $OrgToken);
             $cacheResult = $this->redisservice->getCache($cacheKey);
             if (!$cacheResult->Error && $cacheResult->Value !== null) {
                 $this->EndReturnData->Error   = FALSE;
@@ -193,7 +194,8 @@ class Login_model extends CI_Model {
             $this->ReadDb->order_by('RMM.Sorting', 'ASC');
             $result = $this->ReadDb->get()->result();
 
-            $this->redisservice->setCache($cacheKey, $result, 86400);
+            $loginTTL = (int)(getenv('LOGIN_EXPIRE_SECS') ?: 7200);
+            $this->redisservice->setCache($cacheKey, $result, $loginTTL);
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Success';
@@ -211,12 +213,12 @@ class Login_model extends CI_Model {
 
     }
 
-    public function getRoleSubMenus(int $RoleUID, int $OrgUID = 0): object {
+    public function getRoleSubMenus(int $RoleUID, int $OrgUID = 0, string $OrgToken = ''): object {
 
         $this->EndReturnData = new stdClass();
         try {
 
-            $cacheKey    = 'r2k-role-submenus-' . $OrgUID . '-' . $RoleUID;
+            $cacheKey    = $this->redisservice->orgKey('role-submenus-' . $RoleUID, $OrgToken);
             $cacheResult = $this->redisservice->getCache($cacheKey);
             if (!$cacheResult->Error && $cacheResult->Value !== null) {
                 $this->EndReturnData->Error   = FALSE;
@@ -240,7 +242,8 @@ class Login_model extends CI_Model {
             $this->ReadDb->order_by('RSM.Sorting', 'ASC');
             $result = $this->ReadDb->get()->result();
 
-            $this->redisservice->setCache($cacheKey, $result, 86400);
+            $loginTTL = (int)(getenv('LOGIN_EXPIRE_SECS') ?: 7200);
+            $this->redisservice->setCache($cacheKey, $result, $loginTTL);
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Success';
@@ -352,7 +355,7 @@ class Login_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $cacheKey    = 'r2k-global-modules';
+            $cacheKey    = $this->redisservice->globalKey('global-modules');
             $cacheResult = $this->redisservice->getCache($cacheKey);
             if (!$cacheResult->Error && $cacheResult->Value !== null) {
                 $this->EndReturnData->Error   = FALSE;
@@ -468,7 +471,7 @@ class Login_model extends CI_Model {
 
     private function getAttachCfg(): array {
         try {
-            $cacheKey    = 'r2k-global-attach-cfg';
+            $cacheKey    = $this->redisservice->globalKey('global-attach-cfg');
             $cacheResult = $this->redisservice->getCache($cacheKey);
             if (!$cacheResult->Error && $cacheResult->Value !== null) {
                 return (array)$cacheResult->Value;

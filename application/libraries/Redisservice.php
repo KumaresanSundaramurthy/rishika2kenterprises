@@ -157,6 +157,17 @@ class RedisService {
         return 'r2k-' . $type;
     }
 
+    /**
+     * Build a plain env-scoped key (no org prefix, no user scope).
+     * Format: {S|P}-{key}
+     * Use for keys that are not org-specific but must be isolated
+     * between local (S) and production (P) environments — e.g. session
+     * enforcement tokens, rate-limit counters, one-time tokens.
+     */
+    public function envKey(string $key): string {
+        return $this->envFlag() . '-' . $key;
+    }
+
     // ─── Core cache methods ──────────────────────────────────────────────────
 
     public function setCache($key, $value, $ttl = 300) {

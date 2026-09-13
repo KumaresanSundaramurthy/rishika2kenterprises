@@ -14,8 +14,8 @@ class Managecache extends CI_Controller {
         if ($userUID) {
             $this->redisservice->deleteAllUserCache($userUID, $orgToken);
         }
-        // Also sweep any wildcard user-context patterns
-        $this->redisservice->clearCacheByPattern('UserActiveSession_*');
+        // Also sweep any wildcard user-context patterns (env-prefixed, e.g. P-UserActiveSession_*)
+        $this->redisservice->clearCacheByPattern($this->redisservice->envKey('UserActiveSession_') . '*');
         echo "Cache cleared.<br>";
         echo '<a href="/">Go Home</a>';
     }

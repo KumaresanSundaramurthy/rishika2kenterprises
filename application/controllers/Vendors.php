@@ -12,19 +12,7 @@ class Vendors extends MY_Controller {
     // ── Internal helpers ──────────────────────────────────────────────────────
 
     private function _initModule() {
-        if (isset($this->pageData['ModuleId'])) return;
-
-        $controllerName = strtolower($this->router->fetch_class());
-        $getModuleInfo  = $this->redisservice->getUserCache('modules') ?? [];
-        $ModuleInfo     = array_values(array_filter($getModuleInfo, fn($m) => $m->ControllerName === $controllerName));
-        if (empty($ModuleInfo)) {
-            throw new Exception("Module information not found for controller: {$controllerName}");
-        }
-
-        $this->pageData['ModuleId']              = $ModuleInfo[0]->ModuleUID;
-        $this->pageData['ModColumnData']         = $ModuleInfo[0]->DispViewColumns ?? [];
-        $this->pageData['DispSettColumnDetails'] = $ModuleInfo[0]->DispSettingsViewColumns ?? [];
-
+        if (isset($this->pageData['Limit'])) return;
         $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
         $this->pageData['Limit'] = $GeneralSettings->RowLimit ?? 10;
     }
@@ -37,11 +25,10 @@ class Vendors extends MY_Controller {
         $result = $this->vendors_model->getVendorListPaginated($orgUID, $limit, $offset, $filter);
 
         $rowHtml = $this->load->view('vendors/list', [
-            'DataLists'       => $result->rows,
-            'SerialNumber'    => $offset,
-            'DispViewColumns' => $this->pageData['ModColumnData'],
-            'JwtData'         => $this->pageData['JwtData'],
-            'GenSettings'     => $this->pageData['JwtData']->GenSettings,
+            'DataLists'    => $result->rows,
+            'SerialNumber' => $offset,
+            'JwtData'      => $this->pageData['JwtData'],
+            'GenSettings'  => $this->pageData['JwtData']->GenSettings,
         ], TRUE);
 
         $resp                 = new stdClass();

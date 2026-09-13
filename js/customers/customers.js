@@ -109,7 +109,7 @@ function deleteCustomer(DeleteId) {
     $.ajax({
         url: '/customers/deleteCustomerData',
         method: 'POST',
-        data: { CustomerUID: DeleteId, ModuleId: ModuleId },
+        data: { CustomerUID: DeleteId },
         cache: false,
         success: function (response) {
             if (response.Error) {
@@ -126,8 +126,8 @@ function deleteCustomer(DeleteId) {
 
 function deleteMultipleCustomers() {
     var postData = _custSelectAllMode
-        ? { SelectAll: 1, Filter: JSON.stringify(Filter), ModuleId: ModuleId, [CsrfName]: CsrfToken }
-        : { CustomerUIDs: SelectedUIDs, ModuleId: ModuleId, [CsrfName]: CsrfToken };
+        ? { SelectAll: 1, Filter: JSON.stringify(Filter), [CsrfName]: CsrfToken }
+        : { CustomerUIDs: SelectedUIDs, [CsrfName]: CsrfToken };
     $.ajax({
         url: '/customers/deleteBulkCustomers',
         method: 'POST',

@@ -552,7 +552,6 @@ $(function () {
 </script>
 
 <script>
-let ModuleId = <?php echo $ModuleId; ?>;
 const ModuleTable = '#VendorsTable';
 const ModulePag = '.VendorsPagination';
 const ModuleHeader = '.vendorHeaderCheck';

@@ -581,7 +581,6 @@ document.addEventListener('DOMContentLoaded', function () {
 <script src="/js/common/communication.js"></script>
 
 <script>
-let ModuleId = 2;
 const ModuleTable  = '#CustomersTable';
 const ModulePag    = '.CustomersPagination';
 const ModuleHeader = '.customerHeaderCheck';

@@ -67,7 +67,6 @@ function loadTransactionList(config, pageNo, rowLimit, filter) {
             RowLimit:   rowLimit,
             PageNo:     pageNo,
             Filter:     filter,
-            ModuleId:   ModuleId,
             [CsrfName]: CsrfToken,
         },
         success: function (response) {

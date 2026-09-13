@@ -76,7 +76,6 @@ function getVendorsDetails(PageNo, RowLimit, Filter, onDone) {
             RowLimit  : RowLimit,
             PageNo    : PageNo,
             Filter    : Filter,
-            ModuleId  : ModuleId,
             [CsrfName]: CsrfToken,
         },
         success: function (response) {

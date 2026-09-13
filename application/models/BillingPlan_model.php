@@ -155,8 +155,8 @@ class BillingPlan_model extends CI_Model {
             /* 3. Begin transaction */
             $this->WriteDb->trans_begin();
 
-            /* 4. Swap menus safely — delete Plan-sourced rows, keep AddOn rows */
-            $this->_swapPlanMenus($orgUID, $newSectorPlanUID, (int)$plan->SectorUID, (int)$plan->PlanUID, $adminRoleUID, $userUID);
+            /* 4. Diff old vs new plan modules and update the 4 menu tables */
+            $this->_applyPlanMenus($orgUID, (int)$plan->SectorUID, (int)$plan->PlanUID, $prevSectorPlanUID, $adminRoleUID, $userUID);
 
             /* 5. Update OrgSubscriptionTbl */
             $now     = date('Y-m-d H:i:s');
@@ -462,184 +462,506 @@ class BillingPlan_model extends CI_Model {
         return $result;
     }
 
-    /* ── Private: swap Plan-sourced menus ────────────────────────────────── */
+    /* ── Private: diff-based plan menu update ───────────────────────────── */
 
-    private function _swapPlanMenus(int $orgUID, int $newSectorPlanUID, int $sectorUID, int $planUID, int $adminRoleUID, int $userUID): void {
+    private function _applyPlanMenus(int $orgUID, int $sectorUID, int $planUID, ?int $prevSectorPlanUID, int $adminRoleUID, int $userUID): void {
 
-        /* Collect current Plan-sourced SubMenu UIDs before deletion */
-        $oldSubMenus = $this->ReadDb->select('SubMenuUID')
-            ->from('Modules.SubMenusTbl')
-            ->where('OrgUID',    $orgUID)
-            ->where('Source',    'Plan')
-            ->where('IsDeleted', 0)
-            ->get()->result();
-        $oldSubUIDs = array_column($oldSubMenus, 'SubMenuUID');
+        $this->ReadDb->db_debug  = FALSE;
+        $this->WriteDb->db_debug = FALSE;
 
-        /* Collect current Plan-sourced MainMenu UIDs before deletion */
-        $oldMainMenus = $this->ReadDb->select('MainMenuUID')
-            ->from('Modules.MainMenusTbl')
-            ->where('OrgUID',    $orgUID)
-            ->where('Source',    'Plan')
-            ->where('IsDeleted', 0)
-            ->get()->result();
-        $oldMainUIDs = array_column($oldMainMenus, 'MainMenuUID');
-
-        /* Delete child role rows first, then the menus */
-        if (!empty($oldSubUIDs)) {
-            $this->WriteDb->where_in('SubMenuUID', $oldSubUIDs)->delete('UserRole.RoleSubMenusTbl');
-        }
-        if (!empty($oldMainUIDs)) {
-            $this->WriteDb->where_in('MainMenuUID', $oldMainUIDs)->delete('UserRole.RoleMainMenusTbl');
-        }
-        $this->WriteDb->where('OrgUID', $orgUID)->where('Source', 'Plan')->delete('Modules.SubMenusTbl');
-        $this->WriteDb->where('OrgUID', $orgUID)->where('Source', 'Plan')->delete('Modules.MainMenusTbl');
-
-        /* Re-copy from template filtered by new plan's modules */
-        $this->_copyPlanMenus($orgUID, $newSectorPlanUID, $sectorUID, $planUID, $adminRoleUID, $userUID);
-    }
-
-    /* ── Private: copy plan menus from template ──────────────────────────── */
-
-    private function _copyPlanMenus(int $orgUID, int $sectorPlanUID, int $sectorUID, int $planUID, int $adminRoleUID, int $userUID): void {
-
-        /* Template org = lowest OrgUID org */
-        $tplRow = $this->ReadDb->select('OrgUID')
-            ->from('Organisation.OrganisationTbl')
-            ->where('IsDeleted', 0)
-            ->where('OrgUID !=', $orgUID)
-            ->order_by('OrgUID', 'ASC')
-            ->limit(1)
-            ->get();
-
-        if (!$tplRow || $tplRow->num_rows() === 0) return;
-        $tplOrgUID = (int)$tplRow->row()->OrgUID;
-
-        /* Module filter from SectorPlanModulesTbl — if empty, copy all */
-        $moduleFilter = $this->ReadDb->select('ModuleUID')
+        /* ── 1. New plan's ModuleUIDs ────────────────────────────────────────── */
+        $newModRows = $this->ReadDb->select('ModuleUID')
             ->from('Billing.SectorPlanModulesTbl')
             ->where('SectorUID', $sectorUID)
             ->where('PlanUID',   $planUID)
             ->get()->result();
-        $allowedModuleUIDs = array_column($moduleFilter, 'ModuleUID');
+        $newModuleUIDs = array_map('intval', array_column($newModRows, 'ModuleUID'));
 
-        /* Main menus from template */
-        $mmQuery = $this->ReadDb->select('*')
-            ->from('Modules.MainMenusTbl')
-            ->where('OrgUID',    $tplOrgUID)
-            ->where('IsDeleted', 0)
-            ->order_by('Sorting', 'ASC');
+        /* ── 2. Old plan's ModuleUIDs ────────────────────────────────────────── */
+        $oldModuleUIDs = [];
+        if ($prevSectorPlanUID) {
+            $prevPlan = $this->ReadDb->select('PlanUID')
+                ->from('Billing.SectorPlanTbl')
+                ->where('SectorPlanUID', $prevSectorPlanUID)
+                ->limit(1)->get()->row();
+            if ($prevPlan) {
+                $oldModRows = $this->ReadDb->select('ModuleUID')
+                    ->from('Billing.SectorPlanModulesTbl')
+                    ->where('SectorUID', $sectorUID)
+                    ->where('PlanUID',   (int)$prevPlan->PlanUID)
+                    ->get()->result();
+                $oldModuleUIDs = array_map('intval', array_column($oldModRows, 'ModuleUID'));
+            }
+        }
 
-        /* If module filter is active, only copy main menus that have at least one matching sub menu */
-        if (!empty($allowedModuleUIDs)) {
-            $this->ReadDb->db_debug = FALSE;
-            $subWithModule = $this->ReadDb->select('DISTINCT MainMenuUID')
+        /* ── 3. Compute diff ─────────────────────────────────────────────────── */
+        $addedModuleUIDs   = array_values(array_diff($newModuleUIDs, $oldModuleUIDs));
+        $removedModuleUIDs = array_values(array_diff($oldModuleUIDs, $newModuleUIDs));
+
+        /* Same plan or same module set — nothing to do */
+        if (empty($addedModuleUIDs) && empty($removedModuleUIDs)) return;
+
+        /* ── 4. UPGRADE — added modules ──────────────────────────────────────── */
+        if (!empty($addedModuleUIDs)) {
+
+            /* 4a. Reactivate existing SubMenu rows for added modules */
+            $this->WriteDb->where('OrgUID',  $orgUID)
+                ->where('Source',  'Plan')
+                ->where_in('ModuleUID', $addedModuleUIDs)
+                ->update('Modules.SubMenusTbl', ['IsActive' => 1, 'IsDeleted' => 0, 'UpdatedBy' => $userUID]);
+
+            /* 4a-parent. Reactivate IsParent submenu header rows that now have ≥ 1 active child */
+            $this->WriteDb->query(
+                "UPDATE Modules.SubMenusTbl sm
+                 SET sm.IsActive = 1, sm.IsDeleted = 0, sm.UpdatedBy = ?
+                 WHERE sm.OrgUID   = ?
+                   AND sm.Source   = 'Plan'
+                   AND sm.IsParent = 1
+                   AND EXISTS (
+                       SELECT 1 FROM Modules.SubMenusTbl child
+                       WHERE child.ParentSubMenuUID = sm.SubMenuUID
+                         AND child.OrgUID           = sm.OrgUID
+                         AND child.IsActive         = 1
+                         AND child.IsDeleted        = 0
+                   )",
+                [$userUID, $orgUID]
+            );
+
+            /* 4a-parent-role. Sync RoleSubMenusTbl for the now-active parent rows */
+            $this->WriteDb->query(
+                "UPDATE UserRole.RoleSubMenusTbl rs
+                 INNER JOIN Modules.SubMenusTbl sm ON sm.SubMenuUID = rs.SubMenuUID
+                 SET rs.IsActive = 1, rs.IsDeleted = 0
+                 WHERE rs.RoleUID  = ?
+                   AND sm.OrgUID   = ?
+                   AND sm.Source   = 'Plan'
+                   AND sm.IsParent = 1
+                   AND sm.IsActive = 1",
+                [$adminRoleUID, $orgUID]
+            );
+
+            /* 4b. Find modules that have NO row in org's SubMenusTbl yet (new sector config entries) */
+            $existingMods = $this->ReadDb->select('DISTINCT ModuleUID')
                 ->from('Modules.SubMenusTbl')
-                ->where('OrgUID',    $tplOrgUID)
-                ->where('IsDeleted', 0)
-                ->where_in('ModuleUID', $allowedModuleUIDs)
+                ->where('OrgUID',  $orgUID)
+                ->where('Source',  'Plan')
+                ->where_in('ModuleUID', $addedModuleUIDs)
                 ->get()->result();
-            $allowedMainUIDs = array_column($subWithModule, 'MainMenuUID');
-            if (empty($allowedMainUIDs)) return;
-            $mmQuery->where_in('MainMenuUID', $allowedMainUIDs);
+            $existingModUIDs = array_map('intval', array_column($existingMods, 'ModuleUID'));
+            $missingModUIDs  = array_values(array_diff($addedModuleUIDs, $existingModUIDs));
+
+            if (!empty($missingModUIDs)) {
+                $this->_insertMissingMenusFromSector($orgUID, $sectorUID, $missingModUIDs, $adminRoleUID, $userUID);
+            }
+
+            /* 4c. Reactivate MainMenu rows that now have ≥ 1 active submenu */
+            $this->WriteDb->query(
+                "UPDATE Modules.MainMenusTbl mm
+                 SET mm.IsActive = 1, mm.IsDeleted = 0, mm.UpdatedBy = ?
+                 WHERE mm.OrgUID  = ?
+                   AND mm.Source  = 'Plan'
+                   AND EXISTS (
+                       SELECT 1 FROM Modules.SubMenusTbl sm
+                       WHERE sm.MainMenuUID = mm.MainMenuUID
+                         AND sm.OrgUID      = mm.OrgUID
+                         AND sm.IsActive    = 1
+                         AND sm.IsDeleted   = 0
+                   )",
+                [$userUID, $orgUID]
+            );
+
+            /* 4d. Reactivate RoleSubMenusTbl rows for added modules */
+            $inList = implode(',', $addedModuleUIDs);
+            $this->WriteDb->query(
+                "UPDATE UserRole.RoleSubMenusTbl rs
+                 INNER JOIN Modules.SubMenusTbl sm ON sm.SubMenuUID = rs.SubMenuUID
+                 SET rs.IsActive = 1, rs.IsDeleted = 0
+                 WHERE rs.RoleUID   = ?
+                   AND sm.OrgUID    = ?
+                   AND sm.Source    = 'Plan'
+                   AND sm.IsActive  = 1
+                   AND sm.IsDeleted = 0
+                   AND sm.ModuleUID IN ($inList)",
+                [$adminRoleUID, $orgUID]
+            );
+
+            /* 4e. Reactivate RoleMainMenusTbl rows whose main menu is now active */
+            $this->WriteDb->query(
+                "UPDATE UserRole.RoleMainMenusTbl rm
+                 INNER JOIN Modules.MainMenusTbl mm ON mm.MainMenuUID = rm.MainMenuUID
+                 SET rm.IsActive = 1, rm.IsDeleted = 0
+                 WHERE rm.RoleUID   = ?
+                   AND mm.OrgUID    = ?
+                   AND mm.Source    = 'Plan'
+                   AND mm.IsActive  = 1
+                   AND mm.IsDeleted = 0",
+                [$adminRoleUID, $orgUID]
+            );
         }
 
-        $mainMenuRows = $mmQuery->get()->result();
-        $mainMenuMap  = [];
+        /* ── 5. DOWNGRADE — removed modules ─────────────────────────────────── */
+        if (!empty($removedModuleUIDs)) {
 
-        foreach ($mainMenuRows as $mm) {
-            $this->WriteDb->insert('Modules.MainMenusTbl', [
-                'OrgUID'       => $orgUID,
-                'Source'       => 'Plan',
-                'Name'         => $mm->Name,
-                'Icon'         => $mm->Icon ?? '',
-                'IsDirectLink' => $mm->IsDirectLink ?? 0,
-                'DirectUrl'    => $mm->DirectUrl ?? '',
-                'Sorting'      => $mm->Sorting ?? 0,
-                'IsActive'     => (int)(bool)$mm->IsActive,
-                'IsDeleted'    => 0,
-                'CreatedBy'    => $userUID,
-                'UpdatedBy'    => $userUID,
-            ]);
-            $newMMUID = (int)$this->WriteDb->insert_id();
-            $mainMenuMap[(int)$mm->MainMenuUID] = $newMMUID;
+            /* 5a. Deactivate SubMenu rows for removed modules */
+            $this->WriteDb->where('OrgUID',  $orgUID)
+                ->where('Source',  'Plan')
+                ->where_in('ModuleUID', $removedModuleUIDs)
+                ->update('Modules.SubMenusTbl', ['IsActive' => 0, 'IsDeleted' => 1, 'UpdatedBy' => $userUID]);
 
-            /* Role main menu — full access for admin */
-            $this->WriteDb->insert('UserRole.RoleMainMenusTbl', [
-                'RoleUID'     => $adminRoleUID,
-                'MainMenuUID' => $newMMUID,
-                'Sorting'     => $mm->Sorting ?? 0,
-                'CanView'     => 1,
-                'CanCreate'   => 1,
-                'CanEdit'     => 1,
-                'CanDelete'   => 1,
-                'IsActive'    => 1,
-                'IsDeleted'   => 0,
-                'CreatedBy'   => $userUID,
-                'UpdatedBy'   => $userUID,
-            ]);
-            $mainMenuMap['role_' . $newMMUID] = (int)$this->WriteDb->insert_id();
+            /* 5a-parent. Deactivate IsParent submenu header rows whose all children are now inactive */
+            $this->WriteDb->query(
+                "UPDATE Modules.SubMenusTbl sm
+                 SET sm.IsActive = 0, sm.IsDeleted = 1, sm.UpdatedBy = ?
+                 WHERE sm.OrgUID   = ?
+                   AND sm.Source   = 'Plan'
+                   AND sm.IsParent = 1
+                   AND NOT EXISTS (
+                       SELECT 1 FROM Modules.SubMenusTbl child
+                       WHERE child.ParentSubMenuUID = sm.SubMenuUID
+                         AND child.OrgUID           = sm.OrgUID
+                         AND child.IsActive         = 1
+                         AND child.IsDeleted        = 0
+                   )",
+                [$userUID, $orgUID]
+            );
+
+            /* 5a-parent-role. Sync RoleSubMenusTbl for the now-inactive parent rows */
+            $this->WriteDb->query(
+                "UPDATE UserRole.RoleSubMenusTbl rs
+                 INNER JOIN Modules.SubMenusTbl sm ON sm.SubMenuUID = rs.SubMenuUID
+                 SET rs.IsActive = 0, rs.IsDeleted = 1
+                 WHERE rs.RoleUID  = ?
+                   AND sm.OrgUID   = ?
+                   AND sm.Source   = 'Plan'
+                   AND sm.IsParent = 1
+                   AND sm.IsActive = 0",
+                [$adminRoleUID, $orgUID]
+            );
+
+            /* 5b. Deactivate non-direct-link MainMenu rows that now have NO active submenus */
+            $this->WriteDb->query(
+                "UPDATE Modules.MainMenusTbl mm
+                 SET mm.IsActive = 0, mm.IsDeleted = 1, mm.UpdatedBy = ?
+                 WHERE mm.OrgUID       = ?
+                   AND mm.Source       = 'Plan'
+                   AND mm.IsDirectLink = 0
+                   AND NOT EXISTS (
+                       SELECT 1 FROM Modules.SubMenusTbl sm
+                       WHERE sm.MainMenuUID = mm.MainMenuUID
+                         AND sm.OrgUID      = mm.OrgUID
+                         AND sm.IsActive    = 1
+                         AND sm.IsDeleted   = 0
+                   )",
+                [$userUID, $orgUID]
+            );
+
+            /* 5b-dl. Deactivate direct-link MainMenu rows for removed modules */
+            $removedInList = implode(',', $removedModuleUIDs);
+            $this->WriteDb->query(
+                "UPDATE Modules.MainMenusTbl mm
+                 SET mm.IsActive = 0, mm.IsDeleted = 1, mm.UpdatedBy = ?
+                 WHERE mm.OrgUID       = ?
+                   AND mm.Source       = 'Plan'
+                   AND mm.IsDirectLink = 1
+                   AND mm.ModuleUID IN ($removedInList)",
+                [$userUID, $orgUID]
+            );
+
+            /* 5c. Deactivate RoleSubMenusTbl rows for removed modules */
+            $inList = implode(',', $removedModuleUIDs);
+            $this->WriteDb->query(
+                "UPDATE UserRole.RoleSubMenusTbl rs
+                 INNER JOIN Modules.SubMenusTbl sm ON sm.SubMenuUID = rs.SubMenuUID
+                 SET rs.IsActive = 0, rs.IsDeleted = 1
+                 WHERE rs.RoleUID   = ?
+                   AND sm.OrgUID    = ?
+                   AND sm.Source    = 'Plan'
+                   AND sm.ModuleUID IN ($inList)",
+                [$adminRoleUID, $orgUID]
+            );
+
+            /* 5d. Deactivate RoleMainMenusTbl rows whose main menu is now inactive */
+            $this->WriteDb->query(
+                "UPDATE UserRole.RoleMainMenusTbl rm
+                 INNER JOIN Modules.MainMenusTbl mm ON mm.MainMenuUID = rm.MainMenuUID
+                 SET rm.IsActive = 0, rm.IsDeleted = 1
+                 WHERE rm.RoleUID  = ?
+                   AND mm.OrgUID   = ?
+                   AND mm.Source   = 'Plan'
+                   AND mm.IsActive = 0",
+                [$adminRoleUID, $orgUID]
+            );
         }
+    }
 
-        /* Sub menus from template */
-        $smQuery = $this->ReadDb->select('*')
-            ->from('Modules.SubMenusTbl')
-            ->where('OrgUID',    $tplOrgUID)
-            ->where('IsDeleted', 0)
-            ->order_by('ParentSubMenuUID', 'ASC')
-            ->order_by('Sorting', 'ASC');
+    /* ── Private: insert brand-new sector menus that don't exist for org yet ── */
 
-        if (!empty($allowedModuleUIDs)) {
-            $smQuery->where_in('ModuleUID', $allowedModuleUIDs);
-        }
+    private function _insertMissingMenusFromSector(int $orgUID, int $sectorUID, array $missingModUIDs, int $adminRoleUID, int $userUID): void {
 
-        $subMenuRows = $smQuery->get()->result();
-        $subMenuMap  = [];
-        $subRoleMMMap = [];
+        /* ── A. Sub-menu-based missing modules ──────────────────────────────── */
+        $sectorSubs = $this->ReadDb->select('ss.*, smm.Name AS MainMenuName, smm.Icon AS MainMenuIcon,
+                smm.IsDirectLink, smm.DirectUrl, smm.Sorting AS MainMenuSorting')
+            ->from('Modules.SectorSubMenusTbl ss')
+            ->join('Modules.SectorMainMenusTbl smm', 'smm.SectorMainMenuUID = ss.SectorMainMenuUID')
+            ->where('ss.SectorUID',  $sectorUID)
+            ->where('ss.IsDeleted',  0)
+            ->where_in('ss.ModuleUID', $missingModUIDs)
+            ->order_by('ss.Sorting', 'ASC')
+            ->get()->result();
 
-        foreach ($subMenuRows as $sm) {
-            $oldMain  = (int)$sm->MainMenuUID;
-            $newMMUID = $mainMenuMap[$oldMain] ?? 0;
-            if (!$newMMUID) continue;
+        /* ── B. Direct-link missing modules (no submenus) ───────────────────── */
+        $directLinkMains = $this->ReadDb->select('SectorMainMenuUID, ModuleUID, Name, Icon, DirectUrl, Sorting')
+            ->from('Modules.SectorMainMenusTbl')
+            ->where('SectorUID',    $sectorUID)
+            ->where('IsDirectLink', 1)
+            ->where('IsDeleted',    0)
+            ->where_in('ModuleUID', $missingModUIDs)
+            ->get()->result();
 
-            $roleMMUID = $mainMenuMap['role_' . $newMMUID] ?? 0;
+        if (empty($sectorSubs) && empty($directLinkMains)) return;
 
+        /* Cache resolved UIDs to avoid repeated queries */
+        $mainMenuCache   = []; /* MainMenuName → MainMenuUID */
+        $roleMMCache     = []; /* MainMenuUID  → RoleMainMenuUID */
+        $parentSubCache  = []; /* SectorSubMenuUID (parent) → org SubMenuUID */
+
+        foreach ($sectorSubs as $ss) {
+            $mmName = $ss->MainMenuName;
+
+            /* ── Resolve or insert MainMenusTbl row ─────────────────────────── */
+            if (!isset($mainMenuCache[$mmName])) {
+                $orgMM = $this->ReadDb->select('MainMenuUID')
+                    ->from('Modules.MainMenusTbl')
+                    ->where('OrgUID',    $orgUID)
+                    ->where('Name',      $mmName)
+                    ->where('IsDeleted', 0)
+                    ->limit(1)->get()->row();
+
+                if ($orgMM) {
+                    $newMMUID = (int)$orgMM->MainMenuUID;
+                    /* Ensure it is active */
+                    $this->WriteDb->where('MainMenuUID', $newMMUID)
+                        ->update('Modules.MainMenusTbl', ['IsActive' => 1, 'IsDeleted' => 0, 'UpdatedBy' => $userUID]);
+                } else {
+                    $this->WriteDb->insert('Modules.MainMenusTbl', [
+                        'OrgUID'       => $orgUID,
+                        'Source'       => 'Plan',
+                        'Name'         => $mmName,
+                        'Icon'         => $ss->MainMenuIcon ?? '',
+                        'IsDirectLink' => $ss->IsDirectLink ?? 0,
+                        'DirectUrl'    => $ss->DirectUrl ?? '',
+                        'Sorting'      => $ss->MainMenuSorting ?? 0,
+                        'IsActive'     => 1,
+                        'IsDeleted'    => 0,
+                        'CreatedBy'    => $userUID,
+                        'UpdatedBy'    => $userUID,
+                    ]);
+                    $newMMUID = (int)$this->WriteDb->insert_id();
+                }
+                $mainMenuCache[$mmName] = $newMMUID;
+            }
+            $newMMUID = $mainMenuCache[$mmName];
+
+            /* ── Resolve or insert RoleMainMenusTbl row ─────────────────────── */
+            if (!isset($roleMMCache[$newMMUID])) {
+                $roleMMRow = $this->ReadDb->select('RoleMainMenuUID')
+                    ->from('UserRole.RoleMainMenusTbl')
+                    ->where('RoleUID',     $adminRoleUID)
+                    ->where('MainMenuUID', $newMMUID)
+                    ->limit(1)->get()->row();
+
+                if ($roleMMRow) {
+                    $roleMMUID = (int)$roleMMRow->RoleMainMenuUID;
+                    $this->WriteDb->where('RoleMainMenuUID', $roleMMUID)
+                        ->update('UserRole.RoleMainMenusTbl', ['IsActive' => 1, 'IsDeleted' => 0]);
+                } else {
+                    $this->WriteDb->insert('UserRole.RoleMainMenusTbl', [
+                        'RoleUID'     => $adminRoleUID,
+                        'MainMenuUID' => $newMMUID,
+                        'Sorting'     => $ss->MainMenuSorting ?? 0,
+                        'CanView'     => 1,
+                        'CanCreate'   => 1,
+                        'CanEdit'     => 1,
+                        'CanDelete'   => 1,
+                        'IsActive'    => 1,
+                        'IsDeleted'   => 0,
+                        'CreatedBy'   => $userUID,
+                        'UpdatedBy'   => $userUID,
+                    ]);
+                    $roleMMUID = (int)$this->WriteDb->insert_id();
+                }
+                $roleMMCache[$newMMUID] = $roleMMUID;
+            }
+            $roleMMUID = $roleMMCache[$newMMUID];
+
+            /* ── Resolve parent submenu row if this child has a parent ─────────── */
+            $newParentSubUID   = null;
+            $ssmParentSectorUID = ($ss->ParentSectorSubMenuUID !== null && $ss->ParentSectorSubMenuUID !== '')
+                                  ? (int)$ss->ParentSectorSubMenuUID : 0;
+
+            if ($ssmParentSectorUID > 0) {
+                if (!isset($parentSubCache[$ssmParentSectorUID])) {
+                    /* Look up the sector parent row */
+                    $sectorParent = $this->ReadDb->select('Name, Icon, UrlPath, Sorting')
+                        ->from('Modules.SectorSubMenusTbl')
+                        ->where('SectorSubMenuUID', $ssmParentSectorUID)
+                        ->limit(1)->get()->row();
+
+                    if ($sectorParent) {
+                        $orgParent = $this->ReadDb->select('SubMenuUID')
+                            ->from('Modules.SubMenusTbl')
+                            ->where('OrgUID',      $orgUID)
+                            ->where('MainMenuUID', $newMMUID)
+                            ->where('Name',        $sectorParent->Name)
+                            ->where('IsParent',    1)
+                            ->where('IsDeleted',   0)
+                            ->limit(1)->get()->row();
+
+                        if ($orgParent) {
+                            $parentSubUID = (int)$orgParent->SubMenuUID;
+                            $this->WriteDb->where('SubMenuUID', $parentSubUID)
+                                ->update('Modules.SubMenusTbl', ['IsActive' => 1, 'IsDeleted' => 0, 'UpdatedBy' => $userUID]);
+                            /* Also reactivate its role row */
+                            $this->WriteDb->query(
+                                "UPDATE UserRole.RoleSubMenusTbl rs
+                                 SET rs.IsActive = 1, rs.IsDeleted = 0
+                                 WHERE rs.RoleUID    = ? AND rs.SubMenuUID = ?",
+                                [$adminRoleUID, $parentSubUID]
+                            );
+                        } else {
+                            $this->WriteDb->insert('Modules.SubMenusTbl', [
+                                'OrgUID'           => $orgUID,
+                                'Source'           => 'Plan',
+                                'MainMenuUID'      => $newMMUID,
+                                'Name'             => $sectorParent->Name,
+                                'UrlPath'          => $sectorParent->UrlPath ?? '',
+                                'ParentSubMenuUID' => null,
+                                'IsParent'         => 1,
+                                'Icon'             => $sectorParent->Icon ?? '',
+                                'ModuleUID'        => null,
+                                'Sorting'          => $sectorParent->Sorting ?? 0,
+                                'IsActive'         => 1,
+                                'IsDeleted'        => 0,
+                                'CreatedBy'        => $userUID,
+                                'UpdatedBy'        => $userUID,
+                            ]);
+                            $parentSubUID = (int)$this->WriteDb->insert_id();
+                            if ($parentSubUID && $roleMMUID) {
+                                $this->WriteDb->insert('UserRole.RoleSubMenusTbl', [
+                                    'RoleUID'         => $adminRoleUID,
+                                    'RoleMainMenuUID' => $roleMMUID,
+                                    'SubMenuUID'      => $parentSubUID,
+                                    'Sorting'         => $sectorParent->Sorting ?? 999,
+                                    'CanView'         => 1,
+                                    'CanCreate'       => 1,
+                                    'CanEdit'         => 1,
+                                    'CanDelete'       => 1,
+                                    'IsActive'        => 1,
+                                    'IsDeleted'       => 0,
+                                ]);
+                            }
+                        }
+                        $parentSubCache[$ssmParentSectorUID] = $parentSubUID;
+                    }
+                }
+                $newParentSubUID = $parentSubCache[$ssmParentSectorUID] ?? null;
+            }
+
+            /* ── Insert SubMenusTbl row ──────────────────────────────────────── */
             $this->WriteDb->insert('Modules.SubMenusTbl', [
                 'OrgUID'           => $orgUID,
                 'Source'           => 'Plan',
                 'MainMenuUID'      => $newMMUID,
-                'Name'             => $sm->Name,
-                'UrlPath'          => $sm->UrlPath ?? '',
-                'ParentSubMenuUID' => null,
-                'IsParent'         => $sm->IsParent ?? 0,
-                'Icon'             => $sm->Icon ?? '',
-                'ModuleUID'        => ($sm->ModuleUID !== null && $sm->ModuleUID !== '') ? (int)$sm->ModuleUID : null,
-                'Sorting'          => $sm->Sorting ?? 0,
-                'IsActive'         => (int)(bool)$sm->IsActive,
+                'Name'             => $ss->Name,
+                'UrlPath'          => $ss->UrlPath ?? '',
+                'ParentSubMenuUID' => $newParentSubUID,
+                'IsParent'         => $ss->IsParent ?? 0,
+                'Icon'             => $ss->Icon ?? '',
+                'ModuleUID'        => (int)$ss->ModuleUID,
+                'Sorting'          => $ss->Sorting ?? 0,
+                'IsActive'         => 1,
                 'IsDeleted'        => 0,
                 'CreatedBy'        => $userUID,
                 'UpdatedBy'        => $userUID,
             ]);
             $newSubUID = (int)$this->WriteDb->insert_id();
-            $subMenuMap[(int)$sm->SubMenuUID] = $newSubUID;
-            $subRoleMMMap[$newSubUID]          = $roleMMUID;
+
+            /* ── Insert RoleSubMenusTbl row ──────────────────────────────────── */
+            if ($newSubUID && $roleMMUID) {
+                $this->WriteDb->insert('UserRole.RoleSubMenusTbl', [
+                    'RoleUID'         => $adminRoleUID,
+                    'RoleMainMenuUID' => $roleMMUID,
+                    'SubMenuUID'      => $newSubUID,
+                    'Sorting'         => $ss->Sorting ?? 999,
+                    'CanView'         => 1,
+                    'CanCreate'       => 1,
+                    'CanEdit'         => 1,
+                    'CanDelete'       => 1,
+                    'IsActive'        => 1,
+                    'IsDeleted'       => 0,
+                ]);
+            }
         }
 
-        /* Role sub menus — full access for admin */
-        $sort = 1;
-        foreach ($subMenuMap as $newSubUID) {
-            $roleMMUID = $subRoleMMMap[$newSubUID] ?? 0;
-            $this->WriteDb->insert('UserRole.RoleSubMenusTbl', [
-                'RoleUID'         => $adminRoleUID,
-                'RoleMainMenuUID' => $roleMMUID,
-                'SubMenuUID'      => $newSubUID,
-                'Sorting'         => $sort++,
-                'CanView'         => 1,
-                'CanCreate'       => 1,
-                'CanEdit'         => 1,
-                'CanDelete'       => 1,
-                'IsActive'        => 1,
-                'IsDeleted'       => 0,
-            ]);
+        /* ── B loop: direct-link main menus with no submenus ────────────────── */
+        foreach ($directLinkMains as $dlMM) {
+            $mmName = $dlMM->Name;
+
+            /* Resolve or insert MainMenusTbl */
+            $orgMM = $this->ReadDb->select('MainMenuUID')
+                ->from('Modules.MainMenusTbl')
+                ->where('OrgUID',    $orgUID)
+                ->where('Name',      $mmName)
+                ->where('IsDeleted', 0)
+                ->limit(1)->get()->row();
+
+            if ($orgMM) {
+                $newMMUID = (int)$orgMM->MainMenuUID;
+                $this->WriteDb->where('MainMenuUID', $newMMUID)
+                    ->update('Modules.MainMenusTbl', ['IsActive' => 1, 'IsDeleted' => 0, 'UpdatedBy' => $userUID]);
+            } else {
+                $this->WriteDb->insert('Modules.MainMenusTbl', [
+                    'OrgUID'       => $orgUID,
+                    'Source'       => 'Plan',
+                    'Name'         => $mmName,
+                    'Icon'         => $dlMM->Icon ?? '',
+                    'IsDirectLink' => 1,
+                    'DirectUrl'    => $dlMM->DirectUrl ?? '',
+                    'ModuleUID'    => (int)$dlMM->ModuleUID,
+                    'Sorting'      => $dlMM->Sorting ?? 0,
+                    'IsActive'     => 1,
+                    'IsDeleted'    => 0,
+                    'CreatedBy'    => $userUID,
+                    'UpdatedBy'    => $userUID,
+                ]);
+                $newMMUID = (int)$this->WriteDb->insert_id();
+            }
+
+            /* Resolve or insert RoleMainMenusTbl */
+            $roleMMRow = $this->ReadDb->select('RoleMainMenuUID')
+                ->from('UserRole.RoleMainMenusTbl')
+                ->where('RoleUID',     $adminRoleUID)
+                ->where('MainMenuUID', $newMMUID)
+                ->limit(1)->get()->row();
+
+            if ($roleMMRow) {
+                $this->WriteDb->where('RoleMainMenuUID', (int)$roleMMRow->RoleMainMenuUID)
+                    ->update('UserRole.RoleMainMenusTbl', ['IsActive' => 1, 'IsDeleted' => 0]);
+            } else {
+                $this->WriteDb->insert('UserRole.RoleMainMenusTbl', [
+                    'RoleUID'     => $adminRoleUID,
+                    'MainMenuUID' => $newMMUID,
+                    'Sorting'     => $dlMM->Sorting ?? 0,
+                    'CanView'     => 1,
+                    'CanCreate'   => 1,
+                    'CanEdit'     => 1,
+                    'CanDelete'   => 1,
+                    'IsActive'    => 1,
+                    'IsDeleted'   => 0,
+                    'CreatedBy'   => $userUID,
+                    'UpdatedBy'   => $userUID,
+                ]);
+            }
         }
     }
 

@@ -248,7 +248,7 @@ class Signup_model extends CI_Model {
             $this->_assignTrialSubscription($orgUID, $now);
 
             // 9. Copy menus & permissions from template org
-            $this->_copyMenusFromTemplate($orgUID, $roleUID, $userUID);
+            $this->_seedMenusFromSector($orgUID, $roleUID, $userUID);
 
             $this->dbwrite_model->commitTransaction();
 
@@ -350,7 +350,7 @@ class Signup_model extends CI_Model {
         $chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
         do {
             $token = '';
-            for ($i = 0; $i < 8; $i++) {
+            for ($i = 0; $i < 12; $i++) {
                 $token .= $chars[random_int(0, strlen($chars) - 1)];
             }
             $exists = $this->ReadDb->where('OrgToken', $token)->count_all_results('Organisation.OrganisationTbl');
@@ -543,7 +543,7 @@ class Signup_model extends CI_Model {
             if ($r->Error) throw new Exception('UserBranchAccess insert failed: ' . $r->Message);
 
             $this->_assignTrialSubscription($orgUID, $now);
-            $this->_copyMenusFromTemplate($orgUID, $roleUID, $userUID);
+            $this->_seedMenusFromSector($orgUID, $roleUID, $userUID);
 
             $this->dbwrite_model->commitTransaction();
 
@@ -665,31 +665,92 @@ class Signup_model extends CI_Model {
         }
     }
 
-    private function _copyMenusFromTemplate(int $orgUID, int $roleUID, int $userUID): void {
+    private function _seedMenusFromSector(int $orgUID, int $roleUID, int $userUID): void {
 
-        // Use the lowest-OrgUID org as the menu template (the seed org)
         $this->ReadDb->db_debug = FALSE;
-        $tplRow = $this->ReadDb->select('OrgUID')
+
+        /* ── 1. Resolve SectorUID for this org ──────────────────────────────── */
+        $orgRow = $this->ReadDb->select('SectorUID')
             ->from('Organisation.OrganisationTbl')
-            ->where('IsDeleted', 0)
-            ->where('OrgUID !=', $orgUID)
-            ->order_by('OrgUID', 'ASC')
+            ->where('OrgUID', $orgUID)
             ->limit(1)
-            ->get();
+            ->get()->row();
+        $sectorUID = $orgRow ? (int)$orgRow->SectorUID : 0;
+        if ($sectorUID <= 0) return;
 
-        if (!$tplRow || $tplRow->num_rows() === 0) return;
-        $tplOrgUID = (int) $tplRow->row()->OrgUID;
+        /* ── 2. Resolve PlanUID from the org's current subscription ─────────── */
+        $subRow = $this->ReadDb->select('SPT.PlanUID')
+            ->from('Billing.OrgSubscriptionTbl AS OS')
+            ->join('Billing.SectorPlanTbl AS SPT', 'SPT.SectorPlanUID = OS.SectorPlanUID')
+            ->where('OS.OrgUID', $orgUID)
+            ->where_not_in('OS.Status', ['Cancelled'])
+            ->order_by('OS.OrgSubUID', 'DESC')
+            ->limit(1)
+            ->get()->row();
+        $planUID = $subRow ? (int)$subRow->PlanUID : 0;
 
-        // ── Main Menus ─────────────────────────────────────────────────────────
+        /* ── 3. Allowed ModuleUIDs for this sector + plan ───────────────────── */
+        $allowedModuleUIDs = [];
+        if ($planUID > 0) {
+            $modRows = $this->ReadDb->select('ModuleUID')
+                ->from('Billing.SectorPlanModulesTbl')
+                ->where('SectorUID', $sectorUID)
+                ->where('PlanUID',   $planUID)
+                ->get()->result();
+            $allowedModuleUIDs = array_map('intval', array_column($modRows, 'ModuleUID'));
+        }
+        /* Empty allowedModuleUIDs = no filter → all menus active (Trial / unconfigured) */
+
+        /* ── 4. Read ALL sector main menus ──────────────────────────────────── */
         $mainMenuRows = $this->ReadDb->select('*')
-            ->from('Modules.MainMenusTbl')
-            ->where('OrgUID', $tplOrgUID)
-            ->where('IsDeleted', 0)
+            ->from('Modules.SectorMainMenusTbl')
+            ->where('SectorUID',  $sectorUID)
+            ->where('IsDeleted',  0)
             ->order_by('Sorting', 'ASC')
             ->get()->result();
 
-        $mainMenuMap = [];
+        if (empty($mainMenuRows)) return;
+
+        /* ── 5. Read ALL sector sub menus ───────────────────────────────────── */
+        $subMenuRows = $this->ReadDb->select('*')
+            ->from('Modules.SectorSubMenusTbl')
+            ->where('SectorUID',  $sectorUID)
+            ->where('IsDeleted',  0)
+            ->order_by('ParentSectorSubMenuUID', 'ASC')
+            ->order_by('Sorting', 'ASC')
+            ->get()->result();
+
+        /* ── 6. Determine which main menus are active ──────────────────────── */
+        $activeMainSectorUIDs = [];
+
+        /* Regular menus: active if ≥ 1 submenu's ModuleUID is in allowed list */
+        foreach ($subMenuRows as $sm) {
+            $modUID   = ($sm->ModuleUID !== null && $sm->ModuleUID !== '') ? (int)$sm->ModuleUID : null;
+            $isActive = empty($allowedModuleUIDs) || ($modUID !== null && in_array($modUID, $allowedModuleUIDs, true));
+            if ($isActive) {
+                $activeMainSectorUIDs[(int)$sm->SectorMainMenuUID] = true;
+            }
+        }
+
+        /* Direct-link menus: active based on their own ModuleUID */
         foreach ($mainMenuRows as $mm) {
+            if ((int)($mm->IsDirectLink ?? 0) !== 1) continue;
+            $modUID = ($mm->ModuleUID !== null && $mm->ModuleUID !== '') ? (int)$mm->ModuleUID : null;
+            if ($modUID === null) {
+                /* No module constraint — always active */
+                $activeMainSectorUIDs[(int)$mm->SectorMainMenuUID] = true;
+            } elseif (empty($allowedModuleUIDs) || in_array($modUID, $allowedModuleUIDs, true)) {
+                $activeMainSectorUIDs[(int)$mm->SectorMainMenuUID] = true;
+            }
+        }
+
+        /* ── 7. Insert main menus ───────────────────────────────────────────── */
+        $mainMenuMap     = []; /* SectorMainMenuUID → new MainMenuUID */
+        $mainMenuIsActive = []; /* SectorMainMenuUID → isActive */
+        foreach ($mainMenuRows as $mm) {
+            $sectorMMUID = (int)$mm->SectorMainMenuUID;
+            $isActive    = isset($activeMainSectorUIDs[$sectorMMUID]) ? 1 : 0;
+            $mmModUID    = ($mm->ModuleUID !== null && $mm->ModuleUID !== '') ? (int)$mm->ModuleUID : null;
             $r = $this->dbwrite_model->insertData('Modules', 'MainMenusTbl', [
                 'OrgUID'       => $orgUID,
                 'Source'       => 'Plan',
@@ -697,24 +758,23 @@ class Signup_model extends CI_Model {
                 'Icon'         => $mm->Icon ?? '',
                 'IsDirectLink' => $mm->IsDirectLink ?? 0,
                 'DirectUrl'    => $mm->DirectUrl ?? '',
+                'ModuleUID'    => $mmModUID,
                 'Sorting'      => $mm->Sorting ?? 0,
-                'IsActive'     => (int)(bool) $mm->IsActive,
+                'IsActive'     => $isActive,
                 'IsDeleted'    => 0,
                 'CreatedBy'    => $userUID,
                 'UpdatedBy'    => $userUID,
             ]);
             if ($r->Error) throw new Exception('MainMenu insert failed: ' . $r->Message . ' (Name=' . $mm->Name . ')');
-            $mainMenuMap[(int) $mm->MainMenuUID] = (int) $r->ID;
+            $mainMenuMap[$sectorMMUID]      = (int)$r->ID;
+            $mainMenuIsActive[$sectorMMUID] = $isActive;
         }
 
-        // ── Modules — global catalog with UNIQUE(Name); skip copy, use original UIDs ──
-        // ModuleTbl.Name is globally unique across all orgs so inserts would fail.
-        // SubMenusTbl.ModuleUID FK is satisfied as long as the original record exists.
-
-        // ── RoleMainMenusTbl — inserted before SubMenus so RoleMainMenuUID is available ──
-        $roleMainMenuMap = [];
+        /* ── 8. Insert RoleMainMenusTbl (before submenus so RoleMainMenuUID exists) ── */
+        $roleMainMenuMap = []; /* new MainMenuUID → RoleMainMenuUID */
         $sort = 1;
-        foreach ($mainMenuMap as $newMMUID) {
+        foreach ($mainMenuMap as $sectorMMUID => $newMMUID) {
+            $isActive = $mainMenuIsActive[$sectorMMUID] ?? 0;
             $r = $this->dbwrite_model->insertData('UserRole', 'RoleMainMenusTbl', [
                 'RoleUID'     => $roleUID,
                 'MainMenuUID' => $newMMUID,
@@ -723,34 +783,46 @@ class Signup_model extends CI_Model {
                 'CanCreate'   => 1,
                 'CanEdit'     => 1,
                 'CanDelete'   => 1,
-                'IsActive'    => 1,
+                'IsActive'    => $isActive,
                 'IsDeleted'   => 0,
                 'CreatedBy'   => $userUID,
                 'UpdatedBy'   => $userUID,
             ]);
             if ($r->Error) throw new Exception('RoleMainMenu insert failed: ' . $r->Message . ' (MainMenuUID=' . $newMMUID . ')');
-            $roleMainMenuMap[$newMMUID] = (int) $r->ID;
+            $roleMainMenuMap[$newMMUID] = (int)$r->ID;
         }
 
-        // ── Sub Menus — parents first ─────────────────────────────────────────
-        $subMenuRows = $this->ReadDb->select('*')
-            ->from('Modules.SubMenusTbl')
-            ->where('OrgUID', $tplOrgUID)
-            ->where('IsDeleted', 0)
-            ->order_by('ParentSubMenuUID', 'ASC')
-            ->order_by('Sorting', 'ASC')
-            ->get()->result();
+        /* ── 9. Insert sub menus ────────────────────────────────────────────── */
+        /* Pre-compute: which SectorSubMenuUIDs are parent headers of ≥1 active child */
+        $activeParentSectorSubUIDs = [];
+        foreach ($subMenuRows as $sm) {
+            if ($sm->ParentSectorSubMenuUID === null || $sm->ParentSectorSubMenuUID === '') continue;
+            $modUID = ($sm->ModuleUID !== null && $sm->ModuleUID !== '') ? (int)$sm->ModuleUID : null;
+            if (empty($allowedModuleUIDs) || ($modUID !== null && in_array($modUID, $allowedModuleUIDs, true))) {
+                $activeParentSectorSubUIDs[(int)$sm->ParentSectorSubMenuUID] = true;
+            }
+        }
 
-        $subMenuMap       = [];
-        $subMenuRoleMMMap = [];
+        $subMenuMap       = []; /* SectorSubMenuUID → new SubMenuUID */
+        $subMenuIsActive  = []; /* new SubMenuUID → isActive */
+        $subMenuRoleMMMap = []; /* new SubMenuUID → RoleMainMenuUID */
 
         foreach ($subMenuRows as $sm) {
-            $oldMain   = (int) $sm->MainMenuUID;
-            $oldParent = ($sm->ParentSubMenuUID !== null && $sm->ParentSubMenuUID !== '') ? (int) $sm->ParentSubMenuUID : 0;
-            $origMod   = ($sm->ModuleUID !== null && $sm->ModuleUID !== '') ? (int) $sm->ModuleUID : null;
+            $sectorMMUID = (int)$sm->SectorMainMenuUID;
+            $newMMUID    = $mainMenuMap[$sectorMMUID] ?? 0;
+            if (!$newMMUID) continue;
 
-            $newMMUID     = $mainMenuMap[$oldMain] ?? 0;
-            $newRoleMMUID = $roleMainMenuMap[$newMMUID] ?? 0;
+            $newRoleMMUID  = $roleMainMenuMap[$newMMUID] ?? 0;
+            $modUID        = ($sm->ModuleUID !== null && $sm->ModuleUID !== '') ? (int)$sm->ModuleUID : null;
+            $ssmUID        = (int)$sm->SectorSubMenuUID;
+            /* Parent header rows (ModuleUID=NULL) are active if any child is active */
+            $isActive      = (
+                isset($activeParentSectorSubUIDs[$ssmUID])
+                || empty($allowedModuleUIDs)
+                || ($modUID !== null && in_array($modUID, $allowedModuleUIDs, true))
+            ) ? 1 : 0;
+            $oldParentUID  = ($sm->ParentSectorSubMenuUID !== null && $sm->ParentSectorSubMenuUID !== '') ? (int)$sm->ParentSectorSubMenuUID : 0;
+            $newParentUID  = ($oldParentUID && isset($subMenuMap[$oldParentUID])) ? $subMenuMap[$oldParentUID] : null;
 
             $r = $this->dbwrite_model->insertData('Modules', 'SubMenusTbl', [
                 'OrgUID'           => $orgUID,
@@ -758,26 +830,28 @@ class Signup_model extends CI_Model {
                 'MainMenuUID'      => $newMMUID,
                 'Name'             => $sm->Name,
                 'UrlPath'          => $sm->UrlPath ?? '',
-                'ParentSubMenuUID' => ($oldParent && isset($subMenuMap[$oldParent])) ? $subMenuMap[$oldParent] : null,
+                'ParentSubMenuUID' => $newParentUID,
                 'IsParent'         => $sm->IsParent ?? 0,
                 'Icon'             => $sm->Icon ?? '',
-                'ModuleUID'        => $origMod,
+                'ModuleUID'        => $modUID,
                 'Sorting'          => $sm->Sorting ?? 0,
-                'IsActive'         => (int)(bool) $sm->IsActive,
+                'IsActive'         => $isActive,
                 'IsDeleted'        => 0,
                 'CreatedBy'        => $userUID,
                 'UpdatedBy'        => $userUID,
             ]);
-            if ($r->Error) throw new Exception('SubMenu insert failed: ' . $r->Message . ' (Name=' . $sm->Name . ', ModuleUID=' . ($origMod ?? 'null') . ')');
-            $newSubUID                         = (int) $r->ID;
-            $subMenuMap[(int) $sm->SubMenuUID] = $newSubUID;
-            $subMenuRoleMMMap[$newSubUID]       = $newRoleMMUID;
+            if ($r->Error) throw new Exception('SubMenu insert failed: ' . $r->Message . ' (Name=' . $sm->Name . ')');
+            $newSubUID                              = (int)$r->ID;
+            $subMenuMap[(int)$sm->SectorSubMenuUID] = $newSubUID;
+            $subMenuIsActive[$newSubUID]             = $isActive;
+            $subMenuRoleMMMap[$newSubUID]            = $newRoleMMUID;
         }
 
-        // ── RoleSubMenusTbl — admin gets full access ───────────────────────────
+        /* ── 10. Insert RoleSubMenusTbl ─────────────────────────────────────── */
         $sort = 1;
         foreach ($subMenuMap as $newSubUID) {
             $roleMMUID = $subMenuRoleMMMap[$newSubUID] ?? 0;
+            $isActive  = $subMenuIsActive[$newSubUID]  ?? 0;
             $r = $this->dbwrite_model->insertData('UserRole', 'RoleSubMenusTbl', [
                 'RoleUID'         => $roleUID,
                 'RoleMainMenuUID' => $roleMMUID,
@@ -787,12 +861,11 @@ class Signup_model extends CI_Model {
                 'CanCreate'       => 1,
                 'CanEdit'         => 1,
                 'CanDelete'       => 1,
-                'IsActive'        => 1,
+                'IsActive'        => $isActive,
                 'IsDeleted'       => 0,
             ]);
-            if ($r->Error) throw new Exception('RoleSubMenu insert failed: ' . $r->Message . ' (SubMenuUID=' . $newSubUID . ', RoleUID=' . $roleUID . ')');
+            if ($r->Error) throw new Exception('RoleSubMenu insert failed: ' . $r->Message . ' (SubMenuUID=' . $newSubUID . ')');
         }
-
     }
 
 }

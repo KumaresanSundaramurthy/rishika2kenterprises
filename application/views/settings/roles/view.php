@@ -107,7 +107,6 @@
                 </div>
             </div><!-- /content-wrapper -->
 
-            <?php $this->load->view('common/settings_modal'); ?>
             <?php $this->load->view('common/footer_desc'); ?>
         </div>
     </div>

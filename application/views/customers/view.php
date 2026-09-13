@@ -256,7 +256,6 @@
             </div>
 
             <?php $this->load->view('common/imagepreview_modal'); ?>
-            <?php $this->load->view('common/settings_modal'); ?>
             <?php $this->load->view('common/modals/send_communication'); ?>
 
             <?php $this->load->view('common/modals/customer_form'); ?>

@@ -7,59 +7,16 @@ class Storage_model extends CI_Model {
 
     function __construct() {
         parent::__construct();
-
         $this->ReadDb = $this->load->database('ReadDB', TRUE);
-
     }
 
-    public function storageFilterFormation(object $ModuleInfoData, array $Filter): object {
-
-        $this->EndReturnData = new StdClass();
-        try {
-
-            $SearchDirectQuery = '';
-            $SearchFilter = [];
-            $sortOperation = [];
-            if(!empty($Filter)) {
-                if (array_key_exists('SearchAllData', $Filter)) {
-                    $SearchDirectQuery .= "((". $ModuleInfoData->TableAliasName.".Name LIKE '%".$Filter['SearchAllData']."%' ) OR (".$ModuleInfoData->TableAliasName.".ShortName LIKE '%".$Filter['SearchAllData']."%') OR (".$ModuleInfoData->TableAliasName.".Description LIKE '%".$Filter['SearchAllData']."%'))";
-                }
-                if (array_key_exists('NameSorting', $Filter)) {
-                    $sortOperation[$ModuleInfoData->TableAliasName . '.Name'] = $Filter['NameSorting'] == 1 ? 'ASC' : 'DESC';
-                }
-                if (array_key_exists('StorageType', $Filter)) {
-                    if($SearchDirectQuery != '') {
-                        $SearchDirectQuery .= ' AND ';
-                    }
-                    $SearchDirectQuery .= $ModuleInfoData->TableAliasName.'.StorageTypeUID IN ('.implode(',', $Filter['StorageType']).')';
-                }
-            }
-
-            $this->EndReturnData->Error = FALSE;
-            $this->EndReturnData->SearchDirectQuery = $SearchDirectQuery;
-            $this->EndReturnData->SearchFilter = $SearchFilter;
-            $this->EndReturnData->sortOperation = $sortOperation;
-
-        } catch (Exception $e) {
-            notifyError('Storage_model::storageFilterFormation', $e);
-            $this->EndReturnData->Error = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-            $this->EndReturnData->SearchDirectQuery = '';
-            $this->EndReturnData->SearchFilter = [];
-            $this->EndReturnData->sortOperation = [];
-        }
-
-        return $this->EndReturnData;
-
-    }
-
-    public function getStorageDetails(array $FilterArray): array {
+    public function getStorageDetails(array $FilterArray, int $Limit = 0, int $Offset = 0, string $DirectQuery = ''): array {
 
         $this->EndReturnData = new StdClass();
         try {
 
             $this->ReadDb->db_debug = FALSE;
-            $select_ary = array(
+            $this->ReadDb->select([
                 'Storage.StorageUID AS StorageUID',
                 'Storage.OrgUID AS OrgUID',
                 'Storage.Name AS Name',
@@ -70,37 +27,48 @@ class Storage_model extends CI_Model {
                 'Storage.Image AS Image',
                 'Storage.CreatedOn as CreatedOn',
                 'Storage.UpdatedOn as UpdatedOn',
-            );
-            $WhereCondition = array(
-                'Storage.IsDeleted' => 0,
-                'Storage.IsActive' => 1,
-            );
-            $this->ReadDb->select($select_ary);
+            ]);
             $this->ReadDb->from('Products.StorageTbl as Storage');
             $this->ReadDb->join('Global.StorageTypeTbl as StorageType', 'StorageType.StorageTypeUID = Storage.StorageTypeUID', 'left');
-            $this->ReadDb->where($WhereCondition);
+            $this->ReadDb->where(['Storage.IsDeleted' => 0, 'Storage.IsActive' => 1]);
             if (!empty($FilterArray)) {
                 $this->ReadDb->where($FilterArray);
             }
+            if (!empty($DirectQuery)) {
+                $this->ReadDb->where($DirectQuery);
+            }
             $this->ReadDb->group_by('Storage.StorageUID');
             $this->ReadDb->order_by('Storage.StorageUID', 'ASC');
-
-            $query = $this->ReadDb->get();
-            $error = $this->ReadDb->error();
-            if ($error['code']) {
-                throw new Exception($error['message']);
-            } else {
-                $this->EndReturnData->Data = $query->result();
+            if ($Limit > 0) {
+                $this->ReadDb->limit($Limit, $Offset);
             }
 
-            return $this->EndReturnData->Data;
+            $query = $this->ReadDb->get();
+            if ($this->ReadDb->error()['code']) {
+                throw new Exception($this->ReadDb->error()['message']);
+            }
+
+            return $query->result();
 
         } catch (Exception $e) {
             notifyError('Storage_model::getStorageDetails', $e);
-            $this->EndReturnData->Error = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-            throw new Exception($this->EndReturnData->Message);
+            throw new Exception($e->getMessage());
         }
+
+    }
+
+    public function getTotalStorageCount(array $FilterArray, string $DirectQuery = ''): int {
+
+        $this->ReadDb->db_debug = FALSE;
+        $this->ReadDb->from('Products.StorageTbl as Storage');
+        $this->ReadDb->where(['Storage.IsDeleted' => 0, 'Storage.IsActive' => 1]);
+        if (!empty($FilterArray)) {
+            $this->ReadDb->where($FilterArray);
+        }
+        if (!empty($DirectQuery)) {
+            $this->ReadDb->where($DirectQuery);
+        }
+        return (int) $this->ReadDb->count_all_results();
 
     }
 

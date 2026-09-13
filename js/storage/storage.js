@@ -1,20 +1,19 @@
 /**
- * @param {*} PageNo
- * @param {*} RowLimit
- * @param {*} Filter
+ * @param {number} PageNo
+ * @param {number} RowLimit
+ * @param {object} Filter
+ * @returns {void}
  */
 function getStorageDetails(PageNo, RowLimit, Filter) {
     $.ajax({
-        url: '/globally/getModPageDataDetails/' + PageNo,
-        method: "POST",
+        url: '/storage/getStorageList/' + (PageNo || 1),
+        method: 'POST',
         cache: false,
         data: {
             RowLimit: RowLimit,
-            PageNo: PageNo,
             Filter: Filter,
-            ModuleId: ModuleId
         },
-        success: function (response) {
+        success: function(response) {
             if (response.Error) {
                 $(ModuleTable + ' tbody').html('');
                 $(ModulePag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
@@ -30,6 +29,9 @@ function getStorageDetails(PageNo, RowLimit, Filter) {
 var _storageIsDirty      = false;
 var _storageIsCreateMode = false;
 
+/**
+ * @returns {void}
+ */
 function formOpenCloseDefActions() {
     _storageIsCreateMode = false;
     _storageIsDirty      = false;
@@ -42,6 +44,10 @@ function formOpenCloseDefActions() {
     imgData = '';
 }
 
+/**
+ * @param {FormData} formdata
+ * @returns {void}
+ */
 function addStorageData(formdata) {
     $.ajax({
         url: '/storage/addStorageData',
@@ -51,7 +57,7 @@ function addStorageData(formdata) {
         processData: false,
         contentType: false,
         enctype: 'multipart/form-data',
-        success: function (response) {
+        success: function(response) {
             if (response.Error) {
                 showToastNotification(response.Message || 'Failed to save storage.', 'error');
             } else {
@@ -61,10 +67,14 @@ function addStorageData(formdata) {
                 $('#storageModal').modal('hide');
                 executeTablePagnCommonFunc(response, true);
             }
-        }
+        },
     });
 }
 
+/**
+ * @param {FormData} formdata
+ * @returns {void}
+ */
 function updateStorageData(formdata) {
     $.ajax({
         url: '/storage/updateStorageData',
@@ -74,7 +84,7 @@ function updateStorageData(formdata) {
         processData: false,
         contentType: false,
         enctype: 'multipart/form-data',
-        success: function (response) {
+        success: function(response) {
             if (response.Error) {
                 showToastNotification(response.Message || 'Failed to update storage.', 'error');
             } else {
@@ -82,28 +92,31 @@ function updateStorageData(formdata) {
                 $('#storageModal').modal('hide');
                 executeTablePagnCommonFunc(response, true);
             }
-        }
+        },
     });
 }
 
+/**
+ * @param {number} StorageUID
+ * @returns {void}
+ */
 function deleteStorage(StorageUID) {
     $.ajax({
         url: '/storage/deleteStorageDetails',
-        method: "POST",
+        method: 'POST',
         cache: false,
         data: {
             RowLimit: RowLimit,
             PageNo: PageNo,
             Filter: Filter,
             StorageUID: StorageUID,
-            ModuleId: ModuleId
         },
-        success: function (response) {
+        success: function(response) {
             if (response.Error) {
-                Swal.fire(response.Message, "", "error");
+                Swal.fire(response.Message, '', 'error');
             } else {
                 if (SelectedUIDs.length > 0) {
-                    SelectedUIDs = SelectedUIDs.filter(function (item) {
+                    SelectedUIDs = SelectedUIDs.filter(function(item) {
                         return item !== StorageUID;
                     });
                 }
@@ -113,21 +126,23 @@ function deleteStorage(StorageUID) {
     });
 }
 
+/**
+ * @returns {void}
+ */
 function deleteMultipleStorage() {
     $.ajax({
         url: '/storage/deleteBulkStorage',
-        method: "POST",
+        method: 'POST',
         cache: false,
         data: {
             RowLimit: RowLimit,
             PageNo: PageNo,
             Filter: Filter,
             StorageUIDs: SelectedUIDs,
-            ModuleId: ModuleId
         },
-        success: function (response) {
+        success: function(response) {
             if (response.Error) {
-                Swal.fire(response.Message, "", "error");
+                Swal.fire(response.Message, '', 'error');
             } else {
                 SelectedUIDs = [];
                 executeTablePagnCommonFunc(response, true);
@@ -136,6 +151,9 @@ function deleteMultipleStorage() {
     });
 }
 
+/**
+ * @returns {void}
+ */
 function resetStorageTypeFilter() {
     $('.storagetype-checkbox').prop('checked', false);
     if (Filter.StorageType) {
@@ -143,10 +161,13 @@ function resetStorageTypeFilter() {
     }
 }
 
+/**
+ * @returns {void}
+ */
 function applyStorageTypeFilter() {
     PageNo = 0;
     delete Filter['StorageType'];
-    let selStrgTypeIds = $('.storagetype-checkbox:checked').map(function () {
+    let selStrgTypeIds = $('.storagetype-checkbox:checked').map(function() {
         return $(this).val();
     }).get();
     $('#storageTypeFilter').removeClass('text-primary');
@@ -158,12 +179,15 @@ function applyStorageTypeFilter() {
     getStorageDetails(PageNo, RowLimit, Filter);
 }
 
+/**
+ * @returns {void}
+ */
 function closeStorageTypeFilter() {
     $('#storageTypeFilterBox').hide();
 }
 
 // ── Arm on open (add mode only) ───────────────────────────────────────────
-$(document).on('shown.bs.modal', '#storageModal', function () {
+$(document).on('shown.bs.modal', '#storageModal', function() {
     if (parseInt($('#StorageUID').val(), 10) === 0) {
         _storageIsCreateMode = true;
         _storageIsDirty      = false;
@@ -171,12 +195,12 @@ $(document).on('shown.bs.modal', '#storageModal', function () {
 });
 
 // ── Dirty-tracking listener ───────────────────────────────────────────────
-$(document).on('input change', '#storageForm input, #storageForm textarea, #storageForm select', function () {
+$(document).on('input change', '#storageForm input, #storageForm textarea, #storageForm select', function() {
     if (_storageIsCreateMode) _storageIsDirty = true;
 });
 
 // ── Unsaved-changes guard ─────────────────────────────────────────────────
-$(document).on('hide.bs.modal', '#storageModal', function (e) {
+$(document).on('hide.bs.modal', '#storageModal', function(e) {
     if (!_storageIsDirty || !_storageIsCreateMode) return;
     e.preventDefault();
     Swal.fire({
@@ -188,7 +212,7 @@ $(document).on('hide.bs.modal', '#storageModal', function (e) {
         cancelButtonText  : t('swal_unsaved_cancel',  'Stay'),
         confirmButtonColor: '#d33',
         cancelButtonColor : '#3085d6',
-    }).then(function (result) {
+    }).then(function(result) {
         if (result.isConfirmed) {
             _storageIsDirty      = false;
             _storageIsCreateMode = false;

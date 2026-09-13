@@ -135,7 +135,6 @@ $stats = $StaffStats ?? null;
                 </div>
             </div>
 
-            <?php $this->load->view('common/settings_modal'); ?>
             <?php $this->load->view('users/modals/user'); ?>
             <?php $this->load->view('common/form/address_form'); ?>
             <?php $this->load->view('common/footer_desc'); ?>

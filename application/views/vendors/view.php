@@ -246,7 +246,6 @@
             <!-- Content wrapper -->
             
             <?php $this->load->view('common/imagepreview_modal'); ?>
-            <?php $this->load->view('common/settings_modal'); ?>
             <?php $this->load->view('common/modals/send_communication'); ?>
             <?php $this->load->view('common/modals/vendor_group_form'); ?>
             <?php $this->load->view('common/modals/vendor_profile_modal'); ?>

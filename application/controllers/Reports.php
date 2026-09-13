@@ -11,7 +11,7 @@ class Reports extends MY_Controller {
             redirect('portal');
             return;
         }
-        $this->pageData['PageTitle'] = 'Reports';
+        if (!$this->_loadPageTitle(49)) { $this->load->view('common/module_error', $this->pageData); return; }
         $this->load->view('reports/index', $this->pageData);
     }
 

@@ -93,11 +93,17 @@ $route['subscription/renew/cancelToken']   = 'subscriptionrenew/cancelToken';
 $route['signup']                  = 'signup/index';
 $route['signup/doSignup']         = 'signup/doSignup';
 $route['signup/google-auth']      = 'signup/googleAuth';
+$route['signup/getPlans']         = 'signup/getPlans';
 $route['change-password/forced']  = 'login/forcedPasswordChange';
 $route['signup/checkEmail']       = 'signup/checkEmail';
 $route['signup/checkUsername']    = 'signup/checkUsername';
 $route['signup/checkMobile']      = 'signup/checkMobile';
 $route['signup/checkGSTIN']       = 'signup/checkGSTIN';
+
+// Signup payment gate (JWT required — authenticated controller)
+$route['signup/payment']          = 'signuppayment/index';
+$route['signup/createOrder']      = 'signuppayment/createOrder';
+$route['signup/confirmPayment']   = 'signuppayment/confirmPayment';
 
 // Email verification (public — no JWT required)
 $route['verify-email/(:any)']     = 'login/verifyEmail/$1';

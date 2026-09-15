@@ -2,7 +2,7 @@
  * Shared multi-file attachment zone — Products, Categories, Customers, Vendors,
  * Transactions, Payments, Expenses, Indirect Income.
  *
- * Configuration lives in Global.ModuleAttachmentCfgTbl (DB) and is pushed to
+ * Configuration lives in Modules.AttachmentSlotConfigTbl (DB) and is pushed to
  * the page as window._attachCfgSettings by footer_script.php.  The JS defaults
  * below are overridden at DOM-ready by whatever the DB says, so a developer only
  * needs to UPDATE that table row (and flush the Upstash key) to change any limit.

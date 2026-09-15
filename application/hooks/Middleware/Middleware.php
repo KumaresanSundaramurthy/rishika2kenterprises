@@ -136,6 +136,26 @@ class Middleware {
 						}
 					}
 
+					// ── PendingPayment gate (paid-plan signup, payment not yet completed) ──
+					if (($sub->Status ?? '') === 'PendingPayment') {
+						$_ppController = $CI->router->fetch_class();
+						if ($_ppController !== 'signuppayment') {
+							if ($CI->input->is_ajax_request()) {
+								$CI->output
+									->set_status_header(402)
+									->set_content_type('application/json', 'utf-8')
+									->set_output(json_encode([
+										'Error'          => true,
+										'PaymentPending' => true,
+										'Message'        => 'Please complete your subscription payment to continue.',
+									]))
+									->_display();
+								exit;
+							}
+							redirect('signup/payment', 'refresh');
+						}
+					}
+
 					// ── Onboarding check (Google signup only) ──────────────────
 					$isOnboardingDone = (int)($CI->pageData['JwtData']->Org->IsOnboardingComplete ?? 1);
 					if ($isOnboardingDone === 0 && $CI->router->fetch_class() !== 'onboarding') {

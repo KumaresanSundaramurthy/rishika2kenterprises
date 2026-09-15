@@ -5,9 +5,18 @@
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* Freeze the body so the admin theme's main.js cannot shift the layout */
+html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    height: 100% !important;
+}
+
 .su-root {
     display: flex;
-    height: 100vh;
+    position: fixed;
+    inset: 0;
     background: #040b18;
     font-family: 'Public Sans', sans-serif;
     overflow: hidden;
@@ -17,7 +26,6 @@
 .su-brand {
     position: relative;
     width: 45%;
-    height: 100vh;
     overflow: hidden;
     background: #0e1318;
     display: flex;
@@ -271,6 +279,47 @@
     transition: background-color 5000s ease-in-out 0s;
 }
 .su-input option { background: #0a1628; color: #e2f0ff; }
+
+/* ── Phone prefix input ─────────────────────────────────────── */
+.su-phone-wrap {
+    display: flex;
+    align-items: center;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(96,165,200,0.2);
+    border-radius: 8px;
+    transition: border-color 0.2s, background 0.2s;
+    overflow: hidden;
+}
+.su-phone-wrap:focus-within {
+    border-color: rgba(96,165,200,0.6);
+    background: rgba(96,165,200,0.07);
+}
+.su-phone-wrap.error { border-color: rgba(239,68,68,0.6); }
+.su-phone-wrap.valid { border-color: rgba(52,211,153,0.5); }
+
+.su-phone-prefix {
+    padding: 0.7rem 0.8rem 0.7rem 1rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: rgba(96,165,200,0.9);
+    user-select: none;
+    white-space: nowrap;
+    flex-shrink: 0;
+    border-right: 1px solid rgba(96,165,200,0.2);
+    line-height: 1.4;
+}
+.su-phone-input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.7rem 1rem;
+    background: transparent;
+    border: none;
+    color: #e2f0ff;
+    font-size: 0.9rem;
+    font-family: inherit;
+    outline: none;
+}
+.su-phone-input::placeholder { color: rgba(160,190,215,0.4); }
 
 .su-pw-wrap {
     position: relative;
@@ -606,6 +655,81 @@
     letter-spacing: 0.02em;
 }
 
+/* ── Overlay two-state toggle ──────────────────────────── */
+.su-overlay-creating { display: contents; }
+.su-overlay-done     { display: none; flex-direction: column; align-items: center; gap: 0.6rem; }
+
+.su-overlay.success .su-overlay-creating { display: none; }
+.su-overlay.success .su-overlay-done     { display: flex; }
+
+/* Checkmark circle */
+.su-overlay-check {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: rgba(52, 211, 153, 0.12);
+    border: 2px solid rgba(52, 211, 153, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: #34d399;
+    animation: su-check-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    margin-bottom: 0.4rem;
+}
+
+@keyframes su-check-pop {
+    from { transform: scale(0.4); opacity: 0; }
+    to   { transform: scale(1);   opacity: 1; }
+}
+
+.su-overlay-done-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #e2f0ff;
+    letter-spacing: 0.01em;
+}
+
+.su-overlay-done-org {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #60a5c8;
+    max-width: 260px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.su-overlay-done-msg {
+    font-size: 0.82rem;
+    color: rgba(160, 190, 215, 0.6);
+    margin-top: 0.2rem;
+}
+
+/* Three-dot bounce */
+.su-overlay-done-dots {
+    display: flex;
+    gap: 6px;
+    margin-top: 0.5rem;
+}
+
+.su-overlay-done-dots span {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: rgba(96, 165, 200, 0.5);
+    animation: su-dot-bounce 1.2s ease-in-out infinite;
+}
+
+.su-overlay-done-dots span:nth-child(2) { animation-delay: 0.2s; }
+.su-overlay-done-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes su-dot-bounce {
+    0%, 80%, 100% { transform: scale(0.7); opacity: 0.4; }
+    40%            { transform: scale(1);   opacity: 1;   }
+}
+
 /* ── Google confirmation overlay ───────────────────────────────── */
 .su-gconf-overlay {
     position: fixed;
@@ -685,9 +809,41 @@
 .su-gconf-email {
     font-size: 0.82rem;
     color: rgba(160, 190, 215, 0.6);
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
     word-break: break-all;
 }
+
+.su-gconf-plan-section {
+    width: 100%;
+    margin-bottom: 1.25rem;
+}
+
+.su-gconf-plan-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: rgba(160, 190, 215, 0.55);
+    margin-bottom: 0.65rem;
+    text-align: left;
+}
+
+#suGconfPlanCards .su-plan-grid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+}
+
+#suGconfPlanCards .su-plan-card {
+    padding: 0.65rem 0.9rem;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.75rem;
+}
+#suGconfPlanCards .su-plan-card::before { display: none; }
+#suGconfPlanCards .su-plan-card-name  { font-size: 0.88rem; }
+#suGconfPlanCards .su-plan-card-price { margin-top: 0; margin-left: auto; }
+#suGconfPlanCards .su-plan-card-meta  { display: none; }
+#suGconfPlanCards .su-plan-card-cycle { display: none; }
 
 .su-gconf-btn-continue {
     width: 100%;
@@ -736,7 +892,7 @@
 .su-home-link {
     position: absolute;
     top: 24px;
-    left: 24px;
+    right: 24px;
     z-index: 10;
     display: flex;
     align-items: center;
@@ -759,7 +915,7 @@
     color: #c8e4f4;
     border-color: rgba(96, 165, 200, 0.35);
     text-decoration: none;
-    transform: translateX(-2px);
+    transform: translateX(2px);
 }
 .su-home-link i { font-size: 14px; }
 
@@ -837,6 +993,164 @@
 }
 .su-lang-opt:hover { background: rgba(255,255,255,0.06); color: #f1f5f9; }
 .su-lang-opt.su-lang-active { color: #f59e0b; }
+
+/* ── Plan loading spinner ───────────────────────────────────── */
+.su-plans-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 0;
+    gap: 0.55rem;
+    color: rgba(160, 200, 220, 0.5);
+    font-size: 0.84rem;
+}
+.su-plans-loading .bx { font-size: 1.9rem; }
+
+/* ── Plan cards ────────────────────────────────────────────── */
+.su-plan-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.7rem;
+    margin-bottom: 0.5rem;
+}
+
+.su-plan-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: rgba(9, 16, 32, 0.8);
+    border: 1.5px solid rgba(96, 165, 200, 0.13);
+    border-radius: 13px;
+    padding: 1.05rem 0.95rem 0.9rem;
+    cursor: pointer;
+    transition: border-color 0.18s, background 0.18s, box-shadow 0.18s, transform 0.18s;
+    outline: none;
+    overflow: hidden;
+}
+
+/* Accent bar at top */
+.su-plan-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #3b82f6, #60a5c8);
+    border-radius: 13px 13px 0 0;
+    opacity: 0.55;
+    transition: opacity 0.18s;
+}
+.su-plan-card[data-cycle="trial"]::before   { background: linear-gradient(90deg, #4ade80, #22c55e); }
+.su-plan-card[data-cycle="monthly"]::before { background: linear-gradient(90deg, #3b82f6, #60a5c8); }
+.su-plan-card[data-cycle="yearly"]::before  { background: linear-gradient(90deg, #f59e0b, #a78bfa); }
+
+.su-plan-card:hover {
+    border-color: rgba(96, 165, 200, 0.38);
+    background: rgba(16, 28, 52, 0.92);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 22px rgba(0, 0, 0, 0.35);
+}
+.su-plan-card:hover::before { opacity: 1; }
+.su-plan-card[data-cycle="trial"]:hover  { border-color: rgba(74, 222, 128, 0.38); }
+.su-plan-card[data-cycle="yearly"]:hover { border-color: rgba(167, 139, 250, 0.38); }
+
+.su-plan-card.selected {
+    border-color: #60a5c8;
+    background: rgba(14, 30, 60, 0.96);
+    box-shadow: 0 0 0 2px rgba(96, 165, 200, 0.18), 0 6px 24px rgba(0, 0, 0, 0.4);
+    transform: translateY(-1px);
+}
+.su-plan-card.selected::before { opacity: 1; }
+.su-plan-card[data-cycle="trial"].selected  { border-color: #4ade80; box-shadow: 0 0 0 2px rgba(74,222,128,0.18), 0 6px 24px rgba(0,0,0,0.4); }
+.su-plan-card[data-cycle="yearly"].selected { border-color: #a78bfa; box-shadow: 0 0 0 2px rgba(167,139,250,0.18), 0 6px 24px rgba(0,0,0,0.4); }
+
+/* Check circle */
+.su-plan-check {
+    position: absolute;
+    top: 0.75rem; right: 0.75rem;
+    width: 18px; height: 18px;
+    border: 1.5px solid rgba(96, 165, 200, 0.35);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.6rem;
+    color: transparent;
+    transition: all 0.18s;
+}
+.su-plan-card.selected .su-plan-check                 { background: #60a5c8; border-color: #60a5c8; color: #fff; }
+.su-plan-card[data-cycle="trial"].selected .su-plan-check  { background: #4ade80; border-color: #4ade80; color: #052e16; }
+.su-plan-card[data-cycle="yearly"].selected .su-plan-check { background: #a78bfa; border-color: #a78bfa; color: #fff; }
+
+/* Cycle pill */
+.su-plan-card-cycle {
+    display: inline-flex;
+    align-self: flex-start;
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    padding: 0.18rem 0.5rem;
+    border-radius: 100px;
+    background: rgba(96, 165, 200, 0.09);
+    color: rgba(96, 165, 200, 0.7);
+    border: 1px solid rgba(96, 165, 200, 0.17);
+    margin-bottom: 0.45rem;
+}
+.su-plan-card[data-cycle="trial"]  .su-plan-card-cycle { background: rgba(74,222,128,0.08); color: rgba(74,222,128,0.85); border-color: rgba(74,222,128,0.2); }
+.su-plan-card[data-cycle="yearly"] .su-plan-card-cycle { background: rgba(167,139,250,0.08); color: rgba(167,139,250,0.85); border-color: rgba(167,139,250,0.2); }
+
+/* Plan name */
+.su-plan-card-name {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #daeeff;
+    padding-right: 1.5rem;
+    line-height: 1.3;
+    margin-bottom: 0;
+}
+
+/* Price */
+.su-plan-card-price {
+    display: flex;
+    align-items: baseline;
+    gap: 0.12rem;
+    margin-top: 0.35rem;
+    flex: 1;
+}
+.su-plan-card-price .sp-cur { font-size: 0.8rem; color: #60a5c8; font-weight: 600; line-height: 2; }
+.su-plan-card-price .sp-amt { font-size: 1.65rem; font-weight: 800; color: #f0f6ff; line-height: 1; font-variant-numeric: tabular-nums; }
+.su-plan-card-price .sp-free { font-size: 1.15rem; font-weight: 800; color: #4ade80; }
+
+/* Meta info */
+.su-plan-card-meta {
+    margin-top: 0.6rem;
+    padding-top: 0.55rem;
+    border-top: 1px solid rgba(96, 165, 200, 0.08);
+    font-size: 0.69rem;
+    color: rgba(160, 200, 220, 0.45);
+    display: flex;
+    flex-direction: column;
+    gap: 0.22rem;
+}
+.su-plan-card-meta span { display: flex; align-items: center; gap: 0.3rem; }
+.su-plan-card-meta .bx { font-size: 0.72rem; opacity: 0.7; }
+
+/* Free badge (inline next to plan name) */
+.su-plan-free-badge {
+    display: inline-block;
+    background: rgba(34, 197, 94, 0.12);
+    border: 1px solid rgba(34, 197, 94, 0.25);
+    color: #4ade80;
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 0.12rem 0.4rem;
+    border-radius: 100px;
+    margin-left: 0.35rem;
+    vertical-align: middle;
+}
 </style>
 
 <div class="su-root">
@@ -844,6 +1158,11 @@
     <!-- ── LEFT PANEL ── -->
     <div class="su-brand">
         <div class="su-rain-canvas" id="suRainCanvas"></div>
+
+        <a href="<?php echo base_url(); ?>" class="su-home-link" title="Back to homepage">
+            <i class="bx bx-arrow-back"></i>
+            Home
+        </a>
 
         <div class="su-brand-content">
             <div class="su-brand-logo">
@@ -865,18 +1184,26 @@
     <!-- ── RIGHT FORM PANEL ── -->
     <div class="su-form-panel" style="position:relative;">
 
-        <a href="<?php echo base_url(); ?>" class="su-home-link" title="Back to homepage">
-            <i class="bx bx-arrow-back"></i>
-            Home
-        </a>
-
         <div class="su-overlay" id="suProcessingOverlay">
-            <div class="su-overlay-logo-wrap">
-                <div class="su-overlay-ring"></div>
-                <img src="https://pub-bb40942a33344637936ade1f3800ff8b.r2.dev/Global/favicon_io/android-chrome-512x512-1.png"
-                     class="su-overlay-logo-img" alt="R2K">
+            <!-- Creating state -->
+            <div class="su-overlay-creating">
+                <div class="su-overlay-logo-wrap">
+                    <div class="su-overlay-ring"></div>
+                    <img src="https://pub-bb40942a33344637936ade1f3800ff8b.r2.dev/Global/favicon_io/android-chrome-512x512-1.png"
+                         class="su-overlay-logo-img" alt="R2K">
+                </div>
+                <div class="su-overlay-text">Creating your account…</div>
             </div>
-            <div class="su-overlay-text">Creating your account…</div>
+            <!-- Success state -->
+            <div class="su-overlay-done">
+                <div class="su-overlay-check"><i class="bx bx-check"></i></div>
+                <div class="su-overlay-done-title">Account Created!</div>
+                <div class="su-overlay-done-org" id="suOverlayOrgName"></div>
+                <div class="su-overlay-done-msg">Taking you to your dashboard…</div>
+                <div class="su-overlay-done-dots">
+                    <span></span><span></span><span></span>
+                </div>
+            </div>
         </div>
 
         <!-- Google sign-in confirmation card -->
@@ -887,6 +1214,19 @@
                 <div class="su-gconf-avatar-placeholder" id="suGconfAvatarPlaceholder"></div>
                 <div class="su-gconf-name" id="suGconfName"></div>
                 <div class="su-gconf-email" id="suGconfEmail"></div>
+
+                <!-- Plan selection inside Google overlay -->
+                <div class="su-gconf-plan-section">
+                    <div class="su-gconf-plan-label">Select your plan</div>
+                    <div id="suGconfPlansLoading" style="text-align:center;padding:0.75rem 0;color:rgba(160,200,220,0.5);font-size:0.82rem;">
+                        <i class="bx bx-loader-alt bx-spin"></i> Loading plans…
+                    </div>
+                    <div id="suGconfPlanCards" style="display:none;"></div>
+                    <div id="suGconfPlansError" style="display:none;color:rgba(248,113,113,0.8);font-size:0.82rem;padding:0.4rem 0;text-align:center;">
+                        <span id="suGconfPlansErrorText">Could not load plans.</span>
+                    </div>
+                </div>
+
                 <button type="button" class="su-gconf-btn-continue" id="suGconfContinueBtn" onclick="suConfirmGoogle()">
                     <svg width="17" height="17" viewBox="0 0 18 18" style="flex-shrink:0;"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z"/></svg>
                     Continue as <span id="suGconfFirstName"></span>
@@ -919,6 +1259,11 @@
                 <div class="su-step" id="suStep2Ind">
                     <div class="su-step-num">2</div>
                     <div class="su-step-label">Admin Account</div>
+                </div>
+                <div class="su-step-line"></div>
+                <div class="su-step" id="suStep3Ind">
+                    <div class="su-step-num">3</div>
+                    <div class="su-step-label">Select Plan</div>
                 </div>
             </div>
 
@@ -965,7 +1310,11 @@
                 <div class="su-field-row">
                     <div class="su-field">
                         <label class="su-label" for="suOrgMobile">Mobile Number</label>
-                        <input type="tel" id="suOrgMobile" name="OrgMobile" class="su-input" placeholder="10-digit number" autocomplete="off" maxlength="10" pattern="[0-9]{10}">
+                        <div class="su-phone-wrap" id="suOrgMobileWrap">
+                            <span class="su-phone-prefix" id="suPhonePrefixLabel">+91</span>
+                            <input type="hidden" id="suOrgCountryCode" value="+91">
+                            <input type="tel" id="suOrgMobile" name="OrgMobile" class="su-phone-input" placeholder="10-digit number" autocomplete="off" maxlength="10" pattern="[0-9]{10}">
+                        </div>
                         <div class="su-field-err" id="suOrgMobileErr"></div>
                         <div class="su-field-ok" id="suOrgMobileOk">Mobile is available</div>
                     </div>
@@ -1095,6 +1444,39 @@
                     <button type="button" class="su-btn su-btn-ghost" onclick="suPrevStep()">
                         <i class="bx bx-left-arrow-alt"></i> Back
                     </button>
+                    <button type="button" class="su-btn su-btn-primary" id="suNextStep2Btn" onclick="suNextStep2()" disabled>
+                        <span id="suNextStep2Label">Next</span>
+                        <i class="bx bx-right-arrow-alt"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ── STEP 3: SELECT PLAN ── -->
+            <div id="suFormStep3" style="display:none;">
+                <h2 class="su-step-title" id="suStep3Title">Select Your Plan</h2>
+                <p class="su-step-hint" id="suStep3Hint">Choose the plan that fits your business.</p>
+
+                <!-- Plan loading state -->
+                <div id="suPlansLoading" class="su-plans-loading">
+                    <i class="bx bx-loader-alt bx-spin"></i>
+                    <span>Loading plans…</span>
+                </div>
+
+                <!-- Plan cards container -->
+                <div id="suPlanCards" style="display:none;"></div>
+
+                <!-- Plan error -->
+                <div id="suPlansError" style="display:none;text-align:center;padding:1.5rem 0;color:rgba(248,113,113,0.8);font-size:0.84rem;">
+                    <i class="bx bx-error-circle" style="font-size:1.3rem;display:block;margin-bottom:0.4rem;"></i>
+                    <span id="suPlansErrorText">Could not load plans. Please go back and try again.</span>
+                </div>
+
+                <input type="hidden" id="suSectorPlanUID" name="SectorPlanUID" value="0">
+
+                <div class="su-btn-row" style="margin-top:1.25rem;">
+                    <button type="button" class="su-btn su-btn-ghost" onclick="suPrevStep2()">
+                        <i class="bx bx-left-arrow-alt"></i> Back
+                    </button>
                     <button type="button" class="su-btn su-btn-primary" id="suSubmitBtn" onclick="suSubmit()" disabled>
                         <span id="suSubmitLabel">Create Account</span>
                         <i class="bx bx-check-circle" id="suSubmitIcon"></i>
@@ -1129,6 +1511,7 @@
     </div>
 </div>
 
+<script src="/assets/js/services/upstash-service.js"></script>
 <script>
 (function () {
 
@@ -1137,10 +1520,13 @@
         en: {
             stepOrg:          'Organisation',
             stepAdmin:         'Admin',
+            stepPlan:          'Select Plan',
             titleOrg:          'Organisation Details',
             hintOrg:           'Basic information about your business.',
             titleAdmin:        'Admin Account',
             hintAdmin:         'This account will have full access to your organisation.',
+            titlePlan:         'Select Your Plan',
+            hintPlan:          'Choose the plan that fits your business.',
             btnNext:           'Next',
             btnCreate:         'Create Account',
             btnBack:           'Back',
@@ -1177,10 +1563,13 @@
         ta: {
             stepOrg:          'நிறுவனம்',
             stepAdmin:         'நிர்வாகி',
+            stepPlan:          'திட்டம் தேர்வு',
             titleOrg:          'நிறுவன விவரங்கள்',
             hintOrg:           'உங்கள் வணிகம் பற்றிய அடிப்படை தகவல்.',
             titleAdmin:        'நிர்வாகி கணக்கு',
             hintAdmin:         'இந்த கணக்கிற்கு உங்கள் நிறுவனத்தில் முழு அணுகல் இருக்கும்.',
+            titlePlan:         'உங்கள் திட்டத்தை தேர்வு செய்யுங்கள்',
+            hintPlan:          'உங்கள் வணிகத்திற்கு ஏற்ற திட்டத்தை தேர்ந்தெடுக்கவும்.',
             btnNext:           'அடுத்தது',
             btnCreate:         'கணக்கை உருவாக்கு',
             btnBack:           'திரும்பு',
@@ -1233,12 +1622,15 @@
         /* Step indicators */
         txt('#suStep1Ind .su-step-label',  s.stepOrg);
         txt('#suStep2Ind .su-step-label',  s.stepAdmin);
+        txt('#suStep3Ind .su-step-label',  s.stepPlan);
 
         /* Section titles */
         txt('#suFormStep1 .su-step-title', s.titleOrg);
         txt('#suFormStep1 .su-step-hint',  s.hintOrg);
         txt('#suFormStep2 .su-step-title', s.titleAdmin);
         txt('#suFormStep2 .su-step-hint',  s.hintAdmin);
+        txt('#suStep3Title',               s.titlePlan);
+        txt('#suStep3Hint',                s.hintPlan);
 
         /* Step 1 labels */
         lbl('suOrgName',  s.labelOrgName,  false);
@@ -1351,10 +1743,10 @@
     }
 
     /**
-     * Enables Create Account only when every Step 2 field is clean and passwords match.
+     * Enables Step 2 "Next" button when all Step 2 fields are clean.
      * @returns {void}
      */
-    function _syncSubmitBtn() {
+    function _syncNextStep2Btn() {
         var ok = true;
         if (!document.getElementById('suFirstName').value.trim()) ok = false;
         var uname = document.getElementById('suUsername').value.trim();
@@ -1362,49 +1754,99 @@
         var pw  = document.getElementById('suPassword').value;
         var cpw = document.getElementById('suConfirmPassword').value;
         if (pw.length < 8 || !cpw || pw !== cpw) ok = false;
-        document.getElementById('suSubmitBtn').disabled = !ok;
+        document.getElementById('suNextStep2Btn').disabled = !ok;
     }
 
-    var indianStates = [
-        { code: '01', name: 'Jammu & Kashmir' },
-        { code: '02', name: 'Himachal Pradesh' },
-        { code: '03', name: 'Punjab' },
-        { code: '04', name: 'Chandigarh' },
-        { code: '05', name: 'Uttarakhand' },
-        { code: '06', name: 'Haryana' },
-        { code: '07', name: 'Delhi' },
-        { code: '08', name: 'Rajasthan' },
-        { code: '09', name: 'Uttar Pradesh' },
-        { code: '10', name: 'Bihar' },
-        { code: '11', name: 'Sikkim' },
-        { code: '12', name: 'Arunachal Pradesh' },
-        { code: '13', name: 'Nagaland' },
-        { code: '14', name: 'Manipur' },
-        { code: '15', name: 'Mizoram' },
-        { code: '16', name: 'Tripura' },
-        { code: '17', name: 'Meghalaya' },
-        { code: '18', name: 'Assam' },
-        { code: '19', name: 'West Bengal' },
-        { code: '20', name: 'Jharkhand' },
-        { code: '21', name: 'Odisha' },
-        { code: '22', name: 'Chhattisgarh' },
-        { code: '23', name: 'Madhya Pradesh' },
-        { code: '24', name: 'Gujarat' },
-        { code: '25', name: 'Daman & Diu' },
-        { code: '26', name: 'Dadra & Nagar Haveli' },
-        { code: '27', name: 'Maharashtra' },
-        { code: '28', name: 'Andhra Pradesh' },
-        { code: '29', name: 'Karnataka' },
-        { code: '30', name: 'Goa' },
-        { code: '31', name: 'Lakshadweep' },
-        { code: '32', name: 'Kerala' },
-        { code: '33', name: 'Tamil Nadu' },
-        { code: '34', name: 'Puducherry' },
-        { code: '35', name: 'Andaman & Nicobar Islands' },
-        { code: '36', name: 'Telangana' },
-        { code: '37', name: 'Andhra Pradesh (New)' },
-        { code: '38', name: 'Ladakh' },
-    ];
+    /**
+     * Enables Create Account only when a plan is selected.
+     * @returns {void}
+     */
+    function _syncSubmitBtn() {
+        var planUID = parseInt(document.getElementById('suSectorPlanUID').value || '0', 10);
+        document.getElementById('suSubmitBtn').disabled = (planUID <= 0);
+    }
+
+    /* States loaded from Upstash global cache — key: r2k-loc-states */
+
+    /* ── Auto-trim / strip spaces on paste, drop, blur ─────────────── */
+    /* stripSpaceFields: ALL spaces removed (mobile, email)             */
+    /* trimFields: only leading/trailing spaces removed (everything else) */
+    (function () {
+        var stripSpaceFields = ['suOrgMobile', 'suOrgEmail'];
+        var trimOnlyFields   = ['suOrgName', 'suShortCode', 'suGSTIN',
+                                'suFirstName', 'suLastName', 'suUsername'];
+
+        function attachHandlers(id, cleanFn) {
+            var el = document.getElementById(id);
+            if (!el) return;
+
+            function applyClean() {
+                var cleaned = cleanFn(el.value);
+                if (el.value !== cleaned) {
+                    el.value = cleaned;
+                    el.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            }
+
+            el.addEventListener('paste', function () { setTimeout(applyClean, 0); });
+            el.addEventListener('drop',  function () { setTimeout(applyClean, 0); });
+            el.addEventListener('blur',  applyClean);
+        }
+
+        /* Clean functions per field.
+           Mobile: strip spaces + remove +91/91 country code prefix.
+           Email:  strip all spaces only.
+           Paste is intercepted directly so maxlength truncation cannot
+           eat characters before we clean them. */
+        var cleanFnMap = {
+            suOrgMobile: function (v) {
+                v = v.replace(/\s+/g, '');          /* remove all spaces    */
+                if (v.slice(0, 3) === '+91') v = v.slice(3);
+                else if (v.slice(0, 2) === '91' && v.length >= 12) v = v.slice(2);
+                return v.replace(/\D/g, '');         /* digits only          */
+            },
+            suOrgEmail: function (v) { return v.replace(/\s+/g, ''); },
+        };
+
+        stripSpaceFields.forEach(function (id) {
+            var el = document.getElementById(id);
+            if (!el) return;
+
+            var cleanFn = cleanFnMap[id] || function (v) { return v.replace(/\s+/g, ''); };
+
+            el.addEventListener('paste', function (e) {
+                e.preventDefault();
+                var raw     = (e.clipboardData || window.clipboardData).getData('text');
+                var cleaned = cleanFn(raw);
+                /* Respect maxlength if present */
+                var max = parseInt(el.getAttribute('maxlength'), 10);
+                if (!isNaN(max)) cleaned = cleaned.slice(0, max);
+                el.value = cleaned;
+                el.dispatchEvent(new Event('input', { bubbles: true }));
+            });
+
+            el.addEventListener('drop', function () { setTimeout(function () {
+                var cleaned = cleanFn(el.value);
+                if (el.value !== cleaned) {
+                    el.value = cleaned;
+                    el.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            }, 0); });
+
+            el.addEventListener('blur', function () {
+                var cleaned = cleanFn(el.value);
+                if (el.value !== cleaned) {
+                    el.value = cleaned;
+                    el.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            });
+        });
+
+        /* Remove only leading / trailing spaces */
+        trimOnlyFields.forEach(function (id) {
+            attachHandlers(id, function (v) { return v.trim(); });
+        });
+    }());
 
     /* ── ShortCode: auto-suggest from org name ─────────────────────── */
     var _shortCodeManuallyEdited = false;
@@ -1430,14 +1872,22 @@
     document.getElementById('suState').addEventListener('change', function () { _syncNextBtn(); });
     document.getElementById('suTimezone').addEventListener('change', function () { _syncNextBtn(); });
 
-    /* ── Populate state dropdown ───────────────────────────────────── */
+    /* ── Populate state dropdown from Upstash global cache ─────────── */
+    /* Key: r2k-loc-states (HASH), field: 'in', each row: {id, name, iso2} */
     (function seedStates() {
-        var sel = document.getElementById('suState');
-        indianStates.forEach(function (s) {
-            var opt = document.createElement('option');
-            opt.value = s.code + '|' + s.name;
-            opt.textContent = s.name;
-            sel.appendChild(opt);
+        if (!UpstashService.isEnabled()) return;
+        UpstashService.hget(UpstashService.globalKey('loc-states'), 'in').then(function (data) {
+            if (!Array.isArray(data) || data.length === 0) return;
+            var sel = document.getElementById('suState');
+            data.forEach(function (s) {
+                var code = s.iso2 || '';
+                var name = s.name || '';
+                if (!code || !name) return;
+                var opt = document.createElement('option');
+                opt.value = code + '|' + name;
+                opt.textContent = name;
+                sel.appendChild(opt);
+            });
         });
     }());
 
@@ -1501,7 +1951,8 @@
      * @param {boolean} valid
      */
     function setInputState(id, valid) {
-        var el = document.getElementById(id);
+        /* For wrapped inputs (e.g. phone prefix), target the wrapper */
+        var el = document.getElementById(id + 'Wrap') || document.getElementById(id);
         if (!el) return;
         el.classList.toggle('valid', valid);
         el.classList.toggle('error', !valid);
@@ -1540,6 +1991,28 @@
         document.getElementById('suFormStep1').style.display = '';
         document.getElementById('suStep1Ind').className = 'su-step active';
         document.getElementById('suStep2Ind').className = 'su-step';
+        hideAlert();
+    };
+
+    /* Step 2 → 3 */
+    window.suNextStep2 = function () {
+        if (!validateStep2()) return;
+        currentStep = 3;
+        document.getElementById('suFormStep2').style.display = 'none';
+        document.getElementById('suFormStep3').style.display = '';
+        document.getElementById('suStep2Ind').className = 'su-step done';
+        document.getElementById('suStep3Ind').className = 'su-step active';
+        hideAlert();
+        _suLoadPlans();
+    };
+
+    /* Step 3 → 2 */
+    window.suPrevStep2 = function () {
+        currentStep = 2;
+        document.getElementById('suFormStep3').style.display = 'none';
+        document.getElementById('suFormStep2').style.display = '';
+        document.getElementById('suStep2Ind').className = 'su-step active';
+        document.getElementById('suStep3Ind').className = 'su-step';
         hideAlert();
     };
 
@@ -1683,10 +2156,10 @@
         _usernameAvailable = false;
         document.getElementById('suUsernameOk').classList.remove('show');
         clearErr('suUsername');
-        _syncSubmitBtn();
+        _syncNextStep2Btn();
         if (!uname || uname.length < 3) return;
         _usernameChecking = true;
-        _syncSubmitBtn();
+        _syncNextStep2Btn();
         fetch('/signup/checkUsername', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -1712,7 +2185,7 @@
         .catch(function () {})
         .finally(function () {
             _usernameChecking = false;
-            _syncSubmitBtn();
+            _syncNextStep2Btn();
         });
     }
 
@@ -1805,7 +2278,7 @@
         });
     });
 
-    document.getElementById('suFirstName').addEventListener('input', function () { _syncSubmitBtn(); });
+    document.getElementById('suFirstName').addEventListener('input', function () { _syncNextStep2Btn(); });
 
     document.getElementById('suUsername').addEventListener('input', function () {
         var uname = this.value.trim().toLowerCase();
@@ -1813,7 +2286,7 @@
         usernameCheckTimer = setTimeout(function () { _runUsernameCheck(uname); }, 400);
         // Reset immediately so button disables while debounce is pending
         _usernameAvailable = false;
-        _syncSubmitBtn();
+        _syncNextStep2Btn();
     });
 
     /* ── Password strength ─────────────────────────────────────────── */
@@ -1929,7 +2402,7 @@
             showErr('suConfirmPassword', 'Passwords do not match.');
             setInputState('suConfirmPassword', false);
         }
-        _syncSubmitBtn();
+        _syncNextStep2Btn();
     }
 
     document.getElementById('suConfirmPassword').addEventListener('input', function () {
@@ -1949,7 +2422,7 @@
         document.getElementById('suPwStrengthLabel').textContent = pw ? labels[score] : '';
         checkPwCriteria(pw);
         _checkPwMatch();
-        _syncSubmitBtn();
+        _syncNextStep2Btn();
     });
 
     /* ── Password toggle ───────────────────────────────────────────── */
@@ -2011,14 +2484,203 @@
         });
     });
 
+    /* ── Plan loading ──────────────────────────────────────────────── */
+    var _suPlansLoaded = false;
+    var _suPlansData   = null; /* shared cache after first fetch */
+    var _suGconfPlanUID = 0;   /* selected plan UID in Google overlay */
+
+    /**
+     * Loads plans from server, renders cards. Called once when entering Step 3.
+     * @returns {void}
+     */
+    function _suLoadPlans() {
+        if (_suPlansLoaded) return;
+
+        document.getElementById('suPlansLoading').style.display = '';
+        document.getElementById('suPlanCards').style.display    = 'none';
+        document.getElementById('suPlansError').style.display   = 'none';
+
+        if (_suPlansData) {
+            /* already fetched by Google overlay loader — reuse cache */
+            document.getElementById('suPlansLoading').style.display = 'none';
+            _suRenderPlanCards(_suPlansData, document.getElementById('suPlanCards'), _suSelectPlan);
+            document.getElementById('suPlanCards').style.display = '';
+            _suPlansLoaded = true;
+            return;
+        }
+
+        fetch('/signup/getPlans', { method: 'GET' })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            document.getElementById('suPlansLoading').style.display = 'none';
+            if (data.Error || !data.Plans || data.Plans.length === 0) {
+                document.getElementById('suPlansErrorText').textContent = data.Plans && data.Plans.length === 0
+                    ? 'No plans are available at the moment. Please contact support.'
+                    : 'Could not load plans. Please go back and try again.';
+                document.getElementById('suPlansError').style.display = '';
+                return;
+            }
+            _suPlansData = data.Plans;
+            _suRenderPlanCards(data.Plans, document.getElementById('suPlanCards'), _suSelectPlan);
+            document.getElementById('suPlanCards').style.display = '';
+            _suPlansLoaded = true;
+        })
+        .catch(function () {
+            document.getElementById('suPlansLoading').style.display = 'none';
+            document.getElementById('suPlansErrorText').textContent = 'A network error occurred loading plans.';
+            document.getElementById('suPlansError').style.display = '';
+        });
+    }
+
+    /**
+     * Loads plan cards into the Google confirmation overlay. Uses cache if available.
+     * @returns {void}
+     */
+    function _suLoadGconfPlans() {
+        _suGconfPlanUID = 0;
+        document.getElementById('suGconfPlansLoading').style.display = '';
+        document.getElementById('suGconfPlanCards').style.display    = 'none';
+        document.getElementById('suGconfPlansError').style.display   = 'none';
+
+        if (_suPlansData) {
+            document.getElementById('suGconfPlansLoading').style.display = 'none';
+            _suRenderPlanCards(_suPlansData, document.getElementById('suGconfPlanCards'), _suSelectGconfPlan);
+            document.getElementById('suGconfPlanCards').style.display = '';
+            return;
+        }
+
+        fetch('/signup/getPlans', { method: 'GET' })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            document.getElementById('suGconfPlansLoading').style.display = 'none';
+            if (data.Error || !data.Plans || data.Plans.length === 0) {
+                document.getElementById('suGconfPlansErrorText').textContent = 'No plans available. Please contact support.';
+                document.getElementById('suGconfPlansError').style.display = '';
+                return;
+            }
+            _suPlansData = data.Plans;
+            _suRenderPlanCards(data.Plans, document.getElementById('suGconfPlanCards'), _suSelectGconfPlan);
+            document.getElementById('suGconfPlanCards').style.display = '';
+        })
+        .catch(function () {
+            document.getElementById('suGconfPlansLoading').style.display = 'none';
+            document.getElementById('suGconfPlansErrorText').textContent = 'Could not load plans. Please try again.';
+            document.getElementById('suGconfPlansError').style.display = '';
+        });
+    }
+
+    /**
+     * Selects a plan card inside the Google overlay.
+     * @param {number|string} uid
+     * @param {HTMLElement} cardEl
+     * @returns {void}
+     */
+    function _suSelectGconfPlan(uid, cardEl) {
+        document.querySelectorAll('#suGconfPlanCards .su-plan-card').forEach(function (c) { c.classList.remove('selected'); });
+        cardEl.classList.add('selected');
+        _suGconfPlanUID = parseInt(uid, 10);
+    }
+
+    /**
+     * Renders plan cards into the given container element.
+     * @param {Array<object>} plans
+     * @param {HTMLElement} container
+     * @param {function(number|string, HTMLElement): void} onSelectFn
+     * @returns {void}
+     */
+    function _suRenderPlanCards(plans, container, onSelectFn) {
+        container.innerHTML = '';
+        var grid = document.createElement('div');
+        grid.className = 'su-plan-grid';
+
+        plans.forEach(function (plan) {
+            var price  = parseFloat(plan.Price || 0);
+            var isFree = (price <= 0);
+            var cycle  = (plan.BillingCycle || '').toLowerCase();
+
+            var card = document.createElement('div');
+            card.className = 'su-plan-card';
+            card.setAttribute('data-plan-uid', plan.SectorPlanUID);
+            card.setAttribute('data-cycle', cycle);
+            card.setAttribute('tabindex', '0');
+
+            var priceHtml = isFree
+                ? '<span class="sp-free">Free</span>'
+                : '<span class="sp-cur">₹</span><span class="sp-amt">' + Math.round(price).toLocaleString('en-IN') + '</span>';
+
+            var metaHtml = '';
+            if (plan.MaxUsers && parseInt(plan.MaxUsers) > 0) {
+                metaHtml += '<span><i class="bx bx-user"></i> Up to ' + plan.MaxUsers + ' users</span>';
+            }
+            if (plan.MaxBranches && parseInt(plan.MaxBranches) > 0) {
+                metaHtml += '<span><i class="bx bx-building"></i> Up to ' + plan.MaxBranches + ' branches</span>';
+            }
+            if (plan.DurationDays && parseInt(plan.DurationDays) > 0) {
+                var days = parseInt(plan.DurationDays);
+                var durationLabel = days >= 365 ? Math.round(days / 365) + ' yr' : days + ' days';
+                metaHtml += '<span><i class="bx bx-time"></i> ' + durationLabel + '</span>';
+            }
+
+            card.innerHTML =
+                '<div class="su-plan-check"><i class="bx bx-check"></i></div>' +
+                '<div class="su-plan-card-name">' + _suEscape(plan.PlanName || 'Plan') +
+                    (isFree ? '<span class="su-plan-free-badge">Free</span>' : '') +
+                '</div>' +
+                '<div class="su-plan-card-cycle">' + _suEscape(plan.BillingCycle || '') + '</div>' +
+                '<div class="su-plan-card-price">' + priceHtml + '</div>' +
+                (metaHtml ? '<div class="su-plan-card-meta">' + metaHtml + '</div>' : '');
+
+            card.addEventListener('click', function () { onSelectFn(plan.SectorPlanUID, card); });
+            card.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelectFn(plan.SectorPlanUID, card); }
+            });
+
+            grid.appendChild(card);
+        });
+
+        container.appendChild(grid);
+    }
+
+    /**
+     * Marks a plan card as selected and stores the UID.
+     * @param {number|string} uid
+     * @param {HTMLElement} cardEl
+     * @returns {void}
+     */
+    function _suSelectPlan(uid, cardEl) {
+        document.querySelectorAll('.su-plan-card').forEach(function (c) { c.classList.remove('selected'); });
+        cardEl.classList.add('selected');
+        document.getElementById('suSectorPlanUID').value = uid;
+        _syncSubmitBtn();
+    }
+
+    /**
+     * @param {string} str
+     * @returns {string}
+     */
+    function _suEscape(str) {
+        return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
     /* ── Submit ────────────────────────────────────────────────────── */
+    /**
+     * @param {string} orgName
+     * @returns {void}
+     */
+    function suShowSuccess(orgName) {
+        var overlay = document.getElementById('suProcessingOverlay');
+        document.getElementById('suOverlayOrgName').textContent = orgName || '';
+        overlay.classList.add('success');
+        /* overlay stays visible — redirect fires from the caller */
+    }
+
     /**
      * @returns {void}
      */
     function suShowProcessing() {
         document.getElementById('suProcessingOverlay').classList.add('show');
         document.getElementById('suSubmitBtn').disabled = true;
-        var backBtn = document.querySelector('#suFormStep2 .su-btn-ghost');
+        var backBtn = document.querySelector('#suFormStep3 .su-btn-ghost');
         if (backBtn) backBtn.disabled = true;
         var loginLink = document.getElementById('suLoginLink');
         if (loginLink) loginLink.style.pointerEvents = 'none';
@@ -2030,7 +2692,7 @@
     function suHideProcessing() {
         document.getElementById('suProcessingOverlay').classList.remove('show');
         document.getElementById('suSubmitBtn').disabled = false;
-        var backBtn = document.querySelector('#suFormStep2 .su-btn-ghost');
+        var backBtn = document.querySelector('#suFormStep3 .su-btn-ghost');
         if (backBtn) backBtn.disabled = false;
         var loginLink = document.getElementById('suLoginLink');
         if (loginLink) loginLink.style.pointerEvents = '';
@@ -2038,7 +2700,12 @@
 
     window.suSubmit = function () {
         hideAlert();
-        if (!validateStep2()) return;
+
+        var planUID = parseInt(document.getElementById('suSectorPlanUID').value || '0', 10);
+        if (planUID <= 0) {
+            showAlert('Please select a plan to continue.');
+            return;
+        }
 
         suShowProcessing();
 
@@ -2046,6 +2713,7 @@
         var body = new URLSearchParams({
             OrgName:         document.getElementById('suOrgName').value.trim(),
             ShortCode:       document.getElementById('suShortCode').value.trim().toUpperCase(),
+            CountryCode:     document.getElementById('suOrgCountryCode').value,
             OrgMobile:       document.getElementById('suOrgMobile').value.replace(/\D/g, ''),
             OrgEmail:        document.getElementById('suOrgEmail').value.trim(),
             StateCode:       stateParts[0] || '',
@@ -2057,6 +2725,7 @@
             AdminUsername:   document.getElementById('suUsername').value.trim().toLowerCase(),
             AdminPassword:   document.getElementById('suPassword').value,
             ConfirmPassword: document.getElementById('suConfirmPassword').value,
+            SectorPlanUID:   planUID,
         });
 
         fetch('/signup/doSignup', {
@@ -2066,12 +2735,17 @@
         })
         .then(function (r) { return r.json(); })
         .then(function (data) {
-            suHideProcessing();
             if (data.Error) {
+                suHideProcessing();
                 showAlert(data.Message);
+            } else if (data.Redirect) {
+                suShowSuccess(document.getElementById('suOrgName').value.trim());
+                window.location.href = data.Redirect;
             } else {
+                /* Fallback: show email verification screen */
+                suHideProcessing();
                 document.getElementById('suStepIndicator').style.display = 'none';
-                document.getElementById('suFormStep2').style.display = 'none';
+                document.getElementById('suFormStep3').style.display = 'none';
                 document.getElementById('suLoginLink').style.display = 'none';
                 document.getElementById('suSuccessEmail').textContent =
                     document.getElementById('suOrgEmail').value.trim().toLowerCase();
@@ -2136,6 +2810,7 @@
         }
 
         document.getElementById('suGconfOverlay').classList.add('show');
+        _suLoadGconfPlans();
     }
 
     /**
@@ -2145,6 +2820,12 @@
     window.suConfirmGoogle = function () {
         if (!_suPendingCred) return;
 
+        if (_suGconfPlanUID <= 0) {
+            document.getElementById('suGconfPlansErrorText').textContent = 'Please select a plan to continue.';
+            document.getElementById('suGconfPlansError').style.display = '';
+            return;
+        }
+
         document.getElementById('suGconfOverlay').classList.remove('show');
 
         var overlay = document.getElementById('suProcessingOverlay');
@@ -2152,6 +2833,8 @@
 
         var fd = new FormData();
         fd.append('credential', _suPendingCred);
+        fd.append('SectorPlanUID', _suGconfPlanUID);
+        fd.append('CountryCode', document.getElementById('suOrgCountryCode').value);
         _suPendingCred = null;
 
         fetch('<?php echo base_url('signup/google-auth'); ?>', {
@@ -2164,6 +2847,7 @@
                 if (overlay) overlay.classList.remove('show');
                 showAlert(data.Message || 'Google sign-in failed. Please try again.');
             } else {
+                suShowSuccess(document.getElementById('suGconfName').textContent || '');
                 window.location.href = data.Redirect || '<?php echo base_url('dashboard'); ?>';
             }
         })

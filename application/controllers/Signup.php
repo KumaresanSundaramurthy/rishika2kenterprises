@@ -20,6 +20,23 @@ class Signup extends CI_Controller {
         $this->load->view('signup/view', $pageData);
     }
 
+    public function getPlans(): void {
+        try {
+            $readDb = $this->load->database('ReadDB', TRUE);
+            $readDb->db_debug = FALSE;
+            $plans = $readDb
+                ->select('SPT.SectorPlanUID, SPT.Price, SPT.DurationDays, SPT.MaxUsers, SPT.MaxBranches, SP.PlanName, SP.PlanCode, SP.BillingCycle')
+                ->from('Billing.SectorPlanTbl AS SPT')
+                ->join('Billing.SubscriptionPlansTbl AS SP', 'SP.PlanUID = SPT.PlanUID')
+                ->where('SPT.IsActive', 1)
+                ->order_by('SPT.Price', 'ASC')
+                ->get()->result();
+            echo json_encode(['Error' => false, 'Plans' => $plans ?: []]);
+        } catch (Exception $e) {
+            echo json_encode(['Error' => true, 'Plans' => []]);
+        }
+    }
+
     public function checkEmail(): void {
         try {
             $email = strtolower(trim($this->input->post('email') ?? ''));
@@ -137,7 +154,8 @@ class Signup extends CI_Controller {
                 $this->EndReturnData->Redirect = base_url('dashboard');
             } else {
                 /* ── New account — create org + user ─────────────────────── */
-                $result = $this->signup_model->registerOrganisationViaGoogle($g);
+                $sectorPlanUID = (int)($this->input->post('SectorPlanUID') ?? 0);
+                $result = $this->signup_model->registerOrganisationViaGoogle($g, $sectorPlanUID);
                 if ($result->Error) throw new Exception('Registration failed. Please try again.');
 
                 $userData = $this->user_model->getUserByEmailOrUsername($email);
@@ -145,7 +163,12 @@ class Signup extends CI_Controller {
                 $user = $userData->Data[0];
 
                 $this->_createLoginSession($user, 'google');
-                $this->EndReturnData->Redirect = base_url('dashboard');
+
+                if ($result->IsPaidPlan ?? false) {
+                    $this->EndReturnData->Redirect = base_url('signup/payment');
+                } else {
+                    $this->EndReturnData->Redirect = base_url('onboarding');
+                }
             }
 
         } catch (ValidationException $e) {
@@ -279,8 +302,25 @@ class Signup extends CI_Controller {
                 return;
             }
 
-            $this->EndReturnData->Error   = false;
-            $this->EndReturnData->Message = 'Organisation registered successfully!';
+            // Auto-login after registration
+            $this->load->model('user_model');
+            $userData = $this->user_model->getUserByEmailOrUsername(strtolower(trim($post['OrgEmail'])));
+            if ($userData->Error || empty($userData->Data)) {
+                $this->EndReturnData->Error   = true;
+                $this->EndReturnData->Message = 'Account created but auto-login failed. Please sign in manually.';
+                echo json_encode($this->EndReturnData);
+                return;
+            }
+
+            $this->_createLoginSession($userData->Data[0], 'local');
+
+            $redirect = $result->IsPaidPlan
+                ? base_url('signup/payment')
+                : base_url('dashboard');
+
+            $this->EndReturnData->Error    = false;
+            $this->EndReturnData->Message  = 'Organisation registered successfully!';
+            $this->EndReturnData->Redirect = $redirect;
             echo json_encode($this->EndReturnData);
 
         } catch (ValidationException $e) {

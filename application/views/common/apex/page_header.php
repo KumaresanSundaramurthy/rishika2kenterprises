@@ -66,38 +66,56 @@ foreach ($_qaMenus as $_qaMM) {
                 <i class="bx bx-plus"></i>
             </button>
             <div class="apex-qc-dropdown" id="apexQcDropdown">
+                <?php
+                /* Build active controller set from user's cached submenus */
+                $_qcActive = [];
+                foreach ($_qaSubMenus as $_sm) {
+                    $p = explode('/', ltrim($_sm->UrlPath ?? '', '/'));
+                    if (!empty($p[0])) $_qcActive[$p[0]] = true;
+                }
+                $_qcHas = static function(string $ctrl) use ($_qcActive): bool {
+                    return isset($_qcActive[$ctrl]);
+                };
+                $_salesCol    = $_qcHas('quotations') || $_qcHas('proformainvoices') || $_qcHas('salesorders') || $_qcHas('invoices') || $_qcHas('deliverychallans') || $_qcHas('salesreturns');
+                $_purchaseCol = $_qcHas('purchaseorders') || $_qcHas('purchases') || $_qcHas('purchasereturns');
+                $_partyCol    = $_qcHas('customers') || $_qcHas('vendors') || $_qcHas('products');
+                $_accountCol  = $_qcHas('expenses') || $_qcHas('indirectincome');
+                ?>
                 <div class="apex-qc-grid">
-                    <!-- SALES -->
+                    <?php if ($_salesCol): ?>
                     <div class="apex-qc-col apex-qc-col--sales">
                         <div class="apex-qc-col-header">
                             <div class="apex-qc-col-icon"><i class="bx bx-receipt"></i></div>
                             <span class="apex-qc-col-label">Sales</span>
                         </div>
-                        <a href="/quotations/create" class="apex-qc-item"><i class="bx bx-notepad"></i>Quotation</a>
-                        <a href="/proformainvoices/create" class="apex-qc-item"><i class="bx bx-file-find"></i>Proforma Invoice</a>
-                        <a href="/salesorders/create" class="apex-qc-item"><i class="bx bx-cart-add"></i>Sales Order</a>
-                        <a href="/invoices/create" class="apex-qc-item"><i class="bx bx-receipt"></i>Invoice</a>
-                        <a href="/deliverychallans/create" class="apex-qc-item"><i class="bx bx-package"></i>Delivery Challan</a>
-                        <a href="/salesreturns/create" class="apex-qc-item"><i class="bx bx-revision"></i>Sales Return</a>
+                        <?php if ($_qcHas('quotations')): ?><a href="/quotations/create" class="apex-qc-item"><i class="bx bx-notepad"></i>Quotation</a><?php endif; ?>
+                        <?php if ($_qcHas('proformainvoices')): ?><a href="/proformainvoices/create" class="apex-qc-item"><i class="bx bx-file-find"></i>Proforma Invoice</a><?php endif; ?>
+                        <?php if ($_qcHas('salesorders')): ?><a href="/salesorders/create" class="apex-qc-item"><i class="bx bx-cart-add"></i>Sales Order</a><?php endif; ?>
+                        <?php if ($_qcHas('invoices')): ?><a href="/invoices/create" class="apex-qc-item"><i class="bx bx-receipt"></i>Invoice</a><?php endif; ?>
+                        <?php if ($_qcHas('deliverychallans')): ?><a href="/deliverychallans/create" class="apex-qc-item"><i class="bx bx-package"></i>Delivery Challan</a><?php endif; ?>
+                        <?php if ($_qcHas('salesreturns')): ?><a href="/salesreturns/create" class="apex-qc-item"><i class="bx bx-revision"></i>Sales Return</a><?php endif; ?>
                     </div>
-                    <!-- PURCHASE -->
+                    <?php endif; ?>
+                    <?php if ($_purchaseCol): ?>
                     <div class="apex-qc-col apex-qc-col--purchase">
                         <div class="apex-qc-col-header">
                             <div class="apex-qc-col-icon"><i class="bx bx-shopping-bag"></i></div>
                             <span class="apex-qc-col-label">Purchase</span>
                         </div>
-                        <a href="/purchaseorders/create" class="apex-qc-item"><i class="bx bx-list-ul"></i>Purchase Order</a>
-                        <a href="/purchases/create" class="apex-qc-item"><i class="bx bx-shopping-bag"></i>Purchase</a>
-                        <a href="/purchasereturns/create" class="apex-qc-item"><i class="bx bx-transfer-alt"></i>Purchase Return</a>
+                        <?php if ($_qcHas('purchaseorders')): ?><a href="/purchaseorders/create" class="apex-qc-item"><i class="bx bx-list-ul"></i>Purchase Order</a><?php endif; ?>
+                        <?php if ($_qcHas('purchases')): ?><a href="/purchases/create" class="apex-qc-item"><i class="bx bx-shopping-bag"></i>Purchase</a><?php endif; ?>
+                        <?php if ($_qcHas('purchasereturns')): ?><a href="/purchasereturns/create" class="apex-qc-item"><i class="bx bx-transfer-alt"></i>Purchase Return</a><?php endif; ?>
                     </div>
-                    <!-- PARTY + INVENTORY -->
+                    <?php endif; ?>
+                    <?php if ($_partyCol): ?>
                     <div class="apex-qc-col apex-qc-col--party">
                         <div class="apex-qc-col-header">
                             <div class="apex-qc-col-icon"><i class="bx bx-group"></i></div>
                             <span class="apex-qc-col-label">Party</span>
                         </div>
-                        <a href="/customers?action=create" class="apex-qc-item" data-qc-page="customers"><i class="bx bx-user-plus"></i>Customer</a>
-                        <a href="/vendors?action=create" class="apex-qc-item" data-qc-page="vendors"><i class="bx bx-store"></i>Vendor</a>
+                        <?php if ($_qcHas('customers')): ?><a href="/customers?action=create" class="apex-qc-item" data-qc-page="customers"><i class="bx bx-user-plus"></i>Customer</a><?php endif; ?>
+                        <?php if ($_qcHas('vendors')): ?><a href="/vendors?action=create" class="apex-qc-item" data-qc-page="vendors"><i class="bx bx-store"></i>Vendor</a><?php endif; ?>
+                        <?php if ($_qcHas('products')): ?>
                         <div class="apex-qc-subsection">
                             <div class="apex-qc-sub-header">
                                 <div class="apex-qc-sub-icon"><i class="bx bx-box"></i></div>
@@ -105,16 +123,19 @@ foreach ($_qaMenus as $_qaMM) {
                             </div>
                             <a href="/products?action=create" class="apex-qc-item" data-qc-page="products"><i class="bx bx-box"></i>Product</a>
                         </div>
+                        <?php endif; ?>
                     </div>
-                    <!-- ACCOUNTING -->
+                    <?php endif; ?>
+                    <?php if ($_accountCol): ?>
                     <div class="apex-qc-col apex-qc-col--accounting">
                         <div class="apex-qc-col-header">
                             <div class="apex-qc-col-icon"><i class="bx bx-wallet"></i></div>
                             <span class="apex-qc-col-label">Accounting</span>
                         </div>
-                        <a href="/expenses/create" class="apex-qc-item"><i class="bx bx-money-withdraw"></i>Expense</a>
-                        <a href="/indirectincome?action=create" class="apex-qc-item"><i class="bx bx-trending-up"></i>Indirect Income</a>
+                        <?php if ($_qcHas('expenses')): ?><a href="/expenses/create" class="apex-qc-item"><i class="bx bx-money-withdraw"></i>Expense</a><?php endif; ?>
+                        <?php if ($_qcHas('indirectincome')): ?><a href="/indirectincome?action=create" class="apex-qc-item"><i class="bx bx-trending-up"></i>Indirect Income</a><?php endif; ?>
                     </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>

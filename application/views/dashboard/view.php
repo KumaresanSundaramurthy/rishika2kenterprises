@@ -182,37 +182,12 @@ $kpiData = [
         <div class="layout-page">
             <div class="content-wrapper apex-content">
                 <?php
-                $quickAddHtml = '
-                <div class="dropdown">
-                    <button class="btn btn-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="bx bx-plus me-1"></i>Quick Add
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:200px;font-size:.82rem;">
-                        <li><h6 class="dropdown-header" style="font-size:.68rem;letter-spacing:.4px;">SALES</h6></li>
-                        <li><a class="dropdown-item" href="/invoices/create"><i class="bx bx-receipt me-2 text-primary"></i>New Invoice</a></li>
-                        <li><a class="dropdown-item" href="/quotations/create"><i class="bx bx-file-blank me-2 text-info"></i>New Quotation</a></li>
-                        <li><a class="dropdown-item" href="/salesorders/create"><i class="bx bx-cart me-2 text-success"></i>New Sales Order</a></li>
-                        <li><hr class="dropdown-divider my-1"></li>
-                        <li><h6 class="dropdown-header" style="font-size:.68rem;letter-spacing:.4px;">PURCHASES</h6></li>
-                        <li><a class="dropdown-item" href="/purchases/create"><i class="bx bx-purchase-tag me-2 text-warning"></i>New Purchase</a></li>
-                        <li><a class="dropdown-item" href="/purchaseorders/create"><i class="bx bx-file me-2 text-secondary"></i>New Purchase Order</a></li>
-                        <li><hr class="dropdown-divider my-1"></li>
-                        <li><h6 class="dropdown-header" style="font-size:.68rem;letter-spacing:.4px;">PAYMENTS</h6></li>
-                        <li><a class="dropdown-item" href="/payments"><i class="bx bx-money me-2 text-success"></i>Receive Payment</a></li>
-                        <li><a class="dropdown-item" href="/expenses/create"><i class="bx bx-wallet me-2 text-danger"></i>Add Expense</a></li>
-                        <li><hr class="dropdown-divider my-1"></li>
-                        <li><h6 class="dropdown-header" style="font-size:.68rem;letter-spacing:.4px;">PARTIES</h6></li>
-                        <li><a class="dropdown-item" href="/customers"><i class="bx bx-user-plus me-2 text-primary"></i>New Customer</a></li>
-                        <li><a class="dropdown-item" href="/vendors"><i class="bx bx-store me-2 text-secondary"></i>New Vendor</a></li>
-                    </ul>
-                </div>';
                 $this->load->view('common/apex/page_header', [
-                    'pageTitle'         => 'Dashboard',
-                    'pageDescription'   => 'Last updated: ' . htmlspecialchars($LastUpdated ?? ''),
-                    'pageIcon'          => 'bx-home-circle',
-                    'pageIconBg'        => '#eef2ff',
-                    'pageIconColor'     => '#696cff',
-                    'pageHeaderActions' => $quickAddHtml,
+                    'pageTitle'       => 'Dashboard',
+                    'pageDescription' => 'Last updated: ' . htmlspecialchars($LastUpdated ?? ''),
+                    'pageIcon'        => 'bx-home-circle',
+                    'pageIconBg'      => '#eef2ff',
+                    'pageIconColor'   => '#696cff',
                 ]); ?>
 
                 <div class="container-xxl flex-grow-1">

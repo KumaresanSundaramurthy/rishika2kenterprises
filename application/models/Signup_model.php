@@ -82,7 +82,28 @@ class Signup_model extends CI_Model {
             $orgName  = trim($formData['OrgName']);
 
             /* GSTIN: store NULL when not provided; never store empty string */
-            $gstin = !empty(trim($formData['GSTIN'] ?? '')) ? strtoupper(trim($formData['GSTIN'])) : null;
+            $gstin        = !empty(trim($formData['GSTIN'] ?? '')) ? strtoupper(trim($formData['GSTIN'])) : null;
+            $countryCode  = !empty(trim($formData['CountryCode'] ?? '')) ? trim($formData['CountryCode']) : '+91';
+
+            /* Resolve SectorUID + PlanUID from the selected plan BEFORE the transaction
+               so _seedMenusFromSector receives them directly — ReadDb cannot see rows
+               inserted on WriteDb that haven't been committed yet. */
+            $sectorPlanUIDMeta = (int)($formData['SectorPlanUID'] ?? 0);
+            $sectorUID         = 0;
+            $seedPlanUID       = 0;
+            if ($sectorPlanUIDMeta > 0) {
+                $this->ReadDb->db_debug = FALSE;
+                $planMeta = $this->ReadDb->select('SectorUID, PlanUID')
+                    ->from('Billing.SectorPlanTbl')
+                    ->where('SectorPlanUID', $sectorPlanUIDMeta)
+                    ->where('IsActive', 1)
+                    ->limit(1)
+                    ->get()->row();
+                if ($planMeta) {
+                    $sectorUID   = (int)($planMeta->SectorUID ?? 0);
+                    $seedPlanUID = (int)($planMeta->PlanUID   ?? 0);
+                }
+            }
 
             // 2. OrganisationTbl
             $orgResult = $this->dbwrite_model->insertData('Organisation', 'OrganisationTbl', [
@@ -90,18 +111,21 @@ class Signup_model extends CI_Model {
                 'BrandName'    => $orgName,
                 'ShortCode'    => $shortCode,
                 'OrgToken'     => $orgToken,
-                'CountryCode'  => '+91',
+                'SectorUID'    => $sectorUID,
+                'CountryCode'  => $countryCode,
                 'CountryISO2'  => 'IN',
                 'MobileNumber' => trim($formData['OrgMobile']),
                 'EmailAddress' => strtolower(trim($formData['OrgEmail'])),
-                'GSTIN'        => $gstin,
-                'StateCode'    => trim($formData['StateCode']),
-                'StateName'    => trim($formData['StateName']),
-                'TimezoneUID'  => (int) ($formData['TimezoneUID'] ?? 181),
-                'IsActive'     => 1,
-                'IsDeleted'    => 0,
-                'CreatedBy'    => 0,
-                'UpdatedBy'    => 0,
+                'GSTIN'            => $gstin,
+                'GSTINValidation'  => $gstin ? 1 : 0,
+                'PANNumber'        => $gstin ? substr($gstin, 2, 10) : null,
+                'StateCode'        => trim($formData['StateCode']),
+                'StateName'        => trim($formData['StateName']),
+                'TimezoneUID'      => (int) ($formData['TimezoneUID'] ?? 181),
+                'IsActive'         => 1,
+                'IsDeleted'        => 0,
+                'CreatedBy'        => 0,
+                'UpdatedBy'        => 0,
             ]);
             if ($orgResult->Error) throw new Exception('Organisation insert failed: ' . $orgResult->Message);
             $orgUID = (int) $orgResult->ID;
@@ -114,7 +138,7 @@ class Signup_model extends CI_Model {
                 'BranchCode'      => $shortCode,
                 'ContactPerson'   => trim($adminName),
                 'MobileNumber'    => trim($formData['OrgMobile']),
-                'CountryCode'     => '+91',
+                'CountryCode'     => $countryCode,
                 'CountryISO2'     => 'IN',
                 'EmailAddress'    => strtolower(trim($formData['OrgEmail'])),
                 'GSTIN'           => $gstin,
@@ -189,7 +213,7 @@ class Signup_model extends CI_Model {
                 'OrgUID'            => $orgUID,
                 'BranchUID'      => $branchUID,
                 'RoleUID'        => $roleUID,
-                'CountryCode'    => '+91',
+                'CountryCode'    => $countryCode,
                 'CountryISO2'    => 'IN',
                 'MobileNumber'   => trim($formData['OrgMobile']),
                 'HasLoginAccess' => 1,
@@ -244,11 +268,12 @@ class Signup_model extends CI_Model {
             ]);
             if ($r->Error) throw new Exception('UserBranchAccess insert failed: ' . $r->Message);
 
-            // 8. OrgSubscriptionTbl — auto-assign Free Trial (30 days)
-            $this->_assignTrialSubscription($orgUID, $now);
+            // 8. OrgSubscriptionTbl — assign based on selected plan
+            $sectorPlanUID = (int)($formData['SectorPlanUID'] ?? 0);
+            $isPaidPlan = $this->_assignPlanSubscription($orgUID, $sectorPlanUID, $now);
 
             // 9. Copy menus & permissions from template org
-            $this->_seedMenusFromSector($orgUID, $roleUID, $userUID);
+            $this->_seedMenusFromSector($orgUID, $sectorUID, $seedPlanUID, $roleUID, $userUID);
 
             $this->dbwrite_model->commitTransaction();
 
@@ -259,9 +284,10 @@ class Signup_model extends CI_Model {
                 strtolower(trim($formData['OrgEmail']))
             );
 
-            $this->EndReturnData->Error   = false;
-            $this->EndReturnData->Message = 'Success';
-            $this->EndReturnData->OrgUID  = $orgUID;
+            $this->EndReturnData->Error      = false;
+            $this->EndReturnData->Message    = 'Success';
+            $this->EndReturnData->OrgUID     = $orgUID;
+            $this->EndReturnData->IsPaidPlan = $isPaidPlan;
             return $this->EndReturnData;
 
         } catch (Exception $e) {
@@ -272,6 +298,68 @@ class Signup_model extends CI_Model {
             return $this->EndReturnData;
         }
 
+    }
+
+    /* Assign subscription based on the plan selected during signup.
+       Returns true if the plan requires payment (PendingPayment), false if free/trial. */
+    private function _assignPlanSubscription(int $orgUID, int $sectorPlanUID, string $now): bool {
+        $isPaid           = false;
+        $planPrice        = 0.0;
+        $planDurationDays = 30;
+
+        if ($sectorPlanUID > 0) {
+            $this->ReadDb->db_debug = FALSE;
+            $planRow = $this->ReadDb
+                ->select('SPT.SectorPlanUID, SPT.Price, SPT.DurationDays, SP.PlanName')
+                ->from('Billing.SectorPlanTbl AS SPT')
+                ->join('Billing.SubscriptionPlansTbl AS SP', 'SP.PlanUID = SPT.PlanUID')
+                ->where('SPT.SectorPlanUID', $sectorPlanUID)
+                ->where('SPT.IsActive', 1)
+                ->limit(1)
+                ->get()->row();
+
+            if ($planRow) {
+                $planPrice        = (float)($planRow->Price ?? 0);
+                $planDurationDays = max(1, (int)($planRow->DurationDays ?? 30));
+                $isPaid           = ($planPrice > 0);
+            }
+        }
+
+        $startDate = date('Y-m-d H:i:s', strtotime($now));
+        $endDate   = date('Y-m-d H:i:s', strtotime($now . ' +' . $planDurationDays . ' days'));
+        $status    = $isPaid ? 'PendingPayment' : 'Active';
+
+        $rSub = $this->dbwrite_model->insertData('Billing', 'OrgSubscriptionTbl', [
+            'OrgUID'          => $orgUID,
+            'SectorPlanUID'   => $sectorPlanUID > 0 ? $sectorPlanUID : null,
+            'FinancialYear'   => billing_fy('long'),
+            'StartDate'       => $startDate,
+            'EndDate'         => $endDate,
+            'Status'          => $status,
+            'AutoRenew'       => 0,
+            'GracePeriodDays' => 7,
+        ]);
+        if ($rSub->Error) throw new Exception('OrgSubscriptionTbl insert failed: ' . $rSub->Message);
+        $orgSubUID = (int) $rSub->ID;
+
+        if ($orgSubUID > 0 && $sectorPlanUID > 0) {
+            $rOrder = $this->dbwrite_model->insertData('Billing', 'SubscriptionOrdersTbl', [
+                'OrgUID'         => $orgUID,
+                'SectorPlanUID'  => $sectorPlanUID,
+                'OrgSubUID'      => $orgSubUID,
+                'RenewalType'    => 'Trial',
+                'DueDate'        => $endDate,
+                'Amount'         => $isPaid ? $planPrice : 0.00,
+                'DiscountAmount' => 0.00,
+                'TaxAmount'      => 0.00,
+                'NetAmount'      => $isPaid ? $planPrice : 0.00,
+                'Status'         => $isPaid ? 'Pending' : 'Waived',
+                'CreatedBy'      => null,
+            ]);
+            if ($rOrder->Error) throw new Exception('SubscriptionOrdersTbl insert failed: ' . $rOrder->Message);
+        }
+
+        return $isPaid;
     }
 
     private function _assignTrialSubscription(int $orgUID, string $now): void {
@@ -360,8 +448,9 @@ class Signup_model extends CI_Model {
 
     /**
      * @param array<string,string> $g  Verified Google profile fields
+     * @param int $sectorPlanUID  Plan chosen during signup (0 = free/trial)
      */
-    public function registerOrganisationViaGoogle(array $g): object {
+    public function registerOrganisationViaGoogle(array $g, int $sectorPlanUID = 0): object {
 
         $this->EndReturnData = new stdClass();
         $this->load->model('dbwrite_model');
@@ -380,10 +469,30 @@ class Signup_model extends CI_Model {
             $locale    = trim($g['locale']   ?? '');
             $hd        = trim($g['hd']       ?? '');
 
-            $orgName   = $firstName ?: 'Organisation';
-            $shortCode = $this->_generateShortCode($orgName);
-            $orgToken  = $this->_generateOrgToken();
-            $username  = $this->_generateUniqueUsername($firstName);
+            $orgName     = $firstName ?: 'Organisation';
+            $shortCode   = $this->_generateShortCode($orgName);
+            $orgToken    = $this->_generateOrgToken();
+            $username    = $this->_generateUniqueUsername($firstName);
+            $countryCode = !empty(trim($formData['CountryCode'] ?? '')) ? trim($formData['CountryCode']) : '+91';
+
+            /* Resolve SectorUID + PlanUID BEFORE the transaction — ReadDb cannot see
+               rows inserted on WriteDb that haven't been committed yet. */
+            $sectorPlanUIDMeta = (int)($formData['SectorPlanUID'] ?? 0);
+            $sectorUID         = 0;
+            $seedPlanUID       = 0;
+            if ($sectorPlanUIDMeta > 0) {
+                $this->ReadDb->db_debug = FALSE;
+                $planMeta = $this->ReadDb->select('SectorUID, PlanUID')
+                    ->from('Billing.SectorPlanTbl')
+                    ->where('SectorPlanUID', $sectorPlanUIDMeta)
+                    ->where('IsActive', 1)
+                    ->limit(1)
+                    ->get()->row();
+                if ($planMeta) {
+                    $sectorUID   = (int)($planMeta->SectorUID ?? 0);
+                    $seedPlanUID = (int)($planMeta->PlanUID   ?? 0);
+                }
+            }
 
             /* ── OrganisationTbl ──────────────────────────────────────── */
             $orgResult = $this->dbwrite_model->insertData('Organisation', 'OrganisationTbl', [
@@ -391,7 +500,8 @@ class Signup_model extends CI_Model {
                 'BrandName'       => $orgName,
                 'ShortCode'       => $shortCode,
                 'OrgToken'        => $orgToken,
-                'CountryCode'     => '+91',
+                'SectorUID'       => $sectorUID,
+                'CountryCode'     => $countryCode,
                 'CountryISO2'     => 'IN',
                 'MobileNumber'    => null,
                 'EmailAddress'    => $email,
@@ -416,7 +526,7 @@ class Signup_model extends CI_Model {
                 'BranchCode'      => $shortCode,
                 'ContactPerson'   => trim($firstName . ' ' . $lastName),
                 'MobileNumber'    => null,
-                'CountryCode'     => '+91',
+                'CountryCode'     => $countryCode,
                 'CountryISO2'     => 'IN',
                 'EmailAddress'    => $email,
                 'GSTIN'           => null,
@@ -494,7 +604,7 @@ class Signup_model extends CI_Model {
                 'OrgUID'         => $orgUID,
                 'BranchUID'      => $branchUID,
                 'RoleUID'        => $roleUID,
-                'CountryCode'    => '+91',
+                'CountryCode'    => $countryCode,
                 'CountryISO2'    => 'IN',
                 'MobileNumber'   => null,
                 'HasLoginAccess' => 1,
@@ -542,14 +652,15 @@ class Signup_model extends CI_Model {
             ]);
             if ($r->Error) throw new Exception('UserBranchAccess insert failed: ' . $r->Message);
 
-            $this->_assignTrialSubscription($orgUID, $now);
-            $this->_seedMenusFromSector($orgUID, $roleUID, $userUID);
+            $isPaidPlan = $this->_assignPlanSubscription($orgUID, $sectorPlanUID, $now);
+            $this->_seedMenusFromSector($orgUID, $sectorUID, $seedPlanUID, $roleUID, $userUID);
 
             $this->dbwrite_model->commitTransaction();
 
-            $this->EndReturnData->Error   = false;
-            $this->EndReturnData->Message = 'Success';
-            $this->EndReturnData->OrgUID  = $orgUID;
+            $this->EndReturnData->Error      = false;
+            $this->EndReturnData->Message    = 'Success';
+            $this->EndReturnData->OrgUID     = $orgUID;
+            $this->EndReturnData->IsPaidPlan = $isPaidPlan;
             return $this->EndReturnData;
 
         } catch (Exception $e) {
@@ -665,31 +776,16 @@ class Signup_model extends CI_Model {
         }
     }
 
-    private function _seedMenusFromSector(int $orgUID, int $roleUID, int $userUID): void {
+    /* $sectorUID and $planUID are passed directly — they were resolved from SectorPlanTbl
+       BEFORE the transaction started so ReadDb could read them; reading them again inside
+       the transaction would fail because ReadDb cannot see WriteDb's uncommitted rows. */
+    private function _seedMenusFromSector(int $orgUID, int $sectorUID, int $planUID, int $roleUID, int $userUID): void {
+
+        if ($sectorUID <= 0) return;
 
         $this->ReadDb->db_debug = FALSE;
 
-        /* ── 1. Resolve SectorUID for this org ──────────────────────────────── */
-        $orgRow = $this->ReadDb->select('SectorUID')
-            ->from('Organisation.OrganisationTbl')
-            ->where('OrgUID', $orgUID)
-            ->limit(1)
-            ->get()->row();
-        $sectorUID = $orgRow ? (int)$orgRow->SectorUID : 0;
-        if ($sectorUID <= 0) return;
-
-        /* ── 2. Resolve PlanUID from the org's current subscription ─────────── */
-        $subRow = $this->ReadDb->select('SPT.PlanUID')
-            ->from('Billing.OrgSubscriptionTbl AS OS')
-            ->join('Billing.SectorPlanTbl AS SPT', 'SPT.SectorPlanUID = OS.SectorPlanUID')
-            ->where('OS.OrgUID', $orgUID)
-            ->where_not_in('OS.Status', ['Cancelled'])
-            ->order_by('OS.OrgSubUID', 'DESC')
-            ->limit(1)
-            ->get()->row();
-        $planUID = $subRow ? (int)$subRow->PlanUID : 0;
-
-        /* ── 3. Allowed ModuleUIDs for this sector + plan ───────────────────── */
+        /* ── 1. Allowed ModuleUIDs for this sector + plan ───────────────────── */
         $allowedModuleUIDs = [];
         if ($planUID > 0) {
             $modRows = $this->ReadDb->select('ModuleUID')
@@ -701,7 +797,7 @@ class Signup_model extends CI_Model {
         }
         /* Empty allowedModuleUIDs = no filter → all menus active (Trial / unconfigured) */
 
-        /* ── 4. Read ALL sector main menus ──────────────────────────────────── */
+        /* ── 2. Read ALL sector main menus ──────────────────────────────────── */
         $mainMenuRows = $this->ReadDb->select('*')
             ->from('Modules.SectorMainMenusTbl')
             ->where('SectorUID',  $sectorUID)
@@ -711,7 +807,7 @@ class Signup_model extends CI_Model {
 
         if (empty($mainMenuRows)) return;
 
-        /* ── 5. Read ALL sector sub menus ───────────────────────────────────── */
+        /* ── 3. Read ALL sector sub menus ───────────────────────────────────── */
         $subMenuRows = $this->ReadDb->select('*')
             ->from('Modules.SectorSubMenusTbl')
             ->where('SectorUID',  $sectorUID)

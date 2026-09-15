@@ -83,10 +83,6 @@ class Subscription extends MY_Controller {
                 throw new Exception($changeResult->Message);
             }
 
-            /* Bust org-specific caches */
-            $this->load->helper('cachehelper');
-            $this->cachehelper->bustOrgMenuCache($orgUID);
-
             $result->Status  = 'OK';
             $result->Message = $changeResult->Message;
             $result->EndDate = $changeResult->EndDate;

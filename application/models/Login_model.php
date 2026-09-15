@@ -479,7 +479,7 @@ class Login_model extends CI_Model {
 
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('SlotKey, IsEnabled, MaxFiles, MaxFileSizeMB, MaxTotalSizeMB, AllowMultiple, AcceptedTypes');
-            $this->ReadDb->from('Modules.ModuleAttachmentCfgTbl');
+            $this->ReadDb->from('Modules.AttachmentSlotConfigTbl');
             $rows = $this->ReadDb->get();
             if (!$rows) return [];
             $cfg = [];

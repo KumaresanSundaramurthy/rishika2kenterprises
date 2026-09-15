@@ -751,7 +751,7 @@ class MY_Controller extends CI_Controller {
     // ── Attachment config loader ──────────────────────────────────────────────
 
     /**
-     * Loads attachment config for all slots from Global.ModuleAttachmentCfgTbl.
+     * Loads attachment config for all slots from Modules.AttachmentSlotConfigTbl.
      * Result is cached in Upstash under 'global:attach_cfg' with a 1-year TTL.
      * To force reload after a DB change: DEL the key from Upstash.
      * Returns array keyed by SlotKey.

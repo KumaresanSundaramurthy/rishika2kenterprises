@@ -38,14 +38,35 @@ class Razorpayapi {
      * @param int    $amountPaise
      * @param string $receiptId    Short reference for your records (max 40 chars)
      * @param string $currency
+     * @param array  $notes        Key-value pairs stored on the order; returned in webhooks
      * @returns array
      */
-    public function createOrder(int $amountPaise, string $receiptId, string $currency = 'INR'): array {
-        return $this->_post('/orders', [
+    public function createOrder(int $amountPaise, string $receiptId, string $currency = 'INR', array $notes = []): array {
+        $payload = [
             'amount'   => $amountPaise,
             'currency' => $currency,
             'receipt'  => substr($receiptId, 0, 40),
-        ]);
+        ];
+        if (!empty($notes)) {
+            $payload['notes'] = $notes;
+        }
+        return $this->_post('/orders', $payload);
+    }
+
+    /**
+     * Verify a Razorpay webhook signature.
+     * Razorpay signs the raw request body with RAZORPAY_WEBHOOK_SECRET using HMAC-SHA256
+     * and sends it in the X-Razorpay-Signature header.
+     *
+     * @param string $rawBody   Raw POST body from php://input
+     * @param string $signature Value of X-Razorpay-Signature header
+     * @returns bool
+     */
+    public function verifyWebhookSignature(string $rawBody, string $signature): bool {
+        $webhookSecret = (string)(getenv('RAZORPAY_WEBHOOK_SECRET') ?: '');
+        if ($webhookSecret === '' || $signature === '') return false;
+        $expected = hash_hmac('sha256', $rawBody, $webhookSecret);
+        return hash_equals($expected, $signature);
     }
 
     /**

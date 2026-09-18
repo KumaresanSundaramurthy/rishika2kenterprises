@@ -12,7 +12,7 @@ class Middleware {
 		$Controller = trim($CI->router->fetch_class());  //Controller name
 		$Method     = trim($CI->router->fetch_method());  //Method name
 
-		$ExcludeController = array("website", "login", "receipt", "launch", "oauth", "doc", "signup", "subscriptionrenew");
+		$ExcludeController = array("website", "login", "receipt", "launch", "oauth", "doc", "signup", "subscriptionrenew", "razorpay", "pay");
 	    
 		if(in_array($Controller, $ExcludeController)) {
 			return;

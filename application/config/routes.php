@@ -56,6 +56,12 @@ $route['translate_uri_dashes'] = FALSE;
 // Public receipt page (no login required)
 $route['receipt/(:any)'] = 'receipt/index/$1';
 
+// Public invoice payment page (no login required)
+$route['pay/(:any)'] = 'pay/index/$1';
+
+// Razorpay server-to-server webhook (no login required)
+$route['razorpay/webhook'] = 'razorpay/webhook';
+
 // Public document viewer — Invoice, Purchase, PO, SO, SR, PR, Quotation, etc.
 // PDF must be listed before the generic wildcard so doc/pdf/TOKEN routes correctly.
 $route['flow/doc/(:any)'] = 'doc/view/$1';  // canonical public share URL

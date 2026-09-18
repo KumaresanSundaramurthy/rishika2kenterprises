@@ -66,6 +66,70 @@ class Razorpay_model extends CI_Model {
     }
 
     /**
+     * Returns a SubscriptionOrdersTbl row whose RazorpayPaymentId matches.
+     * Used by the webhook to detect payments already recorded by verifyPayment().
+     *
+     * @param string $paymentId  Razorpay payment ID (pay_xxx)
+     * @returns ?object
+     */
+    public function getSubscriptionOrderByPaymentId(string $paymentId): ?object {
+        try {
+            $this->ReadDb->select('SubscriptionOrderUID, OrgUID, Status');
+            $this->ReadDb->from('Billing.SubscriptionOrdersTbl');
+            $this->ReadDb->where('RazorpayPaymentId', $paymentId);
+            $this->ReadDb->limit(1);
+            $q = $this->ReadDb->get();
+            return ($q !== false) ? ($q->row() ?? null) : null;
+        } catch (Exception $e) {
+            notifyError('Razorpay_model::getSubscriptionOrderByPaymentId', $e);
+            return null;
+        }
+    }
+
+    /**
+     * Returns the most recent non-cancelled subscription row for an org.
+     *
+     * @param int $orgUID
+     * @returns ?object  {OrgSubUID, Status, SectorPlanUID}
+     */
+    public function getSubscriptionRow(int $orgUID): ?object {
+        try {
+            $this->ReadDb->select('OrgSubUID, Status, SectorPlanUID');
+            $this->ReadDb->from('Billing.OrgSubscriptionTbl');
+            $this->ReadDb->where('OrgUID', $orgUID);
+            $this->ReadDb->where_not_in('Status', ['Cancelled']);
+            $this->ReadDb->order_by('OrgSubUID', 'DESC');
+            $this->ReadDb->limit(1);
+            $q = $this->ReadDb->get();
+            return ($q !== false) ? ($q->row() ?? null) : null;
+        } catch (Exception $e) {
+            notifyError('Razorpay_model::getSubscriptionRow', $e);
+            return null;
+        }
+    }
+
+    /**
+     * Returns plan details required for webhook subscription recovery.
+     *
+     * @param int $sectorPlanUID
+     * @returns ?object  {Price, DurationDays, PlanName}
+     */
+    public function getSubscriptionPlanDetails(int $sectorPlanUID): ?object {
+        try {
+            $this->ReadDb->select(['SPT.Price', 'SPT.DurationDays', 'SP.PlanName']);
+            $this->ReadDb->from('Billing.SectorPlanTbl SPT');
+            $this->ReadDb->join('Billing.SubscriptionPlansTbl SP', 'SP.PlanUID = SPT.PlanUID');
+            $this->ReadDb->where('SPT.SectorPlanUID', $sectorPlanUID);
+            $this->ReadDb->limit(1);
+            $q = $this->ReadDb->get();
+            return ($q !== false) ? ($q->row() ?? null) : null;
+        } catch (Exception $e) {
+            notifyError('Razorpay_model::getSubscriptionPlanDetails', $e);
+            return null;
+        }
+    }
+
+    /**
      * Find the UID of a suitable "Online" / "UPI" / "Net Banking" payment type.
      * Falls back to the first available non-cash active type.
      *

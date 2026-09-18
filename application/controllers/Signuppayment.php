@@ -246,9 +246,14 @@ class Signuppayment extends CI_Controller {
                 throw new Exception('Online payment is not currently enabled. Please contact support.');
             }
 
-            $receiptId = 'sub_' . $orgUID . '_' . $sectorPlanUID . '_' . time();
-            $order     = $this->razorpayapi->createOrder($amountPaise, $receiptId);
-            $orgName   = $jwtData->Org->OrgName ?? 'Your Organisation';
+            $receiptId  = 'sub_' . $orgUID . '_' . $sectorPlanUID . '_' . time();
+            $orderNotes = [
+                'type'            => 'subscription',
+                'org_uid'         => (string)$orgUID,
+                'sector_plan_uid' => (string)$sectorPlanUID,
+            ];
+            $order   = $this->razorpayapi->createOrder($amountPaise, $receiptId, 'INR', $orderNotes);
+            $orgName = $jwtData->Org->OrgName ?? 'Your Organisation';
 
             $out->Error       = false;
             $out->order_id    = $order['id'];

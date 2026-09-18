@@ -57,6 +57,16 @@ class Login_model extends CI_Model {
             $JwtOrgData['SectorUID']            = (int)($UserData->SectorUID         ?? 1);
             $JwtOrgData['IsOnboardingComplete'] = (int)($UserData->IsOnboardingComplete ?? 1);
 
+            /* Org timezone (IANA string, e.g. "Asia/Kolkata") for server-side datetime formatting */
+            $this->ReadDb->db_debug = FALSE;
+            $_tzRow = $this->ReadDb->select('T.Timezone')
+                ->from('Organisation.OrganisationTbl O')
+                ->join('Global.TimezoneTbl T', 'T.TimezoneUID = O.TimezoneUID', 'left')
+                ->where('O.OrgUID', (int)$UserData->UserOrgUID)
+                ->limit(1)
+                ->get()->row();
+            $JwtOrgData['OrgTimezone'] = $_tzRow->Timezone ?? 'UTC';
+
             $orgToken   = $UserData->OrgToken ?? '';
             $MainModule = $this->getRoleMainMenus($UserData->UserRoleUID, $UserData->UserOrgUID, $orgToken)->Data;
             $SubModule  = $this->getRoleSubMenus($UserData->UserRoleUID, $UserData->UserOrgUID, $orgToken)->Data;

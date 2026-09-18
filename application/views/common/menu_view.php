@@ -149,6 +149,23 @@
         endforeach;
     ?>
 
+        <!-- Subscription (hardcoded — migrate to DB under Option A later) -->
+        <li class="menu-header small text-uppercase">
+            <span class="menu-header-text">Subscription</span>
+        </li>
+        <li class="menu-item <?php echo ($firstSeg === 'subscription' && $secondSeg === 'dashboard') ? 'active' : ''; ?>">
+            <a href="/subscription/dashboard" class="menu-link">
+                <i class="menu-icon tf-icons bx bx-credit-card"></i>
+                <div data-i18n="Subscription">Subscription</div>
+            </a>
+        </li>
+        <li class="menu-item <?php echo ($firstSeg === 'subscription' && $secondSeg === 'plans') ? 'active' : ''; ?>">
+            <a href="/subscription/plans" class="menu-link">
+                <i class="menu-icon tf-icons bx bx-list-check"></i>
+                <div data-i18n="Plans">Plans</div>
+            </a>
+        </li>
+
     </ul>
 
     <!-- Pinned Settings button — lives outside the scrollable UL so it is

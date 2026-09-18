@@ -763,38 +763,50 @@ var _gpoSim = (function () {
 
 window._r2kSimpleOverlay = true;
 
-/** @returns {void} */
-function showUIBlock() {
+/**
+ * @param {string} [text] - Optional overlay message; defaults to "Processing… Please wait…"
+ * @returns {void}
+ */
+function showUIBlock(text) {
     clearTimeout(_gpoHideTimer);
 
     if (!document.getElementById('globalProcOverlay')) {
         var d = document.createElement('div');
         d.id = 'globalProcOverlay';
+        var ringHtml = ''
+            + '<div class="gpo-ring-outer">'
+                + '<div class="gpo-ring-inner">'
+                    + '<img class="gpo-logo" src="/images/logo/favicon_io/android-chrome-512x512-1.png">'
+                + '</div>'
+            + '</div>';
         if (window._r2kSimpleOverlay) {
             d.classList.add('gpo-wait-only');
             d.innerHTML = ''
                 + '<div class="gpo-wrap">'
-                    + '<div class="gpo-spinner">'
-                        + '<img class="gpo-logo" src="/images/logo/favicon_io/android-chrome-512x512-1.png">'
-                    + '</div>'
-                    + '<div class="gpo-wait-text">Processing&hellip; Please wait&hellip;</div>'
+                    + ringHtml
+                    + '<div class="gpo-wait-text" id="gpoWaitText">Processing&hellip; Please wait&hellip;</div>'
+                    + '<div class="gpo-dots"><span></span><span></span><span></span></div>'
                 + '</div>';
         } else {
             d.innerHTML = ''
                 + '<div class="gpo-wrap">'
-                    + '<div class="gpo-spinner">'
-                        + '<img class="gpo-logo" src="/images/logo/favicon_io/android-chrome-512x512-1.png">'
-                    + '</div>'
+                    + ringHtml
                     + '<div class="gpo-progress-wrap">'
                         + '<div class="gpo-progress-track">'
                             + '<div class="gpo-progress-bar" id="gpoProgressBar"></div>'
                         + '</div>'
                         + '<span class="gpo-progress-pct" id="gpoProgressPct">0%</span>'
                     + '</div>'
-                    + '<div class="gpo-wait-text">Please wait&hellip;</div>'
+                    + '<div class="gpo-wait-text" id="gpoWaitText">Please wait&hellip;</div>'
+                    + '<div class="gpo-dots"><span></span><span></span><span></span></div>'
                 + '</div>';
         }
         document.body.appendChild(d);
+    }
+
+    if (text) {
+        var textEl = document.getElementById('gpoWaitText');
+        if (textEl) textEl.textContent = text;
     }
 
     _gpoSim.reset();

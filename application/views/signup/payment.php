@@ -141,6 +141,73 @@
 
 .sp-logout-link:hover { color: rgba(160, 190, 215, 0.75); }
 
+/* Change plan link */
+.sp-change-link {
+    display: block;
+    text-align: right;
+    font-size: 0.78rem;
+    color: rgba(96, 165, 200, 0.6);
+    text-decoration: none;
+    margin-top: -1.25rem;
+    margin-bottom: 1.5rem;
+    cursor: pointer;
+    transition: color 0.2s;
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: inherit;
+}
+.sp-change-link:hover { color: rgba(96, 165, 200, 1); }
+
+/* Plan picker panel */
+.sp-plan-picker {
+    display: none;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin-bottom: 1.5rem;
+}
+.sp-plan-picker.show { display: flex; }
+
+.sp-plan-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(96, 165, 200, 0.05);
+    border: 1px solid rgba(96, 165, 200, 0.15);
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    transition: all 0.18s;
+}
+.sp-plan-option:hover { background: rgba(96, 165, 200, 0.12); border-color: rgba(96, 165, 200, 0.35); }
+.sp-plan-option.selected {
+    border-color: rgba(96, 165, 200, 0.55);
+    background: rgba(96, 165, 200, 0.14);
+}
+
+.sp-po-name {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #c8e4f4;
+    margin-bottom: 0.15rem;
+}
+.sp-po-cycle {
+    font-size: 0.72rem;
+    color: rgba(160, 200, 220, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+.sp-po-price {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #f0f4f8;
+    white-space: nowrap;
+}
+.sp-po-free { color: #4ade80; font-size: 0.85rem; }
+
+.sp-picker-spinner { display: none; }
+.sp-picker-spinner.show { display: block; text-align: center; padding: 0.5rem 0; }
+
 /* Alert */
 .sp-alert {
     background: rgba(239,68,68,0.1);
@@ -250,6 +317,34 @@
                 </div>
             </div>
 
+            <!-- Change plan link -->
+            <?php if (!empty($plans) && count($plans) > 1): ?>
+            <button type="button" class="sp-change-link" id="spChangePlanToggle" onclick="spTogglePicker()">
+                Change plan &rsaquo;
+            </button>
+
+            <!-- Plan picker -->
+            <div class="sp-plan-picker" id="spPlanPicker">
+                <?php foreach ($plans as $p): ?>
+                <div class="sp-plan-option<?php echo ((int)$p->SectorPlanUID === (int)$sub->SectorPlanUID) ? ' selected' : ''; ?>"
+                     onclick="spSelectPlan(<?php echo (int)$p->SectorPlanUID; ?>, this)">
+                    <div>
+                        <div class="sp-po-name"><?php echo htmlspecialchars($p->PlanName); ?></div>
+                        <div class="sp-po-cycle"><?php echo htmlspecialchars($p->BillingCycle ?? ''); ?></div>
+                    </div>
+                    <?php if ((float)$p->Price > 0): ?>
+                    <div class="sp-po-price">&#8377;<?php echo number_format((float)$p->Price, 0); ?></div>
+                    <?php else: ?>
+                    <div class="sp-po-free">Free</div>
+                    <?php endif; ?>
+                </div>
+                <?php endforeach; ?>
+                <div class="sp-picker-spinner" id="spPickerSpinner">
+                    <span class="sp-spinner"></span>
+                </div>
+            </div>
+            <?php endif; ?>
+
             <!-- Alert -->
             <div class="sp-alert" id="spAlert">
                 <i class="bx bx-error-circle" style="flex-shrink:0;margin-top:1px;"></i>
@@ -308,6 +403,103 @@
         label.style.display   = loading ? 'none' : '';
         spinner.style.display = loading ? '' : 'none';
     }
+
+    /** @returns {void} */
+    window.spTogglePicker = function () {
+        var picker = document.getElementById('spPlanPicker');
+        var toggle = document.getElementById('spChangePlanToggle');
+        if (!picker) return;
+        var isOpen = picker.classList.contains('show');
+        if (isOpen) {
+            picker.classList.remove('show');
+            if (toggle) toggle.textContent = 'Change plan ›';
+        } else {
+            picker.classList.add('show');
+            if (toggle) toggle.textContent = 'Hide plans ›';
+        }
+    };
+
+    /**
+     * Called when user clicks a plan option in the picker.
+     * @param {number} planUID
+     * @param {HTMLElement} el
+     * @returns {void}
+     */
+    window.spSelectPlan = function (planUID, el) {
+        if (planUID === _sectorPlanUID) {
+            spTogglePicker();
+            return;
+        }
+
+        /* Mark selected */
+        var picker = document.getElementById('spPlanPicker');
+        if (picker) {
+            picker.querySelectorAll('.sp-plan-option').forEach(function (o) { o.classList.remove('selected'); });
+        }
+        if (el) el.classList.add('selected');
+
+        /* Disable all options + show spinner */
+        var spinner = document.getElementById('spPickerSpinner');
+        if (picker) picker.querySelectorAll('.sp-plan-option').forEach(function (o) { o.style.pointerEvents = 'none'; });
+        if (spinner) spinner.classList.add('show');
+        spHideAlert();
+
+        fetch('/signup/changePlan', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body:    'sector_plan_uid=' + encodeURIComponent(planUID),
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (spinner) spinner.classList.remove('show');
+            if (picker) picker.querySelectorAll('.sp-plan-option').forEach(function (o) { o.style.pointerEvents = ''; });
+
+            if (data.Error) {
+                spShowAlert(data.Message || 'Could not change plan. Please try again.');
+                return;
+            }
+
+            /* Update stored plan UID + price */
+            _sectorPlanUID = data.SectorPlanUID;
+            _planPrice     = data.Price;
+
+            /* Update plan box display */
+            var nameEl  = document.querySelector('.sp-plan-name');
+            var cycleEl = document.querySelector('.sp-plan-cycle');
+            var amtEl   = document.querySelector('.sp-amount');
+            if (nameEl)  nameEl.textContent  = data.PlanName    || '';
+            if (cycleEl) cycleEl.textContent = data.BillingCycle || '';
+            if (amtEl)   amtEl.textContent   = data.Price > 0 ? Math.round(data.Price).toLocaleString('en-IN') : '0';
+
+            /* Update pay button label */
+            var payLabel = document.getElementById('spPayLabel');
+            if (payLabel) payLabel.textContent = data.Price > 0
+                ? 'Pay ₹' + Math.round(data.Price).toLocaleString('en-IN')
+                : 'Activate Free Plan';
+
+            /* Hide/show pay button for free plan */
+            var payBtn = document.getElementById('spPayBtn');
+            if (payBtn) payBtn.onclick = data.IsFree ? spActivateFree : spInitiatePayment;
+
+            spTogglePicker();
+
+            /* Free plan — redirect immediately */
+            if (data.IsFree && data.Redirect) {
+                window.location.href = data.Redirect;
+            }
+        })
+        .catch(function () {
+            if (spinner) spinner.classList.remove('show');
+            if (picker) picker.querySelectorAll('.sp-plan-option').forEach(function (o) { o.style.pointerEvents = ''; });
+            spShowAlert('A network error occurred. Please try again.');
+        });
+    };
+
+    /** @returns {void} */
+    window.spActivateFree = function () {
+        /* Should not be reached — redirect happens in spSelectPlan; safety fallback */
+        window.location.href = '/dashboard';
+    };
 
     /**
      * Calls server to create Razorpay order, then opens the Razorpay checkout.

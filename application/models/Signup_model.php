@@ -325,8 +325,8 @@ class Signup_model extends CI_Model {
             }
         }
 
-        $startDate = date('Y-m-d H:i:s', strtotime($now));
-        $endDate   = date('Y-m-d H:i:s', strtotime($now . ' +' . $planDurationDays . ' days'));
+        $startDate = gmdate('Y-m-d H:i:s');
+        $endDate   = gmdate('Y-m-d H:i:s', time() + $planDurationDays * 86400);
         $status    = $isPaid ? 'PendingPayment' : 'Active';
 
         $rSub = $this->dbwrite_model->insertData('Billing', 'OrgSubscriptionTbl', [
@@ -347,6 +347,7 @@ class Signup_model extends CI_Model {
                 'OrgUID'         => $orgUID,
                 'SectorPlanUID'  => $sectorPlanUID,
                 'OrgSubUID'      => $orgSubUID,
+                'FinancialYear'  => billing_fy('long'),
                 'RenewalType'    => 'Trial',
                 'DueDate'        => $endDate,
                 'Amount'         => $isPaid ? $planPrice : 0.00,
@@ -365,8 +366,8 @@ class Signup_model extends CI_Model {
     private function _assignTrialSubscription(int $orgUID, string $now): void {
 
         $trialDays = 30;
-        $startDate = date('Y-m-d H:i:s', strtotime($now));
-        $endDate   = date('Y-m-d H:i:s', strtotime($now . ' +' . $trialDays . ' days'));
+        $startDate = gmdate('Y-m-d H:i:s');
+        $endDate   = gmdate('Y-m-d H:i:s', time() + $trialDays * 86400);
 
         /* Try to find a SectorPlan for this org's sector — may not exist yet if no plans are configured */
         $this->ReadDb->db_debug = FALSE;
@@ -385,7 +386,7 @@ class Signup_model extends CI_Model {
             $sectorPlanUID = ($sp->SectorPlanUID > 0) ? (int) $sp->SectorPlanUID : null;
             if ($sectorPlanUID && (int) $sp->TrialDays > 0) {
                 $trialDays = (int) $sp->TrialDays;
-                $endDate   = date('Y-m-d H:i:s', strtotime($now . ' +' . $trialDays . ' days'));
+                $endDate   = gmdate('Y-m-d H:i:s', time() + $trialDays * 86400);
             }
         }
 
@@ -408,6 +409,7 @@ class Signup_model extends CI_Model {
                 'OrgUID'         => $orgUID,
                 'SectorPlanUID'  => $sectorPlanUID,
                 'OrgSubUID'      => $orgSubUID,
+                'FinancialYear'  => billing_fy('long'),
                 'RenewalType'    => 'Trial',
                 'DueDate'        => $endDate,
                 'Amount'         => 0.00,
@@ -774,6 +776,133 @@ class Signup_model extends CI_Model {
                 'FirstName' => $firstName,
             ]);
         }
+    }
+
+    /**
+     * Updates IsActive on all 4 menu tables for an existing org when their plan changes.
+     * Reads SectorPlanModulesTbl for the new plan, then batch-updates MainMenusTbl,
+     * SubMenusTbl, RoleMainMenusTbl, RoleSubMenusTbl accordingly.
+     *
+     * @return object {Error, Message?, SectorUID, PlanUID, Price, DurationDays}
+     */
+    public function applyPlanMenuFilter(int $orgUID, int $sectorPlanUID): object {
+        $out = new stdClass();
+        $out->Error = false;
+        $this->ReadDb->db_debug = FALSE;
+
+        /* 1. Resolve sectorUID + planUID from the chosen plan */
+        $planMeta = $this->ReadDb->select('SectorUID, PlanUID, Price, DurationDays')
+            ->from('Billing.SectorPlanTbl')
+            ->where('SectorPlanUID', $sectorPlanUID)
+            ->where('IsActive', 1)
+            ->limit(1)
+            ->get()->row();
+
+        if (!$planMeta) {
+            $out->Error   = true;
+            $out->Message = 'Plan not found.';
+            return $out;
+        }
+
+        $sectorUID = (int)$planMeta->SectorUID;
+        $planUID   = (int)$planMeta->PlanUID;
+
+        /* 2. Allowed ModuleUIDs for this plan (empty = no filter = all active) */
+        $allowedModuleUIDs = [];
+        if ($planUID > 0) {
+            $modRows = $this->ReadDb->select('ModuleUID')
+                ->from('Billing.SectorPlanModulesTbl')
+                ->where('SectorUID', $sectorUID)
+                ->where('PlanUID',   $planUID)
+                ->get()->result();
+            $allowedModuleUIDs = array_map('intval', array_column($modRows, 'ModuleUID'));
+        }
+
+        /* 3. Load this org's menus */
+        $mainMenus = $this->ReadDb->select('MainMenuUID, ModuleUID, IsDirectLink')
+            ->from('Modules.MainMenusTbl')
+            ->where('OrgUID',    $orgUID)
+            ->where('IsDeleted', 0)
+            ->get()->result();
+
+        $subMenus = $this->ReadDb->select('SubMenuUID, MainMenuUID, ModuleUID, ParentSubMenuUID')
+            ->from('Modules.SubMenusTbl')
+            ->where('OrgUID',    $orgUID)
+            ->where('IsDeleted', 0)
+            ->get()->result();
+
+        /* 4. Compute which main menus are active */
+        $activeMMUIDs = [];
+        foreach ($subMenus as $sm) {
+            $modUID = ($sm->ModuleUID !== null && $sm->ModuleUID !== '') ? (int)$sm->ModuleUID : null;
+            if (empty($allowedModuleUIDs) || ($modUID !== null && in_array($modUID, $allowedModuleUIDs, true))) {
+                $activeMMUIDs[(int)$sm->MainMenuUID] = true;
+            }
+        }
+        foreach ($mainMenus as $mm) {
+            if ((int)($mm->IsDirectLink ?? 0) !== 1) continue;
+            $modUID = ($mm->ModuleUID !== null && $mm->ModuleUID !== '') ? (int)$mm->ModuleUID : null;
+            if ($modUID === null || empty($allowedModuleUIDs) || in_array($modUID, $allowedModuleUIDs, true)) {
+                $activeMMUIDs[(int)$mm->MainMenuUID] = true;
+            }
+        }
+
+        $allMMUIDs      = array_map(fn(object $m): int => (int)$m->MainMenuUID, $mainMenus);
+        $activeMMList   = array_keys($activeMMUIDs);
+        $inactiveMMList = array_values(array_diff($allMMUIDs, $activeMMList));
+
+        /* 5. Compute which sub menus are active (parent headers inherit from children) */
+        $activeParentSubUIDs = [];
+        foreach ($subMenus as $sm) {
+            if (!$sm->ParentSubMenuUID) continue;
+            $modUID = ($sm->ModuleUID !== null && $sm->ModuleUID !== '') ? (int)$sm->ModuleUID : null;
+            if (empty($allowedModuleUIDs) || ($modUID !== null && in_array($modUID, $allowedModuleUIDs, true))) {
+                $activeParentSubUIDs[(int)$sm->ParentSubMenuUID] = true;
+            }
+        }
+
+        $activeSMUIDs   = [];
+        $inactiveSMUIDs = [];
+        foreach ($subMenus as $sm) {
+            $smUID  = (int)$sm->SubMenuUID;
+            $modUID = ($sm->ModuleUID !== null && $sm->ModuleUID !== '') ? (int)$sm->ModuleUID : null;
+            $isActive = isset($activeParentSubUIDs[$smUID])
+                || empty($allowedModuleUIDs)
+                || ($modUID !== null && in_array($modUID, $allowedModuleUIDs, true));
+            if ($isActive) {
+                $activeSMUIDs[] = $smUID;
+            } else {
+                $inactiveSMUIDs[] = $smUID;
+            }
+        }
+
+        /* 6. Batch-update all 4 tables */
+        $this->load->model('dbwrite_model');
+        $writeDb = $this->dbwrite_model->getWriteDb();
+        $writeDb->db_debug = FALSE;
+
+        if (!empty($activeMMList)) {
+            $writeDb->where_in('MainMenuUID', $activeMMList)->update('Modules.MainMenusTbl',      ['IsActive' => 1]);
+            $writeDb->where_in('MainMenuUID', $activeMMList)->update('UserRole.RoleMainMenusTbl', ['IsActive' => 1]);
+        }
+        if (!empty($inactiveMMList)) {
+            $writeDb->where_in('MainMenuUID', $inactiveMMList)->update('Modules.MainMenusTbl',      ['IsActive' => 0]);
+            $writeDb->where_in('MainMenuUID', $inactiveMMList)->update('UserRole.RoleMainMenusTbl', ['IsActive' => 0]);
+        }
+        if (!empty($activeSMUIDs)) {
+            $writeDb->where_in('SubMenuUID', $activeSMUIDs)->update('Modules.SubMenusTbl',      ['IsActive' => 1]);
+            $writeDb->where_in('SubMenuUID', $activeSMUIDs)->update('UserRole.RoleSubMenusTbl', ['IsActive' => 1]);
+        }
+        if (!empty($inactiveSMUIDs)) {
+            $writeDb->where_in('SubMenuUID', $inactiveSMUIDs)->update('Modules.SubMenusTbl',      ['IsActive' => 0]);
+            $writeDb->where_in('SubMenuUID', $inactiveSMUIDs)->update('UserRole.RoleSubMenusTbl', ['IsActive' => 0]);
+        }
+
+        $out->SectorUID    = $sectorUID;
+        $out->PlanUID      = $planUID;
+        $out->Price        = (float)$planMeta->Price;
+        $out->DurationDays = (int)$planMeta->DurationDays;
+        return $out;
     }
 
     /* $sectorUID and $planUID are passed directly — they were resolved from SectorPlanTbl

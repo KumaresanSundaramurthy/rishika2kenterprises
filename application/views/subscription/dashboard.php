@@ -5,138 +5,243 @@
         <div class="layout-page">
             <div class="content-wrapper apex-content">
                 <?php $this->load->view('common/apex/page_header', [
-                    'pageTitle'       => 'Subscription',
-                    'pageDescription' => 'Manage your subscription plan and billing.',
+                    'pageTitle'       => 'My Subscription',
+                    'pageDescription' => 'Current plan status and billing history.',
                 ]); ?>
 
                 <div class="container-xxl flex-grow-1 container-p-y pt-2">
 
                     <?php
-                    /* Current subscription status banner */
-                    $sub          = $subscription ?? null;
-                    $statusClass  = 'bg-label-secondary';
-                    $statusLabel  = 'No Subscription';
-                    $daysLeft     = 0;
-                    if ($sub) {
-                        $daysLeft    = max(0, (int)$sub->DaysRemaining);
-                        $statusLabel = htmlspecialchars($sub->SubscriptionStatus ?? 'Unknown');
-                        if ($sub->SubscriptionStatus === 'Active')  $statusClass = 'bg-label-success';
-                        if ($sub->SubscriptionStatus === 'Trial')   $statusClass = 'bg-label-info';
-                        if ($sub->SubscriptionStatus === 'Expired') $statusClass = 'bg-label-danger';
+                    $sub         = $subscription ?? null;
+                    $_tz         = $JwtData->Org->OrgTimezone ?? 'UTC';
+                    $_startTs    = viewPageDateTimeFormat($sub->StartDate ?? null, $_tz, 2);
+                    $_endTs      = viewPageDateTimeFormat($sub->EndDate   ?? null, $_tz, 2);
+                    $daysLeft    = $sub ? max(0, (int)($sub->DaysRemaining ?? 0)) : 0;
+                    $_ss         = $sub ? ($sub->Status ?? '') : '';
+                    $statusLabel = $sub ? htmlspecialchars($_ss ?: 'Unknown') : 'No Subscription';
+
+                    /* Progress bar */
+                    $totalDays = $sub ? max(1, (int)($sub->DurationDays ?? 30)) : 30;
+                    $usedDays  = max(0, $totalDays - $daysLeft);
+                    $pctUsed   = min(100, (int)round($usedDays / $totalDays * 100));
+
+                    /* Tier colors — same logic as plans page */
+                    $_planName  = strtolower($sub->PlanName ?? '');
+                    if (str_contains($_planName, 'enterprise')) {
+                        $_tc = ['g1' => '#1e293b', 'g2' => '#0f172a', 'icon' => '#696cff', 'iconBg' => 'rgba(105,108,255,.12)'];
+                    } elseif (str_contains($_planName, 'pro')) {
+                        $_tc = ['g1' => '#696cff', 'g2' => '#5254cc', 'icon' => '#696cff', 'iconBg' => 'rgba(105,108,255,.12)'];
+                    } else {
+                        $_tc = ['g1' => '#f97316', 'g2' => '#ea580c', 'icon' => '#f97316', 'iconBg' => 'rgba(249,115,22,.12)'];
                     }
+
+                    /* Status pill */
+                    $statusStyle = 'background:#dcfce7;color:#15803d;';
+                    if ($_ss === 'Trial')   $statusStyle = 'background:#dbeafe;color:#1d4ed8;';
+                    if ($_ss === 'Expired') $statusStyle = 'background:#fee2e2;color:#b91c1c;';
+                    if ($_ss === 'Suspended' || $_ss === 'Cancelled') $statusStyle = 'background:#f1f5f9;color:#475569;';
+
+                    /* Bar color */
+                    $barG1 = $daysLeft <= 7 ? '#ef4444' : ($daysLeft <= 14 ? '#f59e0b' : '#22c55e');
+                    $barG2 = $daysLeft <= 7 ? '#dc2626' : ($daysLeft <= 14 ? '#d97706' : '#16a34a');
                     ?>
 
-                    <!-- Subscription Summary Card -->
+<style>
+.sdb-plan-card {
+    border-radius: 16px;
+    border: 1.5px solid var(--bs-border-color, #e8e8e8);
+    background: var(--bs-card-bg, #fff);
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,.06);
+}
+.sdb-plan-band {
+    height: 5px;
+    background: linear-gradient(90deg, <?= $_tc['g1'] ?>, <?= $_tc['g2'] ?>);
+}
+.sdb-plan-body { padding: 1.5rem 1.75rem 1.75rem; }
+.sdb-plan-icon {
+    width: 52px; height: 52px; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    background: <?= $_tc['iconBg'] ?>;
+    flex-shrink: 0;
+}
+.sdb-plan-icon i { font-size: 1.5rem; color: <?= $_tc['icon'] ?>; }
+.sdb-plan-name { font-size: 1.15rem; font-weight: 800; line-height: 1.2; }
+.sdb-status-pill {
+    display: inline-flex; align-items: center;
+    font-size: .7rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+    padding: .2rem .65rem; border-radius: 99px;
+    <?= $statusStyle ?>
+}
+.sdb-plan-sub { font-size: .8rem; color: var(--bs-secondary-color, #6c757d); margin-top: .2rem; }
+.sdb-metric-row { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1.25rem; }
+.sdb-metric {
+    flex: 1 1 120px;
+    background: var(--bs-body-bg, #f8f9fa);
+    border: 1px solid var(--bs-border-color, #e8e8e8);
+    border-radius: 10px;
+    padding: .7rem 1rem;
+}
+.sdb-metric-label { font-size: .7rem; text-transform: uppercase; letter-spacing: .07em; color: var(--bs-secondary-color, #888); font-weight: 600; margin-bottom: .2rem; }
+.sdb-metric-value { font-size: .95rem; font-weight: 700; }
+.sdb-metric-value.danger { color: #dc2626; }
+.sdb-progress-wrap { margin-top: 1.25rem; }
+.sdb-progress-labels { display: flex; justify-content: space-between; margin-bottom: .4rem; }
+.sdb-progress-labels span { font-size: .75rem; color: var(--bs-secondary-color, #888); }
+.sdb-progress-track {
+    height: 8px; border-radius: 99px;
+    background: var(--bs-border-color, #e8e8e8);
+    overflow: hidden;
+}
+.sdb-progress-fill {
+    height: 100%; border-radius: 99px;
+    background: linear-gradient(90deg, <?= $barG1 ?>, <?= $barG2 ?>);
+    width: <?= $pctUsed ?>%;
+    transition: width .6s ease;
+}
+.sdb-action-row { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1.5px solid var(--bs-border-color, #e8e8e8); }
+.sdb-action-row .btn { font-size: .8rem; padding: .4rem .9rem; }
+
+.sdb-billing-card {
+    border-radius: 16px;
+    border: 1.5px solid var(--bs-border-color, #e8e8e8);
+    background: var(--bs-card-bg, #fff);
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,.06);
+}
+.sdb-billing-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1.5px solid var(--bs-border-color, #e8e8e8);
+    display: flex; align-items: center; justify-content: space-between;
+}
+.sdb-billing-header h6 { font-size: .85rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--bs-secondary-color, #888); margin: 0; }
+.sdb-table { width: 100%; border-collapse: collapse; }
+.sdb-table th {
+    font-size: .72rem; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--bs-secondary-color, #888); font-weight: 600;
+    padding: .6rem 1rem; border-bottom: 1.5px solid var(--bs-border-color, #e8e8e8);
+    white-space: nowrap; background: var(--bs-body-bg, #fafafa);
+}
+.sdb-table td { padding: .75rem 1rem; font-size: .83rem; border-bottom: 1px solid var(--bs-border-color, #f0f0f0); vertical-align: middle; }
+.sdb-table tr:last-child td { border-bottom: none; }
+.sdb-table tr:hover td { background: var(--bs-body-bg, #fafafa); }
+.sdb-type-pill {
+    display: inline-block; font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+    padding: .15rem .5rem; border-radius: 99px;
+}
+.sdb-type-new      { background: #dbeafe; color: #1d4ed8; }
+.sdb-type-renewal  { background: #dcfce7; color: #15803d; }
+.sdb-type-upgrade  { background: #ede9fe; color: #6d28d9; }
+.sdb-type-downgrade{ background: #fef9c3; color: #854d0e; }
+.sdb-type-trial    { background: #f1f5f9; color: #475569; }
+.sdb-empty-state { padding: 3.5rem 1.5rem; text-align: center; }
+.sdb-empty-icon {
+    width: 60px; height: 60px; border-radius: 16px;
+    background: rgba(105,108,255,.08); display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 1rem;
+}
+.sdb-empty-icon i { font-size: 1.6rem; color: #696cff; }
+</style>
+
+                    <!-- Current Plan Card -->
                     <div class="row mb-4">
                         <div class="col-12">
-                            <div class="card">
-                                <div class="card-body d-flex flex-wrap align-items-center justify-content-between gap-3 p-4">
-                                    <div class="d-flex align-items-center gap-3">
-                                        <div class="avatar avatar-lg">
-                                            <span class="avatar-initial rounded-circle bg-label-primary">
-                                                <i class="bx bx-crown fs-4"></i>
-                                            </span>
+                            <div class="sdb-plan-card">
+                                <div class="sdb-plan-band"></div>
+                                <div class="sdb-plan-body">
+
+                                    <!-- Top row: icon + name + actions -->
+                                    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+                                        <div class="d-flex align-items-start gap-3">
+                                            <div class="sdb-plan-icon">
+                                                <i class="bx bx-crown"></i>
+                                            </div>
+                                            <div>
+                                                <div class="d-flex align-items-center flex-wrap gap-2 mb-1">
+                                                    <span class="sdb-plan-name">
+                                                        <?= $sub ? htmlspecialchars($sub->PlanName ?? 'Trial Plan') : 'No Active Plan' ?>
+                                                    </span>
+                                                    <span class="sdb-status-pill"><?= $statusLabel ?></span>
+                                                </div>
+                                                <div class="sdb-plan-sub">
+                                                    <?php if ($sub): ?>
+                                                        <?= htmlspecialchars($sub->SectorName ?? '') ?>
+                                                        <?php if (!empty($sub->BillingCycle)): ?>
+                                                            &middot; <?= htmlspecialchars($sub->BillingCycle) ?>
+                                                        <?php endif; ?>
+                                                    <?php else: ?>
+                                                        Contact admin to activate a plan
+                                                    <?php endif; ?>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h5 class="mb-0">
-                                                <?= $sub ? htmlspecialchars($sub->PlanName ?? 'Trial') : 'No Active Plan' ?>
-                                            </h5>
-                                            <small class="text-muted">
-                                                <?php if ($sub): ?>
-                                                    <?= htmlspecialchars($sub->SectorName ?? '') ?>
-                                                <?php else: ?>
-                                                    Contact admin to activate a plan
-                                                <?php endif; ?>
-                                            </small>
+
+                                        <div class="sdb-action-row" style="margin-top:0; padding-top:0; border-top:none;">
+                                            <?php if ($sub && $sub->SectorPlanUID): ?>
+                                                <button class="btn btn-outline-secondary" id="btnRenewPlan">
+                                                    <i class="bx bx-refresh me-1"></i>Renew
+                                                </button>
+                                            <?php endif; ?>
+                                            <button class="btn btn-outline-primary"
+                                                data-bs-toggle="modal" data-bs-target="#changePlanModal">
+                                                <i class="bx bx-transfer-alt me-1"></i>Change Plan
+                                            </button>
+                                            <a href="/subscription/plans" class="btn btn-primary">
+                                                <i class="bx bx-list-check me-1"></i>Browse Plans
+                                            </a>
                                         </div>
                                     </div>
 
-                                    <div class="d-flex flex-wrap gap-4">
-                                        <div class="text-center">
-                                            <span class="d-block fw-semibold"><?= $sub ? htmlspecialchars($sub->SubscriptionStartDate ?? '-') : '-' ?></span>
-                                            <small class="text-muted">Start Date</small>
+                                    <!-- Metric tiles -->
+                                    <div class="sdb-metric-row">
+                                        <div class="sdb-metric">
+                                            <div class="sdb-metric-label">Start Date</div>
+                                            <div class="sdb-metric-value"><?= $sub ? $_startTs->formatted : '—' ?></div>
                                         </div>
-                                        <div class="text-center">
-                                            <span class="d-block fw-semibold"><?= $sub ? htmlspecialchars($sub->SubscriptionEndDate ?? '-') : '-' ?></span>
-                                            <small class="text-muted">End Date</small>
+                                        <div class="sdb-metric">
+                                            <div class="sdb-metric-label">End Date</div>
+                                            <div class="sdb-metric-value"><?= $sub ? $_endTs->formatted : '—' ?></div>
                                         </div>
-                                        <div class="text-center">
-                                            <span class="d-block fw-semibold <?= $daysLeft <= 7 ? 'text-danger' : '' ?>">
-                                                <?= $sub ? $daysLeft . ' days' : '-' ?>
-                                            </span>
-                                            <small class="text-muted">Days Remaining</small>
+                                        <div class="sdb-metric">
+                                            <div class="sdb-metric-label">Days Remaining</div>
+                                            <div class="sdb-metric-value <?= $daysLeft <= 7 ? 'danger' : '' ?>">
+                                                <?= $sub ? $daysLeft . ' days' : '—' ?>
+                                            </div>
                                         </div>
-                                        <div class="text-center">
-                                            <span class="badge <?= $statusClass ?> fs-6"><?= $statusLabel ?></span>
-                                            <br><small class="text-muted">Status</small>
+                                        <div class="sdb-metric">
+                                            <div class="sdb-metric-label">Plan Duration</div>
+                                            <div class="sdb-metric-value"><?= $sub ? $totalDays . ' days' : '—' ?></div>
                                         </div>
                                     </div>
 
-                                    <div class="d-flex gap-2">
-                                        <?php if ($sub && $sub->SectorPlanUID): ?>
-                                            <button class="btn btn-outline-primary btn-sm" id="btnRenewPlan">
-                                                <i class="bx bx-refresh me-1"></i>Renew
-                                            </button>
-                                        <?php endif; ?>
-                                        <?php if (!empty($plans)): ?>
-                                            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#changePlanModal">
-                                                <i class="bx bx-up-arrow-circle me-1"></i>Change Plan
-                                            </button>
-                                        <?php endif; ?>
+                                    <!-- Progress bar -->
+                                    <?php if ($sub): ?>
+                                    <div class="sdb-progress-wrap">
+                                        <div class="sdb-progress-labels">
+                                            <span>Plan usage</span>
+                                            <span><?= $usedDays ?> of <?= $totalDays ?> days used &mdash; <?= $pctUsed ?>%</span>
+                                        </div>
+                                        <div class="sdb-progress-track">
+                                            <div class="sdb-progress-fill"></div>
+                                        </div>
                                     </div>
+                                    <?php endif; ?>
+
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Available Plans -->
-                    <?php if (!empty($plans)): ?>
+                    <!-- Billing History -->
                     <div class="row mb-4">
                         <div class="col-12">
-                            <h6 class="fw-semibold mb-3">Available Plans</h6>
-                        </div>
-                        <?php foreach ($plans as $plan): ?>
-                        <div class="col-md-4 col-sm-6 mb-3">
-                            <div class="card h-100 border <?= ($sub && $sub->SectorPlanUID == $plan->SectorPlanUID) ? 'border-primary' : '' ?>">
-                                <div class="card-body text-center p-4">
-                                    <?php if ($sub && $sub->SectorPlanUID == $plan->SectorPlanUID): ?>
-                                        <span class="badge bg-label-primary mb-2">Current Plan</span><br>
-                                    <?php endif; ?>
-                                    <h5 class="mb-1"><?= htmlspecialchars($plan->PlanName) ?></h5>
-                                    <div class="mb-2">
-                                        <span class="fs-3 fw-bold">₹<?= number_format((float)$plan->Price, 2) ?></span>
-                                        <small class="text-muted">/ <?= (int)$plan->DurationDays ?> days</small>
-                                    </div>
-                                    <?php if ((int)$plan->TrialDays > 0): ?>
-                                        <p class="text-muted small mb-3"><?= (int)$plan->TrialDays ?>-day free trial</p>
-                                    <?php endif; ?>
-                                    <?php if (!$sub || $sub->SectorPlanUID != $plan->SectorPlanUID): ?>
-                                        <button class="btn btn-outline-primary btn-sm btn-select-plan"
-                                            data-uid="<?= (int)$plan->SectorPlanUID ?>"
-                                            data-name="<?= htmlspecialchars($plan->PlanName) ?>"
-                                            data-price="<?= (float)$plan->Price ?>"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#changePlanModal">
-                                            Select Plan
-                                        </button>
-                                    <?php endif; ?>
+                            <div class="sdb-billing-card">
+                                <div class="sdb-billing-header">
+                                    <h6>Billing History</h6>
                                 </div>
-                            </div>
-                        </div>
-                        <?php endforeach; ?>
-                    </div>
-                    <?php endif; ?>
-
-                    <!-- Order History -->
-                    <?php if (!empty($orders)): ?>
-                    <div class="row mb-4">
-                        <div class="col-12">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h6 class="mb-0">Billing History</h6>
-                                </div>
+                                <?php if (!empty($orders)): ?>
                                 <div class="table-responsive">
-                                    <table class="table table-hover mb-0">
+                                    <table class="sdb-table">
                                         <thead>
                                             <tr>
                                                 <th>Date</th>
@@ -151,24 +256,27 @@
                                         </thead>
                                         <tbody>
                                             <?php foreach ($orders as $order): ?>
+                                            <?php
+                                            $oStatus = $order->Status ?? '';
+                                            $oBadge  = 'bg-label-secondary';
+                                            if ($oStatus === 'Paid')    $oBadge = 'bg-label-success';
+                                            if ($oStatus === 'Waived')  $oBadge = 'bg-label-info';
+                                            if ($oStatus === 'Failed')  $oBadge = 'bg-label-danger';
+                                            if ($oStatus === 'Pending') $oBadge = 'bg-label-warning';
+                                            $rType  = strtolower($order->RenewalType ?? '');
+                                            $tClass = 'sdb-type-' . ($rType ?: 'new');
+                                            ?>
                                             <tr>
-                                                <td><?= htmlspecialchars($order->OrderDate ?? '-') ?></td>
-                                                <td><?= htmlspecialchars($order->PlanName ?? 'Trial') ?></td>
-                                                <td><?= htmlspecialchars($order->RenewalType ?? '-') ?></td>
-                                                <td class="text-end font-monospace">₹<?= number_format((float)($order->NetAmount ?? 0), 2) ?></td>
-                                                <td><?= htmlspecialchars($order->DueDate ?? '-') ?></td>
-                                                <td><?= $order->PaymentMode ? htmlspecialchars($order->PaymentMode) : '<span class="text-muted">-</span>' ?></td>
-                                                <td><?= $order->PaidOn ? htmlspecialchars($order->PaidOn) : '<span class="text-muted">-</span>' ?></td>
+                                                <td><?= viewPageDateTimeFormat($order->OrderDate ?? null, $_tz, 2)->formatted ?></td>
+                                                <td class="fw-semibold"><?= htmlspecialchars($order->PlanName ?? 'Trial') ?></td>
+                                                <td><span class="sdb-type-pill <?= $tClass ?>"><?= htmlspecialchars($order->RenewalType ?? '-') ?></span></td>
+                                                <td class="text-end fw-bold font-monospace">₹<?= number_format((float)($order->NetAmount ?? 0), 2) ?></td>
+                                                <td><?= viewPageDateTimeFormat($order->DueDate ?? null, $_tz, 1)->formatted ?></td>
+                                                <td><?= $order->PaymentMode ? htmlspecialchars($order->PaymentMode) : '<span class="text-muted">—</span>' ?></td>
+                                                <td><?= viewPageDateTimeFormat($order->PaidOn ?? null, $_tz, 2)->formatted ?></td>
                                                 <td>
-                                                    <?php
-                                                    $oBadge = 'bg-label-secondary';
-                                                    if ($order->Status === 'Paid')    $oBadge = 'bg-label-success';
-                                                    if ($order->Status === 'Waived')  $oBadge = 'bg-label-info';
-                                                    if ($order->Status === 'Failed')  $oBadge = 'bg-label-danger';
-                                                    if ($order->Status === 'Pending') $oBadge = 'bg-label-warning';
-                                                    ?>
-                                                    <span class="badge <?= $oBadge ?>"><?= htmlspecialchars($order->Status) ?></span>
-                                                    <?php if ($order->Status === 'Pending'): ?>
+                                                    <span class="badge <?= $oBadge ?>"><?= htmlspecialchars($oStatus) ?></span>
+                                                    <?php if ($oStatus === 'Pending'): ?>
                                                         <button class="btn btn-xs btn-outline-success ms-1 btn-record-payment"
                                                             data-order="<?= (int)$order->OrderUID ?>"
                                                             data-amount="<?= (float)$order->NetAmount ?>">
@@ -181,10 +289,21 @@
                                         </tbody>
                                     </table>
                                 </div>
+                                <?php else: ?>
+                                <div class="sdb-empty-state">
+                                    <div class="sdb-empty-icon">
+                                        <i class="bx bx-receipt"></i>
+                                    </div>
+                                    <p class="fw-semibold mb-1">No billing records yet</p>
+                                    <p class="text-muted small mb-3">Your invoices and payment history will appear here.</p>
+                                    <a href="/subscription/plans" class="btn btn-outline-primary btn-sm">
+                                        <i class="bx bx-list-check me-1"></i>View Plans
+                                    </a>
+                                </div>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
-                    <?php endif; ?>
 
                 </div><!-- /container -->
             </div>
@@ -324,21 +443,6 @@
     /* ── Show/hide payment mode based on is_paid ── */
     document.getElementById('chkIsPaid').addEventListener('change', function () {
         document.getElementById('payModeWrap').style.display = this.checked ? '' : 'none';
-    });
-
-    /* ── Select plan card click → pre-select dropdown ── */
-    document.querySelectorAll('.btn-select-plan').forEach(btn => {
-        btn.addEventListener('click', function () {
-            const uid = this.dataset.uid;
-            const sel = document.getElementById('selPlanChange');
-            for (const opt of sel.options) {
-                if (opt.value == uid) {
-                    opt.selected = true;
-                    document.getElementById('inpPlanAmount').value = this.dataset.price ?? 0;
-                    break;
-                }
-            }
-        });
     });
 
     /* ── Confirm plan change ── */

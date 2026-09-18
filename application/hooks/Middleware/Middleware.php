@@ -12,7 +12,7 @@ class Middleware {
 		$Controller = trim($CI->router->fetch_class());  //Controller name
 		$Method     = trim($CI->router->fetch_method());  //Method name
 
-		$ExcludeController = array("website", "login", "receipt", "launch", "oauth", "doc", "signup", "subscription", "subscriptionrenew");
+		$ExcludeController = array("website", "login", "receipt", "launch", "oauth", "doc", "signup", "subscriptionrenew");
 	    
 		if(in_array($Controller, $ExcludeController)) {
 			return;
@@ -32,7 +32,7 @@ class Middleware {
 
 		//check JWT
 		if (empty($JwtEncoded)) {
-			$CI->session->set_flashdata('danger', 'Oops! Action not allowed. please try login.');
+			$CI->session->set_flashdata('warning', 'Your session has expired. Please sign in to continue.');
 			redirect('portal', 'refresh');
         }
 
@@ -58,7 +58,7 @@ class Middleware {
 						exit;
 					}
 
-					$CI->session->set_flashdata('danger', 'Oops! Session expired. please try login.');
+					$CI->session->set_flashdata('warning', 'Your session has expired. Please sign in to continue.');
 					redirect('portal', 'refresh');
 
 				} else {
@@ -119,7 +119,7 @@ class Middleware {
 						if (!$isExpired && isset($sub->Status)) {
 							$isExpired = ($sub->Status === 'Expired' || $sub->Status === 'Cancelled' || $sub->Status === 'Suspended');
 						}
-						if ($isExpired) {
+						if ($isExpired && $CI->router->fetch_class() !== 'signuppayment') {
 							if ($CI->input->is_ajax_request()) {
 								$CI->output
 									->set_status_header(402)
@@ -132,7 +132,7 @@ class Middleware {
 									->_display();
 								exit;
 							}
-							redirect('subscription/expired', 'refresh');
+							redirect('subscribe', 'refresh');
 						}
 					}
 
@@ -152,7 +152,7 @@ class Middleware {
 									->_display();
 								exit;
 							}
-							redirect('signup/payment', 'refresh');
+							redirect('subscribe', 'refresh');
 						}
 					}
 
@@ -170,6 +170,78 @@ class Middleware {
 						redirect('onboarding', 'refresh');
 					}
 
+					// ── Module access check — block URLs not in user's active plan ──────
+					$_currentCtrl = strtolower($CI->router->fetch_class());
+					$_sysControllers = [
+						'dashboard', 'settings', 'subscription', 'organisation',
+						'globally', 'auth', 'setpassword', 'onboarding',
+						'signuppayment', 'razorpay', 'users', 'roles',
+					];
+					if (!in_array($_currentCtrl, $_sysControllers, true)) {
+						$_subMenus  = $CI->redisservice->getUserCache('submenus') ?? [];
+						$_mainMenus = $CI->redisservice->getUserCache('menus')	?? [];
+						if (!empty($_subMenus) || !empty($_mainMenus)) {
+							$_activeCtrl = [];
+							foreach ($_subMenus as $_sm) {
+								$_p = explode('/', ltrim($_sm->UrlPath ?? '', '/'));
+								if (!empty($_p[0])) $_activeCtrl[$_p[0]] = true;
+							}
+							foreach ($_mainMenus as $_mm) {
+								if (!empty($_mm->IsDirectLink) && !empty($_mm->DirectUrl)) {
+									$_p = explode('/', ltrim($_mm->DirectUrl, '/'));
+									if (!empty($_p[0])) $_activeCtrl[$_p[0]] = true;
+								}
+							}
+							if (!isset($_activeCtrl[$_currentCtrl])) {
+								if ($CI->input->is_ajax_request()) {
+									$CI->output
+										->set_status_header(403)
+										->set_content_type('application/json', 'utf-8')
+										->set_output(json_encode(['Error' => true, 'Message' => 'Access denied. This module is not available in your current plan.']))
+										->_display();
+									exit;
+								}
+								redirect('dashboard', 'refresh');
+							}
+						}
+					}
+					// ─────────────────────────────────────────────────────────────────
+
+					// ── Activate any scheduled plan whose start date has arrived ────
+					$_orgUID = (int)($CI->pageData['JwtData']->Org->OrgUID ?? 0);
+					if ($_orgUID > 0 && !$CI->input->is_ajax_request()) {
+						$_readDbMw = $CI->load->database('ReadDB', TRUE);
+						$_readDbMw->db_debug = FALSE;
+						$_scRow = $_readDbMw->select('SC.ScheduledChangeUID')
+							->from('Billing.ScheduledPlanChangeTbl SC')
+							->where('SC.OrgUID', $_orgUID)
+							->where('SC.Status', 'Pending')
+							->where('SC.ScheduledStartDate <=', date('Y-m-d'))
+							->order_by('SC.ScheduledStartDate', 'ASC')
+							->limit(1)
+							->get()->row();
+						if ($_scRow) {
+							$CI->load->model('billingplan_model');
+							/* Find admin role for this org */
+							$_adminRoleRow = $_readDbMw->select('RoleUID')
+								->from('UserRole.RolesTbl')
+								->where('OrgUID', $_orgUID)
+								->where('IsDeleted', 0)
+								->order_by('RoleUID', 'ASC')
+								->limit(1)
+								->get()->row();
+							$_adminRoleUID = $_adminRoleRow ? (int)$_adminRoleRow->RoleUID : 0;
+							if ($_adminRoleUID > 0) {
+								$CI->billingplan_model->activateScheduledPlan(
+									(int)$_scRow->ScheduledChangeUID,
+									$_orgUID,
+									$_adminRoleUID
+								);
+							}
+						}
+					}
+					// ─────────────────────────────────────────────────────────
+
 					// Load per-user language file for t() helper
 					$_uiLang = $CI->pageData['JwtData']->User->UILanguage ?? 'en';
 					$CI->lang->load('app', $_uiLang === 'ta' ? 'tamil' : 'english');
@@ -182,25 +254,25 @@ class Middleware {
 				}
 
 			} else {
-				$CI->session->set_flashdata('danger', 'Oops! Session expired. please try login.');
+				$CI->session->set_flashdata('warning', 'Your session has expired. Please sign in to continue.');
 				redirect('portal', 'refresh');
 			}
 
 		} catch(\Firebase\JWT\ExpiredException $e) {
 
-			$CI->session->set_flashdata('danger', 'Oops! Session expired. please try login.');
+			$CI->session->set_flashdata('warning', 'Your session has expired. Please sign in to continue.');
 			redirect('portal', 'refresh');
-			
+
 		} catch (\Firebase\JWT\SignatureInvalidException $e) {
 
-			$CI->session->set_flashdata('danger', 'Oops! Security exception. please try login.');
+			$CI->session->set_flashdata('danger', 'Invalid session detected. Please sign in again.');
 			redirect('portal', 'refresh');
 
 		} catch (Exception $e) {
 
-            $CI->session->set_flashdata('danger', 'Oops! Exxception handled. please try login.');
+			$CI->session->set_flashdata('danger', 'An unexpected error occurred. Please sign in again.');
 			redirect('portal', 'refresh');
-			
+
         }
 
 	}

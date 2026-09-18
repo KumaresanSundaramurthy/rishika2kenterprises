@@ -28,13 +28,248 @@ class Subscription extends MY_Controller {
         $this->pageData['orders']       = (!$ordersResult->Error) ? $ordersResult->Data : [];
 
         $this->load->view('common/header');
-        $this->load->view('common/menu_view');
         $this->load->view('subscription/dashboard', $this->pageData);
         $this->load->view('common/footer');
     }
 
     public function expired(): void {
         $this->load->view('subscription/expired');
+    }
+
+    public function plans(): void {
+        $orgUID = $this->_orgUID();
+
+        $subResult   = $this->billingplan_model->getOrgSubscription($orgUID);
+        $plansResult = $this->billingplan_model->getAvailablePlans($orgUID);
+
+        $subscription = (!$subResult->Error && $subResult->Data) ? $subResult->Data : null;
+        $plans        = (!$plansResult->Error) ? $plansResult->Data : [];
+
+        /* Module count per PlanUID */
+        $moduleCountMap = [];
+        if (!empty($plans)) {
+            $readDb = $this->load->database('ReadDB', TRUE);
+            $readDb->db_debug = FALSE;
+            $sectorUID = (int)($plans[0]->SectorUID ?? 0);
+            if ($sectorUID > 0) {
+                $rows = $readDb->select('PlanUID, COUNT(*) AS Cnt')
+                    ->from('Billing.SectorPlanModulesTbl')
+                    ->where('SectorUID', $sectorUID)
+                    ->group_by('PlanUID')
+                    ->get()->result();
+                foreach ($rows as $r) {
+                    $moduleCountMap[(int)$r->PlanUID] = (int)$r->Cnt;
+                }
+            }
+        }
+
+        $this->pageData['subscription']   = $subscription;
+        $this->pageData['plans']          = $plans;
+        $this->pageData['moduleCountMap'] = $moduleCountMap;
+
+        $this->load->vars($this->pageData);
+        $this->load->view('common/header');
+        $this->load->view('subscription/plans', $this->pageData);
+        $this->load->view('common/footer');
+    }
+
+    /* ── AJAX: get plan-change options (for modal) ──────────────────────────── */
+
+    public function getPlanChangeOptions(): void {
+        $this->_ajaxOnly();
+        $result = new stdClass();
+        try {
+            $orgUID          = $this->_orgUID();
+            $newSectorPlanUID = (int)$this->input->post('sector_plan_uid');
+
+            if ($newSectorPlanUID <= 0) {
+                throw new ValidationException('Invalid plan selected.');
+            }
+
+            /* 5-day lock check */
+            $lock = $this->billingplan_model->getPlanChangeLockStatus($orgUID);
+            if ($lock->IsLocked) {
+                $result->Status        = 'LOCKED';
+                $result->Message       = 'Plan changes are locked for ' . $lock->DaysRemaining . ' more day(s) due to a recent change. A GST invoice was already issued.';
+                $result->UnlocksAt     = $lock->UnlocksAt;
+                $result->DaysRemaining = $lock->DaysRemaining;
+                $this->output->set_content_type('application/json')->set_output(json_encode($result));
+                return;
+            }
+
+            /* Any pending scheduled change? */
+            $scheduled = $this->billingplan_model->getScheduledPlanChange($orgUID);
+
+            /* Option calculations */
+            $details = $this->billingplan_model->calculatePlanChangeDetails($orgUID, $newSectorPlanUID);
+            if ($details->Error) throw new ValidationException($details->Message);
+
+            /* Module comparison */
+            $modules = $this->billingplan_model->getModuleComparison($orgUID, $newSectorPlanUID);
+
+            $result->Status    = 'OK';
+            $result->Details   = $details;
+            $result->Modules   = $modules;
+            $result->Scheduled = $scheduled;
+
+        } catch (ValidationException $e) {
+            $result->Status  = 'FAIL';
+            $result->Message = $e->getMessage();
+        } catch (Exception $e) {
+            notifyError('Subscription::getPlanChangeOptions', $e);
+            $result->Status  = 'ERROR';
+            $result->Message = 'Something went wrong. Please try again.';
+        }
+        $this->output->set_content_type('application/json')->set_output(json_encode($result));
+    }
+
+    /* ── AJAX: initiate Razorpay order for plan change ─────────────────────── */
+
+    public function initiatePayment(): void {
+        $this->_ajaxOnly();
+        $result = new stdClass();
+        try {
+            $orgUID           = $this->_orgUID();
+            $newSectorPlanUID = (int)$this->input->post('sector_plan_uid');
+            $optionType       = $this->input->post('option_type');
+
+            if ($newSectorPlanUID <= 0) {
+                throw new ValidationException('Invalid plan selected.');
+            }
+            if (!in_array($optionType, ['UA', 'UB', 'DA', 'DB', 'DC'], true)) {
+                throw new ValidationException('Invalid option type.');
+            }
+
+            $details = $this->billingplan_model->calculatePlanChangeDetails($orgUID, $newSectorPlanUID);
+            if ($details->Error) throw new ValidationException($details->Message);
+
+            $optKey = 'Option' . $optionType;
+            $opt    = $details->$optKey ?? null;
+            if (!$opt) throw new ValidationException('Option details not found.');
+
+            $amountPaise = (int)round((float)$opt->TotalAmount * 100);
+            if ($amountPaise < 100) throw new ValidationException('Amount is too low for online payment.');
+
+            $this->load->library('Razorpayapi');
+            if (!$this->razorpayapi->isConfigured()) {
+                throw new Exception('Online payment is not currently enabled. Please contact support.');
+            }
+
+            $jwtData   = $this->pageData['JwtData'];
+            $orgName   = $jwtData->Org->OrgName ?? 'Your Organisation';
+            $receiptId = 'plan_' . $orgUID . '_' . $newSectorPlanUID . '_' . time();
+            $order     = $this->razorpayapi->createOrder($amountPaise, $receiptId);
+
+            $result->Error       = false;
+            $result->order_id    = $order['id'];
+            $result->key_id      = $this->razorpayapi->getKeyId();
+            $result->amount      = $amountPaise;
+            $result->currency    = 'INR';
+            $result->name        = htmlspecialchars($orgName, ENT_QUOTES, 'UTF-8');
+            $result->description = ($details->NewPlan->PlanName ?? 'Plan') . ' — ' . $optionType;
+            $result->prefill     = [
+                'name'  => $orgName,
+                'email' => $jwtData->User->EmailAddress ?? '',
+            ];
+
+        } catch (ValidationException $e) {
+            $result->Error   = true;
+            $result->Message = $e->getMessage();
+        } catch (Exception $e) {
+            notifyError('Subscription::initiatePayment', $e);
+            $result->Error   = true;
+            $result->Message = 'Could not initiate payment. Please try again.';
+        }
+        $this->output->set_content_type('application/json')->set_output(json_encode($result));
+    }
+
+    /* ── AJAX: confirm plan change after Razorpay payment ───────────────────── */
+
+    public function confirmPlanChange(): void {
+        $this->_ajaxOnly();
+        $result = new stdClass();
+        try {
+            $orgUID           = $this->_orgUID();
+            $userUID          = $this->_userUID();
+            $newSectorPlanUID = (int)$this->input->post('sector_plan_uid');
+            $optionType       = $this->input->post('option_type');
+
+            if ($newSectorPlanUID <= 0) {
+                throw new ValidationException('Invalid plan selected.');
+            }
+            if (!in_array($optionType, ['UA', 'UB', 'DA', 'DB', 'DC'], true)) {
+                throw new ValidationException('Invalid option type.');
+            }
+
+            /* Verify Razorpay signature */
+            $rpOrderId   = trim($this->input->post('razorpay_order_id')   ?: '');
+            $rpPaymentId = trim($this->input->post('razorpay_payment_id') ?: '');
+            $rpSignature = trim($this->input->post('razorpay_signature')  ?: '');
+
+            if (!$rpOrderId || !$rpPaymentId || !$rpSignature) {
+                throw new ValidationException('Incomplete payment data. Please try again.');
+            }
+
+            $this->load->library('Razorpayapi');
+            if (!$this->razorpayapi->verifySignature($rpOrderId, $rpPaymentId, $rpSignature)) {
+                throw new ValidationException('Payment verification failed. Contact support if amount was deducted.');
+            }
+
+            /* Re-check lock */
+            $lock = $this->billingplan_model->getPlanChangeLockStatus($orgUID);
+            if ($lock->IsLocked) {
+                throw new ValidationException('Plan changes are locked for ' . $lock->DaysRemaining . ' more day(s). A GST invoice was already issued for the recent change.');
+            }
+
+            $adminRoleUID = $this->_getAdminRoleUID($orgUID);
+            if ($adminRoleUID <= 0) {
+                throw new ValidationException('No admin role found for this organisation.');
+            }
+
+            $paymentData = [
+                'paid'     => true,
+                'mode'     => 'Razorpay',
+                'amount'   => (float)$this->input->post('amount'),
+                'discount' => 0,
+                'tax'      => (float)$this->input->post('tax'),
+                'notes'    => 'Razorpay Order: ' . $rpOrderId . ' | Payment: ' . $rpPaymentId,
+            ];
+
+            if (in_array($optionType, ['UB', 'DC'], true)) {
+                /* Scheduled options — validate dates */
+                $scheduledStart = $this->input->post('scheduled_start');
+                $scheduledEnd   = $this->input->post('scheduled_end');
+                if (empty($scheduledStart) || empty($scheduledEnd)) {
+                    throw new ValidationException('Scheduled dates are required.');
+                }
+                $changeType = ($optionType === 'UB') ? 'Upgrade' : 'Downgrade';
+                $changeResult = $this->billingplan_model->schedulePlanChange(
+                    $orgUID, $newSectorPlanUID, $changeType, $optionType,
+                    $scheduledStart, $scheduledEnd, $adminRoleUID, $userUID, $paymentData
+                );
+            } else {
+                /* Immediate options UA, DA, DB */
+                $renewalTypeMap = ['UA' => 'Upgrade', 'DA' => 'Downgrade', 'DB' => 'Downgrade'];
+                $renewalType    = $renewalTypeMap[$optionType];
+                $changeResult   = $this->billingplan_model->changePlan(
+                    $orgUID, $newSectorPlanUID, $renewalType, $adminRoleUID, $userUID, $paymentData
+                );
+            }
+
+            if ($changeResult->Error) throw new Exception($changeResult->Message);
+
+            $result->Status  = 'OK';
+            $result->Message = $changeResult->Message;
+
+        } catch (ValidationException $e) {
+            $result->Status  = 'FAIL';
+            $result->Message = $e->getMessage();
+        } catch (Exception $e) {
+            notifyError('Subscription::confirmPlanChange', $e);
+            $result->Status  = 'ERROR';
+            $result->Message = 'Something went wrong. Please try again.';
+        }
+        $this->output->set_content_type('application/json')->set_output(json_encode($result));
     }
 
     /* ── AJAX: change / renew plan ──────────────────────────────────────────── */
@@ -264,16 +499,6 @@ class Subscription extends MY_Controller {
         if (!$this->input->is_ajax_request()) {
             show_error('Direct access not allowed.', 403);
         }
-    }
-
-    private function _orgUID(): int {
-        $jwt = $this->session->userdata('JwtData');
-        return (int)($jwt->OrgUID ?? 0);
-    }
-
-    private function _userUID(): int {
-        $jwt = $this->session->userdata('JwtData');
-        return (int)($jwt->UserUID ?? 0);
     }
 
     private function _getAdminRoleUID(int $orgUID): int {

@@ -100,7 +100,7 @@ class BillingPlan_model extends CI_Model {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('SO.OrderUID, SO.RenewalType, SO.OrderDate, SO.DueDate,
-                SO.NetAmount, SO.Status, SO.PaymentMode, SO.PaidOn, SO.Notes,
+                SO.NetAmount, SO.Status, SO.PaymentMode, SO.PaidOn,
                 COALESCE(SP.PlanName, \'Trial\') AS PlanName');
             $this->ReadDb->from('Billing.SubscriptionOrdersTbl AS SO');
             $this->ReadDb->join('Billing.SectorPlanTbl AS SPT',       'SPT.SectorPlanUID = SO.SectorPlanUID', 'left');
@@ -159,8 +159,8 @@ class BillingPlan_model extends CI_Model {
             $this->_applyPlanMenus($orgUID, (int)$plan->SectorUID, (int)$plan->PlanUID, $prevSectorPlanUID, $adminRoleUID, $userUID);
 
             /* 5. Update OrgSubscriptionTbl */
-            $now     = date('Y-m-d H:i:s');
-            $endDate = date('Y-m-d', strtotime('+' . (int)$plan->DurationDays . ' days')) . ' 23:59:59';
+            $now     = gmdate('Y-m-d H:i:s');
+            $endDate = gmdate('Y-m-d', time() + (int)$plan->DurationDays * 86400) . ' 23:59:59';
             $fyValue = billing_fy('long');  // e.g. "2026-27"
             $this->WriteDb->db_debug = FALSE;
             $this->WriteDb->where('OrgUID', $orgUID)
@@ -173,6 +173,8 @@ class BillingPlan_model extends CI_Model {
                     'StartDate'     => $now,
                     'EndDate'       => $endDate,
                     'Status'        => 'Active',
+                    'UpdatedBy'     => $userUID,
+                    'UpdatedOn'     => $now,
                 ]);
 
             $orgSubRow = $this->ReadDb->select('OrgSubUID')
@@ -1019,6 +1021,511 @@ class BillingPlan_model extends CI_Model {
                 ]);
             }
         }
+    }
+
+    /* ══════════════════════════════════════════════════════════════════════════
+       Plan-change helpers (upgrade / downgrade modal)
+    ══════════════════════════════════════════════════════════════════════════ */
+
+    /* ── 5-day change lock (GST invoice already issued) ────────────────────── */
+
+    public function getPlanChangeLockStatus(int $orgUID): object {
+        $result           = new stdClass();
+        $result->IsLocked = false;
+        $result->UnlocksAt     = null;
+        $result->DaysRemaining = 0;
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $cutoff = date('Y-m-d H:i:s', strtotime('-5 days'));
+
+            /* Check immediate plan changes in order history (OrderDate = when order was placed) */
+            $row = $this->ReadDb->select('OrderDate AS CreatedOn')
+                ->from('Billing.SubscriptionOrdersTbl')
+                ->where('OrgUID', $orgUID)
+                ->where_in('RenewalType', ['Upgrade', 'Downgrade'])
+                ->where('OrderDate >=', $cutoff)
+                ->order_by('OrderDate', 'DESC')
+                ->limit(1)
+                ->get()->row();
+
+            /* Also check scheduled changes */
+            if (!$row) {
+                $q = $this->ReadDb->select('CreatedOn')
+                    ->from('Billing.ScheduledPlanChangeTbl')
+                    ->where('OrgUID', $orgUID)
+                    ->where_in('Status', ['Pending', 'Activated'])
+                    ->where('CreatedOn >=', $cutoff)
+                    ->order_by('CreatedOn', 'DESC')
+                    ->limit(1)
+                    ->get();
+                $row = $q ? $q->row() : null;
+            }
+
+            if ($row) {
+                $unlocksAt = date('Y-m-d H:i:s', strtotime($row->CreatedOn . ' +5 days'));
+                if (strtotime($unlocksAt) > time()) {
+                    $result->IsLocked      = true;
+                    $result->UnlocksAt     = $unlocksAt;
+                    $result->DaysRemaining = (int)ceil((strtotime($unlocksAt) - time()) / 86400);
+                }
+            }
+        } catch (Exception $e) {
+            notifyError('BillingPlan_model::getPlanChangeLockStatus', $e);
+        }
+        return $result;
+    }
+
+    /* ── Pending scheduled plan change for org ─────────────────────────────── */
+
+    public function getScheduledPlanChange(int $orgUID): ?object {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $q = $this->ReadDb->select(
+                    'SC.ScheduledChangeUID, SC.ChangeType, SC.BillingOption,
+                     SC.ScheduledStartDate, SC.ScheduledEndDate, SC.NewSectorPlanUID,
+                     SP.PlanName AS NewPlanName')
+                ->from('Billing.ScheduledPlanChangeTbl SC')
+                ->join('Billing.SectorPlanTbl SPT', 'SPT.SectorPlanUID = SC.NewSectorPlanUID', 'left')
+                ->join('Billing.SubscriptionPlansTbl SP', 'SP.PlanUID = SPT.PlanUID', 'left')
+                ->where('SC.OrgUID', $orgUID)
+                ->where('SC.Status', 'Pending')
+                ->where('SC.OrderUID IS NOT NULL', null, false)
+                ->order_by('SC.CreatedOn', 'DESC')
+                ->limit(1)
+                ->get();
+            return ($q ? $q->row() : null) ?: null;
+        } catch (Exception $e) {
+            notifyError('BillingPlan_model::getScheduledPlanChange', $e);
+            return null;
+        }
+    }
+
+    /* ── Module comparison between current and target plan ─────────────────── */
+
+    public function getModuleComparison(int $orgUID, int $newSectorPlanUID): object {
+        $result          = new stdClass();
+        $result->Added   = [];
+        $result->Removed = [];
+        $result->HasData = false;
+        try {
+            $this->ReadDb->db_debug = FALSE;
+
+            /* Current subscription */
+            $sub = $this->getOrgSubscription($orgUID);
+            if ($sub->Error || !$sub->Data) return $result;
+            $current = $sub->Data;
+
+            /* New plan's PlanUID + SectorUID */
+            $newPlanRow = $this->ReadDb->select('PlanUID, SectorUID')
+                ->from('Billing.SectorPlanTbl')
+                ->where('SectorPlanUID', $newSectorPlanUID)
+                ->limit(1)->get()->row();
+            if (!$newPlanRow) return $result;
+
+            $sectorUID    = (int)$newPlanRow->SectorUID;
+            $newPlanUID   = (int)$newPlanRow->PlanUID;
+
+            /* Current plan UID */
+            $curPlanRow = $this->ReadDb->select('PlanUID')
+                ->from('Billing.SectorPlanTbl')
+                ->where('SectorPlanUID', (int)$current->SectorPlanUID)
+                ->limit(1)->get()->row();
+            $curPlanUID = $curPlanRow ? (int)$curPlanRow->PlanUID : 0;
+
+            /* Module UIDs for each plan */
+            $fetchModules = function(int $planUID) use ($sectorUID): array {
+                $q = $this->ReadDb->select('M.ModuleUID, M.DisplayName, M.Description')
+                    ->from('Billing.SectorPlanModulesTbl PM')
+                    ->join('Modules.ModuleTbl M', 'M.ModuleUID = PM.ModuleUID', 'left')
+                    ->where('PM.SectorUID', $sectorUID)
+                    ->where('PM.PlanUID', $planUID)
+                    ->get();
+                return ($q ? $q->result() : null) ?: [];
+            };
+
+            $curModules = $fetchModules($curPlanUID);
+            $newModules = $fetchModules($newPlanUID);
+
+            $curUIDs = array_column($curModules, 'ModuleUID');
+            $newUIDs = array_column($newModules, 'ModuleUID');
+
+            foreach ($newModules as $m) {
+                if (!in_array($m->ModuleUID, $curUIDs)) $result->Added[] = $m;
+            }
+            foreach ($curModules as $m) {
+                if (!in_array($m->ModuleUID, $newUIDs)) $result->Removed[] = $m;
+            }
+
+            $result->HasData = !empty($curModules) || !empty($newModules);
+        } catch (Exception $e) {
+            notifyError('BillingPlan_model::getModuleComparison', $e);
+        }
+        return $result;
+    }
+
+    /* ── Calculate all plan-change option details (amounts + dates) ─────────── */
+
+    public function calculatePlanChangeDetails(int $orgUID, int $newSectorPlanUID): object {
+        $result        = new stdClass();
+        $result->Error = false;
+        try {
+            $this->ReadDb->db_debug = FALSE;
+
+            $sub = $this->getOrgSubscription($orgUID);
+            if ($sub->Error || !$sub->Data) {
+                $result->Error   = true;
+                $result->Message = 'No active subscription found.';
+                return $result;
+            }
+            $current = $sub->Data;
+
+            $newPlanQ = $this->ReadDb->select(
+                    'SPT.SectorPlanUID, SPT.PlanUID, SPT.SectorUID,
+                     SPT.Price, SPT.TaxableAmount, SPT.TaxAmount, SPT.TotalAmount,
+                     SPT.DurationDays, SPT.TaxRate,
+                     SP.PlanName, SP.PlanCode, SP.BillingCycle')
+                ->from('Billing.SectorPlanTbl SPT')
+                ->join('Billing.SubscriptionPlansTbl SP', 'SP.PlanUID = SPT.PlanUID')
+                ->where('SPT.SectorPlanUID', $newSectorPlanUID)
+                ->where('SPT.IsActive', 1)
+                ->limit(1)->get();
+            $newPlan = $newPlanQ ? $newPlanQ->row() : null;
+
+            if (!$newPlan) {
+                $result->Error   = true;
+                $result->Message = 'Plan not found.';
+                return $result;
+            }
+
+            $today           = date('Y-m-d');
+            $currentEndDate  = date('Y-m-d', strtotime($current->EndDate));
+            $remainingDays   = max(0, (int)ceil((strtotime($currentEndDate) - strtotime($today)) / 86400));
+            $curDuration     = max(1, (int)($current->DurationDays ?? 30));
+            $dailyRateCur    = (float)$current->Price / $curDuration;
+            $remainingCredit = round($dailyRateCur * $remainingDays, 2);
+
+            /* Use pre-calculated tax amounts from SectorPlanTbl (Price is GST-inclusive) */
+            $newTotalAmount   = (float)$newPlan->TotalAmount;
+            $newTaxableAmount = (float)$newPlan->TaxableAmount;
+            $newTaxAmount     = (float)$newPlan->TaxAmount;
+            $newDuration      = max(1, (int)$newPlan->DurationDays);
+            $taxRate          = max(0, (float)($newPlan->TaxRate ?? 18));
+            $dailyRateNew     = $newTotalAmount / $newDuration;
+            $isUpgrade        = $newTotalAmount > (float)$current->Price;
+
+            /* Split an inclusive total into base + tax (back-calculation from GST-inclusive amount) */
+            $splitGST = function(float $inclusiveTotal) use ($taxRate): array {
+                $base = round($inclusiveTotal * 100 / (100 + $taxRate), 2);
+                $tax  = round($inclusiveTotal - $base, 2);
+                return ['base' => $base, 'tax' => $tax, 'total' => $inclusiveTotal, 'rate' => $taxRate];
+            };
+
+            $result->ChangeType      = $isUpgrade ? 'Upgrade' : 'Downgrade';
+            $result->RemainingDays   = $remainingDays;
+            $result->RemainingCredit = $remainingCredit;
+            $result->CurrentEndDate  = $currentEndDate;
+            $result->CurrentPlan     = $current;
+            $result->NewPlan         = $newPlan;
+
+            /* ── Option UA: Immediate upgrade, pro-rated ── */
+            $ua_net   = max(0, round($newTotalAmount - $remainingCredit, 2));
+            $ua_split = $splitGST($ua_net);
+            $result->OptionUA = (object)[
+                'StartDate'   => $today,
+                'EndDate'     => date('Y-m-d', strtotime("+{$newDuration} days")),
+                'BaseAmount'  => $ua_split['base'],
+                'TaxAmount'   => $ua_split['tax'],
+                'TaxRate'     => $taxRate,
+                'TotalAmount' => $ua_split['total'],
+                'CreditUsed'  => min($remainingCredit, $newTotalAmount),
+                'Recommended' => true,
+            ];
+
+            /* ── Option UB: Upgrade after current plan expires ── */
+            $ub_start = date('Y-m-d', strtotime($currentEndDate . ' +1 day'));
+            $result->OptionUB = (object)[
+                'StartDate'   => $ub_start,
+                'EndDate'     => date('Y-m-d', strtotime($ub_start . " +{$newDuration} days")),
+                'BaseAmount'  => $newTaxableAmount,
+                'TaxAmount'   => $newTaxAmount,
+                'TaxRate'     => $taxRate,
+                'TotalAmount' => $newTotalAmount,
+                'CreditUsed'  => 0,
+                'Recommended' => false,
+            ];
+
+            /* ── Option DA: Immediate downgrade, extend days (sub-option 1) ── */
+            $bonusDays = ($dailyRateNew > 0) ? (int)floor($remainingCredit / $dailyRateNew) : 0;
+            $da_days   = $newDuration + $bonusDays;
+            $result->OptionDA = (object)[
+                'StartDate'   => $today,
+                'EndDate'     => date('Y-m-d', strtotime("+{$da_days} days")),
+                'BaseAmount'  => $newTaxableAmount,
+                'TaxAmount'   => $newTaxAmount,
+                'TaxRate'     => $taxRate,
+                'TotalAmount' => $newTotalAmount,
+                'BonusDays'   => $bonusDays,
+                'TotalDays'   => $da_days,
+                'CreditUsed'  => $remainingCredit,
+                'Recommended' => false,
+            ];
+
+            /* ── Option DB: Immediate downgrade, reduce payment (sub-option 2) ── */
+            $db_net   = max(0, round($newTotalAmount - $remainingCredit, 2));
+            $db_split = $splitGST($db_net);
+            $result->OptionDB = (object)[
+                'StartDate'   => $today,
+                'EndDate'     => date('Y-m-d', strtotime("+{$newDuration} days")),
+                'BaseAmount'  => $db_split['base'],
+                'TaxAmount'   => $db_split['tax'],
+                'TaxRate'     => $taxRate,
+                'TotalAmount' => $db_split['total'],
+                'CreditUsed'  => min($remainingCredit, $newTotalAmount),
+                'Recommended' => true,
+            ];
+
+            /* ── Option DC: Downgrade after current plan expires ── */
+            $dc_start = date('Y-m-d', strtotime($currentEndDate . ' +1 day'));
+            $result->OptionDC = (object)[
+                'StartDate'   => $dc_start,
+                'EndDate'     => date('Y-m-d', strtotime($dc_start . " +{$newDuration} days")),
+                'BaseAmount'  => $newTaxableAmount,
+                'TaxAmount'   => $newTaxAmount,
+                'TaxRate'     => $taxRate,
+                'TotalAmount' => $newTotalAmount,
+                'CreditUsed'  => 0,
+                'Recommended' => false,
+            ];
+
+        } catch (Exception $e) {
+            notifyError('BillingPlan_model::calculatePlanChangeDetails', $e);
+            $result->Error   = true;
+            $result->Message = $e->getMessage();
+        }
+        return $result;
+    }
+
+    /* ── Schedule a future plan change (options UB and DC) ─────────────────── */
+
+    public function schedulePlanChange(int $orgUID, int $newSectorPlanUID, string $changeType,
+            string $billingOption, string $scheduledStart, string $scheduledEnd,
+            int $adminRoleUID, int $userUID, array $paymentData = []): object {
+        $result        = new stdClass();
+        $result->Error = false;
+        try {
+            $this->ReadDb->db_debug  = FALSE;
+            $this->WriteDb->db_debug = FALSE;
+
+            /* Validate plan */
+            $plan = $this->ReadDb->select(
+                    'SPT.SectorPlanUID, SPT.SectorUID, SPT.PlanUID,
+                     SPT.Price, SPT.DurationDays, SPT.TaxRate,
+                     SPT.TaxableAmount, SPT.TaxAmount, SPT.TotalAmount,
+                     SP.PlanName, SP.BillingCycle')
+                ->from('Billing.SectorPlanTbl SPT')
+                ->join('Billing.SubscriptionPlansTbl SP', 'SP.PlanUID = SPT.PlanUID')
+                ->where('SPT.SectorPlanUID', $newSectorPlanUID)
+                ->where('SPT.IsActive', 1)
+                ->limit(1)->get()->row();
+
+            if (!$plan) throw new ValidationException('Invalid plan selected.');
+
+            $this->WriteDb->trans_begin();
+
+            $fyValue     = billing_fy('long');
+            $paidAmount  = (float)($paymentData['amount'] ?? $plan->Price ?? 0);
+
+            /* Get current OrgSubUID for the order */
+            $curSub = $this->ReadDb->select('OrgSubUID, SectorPlanUID')
+                ->from('Billing.OrgSubscriptionTbl')
+                ->where('OrgUID', $orgUID)
+                ->where_not_in('Status', ['Cancelled', 'Superseded'])
+                ->order_by('StartDate', 'DESC')
+                ->limit(1)->get()->row();
+
+            /* Create order row (payment is collected today) */
+            $this->WriteDb->insert('Billing.SubscriptionOrdersTbl', [
+                'OrgUID'            => $orgUID,
+                'SectorPlanUID'     => $newSectorPlanUID,
+                'OrgSubUID'         => $curSub ? (int)$curSub->OrgSubUID : null,
+                'FinancialYear'     => $fyValue,
+                'RenewalType'       => $changeType,
+                'OrderDate'         => date('Y-m-d H:i:s'),
+                'DueDate'           => $scheduledEnd . ' 23:59:59',
+                'Amount'            => $paidAmount,
+                'DiscountAmount'    => (float)($paymentData['discount'] ?? 0),
+                'TaxAmount'         => (float)($paymentData['tax'] ?? 0),
+                'NetAmount'         => $paidAmount,
+                'Status'            => !empty($paymentData['paid']) ? 'Paid' : 'Pending',
+                'PaymentMode'       => $paymentData['mode']  ?? null,
+                'PaidOn'            => !empty($paymentData['paid']) ? date('Y-m-d H:i:s') : null,
+                'PrevSectorPlanUID' => $curSub ? (int)$curSub->SectorPlanUID : null,
+                'Notes'             => $paymentData['notes'] ?? null,
+                'CreatedBy'         => $userUID,
+            ]);
+            $orderUID = (int)$this->WriteDb->insert_id();
+
+            /* Insert scheduled change record */
+            $this->WriteDb->insert('Billing.ScheduledPlanChangeTbl', [
+                'OrgUID'               => $orgUID,
+                'CurrentSectorPlanUID' => $curSub ? (int)$curSub->SectorPlanUID : $newSectorPlanUID,
+                'NewSectorPlanUID'     => $newSectorPlanUID,
+                'ChangeType'           => $changeType,
+                'BillingOption'        => $billingOption,
+                'ScheduledStartDate'   => $scheduledStart,
+                'ScheduledEndDate'     => $scheduledEnd,
+                'Status'               => 'Pending',
+                'OrderUID'             => $orderUID,
+                'Notes'                => $paymentData['notes'] ?? null,
+                'CreatedBy'            => $userUID,
+            ]);
+
+            /* Payment row if paid today */
+            if (!empty($paymentData['paid']) && $orderUID) {
+                $this->WriteDb->insert('Billing.SubscriptionPaymentsTbl', [
+                    'OrderUID'      => $orderUID,
+                    'FinancialYear' => $fyValue,
+                    'PaymentDate'   => date('Y-m-d H:i:s'),
+                    'Amount'        => $paidAmount,
+                    'Mode'          => $paymentData['mode']  ?? null,
+                    'PaymentID'     => null,
+                    'Status'        => 'Success',
+                ]);
+            }
+
+            if ($this->WriteDb->trans_status() === FALSE) {
+                $this->WriteDb->trans_rollback();
+                throw new Exception('Scheduled plan change failed — database error.');
+            }
+            $this->WriteDb->trans_commit();
+
+            $result->Error        = false;
+            $result->Message      = 'Plan change scheduled. ' . $plan->PlanName . ' will activate on ' . $scheduledStart . '.';
+            $result->ScheduledStart = $scheduledStart;
+            $result->ScheduledEnd   = $scheduledEnd;
+
+        } catch (ValidationException $e) {
+            $result->Error   = true;
+            $result->Message = $e->getMessage();
+        } catch (Exception $e) {
+            try { $this->WriteDb->trans_rollback(); } catch (Exception $_) {}
+            notifyError('BillingPlan_model::schedulePlanChange', $e);
+            $result->Error   = true;
+            $result->Message = $e->getMessage();
+        }
+        return $result;
+    }
+
+    /* ── Activate a pending scheduled plan (called from middleware on login) ── */
+
+    public function activateScheduledPlan(int $scheduledChangeUID, int $orgUID, int $adminRoleUID): object {
+        $result        = new stdClass();
+        $result->Error = false;
+        try {
+            $this->ReadDb->db_debug  = FALSE;
+            $this->WriteDb->db_debug = FALSE;
+
+            /* Fetch the scheduled change */
+            $sc = $this->ReadDb->select('*')
+                ->from('Billing.ScheduledPlanChangeTbl')
+                ->where('ScheduledChangeUID', $scheduledChangeUID)
+                ->where('OrgUID', $orgUID)
+                ->where('Status', 'Pending')
+                ->limit(1)->get()->row();
+
+            if (!$sc) {
+                $result->Error   = true;
+                $result->Message = 'Scheduled change not found or already activated.';
+                return $result;
+            }
+
+            /* Get new plan details */
+            $plan = $this->ReadDb->select('SPT.*, SP.PlanName, SP.BillingCycle')
+                ->from('Billing.SectorPlanTbl SPT')
+                ->join('Billing.SubscriptionPlansTbl SP', 'SP.PlanUID = SPT.PlanUID')
+                ->where('SPT.SectorPlanUID', (int)$sc->NewSectorPlanUID)
+                ->limit(1)->get()->row();
+
+            if (!$plan) {
+                $result->Error   = true;
+                $result->Message = 'Scheduled plan no longer available.';
+                return $result;
+            }
+
+            $this->WriteDb->trans_begin();
+
+            $now      = gmdate('Y-m-d H:i:s');
+            $startDt  = $sc->ScheduledStartDate . ' 00:00:00';
+            $endDt    = $sc->ScheduledEndDate   . ' 23:59:59';
+            $fyValue  = billing_fy('long');
+            $createdBy = (int)($sc->CreatedBy ?? 0);
+
+            /* 1. Mark existing subscription row as Superseded */
+            $this->WriteDb->where('OrgUID', $orgUID)
+                ->where_not_in('Status', ['Cancelled', 'Superseded'])
+                ->update('Billing.OrgSubscriptionTbl', [
+                    'Status'    => 'Superseded',
+                    'UpdatedBy' => $createdBy,
+                    'UpdatedOn' => $now,
+                    'ClosedOn'  => $now,
+                ]);
+
+            /* 2. Insert new subscription row */
+            $this->WriteDb->insert('Billing.OrgSubscriptionTbl', [
+                'OrgUID'        => $orgUID,
+                'SectorPlanUID' => (int)$sc->NewSectorPlanUID,
+                'FinancialYear' => $fyValue,
+                'StartDate'     => $startDt,
+                'EndDate'       => $endDt,
+                'Status'        => 'Active',
+                'CreatedBy'     => $createdBy,
+                'CreatedOn'     => $now,
+                'UpdatedBy'     => $createdBy,
+                'UpdatedOn'     => $now,
+            ]);
+            $newOrgSubUID = (int)$this->WriteDb->insert_id();
+
+            /* 3. Update order to link to new OrgSubUID */
+            if ($sc->OrderUID) {
+                $this->WriteDb->where('OrderUID', (int)$sc->OrderUID)
+                    ->update('Billing.SubscriptionOrdersTbl', ['OrgSubUID' => $newOrgSubUID]);
+            }
+
+            /* 4. Apply menu/module changes */
+            $this->_applyPlanMenus(
+                $orgUID,
+                (int)$plan->SectorUID,
+                (int)$plan->PlanUID,
+                (int)$sc->CurrentSectorPlanUID,
+                $adminRoleUID,
+                $createdBy
+            );
+
+            /* 5. Mark scheduled change as activated */
+            $this->WriteDb->where('ScheduledChangeUID', $scheduledChangeUID)
+                ->update('Billing.ScheduledPlanChangeTbl', [
+                    'Status'      => 'Activated',
+                    'UpdatedBy'   => $createdBy,
+                    'UpdatedOn'   => $now,
+                    'ActivatedOn' => $now,
+                ]);
+
+            if ($this->WriteDb->trans_status() === FALSE) {
+                $this->WriteDb->trans_rollback();
+                throw new Exception('Scheduled plan activation failed — database error.');
+            }
+            $this->WriteDb->trans_commit();
+
+            $result->Error   = false;
+            $result->Message = 'Scheduled plan activated: ' . $plan->PlanName;
+
+        } catch (Exception $e) {
+            try { $this->WriteDb->trans_rollback(); } catch (Exception $_) {}
+            notifyError('BillingPlan_model::activateScheduledPlan', $e);
+            $result->Error   = true;
+            $result->Message = $e->getMessage();
+        }
+        return $result;
     }
 
 }

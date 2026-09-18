@@ -183,18 +183,10 @@ $shortCode  = htmlspecialchars($shortCode ?? '', ENT_QUOTES);
         </p>
 
     </div>
-    <!-- Processing overlay -->
-    <div class="ob-overlay" id="obProcessingOverlay">
-        <div class="ob-overlay-logo-wrap">
-            <div class="ob-overlay-ring"></div>
-            <img src="https://pub-bb40942a33344637936ade1f3800ff8b.r2.dev/Global/favicon_io/android-chrome-512x512-1.png"
-                 class="ob-overlay-logo-img" alt="R2K">
-        </div>
-        <div class="ob-overlay-text">Setting up your organisation…</div>
-    </div>
 
 </div>
 
+<script src="/js/common/global-overlay.js"></script>
 <script>
 (function () {
     /* Preload overlay logo so it appears instantly */
@@ -423,11 +415,10 @@ $shortCode  = htmlspecialchars($shortCode ?? '', ENT_QUOTES);
     window.obSubmit = function () {
         if (!_validate()) return;
 
-        var btn     = document.getElementById('obSubmitBtn');
-        var overlay = document.getElementById('obProcessingOverlay');
+        var btn = document.getElementById('obSubmitBtn');
 
         btn.disabled = true;
-        overlay.classList.add('is-active');
+        showUIBlock('Setting up your organisation…');
 
         var body = new URLSearchParams({
             org_name:     document.getElementById('obOrgName').value.trim(),
@@ -447,8 +438,8 @@ $shortCode  = htmlspecialchars($shortCode ?? '', ENT_QUOTES);
         .then(function (r) { return r.json(); })
         .then(function (data) {
             if (data.Error) {
-                overlay.classList.remove('is-active');
-                btn.disabled   = false;
+                hideUIBlock();
+                btn.disabled = false;
                 _showAlert(data.Message || 'Something went wrong. Please try again.');
             } else {
                 /* Overlay stays visible through the success screen + redirect */
@@ -459,8 +450,8 @@ $shortCode  = htmlspecialchars($shortCode ?? '', ENT_QUOTES);
             }
         })
         .catch(function () {
-            overlay.hidden = true;
-            btn.disabled   = false;
+            hideUIBlock();
+            btn.disabled = false;
             _showAlert('A network error occurred. Please try again.');
         });
     };

@@ -501,66 +501,6 @@
     gap: 0.4rem;
 }
 
-/* ── Processing overlay ────────────────────────────────────── */
-.ob-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(3, 10, 22, 0.92);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 1.25rem;
-    z-index: 9999;
-}
-
-.ob-overlay.is-active {
-    display: flex;
-}
-
-.ob-overlay-logo-wrap {
-    position: relative;
-    width: 48px;
-    height: 48px;
-    flex-shrink: 0;
-}
-
-.ob-overlay-ring {
-    position: absolute;
-    inset: -4px;
-    border-radius: 50%;
-    background: conic-gradient(from 0deg, #7c3aed 0%, #06b6d4 28%, #6366f1 52%, #a78bfa 76%, #7c3aed 100%);
-    animation: ob-ring-spin 1.6s linear infinite;
-}
-
-.ob-overlay-ring::after {
-    content: '';
-    position: absolute;
-    inset: 4px;
-    border-radius: 50%;
-    background: #040b18;
-}
-
-.ob-overlay-logo-img {
-    position: absolute;
-    inset: 5px;
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    object-fit: cover;
-    z-index: 1;
-}
-
-.ob-overlay-text {
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: rgba(226, 240, 255, 0.85);
-    letter-spacing: 0.02em;
-}
-
-
 /* ── Responsive ────────────────────────────────────────────── */
 @media (max-width: 560px) {
     .ob-card {

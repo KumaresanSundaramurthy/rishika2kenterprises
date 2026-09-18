@@ -162,10 +162,10 @@ class Signup extends CI_Controller {
                 if ($userData->Error || empty($userData->Data)) throw new Exception('Account created but login failed.');
                 $user = $userData->Data[0];
 
-                $this->_createLoginSession($user, 'google');
+                $this->_createLoginSession($user, 'google', (bool)($result->IsPaidPlan ?? false));
 
                 if ($result->IsPaidPlan ?? false) {
-                    $this->EndReturnData->Redirect = base_url('signup/payment');
+                    $this->EndReturnData->Redirect = base_url('subscribe');
                 } else {
                     $this->EndReturnData->Redirect = base_url('onboarding');
                 }
@@ -185,15 +185,22 @@ class Signup extends CI_Controller {
 
     /**
      * Build JWT + Redis session for the given user object (same logic as Login::doLoginForm).
-     * @param object $user   Row from getUserByEmailOrUsername()
-     * @param string $provider 'google' | 'local'
+     * @param object $user         Row from getUserByEmailOrUsername()
+     * @param string $provider     'google' | 'local'
+     * @param bool   $isPaidPlan   True when signup chose a paid plan — forces Status=PendingPayment
+     *                             in the Redis payload so the middleware gate fires immediately,
+     *                             bypassing any ReadDb replication lag on the fresh subscription row.
      */
-    private function _createLoginSession(object $user, string $provider): void {
+    private function _createLoginSession(object $user, string $provider, bool $isPaidPlan = false): void {
         $this->load->model('login_model');
         $this->load->model('dbwrite_model');
 
         $jwtPayload = $this->login_model->formatJWTPayload($user);
         if ($jwtPayload->Error) throw new Exception('JWT build failed: ' . $jwtPayload->Message);
+
+        if ($isPaidPlan && isset($jwtPayload->JWTData['Subscription'])) {
+            $jwtPayload->JWTData['Subscription']->Status = 'PendingPayment';
+        }
 
         $newPayload   = clone $jwtPayload;
         $orgToken     = $newPayload->JWTData['Org']['OrgToken'] ?? '';
@@ -312,10 +319,10 @@ class Signup extends CI_Controller {
                 return;
             }
 
-            $this->_createLoginSession($userData->Data[0], 'local');
+            $this->_createLoginSession($userData->Data[0], 'local', (bool)$result->IsPaidPlan);
 
             $redirect = $result->IsPaidPlan
-                ? base_url('signup/payment')
+                ? base_url('subscribe')
                 : base_url('dashboard');
 
             $this->EndReturnData->Error    = false;

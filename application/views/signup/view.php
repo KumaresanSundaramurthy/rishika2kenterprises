@@ -568,167 +568,6 @@ html, body {
 }
 
 /* ── Processing overlay ────────────────────────────────────────── */
-.su-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(4, 11, 24, 0.88);
-    backdrop-filter: blur(4px);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 1.25rem;
-    z-index: 9999;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s ease;
-}
-
-.su-overlay.show {
-    opacity: 1;
-    pointer-events: all;
-}
-
-/* Gradient ring logo — same pattern as subscription renew page */
-.su-overlay-logo-wrap {
-    position: relative;
-    width: 48px;
-    height: 48px;
-    flex-shrink: 0;
-}
-
-.su-overlay-ring {
-    position: absolute;
-    inset: -4px;
-    border-radius: 50%;
-    background: conic-gradient(from 0deg,
-        #7c3aed 0%,
-        #06b6d4 28%,
-        #6366f1 52%,
-        #a78bfa 76%,
-        #7c3aed 100%
-    );
-    animation: su-ring-spin 1.6s linear infinite;
-}
-
-.su-overlay-ring::after {
-    content: '';
-    position: absolute;
-    inset: 4px;
-    border-radius: 50%;
-    background: #040b18;
-}
-
-.su-overlay-logo-img {
-    position: absolute;
-    inset: 5px;        /* 5px gap between logo and ring inner edge */
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    object-fit: cover;
-    z-index: 1;
-}
-
-@keyframes su-ring-spin {
-    to { transform: rotate(360deg); }
-}
-
-/* keep the old spinner class stub so nothing breaks if referenced elsewhere */
-.su-overlay-spinner {
-    display: none;
-    width: 48px;
-    height: 48px;
-    border: 3px solid rgba(96, 165, 200, 0.2);
-    border-top-color: #60a5c8;
-    border-radius: 50%;
-    animation: su-spin 0.75s linear infinite;
-}
-
-@keyframes su-spin {
-    to { transform: rotate(360deg); }
-}
-
-.su-overlay-text {
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: rgba(180, 210, 230, 0.85);
-    letter-spacing: 0.02em;
-}
-
-/* ── Overlay two-state toggle ──────────────────────────── */
-.su-overlay-creating { display: contents; }
-.su-overlay-done     { display: none; flex-direction: column; align-items: center; gap: 0.6rem; }
-
-.su-overlay.success .su-overlay-creating { display: none; }
-.su-overlay.success .su-overlay-done     { display: flex; }
-
-/* Checkmark circle */
-.su-overlay-check {
-    width: 64px;
-    height: 64px;
-    border-radius: 50%;
-    background: rgba(52, 211, 153, 0.12);
-    border: 2px solid rgba(52, 211, 153, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 2rem;
-    color: #34d399;
-    animation: su-check-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-    margin-bottom: 0.4rem;
-}
-
-@keyframes su-check-pop {
-    from { transform: scale(0.4); opacity: 0; }
-    to   { transform: scale(1);   opacity: 1; }
-}
-
-.su-overlay-done-title {
-    font-size: 1.4rem;
-    font-weight: 700;
-    color: #e2f0ff;
-    letter-spacing: 0.01em;
-}
-
-.su-overlay-done-org {
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: #60a5c8;
-    max-width: 260px;
-    text-align: center;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.su-overlay-done-msg {
-    font-size: 0.82rem;
-    color: rgba(160, 190, 215, 0.6);
-    margin-top: 0.2rem;
-}
-
-/* Three-dot bounce */
-.su-overlay-done-dots {
-    display: flex;
-    gap: 6px;
-    margin-top: 0.5rem;
-}
-
-.su-overlay-done-dots span {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: rgba(96, 165, 200, 0.5);
-    animation: su-dot-bounce 1.2s ease-in-out infinite;
-}
-
-.su-overlay-done-dots span:nth-child(2) { animation-delay: 0.2s; }
-.su-overlay-done-dots span:nth-child(3) { animation-delay: 0.4s; }
-
-@keyframes su-dot-bounce {
-    0%, 80%, 100% { transform: scale(0.7); opacity: 0.4; }
-    40%            { transform: scale(1);   opacity: 1;   }
-}
 
 /* ── Google confirmation overlay ───────────────────────────────── */
 .su-gconf-overlay {
@@ -1184,28 +1023,6 @@ html, body {
     <!-- ── RIGHT FORM PANEL ── -->
     <div class="su-form-panel" style="position:relative;">
 
-        <div class="su-overlay" id="suProcessingOverlay">
-            <!-- Creating state -->
-            <div class="su-overlay-creating">
-                <div class="su-overlay-logo-wrap">
-                    <div class="su-overlay-ring"></div>
-                    <img src="https://pub-bb40942a33344637936ade1f3800ff8b.r2.dev/Global/favicon_io/android-chrome-512x512-1.png"
-                         class="su-overlay-logo-img" alt="R2K">
-                </div>
-                <div class="su-overlay-text">Creating your account…</div>
-            </div>
-            <!-- Success state -->
-            <div class="su-overlay-done">
-                <div class="su-overlay-check"><i class="bx bx-check"></i></div>
-                <div class="su-overlay-done-title">Account Created!</div>
-                <div class="su-overlay-done-org" id="suOverlayOrgName"></div>
-                <div class="su-overlay-done-msg">Taking you to your dashboard…</div>
-                <div class="su-overlay-done-dots">
-                    <span></span><span></span><span></span>
-                </div>
-            </div>
-        </div>
-
         <!-- Google sign-in confirmation card -->
         <div class="su-gconf-overlay" id="suGconfOverlay">
             <div class="su-gconf-card">
@@ -1512,6 +1329,7 @@ html, body {
 </div>
 
 <script src="/assets/js/services/upstash-service.js"></script>
+<script src="/js/common/global-overlay.js"></script>
 <script>
 (function () {
 
@@ -2509,9 +2327,11 @@ html, body {
             return;
         }
 
+        showUIBlock('Loading plans…');
         fetch('/signup/getPlans', { method: 'GET' })
         .then(function (r) { return r.json(); })
         .then(function (data) {
+            hideUIBlock();
             document.getElementById('suPlansLoading').style.display = 'none';
             if (data.Error || !data.Plans || data.Plans.length === 0) {
                 document.getElementById('suPlansErrorText').textContent = data.Plans && data.Plans.length === 0
@@ -2526,6 +2346,7 @@ html, body {
             _suPlansLoaded = true;
         })
         .catch(function () {
+            hideUIBlock();
             document.getElementById('suPlansLoading').style.display = 'none';
             document.getElementById('suPlansErrorText').textContent = 'A network error occurred loading plans.';
             document.getElementById('suPlansError').style.display = '';
@@ -2549,9 +2370,11 @@ html, body {
             return;
         }
 
+        showUIBlock('Loading plans…');
         fetch('/signup/getPlans', { method: 'GET' })
         .then(function (r) { return r.json(); })
         .then(function (data) {
+            hideUIBlock();
             document.getElementById('suGconfPlansLoading').style.display = 'none';
             if (data.Error || !data.Plans || data.Plans.length === 0) {
                 document.getElementById('suGconfPlansErrorText').textContent = 'No plans available. Please contact support.';
@@ -2563,6 +2386,7 @@ html, body {
             document.getElementById('suGconfPlanCards').style.display = '';
         })
         .catch(function () {
+            hideUIBlock();
             document.getElementById('suGconfPlansLoading').style.display = 'none';
             document.getElementById('suGconfPlansErrorText').textContent = 'Could not load plans. Please try again.';
             document.getElementById('suGconfPlansError').style.display = '';
@@ -2668,17 +2492,14 @@ html, body {
      * @returns {void}
      */
     function suShowSuccess(orgName) {
-        var overlay = document.getElementById('suProcessingOverlay');
-        document.getElementById('suOverlayOrgName').textContent = orgName || '';
-        overlay.classList.add('success');
-        /* overlay stays visible — redirect fires from the caller */
+        showUIBlock('Account created! Taking you to your dashboard…');
     }
 
     /**
      * @returns {void}
      */
     function suShowProcessing() {
-        document.getElementById('suProcessingOverlay').classList.add('show');
+        showUIBlock('Creating your account…');
         document.getElementById('suSubmitBtn').disabled = true;
         var backBtn = document.querySelector('#suFormStep3 .su-btn-ghost');
         if (backBtn) backBtn.disabled = true;
@@ -2690,7 +2511,7 @@ html, body {
      * @returns {void}
      */
     function suHideProcessing() {
-        document.getElementById('suProcessingOverlay').classList.remove('show');
+        hideUIBlock();
         document.getElementById('suSubmitBtn').disabled = false;
         var backBtn = document.querySelector('#suFormStep3 .su-btn-ghost');
         if (backBtn) backBtn.disabled = false;
@@ -2828,8 +2649,7 @@ html, body {
 
         document.getElementById('suGconfOverlay').classList.remove('show');
 
-        var overlay = document.getElementById('suProcessingOverlay');
-        if (overlay) overlay.classList.add('show');
+        showUIBlock('Creating your account…');
 
         var fd = new FormData();
         fd.append('credential', _suPendingCred);
@@ -2844,7 +2664,7 @@ html, body {
         .then(function (r) { return r.json(); })
         .then(function (data) {
             if (data.Error) {
-                if (overlay) overlay.classList.remove('show');
+                hideUIBlock();
                 showAlert(data.Message || 'Google sign-in failed. Please try again.');
             } else {
                 suShowSuccess(document.getElementById('suGconfName').textContent || '');
@@ -2852,7 +2672,7 @@ html, body {
             }
         })
         .catch(function () {
-            if (overlay) overlay.classList.remove('show');
+            hideUIBlock();
             showAlert('An error occurred. Please try again.');
         });
     };
@@ -2882,6 +2702,7 @@ html, body {
     }
 
     window.suTriggerGoogle = function () {
+        showUIBlock('Connecting to Google…');
         window.location.href = '<?php echo base_url('auth/google'); ?>';
     };
 

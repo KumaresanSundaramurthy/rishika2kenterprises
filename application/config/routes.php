@@ -83,6 +83,7 @@ $route['dev/cache/deleteUpstashKey']   = 'cachemonitor/deleteUpstashKey';
 
 // Subscription (public — no JWT required; middleware excludes 'subscription' + 'subscriptionrenew')
 $route['subscription/expired']              = 'subscription/expired';
+$route['subscription/plans']               = 'subscription/plans';
 $route['subscription']                      = 'subscription/index';
 $route['subscription/renew']               = 'subscriptionrenew/index';
 $route['subscription/renew/createOrder']   = 'subscriptionrenew/createOrder';
@@ -101,7 +102,13 @@ $route['signup/checkMobile']      = 'signup/checkMobile';
 $route['signup/checkGSTIN']       = 'signup/checkGSTIN';
 
 // Signup payment gate (JWT required — authenticated controller)
+$route['subscribe']               = 'signuppayment/index';
+$route['subscribe/changePlan']    = 'signuppayment/changePlan';
+$route['subscribe/createOrder']   = 'signuppayment/createOrder';
+$route['subscribe/confirmPayment'] = 'signuppayment/confirmPayment';
+/* Legacy redirect — keeps old bookmarks working */
 $route['signup/payment']          = 'signuppayment/index';
+$route['signup/changePlan']       = 'signuppayment/changePlan';
 $route['signup/createOrder']      = 'signuppayment/createOrder';
 $route['signup/confirmPayment']   = 'signuppayment/confirmPayment';
 

@@ -380,9 +380,7 @@ html.layout-menu-fixed-offcanvas .layout-horizontal.transactionPage .layout-page
   position: fixed;
   inset: 0;
   z-index: 999999;
-  background: rgba(255, 255, 255, .62);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
+  background: rgba(10, 10, 20, .82);
   align-items: center;
   justify-content: center;
 }
@@ -405,56 +403,42 @@ html.layout-menu-fixed-offcanvas .layout-horizontal.transactionPage .layout-page
   gap: 14px;
 }
 
-.gpo-spinner {
-  position: relative;
-  width: 74px;
-  height: 74px;
+/* Gradient ring outer — spins the full rainbow ring */
+.gpo-ring-outer {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, #696cff, #a78bfa, #38bdf8, #4ade80, #696cff);
+  padding: 4px;
+  animation: gpoSpin 1.4s linear infinite;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
-/* Faint track ring — gives the arc a runway */
-.gpo-spinner::after {
-  content: '';
-  position: absolute;
-  inset: 0;
+/* Inner circle — dark fill that creates the ring illusion */
+.gpo-ring-inner {
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
-  border: 2.5px solid rgba(105, 108, 255, .12);
-}
-
-/* Comet-tail arc — builds from transparent → violet → indigo → transparent */
-.gpo-spinner::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: conic-gradient(
-    from 180deg,
-    transparent            0%,
-    rgba(168, 85, 247, .25) 18%,
-    #696cff                62%,
-    #818cf8                80%,
-    transparent            100%
-  );
-  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2.5px));
-  mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2.5px));
-  animation: gpoSpin .85s linear infinite;
+  background: #13111a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
 
 @keyframes gpoSpin {
   to { transform: rotate(360deg); }
 }
 
-/* Logo — static, centered; glow ties it to the arc's colour palette */
+/* Logo — centered inside the ring */
 .gpo-logo {
-  position: relative;
-  z-index: 1;
-  width: 44px;
-  height: 44px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
-  object-fit: contain;
-  filter: drop-shadow(0 0 7px rgba(105, 108, 255, .5));
+  object-fit: cover;
 }
 
 /* ── Progress bar (below spinner) ──────────────────────────────────── */
@@ -490,10 +474,39 @@ html.layout-menu-fixed-offcanvas .layout-horizontal.transactionPage .layout-page
 
 .gpo-wait-text {
   display: none;
-  font-size: 12px;
-  font-weight: 600;
-  color: #696cff;
-  letter-spacing: 0.04em;
+  font-size: 13px;
+  font-weight: 500;
+  color: #e0e0ff;
+  letter-spacing: 0.03em;
+}
+
+/* Bouncing dots */
+.gpo-dots {
+  display: flex;
+  gap: 7px;
+}
+
+.gpo-dots span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #696cff;
+  animation: gpoBounce .9s ease-in-out infinite;
+}
+
+.gpo-dots span:nth-child(2) {
+  animation-delay: .18s;
+  background: #a78bfa;
+}
+
+.gpo-dots span:nth-child(3) {
+  animation-delay: .36s;
+  background: #38bdf8;
+}
+
+@keyframes gpoBounce {
+  0%, 100% { transform: translateY(0);    opacity: .5; }
+  50%       { transform: translateY(-7px); opacity: 1;  }
 }
 
 #globalProcOverlay.gpo-wait-only .gpo-progress-wrap { display: none; }

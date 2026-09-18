@@ -40,6 +40,15 @@ class Subscription {
             $result->plan    = $user->SubscriptionPlan;
             $daysRemaining   = 0;
 
+            if ($user->SubscriptionStatus === 'PendingPayment') {
+                /* Paid-plan signup — payment not yet completed.
+                   Allow login so the Middleware gate can redirect them to /subscribe. */
+                $result->isValid = true;
+                $result->status  = 'PendingPayment';
+                $result->message = 'Payment pending. Please complete your subscription payment to activate your account.';
+                return $result;
+            }
+
             if (in_array($user->SubscriptionStatus, ['Active', 'Trial'])) {
                 if ($user->SubscriptionEndDate) {
                     /* Use explicit UTC for both sides to avoid server-timezone drift */

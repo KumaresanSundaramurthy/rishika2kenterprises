@@ -101,10 +101,12 @@ class BillingPlan_model extends CI_Model {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('SO.OrderUID, SO.RenewalType, SO.OrderDate, SO.DueDate,
                 SO.NetAmount, SO.Status, SO.PaymentMode, SO.PaidOn,
-                COALESCE(SP.PlanName, \'Trial\') AS PlanName');
+                COALESCE(SP.PlanName, \'Trial\') AS PlanName,
+                SI.InvoiceUID, SI.InvoiceNumber, SI.PDFPath');
             $this->ReadDb->from('Billing.SubscriptionOrdersTbl AS SO');
-            $this->ReadDb->join('Billing.SectorPlanTbl AS SPT',       'SPT.SectorPlanUID = SO.SectorPlanUID', 'left');
-            $this->ReadDb->join('Billing.SubscriptionPlansTbl AS SP', 'SP.PlanUID = SPT.PlanUID',            'left');
+            $this->ReadDb->join('Billing.SectorPlanTbl AS SPT',           'SPT.SectorPlanUID = SO.SectorPlanUID', 'left');
+            $this->ReadDb->join('Billing.SubscriptionPlansTbl AS SP',     'SP.PlanUID = SPT.PlanUID',             'left');
+            $this->ReadDb->join('Billing.SubscriptionInvoicesTbl AS SI',  'SI.OrderUID = SO.OrderUID',            'left');
             $this->ReadDb->where('SO.OrgUID', $orgUID);
             $this->ReadDb->order_by('SO.OrderDate', 'DESC');
             $this->ReadDb->limit($limit);

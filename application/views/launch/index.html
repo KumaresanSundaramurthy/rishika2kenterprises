@@ -40,6 +40,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--fb);font-size:16px
 .btn-outline:hover{background:rgba(245,158,11,.08);border-color:var(--gold);transform:translateY(-2px)}
 .btn-outline{background:transparent;color:var(--text);border:1.5px solid var(--border)}
 .btn-outline:hover{border-color:var(--gold);color:var(--gold);transform:translateY(-2px)}
+.btn-signup{background:linear-gradient(135deg,var(--blue),#2563eb);color:#fff;box-shadow:0 4px 24px rgba(59,130,246,.3)}
+.btn-signup:hover{transform:translateY(-2px);box-shadow:0 8px 36px rgba(59,130,246,.45)}
 .stag{display:inline-flex;align-items:center;gap:8px;font-size:.72rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--gold);margin-bottom:14px}
 .stag::before{content:'';display:block;width:24px;height:2px;background:var(--gold);border-radius:2px}
 .stitle{font-family:var(--fh);font-size:clamp(2rem,5vw,3rem);font-weight:800;line-height:1.1;color:var(--white)}
@@ -305,6 +307,7 @@ select.finput option{background:var(--card);color:var(--text)}
     </ul>
     <div class="nav-cta">
       <a href="/portal" class="btn btn-outline" style="padding:10px 22px;font-size:.85rem;">Login</a>
+      <a href="/signup" class="btn btn-signup" style="padding:10px 22px;font-size:.85rem;">Signup</a>
       <a href="#contact" class="btn btn-primary" style="padding:10px 22px;font-size:.85rem;">Get Quote</a>
     </div>
     <div class="hamburger" id="hamburger" aria-label="Menu">
@@ -318,6 +321,7 @@ select.finput option{background:var(--card);color:var(--text)}
   <a href="#services">Services</a>
   <a href="#contact">Contact</a>
   <a href="/portal" class="btn btn-outline" style="text-align:center;justify-content:center">Login</a>
+  <a href="/signup" class="btn btn-signup" style="text-align:center;justify-content:center">Signup</a>
   <a href="#contact" class="btn btn-primary" style="text-align:center;justify-content:center">Get Quote</a>
 </div>
 

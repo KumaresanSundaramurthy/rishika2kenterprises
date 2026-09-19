@@ -165,12 +165,16 @@ class Middleware {
 						}
 					}
 
-					// ── Onboarding check (Google signup only) ──────────────────
+					// ── Onboarding check (new Google signup only) ──────────────────
 					$isOnboardingDone = (int)($CI->pageData['JwtData']->Org->IsOnboardingComplete ?? 1);
-					/* PendingPayment users must reach the subscribe page first; once payment
-					   completes and Status becomes Active, the onboarding gate fires normally. */
+					/* Gate fires ONLY while Status=PendingPayment (initial signup state) and the
+					   user has not yet submitted the onboarding form. Once the subscription is
+					   Active the gate is skipped unconditionally — an Active user has already
+					   subscribed and therefore already completed onboarding. Checking
+					   IsOnboardingComplete for Active users would cause a re-login redirect loop
+					   if the DB write ever lags behind the Redis session update. */
 					$_isPendingPayment = (($sub->Status ?? '') === 'PendingPayment');
-					if (!$_isPendingPayment && $isOnboardingDone === 0 && $CI->router->fetch_class() !== 'onboarding') {
+					if ($_isPendingPayment && $isOnboardingDone === 0 && $CI->router->fetch_class() !== 'onboarding') {
 						if ($CI->input->is_ajax_request()) {
 							$CI->output
 								->set_status_header(403)

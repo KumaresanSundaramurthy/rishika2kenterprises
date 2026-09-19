@@ -494,6 +494,70 @@ class Subscription extends MY_Controller {
             ->set_output(json_encode($result));
     }
 
+    /* ── Invoice download ───────────────────────────────────────────────────── */
+
+    /**
+     * @param int $invoiceUID
+     * @returns void
+     */
+    public function invoice(int $invoiceUID): void {
+        $orgUID = $this->_orgUID();
+        try {
+            if ($invoiceUID <= 0) {
+                show_error('Invalid invoice.', 400);
+                return;
+            }
+
+            $ReadDb = $this->load->database('ReadDB', TRUE);
+            $ReadDb->db_debug = FALSE;
+            $row = $ReadDb->select('SI.InvoiceNumber, SI.PDFPath')
+                ->from('Billing.SubscriptionInvoicesTbl AS SI')
+                ->join('Billing.SubscriptionOrdersTbl AS SO', 'SO.OrderUID = SI.OrderUID')
+                ->where('SI.InvoiceUID', $invoiceUID)
+                ->where('SO.OrgUID', $orgUID)
+                ->limit(1)
+                ->get()->row();
+
+            if (!$row || empty($row->PDFPath)) {
+                show_error('Invoice PDF is not available yet.', 404);
+                return;
+            }
+
+            $ch = curl_init($row->PDFPath);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_TIMEOUT        => 30,
+                CURLOPT_SSL_VERIFYPEER => true,
+            ]);
+            $pdfBytes = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlErr  = curl_error($ch);
+            curl_close($ch);
+
+            if ($curlErr || $httpCode !== 200 || !$pdfBytes) {
+                show_error('Could not fetch invoice PDF. Please try again.', 502);
+                return;
+            }
+
+            $filename = 'Invoice-' . preg_replace('/[^A-Za-z0-9\-]/', '', $row->InvoiceNumber ?? $invoiceUID) . '.pdf';
+
+            $this->output
+                ->set_status_header(200)
+                ->set_content_type('application/pdf')
+                ->set_header('Content-Disposition: attachment; filename="' . $filename . '"')
+                ->set_header('Content-Length: ' . strlen($pdfBytes))
+                ->set_header('Cache-Control: private, no-store')
+                ->set_output($pdfBytes)
+                ->_display();
+            exit;
+
+        } catch (Exception $e) {
+            notifyError('Subscription::invoice', $e);
+            show_error('Something went wrong. Please try again.', 500);
+        }
+    }
+
     /* ── Private helpers ────────────────────────────────────────────────────── */
 
     private function _ajaxOnly(): void {

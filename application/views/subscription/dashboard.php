@@ -252,6 +252,7 @@
                                                 <th>Payment Mode</th>
                                                 <th>Paid On</th>
                                                 <th>Status</th>
+                                                <th class="text-center">Invoice</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -282,6 +283,17 @@
                                                             data-amount="<?= (float)$order->NetAmount ?>">
                                                             Pay
                                                         </button>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td class="text-center">
+                                                    <?php if (!empty($order->PDFPath) && !empty($order->InvoiceUID)): ?>
+                                                    <a href="<?= base_url('subscription/invoice/' . (int)$order->InvoiceUID) ?>"
+                                                       title="Download <?= htmlspecialchars($order->InvoiceNumber ?? 'Invoice') ?>"
+                                                       class="text-primary">
+                                                        <i class="bx bx-download fs-5"></i>
+                                                    </a>
+                                                    <?php else: ?>
+                                                    <span class="text-muted">—</span>
                                                     <?php endif; ?>
                                                 </td>
                                             </tr>

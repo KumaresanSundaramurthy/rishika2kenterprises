@@ -302,6 +302,12 @@ class Signuppayment extends CI_Controller {
             $loginExpiry = (int)getenv('LOGIN_EXPIRE_SECS') ?: 86400;
             if ($roleUID <= 0 || $userUID <= 0) return;
 
+            /* Bust the stale role-level cache set at login time (before any plan was chosen)
+               so getRoleMainMenus/getRoleSubMenus re-query the DB and return only the
+               modules that applyPlanMenuFilter() just marked active for this plan. */
+            $this->redisservice->deleteCache($this->redisservice->orgKey('role-menus-'    . $roleUID, $orgToken));
+            $this->redisservice->deleteCache($this->redisservice->orgKey('role-submenus-' . $roleUID, $orgToken));
+
             $this->load->model('login_model');
             $menus    = $this->login_model->getRoleMainMenus($roleUID, $orgUID)->Data ?? [];
             $submenus = $this->login_model->getRoleSubMenus($roleUID, $orgUID)->Data  ?? [];

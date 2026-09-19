@@ -1331,10 +1331,8 @@ class Signup_model extends CI_Model {
      * @param string $now           gmdate('Y-m-d H:i:s')
      * @returns void
      */
-    public function createPaymentAndInvoice(int $orgUID, int $orderUID, object $plan, string $renewalType, string $rpOrderId, string $rpPaymentId, string $rpSignature, string $paymentMode, string $now): void {
-        log_message('error', '[BILLING] createPaymentAndInvoice called — orgUID=' . $orgUID . ' orderUID=' . $orderUID . ' renewalType=' . $renewalType . ' paymentMode=' . $paymentMode);
+    public function createPaymentAndInvoice(int $orgUID, int $orderUID, object $plan, string $renewalType, string $rpOrderId, string $rpPaymentId, string $rpSignature, string $paymentMode, string $now, string $bankRrn = ''): void {
         if ($orderUID <= 0) {
-            log_message('error', '[BILLING] createPaymentAndInvoice ABORTED — orderUID is 0');
             return;
         }
 
@@ -1350,9 +1348,9 @@ class Signup_model extends CI_Model {
                 'PaymentID'        => $rpPaymentId,
                 'GatewayOrderID'   => $rpOrderId,
                 'GatewaySignature' => $rpSignature,
+                'BankRRN'          => $bankRrn ?: null,
                 'Status'           => 'Success',
             ]);
-            log_message('error', '[BILLING] SubscriptionPaymentsTbl insert: Error=' . ($rPay->Error ? 'YES' : 'NO') . ' ID=' . ($rPay->ID ?? 'NULL') . ' Msg=' . ($rPay->Message ?? ''));
 
             /* 2. Org billing address for invoice */
             $this->ReadDb->db_debug = FALSE;
@@ -1409,7 +1407,6 @@ class Signup_model extends CI_Model {
                 'TotalAmount'   => $totalAmt,
                 'PDFPath'       => null,
             ]);
-            log_message('error', '[BILLING] SubscriptionInvoicesTbl insert: Error=' . ($rInv->Error ? 'YES' : 'NO') . ' ID=' . ($rInv->ID ?? 'NULL') . ' InvoiceNumber=' . ($invoiceNumber ?? '') . ' Msg=' . ($rInv->Message ?? ''));
             if ($rInv->Error) return;
             $invoiceUID = (int)$rInv->ID;
 
@@ -1443,7 +1440,6 @@ class Signup_model extends CI_Model {
             }
 
         } catch (Exception $e) {
-            log_message('error', '[BILLING] createPaymentAndInvoice EXCEPTION: ' . $e->getMessage());
             notifyError('Signup_model::createPaymentAndInvoice', $e);
         }
     }

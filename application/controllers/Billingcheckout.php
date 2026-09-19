@@ -213,9 +213,15 @@ class Billingcheckout extends CI_Controller {
 
             /* Fetch real payment method (UPI / Card / Netbanking / Wallet / EMI) */
             $paymentMode = 'Razorpay';
+            $bankRrn     = '';
             try {
                 $rpDetails   = $this->razorpayapi->fetchPayment($rpPaymentId);
                 $paymentMode = $this->_parsePaymentMode($rpDetails);
+                $bankRrn     = (string)(
+                    $rpDetails['acquirer_data']['rrn']                  /* UPI */
+                    ?? $rpDetails['acquirer_data']['bank_transaction_id'] /* Netbanking */
+                    ?? ''
+                );
             } catch (Exception $e) {
                 notifyError('Billingcheckout::confirmPayment fetchPayment', $e);
             }
@@ -228,15 +234,11 @@ class Billingcheckout extends CI_Controller {
                 default                          => 'signup',
             };
 
-            log_message('error', '[BILLING] confirmPayment START — orgUID=' . $orgUID . ' sectorPlanUID=' . $sectorPlanUID . ' subStatus=' . $subStatus . ' flow=' . $flow . ' rpPaymentId=' . $rpPaymentId);
-
             $plan = $this->signup_model->getSectorPlan($sectorPlanUID);
             if (!$plan) throw new ValidationException('Plan not found.');
-            log_message('error', '[BILLING] plan loaded — PlanName=' . ($plan->PlanName ?? 'NULL') . ' Price=' . ($plan->Price ?? 'NULL') . ' TaxableAmount=' . ($plan->TaxableAmount ?? 'NULL') . ' TaxAmount=' . ($plan->TaxAmount ?? 'NULL') . ' TotalAmount=' . ($plan->TotalAmount ?? 'NULL'));
 
             $subRow = $this->signup_model->getOrgSubUID($orgUID);
             if (!$subRow) throw new Exception('Subscription record not found.');
-            log_message('error', '[BILLING] subRow loaded — OrgSubUID=' . ($subRow->OrgSubUID ?? 'NULL') . ' OrderUID=' . ($subRow->OrderUID ?? 'NULL'));
 
             $filterResult = $this->signup_model->applyPlanMenuFilter($orgUID, $sectorPlanUID);
             if ($filterResult->Error) throw new Exception($filterResult->Message ?? 'Menu filter failed.');
@@ -256,10 +258,8 @@ class Billingcheckout extends CI_Controller {
                     'SectorPlanUID' => $sectorPlanUID,
                     'EndDate'       => $endDate,
                 ], ['OrgSubUID' => $orgSubUID]);
-                log_message('error', '[BILLING] signup — OrgSubscriptionTbl Status→Active+SectorPlanUID+EndDate: Error=' . ($rSubUpd->Error ? 'YES' : 'NO') . ' Msg=' . ($rSubUpd->Message ?? ''));
 
                 if ($orderUID > 0) {
-                    log_message('error', '[BILLING] signup — orderUID=' . $orderUID . ' → updating existing order row');
                     $rOrdUpd = $this->dbwrite_model->updateData('Billing', 'SubscriptionOrdersTbl', [
                         'RenewalType' => 'New',
                         'Status'      => 'Paid',
@@ -267,10 +267,8 @@ class Billingcheckout extends CI_Controller {
                         'PaidOn'      => $now,
                         'PaymentMode' => $paymentMode,
                     ], ['OrderUID' => $orderUID]);
-                    log_message('error', '[BILLING] signup — order update result: Error=' . ($rOrdUpd->Error ? 'YES' : 'NO') . ' Msg=' . ($rOrdUpd->Message ?? ''));
                     $resolvedOrderUID = $orderUID;
                 } else {
-                    log_message('error', '[BILLING] signup — orderUID=0 → inserting new order row');
                     $rOrder = $this->dbwrite_model->insertData('Billing', 'SubscriptionOrdersTbl', [
                         'OrgUID'         => $orgUID,
                         'SectorPlanUID'  => $sectorPlanUID,
@@ -288,7 +286,6 @@ class Billingcheckout extends CI_Controller {
                         'PaymentMode'    => $paymentMode,
                         'CreatedBy'      => null,
                     ]);
-                    log_message('error', '[BILLING] signup — order insert result: Error=' . ($rOrder->Error ? 'YES' : 'NO') . ' ID=' . ($rOrder->ID ?? 'NULL') . ' Msg=' . ($rOrder->Message ?? ''));
                     if (!$rOrder->Error) {
                         $resolvedOrderUID = (int)$rOrder->ID;
                         $this->dbwrite_model->updateData('Billing', 'OrgSubscriptionTbl', ['OrderUID' => $resolvedOrderUID], ['OrgSubUID' => $orgSubUID]);
@@ -320,7 +317,6 @@ class Billingcheckout extends CI_Controller {
                     'PaymentMode'    => $paymentMode,
                     'CreatedBy'      => null,
                 ]);
-                log_message('error', '[BILLING] renewal — order insert result: Error=' . ($rOrder->Error ? 'YES' : 'NO') . ' ID=' . ($rOrder->ID ?? 'NULL') . ' Msg=' . ($rOrder->Message ?? ''));
                 if ($rOrder->Error) throw new Exception('Order insert failed: ' . $rOrder->Message);
                 $this->dbwrite_model->updateData('Billing', 'OrgSubscriptionTbl', ['OrderUID' => (int)$rOrder->ID], ['OrgSubUID' => $orgSubUID]);
                 $resolvedOrderUID = (int)$rOrder->ID;
@@ -343,20 +339,16 @@ class Billingcheckout extends CI_Controller {
                     'PaymentMode'    => $paymentMode,
                     'CreatedBy'      => null,
                 ]);
-                log_message('error', '[BILLING] upgrade — order insert result: Error=' . ($rOrder->Error ? 'YES' : 'NO') . ' ID=' . ($rOrder->ID ?? 'NULL') . ' Msg=' . ($rOrder->Message ?? ''));
                 if ($rOrder->Error) throw new Exception('Order insert failed: ' . $rOrder->Message);
                 $this->dbwrite_model->updateData('Billing', 'OrgSubscriptionTbl', ['OrderUID' => (int)$rOrder->ID], ['OrgSubUID' => $orgSubUID]);
                 $resolvedOrderUID = (int)$rOrder->ID;
             }
-
-            log_message('error', '[BILLING] resolvedOrderUID=' . $resolvedOrderUID . ' — proceeding to createPaymentAndInvoice');
 
             /* Stamp FirstPaidOn on the very first successful payment */
             $this->dbwrite_model->updateData('Billing', 'OrgSubscriptionTbl', ['FirstPaidOn' => $now], ['OrgSubUID' => $orgSubUID, 'FirstPaidOn' => null]);
 
             /* Clear the pending-order pointer — payment is done, no active pending order */
             $this->dbwrite_model->updateData('Billing', 'OrgSubscriptionTbl', ['OrderUID' => null], ['OrgSubUID' => $orgSubUID]);
-            log_message('error', '[BILLING] OrgSubscriptionTbl.OrderUID cleared to NULL');
 
             /* Create payment record + invoice + PDF — only if we have a valid resolved order */
             if ($resolvedOrderUID > 0) {
@@ -364,11 +356,8 @@ class Billingcheckout extends CI_Controller {
                 $this->signup_model->createPaymentAndInvoice(
                     $orgUID, $resolvedOrderUID, $plan,
                     $renewalTypeMap[$flow] ?? 'New',
-                    $rpOrderId, $rpPaymentId, $rpSignature, $paymentMode, $now
+                    $rpOrderId, $rpPaymentId, $rpSignature, $paymentMode, $now, $bankRrn
                 );
-                log_message('error', '[BILLING] createPaymentAndInvoice completed');
-            } else {
-                log_message('error', '[BILLING] createPaymentAndInvoice SKIPPED — resolvedOrderUID=0');
             }
 
             /* Update JWT cache */
@@ -382,6 +371,10 @@ class Billingcheckout extends CI_Controller {
                 $loginExpiry = (int)getenv('LOGIN_EXPIRE_SECS') ?: 86400;
                 $this->redisservice->setCache($jwtKey, $sessionData, $loginExpiry);
             }
+
+            /* Refresh Redis menu/submenu cache so sidebar reflects the purchased plan immediately.
+               Must happen AFTER applyPlanMenuFilter() and the JWT cache update above. */
+            $this->_refreshMenuCache($jwtData, (int)($jwtData->User->UserUID ?? 0), $orgUID);
 
             /* Delete the payment intent token — no longer needed after activation */
             if ($token && preg_match('/^[0-9a-f]{32}$/', $token)) {
@@ -429,6 +422,35 @@ class Billingcheckout extends CI_Controller {
     }
 
     /* ── Private helpers ──────────────────────────────────────────────── */
+
+    /**
+     * @param object $jwtData
+     * @param int    $userUID
+     * @param int    $orgUID
+     * @returns void
+     */
+    private function _refreshMenuCache(object $jwtData, int $userUID, int $orgUID): void {
+        try {
+            $roleUID     = (int)($jwtData->User->RoleUID ?? 0);
+            $orgToken    = $jwtData->Org->OrgToken ?? '';
+            $loginExpiry = (int)getenv('LOGIN_EXPIRE_SECS') ?: 86400;
+            if ($roleUID <= 0 || $userUID <= 0) return;
+
+            /* Bust stale role-level cache set at login time so getRoleMainMenus()
+               re-queries the DB and returns only the modules the purchased plan activates. */
+            $this->redisservice->deleteCache($this->redisservice->orgKey('role-menus-'    . $roleUID, $orgToken));
+            $this->redisservice->deleteCache($this->redisservice->orgKey('role-submenus-' . $roleUID, $orgToken));
+
+            $this->load->model('login_model');
+            $menus    = $this->login_model->getRoleMainMenus($roleUID, $orgUID)->Data ?? [];
+            $submenus = $this->login_model->getRoleSubMenus($roleUID, $orgUID)->Data  ?? [];
+
+            $this->redisservice->setUserCache('menus',    $userUID, $menus,    $loginExpiry, $orgToken);
+            $this->redisservice->setUserCache('submenus', $userUID, $submenus, $loginExpiry, $orgToken);
+        } catch (Exception $e) {
+            notifyError('Billingcheckout::_refreshMenuCache', $e);
+        }
+    }
 
     /**
      * Build a human-readable payment mode label from a Razorpay payment object.

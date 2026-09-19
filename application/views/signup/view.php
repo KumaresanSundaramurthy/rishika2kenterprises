@@ -569,158 +569,6 @@ html, body {
 
 /* ── Processing overlay ────────────────────────────────────────── */
 
-/* ── Google confirmation overlay ───────────────────────────────── */
-.su-gconf-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(4, 11, 24, 0.82);
-    backdrop-filter: blur(6px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 9998;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.22s ease;
-}
-
-.su-gconf-overlay.show {
-    opacity: 1;
-    pointer-events: all;
-}
-
-.su-gconf-card {
-    background: #0d1f38;
-    border: 1px solid rgba(96, 165, 200, 0.22);
-    border-radius: 16px;
-    padding: 2rem 2rem 1.75rem;
-    width: 100%;
-    max-width: 340px;
-    text-align: center;
-    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
-    transform: translateY(12px) scale(0.97);
-    transition: transform 0.22s ease;
-}
-
-.su-gconf-overlay.show .su-gconf-card {
-    transform: translateY(0) scale(1);
-}
-
-.su-gconf-site {
-    font-size: 0.75rem;
-    color: rgba(160, 190, 215, 0.45);
-    letter-spacing: 0.04em;
-    margin-bottom: 1.35rem;
-}
-
-.su-gconf-avatar {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid rgba(96, 165, 200, 0.3);
-    margin: 0 auto 0.85rem;
-    display: block;
-}
-
-.su-gconf-avatar-placeholder {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #1e5a82, #2870a0);
-    border: 2px solid rgba(96, 165, 200, 0.3);
-    margin: 0 auto 0.85rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #e2f0ff;
-}
-
-.su-gconf-name {
-    font-size: 1.05rem;
-    font-weight: 600;
-    color: #e2f0ff;
-    margin-bottom: 0.3rem;
-}
-
-.su-gconf-email {
-    font-size: 0.82rem;
-    color: rgba(160, 190, 215, 0.6);
-    margin-bottom: 1rem;
-    word-break: break-all;
-}
-
-.su-gconf-plan-section {
-    width: 100%;
-    margin-bottom: 1.25rem;
-}
-
-.su-gconf-plan-label {
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: rgba(160, 190, 215, 0.55);
-    margin-bottom: 0.65rem;
-    text-align: left;
-}
-
-#suGconfPlanCards .su-plan-grid {
-    grid-template-columns: 1fr;
-    gap: 0.5rem;
-}
-
-#suGconfPlanCards .su-plan-card {
-    padding: 0.65rem 0.9rem;
-    flex-direction: row;
-    align-items: center;
-    gap: 0.75rem;
-}
-#suGconfPlanCards .su-plan-card::before { display: none; }
-#suGconfPlanCards .su-plan-card-name  { font-size: 0.88rem; }
-#suGconfPlanCards .su-plan-card-price { margin-top: 0; margin-left: auto; }
-#suGconfPlanCards .su-plan-card-meta  { display: none; }
-#suGconfPlanCards .su-plan-card-cycle { display: none; }
-
-.su-gconf-btn-continue {
-    width: 100%;
-    padding: 0.72rem 1rem;
-    border-radius: 8px;
-    border: none;
-    background: linear-gradient(135deg, #1e5a82 0%, #1a4870 100%);
-    border: 1px solid rgba(96, 165, 200, 0.35);
-    color: #e2f0ff;
-    font-size: 0.9rem;
-    font-weight: 600;
-    cursor: pointer;
-    font-family: inherit;
-    transition: all 0.2s;
-    margin-bottom: 0.85rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-}
-
-.su-gconf-btn-continue:hover {
-    background: linear-gradient(135deg, #2870a0 0%, #1e5a82 100%);
-    border-color: rgba(96, 165, 200, 0.6);
-}
-
-.su-gconf-btn-switch {
-    background: none;
-    border: none;
-    color: rgba(96, 165, 200, 0.75);
-    font-size: 0.82rem;
-    cursor: pointer;
-    font-family: inherit;
-    padding: 0.3rem;
-    transition: color 0.2s;
-}
-
-.su-gconf-btn-switch:hover { color: #a3d0e8; }
 
 @media (max-width: 900px) {
     .su-brand { display: none; }
@@ -903,10 +751,17 @@ html, body {
 .su-plan-card[data-cycle="trial"].selected  { border-color: #4ade80; box-shadow: 0 0 0 2px rgba(74,222,128,0.18), 0 6px 24px rgba(0,0,0,0.4); }
 .su-plan-card[data-cycle="yearly"].selected { border-color: #a78bfa; box-shadow: 0 0 0 2px rgba(167,139,250,0.18), 0 6px 24px rgba(0,0,0,0.4); }
 
-/* Check circle */
+/* Card top row: check circle + name on same line */
+.su-plan-card-top {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.3rem;
+}
+
+/* Check circle — inline left */
 .su-plan-check {
-    position: absolute;
-    top: 0.75rem; right: 0.75rem;
+    flex-shrink: 0;
     width: 18px; height: 18px;
     border: 1.5px solid rgba(96, 165, 200, 0.35);
     border-radius: 50%;
@@ -944,9 +799,8 @@ html, body {
     font-size: 0.9rem;
     font-weight: 700;
     color: #daeeff;
-    padding-right: 1.5rem;
     line-height: 1.3;
-    margin-bottom: 0;
+    flex: 1;
 }
 
 /* Price */
@@ -1004,9 +858,6 @@ html, body {
         </a>
 
         <div class="su-brand-content">
-            <div class="su-brand-logo">
-                <img src="/images/logo/logo.png" alt="Logo" onerror="this.style.display='none'">
-            </div>
 
             <p class="su-brand-tagline">Start managing your <em>business</em> the smarter way</p>
             <p class="su-brand-sub">One platform for invoicing, inventory, purchases, accounting, and your entire team.</p>
@@ -1022,35 +873,6 @@ html, body {
 
     <!-- ── RIGHT FORM PANEL ── -->
     <div class="su-form-panel" style="position:relative;">
-
-        <!-- Google sign-in confirmation card -->
-        <div class="su-gconf-overlay" id="suGconfOverlay">
-            <div class="su-gconf-card">
-                <div class="su-gconf-site">Sign in to this application with Google</div>
-                <img class="su-gconf-avatar" id="suGconfAvatar" src="" alt="" style="display:none;">
-                <div class="su-gconf-avatar-placeholder" id="suGconfAvatarPlaceholder"></div>
-                <div class="su-gconf-name" id="suGconfName"></div>
-                <div class="su-gconf-email" id="suGconfEmail"></div>
-
-                <!-- Plan selection inside Google overlay -->
-                <div class="su-gconf-plan-section">
-                    <div class="su-gconf-plan-label">Select your plan</div>
-                    <div id="suGconfPlansLoading" style="text-align:center;padding:0.75rem 0;color:rgba(160,200,220,0.5);font-size:0.82rem;">
-                        <i class="bx bx-loader-alt bx-spin"></i> Loading plans…
-                    </div>
-                    <div id="suGconfPlanCards" style="display:none;"></div>
-                    <div id="suGconfPlansError" style="display:none;color:rgba(248,113,113,0.8);font-size:0.82rem;padding:0.4rem 0;text-align:center;">
-                        <span id="suGconfPlansErrorText">Could not load plans.</span>
-                    </div>
-                </div>
-
-                <button type="button" class="su-gconf-btn-continue" id="suGconfContinueBtn" onclick="suConfirmGoogle()">
-                    <svg width="17" height="17" viewBox="0 0 18 18" style="flex-shrink:0;"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z"/></svg>
-                    Continue as <span id="suGconfFirstName"></span>
-                </button>
-                <button type="button" class="su-gconf-btn-switch" onclick="suCancelGoogle()">Use a different account</button>
-            </div>
-        </div>
 
         <!-- Language switcher pill -->
         <div class="su-lang-switch" id="suLangSwitch">
@@ -1072,14 +894,19 @@ html, body {
                     <div class="su-step-num">1</div>
                     <div class="su-step-label">Organisation</div>
                 </div>
+                <div class="su-step-line" id="suStepAddrLine" style="display:none;"></div>
+                <div class="su-step" id="suStepAddrInd" style="display:none;">
+                    <div class="su-step-num">2</div>
+                    <div class="su-step-label" id="suStepAddrLabel">Address</div>
+                </div>
                 <div class="su-step-line"></div>
                 <div class="su-step" id="suStep2Ind">
-                    <div class="su-step-num">2</div>
+                    <div class="su-step-num" id="suStep2Num">2</div>
                     <div class="su-step-label">Admin Account</div>
                 </div>
                 <div class="su-step-line"></div>
                 <div class="su-step" id="suStep3Ind">
-                    <div class="su-step-num">3</div>
+                    <div class="su-step-num" id="suStep3Num">3</div>
                     <div class="su-step-label">Select Plan</div>
                 </div>
             </div>
@@ -1173,7 +1000,48 @@ html, body {
                 </div>
             </div>
 
-            <!-- ── STEP 2: ADMIN ACCOUNT ── -->
+            <!-- ── STEP 2: ADDRESS DETAILS (shown only when no GSTIN) ── -->
+            <div id="suFormStepAddr" style="display:none;">
+                <h2 class="su-step-title" id="suStepAddrTitle">Address Details</h2>
+                <p class="su-step-hint" id="suStepAddrHint">Your organisation's billing address.</p>
+
+                <div class="su-field">
+                    <label class="su-label" for="suAddrLine1">Address Line 1</label>
+                    <input type="text" id="suAddrLine1" name="AddrLine1" class="su-input" placeholder="Building no., Street name" autocomplete="off" maxlength="100">
+                    <div class="su-field-err" id="suAddrLine1Err"></div>
+                </div>
+
+                <div class="su-field">
+                    <label class="su-label" for="suAddrLine2">Address Line 2 <span class="su-optional">(optional)</span></label>
+                    <input type="text" id="suAddrLine2" name="AddrLine2" class="su-input" placeholder="Area, Landmark" autocomplete="off" maxlength="100">
+                </div>
+
+                <div class="su-field-row">
+                    <div class="su-field">
+                        <label class="su-label" for="suAddrCity">City</label>
+                        <select id="suAddrCity" name="AddrCity" class="su-input">
+                            <option value="">Select city…</option>
+                        </select>
+                        <div class="su-field-err" id="suAddrCityErr"></div>
+                    </div>
+                    <div class="su-field">
+                        <label class="su-label" for="suAddrPincode">PIN Code</label>
+                        <input type="text" id="suAddrPincode" name="AddrPincode" class="su-input" placeholder="600001" autocomplete="off" maxlength="10" inputmode="numeric">
+                        <div class="su-field-err" id="suAddrPincodeErr"></div>
+                    </div>
+                </div>
+
+                <div class="su-btn-row">
+                    <button type="button" class="su-btn su-btn-ghost" onclick="suPrevStepAddr()">
+                        <i class="bx bx-left-arrow-alt"></i> Back
+                    </button>
+                    <button type="button" class="su-btn su-btn-primary" id="suNextAddrBtn" onclick="suNextStepAddr()" disabled>
+                        Next <i class="bx bx-right-arrow-alt"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ── STEP 3: ADMIN ACCOUNT ── -->
             <div id="suFormStep2" style="display:none;">
                 <h2 class="su-step-title">Admin Account</h2>
                 <p class="su-step-hint">This account will have full access to your organisation.</p>
@@ -1337,10 +1205,13 @@ html, body {
     var _suStrings = {
         en: {
             stepOrg:          'Organisation',
+            stepAddr:          'Address',
             stepAdmin:         'Admin',
             stepPlan:          'Select Plan',
             titleOrg:          'Organisation Details',
             hintOrg:           'Basic information about your business.',
+            titleAddr:         'Address Details',
+            hintAddr:          'Your organisation\'s billing address.',
             titleAdmin:        'Admin Account',
             hintAdmin:         'This account will have full access to your organisation.',
             titlePlan:         'Select Your Plan',
@@ -1358,6 +1229,10 @@ html, body {
             labelState:        'State',
             labelTimezone:     'Timezone',
             labelGSTIN:        'GSTIN',
+            labelLine1:        'Address Line 1',
+            labelLine2:        'Address Line 2',
+            labelCity:         'City',
+            labelPincode:      'PIN Code',
             labelFirstName:    'First Name',
             labelLastName:     'Last Name',
             labelUsername:     'Username',
@@ -1372,6 +1247,10 @@ html, body {
             phStateSelect:     'Select state...',
             phTimezoneSelect:  'Select timezone...',
             phGSTIN:           '22AAAAA0000A1Z5',
+            phLine1:           'Building no., Street name',
+            phLine2:           'Area, Landmark',
+            phCity:            'City',
+            phPincode:         '600001',
             phFirstName:       'First name',
             phLastName:        'Last name',
             phUsername:        'Used to log in',
@@ -1380,10 +1259,13 @@ html, body {
         },
         ta: {
             stepOrg:          'நிறுவனம்',
+            stepAddr:          'முகவரி',
             stepAdmin:         'நிர்வாகி',
             stepPlan:          'திட்டம் தேர்வு',
             titleOrg:          'நிறுவன விவரங்கள்',
             hintOrg:           'உங்கள் வணிகம் பற்றிய அடிப்படை தகவல்.',
+            titleAddr:         'முகவரி விவரங்கள்',
+            hintAddr:          'உங்கள் நிறுவனத்தின் பில்லிங் முகவரி.',
             titleAdmin:        'நிர்வாகி கணக்கு',
             hintAdmin:         'இந்த கணக்கிற்கு உங்கள் நிறுவனத்தில் முழு அணுகல் இருக்கும்.',
             titlePlan:         'உங்கள் திட்டத்தை தேர்வு செய்யுங்கள்',
@@ -1401,6 +1283,10 @@ html, body {
             labelState:        'மாநிலம்',
             labelTimezone:     'நேர மண்டலம்',
             labelGSTIN:        'ஜிஎஸ்டிஐஎன்',
+            labelLine1:        'முகவரி வரி 1',
+            labelLine2:        'முகவரி வரி 2',
+            labelCity:         'நகரம்',
+            labelPincode:      'பின் குறியீடு',
             labelFirstName:    'முதல் பெயர்',
             labelLastName:     'கடைசி பெயர்',
             labelUsername:     'பயனர்பெயர்',
@@ -1415,6 +1301,10 @@ html, body {
             phStateSelect:     'மாநிலத்தைத் தேர்ந்தெடுக்கவும்...',
             phTimezoneSelect:  'நேர மண்டலத்தைத் தேர்ந்தெடுக்கவும்...',
             phGSTIN:           '22AAAAA0000A1Z5',
+            phLine1:           'கட்டிட எண், தெரு பெயர்',
+            phLine2:           'பகுதி, அடையாளச்சின்னம்',
+            phCity:            'நகரம்',
+            phPincode:         '600001',
             phFirstName:       'முதல் பெயர்',
             phLastName:        'கடைசி பெயர்',
             phUsername:        'உள்நுழைய பயன்படுகிறது',
@@ -1439,12 +1329,15 @@ html, body {
 
         /* Step indicators */
         txt('#suStep1Ind .su-step-label',  s.stepOrg);
+        txt('#suStepAddrLabel',            s.stepAddr);
         txt('#suStep2Ind .su-step-label',  s.stepAdmin);
         txt('#suStep3Ind .su-step-label',  s.stepPlan);
 
         /* Section titles */
         txt('#suFormStep1 .su-step-title', s.titleOrg);
         txt('#suFormStep1 .su-step-hint',  s.hintOrg);
+        txt('#suStepAddrTitle',            s.titleAddr);
+        txt('#suStepAddrHint',             s.hintAddr);
         txt('#suFormStep2 .su-step-title', s.titleAdmin);
         txt('#suFormStep2 .su-step-hint',  s.hintAdmin);
         txt('#suStep3Title',               s.titlePlan);
@@ -1460,7 +1353,13 @@ html, body {
         lbl('suGSTIN',    s.labelGSTIN,    true);
         txt('.su-field-hint', s.hintShortCode);
 
-        /* Step 2 labels */
+        /* Address step labels */
+        lbl('suAddrLine1',   s.labelLine1,   false);
+        lbl('suAddrLine2',   s.labelLine2,   true);
+        lbl('suAddrCity',    s.labelCity,    false);
+        lbl('suAddrPincode', s.labelPincode, false);
+
+        /* Admin step labels */
         lbl('suFirstName',      s.labelFirstName, false);
         lbl('suLastName',       s.labelLastName,  true);
         lbl('suUsername',       s.labelUsername,  false);
@@ -1482,6 +1381,9 @@ html, body {
         ph('suOrgMobile',       s.phMobile);
         ph('suOrgEmail',        s.phEmail);
         ph('suGSTIN',           s.phGSTIN);
+        ph('suAddrLine1',       s.phLine1);
+        ph('suAddrLine2',       s.phLine2);
+        ph('suAddrPincode',     s.phPincode);
         ph('suFirstName',       s.phFirstName);
         ph('suLastName',        s.phLastName);
         ph('suUsername',        s.phUsername);
@@ -1525,7 +1427,14 @@ html, body {
     }());
 
     /* ── State ─────────────────────────────────────────────────────── */
-    var currentStep = 1;
+    var currentStep     = 1;
+    var _hasAddressStep = false;
+
+    /* Auto-focus first name on page load */
+    window.addEventListener('load', function () {
+        var f = document.getElementById('suFirstName');
+        if (f) f.focus();
+    });
     var emailCheckTimer    = null;
     var usernameCheckTimer = null;
     var _emailTaken        = false;
@@ -1792,10 +1701,57 @@ html, body {
     /* ── Step navigation ───────────────────────────────────────────── */
     window.suNextStep = function () {
         if (!validateStep1()) return;
-        currentStep = 2;
+
+        var gstin = (document.getElementById('suGSTIN').value || '').trim();
+        _hasAddressStep = !gstin;
+
+        var addrInd  = document.getElementById('suStepAddrInd');
+        var addrLine = document.getElementById('suStepAddrLine');
+        if (addrInd)  addrInd.style.display  = _hasAddressStep ? '' : 'none';
+        if (addrLine) addrLine.style.display = _hasAddressStep ? '' : 'none';
+        var step2Num = document.getElementById('suStep2Num');
+        var step3Num = document.getElementById('suStep3Num');
+        if (step2Num) step2Num.textContent = _hasAddressStep ? '3' : '2';
+        if (step3Num) step3Num.textContent = _hasAddressStep ? '4' : '3';
+
         document.getElementById('suFormStep1').style.display = 'none';
-        document.getElementById('suFormStep2').style.display = '';
         document.getElementById('suStep1Ind').className = 'su-step done';
+        hideAlert();
+
+        if (_hasAddressStep) {
+            currentStep = 2;
+            document.getElementById('suFormStepAddr').style.display = '';
+            document.getElementById('suStepAddrInd').className = 'su-step active';
+            _suLoadAddressCities();
+            var line1El = document.getElementById('suAddrLine1');
+            if (line1El) line1El.focus();
+        } else {
+            currentStep = 3;
+            document.getElementById('suFormStep2').style.display = '';
+            document.getElementById('suStep2Ind').className = 'su-step active';
+            suggestUsername();
+            var uname = document.getElementById('suUsername').value.trim().toLowerCase();
+            _runUsernameCheck(uname);
+        }
+    };
+
+    /* Address step → Org */
+    window.suPrevStepAddr = function () {
+        currentStep = 1;
+        document.getElementById('suFormStepAddr').style.display = 'none';
+        document.getElementById('suFormStep1').style.display = '';
+        document.getElementById('suStep1Ind').className = 'su-step active';
+        document.getElementById('suStepAddrInd').className = 'su-step';
+        hideAlert();
+    };
+
+    /* Address step → Admin */
+    window.suNextStepAddr = function () {
+        if (!validateStepAddr()) return;
+        currentStep = 3;
+        document.getElementById('suFormStepAddr').style.display = 'none';
+        document.getElementById('suFormStep2').style.display = '';
+        document.getElementById('suStepAddrInd').className = 'su-step done';
         document.getElementById('suStep2Ind').className = 'su-step active';
         hideAlert();
         suggestUsername();
@@ -1803,19 +1759,27 @@ html, body {
         _runUsernameCheck(uname);
     };
 
+    /* Admin → back (either Address or Org depending on flow) */
     window.suPrevStep = function () {
-        currentStep = 1;
         document.getElementById('suFormStep2').style.display = 'none';
-        document.getElementById('suFormStep1').style.display = '';
-        document.getElementById('suStep1Ind').className = 'su-step active';
         document.getElementById('suStep2Ind').className = 'su-step';
         hideAlert();
+        if (_hasAddressStep) {
+            currentStep = 2;
+            document.getElementById('suFormStepAddr').style.display = '';
+            document.getElementById('suStepAddrInd').className = 'su-step active';
+            _suLoadAddressCities();
+        } else {
+            currentStep = 1;
+            document.getElementById('suFormStep1').style.display = '';
+            document.getElementById('suStep1Ind').className = 'su-step active';
+        }
     };
 
-    /* Step 2 → 3 */
+    /* Admin → Plan */
     window.suNextStep2 = function () {
         if (!validateStep2()) return;
-        currentStep = 3;
+        currentStep = 4;
         document.getElementById('suFormStep2').style.display = 'none';
         document.getElementById('suFormStep3').style.display = '';
         document.getElementById('suStep2Ind').className = 'su-step done';
@@ -1824,15 +1788,34 @@ html, body {
         _suLoadPlans();
     };
 
-    /* Step 3 → 2 */
+    /* Plan → Admin */
     window.suPrevStep2 = function () {
-        currentStep = 2;
+        currentStep = 3;
         document.getElementById('suFormStep3').style.display = 'none';
         document.getElementById('suFormStep2').style.display = '';
         document.getElementById('suStep2Ind').className = 'su-step active';
         document.getElementById('suStep3Ind').className = 'su-step';
         hideAlert();
     };
+
+    /* ── Enter key → active step's Next / Submit button ───────── */
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter') return;
+
+        var tag = e.target ? e.target.tagName : '';
+        if (tag === 'TEXTAREA') return;
+        if (tag !== 'INPUT' && tag !== 'SELECT') return; /* only fire when focus is in a form field */
+
+        var btnMap = { 1: 'suNextBtn', 2: 'suNextAddrBtn', 3: 'suNextStep2Btn', 4: 'suSubmitBtn' };
+        var btnId  = btnMap[currentStep];
+        if (!btnId) return;
+
+        var btn = document.getElementById(btnId);
+        if (btn && !btn.disabled) {
+            e.preventDefault();
+            btn.click();
+        }
+    });
 
     /* ── Step 1 validation ─────────────────────────────────────────── */
     /**
@@ -1953,6 +1936,50 @@ html, body {
         return ok;
     }
 
+    /**
+     * @returns {boolean}
+     */
+    function validateStepAddr() {
+        var ok = true;
+
+        var line1 = (document.getElementById('suAddrLine1').value || '').trim();
+        clearErr('suAddrLine1');
+        if (!line1) {
+            showErr('suAddrLine1', 'Address line 1 is required.');
+            setInputState('suAddrLine1', false);
+            ok = false;
+        }
+
+        var city = (document.getElementById('suAddrCity').value || '').trim();
+        clearErr('suAddrCity');
+        if (!city) {
+            showErr('suAddrCity', 'City is required.');
+            setInputState('suAddrCity', false);
+            ok = false;
+        }
+
+        var pincode = (document.getElementById('suAddrPincode').value || '').replace(/\D/g, '');
+        clearErr('suAddrPincode');
+        if (!pincode || pincode.length !== 6) {
+            showErr('suAddrPincode', 'Enter a valid 6-digit PIN code.');
+            setInputState('suAddrPincode', false);
+            ok = false;
+        }
+
+        return ok;
+    }
+
+    /**
+     * @returns {void}
+     */
+    function _syncAddrBtn() {
+        var line1   = (document.getElementById('suAddrLine1').value   || '').trim();
+        var city    = (document.getElementById('suAddrCity').value    || '').trim();
+        var pincode = (document.getElementById('suAddrPincode').value || '').replace(/\D/g, '');
+        var btn = document.getElementById('suNextAddrBtn');
+        if (btn) btn.disabled = !(line1 && city && pincode.length === 6);
+    }
+
     /* ── Auto-suggest username ─────────────────────────────────────── */
     function suggestUsername() {
         var orgName = document.getElementById('suOrgName').value.trim();
@@ -2055,6 +2082,8 @@ html, body {
     });
 
     document.getElementById('suOrgMobile').addEventListener('input', function () {
+        var clean = this.value.replace(/\D/g, '');
+        if (this.value !== clean) this.value = clean;
         _mobileTaken     = false;
         _mobileAvailable = false;
         document.getElementById('suOrgMobileOk').classList.remove('show');
@@ -2302,10 +2331,106 @@ html, body {
         });
     });
 
+    /* ── City dropdown loader ───────────────────────────────────────── */
+    /**
+     * Populates the city dropdown from an array of {name} objects.
+     * @param {Array} cities
+     * @returns {void}
+     */
+    function _suPopulateCities(cities) {
+        var sel = document.getElementById('suAddrCity');
+        if (!sel) return;
+        sel.innerHTML = '<option value="">Select city…</option>';
+        if (Array.isArray(cities)) {
+            cities.forEach(function (c) {
+                var name = c.name || '';
+                if (!name) return;
+                var opt = document.createElement('option');
+                opt.value = name; opt.textContent = name;
+                sel.appendChild(opt);
+            });
+        }
+        sel.disabled = false;
+        _syncAddrBtn();
+    }
+
+    /**
+     * Fetches cities from the server (cache miss path), stores result in Upstash, then populates.
+     * @param {string} stateISO2
+     * @param {string} cacheKey
+     * @param {string} cacheField
+     * @returns {void}
+     */
+    function _suFetchCitiesFromServer(stateISO2, cacheKey, cacheField) {
+        fetch('/signup/getCitiesOfState', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body:    'CountryISO2=IN&StateISO2=' + encodeURIComponent(stateISO2),
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            var cities = (!data.Error && Array.isArray(data.Data)) ? data.Data : [];
+            if (cities.length > 0 && UpstashService.isEnabled()) {
+                UpstashService.hset(cacheKey, cacheField, cities);
+            }
+            _suPopulateCities(cities);
+        })
+        .catch(function () {
+            var sel = document.getElementById('suAddrCity');
+            if (sel) { sel.innerHTML = '<option value="">Could not load cities</option>'; sel.disabled = false; }
+        });
+    }
+
+    /**
+     * Loads cities for the currently selected state — checks Upstash first, falls back to server.
+     * @returns {void}
+     */
+    function _suLoadAddressCities() {
+        var stateVal = (document.getElementById('suState').value || '');
+        var sel      = document.getElementById('suAddrCity');
+        if (!sel) return;
+
+        var stateISO2 = stateVal ? stateVal.split('|')[0] : '';
+        if (!stateISO2) {
+            sel.innerHTML = '<option value="">— Select a state first —</option>';
+            _syncAddrBtn();
+            return;
+        }
+
+        sel.innerHTML = '<option value="">Loading cities…</option>';
+        sel.disabled  = true;
+
+        var cacheKey   = UpstashService.globalKey('loc-cities-by-state');
+        var cacheField = 'in-' + stateISO2.toLowerCase();
+
+        if (UpstashService.isEnabled()) {
+            UpstashService.hget(cacheKey, cacheField)
+                .then(function (cached) {
+                    if (Array.isArray(cached) && cached.length > 0) {
+                        _suPopulateCities(cached);
+                    } else {
+                        _suFetchCitiesFromServer(stateISO2, cacheKey, cacheField);
+                    }
+                })
+                .catch(function () {
+                    _suFetchCitiesFromServer(stateISO2, cacheKey, cacheField);
+                });
+        } else {
+            _suFetchCitiesFromServer(stateISO2, cacheKey, cacheField);
+        }
+    }
+
+    /* ── Address field sync ────────────────────────────────────────── */
+    ['suAddrLine1', 'suAddrPincode'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.addEventListener('input', _syncAddrBtn);
+    });
+    var _addrCitySel = document.getElementById('suAddrCity');
+    if (_addrCitySel) _addrCitySel.addEventListener('change', _syncAddrBtn);
+
     /* ── Plan loading ──────────────────────────────────────────────── */
     var _suPlansLoaded = false;
-    var _suPlansData   = null; /* shared cache after first fetch */
-    var _suGconfPlanUID = 0;   /* selected plan UID in Google overlay */
+    var _suPlansData   = null;
 
     /**
      * Loads plans from server, renders cards. Called once when entering Step 3.
@@ -2319,7 +2444,6 @@ html, body {
         document.getElementById('suPlansError').style.display   = 'none';
 
         if (_suPlansData) {
-            /* already fetched by Google overlay loader — reuse cache */
             document.getElementById('suPlansLoading').style.display = 'none';
             _suRenderPlanCards(_suPlansData, document.getElementById('suPlanCards'), _suSelectPlan);
             document.getElementById('suPlanCards').style.display = '';
@@ -2354,58 +2478,6 @@ html, body {
     }
 
     /**
-     * Loads plan cards into the Google confirmation overlay. Uses cache if available.
-     * @returns {void}
-     */
-    function _suLoadGconfPlans() {
-        _suGconfPlanUID = 0;
-        document.getElementById('suGconfPlansLoading').style.display = '';
-        document.getElementById('suGconfPlanCards').style.display    = 'none';
-        document.getElementById('suGconfPlansError').style.display   = 'none';
-
-        if (_suPlansData) {
-            document.getElementById('suGconfPlansLoading').style.display = 'none';
-            _suRenderPlanCards(_suPlansData, document.getElementById('suGconfPlanCards'), _suSelectGconfPlan);
-            document.getElementById('suGconfPlanCards').style.display = '';
-            return;
-        }
-
-        showUIBlock('Loading plans…');
-        fetch('/signup/getPlans', { method: 'GET' })
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
-            hideUIBlock();
-            document.getElementById('suGconfPlansLoading').style.display = 'none';
-            if (data.Error || !data.Plans || data.Plans.length === 0) {
-                document.getElementById('suGconfPlansErrorText').textContent = 'No plans available. Please contact support.';
-                document.getElementById('suGconfPlansError').style.display = '';
-                return;
-            }
-            _suPlansData = data.Plans;
-            _suRenderPlanCards(data.Plans, document.getElementById('suGconfPlanCards'), _suSelectGconfPlan);
-            document.getElementById('suGconfPlanCards').style.display = '';
-        })
-        .catch(function () {
-            hideUIBlock();
-            document.getElementById('suGconfPlansLoading').style.display = 'none';
-            document.getElementById('suGconfPlansErrorText').textContent = 'Could not load plans. Please try again.';
-            document.getElementById('suGconfPlansError').style.display = '';
-        });
-    }
-
-    /**
-     * Selects a plan card inside the Google overlay.
-     * @param {number|string} uid
-     * @param {HTMLElement} cardEl
-     * @returns {void}
-     */
-    function _suSelectGconfPlan(uid, cardEl) {
-        document.querySelectorAll('#suGconfPlanCards .su-plan-card').forEach(function (c) { c.classList.remove('selected'); });
-        cardEl.classList.add('selected');
-        _suGconfPlanUID = parseInt(uid, 10);
-    }
-
-    /**
      * Renders plan cards into the given container element.
      * @param {Array<object>} plans
      * @param {HTMLElement} container
@@ -2434,10 +2506,12 @@ html, body {
 
             var metaHtml = '';
             if (plan.MaxUsers && parseInt(plan.MaxUsers) > 0) {
-                metaHtml += '<span><i class="bx bx-user"></i> Up to ' + plan.MaxUsers + ' users</span>';
+                var u = parseInt(plan.MaxUsers);
+                metaHtml += '<span><i class="bx bx-user"></i> Up to ' + u + ' user' + (u === 1 ? '' : 's') + '</span>';
             }
             if (plan.MaxBranches && parseInt(plan.MaxBranches) > 0) {
-                metaHtml += '<span><i class="bx bx-building"></i> Up to ' + plan.MaxBranches + ' branches</span>';
+                var b = parseInt(plan.MaxBranches);
+                metaHtml += '<span><i class="bx bx-building"></i> Up to ' + b + (b === 1 ? ' branch' : ' branches') + '</span>';
             }
             if (plan.DurationDays && parseInt(plan.DurationDays) > 0) {
                 var days = parseInt(plan.DurationDays);
@@ -2446,9 +2520,11 @@ html, body {
             }
 
             card.innerHTML =
-                '<div class="su-plan-check"><i class="bx bx-check"></i></div>' +
-                '<div class="su-plan-card-name">' + _suEscape(plan.PlanName || 'Plan') +
-                    (isFree ? '<span class="su-plan-free-badge">Free</span>' : '') +
+                '<div class="su-plan-card-top">' +
+                    '<div class="su-plan-check"><i class="bx bx-check"></i></div>' +
+                    '<div class="su-plan-card-name">' + _suEscape(plan.PlanName || 'Plan') +
+                        (isFree ? '<span class="su-plan-free-badge">Free</span>' : '') +
+                    '</div>' +
                 '</div>' +
                 '<div class="su-plan-card-cycle">' + _suEscape(plan.BillingCycle || '') + '</div>' +
                 '<div class="su-plan-card-price">' + priceHtml + '</div>' +
@@ -2541,6 +2617,10 @@ html, body {
             StateName:       stateParts[1] || '',
             TimezoneUID:     document.getElementById('suTimezone').value,
             GSTIN:           document.getElementById('suGSTIN').value.trim(),
+            AddrLine1:       (document.getElementById('suAddrLine1').value   || '').trim(),
+            AddrLine2:       (document.getElementById('suAddrLine2').value   || '').trim(),
+            AddrCity:        (document.getElementById('suAddrCity').value    || '').trim(),
+            AddrPincode:     (document.getElementById('suAddrPincode').value || '').replace(/\D/g, ''),
             AdminFirstName:  document.getElementById('suFirstName').value.trim(),
             AdminLastName:   document.getElementById('suLastName').value.trim(),
             AdminUsername:   document.getElementById('suUsername').value.trim().toLowerCase(),
@@ -2582,113 +2662,24 @@ html, body {
     /* ── Google One Tap ───────────────────────────────────────────── */
     <?php if (!empty(getenv('GOOGLE_CLIENT_ID'))): ?>
     var _suGoogleClientId  = <?php echo json_encode(getenv('GOOGLE_CLIENT_ID')); ?>;
-    var _suPendingCred     = null;
-
     /**
-     * Decodes the JWT payload (no signature verification — server does that).
-     * @param {string} token
-     * @returns {object}
-     */
-    function _decodeJwt(token) {
-        try {
-            var payload = token.split('.')[1];
-            var base64  = payload.replace(/-/g, '+').replace(/_/g, '/');
-            var padded  = base64 + '='.repeat((4 - base64.length % 4) % 4);
-            return JSON.parse(atob(padded));
-        } catch (e) {
-            return {};
-        }
-    }
-
-    /**
-     * Called by Google Identity Services. Shows confirmation card instead of posting directly.
+     * Called by Google Identity Services when an account is selected from the FedCM popup.
+     * Passes login_hint so Google skips the account chooser and goes straight to confirmation.
      * @param {{credential: string}} response
+     * @returns {void}
      */
     function _onGoogleCredential(response) {
-        if (!response || !response.credential) return;
-        _suPendingCred = response.credential;
-
-        var payload   = _decodeJwt(response.credential);
-        var name      = payload.name  || payload.email || 'You';
-        var email     = payload.email || '';
-        var picture   = payload.picture || '';
-        var firstName = (payload.given_name || name).split(' ')[0];
-
-        document.getElementById('suGconfName').textContent      = name;
-        document.getElementById('suGconfEmail').textContent     = email;
-        document.getElementById('suGconfFirstName').textContent = firstName;
-
-        var avatarImg = document.getElementById('suGconfAvatar');
-        var avatarPh  = document.getElementById('suGconfAvatarPlaceholder');
-        if (picture) {
-            avatarImg.src             = picture;
-            avatarImg.style.display   = 'block';
-            avatarPh.style.display    = 'none';
-        } else {
-            avatarPh.textContent      = firstName.charAt(0).toUpperCase();
-            avatarImg.style.display   = 'none';
-            avatarPh.style.display    = 'flex';
-        }
-
-        document.getElementById('suGconfOverlay').classList.add('show');
-        _suLoadGconfPlans();
+        showUIBlock('Connecting to Google…');
+        var hint = '';
+        try {
+            var parts   = (response.credential || '').split('.');
+            var payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+            hint = payload.email || '';
+        } catch (e) {}
+        var url = '<?php echo base_url('auth/google'); ?>?src=signup';
+        if (hint) { url += '&hint=' + encodeURIComponent(hint); }
+        window.location.href = url;
     }
-
-    /**
-     * User confirmed — now POST the stored credential to the server.
-     * @returns {void}
-     */
-    window.suConfirmGoogle = function () {
-        if (!_suPendingCred) return;
-
-        if (_suGconfPlanUID <= 0) {
-            document.getElementById('suGconfPlansErrorText').textContent = 'Please select a plan to continue.';
-            document.getElementById('suGconfPlansError').style.display = '';
-            return;
-        }
-
-        document.getElementById('suGconfOverlay').classList.remove('show');
-
-        showUIBlock('Creating your account…');
-
-        var fd = new FormData();
-        fd.append('credential', _suPendingCred);
-        fd.append('SectorPlanUID', _suGconfPlanUID);
-        fd.append('CountryCode', document.getElementById('suOrgCountryCode').value);
-        _suPendingCred = null;
-
-        fetch('<?php echo base_url('signup/google-auth'); ?>', {
-            method: 'POST',
-            body:   fd,
-        })
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
-            if (data.Error) {
-                hideUIBlock();
-                showAlert(data.Message || 'Google sign-in failed. Please try again.');
-            } else {
-                suShowSuccess(document.getElementById('suGconfName').textContent || '');
-                window.location.href = data.Redirect || '<?php echo base_url('dashboard'); ?>';
-            }
-        })
-        .catch(function () {
-            hideUIBlock();
-            showAlert('An error occurred. Please try again.');
-        });
-    };
-
-    /**
-     * User wants a different account — dismiss card, re-prompt Google.
-     * @returns {void}
-     */
-    window.suCancelGoogle = function () {
-        _suPendingCred = null;
-        document.getElementById('suGconfOverlay').classList.remove('show');
-        if (window.google && window.google.accounts) {
-            google.accounts.id.cancel();
-            google.accounts.id.prompt();
-        }
-    };
 
     function _initGoogleOneTap() {
         if (!window.google || !window.google.accounts) return;
@@ -2701,9 +2692,13 @@ html, body {
         google.accounts.id.prompt();
     }
 
+    /**
+     * Triggered by the "Sign up with Google" button.
+     * @returns {void}
+     */
     window.suTriggerGoogle = function () {
         showUIBlock('Connecting to Google…');
-        window.location.href = '<?php echo base_url('auth/google'); ?>';
+        window.location.href = '<?php echo base_url('auth/google'); ?>?src=signup';
     };
 
     /* Wait for the async Google script, then initialise */

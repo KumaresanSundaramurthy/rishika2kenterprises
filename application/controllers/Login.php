@@ -280,10 +280,16 @@ class Login extends CI_Controller {
                                 // Clear IP failure counter on successful login
                                 $this->redisservice->deleteCache($ipKey);
 
-                                // Redirect to where the user was before session expired
+                                // Redirect based on subscription state
                                 $intendedUrl = $this->session->userdata('intended_url');
                                 $this->session->unset_userdata('intended_url');
-                                redirect(!empty($intendedUrl) ? $intendedUrl : 'dashboard', 'refresh');
+                                if ($subscriptionCheck->status === 'PendingPayment') {
+                                    redirect('subscribe', 'refresh');
+                                } elseif (!empty($intendedUrl)) {
+                                    redirect($intendedUrl, 'refresh');
+                                } else {
+                                    redirect('dashboard', 'refresh');
+                                }
 
                             } else {
                                 $this->session->set_flashdata('danger', 'Oops! '.$JwtReturnData->Message);  

@@ -37,15 +37,26 @@ class Oauth extends CI_Controller {
         $state = bin2hex(random_bytes(16));
         $this->session->set_userdata('oauth_state', $state);
 
-        $params = http_build_query([
+        $isSignup = ($this->input->get('src') === 'signup');
+        $hint     = trim($this->input->get('hint') ?? '');
+        /* hint present = account already chosen via FedCM popup; skip chooser, show consent only.
+           No hint = button click; show chooser first, then consent. */
+        $prompt   = $isSignup
+            ? (!empty($hint) ? 'consent' : 'select_account consent')
+            : 'select_account';
+
+        $oauthParams = [
             'client_id'     => getenv('GOOGLE_CLIENT_ID'),
             'redirect_uri'  => base_url('auth/google/callback'),
             'response_type' => 'code',
             'scope'         => 'openid email profile',
             'state'         => $state,
             'access_type'   => 'online',
-            'prompt'        => 'select_account',
-        ]);
+            'prompt'        => $prompt,
+        ];
+        if (!empty($hint)) { $oauthParams['login_hint'] = $hint; }
+
+        $params = http_build_query($oauthParams);
 
         redirect('https://accounts.google.com/o/oauth2/v2/auth?' . $params, 'location');
     }
@@ -201,6 +212,8 @@ class Oauth extends CI_Controller {
         $this->load->model('user_model');
         $userData = $this->user_model->getUserByEmailOrUsername($email);
 
+        $isNewAccount = false;
+
         if ($userData->Error || count($userData->Data) !== 1) {
             /* Email not found — create new account if this is a Google login */
             if ($provider === 'GOOGLE' && !empty($googleProfile)) {
@@ -211,6 +224,7 @@ class Oauth extends CI_Controller {
                 if ($userData->Error || count($userData->Data) !== 1) {
                     throw new Exception('Account created but login failed. Please contact support.');
                 }
+                $isNewAccount = true;
             } else {
                 throw new Exception('No account found for ' . htmlspecialchars($email, ENT_QUOTES) . '. Please contact your administrator.');
             }
@@ -322,7 +336,12 @@ class Oauth extends CI_Controller {
 
         $intendedUrl = $this->session->userdata('intended_url');
         $this->session->unset_userdata('intended_url');
-        redirect(!empty($intendedUrl) ? $intendedUrl : 'dashboard', 'refresh');
+
+        if ($isNewAccount) {
+            redirect('onboarding', 'refresh');
+        } else {
+            redirect(!empty($intendedUrl) ? $intendedUrl : 'dashboard', 'refresh');
+        }
     }
 
     /* ===================================================================

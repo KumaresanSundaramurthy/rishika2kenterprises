@@ -22,18 +22,11 @@ class Signup extends CI_Controller {
 
     public function getPlans(): void {
         try {
-            $readDb = $this->load->database('ReadDB', TRUE);
-            $readDb->db_debug = FALSE;
-            $plans = $readDb
-                ->select('SPT.SectorPlanUID, SPT.Price, SPT.DurationDays, SPT.MaxUsers, SPT.MaxBranches, SP.PlanName, SP.PlanCode, SP.BillingCycle')
-                ->from('Billing.SectorPlanTbl AS SPT')
-                ->join('Billing.SubscriptionPlansTbl AS SP', 'SP.PlanUID = SPT.PlanUID')
-                ->where('SPT.IsActive', 1)
-                ->order_by('SPT.Price', 'ASC')
-                ->get()->result();
-            echo json_encode(['Error' => false, 'Plans' => $plans ?: []]);
+            $this->load->model('signup_model');
+            $plans = $this->signup_model->getActivePlans();
+            $this->globalservice->sendJsonResponse(['Error' => false, 'Plans' => $plans]);
         } catch (Exception $e) {
-            echo json_encode(['Error' => true, 'Plans' => []]);
+            $this->globalservice->sendJsonResponse(['Error' => true, 'Plans' => []]);
         }
     }
 
@@ -41,14 +34,14 @@ class Signup extends CI_Controller {
         try {
             $email = strtolower(trim($this->input->post('email') ?? ''));
             if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                echo json_encode(['available' => false, 'message' => 'Invalid email']);
+                $this->globalservice->sendJsonResponse(['available' => false, 'message' => 'Invalid email']);
                 return;
             }
             $this->load->model('signup_model');
             $taken = $this->signup_model->isEmailTaken($email);
-            echo json_encode(['available' => !$taken]);
+            $this->globalservice->sendJsonResponse(['available' => !$taken]);
         } catch (Exception $e) {
-            echo json_encode(['available' => false, 'message' => 'Error checking email']);
+            $this->globalservice->sendJsonResponse(['available' => false, 'message' => 'Error checking email']);
         }
     }
 
@@ -56,14 +49,14 @@ class Signup extends CI_Controller {
         try {
             $gstin = strtoupper(trim($this->input->post('gstin') ?? ''));
             if (empty($gstin) || !preg_match('/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/', $gstin)) {
-                echo json_encode(['available' => false, 'message' => 'Invalid GSTIN format']);
+                $this->globalservice->sendJsonResponse(['available' => false, 'message' => 'Invalid GSTIN format']);
                 return;
             }
             $this->load->model('signup_model');
             $taken = $this->signup_model->isGSTINTaken($gstin);
-            echo json_encode(['available' => !$taken]);
+            $this->globalservice->sendJsonResponse(['available' => !$taken]);
         } catch (Exception $e) {
-            echo json_encode(['available' => false, 'message' => 'Error checking GSTIN']);
+            $this->globalservice->sendJsonResponse(['available' => false, 'message' => 'Error checking GSTIN']);
         }
     }
 
@@ -71,14 +64,30 @@ class Signup extends CI_Controller {
         try {
             $mobile = preg_replace('/\D/', '', trim($this->input->post('mobile') ?? ''));
             if (empty($mobile) || strlen($mobile) !== 10) {
-                echo json_encode(['available' => false, 'message' => 'Invalid mobile number']);
+                $this->globalservice->sendJsonResponse(['available' => false, 'message' => 'Invalid mobile number']);
                 return;
             }
             $this->load->model('signup_model');
             $taken = $this->signup_model->isMobileTaken($mobile);
-            echo json_encode(['available' => !$taken]);
+            $this->globalservice->sendJsonResponse(['available' => !$taken]);
         } catch (Exception $e) {
-            echo json_encode(['available' => false, 'message' => 'Error checking mobile']);
+            $this->globalservice->sendJsonResponse(['available' => false, 'message' => 'Error checking mobile']);
+        }
+    }
+
+    public function getCitiesOfState(): void {
+        try {
+            $countryISO2 = strtoupper(trim($this->input->post('CountryISO2') ?? ''));
+            $stateISO2   = strtoupper(trim($this->input->post('StateISO2')   ?? ''));
+            if (!$countryISO2 || !$stateISO2) throw new Exception('Country and State codes are required.');
+            $this->load->model('location_model');
+            $result = $this->location_model->getCitiesOfStateFromDB($countryISO2, $stateISO2);
+            $this->globalservice->sendJsonResponse([
+                'Error' => $result->Error,
+                'Data'  => $result->Error ? [] : $result->Data,
+            ]);
+        } catch (Exception $e) {
+            $this->globalservice->sendJsonResponse(['Error' => true, 'Data' => []]);
         }
     }
 
@@ -86,24 +95,23 @@ class Signup extends CI_Controller {
         try {
             $username = strtolower(trim($this->input->post('username') ?? ''));
             if (empty($username)) {
-                echo json_encode(['available' => false]);
+                $this->globalservice->sendJsonResponse(['available' => false]);
                 return;
             }
             $this->load->model('signup_model');
             $taken = $this->signup_model->isUsernameTaken($username);
-            echo json_encode(['available' => !$taken]);
+            $this->globalservice->sendJsonResponse(['available' => !$taken]);
         } catch (Exception $e) {
-            echo json_encode(['available' => false]);
+            $this->globalservice->sendJsonResponse(['available' => false]);
         }
     }
 
     public function googleAuth(): void {
-        header('Content-Type: application/json');
         $this->EndReturnData->Error   = false;
         $this->EndReturnData->Message = '';
         try {
 
-            $idToken  = trim($this->input->post('credential') ?? '');
+            $idToken = trim($this->input->post('credential') ?? '');
             if (empty($idToken)) throw new ValidationException('No credential received.');
 
             /* ── Verify token with Google ────────────────────────────────── */
@@ -128,13 +136,9 @@ class Signup extends CI_Controller {
             $this->load->model('signup_model');
             $this->load->model('user_model');
 
-            $ReadDb = $this->load->database('ReadDB', TRUE);
-            $ReadDb->db_debug = FALSE;
+            $emailCheck = $this->signup_model->checkEmailExists($email);
 
-            $orgExists = $ReadDb->where('EmailAddress', $email)->where('IsDeleted', 0)->count_all_results('Organisation.OrganisationTbl') > 0;
-            $userRow   = $ReadDb->where('EmailAddress', $email)->where('IsDeleted', 0)->where('IsActive', 1)->where('HasLoginAccess', 1)->limit(1)->get('Users.UserTbl')->row();
-
-            if ($orgExists || $userRow) {
+            if ($emailCheck->orgExists || $emailCheck->userRow) {
                 /* ── Existing account — log them in ──────────────────────── */
                 $userData = $this->user_model->getUserByEmailOrUsername($email);
                 if ($userData->Error || empty($userData->Data)) throw new ValidationException('Unable to load account.');
@@ -164,11 +168,9 @@ class Signup extends CI_Controller {
 
                 $this->_createLoginSession($user, 'google', (bool)($result->IsPaidPlan ?? false));
 
-                if ($result->IsPaidPlan ?? false) {
-                    $this->EndReturnData->Redirect = base_url('subscribe');
-                } else {
-                    $this->EndReturnData->Redirect = base_url('onboarding');
-                }
+                $this->EndReturnData->Redirect = ($result->IsPaidPlan ?? false)
+                    ? base_url('subscribe')
+                    : base_url('onboarding');
             }
 
         } catch (ValidationException $e) {
@@ -180,7 +182,7 @@ class Signup extends CI_Controller {
             $this->EndReturnData->Message = 'Something went wrong. Please try again.';
         }
 
-        echo json_encode($this->EndReturnData);
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
     /**
@@ -305,7 +307,7 @@ class Signup extends CI_Controller {
                 // Model already called notifyError(); don't re-throw or we'd notify twice.
                 $this->EndReturnData->Error   = true;
                 $this->EndReturnData->Message = 'Registration failed. Please try again or contact support.';
-                echo json_encode($this->EndReturnData);
+                $this->globalservice->sendJsonResponse($this->EndReturnData);
                 return;
             }
 
@@ -315,30 +317,26 @@ class Signup extends CI_Controller {
             if ($userData->Error || empty($userData->Data)) {
                 $this->EndReturnData->Error   = true;
                 $this->EndReturnData->Message = 'Account created but auto-login failed. Please sign in manually.';
-                echo json_encode($this->EndReturnData);
+                $this->globalservice->sendJsonResponse($this->EndReturnData);
                 return;
             }
 
             $this->_createLoginSession($userData->Data[0], 'local', (bool)$result->IsPaidPlan);
 
-            $redirect = $result->IsPaidPlan
-                ? base_url('subscribe')
-                : base_url('dashboard');
-
             $this->EndReturnData->Error    = false;
             $this->EndReturnData->Message  = 'Organisation registered successfully!';
-            $this->EndReturnData->Redirect = $redirect;
-            echo json_encode($this->EndReturnData);
+            $this->EndReturnData->Redirect = $result->IsPaidPlan ? base_url('subscribe') : base_url('dashboard');
+            $this->globalservice->sendJsonResponse($this->EndReturnData);
 
         } catch (ValidationException $e) {
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
-            echo json_encode($this->EndReturnData);
+            $this->globalservice->sendJsonResponse($this->EndReturnData);
         } catch (Exception $e) {
             notifyError('Signup::doSignup', $e);
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = 'Registration failed. Please try again or contact support.';
-            echo json_encode($this->EndReturnData);
+            $this->globalservice->sendJsonResponse($this->EndReturnData);
         }
     }
 

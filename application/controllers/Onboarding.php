@@ -23,7 +23,6 @@ class Onboarding extends MY_Controller {
             return;
         }
 
-        $timezones  = $this->_getTimezones();
         $shortCode  = '';
         $orgUID     = (int)($jwtData->Org->OrgUID ?? 0);
 
@@ -44,9 +43,59 @@ class Onboarding extends MY_Controller {
 
         $this->load->view('onboarding/view', [
             'jwtData'   => $jwtData,
-            'timezones' => $timezones,
             'shortCode' => $shortCode,
         ]);
+    }
+
+    /* ── AJAX: states (called before onboarding is complete, so lives here) ───── */
+
+    public function getStates(): void {
+        $out = new stdClass();
+        try {
+            $readDb = $this->load->database('ReadDB', TRUE);
+            $readDb->db_debug = FALSE;
+            $rows = $readDb->select('name, iso2')
+                ->from('Global.StatesTbl')
+                ->where('country_code', 'IN')
+                ->where('flag', 1)
+                ->order_by('name', 'ASC')
+                ->get();
+            $out->Error = false;
+            $out->Data  = ($rows && $rows->num_rows() > 0) ? $rows->result() : [];
+        } catch (Exception $e) {
+            notifyError('Onboarding::getStates', $e);
+            $out->Error   = true;
+            $out->Message = 'Could not load states.';
+        }
+        $this->output
+            ->set_status_header(200)
+            ->set_content_type('application/json', 'utf-8')
+            ->set_output(json_encode($out))
+            ->_display();
+        exit;
+    }
+
+    /* ── AJAX: timezones (called before onboarding is complete, so lives here) ── */
+
+    public function getTimezones(): void {
+        $out = new stdClass();
+        try {
+            $this->load->model('global_model');
+            $result       = $this->global_model->getTimezoneDetails([]);
+            $out->Error   = $result->Error;
+            $out->Data    = ($result->Error === FALSE) ? $result->Data : [];
+            if ($result->Error) $out->Message = $result->Message ?? '';
+        } catch (Exception $e) {
+            notifyError('Onboarding::getTimezones', $e);
+            $out->Error   = true;
+            $out->Message = 'Could not load timezones.';
+        }
+        $this->output
+            ->set_status_header(200)
+            ->set_content_type('application/json', 'utf-8')
+            ->set_output(json_encode($out))
+            ->_display();
+        exit;
     }
 
     /* ── AJAX: save profile ───────────────────────────────────────────── */
@@ -201,8 +250,16 @@ class Onboarding extends MY_Controller {
                 throw new Exception('DB update failed: ' . ($dbErr['message'] ?? 'Unknown error'));
             }
 
-            /* ── Billing address from GSTIN (non-critical — skip on failure) ── */
-            if ($gstinValidated && !empty($addrLine1)) {
+            /* ── Billing address — from GSTIN or manual entry ───────────── */
+            if (!$gstinValidated) {
+                $addrLine1     = trim($this->input->post('addr_line1')   ?: '');
+                $addrLine2     = trim($this->input->post('addr_line2')   ?: '') ?: null;
+                $addrCity      = trim($this->input->post('addr_city')    ?: '') ?: null;
+                $addrPincode   = trim($this->input->post('addr_pincode') ?: '') ?: null;
+                $addrStateText = $stateName ?: null;
+            }
+
+            if (!empty($addrLine1)) {
                 try {
                     $this->dbwrite_model->insertData('Organisation', 'OrgAddressTbl', [
                         'OrgUID'      => $orgUID,
@@ -212,6 +269,8 @@ class Onboarding extends MY_Controller {
                         'Pincode'     => $addrPincode,
                         'CityText'    => $addrCity,
                         'StateText'   => $addrStateText,
+                        'IsActive'    => 1,
+                        'IsDeleted'   => 0,
                         'CreatedBy'   => $userUID,
                         'UpdatedBy'   => $userUID,
                     ]);
@@ -272,22 +331,4 @@ class Onboarding extends MY_Controller {
         exit;
     }
 
-    /* ── Private helpers ─────────────────────────────────────────────── */
-
-    /**
-     * @return array<object>
-     */
-    private function _getTimezones(): array {
-        try {
-            $readDb = $this->load->database('ReadDB', TRUE);
-            $readDb->db_debug = FALSE;
-            $rows = $readDb->select('TimezoneUID, Timezone, GmtOffset, CountryName')
-                ->from('Global.TimezoneTbl')
-                ->order_by('Timezone', 'ASC')
-                ->get()->result();
-            return $rows ?: [];
-        } catch (Exception $e) {
-            return [];
-        }
-    }
 }

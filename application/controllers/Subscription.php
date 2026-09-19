@@ -457,6 +457,7 @@ class Subscription extends MY_Controller {
             /* Mark order paid */
             $writeDb->where('OrderUID', $orderUID)->update('Billing.SubscriptionOrdersTbl', [
                 'Status'      => 'Paid',
+                'IsPaid'      => 1,
                 'PaidOn'      => date('Y-m-d H:i:s'),
                 'PaymentMode' => $mode,
             ]);

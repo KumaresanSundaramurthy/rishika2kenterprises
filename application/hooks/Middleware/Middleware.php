@@ -36,9 +36,16 @@ class Middleware {
 			redirect('portal', 'refresh');
         }
 
+		/* Billing checkout: allow up to 24 h of JWT clock skew so mid-payment
+		   expiry never interrupts an in-flight payment. */
+		if ($Controller === 'billingcheckout') {
+			\Firebase\JWT\JWT::$leeway = 86400;
+		}
+
 		try {
 
 			$JwtData = JWT::decode($JwtEncoded, new Key(getenv('JWT_KEY'), 'HS256'));
+			\Firebase\JWT\JWT::$leeway = 0;
 			if(!empty($JwtData->key)) {
 
 				$RedisData = $CI->redisservice->getCache($JwtData->key);
@@ -88,7 +95,7 @@ class Middleware {
 							$activeToken = $activeData->Value;
 						}
 
-						if ($activeToken !== $storedToken) {
+						if ($activeToken !== $storedToken && $Controller !== 'billingcheckout') {
 							// This session was invalidated by a newer login elsewhere
 							$CI->redisservice->deleteCache($JwtData->key);
 							delete_cookie(getenv('JWT_COOKIE_NAME'));
@@ -119,7 +126,7 @@ class Middleware {
 						if (!$isExpired && isset($sub->Status)) {
 							$isExpired = ($sub->Status === 'Expired' || $sub->Status === 'Cancelled' || $sub->Status === 'Suspended');
 						}
-						if ($isExpired && $CI->router->fetch_class() !== 'signuppayment') {
+						if ($isExpired && !in_array($CI->router->fetch_class(), ['signuppayment', 'billingcheckout'])) {
 							if ($CI->input->is_ajax_request()) {
 								$CI->output
 									->set_status_header(402)
@@ -139,7 +146,9 @@ class Middleware {
 					// ── PendingPayment gate (paid-plan signup, payment not yet completed) ──
 					if (($sub->Status ?? '') === 'PendingPayment') {
 						$_ppController = $CI->router->fetch_class();
-						if ($_ppController !== 'signuppayment') {
+						/* onboarding is allowed so new Google signup users can complete their
+						   profile before being sent to the subscribe page to pick a plan. */
+						if (!in_array($_ppController, ['signuppayment', 'billingcheckout', 'onboarding'])) {
 							if ($CI->input->is_ajax_request()) {
 								$CI->output
 									->set_status_header(402)
@@ -158,7 +167,10 @@ class Middleware {
 
 					// ── Onboarding check (Google signup only) ──────────────────
 					$isOnboardingDone = (int)($CI->pageData['JwtData']->Org->IsOnboardingComplete ?? 1);
-					if ($isOnboardingDone === 0 && $CI->router->fetch_class() !== 'onboarding') {
+					/* PendingPayment users must reach the subscribe page first; once payment
+					   completes and Status becomes Active, the onboarding gate fires normally. */
+					$_isPendingPayment = (($sub->Status ?? '') === 'PendingPayment');
+					if (!$_isPendingPayment && $isOnboardingDone === 0 && $CI->router->fetch_class() !== 'onboarding') {
 						if ($CI->input->is_ajax_request()) {
 							$CI->output
 								->set_status_header(403)
@@ -175,7 +187,7 @@ class Middleware {
 					$_sysControllers = [
 						'dashboard', 'settings', 'subscription', 'organisation',
 						'globally', 'auth', 'setpassword', 'onboarding',
-						'signuppayment', 'razorpay', 'users', 'roles',
+						'signuppayment', 'billingcheckout', 'razorpay', 'users', 'roles',
 					];
 					if (!in_array($_currentCtrl, $_sysControllers, true)) {
 						$_subMenus  = $CI->redisservice->getUserCache('submenus') ?? [];

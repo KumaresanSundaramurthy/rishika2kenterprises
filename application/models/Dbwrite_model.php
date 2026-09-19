@@ -1154,6 +1154,7 @@ class Dbwrite_model extends CI_Model {
         $this->WriteDB->insert('Security.UserAuditLogTbl', $data);
     }
 
+
     // â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
     // Payment read helpers (use WriteDB to avoid read-replica lag)
 

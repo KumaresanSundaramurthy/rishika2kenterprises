@@ -130,6 +130,24 @@ class Signup_model extends CI_Model {
             if ($orgResult->Error) throw new Exception('Organisation insert failed: ' . $orgResult->Message);
             $orgUID = (int) $orgResult->ID;
 
+            // 3a. OrgAddressTbl — billing address when provided (no GSTIN flow)
+            $addrLine1 = trim($formData['AddrLine1'] ?? '');
+            if (!empty($addrLine1)) {
+                $this->dbwrite_model->insertData('Organisation', 'OrgAddressTbl', [
+                    'OrgUID'      => $orgUID,
+                    'AddressType' => 'Billing',
+                    'Line1'       => $addrLine1,
+                    'Line2'       => trim($formData['AddrLine2'] ?? '') ?: null,
+                    'CityText'    => trim($formData['AddrCity'] ?? '') ?: null,
+                    'StateText'   => trim($formData['StateName'] ?? '') ?: null,
+                    'Pincode'     => trim($formData['AddrPincode'] ?? '') ?: null,
+                    'IsActive'    => 1,
+                    'IsDeleted'   => 0,
+                    'CreatedBy'   => 0,
+                    'UpdatedBy'   => 0,
+                ]);
+            }
+
             /* Branch name = org name; branch code = short code (not shortCode+HO) */
             $adminName    = trim($formData['AdminFirstName']) . ' ' . trim($formData['AdminLastName'] ?? '');
             $branchResult = $this->dbwrite_model->insertData('Organisation', 'BranchesTbl', [
@@ -270,12 +288,24 @@ class Signup_model extends CI_Model {
 
             // 8. OrgSubscriptionTbl — assign based on selected plan
             $sectorPlanUID = (int)($formData['SectorPlanUID'] ?? 0);
-            $isPaidPlan = $this->_assignPlanSubscription($orgUID, $sectorPlanUID, $now);
+            $assignResult  = $this->_assignPlanSubscription($orgUID, $sectorPlanUID, $now);
 
             // 9. Copy menus & permissions from template org
             $this->_seedMenusFromSector($orgUID, $sectorUID, $seedPlanUID, $roleUID, $userUID);
 
             $this->dbwrite_model->commitTransaction();
+
+            // Free plan — record order/payment/invoice + stamp FirstPaidOn immediately after commit
+            if (!$assignResult->isPaid && $assignResult->orderUID > 0) {
+                $this->createPaymentAndInvoice(
+                    $orgUID, $assignResult->orderUID, $assignResult->plan ?? new stdClass(),
+                    'New', '', '', '', 'Free', $now
+                );
+                $this->dbwrite_model->updateData('Billing', 'OrgSubscriptionTbl',
+                    ['OrderUID' => null], ['OrgUID' => $orgUID]);
+                $this->dbwrite_model->updateData('Billing', 'OrgSubscriptionTbl',
+                    ['FirstPaidOn' => $now], ['OrgUID' => $orgUID, 'FirstPaidOn' => null]);
+            }
 
             // Send verification email after commit (non-critical — failure does not roll back)
             $this->sendVerificationEmail(
@@ -287,7 +317,7 @@ class Signup_model extends CI_Model {
             $this->EndReturnData->Error      = false;
             $this->EndReturnData->Message    = 'Success';
             $this->EndReturnData->OrgUID     = $orgUID;
-            $this->EndReturnData->IsPaidPlan = $isPaidPlan;
+            $this->EndReturnData->IsPaidPlan = $assignResult->isPaid;
             return $this->EndReturnData;
 
         } catch (Exception $e) {
@@ -301,37 +331,37 @@ class Signup_model extends CI_Model {
     }
 
     /* Assign subscription based on the plan selected during signup.
-       Returns true if the plan requires payment (PendingPayment), false if free/trial. */
-    private function _assignPlanSubscription(int $orgUID, int $sectorPlanUID, string $now): bool {
+       Returns object {isPaid, orderUID, plan} — isPaid=true means payment required. */
+    private function _assignPlanSubscription(int $orgUID, int $sectorPlanUID, string $now): object {
         $isPaid           = false;
         $planPrice        = 0.0;
         $planDurationDays = 30;
+        $planRow          = null;
 
         if ($sectorPlanUID > 0) {
-            $this->ReadDb->db_debug = FALSE;
-            $planRow = $this->ReadDb
-                ->select('SPT.SectorPlanUID, SPT.Price, SPT.DurationDays, SP.PlanName')
-                ->from('Billing.SectorPlanTbl AS SPT')
-                ->join('Billing.SubscriptionPlansTbl AS SP', 'SP.PlanUID = SPT.PlanUID')
-                ->where('SPT.SectorPlanUID', $sectorPlanUID)
-                ->where('SPT.IsActive', 1)
-                ->limit(1)
-                ->get()->row();
+            $planRow = $this->getSectorPlan($sectorPlanUID);
 
             if ($planRow) {
                 $planPrice        = (float)($planRow->Price ?? 0);
                 $planDurationDays = max(1, (int)($planRow->DurationDays ?? 30));
                 $isPaid           = ($planPrice > 0);
+                $taxableAmount    = (float)($planRow->TaxableAmount ?? $planPrice);
+                $taxAmount        = (float)($planRow->TaxAmount ?? 0.00);
+                $netAmount        = (float)($planRow->TotalAmount ?? $planPrice);
             }
         }
 
         $startDate = gmdate('Y-m-d H:i:s');
-        $endDate   = gmdate('Y-m-d H:i:s', time() + $planDurationDays * 86400);
-        $status    = $isPaid ? 'PendingPayment' : 'Active';
+        $_ts = time() + $planDurationDays * 86400;
+        [$_y, $_m, $_d] = explode('-', gmdate('Y-m-d', $_ts + 19800));
+        $endDate = gmdate('Y-m-d H:i:s', gmmktime(23, 59, 59, (int)$_m, (int)$_d, (int)$_y) - 19800);
+        /* sectorPlanUID=0 means no plan selected yet (e.g. Google OAuth signup) — force
+           PendingPayment so the user is sent to the subscribe page to pick a plan */
+        $status    = ($isPaid || $sectorPlanUID === 0) ? 'PendingPayment' : 'Active';
 
         $rSub = $this->dbwrite_model->insertData('Billing', 'OrgSubscriptionTbl', [
             'OrgUID'          => $orgUID,
-            'SectorPlanUID'   => $sectorPlanUID > 0 ? $sectorPlanUID : null,
+            'SectorPlanUID'   => $sectorPlanUID > 0 ? $sectorPlanUID : 1,
             'FinancialYear'   => billing_fy('long'),
             'StartDate'       => $startDate,
             'EndDate'         => $endDate,
@@ -342,32 +372,38 @@ class Signup_model extends CI_Model {
         if ($rSub->Error) throw new Exception('OrgSubscriptionTbl insert failed: ' . $rSub->Message);
         $orgSubUID = (int) $rSub->ID;
 
+        $orderUID = 0;
         if ($orgSubUID > 0 && $sectorPlanUID > 0) {
             $rOrder = $this->dbwrite_model->insertData('Billing', 'SubscriptionOrdersTbl', [
                 'OrgUID'         => $orgUID,
                 'SectorPlanUID'  => $sectorPlanUID,
                 'OrgSubUID'      => $orgSubUID,
                 'FinancialYear'  => billing_fy('long'),
-                'RenewalType'    => 'Trial',
+                'RenewalType'    => $isPaid ? 'New' : 'Trial',
                 'DueDate'        => $endDate,
-                'Amount'         => $isPaid ? $planPrice : 0.00,
+                'Amount'         => $isPaid ? ($taxableAmount ?? $planPrice) : 0.00,
                 'DiscountAmount' => 0.00,
-                'TaxAmount'      => 0.00,
-                'NetAmount'      => $isPaid ? $planPrice : 0.00,
+                'TaxAmount'      => $isPaid ? ($taxAmount ?? 0.00) : 0.00,
+                'NetAmount'      => $isPaid ? ($netAmount ?? $planPrice) : 0.00,
                 'Status'         => $isPaid ? 'Pending' : 'Waived',
+                'IsPaid'         => $isPaid ? 0 : 1,
                 'CreatedBy'      => null,
             ]);
             if ($rOrder->Error) throw new Exception('SubscriptionOrdersTbl insert failed: ' . $rOrder->Message);
+            $orderUID = (int)$rOrder->ID;
+            $this->dbwrite_model->updateData('Billing', 'OrgSubscriptionTbl', ['OrderUID' => $orderUID], ['OrgSubUID' => $orgSubUID]);
         }
 
-        return $isPaid;
+        return (object)['isPaid' => $isPaid, 'orderUID' => $orderUID, 'plan' => $planRow];
     }
 
     private function _assignTrialSubscription(int $orgUID, string $now): void {
 
         $trialDays = 30;
         $startDate = gmdate('Y-m-d H:i:s');
-        $endDate   = gmdate('Y-m-d H:i:s', time() + $trialDays * 86400);
+        $_ts = time() + $trialDays * 86400;
+        [$_y, $_m, $_d] = explode('-', gmdate('Y-m-d', $_ts + 19800));
+        $endDate = gmdate('Y-m-d H:i:s', gmmktime(23, 59, 59, (int)$_m, (int)$_d, (int)$_y) - 19800);
 
         /* Try to find a SectorPlan for this org's sector — may not exist yet if no plans are configured */
         $this->ReadDb->db_debug = FALSE;
@@ -386,7 +422,9 @@ class Signup_model extends CI_Model {
             $sectorPlanUID = ($sp->SectorPlanUID > 0) ? (int) $sp->SectorPlanUID : null;
             if ($sectorPlanUID && (int) $sp->TrialDays > 0) {
                 $trialDays = (int) $sp->TrialDays;
-                $endDate   = gmdate('Y-m-d H:i:s', time() + $trialDays * 86400);
+                $_ts = time() + $trialDays * 86400;
+                [$_y, $_m, $_d] = explode('-', gmdate('Y-m-d', $_ts + 19800));
+                $endDate = gmdate('Y-m-d H:i:s', gmmktime(23, 59, 59, (int)$_m, (int)$_d, (int)$_y) - 19800);
             }
         }
 
@@ -417,6 +455,7 @@ class Signup_model extends CI_Model {
                 'TaxAmount'      => 0.00,
                 'NetAmount'      => 0.00,
                 'Status'         => 'Waived',
+                'IsPaid'         => 1,
                 'CreatedBy'      => null,
             ]);
             if ($rOrder->Error) throw new Exception('SubscriptionOrdersTbl insert failed: ' . $rOrder->Message);
@@ -475,24 +514,35 @@ class Signup_model extends CI_Model {
             $shortCode   = $this->_generateShortCode($orgName);
             $orgToken    = $this->_generateOrgToken();
             $username    = $this->_generateUniqueUsername($firstName);
-            $countryCode = !empty(trim($formData['CountryCode'] ?? '')) ? trim($formData['CountryCode']) : '+91';
+            $countryCode = '+91';
 
             /* Resolve SectorUID + PlanUID BEFORE the transaction — ReadDb cannot see
                rows inserted on WriteDb that haven't been committed yet. */
-            $sectorPlanUIDMeta = (int)($formData['SectorPlanUID'] ?? 0);
-            $sectorUID         = 0;
-            $seedPlanUID       = 0;
-            if ($sectorPlanUIDMeta > 0) {
+            $sectorUID   = 0;
+            $seedPlanUID = 0;
+            if ($sectorPlanUID > 0) {
                 $this->ReadDb->db_debug = FALSE;
                 $planMeta = $this->ReadDb->select('SectorUID, PlanUID')
                     ->from('Billing.SectorPlanTbl')
-                    ->where('SectorPlanUID', $sectorPlanUIDMeta)
+                    ->where('SectorPlanUID', $sectorPlanUID)
                     ->where('IsActive', 1)
                     ->limit(1)
                     ->get()->row();
                 if ($planMeta) {
                     $sectorUID   = (int)($planMeta->SectorUID ?? 0);
                     $seedPlanUID = (int)($planMeta->PlanUID   ?? 0);
+                }
+            }
+            if ($sectorUID === 0) {
+                $this->ReadDb->db_debug = FALSE;
+                $defaultSectorResult = $this->ReadDb->select('SectorUID')
+                    ->from('Billing.SectorsTbl')
+                    ->where('IsActive', 1)
+                    ->limit(1)
+                    ->get();
+                if ($defaultSectorResult && $defaultSectorResult !== false) {
+                    $defaultSector = $defaultSectorResult->row();
+                    if ($defaultSector) $sectorUID = (int)$defaultSector->SectorUID;
                 }
             }
 
@@ -654,15 +704,27 @@ class Signup_model extends CI_Model {
             ]);
             if ($r->Error) throw new Exception('UserBranchAccess insert failed: ' . $r->Message);
 
-            $isPaidPlan = $this->_assignPlanSubscription($orgUID, $sectorPlanUID, $now);
+            $assignResult = $this->_assignPlanSubscription($orgUID, $sectorPlanUID, $now);
             $this->_seedMenusFromSector($orgUID, $sectorUID, $seedPlanUID, $roleUID, $userUID);
 
             $this->dbwrite_model->commitTransaction();
 
+            // Free plan — record order/payment/invoice + stamp FirstPaidOn immediately after commit
+            if (!$assignResult->isPaid && $assignResult->orderUID > 0) {
+                $this->createPaymentAndInvoice(
+                    $orgUID, $assignResult->orderUID, $assignResult->plan ?? new stdClass(),
+                    'New', '', '', '', 'Free', $now
+                );
+                $this->dbwrite_model->updateData('Billing', 'OrgSubscriptionTbl',
+                    ['OrderUID' => null], ['OrgUID' => $orgUID]);
+                $this->dbwrite_model->updateData('Billing', 'OrgSubscriptionTbl',
+                    ['FirstPaidOn' => $now], ['OrgUID' => $orgUID, 'FirstPaidOn' => null]);
+            }
+
             $this->EndReturnData->Error      = false;
             $this->EndReturnData->Message    = 'Success';
             $this->EndReturnData->OrgUID     = $orgUID;
-            $this->EndReturnData->IsPaidPlan = $isPaidPlan;
+            $this->EndReturnData->IsPaidPlan = $assignResult->isPaid;
             return $this->EndReturnData;
 
         } catch (Exception $e) {
@@ -1090,6 +1152,299 @@ class Signup_model extends CI_Model {
                 'IsDeleted'       => 0,
             ]);
             if ($r->Error) throw new Exception('RoleSubMenu insert failed: ' . $r->Message . ' (SubMenuUID=' . $newSubUID . ')');
+        }
+    }
+
+    /**
+     * Fetch a sector plan row by its UID.
+     * Returns SectorPlanUID, Price, DurationDays, PlanName, BillingCycle or null if not found.
+     * @param int $sectorPlanUID
+     * @returns object|null
+     */
+    public function getSectorPlan(int $sectorPlanUID): ?object {
+        $this->ReadDb->db_debug = FALSE;
+        return $this->ReadDb
+            ->select('SPT.SectorPlanUID, SPT.Price, SPT.TaxableAmount, SPT.TaxAmount, SPT.TotalAmount, SPT.TaxRate, SPT.DurationDays, SP.PlanName, SP.BillingCycle')
+            ->from('Billing.SectorPlanTbl AS SPT')
+            ->join('Billing.SubscriptionPlansTbl AS SP', 'SP.PlanUID = SPT.PlanUID')
+            ->where('SPT.SectorPlanUID', $sectorPlanUID)
+            ->where('SPT.IsActive', 1)
+            ->limit(1)
+            ->get()->row() ?: null;
+    }
+
+    /* Fetch org subscription row with plan details for a given status.
+     * Returns SectorPlanUID, Price, DurationDays, PlanName, BillingCycle or null.
+     * @param int    $orgUID
+     * @param string $status  e.g. 'PendingPayment', 'Expired', 'Active'
+     * @returns object|null
+     */
+    public function getOrgPlanForPayment(int $orgUID, string $status): ?object {
+        $this->ReadDb->db_debug = FALSE;
+        return $this->ReadDb
+            ->select('OS.OrgSubUID, OS.SectorPlanUID, OS.EndDate, SPT.Price, SPT.DurationDays, SP.PlanName, SP.BillingCycle')
+            ->from('Billing.OrgSubscriptionTbl AS OS')
+            ->join('Billing.SectorPlanTbl AS SPT', 'SPT.SectorPlanUID = OS.SectorPlanUID', 'left')
+            ->join('Billing.SubscriptionPlansTbl AS SP', 'SP.PlanUID = SPT.PlanUID', 'left')
+            ->where('OS.OrgUID', $orgUID)
+            ->where('OS.Status', $status)
+            ->order_by('OS.OrgSubUID', 'DESC')
+            ->limit(1)
+            ->get()->row() ?: null;
+    }
+
+    /* Fetch all active plans (used on the public signup page plan selector).
+     * @returns array
+     */
+    public function getActivePlans(): array {
+        $this->ReadDb->db_debug = FALSE;
+        return $this->ReadDb
+            ->select('SPT.SectorPlanUID, SPT.Price, SPT.DurationDays, SPT.MaxUsers, SPT.MaxBranches, SP.PlanName, SP.PlanCode, SP.BillingCycle')
+            ->from('Billing.SectorPlanTbl AS SPT')
+            ->join('Billing.SubscriptionPlansTbl AS SP', 'SP.PlanUID = SPT.PlanUID')
+            ->where('SPT.IsActive', 1)
+            ->order_by('SPT.Price', 'ASC')
+            ->get()->result() ?: [];
+    }
+
+    /* Check whether an email address belongs to an existing org or active user.
+     * Returns object with orgExists (bool) and userRow (?object).
+     * @param string $email
+     * @returns object
+     */
+    public function checkEmailExists(string $email): object {
+        $this->ReadDb->db_debug = FALSE;
+        $out           = new stdClass();
+        $out->orgExists = $this->ReadDb
+            ->where('EmailAddress', $email)
+            ->where('IsDeleted', 0)
+            ->count_all_results('Organisation.OrganisationTbl') > 0;
+        $out->userRow  = $this->ReadDb
+            ->where('EmailAddress', $email)
+            ->where('IsDeleted', 0)
+            ->where('IsActive', 1)
+            ->where('HasLoginAccess', 1)
+            ->limit(1)
+            ->get('Users.UserTbl')->row() ?: null;
+        return $out;
+    }
+
+    /* Fetch all active plans available for an org's sector (used on subscribe page).
+     * @param int $orgUID
+     * @returns array
+     */
+    public function getAvailablePlansForOrg(int $orgUID): array {
+        $this->ReadDb->db_debug = FALSE;
+        return $this->ReadDb
+            ->select('SPT.SectorPlanUID, SPT.Price, SPT.DurationDays, SPT.MaxUsers, SPT.MaxBranches, SPT.TaxableAmount, SPT.TaxAmount, SPT.TotalAmount, SP.PlanName, SP.BillingCycle')
+            ->from('Billing.SectorPlanTbl AS SPT')
+            ->join('Billing.SubscriptionPlansTbl AS SP', 'SP.PlanUID = SPT.PlanUID')
+            ->join('Organisation.OrganisationTbl AS O', 'O.SectorUID = SPT.SectorUID')
+            ->where('O.OrgUID', $orgUID)
+            ->where('SPT.IsActive', 1)
+            ->order_by('SPT.Price', 'ASC')
+            ->get()->result() ?: [];
+    }
+
+    /* Fetch the most recent non-cancelled OrgSubUID for an org.
+     * Returns object with OrgSubUID or null.
+     * @param int $orgUID
+     * @returns object|null
+     */
+    public function getOrgSubUID(int $orgUID): ?object {
+        $this->ReadDb->db_debug = FALSE;
+        return $this->ReadDb
+            ->select('OrgSubUID, OrderUID')
+            ->from('Billing.OrgSubscriptionTbl')
+            ->where('OrgUID', $orgUID)
+            ->where_not_in('Status', ['Cancelled'])
+            ->order_by('OrgSubUID', 'DESC')
+            ->limit(1)
+            ->get()->row() ?: null;
+    }
+
+    /**
+     * Fetch the most recent paid OrderUID for a subscription row.
+     * Used as fallback when OrgSubscriptionTbl.OrderUID is null.
+     * @param int $orgSubUID
+     * @returns int  0 if none found
+     */
+    public function getLatestPaidOrderUID(int $orgSubUID): int {
+        $this->ReadDb->db_debug = FALSE;
+        $row = $this->ReadDb
+            ->select('OrderUID')
+            ->from('Billing.SubscriptionOrdersTbl')
+            ->where('OrgSubUID', $orgSubUID)
+            ->where('Status', 'Paid')
+            ->order_by('OrderUID', 'DESC')
+            ->limit(1)
+            ->get()->row();
+        return $row ? (int)$row->OrderUID : 0;
+    }
+
+    /**
+     * Returns the most recent Pending or Waived OrderUID for an org.
+     * Used in changePlan() when OrgSubscriptionTbl.OrderUID is NULL (migration not yet run).
+     * @param int $orgUID
+     * @returns int  0 if none found
+     */
+    public function getSignupOrderUID(int $orgUID): int {
+        $this->ReadDb->db_debug = FALSE;
+        $row = $this->ReadDb->select('OrderUID')
+            ->from('Billing.SubscriptionOrdersTbl')
+            ->where('OrgUID', $orgUID)
+            ->where_in('Status', ['Pending', 'Waived'])
+            ->order_by('OrderUID', 'DESC')
+            ->limit(1)
+            ->get()->row();
+        return $row ? (int)$row->OrderUID : 0;
+    }
+
+    /**
+     * Returns true if a payment record already exists for the given order.
+     * Used to prevent duplicate payment/invoice rows on repeated free-plan switches.
+     * @param int $orderUID
+     * @returns bool
+     */
+    public function orderHasPayment(int $orderUID): bool {
+        $this->ReadDb->db_debug = FALSE;
+        $row = $this->ReadDb->select('PaymentUID')
+            ->from('Billing.SubscriptionPaymentsTbl')
+            ->where('OrderUID', $orderUID)
+            ->limit(1)
+            ->get()->row();
+        return (bool)$row;
+    }
+
+    /**
+     * Insert SubscriptionPaymentsTbl + SubscriptionInvoicesTbl rows after a
+     * successful Razorpay payment and optionally generate + upload the PDF invoice.
+     * Non-fatal — errors are logged via notifyError() but do not throw.
+     * @param int    $orgUID
+     * @param int    $orderUID
+     * @param object $plan          Row from getSectorPlan()
+     * @param string $renewalType   'New' | 'Renewal' | 'Upgrade'
+     * @param string $rpOrderId
+     * @param string $rpPaymentId
+     * @param string $rpSignature
+     * @param string $paymentMode   Human-readable mode e.g. 'UPI - abc@upi', 'Card - Visa Credit'
+     * @param string $now           gmdate('Y-m-d H:i:s')
+     * @returns void
+     */
+    public function createPaymentAndInvoice(int $orgUID, int $orderUID, object $plan, string $renewalType, string $rpOrderId, string $rpPaymentId, string $rpSignature, string $paymentMode, string $now): void {
+        log_message('error', '[BILLING] createPaymentAndInvoice called — orgUID=' . $orgUID . ' orderUID=' . $orderUID . ' renewalType=' . $renewalType . ' paymentMode=' . $paymentMode);
+        if ($orderUID <= 0) {
+            log_message('error', '[BILLING] createPaymentAndInvoice ABORTED — orderUID is 0');
+            return;
+        }
+
+        try {
+            /* 1. SubscriptionPaymentsTbl */
+            $rPay = $this->dbwrite_model->insertData('Billing', 'SubscriptionPaymentsTbl', [
+                'OrderUID'         => $orderUID,
+                'FinancialYear'    => billing_fy('long'),
+                'PaymentDate'      => $now,
+                'Amount'           => (float)$plan->TotalAmount,
+                'Mode'             => $paymentMode,
+                'PaymentType'      => ($paymentMode === 'Free' ? 'Free' : 'Razorpay'),
+                'PaymentID'        => $rpPaymentId,
+                'GatewayOrderID'   => $rpOrderId,
+                'GatewaySignature' => $rpSignature,
+                'Status'           => 'Success',
+            ]);
+            log_message('error', '[BILLING] SubscriptionPaymentsTbl insert: Error=' . ($rPay->Error ? 'YES' : 'NO') . ' ID=' . ($rPay->ID ?? 'NULL') . ' Msg=' . ($rPay->Message ?? ''));
+
+            /* 2. Org billing address for invoice */
+            $this->ReadDb->db_debug = FALSE;
+            $orgRow = $this->ReadDb
+                ->select('O.Name, O.GSTIN, O.MobileNumber, O.EmailAddress,
+                    A.Line1, A.Line2, A.CityText, A.StateText, A.Pincode')
+                ->from('Organisation.OrganisationTbl AS O')
+                ->join(
+                    'Organisation.OrgAddressTbl AS A',
+                    "A.OrgUID = O.OrgUID AND A.AddressType = 'Billing' AND A.IsDeleted = 0 AND A.IsActive = 1",
+                    'left'
+                )
+                ->where('O.OrgUID', $orgUID)
+                ->limit(1)
+                ->get()->row();
+
+            /* 3. Auto-sequence invoice number e.g. R2K-2627-001 */
+            $prefix  = 'R2K-' . billing_fy('code') . '-';
+            $lastRow = $this->ReadDb->select('MAX(InvoiceNumber) AS LastInv')
+                ->from('Billing.SubscriptionInvoicesTbl')
+                ->like('InvoiceNumber', $prefix, 'after')
+                ->get()->row();
+            $lastSeq = 0;
+            if (!empty($lastRow->LastInv)) {
+                $parts   = explode('-', $lastRow->LastInv);
+                $lastSeq = (int)end($parts);
+            }
+            $invoiceNumber = $prefix . str_pad($lastSeq + 1, 3, '0', STR_PAD_LEFT);
+
+            /* 4. Tax figures with 18% GST-inclusive fallback */
+            $taxRate    = (float)((float)$plan->TaxRate    > 0 ? $plan->TaxRate    : 18.00);
+            $totalAmt   = (float)$plan->TotalAmount;
+            $taxableAmt = (float)((float)$plan->TaxableAmount > 0 ? $plan->TaxableAmount : round($totalAmt * 100 / (100 + $taxRate), 2));
+            $taxAmt     = (float)((float)$plan->TaxAmount   > 0 ? $plan->TaxAmount   : round($totalAmt * $taxRate / (100 + $taxRate), 2));
+
+            /* 5. SubscriptionInvoicesTbl */
+            $rInv = $this->dbwrite_model->insertData('Billing', 'SubscriptionInvoicesTbl', [
+                'OrderUID'      => $orderUID,
+                'InvoiceNumber' => $invoiceNumber,
+                'FinancialYear' => billing_fy('long'),
+                'InvoiceDate'   => gmdate('Y-m-d'),
+                'OrgName'       => $orgRow ? $orgRow->Name                    : '',
+                'GSTIN'         => $orgRow ? ($orgRow->GSTIN        ?: null)  : null,
+                'OrgAddress1'   => $orgRow ? ($orgRow->Line1        ?: null)  : null,
+                'OrgAddress2'   => $orgRow ? ($orgRow->Line2        ?: null)  : null,
+                'OrgCity'       => $orgRow ? ($orgRow->CityText     ?: null)  : null,
+                'OrgState'      => $orgRow ? ($orgRow->StateText    ?: null)  : null,
+                'OrgPincode'    => $orgRow ? ($orgRow->Pincode      ?: null)  : null,
+                'OrgPhone'      => $orgRow ? ($orgRow->MobileNumber ?: null)  : null,
+                'OrgEmail'      => $orgRow ? ($orgRow->EmailAddress ?: null)  : null,
+                'TaxableAmount' => $taxableAmt,
+                'TaxRate'       => $taxRate,
+                'TaxAmount'     => $taxAmt,
+                'TotalAmount'   => $totalAmt,
+                'PDFPath'       => null,
+            ]);
+            log_message('error', '[BILLING] SubscriptionInvoicesTbl insert: Error=' . ($rInv->Error ? 'YES' : 'NO') . ' ID=' . ($rInv->ID ?? 'NULL') . ' InvoiceNumber=' . ($invoiceNumber ?? '') . ' Msg=' . ($rInv->Message ?? ''));
+            if ($rInv->Error) return;
+            $invoiceUID = (int)$rInv->ID;
+
+            /* 6. Generate PDF and upload to R2 — non-fatal */
+            $this->load->library('billinginvoice');
+            $pdfUrl = $this->billinginvoice->generateAndUpload([
+                'invoice_number' => $invoiceNumber,
+                'invoice_date'   => gmdate('Y-m-d'),
+                'financial_year' => billing_fy('long'),
+                'org_name'       => $orgRow ? $orgRow->Name                   : '',
+                'gstin'          => $orgRow ? ($orgRow->GSTIN        ?: '')   : '',
+                'org_address1'   => $orgRow ? ($orgRow->Line1        ?: '')   : '',
+                'org_address2'   => $orgRow ? ($orgRow->Line2        ?: '')   : '',
+                'org_city'       => $orgRow ? ($orgRow->CityText     ?: '')   : '',
+                'org_state'      => $orgRow ? ($orgRow->StateText    ?: '')   : '',
+                'org_pincode'    => $orgRow ? ($orgRow->Pincode      ?: '')   : '',
+                'org_phone'      => $orgRow ? ($orgRow->MobileNumber ?: '')   : '',
+                'org_email'      => $orgRow ? ($orgRow->EmailAddress ?: '')   : '',
+                'plan_name'      => $plan->PlanName,
+                'billing_cycle'  => $plan->BillingCycle ?? '',
+                'renewal_type'   => $renewalType,
+                'taxable_amount' => $taxableAmt,
+                'tax_rate'       => $taxRate,
+                'tax_amount'     => $taxAmt,
+                'total_amount'   => $totalAmt,
+                'order_uid'      => $orderUID,
+                'org_uid'        => $orgUID,
+            ]);
+            if ($pdfUrl) {
+                $this->dbwrite_model->updateData('Billing', 'SubscriptionInvoicesTbl', ['PDFPath' => $pdfUrl], ['InvoiceUID' => $invoiceUID]);
+            }
+
+        } catch (Exception $e) {
+            log_message('error', '[BILLING] createPaymentAndInvoice EXCEPTION: ' . $e->getMessage());
+            notifyError('Signup_model::createPaymentAndInvoice', $e);
         }
     }
 

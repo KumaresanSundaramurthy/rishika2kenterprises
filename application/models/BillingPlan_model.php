@@ -160,7 +160,9 @@ class BillingPlan_model extends CI_Model {
 
             /* 5. Update OrgSubscriptionTbl */
             $now     = gmdate('Y-m-d H:i:s');
-            $endDate = gmdate('Y-m-d', time() + (int)$plan->DurationDays * 86400) . ' 23:59:59';
+            $_ts = time() + (int)$plan->DurationDays * 86400;
+            [$_y, $_m, $_d] = explode('-', gmdate('Y-m-d', $_ts + 19800));
+            $endDate = gmdate('Y-m-d H:i:s', gmmktime(23, 59, 59, (int)$_m, (int)$_d, (int)$_y) - 19800);
             $fyValue = billing_fy('long');  // e.g. "2026-27"
             $this->WriteDb->db_debug = FALSE;
             $this->WriteDb->where('OrgUID', $orgUID)

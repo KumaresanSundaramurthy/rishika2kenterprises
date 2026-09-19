@@ -146,7 +146,7 @@
     transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
     display: grid;
     grid-template-columns: auto 1fr auto;
-    align-items: center;
+    align-items: start;
     gap: 1.1rem;
     position: relative;
     overflow: hidden;
@@ -257,6 +257,22 @@
     color: rgba(160, 190, 215, 0.4);
     margin-top: 0.2rem;
 }
+
+.sub-plan-features {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.8rem;
+    margin-top: 0.55rem;
+}
+.sub-plan-features span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.72rem;
+    color: rgba(160, 190, 215, 0.55);
+    letter-spacing: 0.02em;
+}
+.sub-plan-features span i { font-size: 0.82rem; color: rgba(105, 108, 255, 0.6); }
 
 /* ── Payment panel ────────────────────────────────────────────────── */
 .sub-pay-panel {
@@ -382,47 +398,6 @@
 }
 .sub-alert.show { display: flex; }
 
-/* Success overlay */
-.sub-success {
-    display: none;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding: 1.5rem 0;
-}
-.sub-success.show { display: flex; }
-
-.sub-success-icon {
-    width: 56px; height: 56px;
-    background: rgba(34, 197, 94, 0.12);
-    border: 1px solid rgba(34, 197, 94, 0.3);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.6rem;
-    color: #4ade80;
-    margin-bottom: 1rem;
-}
-.sub-success-title { font-size: 1.15rem; font-weight: 700; color: #f0f4f8; margin-bottom: 0.4rem; }
-.sub-success-msg { font-size: 0.83rem; color: rgba(180, 200, 220, 0.6); line-height: 1.6; margin-bottom: 1.25rem; }
-.sub-continue-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.7rem 1.6rem;
-    background: linear-gradient(135deg, #696cff 0%, #5254cc 100%);
-    border-radius: 10px;
-    color: #fff;
-    font-size: 0.88rem;
-    font-weight: 700;
-    text-decoration: none;
-    cursor: pointer;
-    border: none;
-    font-family: inherit;
-    transition: all 0.2s;
-}
-
 /* Spinner */
 .sub-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.25); border-top-color: #fff; border-radius: 50%; animation: sub-spin 0.6s linear infinite; }
 @keyframes sub-spin { to { transform: rotate(360deg); } }
@@ -493,15 +468,21 @@ $_popularIdx = $_planCount > 2 ? (int)floor(($_planCount - 1) / 2) : -1;
                     $_isFree     = ((float)$_plan->Price <= 0);
                     $_isPopular  = ($_i === $_popularIdx);
                 ?>
+                <?php
+                    $_maxUsers    = (int)($_plan->MaxUsers    ?? 0);
+                    $_maxBranches = (int)($_plan->MaxBranches ?? 0);
+                    $_days        = (int)$_plan->DurationDays;
+                    $_dLabel      = $_days >= 365 ? round($_days / 365) . ' yr' : $_days . ' days';
+                ?>
                 <div class="sub-plan-card<?php echo $_isSelected ? ' selected' : ''; ?>"
                      onclick="subSelectPlan(<?php echo (int)$_plan->SectorPlanUID; ?>, this)"
                      data-uid="<?php echo (int)$_plan->SectorPlanUID; ?>"
                      data-name="<?php echo htmlspecialchars($_plan->PlanName); ?>"
                      data-price="<?php echo (float)$_plan->Price; ?>"
                      data-cycle="<?php echo htmlspecialchars($_plan->BillingCycle ?? ''); ?>"
-                     data-days="<?php echo (int)$_plan->DurationDays; ?>"
+                     data-days="<?php echo $_days; ?>"
                      data-free="<?php echo $_isFree ? '1' : '0'; ?>">
-                    <div class="sub-plan-radio"></div>
+                    <div class="sub-plan-radio" style="margin-top:3px;"></div>
                     <div class="sub-plan-info">
                         <div class="sub-plan-name">
                             <?php echo htmlspecialchars($_plan->PlanName); ?>
@@ -513,7 +494,17 @@ $_popularIdx = $_planCount > 2 ? (int)floor(($_planCount - 1) / 2) : -1;
                         </div>
                         <div class="sub-plan-cycle">
                             <?php echo htmlspecialchars($_plan->BillingCycle ?? ''); ?>
-                            &middot; <?php echo (int)$_plan->DurationDays; ?> days
+                        </div>
+                        <div class="sub-plan-features">
+                            <?php if ($_maxUsers > 0): ?>
+                            <span><i class="bx bx-user"></i> Up to <?php echo $_maxUsers; ?> <?php echo $_maxUsers === 1 ? 'user' : 'users'; ?></span>
+                            <?php endif; ?>
+                            <?php if ($_maxBranches > 0): ?>
+                            <span><i class="bx bx-building"></i> Up to <?php echo $_maxBranches; ?> <?php echo $_maxBranches === 1 ? 'branch' : 'branches'; ?></span>
+                            <?php endif; ?>
+                            <?php if ($_days > 0): ?>
+                            <span><i class="bx bx-time"></i> <?php echo $_dLabel; ?></span>
+                            <?php endif; ?>
                         </div>
                     </div>
                     <div class="sub-plan-price-col">
@@ -569,18 +560,14 @@ $_popularIdx = $_planCount > 2 ? (int)floor(($_planCount - 1) / 2) : -1;
                         Secure &amp; encrypted payment via Razorpay
                     </div>
 
-                    <?php
-                    $_payLabels = ['signup' => 'Pay & Activate', 'renewal' => 'Pay & Renew', 'upgrade' => 'Pay & Upgrade'];
-                    $_payLabel  = $_payLabels[$_f] ?? 'Pay Now';
-                    $_isFreeDefault = ((float)($sub->Price ?? 0) <= 0);
-                    ?>
+                    <?php $_isFreeDefault = ((float)($sub->Price ?? 0) <= 0); ?>
                     <button type="button" class="sub-pay-btn<?php echo $_isFreeDefault ? ' free-btn' : ''; ?>"
                             id="subPayBtn"
-                            onclick="subInitiatePayment()">
-                        <i class="bx bx-credit-card" id="subPayIcon"></i>
+                            onclick="<?php echo $_isFreeDefault ? 'subActivateFree()' : 'subGoToPayment()'; ?>">
+                        <i class="bx <?php echo $_isFreeDefault ? 'bx-gift' : 'bx-right-arrow-alt'; ?>" id="subPayIcon"></i>
                         <span id="subPayLabel">
                             <?php if (!$_isFreeDefault): ?>
-                            <?php echo $_payLabel; ?> &#8377;<?php echo number_format((float)$sub->Price, 0); ?>
+                            Proceed to Pay &#8377;<?php echo number_format((float)$sub->Price, 0); ?>
                             <?php else: ?>
                             Activate Free Plan
                             <?php endif; ?>
@@ -592,16 +579,6 @@ $_popularIdx = $_planCount > 2 ? (int)floor(($_planCount - 1) / 2) : -1;
                        onmouseover="this.style.color='rgba(160,190,215,.7)'" onmouseout="this.style.color='rgba(160,190,215,.35)'">
                         Return later &amp; pay when ready
                     </a>
-                </div>
-
-                <!-- Success screen -->
-                <div class="sub-success" id="subSuccess">
-                    <div class="sub-success-icon"><i class="bx bx-check"></i></div>
-                    <div class="sub-success-title">You're all set!</div>
-                    <p class="sub-success-msg">Your subscription is now active. Welcome aboard.</p>
-                    <button type="button" class="sub-continue-btn" onclick="subContinue()">
-                        Continue <i class="bx bx-right-arrow-alt"></i>
-                    </button>
                 </div>
 
             </div><!-- /pay panel -->
@@ -618,7 +595,6 @@ $_popularIdx = $_planCount > 2 ? (int)floor(($_planCount - 1) / 2) : -1;
     var _flow          = <?php echo json_encode($flow ?? 'signup'); ?>;
     var _payLabels     = { signup: 'Pay & Activate', renewal: 'Pay & Renew', upgrade: 'Pay & Upgrade' };
     var _redirectUrl   = null;
-    var _ajaxPending   = false;
 
     /* ── Alert helpers ──────────────────────────────────────────── */
     /** @param {string} msg @returns {void} */
@@ -695,50 +671,24 @@ $_popularIdx = $_planCount > 2 ? (int)floor(($_planCount - 1) / 2) : -1;
                 if (payIcon) payIcon.className = 'bx bx-gift';
             } else {
                 payBtn.classList.remove('free-btn');
-                payBtn.onclick = window.subInitiatePayment;
-                if (payIcon) payIcon.className = 'bx bx-credit-card';
+                payBtn.onclick = window.subGoToPayment;
+                if (payIcon) payIcon.className = 'bx bx-right-arrow-alt';
             }
         }
 
-        /* ── Background save: persist plan change to DB + Redis ── */
-        if (_ajaxPending) return; /* avoid overlapping saves; UI already updated */
-        _ajaxPending = true;
-        fetch('/subscribe/changePlan', {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body:    'sector_plan_uid=' + encodeURIComponent(planUID),
-        })
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
-            _ajaxPending = false;
-            if (data.Error) {
-                subShowAlert(data.Message || 'Could not save plan selection. Please try again.');
-                return;
-            }
-            /* Free plan → redirect immediately */
-            if (data.IsFree && data.Redirect) {
-                showUIBlock('Activating your plan…');
-                window.location.href = data.Redirect;
-            }
-        })
-        .catch(function () {
-            _ajaxPending = false;
-            subShowAlert('A network error occurred. Please try again.');
-        });
     };
 
+    /**
+     * Activate the currently selected free plan.
+     * Calls changePlan() so the DB, Redis JWT, order, invoice and payment are all
+     * written before the redirect — skipping that step is what caused the Middleware
+     * PendingPayment gate to bounce the user back here.
+     * @returns {void}
+     */
     window.subActivateFree = function () {
-        showUIBlock('Activating your plan…');
-        window.location.href = '/dashboard';
-    };
-
-    /* ── Razorpay payment ───────────────────────────────────────── */
-    /** @returns {void} */
-    window.subInitiatePayment = function () {
         subHideAlert();
-        subSetLoading(true);
-
-        fetch('/subscribe/createOrder', {
+        showUIBlock('Activating your plan…');
+        fetch('/subscribe/changePlan', {
             method:  'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body:    'sector_plan_uid=' + encodeURIComponent(_sectorPlanUID),
@@ -746,86 +696,50 @@ $_popularIdx = $_planCount > 2 ? (int)floor(($_planCount - 1) / 2) : -1;
         .then(function (r) { return r.json(); })
         .then(function (data) {
             if (data.Error) {
-                subSetLoading(false);
-                subShowAlert(data.Message || 'Unable to initiate payment. Please try again.');
+                hideUIBlock();
+                subShowAlert(data.Message || 'Could not activate plan. Please try again.');
                 return;
             }
-
-            var options = {
-                key:         data.key_id,
-                amount:      data.amount,
-                currency:    data.currency || 'INR',
-                name:        data.name,
-                description: data.description,
-                order_id:    data.order_id,
-                prefill:     data.prefill || {},
-                theme:       { color: '#696cff' },
-                modal: {
-                    ondismiss: function () {
-                        subSetLoading(false);
-                        subShowAlert('Payment was cancelled. Click the button above to try again.');
-                    }
-                },
-                handler: function (response) {
-                    _subVerifyPayment(response, data.order_id);
-                }
-            };
-
-            var rzp = new Razorpay(options);
-            rzp.on('payment.failed', function (resp) {
-                subSetLoading(false);
-                subShowAlert(resp.error.description || 'Payment failed. Please try again.');
-            });
-            rzp.open();
+            showUIBlock('Plan activated! Taking you to your dashboard…');
+            setTimeout(function () {
+                window.location.href = data.Redirect || '/dashboard';
+            }, 500);
         })
         .catch(function () {
-            subSetLoading(false);
-            subShowAlert('A network error occurred. Please check your connection and try again.');
+            hideUIBlock();
+            subShowAlert('A network error occurred. Please try again.');
         });
     };
 
-    /**
-     * @param {object} response
-     * @param {string} orderId
-     * @returns {void}
-     */
-    function _subVerifyPayment(response, orderId) {
-        var body = new URLSearchParams({
-            sector_plan_uid:     _sectorPlanUID,
-            razorpay_order_id:   orderId,
-            razorpay_payment_id: response.razorpay_payment_id,
-            razorpay_signature:  response.razorpay_signature,
-        });
+    /* ── Go to payment confirmation page ───────────────────────── */
+    /** @returns {void} */
+    window.subGoToPayment = function () {
+        subHideAlert();
+        showUIBlock('Loading payment summary…');
+        _subPreparePayment();
+    };
 
-        fetch('/subscribe/confirmPayment', {
+    /** @returns {void} */
+    function _subPreparePayment() {
+        fetch('/subscribe/preparePayment', {
             method:  'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body:    body.toString(),
+            body:    'sector_plan_uid=' + encodeURIComponent(_sectorPlanUID),
         })
         .then(function (r) { return r.json(); })
         .then(function (data) {
-            subSetLoading(false);
             if (data.Error) {
-                subShowAlert(data.Message || 'Payment verification failed. Please contact support.');
+                hideUIBlock();
+                subShowAlert(data.Message || 'Could not prepare payment. Please try again.');
                 return;
             }
-            _redirectUrl = data.Redirect || '/dashboard';
-            document.getElementById('subPayMain').style.display = 'none';
-            document.getElementById('subSuccess').classList.add('show');
+            window.location.href = data.Redirect;
         })
         .catch(function () {
-            subSetLoading(false);
-            subShowAlert('Verification failed. Contact support with payment ID: ' + (response.razorpay_payment_id || ''));
+            hideUIBlock();
+            subShowAlert('A network error occurred. Please try again.');
         });
     }
-
-    /** @returns {void} */
-    window.subContinue = function () {
-        showUIBlock('Taking you to your workspace…');
-        window.location.href = _redirectUrl || '/dashboard';
-    };
 }());
 </script>
 
-<!-- Razorpay SDK -->
-<script src="https://checkout.razorpay.com/v1/checkout.js"></script>

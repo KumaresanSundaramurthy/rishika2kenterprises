@@ -362,7 +362,9 @@ class Razorpay extends CI_Controller {
         $writeDb->db_debug = FALSE;
 
         $now       = gmdate('Y-m-d H:i:s');
-        $endDate   = gmdate('Y-m-d H:i:s', time() + max(1, (int)$plan->DurationDays) * 86400);
+        $_ts = time() + max(1, (int)$plan->DurationDays) * 86400;
+        [$_y, $_m, $_d] = explode('-', gmdate('Y-m-d', $_ts + 19800));
+        $endDate = gmdate('Y-m-d H:i:s', gmmktime(23, 59, 59, (int)$_m, (int)$_d, (int)$_y) - 19800);
         $orgSubUID = (int)$subRow->OrgSubUID;
 
         if ($flow === 'signup') {
@@ -374,6 +376,7 @@ class Razorpay extends CI_Controller {
                     ->where('Status', 'Pending')
                     ->update('Billing.SubscriptionOrdersTbl', [
                         'Status'            => 'Paid',
+                        'IsPaid'            => 1,
                         'PaidOn'            => $now,
                         'PaymentMode'       => 'Razorpay',
                         'RazorpayOrderId'   => $orderId,
@@ -402,6 +405,7 @@ class Razorpay extends CI_Controller {
                 'NetAmount'         => (float)$plan->Price,
                 'FinancialYear'     => billing_fy('long'),
                 'Status'            => 'Paid',
+                'IsPaid'            => 1,
                 'PaidOn'            => $now,
                 'PaymentMode'       => 'Razorpay',
                 'RazorpayOrderId'   => $orderId,
@@ -423,6 +427,7 @@ class Razorpay extends CI_Controller {
                 'NetAmount'         => (float)$plan->Price,
                 'FinancialYear'     => billing_fy('long'),
                 'Status'            => 'Paid',
+                'IsPaid'            => 1,
                 'PaidOn'            => $now,
                 'PaymentMode'       => 'Razorpay',
                 'RazorpayOrderId'   => $orderId,

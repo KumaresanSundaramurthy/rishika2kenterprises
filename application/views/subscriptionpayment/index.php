@@ -62,7 +62,7 @@
     align-self: flex-start;
     max-width: 480px;
     width: 100%;
-    margin-bottom: 1.75rem;
+    margin: 0 auto 1.75rem;
 }
 .spay-back a {
     display: inline-flex; align-items: center; gap: 0.4rem;
@@ -83,24 +83,25 @@
     box-shadow: 0 24px 72px rgba(0, 0, 0, 0.55);
 }
 
-.spay-card-eyebrow {
+.spay-eyebrow {
+    display: inline-flex; align-items: center; gap: 0.4rem;
     font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em;
     text-transform: uppercase; color: rgba(140, 143, 255, 0.9);
-    margin-bottom: 0.6rem;
+    margin-bottom: 0.65rem;
 }
+.spay-eyebrow i { font-size: 0.8rem; }
 
 .spay-card-title {
-    font-size: 1.45rem; font-weight: 800; color: #f0f4f8;
+    font-size: 1.5rem; font-weight: 800; color: #f0f4f8;
     letter-spacing: -0.01em; margin-bottom: 0.3rem;
 }
-
 .spay-plan-meta {
     font-size: 0.8rem; color: rgba(160, 190, 215, 0.45);
     text-transform: uppercase; letter-spacing: 0.07em;
     margin-bottom: 2rem;
 }
 
-/* ── Summary rows ──────────────────────────────────────────────────── */
+/* ── Summary breakdown ─────────────────────────────────────────────── */
 .spay-summary {
     background: rgba(105, 108, 255, 0.05);
     border: 1px solid rgba(105, 108, 255, 0.14);
@@ -108,7 +109,6 @@
     padding: 1.15rem 1.2rem;
     margin-bottom: 1.5rem;
 }
-
 .spay-row {
     display: flex;
     justify-content: space-between;
@@ -117,13 +117,9 @@
 }
 .spay-row-label { font-size: 0.85rem; color: rgba(160, 190, 215, 0.55); }
 .spay-row-value { font-size: 0.85rem; color: rgba(200, 220, 240, 0.85); font-variant-numeric: tabular-nums; }
-
 .spay-divider { border: none; border-top: 1px solid rgba(105, 108, 255, 0.12); margin: 0.6rem 0; }
-
 .spay-total-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
+    display: flex; justify-content: space-between; align-items: baseline;
     padding-top: 0.2rem;
 }
 .spay-total-label { font-size: 0.9rem; font-weight: 700; color: rgba(200, 220, 240, 0.85); }
@@ -170,10 +166,8 @@
 .spay-alert {
     background: rgba(239, 68, 68, 0.1);
     border: 1px solid rgba(239, 68, 68, 0.3);
-    border-radius: 8px;
-    color: rgba(252, 165, 165, 0.9);
-    font-size: 0.82rem;
-    padding: 0.7rem 0.9rem;
+    border-radius: 8px; color: rgba(252, 165, 165, 0.9);
+    font-size: 0.82rem; padding: 0.7rem 0.9rem;
     margin-bottom: 1rem;
     display: none; align-items: flex-start; gap: 0.5rem; line-height: 1.45;
 }
@@ -223,14 +217,15 @@
 
 <?php
 $_flowLabel = ['signup' => 'Account Activation', 'renewal' => 'Subscription Renewal', 'upgrade' => 'Plan Upgrade'];
-$_f = $flow ?? 'signup';
-$_total    = (float)($totalPrice ?? 0);
-$_taxable  = (float)($taxableAmount ?? 0);
-$_tax      = (float)($taxAmount ?? 0);
-$_planName = htmlspecialchars($sub->PlanName ?? '');
-$_cycle    = htmlspecialchars($sub->BillingCycle ?? '');
-$_days     = (int)($sub->DurationDays ?? 0);
-$_sectorPlanUID = (int)($sub->SectorPlanUID ?? 0);
+$_f         = $flow ?? 'signup';
+$_total     = (float)($totalPrice ?? 0);
+$_taxable   = (float)($taxableAmount ?? 0);
+$_tax       = (float)($taxAmount ?? 0);
+$_planName  = htmlspecialchars($plan->PlanName ?? '');
+$_cycle     = htmlspecialchars($plan->BillingCycle ?? '');
+$_days      = (int)($plan->DurationDays ?? 0);
+$_planUID   = (int)($plan->SectorPlanUID ?? 0);
+$_token     = htmlspecialchars($token ?? '');
 ?>
 
 <div class="spay-root">
@@ -261,10 +256,16 @@ $_sectorPlanUID = (int)($sub->SectorPlanUID ?? 0);
 
             <!-- Main content -->
             <div id="spayMain">
-                <div class="spay-card-eyebrow"><?php echo $_flowLabel[$_f] ?? 'Payment'; ?></div>
+                <div class="spay-eyebrow">
+                    <i class="bx bx-receipt"></i>
+                    <?php echo $_flowLabel[$_f] ?? 'Payment'; ?>
+                </div>
                 <div class="spay-card-title"><?php echo $_planName; ?></div>
-                <div class="spay-plan-meta"><?php echo $_cycle; ?> &middot; <?php echo $_days; ?> days</div>
+                <div class="spay-plan-meta">
+                    <?php echo $_cycle; ?> &middot; <?php echo $_days; ?> days
+                </div>
 
+                <!-- Order summary breakdown -->
                 <div class="spay-summary">
                     <div class="spay-row">
                         <span class="spay-row-label">Subscription fee</span>
@@ -297,8 +298,10 @@ $_sectorPlanUID = (int)($sub->SectorPlanUID ?? 0);
                     <span id="spayPaySpinner" style="display:none;"><span class="spay-spinner"></span></span>
                 </button>
 
-                <a href="/subscribe" style="display:block;text-align:center;font-size:0.78rem;color:rgba(160,190,215,.35);text-decoration:none;transition:color .2s;"
-                   onmouseover="this.style.color='rgba(160,190,215,.7)'" onmouseout="this.style.color='rgba(160,190,215,.35)'">
+                <a href="/subscribe"
+                   style="display:block;text-align:center;font-size:0.78rem;color:rgba(160,190,215,.35);text-decoration:none;transition:color .2s;"
+                   onmouseover="this.style.color='rgba(160,190,215,.7)'"
+                   onmouseout="this.style.color='rgba(160,190,215,.35)'">
                     Return later &amp; pay when ready
                 </a>
             </div>
@@ -319,10 +322,9 @@ $_sectorPlanUID = (int)($sub->SectorPlanUID ?? 0);
 
 <script>
 (function () {
-    var _sectorPlanUID = <?php echo $_sectorPlanUID; ?>;
+    var _sectorPlanUID = <?php echo (int)$_planUID; ?>;
     var _redirectUrl   = null;
 
-    /* ── Alert helpers ──────────────────────────────────────────── */
     /** @param {string} msg @returns {void} */
     function spayShowAlert(msg) {
         document.getElementById('spayAlertText').textContent = msg;
@@ -344,7 +346,6 @@ $_sectorPlanUID = (int)($sub->SectorPlanUID ?? 0);
         spinner.style.display = loading ? '' : 'none';
     }
 
-    /* ── Confirm & Pay ──────────────────────────────────────────── */
     /** @returns {void} */
     window.spayConfirmAndPay = function () {
         spayHideAlert();

@@ -85,6 +85,17 @@ class Razorpayapi {
     }
 
     /**
+     * Fetch a payment by ID. Returns the full payment object from Razorpay.
+     * Contains method (upi/card/netbanking/wallet/emi), card details, vpa, bank, etc.
+     *
+     * @param string $paymentId  rzp_xxx payment ID
+     * @returns array
+     */
+    public function fetchPayment(string $paymentId): array {
+        return $this->_get('/payments/' . urlencode($paymentId));
+    }
+
+    /**
      * @param string $path
      * @param array  $payload
      * @returns array
@@ -104,6 +115,36 @@ class Razorpayapi {
         $raw  = curl_exec($ch);
         $err  = curl_error($ch);
         $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($err) throw new Exception('Razorpay network error: ' . $err);
+
+        $data = @json_decode($raw, true);
+        if (!is_array($data)) throw new Exception('Razorpay returned an invalid response.');
+
+        if (!empty($data['error'])) {
+            $msg = $data['error']['description'] ?? ($data['error']['code'] ?? 'Razorpay error');
+            throw new Exception($msg);
+        }
+
+        return $data;
+    }
+
+    /**
+     * @param string $path
+     * @returns array
+     */
+    private function _get(string $path): array {
+        $url = $this->_baseUrl . $path;
+        $ch  = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 15,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_USERPWD        => $this->_keyId . ':' . $this->_keySecret,
+        ]);
+        $raw  = curl_exec($ch);
+        $err  = curl_error($ch);
         curl_close($ch);
 
         if ($err) throw new Exception('Razorpay network error: ' . $err);

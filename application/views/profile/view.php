@@ -42,8 +42,7 @@ $addrs    = (array)($u->Addresses ?? ['Current' => null, 'Permanent' => null]);
 $currAddr = $addrs['Current']   ?? null;
 $permAddr = $addrs['Permanent'] ?? null;
 
-$cdnBase   = getenv('FILE_UPLOAD') === 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN');
-$avatarSrc = !empty($uInfo->UserImage) ? ($cdnBase . $uInfo->UserImage) : '';
+$avatarSrc = avatarUrl($uInfo->UserImage ?? '');
 $initials  = strtoupper(mb_substr($firstName, 0, 1)) . strtoupper(mb_substr($lastName, 0, 1));
 if (!$initials) $initials = 'U';
 

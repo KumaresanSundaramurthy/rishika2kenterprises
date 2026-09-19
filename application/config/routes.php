@@ -107,16 +107,20 @@ $route['signup/checkUsername']    = 'signup/checkUsername';
 $route['signup/checkMobile']      = 'signup/checkMobile';
 $route['signup/checkGSTIN']       = 'signup/checkGSTIN';
 
-// Signup payment gate (JWT required — authenticated controller)
-$route['subscribe']               = 'signuppayment/index';
-$route['subscribe/changePlan']    = 'signuppayment/changePlan';
-$route['subscribe/createOrder']   = 'signuppayment/createOrder';
-$route['subscribe/confirmPayment'] = 'signuppayment/confirmPayment';
+// Signup — plan selection (JWT required)
+$route['subscribe']                = 'signuppayment/index';
+$route['subscribe/preparePayment'] = 'signuppayment/preparePayment';
+$route['subscribe/changePlan']     = 'signuppayment/changePlan';
+
+// Billing checkout — payment confirmation page + AJAX (JWT required)
+$route['billing/checkout']                  = 'billingcheckout/index';
+$route['billing/checkout/createOrder']      = 'billingcheckout/createOrder';
+$route['billing/checkout/confirmPayment']   = 'billingcheckout/confirmPayment';
+$route['billing/checkout/abandon']          = 'billingcheckout/abandon';
+
 /* Legacy redirect — keeps old bookmarks working */
-$route['signup/payment']          = 'signuppayment/index';
-$route['signup/changePlan']       = 'signuppayment/changePlan';
-$route['signup/createOrder']      = 'signuppayment/createOrder';
-$route['signup/confirmPayment']   = 'signuppayment/confirmPayment';
+$route['signup/payment']    = 'signuppayment/index';
+$route['signup/changePlan'] = 'signuppayment/changePlan';
 
 // Email verification (public — no JWT required)
 $route['verify-email/(:any)']     = 'login/verifyEmail/$1';

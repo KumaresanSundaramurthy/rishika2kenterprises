@@ -58,7 +58,7 @@ class Subscription {
 
                     $result->daysRemaining = $daysRemaining;
 
-                    if ($daysRemaining > 0) {
+                    if ($now < $endDate) {
                         $result->isValid = true;
                         $result->message = "Subscription active. {$daysRemaining} days remaining.";
                     } else {
@@ -347,6 +347,7 @@ class Subscription {
                 'TaxAmount'     => 0.00,
                 'NetAmount'     => $paidAmount,
                 'Status'        => 'Paid',
+                'IsPaid'        => 1,
                 'PaymentMode'   => $paymentData['mode']          ?? null,
                 'PaidOn'        => $now->format('Y-m-d H:i:s'),
                 'Notes'         => $paymentData['notes']         ?? null,

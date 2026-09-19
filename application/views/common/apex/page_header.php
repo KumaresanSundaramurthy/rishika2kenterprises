@@ -173,7 +173,7 @@ foreach ($_qaMenus as $_qaMM) {
         <div class="apex-user-wrap" id="apexUserWrap">
             <button class="apex-user-btn" id="apexUserBtn" type="button">
                 <?php if (!empty($JwtData->User->UserImage)): ?>
-                    <img src="<?php echo getenv('CFLARE_R2_CDN') . $JwtData->User->UserImage; ?>"
+                    <img src="<?php echo htmlspecialchars(avatarUrl($JwtData->User->UserImage), ENT_QUOTES); ?>"
                          alt="<?php echo htmlspecialchars($JwtData->User->FirstName); ?>"
                          class="apex-user-avatar">
                 <?php else: ?>

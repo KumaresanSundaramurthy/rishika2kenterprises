@@ -5,6 +5,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Complete Your Setup</title>
+<?php
+$_obTk      = strtolower($jwtData->Org->OrgToken ?? '');
+$_obEnv     = defined('ENVIRONMENT') ? ENVIRONMENT : 'production';
+$_obPrefix  = $_obTk ? $_obTk . '-' . ($_obEnv === 'production' ? 'P' : 'S') : '';
+?>
+    <meta name="upstash-url"    content="<?= htmlspecialchars(getenv('UPSTASH_REDIS_REST_URL')   ?: '') ?>">
+    <meta name="upstash-token"  content="<?= htmlspecialchars(getenv('UPSTASH_REDIS_REST_TOKEN') ?: '') ?>">
+    <meta name="app-org-prefix" content="<?= htmlspecialchars($_obPrefix) ?>">
+<?php unset($_obTk, $_obEnv, $_obPrefix); ?>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap">
     <link rel="stylesheet" href="/assets/vendor/fonts/boxicons.css">
     <link rel="stylesheet" href="/assets/css/onboarding.css">
@@ -16,8 +25,7 @@ $org        = $jwtData->Org  ?? null;
 $firstName  = $user ? ($user->FirstName ?? 'there') : 'there';
 $picture    = $user ? ($user->UserImage ?? '') : '';
 $initial    = strtoupper(substr($firstName, 0, 1));
-$cdnBase    = getenv('CDN_BASE_URL') ?: '';
-$avatarSrc  = ($picture && $cdnBase) ? rtrim($cdnBase, '/') . '/' . ltrim($picture, '/') : $picture;
+$avatarSrc  = avatarUrl($picture);
 $shortCode  = htmlspecialchars($shortCode ?? '', ENT_QUOTES);
 ?>
 
@@ -66,13 +74,17 @@ $shortCode  = htmlspecialchars($shortCode ?? '', ENT_QUOTES);
                 <div class="ob-step-icon"><i class="bx bx-check"></i></div>
                 <div class="ob-step-label">Account Created</div>
             </div>
-            <div class="ob-step active">
+            <div class="ob-step active" id="obStepOrg">
                 <div class="ob-step-icon">3</div>
                 <div class="ob-step-label">Organisation Info</div>
             </div>
-            <div class="ob-step pending">
+            <div class="ob-step pending" id="obStepAddr" style="display:none;">
                 <div class="ob-step-icon">4</div>
-                <div class="ob-step-label">Dashboard</div>
+                <div class="ob-step-label">Address</div>
+            </div>
+            <div class="ob-step pending" id="obStepPlan">
+                <div class="ob-step-icon" id="obStepPlanNum">4</div>
+                <div class="ob-step-label">Select Plan</div>
             </div>
         </div>
 
@@ -118,14 +130,20 @@ $shortCode  = htmlspecialchars($shortCode ?? '', ENT_QUOTES);
 
                 <div class="ob-field">
                     <label class="ob-label" for="obMobile">Mobile Number</label>
-                    <input type="tel" id="obMobile" class="ob-input" placeholder="10-digit number"
-                           maxlength="10" pattern="[0-9]{10}" autocomplete="off">
+                    <div class="ob-phone-wrap">
+                        <span class="ob-phone-prefix">+91</span>
+                        <input type="tel" id="obMobile" class="ob-phone-input" placeholder="10-digit number"
+                               maxlength="10" pattern="[0-9]{10}" autocomplete="off">
+                    </div>
                     <div class="ob-field-err" id="obMobileErr">
                         <i class="bx bx-error-circle"></i><span></span>
                     </div>
+                    <div class="ob-field-ok" id="obMobileOk" style="display:none;">
+                        <i class="bx bx-check-circle"></i> Mobile is available
+                    </div>
                 </div>
 
-                <div class="ob-field">
+                <div class="ob-field full">
                     <label class="ob-label" for="obState">State</label>
                     <select id="obState" class="ob-input">
                         <option value="">Select state...</option>
@@ -135,7 +153,7 @@ $shortCode  = htmlspecialchars($shortCode ?? '', ENT_QUOTES);
                     </div>
                 </div>
 
-                <div class="ob-field">
+                <div class="ob-field full">
                     <label class="ob-label" for="obTimezone">Timezone</label>
                     <select id="obTimezone" class="ob-input">
                         <option value="">Select timezone...</option>
@@ -154,15 +172,73 @@ $shortCode  = htmlspecialchars($shortCode ?? '', ENT_QUOTES);
                     <div class="ob-field-err" id="obGSTINErr">
                         <i class="bx bx-error-circle"></i><span></span>
                     </div>
+                    <div class="ob-field-ok" id="obGSTINOk" style="display:none;">
+                        <i class="bx bx-check-circle"></i> GSTIN is valid
+                    </div>
                 </div>
 
             </div>
 
             <div class="ob-submit-wrap">
-                <button type="button" class="ob-btn" id="obSubmitBtn" onclick="obSubmit()">
-                    <i class="bx bx-rocket" id="obBtnIcon"></i>
-                    <span id="obBtnLabel">Complete Setup &amp; Enter Dashboard</span>
+                <button type="button" class="ob-btn" id="obNextBtn" onclick="obNextStep()" disabled>
+                    <i class="bx bx-right-arrow-alt" id="obBtnIcon"></i>
+                    <span id="obBtnLabel">Next</span>
                     <i class="bx bx-loader-alt bx-spin" id="obBtnLoader" style="display:none;"></i>
+                </button>
+            </div>
+        </form>
+
+        <!-- Address form (step 2, shown only when no GSTIN) -->
+        <form id="obAddrForm" autocomplete="off" onsubmit="return false;" style="display:none;">
+            <div class="ob-form-grid">
+
+                <div class="ob-field full">
+                    <label class="ob-label" for="obAddrLine1">Address Line 1</label>
+                    <input type="text" id="obAddrLine1" class="ob-input" placeholder="Street / Building / Door No."
+                           maxlength="200" autocomplete="off">
+                    <div class="ob-field-err" id="obAddrLine1Err">
+                        <i class="bx bx-error-circle"></i><span></span>
+                    </div>
+                </div>
+
+                <div class="ob-field full">
+                    <label class="ob-label" for="obAddrLine2">
+                        Address Line 2 <span class="ob-label-opt">(optional)</span>
+                    </label>
+                    <input type="text" id="obAddrLine2" class="ob-input" placeholder="Area / Landmark"
+                           maxlength="200" autocomplete="off">
+                </div>
+
+                <div class="ob-field">
+                    <label class="ob-label" for="obAddrCity">City</label>
+                    <select id="obAddrCity" class="ob-input">
+                        <option value="">Select city…</option>
+                    </select>
+                    <div class="ob-field-err" id="obAddrCityErr">
+                        <i class="bx bx-error-circle"></i><span></span>
+                    </div>
+                </div>
+
+                <div class="ob-field">
+                    <label class="ob-label" for="obAddrPincode">Pincode</label>
+                    <input type="text" id="obAddrPincode" class="ob-input" placeholder="6-digit pincode"
+                           maxlength="6" pattern="[0-9]{6}" autocomplete="off">
+                    <div class="ob-field-err" id="obAddrPincodeErr">
+                        <i class="bx bx-error-circle"></i><span></span>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="ob-submit-wrap" style="display:flex;gap:0.75rem;">
+                <button type="button" class="ob-btn" id="obAddrBackBtn" onclick="obPrevStep()"
+                        style="flex:0 0 auto;width:auto;padding-left:1.25rem;padding-right:1.25rem;background:rgba(105,108,255,0.15);box-shadow:none;">
+                    <i class="bx bx-left-arrow-alt"></i>
+                </button>
+                <button type="button" class="ob-btn" id="obAddrSubmitBtn" onclick="obSubmitFinal()" style="flex:1;">
+                    <i class="bx bx-rocket" id="obAddrBtnIcon"></i>
+                    <span id="obAddrBtnLabel">Complete Setup</span>
+                    <i class="bx bx-loader-alt bx-spin" id="obAddrBtnLoader" style="display:none;"></i>
                 </button>
             </div>
         </form>
@@ -171,7 +247,7 @@ $shortCode  = htmlspecialchars($shortCode ?? '', ENT_QUOTES);
         <div class="ob-success" id="obSuccess">
             <div class="ob-success-icon"><i class="bx bx-check-circle"></i></div>
             <div class="ob-success-title">You're all set!</div>
-            <p class="ob-success-msg">Your organisation is configured.<br>Taking you to your dashboard now…</p>
+            <p class="ob-success-msg">Your organisation is configured.<br>Taking you to plan selection now…</p>
             <div class="ob-success-redirect">
                 <i class="bx bx-loader-alt bx-spin"></i> Redirecting…
             </div>
@@ -186,6 +262,7 @@ $shortCode  = htmlspecialchars($shortCode ?? '', ENT_QUOTES);
 
 </div>
 
+<script src="/assets/js/services/upstash-service.js"></script>
 <script src="/js/common/global-overlay.js"></script>
 <script>
 (function () {
@@ -240,65 +317,118 @@ $shortCode  = htmlspecialchars($shortCode ?? '', ENT_QUOTES);
         draw();
     }());
 
-    /* ── State dropdown ──────────────────────────────────────────── */
-    var indianStates = [
-        { code: '01', name: 'Jammu & Kashmir' },{ code: '02', name: 'Himachal Pradesh' },
-        { code: '03', name: 'Punjab' },          { code: '04', name: 'Chandigarh' },
-        { code: '05', name: 'Uttarakhand' },     { code: '06', name: 'Haryana' },
-        { code: '07', name: 'Delhi' },           { code: '08', name: 'Rajasthan' },
-        { code: '09', name: 'Uttar Pradesh' },   { code: '10', name: 'Bihar' },
-        { code: '11', name: 'Sikkim' },          { code: '12', name: 'Arunachal Pradesh' },
-        { code: '13', name: 'Nagaland' },        { code: '14', name: 'Manipur' },
-        { code: '15', name: 'Mizoram' },         { code: '16', name: 'Tripura' },
-        { code: '17', name: 'Meghalaya' },       { code: '18', name: 'Assam' },
-        { code: '19', name: 'West Bengal' },     { code: '20', name: 'Jharkhand' },
-        { code: '21', name: 'Odisha' },          { code: '22', name: 'Chhattisgarh' },
-        { code: '23', name: 'Madhya Pradesh' },  { code: '24', name: 'Gujarat' },
-        { code: '25', name: 'Daman & Diu' },     { code: '26', name: 'Dadra & Nagar Haveli' },
-        { code: '27', name: 'Maharashtra' },     { code: '28', name: 'Andhra Pradesh' },
-        { code: '29', name: 'Karnataka' },       { code: '30', name: 'Goa' },
-        { code: '31', name: 'Lakshadweep' },     { code: '32', name: 'Kerala' },
-        { code: '33', name: 'Tamil Nadu' },      { code: '34', name: 'Puducherry' },
-        { code: '35', name: 'Andaman & Nicobar Islands' },
-        { code: '36', name: 'Telangana' },       { code: '37', name: 'Andhra Pradesh (New)' },
-        { code: '38', name: 'Ladakh' },
-    ];
+    /* ── State dropdown — Upstash cache-first, DB fallback ──────── */
+    /* Key: r2k-loc-states (HASH), field: 'in', each row: {name, iso2} */
+    (function seedObStates() {
+        /**
+         * @param {Array} data
+         * @returns {void}
+         */
+        function _renderStates(data) {
+            var sel = document.getElementById('obState');
+            data.forEach(function (s) {
+                var iso2 = s.iso2 || '';
+                var name = s.name || '';
+                if (!iso2 || !name) return;
+                var opt = document.createElement('option');
+                opt.value        = iso2 + '|' + name;
+                opt.dataset.iso2 = iso2;
+                opt.textContent  = name;
+                sel.appendChild(opt);
+            });
+        }
 
-    (function () {
-        var sel = document.getElementById('obState');
-        indianStates.forEach(function (s) {
-            var opt = document.createElement('option');
-            opt.value       = s.code + '|' + s.name;
-            opt.textContent = s.name;
-            sel.appendChild(opt);
+        function _fetchStatesFromServer() {
+            fetch('/onboarding/getStates', { method: 'GET' })
+                .then(function (r) { return r.json(); })
+                .then(function (resp) {
+                    if (!resp.Error && Array.isArray(resp.Data) && resp.Data.length > 0) {
+                        if (UpstashService.isEnabled()) {
+                            UpstashService.hset(UpstashService.globalKey('loc-states'), 'in', resp.Data);
+                        }
+                        _renderStates(resp.Data);
+                    }
+                })
+                .catch(function () {});
+        }
+
+        if (!UpstashService.isEnabled()) {
+            _fetchStatesFromServer();
+            return;
+        }
+        UpstashService.hget(UpstashService.globalKey('loc-states'), 'in').then(function (data) {
+            if (Array.isArray(data) && data.length > 0) {
+                _renderStates(data);
+            } else {
+                _fetchStatesFromServer();
+            }
+        }).catch(function () { _fetchStatesFromServer(); });
+    }());
+
+    /* ── Timezone dropdown — Upstash cache-first ────────────────── */
+    /* Key: r2k-loc-timezone-all (plain get), each row: {TimezoneUID, Timezone, GmtOffset} */
+    (function seedObTimezones() {
+        /**
+         * @param {Array} data
+         * @returns {void}
+         */
+        function _renderTimezones(data) {
+            var sel = document.getElementById('obTimezone');
+            data.forEach(function (tz) {
+                var uid   = tz.TimezoneUID || tz.uid || 0;
+                var label = (tz.Timezone || tz.label || '') + ' (' + (tz.GmtOffset || '') + ')';
+                if (!uid) return;
+                var opt = document.createElement('option');
+                opt.value       = uid;
+                opt.textContent = label;
+                sel.appendChild(opt);
+            });
+            /* Default: Asia/Kolkata (UID 181) */
+            sel.value = '181';
+            _syncObNextBtn();
+        }
+
+        if (!UpstashService.isEnabled()) return;
+        UpstashService.get(UpstashService.globalKey('loc-timezone-all')).then(function (cached) {
+            if (Array.isArray(cached) && cached.length > 0) {
+                _renderTimezones(cached);
+            } else {
+                fetch('/onboarding/getTimezones', { method: 'GET' })
+                    .then(function (r) { return r.json(); })
+                    .then(function (resp) {
+                        if (!resp.Error && Array.isArray(resp.Data) && resp.Data.length > 0) {
+                            UpstashService.set(UpstashService.globalKey('loc-timezone-all'), resp.Data);
+                            _renderTimezones(resp.Data);
+                        }
+                    })
+                    .catch(function () {});
+            }
         });
     }());
 
-    /* ── Timezone dropdown ───────────────────────────────────────── */
-    var _timezones = <?php echo json_encode(array_map(function($tz) {
-        return ['uid' => (int)$tz->TimezoneUID, 'label' => $tz->Timezone . ' (' . $tz->GmtOffset . ')'];
-    }, $timezones ?? [])); ?>;
-
-    (function () {
-        var sel = document.getElementById('obTimezone');
-        _timezones.forEach(function (tz) {
-            var opt = document.createElement('option');
-            opt.value       = tz.uid;
-            opt.textContent = tz.label;
-            if (tz.uid === 181) opt.selected = true;
-            sel.appendChild(opt);
-        });
-        /* Ensure default is actually selected if not set by above */
-        if (!sel.value) sel.value = '181';
-    }());
+    /* ── State / Timezone change — re-evaluate Next button ─────────── */
+    document.getElementById('obState').addEventListener('change', function () {
+        _clearErr('obState');
+        _syncObNextBtn();
+    });
+    document.getElementById('obTimezone').addEventListener('change', function () {
+        _clearErr('obTimezone');
+        _syncObNextBtn();
+    });
 
     /* ── Org Name → Brand Name mirror on blur (only while Brand Name is empty) ── */
-    document.getElementById('obOrgName').addEventListener('change', function () {
+    document.getElementById('obOrgName').addEventListener('input', function () {
         var brandInput = document.getElementById('obBrandName');
         if (!brandInput.value.trim()) {
             brandInput.value = this.value.trim();
         }
         _clearErr('obOrgName');
+        _syncObNextBtn();
+    });
+
+    document.getElementById('obBrandName').addEventListener('input', function () {
+        _clearErr('obBrandName');
+        _syncObNextBtn();
     });
 
     /* ── Short code auto-uppercase ──────────────────────────────── */
@@ -307,14 +437,111 @@ $shortCode  = htmlspecialchars($shortCode ?? '', ENT_QUOTES);
         this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
         this.setSelectionRange(pos, pos);
         _clearErr('obShortCode');
+        _syncObNextBtn();
     });
 
-    /* ── GSTIN auto-uppercase ───────────────────────────────────────── */
+    /* ── GSTIN auto-uppercase + availability check ──────────────────── */
     document.getElementById('obGSTIN').addEventListener('input', function () {
         var pos = this.selectionStart;
         this.value = this.value.toUpperCase();
         this.setSelectionRange(pos, pos);
+        _gstinOk       = false;
+        _gstinTaken    = false;
+        _gstinChecking = false;
+        document.getElementById('obGSTINOk').style.display = 'none';
         _clearErr('obGSTIN');
+        _syncObNextBtn();
+    });
+
+    document.getElementById('obGSTIN').addEventListener('blur', function () {
+        var gstin = this.value.trim().toUpperCase();
+        if (!gstin) {
+            _gstinOk = false; _gstinTaken = false; _gstinChecking = false;
+            document.getElementById('obGSTINOk').style.display = 'none';
+            _clearErr('obGSTIN');
+            _syncObNextBtn();
+            return;
+        }
+        if (!/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(gstin)) {
+            _gstinOk = false;
+            _showErr('obGSTIN', 'Invalid GSTIN format (e.g. 22AAAAA0000A1Z5).');
+            _syncObNextBtn();
+            return;
+        }
+        _gstinChecking = true;
+        _syncObNextBtn();
+        fetch('/signup/checkGSTIN', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body:    'gstin=' + encodeURIComponent(gstin),
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            _gstinChecking = false;
+            if (data.available) {
+                _gstinOk     = true;
+                _gstinTaken  = false;
+                document.getElementById('obGSTINOk').style.display = '';
+                _clearErr('obGSTIN');
+            } else {
+                _gstinOk    = false;
+                _gstinTaken = true;
+                document.getElementById('obGSTINOk').style.display = 'none';
+                _showErr('obGSTIN', 'This GSTIN is already registered with another account.');
+            }
+            _syncObNextBtn();
+        })
+        .catch(function () { _gstinChecking = false; _syncObNextBtn(); });
+    });
+
+    /* ── Mobile: digits-only + availability check ───────────────────── */
+    var _mobileTaken    = false;
+    var _mobileOk       = false;
+    var _mobileChecking = false;
+
+    /* ── GSTIN: availability check ──────────────────────────────────── */
+    var _gstinOk       = false;
+    var _gstinTaken    = false;
+    var _gstinChecking = false;
+
+    document.getElementById('obMobile').addEventListener('input', function () {
+        var clean = this.value.replace(/\D/g, '');
+        if (this.value !== clean) this.value = clean;
+        _mobileTaken    = false;
+        _mobileOk       = false;
+        _mobileChecking = false;
+        document.getElementById('obMobileOk').style.display = 'none';
+        _clearErr('obMobile');
+        _syncObNextBtn();
+    });
+
+    document.getElementById('obMobile').addEventListener('blur', function () {
+        var mobile = this.value.replace(/\D/g, '');
+        if (mobile.length !== 10) return;
+        _mobileChecking = true;
+        _syncObNextBtn();
+        fetch('/signup/checkMobile', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body:    'mobile=' + encodeURIComponent(mobile),
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            _mobileChecking = false;
+            if (data.available) {
+                _mobileOk    = true;
+                _mobileTaken = false;
+                document.getElementById('obMobileOk').style.display = '';
+                _clearErr('obMobile');
+            } else {
+                _mobileOk    = false;
+                _mobileTaken = true;
+                document.getElementById('obMobileOk').style.display = 'none';
+                _showErr('obMobile', 'This mobile number is already registered.');
+            }
+            _syncObNextBtn();
+        })
+        .catch(function () { _mobileChecking = false; _syncObNextBtn(); });
     });
 
     /* ── Helpers ─────────────────────────────────────────────────── */
@@ -340,6 +567,35 @@ $shortCode  = htmlspecialchars($shortCode ?? '', ENT_QUOTES);
         if (el) el.classList.remove('show');
         var input = document.getElementById(fieldId);
         if (input) input.classList.remove('ob-error');
+    }
+
+    /**
+     * Enable "Next" only when all required fields pass.
+     * GSTIN is optional — ignored when empty; blocks when filled but not yet validated.
+     * @returns {void}
+     */
+    function _syncObNextBtn() {
+        var btn = document.getElementById('obNextBtn');
+        if (!btn) return;
+
+        var orgName   = document.getElementById('obOrgName').value.trim();
+        var brandName = document.getElementById('obBrandName').value.trim();
+        var shortCode = document.getElementById('obShortCode').value.trim().toUpperCase();
+        var mobile    = document.getElementById('obMobile').value.replace(/\D/g, '');
+        var state     = document.getElementById('obState').value;
+        var timezone  = document.getElementById('obTimezone').value;
+        var gstin     = document.getElementById('obGSTIN').value.trim();
+
+        var allOk =
+            orgName.length >= 2 &&
+            brandName.length >= 2 &&
+            /^[A-Z0-9]{3}$/.test(shortCode) &&
+            mobile.length === 10 && _mobileOk && !_mobileChecking &&
+            state !== '' &&
+            timezone !== '' &&
+            (gstin === '' || (_gstinOk && !_gstinChecking));
+
+        btn.disabled = !allOk;
     }
 
     function _showAlert(msg) {
@@ -411,16 +667,173 @@ $shortCode  = htmlspecialchars($shortCode ?? '', ENT_QUOTES);
         return ok;
     }
 
-    /* ── Submit ──────────────────────────────────────────────────── */
-    window.obSubmit = function () {
+    /* ── Two-step state ─────────────────────────────────────────── */
+    var _hasAddressStep = false;
+
+    /* ── City loader (Upstash cache-first) ──────────────────────── */
+    /**
+     * @param {Array} cities
+     * @returns {void}
+     */
+    function _obPopulateCities(cities) {
+        var sel = document.getElementById('obAddrCity');
+        sel.innerHTML = '<option value="">Select city…</option>';
+        if (Array.isArray(cities)) {
+            cities.forEach(function (c) {
+                var name = c.name || '';
+                if (!name) return;
+                var opt = document.createElement('option');
+                opt.value = name; opt.textContent = name;
+                sel.appendChild(opt);
+            });
+        }
+        sel.disabled = false;
+    }
+
+    /**
+     * @param {string} stateISO2
+     * @param {string} cacheKey
+     * @param {string} cacheField
+     * @returns {void}
+     */
+    function _obFetchCitiesFromServer(stateISO2, cacheKey, cacheField) {
+        fetch('/signup/getCitiesOfState', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body:    'CountryISO2=IN&StateISO2=' + encodeURIComponent(stateISO2),
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            var cities = (!data.Error && Array.isArray(data.Data)) ? data.Data : [];
+            if (cities.length > 0 && typeof UpstashService !== 'undefined' && UpstashService.isEnabled()) {
+                UpstashService.hset(cacheKey, cacheField, cities);
+            }
+            _obPopulateCities(cities);
+        })
+        .catch(function () {
+            var sel = document.getElementById('obAddrCity');
+            if (sel) { sel.innerHTML = '<option value="">Could not load cities</option>'; sel.disabled = false; }
+        });
+    }
+
+    /**
+     * @returns {void}
+     */
+    function _obLoadCities() {
+        var stateSel  = document.getElementById('obState');
+        var sel       = document.getElementById('obAddrCity');
+        var selOpt    = stateSel.options[stateSel.selectedIndex];
+        var stateISO2 = selOpt ? (selOpt.dataset.iso2 || '') : '';
+
+        if (!stateISO2) {
+            sel.innerHTML = '<option value="">— Select a state first —</option>';
+            return;
+        }
+
+        sel.innerHTML = '<option value="">Loading cities…</option>';
+        sel.disabled  = true;
+
+        if (typeof UpstashService !== 'undefined' && UpstashService.isEnabled()) {
+            var cacheKey   = UpstashService.globalKey('loc-cities-by-state');
+            var cacheField = 'in-' + stateISO2.toLowerCase();
+            UpstashService.hget(cacheKey, cacheField)
+                .then(function (cached) {
+                    if (Array.isArray(cached) && cached.length > 0) {
+                        _obPopulateCities(cached);
+                    } else {
+                        _obFetchCitiesFromServer(stateISO2, cacheKey, cacheField);
+                    }
+                })
+                .catch(function () { _obFetchCitiesFromServer(stateISO2, UpstashService.globalKey('loc-cities-by-state'), 'in-' + stateISO2.toLowerCase()); });
+        } else {
+            _obFetchCitiesFromServer(stateISO2, '', '');
+        }
+    }
+
+    /* ── Step 1 → Next ──────────────────────────────────────────── */
+    /**
+     * @returns {void}
+     */
+    window.obNextStep = function () {
         if (!_validate()) return;
+        var gstin = document.getElementById('obGSTIN').value.trim();
+        _hasAddressStep = !gstin;
 
-        var btn = document.getElementById('obSubmitBtn');
+        if (_hasAddressStep) {
+            /* Show address step in progress */
+            document.getElementById('obStepAddr').style.display = '';
+            document.getElementById('obStepPlanNum').textContent = '5';
+            /* Switch forms */
+            document.getElementById('obForm').style.display     = 'none';
+            document.getElementById('obAddrForm').style.display = '';
+            /* Mark progress */
+            document.getElementById('obStepOrg').classList.remove('active');
+            document.getElementById('obStepOrg').classList.add('done');
+            document.getElementById('obStepAddr').classList.add('active');
+            /* Load cities */
+            _obLoadCities();
+        } else {
+            _obDoSubmit();
+        }
+    };
 
+    /* ── Step 2 → Back ──────────────────────────────────────────── */
+    /**
+     * @returns {void}
+     */
+    window.obPrevStep = function () {
+        document.getElementById('obAddrForm').style.display = 'none';
+        document.getElementById('obForm').style.display     = '';
+        document.getElementById('obStepAddr').classList.remove('active');
+        document.getElementById('obStepOrg').classList.remove('done');
+        document.getElementById('obStepOrg').classList.add('active');
+    };
+
+    /* ── Step 2 validate address ─────────────────────────────────── */
+    /**
+     * @returns {boolean}
+     */
+    function _validateAddr() {
+        var ok = true;
+        _hideAlert();
+
+        var line1 = document.getElementById('obAddrLine1').value.trim();
+        _clearErr('obAddrLine1');
+        if (!line1) { _showErr('obAddrLine1', 'Address line 1 is required.'); ok = false; }
+
+        var city = document.getElementById('obAddrCity').value;
+        _clearErr('obAddrCity');
+        if (!city) { _showErr('obAddrCity', 'Please select a city.'); ok = false; }
+
+        var pin = document.getElementById('obAddrPincode').value.replace(/\D/g, '');
+        _clearErr('obAddrPincode');
+        if (!pin || pin.length !== 6) { _showErr('obAddrPincode', 'Enter a valid 6-digit pincode.'); ok = false; }
+
+        return ok;
+    }
+
+    /* ── Step 2 → Submit ────────────────────────────────────────── */
+    /**
+     * @returns {void}
+     */
+    window.obSubmitFinal = function () {
+        if (!_validateAddr()) return;
+        _obDoSubmit(true);
+    };
+
+    /* ── Core submit ────────────────────────────────────────────── */
+    /**
+     * @param {boolean} [withAddr]
+     * @returns {void}
+     */
+    function _obDoSubmit(withAddr) {
+        var btn = withAddr
+            ? document.getElementById('obAddrSubmitBtn')
+            : document.getElementById('obNextBtn');
         btn.disabled = true;
         showUIBlock('Setting up your organisation…');
 
-        var body = new URLSearchParams({
+        var params = {
             org_name:     document.getElementById('obOrgName').value.trim(),
             brand_name:   document.getElementById('obBrandName').value.trim(),
             short_code:   document.getElementById('obShortCode').value.trim().toUpperCase(),
@@ -428,12 +841,19 @@ $shortCode  = htmlspecialchars($shortCode ?? '', ENT_QUOTES);
             state:        document.getElementById('obState').value,
             timezone_uid: document.getElementById('obTimezone').value,
             gstin:        document.getElementById('obGSTIN').value.trim().toUpperCase(),
-        });
+        };
+
+        if (withAddr) {
+            params.addr_line1   = document.getElementById('obAddrLine1').value.trim();
+            params.addr_line2   = document.getElementById('obAddrLine2').value.trim();
+            params.addr_city    = document.getElementById('obAddrCity').value;
+            params.addr_pincode = document.getElementById('obAddrPincode').value.replace(/\D/g, '');
+        }
 
         fetch('/onboarding/complete', {
             method:  'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body:    body.toString(),
+            body:    new URLSearchParams(params).toString(),
         })
         .then(function (r) { return r.json(); })
         .then(function (data) {
@@ -442,11 +862,11 @@ $shortCode  = htmlspecialchars($shortCode ?? '', ENT_QUOTES);
                 btn.disabled = false;
                 _showAlert(data.Message || 'Something went wrong. Please try again.');
             } else {
-                /* Overlay stays visible through the success screen + redirect */
-                document.getElementById('obForm').style.display      = 'none';
-                document.querySelector('.ob-progress').style.display  = 'none';
+                document.getElementById('obForm').style.display     = 'none';
+                document.getElementById('obAddrForm').style.display = 'none';
+                document.querySelector('.ob-progress').style.display = 'none';
                 document.getElementById('obSuccess').classList.add('show');
-                setTimeout(function () { window.location.href = '/dashboard'; }, 1800);
+                setTimeout(function () { window.location.href = '/subscribe'; }, 1800);
             }
         })
         .catch(function () {
@@ -454,7 +874,7 @@ $shortCode  = htmlspecialchars($shortCode ?? '', ENT_QUOTES);
             btn.disabled = false;
             _showAlert('A network error occurred. Please try again.');
         });
-    };
+    }
 
     /* ── Block ESC & back-navigation attempts ────────────────────── */
     document.addEventListener('keydown', function (e) {

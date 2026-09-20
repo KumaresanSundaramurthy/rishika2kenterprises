@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
 <style>
 html, body { margin: 0; padding: 0; background: #040b18; min-height: 100%; }
 .srex-root {

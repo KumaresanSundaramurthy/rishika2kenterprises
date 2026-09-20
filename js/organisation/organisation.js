@@ -1,4 +1,4 @@
-﻿// ── Session-level in-memory cache ─────────────────────────────────────────────
+// ── Session-level in-memory cache ─────────────────────────────────────────────
 var _orgStateLoaded = false;
 var _orgCityCache   = {};   // keyed by "{country_lower}-{state_lower}"
 

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * js/transactions/viewmodal.js
  * Shared builder for the viewTransModal deep-preview panel.
  * Exposes: window._buildTransDetailHtml(resp, opts)

@@ -1,4 +1,4 @@
-﻿window.isRtl = window.Helpers.isRtl(),
+window.isRtl = window.Helpers.isRtl(),
 window.isDarkStyle = window.Helpers.isDarkStyle();
 let menu, animate, isHorizontalLayout = !1, SearchConfig = (document.getElementById("layout-menu") && (isHorizontalLayout = document.getElementById("layout-menu").classList.contains("menu-horizontal")),
 document.addEventListener("DOMContentLoaded", function() {

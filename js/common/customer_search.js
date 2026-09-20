@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Customer Search Modal — Common
  *
  * Data strategy:

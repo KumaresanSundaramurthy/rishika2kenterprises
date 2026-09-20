@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Transaction Additional Charges — shared across all transaction form pages.
  *
  * Globals injected by the transaction form view:

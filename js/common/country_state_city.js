@@ -1,4 +1,4 @@
-﻿/**
+/**
  * country_state_city.js
  * Handles dynamic State and City dropdowns for address forms.
  *

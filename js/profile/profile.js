@@ -1,4 +1,4 @@
-﻿function updateProfileForm(formdata) {
+function updateProfileForm(formdata) {
     var isPasswordUpdate = formdata.get('IsPasswordUpdate');
     $.ajax({
         url: global_base_url + 'profile/updateProfileDetails',

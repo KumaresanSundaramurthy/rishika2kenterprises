@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Trial Balance Report
  * Displays all ledger accounts with opening balance, period movements, and closing balance.
  * Closing balance = Opening ± (Debit − Credit) based on OpeningBalanceType.

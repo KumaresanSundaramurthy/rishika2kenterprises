@@ -1,4 +1,4 @@
-﻿// ── Serial Number Tracker — Purchase (manual entry) and Invoice (pick from stock) ─
+// ── Serial Number Tracker — Purchase (manual entry) and Invoice (pick from stock) ─
 // Loaded only on Purchase and Invoice form pages.
 // Requires bill_manager.js and window._transFormData.transType ('Purchase'|'Invoice').
 

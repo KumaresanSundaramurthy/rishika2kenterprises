@@ -1,4 +1,4 @@
-﻿/**
+/**
  * CategoryForm — shared modal for adding a category from any page.
  *
  * Usage:

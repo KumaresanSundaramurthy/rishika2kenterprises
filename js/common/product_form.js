@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ProductForm — shared modal for adding/editing a product from any page.
  *
  * Usage:

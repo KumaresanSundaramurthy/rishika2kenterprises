@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php $this->load->view('login/header'); ?>
 
@@ -1671,7 +1671,7 @@
                     var body = 'sid=' + encodeURIComponent(sid);
                     var csrfInput2 = document.querySelector('input[name^="csrf"]');
                     if (csrfInput2) body += '&' + encodeURIComponent(csrfInput2.name) + '=' + encodeURIComponent(csrfInput2.value);
-                    fetch('/subscription/renew/cancelToken', {
+                    fetch(global_base_url + 'subscription/renew/cancelToken', {
                         method : 'POST',
                         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
                         body   : body,

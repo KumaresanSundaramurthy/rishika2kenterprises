@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Additional Charge Form — shared modal logic.
  *
  * Open the modal by triggering:

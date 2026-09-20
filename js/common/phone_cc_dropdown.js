@@ -1,4 +1,4 @@
-﻿/**
+/**
  * PhoneCCDropdown — reusable country-code picker for phone input fields.
  *
  * Usage:

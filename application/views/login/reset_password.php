@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var string $token         — reset token, injected by Login::showResetForm() */
 /** @var int    $remainingSecs — seconds until token expires, injected by Login::showResetForm() */
 $token         = isset($token)         ? $token         : '';

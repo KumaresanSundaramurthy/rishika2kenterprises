@@ -1,4 +1,4 @@
-﻿/**
+/**
  * AI Business Assistant widget — vanilla JS, no external dependencies.
  * Communicates with POST /assistant/chat; uses global CsrfName/CsrfToken/global_base_url.
  */

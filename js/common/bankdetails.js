@@ -1,4 +1,4 @@
-﻿$(document).on('click', '#addBankDetails', function(e) {
+$(document).on('click', '#addBankDetails', function(e) {
     e.preventDefault();
     $('#AddEditBankDataForm')[0].reset();
     $('#HBankId').val('');

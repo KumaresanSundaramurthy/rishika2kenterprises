@@ -1,4 +1,4 @@
-﻿// ── Indirect Income list — module-specific JS ──────────────────────────────────
+// ── Indirect Income list — module-specific JS ──────────────────────────────────
 // Shared utilities (loadTransactionList, debounce, initTooltips) are in common.js
 
 // ── Select-all (Pattern 3) state ────────────────────────────────────────────

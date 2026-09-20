@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Payment Section — Split Payment UI
  * Loaded after jQuery. Reads data from embedded <script type="application/json"> tags
  * and the global window._paymentCurrSymbol set by payment_section.php partial.

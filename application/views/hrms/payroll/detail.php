@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 $cur    = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
 $p      = $Payroll ?? new stdClass();
 $lines  = $PayrollLines ?? [];

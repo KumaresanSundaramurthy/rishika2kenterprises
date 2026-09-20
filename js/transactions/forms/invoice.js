@@ -1,4 +1,4 @@
-﻿// ── Invoice form — init, submit, and sticky bar ───────────────────────────────
+// ── Invoice form — init, submit, and sticky bar ───────────────────────────────
 // PHP data is injected by form.php as window._transFormData before this file loads.
 
 var _cfg = window._transFormData || {};

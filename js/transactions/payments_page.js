@@ -1,4 +1,4 @@
-﻿/**
+/**
  * PaymentsPage — OOP controller for the unified Payments list page.
  *
  * Responsibilities:

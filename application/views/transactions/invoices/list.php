@@ -1,4 +1,4 @@
-﻿<?prp defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?prp defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?prp
 $cdnUrl = getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN');

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Bank Statement Report
  * Fetches payments chronologically and computes a running balance.
  * PartyType='C' (Customer receipt) = Credit (money IN).

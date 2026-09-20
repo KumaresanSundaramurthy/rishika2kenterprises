@@ -1,4 +1,4 @@
-﻿// ── Pro Forma Invoices list — module-specific JS ──────────────────────────────
+// ── Pro Forma Invoices list — module-specific JS ──────────────────────────────
 // Shared utilities (loadTransactionList, debounce, initTooltips) are in common.js
 
 // ── Select-all (Pattern 3) state ────────────────────────────────────────────

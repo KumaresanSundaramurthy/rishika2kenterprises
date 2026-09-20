@@ -1,4 +1,4 @@
-﻿/* global $, Swal, flatpickr, CsrfName, CsrfToken, _todoMyUID, _todoInitStats, _transListDateFormat, ajaxLoading */
+/* global $, Swal, flatpickr, CsrfName, CsrfToken, _todoMyUID, _todoInitStats, _transListDateFormat, ajaxLoading */
 (function () {
     'use strict';
 

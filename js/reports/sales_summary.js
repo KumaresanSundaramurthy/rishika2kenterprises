@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Sales Summary Report
  * Fetches Invoice (103) vs Sales Return (106) data grouped by period.
  */

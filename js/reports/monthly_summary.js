@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Monthly Summary Report
  * Shows 12 months for the selected year: Sales, Sales Returns, Net Sales,
  * Purchases, Purchase Returns, Net Purchase, Balance.

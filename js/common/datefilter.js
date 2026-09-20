@@ -1,4 +1,4 @@
-﻿/**
+/**
  * R2K Date Filter — Reusable date range utility
  * Provides: getDateRange(), formatDate(), getDateRangeLabel(), initDateFilter()
  *

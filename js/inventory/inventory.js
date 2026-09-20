@@ -1,4 +1,4 @@
-﻿'use strict';
+'use strict';
 
 // ── Module source labels for timeline ────────────────────────────────────────
 var INV_MODULE_LABELS = {

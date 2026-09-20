@@ -1,4 +1,4 @@
-﻿// ── Expenses list — module-specific JS ────────────────────────────────────────
+// ── Expenses list — module-specific JS ────────────────────────────────────────
 // Shared utilities (loadTransactionList, debounce, initTooltips) are in common.js
 
 // ── Select-all (Pattern 3) state ────────────────────────────────────────────

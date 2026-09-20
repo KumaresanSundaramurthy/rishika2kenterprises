@@ -1,4 +1,4 @@
-﻿<?prp defined('BASEPATH') OR exit('No direct script access allowed');
+<?prp defined('BASEPATH') OR exit('No direct script access allowed');
 
 $JwtData      = $JwtData      ?? null;
 $DataLists    = $DataLists    ?? [];

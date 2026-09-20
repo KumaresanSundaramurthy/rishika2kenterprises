@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Payment Made Report
  * Lists all payments made to suppliers for the selected date range.
  */

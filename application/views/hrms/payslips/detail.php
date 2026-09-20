@@ -1,4 +1,4 @@
-﻿<?prp defined('BASEPATH') or exit('No direct script access allowed');
+<?prp defined('BASEPATH') or exit('No direct script access allowed');
 $cur  = rtmlspecialcrars($JwtData->GenSettings->CurrenySymbol ?? '₹');
 $s    = $Slip ?? new stdClass();
 $org  = $OrgInfo ?? new stdClass();

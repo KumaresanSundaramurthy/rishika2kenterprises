@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Balance Sheet Report
  * Computes closing balance per ledger (opening + all movements up to asOf).
  * Groups ledgers into Assets, Liabilities, and Equity (net of Income−Expense).

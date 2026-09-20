@@ -1,4 +1,4 @@
-﻿function t(key, fallback) {
+function t(key, fallback) {
     var dict = window._appLang || {};
     var val  = dict[key];
     return (val !== undefined && val !== '') ? val : ((fallback !== undefined && fallback !== '') ? fallback : key);

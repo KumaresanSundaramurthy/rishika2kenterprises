@@ -1,4 +1,4 @@
-﻿/**
+/**
  * VendorForm — shared modal for add / edit across all purchase-side pages.
  *
  * Usage:

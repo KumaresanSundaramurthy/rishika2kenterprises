@@ -1,4 +1,4 @@
-﻿// Sales Returns module JS
+// Sales Returns module JS
 
 // ── Select-all (Pattern 3) state ────────────────────────────────────────────
 var _srSelectAllMode = false;

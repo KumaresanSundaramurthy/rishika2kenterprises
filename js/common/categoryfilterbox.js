@@ -1,4 +1,4 @@
-﻿'use strict';
+'use strict';
 
 /**
  * CategoryFilterBox — shared category filter module used across all pages.

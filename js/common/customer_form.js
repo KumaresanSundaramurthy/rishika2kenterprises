@@ -1,4 +1,4 @@
-﻿/**
+/**
  * CustomerForm — shared modal for add / edit / clone across all pages.
  *
  * Usage:

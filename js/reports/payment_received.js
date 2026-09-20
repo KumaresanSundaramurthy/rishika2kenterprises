@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Payment Received Report
  * Lists all customer receipts for the selected date range.
  */

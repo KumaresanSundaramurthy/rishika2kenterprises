@@ -1,4 +1,4 @@
-﻿window._r2kSimpleOverlay = true;
+window._r2kSimpleOverlay = true;
 
 var _prodPageRefreshing = false;
 

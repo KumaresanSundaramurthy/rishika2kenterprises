@@ -1,4 +1,4 @@
-﻿// ── A4 Print — Reusable across all transaction pages ──────────────────────
+// ── A4 Print — Reusable across all transaction pages ──────────────────────
 
 var _a4Html        = null;   // raw HTML with __COPY_LABEL__ placeholder
 var _a4Title       = '';

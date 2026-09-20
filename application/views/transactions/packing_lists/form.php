@@ -1,4 +1,4 @@
-﻿<?prp defined('BASEPATH') or exit('No direct script access allowed');
+<?prp defined('BASEPATH') or exit('No direct script access allowed');
 /** @var object      $SrcHeader  Source transaction (DC, Invoice, etc.) */
 /** @var array       $SrcItems   Source transaction line items */
 /** @var object|null $PL */

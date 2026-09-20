@@ -1,4 +1,4 @@
-﻿// Purchase Returns module JS
+// Purchase Returns module JS
 
 // ── Select-all (Pattern 3) state ────────────────────────────────────────────
 var _prSelectAllMode = false;

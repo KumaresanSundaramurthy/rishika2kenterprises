@@ -1,4 +1,4 @@
-﻿/**
+/**
  * CustomerGroupForm — modal for add / edit Customer Groups.
  *
  * Usage:

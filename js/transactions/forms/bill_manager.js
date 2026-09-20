@@ -1,4 +1,4 @@
-﻿// Keyed by product row id; updated each time a valid (≥ purchase price) selling price is blurred
+// Keyed by product row id; updated each time a valid (≥ purchase price) selling price is blurred
 var _lastValidSellingPrices  = {};
 var _lastValidUnitPrices     = {};
 // Selling price at the moment the compliment checkbox was ticked, keyed by row id

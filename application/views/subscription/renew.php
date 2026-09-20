@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
+<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 $orgName        = htmlspecialchars($org->Name ?? 'Your Organisation', ENT_QUOTES, 'UTF-8');
 $currentPlanUID = $subscription->SectorPlanUID ?? null;
@@ -732,7 +732,7 @@ function startPayment(btn, sectorPlanUID, planName, price) {
     var csrfInput = document.querySelector('input[name^="csrf"]');
     if (csrfInput) body += '&' + encodeURIComponent(csrfInput.name) + '=' + encodeURIComponent(csrfInput.value);
 
-    fetch('/subscription/renew/createOrder', {
+    fetch('<?php echo base_url('subscription/renew/createOrder'); ?>', {
         method : 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body   : body,
@@ -822,7 +822,7 @@ function handlePaymentSuccess(sectorPlanUID, rpResponse) {
     var csrfInput = document.querySelector('input[name^="csrf"]');
     if (csrfInput) body += '&' + encodeURIComponent(csrfInput.name) + '=' + encodeURIComponent(csrfInput.value);
 
-    fetch('/subscription/renew/confirmPayment', {
+    fetch('<?php echo base_url('subscription/renew/confirmPayment'); ?>', {
         method : 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body   : body,

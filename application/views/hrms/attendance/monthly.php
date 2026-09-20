@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 $cur  = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
 $tz   = $JwtData->Org->TimeZone ?? 'Asia/Kolkata';
 $days = (int)date('t', mktime(0, 0, 0, $Month, 1, $Year));

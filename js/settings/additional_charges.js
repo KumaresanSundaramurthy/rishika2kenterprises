@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Additional Charges — Settings page
  * CRUD for Settings.AdditionalChargesTbl
  *

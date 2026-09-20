@@ -1,4 +1,4 @@
-﻿// ── Thermal Print — Common handler for all transaction & payment pages ────
+// ── Thermal Print — Common handler for all transaction & payment pages ────
 
 var _thermalData    = null;
 var _thermalPmtData = null;

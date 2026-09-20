@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Purchase Summary Report
  * Fetches Purchase (105) vs Purchase Return (108) data grouped by period.
  */

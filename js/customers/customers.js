@@ -1,4 +1,4 @@
-﻿// ── List page AJAX functions ──────────────────────────────────────────────
+// ── List page AJAX functions ──────────────────────────────────────────────
 
 /**
  * @param {string} tableSelector

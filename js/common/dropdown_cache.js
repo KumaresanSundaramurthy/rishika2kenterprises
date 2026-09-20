@@ -1,4 +1,4 @@
-﻿/**
+/**
  * DropdownCache — product-form dropdown data manager.
  *
  * Implements the decided pattern (see memory: product_add_form_memory.md):

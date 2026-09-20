@@ -1,4 +1,4 @@
-﻿/**
+/**
  * js/common/export.js
  * Shared export handler for all transaction list pages.
  *

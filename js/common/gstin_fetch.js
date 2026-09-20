@@ -1,4 +1,4 @@
-﻿// ── GSTIN Fetch — shared across Customer, Vendor, and Transaction forms ──────
+// ── GSTIN Fetch — shared across Customer, Vendor, and Transaction forms ──────
 //
 // Pages that want confirmation-overlay + validated-text behaviour register:
 //   window.gstinFetchConfig = {

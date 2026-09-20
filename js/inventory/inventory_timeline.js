@@ -1,4 +1,4 @@
-﻿'use strict';
+'use strict';
 
 var _tlFilter      = {};
 var _tlProdCache   = null;

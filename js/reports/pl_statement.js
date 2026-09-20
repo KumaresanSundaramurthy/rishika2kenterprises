@@ -1,4 +1,4 @@
-﻿/**
+/**
  * P&L Statement Report
  * Income (LedgerType='Income'): Net = PeriodCredit − PeriodDebit
  * Expense (LedgerType='Expense'): Net = PeriodDebit − PeriodCredit

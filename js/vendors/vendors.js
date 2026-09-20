@@ -1,4 +1,4 @@
-﻿// ── List page AJAX functions ──────────────────────────────────────────────
+// ── List page AJAX functions ──────────────────────────────────────────────
 
 // ── Select-all (Pattern 3) state ─────────────────────────────────────────
 var _vendSelectAllMode = false;

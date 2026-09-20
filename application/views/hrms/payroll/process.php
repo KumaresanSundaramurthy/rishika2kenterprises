@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 $cur    = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
 $months = ['','January','February','March','April','May','June','July','August','September','October','November','December'];
 $existingUID    = (int)($ExistingPayroll->PayrollUID ?? 0);

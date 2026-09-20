@@ -1,4 +1,4 @@
-﻿// ── Session-level in-memory cache ────────────────────────────────────────────
+// ── Session-level in-memory cache ────────────────────────────────────────────
 // Keyed by UPPER ISO2 for states, by "{country_lower}-{state_lower}" for cities.
 // Prevents repeat Upstash calls for the same country/state within one page load.
 var _stateSessionCache = {};

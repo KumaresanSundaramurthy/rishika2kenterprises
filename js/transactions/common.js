@@ -1,4 +1,4 @@
-﻿// ── Transaction pages — shared utilities ──────────────────────────────────────
+// ── Transaction pages — shared utilities ──────────────────────────────────────
 // Requires: jQuery, Bootstrap, datefilter.js (getDateRange, formatDate),
 //           and page globals: PageNo, RowLimit, Filter, ModuleId,
 //           ModuleTable, ModulePag, CsrfName, CsrfToken

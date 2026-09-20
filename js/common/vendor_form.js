@@ -1,4 +1,4 @@
-/**
+﻿/**
  * VendorForm — shared modal for add / edit across all purchase-side pages.
  *
  * Usage:
@@ -99,7 +99,7 @@
      */
     function _fetchSalutationsFromServer(callback) {
         $.ajax({
-            url: '/settings/getSalutationList', method: 'GET', cache: false,
+            url: global_base_url + 'settings/getSalutationList', method: 'GET', cache: false,
             success: function (resp) {
                 if (!resp.Error && resp.Data && resp.Data.length) {
                     _populateSalutationDropdown(resp.Data);
@@ -224,7 +224,7 @@
         _editUID = (type === 'clone') ? 0 : (uid || 0);
         var _fetchUID = uid || 0;
         $.ajax({
-            url   : '/vendors/getVendorForModal/' + _fetchUID,
+            url   : global_base_url + 'vendors/getVendorForModal/' + _fetchUID,
             method: 'GET',
             cache : false,
             success: function (response) {
@@ -410,7 +410,7 @@
      */
     function _fetchVendorNumberFallback($field) {
         $.ajax({
-            url   : '/vendors/getNextVendorNumber',
+            url   : global_base_url + 'vendors/getNextVendorNumber',
             method: 'GET',
             cache : false,
             success: function (resp) {
@@ -539,9 +539,9 @@
 
         if (mode === 'edit') {
             formData.append('PageNo', typeof PageNo !== 'undefined' ? PageNo : 1);
-            $.ajax({ url: '/vendors/updateVendorData', method: 'POST', data: formData, cache: false, processData: false, contentType: false, success: onDone });
+            $.ajax({ url: global_base_url + 'vendors/updateVendorData', method: 'POST', data: formData, cache: false, processData: false, contentType: false, success: onDone });
         } else {
-            $.ajax({ url: '/vendors/addVendorData',    method: 'POST', data: formData, cache: false, processData: false, contentType: false, success: onDone });
+            $.ajax({ url: global_base_url + 'vendors/addVendorData',    method: 'POST', data: formData, cache: false, processData: false, contentType: false, success: onDone });
         }
     });
 

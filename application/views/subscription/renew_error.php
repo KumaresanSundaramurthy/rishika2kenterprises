@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
 <style>
 html, body { margin: 0; padding: 0; background: #040b18; min-height: 100%; }
 .srex-root {
@@ -47,7 +47,7 @@ html, body { margin: 0; padding: 0; background: #040b18; min-height: 100%; }
             Renewal links are valid for 30 minutes only.<br>
             Please go back to the login page and try again to get a fresh link.
         </p>
-        <a href="<?php echo base_url('portal'); ?>" class="srex-btn">
+        <a href="<?php echo base_url('login'); ?>" class="srex-btn">
             <i class="bx bx-arrow-back"></i> Back to Login
         </a>
     </div>

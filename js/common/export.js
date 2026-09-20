@@ -1,4 +1,4 @@
-/**
+﻿/**
  * js/common/export.js
  * Shared export handler for all transaction list pages.
  *
@@ -32,7 +32,7 @@ function initExport(opts) {
 function _exportPrint(moduleUID, filter) {
     var payload = _buildPayload(moduleUID, 'print', filter);
     $.ajax({
-        url    : '/exports/exportData',
+        url    : global_base_url + 'exports/exportData',
         method : 'POST',
         data   : payload,
     }).done(function (resp) {

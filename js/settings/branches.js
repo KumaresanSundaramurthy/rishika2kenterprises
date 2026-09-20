@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 (function () {
 
@@ -74,7 +74,7 @@
         ajaxLoading(0);
         _showTableSpinner();
         $.ajax({
-            url    : '/settings/branches/getPageDetails/' + page,
+            url    : global_base_url + 'settings/branches/getPageDetails/' + page,
             method : 'POST',
             data   : { Filter: _currentFilter },
             success: function (res) {
@@ -197,7 +197,7 @@
         $saveBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
 
         $.ajax({
-            url   : '/settings/branches/save',
+            url   : global_base_url + 'settings/branches/save',
             method: 'POST',
             data  : {
                 BranchUID       : $('#branchUID').val(),
@@ -259,7 +259,7 @@
     function _deleteBranch(uid, name) {
         if (!confirm('Delete branch "' + name + '"? This cannot be undone.')) return;
         $.ajax({
-            url   : '/settings/branches/delete',
+            url   : global_base_url + 'settings/branches/delete',
             method: 'POST',
             data  : { BranchUID: uid },
             success: function (res) {
@@ -300,7 +300,7 @@
      */
     function _setHeadOffice(uid) {
         $.ajax({
-            url   : '/settings/branches/setHeadOffice',
+            url   : global_base_url + 'settings/branches/setHeadOffice',
             method: 'POST',
             data  : { BranchUID: uid },
             success: function (res) {
@@ -408,7 +408,7 @@
             }).then(function (result) {
                 if (!result.isConfirmed) return;
                 $.ajax({
-                    url   : '/settings/branches/toggleStatus',
+                    url   : global_base_url + 'settings/branches/toggleStatus',
                     method: 'POST',
                     data  : { BranchUID: uid, IsActive: isActive },
                     success: function (res) {

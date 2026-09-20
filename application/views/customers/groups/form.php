@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 $isEdit   = ($FormMode === 'edit');
 $d        = $FormData;
 $members  = $Members ?? [];
@@ -30,7 +30,7 @@ $pageHead = $isEdit ? 'Edit Customer Group' : 'Create Customer Group';
                                     <button type="button" class="btn btn-primary" id="btnSaveCGroup">
                                         <i class="bx bx-save me-1"></i><?php echo $isEdit ? 'Update' : 'Save'; ?>
                                     </button>
-                                    <a href="/customers" class="btn btn-label-secondary">Cancel</a>
+                                    <a href="<?= site_url('customers') ?>" class="btn btn-label-secondary">Cancel</a>
                                 </div>
                             </div>
 
@@ -321,7 +321,7 @@ $pageHead = $isEdit ? 'Edit Customer Group' : 'Create Customer Group';
                 if (res.Error) { toastr.error(res.Message); return; }
                 toastr.success(res.Message);
                 setTimeout(function () {
-                    window.location.href = '/customers?tab=groups';
+                    window.location.href = global_base_url + 'customers?tab=groups';
                 }, 800);
             },
             error: function () { ajaxLoading(1); toastr.error('Request failed. Please try again.'); }

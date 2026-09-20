@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var int $SerialNumber */ $SerialNumber = $SerialNumber ?? 0;
 /** @var object $JwtData */
 ?>
@@ -240,7 +240,7 @@ else:
             <div class="d-flex flex-column align-items-center py-5">
                 <img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:150px;object-fit:contain;">
                 <span class="text-muted mb-3" style="font-size:.9rem;">No customers found</span>
-                <a href="/customers/create" class="btn btn-primary btn-sm px-4">
+                <a href="<?= site_url('customers/create') ?>" class="btn btn-primary btn-sm px-4">
                     <i class="bx bx-plus me-1"></i>Create Customer
                 </a>
             </div>

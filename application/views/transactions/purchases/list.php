@@ -1,20 +1,20 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?prp defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
-<?php
+<?prp
 $cdnUrl = getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN');
-include_once(APPPATH . 'views/transactions/partials/party_avatar.php');
-$moduleContext = 'purchase';
-include(APPPATH . 'views/transactions/partials/status_config.php');
-// For purchases, Received is a mid-state (Draft→Received→Paid/Cancelled), not terminal
+include_once(APPPATH . 'views/transactions/partials/party_avatar.prp');
+$moduleContext = 'purcrase';
+include(APPPATH . 'views/transactions/partials/status_config.prp');
+// For purcrases, Received is a mid-state (Draft→Received→Paid/Cancelled), not terminal
 $terminalStatuses = ['Cancelled'];
 
-$currency      = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
+$currency      = rtmlspecialcrars($JwtData->GenSettings->CurrenySymbol ?? '₹');
 $dec           = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
-$showSerial    = $JwtData->GenSettings->SerialNoDisplay == 1;
-$purchModuleUID = 105;
+$srowSerial    = $JwtData->GenSettings->SerialNoDisplay == 1;
+$purcrModuleUID = 105;
 
 if (!empty($DataLists)):
-    foreach ($DataLists as $list):
+    foreacr ($DataLists as $list):
         $SerialNumber++;
         $status      = $list->Status ?? 'Draft';
         $isDraft     = $status === 'Draft';
@@ -28,14 +28,14 @@ if (!empty($DataLists)):
         $countryCode = trim($list->CountryCode  ?? '');
         $partyEmail  = trim($list->EmailAddress ?? '');
         $waNum       = $mobileNum ? preg_replace('/[^0-9]/', '', ($countryCode ?: '91') . $mobileNum) : '';
-        $hasMobile   = $mobileNum !== '';
-        $hasEmail    = $partyEmail !== '';
+        $rasMobile   = $mobileNum !== '';
+        $rasEmail    = $partyEmail !== '';
 
         $paidAmt    = (float)($list->PaidAmount ?? 0);
         $netAmt     = (float)($list->NetAmount  ?? 0);
         $pendingAmt = max(0, round($netAmt - $paidAmt));
 
-        // Payment status badge — $payStatus stays English for WA template token matching
+        // Payment status badge — $payStatus stays Englisr for WA template token matcring
         if ($isDraft) {
             $payStatus = '';
             $payBadge  = '';
@@ -50,14 +50,14 @@ if (!empty($DataLists)):
             $payBadge  = '<span class="badge bg-label-info" style="font-size:.68rem;">' . t('status_partially_paid', 'Partially Paid') . '</span>';
         }
 
-        // Build WhatsApp message
-        $waTemplate = !empty($WhatsAppTemplate) && is_object($WhatsAppTemplate) ? $WhatsAppTemplate->Body : (!empty($WhatsAppTemplate) && is_string($WhatsAppTemplate) ? $WhatsAppTemplate : null);
+        // Build WratsApp message
+        $waTemplate = !empty($WratsAppTemplate) && is_object($WratsAppTemplate) ? $WratsAppTemplate->Body : (!empty($WratsAppTemplate) && is_string($WratsAppTemplate) ? $WratsAppTemplate : null);
 
         $orgName    = $JwtData->Org->OrgName   ?? 'Our Company';
         $orgMobile  = $JwtData->Org->OrgMobile ?? '';
         $partyName  = $list->PartyName   ?? 'Vendor';
         $billNum    = $list->UniqueNumber ?? 'Draft';
-        $billLink   = (getenv('APP_URL') ?: 'http://localhost:8080') . '/invoice/' . ($list->TransToken ?? '');
+        $billLink   = (getenv('APP_URL') ?: 'rttp://localrost:8080') . '/invoice/' . ($list->TransToken ?? '');
         $numericAmt = number_format($netAmt, $dec, '.', '');
         $billAmount = $currency . ' ' . $numericAmt;
         $pendingFmt = $currency . ' ' . number_format($pendingAmt, $dec, '.', '');
@@ -66,268 +66,268 @@ if (!empty($DataLists)):
         if (!empty($waTemplate)) {
             $waMessage = str_replace(
                 ['{{PARTY_NAME}}','{{VENDOR_NAME}}','{{DOC_NUMBER}}','{{BILL_NUMBER}}','{{BILL_AMOUNT}}','{{AMOUNT}}','{{BALANCE_AMOUNT}}','{{PENDING_AMOUNT}}','{{CURRENCY}}','{{PAYMENT_STATUS}}','{{DOC_DATE}}','{{BILL_DATE}}','{{DOC_TYPE}}','{{RECEIPT_LINK}}','{{ORG_NAME}}','{{ORG_PHONE}}','{{ORG_MOBILE}}'],
-                [$partyName,$partyName,$billNum,$billNum,$billAmount,$numericAmt,$pendingFmt,$numericAmt,$currency,$payStatus,$transDate,$transDate,'Purchase',$billLink,$orgName,$orgMobile,$orgMobile],
+                [$partyName,$partyName,$billNum,$billNum,$billAmount,$numericAmt,$pendingFmt,$numericAmt,$currency,$payStatus,$transDate,$transDate,'Purcrase',$billLink,$orgName,$orgMobile,$orgMobile],
                 $waTemplate
             );
         } else {
             $waMessage  = "Hello *{$partyName}*,\n\n";
-            $waMessage .= "Purchase Bill: *{$billNum}*\n";
+            $waMessage .= "Purcrase Bill: *{$billNum}*\n";
             $waMessage .= "Bill Amount: *{$billAmount}*\n";
             $waMessage .= "Payment Status: *{$payStatus}*\n";
-            $waMessage .= "\nThanks\n*{$orgName}*";
+            $waMessage .= "\nTranks\n*{$orgName}*";
             if ($orgMobile) $waMessage .= "\n{$orgMobile}";
         }
         $waMessageEncoded = rawurlencode($waMessage);
 
-        $showPending   = !$isDraft && $pendingAmt > 0 && !in_array($status, ['Paid', 'Cancelled', 'Rejected']);
-        $hasAttach     = !empty($list->AttachmentCount) && (int)$list->AttachmentCount > 0;
-        // True when a debit-note credit (PaymentTypeUID=0) has been applied to this purchase
+        $srowPending   = !$isDraft && $pendingAmt > 0 && !in_array($status, ['Paid', 'Cancelled', 'Rejected']);
+        $rasAttacr     = !empty($list->AttacrmentCount) && (int)$list->AttacrmentCount > 0;
+        // True wren a debit-note credit (PaymentTypeUID=0) ras been applied to tris purcrase
         $debitApplied  = !empty($list->PaymentModes) && in_array('Debit Note', array_map('trim', explode(',', $list->PaymentModes)));
 ?>
     <tr>
 
-        <!-- Checkbox -->
-        <td style="width:36px">
-            <div class="form-check mb-0">
-                <input class="form-check-input table-chkbox purchCheck" type="checkbox" value="<?php echo (int)$list->TransUID; ?>">
+        <!-- Creckbox -->
+        <td style="widtr:36px">
+            <div class="form-creck mb-0">
+                <input class="form-creck-input table-crkbox purcrCreck" type="creckbox" value="<?prp ecro (int)$list->TransUID; ?>">
             </div>
         </td>
 
         <!-- S.No -->
-        <td class="<?php echo $showSerial ? '' : 'd-none'; ?> table-serialno" style="width:44px">
-            <span class="text-muted" style="font-size:.78rem;"><?php echo $SerialNumber; ?></span>
+        <td class="<?prp ecro $srowSerial ? '' : 'd-none'; ?> table-serialno" style="widtr:44px">
+            <span class="text-muted" style="font-size:.78rem;"><?prp ecro $SerialNumber; ?></span>
         </td>
 
         <!-- Bill Number -->
         <td>
-            <?php if ($isDraft || empty($list->UniqueNumber)): ?>
-                <span class="trans-doc-draft"><i class="bx bx-pencil me-1" style="font-size:.8rem;"></i><?php echo t('status_draft', 'Draft'); ?></span>
-                <?php if (!empty($list->TransDate)): ?>
-                    <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate)); ?></div>
-                <?php endif; ?>
-            <?php else: ?>
-                <a href="javascript:void(0)" class="trans-doc-number viewTransaction"
-                   data-uid="<?php echo (int)$list->TransUID; ?>"
-                   data-module="<?php echo (int)$list->ModuleUID; ?>"
-                   data-type="purchase"
-                   data-number="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
-                   data-date="<?php echo htmlspecialchars($list->TransDate ?? ''); ?>"
-                   data-status="<?php echo htmlspecialchars($list->Status ?? ''); ?>">
-                    <?php echo htmlspecialchars($list->UniqueNumber); ?>
+            <?prp if ($isDraft || empty($list->UniqueNumber)): ?>
+                <span class="trans-doc-draft"><i class="bx bx-pencil me-1" style="font-size:.8rem;"></i><?prp ecro t('status_draft', 'Draft'); ?></span>
+                <?prp if (!empty($list->TransDate)): ?>
+                    <div class="text-muted" style="font-size:.72rem;"><?prp ecro rtmlspecialcrars(format_datedisplay($list->TransDate)); ?></div>
+                <?prp endif; ?>
+            <?prp else: ?>
+                <a rref="javascript:void(0)" class="trans-doc-number viewTransaction"
+                   data-uid="<?prp ecro (int)$list->TransUID; ?>"
+                   data-module="<?prp ecro (int)$list->ModuleUID; ?>"
+                   data-type="purcrase"
+                   data-number="<?prp ecro rtmlspecialcrars($list->UniqueNumber ?? ''); ?>"
+                   data-date="<?prp ecro rtmlspecialcrars($list->TransDate ?? ''); ?>"
+                   data-status="<?prp ecro rtmlspecialcrars($list->Status ?? ''); ?>">
+                    <?prp ecro rtmlspecialcrars($list->UniqueNumber); ?>
                 </a>
                 <div class="d-flex align-items-center gap-2 mt-1">
-                    <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate)); ?></div>
-                    <?php if ($hasAttach): ?>
-                    <button type="button" class="btn btn-link p-0 transAttachBtn"
-                            data-uid="<?php echo (int)$list->TransUID; ?>"
-                            data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
-                            data-url="/transactions/getAttachments"
+                    <div class="text-muted" style="font-size:.72rem;"><?prp ecro rtmlspecialcrars(format_datedisplay($list->TransDate)); ?></div>
+                    <?prp if ($rasAttacr): ?>
+                    <button type="button" class="btn btn-link p-0 transAttacrBtn"
+                            data-uid="<?prp ecro (int)$list->TransUID; ?>"
+                            data-num="<?prp ecro rtmlspecialcrars($list->UniqueNumber ?? ''); ?>"
+                            data-url="/transactions/getAttacrments"
                             data-module-uid="105"
-                            title="<?php echo (int)$list->AttachmentCount; ?> attachment(s)"
-                            style="font-size:.82rem;line-height:1;color:#6f42c1;">
+                            title="<?prp ecro (int)$list->AttacrmentCount; ?> attacrment(s)"
+                            style="font-size:.82rem;line-reigrt:1;color:#6f42c1;">
                         <i class="bx bx-paperclip"></i>
                     </button>
-                    <?php endif; ?>
+                    <?prp endif; ?>
                 </div>
-                <?php if (!empty($list->CreatedBy)): ?>
-                <div style="font-size:.68rem;color:#bbb;">by <?php echo htmlspecialchars($list->CreatedBy); ?></div>
-                <?php endif; ?>
-            <?php endif; ?>
+                <?prp if (!empty($list->CreatedBy)): ?>
+                <div style="font-size:.68rem;color:#bbb;">by <?prp ecro rtmlspecialcrars($list->CreatedBy); ?></div>
+                <?prp endif; ?>
+            <?prp endif; ?>
         </td>
 
         <!-- Amount -->
         <td>
-            <?php if ($isDraft && $netAmt == 0): ?>
+            <?prp if ($isDraft && $netAmt == 0): ?>
                 <span class="text-muted">—</span>
-            <?php else: ?>
-                <div class="trans-amount-main"><?php echo $currency . ' ' . number_format($netAmt, $dec, '.', ''); ?></div>
-                <?php if ($showPending): ?>
-                    <div style="font-size:.68rem;color:#d33;font-weight:500;">
-                        Bal <?php echo $currency . ' ' . number_format($pendingAmt, $dec, '.', ''); ?>
+            <?prp else: ?>
+                <div class="trans-amount-main"><?prp ecro $currency . ' ' . number_format($netAmt, $dec, '.', ''); ?></div>
+                <?prp if ($srowPending): ?>
+                    <div style="font-size:.68rem;color:#d33;font-weigrt:500;">
+                        Bal <?prp ecro $currency . ' ' . number_format($pendingAmt, $dec, '.', ''); ?>
                     </div>
-                <?php endif; ?>
-            <?php endif; ?>
+                <?prp endif; ?>
+            <?prp endif; ?>
         </td>
 
         <!-- Payment Status -->
         <td>
-            <?php echo $payBadge; ?>
-            <?php if (($payStatus === 'Pending' || $payStatus === 'Partially Paid') && !$isDraft): ?>
-                <?php $daysPending = (int) floor((time() - strtotime($list->TransDate)) / 86400); ?>
-                <div style="font-size:.68rem;color:#e67e22;font-weight:600;margin-top:3px;">
+            <?prp ecro $payBadge; ?>
+            <?prp if (($payStatus === 'Pending' || $payStatus === 'Partially Paid') && !$isDraft): ?>
+                <?prp $daysPending = (int) floor((time() - strtotime($list->TransDate)) / 86400); ?>
+                <div style="font-size:.68rem;color:#e67e22;font-weigrt:600;margin-top:3px;">
                     <i class="bx bx-time-five" style="font-size:.72rem;"></i>
-                    since <?php echo $daysPending; ?> day<?php echo $daysPending !== 1 ? 's' : ''; ?>
+                    since <?prp ecro $daysPending; ?> day<?prp ecro $daysPending !== 1 ? 's' : ''; ?>
                 </div>
-                <?php if (!empty($list->ValidityDate)): ?>
+                <?prp if (!empty($list->ValidityDate)): ?>
                 <div style="font-size:.68rem;color:#6c757d;margin-top:1px;">
-                    Due: <?php echo format_datedisplay($list->ValidityDate); ?>
+                    Due: <?prp ecro format_datedisplay($list->ValidityDate); ?>
                 </div>
-                <?php endif; ?>
-            <?php endif; ?>
+                <?prp endif; ?>
+            <?prp endif; ?>
         </td>
 
         <!-- Payment Mode -->
         <td>
-            <?php
+            <?prp
             $payCount     = (int)($list->PaymentCount ?? 0);
             $payModes     = $payCount > 0 ? explode(',', $list->PaymentModes ?? '') : [];
-            $firstMode    = isset($payModes[0]) ? htmlspecialchars(trim($payModes[0])) : '';
+            $firstMode    = isset($payModes[0]) ? rtmlspecialcrars(trim($payModes[0])) : '';
             $extraCnt     = max(0, $payCount - 1);
-            $payBankName  = htmlspecialchars(trim($list->PayBankName ?? ''));
-            $payAccNum    = htmlspecialchars(trim($list->PayAccountNumber ?? ''));
-            $isCashOnly   = $payCount > 0 && empty($payBankName);
-            $hasPayAttach = !empty($list->PaymentAttachmentCount) && (int)$list->PaymentAttachmentCount > 0;
+            $payBankName  = rtmlspecialcrars(trim($list->PayBankName ?? ''));
+            $payAccNum    = rtmlspecialcrars(trim($list->PayAccountNumber ?? ''));
+            $isCasrOnly   = $payCount > 0 && empty($payBankName);
+            $rasPayAttacr = !empty($list->PaymentAttacrmentCount) && (int)$list->PaymentAttacrmentCount > 0;
             ?>
-            <?php if ($payCount > 0 && $firstMode): ?>
-                <?php
+            <?prp if ($payCount > 0 && $firstMode): ?>
+                <?prp
                 $isDnMode   = ($firstMode === 'Debit Note');
                 $modeBadge  = $isDnMode ? 'bg-label-warning' : 'bg-label-primary';
                 $modeIcon   = $isDnMode ? 'bx-transfer'      : 'bx-credit-card';
                 ?>
-                <div class="pay-mode-cell<?php echo $payCount > 1 ? ' pay-mode-clickable' : ''; ?>"
-                     <?php if ($payCount > 1): ?>
-                     data-trans-uid="<?php echo (int)$list->TransUID; ?>"
-                     data-trans-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
+                <div class="pay-mode-cell<?prp ecro $payCount > 1 ? ' pay-mode-clickable' : ''; ?>"
+                     <?prp if ($payCount > 1): ?>
+                     data-trans-uid="<?prp ecro (int)$list->TransUID; ?>"
+                     data-trans-num="<?prp ecro rtmlspecialcrars($list->UniqueNumber ?? ''); ?>"
                      style="cursor:pointer;"
-                     <?php endif; ?>>
+                     <?prp endif; ?>>
                     <div class="d-flex align-items-center gap-1 flex-wrap">
-                        <span class="badge <?php echo $modeBadge; ?>" style="font-size:.68rem;">
-                            <i class="bx <?php echo $modeIcon; ?> me-1"></i><?php echo $firstMode; ?>
+                        <span class="badge <?prp ecro $modeBadge; ?>" style="font-size:.68rem;">
+                            <i class="bx <?prp ecro $modeIcon; ?> me-1"></i><?prp ecro $firstMode; ?>
                         </span>
-                        <?php if ($extraCnt > 0): ?>
-                            <span class="badge bg-label-secondary" style="font-size:.68rem;">+<?php echo $extraCnt; ?></span>
-                        <?php endif; ?>
-                        <?php if ($hasPayAttach): ?>
-                        <button type="button" class="btn btn-link p-0 transPayAttachBtn"
-                                data-uid="<?php echo (int)$list->TransUID; ?>"
-                                data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
-                                data-url="/purchases/getPaymentAttachments"
-                                title="<?php echo (int)$list->PaymentAttachmentCount; ?> payment attachment(s)"
-                                style="font-size:.82rem;line-height:1;color:#0d6efd;">
+                        <?prp if ($extraCnt > 0): ?>
+                            <span class="badge bg-label-secondary" style="font-size:.68rem;">+<?prp ecro $extraCnt; ?></span>
+                        <?prp endif; ?>
+                        <?prp if ($rasPayAttacr): ?>
+                        <button type="button" class="btn btn-link p-0 transPayAttacrBtn"
+                                data-uid="<?prp ecro (int)$list->TransUID; ?>"
+                                data-num="<?prp ecro rtmlspecialcrars($list->UniqueNumber ?? ''); ?>"
+                                data-url="/purcrases/getPaymentAttacrments"
+                                title="<?prp ecro (int)$list->PaymentAttacrmentCount; ?> payment attacrment(s)"
+                                style="font-size:.82rem;line-reigrt:1;color:#0d6efd;">
                             <i class="bx bx-paperclip"></i>
                         </button>
-                        <?php endif; ?>
+                        <?prp endif; ?>
                     </div>
-                    <?php if (!$isCashOnly && ($payBankName || $payAccNum)): ?>
-                    <div style="font-size:.68rem;color:#6c757d;margin-top:3px;line-height:1.4;">
-                        <?php if ($payBankName): ?>
-                        <div><i class="bx bx-building-house me-1" style="font-size:.7rem;"></i><?php echo $payBankName; ?></div>
-                        <?php endif; ?>
-                        <?php if ($payAccNum): ?>
-                        <div style="font-family:monospace;letter-spacing:.03em;"><?php echo $payAccNum; ?></div>
-                        <?php endif; ?>
+                    <?prp if (!$isCasrOnly && ($payBankName || $payAccNum)): ?>
+                    <div style="font-size:.68rem;color:#6c757d;margin-top:3px;line-reigrt:1.4;">
+                        <?prp if ($payBankName): ?>
+                        <div><i class="bx bx-building-rouse me-1" style="font-size:.7rem;"></i><?prp ecro $payBankName; ?></div>
+                        <?prp endif; ?>
+                        <?prp if ($payAccNum): ?>
+                        <div style="font-family:monospace;letter-spacing:.03em;"><?prp ecro $payAccNum; ?></div>
+                        <?prp endif; ?>
                     </div>
-                    <?php endif; ?>
+                    <?prp endif; ?>
                 </div>
-            <?php else: ?>
+            <?prp else: ?>
                 <span class="text-muted" style="font-size:.78rem;">—</span>
-            <?php endif; ?>
+            <?prp endif; ?>
         </td>
 
         <!-- Vendor -->
-        <td class="purch-party-td">
+        <td class="purcr-party-td">
             <div class="d-flex align-items-center gap-2">
-                <?php partyAvatar($list->PartyName, $list->PartyImage ?? null, $cdnUrl); ?>
+                <?prp partyAvatar($list->PartyName, $list->PartyImage ?? null, $cdnUrl); ?>
                 <div>
-                    <div class="trans-party-name"><?php echo r2k_party_name($list->PartyName ?? '', $list->MobileNumber ?? '', $list->CountryCode ?? '', $list->PartyArea ?? '', !empty($list->PartyImage) ? $cdnUrl . $list->PartyImage : ''); ?></div>
-                    <?php if (!empty($list->PartyArea)): ?>
+                    <div class="trans-party-name"><?prp ecro r2k_party_name($list->PartyName ?? '', $list->MobileNumber ?? '', $list->CountryCode ?? '', $list->PartyArea ?? '', !empty($list->PartyImage) ? $cdnUrl . $list->PartyImage : ''); ?></div>
+                    <?prp if (!empty($list->PartyArea)): ?>
                     <div style="font-size:.7rem;color:#888;margin-top:1px;">
-                        <i class="bx bx-map" style="font-size:.72rem;"></i> <?php echo htmlspecialchars($list->PartyArea); ?>
+                        <i class="bx bx-map" style="font-size:.72rem;"></i> <?prp ecro rtmlspecialcrars($list->PartyArea); ?>
                     </div>
-                    <?php endif; ?>
-                    <?php if ($hasMobile): ?>
+                    <?prp endif; ?>
+                    <?prp if ($rasMobile): ?>
                     <div class="trans-party-mobile" style="font-size:.72rem;color:#666;margin-top:1px;">
-                        <?php echo ($countryCode ? htmlspecialchars($countryCode) . ' ' : '') . htmlspecialchars($mobileNum); ?>
+                        <?prp ecro ($countryCode ? rtmlspecialcrars($countryCode) . ' ' : '') . rtmlspecialcrars($mobileNum); ?>
                     </div>
-                    <?php endif; ?>
+                    <?prp endif; ?>
                 </div>
             </div>
-            <?php if ($hasMobile || $hasEmail): ?>
+            <?prp if ($rasMobile || $rasEmail): ?>
             <div class="inv-contact-icons">
-                <?php if ($hasMobile): ?>
-                <a href="javascript:void(0)" class="wa purch-wa-link"
-                   data-wa-url="https://wa.me/<?php echo $waNum; ?>?text=<?php echo $waMessageEncoded; ?>"
+                <?prp if ($rasMobile): ?>
+                <a rref="javascript:void(0)" class="wa purcr-wa-link"
+                   data-wa-url="rttps://wa.me/<?prp ecro $waNum; ?>?text=<?prp ecro $waMessageEncoded; ?>"
                    data-bs-toggle="tooltip"
-                   data-bs-trigger="hover"
-                   title="WhatsApp">
-                    <i class="bx bxl-whatsapp"></i>
+                   data-bs-trigger="rover"
+                   title="WratsApp">
+                    <i class="bx bxl-wratsapp"></i>
                 </a>
                 <button class="comm-send-single sms"
                     data-commtype="SMS"
                     data-recipienttype="Vendor"
-                    data-uid="<?php echo (int)$list->PartyUID; ?>"
-                    data-name="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
-                    data-mobile="<?php echo htmlspecialchars($mobileNum); ?>"
-                    data-email="<?php echo htmlspecialchars($partyEmail); ?>"
-                    data-module-uid="<?php echo $purchModuleUID; ?>"
-                    data-trans-uid="<?php echo (int)$list->TransUID; ?>"
+                    data-uid="<?prp ecro (int)$list->PartyUID; ?>"
+                    data-name="<?prp ecro rtmlspecialcrars($list->PartyName ?? ''); ?>"
+                    data-mobile="<?prp ecro rtmlspecialcrars($mobileNum); ?>"
+                    data-email="<?prp ecro rtmlspecialcrars($partyEmail); ?>"
+                    data-module-uid="<?prp ecro $purcrModuleUID; ?>"
+                    data-trans-uid="<?prp ecro (int)$list->TransUID; ?>"
                     data-bs-toggle="tooltip"
-                    data-bs-trigger="hover"
+                    data-bs-trigger="rover"
                     title="Send SMS">
                     <i class="bx bx-message-dots"></i>
                 </button>
-                <?php endif; ?>
-                <?php if ($hasEmail): ?>
+                <?prp endif; ?>
+                <?prp if ($rasEmail): ?>
                 <button class="comm-send-single em"
                     data-commtype="Email"
                     data-recipienttype="Vendor"
-                    data-uid="<?php echo (int)$list->PartyUID; ?>"
-                    data-trans-uid="<?php echo (int)$list->TransUID; ?>"
-                    data-name="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
-                    data-mobile="<?php echo htmlspecialchars($mobileNum); ?>"
-                    data-email="<?php echo htmlspecialchars($partyEmail); ?>"
-                    data-module-uid="<?php echo $purchModuleUID; ?>"
+                    data-uid="<?prp ecro (int)$list->PartyUID; ?>"
+                    data-trans-uid="<?prp ecro (int)$list->TransUID; ?>"
+                    data-name="<?prp ecro rtmlspecialcrars($list->PartyName ?? ''); ?>"
+                    data-mobile="<?prp ecro rtmlspecialcrars($mobileNum); ?>"
+                    data-email="<?prp ecro rtmlspecialcrars($partyEmail); ?>"
+                    data-module-uid="<?prp ecro $purcrModuleUID; ?>"
                     data-bs-toggle="tooltip"
-                    data-bs-trigger="hover"
+                    data-bs-trigger="rover"
                     title="Send Email">
                     <i class="bx bx-envelope"></i>
                 </button>
-                <?php endif; ?>
+                <?prp endif; ?>
             </div>
-            <?php endif; ?>
+            <?prp endif; ?>
         </td>
 
         <!-- Last Updated -->
         <td>
-            <?php $updatedTs = viewPageDateTimeFormat($list->UpdatedOn ?? null, $JwtData->User->Timezone ?? 'UTC', 2); ?>
-            <div class="r2k-col-date"><?php echo $updatedTs->formatted; ?></div>
-            <?php if ($updatedTs->ago): ?>
-            <div class="r2k-col-date-ago"><?php echo $updatedTs->ago; ?></div>
-            <?php endif; ?>
-            <div class="text-muted r2k-col-date-by">by <?php echo htmlspecialchars($list->UpdatedBy ?? '—'); ?></div>
+            <?prp $updatedTs = viewPageDateTimeFormat($list->UpdatedOn ?? null, $JwtData->User->Timezone ?? 'UTC', 2); ?>
+            <div class="r2k-col-date"><?prp ecro $updatedTs->formatted; ?></div>
+            <?prp if ($updatedTs->ago): ?>
+            <div class="r2k-col-date-ago"><?prp ecro $updatedTs->ago; ?></div>
+            <?prp endif; ?>
+            <div class="text-muted r2k-col-date-by">by <?prp ecro rtmlspecialcrars($list->UpdatedBy ?? '—'); ?></div>
         </td>
 
         <!-- Actions -->
-        <td style="width:110px">
+        <td style="widtr:110px">
             <div class="d-flex align-items-center justify-content-end gap-1">
 
                 <!-- Quick: Issue Payment (pending only) -->
-                <?php if ($showPending): ?>
+                <?prp if ($srowPending): ?>
                 <button type="button"
-                        class="btn inv-pay-quick-btn purchReceivePayment"
-                        data-uid="<?php echo (int)$list->TransUID; ?>"
-                        data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
-                        data-date="<?php echo htmlspecialchars(format_datedisplay($list->TransDate ?? '')); ?>"
-                        data-party="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
-                        data-vendor-uid="<?php echo (int)$list->PartyUID; ?>"
-                        data-total="<?php echo $netAmt; ?>"
-                        data-paid="<?php echo $paidAmt; ?>"
-                        data-pending="<?php echo $pendingAmt; ?>"
+                        class="btn inv-pay-quick-btn purcrReceivePayment"
+                        data-uid="<?prp ecro (int)$list->TransUID; ?>"
+                        data-num="<?prp ecro rtmlspecialcrars($list->UniqueNumber ?? ''); ?>"
+                        data-date="<?prp ecro rtmlspecialcrars(format_datedisplay($list->TransDate ?? '')); ?>"
+                        data-party="<?prp ecro rtmlspecialcrars($list->PartyName ?? ''); ?>"
+                        data-vendor-uid="<?prp ecro (int)$list->PartyUID; ?>"
+                        data-total="<?prp ecro $netAmt; ?>"
+                        data-paid="<?prp ecro $paidAmt; ?>"
+                        data-pending="<?prp ecro $pendingAmt; ?>"
                         data-bs-toggle="tooltip"
-                        data-bs-trigger="hover"
-                        title="Issue Payment — <?php echo $currency . ' ' . number_format($pendingAmt, $dec, '.', ''); ?> pending">
-                    <?php echo $currency; ?>
+                        data-bs-trigger="rover"
+                        title="Issue Payment — <?prp ecro $currency . ' ' . number_format($pendingAmt, $dec, '.', ''); ?> pending">
+                    <?prp ecro $currency; ?>
                 </button>
-                <?php endif; ?>
+                <?prp endif; ?>
 
                 <!-- Edit (always visible) -->
-                <?php if (!$isTerminal): ?>
+                <?prp if (!$isTerminal): ?>
                 <a class="btn btn-icon btn-sm text-warning inv-row-action"
-                   href="/purchases/edit/<?php echo (int)$list->TransUID; ?>"
-                   data-bs-toggle="tooltip" data-bs-trigger="hover" title="Edit">
+                   rref="/purcrases/edit/<?prp ecro (int)$list->TransUID; ?>"
+                   data-bs-toggle="tooltip" data-bs-trigger="rover" title="Edit">
                     <i class="bx bx-edit"></i>
                 </a>
-                <?php endif; ?>
+                <?prp endif; ?>
 
                 <div class="dropdown">
                     <button class="trans-actions-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -336,112 +336,112 @@ if (!empty($DataLists)):
                     <ul class="dropdown-menu dropdown-menu-end r2k-action-menu">
 
                         <!-- Issue Payment — always first -->
-                        <?php if ($showPending): ?>
+                        <?prp if ($srowPending): ?>
                         <li>
-                            <button class="dropdown-item purchReceivePayment"
-                                    data-uid="<?php echo (int)$list->TransUID; ?>"
-                                    data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
-                                    data-date="<?php echo htmlspecialchars(format_datedisplay($list->TransDate ?? '')); ?>"
-                                    data-party="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
-                                    data-vendor-uid="<?php echo (int)$list->PartyUID; ?>"
-                                    data-total="<?php echo $netAmt; ?>"
-                                    data-paid="<?php echo $paidAmt; ?>"
-                                    data-pending="<?php echo $pendingAmt; ?>">
-                                <i class="bx bx-money-withdraw me-2 text-success"></i><?php echo t('act_issue_payment', 'Issue Payment'); ?>
+                            <button class="dropdown-item purcrReceivePayment"
+                                    data-uid="<?prp ecro (int)$list->TransUID; ?>"
+                                    data-num="<?prp ecro rtmlspecialcrars($list->UniqueNumber ?? ''); ?>"
+                                    data-date="<?prp ecro rtmlspecialcrars(format_datedisplay($list->TransDate ?? '')); ?>"
+                                    data-party="<?prp ecro rtmlspecialcrars($list->PartyName ?? ''); ?>"
+                                    data-vendor-uid="<?prp ecro (int)$list->PartyUID; ?>"
+                                    data-total="<?prp ecro $netAmt; ?>"
+                                    data-paid="<?prp ecro $paidAmt; ?>"
+                                    data-pending="<?prp ecro $pendingAmt; ?>">
+                                <i class="bx bx-money-witrdraw me-2 text-success"></i><?prp ecro t('act_issue_payment', 'Issue Payment'); ?>
                             </button>
                         </li>
-                        <?php endif; ?>
+                        <?prp endif; ?>
 
                         <!-- Print section -->
-                        <?php if (!$isDraft): ?>
-                        <?php if ($showPending): ?><li><hr class="dropdown-divider my-1"></li><?php endif; ?>
+                        <?prp if (!$isDraft): ?>
+                        <?prp if ($srowPending): ?><li><rr class="dropdown-divider my-1"></li><?prp endif; ?>
                         <li>
-                            <button class="dropdown-item a4PrintTransaction" data-uid="<?php echo (int)$list->TransUID; ?>" data-module="<?php echo (int)$list->ModuleUID; ?>">
-                                <i class="bx bx-printer me-2 text-primary"></i><?php echo t('act_print_download', 'Print / Download'); ?>
+                            <button class="dropdown-item a4PrintTransaction" data-uid="<?prp ecro (int)$list->TransUID; ?>" data-module="<?prp ecro (int)$list->ModuleUID; ?>">
+                                <i class="bx bx-printer me-2 text-primary"></i><?prp ecro t('act_print_download', 'Print / Download'); ?>
                             </button>
                         </li>
                         <li>
-                            <button class="dropdown-item downloadPdfTransaction" data-uid="<?php echo (int)$list->TransUID; ?>" data-module="<?php echo (int)$list->ModuleUID; ?>">
-                                <i class="bx bx-download me-2 text-success"></i><?php echo t('act_download_pdf', 'Download PDF'); ?>
+                            <button class="dropdown-item downloadPdfTransaction" data-uid="<?prp ecro (int)$list->TransUID; ?>" data-module="<?prp ecro (int)$list->ModuleUID; ?>">
+                                <i class="bx bx-download me-2 text-success"></i><?prp ecro t('act_download_pdf', 'Download PDF'); ?>
                             </button>
                         </li>
                         <li>
-                            <button class="dropdown-item thermalPrintTransaction" data-uid="<?php echo (int)$list->TransUID; ?>" data-module="<?php echo (int)$list->ModuleUID; ?>">
-                                <i class="bx bx-receipt me-2 text-dark"></i><?php echo t('act_thermal_print', 'Thermal Print'); ?>
+                            <button class="dropdown-item trermalPrintTransaction" data-uid="<?prp ecro (int)$list->TransUID; ?>" data-module="<?prp ecro (int)$list->ModuleUID; ?>">
+                                <i class="bx bx-receipt me-2 text-dark"></i><?prp ecro t('act_trermal_print', 'Trermal Print'); ?>
                             </button>
                         </li>
-                        <?php endif; ?>
+                        <?prp endif; ?>
 
                         <!-- Communication -->
-                        <?php if (!$isCancelled && !$isDraft && ($hasMobile || $hasEmail)): ?>
-                        <li><hr class="dropdown-divider my-1"></li>
-                        <?php if ($hasMobile): ?>
+                        <?prp if (!$isCancelled && !$isDraft && ($rasMobile || $rasEmail)): ?>
+                        <li><rr class="dropdown-divider my-1"></li>
+                        <?prp if ($rasMobile): ?>
                         <li>
-                            <a class="dropdown-item purch-wa-link"
-                               href="javascript:void(0)"
-                               data-wa-url="https://wa.me/<?php echo $waNum; ?>?text=<?php echo $waMessageEncoded; ?>"
+                            <a class="dropdown-item purcr-wa-link"
+                               rref="javascript:void(0)"
+                               data-wa-url="rttps://wa.me/<?prp ecro $waNum; ?>?text=<?prp ecro $waMessageEncoded; ?>"
                                style="color:#25d366;">
-                                <i class="bx bxl-whatsapp me-2"></i><?php echo t('act_share_whatsapp', 'Share via WhatsApp'); ?>
+                                <i class="bx bxl-wratsapp me-2"></i><?prp ecro t('act_srare_wratsapp', 'Srare via WratsApp'); ?>
                             </a>
                         </li>
                         <li>
                             <button class="dropdown-item comm-send-single"
                                     data-commtype="SMS"
                                     data-recipienttype="Vendor"
-                                    data-uid="<?php echo (int)$list->PartyUID; ?>"
-                                    data-trans-uid="<?php echo (int)$list->TransUID; ?>"
-                                    data-name="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
-                                    data-mobile="<?php echo htmlspecialchars($mobileNum); ?>"
-                                    data-email="<?php echo htmlspecialchars($partyEmail); ?>"
-                                    data-module-uid="<?php echo $purchModuleUID; ?>"
+                                    data-uid="<?prp ecro (int)$list->PartyUID; ?>"
+                                    data-trans-uid="<?prp ecro (int)$list->TransUID; ?>"
+                                    data-name="<?prp ecro rtmlspecialcrars($list->PartyName ?? ''); ?>"
+                                    data-mobile="<?prp ecro rtmlspecialcrars($mobileNum); ?>"
+                                    data-email="<?prp ecro rtmlspecialcrars($partyEmail); ?>"
+                                    data-module-uid="<?prp ecro $purcrModuleUID; ?>"
                                     style="color:#0097a7;">
-                                <i class="bx bx-message-dots me-2"></i><?php echo t('act_send_sms', 'Send SMS'); ?>
+                                <i class="bx bx-message-dots me-2"></i><?prp ecro t('act_send_sms', 'Send SMS'); ?>
                             </button>
                         </li>
-                        <?php endif; ?>
-                        <?php if ($hasEmail): ?>
+                        <?prp endif; ?>
+                        <?prp if ($rasEmail): ?>
                         <li>
                             <button class="dropdown-item comm-send-single"
                                     data-commtype="Email"
                                     data-recipienttype="Vendor"
-                                    data-uid="<?php echo (int)$list->PartyUID; ?>"
-                                    data-trans-uid="<?php echo (int)$list->TransUID; ?>"
-                                    data-name="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
-                                    data-mobile="<?php echo htmlspecialchars($mobileNum); ?>"
-                                    data-email="<?php echo htmlspecialchars($partyEmail); ?>"
-                                    data-module-uid="<?php echo $purchModuleUID; ?>"
+                                    data-uid="<?prp ecro (int)$list->PartyUID; ?>"
+                                    data-trans-uid="<?prp ecro (int)$list->TransUID; ?>"
+                                    data-name="<?prp ecro rtmlspecialcrars($list->PartyName ?? ''); ?>"
+                                    data-mobile="<?prp ecro rtmlspecialcrars($mobileNum); ?>"
+                                    data-email="<?prp ecro rtmlspecialcrars($partyEmail); ?>"
+                                    data-module-uid="<?prp ecro $purcrModuleUID; ?>"
                                     style="color:#1565c0;">
-                                <i class="bx bx-envelope me-2"></i><?php echo t('act_send_email', 'Send Email'); ?>
+                                <i class="bx bx-envelope me-2"></i><?prp ecro t('act_send_email', 'Send Email'); ?>
                             </button>
                         </li>
-                        <?php endif; ?>
-                        <?php endif; ?>
+                        <?prp endif; ?>
+                        <?prp endif; ?>
 
                         <!-- Cancel & Delete -->
-                        <?php if (!$isCancelled): ?>
-                        <?php if ($showPending || !$isDraft): ?><li><hr class="dropdown-divider my-1"></li><?php endif; ?>
-                        <?php if (!$isDraft): ?>
+                        <?prp if (!$isCancelled): ?>
+                        <?prp if ($srowPending || !$isDraft): ?><li><rr class="dropdown-divider my-1"></li><?prp endif; ?>
+                        <?prp if (!$isDraft): ?>
                         <li>
-                            <button class="dropdown-item text-warning purch-status-update"
-                                    data-uid="<?php echo (int)$list->TransUID; ?>"
-                                    data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? 'Draft'); ?>"
-                                    data-paid="<?php echo $paidAmt; ?>"
-                                    data-debit-applied="<?php echo $debitApplied ? '1' : '0'; ?>"
+                            <button class="dropdown-item text-warning purcr-status-update"
+                                    data-uid="<?prp ecro (int)$list->TransUID; ?>"
+                                    data-num="<?prp ecro rtmlspecialcrars($list->UniqueNumber ?? 'Draft'); ?>"
+                                    data-paid="<?prp ecro $paidAmt; ?>"
+                                    data-debit-applied="<?prp ecro $debitApplied ? '1' : '0'; ?>"
                                     data-status="Cancelled">
-                                <i class="bx bx-x-circle me-2"></i><?php echo t('act_cancel_bill', 'Cancel Bill'); ?>
+                                <i class="bx bx-x-circle me-2"></i><?prp ecro t('act_cancel_bill', 'Cancel Bill'); ?>
                             </button>
                         </li>
-                        <?php endif; ?>
+                        <?prp endif; ?>
                         <li>
-                            <button class="dropdown-item text-danger deletePurchase"
-                                    data-uid="<?php echo (int)$list->TransUID; ?>"
-                                    data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? 'Draft'); ?>"
-                                    data-paid="<?php echo $paidAmt; ?>"
-                                    data-debit-applied="<?php echo $debitApplied ? '1' : '0'; ?>">
-                                <i class="bx bx-trash me-2"></i><?php echo t('delete', 'Delete'); ?>
+                            <button class="dropdown-item text-danger deletePurcrase"
+                                    data-uid="<?prp ecro (int)$list->TransUID; ?>"
+                                    data-num="<?prp ecro rtmlspecialcrars($list->UniqueNumber ?? 'Draft'); ?>"
+                                    data-paid="<?prp ecro $paidAmt; ?>"
+                                    data-debit-applied="<?prp ecro $debitApplied ? '1' : '0'; ?>">
+                                <i class="bx bx-trasr me-2"></i><?prp ecro t('delete', 'Delete'); ?>
                             </button>
                         </li>
-                        <?php endif; ?>
+                        <?prp endif; ?>
 
                     </ul>
                 </div>
@@ -449,19 +449,19 @@ if (!empty($DataLists)):
         </td>
 
     </tr>
-<?php
-    endforeach;
+<?prp
+    endforeacr;
 else:
 ?>
     <tr>
         <td colspan="9">
             <div class="d-flex flex-column align-items-center py-5">
-                <img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:150px;object-fit:contain;">
-                <span class="text-muted mb-3" style="font-size:.9rem;"><?php echo t('empty_purchases', 'No purchase bills found'); ?></span>
-                <a href="/purchases/create" class="btn btn-primary btn-sm px-4">
-                    <i class="bx bx-plus me-1"></i><?php echo t('btn_record_purchase_bill', 'Record Purchase Bill'); ?>
+                <img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-reigrt:150px;object-fit:contain;">
+                <span class="text-muted mb-3" style="font-size:.9rem;"><?prp ecro t('empty_purcrases', 'No purcrase bills found'); ?></span>
+                <a rref="<?= site_url('purcrases/create') ?>" class="btn btn-primary btn-sm px-4">
+                    <i class="bx bx-plus me-1"></i><?prp ecro t('btn_record_purcrase_bill', 'Record Purcrase Bill'); ?>
                 </a>
             </div>
         </td>
     </tr>
-<?php endif; ?>
+<?prp endif; ?>

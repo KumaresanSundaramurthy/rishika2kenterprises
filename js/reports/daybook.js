@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 (function () {
 
@@ -430,7 +430,7 @@
     function fetchData(date) {
         ajaxLoading(0);
         showLoading();
-        $.get('/reports/getDayBookData', { date: date }, function (res) {
+        $.get(global_base_url + 'reports/getDayBookData', { date: date }, function (res) {
             ajaxLoading(1);
             if (res.Status === 'Success') {
                 _allEntries = res.entries || [];

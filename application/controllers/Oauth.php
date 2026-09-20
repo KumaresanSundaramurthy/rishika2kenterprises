@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 /**
  * Oauth — Social login controller (Google & Facebook OAuth 2.0).
@@ -30,7 +30,7 @@ class Oauth extends CI_Controller {
 
         if (empty(getenv('GOOGLE_CLIENT_ID'))) {
             $this->session->set_flashdata('danger', 'Google sign-in is not configured.');
-            redirect('portal', 'refresh');
+            redirect('login', 'refresh');
             return;
         }
 
@@ -75,7 +75,7 @@ class Oauth extends CI_Controller {
                 ? 'Google sign-in was cancelled.'
                 : 'Google returned an error: ' . htmlspecialchars($googleError, ENT_QUOTES);
             $this->session->set_flashdata('danger', $msg);
-            redirect('portal', 'refresh');
+            redirect('login', 'refresh');
             return;
         }
 
@@ -86,13 +86,13 @@ class Oauth extends CI_Controller {
 
         if (empty($code)) {
             $this->session->set_flashdata('danger', 'Google did not return an authorisation code. Please try again.');
-            redirect('portal', 'refresh');
+            redirect('login', 'refresh');
             return;
         }
 
         if (empty($state) || $state !== $savedState) {
             $this->session->set_flashdata('danger', 'Security check failed (state mismatch). Please try again.');
-            redirect('portal', 'refresh');
+            redirect('login', 'refresh');
             return;
         }
 
@@ -129,11 +129,11 @@ class Oauth extends CI_Controller {
 
         } catch (ValidationException $e) {
             $this->session->set_flashdata('danger', $e->getMessage());
-            redirect('portal', 'refresh');
+            redirect('login', 'refresh');
         } catch (Exception $e) {
             notifyError('Oauth::googleCallback', $e);
             $this->session->set_flashdata('danger', $e->getMessage());
-            redirect('portal', 'refresh');
+            redirect('login', 'refresh');
         }
     }
 
@@ -146,7 +146,7 @@ class Oauth extends CI_Controller {
 
         if (empty(getenv('FACEBOOK_APP_ID'))) {
             $this->session->set_flashdata('danger', 'Facebook sign-in is not configured.');
-            redirect('portal', 'refresh');
+            redirect('login', 'refresh');
             return;
         }
 
@@ -178,7 +178,7 @@ class Oauth extends CI_Controller {
 
         if (empty($code) || empty($state) || $state !== $savedState) {
             $this->session->set_flashdata('danger', 'Facebook sign-in was cancelled or failed. Please try again.');
-            redirect('portal', 'refresh');
+            redirect('login', 'refresh');
             return;
         }
 
@@ -197,11 +197,11 @@ class Oauth extends CI_Controller {
 
         } catch (ValidationException $e) {
             $this->session->set_flashdata('danger', $e->getMessage());
-            redirect('portal', 'refresh');
+            redirect('login', 'refresh');
         } catch (Exception $e) {
             notifyError('Oauth::facebookCallback', $e);
             $this->session->set_flashdata('danger', $e->getMessage());
-            redirect('portal', 'refresh');
+            redirect('login', 'refresh');
         }
     }
 

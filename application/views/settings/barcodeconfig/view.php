@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php $this->load->view('common/header'); ?>
 
 <style>
@@ -38,7 +38,7 @@
                 <div class="container-xxl flex-grow-1 container-p-y">
 
                     <div class="d-flex justify-content-end mb-3">
-                        <a href="/products" class="btn btn-outline-secondary btn-sm"><i class="bx bx-package me-1"></i>Products</a>
+                        <a href="<?= site_url('products') ?>" class="btn btn-outline-secondary btn-sm"><i class="bx bx-package me-1"></i>Products</a>
                     </div>
 
                     <div class="card">

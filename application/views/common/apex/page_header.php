@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php if (!(isset($JwtData->GenSettings->StatsDefaultOpen) ? (bool)$JwtData->GenSettings->StatsDefaultOpen : true)): ?>
 <style>.apex-stats-strip{display:none}</style>
 <?php endif; ?>
@@ -88,12 +88,12 @@ foreach ($_qaMenus as $_qaMM) {
                             <div class="apex-qc-col-icon"><i class="bx bx-receipt"></i></div>
                             <span class="apex-qc-col-label">Sales</span>
                         </div>
-                        <?php if ($_qcHas('quotations')): ?><a href="/quotations/create" class="apex-qc-item"><i class="bx bx-notepad"></i>Quotation</a><?php endif; ?>
-                        <?php if ($_qcHas('proformainvoices')): ?><a href="/proformainvoices/create" class="apex-qc-item"><i class="bx bx-file-find"></i>Proforma Invoice</a><?php endif; ?>
-                        <?php if ($_qcHas('salesorders')): ?><a href="/salesorders/create" class="apex-qc-item"><i class="bx bx-cart-add"></i>Sales Order</a><?php endif; ?>
-                        <?php if ($_qcHas('invoices')): ?><a href="/invoices/create" class="apex-qc-item"><i class="bx bx-receipt"></i>Invoice</a><?php endif; ?>
-                        <?php if ($_qcHas('deliverychallans')): ?><a href="/deliverychallans/create" class="apex-qc-item"><i class="bx bx-package"></i>Delivery Challan</a><?php endif; ?>
-                        <?php if ($_qcHas('salesreturns')): ?><a href="/salesreturns/create" class="apex-qc-item"><i class="bx bx-revision"></i>Sales Return</a><?php endif; ?>
+                        <?php if ($_qcHas('quotations')): ?><a href="<?= site_url('quotations/create') ?>" class="apex-qc-item"><i class="bx bx-notepad"></i>Quotation</a><?php endif; ?>
+                        <?php if ($_qcHas('proformainvoices')): ?><a href="<?= site_url('proformainvoices/create') ?>" class="apex-qc-item"><i class="bx bx-file-find"></i>Proforma Invoice</a><?php endif; ?>
+                        <?php if ($_qcHas('salesorders')): ?><a href="<?= site_url('salesorders/create') ?>" class="apex-qc-item"><i class="bx bx-cart-add"></i>Sales Order</a><?php endif; ?>
+                        <?php if ($_qcHas('invoices')): ?><a href="<?= site_url('invoices/create') ?>" class="apex-qc-item"><i class="bx bx-receipt"></i>Invoice</a><?php endif; ?>
+                        <?php if ($_qcHas('deliverychallans')): ?><a href="<?= site_url('deliverychallans/create') ?>" class="apex-qc-item"><i class="bx bx-package"></i>Delivery Challan</a><?php endif; ?>
+                        <?php if ($_qcHas('salesreturns')): ?><a href="<?= site_url('salesreturns/create') ?>" class="apex-qc-item"><i class="bx bx-revision"></i>Sales Return</a><?php endif; ?>
                     </div>
                     <?php endif; ?>
                     <?php if ($_purchaseCol): ?>
@@ -102,9 +102,9 @@ foreach ($_qaMenus as $_qaMM) {
                             <div class="apex-qc-col-icon"><i class="bx bx-shopping-bag"></i></div>
                             <span class="apex-qc-col-label">Purchase</span>
                         </div>
-                        <?php if ($_qcHas('purchaseorders')): ?><a href="/purchaseorders/create" class="apex-qc-item"><i class="bx bx-list-ul"></i>Purchase Order</a><?php endif; ?>
-                        <?php if ($_qcHas('purchases')): ?><a href="/purchases/create" class="apex-qc-item"><i class="bx bx-shopping-bag"></i>Purchase</a><?php endif; ?>
-                        <?php if ($_qcHas('purchasereturns')): ?><a href="/purchasereturns/create" class="apex-qc-item"><i class="bx bx-transfer-alt"></i>Purchase Return</a><?php endif; ?>
+                        <?php if ($_qcHas('purchaseorders')): ?><a href="<?= site_url('purchaseorders/create') ?>" class="apex-qc-item"><i class="bx bx-list-ul"></i>Purchase Order</a><?php endif; ?>
+                        <?php if ($_qcHas('purchases')): ?><a href="<?= site_url('purchases/create') ?>" class="apex-qc-item"><i class="bx bx-shopping-bag"></i>Purchase</a><?php endif; ?>
+                        <?php if ($_qcHas('purchasereturns')): ?><a href="<?= site_url('purchasereturns/create') ?>" class="apex-qc-item"><i class="bx bx-transfer-alt"></i>Purchase Return</a><?php endif; ?>
                     </div>
                     <?php endif; ?>
                     <?php if ($_partyCol): ?>
@@ -113,15 +113,15 @@ foreach ($_qaMenus as $_qaMM) {
                             <div class="apex-qc-col-icon"><i class="bx bx-group"></i></div>
                             <span class="apex-qc-col-label">Party</span>
                         </div>
-                        <?php if ($_qcHas('customers')): ?><a href="/customers?action=create" class="apex-qc-item" data-qc-page="customers"><i class="bx bx-user-plus"></i>Customer</a><?php endif; ?>
-                        <?php if ($_qcHas('vendors')): ?><a href="/vendors?action=create" class="apex-qc-item" data-qc-page="vendors"><i class="bx bx-store"></i>Vendor</a><?php endif; ?>
+                        <?php if ($_qcHas('customers')): ?><a href="<?= site_url('customers') ?>?action=create" class="apex-qc-item" data-qc-page="customers"><i class="bx bx-user-plus"></i>Customer</a><?php endif; ?>
+                        <?php if ($_qcHas('vendors')): ?><a href="<?= site_url('vendors') ?>?action=create" class="apex-qc-item" data-qc-page="vendors"><i class="bx bx-store"></i>Vendor</a><?php endif; ?>
                         <?php if ($_qcHas('products')): ?>
                         <div class="apex-qc-subsection">
                             <div class="apex-qc-sub-header">
                                 <div class="apex-qc-sub-icon"><i class="bx bx-box"></i></div>
                                 <span class="apex-qc-sub-label">Inventory</span>
                             </div>
-                            <a href="/products?action=create" class="apex-qc-item" data-qc-page="products"><i class="bx bx-box"></i>Product</a>
+                            <a href="<?= site_url('products') ?>?action=create" class="apex-qc-item" data-qc-page="products"><i class="bx bx-box"></i>Product</a>
                         </div>
                         <?php endif; ?>
                     </div>
@@ -132,8 +132,8 @@ foreach ($_qaMenus as $_qaMM) {
                             <div class="apex-qc-col-icon"><i class="bx bx-wallet"></i></div>
                             <span class="apex-qc-col-label">Accounting</span>
                         </div>
-                        <?php if ($_qcHas('expenses')): ?><a href="/expenses/create" class="apex-qc-item"><i class="bx bx-money-withdraw"></i>Expense</a><?php endif; ?>
-                        <?php if ($_qcHas('indirectincome')): ?><a href="/indirectincome?action=create" class="apex-qc-item"><i class="bx bx-trending-up"></i>Indirect Income</a><?php endif; ?>
+                        <?php if ($_qcHas('expenses')): ?><a href="<?= site_url('expenses/create') ?>" class="apex-qc-item"><i class="bx bx-money-withdraw"></i>Expense</a><?php endif; ?>
+                        <?php if ($_qcHas('indirectincome')): ?><a href="<?= site_url('indirectincome') ?>?action=create" class="apex-qc-item"><i class="bx bx-trending-up"></i>Indirect Income</a><?php endif; ?>
                     </div>
                     <?php endif; ?>
                 </div>
@@ -206,17 +206,17 @@ foreach ($_qaMenus as $_qaMM) {
                     <?php endif; ?>
                 </div>
                 <div class="apex-user-dd-divider"></div>
-                <a href="/settings/profile" class="apex-user-dd-item">
+                <a href="<?= site_url('settings/profile') ?>" class="apex-user-dd-item">
                     <i class="bx bx-user"></i> <?php echo t('my_profile', 'My Profile'); ?>
                 </a>
-                <a href="/settings/generalsettings" class="apex-user-dd-item">
+                <a href="<?= site_url('settings/generalsettings') ?>" class="apex-user-dd-item">
                     <i class="bx bx-cog"></i> <?php echo t('settings', 'Settings'); ?>
                 </a>
                 <button class="apex-user-dd-item ChangePasswordBtn" type="button">
                     <i class="bx bx-lock"></i> <?php echo t('change_password', 'Change Password'); ?>
                 </button>
                 <div class="apex-user-dd-divider"></div>
-                <a href="/logout" class="apex-user-dd-item apex-user-dd-logout">
+                <a href="<?= site_url('logout') ?>" class="apex-user-dd-item apex-user-dd-logout">
                     <i class="bx bx-power-off"></i> <?php echo t('log_out', 'Log Out'); ?>
                 </a>
             </div>

@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 /**
  * Reusable signature picker partial — included in form_products_add.php.
  *
@@ -26,7 +26,7 @@ $_sigFromJwt    = isset($transSignatures) ? $transSignatures : null; // null = u
                 <div class="text-muted" style="font-size:.72rem;">Signature will appear on the printed document</div>
             </div>
         </div>
-        <a href="/settings/profile" target="_blank"
+        <a href="<?= site_url('settings/profile') ?>" target="_blank"
            class="d-flex align-items-center gap-1 text-decoration-none"
            style="font-size:.75rem;color:#696cff;font-weight:600;">
             <i class="bx bx-cog" style="font-size:.9rem;"></i>Manage Signatures
@@ -61,7 +61,7 @@ $_sigFromJwt    = isset($transSignatures) ? $transSignatures : null; // null = u
                     <div class="text-muted mb-2" style="font-size:.8rem;">
                         <i class="bx bx-info-circle me-1"></i>No signatures saved yet.
                     </div>
-                    <a href="/settings/profile" target="_blank" class="btn btn-sm btn-outline-primary">
+                    <a href="<?= site_url('settings/profile') ?>" target="_blank" class="btn btn-sm btn-outline-primary">
                         <i class="bx bx-plus me-1"></i>Add Signature
                     </a>
                 </div>

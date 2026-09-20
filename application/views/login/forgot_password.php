@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php $this->load->view('login/header'); ?>
 
@@ -355,7 +355,7 @@
                 <h2><span>RISHIKA 2K</span> ENTERPRISES</h2>
             </div>
 
-            <a href="/portal" class="lr-back">
+            <a href="<?= site_url('login') ?>" class="lr-back">
                 <i class="bx bx-arrow-back"></i> Back to Sign In
             </a>
 
@@ -410,7 +410,7 @@
             <?php echo form_close(); ?>
 
             <p class="lr-signin-link">
-                Remembered your password? <a href="/portal">Sign in here</a>
+                Remembered your password? <a href="<?= site_url('login') ?>">Sign in here</a>
             </p>
 
         </div>

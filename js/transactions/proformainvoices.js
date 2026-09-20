@@ -1,4 +1,4 @@
-// ── Pro Forma Invoices list — module-specific JS ──────────────────────────────
+﻿// ── Pro Forma Invoices list — module-specific JS ──────────────────────────────
 // Shared utilities (loadTransactionList, debounce, initTooltips) are in common.js
 
 // ── Select-all (Pattern 3) state ────────────────────────────────────────────
@@ -31,7 +31,7 @@ function deleteMultipleProformaInvoices() {
  */
 function getProFormaInvoicesDetails(pageNo, rowLimit, filter, afterLoad) {
     loadTransactionList({
-        url:            '/transactions/getPageDetails/113/',
+        url:            global_base_url + 'transactions/getPageDetails/113/',
         tabCountClass:  '.pf-tab-count',
         statusTabClass: '.pf-status-tab',
         errorMessage:   'Failed to load pro forma invoices.',

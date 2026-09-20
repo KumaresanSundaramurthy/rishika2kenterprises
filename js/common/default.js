@@ -1,4 +1,4 @@
-function t(key, fallback) {
+﻿function t(key, fallback) {
     var dict = window._appLang || {};
     var val  = dict[key];
     return (val !== undefined && val !== '') ? val : ((fallback !== undefined && fallback !== '') ? fallback : key);
@@ -262,7 +262,7 @@ $(document).ready(function () {
             confirmButtonText: 'View Plans',
             allowOutsideClick: false,
         }).then(function () {
-            window.location.href = '/subscription/expired';
+            window.location.href = global_base_url + 'subscription/expired';
         });
     });
 
@@ -419,7 +419,7 @@ $(document).ready(function () {
     $(document).on('click', '.apex-qc-item[data-qc-page]', function (e) {
         var $link   = $(this);
         var qcPage  = $link.data('qc-page');
-        var curPage = window.location.pathname.replace(/^\/+/, '').split('/')[0].toLowerCase();
+        var curPage = window.location.pathname.replace(_appBasePath, '').replace(/^\/+/, '').split('/')[0].toLowerCase();
         if (curPage !== qcPage) return;                         // different page — navigate normally
         if (typeof window._qcPageCreate !== 'function') return; // page didn't register a handler
         e.preventDefault();
@@ -440,7 +440,7 @@ $(document).ready(function () {
         if (qIdx === -1) return; // no query string — let normal navigation happen
         var hrefPath = href.substring(0, qIdx).replace(/^\/+/, '');
         var hrefQuery = href.substring(qIdx);
-        var currPath  = window.location.pathname.replace(/^\/+/, '');
+        var currPath  = window.location.pathname.replace(_appBasePath, '').replace(/^\/+/, '');
         if (hrefPath !== currPath) return; // different page — let navigate
         e.preventDefault();
         history.pushState(null, '', '/' + hrefPath + hrefQuery);
@@ -1218,7 +1218,7 @@ function resetUserPassword(formData) {
     $('#ResetPasswordSubBtn').prop('disabled', 'disabled');
 
     $.ajax({
-        url: '/login/resetPassword',
+        url: global_base_url + 'login/resetPassword',
         method: 'POST',
         data: formData,
         cache: false,
@@ -1229,7 +1229,7 @@ function resetUserPassword(formData) {
                 showToastNotification(response.Message, 'error');
             } else {
                 $('#ChangePasswordModal').modal('hide');
-                window.location.replace('/logout');
+                window.location.replace(global_base_url + 'logout');
             }
 
         }
@@ -1357,7 +1357,7 @@ function initializeFlatPickr(FieldName, IsModal) {
 function updatePageSettings(formdata) {
     $('#updatePageSettingsBtn').removeAttr('disabled');
     $.ajax({
-        url: '/globally/updatePageSettings',
+        url: global_base_url + 'globally/updatePageSettings',
         method: 'POST',
         data: formdata,
         cache: false,
@@ -2223,7 +2223,7 @@ $(function () {
         applyLang(lang);
         showToastNotification(t('toast_lang_changed', 'Language has been changed successfully'), 'success');
         ajaxLoading(0);
-        $.post('/users/updateLanguage', { UILanguage: lang }, function () {
+        $.post(global_base_url + 'users/updateLanguage', { UILanguage: lang }, function () {
             ajaxLoading(1);
         }, 'json').fail(function () {
             ajaxLoading(1);
@@ -2239,7 +2239,7 @@ $(document).on('click', '.nb-branch-item', function () {
 
     ajaxLoading(1);
     $.ajax({
-        url   : '/branches/switchBranch',
+        url   : global_base_url + 'branches/switchBranch',
         method: 'POST',
         data  : { BranchUID: uid },
         success: function (res) {
@@ -2291,7 +2291,7 @@ function loadCachedFilterData(cacheKey, fallbackUrl, useOrgKey) {
 
 /* ── Tab Idle Reload ─────────────────────────────────────────────────────────
  * When the user returns to this tab after being away for more than 30 minutes,
- * reload the page so the server can redirect to /portal if the session expired.
+ * reload the page so the server can redirect to /login if the session expired.
  * lastActiveTime is refreshed on any user interaction so genuine active sessions
  * are never disrupted mid-work.
  * ─────────────────────────────────────────────────────────────────────────── */

@@ -180,7 +180,7 @@ $_backUrl   = htmlspecialchars($backUrl ?? '/subscribe', ENT_QUOTES, 'UTF-8');
             <i class="bx bx-buildings"></i>
             <?php echo htmlspecialchars($orgName ?? ''); ?>
         </div>
-        <a href="/logout" class="spay-logout-link"><i class="bx bx-log-out"></i> Sign out</a>
+        <a href="<?= site_url('logout') ?>" class="spay-logout-link"><i class="bx bx-log-out"></i> Sign out</a>
     </div>
 
     <!-- Body -->
@@ -199,7 +199,7 @@ $_backUrl   = htmlspecialchars($backUrl ?? '/subscribe', ENT_QUOTES, 'UTF-8');
                         <div class="spay-card-title"><?php echo $_planName; ?></div>
                         <div class="spay-plan-meta"><?php echo $_cycle; ?> &middot; <?php echo $_days; ?> days</div>
                     </div>
-                    <a href="/billing/checkout/abandon?t=<?php echo urlencode($token ?? ''); ?>" class="spay-change-link spay-abandon-link">
+                    <a href="<?= site_url('billing/checkout/abandon') ?>?t=<?php echo urlencode($token ?? ''); ?>" class="spay-change-link spay-abandon-link">
                         <i class="bx bx-left-arrow-alt"></i> Change Plan
                     </a>
                 </div>
@@ -236,7 +236,7 @@ $_backUrl   = htmlspecialchars($backUrl ?? '/subscribe', ENT_QUOTES, 'UTF-8');
                     <span id="spayPaySpinner" style="display:none;"><span class="spay-spinner"></span></span>
                 </button>
 
-                <a href="/billing/checkout/abandon?t=<?php echo urlencode($token ?? ''); ?>" class="spay-return-link spay-abandon-link">
+                <a href="<?= site_url('billing/checkout/abandon') ?>?t=<?php echo urlencode($token ?? ''); ?>" class="spay-return-link spay-abandon-link">
                     Return later &amp; pay when ready
                 </a>
             </div>

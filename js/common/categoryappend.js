@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 /**
  * CategoryAppend — single source for item category data across all pages.
@@ -36,7 +36,7 @@ window.CategoryAppend = (function () {
 
     function _fromServer(onSuccess, onFail) {
         $.ajax({
-            url   : '/products/getCategoryOptions/',
+            url   : global_base_url + 'products/getCategoryOptions/',
             method: 'POST',
             cache : false,
             data  : { [CsrfName]: CsrfToken },
@@ -72,7 +72,7 @@ window.CategoryAppend = (function () {
             }
             ajaxLoading(1);
             $.ajax({
-                url     : '/products/syncCategoriesCache',
+                url     : global_base_url + 'products/syncCategoriesCache',
                 method  : 'POST',
                 data    : syncData,
                 complete: function () {

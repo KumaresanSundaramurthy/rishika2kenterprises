@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php
     /** @var CI_Controller&object{uri:CI_URI,input:CI_Input} $CI */
@@ -26,7 +26,7 @@
 <!-- Menu -->
 <aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme d-flex flex-column" data-bs-theme="dark" style="height: 100vh;">
     <div class="app-brand demo">
-        <a href="/dashboard" class="app-brand-link">
+        <a href="<?= site_url('dashboard') ?>" class="app-brand-link">
             <span class="app-brand-logo demo">
                 <img src="/images/logo/favicon_io/android-chrome-512x512-1.png" width="40px;" height="40px;" alt="<?php echo strtoupper(getSiteConfiguration()->MenuName); ?>" />
             </span>
@@ -44,7 +44,7 @@
 
         <!-- Dashboard -->
         <li class="menu-item <?php echo $ControllerName == "Dashboard" ? 'active' : ''; ?>">
-            <a href="/dashboard" class="menu-link">
+            <a href="<?= site_url('dashboard') ?>" class="menu-link">
                 <i class="menu-icon tf-icons bx bx-home-smile"></i>
                 <div data-i18n="Main Menu">Dashboard</div>
             </a>
@@ -60,7 +60,7 @@
 
                 $SubMenuData  = (count($UserSubModule) > 0) ? filterByMainMenuUID($UserSubModule, $MMVal->MainMenuUID) : [];
                 $isDirectLink = !empty($MMVal->IsDirectLink);
-                $directUrl    = $isDirectLink ? ('/' . ltrim($MMVal->DirectUrl ?? '', '/')) : null;
+                $directUrl    = $isDirectLink ? site_url(ltrim($MMVal->DirectUrl ?? '', '/')) : null;
 
                 // Only leaf (non-parent) submenu items represent actual pages — parent/group items
                 // can carry a ControllerName that falsely matches another page's controller.
@@ -154,13 +154,13 @@
             <span class="menu-header-text">Subscription</span>
         </li>
         <li class="menu-item <?php echo ($firstSeg === 'subscription' && $secondSeg === 'dashboard') ? 'active' : ''; ?>">
-            <a href="/subscription/dashboard" class="menu-link">
+            <a href="<?= site_url('subscription/dashboard') ?>" class="menu-link">
                 <i class="menu-icon tf-icons bx bx-credit-card"></i>
                 <div data-i18n="Subscription">Subscription</div>
             </a>
         </li>
         <li class="menu-item <?php echo ($firstSeg === 'subscription' && $secondSeg === 'plans') ? 'active' : ''; ?>">
-            <a href="/subscription/plans" class="menu-link">
+            <a href="<?= site_url('subscription/plans') ?>" class="menu-link">
                 <i class="menu-icon tf-icons bx bx-list-check"></i>
                 <div data-i18n="Plans">Plans</div>
             </a>

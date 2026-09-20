@@ -1,4 +1,4 @@
-// ──────────────────────────────────────────────────
+﻿// ──────────────────────────────────────────────────
 // Combo item search — via ProductAppend (Upstash → AJAX fallback)
 // ──────────────────────────────────────────────────
 var _comboItemsCache    = null; // null = not loaded yet
@@ -53,7 +53,7 @@ function _reinitComboItemSearch() {
             dropdownParent   : $('#comboItemModal'),
             minimumInputLength: 1,
             ajax: {
-                url         : '/products/getItemsForBOM',
+                url         : global_base_url + 'products/getItemsForBOM',
                 method      : 'POST',
                 dataType    : 'json',
                 delay       : 250,
@@ -221,7 +221,7 @@ $(document).ready(function () {
 
         // Lazy-load via AJAX
         $.ajax({
-            url: '/products/retrieveComboDetails',
+            url: global_base_url + 'products/retrieveComboDetails',
             method: 'POST',
             data: { ComboUID: uid, [CsrfName]: CsrfToken },
             success: function (response) {
@@ -410,7 +410,7 @@ function clearComboForm() {
 // ──────────────────────────────────────────────────
 function loadComboForEdit(comboUID) {
     $.ajax({
-        url: '/products/retrieveComboDetails',
+        url: global_base_url + 'products/retrieveComboDetails',
         method: 'POST',
         data: { ComboUID: comboUID, [CsrfName]: CsrfToken },
         success: function (response) {
@@ -455,7 +455,7 @@ function loadComboForEdit(comboUID) {
 // ──────────────────────────────────────────────────
 function addComboItemData(formData) {
     $.ajax({
-        url: '/products/addComboItem',
+        url: global_base_url + 'products/addComboItem',
         method: 'POST',
         data: formData,
         cache: false,
@@ -484,7 +484,7 @@ function addComboItemData(formData) {
 // ──────────────────────────────────────────────────
 function editComboItemData(formData) {
     $.ajax({
-        url: '/products/editComboItem',
+        url: global_base_url + 'products/editComboItem',
         method: 'POST',
         data: formData,
         cache: false,

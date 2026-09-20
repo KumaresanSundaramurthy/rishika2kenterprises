@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
@@ -33,7 +33,7 @@ class Middleware {
 		//check JWT
 		if (empty($JwtEncoded)) {
 			$CI->session->set_flashdata('warning', 'Your session has expired. Please sign in to continue.');
-			redirect('portal', 'refresh');
+			redirect('login', 'refresh');
         }
 
 		/* Billing checkout: allow up to 24 h of JWT clock skew so mid-payment
@@ -66,7 +66,7 @@ class Middleware {
 					}
 
 					$CI->session->set_flashdata('warning', 'Your session has expired. Please sign in to continue.');
-					redirect('portal', 'refresh');
+					redirect('login', 'refresh');
 
 				} else {
 
@@ -114,7 +114,7 @@ class Middleware {
 							}
 
 							$CI->session->set_flashdata('danger', 'Your session has been terminated as your account was logged in from another device or browser.');
-							redirect('portal', 'refresh');
+							redirect('login', 'refresh');
 						}
 					}
 					// ────────────────────────────────────────────────────────
@@ -271,23 +271,23 @@ class Middleware {
 
 			} else {
 				$CI->session->set_flashdata('warning', 'Your session has expired. Please sign in to continue.');
-				redirect('portal', 'refresh');
+				redirect('login', 'refresh');
 			}
 
 		} catch(\Firebase\JWT\ExpiredException $e) {
 
 			$CI->session->set_flashdata('warning', 'Your session has expired. Please sign in to continue.');
-			redirect('portal', 'refresh');
+			redirect('login', 'refresh');
 
 		} catch (\Firebase\JWT\SignatureInvalidException $e) {
 
 			$CI->session->set_flashdata('danger', 'Invalid session detected. Please sign in again.');
-			redirect('portal', 'refresh');
+			redirect('login', 'refresh');
 
 		} catch (Exception $e) {
 
 			$CI->session->set_flashdata('danger', 'An unexpected error occurred. Please sign in again.');
-			redirect('portal', 'refresh');
+			redirect('login', 'refresh');
 
         }
 

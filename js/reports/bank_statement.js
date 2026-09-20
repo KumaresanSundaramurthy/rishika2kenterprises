@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Bank Statement Report
  * Fetches payments chronologically and computes a running balance.
  * PartyType='C' (Customer receipt) = Credit (money IN).
@@ -174,7 +174,7 @@
 
         ajaxLoading(1);
         $.ajax({
-            url      : '/reports/getBankStatementData',
+            url      : global_base_url + 'reports/getBankStatementData',
             type     : 'GET',
             dataType : 'json',
             data     : { from: _from, to: _to, account: _accountUID },

@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 $orgName        = htmlspecialchars($org->Name ?? 'Your Organisation', ENT_QUOTES, 'UTF-8');
 $currentPlanUID = $subscription->SectorPlanUID ?? null;
@@ -506,7 +506,7 @@ if (!empty($monthly) && !empty($yearly)) {
 <div class="sr-root">
 
     <!-- Back to Login — fixed top-right -->
-    <a href="<?php echo base_url('portal'); ?>" class="sr-back">
+    <a href="<?php echo base_url('login'); ?>" class="sr-back">
         <i class="bx bx-arrow-back" style="font-size:14px;"></i> Back to Login
     </a>
 
@@ -684,7 +684,7 @@ if (!empty($monthly) && !empty($yearly)) {
     <div class="sr-success-icon"><i class="bx bx-check-circle"></i></div>
     <p class="sr-success-title">Subscription Activated!</p>
     <p class="sr-success-sub">Your plan is now active. You can log in to continue.</p>
-    <a href="<?php echo base_url('portal'); ?>" class="sr-success-btn">
+    <a href="<?php echo base_url('login'); ?>" class="sr-success-btn">
         <i class="bx bx-log-in"></i> Sign In Now
     </a>
 </div>

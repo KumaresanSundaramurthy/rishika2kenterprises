@@ -1,4 +1,4 @@
-// ── Purchase Order form — init, submit, and sticky bar ───────────────────────
+﻿// ── Purchase Order form — init, submit, and sticky bar ───────────────────────
 // PHP data is injected by form.php as window._transFormData before this file loads.
 
 var _cfg = window._transFormData || {};
@@ -201,7 +201,7 @@ $(function () {
             setFormLoading('#' + _formId, true, action);
 
             $.ajax({
-                url         : '/' + (_autoDraftUid > 0 ? (_cfg.updateAction || _cfg.formAction || '') : (_cfg.formAction || '')),
+                url         : global_base_url + '' + (_autoDraftUid > 0 ? (_cfg.updateAction || _cfg.formAction || '') : (_cfg.formAction || '')),
                 method      : 'POST',
                 data        : formData,
                 processData : false,

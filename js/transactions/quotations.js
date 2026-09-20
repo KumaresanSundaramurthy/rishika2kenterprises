@@ -1,4 +1,4 @@
-// ── Quotations list — module-specific JS ─────────────────────────────────────
+﻿// ── Quotations list — module-specific JS ─────────────────────────────────────
 // Shared utilities (loadTransactionList, debounce, initTooltips) are in common.js
 // Date helpers (getDateRange, formatDate) are in /js/common/datefilter.js
 
@@ -54,7 +54,7 @@ $(document).on('comm:switchedToEmail', function (e, moduleUID, recordUID) {
  */
 function _quotFetchPdfAjax(recordUID, moduleUID, filename, onSuccess) {
     $.ajax({
-        url   : '/transactions/getTransactionPdfBase64',
+        url   : global_base_url + 'transactions/getTransactionPdfBase64',
         method: 'POST',
         data  : { TransUID: recordUID, ModuleUID: moduleUID, PaperSize: 'A4', [CsrfName]: CsrfToken },
         success: function (resp) {
@@ -95,7 +95,7 @@ function deleteMultipleQuotations() {
 }
 
 var _quotConfig = {
-    url:            '/transactions/getPageDetails/101/',
+    url:            global_base_url + 'transactions/getPageDetails/101/',
     tabCountClass:  '.trans-tab-count',
     statusTabClass: '.quot-status-tab',
     errorMessage:   'Failed to load quotations.',

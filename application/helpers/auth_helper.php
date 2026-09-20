@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
@@ -33,7 +33,7 @@ function is_authenticated() {
  * Redirects to the login page if the user is not authenticated.
  * Use at the top of any controller method that needs auth without the Middleware hook.
  */
-function require_auth($redirectTo = 'portal') {
+function require_auth($redirectTo = 'login') {
     if (!is_authenticated()) {
         redirect($redirectTo, 'refresh');
     }

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Sales Summary Report
  * Fetches Invoice (103) vs Sales Return (106) data grouped by period.
  */
@@ -170,7 +170,7 @@
 
         ajaxLoading(1);
         $.ajax({
-            url      : '/reports/getSalesSummaryData',
+            url      : global_base_url + 'reports/getSalesSummaryData',
             type     : 'GET',
             dataType : 'json',
             data     : { from: _from, to: _to, groupby: _groupBy },

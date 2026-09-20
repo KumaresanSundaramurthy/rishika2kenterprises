@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 
 $this->load->view('common/transactions/header'); ?>
 
@@ -105,7 +105,7 @@ $this->load->view('common/transactions/header'); ?>
                                 </ul>
                             </div>
                             <?php $this->load->view('common/partials/export_btn'); ?>
-                            <a href="/invoices/create" class="btn btn-sm btn-primary flex-shrink-0" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('create_invoice', 'Create Invoice'); ?>"><i class="bx bx-plus me-1"></i><?php echo t('lbl_new', 'New'); ?></a>
+                            <a href="<?= site_url('invoices/create') ?>" class="btn btn-sm btn-primary flex-shrink-0" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('create_invoice', 'Create Invoice'); ?>"><i class="bx bx-plus me-1"></i><?php echo t('lbl_new', 'New'); ?></a>
                         </div>
 
                         <!-- ── Tabs Row ──────────────────────────────────── -->
@@ -419,12 +419,12 @@ $(function () {
     }
 
     // ── Create / Edit — inject returnTab + returnPage ──────────────────
-    $(document).on('click', 'a[href="/invoices/create"]', function (e) {
+    $(document).on('click', 'a[href="<?= site_url('invoices/create') ?>"]', function (e) {
         e.preventDefault();
         var params = new URLSearchParams();
         params.set('returnTab', Filter.Status || 'All');
         if (PageNo > 1) params.set('returnPage', PageNo);
-        window.location.href = '/invoices/create?' + params.toString();
+        window.location.href = global_base_url + 'invoices/create?' + params.toString();
     });
     $(document).on('click', 'a[href*="/invoices/"][href*="/edit"]', function (e) {
         e.preventDefault();

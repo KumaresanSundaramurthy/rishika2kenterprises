@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 (function () {
 
   var currentPage = 1;
@@ -7,7 +7,7 @@
   function loadPage(page, filter) {
     currentPage = page || 1;
     filterData  = filter || filterData;
-    $.post('/payslips/getPageDetails/' + currentPage, { Filter: filterData }, function (r) {
+    $.post(global_base_url + 'payslips/getPageDetails/' + currentPage, { Filter: filterData }, function (r) {
       if (!r.Error) {
         $('#PayslipTableBody').html(r.RecordHtmlData);
         $('#PayslipsPagination').html(r.Pagination);

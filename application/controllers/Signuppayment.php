@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 /**
  * Unified subscribe page controller — handles plan selection + Razorpay payment
@@ -18,7 +18,7 @@ class Signuppayment extends CI_Controller {
     public function index(): void {
         $jwtData = $this->pageData['JwtData'] ?? null;
         if (!$jwtData) {
-            redirect('portal', 'refresh');
+            redirect('login', 'refresh');
             return;
         }
 

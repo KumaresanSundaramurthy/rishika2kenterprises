@@ -1,7 +1,7 @@
-function updateProfileForm(formdata) {
+﻿function updateProfileForm(formdata) {
     var isPasswordUpdate = formdata.get('IsPasswordUpdate');
     $.ajax({
-        url: '/profile/updateProfileDetails',
+        url: global_base_url + 'profile/updateProfileDetails',
         method: 'POST',
         data: formdata,
         cache: false,
@@ -14,7 +14,7 @@ function updateProfileForm(formdata) {
             } else {
                 Swal.fire(response.Message, "", "success").then(() => {
                     if (isPasswordUpdate == 1) {
-                        window.location.href = '/logout';
+                        window.location.href = global_base_url + 'logout';
                     } else {
                         window.location.reload();
                     }

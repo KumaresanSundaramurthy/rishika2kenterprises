@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 /**
  * ProductAppend — single source for product data on all transaction pages.
@@ -134,7 +134,7 @@ window.ProductAppend = (function () {
 
     function _fromServer(onSuccess, onFail) {
         $.ajax({
-            url     : '/transactions/searchTransProducts',
+            url     : global_base_url + 'transactions/searchTransProducts',
             dataType: 'json',
             data    : { term: '', type: 'public' },
             success : function (data) {
@@ -171,7 +171,7 @@ window.ProductAppend = (function () {
             }
             ajaxLoading(1);
             $.ajax({
-                url     : '/products/syncProductsCache',
+                url     : global_base_url + 'products/syncProductsCache',
                 method  : 'POST',
                 data    : syncData,
                 complete: function () {

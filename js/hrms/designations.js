@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 (function () {
 
   var currentPage        = 1;
@@ -9,7 +9,7 @@
   function loadPage(page, filter) {
     currentPage = page || 1;
     filterData  = filter || filterData;
-    $.post('/designations/getPageDetails/' + currentPage, { Filter: filterData }, function (r) {
+    $.post(global_base_url + 'designations/getPageDetails/' + currentPage, { Filter: filterData }, function (r) {
       if (!r.Error) {
         $('#DesigTableBody').html(r.RecordHtmlData);
         $('#DesignationsPagination').html(r.Pagination);
@@ -63,7 +63,7 @@
     var $spinner = $('<span class="spinner-border spinner-border-sm me-1" role="status"></span>');
     $btn.prepend($spinner);
 
-    $.post('/designations/save', payload, function (r) {
+    $.post(global_base_url + 'designations/save', payload, function (r) {
       $spinner.remove();
       $btn.prop('disabled', false);
       if (!r.Error) {
@@ -85,7 +85,7 @@
   // Delete
   $(document).on('click', '.desig-delete-btn', function () {
     if (!confirm('Delete this designation?')) return;
-    $.post('/designations/delete', { DesignationUID: $(this).data('uid') }, function (r) {
+    $.post(global_base_url + 'designations/delete', { DesignationUID: $(this).data('uid') }, function (r) {
       if (!r.Error) { showToastNotification('Deleted.', 'success'); loadPage(currentPage); }
       else showToastNotification(r.Message || 'Cannot delete — it may be in use.', 'error');
     });

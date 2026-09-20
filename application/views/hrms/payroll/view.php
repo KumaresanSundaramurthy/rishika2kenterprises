@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php $this->load->view('common/header'); ?>
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
   <div class="layout-container">
@@ -12,7 +12,7 @@
         <div class="container-xxl flex-grow-1 container-p-y">
 
           <div class="d-flex justify-content-end mb-3">
-            <a href="/payroll/process" class="btn btn-sm btn-primary"><i class="bx bx-plus me-1"></i><?php echo t('btn_process_payroll', 'Process Payroll'); ?></a>
+            <a href="<?= site_url('payroll/process') ?>" class="btn btn-sm btn-primary"><i class="bx bx-plus me-1"></i><?php echo t('btn_process_payroll', 'Process Payroll'); ?></a>
           </div>
 
           <!-- Stat cards -->

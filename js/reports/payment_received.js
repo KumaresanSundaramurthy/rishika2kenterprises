@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Payment Received Report
  * Lists all customer receipts for the selected date range.
  */
@@ -136,7 +136,7 @@
 
         ajaxLoading(1);
         $.ajax({
-            url      : '/reports/getPaymentReceivedData',
+            url      : global_base_url + 'reports/getPaymentReceivedData',
             type     : 'GET',
             dataType : 'json',
             data     : { from: _from, to: _to },

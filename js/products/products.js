@@ -1,4 +1,4 @@
-window._r2kSimpleOverlay = true;
+﻿window._r2kSimpleOverlay = true;
 
 var _prodPageRefreshing = false;
 
@@ -81,7 +81,7 @@ function showTabSpinner(tableSelector, paginationSelector) {
  */
 function toggleProductStatus(ProductUID, IsActive) {
     $.ajax({
-        url: '/products/toggleProductStatus',
+        url: global_base_url + 'products/toggleProductStatus',
         method: 'POST',
         cache: false,
         data: {
@@ -120,7 +120,7 @@ function getProductDetails(PageNo, RowLimit, Filter) {
     }
     showTabSpinner(ProdTable, ProdPag);
     $.ajax({
-        url: '/products/getProductList',
+        url: global_base_url + 'products/getProductList',
         method: "POST",
         cache: false,
         data: {
@@ -163,7 +163,7 @@ function getGroupDetails(PageNo, RowLimit, Filter) {
     }
     showTabSpinner(GroupTable, GroupPag);
     $.ajax({
-        url: '/products/getGroupList',
+        url: global_base_url + 'products/getGroupList',
         method: 'POST',
         cache: false,
         data: {
@@ -213,7 +213,7 @@ function retrieveProductDetails(ItemUID, CloneFlag) {
 
 function deleteProduct(ProductUID) {
     $.ajax({
-        url: '/products/deleteProductDetails',
+        url: global_base_url + 'products/deleteProductDetails',
         method: "POST",
         cache: false,
         data: {
@@ -271,7 +271,7 @@ function deleteMultipleProduct() {
         };
     }
     $.ajax({
-        url: '/products/deleteBulkProduct',
+        url: global_base_url + 'products/deleteBulkProduct',
         method: "POST",
         cache: false,
         data: postData,
@@ -382,7 +382,7 @@ function getPriceListDetails(PageNo, RowLimit, Filter) {
     }
     showTabSpinner(PLTable, PLPag);
     $.ajax({
-        url: '/products/getPriceListData',
+        url: global_base_url + 'products/getPriceListData',
         method: 'POST',
         cache: false,
         data: { RowLimit: RowLimit, PageNo: PageNo, Filter: Filter, [CsrfName]: CsrfToken },
@@ -412,7 +412,7 @@ function getCategoriesDetails(PageNo, RowLimit, Filter) {
     }
     showTabSpinner(CatgTable, CatgPag);
     $.ajax({
-        url: '/products/getCategoryList',
+        url: global_base_url + 'products/getCategoryList',
         method: "POST",
         cache: false,
         data: {
@@ -446,7 +446,7 @@ function getCategoriesDetails(PageNo, RowLimit, Filter) {
 
 function addCategoryDetails(formdata, onSuccess) {
     $.ajax({
-        url: '/products/addCategoryDetails',
+        url: global_base_url + 'products/addCategoryDetails',
         method: 'POST',
         data: formdata,
         cache: false,
@@ -482,7 +482,7 @@ function addCategoryDetails(formdata, onSuccess) {
 
 function retrieveCategoryDetails(CategoryUID) {
     $.ajax({
-        url: '/products/retrieveCategoryDetails',
+        url: global_base_url + 'products/retrieveCategoryDetails',
         method: "POST",
         cache: false,
         data: {
@@ -510,7 +510,7 @@ function retrieveCategoryDetails(CategoryUID) {
 
 function editCategoryDetails(formdata, onSuccess) {
     $.ajax({
-        url: '/products/updateCategoryDetails',
+        url: global_base_url + 'products/updateCategoryDetails',
         method: 'POST',
         data: formdata,
         cache: false,
@@ -541,7 +541,7 @@ function catgAttachTrigger(e) { _attachZoneTrigger('Category', e); }
 
 function deleteCategory(CategoryUID) {
     $.ajax({
-        url: '/products/deleteCategoryDetails',
+        url: global_base_url + 'products/deleteCategoryDetails',
         method: "POST",
         cache: false,
         data: {
@@ -575,7 +575,7 @@ function deleteCategory(CategoryUID) {
 
 function deleteMultipleCategory() {
     $.ajax({
-        url: '/products/deleteBulkCategory',
+        url: global_base_url + 'products/deleteBulkCategory',
         method: "POST",
         cache: false,
         data: {
@@ -648,7 +648,7 @@ function getBrandsDetails(PageNo, RowLimit, Filter) {
     }
     showTabSpinner(BrandTable, BrandPag);
     $.ajax({
-        url: '/products/getBrandList',
+        url: global_base_url + 'products/getBrandList',
         method: 'POST',
         cache: false,
         data: { RowLimit: RowLimit, PageNo: PageNo, Filter: Filter, [CsrfName]: CsrfToken },
@@ -681,7 +681,7 @@ function getBrandsDetails(PageNo, RowLimit, Filter) {
  */
 function addBrandDetails(formdata, onSuccess) {
     $.ajax({
-        url: '/products/addBrandDetails',
+        url: global_base_url + 'products/addBrandDetails',
         method: 'POST',
         data: formdata,
         cache: false,
@@ -712,7 +712,7 @@ function addBrandDetails(formdata, onSuccess) {
  */
 function editBrandDetails(formdata, onSuccess) {
     $.ajax({
-        url: '/products/updateBrandDetails',
+        url: global_base_url + 'products/updateBrandDetails',
         method: 'POST',
         data: formdata,
         cache: false,
@@ -742,7 +742,7 @@ function editBrandDetails(formdata, onSuccess) {
  */
 function deleteBrand(BrandUID) {
     $.ajax({
-        url: '/products/deleteBrandDetails',
+        url: global_base_url + 'products/deleteBrandDetails',
         method: 'POST',
         cache: false,
         data: {
@@ -774,7 +774,7 @@ function deleteBrand(BrandUID) {
  */
 function deleteMultipleBrand() {
     $.ajax({
-        url: '/products/deleteBulkBrand',
+        url: global_base_url + 'products/deleteBulkBrand',
         method: 'POST',
         cache: false,
         data: {
@@ -804,7 +804,7 @@ function deleteMultipleBrand() {
  */
 function deleteMultiplePriceList() {
     $.ajax({
-        url: '/products/deleteBulkPriceList',
+        url: global_base_url + 'products/deleteBulkPriceList',
         method: 'POST',
         cache: false,
         data: {
@@ -878,7 +878,7 @@ function getSizesDetails(PageNo, RowLimit, Filter) {
     }
     showTabSpinner(SizeTable, SizePag);
     $.ajax({
-        url: '/products/getSizeList',
+        url: global_base_url + 'products/getSizeList',
         method: 'POST',
         cache: false,
         data: { RowLimit: RowLimit, PageNo: PageNo, Filter: Filter, [CsrfName]: CsrfToken },
@@ -911,7 +911,7 @@ function getSizesDetails(PageNo, RowLimit, Filter) {
  */
 function addSizeListDetails(formdata, onSuccess) {
     $.ajax({
-        url: '/products/addSizeDetails',
+        url: global_base_url + 'products/addSizeDetails',
         method: 'POST',
         cache: false,
         data: formdata,
@@ -939,7 +939,7 @@ function addSizeListDetails(formdata, onSuccess) {
  */
 function editSizeListDetails(formdata, onSuccess) {
     $.ajax({
-        url: '/products/updateSizeDetails',
+        url: global_base_url + 'products/updateSizeDetails',
         method: 'POST',
         cache: false,
         data: formdata,
@@ -966,7 +966,7 @@ function editSizeListDetails(formdata, onSuccess) {
  */
 function deleteSizeItem(SizeUID) {
     $.ajax({
-        url: '/products/deleteSizeDetails',
+        url: global_base_url + 'products/deleteSizeDetails',
         method: 'POST',
         cache: false,
         data: {
@@ -998,7 +998,7 @@ function deleteSizeItem(SizeUID) {
  */
 function deleteMultipleSize() {
     $.ajax({
-        url: '/products/deleteBulkSize',
+        url: global_base_url + 'products/deleteBulkSize',
         method: 'POST',
         cache: false,
         data: {
@@ -1217,7 +1217,7 @@ function refreshSearchStorage($this) {
     ajaxLoading(0);
     $('#storageFilterBox').html('<div class="d-flex justify-content-center align-items-center p-3"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>');
     $.ajax({
-        url: '/storage/getAllStorage/',
+        url: global_base_url + 'storage/getAllStorage/',
         method: "POST",
         cache: false,
         success: function (response) {
@@ -1489,7 +1489,7 @@ function _escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&
 
 function _attachLoadExisting(entityType, entityUID) {
     if (!entityUID) return;
-    $.get('/products/getAttachments', { EntityType: entityType, EntityUID: entityUID }, function(resp) {
+    $.get(global_base_url + 'products/getAttachments', { EntityType: entityType, EntityUID: entityUID }, function(resp) {
         if (resp && !resp.Error) { _attachState[entityType].existing = resp.Attachments||[]; _attachRender(entityType); }
     });
 }
@@ -1616,7 +1616,7 @@ $(document).on('click', '.BrandStockModalBtn', function (e) {
 
     ajaxLoading(0);
     $.ajax({
-        url   : '/products/getVariantStock',
+        url   : global_base_url + 'products/getVariantStock',
         method: 'POST',
         data  : { ProductUID: uid, [CsrfName]: CsrfToken },
         /**

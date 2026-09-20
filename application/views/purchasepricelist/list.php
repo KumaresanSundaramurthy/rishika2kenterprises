@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 $JwtData      = $JwtData      ?? null;
 $DataLists    = $DataLists    ?? [];
@@ -45,7 +45,7 @@ foreach ($DataLists as $i => $row):
     <td class="r2k-sl-col"><?php echo $SerialNumber + $i + 1; ?></td>
 
     <td>
-        <a href="/purchasepricelist/view/<?php echo (int)$row->PriceListUID; ?>" class="fw-semibold small">
+        <a href="<?= site_url('purchasepricelist/view/') ?><?php echo (int)$row->PriceListUID; ?>" class="fw-semibold small">
             <?php echo htmlspecialchars($row->ItemName ?? '—'); ?>
         </a>
         <?php if (!empty($row->SKU)): ?>
@@ -95,7 +95,7 @@ foreach ($DataLists as $i => $row):
 
     <td>
         <?php if (!empty($row->LastTransUID)): ?>
-            <a href="/purchases/view/<?php echo (int)$row->LastTransUID; ?>" class="text-primary fw-semibold small" target="_blank">
+            <a href="<?= site_url('purchases/view/') ?><?php echo (int)$row->LastTransUID; ?>" class="text-primary fw-semibold small" target="_blank">
                 <?php echo htmlspecialchars($row->LastUniqueNumber ?? '—'); ?>
             </a>
         <?php else: ?>

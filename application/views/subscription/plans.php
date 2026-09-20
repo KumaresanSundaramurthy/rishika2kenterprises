@@ -494,7 +494,7 @@
                     <div class="spl-hero-body">
                         <!-- Breadcrumb nav row -->
                         <div class="spl-hero-nav">
-                            <a href="/subscription/dashboard" class="spl-hero-back">
+                            <a href="<?= site_url('subscription/dashboard') ?>" class="spl-hero-back">
                                 <i class="bx bx-chevron-left"></i> My Subscription
                             </a>
                             <span class="spl-hero-sep"><i class="bx bx-chevron-right" style="font-size:.7rem;"></i></span>

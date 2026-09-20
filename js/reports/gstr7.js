@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
     'use strict';
 
     var _dec  = (typeof genSettings !== 'undefined' && genSettings.DecimalPlaces != null) ? parseInt(genSettings.DecimalPlaces, 10) : 2;
@@ -140,7 +140,7 @@
             '</td></tr>';
         document.getElementById('g7TableFoot').classList.add('d-none');
 
-        $.get('/reports/getGstr7Data', { from: from, to: to })
+        $.get(global_base_url + 'reports/getGstr7Data', { from: from, to: to })
             .done(function (res) {
                 if (res.Status !== 'Success') {
                     document.getElementById('g7TableBody').innerHTML =

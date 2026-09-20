@@ -1,4 +1,4 @@
-// ── Expenses list — module-specific JS ────────────────────────────────────────
+﻿// ── Expenses list — module-specific JS ────────────────────────────────────────
 // Shared utilities (loadTransactionList, debounce, initTooltips) are in common.js
 
 // ── Select-all (Pattern 3) state ────────────────────────────────────────────
@@ -56,7 +56,7 @@ function deleteMultipleExpenses() {
         ? { SelectAll: 1, Filter: JSON.stringify(Filter), [CsrfName]: CsrfToken }
         : { 'ExpenseUIDs[]': SelectedUIDs, [CsrfName]: CsrfToken };
     $.ajax({
-        url   : '/expenses/deleteMultipleExpenses',
+        url   : global_base_url + 'expenses/deleteMultipleExpenses',
         method: 'POST',
         cache : false,
         data  : postData,
@@ -77,7 +77,7 @@ function deleteMultipleExpenses() {
 
 function getExpensesDetails(pageNo, rowLimit, filter) {
     loadTransactionList({
-        url:            '/expenses/getPageDetails/',
+        url:            global_base_url + 'expenses/getPageDetails/',
         tabCountClass:  '.exp-tab-count',
         statusTabClass: '.exp-status-tab',
         errorMessage:   'Failed to load expenses.',

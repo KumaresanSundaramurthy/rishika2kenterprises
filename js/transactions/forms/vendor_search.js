@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Vendor Search — shared across all purchase-side transaction pages.
  *
  * searchVendors(key)  — initialises the vendor Select2 dropdown on the element
@@ -182,7 +182,7 @@ function searchVendors(key) {
                         },
                         error: function () {
                             $.ajax({
-                                url: '/transactions/searchVendors',
+                                url: global_base_url + 'transactions/searchVendors',
                                 dataType: 'json',
                                 data: { term: (params.data && params.data.term) || '', type: 'public' },
                                 success: function (data) { ajaxLoading(1); success(data); },
@@ -192,7 +192,7 @@ function searchVendors(key) {
                     });
                 } else {
                     $.ajax({
-                        url: '/transactions/searchVendors',
+                        url: global_base_url + 'transactions/searchVendors',
                         dataType: 'json',
                         data: { term: (params.data && params.data.term) || '', type: 'public' },
                         success: function (data) { ajaxLoading(1); success(data); },
@@ -581,7 +581,7 @@ function searchVendors(key) {
     // ── AJAX fallback (Upstash unavailable or empty) ──────────────────────────
     function _fallbackAjax() {
         $.ajax({
-            url:    '/vendors/getVendorSearchList',
+            url:    global_base_url + 'vendors/getVendorSearchList',
             method: 'POST',
             data:   { PageNo: currentPage, RowLimit: PAGE_SIZE, Search: searchTerm, [CsrfName]: CsrfToken },
             success: function (r) {
@@ -772,7 +772,7 @@ $(function () {
         if (!line1) { showToastNotification('Address Line 1 is required.', 'error'); return; }
         ajaxLoading(1);
         $.ajax({
-            url    : '/vendors/updateBillingAddress',
+            url    : global_base_url + 'vendors/updateBillingAddress',
             method : 'POST',
             data   : { VendorUID: addr.vendorUID, Line1: line1, Line2: line2, StateId: stateId, StateText: stateText, CityId: cityId, CityText: cityText, Pincode: pincode },
             success: function (resp) {

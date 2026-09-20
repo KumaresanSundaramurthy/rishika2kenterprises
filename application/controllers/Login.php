@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
@@ -14,7 +14,7 @@ class Login extends CI_Controller {
     }
 
     public function index() {
-        redirect('portal', 'refresh');
+        redirect('login', 'refresh');
     }
 
     public function login() {
@@ -328,7 +328,7 @@ class Login extends CI_Controller {
             $this->session->set_flashdata('danger', $e->getMessage());
         }
 
-        redirect('portal', 'refresh');
+        redirect('login', 'refresh');
 
     }
 
@@ -588,7 +588,7 @@ class Login extends CI_Controller {
             $this->_sendPasswordChangedEmail($tokenInfo);
 
             $this->session->set_flashdata('success', 'Password updated successfully. You can now sign in.');
-            redirect('portal', 'refresh');
+            redirect('login', 'refresh');
 
         } catch (Exception $e) {
             notifyError('Login::doForgotReset', $e);
@@ -717,7 +717,7 @@ class Login extends CI_Controller {
             $firstName = htmlspecialchars($tokenInfo->FirstName ?? 'User', ENT_QUOTES, 'UTF-8');
             $email     = $tokenInfo->EmailAddress;
             $changedAt = date('d M Y, h:i A');
-            $loginUrl  = base_url('portal');
+            $loginUrl  = base_url('login');
 
             $body = '<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
@@ -828,7 +828,7 @@ class Login extends CI_Controller {
         $exp = (int)($this->session->userdata('force_pw_exp') ?? 0);
 
         if (!$uid || time() > $exp) {
-            redirect('portal', 'refresh');
+            redirect('login', 'refresh');
             return;
         }
 
@@ -869,7 +869,7 @@ class Login extends CI_Controller {
             $this->session->unset_userdata('force_pw_exp');
 
             $this->session->set_flashdata('success', 'Password updated. Please sign in with your new password.');
-            redirect('portal', 'refresh');
+            redirect('login', 'refresh');
             return;
         }
 
@@ -1174,7 +1174,7 @@ class Login extends CI_Controller {
 
 		}
 
-		redirect('portal', 'refresh');
+		redirect('login', 'refresh');
 
     }
 

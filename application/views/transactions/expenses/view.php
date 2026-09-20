@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 $this->load->view('common/transactions/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -107,7 +107,7 @@ $this->load->view('common/transactions/header'); ?>
                             <button type="button" class="btn btn-sm btn-outline-secondary" id="expManageCatBtn">
                                 <i class="bx bx-category me-1"></i>Categories
                             </button>
-                            <a href="/expenses/create" class="btn btn-primary">
+                            <a href="<?= site_url('expenses/create') ?>" class="btn btn-primary">
                                 <i class="bx bx-plus me-1"></i>Add Expense
                             </a>
                         </div>
@@ -1156,7 +1156,7 @@ $(function () {
 
     // Open for Edit
     $(document).on('click', '.expEdit', function () {
-        window.location.href = '/expenses/edit/' + $(this).data('uid');
+        window.location.href = global_base_url + 'expenses/edit/' + $(this).data('uid');
     });
 
     // (legacy getExpenseDetail kept for detail panel; modal path removed)

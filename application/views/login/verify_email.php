@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -123,13 +123,13 @@ body {
         <div class="icon icon-success">✓</div>
         <div class="title title-success">Email Verified!</div>
         <p class="msg"><?php echo htmlspecialchars($message); ?></p>
-        <a href="/portal" class="btn-login">Go to Login</a>
+        <a href="<?= site_url('login') ?>" class="btn-login">Go to Login</a>
 
     <?php elseif ($status === 'already_verified'): ?>
         <div class="icon icon-verified">✓</div>
         <div class="title title-verified">Already Verified</div>
         <p class="msg"><?php echo htmlspecialchars($message); ?></p>
-        <a href="/portal" class="btn-login">Go to Login</a>
+        <a href="<?= site_url('login') ?>" class="btn-login">Go to Login</a>
 
     <?php elseif ($status === 'expired'): ?>
         <div class="icon icon-expired">⏱</div>
@@ -142,13 +142,13 @@ body {
             <div id="resendStatus" class="resend-status"></div>
         </div>
         <hr class="divider">
-        <a href="/portal" class="btn-login">Go to Login</a>
+        <a href="<?= site_url('login') ?>" class="btn-login">Go to Login</a>
 
     <?php else: ?>
         <div class="icon icon-invalid">✕</div>
         <div class="title title-invalid">Invalid Link</div>
         <p class="msg"><?php echo htmlspecialchars($message); ?></p>
-        <a href="/portal" class="btn-login">Go to Login</a>
+        <a href="<?= site_url('login') ?>" class="btn-login">Go to Login</a>
 
     <?php endif; ?>
 

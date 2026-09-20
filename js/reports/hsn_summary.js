@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
     'use strict';
 
     var _dec  = (typeof genSettings !== 'undefined' && genSettings.DecimalPlaces != null) ? parseInt(genSettings.DecimalPlaces, 10) : 2;
@@ -122,7 +122,7 @@
             '</td></tr>';
         document.getElementById('hsnTableFoot').classList.add('d-none');
 
-        $.get('/reports/getHsnData', { from: from, to: to })
+        $.get(global_base_url + 'reports/getHsnData', { from: from, to: to })
             .done(function (res) {
                 if (res.Status !== 'Success') {
                     document.getElementById('hsnTableBody').innerHTML =

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * P&L Statement Report
  * Income (LedgerType='Income'): Net = PeriodCredit − PeriodDebit
  * Expense (LedgerType='Expense'): Net = PeriodDebit − PeriodCredit
@@ -134,7 +134,7 @@
 
         ajaxLoading(1);
         $.ajax({
-            url      : '/reports/getPLStatementData',
+            url      : global_base_url + 'reports/getPLStatementData',
             type     : 'GET',
             dataType : 'json',
             data     : { from: _from, to: _to },

@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
     'use strict';
 
     var _dec  = (typeof genSettings !== 'undefined' && genSettings.DecimalPlaces != null) ? parseInt(genSettings.DecimalPlaces, 10) : 2;
@@ -129,7 +129,7 @@
             if (el) el.textContent = '—';
         });
 
-        $.get('/reports/getGstr3bData', { month: month, year: year })
+        $.get(global_base_url + 'reports/getGstr3bData', { month: month, year: year })
             .done(function (res) {
                 if (res.Status !== 'Success') {
                     document.getElementById('g3LiabTotal').textContent = 'Error';

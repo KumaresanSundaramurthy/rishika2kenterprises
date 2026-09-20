@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
     'use strict';
 
     var _sym = (genSettings && genSettings.CurrenySymbol) ? genSettings.CurrenySymbol : '₹';
@@ -111,7 +111,7 @@
         document.getElementById('vsTblFooter').classList.add('d-none');
 
         $.ajax({
-            url: '/reports/getVariantStockData',
+            url: global_base_url + 'reports/getVariantStockData',
             type: 'GET',
             dataType: 'json',
             success: function (res) {

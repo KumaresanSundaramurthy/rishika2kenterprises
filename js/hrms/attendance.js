@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 (function () {
 
   var currentPage = 1;
@@ -10,7 +10,7 @@
     filterData  = filter || filterData;
     pendingChanges = {};
     $('#btnSaveAttendance').hide();
-    $.post('/attendance/getPageDetails/' + currentPage, { Filter: filterData }, function (r) {
+    $.post(global_base_url + 'attendance/getPageDetails/' + currentPage, { Filter: filterData }, function (r) {
       if (!r.Error) {
         $('#AttendanceTableBody').html(r.RecordHtmlData);
         $('#AttendancePagination').html(r.Pagination);
@@ -90,7 +90,7 @@
     if (!records.length) return;
     $(this).prop('disabled', true).text('Saving…');
     var self = this;
-    $.post('/attendance/saveBulk', { Records: records }, function (r) {
+    $.post(global_base_url + 'attendance/saveBulk', { Records: records }, function (r) {
       $(self).prop('disabled', false).text('Save Changes');
       if (!r.Error) {
         toastr.success(r.Message || 'Attendance saved.');

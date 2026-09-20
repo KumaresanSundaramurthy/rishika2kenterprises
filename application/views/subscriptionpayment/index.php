@@ -240,7 +240,7 @@ $_token     = htmlspecialchars($token ?? '');
             <i class="bx bx-buildings"></i>
             <?php echo htmlspecialchars($orgName ?? ''); ?>
         </div>
-        <a href="/logout" class="spay-logout-link"><i class="bx bx-log-out"></i> Sign out</a>
+        <a href="<?= site_url('logout') ?>" class="spay-logout-link"><i class="bx bx-log-out"></i> Sign out</a>
     </div>
 
     <!-- Body -->
@@ -248,7 +248,7 @@ $_token     = htmlspecialchars($token ?? '');
 
         <!-- Back link -->
         <div class="spay-back">
-            <a href="/subscribe"><i class="bx bx-left-arrow-alt"></i> Change Plan</a>
+            <a href="<?= site_url('subscribe') ?>"><i class="bx bx-left-arrow-alt"></i> Change Plan</a>
         </div>
 
         <!-- Payment card -->
@@ -298,7 +298,7 @@ $_token     = htmlspecialchars($token ?? '');
                     <span id="spayPaySpinner" style="display:none;"><span class="spay-spinner"></span></span>
                 </button>
 
-                <a href="/subscribe"
+                <a href="<?= site_url('subscribe') ?>"
                    style="display:block;text-align:center;font-size:0.78rem;color:rgba(160,190,215,.35);text-decoration:none;transition:color .2s;"
                    onmouseover="this.style.color='rgba(160,190,215,.7)'"
                    onmouseout="this.style.color='rgba(160,190,215,.35)'">

@@ -1,4 +1,4 @@
-// ── Sales Return form — init, submit, and sticky bar ─────────────────────────
+﻿// ── Sales Return form — init, submit, and sticky bar ─────────────────────────
 // PHP data is injected by form.php as window._transFormData before this file loads.
 
 var _cfg = window._transFormData || {};
@@ -50,7 +50,7 @@ $(function () {
         $spinner.removeClass('d-none');
         ajaxLoading(0);
         $.ajax({
-            url    : '/salesreturns/getCustomerInvoices',
+            url    : global_base_url + 'salesreturns/getCustomerInvoices',
             method : 'POST',
             data   : { CustomerUID: custUID, ExcludeSrUID: window.R2K_SR_EDIT_UID || 0, [CsrfName]: CsrfToken },
             success: function (res) {
@@ -132,7 +132,7 @@ $(function () {
 
         ajaxLoading(0);
         $.ajax({
-            url    : '/salesreturns/getInvoiceItems',
+            url    : global_base_url + 'salesreturns/getInvoiceItems',
             method : 'POST',
             data   : { TransUID: transUID, ExcludeSrUID: window.R2K_SR_EDIT_UID || 0, [CsrfName]: CsrfToken },
             success: function (res) {
@@ -466,7 +466,7 @@ $(function () {
             setFormLoading('#' + _formId, true, action);
 
             $.ajax({
-                url         : '/' + (_autoDraftUid > 0 ? (_cfg.updateAction || _cfg.formAction || '') : (_cfg.formAction || '')),
+                url         : global_base_url + '' + (_autoDraftUid > 0 ? (_cfg.updateAction || _cfg.formAction || '') : (_cfg.formAction || '')),
                 method      : 'POST',
                 data        : formData,
                 processData : false,

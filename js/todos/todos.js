@@ -1,4 +1,4 @@
-/* global $, Swal, flatpickr, CsrfName, CsrfToken, _todoMyUID, _todoInitStats, _transListDateFormat, ajaxLoading */
+﻿/* global $, Swal, flatpickr, CsrfName, CsrfToken, _todoMyUID, _todoInitStats, _transListDateFormat, ajaxLoading */
 (function () {
     'use strict';
 
@@ -75,7 +75,7 @@
         _currentPage = pageNo || 1;
         var postData = { Filter: _buildFilter(), [CsrfName]: CsrfToken };
         $.ajax({
-            url:  '/todos/getPageDetails/' + _currentPage,
+            url:  global_base_url + 'todos/getPageDetails/' + _currentPage,
             type: 'POST',
             data: postData,
             success: function (res) {
@@ -96,7 +96,7 @@
      */
     function _fetchStats() {
         $.ajax({
-            url:  '/todos/getStats',
+            url:  global_base_url + 'todos/getStats',
             type: 'POST',
             data: { [CsrfName]: CsrfToken },
             success: function (res) {
@@ -139,7 +139,7 @@
     function _openEdit(todoUID) {
         ajaxLoading(1);
         $.ajax({
-            url:  '/todos/getDetail',
+            url:  global_base_url + 'todos/getDetail',
             type: 'POST',
             data: { TodoUID: todoUID, [CsrfName]: CsrfToken },
             success: function (res) {
@@ -204,7 +204,7 @@
 
         ajaxLoading(1);
         $.ajax({
-            url:  '/todos/save',
+            url:  global_base_url + 'todos/save',
             type: 'POST',
             data: postData,
             success: function (res) {
@@ -231,7 +231,7 @@
     function _quickComplete(todoUID) {
         ajaxLoading(1);
         $.ajax({
-            url:  '/todos/changeStatus',
+            url:  global_base_url + 'todos/changeStatus',
             type: 'POST',
             data: { TodoUID: todoUID, Status: 'Completed', CurrentPage: _currentPage, Filter: _buildFilter(), [CsrfName]: CsrfToken },
             success: function (res) {
@@ -255,7 +255,7 @@
     function _reopen(todoUID) {
         ajaxLoading(1);
         $.ajax({
-            url:  '/todos/changeStatus',
+            url:  global_base_url + 'todos/changeStatus',
             type: 'POST',
             data: { TodoUID: todoUID, Status: 'Open', CurrentPage: _currentPage, Filter: _buildFilter(), [CsrfName]: CsrfToken },
             success: function (res) {
@@ -281,7 +281,7 @@
         var status = select.value;
         ajaxLoading(1);
         $.ajax({
-            url:  '/todos/changeStatus',
+            url:  global_base_url + 'todos/changeStatus',
             type: 'POST',
             data: { TodoUID: uid, Status: status, CurrentPage: _currentPage, Filter: _buildFilter(), [CsrfName]: CsrfToken },
             success: function (res) {
@@ -315,7 +315,7 @@
             if (!result.isConfirmed) return;
             ajaxLoading(1);
             $.ajax({
-                url:  '/todos/delete',
+                url:  global_base_url + 'todos/delete',
                 type: 'POST',
                 data: { TodoUID: todoUID, CurrentPage: _currentPage, Filter: _buildFilter(), [CsrfName]: CsrfToken },
                 success: function (res) {

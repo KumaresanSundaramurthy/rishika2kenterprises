@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
     'use strict';
 
     var _dec  = (typeof genSettings !== 'undefined' && genSettings.DecimalPlaces != null) ? parseInt(genSettings.DecimalPlaces, 10) : 2;
@@ -162,7 +162,7 @@
         if (footer) footer.classList.add('d-none');
 
         ajaxLoading(1);
-        $.get('/reports/getPurchaseItemwiseData', { from: from, to: to })
+        $.get(global_base_url + 'reports/getPurchaseItemwiseData', { from: from, to: to })
             .done(function (res) {
                 if (res.Status !== 'Success') {
                     tbody.innerHTML = '<tr><td colspan="12" class="text-center text-danger py-4">' +

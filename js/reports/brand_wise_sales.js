@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
     'use strict';
 
     var _sym = (genSettings && genSettings.CurrenySymbol) ? genSettings.CurrenySymbol : '₹';
@@ -110,7 +110,7 @@
         document.getElementById('bwsTblFooter').classList.add('d-none');
 
         $.ajax({
-            url: '/reports/getBrandWiseSalesData',
+            url: global_base_url + 'reports/getBrandWiseSalesData',
             type: 'GET',
             dataType: 'json',
             data: { from: from, to: to },

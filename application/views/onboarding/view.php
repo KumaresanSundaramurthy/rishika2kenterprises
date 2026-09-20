@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -866,7 +866,7 @@ $shortCode  = htmlspecialchars($shortCode ?? '', ENT_QUOTES);
                 document.getElementById('obAddrForm').style.display = 'none';
                 document.querySelector('.ob-progress').style.display = 'none';
                 document.getElementById('obSuccess').classList.add('show');
-                setTimeout(function () { window.location.href = '/subscribe'; }, 1800);
+                setTimeout(function () { window.location.href = global_base_url + 'subscribe'; }, 1800);
             }
         })
         .catch(function () {

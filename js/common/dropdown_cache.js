@@ -1,4 +1,4 @@
-/**
+﻿/**
  * DropdownCache — product-form dropdown data manager.
  *
  * Implements the decided pattern (see memory: product_add_form_memory.md):
@@ -125,7 +125,7 @@ window.DropdownCache = (function ($) {
             });
 
             $.ajax({
-                url      : '/products/getDropdownCache',
+                url      : global_base_url + 'products/getDropdownCache',
                 type     : 'POST',
                 data     : postData,
                 dataType : 'json',

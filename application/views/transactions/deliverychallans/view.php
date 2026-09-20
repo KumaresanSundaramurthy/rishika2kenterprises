@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 $this->load->view('common/transactions/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -88,7 +88,7 @@ $this->load->view('common/transactions/header'); ?>
                                 </ul>
                             </div>
                             <?php $this->load->view('common/partials/export_btn'); ?>
-                            <a href="/deliverychallan/create" class="btn btn-sm btn-primary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('create_delivery_challan', 'Create Delivery Challan'); ?>"><i class="bx bx-plus me-1"></i><?php echo t('lbl_new', 'New'); ?></a>
+                            <a href="<?= site_url('deliverychallan/create') ?>" class="btn btn-sm btn-primary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('create_delivery_challan', 'Create Delivery Challan'); ?>"><i class="bx bx-plus me-1"></i><?php echo t('lbl_new', 'New'); ?></a>
                         </div>
 
                         <!-- ── Tabs Row ──────────────────────────────────── -->
@@ -275,12 +275,12 @@ $(function () {
     };
 
     // ── Create / Edit — inject returnTab + returnPage ──────────────────
-    $(document).on('click', 'a[href="/deliverychallan/create"]', function (e) {
+    $(document).on('click', 'a[href="<?= site_url('deliverychallan/create') ?>"]', function (e) {
         e.preventDefault();
         var params = new URLSearchParams();
         params.set('returnTab', Filter.Status || 'All');
         if (PageNo > 1) params.set('returnPage', PageNo);
-        window.location.href = '/deliverychallan/create?' + params.toString();
+        window.location.href = global_base_url + 'deliverychallan/create?' + params.toString();
     });
     $(document).on('click', 'a[href*="/deliverychallan/"][href*="/edit"]', function (e) {
         e.preventDefault();
@@ -512,7 +512,7 @@ $(function () {
             confirmButtonText: 'Yes, Clone', cancelButtonText: 'Cancel'
         }).then(function (r) {
             if (!r.isConfirmed) return;
-            window.location.href = '/deliverychallan/create?fromClone=' + uid;
+            window.location.href = global_base_url + 'deliverychallan/create?fromClone=' + uid;
         });
     });
 

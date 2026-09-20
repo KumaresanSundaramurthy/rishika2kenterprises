@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php
 $isEdit     = isset($ExpenseData) && $ExpenseData !== null;
 $expense    = $ExpenseData ?? null;
@@ -94,7 +94,7 @@ if ($isEdit) {
                             <button type="submit" class="btn btn-sm btn-primary px-4" id="submitBtn">
                                 <i class="bx bx-check me-1"></i><?php echo $isEdit ? t('btn_update', 'Update') : t('btn_save', 'Save'); ?>
                             </button>
-                            <a href="/expenses" class="btn btn-sm btn-outline-danger px-3">
+                            <a href="<?= site_url('expenses') ?>" class="btn btn-sm btn-outline-danger px-3">
                                 <i class="bx bx-x me-1"></i><?php echo t('cancel', 'Cancel'); ?>
                             </a>
                         </div>

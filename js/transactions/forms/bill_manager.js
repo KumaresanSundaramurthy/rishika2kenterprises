@@ -1,4 +1,4 @@
-// Keyed by product row id; updated each time a valid (≥ purchase price) selling price is blurred
+﻿// Keyed by product row id; updated each time a valid (≥ purchase price) selling price is blurred
 var _lastValidSellingPrices  = {};
 var _lastValidUnitPrices     = {};
 // Selling price at the moment the compliment checkbox was ticked, keyed by row id
@@ -3111,7 +3111,7 @@ function searchCustomers(key) {
                     }
                     ajaxLoading(1);
                     $.ajax({
-                        url     : '/customers/syncCustomersCache',
+                        url     : global_base_url + 'customers/syncCustomersCache',
                         method  : 'POST',
                         data    : syncData,
                         complete: function () {
@@ -3142,7 +3142,7 @@ function searchCustomers(key) {
 
                 function _fallbackSearch() {
                     $.ajax({
-                        url: '/transactions/searchCustomers',
+                        url: global_base_url + 'transactions/searchCustomers',
                         dataType: 'json',
                         data: { term: (params.data && params.data.term) || '', type: 'public' },
                         success: function (data) { ajaxLoading(1); success(data); },
@@ -3993,7 +3993,7 @@ function _applyBOMComponents(item, components) {
 }
 
 function _fetchBOMFromServer(item, callback) {
-    $.post('/products/getTransComboComponents', { ProductUID: item.id }, function(resp) {
+    $.post(global_base_url + 'products/getTransComboComponents', { ProductUID: item.id }, function(resp) {
         if (!resp.Error && resp.Components && resp.Components.length) {
             _applyBOMComponents(item, resp.Components);
         }
@@ -5272,5 +5272,6 @@ function _buildReturnUrl(baseUrl, overrideTab) {
     if (tab) params.set('tab', tab);
     if (!overrideTab && typeof _returnPage !== 'undefined' && _returnPage > 1) params.set('page', _returnPage);
     var qs = params.toString();
-    return baseUrl + (qs ? '?' + qs : '');
+    var relPath = baseUrl.replace(/^\/+/, '');
+    return global_base_url + relPath + (qs ? '?' + qs : '');
 }

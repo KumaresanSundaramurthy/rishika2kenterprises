@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CategoryForm — shared modal for adding a category from any page.
  *
  * Usage:
@@ -67,7 +67,7 @@
         $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
 
         $.ajax({
-            url         : '/products/addCategoryDetails',
+            url         : global_base_url + 'products/addCategoryDetails',
             method      : 'POST',
             data        : formData,
             processData : false,

@@ -1,4 +1,4 @@
-// Purchase Returns module JS
+﻿// Purchase Returns module JS
 
 // ── Select-all (Pattern 3) state ────────────────────────────────────────────
 var _prSelectAllMode = false;
@@ -30,7 +30,7 @@ function deleteMultiplePurchaseReturns() {
  */
 function getPurchaseReturnsDetails(pageNo, rowLimit, filter, afterLoad) {
     loadTransactionList({
-        url           : '/transactions/getPageDetails/108/',
+        url           : global_base_url + 'transactions/getPageDetails/108/',
         tabCountClass : '.pr-tab-count',
         statusTabClass: '.pr-status-tab',
         errorMessage  : 'Failed to load purchase returns.',

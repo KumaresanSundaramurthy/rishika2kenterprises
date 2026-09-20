@@ -1,4 +1,4 @@
-// ── Session-level in-memory cache ─────────────────────────────────────────────
+﻿// ── Session-level in-memory cache ─────────────────────────────────────────────
 var _orgStateLoaded = false;
 var _orgCityCache   = {};   // keyed by "{country_lower}-{state_lower}"
 
@@ -47,7 +47,7 @@ function _loadOrgStates(onDone) {
             _renderOrgStates(allStates[liso2]);
         } else {
             $.ajax({
-                url: '/globally/getStateCityOfCountry', method: 'POST',
+                url: global_base_url + 'globally/getStateCityOfCountry', method: 'POST',
                 data: { CountryCode: iso2 },
                 success:  function (r) { _renderOrgStates(!r.Error && r.StateInfo ? r.StateInfo : []); },
                 error:    function ()  { _renderOrgStates([]); },
@@ -84,7 +84,7 @@ function _loadOrgCities($selCity, stateISO2, selectedVal, onDone) {
             if (typeof onDone === 'function') onDone();
         } else {
             $.ajax({
-                url: '/globally/getCitiesOfState', method: 'POST',
+                url: global_base_url + 'globally/getCitiesOfState', method: 'POST',
                 data: { CountryISO2: cISO2, StateISO2: sISO2 },
                 success: function (r) {
                     _orgCityCache[subKey] = (!r.Error && r.Data) ? r.Data : [];
@@ -165,7 +165,7 @@ function _fetchBusTypes($sel, selected) {
         if (cached && Array.isArray(cached) && cached.length > 0) {
             _renderBusTypes($sel, cached, selected);
         } else {
-            $.ajax({ url: '/organisation/getBusinessTypes', method: 'GET',
+            $.ajax({ url: global_base_url + 'organisation/getBusinessTypes', method: 'GET',
                 success: function (resp) { if (!resp.Error && resp.Data) _renderBusTypes($sel, resp.Data, selected); }
             });
         }
@@ -183,7 +183,7 @@ function _fetchIndTypes($sel, selected) {
         if (cached && Array.isArray(cached) && cached.length > 0) {
             _renderIndTypes($sel, cached, selected);
         } else {
-            $.ajax({ url: '/organisation/getIndustryTypes', method: 'GET',
+            $.ajax({ url: global_base_url + 'organisation/getIndustryTypes', method: 'GET',
                 success: function (resp) { if (!resp.Error && resp.Data) _renderIndTypes($sel, resp.Data, selected); }
             });
         }
@@ -201,7 +201,7 @@ function _fetchBusRegTypes($sel, selected) {
         if (cached && Array.isArray(cached) && cached.length > 0) {
             _renderBusRegTypes($sel, cached, selected);
         } else {
-            $.ajax({ url: '/organisation/getBusRegTypes', method: 'GET',
+            $.ajax({ url: global_base_url + 'organisation/getBusRegTypes', method: 'GET',
                 success: function (resp) { if (!resp.Error && resp.Data) _renderBusRegTypes($sel, resp.Data, selected); }
             });
         }
@@ -225,7 +225,7 @@ $(function () {
 function updateOrgForm(formdata) {
     $('.OrgSubBtn').attr('disabled', 'disabled');
     $.ajax({
-        url: '/organisation/updateOrgForm',
+        url: global_base_url + 'organisation/updateOrgForm',
         method: 'POST',
         data: formdata,
         cache: false,

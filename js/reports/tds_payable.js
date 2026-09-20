@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
     'use strict';
 
     var _dec  = (typeof genSettings !== 'undefined' && genSettings.DecimalPlaces != null) ? parseInt(genSettings.DecimalPlaces, 10) : 2;
@@ -141,7 +141,7 @@
             '</td></tr>';
         document.getElementById('tdpTableFoot').classList.add('d-none');
 
-        $.get('/reports/getTdsPayableData', { from: from, to: to })
+        $.get(global_base_url + 'reports/getTdsPayableData', { from: from, to: to })
             .done(function (res) {
                 if (res.Status !== 'Success') {
                     document.getElementById('tdpTableBody').innerHTML =

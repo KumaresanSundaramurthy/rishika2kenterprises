@@ -1,4 +1,4 @@
-$(document).ready(function () {
+﻿$(document).ready(function () {
     'use strict'
 
     /* ----------------------------------------------------------------
@@ -212,7 +212,7 @@ $(document).ready(function () {
         $('#prefixListContainer').addClass('d-none');
         ajaxLoading(0);
         $.ajax({
-            url    : '/transactions/getTransactionPrefixes/',
+            url    : global_base_url + 'transactions/getTransactionPrefixes/',
             method : 'GET',
             success: function (resp) {
                 ajaxLoading(1);
@@ -339,7 +339,7 @@ $(document).ready(function () {
         }).then(function (result) {
             if (!result.isConfirmed) return;
             $.ajax({
-                url    : '/transactions/deleteTransactionPrefix/',
+                url    : global_base_url + 'transactions/deleteTransactionPrefix/',
                 method : 'POST',
                 data   : { prePrefixUID: uid },
                 success: function (resp) {
@@ -360,7 +360,7 @@ $(document).ready(function () {
     $(document).on('click', '.setDefaultPrefixBtn', function () {
         var uid = $(this).data('uid');
         $.ajax({
-            url    : '/transactions/setDefaultTransactionPrefix/',
+            url    : global_base_url + 'transactions/setDefaultTransactionPrefix/',
             method : 'POST',
             data   : {
                 prePrefixUID: uid,

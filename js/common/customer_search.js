@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Customer Search Modal — Common
  *
  * Data strategy:
@@ -336,7 +336,7 @@
         postData[CsrfName] = CsrfToken;
 
         $.ajax({
-            url    : '/customers/getCustomerSearchList',
+            url    : global_base_url + 'customers/getCustomerSearchList',
             method : 'POST',
             data   : postData,
             success: function (res) {

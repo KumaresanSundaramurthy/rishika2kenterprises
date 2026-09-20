@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var string $token         — reset token, injected by Login::showResetForm() */
 /** @var int    $remainingSecs — seconds until token expires, injected by Login::showResetForm() */
 $token         = isset($token)         ? $token         : '';
@@ -318,7 +318,7 @@ $remainingSecs = isset($remainingSecs) ? (int)$remainingSecs : 0;
                 <h2><span>RISHIKA 2K</span> ENTERPRISES</h2>
             </div>
 
-            <a href="/forgot-password" class="lr-back">
+            <a href="<?= site_url('forgot-password') ?>" class="lr-back">
                 <i class="bx bx-arrow-back"></i> Request a new link
             </a>
 
@@ -375,7 +375,7 @@ $remainingSecs = isset($remainingSecs) ? (int)$remainingSecs : 0;
             <?php echo form_close(); ?>
 
             <p class="lr-signin-link">
-                Remembered it? <a href="/portal">Sign in here</a>
+                Remembered it? <a href="<?= site_url('login') ?>">Sign in here</a>
             </p>
 
         </div>

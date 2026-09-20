@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Transaction Additional Charges — shared across all transaction form pages.
  *
  * Globals injected by the transaction form view:
@@ -550,7 +550,7 @@
      */
     function _fetchChargesFromServer() {
         $.ajax({
-            url     : '/settings/getAdditionalChargesCache',
+            url     : global_base_url + 'settings/getAdditionalChargesCache',
             method  : 'GET',
             success : function (resp) {
                 if (resp && !resp.Error && resp.Data) {

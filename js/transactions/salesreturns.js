@@ -1,4 +1,4 @@
-// Sales Returns module JS
+﻿// Sales Returns module JS
 
 // ── Select-all (Pattern 3) state ────────────────────────────────────────────
 var _srSelectAllMode = false;
@@ -30,7 +30,7 @@ function deleteMultipleSalesReturns() {
  */
 function getSalesReturnsDetails(pageNo, rowLimit, filter, afterLoad) {
     loadTransactionList({
-        url:            '/transactions/getPageDetails/106/',
+        url:            global_base_url + 'transactions/getPageDetails/106/',
         tabCountClass:  '.trans-tab-count',
         statusTabClass: '.sr-status-tab',
         errorMessage:   'Failed to load sales returns.',

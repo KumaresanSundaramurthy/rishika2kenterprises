@@ -1,4 +1,4 @@
-// ── Purchases list — module-specific JS ──────────────────────────────────────
+﻿// ── Purchases list — module-specific JS ──────────────────────────────────────
 // Shared utilities (loadTransactionList, debounce, initTooltips) are in common.js
 // Date helpers (getDateRange, formatDate) are in /js/common/datefilter.js
 
@@ -32,7 +32,7 @@ function deleteMultiplePurchases() {
  */
 function getPurchasesDetails(pageNo, rowLimit, filter, afterLoad) {
     loadTransactionList({
-        url:            '/transactions/getPageDetails/105/',
+        url:            global_base_url + 'transactions/getPageDetails/105/',
         tabCountClass:  '.trans-tab-count',
         statusTabClass: '.purch-status-tab',
         errorMessage:   'Failed to load purchase bills.',
@@ -63,7 +63,7 @@ $(document).on('comm:switchedToEmail', function (e, moduleUID, recordUID) {
 
     _setupCommPdfAlert(docNumber, function (onSuccess) {
         $.ajax({
-            url   : '/purchases/getPurchasePdfBase64',
+            url   : global_base_url + 'purchases/getPurchasePdfBase64',
             method: 'POST',
             data  : { TransUID: recordUID, PaperSize: 'A4', [CsrfName]: CsrfToken },
             success: function (resp) {

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * PhoneCCDropdown — reusable country-code picker for phone input fields.
  *
  * Usage:
@@ -126,7 +126,7 @@
      */
     function _fetchAjax(cb) {
         $.ajax({
-            url: '/globally/getCountryInfo', dataType: 'json',
+            url: global_base_url + 'globally/getCountryInfo', dataType: 'json',
             success: function (res) { _cache = (res && res.Data) ? res.Data : []; cb(_cache); },
             error:   function ()    { _cache = []; cb([]); }
         });

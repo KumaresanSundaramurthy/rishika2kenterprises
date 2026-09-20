@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 (function () {
 
   var currentPage       = 1;
@@ -33,7 +33,7 @@
   function loadPage(page, filter) {
     currentPage = page || 1;
     filterData  = filter || filterData;
-    $.post('/salaryadvances/getPageDetails/' + currentPage, { Filter: filterData, [CsrfName]: CsrfToken }, function (r) {
+    $.post(global_base_url + 'salaryadvances/getPageDetails/' + currentPage, { Filter: filterData, [CsrfName]: CsrfToken }, function (r) {
       CsrfToken = r.NewCsrfToken || CsrfToken;
       if (!r.Error) {
         $('#AdvTableBody').html(r.RecordHtmlData);
@@ -115,7 +115,7 @@
     var $spinner = $('#spinnerAdv').removeClass('d-none');
     var $icon    = $('#iconAdv').addClass('d-none');
 
-    $.post('/salaryadvances/save', {
+    $.post(global_base_url + 'salaryadvances/save', {
       AdvanceUID:    $('#advUID').val(),
       EmployeeUID:   emp,
       AdvanceDate:   date,
@@ -154,7 +154,7 @@
       confirmButtonText: 'Yes, approve',
     }).then(function (res) {
       if (!res.isConfirmed) return;
-      $.post('/salaryadvances/approve', { AdvanceUID: uid, Filter: filterData, [CsrfName]: CsrfToken }, function (r) {
+      $.post(global_base_url + 'salaryadvances/approve', { AdvanceUID: uid, Filter: filterData, [CsrfName]: CsrfToken }, function (r) {
         CsrfToken = r.NewCsrfToken || CsrfToken;
         if (!r.Error) {
           _applyResponse(r);
@@ -177,7 +177,7 @@
       confirmButtonText: 'Yes, reject',
     }).then(function (res) {
       if (!res.isConfirmed) return;
-      $.post('/salaryadvances/reject', { AdvanceUID: uid, Filter: filterData, [CsrfName]: CsrfToken }, function (r) {
+      $.post(global_base_url + 'salaryadvances/reject', { AdvanceUID: uid, Filter: filterData, [CsrfName]: CsrfToken }, function (r) {
         CsrfToken = r.NewCsrfToken || CsrfToken;
         if (!r.Error) {
           _applyResponse(r);
@@ -200,7 +200,7 @@
       confirmButtonText: 'Yes, delete',
     }).then(function (res) {
       if (!res.isConfirmed) return;
-      $.post('/salaryadvances/delete', { AdvanceUID: uid, Filter: filterData, [CsrfName]: CsrfToken }, function (r) {
+      $.post(global_base_url + 'salaryadvances/delete', { AdvanceUID: uid, Filter: filterData, [CsrfName]: CsrfToken }, function (r) {
         CsrfToken = r.NewCsrfToken || CsrfToken;
         if (!r.Error) {
           _applyResponse(r);

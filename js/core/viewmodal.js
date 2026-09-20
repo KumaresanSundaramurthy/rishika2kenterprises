@@ -1,4 +1,4 @@
-/**
+﻿/**
  * js/transactions/viewmodal.js
  * Shared builder for the viewTransModal deep-preview panel.
  * Exposes: window._buildTransDetailHtml(resp, opts)
@@ -725,7 +725,7 @@
         ajaxLoading(0);
 
         $.ajax({
-            url   : '/transactions/getTransactionDetail',
+            url   : global_base_url + 'transactions/getTransactionDetail',
             method: 'POST',
             data  : { TransUID: uid, ModuleUID: moduleUID, PrintType: 'view', [CsrfName]: CsrfToken },
         }).done(function (resp) {

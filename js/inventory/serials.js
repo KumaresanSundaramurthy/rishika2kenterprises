@@ -1,4 +1,4 @@
-// ── Serial Numbers management page ────────────────────────────────────────────
+﻿// ── Serial Numbers management page ────────────────────────────────────────────
 
 (function ($) {
     'use strict';
@@ -91,7 +91,7 @@
         var seq = ++_reqSeq;
         ajaxLoading(0); // prevent full-page overlay — AjaxLoading defaults to 1 in trans_footer_script
         _showGridSpinner();
-        $.post('/inventory/serials/getPageDetails/' + (pageNo || 1), {
+        $.post(global_base_url + 'inventory/serials/getPageDetails/' + (pageNo || 1), {
             RowLimit   : _rowLimit,
             Filter     : _buildFilter(),
             [_csrfName]: _csrfVal,
@@ -174,7 +174,7 @@
         if (!confirm(label)) return;
 
         ajaxLoading(1);
-        $.post('/inventory/serials/updateStatus', {
+        $.post(global_base_url + 'inventory/serials/updateStatus', {
             SerialUID   : serialUID,
             Status      : newStatus,
             [_csrfName] : _csrfVal,
@@ -233,7 +233,7 @@
      * @returns {void}
      */
     function _fetchSerialProductsFromServer(callback) {
-        $.post('/inventory/serials/searchProducts', { [_csrfName]: _csrfVal }, function (resp) {
+        $.post(global_base_url + 'inventory/serials/searchProducts', { [_csrfName]: _csrfVal }, function (resp) {
             var list = [];
             if (resp && !resp.Error && Array.isArray(resp.Data)) {
                 resp.Data.forEach(function (p) {
@@ -289,7 +289,7 @@
         if (!serialNumber) { $err.removeClass('d-none').text('Serial number is required.'); return; }
 
         ajaxLoading(1);
-        $.post('/inventory/serials/add', {
+        $.post(global_base_url + 'inventory/serials/add', {
             ProductUID  : productUID,
             SerialNumber: serialNumber,
             Notes       : notes,

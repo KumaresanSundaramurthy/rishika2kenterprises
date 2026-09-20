@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 // ── Module source labels for timeline ────────────────────────────────────────
 var INV_MODULE_LABELS = {
@@ -62,7 +62,7 @@ function invLoadPage(pageNo) {
     $wrap.html('<tr><td colspan="10" class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></td></tr>');
 
     $.ajax({
-        url: '/inventory/getPageDetails/' + (pageNo || 1),
+        url: global_base_url + 'inventory/getPageDetails/' + (pageNo || 1),
         method: 'POST',
         data: {
             RowLimit: 10,
@@ -91,7 +91,7 @@ function invLoadPage(pageNo) {
 
 // ── Stats refresh ─────────────────────────────────────────────────────────────
 function invRefreshStats() {
-    $.post('/inventory/getStats', { [CsrfName]: CsrfToken }, function (r) {
+    $.post(global_base_url + 'inventory/getStats', { [CsrfName]: CsrfToken }, function (r) {
         if (r.Error || !r.Stats) return;
         var s = r.Stats;
         $('#statPositiveCount').text(Number(s.positiveCount || 0).toLocaleString() + ' Items');
@@ -178,7 +178,7 @@ function invSubmitStockIn() {
     var $btn = $('#siSubmitBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
 
     $.ajax({
-        url: '/inventory/stockIn',
+        url: global_base_url + 'inventory/stockIn',
         method: 'POST',
         data: {
             ProductUID:   $('#siProductUID').val(),
@@ -220,7 +220,7 @@ function invSubmitStockOut() {
     var $btn = $('#soSubmitBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
 
     $.ajax({
-        url: '/inventory/stockOut',
+        url: global_base_url + 'inventory/stockOut',
         method: 'POST',
         data: {
             ProductUID:   $('#soProductUID').val(),
@@ -278,7 +278,7 @@ function invOpenTimeline(uid, name) {
     ajaxLoading(0);
 
     $.ajax({
-        url: '/inventory/getTimeline',
+        url: global_base_url + 'inventory/getTimeline',
         method: 'POST',
         data: { ProductUID: uid, [CsrfName]: CsrfToken },
         success: function (r) {
@@ -570,7 +570,7 @@ $(document).ready(function () {
         $(this).find('i').addClass('text-primary');
 
         $.ajax({
-            url: '/inventory/getVariantStock',
+            url: global_base_url + 'inventory/getVariantStock',
             method: 'POST',
             data: { ProductUID: uid, [CsrfName]: CsrfToken },
             success: function (r) {

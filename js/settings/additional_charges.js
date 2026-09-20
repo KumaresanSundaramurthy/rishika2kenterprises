@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Additional Charges — Settings page
  * CRUD for Settings.AdditionalChargesTbl
  *
@@ -88,7 +88,7 @@
         }).then(function (result) {
             if (!result.isConfirmed) return;
             $.ajax({
-                url   : '/settings/deleteAdditionalCharge',
+                url   : global_base_url + 'settings/deleteAdditionalCharge',
                 method: 'POST',
                 data  : { acChargeUID: uid, [CsrfName]: CsrfToken },
                 success: function (resp) {

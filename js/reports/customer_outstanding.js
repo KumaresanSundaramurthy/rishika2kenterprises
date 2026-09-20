@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
     'use strict';
 
     var _sym = (genSettings && genSettings.CurrenySymbol) ? genSettings.CurrenySymbol : '₹';
@@ -101,7 +101,7 @@
         document.getElementById('coTblFooter').classList.add('d-none');
 
         $.ajax({
-            url: '/reports/getCustomerOutstandingData',
+            url: global_base_url + 'reports/getCustomerOutstandingData',
             type: 'GET',
             dataType: 'json',
             success: function (res) {

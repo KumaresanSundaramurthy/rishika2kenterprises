@@ -1,4 +1,4 @@
-// ── List page AJAX functions ──────────────────────────────────────────────
+﻿// ── List page AJAX functions ──────────────────────────────────────────────
 
 // ── Select-all (Pattern 3) state ─────────────────────────────────────────
 var _vendSelectAllMode = false;
@@ -69,7 +69,7 @@ function getVendorsDetails(PageNo, RowLimit, Filter, onDone) {
     ajaxLoading(0);
     showTabSpinner(ModuleTable, ModulePag);
     $.ajax({
-        url   : '/vendors/getVendorsPageDetails/' + (PageNo || 1),
+        url   : global_base_url + 'vendors/getVendorsPageDetails/' + (PageNo || 1),
         method: 'POST',
         cache : false,
         data  : {
@@ -130,7 +130,7 @@ function searchCustomers(key) {
         allowClear: true,
         escapeMarkup: function (markup) { return markup; },
         ajax: {
-            url: '/customers/searchCustomers',
+            url: global_base_url + 'customers/searchCustomers',
             dataType: 'json',
             delay: 250,
             data: function (params) {
@@ -162,7 +162,7 @@ function updateVendorStats(stats) {
 // ── Toggle vendor active/inactive status ─────────────────────────────────
 function toggleVendorStatus(VendorUID, IsActive) {
     $.ajax({
-        url   : '/vendors/toggleVendorStatus',
+        url   : global_base_url + 'vendors/toggleVendorStatus',
         method: 'POST',
         cache : false,
         data  : { VendorUID: VendorUID, IsActive: IsActive, [CsrfName]: CsrfToken },
@@ -182,7 +182,7 @@ function toggleVendorStatus(VendorUID, IsActive) {
 // ── Delete single vendor ──────────────────────────────────────────────────
 function deleteVendor(DeleteId) {
     $.ajax({
-        url   : '/vendors/deleteVendorData',
+        url   : global_base_url + 'vendors/deleteVendorData',
         method: 'POST',
         cache : false,
         data  : { VendorUID: DeleteId, [CsrfName]: CsrfToken },
@@ -205,7 +205,7 @@ function deleteMultipleVendors() {
         ? { SelectAll: 1, Filter: JSON.stringify(Filter), [CsrfName]: CsrfToken }
         : { 'VendorUIDs[]': SelectedUIDs, [CsrfName]: CsrfToken };
     $.ajax({
-        url   : '/vendors/deleteMultipleVendors',
+        url   : global_base_url + 'vendors/deleteMultipleVendors',
         method: 'POST',
         cache : false,
         data  : postData,

@@ -1,4 +1,4 @@
-// ── Purchase Orders list — module-specific JS ─────────────────────────────────
+﻿// ── Purchase Orders list — module-specific JS ─────────────────────────────────
 // Shared utilities (loadTransactionList, debounce, initTooltips) are in common.js
 // Date helpers (getDateRange, formatDate) are in /js/common/datefilter.js
 
@@ -32,7 +32,7 @@ function deleteMultiplePurchaseOrders() {
  */
 function getPurchaseOrdersDetails(pageNo, rowLimit, filter, afterLoad) {
     loadTransactionList({
-        url:            '/transactions/getPageDetails/104/',
+        url:            global_base_url + 'transactions/getPageDetails/104/',
         tabCountClass:  '.po-tab-count',
         statusTabClass: '.po-status-tab',
         errorMessage:   'Failed to load purchase orders.',

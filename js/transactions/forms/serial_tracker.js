@@ -1,4 +1,4 @@
-// ── Serial Number Tracker — Purchase (manual entry) and Invoice (pick from stock) ─
+﻿// ── Serial Number Tracker — Purchase (manual entry) and Invoice (pick from stock) ─
 // Loaded only on Purchase and Invoice form pages.
 // Requires bill_manager.js and window._transFormData.transType ('Purchase'|'Invoice').
 
@@ -148,7 +148,7 @@ var SerialTracker = (function ($) {
         var postData = { ProductUID: productId };
         if (typeof CsrfName !== 'undefined') postData[CsrfName] = CsrfToken;
 
-        $.post('/products/getAvailableSerials', postData, function (resp) {
+        $.post(global_base_url + 'products/getAvailableSerials', postData, function (resp) {
             if (resp && !resp.Error) {
                 _availableCache[productId] = resp.Serials || [];
                 _appendRow(_availableCache[productId]);

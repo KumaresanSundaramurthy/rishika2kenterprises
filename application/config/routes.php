@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 defined('BASEPATH') OR exit('No direct script access allowed');
 
 /*
@@ -128,7 +128,7 @@ $route['verify-email']            = 'login/verifyEmail';
 $route['resend-verification']     = 'login/resendVerificationEmail';
 
 // Login
-$route['portal'] = 'login/login';
+$route['login']  = 'login/login';
 $route['logout'] = 'login/logout';
 
 // Onboarding (Google signup profile completion)

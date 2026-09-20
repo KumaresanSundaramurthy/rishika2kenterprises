@@ -1,4 +1,4 @@
-// ── Thermal Print — Common handler for all transaction & payment pages ────
+﻿// ── Thermal Print — Common handler for all transaction & payment pages ────
 
 var _thermalData    = null;
 var _thermalPmtData = null;
@@ -55,7 +55,7 @@ $(document).on('click', '.thermalPrintTransaction', function () {
     new bootstrap.Modal(document.getElementById('thermalPrintModal')).show();
     ajaxLoading(0);
     $.ajax({
-        url   : '/transactions/getTransactionDetail',
+        url   : global_base_url + 'transactions/getTransactionDetail',
         method: 'GET',
         data  : { TransUID: uid, ModuleUID: moduleUID, PrintType: 'thermal' },
         success: function (resp) {
@@ -103,7 +103,7 @@ $(document).on('click', '.pmtThermalPrint', function () {
     new bootstrap.Modal(document.getElementById('thermalPrintModal')).show();
     ajaxLoading(0);
     $.ajax({
-        url   : '/payments/getPaymentPrintDetail',
+        url   : global_base_url + 'payments/getPaymentPrintDetail',
         method: 'GET',
         data  : { PaymentUID: paymentUID, PrintType: 'thermal' },
         success: function (resp) {
@@ -138,7 +138,7 @@ $(document).on('click', '.pmtThermalPrint', function () {
 function _pmtLoadPrintData(paymentUID, printType, cb) {
     ajaxLoading(0);
     $.ajax({
-        url   : '/payments/getPaymentPrintDetail',
+        url   : global_base_url + 'payments/getPaymentPrintDetail',
         method: 'GET',
         data  : { PaymentUID: paymentUID, PrintType: printType },
         success: function (resp) {
@@ -176,7 +176,7 @@ function openThermalPrintByUID(transUID, moduleUID, afterCloseCb) {
     new bootstrap.Modal(document.getElementById('thermalPrintModal')).show();
     ajaxLoading(0);
     $.ajax({
-        url   : '/transactions/getTransactionDetail',
+        url   : global_base_url + 'transactions/getTransactionDetail',
         method: 'GET',
         data  : { TransUID: transUID, ModuleUID: moduleUID, PrintType: 'thermal' },
         success: function (resp) {

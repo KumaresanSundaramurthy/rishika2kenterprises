@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 /**
  * Billing checkout — subscription payment confirmation page + payment AJAX.
@@ -23,7 +23,7 @@ class Billingcheckout extends CI_Controller {
 
         $jwtData = $this->pageData['JwtData'] ?? null;
         if (!$jwtData) {
-            redirect('portal', 'refresh');
+            redirect('login', 'refresh');
             return;
         }
 
@@ -401,7 +401,7 @@ class Billingcheckout extends CI_Controller {
     public function abandon(): void {
         $jwtData = $this->pageData['JwtData'] ?? null;
         if (!$jwtData) {
-            redirect('portal', 'refresh');
+            redirect('login', 'refresh');
             return;
         }
 

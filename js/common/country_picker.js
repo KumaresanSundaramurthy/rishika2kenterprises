@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 /**
  * CountryPicker — reusable country selection overlay.
@@ -100,7 +100,7 @@ window.CountryPicker = (function ($) {
      */
     function _ajax(cb) {
         $.ajax({
-            url      : '/globally/getCountryInfo',
+            url      : global_base_url + 'globally/getCountryInfo',
             dataType : 'json',
             success  : function (res) {
                 _cache = (res && res.Data) ? res.Data : [];

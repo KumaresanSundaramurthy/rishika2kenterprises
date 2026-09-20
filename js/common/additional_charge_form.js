@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Additional Charge Form — shared modal logic.
  *
  * Open the modal by triggering:
@@ -170,7 +170,7 @@
         $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
 
         $.ajax({
-            url   : '/settings/saveAdditionalCharge',
+            url   : global_base_url + 'settings/saveAdditionalCharge',
             method: 'POST',
             data  : {
                 acChargeUID     : chargeUID,

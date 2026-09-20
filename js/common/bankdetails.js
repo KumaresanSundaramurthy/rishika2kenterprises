@@ -1,4 +1,4 @@
-$(document).on('click', '#addBankDetails', function(e) {
+﻿$(document).on('click', '#addBankDetails', function(e) {
     e.preventDefault();
     $('#AddEditBankDataForm')[0].reset();
     $('#HBankId').val('');
@@ -26,7 +26,7 @@ $(document).on('click', '#IFSC_Fetch', function () {
     $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Fetching...');
 
     $.ajax({
-        url   : '/globally/fetchIfscDetails',
+        url   : global_base_url + 'globally/fetchIfscDetails',
         method: 'GET',
         data  : { ifsc: ifsc },
         success: function (resp) {

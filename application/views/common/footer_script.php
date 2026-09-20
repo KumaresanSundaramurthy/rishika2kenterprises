@@ -31,6 +31,7 @@ var PageNo = 0;
 var Filter = {};
 var AjaxLoading = 1;
 var global_base_url = '<?php echo base_url(); ?>';
+var _appBasePath    = global_base_url.replace(window.location.origin, '').replace(/\/$/, '');
 var CDN_URL = '<?php echo getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN') ?>';
 var defUserImg = '<?php echo '/website/images/logo/avathar_user.png'; ?>';
 var myOneDropzone;

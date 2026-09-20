@@ -1,4 +1,4 @@
-/**
+﻿/**
  * R2K Date Filter — Reusable date range utility
  * Provides: getDateRange(), formatDate(), getDateRangeLabel(), initDateFilter()
  *
@@ -319,7 +319,7 @@ function _r2kSavePref(key, value) {
     if (typeof CsrfName !== 'undefined' && typeof CsrfToken !== 'undefined') {
         body.append(CsrfName, CsrfToken);
     }
-    fetch('/userpreferences/save', { method: 'POST', body: body, keepalive: true })
+    fetch(global_base_url + 'userpreferences/save', { method: 'POST', body: body, keepalive: true })
         .catch(function () {});
 }
 

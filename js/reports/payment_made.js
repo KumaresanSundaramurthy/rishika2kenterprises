@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Payment Made Report
  * Lists all payments made to suppliers for the selected date range.
  */
@@ -136,7 +136,7 @@
 
         ajaxLoading(1);
         $.ajax({
-            url      : '/reports/getPaymentMadeData',
+            url      : global_base_url + 'reports/getPaymentMadeData',
             type     : 'GET',
             dataType : 'json',
             data     : { from: _from, to: _to },

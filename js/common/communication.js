@@ -1,4 +1,4 @@
-/**
+﻿/**
  * communication.js -- shared Send SMS / Send Email modal logic
  */
 
@@ -197,7 +197,7 @@ function _fetchCommTemplate(moduleUID, recordUID) {
 
     // _rawEmailTemplate not declared → old page, fall back to AJAX
     $.ajax({
-        url   : '/globally/getCommTemplate',
+        url   : global_base_url + 'globally/getCommTemplate',
         method: 'POST',
         data  : { ModuleUID: moduleUID, RecordUID: recordUID || 0, Channel: 'Email', [CsrfName]: CsrfToken },
         success: function (resp) {
@@ -293,7 +293,7 @@ function _fetchCommPdfAttachment(moduleUID, recordUID) {
     var docNum = _commRowData ? (_commRowData.docNumber || ('Receipt-' + recordUID)) : ('Receipt-' + recordUID);
     _setupCommPdfAlert(docNum, function (onSuccess) {
         $.ajax({
-            url   : '/payments/getPaymentPdfBase64',
+            url   : global_base_url + 'payments/getPaymentPdfBase64',
             method: 'POST',
             data  : { PaymentUID: recordUID, PaperSize: 'A4', [CsrfName]: CsrfToken },
             success: function (resp) {

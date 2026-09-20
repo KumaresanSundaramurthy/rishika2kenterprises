@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Purchase Summary Report
  * Fetches Purchase (105) vs Purchase Return (108) data grouped by period.
  */
@@ -160,7 +160,7 @@
 
         ajaxLoading(1);
         $.ajax({
-            url      : '/reports/getPurchaseSummaryData',
+            url      : global_base_url + 'reports/getPurchaseSummaryData',
             type     : 'GET',
             dataType : 'json',
             data     : { from: _from, to: _to, groupby: _groupBy },

@@ -1,4 +1,4 @@
-// -- Invoices list — module-specific JS --------------------------------------
+﻿// -- Invoices list — module-specific JS --------------------------------------
 // Shared utilities (loadTransactionList, debounce, initTooltips) are in common.js
 // Date helpers (getDateRange, formatDate) are in /js/common/datefilter.js
 
@@ -41,7 +41,7 @@ $(document).on('comm:switchedToEmail', function (e, moduleUID, recordUID) {
 
     _setupCommPdfAlert(docNumber, function (onSuccess) {
         $.ajax({
-            url   : '/invoices/getInvoicePdfBase64',
+            url   : global_base_url + 'invoices/getInvoicePdfBase64',
             method: 'POST',
             data  : { TransUID: recordUID, PaperSize: 'A4', [CsrfName]: CsrfToken },
             success: function (resp) {
@@ -70,7 +70,7 @@ $(document).on('comm:switchedToEmail', function (e, moduleUID, recordUID) {
  */
 function getInvoicesDetails(pageNo, rowLimit, filter, afterLoad) {
     loadTransactionList({
-        url:            '/transactions/getPageDetails/103/',
+        url:            global_base_url + 'transactions/getPageDetails/103/',
         tabCountClass:  '.trans-tab-count',
         statusTabClass: '.inv-status-tab',
         errorMessage:   'Failed to load invoices.',

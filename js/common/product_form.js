@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ProductForm — shared modal for adding/editing a product from any page.
  *
  * Usage:
@@ -276,13 +276,13 @@
      */
     function _loadForEdit(uid, isClone) {
         var detailsReq = $.ajax({
-            url   : '/products/retrieveProductDetails',
+            url   : global_base_url + 'products/retrieveProductDetails',
             method: 'POST',
             data  : { ItemUID: uid, [CsrfName]: CsrfToken }
         });
         // Only check used variants in edit mode — clones start fresh
         var usedReq = !isClone
-            ? $.ajax({ url: '/products/getUsedVariants', method: 'POST', data: { ProductUID: uid, [CsrfName]: CsrfToken } })
+            ? $.ajax({ url: global_base_url + 'products/getUsedVariants', method: 'POST', data: { ProductUID: uid, [CsrfName]: CsrfToken } })
             : $.Deferred().resolve({ Error: false, Data: [] }).promise();
 
         $.when(detailsReq, usedReq).then(function (detailsArgs, usedArgs) {
@@ -899,7 +899,7 @@
             }
             // Cache cold — fall back to AJAX
             return $.ajax({
-                url    : '/products/getSizes',
+                url    : global_base_url + 'products/getSizes',
                 method : 'POST',
                 data   : { [CsrfName]: CsrfToken }
             }).then(function (res) {
@@ -1127,7 +1127,7 @@
             if (!res.isConfirmed) return;
             var sizeName = res.value.trim();
             $.ajax({
-                url    : '/products/addSize',
+                url    : global_base_url + 'products/addSize',
                 method : 'POST',
                 data   : { SizeName: sizeName, [CsrfName]: CsrfToken }
             }).done(function (resp) {

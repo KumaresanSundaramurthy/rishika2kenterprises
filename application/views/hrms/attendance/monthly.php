@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 $cur  = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
 $tz   = $JwtData->Org->TimeZone ?? 'Asia/Kolkata';
 $days = (int)date('t', mktime(0, 0, 0, $Month, 1, $Year));
@@ -32,7 +32,7 @@ $statusMap    = ['Present'=>'P','Absent'=>'A','HalfDay'=>'H','Leave'=>'L','Holid
               </select>
               <button class="btn btn-sm btn-primary" type="submit"><i class="bx bx-search"></i></button>
             </form>
-            <a href="/attendance" class="btn btn-sm btn-outline-secondary"><i class="bx bx-list-ul me-1"></i><?php echo t('btn_daily_view', 'Daily View'); ?></a>
+            <a href="<?= site_url('attendance') ?>" class="btn btn-sm btn-outline-secondary"><i class="bx bx-list-ul me-1"></i><?php echo t('btn_daily_view', 'Daily View'); ?></a>
           </div>
 
           <!-- Legend -->

@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
     'use strict';
 
     var _dec  = (typeof genSettings !== 'undefined' && genSettings.DecimalPlaces != null) ? parseInt(genSettings.DecimalPlaces, 10) : 2;
@@ -140,7 +140,7 @@
         document.getElementById('pregTableFoot').classList.add('d-none');
         document.getElementById('pregTblFooter').classList.add('d-none');
 
-        $.get('/reports/getPurchaseRegisterData', { from: from, to: to })
+        $.get(global_base_url + 'reports/getPurchaseRegisterData', { from: from, to: to })
             .done(function (res) {
                 if (res.Status !== 'Success') {
                     document.getElementById('pregTableBody').innerHTML =

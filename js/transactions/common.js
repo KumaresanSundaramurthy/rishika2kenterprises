@@ -1,4 +1,4 @@
-// ── Transaction pages — shared utilities ──────────────────────────────────────
+﻿// ── Transaction pages — shared utilities ──────────────────────────────────────
 // Requires: jQuery, Bootstrap, datefilter.js (getDateRange, formatDate),
 //           and page globals: PageNo, RowLimit, Filter, ModuleId,
 //           ModuleTable, ModulePag, CsrfName, CsrfToken
@@ -223,7 +223,7 @@ function deleteMultipleTrans(moduleUID, selectAllMode, onClear, onRefresh) {
         ? { SelectAll: 1, Filter: JSON.stringify(Filter), [CsrfName]: CsrfToken }
         : { 'TransUIDs[]': SelectedUIDs, [CsrfName]: CsrfToken };
     $.ajax({
-        url   : '/transactions/deleteMultipleTransactions/' + moduleUID,
+        url   : global_base_url + 'transactions/deleteMultipleTransactions/' + moduleUID,
         method: 'POST',
         cache : false,
         data  : postData,
@@ -272,7 +272,7 @@ function initTransPaymentPanel(spinnerCls, accentHex) {
         openUID = transUID;
         ajaxLoading(0);
         $.ajax({
-            url    : '/payments/getPaymentsByTransaction',
+            url    : global_base_url + 'payments/getPaymentsByTransaction',
             type   : 'GET',
             data   : { TransUID: transUID },
             success: function (resp) {

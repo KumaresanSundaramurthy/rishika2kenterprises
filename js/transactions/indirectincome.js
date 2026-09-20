@@ -1,4 +1,4 @@
-// ── Indirect Income list — module-specific JS ──────────────────────────────────
+﻿// ── Indirect Income list — module-specific JS ──────────────────────────────────
 // Shared utilities (loadTransactionList, debounce, initTooltips) are in common.js
 
 // ── Select-all (Pattern 3) state ────────────────────────────────────────────
@@ -56,7 +56,7 @@ function deleteMultipleIncomes() {
         ? { SelectAll: 1, Filter: JSON.stringify(Filter), [CsrfName]: CsrfToken }
         : { 'IncomeUIDs[]': SelectedUIDs, [CsrfName]: CsrfToken };
     $.ajax({
-        url   : '/indirectincome/deleteMultipleIncomes',
+        url   : global_base_url + 'indirectincome/deleteMultipleIncomes',
         method: 'POST',
         cache : false,
         data  : postData,
@@ -77,7 +77,7 @@ function deleteMultipleIncomes() {
 
 function getIncomeDetails(pageNo, rowLimit, filter) {
     loadTransactionList({
-        url:            '/indirectincome/getPageDetails/',
+        url:            global_base_url + 'indirectincome/getPageDetails/',
         tabCountClass:  '.inc-tab-count',
         statusTabClass: '.inc-status-tab',
         errorMessage:   'Failed to load income records.',

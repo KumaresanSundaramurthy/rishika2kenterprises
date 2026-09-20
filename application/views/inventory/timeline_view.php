@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 $this->load->view('common/transactions/header'); ?>
 
 <div class="layout-wrapper layout-horizontal basic-form-page transactionPage layout-content-navbar">
@@ -82,7 +82,7 @@ $this->load->view('common/transactions/header'); ?>
                                         </li>
                                     </ul>
                                 </div>
-                                <a href="/inventory" class="btn btn-sm btn-outline-secondary">
+                                <a href="<?= site_url('inventory') ?>" class="btn btn-sm btn-outline-secondary">
                                     <i class="bx bx-package me-1"></i>Back to Inventory
                                 </a>
                             </div>

@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 (function () {
 
   var currentPage = 1;
@@ -9,7 +9,7 @@
   function loadPage(page, filter) {
     currentPage = page || 1;
     filterData  = filter || filterData;
-    $.post('/payroll/getPageDetails/' + currentPage, { Filter: filterData }, function (r) {
+    $.post(global_base_url + 'payroll/getPageDetails/' + currentPage, { Filter: filterData }, function (r) {
       if (!r.Error) {
         $('#PayrollTableBody').html(r.RecordHtmlData);
         $('#PayrollPagination').html(r.Pagination);
@@ -30,7 +30,7 @@
   $(document).on('click', '.prl-mark-paid', function () {
     var uid = $(this).data('uid');
     if (!confirm('Mark this payroll as Paid?')) return;
-    $.post('/payroll/markPaid', { PayrollUID: uid }, function (r) {
+    $.post(global_base_url + 'payroll/markPaid', { PayrollUID: uid }, function (r) {
       if (!r.Error) { toastr.success('Payroll marked as Paid.'); loadPage(currentPage); }
       else toastr.error(r.Message || 'Error.');
     });
@@ -40,7 +40,7 @@
   $(document).on('click', '#btnMarkPaid', function () {
     var uid = $(this).data('uid');
     if (!confirm('Mark this payroll as Paid? This cannot be undone.')) return;
-    $.post('/payroll/markPaid', { PayrollUID: uid }, function (r) {
+    $.post(global_base_url + 'payroll/markPaid', { PayrollUID: uid }, function (r) {
       if (!r.Error) { toastr.success('Marked as Paid.'); window.location.reload(); }
       else toastr.error(r.Message || 'Error.');
     });
@@ -115,7 +115,7 @@
     if (!month || !year) { toastr.warning('Select month and year.'); return; }
     $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Loading…');
     var self = this;
-    $.post('/payroll/getPayrollEmployees', { Month: month, Year: year, WorkingDays: wdays }, function (r) {
+    $.post(global_base_url + 'payroll/getPayrollEmployees', { Month: month, Year: year, WorkingDays: wdays }, function (r) {
       $(self).prop('disabled', false).html('<i class="bx bx-refresh me-1"></i>Load / Recalculate');
       if (!r.Error) { renderLines(r.Employees); }
       else toastr.error(r.Message || 'Error loading employees.');
@@ -133,10 +133,10 @@
       Status:       status,
       Lines:        payrollLines
     };
-    $.post('/payroll/savePayroll', payload, function (r) {
+    $.post(global_base_url + 'payroll/savePayroll', payload, function (r) {
       if (!r.Error) {
         toastr.success(r.Message || (status === 'Processed' ? 'Payroll processed.' : 'Draft saved.'));
-        setTimeout(function () { window.location.href = '/payroll'; }, 1200);
+        setTimeout(function () { window.location.href = global_base_url + 'payroll'; }, 1200);
       } else {
         toastr.error(r.Message || 'Error saving payroll.');
       }

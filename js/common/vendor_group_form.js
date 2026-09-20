@@ -1,4 +1,4 @@
-/**
+﻿/**
  * VendorGroupForm — modal for add / edit Vendor Groups.
  *
  * Usage:
@@ -60,7 +60,7 @@
 
         _editGroupUID = uid || 0;
         $.ajax({
-            url   : '/vendors/getGroupForModal/' + _editGroupUID,
+            url   : global_base_url + 'vendors/getGroupForModal/' + _editGroupUID,
             method: 'GET',
             cache : false,
             success: function (res) {
@@ -112,7 +112,7 @@
 
     function _fetchGroupTypesAjax(cb) {
         $.ajax({
-            url: '/vendors/getGroupTypes', dataType: 'json',
+            url: global_base_url + 'vendors/getGroupTypes', dataType: 'json',
             success: function (res) {
                 var types = res.Data || [];
                 _groupTypesCache = types;
@@ -319,7 +319,7 @@
 
     function _fetchVendorsAjax(q, cb) {
         $.ajax({
-            url: '/vendors/searchVendors', dataType: 'json',
+            url: global_base_url + 'vendors/searchVendors', dataType: 'json',
             data: { term: q, groupUID: _editGroupUID },
             success: function (res) {
                 cb((res.Lists || []).map(function (v) {

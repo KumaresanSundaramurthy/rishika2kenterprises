@@ -186,7 +186,7 @@
                                                 data-bs-toggle="modal" data-bs-target="#changePlanModal">
                                                 <i class="bx bx-transfer-alt me-1"></i>Change Plan
                                             </button>
-                                            <a href="/subscription/plans" class="btn btn-primary">
+                                            <a href="<?= site_url('subscription/plans') ?>" class="btn btn-primary">
                                                 <i class="bx bx-list-check me-1"></i>Browse Plans
                                             </a>
                                         </div>
@@ -308,7 +308,7 @@
                                     </div>
                                     <p class="fw-semibold mb-1">No billing records yet</p>
                                     <p class="text-muted small mb-3">Your invoices and payment history will appear here.</p>
-                                    <a href="/subscription/plans" class="btn btn-outline-primary btn-sm">
+                                    <a href="<?= site_url('subscription/plans') ?>" class="btn btn-outline-primary btn-sm">
                                         <i class="bx bx-list-check me-1"></i>View Plans
                                     </a>
                                 </div>

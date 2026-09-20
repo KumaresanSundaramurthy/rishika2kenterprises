@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 $this->load->view('common/transactions/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -139,7 +139,7 @@ $this->load->view('common/transactions/header'); ?>
                                     <li><a class="dropdown-item" href="javascript:void(0);" onclick="invExport('Pdf')"><i class="bx bxs-file-pdf me-1"></i>PDF</a></li>
                                 </ul>
                             </div>
-                            <a href="/inventory/timeline" class="btn btn-sm btn-outline-primary"><i class="bx bx-history me-1"></i>Timeline</a>
+                            <a href="<?= site_url('inventory/timeline') ?>" class="btn btn-sm btn-outline-primary"><i class="bx bx-history me-1"></i>Timeline</a>
                             <button type="button" class="btn btn-sm btn-outline-danger" id="invBulkStockOutBtn" style="display:none;"><i class="bx bx-minus-circle me-1"></i>Bulk Stock Out</button>
                             <button type="button" class="btn btn-sm btn-outline-success" id="invBulkStockInBtn" style="display:none;"><i class="bx bx-plus-circle me-1"></i>Bulk Stock In</button>
                         </div>

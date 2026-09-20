@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 $this->load->view('common/transactions/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -108,7 +108,7 @@ $this->load->view('common/transactions/header'); ?>
 
                             <?php $this->load->view('common/partials/export_btn'); ?>
 
-                            <a href="/purchaseorders/create" class="btn btn-sm btn-primary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('create_purchase_order', 'Create Purchase Order'); ?>">
+                            <a href="<?= site_url('purchaseorders/create') ?>" class="btn btn-sm btn-primary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('create_purchase_order', 'Create Purchase Order'); ?>">
                                 <i class="bx bx-plus me-1"></i><?php echo t('lbl_new', 'New'); ?>
                             </a>
 
@@ -310,12 +310,12 @@ $(function () {
     };
 
     // ── Create / Edit — inject returnTab + returnPage ──────────────────
-    $(document).on('click', 'a[href="/purchaseorders/create"]', function (e) {
+    $(document).on('click', 'a[href="<?= site_url('purchaseorders/create') ?>"]', function (e) {
         e.preventDefault();
         var params = new URLSearchParams();
         params.set('returnTab', Filter.Status || 'All');
         if (PageNo > 1) params.set('returnPage', PageNo);
-        window.location.href = '/purchaseorders/create?' + params.toString();
+        window.location.href = global_base_url + 'purchaseorders/create?' + params.toString();
     });
     $(document).on('click', 'a[href^="/purchaseorders/edit/"]', function (e) {
         e.preventDefault();

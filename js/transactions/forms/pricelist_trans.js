@@ -1,4 +1,4 @@
-/**
+﻿/**
  * pricelist_trans.js — Price List Transaction Integration
  *
  * Handles price list resolution, application, chip UI, and auto-discount
@@ -70,7 +70,7 @@ function _plLoad() {
         if (!Array.isArray(data) || !data.length) {
             // Flag says lists exist but cache is empty — self-heal from DB
             $.ajax({
-                url:    '/products/syncPriceListCache',
+                url:    global_base_url + 'products/syncPriceListCache',
                 method: 'POST',
                 data:   { [CsrfName]: CsrfToken },
                 success: function (resp) {

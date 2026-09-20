@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
 <?php $this->load->view('common/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -54,7 +54,7 @@
 
                             <!-- Right controls -->
                             <div class="d-flex align-items-center gap-2 flex-wrap py-2">
-                                <a href="/purchases" class="btn btn-sm btn-outline-secondary">
+                                <a href="<?= site_url('purchases') ?>" class="btn btn-sm btn-outline-secondary">
                                     <i class="bx bx-arrow-back me-1"></i>Back to Purchases
                                 </a>
                                 <div class="input-group input-group-sm" style="width:210px;">

@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php
 $cdnUrl = getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN');
@@ -236,7 +236,7 @@ if (!empty($DataLists)):
             <div class="d-flex align-items-center justify-content-end gap-1">
 
                 <?php if (!$isTerminal && ($isDraft || $status === 'Dispatched')): ?>
-                <a class="btn btn-icon btn-sm text-warning" href="/deliverychallan/<?php echo (int)$list->TransUID; ?>/edit" title="Edit">
+                <a class="btn btn-icon btn-sm text-warning" href="<?= site_url('deliverychallan/') ?><?php echo (int)$list->TransUID; ?>/edit" title="Edit">
                     <i class="bx bx-edit"></i>
                 </a>
                 <?php endif; ?>
@@ -314,7 +314,7 @@ if (!empty($DataLists)):
                         <li><hr class="dropdown-divider my-1"></li>
                         <?php if ($status !== 'Cancelled'): ?>
                         <li>
-                            <a class="dropdown-item" href="/packing-list/<?php echo (int)$list->TransUID; ?>">
+                            <a class="dropdown-item" href="<?= site_url('packing-list/') ?><?php echo (int)$list->TransUID; ?>">
                                 <i class="bx bx-list-ul me-2 text-secondary"></i><?php echo t('act_packing_list', 'Packing List'); ?>
                             </a>
                         </li>
@@ -398,7 +398,7 @@ else:
             <div class="d-flex flex-column align-items-center py-5">
                 <img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:150px;object-fit:contain;">
                 <span class="text-muted mb-3" style="font-size:.9rem;"><?php echo t('empty_delivery_challans', 'No delivery challans found'); ?></span>
-                <a href="/deliverychallan/create" class="btn btn-primary btn-sm px-4">
+                <a href="<?= site_url('deliverychallan/create') ?>" class="btn btn-primary btn-sm px-4">
                     <i class="bx bx-plus me-1"></i><?php echo t('create_delivery_challan', 'Create Delivery Challan'); ?>
                 </a>
             </div>

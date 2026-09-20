@@ -435,7 +435,7 @@ $_popularIdx = $_planCount > 2 ? (int)floor(($_planCount - 1) / 2) : -1;
             <i class="bx bx-buildings"></i>
             <?php echo htmlspecialchars($orgName ?? ''); ?>
         </div>
-        <a href="/logout" class="sub-logout-link"><i class="bx bx-log-out"></i> Sign out</a>
+        <a href="<?= site_url('logout') ?>" class="sub-logout-link"><i class="bx bx-log-out"></i> Sign out</a>
     </div>
 
     <!-- Body -->
@@ -575,7 +575,7 @@ $_popularIdx = $_planCount > 2 ? (int)floor(($_planCount - 1) / 2) : -1;
                         <span id="subPaySpinner" style="display:none;"><span class="sub-spinner"></span></span>
                     </button>
 
-                    <a href="/logout" style="display:block;text-align:center;font-size:0.78rem;color:rgba(160,190,215,.35);text-decoration:none;transition:color .2s;"
+                    <a href="<?= site_url('logout') ?>" style="display:block;text-align:center;font-size:0.78rem;color:rgba(160,190,215,.35);text-decoration:none;transition:color .2s;"
                        onmouseover="this.style.color='rgba(160,190,215,.7)'" onmouseout="this.style.color='rgba(160,190,215,.35)'">
                         Return later &amp; pay when ready
                     </a>

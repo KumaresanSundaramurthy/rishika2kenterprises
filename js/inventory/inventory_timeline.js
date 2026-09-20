@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 var _tlFilter      = {};
 var _tlProdCache   = null;
@@ -11,7 +11,7 @@ function tlLoadPage(pageNo) {
 
     ajaxLoading(0);
     $.ajax({
-        url: '/inventory/timeline/getPageDetails/' + (pageNo || 1),
+        url: global_base_url + 'inventory/timeline/getPageDetails/' + (pageNo || 1),
         method: 'POST',
         data: {
             RowLimit: 10,
@@ -86,7 +86,7 @@ function _tlLoadItemsIntoBox() {
         function () {
             // Upstash miss — fall back to AJAX
             $.ajax({
-                url : '/inventory/searchProducts',
+                url : global_base_url + 'inventory/searchProducts',
                 type: 'POST',
                 data: { Term: '', [CsrfName]: CsrfToken },
                 success: function (data) {
@@ -201,7 +201,7 @@ $(document).ready(function () {
         var $btn = $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
 
         $.ajax({
-            url: '/inventory/updateLedgerRemarks',
+            url: global_base_url + 'inventory/updateLedgerRemarks',
             method: 'POST',
             data: {
                 LedgerUID:  ledgerUID,

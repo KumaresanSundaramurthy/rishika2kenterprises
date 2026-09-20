@@ -1,4 +1,4 @@
-/* global $, CsrfName, CsrfToken, showToastNotification, ajaxLoading, bootstrap, DriveConfig, Swal */
+﻿/* global $, CsrfName, CsrfToken, showToastNotification, ajaxLoading, bootstrap, DriveConfig, Swal */
 (function () {
     'use strict';
 
@@ -140,7 +140,7 @@
         CurrentFolderUID = folderUID;
         ajaxLoading(0);
         $.ajax({
-            url:    '/settings/mydrive/getItems',
+            url:    global_base_url + 'settings/mydrive/getItems',
             method: 'POST',
             data:   { ParentUID: folderUID, ViewUserUID: ViewUserUID, [CsrfName]: CsrfToken },
             success: function (resp) {
@@ -280,7 +280,7 @@
         $toast.addClass('show');
 
         $.ajax({
-            url: '/settings/mydrive/uploadFile',
+            url: global_base_url + 'settings/mydrive/uploadFile',
             method: 'POST',
             data: fd,
             processData: false,
@@ -322,7 +322,7 @@
         if (!name) { $('#newFolderName').focus(); return; }
         ajaxLoading(0);
         $.ajax({
-            url: '/settings/mydrive/createFolder',
+            url: global_base_url + 'settings/mydrive/createFolder',
             method: 'POST',
             data: { FolderName: name, ParentUID: CurrentFolderUID, ViewUserUID: ViewUserUID, [CsrfName]: CsrfToken },
             success: function (resp) {
@@ -359,7 +359,7 @@
         if (!newName) return;
         ajaxLoading(0);
         $.ajax({
-            url: '/settings/mydrive/renameItem',
+            url: global_base_url + 'settings/mydrive/renameItem',
             method: 'POST',
             data: { DriveItemUID: uid, NewName: newName, ViewUserUID: ViewUserUID, [CsrfName]: CsrfToken },
             success: function (resp) {
@@ -395,7 +395,7 @@
             if (!r.isConfirmed) return;
             ajaxLoading(0);
             $.ajax({
-                url: '/settings/mydrive/deleteItem',
+                url: global_base_url + 'settings/mydrive/deleteItem',
                 method: 'POST',
                 data: { DriveItemUID: uid, ViewUserUID: ViewUserUID, [CsrfName]: CsrfToken },
                 success: function (resp) {
@@ -470,7 +470,7 @@
         $('#moveFolderList').html('<div class="text-center py-3"><span class="spinner-border spinner-border-sm text-primary"></span></div>');
         ajaxLoading(0);
         $.ajax({
-            url: '/settings/mydrive/getItems',
+            url: global_base_url + 'settings/mydrive/getItems',
             method: 'POST',
             data: { ParentUID: parentUID, ViewUserUID: ViewUserUID, [CsrfName]: CsrfToken },
             success: function (resp) {
@@ -502,7 +502,7 @@
     function executeMoveHere() {
         ajaxLoading(0);
         $.ajax({
-            url: '/settings/mydrive/moveItem',
+            url: global_base_url + 'settings/mydrive/moveItem',
             method: 'POST',
             data: { DriveItemUID: _moveItemUID, NewParentUID: _moveFolderUID, ViewUserUID: ViewUserUID, [CsrfName]: CsrfToken },
             success: function (resp) {
@@ -590,7 +590,7 @@
 
         ajaxLoading(0);
         $.ajax({
-            url: '/settings/mydrive/moveItem',
+            url: global_base_url + 'settings/mydrive/moveItem',
             method: 'POST',
             data: { DriveItemUID: DragItemUID, NewParentUID: targetUID, ViewUserUID: ViewUserUID, [CsrfName]: CsrfToken },
             success: function (resp) {
@@ -646,7 +646,7 @@
         var item   = ItemData[uid] || {};
 
         if (action === 'preview')  { openPreview(uid); return; }
-        if (action === 'download') { window.location.href = '/settings/mydrive/downloadFile/' + uid; return; }
+        if (action === 'download') { window.location.href = global_base_url + 'settings/mydrive/downloadFile/' + uid; return; }
         if (action === 'rename')   { openRename(uid, item.name || ''); return; }
         if (action === 'move')     { openMoveModal(uid, item.name || ''); return; }
         if (action === 'delete')   { confirmDelete(uid, item.name || '', item.type || 'File'); return; }

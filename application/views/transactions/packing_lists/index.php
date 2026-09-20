@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 $this->load->view('common/transactions/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -91,7 +91,7 @@ $this->load->view('common/transactions/header'); ?>
                                         <td class="text-center text-muted" style="font-size:.78rem;"><?php echo $sno; ?></td>
 
                                         <td>
-                                            <a href="/packing-list/<?php echo (int)$pl->TransUID; ?>" class="trans-doc-number fw-semibold">
+                                            <a href="<?= site_url('packing-list/') ?><?php echo (int)$pl->TransUID; ?>" class="trans-doc-number fw-semibold">
                                                 <?php echo htmlspecialchars($pl->UniqueNumber ?? '—'); ?>
                                             </a>
                                         </td>
@@ -123,11 +123,11 @@ $this->load->view('common/transactions/header'); ?>
 
                                         <td class="text-end">
                                             <div class="d-flex gap-1 justify-content-end">
-                                                <a href="/packing-list/<?php echo (int)$pl->TransUID; ?>"
+                                                <a href="<?= site_url('packing-list/') ?><?php echo (int)$pl->TransUID; ?>"
                                                    class="btn btn-sm btn-outline-secondary" title="Edit">
                                                     <i class="bx bx-edit-alt"></i>
                                                 </a>
-                                                <a href="/packing-list/<?php echo (int)$pl->TransUID; ?>/print"
+                                                <a href="<?= site_url('packing-list/') ?><?php echo (int)$pl->TransUID; ?>/print"
                                                    class="btn btn-sm btn-outline-primary" title="Print" target="_blank">
                                                     <i class="bx bx-printer"></i>
                                                 </a>

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * PaymentsPage — OOP controller for the unified Payments list page.
  *
  * Responsibilities:
@@ -78,7 +78,7 @@ var PaymentsPage = (function () {
         var f    = self.getFilter();
 
         var jqXHR = $.ajax({
-            url    : '/payments/getPaymentsPageDetails/' + pageNo,
+            url    : global_base_url + 'payments/getPaymentsPageDetails/' + pageNo,
             method : 'POST',
             data   : { RowLimit: self._limit, Filter: f, [CsrfName]: CsrfToken },
             beforeSend: function () {
@@ -111,7 +111,7 @@ var PaymentsPage = (function () {
         var self = this;
         f = f || self.getFilter();
         $.ajax({
-            url    : '/payments/getStats',
+            url    : global_base_url + 'payments/getStats',
             method : 'POST',
             data   : { Filter: f, [CsrfName]: CsrfToken },
             success: function (resp) {

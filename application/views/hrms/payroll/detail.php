@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 $cur    = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
 $p      = $Payroll ?? new stdClass();
 $lines  = $PayrollLines ?? [];
@@ -23,7 +23,7 @@ $badge = $statusColors[$p->PayrollStatus ?? 'Draft'] ?? 'secondary';
             <?php if (($p->PayrollStatus ?? '') === 'Processed'): ?>
             <button class="btn btn-sm btn-success" id="btnMarkPaid" data-uid="<?php echo (int)$p->PayrollUID; ?>"><i class="bx bx-check-circle me-1"></i><?php echo t('btn_mark_paid', 'Mark as Paid'); ?></button>
             <?php endif; ?>
-            <a href="/payroll" class="btn btn-sm btn-outline-secondary"><i class="bx bx-arrow-back me-1"></i><?php echo t('btn_back', 'Back'); ?></a>
+            <a href="<?= site_url('payroll') ?>" class="btn btn-sm btn-outline-secondary"><i class="bx bx-arrow-back me-1"></i><?php echo t('btn_back', 'Back'); ?></a>
           </div>
 
           <!-- Header info -->
@@ -44,7 +44,7 @@ $badge = $statusColors[$p->PayrollStatus ?? 'Draft'] ?? 'secondary';
           <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
               <h6 class="mb-0"><?php echo t('col_employee_breakdown', 'Employee Breakdown'); ?></h6>
-              <a href="/payslips?payroll=<?php echo (int)$p->PayrollUID; ?>" class="btn btn-sm btn-outline-primary"><i class="bx bx-file me-1"></i><?php echo t('btn_view_payslips', 'View Payslips'); ?></a>
+              <a href="<?= site_url('payslips') ?>?payroll=<?php echo (int)$p->PayrollUID; ?>" class="btn btn-sm btn-outline-primary"><i class="bx bx-file me-1"></i><?php echo t('btn_view_payslips', 'View Payslips'); ?></a>
             </div>
             <div class="table-responsive">
               <table class="table trans-table mb-0" style="font-size:.83rem;">
@@ -67,8 +67,8 @@ $badge = $statusColors[$p->PayrollStatus ?? 'Draft'] ?? 'secondary';
                     <td class="text-danger"><?php echo $cur . ' ' . smartDecimal((float)($ln->TotalDeductions ?? 0)); ?></td>
                     <td class="text-success fw-semibold"><?php echo $cur . ' ' . smartDecimal((float)($ln->NetPayable ?? 0)); ?></td>
                     <td>
-                      <a href="/payslips/view/<?php echo (int)$ln->PayrollLineUID; ?>" class="btn btn-icon btn-sm text-primary" title="<?php echo t('btn_view_detail', 'View Payslip'); ?>"><i class="bx bx-file"></i></a>
-                      <a href="/payslips/print/<?php echo (int)$ln->PayrollLineUID; ?>" class="btn btn-icon btn-sm text-secondary" title="<?php echo t('btn_print', 'Print'); ?>" target="_blank"><i class="bx bx-printer"></i></a>
+                      <a href="<?= site_url('payslips/view/') ?><?php echo (int)$ln->PayrollLineUID; ?>" class="btn btn-icon btn-sm text-primary" title="<?php echo t('btn_view_detail', 'View Payslip'); ?>"><i class="bx bx-file"></i></a>
+                      <a href="<?= site_url('payslips/print/') ?><?php echo (int)$ln->PayrollLineUID; ?>" class="btn btn-icon btn-sm text-secondary" title="<?php echo t('btn_print', 'Print'); ?>" target="_blank"><i class="bx bx-printer"></i></a>
                     </td>
                   </tr>
                   <?php endforeach; else: ?>

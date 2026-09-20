@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 (function () {
 
   var currentPage          = 1;
@@ -9,7 +9,7 @@
   function loadPage(page, filter) {
     currentPage = page || 1;
     filterData  = filter || filterData;
-    $.post('/holidays/getPageDetails/' + currentPage, { Filter: filterData }, function (r) {
+    $.post(global_base_url + 'holidays/getPageDetails/' + currentPage, { Filter: filterData }, function (r) {
       if (!r.Error) {
         $('#HolidayTableBody').html(r.RecordHtmlData);
         $('#HolidaysPagination').html(r.Pagination);
@@ -91,7 +91,7 @@
     var $spinner = $('<span class="spinner-border spinner-border-sm me-1" role="status"></span>');
     $btn.prepend($spinner);
 
-    $.post('/holidays/save', payload, function (r) {
+    $.post(global_base_url + 'holidays/save', payload, function (r) {
       $spinner.remove();
       $btn.prop('disabled', false);
       if (!r.Error) {
@@ -115,7 +115,7 @@
   $(document).on('click', '.holiday-delete-btn', function () {
     if (!confirm('Delete this holiday?')) return;
     var payload = { HolidayUID: $(this).data('uid'), CurrentPage: currentPage, Filter: buildFilter() };
-    $.post('/holidays/delete', payload, function (r) {
+    $.post(global_base_url + 'holidays/delete', payload, function (r) {
       if (!r.Error) {
         $('#HolidayTableBody').html(r.RecordHtmlData);
         $('#HolidaysPagination').html(r.Pagination);

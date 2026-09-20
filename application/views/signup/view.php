@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php $pageTitle = 'Sign Up'; $this->load->view('login/header', ['pageTitle' => $pageTitle]); ?>
 
@@ -1183,13 +1183,13 @@ html, body {
                         You will not be able to log in until your email is verified.
                     </span>
                 </p>
-                <a href="/portal" class="su-btn su-btn-primary" style="display:inline-flex;text-decoration:none;justify-content:center;">
+                <a href="<?= site_url('login') ?>" class="su-btn su-btn-primary" style="display:inline-flex;text-decoration:none;justify-content:center;">
                     <i class="bx bx-log-in-circle"></i> Go to Sign In
                 </a>
             </div>
 
             <p class="su-login-link" id="suLoginLink">
-                Already have an account? <a href="/portal">Sign in</a>
+                Already have an account? <a href="<?= site_url('login') ?>">Sign in</a>
             </p>
 
         </div>
@@ -1395,7 +1395,7 @@ html, body {
         /* Divider & login link */
         document.querySelectorAll('.su-or-divider').forEach(function(el){ el.textContent = s.orFill; });
         var loginLink = document.getElementById('suLoginLink');
-        if (loginLink) loginLink.innerHTML = s.btnSignin + ' <a href="/portal">' + s.btnSigninLink + '</a>';
+        if (loginLink) loginLink.innerHTML = s.btnSignin + ' <a href="<?= site_url('login') ?>">' + s.btnSigninLink + '</a>';
     }
 
     (function () {

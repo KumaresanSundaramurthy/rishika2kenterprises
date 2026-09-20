@@ -1,4 +1,4 @@
-/**
+﻿/**
  * AI Business Assistant widget — vanilla JS, no external dependencies.
  * Communicates with POST /assistant/chat; uses global CsrfName/CsrfToken/global_base_url.
  */
@@ -106,7 +106,7 @@
         fd.append('history', JSON.stringify(_history));
         if (typeof CsrfName !== 'undefined') { fd.append(CsrfName, CsrfToken); }
 
-        var url = (typeof global_base_url !== 'undefined' ? global_base_url : '/') + 'assistant/chat';
+        var url = (typeof global_base_url !== 'undefined' ? global_base_url : global_base_url + '') + 'assistant/chat';
 
         fetch(url, { method: 'POST', body: fd })
             .then(function (r) { return r.json(); })

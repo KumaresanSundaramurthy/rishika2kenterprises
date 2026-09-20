@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php $this->load->view('common/header'); ?>
 
 <?php
@@ -339,19 +339,19 @@ $kpiData = [
                                     <span class="text-muted fw-semibold pend-strip-label">Pending Actions</span>
                                     <div class="pend-badge">
                                         <span class="pend-count pend-count-draft"><?php echo (int)$pendCounts->draft_count; ?></span>
-                                        <a href="/invoices?tab=Draft" class="pend-lnk">Drafts</a>
+                                        <a href="<?= site_url('invoices') ?>?tab=Draft" class="pend-lnk">Drafts</a>
                                     </div>
                                     <div class="pend-badge">
                                         <span class="pend-count pend-count-inv"><?php echo (int)$pendCounts->open_invoices; ?></span>
-                                        <a href="/invoices" class="pend-lnk">Open Invoices</a>
+                                        <a href="<?= site_url('invoices') ?>" class="pend-lnk">Open Invoices</a>
                                     </div>
                                     <div class="pend-badge">
                                         <span class="pend-count pend-count-po"><?php echo (int)$pendCounts->open_pos; ?></span>
-                                        <a href="/purchaseorders" class="pend-lnk">Open POs</a>
+                                        <a href="<?= site_url('purchaseorders') ?>" class="pend-lnk">Open POs</a>
                                     </div>
                                     <div class="pend-badge">
                                         <span class="pend-count pend-count-purch"><?php echo (int)$pendCounts->open_purchases; ?></span>
-                                        <a href="/purchases" class="pend-lnk">Open Purchases</a>
+                                        <a href="<?= site_url('purchases') ?>" class="pend-lnk">Open Purchases</a>
                                     </div>
                                 </div>
                             </div>
@@ -369,7 +369,7 @@ $kpiData = [
                                         <span class="chart-metric-dot" id="chartDot" style="background:#0d6efd;"></span>
                                         <span id="chartTitle">Sales — Last 30 Days</span>
                                     </span>
-                                    <a href="/invoices" id="chartViewAllLink" class="btn btn-sm btn-outline-primary">View All</a>
+                                    <a href="<?= site_url('invoices') ?>" id="chartViewAllLink" class="btn btn-sm btn-outline-primary">View All</a>
                                 </div>
                                 <div class="card-body pt-2 pb-3" style="position:relative;">
                                     <!-- Dotted grid background (21st.dev pattern) -->
@@ -424,7 +424,7 @@ $kpiData = [
                             <div class="card">
                                 <div class="card-header d-flex align-items-center justify-content-between py-2">
                                     <span class="fw-semibold" style="font-size:.88rem;">Top Customers</span>
-                                    <a href="/customers" class="btn btn-sm btn-outline-secondary" style="font-size:.72rem;">View All</a>
+                                    <a href="<?= site_url('customers') ?>" class="btn btn-sm btn-outline-secondary" style="font-size:.72rem;">View All</a>
                                 </div>
                                 <div class="card-body p-0">
                                     <?php if (empty($topCust)): ?>
@@ -453,7 +453,7 @@ $kpiData = [
                             <div class="card mt-3">
                                 <div class="card-header d-flex align-items-center justify-content-between py-2">
                                     <span class="fw-semibold" style="font-size:.88rem;">Top Vendors</span>
-                                    <a href="/vendors" class="btn btn-sm btn-outline-secondary" style="font-size:.72rem;">View All</a>
+                                    <a href="<?= site_url('vendors') ?>" class="btn btn-sm btn-outline-secondary" style="font-size:.72rem;">View All</a>
                                 </div>
                                 <div class="card-body p-0">
                                     <?php if (empty($topVend)): ?>
@@ -483,7 +483,7 @@ $kpiData = [
                             <div class="card h-100">
                                 <div class="card-header d-flex align-items-center justify-content-between py-2">
                                     <span class="fw-semibold" style="font-size:.88rem;">Recent Transactions</span>
-                                    <a href="/invoices" class="btn btn-sm btn-outline-secondary" style="font-size:.72rem;">View All</a>
+                                    <a href="<?= site_url('invoices') ?>" class="btn btn-sm btn-outline-secondary" style="font-size:.72rem;">View All</a>
                                 </div>
                                 <div class="table-responsive">
                                     <table class="table table-sm mb-0" style="font-size:.8rem;">
@@ -536,7 +536,7 @@ $kpiData = [
                             <div class="card h-100">
                                 <div class="card-header d-flex align-items-center justify-content-between py-2">
                                     <span class="fw-semibold" style="font-size:.88rem;"><i class="bx bx-wallet text-danger me-1"></i>Expenses — This Month</span>
-                                    <a href="/expenses" class="btn btn-sm btn-outline-secondary" style="font-size:.72rem;">View All</a>
+                                    <a href="<?= site_url('expenses') ?>" class="btn btn-sm btn-outline-secondary" style="font-size:.72rem;">View All</a>
                                 </div>
                                 <div class="card-body py-3">
                                     <?php if (empty($expSummary)): ?>
@@ -572,7 +572,7 @@ $kpiData = [
                             <div class="card h-100">
                                 <div class="card-header d-flex align-items-center justify-content-between py-2">
                                     <span class="fw-semibold" style="font-size:.88rem;"><i class="bx bx-box text-primary me-1"></i>Top Products — This Month</span>
-                                    <a href="/products" class="btn btn-sm btn-outline-secondary" style="font-size:.72rem;">View All</a>
+                                    <a href="<?= site_url('products') ?>" class="btn btn-sm btn-outline-secondary" style="font-size:.72rem;">View All</a>
                                 </div>
                                 <div class="card-body py-3">
                                     <?php if (empty($topProducts)): ?>

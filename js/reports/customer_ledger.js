@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
     'use strict';
 
     var _sym = (genSettings && genSettings.CurrenySymbol) ? genSettings.CurrenySymbol : '₹';
@@ -177,7 +177,7 @@
         document.getElementById('clTblFooter').classList.add('d-none');
 
         $.ajax({
-            url: '/reports/getCustomerLedgerData',
+            url: global_base_url + 'reports/getCustomerLedgerData',
             type: 'GET',
             dataType: 'json',
             data: { customerUID: _customerUID, from: from, to: to },
@@ -249,7 +249,7 @@
             allowClear: true,
             minimumInputLength: 1,
             ajax: {
-                url: '/transactions/searchCustomers',
+                url: global_base_url + 'transactions/searchCustomers',
                 dataType: 'json',
                 delay: 250,
                 data: function (params) {

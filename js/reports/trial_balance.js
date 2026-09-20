@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Trial Balance Report
  * Displays all ledger accounts with opening balance, period movements, and closing balance.
  * Closing balance = Opening ± (Debit − Credit) based on OpeningBalanceType.
@@ -181,7 +181,7 @@
 
         ajaxLoading(1);
         $.ajax({
-            url      : '/reports/getTrialBalanceData',
+            url      : global_base_url + 'reports/getTrialBalanceData',
             type     : 'GET',
             dataType : 'json',
             data     : { from: _from, to: _to },

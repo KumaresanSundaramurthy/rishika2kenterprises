@@ -1,4 +1,4 @@
-/**
+﻿/**
  * country_state_city.js
  * Handles dynamic State and City dropdowns for address forms.
  *
@@ -24,7 +24,7 @@ function csc_loadStates(selectId, countryISO2, selectedVal, callback) {
 
     $sel.html('<option value="">Loading...</option>');
     $.ajax({
-        url   : '/globally/getStateofCountry',
+        url   : global_base_url + 'globally/getStateofCountry',
         method: 'POST',
         data  : { CountryCode: countryISO2 },
         success: function (resp) {
@@ -62,7 +62,7 @@ function csc_loadCities(selectId, countryISO2, stateISO2, selectedVal) {
 
     $sel.html('<option value="">Loading...</option>');
     $.ajax({
-        url   : '/globally/getCitiesOfState',
+        url   : global_base_url + 'globally/getCitiesOfState',
         method: 'POST',
         data  : { CountryISO2: countryISO2, StateISO2: stateISO2 },
         success: function (resp) {

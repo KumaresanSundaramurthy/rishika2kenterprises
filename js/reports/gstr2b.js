@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
     'use strict';
 
     var _dec  = (typeof genSettings !== 'undefined' && genSettings.DecimalPlaces != null) ? parseInt(genSettings.DecimalPlaces, 10) : 2;
@@ -137,7 +137,7 @@
             '</td></tr>';
         document.getElementById('g2TableFoot').classList.add('d-none');
 
-        $.get('/reports/getGstr2bData', { month: month, year: year })
+        $.get(global_base_url + 'reports/getGstr2bData', { month: month, year: year })
             .done(function (res) {
                 if (res.Status !== 'Success') {
                     document.getElementById('g2TableBody').innerHTML =

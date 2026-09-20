@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 (function () {
 
   var currentPage       = 1;
@@ -9,7 +9,7 @@
   function loadPage(page, filter) {
     currentPage = page || 1;
     filterData  = filter || filterData;
-    $.post('/departments/getPageDetails/' + currentPage, { Filter: filterData }, function (r) {
+    $.post(global_base_url + 'departments/getPageDetails/' + currentPage, { Filter: filterData }, function (r) {
       if (!r.Error) {
         $('#DeptTableBody').html(r.RecordHtmlData);
         $('#DepartmentsPagination').html(r.Pagination);
@@ -75,7 +75,7 @@
     var $spinner = $('<span class="spinner-border spinner-border-sm me-1" role="status"></span>');
     $btn.prepend($spinner);
 
-    $.post('/departments/save', payload, function (r) {
+    $.post(global_base_url + 'departments/save', payload, function (r) {
       $spinner.remove();
       $btn.prop('disabled', false);
       if (!r.Error) {
@@ -101,7 +101,7 @@
   $(document).on('click', '.dept-delete-btn', function () {
     var uid = $(this).data('uid');
     if (!confirm('Delete this department?')) return;
-    $.post('/departments/delete', { DepartmentUID: uid }, function (r) {
+    $.post(global_base_url + 'departments/delete', { DepartmentUID: uid }, function (r) {
       if (!r.Error) { showToastNotification('Deleted.', 'success'); loadPage(currentPage); }
       else showToastNotification(r.Message || 'Cannot delete — it may be in use.', 'error');
     });

@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 $cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
 $months = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 $statusColors = ['Draft'=>'secondary','Processed'=>'primary','Paid'=>'success'];
@@ -25,8 +25,8 @@ if (!empty($DataLists)):
   <td><span class="badge bg-label-<?php echo $badge; ?>"><?php echo $status; ?></span></td>
   <td>
     <div class="d-flex align-items-center gap-1">
-      <a href="/payslips/view/<?php echo $uid; ?>" class="btn btn-icon btn-sm text-primary" title="<?php echo t('btn_view_detail', 'View'); ?>"><i class="bx bx-file"></i></a>
-      <a href="/payslips/print/<?php echo $uid; ?>" class="btn btn-icon btn-sm text-secondary" title="<?php echo t('btn_print', 'Print'); ?>" target="_blank"><i class="bx bx-printer"></i></a>
+      <a href="<?= site_url('payslips/view/') ?><?php echo $uid; ?>" class="btn btn-icon btn-sm text-primary" title="<?php echo t('btn_view_detail', 'View'); ?>"><i class="bx bx-file"></i></a>
+      <a href="<?= site_url('payslips/print/') ?><?php echo $uid; ?>" class="btn btn-icon btn-sm text-secondary" title="<?php echo t('btn_print', 'Print'); ?>" target="_blank"><i class="bx bx-printer"></i></a>
     </div>
   </td>
 </tr>

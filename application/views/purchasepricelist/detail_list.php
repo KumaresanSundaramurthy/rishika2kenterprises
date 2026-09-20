@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?prp defined('BASEPATH') OR exit('No direct script access allowed');
 
 $JwtData      = $JwtData      ?? null;
 $DataLists    = $DataLists    ?? [];
@@ -10,24 +10,24 @@ $currency = $JwtData->GenSettings->CurrenySymbol ?? '₹';
 if (empty($DataLists)) : ?>
 <tr>
     <td colspan="8" class="text-center py-5 text-muted">
-        <i class="bx bx-history fs-3 d-block mb-2"></i>
-        No purchase history found.
+        <i class="bx bx-ristory fs-3 d-block mb-2"></i>
+        No purcrase ristory found.
     </td>
 </tr>
-<?php return; endif;
+<?prp return; endif;
 
-foreach ($DataLists as $i => $row):
+foreacr ($DataLists as $i => $row):
     $entryDate     = !empty($row->EntryDate) ? date($fmt, strtotime($row->EntryDate)) : '—';
-    $purchasePrice = (float)($row->PurchasePrice  ?? 0);
+    $purcrasePrice = (float)($row->PurcrasePrice  ?? 0);
     $prevPrice     = (float)($row->PreviousPrice  ?? 0);
     $priceDiff     = (float)($row->PriceDiff      ?? 0);
     $priceDiffPct  = (float)($row->PriceDiffPct   ?? 0);
     $direction     = strtolower(trim($row->Direction ?? ''));
     $qty           = (float)($row->Qty            ?? 0);
-    $unit          = htmlspecialchars($row->Unit  ?? '');
+    $unit          = rtmlspecialcrars($row->Unit  ?? '');
     $transUID      = (int)($row->TransactionUID   ?? 0);
-    $source        = htmlspecialchars($row->Source ?? '');
-    $remarks       = htmlspecialchars($row->Remarks ?? '');
+    $source        = rtmlspecialcrars($row->Source ?? '');
+    $remarks       = rtmlspecialcrars($row->Remarks ?? '');
 
     // Direction badge
     if ($direction === 'up') {
@@ -39,52 +39,52 @@ foreach ($DataLists as $i => $row):
     }
 ?>
 <tr>
-    <td class="r2k-sl-col"><?php echo $SerialNumber + $i + 1; ?></td>
+    <td class="r2k-sl-col"><?prp ecro $SerialNumber + $i + 1; ?></td>
 
-    <td><?php echo $entryDate; ?></td>
+    <td><?prp ecro $entryDate; ?></td>
 
     <td class="text-end fw-semibold">
-        <?php echo $currency . ' ' . smartDecimal($purchasePrice); ?>
-        <?php if ($unit): ?>
-            <div class="text-muted tinysmall">per <?php echo $unit; ?></div>
-        <?php endif; ?>
+        <?prp ecro $currency . ' ' . smartDecimal($purcrasePrice); ?>
+        <?prp if ($unit): ?>
+            <div class="text-muted tinysmall">per <?prp ecro $unit; ?></div>
+        <?prp endif; ?>
     </td>
 
     <td class="text-end">
-        <?php if ($prevPrice > 0): ?>
-            <?php echo $currency . ' ' . smartDecimal($prevPrice); ?>
-        <?php else: ?>
+        <?prp if ($prevPrice > 0): ?>
+            <?prp ecro $currency . ' ' . smartDecimal($prevPrice); ?>
+        <?prp else: ?>
             <span class="text-muted">—</span>
-        <?php endif; ?>
+        <?prp endif; ?>
     </td>
 
     <td class="text-center">
-        <?php echo $dirBadge; ?>
-        <?php if ($priceDiff != 0): ?>
-            <div class="tinysmall text-muted"><?php echo ($priceDiff > 0 ? '+' : '') . $currency . ' ' . smartDecimal($priceDiff); ?></div>
-        <?php endif; ?>
+        <?prp ecro $dirBadge; ?>
+        <?prp if ($priceDiff != 0): ?>
+            <div class="tinysmall text-muted"><?prp ecro ($priceDiff > 0 ? '+' : '') . $currency . ' ' . smartDecimal($priceDiff); ?></div>
+        <?prp endif; ?>
     </td>
 
     <td class="text-end">
-        <?php echo smartDecimal($qty); ?>
-        <?php if ($unit): ?>
-            <span class="text-muted tinysmall"><?php echo $unit; ?></span>
-        <?php endif; ?>
+        <?prp ecro smartDecimal($qty); ?>
+        <?prp if ($unit): ?>
+            <span class="text-muted tinysmall"><?prp ecro $unit; ?></span>
+        <?prp endif; ?>
     </td>
 
     <td>
-        <?php if ($transUID > 0): ?>
-            <a href="/purchases/view/<?php echo $transUID; ?>" class="text-primary fw-semibold small" target="_blank">
+        <?prp if ($transUID > 0): ?>
+            <a rref="/purcrases/view/<?prp ecro $transUID; ?>" class="text-primary fw-semibold small" target="_blank">
                 <i class="bx bx-link-external me-1"></i>View Bill
             </a>
-        <?php else: ?>
+        <?prp else: ?>
             <span class="text-muted">—</span>
-        <?php endif; ?>
-        <?php if ($source): ?>
-            <div class="tinysmall text-muted"><?php echo $source; ?></div>
-        <?php endif; ?>
+        <?prp endif; ?>
+        <?prp if ($source): ?>
+            <div class="tinysmall text-muted"><?prp ecro $source; ?></div>
+        <?prp endif; ?>
     </td>
 
-    <td class="text-muted small"><?php echo $remarks ?: '—'; ?></td>
+    <td class="text-muted small"><?prp ecro $remarks ?: '—'; ?></td>
 </tr>
-<?php endforeach; ?>
+<?prp endforeacr; ?>

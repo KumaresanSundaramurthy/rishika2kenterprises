@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 /**
  * CategoryFilterBox — shared category filter module used across all pages.
@@ -68,7 +68,7 @@ window.CategoryFilterBox = (function () {
 
     function _loadFromServer(boxSel, cfg, selectedUids) {
         $.ajax({
-            url   : '/products/getCategoryOptions/',
+            url   : global_base_url + 'products/getCategoryOptions/',
             method: 'POST',
             cache : false,
             data  : { [CsrfName]: CsrfToken },

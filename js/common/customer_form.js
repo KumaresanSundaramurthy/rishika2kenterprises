@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CustomerForm — shared modal for add / edit / clone across all pages.
  *
  * Usage:
@@ -94,7 +94,7 @@
 
     function _fetchSalutationsFromServer(callback) {
         $.ajax({
-            url: '/settings/getSalutationList', method: 'GET', cache: false,
+            url: global_base_url + 'settings/getSalutationList', method: 'GET', cache: false,
             success: function (resp) {
                 if (!resp.Error && resp.Data && resp.Data.length) {
                     _populateSalutationDropdown(resp.Data);
@@ -167,7 +167,7 @@
 
     function _fetchCustomerTypesFromServer(callback) {
         $.ajax({
-            url: '/customers/getCustomerTypes', method: 'GET', cache: false,
+            url: global_base_url + 'customers/getCustomerTypes', method: 'GET', cache: false,
             success: function (resp) {
                 var types = (!resp.Error && resp.Data) ? resp.Data : [];
                 _customerTypesCache = types;
@@ -222,7 +222,7 @@
      */
     function _fetchCustomerGroupsFromServer(callback) {
         $.ajax({
-            url: '/customers/getGroupsForDropdown', method: 'GET', cache: false,
+            url: global_base_url + 'customers/getGroupsForDropdown', method: 'GET', cache: false,
             success: function (resp) {
                 var groups = (!resp.Error && resp.Groups) ? resp.Groups : [];
                 _customerGroupsCache = groups;
@@ -322,7 +322,7 @@
         // edit / clone — fetch existing data first
         _editUID = uid || 0;
         $.ajax({
-            url   : '/customers/getCustomerForModal/' + _editUID,
+            url   : global_base_url + 'customers/getCustomerForModal/' + _editUID,
             method: 'GET',
             cache : false,
             success: function (response) {
@@ -371,7 +371,7 @@
      */
     function _fetchCustomerNumberFallback($field) {
         $.ajax({
-            url   : '/customers/getNextCustomerNumber',
+            url   : global_base_url + 'customers/getNextCustomerNumber',
             method: 'GET',
             cache : false,
             success: function (resp) {
@@ -684,9 +684,9 @@
 
         if (mode === 'edit') {
             formData.append('PageNo', typeof PageNo !== 'undefined' ? PageNo : 1);
-            $.ajax({ url: '/customers/updateCustomerData', method: 'POST', data: formData, cache: false, processData: false, contentType: false, success: onDone });
+            $.ajax({ url: global_base_url + 'customers/updateCustomerData', method: 'POST', data: formData, cache: false, processData: false, contentType: false, success: onDone });
         } else {
-            $.ajax({ url: '/customers/addCustomerData', method: 'POST', data: formData, cache: false, processData: false, contentType: false, success: onDone });
+            $.ajax({ url: global_base_url + 'customers/addCustomerData', method: 'POST', data: formData, cache: false, processData: false, contentType: false, success: onDone });
         }
     });
 

@@ -1,4 +1,4 @@
-// ── GSTIN Fetch — shared across Customer, Vendor, and Transaction forms ──────
+﻿// ── GSTIN Fetch — shared across Customer, Vendor, and Transaction forms ──────
 //
 // Pages that want confirmation-overlay + validated-text behaviour register:
 //   window.gstinFetchConfig = {
@@ -46,7 +46,7 @@ $(document).on('click', '#GSTIN_Fetch', function () {
         $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Fetching...');
 
         $.ajax({
-            url   : '/globally/fetchGstinDetails',
+            url   : global_base_url + 'globally/fetchGstinDetails',
             method: 'GET',
             data  : { gstin: gstin },
             success: function (resp) {

@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php $this->load->view('common/header'); ?>
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
   <div class="layout-container">
@@ -13,7 +13,7 @@
 
           <div class="d-flex justify-content-end mb-3 gap-2">
             <input type="text" class="form-control form-control-sm flatpickr-date" id="attendanceDatePicker" value="<?php echo date('Y-m-d'); ?>" style="width:140px;">
-            <a href="/attendance/monthly" class="btn btn-sm btn-outline-secondary"><i class="bx bx-calendar me-1"></i><?php echo t('btn_monthly_view', 'Monthly View'); ?></a>
+            <a href="<?= site_url('attendance/monthly') ?>" class="btn btn-sm btn-outline-secondary"><i class="bx bx-calendar me-1"></i><?php echo t('btn_monthly_view', 'Monthly View'); ?></a>
           </div>
 
           <!-- Stat cards -->

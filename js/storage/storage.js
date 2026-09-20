@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @param {number} PageNo
  * @param {number} RowLimit
  * @param {object} Filter
@@ -6,7 +6,7 @@
  */
 function getStorageDetails(PageNo, RowLimit, Filter) {
     $.ajax({
-        url: '/storage/getStorageList/' + (PageNo || 1),
+        url: global_base_url + 'storage/getStorageList/' + (PageNo || 1),
         method: 'POST',
         cache: false,
         data: {
@@ -50,7 +50,7 @@ function formOpenCloseDefActions() {
  */
 function addStorageData(formdata) {
     $.ajax({
-        url: '/storage/addStorageData',
+        url: global_base_url + 'storage/addStorageData',
         method: 'POST',
         data: formdata,
         cache: false,
@@ -77,7 +77,7 @@ function addStorageData(formdata) {
  */
 function updateStorageData(formdata) {
     $.ajax({
-        url: '/storage/updateStorageData',
+        url: global_base_url + 'storage/updateStorageData',
         method: 'POST',
         data: formdata,
         cache: false,
@@ -102,7 +102,7 @@ function updateStorageData(formdata) {
  */
 function deleteStorage(StorageUID) {
     $.ajax({
-        url: '/storage/deleteStorageDetails',
+        url: global_base_url + 'storage/deleteStorageDetails',
         method: 'POST',
         cache: false,
         data: {
@@ -131,7 +131,7 @@ function deleteStorage(StorageUID) {
  */
 function deleteMultipleStorage() {
     $.ajax({
-        url: '/storage/deleteBulkStorage',
+        url: global_base_url + 'storage/deleteBulkStorage',
         method: 'POST',
         cache: false,
         data: {

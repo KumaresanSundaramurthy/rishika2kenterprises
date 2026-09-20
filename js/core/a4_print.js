@@ -1,4 +1,4 @@
-// ── A4 Print — Reusable across all transaction pages ──────────────────────
+﻿// ── A4 Print — Reusable across all transaction pages ──────────────────────
 
 var _a4Html        = null;   // raw HTML with __COPY_LABEL__ placeholder
 var _a4Title       = '';
@@ -50,7 +50,7 @@ $(document).on('click', '.a4PrintTransaction', function () {
     _a4SetLoading(true);
     ajaxLoading(0);
     $.ajax({
-        url    : '/transactions/getTransactionDetail',
+        url    : global_base_url + 'transactions/getTransactionDetail',
         method : 'GET',
         data   : { TransUID: uid, ModuleUID: moduleUID },
         success: function (data) {
@@ -322,7 +322,7 @@ $('#a4EmailBtn').on('click', function () {
     if (!partyEmail) { Swal.fire({ icon: 'info', text: t('swal_no_email', 'No email address found for this customer.') }); return; }
 
     ajaxLoading(0);
-    $.post('/transactions/sendTransactionEmail', {
+    $.post(global_base_url + 'transactions/sendTransactionEmail', {
         TransUID   : transUID,
         ModuleUID  : moduleUID,
         PartyUID   : partyUID,
@@ -392,7 +392,7 @@ function openA4PrintByUID(transUID, moduleUID, format, afterCloseCb) {
     _a4SetLoading(true);
     ajaxLoading(0);
     $.ajax({
-        url    : '/transactions/getTransactionDetail',
+        url    : global_base_url + 'transactions/getTransactionDetail',
         method : 'GET',
         data   : { TransUID: transUID, ModuleUID: moduleUID },
         success: function (data) {

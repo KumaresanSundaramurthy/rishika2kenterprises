@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CustomerGroupForm — modal for add / edit Customer Groups.
  *
  * Usage:
@@ -99,7 +99,7 @@
 
         _editGroupUID = uid || 0;
         $.ajax({
-            url   : '/customers/getGroupForModal/' + _editGroupUID,
+            url   : global_base_url + 'customers/getGroupForModal/' + _editGroupUID,
             method: 'GET',
             cache : false,
             success: function (res) {
@@ -155,7 +155,7 @@
 
     function _fetchGroupTypesAjax(cb) {
         $.ajax({
-            url: '/customers/getGroupTypes', dataType: 'json',
+            url: global_base_url + 'customers/getGroupTypes', dataType: 'json',
             success: function (res) {
                 var types = res.Data || [];
                 _groupTypesCache = types;
@@ -370,7 +370,7 @@
 
     function _fetchCustomersAjax(q, cb) {
         $.ajax({
-            url: '/customers/searchCustomers', dataType: 'json',
+            url: global_base_url + 'customers/searchCustomers', dataType: 'json',
             data: { term: q, groupUID: _editGroupUID },
             success: function (res) {
                 cb((res.Lists || []).map(function (c) {

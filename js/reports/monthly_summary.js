@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Monthly Summary Report
  * Shows 12 months for the selected year: Sales, Sales Returns, Net Sales,
  * Purchases, Purchase Returns, Net Purchase, Balance.
@@ -156,7 +156,7 @@
 
         ajaxLoading(1);
         $.ajax({
-            url      : '/reports/getMonthlySummaryData',
+            url      : global_base_url + 'reports/getMonthlySummaryData',
             type     : 'GET',
             dataType : 'json',
             data     : { year: _year },

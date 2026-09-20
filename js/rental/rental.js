@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 // ── Flatpickr instances ───────────────────────────────────────────────────────
 var _rntFpStart  = null;
@@ -21,7 +21,7 @@ function rntLoadPage(pageNo) {
     $body.html('<tr><td colspan="11" class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></td></tr>');
 
     $.ajax({
-        url:    '/rental/getPageDetails/' + (pageNo || 1),
+        url:    global_base_url + 'rental/getPageDetails/' + (pageNo || 1),
         method: 'POST',
         data: {
             RowLimit:   RowLimit || 10,
@@ -133,7 +133,7 @@ function rntOpenCreate() {
                 return d.name ? _rntEsc(d.name) : d.text;
             },
             ajax: {
-                url:      '/transactions/searchCustomers',
+                url:      global_base_url + 'transactions/searchCustomers',
                 dataType: 'json',
                 delay:    250,
                 data:     function (p) { return { term: p.term, type: 'public', [CsrfName]: CsrfToken }; },
@@ -298,7 +298,7 @@ function rntSubmitCreate() {
         .html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
 
     $.ajax({
-        url:    '/rental/createRental',
+        url:    global_base_url + 'rental/createRental',
         method: 'POST',
         data: {
             CustomerUID:             customerUID,
@@ -354,7 +354,7 @@ function rntOpenReturn(rentalUID, rentalNum, itemUID, itemName, itemStatus) {
     rntCalcReturnTotal();
 
     // Fetch rental detail to populate banner
-    $.post('/rental/getRentalDetail', { RentalUID: rentalUID, [CsrfName]: CsrfToken }, function (r) {
+    $.post(global_base_url + 'rental/getRentalDetail', { RentalUID: rentalUID, [CsrfName]: CsrfToken }, function (r) {
         if (!r.Error && r.Data) {
             var d = r.Data;
             if (d.RentalStartDateTime) $('#rtnStartDate').text((function(d){ var fp = (typeof _transListDateTimeFormat !== 'undefined') ? _transListDateTimeFormat : 'd M Y'; var dt = new Date(d); return flatpickr.formatDate(dt, fp); })(d.RentalStartDateTime));
@@ -397,7 +397,7 @@ function rntOpenReturn(rentalUID, rentalNum, itemUID, itemName, itemStatus) {
 function _rntAutoCalcHours(returnDate) {
     var rentalUID = $('#rtnRentalUID').val();
     if (!rentalUID || !returnDate) return;
-    $.post('/rental/getRentalDetail', { RentalUID: rentalUID, [CsrfName]: CsrfToken }, function (r) {
+    $.post(global_base_url + 'rental/getRentalDetail', { RentalUID: rentalUID, [CsrfName]: CsrfToken }, function (r) {
         if (!r.Error && r.Data && r.Data.RentalStartDateTime) {
             var start  = new Date(r.Data.RentalStartDateTime);
             var hours  = (returnDate - start) / 3600000;
@@ -444,7 +444,7 @@ function rntSubmitReturn() {
         .html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
 
     $.ajax({
-        url:    '/rental/processReturn',
+        url:    global_base_url + 'rental/processReturn',
         method: 'POST',
         data: {
             RentalUID:            rentalUID,
@@ -637,7 +637,7 @@ function rntShowProductSearch() {
         cancelButtonText: 'Cancel',
         showLoaderOnConfirm: true,
         preConfirm: function (term) {
-            return $.post('/rental/searchRentableProducts', { term: term, [CsrfName]: CsrfToken })
+            return $.post(global_base_url + 'rental/searchRentableProducts', { term: term, [CsrfName]: CsrfToken })
                 .then(function (r) {
                     if (r.Error || !r.Products || !r.Products.length) {
                         Swal.showValidationMessage(r.Error ? r.Message : 'No rentable products found for "' + term + '"');

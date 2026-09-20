@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Reports extends MY_Controller {
 
@@ -8,7 +8,7 @@ class Reports extends MY_Controller {
 
     public function index(): void {
         if (empty($this->pageData['JwtData'])) {
-            redirect('portal');
+            redirect('login');
             return;
         }
         if (!$this->_loadPageTitle(49)) { $this->load->view('common/module_error', $this->pageData); return; }
@@ -17,7 +17,7 @@ class Reports extends MY_Controller {
 
     public function daybook(): void {
         if (empty($this->pageData['JwtData'])) {
-            redirect('portal');
+            redirect('login');
             return;
         }
         $this->pageData['PageTitle'] = 'Day Book';
@@ -73,7 +73,7 @@ class Reports extends MY_Controller {
 
     public function salesSummary(): void
     {
-        if (empty($this->pageData['JwtData'])) { redirect('portal'); return; }
+        if (empty($this->pageData['JwtData'])) { redirect('login'); return; }
         $rawFrom = $this->input->get('from') ?? '';
         $rawTo   = $this->input->get('to')   ?? '';
         $rawGrp  = $this->input->get('groupby') ?? '';
@@ -112,7 +112,7 @@ class Reports extends MY_Controller {
 
     public function purchaseSummary(): void
     {
-        if (empty($this->pageData['JwtData'])) { redirect('portal'); return; }
+        if (empty($this->pageData['JwtData'])) { redirect('login'); return; }
         $rawFrom = $this->input->get('from') ?? '';
         $rawTo   = $this->input->get('to')   ?? '';
         $rawGrp  = $this->input->get('groupby') ?? '';
@@ -151,7 +151,7 @@ class Reports extends MY_Controller {
 
     public function monthlySummary(): void
     {
-        if (empty($this->pageData['JwtData'])) { redirect('portal'); return; }
+        if (empty($this->pageData['JwtData'])) { redirect('login'); return; }
         $rawYear = $this->input->get('year') ?? '';
         $initYear = (preg_match('/^\d{4}$/', $rawYear) && (int)$rawYear >= 2000 && (int)$rawYear <= 2099)
                     ? (int)$rawYear : (int)date('Y');
@@ -186,7 +186,7 @@ class Reports extends MY_Controller {
 
     public function paymentReceived(): void
     {
-        if (empty($this->pageData['JwtData'])) { redirect('portal'); return; }
+        if (empty($this->pageData['JwtData'])) { redirect('login'); return; }
         $rawFrom = $this->input->get('from') ?? '';
         $rawTo   = $this->input->get('to')   ?? '';
         $this->pageData['_initFrom'] = preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawFrom) ? $rawFrom : date('Y-01-01');
@@ -221,7 +221,7 @@ class Reports extends MY_Controller {
 
     public function paymentMade(): void
     {
-        if (empty($this->pageData['JwtData'])) { redirect('portal'); return; }
+        if (empty($this->pageData['JwtData'])) { redirect('login'); return; }
         $rawFrom = $this->input->get('from') ?? '';
         $rawTo   = $this->input->get('to')   ?? '';
         $this->pageData['_initFrom'] = preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawFrom) ? $rawFrom : date('Y-01-01');
@@ -256,7 +256,7 @@ class Reports extends MY_Controller {
 
     public function plStatement(): void
     {
-        if (empty($this->pageData['JwtData'])) { redirect('portal'); return; }
+        if (empty($this->pageData['JwtData'])) { redirect('login'); return; }
         $rawFrom = $this->input->get('from') ?? '';
         $rawTo   = $this->input->get('to')   ?? '';
         $this->pageData['_initFrom'] = preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawFrom) ? $rawFrom : date('Y-01-01');
@@ -291,7 +291,7 @@ class Reports extends MY_Controller {
 
     public function balanceSheet(): void
     {
-        if (empty($this->pageData['JwtData'])) { redirect('portal'); return; }
+        if (empty($this->pageData['JwtData'])) { redirect('login'); return; }
         $rawAsOf = $this->input->get('asof') ?? '';
         $this->pageData['_initAsOf'] = preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawAsOf) ? $rawAsOf : date('Y-m-d');
         $this->load->view('reports/balance_sheet', $this->pageData);
@@ -323,7 +323,7 @@ class Reports extends MY_Controller {
 
     public function trialBalance(): void
     {
-        if (empty($this->pageData['JwtData'])) { redirect('portal'); return; }
+        if (empty($this->pageData['JwtData'])) { redirect('login'); return; }
         $rawFrom = $this->input->get('from') ?? '';
         $rawTo   = $this->input->get('to')   ?? '';
         $this->pageData['_initFrom'] = preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawFrom) ? $rawFrom : date('Y-01-01');
@@ -358,7 +358,7 @@ class Reports extends MY_Controller {
 
     public function customerOutstanding(): void
     {
-        if (empty($this->pageData['JwtData'])) { redirect('portal'); return; }
+        if (empty($this->pageData['JwtData'])) { redirect('login'); return; }
         $this->load->view('reports/customer_outstanding', $this->pageData);
     }
 
@@ -384,7 +384,7 @@ class Reports extends MY_Controller {
 
     public function customerLedger(): void
     {
-        if (empty($this->pageData['JwtData'])) { redirect('portal'); return; }
+        if (empty($this->pageData['JwtData'])) { redirect('login'); return; }
         $rawFrom = $this->input->get('from') ?? '';
         $rawTo   = $this->input->get('to')   ?? '';
         $this->pageData['_initFrom'] = preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawFrom) ? $rawFrom : date('Y-01-01');
@@ -423,7 +423,7 @@ class Reports extends MY_Controller {
 
     public function customerAgeing(): void
     {
-        if (empty($this->pageData['JwtData'])) { redirect('portal'); return; }
+        if (empty($this->pageData['JwtData'])) { redirect('login'); return; }
         $this->load->view('reports/customer_ageing', $this->pageData);
     }
 
@@ -449,7 +449,7 @@ class Reports extends MY_Controller {
 
     public function supplierOutstanding(): void
     {
-        if (empty($this->pageData['JwtData'])) { redirect('portal'); return; }
+        if (empty($this->pageData['JwtData'])) { redirect('login'); return; }
         $this->load->view('reports/supplier_outstanding', $this->pageData);
     }
 
@@ -475,7 +475,7 @@ class Reports extends MY_Controller {
 
     public function supplierLedger(): void
     {
-        if (empty($this->pageData['JwtData'])) { redirect('portal'); return; }
+        if (empty($this->pageData['JwtData'])) { redirect('login'); return; }
         $rawFrom = $this->input->get('from') ?? '';
         $rawTo   = $this->input->get('to')   ?? '';
         $this->pageData['_initFrom'] = preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawFrom) ? $rawFrom : date('Y-01-01');
@@ -514,7 +514,7 @@ class Reports extends MY_Controller {
 
     public function itemWiseSales(): void
     {
-        if (empty($this->pageData['JwtData'])) { redirect('portal'); return; }
+        if (empty($this->pageData['JwtData'])) { redirect('login'); return; }
         $rawFrom = $this->input->get('from') ?? '';
         $rawTo   = $this->input->get('to')   ?? '';
         $this->pageData['_iwsInitFrom'] = preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawFrom) ? $rawFrom : date('Y-01-01');
@@ -549,7 +549,7 @@ class Reports extends MY_Controller {
 
     public function itemWisePurchase(): void
     {
-        if (empty($this->pageData['JwtData'])) { redirect('portal'); return; }
+        if (empty($this->pageData['JwtData'])) { redirect('login'); return; }
         $rawFrom = $this->input->get('from') ?? '';
         $rawTo   = $this->input->get('to')   ?? '';
         $this->pageData['_iwpInitFrom'] = preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawFrom) ? $rawFrom : date('Y-01-01');
@@ -584,7 +584,7 @@ class Reports extends MY_Controller {
 
     public function lowStockAlert(): void
     {
-        if (empty($this->pageData['JwtData'])) { redirect('portal'); return; }
+        if (empty($this->pageData['JwtData'])) { redirect('login'); return; }
         $this->load->view('reports/low_stock_alert', $this->pageData);
     }
 
@@ -610,7 +610,7 @@ class Reports extends MY_Controller {
 
     public function stockSummary(): void
     {
-        if (empty($this->pageData['JwtData'])) { redirect('portal'); return; }
+        if (empty($this->pageData['JwtData'])) { redirect('login'); return; }
         $this->load->view('reports/stock_summary', $this->pageData);
     }
 
@@ -636,7 +636,7 @@ class Reports extends MY_Controller {
 
     public function invoiceItemwise(): void
     {
-        if (empty($this->pageData['JwtData'])) { redirect('portal'); return; }
+        if (empty($this->pageData['JwtData'])) { redirect('login'); return; }
         $rawFrom = $this->input->get('from') ?? '';
         $rawTo   = $this->input->get('to')   ?? '';
         $this->pageData['_iiInitFrom'] = preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawFrom) ? $rawFrom : date('Y-01-01');
@@ -670,7 +670,7 @@ class Reports extends MY_Controller {
 
     public function purchaseItemwise(): void
     {
-        if (empty($this->pageData['JwtData'])) { redirect('portal'); return; }
+        if (empty($this->pageData['JwtData'])) { redirect('login'); return; }
         $rawFrom = $this->input->get('from') ?? '';
         $rawTo   = $this->input->get('to')   ?? '';
         $this->pageData['_piInitFrom'] = preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawFrom) ? $rawFrom : date('Y-01-01');
@@ -704,7 +704,7 @@ class Reports extends MY_Controller {
 
     public function salesReturnItemwise(): void
     {
-        if (empty($this->pageData['JwtData'])) { redirect('portal'); return; }
+        if (empty($this->pageData['JwtData'])) { redirect('login'); return; }
         $rawFrom = $this->input->get('from') ?? '';
         $rawTo   = $this->input->get('to')   ?? '';
         $this->pageData['_srInitFrom'] = preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawFrom) ? $rawFrom : date('Y-01-01');
@@ -738,7 +738,7 @@ class Reports extends MY_Controller {
 
     public function purchaseReturnItemwise(): void
     {
-        if (empty($this->pageData['JwtData'])) { redirect('portal'); return; }
+        if (empty($this->pageData['JwtData'])) { redirect('login'); return; }
         $rawFrom = $this->input->get('from') ?? '';
         $rawTo   = $this->input->get('to')   ?? '';
         $this->pageData['_prInitFrom'] = preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawFrom) ? $rawFrom : date('Y-01-01');
@@ -772,7 +772,7 @@ class Reports extends MY_Controller {
 
     public function salesRegister(): void
     {
-        if (empty($this->pageData['JwtData'])) { redirect('portal'); return; }
+        if (empty($this->pageData['JwtData'])) { redirect('login'); return; }
         $rawFrom = $this->input->get('from') ?? '';
         $rawTo   = $this->input->get('to')   ?? '';
         $this->pageData['_sregInitFrom'] = preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawFrom) ? $rawFrom : date('Y-01-01');
@@ -806,7 +806,7 @@ class Reports extends MY_Controller {
 
     public function purchaseRegister(): void
     {
-        if (empty($this->pageData['JwtData'])) { redirect('portal'); return; }
+        if (empty($this->pageData['JwtData'])) { redirect('login'); return; }
         $rawFrom = $this->input->get('from') ?? '';
         $rawTo   = $this->input->get('to')   ?? '';
         $this->pageData['_pregInitFrom'] = preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawFrom) ? $rawFrom : date('Y-01-01');
@@ -840,7 +840,7 @@ class Reports extends MY_Controller {
 
     public function salesReturnRegister(): void
     {
-        if (empty($this->pageData['JwtData'])) { redirect('portal'); return; }
+        if (empty($this->pageData['JwtData'])) { redirect('login'); return; }
         $rawFrom = $this->input->get('from') ?? '';
         $rawTo   = $this->input->get('to')   ?? '';
         $this->pageData['_srrInitFrom'] = preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawFrom) ? $rawFrom : date('Y-01-01');
@@ -874,7 +874,7 @@ class Reports extends MY_Controller {
 
     public function purchaseReturnRegister(): void
     {
-        if (empty($this->pageData['JwtData'])) { redirect('portal'); return; }
+        if (empty($this->pageData['JwtData'])) { redirect('login'); return; }
         $rawFrom = $this->input->get('from') ?? '';
         $rawTo   = $this->input->get('to')   ?? '';
         $this->pageData['_prrInitFrom'] = preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawFrom) ? $rawFrom : date('Y-01-01');
@@ -908,7 +908,7 @@ class Reports extends MY_Controller {
 
     public function deliveryChallanRegister(): void
     {
-        if (empty($this->pageData['JwtData'])) { redirect('portal'); return; }
+        if (empty($this->pageData['JwtData'])) { redirect('login'); return; }
         $rawFrom = $this->input->get('from') ?? '';
         $rawTo   = $this->input->get('to')   ?? '';
         $this->pageData['_dcrInitFrom'] = preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawFrom) ? $rawFrom : date('Y-01-01');
@@ -942,7 +942,7 @@ class Reports extends MY_Controller {
 
     public function expenseRegister(): void
     {
-        if (empty($this->pageData['JwtData'])) { redirect('portal'); return; }
+        if (empty($this->pageData['JwtData'])) { redirect('login'); return; }
         $rawFrom = $this->input->get('from') ?? '';
         $rawTo   = $this->input->get('to')   ?? '';
         $this->pageData['_exrInitFrom'] = preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawFrom) ? $rawFrom : date('Y-01-01');
@@ -976,7 +976,7 @@ class Reports extends MY_Controller {
 
     public function gstr1(): void
     {
-        if (empty($this->pageData['JwtData'])) { redirect('portal'); return; }
+        if (empty($this->pageData['JwtData'])) { redirect('login'); return; }
         $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
         $month  = (int) ($this->input->get('month') ?? date('n'));
         $year   = (int) ($this->input->get('year')  ?? date('Y'));
@@ -1013,7 +1013,7 @@ class Reports extends MY_Controller {
 
     public function gstr2b(): void
     {
-        if (empty($this->pageData['JwtData'])) { redirect('portal'); return; }
+        if (empty($this->pageData['JwtData'])) { redirect('login'); return; }
         $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
         $month  = (int) ($this->input->get('month') ?? date('n'));
         $year   = (int) ($this->input->get('year')  ?? date('Y'));
@@ -1048,7 +1048,7 @@ class Reports extends MY_Controller {
 
     public function gstr3b(): void
     {
-        if (empty($this->pageData['JwtData'])) { redirect('portal'); return; }
+        if (empty($this->pageData['JwtData'])) { redirect('login'); return; }
         $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
         $month  = (int) ($this->input->get('month') ?? date('n'));
         $year   = (int) ($this->input->get('year')  ?? date('Y'));
@@ -1084,7 +1084,7 @@ class Reports extends MY_Controller {
 
     public function gstr7(): void
     {
-        if (empty($this->pageData['JwtData'])) { redirect('portal'); return; }
+        if (empty($this->pageData['JwtData'])) { redirect('login'); return; }
         $orgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
         $rawFrom = $this->input->get('from') ?? '';
         $rawTo   = $this->input->get('to')   ?? '';
@@ -1119,7 +1119,7 @@ class Reports extends MY_Controller {
 
     public function hsnSummary(): void
     {
-        if (empty($this->pageData['JwtData'])) { redirect('portal'); return; }
+        if (empty($this->pageData['JwtData'])) { redirect('login'); return; }
         $rawFrom = $this->input->get('from') ?? '';
         $rawTo   = $this->input->get('to')   ?? '';
         $_from   = preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawFrom) ? $rawFrom : date('Y-m-01');
@@ -1153,7 +1153,7 @@ class Reports extends MY_Controller {
 
     public function tdsReceivable(): void
     {
-        if (empty($this->pageData['JwtData'])) { redirect('portal'); return; }
+        if (empty($this->pageData['JwtData'])) { redirect('login'); return; }
         $rawFrom = $this->input->get('from') ?? '';
         $rawTo   = $this->input->get('to')   ?? '';
         $_from   = preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawFrom) ? $rawFrom : date('Y-m-01');
@@ -1179,7 +1179,7 @@ class Reports extends MY_Controller {
 
     public function tdsPayable(): void
     {
-        if (empty($this->pageData['JwtData'])) { redirect('portal'); return; }
+        if (empty($this->pageData['JwtData'])) { redirect('login'); return; }
         $rawFrom = $this->input->get('from') ?? '';
         $rawTo   = $this->input->get('to')   ?? '';
         $_from   = preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawFrom) ? $rawFrom : date('Y-m-01');
@@ -1205,7 +1205,7 @@ class Reports extends MY_Controller {
 
     public function tcsReceivable(): void
     {
-        if (empty($this->pageData['JwtData'])) { redirect('portal'); return; }
+        if (empty($this->pageData['JwtData'])) { redirect('login'); return; }
         $rawFrom = $this->input->get('from') ?? '';
         $rawTo   = $this->input->get('to')   ?? '';
         $_from   = preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawFrom) ? $rawFrom : date('Y-m-01');
@@ -1225,7 +1225,7 @@ class Reports extends MY_Controller {
 
     public function tcsPayable(): void
     {
-        if (empty($this->pageData['JwtData'])) { redirect('portal'); return; }
+        if (empty($this->pageData['JwtData'])) { redirect('login'); return; }
         $rawFrom = $this->input->get('from') ?? '';
         $rawTo   = $this->input->get('to')   ?? '';
         $_from   = preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawFrom) ? $rawFrom : date('Y-m-01');
@@ -1247,7 +1247,7 @@ class Reports extends MY_Controller {
 
     public function bankStatement(): void
     {
-        if (empty($this->pageData['JwtData'])) { redirect('portal'); return; }
+        if (empty($this->pageData['JwtData'])) { redirect('login'); return; }
         $orgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
         $rawFrom = $this->input->get('from')    ?? '';
         $rawTo   = $this->input->get('to')      ?? '';
@@ -1288,7 +1288,7 @@ class Reports extends MY_Controller {
 
     public function brandWiseSales(): void
     {
-        if (empty($this->pageData['JwtData'])) { redirect('portal'); return; }
+        if (empty($this->pageData['JwtData'])) { redirect('login'); return; }
         $rawFrom = $this->input->get('from') ?? '';
         $rawTo   = $this->input->get('to')   ?? '';
         $this->pageData['_bwsInitFrom'] = preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawFrom) ? $rawFrom : date('Y-01-01');
@@ -1323,7 +1323,7 @@ class Reports extends MY_Controller {
 
     public function variantStock(): void
     {
-        if (empty($this->pageData['JwtData'])) { redirect('portal'); return; }
+        if (empty($this->pageData['JwtData'])) { redirect('login'); return; }
         $this->load->view('reports/variant_stock', $this->pageData);
     }
 

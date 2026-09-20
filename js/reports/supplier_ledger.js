@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
     'use strict';
 
     var _sym = (genSettings && genSettings.CurrenySymbol) ? genSettings.CurrenySymbol : '₹';
@@ -183,7 +183,7 @@
         document.getElementById('slTblFooter').classList.add('d-none');
 
         $.ajax({
-            url: '/reports/getSupplierLedgerData',
+            url: global_base_url + 'reports/getSupplierLedgerData',
             type: 'GET',
             dataType: 'json',
             data: { vendorUID: _vendorUID, from: from, to: to },
@@ -247,7 +247,7 @@
             allowClear: true,
             minimumInputLength: 1,
             ajax: {
-                url: '/transactions/searchVendors',
+                url: global_base_url + 'transactions/searchVendors',
                 dataType: 'json',
                 delay: 250,
                 data: function (params) {

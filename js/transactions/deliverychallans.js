@@ -1,4 +1,4 @@
-// ── Delivery Challans list — module-specific JS ───────────────────────────────
+﻿// ── Delivery Challans list — module-specific JS ───────────────────────────────
 // Shared utilities (loadTransactionList, debounce, initTooltips) are in common.js
 
 // ── Select-all (Pattern 3) state ────────────────────────────────────────────
@@ -31,7 +31,7 @@ function deleteMultipleDeliveryChallans() {
  */
 function getDeliveryChallansDetails(pageNo, rowLimit, filter, afterLoad) {
     loadTransactionList({
-        url:            '/transactions/getPageDetails/112/',
+        url:            global_base_url + 'transactions/getPageDetails/112/',
         tabCountClass:  '.dc-tab-count',
         statusTabClass: '.dc-status-tab',
         errorMessage:   'Failed to load delivery challans.',
@@ -54,7 +54,7 @@ $(document).on('click', '.duplicateDeliveryChallan', function () {
         confirmButtonText: t('btn_yes_clone', 'Yes, Clone'), cancelButtonText: t('btn_cancel', 'Cancel')
     }).then(function (r) {
         if (!r.isConfirmed) return;
-        window.location.href = '/deliverychallan/create?fromClone=' + uid;
+        window.location.href = global_base_url + 'deliverychallan/create?fromClone=' + uid;
     });
 });
 

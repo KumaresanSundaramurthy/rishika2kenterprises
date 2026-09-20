@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
     'use strict';
 
     var _sym = (genSettings && genSettings.CurrenySymbol) ? genSettings.CurrenySymbol : '₹';
@@ -120,7 +120,7 @@
         document.getElementById('lsTblFooter').classList.add('d-none');
 
         $.ajax({
-            url: '/reports/getLowStockAlertData',
+            url: global_base_url + 'reports/getLowStockAlertData',
             type: 'GET',
             dataType: 'json',
             success: function (res) {

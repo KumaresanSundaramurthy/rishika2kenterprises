@@ -1,4 +1,4 @@
-// ── Invoice form — init, submit, and sticky bar ───────────────────────────────
+﻿// ── Invoice form — init, submit, and sticky bar ───────────────────────────────
 // PHP data is injected by form.php as window._transFormData before this file loads.
 
 var _cfg = window._transFormData || {};
@@ -67,7 +67,7 @@ $(function () {
             if (typeof CsrfName !== 'undefined') postData[CsrfName] = CsrfToken;
             var _prevAjax = (typeof AjaxLoading !== 'undefined') ? AjaxLoading : 1;
             if (typeof ajaxLoading === 'function') ajaxLoading(0);
-            $.post('/payments/getCustomerCreditNoteDetail', postData, function (resp) {
+            $.post(global_base_url + 'payments/getCustomerCreditNoteDetail', postData, function (resp) {
                 if (typeof AjaxLoading !== 'undefined') AjaxLoading = _prevAjax;
                 $loading.addClass('d-none');
                 if (resp && !resp.Error) {
@@ -97,7 +97,7 @@ $(function () {
             // Suppress global overlay — modal has its own spinner
             var _prevAjax = (typeof AjaxLoading !== 'undefined') ? AjaxLoading : 1;
             if (typeof ajaxLoading === 'function') ajaxLoading(0);
-            $.post('/payments/getCustomerCreditsDetail', postData, function (resp) {
+            $.post(global_base_url + 'payments/getCustomerCreditsDetail', postData, function (resp) {
                 if (typeof AjaxLoading !== 'undefined') AjaxLoading = _prevAjax;
                 $loading.addClass('d-none');
                 if (resp && !resp.Error) {
@@ -470,7 +470,7 @@ $(function () {
             setFormLoading('#' + _formId, true, action);
 
             $.ajax({
-                url         : '/' + (_autoDraftUid > 0 ? (_cfg.updateAction || _cfg.formAction || '') : (_cfg.formAction || '')),
+                url         : global_base_url + '' + (_autoDraftUid > 0 ? (_cfg.updateAction || _cfg.formAction || '') : (_cfg.formAction || '')),
                 method      : 'POST',
                 data        : fd,
                 processData : false,
@@ -595,7 +595,7 @@ $(function () {
 
         ajaxLoading(1);
         $.ajax({
-            url    : '/customers/updateBillingAddress',
+            url    : global_base_url + 'customers/updateBillingAddress',
             method : 'POST',
             data   : {
                 CustomerUID : addr.customerUID,

@@ -1,4 +1,4 @@
-// ── Delivery Challan form — init, submit, and sticky bar ─────────────────────
+﻿// ── Delivery Challan form — init, submit, and sticky bar ─────────────────────
 // PHP data is injected by form.php as window._transFormData before this file loads.
 
 var _cfg = window._transFormData || {};
@@ -379,7 +379,7 @@ $(function () {
             setFormLoading('#' + _formId, true, action);
 
             $.ajax({
-                url         : '/' + (_autoDraftUid > 0 ? (_cfg.updateAction || _cfg.formAction || '') : (_cfg.formAction || '')),
+                url         : global_base_url + '' + (_autoDraftUid > 0 ? (_cfg.updateAction || _cfg.formAction || '') : (_cfg.formAction || '')),
                 method      : 'POST',
                 data        : formData,
                 processData : false,
@@ -480,7 +480,7 @@ $(function () {
         if (!line1) { showToastNotification('Address Line 1 is required.', 'error'); return; }
         ajaxLoading(1);
         $.ajax({
-            url    : '/customers/updateBillingAddress',
+            url    : global_base_url + 'customers/updateBillingAddress',
             method : 'POST',
             data   : { CustomerUID: addr.customerUID, Line1: line1, Line2: line2, StateId: stateId, StateText: stateText, CityId: cityId, CityText: cityText, Pincode: pincode },
             success: function (resp) {

@@ -1,4 +1,4 @@
-// ── List page AJAX functions ──────────────────────────────────────────────
+﻿// ── List page AJAX functions ──────────────────────────────────────────────
 
 /**
  * @param {string} tableSelector
@@ -75,7 +75,7 @@ function getCustomersDetails(PageNo, RowLimit, Filter, onDone) {
     ajaxLoading(0);
     showTabSpinner(ModuleTable, ModulePag);
     $.ajax({
-        url: '/customers/getCustomersPageDetails/' + PageNo,
+        url: global_base_url + 'customers/getCustomersPageDetails/' + PageNo,
         method: 'POST',
         cache: false,
         data: { RowLimit: RowLimit, Filter: Filter },
@@ -107,7 +107,7 @@ function getCustomersDetails(PageNo, RowLimit, Filter, onDone) {
 
 function deleteCustomer(DeleteId) {
     $.ajax({
-        url: '/customers/deleteCustomerData',
+        url: global_base_url + 'customers/deleteCustomerData',
         method: 'POST',
         data: { CustomerUID: DeleteId },
         cache: false,
@@ -129,7 +129,7 @@ function deleteMultipleCustomers() {
         ? { SelectAll: 1, Filter: JSON.stringify(Filter), [CsrfName]: CsrfToken }
         : { CustomerUIDs: SelectedUIDs, [CsrfName]: CsrfToken };
     $.ajax({
-        url: '/customers/deleteBulkCustomers',
+        url: global_base_url + 'customers/deleteBulkCustomers',
         method: 'POST',
         cache: false,
         data: postData,
@@ -150,7 +150,7 @@ function deleteMultipleCustomers() {
 
 function toggleCustomerStatus(CustomerUID, IsActive) {
     $.ajax({
-        url: '/customers/toggleCustomerStatus',
+        url: global_base_url + 'customers/toggleCustomerStatus',
         method: 'POST',
         cache: false,
         data: { CustomerUID: CustomerUID, IsActive: IsActive, [CsrfName]: CsrfToken },

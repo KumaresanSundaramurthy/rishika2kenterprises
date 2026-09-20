@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 $cur    = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
 $months = ['','January','February','March','April','May','June','July','August','September','October','November','December'];
 $existingUID    = (int)($ExistingPayroll->PayrollUID ?? 0);
@@ -17,7 +17,7 @@ $existingStatus = $ExistingPayroll->PayrollStatus ?? '';
         <div class="container-xxl flex-grow-1 container-p-y">
 
           <div class="d-flex justify-content-end mb-3">
-            <a href="/payroll" class="btn btn-sm btn-outline-secondary"><i class="bx bx-arrow-back me-1"></i><?php echo t('btn_back', 'Back to Payroll'); ?></a>
+            <a href="<?= site_url('payroll') ?>" class="btn btn-sm btn-outline-secondary"><i class="bx bx-arrow-back me-1"></i><?php echo t('btn_back', 'Back to Payroll'); ?></a>
           </div>
 
           <?php if ($existingStatus === 'Paid'): ?>

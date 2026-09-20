@@ -59,7 +59,8 @@
 		<div class="misc-wrapper">
 			<h2 class="mb-2 mx-2">Page Not Found :(</h2>
 			<p class="mb-4 mx-2">Oops! 😖 <?php echo $message; ?></p>
-			<a href="/dashboard" class="btn btn-primary">Back to Dashboard</a>
+			<?php $appBase = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? '/index.php'), '/'); ?>
+			<a href="<?php echo $appBase; ?>/dashboard" class="btn btn-primary">Back to Dashboard</a>
 			<div class="mt-3">
 				<img src="../assets/img/illustrations/page-misc-error-light.png" alt="page-misc-error-light" width="500" class="img-fluid" data-app-dark-img="illustrations/page-misc-error-dark.png" data-app-light-img="illustrations/page-misc-error-light.png" />
 			</div>

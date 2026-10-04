@@ -677,6 +677,7 @@ $(function () {
     $(document).on('click', '#btnSyncCustomersCache', function () {
         var $btn = $(this);
         $btn.find('i').removeClass('bx-planet').addClass('bx-loader-alt bx-spin');
+        ajaxLoading(0);
         $.ajax({
             url    : '/customers/syncCustomersCache',
             method : 'POST',
@@ -693,13 +694,15 @@ $(function () {
             error: function () {
                 $btn.find('i').removeClass('bx-loader-alt bx-spin').addClass('bx-planet');
                 showToastNotification('Sync failed. Please try again.', 'error');
-            }
+            },
+            complete: function() { ajaxLoading(1); }
         });
     });
     // ── Sync customer groups to Upstash cache ────────────────────────────────
     $(document).on('click', '#btnSyncCustomerGroupsCache', function () {
         var $btn = $(this);
         $btn.find('i').removeClass('bx-planet').addClass('bx-loader-alt bx-spin');
+        ajaxLoading(0);
         $.ajax({
             url    : '/customers/syncCustomerGroupsCache',
             method : 'POST',
@@ -716,7 +719,8 @@ $(function () {
             error: function () {
                 $btn.find('i').removeClass('bx-loader-alt bx-spin').addClass('bx-planet');
                 showToastNotification('Sync failed. Please try again.', 'error');
-            }
+            },
+            complete: function() { ajaxLoading(1); }
         });
     });
     // ────────────────────────────────────────────────────────────────────────

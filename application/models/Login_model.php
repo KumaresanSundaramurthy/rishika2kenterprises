@@ -514,14 +514,15 @@ class Login_model extends CI_Model {
 
     private function _loadOrgSubscription(int $orgUID): object {
         $sub = new stdClass();
-        $sub->PlanName  = 'Free Trial';
-        $sub->Status    = 'Trial';
-        $sub->EndDate   = '';
-        $sub->IsExpired = false;
+        $sub->PlanName       = 'Free Trial';
+        $sub->Status         = 'Trial';
+        $sub->EndDate        = '';
+        $sub->GracePeriodDays = 7;
+        $sub->IsExpired      = false;
 
         try {
             $this->ReadDb->db_debug = FALSE;
-            $row = $this->ReadDb->select('COALESCE(sp.PlanName, \'Free Trial\') AS PlanName, os.Status, os.EndDate')
+            $row = $this->ReadDb->select('COALESCE(sp.PlanName, \'Free Trial\') AS PlanName, os.Status, os.EndDate, os.GracePeriodDays')
                 ->from('Billing.OrgSubscriptionTbl os')
                 ->join('Billing.SectorPlanTbl spt', 'spt.SectorPlanUID = os.SectorPlanUID', 'left')
                 ->join('Billing.SubscriptionPlansTbl sp', 'sp.PlanUID = spt.PlanUID', 'left')
@@ -532,11 +533,15 @@ class Login_model extends CI_Model {
                 ->get();
 
             if ($row && $row->num_rows() > 0) {
-                $r              = $row->row();
-                $sub->PlanName  = $r->PlanName ?? 'Free Trial';
-                $sub->Status    = $r->Status   ?? 'Trial';
-                $sub->EndDate   = $r->EndDate  ?? '';
-                $sub->IsExpired = (!empty($r->EndDate) && strtotime($r->EndDate) < strtotime(date('Y-m-d')));
+                $r                    = $row->row();
+                $sub->PlanName        = $r->PlanName        ?? 'Free Trial';
+                $sub->Status          = $r->Status          ?? 'Trial';
+                $sub->EndDate         = $r->EndDate         ?? '';
+                $sub->GracePeriodDays = (int)($r->GracePeriodDays ?? 7);
+                $endTs                = !empty($r->EndDate) ? strtotime($r->EndDate) : 0;
+                $graceEndTs           = $endTs + ($sub->GracePeriodDays * 86400);
+                $sub->IsExpired       = ($endTs > 0 && time() > $graceEndTs)
+                                     || in_array($r->Status ?? '', ['Expired', 'Cancelled', 'Suspended']);
             }
         } catch (Throwable $e) {
             // Fail open — let the user log in; middleware will re-check

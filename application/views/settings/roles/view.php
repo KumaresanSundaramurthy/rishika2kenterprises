@@ -603,6 +603,7 @@ $(function() {
         var $btn = $(this).prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i>');
         var fd = new FormData();
         fd.append(CsrfName, CsrfToken);
+        ajaxLoading(0);
         $.ajax({
             url: '/auth/refreshTokens',
             type: 'POST',
@@ -621,6 +622,9 @@ $(function() {
             error: function() {
                 $btn.prop('disabled', false).html('<i class="bx bx-refresh"></i>');
                 showToastNotification('Refresh failed. Please try again.', 'error');
+            },
+            complete: function() {
+                ajaxLoading(1);
             }
         });
     });
@@ -669,6 +673,7 @@ $(function() {
         fd.append('RoleName', name);
         fd.append([CsrfName], CsrfToken);
 
+        ajaxLoading(0);
         $.ajax({
             url: '/settings/roles/saveRole',
             type: 'POST',
@@ -690,6 +695,9 @@ $(function() {
                 $('#saveRoleSpinner').addClass('d-none');
                 $('#saveRoleBtn').prop('disabled', false);
                 showToastNotification('Request failed.', 'error');
+            },
+            complete: function() {
+                ajaxLoading(1);
             }
         });
     });
@@ -709,6 +717,7 @@ $(function() {
         fd.append('SubMenus',  JSON.stringify(subMenus));
         fd.append([CsrfName], CsrfToken);
 
+        ajaxLoading(0);
         $.ajax({
             url: '/settings/roles/saveRolePermissions',
             type: 'POST',
@@ -728,6 +737,9 @@ $(function() {
                 $('#savePrmSpinner').addClass('d-none');
                 $('#btnSavePermissions').prop('disabled', false);
                 showToastNotification('Request failed.', 'error');
+            },
+            complete: function() {
+                ajaxLoading(1);
             }
         });
     });

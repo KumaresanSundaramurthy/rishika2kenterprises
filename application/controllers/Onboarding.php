@@ -121,10 +121,10 @@ class Onboarding extends MY_Controller {
             $gstin       = strtoupper(trim($this->input->post('gstin') ?: ''));
 
             if (empty($orgName))  throw new ValidationException('Organisation name is required.');
-            if (strlen($orgName) < 2) throw new ValidationException('Organisation name must be at least 2 characters.');
+            if (mb_strlen($orgName, 'UTF-8') < 3) throw new ValidationException('Organisation name must be at least 3 characters.');
 
             if (empty($brandName)) throw new ValidationException('Brand name is required.');
-            if (strlen($brandName) < 2) throw new ValidationException('Brand name must be at least 2 characters.');
+            if (mb_strlen($brandName, 'UTF-8') < 3) throw new ValidationException('Brand name must be at least 3 characters.');
 
             if (empty($shortCode) || strlen($shortCode) !== 3 || !ctype_alnum($shortCode)) {
                 throw new ValidationException('Short code must be exactly 3 alphanumeric characters (e.g. R2K).');

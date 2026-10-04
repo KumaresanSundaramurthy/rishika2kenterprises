@@ -41,6 +41,9 @@
                     if ($_ss === 'Expired') $statusStyle = 'background:#fee2e2;color:#b91c1c;';
                     if ($_ss === 'Suspended' || $_ss === 'Cancelled') $statusStyle = 'background:#f1f5f9;color:#475569;';
 
+                    /* Renewal window: 15 days for yearly, 5 days for monthly/free */
+                    $_renewThreshold = (strtolower($sub->BillingCycle ?? '') === 'yearly') ? 15 : 5;
+
                     /* Bar color */
                     $barG1 = $daysLeft <= 7 ? '#ef4444' : ($daysLeft <= 14 ? '#f59e0b' : '#22c55e');
                     $barG2 = $daysLeft <= 7 ? '#dc2626' : ($daysLeft <= 14 ? '#d97706' : '#16a34a');
@@ -177,7 +180,7 @@
                                         </div>
 
                                         <div class="sdb-action-row" style="margin-top:0; padding-top:0; border-top:none;">
-                                            <?php if ($sub && $sub->SectorPlanUID): ?>
+                                            <?php if ($sub && $sub->SectorPlanUID && $daysLeft <= $_renewThreshold): ?>
                                                 <button class="btn btn-outline-secondary" id="btnRenewPlan">
                                                     <i class="bx bx-refresh me-1"></i>Renew
                                                 </button>
@@ -277,12 +280,11 @@
                                                 <td><?= viewPageDateTimeFormat($order->PaidOn ?? null, $_tz, 2)->formatted ?></td>
                                                 <td>
                                                     <span class="badge <?= $oBadge ?>"><?= htmlspecialchars($oStatus) ?></span>
-                                                    <?php if ($oStatus === 'Pending'): ?>
-                                                        <button class="btn btn-xs btn-outline-success ms-1 btn-record-payment"
-                                                            data-order="<?= (int)$order->OrderUID ?>"
-                                                            data-amount="<?= (float)$order->NetAmount ?>">
+                                                    <?php if ($oStatus === 'Pending' && (float)($order->NetAmount ?? 0) > 0): ?>
+                                                        <a href="<?= site_url('subscription/payOrder/' . (int)$order->OrderUID) ?>"
+                                                           class="btn btn-xs btn-outline-success ms-1">
                                                             Pay
-                                                        </button>
+                                                        </a>
                                                     <?php endif; ?>
                                                 </td>
                                                 <td class="text-center">
@@ -403,168 +405,3 @@
     </div>
 </div>
 
-<!-- Record Payment Modal -->
-<div class="modal fade" id="recordPaymentModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-sm">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Record Payment</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="frmRecordPayment">
-                    <input type="hidden" name="order_uid" id="hidOrderUID">
-                    <div class="mb-3">
-                        <label class="form-label">Amount</label>
-                        <input type="number" class="form-control" name="amount" id="inpPayAmount" step="0.01" min="0.01" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Payment Mode <span class="text-danger">*</span></label>
-                        <select class="form-select" name="payment_mode" required>
-                            <option value="">-- Select --</option>
-                            <option value="Cash">Cash</option>
-                            <option value="Bank Transfer">Bank Transfer</option>
-                            <option value="UPI">UPI</option>
-                            <option value="Cheque">Cheque</option>
-                            <option value="Card">Card</option>
-                        </select>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-success" id="btnConfirmPayment">
-                    <span class="spinner-border spinner-border-sm d-none me-1" id="spinPayment"></span>
-                    Record Payment
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-(function () {
-    const BASE_URL = '<?= base_url() ?>';
-
-    /* ── Change plan: auto-fill amount when plan selected ── */
-    document.getElementById('selPlanChange').addEventListener('change', function () {
-        const opt = this.options[this.selectedIndex];
-        document.getElementById('inpPlanAmount').value = opt.dataset.price ?? 0;
-    });
-
-    /* ── Show/hide payment mode based on is_paid ── */
-    document.getElementById('chkIsPaid').addEventListener('change', function () {
-        document.getElementById('payModeWrap').style.display = this.checked ? '' : 'none';
-    });
-
-    /* ── Confirm plan change ── */
-    document.getElementById('btnConfirmPlanChange').addEventListener('click', function () {
-        const form    = document.getElementById('frmChangePlan');
-        const spinner = document.getElementById('spinPlanChange');
-        if (!form.checkValidity()) { form.reportValidity(); return; }
-
-        const data = new FormData(form);
-        spinner.classList.remove('d-none');
-        this.disabled = true;
-
-        fetch(BASE_URL + 'subscription/changePlan', {
-            method: 'POST',
-            headers: { 'X-Requested-With': 'XMLHttpRequest' },
-            body: data,
-        })
-        .then(r => r.json())
-        .then(res => {
-            spinner.classList.add('d-none');
-            this.disabled = false;
-            if (res.Status === 'OK') {
-                bootstrap.Modal.getInstance(document.getElementById('changePlanModal')).hide();
-                toastMsg(res.Message, 'success');
-                setTimeout(() => location.reload(), 1500);
-            } else {
-                toastMsg(res.Message || 'Failed to change plan.', 'error');
-            }
-        })
-        .catch(() => {
-            spinner.classList.add('d-none');
-            this.disabled = false;
-            toastMsg('Network error. Please try again.', 'error');
-        });
-    });
-
-    /* ── Renew current plan ── */
-    const btnRenew = document.getElementById('btnRenewPlan');
-    if (btnRenew) {
-        btnRenew.addEventListener('click', function () {
-            if (!confirm('Renew the current plan now?')) return;
-            this.disabled = true;
-
-            fetch(BASE_URL + 'subscription/renewPlan', {
-                method: 'POST',
-                headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                body: new FormData(),
-            })
-            .then(r => r.json())
-            .then(res => {
-                this.disabled = false;
-                if (res.Status === 'OK') {
-                    toastMsg(res.Message, 'success');
-                    setTimeout(() => location.reload(), 1500);
-                } else {
-                    toastMsg(res.Message || 'Renewal failed.', 'error');
-                }
-            })
-            .catch(() => {
-                this.disabled = false;
-                toastMsg('Network error.', 'error');
-            });
-        });
-    }
-
-    /* ── Record payment: open modal with order details ── */
-    document.querySelectorAll('.btn-record-payment').forEach(btn => {
-        btn.addEventListener('click', function () {
-            document.getElementById('hidOrderUID').value  = this.dataset.order;
-            document.getElementById('inpPayAmount').value = this.dataset.amount;
-            new bootstrap.Modal(document.getElementById('recordPaymentModal')).show();
-        });
-    });
-
-    document.getElementById('btnConfirmPayment').addEventListener('click', function () {
-        const form    = document.getElementById('frmRecordPayment');
-        const spinner = document.getElementById('spinPayment');
-        if (!form.checkValidity()) { form.reportValidity(); return; }
-
-        const data = new FormData(form);
-        spinner.classList.remove('d-none');
-        this.disabled = true;
-
-        fetch(BASE_URL + 'subscription/recordPayment', {
-            method: 'POST',
-            headers: { 'X-Requested-With': 'XMLHttpRequest' },
-            body: data,
-        })
-        .then(r => r.json())
-        .then(res => {
-            spinner.classList.add('d-none');
-            this.disabled = false;
-            if (res.Status === 'OK') {
-                bootstrap.Modal.getInstance(document.getElementById('recordPaymentModal')).hide();
-                toastMsg(res.Message, 'success');
-                setTimeout(() => location.reload(), 1500);
-            } else {
-                toastMsg(res.Message || 'Payment failed.', 'error');
-            }
-        })
-        .catch(() => {
-            spinner.classList.add('d-none');
-            this.disabled = false;
-            toastMsg('Network error.', 'error');
-        });
-    });
-
-    function toastMsg(msg, type) {
-        if (typeof showToast === 'function') { showToast(msg, type); return; }
-        alert(msg);
-    }
-})();
-</script>

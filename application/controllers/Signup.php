@@ -239,6 +239,7 @@ class Signup extends CI_Controller {
 
             $required = [
                 'OrgName'         => 'Organisation name',
+                'BrandName'       => 'Brand name',
                 'ShortCode'       => 'Short code',
                 'OrgMobile'       => 'Mobile number',
                 'OrgEmail'        => 'Email address',
@@ -254,6 +255,17 @@ class Signup extends CI_Controller {
             foreach ($required as $field => $label) {
                 if (empty(trim($post[$field] ?? ''))) {
                     throw new ValidationException("{$label} is required.");
+                }
+            }
+
+            $minThreeFields = [
+                'OrgName'        => 'Organisation name',
+                'BrandName'      => 'Brand name',
+                'AdminFirstName' => 'First name',
+            ];
+            foreach ($minThreeFields as $field => $label) {
+                if (mb_strlen(trim($post[$field] ?? ''), 'UTF-8') < 3) {
+                    throw new ValidationException("{$label} must be at least 3 characters.");
                 }
             }
 

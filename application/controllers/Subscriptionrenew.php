@@ -28,18 +28,12 @@ class Subscriptionrenew extends CI_Controller {
         $sub     = $this->billingplan_model->getOrgSubscription($orgUID);
         $plans   = $this->billingplan_model->getAvailablePlans($orgUID);
 
-        /* Compute remaining seconds from createdAt stored in the Redis token */
-        $sessionData   = $this->_getSessionData($sid);
-        $createdAt     = $sessionData ? (int)($sessionData->createdAt ?? 0) : 0;
-        $remainingSecs = $createdAt > 0 ? max(0, 1800 - (time() - $createdAt)) : 1800;
-
         $this->load->view('login/header', ['pageTitle' => 'Renew Subscription']);
         $this->load->view('subscription/renew', [
             'sid'          => $sid,
             'org'          => $org,
             'subscription' => (!$sub->Error && $sub->Data) ? $sub->Data : null,
             'plans'        => (!$plans->Error) ? $plans->Data : [],
-            'remainingSecs'=> $remainingSecs,
         ]);
         $this->load->view('login/footer');
     }
@@ -48,17 +42,24 @@ class Subscriptionrenew extends CI_Controller {
 
     public function createOrder(): void {
         $out = new stdClass();
+        $dbg = function(string $msg): void {
+            file_put_contents(APPPATH . 'logs/renew_debug.log', date('H:i:s') . ' ' . $msg . "\n", FILE_APPEND);
+        };
         try {
             $sid           = trim($this->input->post('sid') ?: '');
             $sectorPlanUID = (int)$this->input->post('sector_plan_uid');
+            $dbg("START sid=$sid sectorPlanUID=$sectorPlanUID");
 
             $orgUID = $this->_resolveOrgUID($sid);
+            $dbg("orgUID=$orgUID");
             if (!$orgUID) throw new Exception('Session expired. Please go back to the login page and try again.');
 
             if ($sectorPlanUID <= 0) throw new Exception('Please select a plan.');
 
             $this->load->library('Razorpayapi');
-            if (!$this->razorpayapi->isConfigured()) {
+            $configured = $this->razorpayapi->isConfigured();
+            $dbg("razorpay isConfigured=" . ($configured ? 'true' : 'false'));
+            if (!$configured) {
                 throw new Exception('Online payment is not currently enabled. Please contact support.');
             }
 
@@ -158,6 +159,52 @@ class Subscriptionrenew extends CI_Controller {
 
         } catch (Exception $e) {
             notifyError('Subscriptionrenew::confirmPayment', $e);
+            $out->Error   = true;
+            $out->Message = $e->getMessage();
+        }
+        $this->_json($out);
+    }
+
+    /* ── AJAX: create sub_pay_ Redis token and redirect to billing/checkout ── */
+
+    public function prepareCheckout(): void {
+        $out = new stdClass();
+        try {
+            $sid           = trim($this->input->post('sid') ?: '');
+            $sectorPlanUID = (int)$this->input->post('sector_plan_uid');
+
+            $orgUID = $this->_resolveOrgUID($sid);
+            if (!$orgUID) throw new Exception('Session expired. Please go back to the login page and try again.');
+            if ($sectorPlanUID <= 0) throw new Exception('Please select a plan.');
+
+            $readDb = $this->load->database('ReadDB', TRUE);
+            $readDb->db_debug = FALSE;
+            $plan = $readDb->select('SectorPlanUID, Price')
+                ->from('Billing.SectorPlanTbl')
+                ->where('SectorPlanUID', $sectorPlanUID)
+                ->where('IsActive', 1)
+                ->limit(1)
+                ->get()->row();
+            if (!$plan) throw new Exception('Selected plan not found.');
+            if ((float)$plan->Price <= 0) throw new Exception('Free plan does not require payment.');
+
+            $token    = bin2hex(random_bytes(16));
+            $redisKey = 'sub_pay_' . $orgUID . '_' . $token;
+
+            $payload                  = new stdClass();
+            $payload->org_uid         = $orgUID;
+            $payload->sector_plan_uid = $sectorPlanUID;
+            $payload->flow            = 'renewal';
+            $payload->back_url        = 'subscription/renew?sid=' . urlencode($sid);
+
+            $cacheResult = $this->redisservice->setCache($redisKey, $payload, 86400);
+            if (!empty($cacheResult->Error)) throw new Exception('Could not prepare checkout. Please try again.');
+
+            $out->Error    = false;
+            $out->Redirect = base_url('billing/checkout') . '?t=' . $token;
+
+        } catch (Exception $e) {
+            notifyError('Subscriptionrenew::prepareCheckout', $e);
             $out->Error   = true;
             $out->Message = $e->getMessage();
         }

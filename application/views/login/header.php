@@ -40,6 +40,9 @@
 
     <!-- Page CSS -->
 
+    <!-- jQuery — loaded here so inline scripts in views have $ available -->
+    <script src="/assets/vendor/libs/jquery/jquery.js"></script>
+
     <!-- Helpers -->
     <script src="/assets/vendor/js/helpers.js"></script>
 

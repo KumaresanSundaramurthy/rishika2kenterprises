@@ -780,6 +780,7 @@ $(function () {
         $incPayPanel.css({ top: top, left: left }).show();
         _incPayPanelUID = transUID;
 
+        ajaxLoading(0);
         $.ajax({
             url: fetchUrl, method: 'POST',
             data: { TransUID: transUID, [CsrfName]: CsrfToken },
@@ -809,7 +810,8 @@ $(function () {
             },
             error: function () {
                 $incPayBody.html('<p class="text-danger mb-0" style="font-size:.8rem;">Failed to load payments.</p>');
-            }
+            },
+            complete: function() { ajaxLoading(1); }
         });
     }
 
@@ -1044,6 +1046,7 @@ $(function () {
         var isEdit = uid > 0;
         var $btn   = $(this).prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>' + (isEdit ? 'Saving…' : 'Adding…'));
 
+        ajaxLoading(0);
         $.ajax({
             url: isEdit ? '/indirectincome/updateCategory' : '/indirectincome/addCategory',
             method: 'POST',
@@ -1073,7 +1076,8 @@ $(function () {
                 _incCatIsCreateMode = false;
                 bootstrap.Modal.getInstance(document.getElementById('addIncomeCategoryModal')).hide();
                 showToastNotification(resp.Message || (isEdit ? 'Category updated.' : 'Category added.'), 'success');
-            }
+            },
+            complete: function() { ajaxLoading(1); }
         });
     });
 
@@ -1173,6 +1177,7 @@ $(function () {
         }
 
         $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Saving…');
+        ajaxLoading(0);
         var url  = _incIsEdit ? '/indirectincome/updateIncome' : '/indirectincome/addIncome';
 
         var fd = new FormData();
@@ -1206,7 +1211,8 @@ $(function () {
             error: function () {
                 $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i>Save');
                 showToastNotification('An error occurred. Please try again.', 'error');
-            }
+            },
+            complete: function() { ajaxLoading(1); }
         });
     });
 
@@ -1310,6 +1316,7 @@ $(function () {
 
         new bootstrap.Modal($modal[0]).show();
 
+        ajaxLoading(0);
         $.ajax({
             url: '/indirectincome/getIncomeDetail', method: 'POST',
             data: { IncomeUID: uid, [CsrfName]: CsrfToken },
@@ -1335,7 +1342,8 @@ $(function () {
             },
             error: function () {
                 $('#incDetailBody').html('<div class="text-danger text-center py-4">Failed to load income details.</div>');
-            }
+            },
+            complete: function() { ajaxLoading(1); }
         });
     });
 

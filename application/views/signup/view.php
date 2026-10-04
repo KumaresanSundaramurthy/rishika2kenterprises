@@ -951,6 +951,12 @@ html, body {
                     </div>
                 </div>
 
+                <div class="su-field">
+                    <label class="su-label" for="suBrandName">Brand Name</label>
+                    <input type="text" id="suBrandName" name="BrandName" class="su-input" placeholder="e.g. Rishika Enterprises" autocomplete="off" maxlength="150">
+                    <div class="su-field-hint" id="suBrandNameHint">Display name if different from organisation name</div>
+                </div>
+
                 <div class="su-field-row">
                     <div class="su-field">
                         <label class="su-label" for="suOrgMobile">Mobile Number</label>
@@ -1224,6 +1230,8 @@ html, body {
             labelOrgName:      'Organisation Name',
             labelShortCode:    'Short Code',
             hintShortCode:     '3 letters · org prefix',
+            labelBrandName:    'Brand Name',
+            hintBrandName:     'Display name if different from organisation name',
             labelMobile:       'Mobile Number',
             labelEmail:        'Email Address',
             labelState:        'State',
@@ -1242,6 +1250,7 @@ html, body {
             orFill:            'or fill manually',
             phOrgName:         'e.g. Rishika 2K Enterprises',
             phShortCode:       'ABC',
+            phBrandName:       'e.g. Rishika Enterprises',
             phMobile:          '10-digit number',
             phEmail:           'admin@company.com',
             phStateSelect:     'Select state...',
@@ -1278,6 +1287,8 @@ html, body {
             labelOrgName:      'நிறுவனத்தின் பெயர்',
             labelShortCode:    'குறுகிய குறியீடு',
             hintShortCode:     '3 எழுத்துகள் · org முன்னொட்டு',
+            labelBrandName:    'வணிக பெயர்',
+            hintBrandName:     'நிறுவன பெயரிலிருந்து வேறுபட்டால் காட்சி பெயர்',
             labelMobile:       'கைபேசி எண்',
             labelEmail:        'மின்னஞ்சல் முகவரி',
             labelState:        'மாநிலம்',
@@ -1296,6 +1307,7 @@ html, body {
             orFill:            'அல்லது கைமுறையாக நிரப்பவும்',
             phOrgName:         'எ.கா. ரிஷிகா 2கே எண்டர்பிரைசஸ்',
             phShortCode:       'ABC',
+            phBrandName:       'எ.கா. ரிஷிகா என்டர்பிரைசஸ்',
             phMobile:          '10-இலக்க எண்',
             phEmail:           'admin@company.com',
             phStateSelect:     'மாநிலத்தைத் தேர்ந்தெடுக்கவும்...',
@@ -1344,9 +1356,12 @@ html, body {
         txt('#suStep3Hint',                s.hintPlan);
 
         /* Step 1 labels */
-        lbl('suOrgName',  s.labelOrgName,  false);
-        lbl('suShortCode',s.labelShortCode,false);
-        lbl('suOrgMobile',s.labelMobile,   false);
+        lbl('suOrgName',   s.labelOrgName,   false);
+        lbl('suShortCode', s.labelShortCode, false);
+        lbl('suBrandName', s.labelBrandName, false);
+        var brandHint = document.getElementById('suBrandNameHint');
+        if (brandHint) brandHint.textContent = s.hintBrandName;
+        lbl('suOrgMobile', s.labelMobile,    false);
         lbl('suOrgEmail', s.labelEmail,    false);
         lbl('suState',    s.labelState,    false);
         lbl('suTimezone', s.labelTimezone, false);
@@ -1378,6 +1393,7 @@ html, body {
         var phOpt = function (id, val) { var el = document.querySelector('#' + id + ' option[value=""]'); if (el) el.textContent = val; };
         ph('suOrgName',         s.phOrgName);
         ph('suShortCode',       s.phShortCode);
+        ph('suBrandName',       s.phBrandName);
         ph('suOrgMobile',       s.phMobile);
         ph('suOrgEmail',        s.phEmail);
         ph('suGSTIN',           s.phGSTIN);
@@ -1455,7 +1471,8 @@ html, body {
      */
     function _syncNextBtn() {
         var ok = true;
-        if (!document.getElementById('suOrgName').value.trim()) ok = false;
+        if (document.getElementById('suOrgName').value.trim().length < 3) ok = false;
+        if (document.getElementById('suBrandName').value.trim().length < 3) ok = false;
         var sc = document.getElementById('suShortCode').value.toUpperCase().trim();
         if (!/^[A-Z]{3}$/.test(sc)) ok = false;
         var mobile = document.getElementById('suOrgMobile').value.replace(/\D/g, '');
@@ -1475,7 +1492,7 @@ html, body {
      */
     function _syncNextStep2Btn() {
         var ok = true;
-        if (!document.getElementById('suFirstName').value.trim()) ok = false;
+        if (document.getElementById('suFirstName').value.trim().length < 3) ok = false;
         var uname = document.getElementById('suUsername').value.trim();
         if (!uname || !_usernameAvailable || _usernameChecking) ok = false;
         var pw  = document.getElementById('suPassword').value;
@@ -1500,7 +1517,7 @@ html, body {
     /* trimFields: only leading/trailing spaces removed (everything else) */
     (function () {
         var stripSpaceFields = ['suOrgMobile', 'suOrgEmail'];
-        var trimOnlyFields   = ['suOrgName', 'suShortCode', 'suGSTIN',
+        var trimOnlyFields   = ['suOrgName', 'suShortCode', 'suBrandName', 'suGSTIN',
                                 'suFirstName', 'suLastName', 'suUsername'];
 
         function attachHandlers(id, cleanFn) {
@@ -1575,8 +1592,9 @@ html, body {
         });
     }());
 
-    /* ── ShortCode: auto-suggest from org name ─────────────────────── */
-    var _shortCodeManuallyEdited = false;
+    /* ── ShortCode + BrandName: auto-suggest from org name ─────────── */
+    var _shortCodeManuallyEdited  = false;
+    var _brandNameManuallyEdited  = false;
 
     document.getElementById('suOrgName').addEventListener('input', function () {
         if (!_shortCodeManuallyEdited) {
@@ -1584,6 +1602,15 @@ html, body {
             document.getElementById('suShortCode').value = clean.substring(0, 3);
             clearErr('suShortCode');
         }
+        if (!_brandNameManuallyEdited) {
+            document.getElementById('suBrandName').value = this.value;
+        }
+        _syncNextBtn();
+    });
+
+    document.getElementById('suBrandName').addEventListener('input', function () {
+        _brandNameManuallyEdited = !!this.value.trim();
+        clearErr('suBrandName');
         _syncNextBtn();
     });
 
@@ -1830,6 +1857,22 @@ html, body {
             showErr('suOrgName', 'Organisation name is required.');
             setInputState('suOrgName', false);
             ok = false;
+        } else if (orgName.length < 3) {
+            showErr('suOrgName', 'Organisation name must be at least 3 characters.');
+            setInputState('suOrgName', false);
+            ok = false;
+        }
+
+        var brandName = document.getElementById('suBrandName').value.trim();
+        clearErr('suBrandName');
+        if (!brandName) {
+            showErr('suBrandName', 'Brand name is required.');
+            setInputState('suBrandName', false);
+            ok = false;
+        } else if (brandName.length < 3) {
+            showErr('suBrandName', 'Brand name must be at least 3 characters.');
+            setInputState('suBrandName', false);
+            ok = false;
         }
 
         var shortCode = document.getElementById('suShortCode').value.trim().toUpperCase();
@@ -1898,9 +1941,14 @@ html, body {
     function validateStep2() {
         var ok = true;
 
+        var firstName = document.getElementById('suFirstName').value.trim();
         clearErr('suFirstName');
-        if (!document.getElementById('suFirstName').value.trim()) {
+        if (!firstName) {
             showErr('suFirstName', 'First name is required.');
+            setInputState('suFirstName', false);
+            ok = false;
+        } else if (firstName.length < 3) {
+            showErr('suFirstName', 'First name must be at least 3 characters.');
             setInputState('suFirstName', false);
             ok = false;
         }
@@ -2609,6 +2657,7 @@ html, body {
         var stateParts = document.getElementById('suState').value.split('|');
         var body = new URLSearchParams({
             OrgName:         document.getElementById('suOrgName').value.trim(),
+            BrandName:       document.getElementById('suBrandName').value.trim(),
             ShortCode:       document.getElementById('suShortCode').value.trim().toUpperCase(),
             CountryCode:     document.getElementById('suOrgCountryCode').value,
             OrgMobile:       document.getElementById('suOrgMobile').value.replace(/\D/g, ''),

@@ -662,12 +662,13 @@ $('#saveThemeBtn').on('click', function(){
     fd.append('FontFamily',$('#FontFamily').val());
     fd.append('FontSizePx',$('#FontSizePx').val());
     fd.append(CsrfName,CsrfToken);
+    ajaxLoading(0);
     $.ajax({ url:'/settings/printthemes/saveTheme', method:'POST', data:fd, processData:false, contentType:false,
         success:function(r){
             $('#saveThemeSpinner').addClass('d-none'); $('#saveThemeBtn').prop('disabled',false);
             if(r.Error){ Swal.fire({icon:'error',text:r.Message}); return; }
             if(_isNewTheme){
-                // Remove the now-used module from the Add dropdown so it can't be picked again
+                /* Remove the now-used module from the Add dropdown so it can't be picked again */
                 $('#TransactionType option[value="'+_typeVal+'"]').remove();
                 _usedTypes.push(_typeVal);
             }
@@ -675,7 +676,8 @@ $('#saveThemeBtn').on('click', function(){
             Swal.fire({icon:'success',text:r.Message,timer:1500,showConfirmButton:false});
             _loadThemes();
         },
-        error:function(){ $('#saveThemeSpinner').addClass('d-none'); $('#saveThemeBtn').prop('disabled',false); Swal.fire({icon:'error',text:'Request failed.'}); }
+        error:function(){ $('#saveThemeSpinner').addClass('d-none'); $('#saveThemeBtn').prop('disabled',false); Swal.fire({icon:'error',text:'Request failed.'}); },
+        complete:function(){ ajaxLoading(1); }
     });
 });
 
@@ -770,9 +772,11 @@ $('#saveTplBtn').on('click', function(){
     fd.append('PreviewHtmlContent',$('#TplPreviewHtmlContent').val());
     fd.append('HtmlContent',$('#TplHtmlContent').val());
     fd.append(CsrfName,CsrfToken);
+    ajaxLoading(0);
     $.ajax({ url:'/settings/printthemes/saveTemplate', method:'POST', data:fd, processData:false, contentType:false,
         success:function(r){ $('#saveTplSpinner').addClass('d-none'); $('#saveTplBtn').prop('disabled',false); if(r.Error){Swal.fire({icon:'error',text:r.Message});return;} _tplModal.hide(); Swal.fire({icon:'success',text:r.Message,timer:1500,showConfirmButton:false}); _loadTemplates(); },
-        error:function(){ $('#saveTplSpinner').addClass('d-none'); $('#saveTplBtn').prop('disabled',false); Swal.fire({icon:'error',text:'Request failed.'}); }
+        error:function(){ $('#saveTplSpinner').addClass('d-none'); $('#saveTplBtn').prop('disabled',false); Swal.fire({icon:'error',text:'Request failed.'}); },
+        complete:function(){ ajaxLoading(1); }
     });
 });
 

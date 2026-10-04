@@ -1,5 +1,14 @@
 <?php
 ob_start();
+
+/* Layer 1 — suppress raw PHP warnings (e.g. mysqli connection errors) from leaking to the browser.
+   Warnings are forwarded to the PHP error log instead.
+   MY_Controller detects the failure and shows a clean "Connection Problem" page. */
+set_error_handler(function(int $errno, string $errstr): bool {
+    error_log('[PHP] Warning: ' . $errstr);
+    return true;
+}, E_WARNING);
+
 /**
  * CodeIgniter
  *

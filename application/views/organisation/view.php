@@ -349,12 +349,14 @@ $(function() {
             if (cached && Array.isArray(cached) && cached.length > 0) {
                 _renderTimezones(cached);
             } else {
-                // 2. Upstash miss — AJAX; PHP queries DB and stores in Upstash
+                /* 2. Upstash miss — AJAX; PHP queries DB and stores in Upstash */
+                ajaxLoading(0);
                 $.ajax({
                     url: '/globally/getTimezones', method: 'GET',
                     success: function (resp) {
                         if (!resp.Error && resp.Data) _renderTimezones(resp.Data);
-                    }
+                    },
+                    complete: function() { ajaxLoading(1); }
                 });
             }
         });

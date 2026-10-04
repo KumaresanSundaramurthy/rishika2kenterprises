@@ -80,12 +80,15 @@ class BillingPlan_model extends CI_Model {
     public function getOrgByUID(int $orgUID): ?object {
         try {
             $this->ReadDb->db_debug = FALSE;
-            $row = $this->ReadDb->select('OrgUID, Name, EmailAddress, SectorUID')
+            $row = $this->ReadDb->select('OrgUID, Name, EmailAddress, SectorUID, Logo')
                 ->from('Organisation.OrganisationTbl')
                 ->where('OrgUID',    $orgUID)
                 ->where('IsDeleted', 0)
                 ->limit(1)
                 ->get()->row();
+            if ($row && !empty($row->Logo)) {
+                $row->Logo = resolveCdnUrl($row->Logo);
+            }
             return $row ?: null;
         } catch (Exception $e) {
             notifyError('BillingPlan_model::getOrgByUID', $e);
@@ -122,6 +125,37 @@ class BillingPlan_model extends CI_Model {
         return $result;
     }
 
+    /* ── Fetch a single pending order for payment ────────────────────────── */
+
+    public function getPendingOrder(int $orgUID, int $orderUID): object {
+        $result = new stdClass();
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('SO.OrderUID, SO.OrgUID, SO.OrgSubUID, SO.SectorPlanUID,
+                SO.RenewalType, SO.Amount, SO.DiscountAmount, SO.TaxAmount, SO.NetAmount,
+                SO.DueDate, SO.Status, SO.FinancialYear,
+                COALESCE(SP.PlanName, \'Trial\') AS PlanName,
+                SPT.TaxableAmount AS PlanTaxableAmount, SPT.TaxAmount AS PlanTaxAmt, SPT.TotalAmount AS PlanTotalAmount,
+                SP.BillingCycle');
+            $this->ReadDb->from('Billing.SubscriptionOrdersTbl AS SO');
+            $this->ReadDb->join('Billing.SectorPlanTbl AS SPT',       'SPT.SectorPlanUID = SO.SectorPlanUID', 'left');
+            $this->ReadDb->join('Billing.SubscriptionPlansTbl AS SP', 'SP.PlanUID = SPT.PlanUID',             'left');
+            $this->ReadDb->where('SO.OrgUID',    $orgUID);
+            $this->ReadDb->where('SO.OrderUID',  $orderUID);
+            $this->ReadDb->where('SO.Status',    'Pending');
+            $this->ReadDb->limit(1);
+            $query         = $this->ReadDb->get();
+            $result->Error = FALSE;
+            $result->Data  = ($query && $query->num_rows() > 0) ? $query->row() : null;
+        } catch (Exception $e) {
+            notifyError('BillingPlan_model::getPendingOrder', $e);
+            $result->Error   = TRUE;
+            $result->Message = $e->getMessage();
+            $result->Data    = null;
+        }
+        return $result;
+    }
+
     /* ── Change / renew plan ──────────────────────────────────────────────── */
 
     public function changePlan(int $orgUID, int $newSectorPlanUID, string $renewalType, int $adminRoleUID, int $userUID, array $paymentData = []): object {
@@ -144,15 +178,16 @@ class BillingPlan_model extends CI_Model {
             }
             $plan = $planRow->row();
 
-            /* 2. Get previous SectorPlanUID for audit trail */
-            $prevRow = $this->ReadDb->select('SectorPlanUID')
+            /* 2. Get previous SectorPlanUID + EndDate for audit trail and renewal base */
+            $prevRow = $this->ReadDb->select('SectorPlanUID, EndDate')
                 ->from('Billing.OrgSubscriptionTbl')
                 ->where('OrgUID', $orgUID)
                 ->where_not_in('Status', ['Cancelled'])
                 ->order_by('StartDate', 'DESC')
                 ->limit(1)
                 ->get();
-            $prevSectorPlanUID = ($prevRow && $prevRow->num_rows() > 0) ? (int)$prevRow->row()->SectorPlanUID : null;
+            $prevSubRow        = ($prevRow && $prevRow->num_rows() > 0) ? $prevRow->row() : null;
+            $prevSectorPlanUID = $prevSubRow ? (int)$prevSubRow->SectorPlanUID : null;
 
             /* 3. Begin transaction */
             $this->WriteDb->trans_begin();
@@ -161,8 +196,13 @@ class BillingPlan_model extends CI_Model {
             $this->_applyPlanMenus($orgUID, (int)$plan->SectorUID, (int)$plan->PlanUID, $prevSectorPlanUID, $adminRoleUID, $userUID);
 
             /* 5. Update OrgSubscriptionTbl */
-            $now     = gmdate('Y-m-d H:i:s');
-            $_ts = time() + (int)$plan->DurationDays * 86400;
+            $now = gmdate('Y-m-d H:i:s');
+            /* For active plans renewing early, extend from the current EndDate so remaining
+               days are not lost. For expired plans the current EndDate is in the past, so
+               fall back to today as the base. */
+            $_currentEndTs = ($prevSubRow && !empty($prevSubRow->EndDate)) ? strtotime($prevSubRow->EndDate) : 0;
+            $_baseTs       = ($_currentEndTs > time()) ? $_currentEndTs : time();
+            $_ts           = $_baseTs + (int)$plan->DurationDays * 86400;
             [$_y, $_m, $_d] = explode('-', gmdate('Y-m-d', $_ts + 19800));
             $endDate = gmdate('Y-m-d H:i:s', gmmktime(23, 59, 59, (int)$_m, (int)$_d, (int)$_y) - 19800);
             $fyValue = billing_fy('long');  // e.g. "2026-27"
@@ -177,8 +217,6 @@ class BillingPlan_model extends CI_Model {
                     'StartDate'     => $now,
                     'EndDate'       => $endDate,
                     'Status'        => 'Active',
-                    'UpdatedBy'     => $userUID,
-                    'UpdatedOn'     => $now,
                 ]);
 
             $orgSubRow = $this->ReadDb->select('OrgSubUID')

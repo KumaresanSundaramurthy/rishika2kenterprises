@@ -1418,6 +1418,7 @@ $(document).ready(function () {
         $btn.prop('disabled', true);
         $spinner.removeClass('d-none');
 
+        ajaxLoading(0);
         $.ajax({
             url    : '/settings/updateGeneralSettings',
             method : 'POST',
@@ -1470,7 +1471,8 @@ RowLimit               : $('#gs_RowLimit').val(),
                 showToastNotification('Request failed. Please try again.', 'error');
                 $btn.prop('disabled', false);
                 $spinner.addClass('d-none');
-            }
+            },
+            complete: function() { ajaxLoading(1); }
         });
     });
 
@@ -1500,6 +1502,7 @@ RowLimit               : $('#gs_RowLimit').val(),
         $btn.prop('disabled', true);
         $spinner.removeClass('d-none');
 
+        ajaxLoading(0);
         $.ajax({
             url    : '/settings/updateProductSettings',
             method : 'POST',
@@ -1519,6 +1522,7 @@ RowLimit               : $('#gs_RowLimit').val(),
             complete: function () {
                 $btn.prop('disabled', false);
                 $spinner.addClass('d-none');
+                ajaxLoading(1);
             }
         });
     });
@@ -1531,6 +1535,7 @@ RowLimit               : $('#gs_RowLimit').val(),
         $btn.prop('disabled', true);
         $spinner.removeClass('d-none');
 
+        ajaxLoading(0);
         $.ajax({
             url    : '/settings/updateTransactionSettings',
             method : 'POST',
@@ -1565,6 +1570,7 @@ RowLimit               : $('#gs_RowLimit').val(),
             complete: function () {
                 $btn.prop('disabled', false);
                 $spinner.addClass('d-none');
+                ajaxLoading(1);
             }
         });
     });
@@ -1663,6 +1669,7 @@ RowLimit               : $('#gs_RowLimit').val(),
         $btn.prop('disabled', true);
         $spinner.removeClass('d-none');
 
+        ajaxLoading(0);
         $.ajax({
             url    : '/settings/updateTransactionSettings',
             method : 'POST',
@@ -1695,6 +1702,7 @@ RowLimit               : $('#gs_RowLimit').val(),
             complete: function () {
                 $btn.prop('disabled', false);
                 $spinner.addClass('d-none');
+                ajaxLoading(1);
             }
         });
     });
@@ -1715,6 +1723,7 @@ RowLimit               : $('#gs_RowLimit').val(),
         $btn.prop('disabled', true);
         $spinner.removeClass('d-none');
 
+        ajaxLoading(0);
         $.ajax({
             url    : '/settings/updateTransactionSettings',
             method : 'POST',
@@ -1747,6 +1756,7 @@ RowLimit               : $('#gs_RowLimit').val(),
             complete: function () {
                 $btn.prop('disabled', false);
                 $spinner.addClass('d-none');
+                ajaxLoading(1);
             }
         });
     });
@@ -1777,6 +1787,7 @@ RowLimit               : $('#gs_RowLimit').val(),
         $btn.prop('disabled', true);
         $spinner.removeClass('d-none');
 
+        ajaxLoading(0);
         $.ajax({
             url    : '/settings/updateTransactionSettings',
             method : 'POST',
@@ -1809,6 +1820,7 @@ RowLimit               : $('#gs_RowLimit').val(),
             complete: function () {
                 $btn.prop('disabled', false);
                 $spinner.addClass('d-none');
+                ajaxLoading(1);
             }
         });
     });
@@ -1821,6 +1833,7 @@ RowLimit               : $('#gs_RowLimit').val(),
         $btn.prop('disabled', true);
         $spinner.removeClass('d-none');
 
+        ajaxLoading(0);
         $.ajax({
             url    : '/settings/updateTransactionSettings',
             method : 'POST',
@@ -1854,6 +1867,7 @@ RowLimit               : $('#gs_RowLimit').val(),
             complete: function () {
                 $btn.prop('disabled', false);
                 $spinner.addClass('d-none');
+                ajaxLoading(1);
             }
         });
     });
@@ -1872,6 +1886,7 @@ RowLimit               : $('#gs_RowLimit').val(),
         $btn.prop('disabled', true);
         $spinner.removeClass('d-none');
 
+        ajaxLoading(0);
         $.ajax({
             url    : '/settings/updateTransactionSettings',
             method : 'POST',
@@ -1904,6 +1919,7 @@ RowLimit               : $('#gs_RowLimit').val(),
             complete: function () {
                 $btn.prop('disabled', false);
                 $spinner.addClass('d-none');
+                ajaxLoading(1);
             }
         });
     });
@@ -1922,6 +1938,7 @@ RowLimit               : $('#gs_RowLimit').val(),
         $btn.prop('disabled', true);
         $spinner.removeClass('d-none');
 
+        ajaxLoading(0);
         $.ajax({
             url    : '/settings/updateTransactionSettings',
             method : 'POST',
@@ -1954,6 +1971,7 @@ RowLimit               : $('#gs_RowLimit').val(),
             complete: function () {
                 $btn.prop('disabled', false);
                 $spinner.addClass('d-none');
+                ajaxLoading(1);
             }
         });
     });

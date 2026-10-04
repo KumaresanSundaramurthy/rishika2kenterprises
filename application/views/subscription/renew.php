@@ -3,6 +3,9 @@
 $orgName        = htmlspecialchars($org->Name ?? 'Your Organisation', ENT_QUOTES, 'UTF-8');
 $currentPlanUID = $subscription->SectorPlanUID ?? null;
 $currentStatus  = $subscription->Status        ?? null;
+$currentMaxUsers     = (int)($subscription->MaxUsers     ?? 0);
+$currentMaxBranches  = (int)($subscription->MaxBranches  ?? 0);
+$currentDurationDays = (int)($subscription->DurationDays ?? 0);
 
 /* Split plans by billing cycle */
 $monthly = [];
@@ -12,24 +15,29 @@ foreach ($plans as $p) {
     else                               $monthly[] = $p;
 }
 
-/* Dynamically calculate minimum yearly saving vs paying monthly for a year */
+/* Calculate max yearly saving vs paying monthly for a year.
+   Sort copies by price so mismatched test plans don't skew the pairing. */
 $yearlySavingPct = 0;
 if (!empty($monthly) && !empty($yearly)) {
-    $minSaving = PHP_INT_MAX;
-    $count = min(count($monthly), count($yearly));
+    $sortedM = $monthly; $sortedY = $yearly;
+    usort($sortedM, fn($a, $b) => (float)$a->Price <=> (float)$b->Price);
+    usort($sortedY, fn($a, $b) => (float)$a->Price <=> (float)$b->Price);
+    $maxSaving = 0;
+    $count = min(count($sortedM), count($sortedY));
     for ($i = 0; $i < $count; $i++) {
-        $mPrice = (float)$monthly[$i]->Price;
-        $yPrice = (float)$yearly[$i]->Price;
+        $mPrice = (float)$sortedM[$i]->Price;
+        $yPrice = (float)$sortedY[$i]->Price;
         if ($mPrice > 0 && $yPrice > 0) {
             $annualIfMonthly = $mPrice * 12;
             $saving = ($annualIfMonthly - $yPrice) / $annualIfMonthly * 100;
-            if ($saving < $minSaving) $minSaving = $saving;
+            if ($saving > $maxSaving) $maxSaving = $saving;
         }
     }
-    if ($minSaving !== PHP_INT_MAX && $minSaving > 0) {
-        $yearlySavingPct = (int)floor($minSaving);
-    }
+    $yearlySavingPct = $maxSaving > 0 ? (int)floor($maxSaving) : 0;
 }
+
+/* Default to the billing cycle the org was on; fall back to Monthly */
+$defaultCycle = (($subscription->BillingCycle ?? 'Monthly') === 'Yearly') ? 'Yearly' : 'Monthly';
 ?>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -54,6 +62,8 @@ if (!empty($monthly) && !empty($yearly)) {
     align-items: center;
     gap: 6px;
     padding: 7px 14px;
+    cursor: pointer;
+    font-family: inherit;
     background: rgba(255,255,255,0.05);
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255,255,255,0.1);
@@ -83,11 +93,28 @@ if (!empty($monthly) && !empty($yearly)) {
     text-transform: uppercase;
     margin-bottom: 1rem;
 }
+.sr-org-identity {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-bottom: 0.4rem;
+}
+.sr-org-logo {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    object-fit: contain;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 4px;
+    flex-shrink: 0;
+}
 .sr-org-name {
     font-size: 1.7rem;
     font-weight: 700;
     color: #f0f4f8;
-    margin-bottom: 0.4rem;
+    margin-bottom: 0;
 }
 .sr-sub-hint {
     font-size: 0.9rem;
@@ -158,7 +185,7 @@ if (!empty($monthly) && !empty($yearly)) {
     border: 1px solid rgba(255,255,255,0.09);
     border-radius: 20px;
     padding: 1.875rem 1.625rem 1.625rem;
-    display: flex;
+    display: none; /* hidden until switchCycle() reveals the active tab's cards */
     flex-direction: column;
     gap: 1.1rem;
     overflow: hidden;
@@ -205,10 +232,30 @@ if (!empty($monthly) && !empty($yearly)) {
 }
 .sr-plan-card[data-tier="pro"]::before { opacity: 0.5; }
 
-/* Current plan */
+/* Previous / current plan — stronger visual treatment */
 .sr-plan-card.is-current {
-    border-color: rgba(var(--tr,245,158,11), 0.45) !important;
-    box-shadow: 0 0 0 1px rgba(var(--tr,245,158,11), 0.18), 0 8px 40px rgba(var(--tr,245,158,11), 0.1) !important;
+    border-color: rgba(var(--tr,245,158,11), 0.6) !important;
+    box-shadow: 0 0 0 2px rgba(var(--tr,245,158,11), 0.25),
+                0 12px 48px rgba(var(--tr,245,158,11), 0.18) !important;
+    background: linear-gradient(160deg,
+        rgba(var(--tr,245,158,11), 0.08) 0%,
+        rgba(255,255,255,0.02) 100%) !important;
+}
+.sr-prev-plan-strip {
+    margin: 0.6rem -1.625rem -1.625rem;
+    padding: 7px 14px;
+    background: rgba(var(--tr,245,158,11), 0.1);
+    border-top: 1px solid rgba(var(--tr,245,158,11), 0.2);
+    border-radius: 0 0 20px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: rgba(var(--tr,245,158,11), 1);
 }
 
 /* ── Card header ─────────────────────────────────────── */
@@ -326,39 +373,6 @@ if (!empty($monthly) && !empty($yearly)) {
 .sr-pay-btn:hover      { filter: brightness(1.1); transform: translateY(-2px); }
 .sr-pay-btn:disabled   { opacity: 0.45; cursor: not-allowed; transform: none !important; filter: none !important; }
 
-/* ── Success overlay ──────────────────────────────────── */
-.sr-success-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(4,11,24,0.92);
-    z-index: 9999;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    gap: 1.25rem;
-    text-align: center;
-    padding: 2rem;
-}
-.sr-success-overlay.show { display: flex; }
-.sr-success-icon { font-size: 4rem; color: #34d399; }
-.sr-success-title { font-size: 1.5rem; font-weight: 700; color: #f0f4f8; }
-.sr-success-sub   { font-size: 0.9rem; color: rgba(148,163,184,0.8); }
-.sr-success-btn {
-    margin-top: 0.5rem;
-    padding: 12px 30px;
-    background: linear-gradient(135deg, #f59e0b, #d97706);
-    border: none;
-    border-radius: 10px;
-    color: #040b18;
-    font-size: 0.95rem;
-    font-weight: 700;
-    cursor: pointer;
-    text-decoration: none;
-    display: inline-block;
-    transition: filter 0.2s;
-}
-.sr-success-btn:hover { filter: brightness(1.1); text-decoration: none; color: #040b18; }
 
 /* ── Spinner ──────────────────────────────────────────── */
 .sr-spinner {
@@ -459,35 +473,6 @@ if (!empty($monthly) && !empty($yearly)) {
     margin-top: -1rem;
 }
 
-/* ── Session countdown banner ────────────────────────────── */
-.sr-countdown-bar {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    padding: 9px 20px;
-    background: rgba(245,158,11,0.08);
-    border: 1px solid rgba(245,158,11,0.22);
-    border-radius: 100px;
-    color: #fbbf24;
-    font-size: 13px;
-    font-weight: 600;
-    margin-top: -1.2rem;
-    margin-bottom: 1rem;
-    transition: background 0.3s, border-color 0.3s, color 0.3s;
-}
-.sr-countdown-bar.sr-cd-warn {
-    background: rgba(239,68,68,0.12);
-    border-color: rgba(239,68,68,0.35);
-    color: #f87171;
-    animation: sr-cd-pulse 1s ease-in-out infinite;
-}
-@keyframes sr-cd-pulse {
-    0%,100% { opacity: 1; }
-    50%      { opacity: 0.65; }
-}
-.sr-countdown-icon { font-size: 16px; flex-shrink: 0; }
-.sr-countdown-val  { font-variant-numeric: tabular-nums; letter-spacing: 0.04em; }
 
 @media (max-width: 960px) {
     .sr-plans-grid { grid-template-columns: repeat(2, 1fr); max-width: 660px; }
@@ -501,35 +486,163 @@ if (!empty($monthly) && !empty($yearly)) {
     .sr-org-name { font-size: 1.3rem; }
     .sr-topbar { flex-direction: column; gap: 1rem; align-items: flex-start; }
 }
+
+/* ── Plan change modal ────────────────────────────────── */
+.sr-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9000;
+    background: rgba(4,11,24,0.82);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+}
+.sr-modal-overlay[hidden] { display: none !important; }
+.sr-modal-box {
+    background: #0e1929;
+    border: 1px solid rgba(255,255,255,0.11);
+    border-radius: 20px;
+    padding: 2rem 2rem 1.75rem;
+    max-width: 480px;
+    width: 100%;
+    animation: sr-modal-in 0.22s ease;
+}
+@keyframes sr-modal-in {
+    from { opacity: 0; transform: translateY(14px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.sr-modal-hero {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    font-size: 1.6rem;
+    margin: 0 auto 1.25rem;
+}
+.sr-modal-hero--warn  { background: rgba(245,158,11,0.15); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); }
+.sr-modal-hero--up    { background: rgba(167,139,250,0.15); color: #a78bfa; border: 1px solid rgba(167,139,250,0.3); }
+.sr-modal-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #f0f4f8;
+    text-align: center;
+    margin-bottom: 0.5rem;
+}
+.sr-modal-lead {
+    font-size: 0.87rem;
+    color: rgba(148,163,184,0.75);
+    text-align: center;
+    margin-bottom: 1.25rem;
+    line-height: 1.55;
+}
+.sr-modal-list {
+    list-style: none;
+    background: rgba(0,0,0,0.22);
+    border-radius: 12px;
+    padding: 0.2rem 1.1rem;
+    margin-bottom: 1.1rem;
+}
+.sr-modal-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.65rem 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    font-size: 0.875rem;
+    color: rgba(148,163,184,0.85);
+    line-height: 1.45;
+}
+.sr-modal-list li:last-child { border-bottom: none; }
+.sr-modal-list li .sr-ml-icon { flex-shrink: 0; margin-top: 1px; font-size: 1rem; }
+.sr-modal-list li .sr-ml-text b { color: #f0f4f8; }
+.sr-modal-list li .sr-ml-text .sr-ml-arrow { color: #f59e0b; font-weight: 700; margin: 0 4px; }
+.sr-modal-list li .sr-ml-text .sr-ml-arrow--up { color: #a78bfa; }
+.sr-modal-note {
+    font-size: 0.79rem;
+    color: rgba(148,163,184,0.45);
+    text-align: center;
+    margin-bottom: 1.25rem;
+    line-height: 1.5;
+}
+.sr-modal-note[hidden] { display: none !important; }
+.sr-modal-actions {
+    display: flex;
+    gap: 0.65rem;
+}
+.sr-modal-actions--single { justify-content: center; flex-direction: column; align-items: center; }
+.sr-modal-btn-close {
+    flex: 1;
+    padding: 12px;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+    color: rgba(148,163,184,0.65);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.sr-modal-btn-close:hover { background: rgba(255,255,255,0.05); color: #e2e8f0; }
+.sr-modal-btn-proceed {
+    flex: 2;
+    padding: 12px;
+    background: linear-gradient(135deg, #7c3aed, #a78bfa);
+    border: none;
+    border-radius: 12px;
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.15s;
+    letter-spacing: 0.01em;
+}
+.sr-modal-btn-proceed:hover  { opacity: 0.9; transform: translateY(-1px); }
+.sr-modal-btn-proceed:active { transform: translateY(0); }
+.sr-modal-esc-hint {
+    font-size: 0.76rem;
+    color: rgba(148,163,184,0.35);
+    margin-top: 0.6rem;
+}
+@media (max-width: 480px) {
+    .sr-modal-actions { flex-direction: column; }
+    .sr-modal-btn-close, .sr-modal-btn-proceed { flex: unset; width: 100%; }
+}
+
 </style>
 
 <div class="sr-root">
 
     <!-- Back to Login — fixed top-right -->
-    <a href="<?php echo base_url('login'); ?>" class="sr-back">
+    <button type="button" class="sr-back" id="srBackBtn">
         <i class="bx bx-arrow-back" style="font-size:14px;"></i> Back to Login
-    </a>
+    </button>
 
     <!-- Header -->
     <div class="sr-header">
-        <h1 class="sr-org-name"><?php echo $orgName; ?></h1>
+        <div class="sr-org-identity">
+            <?php $orgLogo = $org->Logo ?? ''; if (!empty($orgLogo)): ?>
+                <img src="<?php echo htmlspecialchars($orgLogo, ENT_QUOTES); ?>"
+                     alt="<?php echo $orgName; ?> logo"
+                     class="sr-org-logo">
+            <?php endif; ?>
+            <h1 class="sr-org-name"><?php echo $orgName; ?></h1>
+        </div>
         <p class="sr-sub-hint">Choose a plan below to reactivate your account instantly.</p>
-    </div>
-
-    <!-- Session countdown -->
-    <div class="sr-countdown-bar" id="srCountdownBar">
-        <i class="bx bx-time-five sr-countdown-icon"></i>
-        <span>Renewal link expires in&nbsp;</span>
-        <span class="sr-countdown-val" id="srCountdownVal">30:00</span>
     </div>
 
     <!-- Cycle toggle -->
     <?php if (!empty($monthly) && !empty($yearly)): ?>
     <div class="sr-toggle-wrap">
-        <button class="sr-toggle-btn active" id="srToggleMonthly" onclick="switchCycle('Monthly')">Monthly</button>
-        <button class="sr-toggle-btn" id="srToggleYearly" onclick="switchCycle('Yearly')">
+        <button class="sr-toggle-btn <?php echo $defaultCycle === 'Monthly' ? 'active' : ''; ?>" id="srToggleMonthly" onclick="switchCycle('Monthly')">Monthly</button>
+        <button class="sr-toggle-btn <?php echo $defaultCycle === 'Yearly'  ? 'active' : ''; ?>" id="srToggleYearly" onclick="switchCycle('Yearly')">
             Yearly
-            <span class="sr-save-badge">SAVE ~<?php echo $yearlySavingPct; ?>%</span>
+            <?php if ($yearlySavingPct > 0): ?>
+                <span class="sr-save-badge">SAVE ~<?php echo $yearlySavingPct; ?>%</span>
+            <?php endif; ?>
         </button>
     </div>
     <?php endif; ?>
@@ -594,21 +707,20 @@ if (!empty($monthly) && !empty($yearly)) {
                     <div class="sr-plan-accent-line"></div>
                 </div>
                 <div class="sr-card-badges">
-                    <?php if ($wasTrial):
-                        /* Coming from Trial — recommend Enterprise; mark trial card */
-                        if ($tier === 'ent'): ?>
-                            <span class="sr-badge sr-badge-recommend">&#10003; Recommended</span>
-                        <?php elseif ($isCurrent): ?>
+                    <?php
+                    /* Enterprise always carries the Popular badge */
+                    if ($tier === 'ent'): ?>
+                        <span class="sr-badge sr-badge-popular">&#9733; Popular</span>
+                    <?php endif;
+
+                    /* Status badge — applies to every tier including Enterprise */
+                    if ($wasTrial):
+                        if ($isCurrent): ?>
                             <span class="sr-badge sr-badge-trial">Trial</span>
-                        <?php elseif ($tier === 'pro'): ?>
-                            <span class="sr-badge sr-badge-popular">&#9733; Popular</span>
                         <?php endif;
                     else:
-                        /* Coming from a paid plan */
                         if ($isCurrent): ?>
                             <span class="sr-badge sr-badge-previous">Previous Plan</span>
-                        <?php elseif ($tier === 'pro' && !$isCurrent): ?>
-                            <span class="sr-badge sr-badge-popular">&#9733; Popular</span>
                         <?php elseif ($isUpgrade): ?>
                             <span class="sr-badge sr-badge-upgrade">Upgrade</span>
                         <?php elseif ($isDowngrade): ?>
@@ -654,17 +766,46 @@ if (!empty($monthly) && !empty($yearly)) {
                 </div>
             </div>
 
+            <?php $upgradeType = $isCurrent ? 'renew' : ($isDowngrade ? 'downgrade' : 'upgrade'); ?>
             <button class="sr-pay-btn <?php echo $tierBtn; ?>"
-                    onclick="startPayment(this, <?php echo (int)$p->SectorPlanUID; ?>, '<?php echo htmlspecialchars($displayName, ENT_QUOTES); ?>', '<?php echo number_format((float)$p->Price, 2, '.', ''); ?>')">
+                    data-plan-uid="<?php echo (int)$p->SectorPlanUID; ?>"
+                    data-plan-name="<?php echo htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8'); ?>"
+                    data-plan-price="<?php echo number_format((float)$p->Price, 2, '.', ''); ?>"
+                    data-cycle="<?php echo htmlspecialchars($billingCycle, ENT_QUOTES); ?>"
+                    data-taxable="<?php echo number_format($taxableAmt, 2, '.', ''); ?>"
+                    data-tax="<?php echo number_format($taxAmt, 2, '.', ''); ?>"
+                    data-max-users="<?php echo (int)$p->MaxUsers; ?>"
+                    data-max-branches="<?php echo (int)$p->MaxBranches; ?>"
+                    data-duration-days="<?php echo (int)$p->DurationDays; ?>"
+                    data-upgrade-type="<?php echo $upgradeType; ?>">
                 <span class="sr-btn-text"><?php echo $btnLabel; ?></span>
                 <span class="sr-spinner"></span>
             </button>
+
+            <?php if ($isCurrent): ?>
+            <div class="sr-prev-plan-strip">
+                <i class="bx bx-history"></i> Your Previous Plan
+            </div>
+            <?php endif; ?>
 
         </div>
         <?php endforeach; ?>
 
     </div>
 
+
+</div>
+
+<!-- Plan change confirmation modal -->
+<div class="sr-modal-overlay" id="srPlanModal" hidden>
+    <div class="sr-modal-box" id="srModalBox">
+        <div class="sr-modal-hero" id="srModalHero"></div>
+        <h3 class="sr-modal-title" id="srModalTitle"></h3>
+        <p class="sr-modal-lead" id="srModalLead"></p>
+        <ul class="sr-modal-list" id="srModalList"></ul>
+        <p class="sr-modal-note" id="srModalNote" hidden></p>
+        <div class="sr-modal-actions" id="srModalActions"></div>
+    </div>
 </div>
 
 <!-- Full-page payment processing overlay -->
@@ -674,171 +815,291 @@ if (!empty($monthly) && !empty($yearly)) {
         <img src="https://pub-bb40942a33344637936ade1f3800ff8b.r2.dev/Global/favicon_io/android-chrome-512x512-1.png"
              class="sr-pay-logo-img" alt="Logo">
     </div>
-    <p class="sr-pay-overlay-msg" id="srOverlayMsg">Preparing your payment</p>
-    <p class="sr-pay-overlay-stage" id="srOverlayStage">Step 1 of 2 — Creating order</p>
+    <p class="sr-pay-overlay-msg" id="srOverlayMsg">Preparing checkout</p>
+    <p class="sr-pay-overlay-stage" id="srOverlayStage">Loading confirmation page…</p>
     <p class="sr-pay-overlay-sub">Do not close or refresh this page</p>
 </div>
 
-<!-- Success overlay -->
-<div class="sr-success-overlay" id="srSuccessOverlay">
-    <div class="sr-success-icon"><i class="bx bx-check-circle"></i></div>
-    <p class="sr-success-title">Subscription Activated!</p>
-    <p class="sr-success-sub">Your plan is now active. You can log in to continue.</p>
-    <a href="<?php echo base_url('login'); ?>" class="sr-success-btn">
-        <i class="bx bx-log-in"></i> Sign In Now
-    </a>
-</div>
 
-<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
-var _sid         = <?php echo json_encode($sid); ?>;
-var _orgName     = <?php echo json_encode($orgName); ?>;
-var _activeCycle = 'Monthly';
-var _defaultCycle = <?php echo json_encode(!empty($monthly) ? 'Monthly' : 'Yearly'); ?>;
+var _sid                 = <?php echo json_encode($sid); ?>;
+var _activeCycle         = 'Monthly';
+var _defaultCycle        = <?php echo json_encode($defaultCycle); ?>;
+var _currentMaxUsers     = <?php echo json_encode($currentMaxUsers); ?>;
+var _currentMaxBranches  = <?php echo json_encode($currentMaxBranches); ?>;
+var _currentDurationDays = <?php echo json_encode($currentDurationDays); ?>;
+var _pendingPlanUID      = 0;
+var _pendingBtn          = null;
 
+/**
+ * @param {string} cycle
+ * @returns {void}
+ */
 function switchCycle(cycle) {
     _activeCycle = cycle;
-    document.querySelectorAll('.sr-plan-card').forEach(function(card) {
-        card.style.display = card.dataset.cycle === cycle ? 'flex' : 'none';
+    $('.sr-plan-card').each(function() {
+        $(this).toggle($(this).data('cycle') === cycle);
     });
-    var btnM = document.getElementById('srToggleMonthly');
-    var btnY = document.getElementById('srToggleYearly');
-    if (btnM) btnM.classList.toggle('active', cycle === 'Monthly');
-    if (btnY) btnY.classList.toggle('active',  cycle === 'Yearly');
+    /* cards use display:flex internally — restore flex after toggle() sets display:block */
+    $('.sr-plan-card[data-cycle="' + cycle + '"]').css('display', 'flex');
+    $('#srToggleMonthly').toggleClass('active', cycle === 'Monthly');
+    $('#srToggleYearly').toggleClass('active',  cycle === 'Yearly');
 }
 
-/* Show correct cycle by default */
-document.addEventListener('DOMContentLoaded', function() { switchCycle(_defaultCycle); });
-
-/* ── Overlay helpers ─────────────────────────────────── */
+/**
+ * Show the full-page processing overlay.
+ * @param {string} msg
+ * @param {string} stage
+ * @returns {void}
+ */
 function _showOverlay(msg, stage) {
-    document.getElementById('srOverlayMsg').textContent   = msg;
-    document.getElementById('srOverlayStage').textContent = stage;
-    document.getElementById('srPayOverlay').classList.add('show');
+    $('#srOverlayMsg').text(msg);
+    $('#srOverlayStage').text(stage);
+    $('#srPayOverlay').addClass('show');
 }
+
+/**
+ * @returns {void}
+ */
 function _hideOverlay() {
-    document.getElementById('srPayOverlay').classList.remove('show');
+    $('#srPayOverlay').removeClass('show');
 }
 
-function startPayment(btn, sectorPlanUID, planName, price) {
-    /* Disable all plan buttons to prevent double-selection */
-    document.querySelectorAll('.sr-pay-btn').forEach(function(b) { b.disabled = true; });
+/**
+ * Format a plan limit value (0 = Unlimited).
+ * @param {number} val
+ * @returns {string}
+ */
+function _fmtLimit(val) {
+    return val === 0 ? 'Unlimited' : String(val);
+}
 
-    _showOverlay('Preparing your payment', 'Step 1 of 2 — Creating order');
+/**
+ * Close and reset the plan change modal.
+ * @returns {void}
+ */
+function _closeModal() {
+    $('#srPlanModal').prop('hidden', true);
+    _pendingPlanUID = 0;
+    _pendingBtn     = null;
+}
 
-    var body = 'sid=' + encodeURIComponent(_sid)
-             + '&sector_plan_uid=' + sectorPlanUID;
+/**
+ * Show the upgrade or downgrade confirmation modal before redirecting.
+ * @param {jQuery} $btn
+ * @returns {void}
+ */
+function showPlanModal($btn) {
+    var type         = $btn.data('upgrade-type');
+    var planName     = $btn.data('plan-name');
+    var newUsers     = parseInt($btn.data('max-users'),     10) || 0;
+    var newBranches  = parseInt($btn.data('max-branches'),  10) || 0;
+    var newDuration  = parseInt($btn.data('duration-days'), 10) || 0;
 
-    var csrfInput = document.querySelector('input[name^="csrf"]');
-    if (csrfInput) body += '&' + encodeURIComponent(csrfInput.name) + '=' + encodeURIComponent(csrfInput.value);
+    _pendingPlanUID = parseInt($btn.data('plan-uid'), 10);
+    _pendingBtn     = $btn;
 
-    fetch('<?php echo base_url('subscription/renew/createOrder'); ?>', {
-        method : 'POST',
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body   : body,
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        if (data.Error) {
-            _hideOverlay();
-            document.querySelectorAll('.sr-pay-btn').forEach(function(b) { b.disabled = false; });
-            alert(data.Message || 'Could not initiate payment. Please try again.');
-            return;
-        }
+    var $hero    = $('#srModalHero');
+    var $title   = $('#srModalTitle');
+    var $lead    = $('#srModalLead');
+    var $list    = $('#srModalList');
+    var $note    = $('#srModalNote');
+    var $actions = $('#srModalActions');
 
-        _showOverlay('Opening payment gateway', 'Step 1 of 2 — Redirecting to Razorpay');
+    $list.empty();
+    $actions.empty();
+    $note.prop('hidden', true);
 
-        var options = {
-            key         : data.key_id,
-            amount      : data.amount,
-            currency    : data.currency || 'INR',
-            name        : data.name,
-            description : data.description,
-            order_id    : data.order_id,
-            prefill     : data.prefill || {},
-            theme       : { color: '#a78bfa' },
-            handler     : function(response) {
-                /* Payment captured — show confirmation stage */
-                _showOverlay('Confirming your payment', 'Step 2 of 2 — Activating subscription');
-                handlePaymentSuccess(sectorPlanUID, response);
+    if (type === 'downgrade') {
+        /* ── Downgrade modal ───────────────────────────── */
+        $hero.attr('class', 'sr-modal-hero sr-modal-hero--warn').html('<i class="bx bx-error-alt"></i>');
+        $title.text('Downgrading Your Plan');
+        $lead.text('You are switching to a plan with lower limits. Some features and data may become restricted.');
+
+        var items = [
+            {
+                icon : 'bx bx-store',
+                label: 'Branches',
+                from : _fmtLimit(_currentMaxBranches),
+                to   : _fmtLimit(newBranches),
+                note : 'Extra branches may become inaccessible.'
             },
-            modal: {
-                onopen: function() {
-                    /* Razorpay modal is now visible — hide our overlay */
-                    _hideOverlay();
-                },
-                ondismiss: function() {
-                    _hideOverlay();
-                    document.querySelectorAll('.sr-pay-btn').forEach(function(b) { b.disabled = false; });
-                }
+            {
+                icon : 'bx bx-user',
+                label: 'Users',
+                from : _fmtLimit(_currentMaxUsers),
+                to   : _fmtLimit(newUsers),
+                note : 'Extra team members may lose access.'
+            },
+            {
+                icon : 'bx bx-calendar-check',
+                label: 'Duration',
+                from : _currentDurationDays + ' days',
+                to   : newDuration + ' days',
+                note : ''
+            },
+            {
+                icon : 'bx bx-lock-open',
+                label: 'Modules',
+                from : null,
+                to   : null,
+                note : 'Some features on your current plan may be disabled.'
             }
-        };
-        var rzp = new Razorpay(options);
-        rzp.open();
-    })
-    .catch(function() {
-        _hideOverlay();
-        document.querySelectorAll('.sr-pay-btn').forEach(function(b) { b.disabled = false; });
-        alert('Connection failed. Please try again.');
+        ];
+
+        $.each(items, function(_, item) {
+            var arrowHtml = item.from !== null
+                ? '<b>' + item.from + '</b><span class="sr-ml-arrow">→</span><b>' + item.to + '</b>'
+                : '';
+            var noteHtml = item.note ? ' <span style="color:rgba(148,163,184,0.55)">' + item.note + '</span>' : '';
+            $list.append(
+                '<li>' +
+                    '<i class="sr-ml-icon ' + item.icon + '"></i>' +
+                    '<span class="sr-ml-text">' +
+                        '<b>' + item.label + ':</b> ' + arrowHtml + noteHtml +
+                    '</span>' +
+                '</li>'
+            );
+        });
+
+        $note.text('No data is permanently deleted — access is restored if you upgrade again.').prop('hidden', false);
+
+        $actions.attr('class', 'sr-modal-actions');
+        $actions.append(
+            $('<button class="sr-modal-btn-close" id="srModalBtnClose">Close</button>'),
+            $('<button class="sr-modal-btn-proceed" id="srModalBtnProceed">Continue to Checkout →</button>')
+        );
+
+    } else {
+        /* ── Upgrade modal (also covers free→paid first-time renewal) ── */
+        $hero.attr('class', 'sr-modal-hero sr-modal-hero--up').html('<i class="bx bx-rocket"></i>');
+        $title.text('Upgrading to ' + planName);
+        $lead.text('Great choice! Here\'s what you\'ll get with your new plan:');
+
+        var gainItems = [
+            { icon: 'bx bx-store',          text: 'Up to <b>' + _fmtLimit(newBranches) + '</b> branches' },
+            { icon: 'bx bx-user',            text: 'Up to <b>' + _fmtLimit(newUsers)   + '</b> users' },
+            { icon: 'bx bx-calendar-check',  text: '<b>' + newDuration + ' days</b> of access' },
+            { icon: 'bx bx-check-shield',    text: 'All modules unlocked for this plan' }
+        ];
+
+        $.each(gainItems, function(_, item) {
+            $list.append(
+                '<li>' +
+                    '<i class="sr-ml-icon ' + item.icon + '" style="color:#a78bfa"></i>' +
+                    '<span class="sr-ml-text">' + item.text + '</span>' +
+                '</li>'
+            );
+        });
+
+        $actions.attr('class', 'sr-modal-actions sr-modal-actions--single');
+        $actions.append(
+            $('<button class="sr-modal-btn-proceed" id="srModalBtnProceed">Continue to Checkout →</button>'),
+            $('<p class="sr-modal-esc-hint">Press Esc to cancel</p>')
+        );
+    }
+
+    $('#srPlanModal').prop('hidden', false);
+}
+
+/**
+ * POST to prepareCheckout, then redirect to billing/checkout.
+ * @param {number} sectorPlanUID
+ * @param {jQuery} $btn  — the clicked button, disabled during request
+ * @returns {void}
+ */
+function prepareCheckout(sectorPlanUID, $btn) {
+    _closeModal();
+    $btn.prop('disabled', true);
+    _showOverlay('Preparing checkout', 'Loading confirmation page…');
+
+    var data = { sid: _sid, sector_plan_uid: sectorPlanUID };
+    var csrfInput = $('input[name^="csrf"]');
+    if (csrfInput.length) data[csrfInput.attr('name')] = csrfInput.val();
+
+    ajaxLoading(0);
+    $.ajax({
+        url     : '<?php echo base_url('subscription/renew/prepareCheckout'); ?>',
+        method  : 'POST',
+        data    : data,
+        dataType: 'json',
+        success : function(res) {
+            if (res.Error) {
+                _hideOverlay();
+                $btn.prop('disabled', false);
+                showToastNotification(res.Message || 'Could not prepare checkout. Please try again.', 'error');
+                return;
+            }
+            window.location.href = res.Redirect;
+        },
+        error: function(xhr, status) {
+            _hideOverlay();
+            $btn.prop('disabled', false);
+            showToastNotification('Connection failed (' + status + '). Please try again.', 'error');
+        },
+        complete: function() { ajaxLoading(1); }
     });
 }
 
-/* ── Session countdown ───────────────────────────────────── */
-(function () {
-    var _totalSecs = <?php echo (int)($remainingSecs ?? 1800); ?>;
-    var _remaining = _totalSecs;
-    var _bar       = document.getElementById('srCountdownBar');
-    var _valEl     = document.getElementById('srCountdownVal');
-    var _expired   = '<?php echo base_url('subscription/renew'); ?>';
+$(function() {
+    switchCycle(_defaultCycle);
 
-    function _fmt(s) {
-        var m = Math.floor(s / 60);
-        var sec = s % 60;
-        return String(m).padStart(2, '0') + ':' + String(sec).padStart(2, '0');
-    }
-
-    function _tick() {
-        if (_remaining <= 0) {
-            window.location.href = _expired;
-            return;
+    /* Plan button → show confirmation modal (or go direct if same plan) */
+    $(document).on('click', '.sr-pay-btn', function() {
+        var type = $(this).data('upgrade-type');
+        if (type === 'renew') {
+            /* Same plan renew — skip modal */
+            prepareCheckout(parseInt($(this).data('plan-uid'), 10), $(this));
+        } else {
+            showPlanModal($(this));
         }
-        _remaining--;
-        if (_valEl) _valEl.textContent = _fmt(_remaining);
-        if (_remaining <= 300 && _bar) _bar.classList.add('sr-cd-warn');
-        if (_remaining > 300 && _bar)  _bar.classList.remove('sr-cd-warn');
-    }
-
-    if (_valEl) _valEl.textContent = _fmt(_remaining);
-    setInterval(_tick, 1000);
-}());
-
-function handlePaymentSuccess(sectorPlanUID, rpResponse) {
-    var body = 'sid=' + encodeURIComponent(_sid)
-             + '&sector_plan_uid=' + sectorPlanUID
-             + '&razorpay_order_id='   + encodeURIComponent(rpResponse.razorpay_order_id)
-             + '&razorpay_payment_id=' + encodeURIComponent(rpResponse.razorpay_payment_id)
-             + '&razorpay_signature='  + encodeURIComponent(rpResponse.razorpay_signature);
-
-    var csrfInput = document.querySelector('input[name^="csrf"]');
-    if (csrfInput) body += '&' + encodeURIComponent(csrfInput.name) + '=' + encodeURIComponent(csrfInput.value);
-
-    fetch('<?php echo base_url('subscription/renew/confirmPayment'); ?>', {
-        method : 'POST',
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body   : body,
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        _hideOverlay();
-        if (data.Error) {
-            alert('Payment received but activation failed: ' + data.Message + '\nPlease contact support with your payment ID: ' + rpResponse.razorpay_payment_id);
-            return;
-        }
-        document.getElementById('srSuccessOverlay').classList.add('show');
-    })
-    .catch(function() {
-        _hideOverlay();
-        alert('Payment received but confirmation failed. Please contact support with your payment ID: ' + rpResponse.razorpay_payment_id);
     });
-}
+
+    /* Modal: proceed button */
+    $(document).on('click', '#srModalBtnProceed', function() {
+        if (_pendingPlanUID && _pendingBtn) {
+            prepareCheckout(_pendingPlanUID, _pendingBtn);
+        }
+    });
+
+    /* Modal: close button (downgrade modal only) */
+    $(document).on('click', '#srModalBtnClose', function() {
+        _closeModal();
+    });
+
+    /* Modal: close on overlay backdrop click */
+    $(document).on('click', '#srPlanModal', function(e) {
+        if ($(e.target).is('#srPlanModal')) _closeModal();
+    });
+
+    /* ESC closes the modal */
+    $(document).on('keydown', function(e) {
+        if (e.key === 'Escape' && !$('#srPlanModal').prop('hidden')) {
+            _closeModal();
+        }
+    });
+});
+
+/* ── Back to Login — delete renewal token then redirect to logout ───── */
+$('#srBackBtn').on('click', function() {
+    $(this).prop('disabled', true);
+
+    $('#srOverlayMsg').text('Logging out');
+    $('#srOverlayStage').text('Please wait…');
+    $('#srPayOverlay .sr-pay-overlay-sub').text('You will be redirected to the login page');
+    $('#srPayOverlay').addClass('show');
+
+    var data = { sid: '<?php echo htmlspecialchars($sid ?? '', ENT_QUOTES); ?>' };
+    var csrfInput = $('input[name^="csrf"]');
+    if (csrfInput.length) data[csrfInput.attr('name')] = csrfInput.val();
+
+    ajaxLoading(0);
+    $.ajax({
+        url   : '<?php echo base_url('subscription/renew/cancelToken'); ?>',
+        method: 'POST',
+        data  : data,
+    }).always(function() {
+        window.location.href = '<?php echo base_url('logout'); ?>';
+    });
+});
 </script>

@@ -313,20 +313,20 @@ function collectItems() {
  */
 function savePL() {
     var $btn = $('#btnSave');
-    $btn.prop('disabled', true).rtml('<i class="bx bx-loader-alt bx-spin me-1"></i>Saving…');
+    $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Saving…');
 
     var fd = new FormData();
-    fd.append('TransUID',        document.getElementById('rdnTransUID').value);
-    fd.append('PLUID',           document.getElementById('rdnPLUID').value);
-    fd.append('PLDate',          document.getElementById('fPLDate').value);
-    fd.append('VericleNumber',   document.getElementById('fVericleNumber').value.trim());
-    fd.append('LRNumber',        document.getElementById('fLRNumber').value.trim());
-    fd.append('TransporterName', document.getElementById('fTransporterName').value.trim());
-    fd.append('Notes',           document.getElementById('fNotes').value.trim());
+    fd.append('TransUID',        $('#rdnTransUID').val());
+    fd.append('PLUID',           $('#rdnPLUID').val());
+    fd.append('PLDate',          $('#fPLDate').val());
+    fd.append('VericleNumber',   $.trim($('#fVericleNumber').val()));
+    fd.append('LRNumber',        $.trim($('#fLRNumber').val()));
+    fd.append('TransporterName', $.trim($('#fTransporterName').val()));
+    fd.append('Notes',           $.trim($('#fNotes').val()));
     fd.append('items',           JSON.stringify(collectItems()));
-    fd.append(document.getElementById('rdnCsrfName').value,
-              document.getElementById('rdnCsrfToken').value);
+    fd.append($('#rdnCsrfName').val(), $('#rdnCsrfToken').val());
 
+    ajaxLoading(0);
     $.ajax({
         url         : '/packing-list/save',
         type        : 'POST',
@@ -334,22 +334,23 @@ function savePL() {
         processData : false,
         contentType : false,
         success: function (resp) {
-            $btn.prop('disabled', false).rtml('<i class="bx bx-creck me-1"></i>Save');
-            if (resp.csrf_token_name && resp.csrf_rasr) {
-                document.getElementById('rdnCsrfName').value  = resp.csrf_token_name;
-                document.getElementById('rdnCsrfToken').value = resp.csrf_rasr;
+            $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i>Save');
+            if (resp.csrf_token_name && resp.csrf_hash) {
+                $('#rdnCsrfName').val(resp.csrf_token_name);
+                $('#rdnCsrfToken').val(resp.csrf_hash);
             }
-            if (resp.Error) { srowToastNotification(resp.Message, 'error'); return; }
-            document.getElementById('rdnPLUID').value = resp.PLUID;
-            srowToastNotification(resp.Message, 'success');
-            if (document.getElementById('rdnPLUID').value > 0) {
+            if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
+            $('#rdnPLUID').val(resp.PLUID);
+            showToastNotification(resp.Message, 'success');
+            if ($('#rdnPLUID').val() > 0) {
                 setTimeout(function () { location.reload(); }, 800);
             }
         },
         error: function () {
-            $btn.prop('disabled', false).rtml('<i class="bx bx-creck me-1"></i>Save');
-            srowToastNotification('Network error. Please try again.', 'error');
-        }
+            $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i>Save');
+            showToastNotification('Network error. Please try again.', 'error');
+        },
+        complete: function() { ajaxLoading(1); }
     });
 }
 

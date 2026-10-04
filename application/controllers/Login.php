@@ -215,22 +215,14 @@ class Login extends CI_Controller {
                         $this->load->library('subscription');
                         $subscriptionCheck = $this->subscription->checkSubscription($UserData->Data[0]->UserUID);
                         
-                        // Log login attempt with subscription status
+                        // Log login attempt — expired orgs are still allowed in so they can renew
                         $this->subscription->logLoginAttempt(
                             $UserData->Data[0]->UserUID,
                             $PostData['UserName'],
-                            $subscriptionCheck->isValid ? 'Success' : 'Blocked_Expired',
+                            'Success',
                             $subscriptionCheck->status,
-                            $subscriptionCheck->isValid ? null : $subscriptionCheck->message
+                            null
                         );
-
-                        // Block login if subscription is invalid
-                        if (!$subscriptionCheck->isValid) {
-                            $this->session->set_flashdata('subscription_expired', true);
-                            $this->session->set_flashdata('subscription_message', $subscriptionCheck->message);
-                            $this->session->set_flashdata('subscription_status', $subscriptionCheck->status);
-                            throw new Exception($subscriptionCheck->message);
-                        }
 
                         $this->load->model('login_model');
                         $jwtPayload = $this->login_model->formatJWTPayload($UserData->Data[0]);
@@ -283,8 +275,24 @@ class Login extends CI_Controller {
                                 // Redirect based on subscription state
                                 $intendedUrl = $this->session->userdata('intended_url');
                                 $this->session->unset_userdata('intended_url');
+                                /* Never bounce a non-PendingPayment user back to subscribe/signuppayment
+                                   — that URL was stored when an old expired-redirect hit signuppayment
+                                   and would create an infinite loop for grace-period users. */
+                                $_paymentPages = ['subscribe', 'signuppayment'];
+                                if (!empty($intendedUrl) && in_array(explode('/', $intendedUrl)[0], $_paymentPages) && $subscriptionCheck->status !== 'PendingPayment') {
+                                    $intendedUrl = '';
+                                }
                                 if ($subscriptionCheck->status === 'PendingPayment') {
                                     redirect('subscribe', 'refresh');
+                                } elseif (!$subscriptionCheck->isValid) {
+                                    /* Expired past grace — generate renewal token and send to renew page */
+                                    $rToken = bin2hex(random_bytes(16));
+                                    $this->redisservice->setCache(
+                                        $this->redisservice->envKey('rnt_' . $rToken),
+                                        ['orgUID' => (int)$UserData->Data[0]->UserOrgUID, 'createdAt' => time()],
+                                        604800
+                                    );
+                                    redirect('subscription/renew?sid=' . $rToken, 'refresh');
                                 } elseif (!empty($intendedUrl)) {
                                     redirect($intendedUrl, 'refresh');
                                 } else {
@@ -311,7 +319,10 @@ class Login extends CI_Controller {
                             $this->logLoginFailure($PostData['UserName'], 'Account locked - too many attempts');
                         }
 
-                        $this->session->set_flashdata('danger', 'Oops! Invalid username or password.');
+                        $this->session->set_flashdata('danger', $isTwoStep
+                            ? 'Incorrect password. Please try again.'
+                            : 'Oops! Invalid username or password.'
+                        );
                     }
 
                 } else {
@@ -1037,44 +1048,6 @@ class Login extends CI_Controller {
                     ->set_output(json_encode($this->EndReturnData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES))
                     ->_display();
                 exit;
-            }
-
-            // Check subscription before allowing Step 2
-            $this->load->library('subscription');
-            $subscriptionCheck = $this->subscription->checkSubscription($user->UserUID);
-            if (!$subscriptionCheck->isValid) {
-                // Generate a short-lived renewal token so the renew page can identify the org
-                $rToken = bin2hex(random_bytes(16));
-                $this->redisservice->setCache($this->redisservice->envKey('rnt_' . $rToken), ['orgUID' => (int)$user->OrgUID, 'createdAt' => time()], 1800);
-
-                // Fetch plan + end date for the modal display
-                $subDb     = $this->load->database('ReadDB', TRUE);
-                $subDb->db_debug = FALSE;
-                $subDetail = $subDb->select('OS.EndDate, COALESCE(SP.PlanName, \'Trial\') AS PlanName, O.Name AS OrgName')
-                    ->from('Billing.OrgSubscriptionTbl AS OS')
-                    ->join('Organisation.OrganisationTbl AS O',  'O.OrgUID  = OS.OrgUID',             'left')
-                    ->join('Billing.SectorPlanTbl AS SPT',       'SPT.SectorPlanUID = OS.SectorPlanUID', 'left')
-                    ->join('Billing.SubscriptionPlansTbl AS SP', 'SP.PlanUID = SPT.PlanUID',             'left')
-                    ->where('OS.OrgUID', (int)$user->OrgUID)
-                    ->where_not_in('OS.Status', ['Cancelled'])
-                    ->order_by('OS.StartDate', 'DESC')
-                    ->limit(1)
-                    ->get()->row();
-
-                $this->EndReturnData->SubscriptionExpired = true;
-                $this->EndReturnData->accessRef           = $rToken;
-                $this->EndReturnData->subPlanName         = $subDetail ? ($subDetail->PlanName ?: 'Trial') : '';
-                $this->EndReturnData->subEndDate          = $subDetail ? ($subDetail->EndDate  ?: '')      : '';
-                $this->EndReturnData->subOrgName          = $subDetail ? ($subDetail->OrgName  ?: '')      : '';
-
-                Telegramnotifier::alert('[LOGIN-STEP1] validateUsername BLOCKED at subscription check', [
-                    'UserUID'   => $user->UserUID,
-                    'UserName'  => $username,
-                    'isValid'   => 'FALSE',
-                    'status'    => $subscriptionCheck->status,
-                    'message'   => $subscriptionCheck->message,
-                ]);
-                throw new Exception($subscriptionCheck->message);
             }
 
             // Store confirmed identity for Step 2 — expires in 5 minutes

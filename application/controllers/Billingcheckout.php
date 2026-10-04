@@ -360,16 +360,31 @@ class Billingcheckout extends CI_Controller {
                 );
             }
 
-            /* Update JWT cache */
+            /* Update JWT cache — must update EndDate too; Middleware gates on EndDate,
+               not just Status, so a stale past EndDate keeps $isExpired true. */
+            $loginExpiry = (int)getenv('LOGIN_EXPIRE_SECS') ?: 86400;
             $cached = $this->redisservice->getCache($jwtKey);
             if (!$cached->Error && $cached->Value !== null) {
                 $sessionData = $cached->Value;
                 if (isset($sessionData->Subscription)) {
                     $sessionData->Subscription->Status        = 'Active';
                     $sessionData->Subscription->SectorPlanUID = $sectorPlanUID;
+                    $sessionData->Subscription->EndDate       = $endDate;
                 }
-                $loginExpiry = (int)getenv('LOGIN_EXPIRE_SECS') ?: 86400;
                 $this->redisservice->setCache($jwtKey, $sessionData, $loginExpiry);
+
+                /* Re-issue JWT cookie with a fresh TTL — same Redis key, new exp.
+                   Keeps the session alive for a full LOGIN_EXPIRE_SECS from now
+                   regardless of how long the checkout flow took. */
+                $freshJwt = [
+                    'key' => $jwtKey,
+                    'iss' => getenv('HTTP_HOST'),
+                    'iat' => time(),
+                    'nbf' => time(),
+                    'exp' => time() + $loginExpiry,
+                ];
+                $newToken = \Firebase\JWT\JWT::encode($freshJwt, getenv('JWT_KEY'), 'HS256');
+                set_cookie(getenv('JWT_COOKIE_NAME'), $newToken, $loginExpiry);
             }
 
             /* Refresh Redis menu/submenu cache so sidebar reflects the purchased plan immediately.

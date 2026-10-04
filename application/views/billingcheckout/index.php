@@ -260,38 +260,31 @@ $_backUrl   = htmlspecialchars($backUrl ?? '/subscribe', ENT_QUOTES, 'UTF-8');
     var _sectorPlanUID = <?php echo (int)$_planUID; ?>;
     var _payToken      = '<?php echo htmlspecialchars($token ?? '', ENT_QUOTES, 'UTF-8'); ?>';
 
-    document.querySelectorAll('.spay-abandon-link').forEach(function (el) {
-        el.addEventListener('click', function (e) {
-            e.preventDefault();
-            if (el.classList.contains('spay-link-disabled')) return;
-            showUIBlock('Redirecting…');
-            window.location.href = el.getAttribute('href');
-        });
+    $(document).on('click', '.spay-abandon-link', function (e) {
+        e.preventDefault();
+        if ($(this).hasClass('spay-link-disabled')) return;
+        showUIBlock('Redirecting…');
+        window.location.href = $(this).attr('href');
     });
 
     /** @param {string} msg @returns {void} */
     function spayShowAlert(msg) {
-        document.getElementById('spayAlertText').textContent = msg;
-        document.getElementById('spayAlert').classList.add('show');
+        $('#spayAlertText').text(msg);
+        $('#spayAlert').addClass('show');
     }
+
+    /** @returns {void} */
     function spayHideAlert() {
-        document.getElementById('spayAlert').classList.remove('show');
+        $('#spayAlert').removeClass('show');
     }
 
     /** @param {boolean} loading @returns {void} */
     function spaySetLoading(loading) {
-        var btn     = document.getElementById('spayPayBtn');
-        var label   = document.getElementById('spayPayLabel');
-        var spinner = document.getElementById('spayPaySpinner');
-        var icon    = document.getElementById('spayPayIcon');
-        btn.disabled          = loading;
-        label.style.display   = loading ? 'none' : '';
-        icon.style.display    = loading ? 'none' : '';
-        spinner.style.display = loading ? '' : 'none';
-
-        document.querySelectorAll('.spay-change-link, .spay-logout-link').forEach(function (el) {
-            el.classList.toggle('spay-link-disabled', loading);
-        });
+        $('#spayPayBtn').prop('disabled', loading);
+        $('#spayPayLabel').toggle(!loading);
+        $('#spayPayIcon').toggle(!loading);
+        $('#spayPaySpinner').toggle(loading);
+        $('.spay-change-link, .spay-logout-link').toggleClass('spay-link-disabled', loading);
     }
 
     /** @returns {void} */
@@ -299,56 +292,60 @@ $_backUrl   = htmlspecialchars($backUrl ?? '/subscribe', ENT_QUOTES, 'UTF-8');
         spayHideAlert();
         spaySetLoading(true);
         showUIBlock('Preparing your payment…');
+        ajaxLoading(0);
+        $.ajax({
+            url:      '<?= site_url("billing/checkout/createOrder") ?>',
+            method:   'POST',
+            dataType: 'json',
+            data:     { sector_plan_uid: _sectorPlanUID },
+            success:  function (data) {
+                if (data.Error) {
+                    spaySetLoading(false);
+                    hideUIBlock();
+                    spayShowAlert(data.Message || 'Unable to initiate payment. Please try again.');
+                    return;
+                }
 
-        fetch('/billing/checkout/createOrder', {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body:    'sector_plan_uid=' + encodeURIComponent(_sectorPlanUID),
-        })
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
-            if (data.Error) {
+                /* Hide overlay so Razorpay modal is visible */
+                hideUIBlock();
+
+                var options = {
+                    key:         data.key_id,
+                    amount:      data.amount,
+                    currency:    data.currency || 'INR',
+                    name:        data.name,
+                    description: data.description,
+                    order_id:    data.order_id,
+                    prefill:     data.prefill || {},
+                    theme:       { color: '#696cff' },
+                    modal: {
+                        ondismiss: function () {
+                            spaySetLoading(false);
+                            spayShowAlert('Payment was cancelled. Click Confirm & Pay to try again.');
+                        }
+                    },
+                    handler: function (response) {
+                        showUIBlock('Verifying your payment…');
+                        _spayVerifyPayment(response, data.order_id);
+                    }
+                };
+
+                var rzp = new Razorpay(options);
+                rzp.on('payment.failed', function (resp) {
+                    spaySetLoading(false);
+                    spayShowAlert(resp.error.description || 'Payment failed. Please try again.');
+                });
+                rzp.open();
+            },
+            error: function (jqXHR) {
                 spaySetLoading(false);
                 hideUIBlock();
-                spayShowAlert(data.Message || 'Unable to initiate payment. Please try again.');
-                return;
-            }
-
-            /* Hide overlay so Razorpay modal is visible */
-            hideUIBlock();
-
-            var options = {
-                key:         data.key_id,
-                amount:      data.amount,
-                currency:    data.currency || 'INR',
-                name:        data.name,
-                description: data.description,
-                order_id:    data.order_id,
-                prefill:     data.prefill || {},
-                theme:       { color: '#696cff' },
-                modal: {
-                    ondismiss: function () {
-                        spaySetLoading(false);
-                        spayShowAlert('Payment was cancelled. Click Confirm & Pay to try again.');
-                    }
-                },
-                handler: function (response) {
-                    showUIBlock('Verifying your payment…');
-                    _spayVerifyPayment(response, data.order_id);
-                }
-            };
-
-            var rzp = new Razorpay(options);
-            rzp.on('payment.failed', function (resp) {
-                spaySetLoading(false);
-                spayShowAlert(resp.error.description || 'Payment failed. Please try again.');
-            });
-            rzp.open();
-        })
-        .catch(function () {
-            spaySetLoading(false);
-            hideUIBlock();
-            spayShowAlert('A network error occurred. Please check your connection and try again.');
+                var msg = (jqXHR.responseJSON && jqXHR.responseJSON.Message)
+                    ? jqXHR.responseJSON.Message
+                    : 'A network error occurred. Please check your connection and try again.';
+                spayShowAlert(msg);
+            },
+            complete: function() { ajaxLoading(1); }
         });
     };
 
@@ -358,34 +355,37 @@ $_backUrl   = htmlspecialchars($backUrl ?? '/subscribe', ENT_QUOTES, 'UTF-8');
      * @returns {void}
      */
     function _spayVerifyPayment(response, orderId) {
-        var body = new URLSearchParams({
-            sector_plan_uid:     _sectorPlanUID,
-            token:               _payToken,
-            razorpay_order_id:   orderId,
-            razorpay_payment_id: response.razorpay_payment_id,
-            razorpay_signature:  response.razorpay_signature,
-        });
-
-        fetch('/billing/checkout/confirmPayment', {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body:    body.toString(),
-        })
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
-            spaySetLoading(false);
-            if (data.Error) {
+        ajaxLoading(0);
+        $.ajax({
+            url:      '<?= site_url("billing/checkout/confirmPayment") ?>',
+            method:   'POST',
+            dataType: 'json',
+            data: {
+                sector_plan_uid:     _sectorPlanUID,
+                token:               _payToken,
+                razorpay_order_id:   orderId,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature:  response.razorpay_signature
+            },
+            success: function (data) {
+                spaySetLoading(false);
+                if (data.Error) {
+                    hideUIBlock();
+                    spayShowAlert(data.Message || 'Payment verification failed. Please contact support.');
+                    return;
+                }
+                showUIBlock('All done! Redirecting you to your workspace…');
+                window.location.href = data.Redirect || '<?= site_url("dashboard") ?>';
+            },
+            error: function (jqXHR) {
+                spaySetLoading(false);
                 hideUIBlock();
-                spayShowAlert(data.Message || 'Payment verification failed. Please contact support.');
-                return;
-            }
-            showUIBlock('All done! Redirecting you to your workspace…');
-            window.location.href = data.Redirect || '/dashboard';
-        })
-        .catch(function () {
-            spaySetLoading(false);
-            hideUIBlock();
-            spayShowAlert('Verification failed. Contact support with payment ID: ' + (response.razorpay_payment_id || ''));
+                var msg = (jqXHR.responseJSON && jqXHR.responseJSON.Message)
+                    ? jqXHR.responseJSON.Message
+                    : 'Verification failed. Contact support with payment ID: ' + (response.razorpay_payment_id || '');
+                spayShowAlert(msg);
+            },
+            complete: function() { ajaxLoading(1); }
         });
     }
 }());

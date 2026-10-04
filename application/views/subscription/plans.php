@@ -1225,405 +1225,453 @@ let _pcmOption = null;   /* selected top-level option key e.g. 'OptionUA' */
 let _pcmSubOpt = null;   /* 'DA' or 'DB' for immediate downgrade */
 let _pcmSectorPlanUID = 0;
 
+/**
+ * Open the plan change modal for the given sector plan.
+ * @param {number} sectorPlanUID
+ * @param {string} changeType  'Upgrade' | 'Downgrade'
+ * @returns {void}
+ */
 function splOpenChangePlan(sectorPlanUID, changeType) {
-    _pcmData           = null;
-    _pcmOption         = null;
-    _pcmSubOpt         = null;
-    _pcmSectorPlanUID  = sectorPlanUID;
+    _pcmData          = null;
+    _pcmOption        = null;
+    _pcmSubOpt        = null;
+    _pcmSectorPlanUID = sectorPlanUID;
 
-    /* Reset all modal sections so modal opens clean when data arrives */
-    document.getElementById('pcm-loading').hidden          = true;
-    document.getElementById('pcm-locked').hidden           = true;
-    document.getElementById('pcm-error').hidden            = true;
-    document.getElementById('pcm-scheduled-notice').hidden = true;
-    document.getElementById('pcm-modules').hidden          = true;
-    document.getElementById('pcm-options').hidden          = true;
-    document.getElementById('pcm-detail').hidden           = true;
-    document.getElementById('pcm-confirm-btn').hidden      = true;
+    /* Reset all modal sections */
+    $('#pcm-loading, #pcm-locked, #pcm-error, #pcm-scheduled-notice, #pcm-modules, #pcm-options, #pcm-detail, #pcm-confirm-btn').prop('hidden', true);
 
-    const badge = document.getElementById('pcm-change-badge');
-    badge.textContent          = changeType;
-    badge.style.background     = changeType === 'Upgrade' ? '#696cff' : '#f97316';
-    badge.style.color          = '#fff';
+    $('#pcm-change-badge').text(changeType).css({
+        'background': changeType === 'Upgrade' ? '#696cff' : '#f97316',
+        'color': '#fff'
+    });
 
-    /* Show gradient overlay while fetching — modal stays closed */
     pcmShowOverlay('Loading plan details…');
-
-    fetch('/subscription/getPlanChangeOptions', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest'},
-        body: 'sector_plan_uid=' + sectorPlanUID
-    })
-    .then(r => r.json())
-    .then(data => {
-        pcmHandleResponse(data);          /* populate modal content */
-        pcmHideOverlay();                 /* hide overlay */
-        /* Open modal only now — fully populated, no spinner needed */
-        new bootstrap.Modal(document.getElementById('planChangeModal')).show();
-    })
-    .catch(() => {
-        pcmHideOverlay();
-        alert('Failed to load plan options. Please check your connection and try again.');
+    ajaxLoading(0);
+    $.ajax({
+        url: '/subscription/getPlanChangeOptions',
+        type: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        contentType: 'application/x-www-form-urlencoded',
+        data: { sector_plan_uid: sectorPlanUID },
+        dataType: 'json',
+        success: function(data) {
+            pcmHandleResponse(data);
+            pcmHideOverlay();
+            new bootstrap.Modal(document.getElementById('planChangeModal')).show();
+        },
+        error: function() {
+            pcmHideOverlay();
+            showToastNotification('Failed to load plan options. Please check your connection and try again.', 'error');
+        },
+        complete: function() { ajaxLoading(1); }
     });
 }
 
+/**
+ * Populate modal from server response object.
+ * @param {Object} data
+ * @returns {void}
+ */
 function pcmHandleResponse(data) {
     if (data.Status === 'LOCKED') {
-        /* Show modal so the lock message is visible */
-        document.getElementById('pcm-locked').hidden  = false;
-        document.getElementById('pcm-locked-msg').textContent =
+        $('#pcm-locked').prop('hidden', false);
+        $('#pcm-locked-msg').text(
             'A plan change was made recently. You can make the next change after ' +
             pcmFmtDate(data.UnlocksAt) + ' (' + data.DaysRemaining + ' day(s) remaining). ' +
-            'This restriction exists because a GST invoice was already issued.';
+            'This restriction exists because a GST invoice was already issued.'
+        );
         return;
     }
     if (data.Status !== 'OK') {
-        /* Show modal with error message */
-        document.getElementById('pcm-error').hidden  = false;
-        document.getElementById('pcm-error-msg').textContent = data.Message || 'Something went wrong. Please try again.';
+        $('#pcm-error').prop('hidden', false);
+        $('#pcm-error-msg').text(data.Message || 'Something went wrong. Please try again.');
         return;
     }
 
     _pcmData = data;
-    const d  = data.Details;
+    var d = data.Details;
 
-    /* Plan names */
-    document.getElementById('pcm-from-name').textContent = d.CurrentPlan?.PlanName || '—';
-    document.getElementById('pcm-to-name').textContent   = d.NewPlan?.PlanName     || '—';
+    $('#pcm-from-name').text(d.CurrentPlan?.PlanName || '—');
+    $('#pcm-to-name').text(d.NewPlan?.PlanName || '—');
 
     /* Scheduled notice — only show when it has actual plan/date data */
     if (data.Scheduled && data.Scheduled.NewPlanName && data.Scheduled.ScheduledStartDate) {
-        const sn  = document.getElementById('pcm-scheduled-notice');
-        const sm  = document.getElementById('pcm-scheduled-msg');
-        sm.innerHTML = '<strong>Note:</strong> You already have a scheduled plan change to <strong>' +
+        $('#pcm-scheduled-msg').html(
+            '<strong>Note:</strong> You already have a scheduled plan change to <strong>' +
             pcmEsc(data.Scheduled.NewPlanName) + '</strong> activating on ' +
-            pcmFmtDate(data.Scheduled.ScheduledStartDate) + '. Proceeding will create a new change.';
-        sn.hidden = false;
+            pcmFmtDate(data.Scheduled.ScheduledStartDate) + '. Proceeding will create a new change.'
+        );
+        $('#pcm-scheduled-notice').prop('hidden', false);
     }
 
-    /* Module comparison */
-    const mods = data.Modules;
+    var mods = data.Modules;
     if (mods) {
-        const modWrap = document.getElementById('pcm-modules');
-        modWrap.hidden = false;
+        $('#pcm-modules').prop('hidden', false);
         if (!mods.HasData) {
-            document.getElementById('pcm-modules-empty').hidden = false;
+            $('#pcm-modules-empty').prop('hidden', false);
         } else {
             if (mods.Added && mods.Added.length > 0) {
-                const wrap = document.getElementById('pcm-modules-added');
-                wrap.hidden = false;
-                const list = document.getElementById('pcm-modules-added-list');
-                list.innerHTML = mods.Added.map(m =>
-                    '<span class="pcm-module-pill pcm-module-added">' + pcmEsc(m.DisplayName || m.ModuleUID) + '</span>'
-                ).join('');
+                $('#pcm-modules-added').prop('hidden', false);
+                $('#pcm-modules-added-list').html(mods.Added.map(function(m) {
+                    return '<span class="pcm-module-pill pcm-module-added">' + pcmEsc(m.DisplayName || m.ModuleUID) + '</span>';
+                }).join(''));
             }
             if (mods.Removed && mods.Removed.length > 0) {
-                const wrap = document.getElementById('pcm-modules-removed');
-                wrap.hidden = false;
-                const list = document.getElementById('pcm-modules-removed-list');
-                list.innerHTML = mods.Removed.map(m =>
-                    '<span class="pcm-module-pill pcm-module-removed">' + pcmEsc(m.DisplayName || m.ModuleUID) + '</span>'
-                ).join('');
-                /* Warn about immediate removal */
-                list.innerHTML += '<div class="small mt-1" style="color:#b91c1c;"><i class="bx bx-error-circle me-1"></i>These modules lose access immediately on an instant switch.</div>';
+                $('#pcm-modules-removed').prop('hidden', false);
+                $('#pcm-modules-removed-list').html(
+                    mods.Removed.map(function(m) {
+                        return '<span class="pcm-module-pill pcm-module-removed">' + pcmEsc(m.DisplayName || m.ModuleUID) + '</span>';
+                    }).join('') +
+                    '<div class="small mt-1" style="color:#b91c1c;"><i class="bx bx-error-circle me-1"></i>These modules lose access immediately on an instant switch.</div>'
+                );
             }
             if ((!mods.Added || mods.Added.length === 0) && (!mods.Removed || mods.Removed.length === 0)) {
-                document.getElementById('pcm-modules-empty').hidden = false;
+                $('#pcm-modules-empty').prop('hidden', false);
             }
         }
     }
 
-    /* Build option cards */
     pcmBuildOptions(d);
-
-    document.getElementById('pcm-options').hidden  = false;
+    $('#pcm-options').prop('hidden', false);
 
     /* Auto-select the recommended option so the detail panel shows immediately */
-    const defaultOpt = (d.ChangeType === 'Upgrade') ? 'OptionUA' : 'OptionDB';
-    const defaultRadio = document.getElementById('pcm-radio-' + defaultOpt);
-    if (defaultRadio) {
-        defaultRadio.checked = true;
+    var defaultOpt    = (d.ChangeType === 'Upgrade') ? 'OptionUA' : 'OptionDB';
+    var $defaultRadio = $('#pcm-radio-' + defaultOpt);
+    if ($defaultRadio.length) {
+        $defaultRadio.prop('checked', true);
         pcmSelectTop(defaultOpt);
     }
 }
 
+/**
+ * Build option selection cards into the modal list.
+ * @param {Object} d  Details object from server response
+ * @returns {void}
+ */
 function pcmBuildOptions(d) {
-    const list = document.getElementById('pcm-options-list');
-    list.innerHTML = '';
+    var $list = $('#pcm-options-list').empty();
 
     if (d.ChangeType === 'Upgrade') {
-        list.appendChild(pcmMakeCard('OptionUA', '⚡ Upgrade Today',
+        $list.append(pcmMakeCard('OptionUA', '⚡ Upgrade Today',
             'Switch immediately. Remaining ' + d.RemainingDays + ' days credit (₹' + d.RemainingCredit.toFixed(2) + ') deducted from new plan.',
             true, false));
-        list.appendChild(pcmMakeCard('OptionUB', '📅 Upgrade from ' + pcmFmtDate(d.OptionUB.StartDate),
+        $list.append(pcmMakeCard('OptionUB', '📅 Upgrade from ' + pcmFmtDate(d.OptionUB.StartDate),
             'Current plan continues until ' + pcmFmtDate(d.CurrentEndDate) + '. New plan queues up automatically. Pay today.',
             false, false));
     } else {
         /* Immediate downgrade card with two sub-options */
-        const immCard = document.createElement('div');
-        immCard.className = 'pcm-option-card';
-        immCard.id = 'pcm-card-immediate';
-        immCard.innerHTML = `
-            <div class="d-flex align-items-start gap-2">
-                <input type="radio" name="pcm-top-opt" id="pcm-radio-immediate" value="immediate" class="mt-1 flex-shrink-0" onchange="pcmSelectTop('immediate')">
-                <label for="pcm-radio-immediate" class="w-100" style="cursor:pointer;">
-                    <div class="fw-semibold small mb-1">⚡ Switch Today</div>
-                    <div class="small text-muted">Switch immediately. Choose how to apply your ₹${d.RemainingCredit.toFixed(2)} remaining credit:</div>
-                    <div id="pcm-sub-options" class="mt-2">
-                        <div class="pcm-sub-option" id="pcm-sub-DA" onclick="pcmSelectSub('DA',event)">
-                            <div class="d-flex align-items-start gap-2">
-                                <input type="radio" name="pcm-sub-opt" id="pcm-sub-radio-DA" value="DA" class="mt-1 flex-shrink-0">
-                                <label for="pcm-sub-radio-DA" style="cursor:pointer;">
-                                    <div class="fw-semibold small">Pay ₹${(d.OptionDA.TotalAmount).toFixed(2)} · Get ${d.OptionDA.TotalDays} days <span class="badge" style="background:#dcfce7;color:#15803d;font-size:.65rem;">+${d.OptionDA.BonusDays} bonus days</span></div>
-                                    <div class="small text-muted">Pay full plan price. Credit converted to ${d.OptionDA.BonusDays} extra days. Ends ${pcmFmtDate(d.OptionDA.EndDate)}.</div>
-                                </label>
-                            </div>
-                        </div>
-                        <div class="pcm-sub-option" id="pcm-sub-DB" onclick="pcmSelectSub('DB',event)">
-                            <div class="d-flex align-items-start gap-2">
-                                <input type="radio" name="pcm-sub-opt" id="pcm-sub-radio-DB" value="DB" class="mt-1 flex-shrink-0">
-                                <label for="pcm-sub-radio-DB" style="cursor:pointer;">
-                                    <div class="fw-semibold small">Pay ₹${(d.OptionDB.TotalAmount).toFixed(2)} · Standard 30 days <span class="badge" style="background:#dbeafe;color:#1d4ed8;font-size:.65rem;">Recommended</span></div>
-                                    <div class="small text-muted">Credit deducted from plan price. Pay less, get standard period. Ends ${pcmFmtDate(d.OptionDB.EndDate)}.</div>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </label>
-            </div>`;
-        list.appendChild(immCard);
+        var immHtml =
+            '<div class="pcm-option-card" id="pcm-card-immediate">' +
+                '<div class="d-flex align-items-start gap-2">' +
+                    '<input type="radio" name="pcm-top-opt" id="pcm-radio-immediate" value="immediate" class="mt-1 flex-shrink-0" onchange="pcmSelectTop(\'immediate\')">' +
+                    '<label for="pcm-radio-immediate" class="w-100" style="cursor:pointer;">' +
+                        '<div class="fw-semibold small mb-1">⚡ Switch Today</div>' +
+                        '<div class="small text-muted">Switch immediately. Choose how to apply your ₹' + d.RemainingCredit.toFixed(2) + ' remaining credit:</div>' +
+                        '<div id="pcm-sub-options" class="mt-2">' +
+                            '<div class="pcm-sub-option" id="pcm-sub-DA" onclick="pcmSelectSub(\'DA\',event)">' +
+                                '<div class="d-flex align-items-start gap-2">' +
+                                    '<input type="radio" name="pcm-sub-opt" id="pcm-sub-radio-DA" value="DA" class="mt-1 flex-shrink-0">' +
+                                    '<label for="pcm-sub-radio-DA" style="cursor:pointer;">' +
+                                        '<div class="fw-semibold small">Pay ₹' + d.OptionDA.TotalAmount.toFixed(2) + ' · Get ' + d.OptionDA.TotalDays + ' days <span class="badge" style="background:#dcfce7;color:#15803d;font-size:.65rem;">+' + d.OptionDA.BonusDays + ' bonus days</span></div>' +
+                                        '<div class="small text-muted">Pay full plan price. Credit converted to ' + d.OptionDA.BonusDays + ' extra days. Ends ' + pcmFmtDate(d.OptionDA.EndDate) + '.</div>' +
+                                    '</label>' +
+                                '</div>' +
+                            '</div>' +
+                            '<div class="pcm-sub-option" id="pcm-sub-DB" onclick="pcmSelectSub(\'DB\',event)">' +
+                                '<div class="d-flex align-items-start gap-2">' +
+                                    '<input type="radio" name="pcm-sub-opt" id="pcm-sub-radio-DB" value="DB" class="mt-1 flex-shrink-0">' +
+                                    '<label for="pcm-sub-radio-DB" style="cursor:pointer;">' +
+                                        '<div class="fw-semibold small">Pay ₹' + d.OptionDB.TotalAmount.toFixed(2) + ' · Standard 30 days <span class="badge" style="background:#dbeafe;color:#1d4ed8;font-size:.65rem;">Recommended</span></div>' +
+                                        '<div class="small text-muted">Credit deducted from plan price. Pay less, get standard period. Ends ' + pcmFmtDate(d.OptionDB.EndDate) + '.</div>' +
+                                    '</label>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                    '</label>' +
+                '</div>' +
+            '</div>';
+        $list.append($(immHtml));
 
-        list.appendChild(pcmMakeCard('OptionDC', '📅 Switch from ' + pcmFmtDate(d.OptionDC.StartDate),
+        $list.append(pcmMakeCard('OptionDC', '📅 Switch from ' + pcmFmtDate(d.OptionDC.StartDate),
             'Current plan continues until ' + pcmFmtDate(d.CurrentEndDate) + '. Downgrade activates automatically. Pay today.',
             true, false));
     }
 }
 
+/**
+ * Create a single option card jQuery element.
+ * @param {string}  optionKey
+ * @param {string}  title
+ * @param {string}  desc
+ * @param {boolean} recommended
+ * @param {boolean} selected
+ * @returns {jQuery}
+ */
 function pcmMakeCard(optionKey, title, desc, recommended, selected) {
-    const card = document.createElement('div');
-    card.className = 'pcm-option-card' + (selected ? ' selected' : '');
-    card.id = 'pcm-card-' + optionKey;
+    var $card = $('<div>').addClass('pcm-option-card' + (selected ? ' selected' : '')).attr('id', 'pcm-card-' + optionKey);
     if (recommended) {
-        const badge = document.createElement('span');
-        badge.className = 'pcm-recommended-badge';
-        badge.textContent = 'Recommended';
-        card.appendChild(badge);
+        $card.append($('<span>').addClass('pcm-recommended-badge').text('Recommended'));
     }
-    card.innerHTML += `
-        <div class="d-flex align-items-start gap-2">
-            <input type="radio" name="pcm-top-opt" id="pcm-radio-${optionKey}" value="${optionKey}" class="mt-1 flex-shrink-0"
-                onchange="pcmSelectTop('${optionKey}')">
-            <label for="pcm-radio-${optionKey}" style="cursor:pointer;">
-                <div class="fw-semibold small mb-1">${pcmEsc(title)}</div>
-                <div class="small text-muted">${pcmEsc(desc)}</div>
-            </label>
-        </div>`;
-    card.onclick = (e) => {
-        if (!e.target.closest('input')) {
-            document.getElementById('pcm-radio-' + optionKey).click();
+    $card.append(
+        '<div class="d-flex align-items-start gap-2">' +
+        '<input type="radio" name="pcm-top-opt" id="pcm-radio-' + optionKey + '" value="' + optionKey + '" class="mt-1 flex-shrink-0" onchange="pcmSelectTop(\'' + optionKey + '\')">' +
+        '<label for="pcm-radio-' + optionKey + '" style="cursor:pointer;">' +
+        '<div class="fw-semibold small mb-1">' + pcmEsc(title) + '</div>' +
+        '<div class="small text-muted">' + pcmEsc(desc) + '</div>' +
+        '</label></div>'
+    );
+    $card.on('click', function(e) {
+        if (!$(e.target).closest('input').length) {
+            $('#pcm-radio-' + optionKey).trigger('click');
         }
-    };
-    return card;
+    });
+    return $card;
 }
 
+/**
+ * Mark a top-level option as selected and update the detail panel.
+ * @param {string} value  Option key or 'immediate'
+ * @returns {void}
+ */
 function pcmSelectTop(value) {
-    document.querySelectorAll('.pcm-option-card').forEach(c => c.classList.remove('selected'));
-    const card = (value === 'immediate')
-        ? document.getElementById('pcm-card-immediate')
-        : document.getElementById('pcm-card-' + value);
-    if (card) card.classList.add('selected');
+    $('.pcm-option-card').removeClass('selected');
+    var $card = (value === 'immediate') ? $('#pcm-card-immediate') : $('#pcm-card-' + value);
+    $card.addClass('selected');
 
     _pcmOption = value;
     _pcmSubOpt = null;
 
     if (value === 'immediate') {
-        /* Require sub-option selection */
         pcmUpdateDetail(null);
-        document.getElementById('pcm-confirm-btn').hidden = true;
+        $('#pcm-confirm-btn').prop('hidden', true);
     } else {
-        /* value is the full key e.g. 'OptionUA', 'OptionUB', 'OptionDC' */
         pcmUpdateDetail(_pcmData.Details[value]);
-        document.getElementById('pcm-confirm-btn').hidden = false;
+        $('#pcm-confirm-btn').prop('hidden', false);
         pcmSetConfirmLabel(value);
     }
 }
 
+/**
+ * Select an immediate-downgrade sub-option (DA or DB).
+ * @param {string} subOpt  'DA' | 'DB'
+ * @param {Event}  e
+ * @returns {void}
+ */
 function pcmSelectSub(subOpt, e) {
-    e && e.stopPropagation();
-    /* Make sure parent radio is checked */
-    const parentRadio = document.getElementById('pcm-radio-immediate');
-    if (parentRadio) { parentRadio.checked = true; pcmSelectTop('immediate'); }
+    if (e) e.stopPropagation();
+    var $parentRadio = $('#pcm-radio-immediate');
+    if ($parentRadio.length) { $parentRadio.prop('checked', true); pcmSelectTop('immediate'); }
 
-    document.querySelectorAll('.pcm-sub-option').forEach(s => s.classList.remove('selected'));
-    const subCard = document.getElementById('pcm-sub-' + subOpt);
-    if (subCard) subCard.classList.add('selected');
-    const subRadio = document.getElementById('pcm-sub-radio-' + subOpt);
-    if (subRadio) subRadio.checked = true;
+    $('.pcm-sub-option').removeClass('selected');
+    $('#pcm-sub-' + subOpt).addClass('selected');
+    $('#pcm-sub-radio-' + subOpt).prop('checked', true);
 
     _pcmSubOpt = subOpt;
     pcmUpdateDetail(_pcmData.Details['Option' + subOpt]);
-    document.getElementById('pcm-confirm-btn').hidden = false;
+    $('#pcm-confirm-btn').prop('hidden', false);
     pcmSetConfirmLabel(subOpt);
 }
 
+/**
+ * Populate the pricing detail panel for the given option.
+ * @param {Object|null} opt
+ * @returns {void}
+ */
 function pcmUpdateDetail(opt) {
-    const panel = document.getElementById('pcm-detail');
-    if (!opt) { panel.hidden = true; return; }
-    panel.hidden = false;
-
-    document.getElementById('pcm-d-start').textContent   = pcmFmtDate(opt.StartDate);
-    document.getElementById('pcm-d-end').textContent     = pcmFmtDate(opt.EndDate);
-    document.getElementById('pcm-d-days').textContent    = (opt.TotalDays || _pcmData.Details.NewPlan?.DurationDays || 30) + ' days';
-    document.getElementById('pcm-d-credit').textContent  = opt.CreditUsed > 0 ? '₹' + opt.CreditUsed.toFixed(2) : 'None';
-    document.getElementById('pcm-d-base').textContent    = '₹' + opt.BaseAmount.toFixed(2);
-    document.getElementById('pcm-d-taxrate').textContent = opt.TaxRate || 18;
-    document.getElementById('pcm-d-tax').textContent     = '₹' + opt.TaxAmount.toFixed(2);
-    document.getElementById('pcm-d-total').textContent   = '₹' + opt.TotalAmount.toFixed(2);
+    var $panel = $('#pcm-detail');
+    if (!opt) { $panel.prop('hidden', true); return; }
+    $panel.prop('hidden', false);
+    $('#pcm-d-start').text(pcmFmtDate(opt.StartDate));
+    $('#pcm-d-end').text(pcmFmtDate(opt.EndDate));
+    $('#pcm-d-days').text((opt.TotalDays || _pcmData.Details.NewPlan?.DurationDays || 30) + ' days');
+    $('#pcm-d-credit').text(opt.CreditUsed > 0 ? '₹' + opt.CreditUsed.toFixed(2) : 'None');
+    $('#pcm-d-base').text('₹' + opt.BaseAmount.toFixed(2));
+    $('#pcm-d-taxrate').text(opt.TaxRate || 18);
+    $('#pcm-d-tax').text('₹' + opt.TaxAmount.toFixed(2));
+    $('#pcm-d-total').text('₹' + opt.TotalAmount.toFixed(2));
 }
 
+/**
+ * Set the confirm button label for the selected option.
+ * @param {string} optKey
+ * @returns {void}
+ */
 function pcmSetConfirmLabel(optKey) {
-    const labels = {
+    var labels = {
         OptionUA: 'Upgrade Now', OptionUB: 'Schedule Upgrade',
         DA: 'Downgrade Now', DB: 'Downgrade Now', OptionDC: 'Schedule Downgrade'
     };
-    document.getElementById('pcm-confirm-label').textContent = labels[optKey] || 'Confirm';
+    $('#pcm-confirm-label').text(labels[optKey] || 'Confirm');
 }
 
+/**
+ * Initiate payment and confirm plan change.
+ * @returns {void}
+ */
 function pcmConfirm() {
-    const effectiveOpt = (_pcmOption === 'immediate') ? _pcmSubOpt : _pcmOption;
-    if (!effectiveOpt) { alert('Please select an option.'); return; }
+    var effectiveOpt = (_pcmOption === 'immediate') ? _pcmSubOpt : _pcmOption;
+    if (!effectiveOpt) { showToastNotification('Please select an option.', 'error'); return; }
 
-    const optMap = { OptionUA: 'UA', OptionUB: 'UB', DA: 'DA', DB: 'DB', OptionDC: 'DC' };
-    const optionType = optMap[effectiveOpt];
-    if (!optionType) { alert('Please select an option.'); return; }
+    var optMap = { OptionUA: 'UA', OptionUB: 'UB', DA: 'DA', DB: 'DB', OptionDC: 'DC' };
+    var optionType = optMap[effectiveOpt];
+    if (!optionType) { showToastNotification('Please select an option.', 'error'); return; }
 
-    const resolvedOpt = ['DA','DB'].includes(optionType)
+    var resolvedOpt = ['DA','DB'].includes(optionType)
         ? _pcmData.Details['Option' + optionType]
         : _pcmData.Details[effectiveOpt];
 
-    const btn        = document.getElementById('pcm-confirm-btn');
-    const labelText  = document.getElementById('pcm-confirm-label')?.textContent || 'Confirm';
-    btn.disabled     = true;
-
-    /* Show full-screen processing overlay */
+    var $btn = $('#pcm-confirm-btn').prop('disabled', true);
     pcmShowOverlay('Initiating secure payment…');
-
-    /* Step 1: Create Razorpay order */
-    fetch('/subscription/initiatePayment', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest'},
-        body: 'sector_plan_uid=' + _pcmSectorPlanUID + '&option_type=' + encodeURIComponent(optionType)
-    })
-    .then(r => r.json())
-    .then(ord => {
-        btn.disabled = false;
-
-        if (ord.Error) {
-            pcmHideOverlay();
-            alert(ord.Message || 'Could not initiate payment. Please try again.');
-            return;
-        }
-
-        /* Overlay hides while Razorpay checkout is open */
-        pcmHideOverlay();
-
-        /* Step 2: Open Razorpay checkout */
-        const rzp = new Razorpay({
-            key:         ord.key_id,
-            amount:      ord.amount,
-            currency:    ord.currency,
-            name:        ord.name,
-            description: ord.description,
-            order_id:    ord.order_id,
-            prefill:     ord.prefill || {},
-            theme:       { color: '#696cff' },
-            handler: function(response) {
-                /* Payment done — show overlay again while we verify + process */
-                pcmShowOverlay('Payment received. Processing your plan…');
-
-                /* Step 3: Confirm plan change after payment verified */
-                let body = 'sector_plan_uid='       + _pcmSectorPlanUID +
-                    '&option_type='                 + encodeURIComponent(optionType) +
-                    '&amount='                      + encodeURIComponent(resolvedOpt?.TotalAmount || 0) +
-                    '&tax='                         + encodeURIComponent(resolvedOpt?.TaxAmount || 0) +
-                    '&razorpay_order_id='           + encodeURIComponent(response.razorpay_order_id) +
-                    '&razorpay_payment_id='         + encodeURIComponent(response.razorpay_payment_id) +
-                    '&razorpay_signature='          + encodeURIComponent(response.razorpay_signature);
-
-                if (['UB','DC'].includes(optionType) && resolvedOpt) {
-                    body += '&scheduled_start=' + encodeURIComponent(resolvedOpt.StartDate) +
-                            '&scheduled_end='   + encodeURIComponent(resolvedOpt.EndDate);
-                }
-
-                fetch('/subscription/confirmPlanChange', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest'},
-                    body: body
-                })
-                .then(r => r.json())
-                .then(res => {
-                    if (res.Status === 'OK') {
-                        bootstrap.Modal.getInstance(document.getElementById('planChangeModal'))?.hide();
-                        pcmSuccessOverlay(res.Message || 'Plan changed successfully!');
-                        setTimeout(() => { pcmHideOverlay(); location.reload(); }, 2000);
-                    } else {
-                        pcmHideOverlay();
-                        alert(res.Message || 'Something went wrong. Please try again.');
-                    }
-                })
-                .catch(() => {
-                    pcmHideOverlay();
-                    alert('Plan change confirmation failed. Please contact support if amount was deducted.');
-                });
+    ajaxLoading(0);
+    $.ajax({
+        url: '/subscription/initiatePayment',
+        type: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        contentType: 'application/x-www-form-urlencoded',
+        data: { sector_plan_uid: _pcmSectorPlanUID, option_type: optionType },
+        dataType: 'json',
+        success: function(ord) {
+            $btn.prop('disabled', false);
+            if (ord.Error) {
+                pcmHideOverlay();
+                showToastNotification(ord.Message || 'Could not initiate payment. Please try again.', 'error');
+                return;
             }
-        });
-        rzp.open();
-    })
-    .catch(() => {
-        btn.disabled = false;
-        pcmHideOverlay();
-        alert('Request failed. Please check your connection and try again.');
+
+            pcmHideOverlay();
+
+            /* Step 2: Open Razorpay checkout — genuine exception; jQuery cannot replace the Razorpay SDK */
+            var rzp = new Razorpay({
+                key:         ord.key_id,
+                amount:      ord.amount,
+                currency:    ord.currency,
+                name:        ord.name,
+                description: ord.description,
+                order_id:    ord.order_id,
+                prefill:     ord.prefill || {},
+                theme:       { color: '#696cff' },
+                handler: function(response) {
+                    pcmShowOverlay('Payment received. Processing your plan…');
+                    ajaxLoading(0);
+                    var body = 'sector_plan_uid='       + _pcmSectorPlanUID +
+                        '&option_type='                 + encodeURIComponent(optionType) +
+                        '&amount='                      + encodeURIComponent(resolvedOpt?.TotalAmount || 0) +
+                        '&tax='                         + encodeURIComponent(resolvedOpt?.TaxAmount || 0) +
+                        '&razorpay_order_id='           + encodeURIComponent(response.razorpay_order_id) +
+                        '&razorpay_payment_id='         + encodeURIComponent(response.razorpay_payment_id) +
+                        '&razorpay_signature='          + encodeURIComponent(response.razorpay_signature);
+
+                    if (['UB','DC'].includes(optionType) && resolvedOpt) {
+                        body += '&scheduled_start=' + encodeURIComponent(resolvedOpt.StartDate) +
+                                '&scheduled_end='   + encodeURIComponent(resolvedOpt.EndDate);
+                    }
+
+                    $.ajax({
+                        url: '/subscription/confirmPlanChange',
+                        type: 'POST',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                        contentType: 'application/x-www-form-urlencoded',
+                        data: body,
+                        dataType: 'json',
+                        success: function(res) {
+                            if (res.Status === 'OK') {
+                                bootstrap.Modal.getInstance(document.getElementById('planChangeModal'))?.hide();
+                                pcmSuccessOverlay(res.Message || 'Plan changed successfully!');
+                                setTimeout(function() { pcmHideOverlay(); location.reload(); }, 2000);
+                            } else {
+                                pcmHideOverlay();
+                                showToastNotification(res.Message || 'Something went wrong. Please try again.', 'error');
+                            }
+                        },
+                        error: function() {
+                            pcmHideOverlay();
+                            showToastNotification('Plan change confirmation failed. Please contact support if amount was deducted.', 'error');
+                        },
+                        complete: function() { ajaxLoading(1); }
+                    });
+                }
+            });
+            rzp.open();
+        },
+        error: function() {
+            $btn.prop('disabled', false);
+            pcmHideOverlay();
+            showToastNotification('Request failed. Please check your connection and try again.', 'error');
+        },
+        complete: function() { ajaxLoading(1); }
     });
 }
 
 /* ── Payment overlay helpers ─────────────────────────────────────── */
+/**
+ * Show the full-screen payment processing overlay.
+ * @param {string} msg
+ * @returns {void}
+ */
 function pcmShowOverlay(msg) {
-    document.getElementById('pcm-pay-msg').textContent = msg;
-    document.getElementById('pcm-pay-dots').style.display = 'flex';
-    document.getElementById('pcm-pay-success-icon').style.display = 'none';
-    document.querySelector('.pcm-pay-ring-spinner').style.animationPlayState = 'running';
-    document.getElementById('pcm-pay-overlay').style.display = 'flex';
+    $('#pcm-pay-msg').text(msg);
+    $('#pcm-pay-dots').css('display', 'flex');
+    $('#pcm-pay-success-icon').hide();
+    $('.pcm-pay-ring-spinner').css('animation-play-state', 'running');
+    $('#pcm-pay-overlay').css('display', 'flex');
 }
+
+/**
+ * Update the overlay message with a brief fade transition.
+ * @param {string} msg
+ * @returns {void}
+ */
 function pcmUpdateOverlay(msg) {
-    const el = document.getElementById('pcm-pay-msg');
-    el.style.opacity = '0';
-    setTimeout(() => { el.textContent = msg; el.style.opacity = '1'; }, 200);
+    var $el = $('#pcm-pay-msg');
+    $el.css('opacity', '0');
+    setTimeout(function() { $el.text(msg).css('opacity', '1'); }, 200);
 }
+
+/**
+ * Transition overlay to the success state.
+ * @param {string} msg
+ * @returns {void}
+ */
 function pcmSuccessOverlay(msg) {
     pcmUpdateOverlay(msg);
-    document.getElementById('pcm-pay-dots').style.display = 'none';
-    document.querySelector('.pcm-pay-ring-spinner').style.animationPlayState = 'paused';
-    document.getElementById('pcm-pay-success-icon').style.display = 'block';
+    $('#pcm-pay-dots').hide();
+    $('.pcm-pay-ring-spinner').css('animation-play-state', 'paused');
+    $('#pcm-pay-success-icon').show();
 }
+
+/**
+ * Hide the payment processing overlay.
+ * @returns {void}
+ */
 function pcmHideOverlay() {
-    document.getElementById('pcm-pay-overlay').style.display = 'none';
+    $('#pcm-pay-overlay').hide();
 }
 
+/**
+ * Show the modal error panel.
+ * @param {string} msg
+ * @returns {void}
+ */
 function pcmShowError(msg) {
-    document.getElementById('pcm-loading').hidden = true;
-    document.getElementById('pcm-error').hidden   = false;
-    document.getElementById('pcm-error-msg').textContent = msg;
+    $('#pcm-loading').prop('hidden', true);
+    $('#pcm-error').prop('hidden', false);
+    $('#pcm-error-msg').text(msg);
 }
 
+/**
+ * Format a YYYY-MM-DD date string using the user's list date format.
+ * @param {string|null} d
+ * @returns {string}
+ */
 function pcmFmtDate(d) {
     if (!d) return '—';
-    const parts = String(d).split('-');
+    var parts  = String(d).split('-');
     if (parts.length < 3) return d;
-    const day = parseInt(parts[2], 10);
-    const mon = parseInt(parts[1], 10) - 1;
-    const yr  = parseInt(parts[0], 10);
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    const fmt = _pcmListDateFormat || 'd M Y';
+    var day    = parseInt(parts[2], 10);
+    var mon    = parseInt(parts[1], 10) - 1;
+    var yr     = parseInt(parts[0], 10);
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var fmt    = _pcmListDateFormat || 'd M Y';
     return fmt
         .replace('d', String(day).padStart(2, '0'))
         .replace('j', String(day))
@@ -1633,20 +1681,14 @@ function pcmFmtDate(d) {
         .replace('y', String(yr).slice(-2));
 }
 
+/**
+ * HTML-escape a string for safe inline rendering.
+ * @param {string|*} s
+ * @returns {string}
+ */
 function pcmEsc(s) {
     return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-/* Shadow on header when body is scrolled */
-document.getElementById('planChangeModal').addEventListener('shown.bs.modal', function () {
-    const body   = this.querySelector('.modal-body');
-    const header = document.getElementById('pcm-header');
-    if (!body || !header) return;
-    body.addEventListener('scroll', function () {
-        header.style.boxShadow = this.scrollTop > 4
-            ? '0 4px 12px rgba(0,0,0,.10)'
-            : 'none';
-    });
-});
 </script>
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>

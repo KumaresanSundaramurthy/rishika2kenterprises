@@ -257,6 +257,7 @@
         $('#cm-pw-submit').prop('disabled', true);
         $('#cm-pw-error').addClass('d-none');
 
+        ajaxLoading(0);
         $.ajax({
             url: BASE + 'dev/cache/verifyPassword',
             method: 'POST',
@@ -275,7 +276,8 @@
             error: function () {
                 showPwError('Request failed. Please try again.');
                 resetPwBtn();
-            }
+            },
+            complete: function() { ajaxLoading(1); }
         });
     });
 
@@ -294,6 +296,7 @@
         $('#cm-redis-loading').removeClass('d-none');
         $('#cm-redis-table-wrap, #cm-redis-empty, #cm-redis-error').addClass('d-none');
 
+        ajaxLoading(0);
         $.ajax({
             url: BASE + 'dev/cache/getRedisData',
             method: 'POST',
@@ -317,7 +320,8 @@
             error: function () {
                 $('#cm-redis-loading').addClass('d-none');
                 $('#cm-redis-error').text('Request failed.').removeClass('d-none');
-            }
+            },
+            complete: function() { ajaxLoading(1); }
         });
     }
 
@@ -329,6 +333,7 @@
         $('#cm-upstash-hint').addClass('d-none');
         $('#cm-upstash-loading').removeClass('d-none');
 
+        ajaxLoading(0);
         $.ajax({
             url: BASE + 'dev/cache/getUpstashData',
             method: 'POST',
@@ -357,7 +362,8 @@
             error: function () {
                 $('#cm-upstash-loading').addClass('d-none');
                 $('#cm-upstash-error').text('Request failed.').removeClass('d-none');
-            }
+            },
+            complete: function() { ajaxLoading(1); }
         });
     });
 
@@ -493,6 +499,7 @@
 
             btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
 
+            ajaxLoading(0);
             $.ajax({
                 url: url,
                 method: 'POST',
@@ -501,11 +508,11 @@
                 success: function (res) {
                     if (!res.Error) {
                         btn.closest('tr').fadeOut(300, function () { $(this).remove(); });
-                        // Update key count badge
+                        /* Update key count badge */
                         const countEl = $('#cm-' + type + '-count');
                         const cur = parseInt(countEl.text()) || 0;
                         if (cur > 0) countEl.text(cur - 1);
-                        // Remove from local data array
+                        /* Remove from local data array */
                         if (type === 'redis') {
                             _redisData = _redisData.filter(function (i) { return i.key !== key; });
                         } else {
@@ -519,7 +526,8 @@
                 error: function () {
                     btn.prop('disabled', false).html('<i class="bx bx-trash" style="font-size:.85rem;"></i>');
                     Swal.fire({ icon: 'error', title: 'Request failed', text: 'Please try again.', timer: 3000, showConfirmButton: false });
-                }
+                },
+                complete: function() { ajaxLoading(1); }
             });
         });
     });

@@ -562,8 +562,7 @@ $_popularIdx = $_planCount > 2 ? (int)floor(($_planCount - 1) / 2) : -1;
 
                     <?php $_isFreeDefault = ((float)($sub->Price ?? 0) <= 0); ?>
                     <button type="button" class="sub-pay-btn<?php echo $_isFreeDefault ? ' free-btn' : ''; ?>"
-                            id="subPayBtn"
-                            onclick="<?php echo $_isFreeDefault ? 'subActivateFree()' : 'subGoToPayment()'; ?>">
+                            id="subPayBtn">
                         <i class="bx <?php echo $_isFreeDefault ? 'bx-gift' : 'bx-right-arrow-alt'; ?>" id="subPayIcon"></i>
                         <span id="subPayLabel">
                             <?php if (!$_isFreeDefault): ?>
@@ -594,28 +593,25 @@ $_popularIdx = $_planCount > 2 ? (int)floor(($_planCount - 1) / 2) : -1;
     var _orgEmail      = <?php echo json_encode($orgEmail); ?>;
     var _flow          = <?php echo json_encode($flow ?? 'signup'); ?>;
     var _payLabels     = { signup: 'Pay & Activate', renewal: 'Pay & Renew', upgrade: 'Pay & Upgrade' };
-    var _redirectUrl   = null;
 
     /* ── Alert helpers ──────────────────────────────────────────── */
     /** @param {string} msg @returns {void} */
     function subShowAlert(msg) {
-        document.getElementById('subAlertText').textContent = msg;
-        document.getElementById('subAlert').classList.add('show');
+        $('#subAlertText').text(msg);
+        $('#subAlert').addClass('show');
     }
+
+    /** @returns {void} */
     function subHideAlert() {
-        document.getElementById('subAlert').classList.remove('show');
+        $('#subAlert').removeClass('show');
     }
 
     /** @param {boolean} loading @returns {void} */
     function subSetLoading(loading) {
-        var btn     = document.getElementById('subPayBtn');
-        var label   = document.getElementById('subPayLabel');
-        var spinner = document.getElementById('subPaySpinner');
-        var icon    = document.getElementById('subPayIcon');
-        btn.disabled          = loading;
-        label.style.display   = loading ? 'none' : '';
-        icon.style.display    = loading ? 'none' : '';
-        spinner.style.display = loading ? '' : 'none';
+        $('#subPayBtn').prop('disabled', loading);
+        $('#subPayLabel').toggle(!loading);
+        $('#subPayIcon').toggle(!loading);
+        $('#subPaySpinner').toggle(loading);
     }
 
     /* ── Plan selection ─────────────────────────────────────────── */
@@ -625,57 +621,48 @@ $_popularIdx = $_planCount > 2 ? (int)floor(($_planCount - 1) / 2) : -1;
      * @returns {void}
      */
     window.subSelectPlan = function (planUID, cardEl) {
-        /* Always update UI immediately — no blocking lock */
         if (planUID === _sectorPlanUID) return;
 
         subHideAlert();
 
-        /* ── Optimistic UI: update everything immediately from card data-* ── */
-        document.querySelectorAll('.sub-plan-card').forEach(function (c) { c.classList.remove('selected'); });
-        if (cardEl) cardEl.classList.add('selected');
+        /* Optimistic UI: update everything immediately from card data-* attributes */
+        $('.sub-plan-card').removeClass('selected');
+        $(cardEl).addClass('selected');
 
-        var cardName  = cardEl ? (cardEl.dataset.name  || '') : '';
-        var cardPrice = cardEl ? parseFloat(cardEl.dataset.price || '0') : 0;
-        var cardCycle = cardEl ? (cardEl.dataset.cycle || '') : '';
-        var cardFree  = cardEl ? (cardEl.dataset.free === '1') : (cardPrice <= 0);
+        var $card     = $(cardEl);
+        var cardName  = cardEl ? ($card.attr('data-name')  || '') : '';
+        var cardPrice = cardEl ? parseFloat($card.attr('data-price') || '0') : 0;
+        var cardCycle = cardEl ? ($card.attr('data-cycle') || '') : '';
+        var cardFree  = cardEl ? ($card.attr('data-free') === '1') : (cardPrice <= 0);
 
         _sectorPlanUID = planUID;
         _planPrice     = cardPrice;
 
-        var nameEl  = document.getElementById('subSummaryName');
-        var cycleEl = document.getElementById('subSummaryCycle');
-        var amtEl   = document.getElementById('subSummaryAmount');
-        if (nameEl)  nameEl.textContent  = cardName;
-        if (cycleEl) cycleEl.textContent = cardCycle;
-        if (amtEl) {
-            if (!cardFree) {
-                amtEl.innerHTML = '<span class="currency">&#8377;</span>'
-                    + '<span class="amount">' + Math.round(cardPrice).toLocaleString('en-IN') + '</span>'
-                    + '<span class="period">/ ' + cardCycle.toLowerCase() + '</span>';
-            } else {
-                amtEl.innerHTML = '<span class="amount" style="color:#4ade80;font-size:1.5rem;">Free</span>';
-            }
+        $('#subSummaryName').text(cardName);
+        $('#subSummaryCycle').text(cardCycle);
+
+        if (!cardFree) {
+            $('#subSummaryAmount').html(
+                '<span class="currency">&#8377;</span>'
+                + '<span class="amount">' + Math.round(cardPrice).toLocaleString('en-IN') + '</span>'
+                + '<span class="period">/ ' + cardCycle.toLowerCase() + '</span>'
+            );
+        } else {
+            $('#subSummaryAmount').html('<span class="amount" style="color:#4ade80;font-size:1.5rem;">Free</span>');
         }
 
-        var payBtn   = document.getElementById('subPayBtn');
-        var payLabel = document.getElementById('subPayLabel');
-        var payIcon  = document.getElementById('subPayIcon');
         var baseLabel = _payLabels[_flow] || 'Pay';
-        if (payLabel) payLabel.textContent = !cardFree
+        $('#subPayLabel').text(!cardFree
             ? baseLabel + ' ₹' + Math.round(cardPrice).toLocaleString('en-IN')
-            : 'Activate Free Plan';
-        if (payBtn) {
-            if (cardFree) {
-                payBtn.classList.add('free-btn');
-                payBtn.onclick = window.subActivateFree;
-                if (payIcon) payIcon.className = 'bx bx-gift';
-            } else {
-                payBtn.classList.remove('free-btn');
-                payBtn.onclick = window.subGoToPayment;
-                if (payIcon) payIcon.className = 'bx bx-right-arrow-alt';
-            }
+            : 'Activate Free Plan'
+        );
+        if (cardFree) {
+            $('#subPayBtn').addClass('free-btn').off('click').on('click', window.subActivateFree);
+            $('#subPayIcon').attr('class', 'bx bx-gift');
+        } else {
+            $('#subPayBtn').removeClass('free-btn').off('click').on('click', window.subGoToPayment);
+            $('#subPayIcon').attr('class', 'bx bx-right-arrow-alt');
         }
-
     };
 
     /**
@@ -688,26 +675,29 @@ $_popularIdx = $_planCount > 2 ? (int)floor(($_planCount - 1) / 2) : -1;
     window.subActivateFree = function () {
         subHideAlert();
         showUIBlock('Activating your plan…');
-        fetch('/subscribe/changePlan', {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body:    'sector_plan_uid=' + encodeURIComponent(_sectorPlanUID),
-        })
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
-            if (data.Error) {
+        $.ajax({
+            url:      '<?= site_url("subscribe/changePlan") ?>',
+            method:   'POST',
+            dataType: 'json',
+            data:     { sector_plan_uid: _sectorPlanUID },
+            success:  function (data) {
+                if (data.Error) {
+                    hideUIBlock();
+                    subShowAlert(data.Message || 'Could not activate plan. Please try again.');
+                    return;
+                }
+                showUIBlock('Plan activated! Taking you to your dashboard…');
+                setTimeout(function () {
+                    window.location.href = data.Redirect || '<?= site_url("dashboard") ?>';
+                }, 500);
+            },
+            error: function (jqXHR) {
                 hideUIBlock();
-                subShowAlert(data.Message || 'Could not activate plan. Please try again.');
-                return;
+                var msg = (jqXHR.responseJSON && jqXHR.responseJSON.Message)
+                    ? jqXHR.responseJSON.Message
+                    : 'A network error occurred. Please try again.';
+                subShowAlert(msg);
             }
-            showUIBlock('Plan activated! Taking you to your dashboard…');
-            setTimeout(function () {
-                window.location.href = data.Redirect || '/dashboard';
-            }, 500);
-        })
-        .catch(function () {
-            hideUIBlock();
-            subShowAlert('A network error occurred. Please try again.');
         });
     };
 
@@ -721,25 +711,31 @@ $_popularIdx = $_planCount > 2 ? (int)floor(($_planCount - 1) / 2) : -1;
 
     /** @returns {void} */
     function _subPreparePayment() {
-        fetch('/subscribe/preparePayment', {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body:    'sector_plan_uid=' + encodeURIComponent(_sectorPlanUID),
-        })
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
-            if (data.Error) {
+        $.ajax({
+            url:      '<?= site_url("subscribe/preparePayment") ?>',
+            method:   'POST',
+            dataType: 'json',
+            data:     { sector_plan_uid: _sectorPlanUID },
+            success:  function (data) {
+                if (data.Error) {
+                    hideUIBlock();
+                    subShowAlert(data.Message || 'Could not prepare payment. Please try again.');
+                    return;
+                }
+                window.location.href = data.Redirect;
+            },
+            error: function (jqXHR) {
                 hideUIBlock();
-                subShowAlert(data.Message || 'Could not prepare payment. Please try again.');
-                return;
+                var msg = (jqXHR.responseJSON && jqXHR.responseJSON.Message)
+                    ? jqXHR.responseJSON.Message
+                    : 'A network error occurred. Please try again.';
+                subShowAlert(msg);
             }
-            window.location.href = data.Redirect;
-        })
-        .catch(function () {
-            hideUIBlock();
-            subShowAlert('A network error occurred. Please try again.');
         });
     }
+
+    /* Wire initial click handler based on starting plan — no inline onclick needed */
+    $('#subPayBtn').on('click', _planPrice <= 0 ? window.subActivateFree : window.subGoToPayment);
 }());
 </script>
 

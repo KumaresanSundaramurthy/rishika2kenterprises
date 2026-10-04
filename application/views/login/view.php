@@ -708,204 +708,6 @@
 .lr-lang-opt:hover { background: rgba(255,255,255,0.06); color: #f1f5f9; }
 .lr-lang-opt.lr-lang-active { color: #f59e0b; }
 
-/* ── Subscription Expired Modal ─────────────────────────── */
-.se-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    z-index: 10000;
-    background: rgba(0,0,0,0.88);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-}
-.se-overlay.se-show { display: flex; animation: se-fade-in 0.25s ease-out both; }
-@keyframes se-fade-in {
-    from { opacity: 0; }
-    to   { opacity: 1; }
-}
-
-.se-dialog {
-    background: linear-gradient(160deg, #0d1b36 0%, #08122a 100%);
-    border: 1px solid rgba(139,92,246,0.25);
-    border-radius: 24px;
-    width: 100%;
-    max-width: 460px;
-    padding: 36px 32px 28px;
-    text-align: center;
-    box-shadow: 0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(139,92,246,0.1);
-    animation: se-slide-up 0.3s cubic-bezier(0.22,1,0.36,1) both;
-    position: relative;
-}
-@keyframes se-slide-up {
-    from { opacity: 0; transform: translateY(20px); }
-    to   { opacity: 1; transform: translateY(0); }
-}
-
-/* Logo with spinning ring */
-.se-logo-wrap {
-    position: relative;
-    width: 58px;
-    height: 58px;
-    margin: 0 auto 18px;
-}
-.se-ring {
-    position: absolute;
-    inset: -4px;       /* ring is 4px wide — tight border */
-    border-radius: 50%;
-    background: conic-gradient(from 0deg,
-        #7c3aed 0%,
-        #06b6d4 28%,
-        #ef4444 52%,
-        #f59e0b 76%,
-        #7c3aed 100%
-    );
-    animation: se-ring-rot 2.5s linear infinite;
-    z-index: 0;
-    filter: drop-shadow(0 0 5px rgba(124,58,237,0.6));
-}
-.se-ring::after {
-    content: '';
-    position: absolute;
-    inset: 4px;        /* dark mask cuts back to exactly the wrap boundary */
-    border-radius: 50%;
-    background: #08122a;
-}
-.se-logo-img {
-    position: absolute;
-    inset: 4px;        /* 4px breathing gap between logo and ring inner edge */
-    width: 50px; height: 50px;
-    border-radius: 50%;
-    object-fit: cover;
-    z-index: 1;
-}
-@keyframes se-ring-rot { to { transform: rotate(360deg); } }
-
-/* Badge */
-.se-expired-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 4px 13px;
-    background: rgba(239,68,68,0.12);
-    border: 1px solid rgba(239,68,68,0.3);
-    border-radius: 100px;
-    color: #f87171;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    margin-bottom: 14px;
-}
-
-/* Org name */
-.se-org-name {
-    font-size: 1.4rem;
-    font-weight: 800;
-    color: #f1f5f9;
-    margin-bottom: 6px;
-    letter-spacing: -0.02em;
-}
-
-/* Plan + expiry row */
-.se-plan-row {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 14px;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-}
-.se-plan-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 4px 12px;
-    background: rgba(139,92,246,0.1);
-    border: 1px solid rgba(139,92,246,0.25);
-    border-radius: 100px;
-    color: #c4b5fd;
-    font-size: 12px;
-    font-weight: 600;
-}
-.se-expiry-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 4px 12px;
-    background: rgba(239,68,68,0.08);
-    border: 1px solid rgba(239,68,68,0.2);
-    border-radius: 100px;
-    color: #fca5a5;
-    font-size: 12px;
-    font-weight: 500;
-}
-
-/* Validity info box */
-.se-validity-box {
-    background: rgba(245,158,11,0.07);
-    border: 1px solid rgba(245,158,11,0.2);
-    border-radius: 12px;
-    padding: 12px 16px;
-    margin-bottom: 24px;
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    text-align: left;
-}
-.se-validity-icon {
-    color: #f59e0b;
-    font-size: 18px;
-    flex-shrink: 0;
-    margin-top: 1px;
-}
-.se-validity-text {
-    font-size: 12.5px;
-    color: #fde68a;
-    line-height: 1.55;
-}
-.se-validity-text strong { color: #fbbf24; }
-
-/* Buttons */
-.se-btn-renew {
-    width: 100%;
-    padding: 13px;
-    border: none;
-    border-radius: 12px;
-    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-    color: #040b18;
-    font-size: 14.5px;
-    font-weight: 700;
-    cursor: pointer;
-    font-family: inherit;
-    letter-spacing: 0.2px;
-    transition: all 0.25s;
-    box-shadow: 0 4px 16px rgba(245,158,11,0.3);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 7px;
-    margin-bottom: 10px;
-}
-.se-btn-renew:hover { filter: brightness(1.1); transform: translateY(-1px); box-shadow: 0 6px 24px rgba(245,158,11,0.4); }
-
-.se-btn-close {
-    width: 100%;
-    padding: 11px;
-    border: 1.5px solid rgba(148,163,184,0.18);
-    border-radius: 12px;
-    background: transparent;
-    color: #64748b;
-    font-size: 13.5px;
-    font-weight: 600;
-    cursor: pointer;
-    font-family: inherit;
-    transition: all 0.2s;
-}
-.se-btn-close:hover { border-color: rgba(148,163,184,0.4); color: #94a3b8; }
-
 /* ── RESPONSIVE ────────────────────────────────────────────── */
 @media (max-width: 900px) {
     .lr-brand { display: none; }
@@ -920,6 +722,13 @@
     .lr-btn { padding: 13px; font-size: 14px; }
 }
 </style>
+
+<?php if (!empty($TwoStepEnabled) && !empty($this->session->flashdata('danger'))): ?>
+<script>/* Runs before body paints — prevents Step 1 flash on wrong-password reload */
+(function(){try{if(sessionStorage.getItem('lr_step2_user'))document.documentElement.classList.add('lr-step2-active');}catch(_){}}());
+</script>
+<style>html.lr-step2-active #lrStep1Panel{display:none}html.lr-step2-active #lrStep2Panel{display:block}</style>
+<?php endif; ?>
 
 <div class="lr-root">
 
@@ -1156,6 +965,10 @@
             <!-- Step 2: Password (hidden until step 1 succeeds) -->
             <div id="lrStep2Panel" style="display:none;">
 
+                <div id="lrStep2AlertWrap" class="lr-alerts">
+                    <?php $this->load->view('login/alerts'); ?>
+                </div>
+
                 <!-- Confirmed-user card -->
                 <div class="lr-user-card" id="lrUserCard">
                     <div class="lr-user-avatar">
@@ -1171,10 +984,6 @@
                 echo form_open('login/doLoginForm', $FormAttribute2); ?>
 
                 <input type="hidden" id="step2UserName" name="UserName" value="">
-
-                <div id="lrStep2AlertWrap" class="lr-alerts">
-                    <?php $this->load->view('login/alerts'); ?>
-                </div>
 
                 <div class="lr-field">
                     <label for="UserPassword">Password</label>
@@ -1285,58 +1094,6 @@
 
 </div>
 
-<!-- ── Subscription Expired Modal ──────────────────────────── -->
-<div class="se-overlay" id="seOverlay" role="dialog" aria-modal="true" aria-label="Subscription Expired">
-    <div class="se-dialog">
-
-        <!-- Logo with spinning ring -->
-        <div class="se-logo-wrap">
-            <div class="se-ring"></div>
-            <img src="https://pub-bb40942a33344637936ade1f3800ff8b.r2.dev/Global/favicon_io/android-chrome-512x512-1.png"
-                 class="se-logo-img" alt="Logo">
-        </div>
-
-        <!-- Status badge -->
-        <div class="se-expired-badge">
-            <i class="bx bx-error-circle"></i>
-            Subscription Expired
-        </div>
-
-        <!-- Org name -->
-        <p class="se-org-name" id="seOrgName"></p>
-
-        <!-- Plan + expiry row -->
-        <div class="se-plan-row">
-            <span class="se-plan-pill" id="sePlanPill">
-                <i class="bx bx-crown"></i>
-                <span id="sePlanName"></span>
-            </span>
-            <span class="se-expiry-pill" id="seExpiryPill">
-                <i class="bx bx-calendar-x"></i>
-                Expired <span id="seExpiryDate"></span>
-            </span>
-        </div>
-
-        <!-- Validity info box -->
-        <div class="se-validity-box">
-            <i class="bx bx-time-five se-validity-icon"></i>
-            <p class="se-validity-text">
-                Clicking <strong>Renew Now</strong> opens a secure renewal page.
-                The renewal link is valid for <strong>30 minutes</strong> — complete your payment before it expires.
-            </p>
-        </div>
-
-        <!-- Action buttons -->
-        <button type="button" class="se-btn-renew" id="seRenewBtn">
-            <i class="bx bx-refresh" style="font-size:18px;"></i>
-            Renew Subscription Now
-        </button>
-        <button type="button" class="se-btn-close" id="seCloseBtn">
-            Close
-        </button>
-
-    </div>
-</div>
 
 <?php $this->load->view('login/footer'); ?>
 
@@ -1403,47 +1160,54 @@
 </style>
 
 <script>
-(function () {
+(function ($) {
     var twoStep = <?php echo !empty($TwoStepEnabled) ? 'true' : 'false'; ?>;
 
-    // Hide template customizer
-    document.addEventListener('DOMContentLoaded', function () {
-        var el = document.getElementById('template-customizer');
-        if (el) el.classList.add('d-none');
+    /* Hide template customizer */
+    $(function () {
+        $('#template-customizer').addClass('d-none');
     });
 
-    // ── Shared: password toggle ──────────────────────────────────────────────
+    /* ── Shared: password toggle ────────────────────────────────────────────
+     * @returns {void}
+     */
     function initPwToggle() {
-        var pwToggle = document.getElementById('pwToggle');
-        var pwInput  = document.getElementById('UserPassword');
-        var pwIcon   = document.getElementById('pwIcon');
-        if (!pwToggle) return;
-        pwToggle.addEventListener('click', function () {
-            if (pwInput.type === 'password') {
-                pwInput.type = 'text';
-                pwIcon.className = 'bx bx-show';
+        var $pwToggle = $('#pwToggle');
+        var $pwInput  = $('#UserPassword');
+        var $pwIcon   = $('#pwIcon');
+        if (!$pwToggle.length) return;
+        $pwToggle.on('click', function () {
+            if ($pwInput.attr('type') === 'password') {
+                $pwInput.attr('type', 'text');
+                $pwIcon.attr('class', 'bx bx-show');
             } else {
-                pwInput.type = 'password';
-                pwIcon.className = 'bx bx-hide';
+                $pwInput.attr('type', 'password');
+                $pwIcon.attr('class', 'bx bx-hide');
             }
         });
     }
 
-    // ── Shared: ripple effect ────────────────────────────────────────────────
-    function addRipple(btn) {
-        if (!btn) return;
-        btn.addEventListener('click', function (e) {
-            var r = document.createElement('span');
-            var d = Math.max(btn.clientWidth, btn.clientHeight);
-            var rect = btn.getBoundingClientRect();
-            r.className = 'lr-ripple';
-            r.style.cssText = 'width:' + d + 'px;height:' + d + 'px;left:' + (e.clientX - rect.left - d/2) + 'px;top:' + (e.clientY - rect.top - d/2) + 'px';
-            btn.appendChild(r);
-            setTimeout(function () { r.remove(); }, 700);
+    /* ── Shared: ripple effect
+     * @param {jQuery} $btn
+     * @returns {void}
+     */
+    function addRipple($btn) {
+        if (!$btn || !$btn.length) return;
+        $btn.on('click', function (e) {
+            var d    = Math.max($btn[0].clientWidth, $btn[0].clientHeight);
+            var rect = $btn[0].getBoundingClientRect();
+            var $r   = $('<span>').addClass('lr-ripple').css({
+                width : d + 'px',
+                height: d + 'px',
+                left  : (e.clientX - rect.left - d / 2) + 'px',
+                top   : (e.clientY - rect.top  - d / 2) + 'px'
+            });
+            $btn.append($r);
+            setTimeout(function () { $r.remove(); }, 700);
         });
     }
 
-    // ── Shared: spinner HTML ─────────────────────────────────────────────────
+    /* ── Shared: spinner HTML ───────────────────────────────────────────── */
     var _spinnerHtml =
         '<span style="display:flex;align-items:center;justify-content:center;gap:10px;">' +
             '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 0.8s linear infinite;flex-shrink:0;">' +
@@ -1452,96 +1216,97 @@
             '{label}' +
         '</span>';
 
+    /* @param {jQuery|Element} btn  @param {string} label  @returns {void} */
     function spinBtn(btn, label) {
-        btn.disabled = true;
-        btn.innerHTML = _spinnerHtml.replace('{label}', label);
-        btn.style.opacity = '0.75';
-        btn.style.cursor  = 'not-allowed';
+        $(btn).prop('disabled', true)
+              .html(_spinnerHtml.replace('{label}', label))
+              .css({'opacity': '0.75', 'cursor': 'not-allowed'});
     }
 
+    /* @param {jQuery|Element} btn  @param {string} iconClass  @param {string} label  @returns {void} */
     function resetBtn(btn, iconClass, label) {
-        btn.disabled = false;
-        btn.innerHTML = '<span><i class="bx ' + iconClass + '" style="font-size:18px"></i> ' + label + '</span>';
-        btn.style.opacity = '';
-        btn.style.cursor  = '';
+        $(btn).prop('disabled', false)
+              .html('<span><i class="bx ' + iconClass + '" style="font-size:18px"></i> ' + label + '</span>')
+              .css({'opacity': '', 'cursor': ''});
+    }
+
+    /* ── Shared: disable/enable social buttons and signup link
+     * @param {boolean} disabled
+     * @returns {void}
+     */
+    function setSocialDisabled(disabled) {
+        $('.lr-social-btn').css({'pointer-events': disabled ? 'none' : '', 'opacity': disabled ? '0.4' : ''});
+        $('.lr-signup-note a').css({'pointer-events': disabled ? 'none' : '', 'opacity': disabled ? '0.4' : ''});
+        $('.lr-forgot').css({'pointer-events': disabled ? 'none' : '', 'opacity': disabled ? '0.4' : ''});
     }
 
     if (twoStep) {
         // ── TWO-STEP FLOW ────────────────────────────────────────────────────
 
-        var csrfInput = document.querySelector('#doLoginForm input[name^="csrf"]') ||
-                        document.querySelector('#lrStep1Panel input[name^="csrf"]');
-        var csrfName  = csrfInput ? csrfInput.name  : '';
-        var csrfVal   = csrfInput ? csrfInput.value : '';
+        var $csrfInput = $('#doLoginForm input[name^="csrf"]');
+        if (!$csrfInput.length) $csrfInput = $('#lrStep1Panel input[name^="csrf"]');
+        var csrfName   = $csrfInput.length ? $csrfInput.attr('name') : '';
+        var csrfVal    = $csrfInput.length ? $csrfInput.val()        : '';
 
-        var step1Panel   = document.getElementById('lrStep1Panel');
-        var step2Panel   = document.getElementById('lrStep2Panel');
-        var continueBtn  = document.getElementById('lrContinueBtn');
-        var step1Error   = document.getElementById('lrStep1Error');
-        var welcomeName  = document.getElementById('lrWelcomeName');
-        var step2Name    = document.getElementById('step2UserName');
-        var notYouLink   = document.getElementById('lrNotYou');
-        var submitBtn    = document.getElementById('lrSubmit');
-        var loginForm    = document.getElementById('doLoginForm');
-        var unameInput   = document.getElementById('UserName');
-        var resendWrap    = document.getElementById('lrResendWrap');
-        var resendBtn     = document.getElementById('lrResendBtn');
-        var step1ErrorMsg = document.getElementById('lrStep1ErrorMsg');
-        var step1ErrorSub = document.getElementById('lrStep1ErrorSub');
+        var $step1Panel    = $('#lrStep1Panel');
+        var $step2Panel    = $('#lrStep2Panel');
+        var $continueBtn   = $('#lrContinueBtn');
+        var $step1Error    = $('#lrStep1Error');
+        var $welcomeName   = $('#lrWelcomeName');
+        var $step2Name     = $('#step2UserName');
+        var $notYouLink    = $('#lrNotYou');
+        var $submitBtn     = $('#lrSubmit');
+        var $loginForm     = $('#doLoginForm');
+        var $unameInput    = $('#UserName');
+        var $resendWrap    = $('#lrResendWrap');
+        var $resendBtn     = $('#lrResendBtn');
+        var $step1ErrorMsg = $('#lrStep1ErrorMsg');
+        var $step1ErrorSub = $('#lrStep1ErrorSub');
 
-        /* ── Toast ──────────────────────────────────────────────────── */
+        /* ── Toast
+         * @param {string} msg  @param {boolean} isError  @returns {void}
+         */
         var _lrToastTimer = null;
         function lrToast(msg, isError) {
-            var el = document.getElementById('lrToast');
-            if (!el) {
-                el = document.createElement('div');
-                el.id = 'lrToast';
-                el.className = 'lr-toast';
-                document.body.appendChild(el);
+            var $toast = $('#lrToast');
+            if (!$toast.length) {
+                $toast = $('<div>').attr('id', 'lrToast').addClass('lr-toast');
+                $('body').append($toast);
             }
             clearTimeout(_lrToastTimer);
-            el.textContent = msg;
-            el.className   = 'lr-toast' + (isError ? ' lr-toast--error' : '');
+            $toast.text(msg).attr('class', 'lr-toast' + (isError ? ' lr-toast--error' : ''));
             requestAnimationFrame(function () {
-                requestAnimationFrame(function () { el.classList.add('lr-toast--show'); });
+                requestAnimationFrame(function () { $toast.addClass('lr-toast--show'); });
             });
             _lrToastTimer = setTimeout(function () {
-                el.classList.remove('lr-toast--show');
+                $toast.removeClass('lr-toast--show');
             }, 4000);
         }
 
-        /* ── Resend verification ─────────────────────────────────────── */
+        /* ── Resend verification ─────────────────────────────────────────── */
         var _pendingOrgEmail = '';
 
+        /* @param {boolean} disabled  @returns {void} */
         function setStep1FormDisabled(disabled) {
-            if (unameInput) {
-                unameInput.disabled = disabled;
-                unameInput.style.opacity = disabled ? '0.5' : '';
-            }
-            if (continueBtn) {
-                continueBtn.disabled      = disabled;
-                continueBtn.style.opacity = disabled ? '0.6'          : '';
-                continueBtn.style.cursor  = disabled ? 'not-allowed'  : '';
-            }
+            $unameInput.prop('disabled', disabled).css('opacity', disabled ? '0.5' : '');
+            $continueBtn.prop('disabled', disabled).css({'opacity': disabled ? '0.6' : '', 'cursor': disabled ? 'not-allowed' : ''});
             setSocialDisabled(disabled);
-            if (resendBtn) resendBtn.disabled = disabled;
+            $resendBtn.prop('disabled', disabled);
         }
 
+        /* @returns {void} */
         function doResendVerification() {
             if (!_pendingOrgEmail) return;
-
             setStep1FormDisabled(true);
-            resendBtn.textContent = 'Sending…';
-
+            $resendBtn.text('Sending…');
             var emailToSend = _pendingOrgEmail;
-
-            fetch('/resend-verification', {
-                method : 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest'},
-                body   : 'identifier=' + encodeURIComponent(emailToSend),
-            })
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
+            $.ajax({
+                url     : '/resend-verification',
+                method  : 'POST',
+                data    : { identifier: emailToSend },
+                headers : { 'X-Requested-With': 'XMLHttpRequest' },
+                dataType: 'json'
+            }).done(function (data) {
                 _pendingOrgEmail = '';
                 setStep1FormDisabled(false);
                 clearStep1Error();
@@ -1550,15 +1315,14 @@
                 } else {
                     lrToast('Verification email sent! Please check your inbox.', false);
                 }
-            })
-            .catch(function () {
+            }).fail(function () {
                 setStep1FormDisabled(false);
-                resendBtn.textContent = 'Resend Email';
+                $resendBtn.text('Resend Email');
                 lrToast('Network error. Please try again.', true);
             });
         }
 
-        if (resendBtn) resendBtn.addEventListener('click', doResendVerification);
+        $resendBtn.on('click', doResendVerification);
 
         /* ── Initialise from OAuth redirect (Google / Facebook) ─────────── */
         <?php
@@ -1576,238 +1340,142 @@
         showStep1Error(<?php echo json_encode($oauthFlashMsg); ?>, false);
         <?php endif; ?>
 
-        /* Clear the error and pending email whenever the user edits the identifier field */
-        if (unameInput) {
-            unameInput.addEventListener('input', function () {
-                if (_pendingOrgEmail) {
-                    _pendingOrgEmail = '';
-                    clearStep1Error();
-                }
-            });
-        }
-
-        /* subMsg — optional email line shown only for OAuth flow; omit for manual login */
-        function showStep1Error(msg, showResend, subMsg) {
-            if (step1ErrorMsg) step1ErrorMsg.textContent = msg;
-            if (step1ErrorSub) {
-                if (subMsg) {
-                    step1ErrorSub.textContent = subMsg;
-                    step1ErrorSub.style.display = 'block';
-                } else {
-                    step1ErrorSub.textContent   = '';
-                    step1ErrorSub.style.display = 'none';
-                }
+        /* Clear error when user edits the identifier */
+        $unameInput.on('input', function () {
+            if (_pendingOrgEmail) {
+                _pendingOrgEmail = '';
+                clearStep1Error();
             }
-            step1Error.style.display = 'block';
-            if (resendWrap) resendWrap.style.display = showResend ? 'flex' : 'none';
-            if (resendBtn && showResend) { resendBtn.disabled = false; resendBtn.textContent = 'Resend Email'; }
+        });
+
+        /* @param {string} msg  @param {boolean} showResend  @param {string} [subMsg]  @returns {void} */
+        function showStep1Error(msg, showResend, subMsg) {
+            $step1ErrorMsg.text(msg);
+            if (subMsg) {
+                $step1ErrorSub.text(subMsg).show();
+            } else {
+                $step1ErrorSub.text('').hide();
+            }
+            $step1Error.show();
+            $resendWrap.css('display', showResend ? 'flex' : 'none');
+            if (showResend) $resendBtn.prop('disabled', false).text('Resend Email');
         }
 
+        /* @returns {void} */
         function clearStep1Error() {
-            step1Error.style.display = 'none';
-            if (resendWrap) resendWrap.style.display = 'none';
-            if (step1ErrorSub) { step1ErrorSub.textContent = ''; step1ErrorSub.style.display = 'none'; }
-            var renewWrap = document.getElementById('lrRenewWrap');
-            if (renewWrap) renewWrap.style.display = 'none';
+            $step1Error.hide();
+            $resendWrap.hide();
+            $step1ErrorSub.text('').hide();
+            $('#lrRenewWrap').hide();
             _pendingOrgEmail = '';
         }
 
-        /* ── Subscription expired modal ──────────────────────────── */
-        var _seAccessRef  = '';
-        var _seOverlay    = document.getElementById('seOverlay');
-        var _seRenewBtn   = document.getElementById('seRenewBtn');
-        var _seCloseBtn   = document.getElementById('seCloseBtn');
-
-        function showSubscriptionExpiredError(msg, accessRef, planName, endDate, orgName) {
-            _seAccessRef = accessRef;
-
-            var orgNameEl   = document.getElementById('seOrgName');
-            var planNameEl  = document.getElementById('sePlanName');
-            var expiryEl    = document.getElementById('seExpiryDate');
-            var planPillEl  = document.getElementById('sePlanPill');
-            var expiryPillEl= document.getElementById('seExpiryPill');
-
-            if (orgNameEl)  orgNameEl.textContent  = orgName  || '';
-            if (planNameEl) planNameEl.textContent  = planName || 'Subscription';
-
-            /* Format the expiry date nicely */
-            var expiryText = '';
-            if (endDate) {
-                try {
-                    var d = new Date(endDate.replace(' ', 'T'));
-                    expiryText = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-                } catch (e) {
-                    expiryText = endDate;
-                }
-            }
-            if (expiryEl) expiryEl.textContent = expiryText ? 'on ' + expiryText : '';
-            if (planPillEl)   planPillEl.style.display   = planName ? '' : 'none';
-            if (expiryPillEl) expiryPillEl.style.display = expiryText ? '' : 'none';
-
-            if (_seOverlay) _seOverlay.classList.add('se-show');
-        }
-
-        function _closeSubModal() {
-            if (_seOverlay) _seOverlay.classList.remove('se-show');
-        }
-
-        if (_seRenewBtn) {
-            _seRenewBtn.addEventListener('click', function () {
-                if (!_seAccessRef) return;
-                window.location.href = global_base_url + 'subscription/renew?sid=' + encodeURIComponent(_seAccessRef);
-            });
-        }
-
-        if (_seCloseBtn) {
-            _seCloseBtn.addEventListener('click', function () {
-                _closeSubModal();
-                /* Clear username field and reset step 1 to a clean state */
-                if (unameInput) { unameInput.value = ''; unameInput.focus(); }
-                clearStep1Error();
-                /* Fire-and-forget: delete the Redis renewal token */
-                if (_seAccessRef) {
-                    var sid = _seAccessRef;
-                    _seAccessRef = '';
-                    var body = 'sid=' + encodeURIComponent(sid);
-                    var csrfInput2 = document.querySelector('input[name^="csrf"]');
-                    if (csrfInput2) body += '&' + encodeURIComponent(csrfInput2.name) + '=' + encodeURIComponent(csrfInput2.value);
-                    fetch(global_base_url + 'subscription/renew/cancelToken', {
-                        method : 'POST',
-                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                        body   : body,
-                    });
-                }
-            });
-        }
-
-        /* Block ESC key from closing the modal — only Close button can dismiss it */
-        document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape' && _seOverlay && _seOverlay.classList.contains('se-show')) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-        }, true);
-
+        /* @param {string} displayName  @param {string} username  @param {string} imageUrl  @returns {void} */
         function goToStep2(displayName, username, imageUrl) {
-            welcomeName.textContent = displayName;
-            step2Name.value = username;
+            $welcomeName.text(displayName);
+            $step2Name.val(username);
 
-            // Show profile photo if available, otherwise keep the generic icon
-            var avatarEl = document.querySelector('#lrUserCard .lr-user-avatar');
-            if (avatarEl) {
-                if (imageUrl) {
-                    avatarEl.innerHTML = '<img src="' + imageUrl + '" alt="' + displayName + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';
-                } else {
-                    avatarEl.innerHTML = '<i class="bx bx-user-circle"></i>';
-                }
+            /* Persist username/name so wrong-password page reload can restore step 2 */
+            try {
+                sessionStorage.setItem('lr_step2_user', username);
+                sessionStorage.setItem('lr_step2_name', displayName);
+            } catch (_) {}
+
+            var $avatar = $('#lrUserCard .lr-user-avatar');
+            if ($avatar.length) {
+                $avatar.html(imageUrl
+                    ? '<img src="' + imageUrl + '" alt="' + displayName + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">'
+                    : '<i class="bx bx-user-circle"></i>'
+                );
             }
 
-            step1Panel.style.animation = 'none';
-            step1Panel.style.display   = 'none';
-            step2Panel.style.animation = '';
-            step2Panel.style.display   = 'block';
-            var pw = document.getElementById('UserPassword');
-            if (pw) setTimeout(function () { pw.focus(); }, 100);
+            $step1Panel.css('animation', 'none').hide();
+            $step2Panel.css('animation', '').show();
+            setTimeout(function () { $('#UserPassword').trigger('focus'); }, 100);
         }
 
+        /* @returns {void} */
         function goToStep1() {
-            // Fire-and-forget: clear the pending session on the server
-            fetch('/login/clear-pending', { method: 'POST' });
-            step2Panel.style.display = 'none';
-            step1Panel.style.display = 'block';
+            $.post('/login/clear-pending');
+            try { sessionStorage.removeItem('lr_step2_user'); sessionStorage.removeItem('lr_step2_name'); } catch (_) {}
+            $step2Panel.hide();
+            $step1Panel.show();
             clearStep1Error();
-            if (unameInput) unameInput.focus();
+            $unameInput.trigger('focus');
         }
 
-        function setSocialDisabled(disabled) {
-            document.querySelectorAll('#lrStep1Panel .lr-social-btn').forEach(function (b) {
-                b.style.pointerEvents = disabled ? 'none' : '';
-                b.style.opacity       = disabled ? '0.4'  : '';
-            });
-            var signupLink = document.querySelector('.lr-signup-note a');
-            if (signupLink) {
-                signupLink.style.pointerEvents = disabled ? 'none' : '';
-                signupLink.style.opacity       = disabled ? '0.4'  : '';
-            }
-        }
-
+        /* @returns {void} */
         function doValidate() {
-            var username = unameInput ? unameInput.value.trim() : '';
+            var username = $unameInput.val().trim();
             if (!username) { showStep1Error('Please enter your username or email.', false); return; }
-            /* Blur first — forces the browser to close the native autocomplete dropdown */
-            if (unameInput) unameInput.blur();
+            $unameInput.trigger('blur');
             clearStep1Error();
-            spinBtn(continueBtn, 'Checking...');
+            spinBtn($continueBtn, 'Checking...');
             setSocialDisabled(true);
 
-            var body = 'UserName=' + encodeURIComponent(username);
-            if (csrfName && csrfVal) body += '&' + encodeURIComponent(csrfName) + '=' + encodeURIComponent(csrfVal);
+            var data = { UserName: username };
+            if (csrfName && csrfVal) data[csrfName] = csrfVal;
 
-            fetch('/login/validate-username', {
-                method : 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body   : body,
-            })
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
-                resetBtn(continueBtn, 'bx-right-arrow-circle', 'Continue');
+            $.ajax({
+                url     : '/login/validate-username',
+                method  : 'POST',
+                data    : data,
+                dataType: 'json'
+            }).done(function (resp) {
+                resetBtn($continueBtn, 'bx-right-arrow-circle', 'Continue');
                 setSocialDisabled(false);
-                if (data.Error) {
-                    if (data.NeedsEmailVerification) _pendingOrgEmail = data.OrgEmail || '';
-                    if (data.SubscriptionExpired && data.accessRef) {
-                        showSubscriptionExpiredError(
-                            data.Message,
-                            data.accessRef,
-                            data.subPlanName || '',
-                            data.subEndDate  || '',
-                            data.subOrgName  || ''
-                        );
-                    } else {
-                        showStep1Error(data.Message || 'Something went wrong. Please try again.', !!data.NeedsEmailVerification);
-                    }
+                if (resp.Error) {
+                    if (resp.NeedsEmailVerification) _pendingOrgEmail = resp.OrgEmail || '';
+                    showStep1Error(resp.Message || 'Something went wrong. Please try again.', !!resp.NeedsEmailVerification);
                     return;
                 }
-                goToStep2(data.DisplayName || data.Username, data.Username || username, data.ImageUrl || '');
-            })
-            .catch(function () {
-                resetBtn(continueBtn, 'bx-right-arrow-circle', 'Continue');
+                goToStep2(resp.DisplayName || resp.Username, resp.Username || username, resp.ImageUrl || '');
+            }).fail(function () {
+                resetBtn($continueBtn, 'bx-right-arrow-circle', 'Continue');
                 setSocialDisabled(false);
                 showStep1Error('Connection failed. Please try again.', false);
             });
         }
 
-        // Continue button
-        if (continueBtn) {
-            addRipple(continueBtn);
-            continueBtn.addEventListener('click', doValidate);
-        }
-
-        // Enter key on username
-        if (unameInput) {
-            unameInput.addEventListener('keydown', function (e) {
-                if (e.key === 'Enter') { e.preventDefault(); doValidate(); }
-            });
-        }
-
-        // Not you link
-        if (notYouLink) {
-            notYouLink.addEventListener('click', goToStep1);
-        }
-
-        // Step 2 form submit
-        if (loginForm) {
-            addRipple(submitBtn);
-            loginForm.addEventListener('submit', function () {
-                if (submitBtn) {
-                    spinBtn(submitBtn, 'Signing in...');
-                }
+        addRipple($continueBtn);
+        $continueBtn.on('click', doValidate);
+        $unameInput.on('keydown', function (e) {
+            if (e.key === 'Enter') { e.preventDefault(); doValidate(); }
+        });
+        $notYouLink.on('click', goToStep1);
+        if ($loginForm.length) {
+            addRipple($submitBtn);
+            $loginForm.on('submit', function () {
+                spinBtn($submitBtn, 'Signing in...');
                 setSocialDisabled(true);
             });
         }
 
-        // Auto-focus username on load
-        if (unameInput && step1Panel.style.display !== 'none') {
-            setTimeout(function () { unameInput.focus(); }, 400);
+        /* Blur password on Enter, then submit — prevent default to avoid double-submit */
+        $('#UserPassword').on('keydown', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                $(this).trigger('blur');
+                $(this).closest('form').trigger('submit');
+            }
+        });
+
+        /* On wrong-password page reload: restore step 2 using sessionStorage */
+        (function () {
+            if (!$('#lrStep2AlertWrap .alert-danger').length) return;
+            var pendUser = '', pendName = '';
+            try { pendUser = sessionStorage.getItem('lr_step2_user') || ''; pendName = sessionStorage.getItem('lr_step2_name') || ''; } catch (_) {}
+            if (!pendUser) return;
+            $welcomeName.text(pendName || pendUser);
+            $step2Name.val(pendUser);
+            $step1Panel.css('animation', 'none').hide();
+            $step2Panel.css('animation', '').show();
+            setTimeout(function () { $('#UserPassword').trigger('focus'); }, 150);
+        }());
+
+        /* Auto-focus username on initial load (step 1 visible) */
+        if ($unameInput.length && $step1Panel.css('display') !== 'none') {
+            setTimeout(function () { $unameInput.trigger('focus'); }, 400);
         }
 
         initPwToggle();
@@ -1815,34 +1483,42 @@
     } else {
         // ── SINGLE-STEP FLOW ─────────────────────────────────────────────────
 
-        var lrBtn     = document.getElementById('lrSubmit');
-        var loginForm = document.getElementById('doLoginForm');
+        var $lrBtn     = $('#lrSubmit');
+        var $loginForm = $('#doLoginForm');
 
-        addRipple(lrBtn);
+        addRipple($lrBtn);
 
-        if (loginForm) {
-            loginForm.addEventListener('submit', function () {
-                if (lrBtn) {
-                    spinBtn(lrBtn, 'Signing in...');
-                }
+        if ($loginForm.length) {
+            $loginForm.on('submit', function () {
+                spinBtn($lrBtn, 'Signing in...');
                 setSocialDisabled(true);
             });
         }
 
-        // Re-enable on back/bfcache
-        window.addEventListener('pageshow', function (e) {
-            if (e.persisted) {
-                if (lrBtn) resetBtn(lrBtn, 'bx-log-in-circle', 'Sign In');
-                document.querySelectorAll('.lr-social-btn').forEach(function (btn) {
-                    btn.style.pointerEvents = '';
-                    btn.style.opacity       = '';
-                });
+        /* Re-enable on back/bfcache */
+        $(window).on('pageshow', function (e) {
+            if (e.originalEvent.persisted) {
+                resetBtn($lrBtn, 'bx-log-in-circle', 'Sign In');
+                $('.lr-social-btn').css({'pointer-events': '', 'opacity': ''});
             }
         });
 
-        // Auto-focus username
-        var un = document.getElementById('UserName');
-        if (un) setTimeout(function () { un.focus(); }, 400);
+        /* Blur password on Enter, then submit — prevent default to avoid double-submit */
+        $('#UserPassword').on('keydown', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                $(this).trigger('blur');
+                $(this).closest('form').trigger('submit');
+            }
+        });
+
+        /* Wrong password: danger alert present on load — focus the password field */
+        if ($('.lr-alerts .alert-danger').length) {
+            setTimeout(function () { $('#UserPassword').trigger('focus'); }, 300);
+        } else {
+            /* Auto-focus username only when no error is shown */
+            setTimeout(function () { $('#UserName').trigger('focus'); }, 400);
+        }
 
         initPwToggle();
     }
@@ -1900,85 +1576,79 @@
 
     /**
      * Applies translated strings to all visible page elements without reloading.
-     * Text nodes inside icon-buttons are updated individually to preserve the icon.
      * @param {string} lang - 'en' | 'ta'
      * @returns {void}
      */
     function applyI18n(lang) {
         var s = _lrStrings[lang] || _lrStrings.en;
 
-        // Pure text elements — safe to set textContent directly
-        document.querySelectorAll('.lr-form-head h3').forEach(function (el) { el.textContent = s.heading; });
-        document.querySelectorAll('.lr-form-head p').forEach(function (el) { el.textContent = s.sub; });
-        document.querySelectorAll('label[for="UserName"]').forEach(function (el) { el.textContent = s.labelUser; });
-        document.querySelectorAll('label[for="UserPassword"]').forEach(function (el) { el.textContent = s.labelPass; });
-        document.querySelectorAll('.lr-forgot').forEach(function (el) { el.textContent = s.forgot; });
-        document.querySelectorAll('.lr-not-you').forEach(function (el) { el.textContent = s.notYou; });
-        document.querySelectorAll('.lr-social-divider span').forEach(function (el) { el.textContent = s.divider; });
+        $('.lr-form-head h3').text(s.heading);
+        $('.lr-form-head p').text(s.sub);
+        $('label[for="UserName"]').text(s.labelUser);
+        $('label[for="UserPassword"]').text(s.labelPass);
+        $('.lr-forgot').text(s.forgot);
+        $('.lr-not-you').text(s.notYou);
+        $('.lr-social-divider span').text(s.divider);
+        $('#UserName').prop('placeholder', s.phUser);
+        $('#UserPassword').prop('placeholder', s.phPass);
 
-        // Input placeholders
-        document.querySelectorAll('#UserName').forEach(function (el) { el.placeholder = s.phUser; });
-        document.querySelectorAll('#UserPassword').forEach(function (el) { el.placeholder = s.phPass; });
-
-        // Continue button — update trailing text node, leave icon intact
-        var contBtn = document.getElementById('lrContinueBtn');
-        if (contBtn) {
-            var tn = _lastTextNode(contBtn.querySelector('span'));
+        /* Continue button — update trailing text node, leave icon intact */
+        var $contBtn = $('#lrContinueBtn');
+        if ($contBtn.length) {
+            var tn = _lastTextNode($contBtn.find('span')[0]);
             if (tn) tn.textContent = ' ' + s.btnContinue;
         }
 
-        // Sign In button(s) — update trailing text node, leave icon intact
-        document.querySelectorAll('button.lr-btn[type="submit"] > span').forEach(function (span) {
-            var tn = _lastTextNode(span);
+        /* Sign In button(s) — update trailing text node, leave icon intact */
+        $('button.lr-btn[type="submit"] > span').each(function () {
+            var tn = _lastTextNode(this);
             if (tn) tn.textContent = ' ' + s.btnSignin;
         });
 
-        // Google button(s) — update trailing text node, leave SVG intact
-        document.querySelectorAll('.lr-social-google').forEach(function (el) {
-            var tn = _lastTextNode(el);
+        /* Google button(s) — update trailing text node, leave SVG intact */
+        $('.lr-social-google').each(function () {
+            var tn = _lastTextNode(this);
             if (tn) tn.textContent = ' ' + s.btnGoogle + ' ';
         });
 
-        // Footer signup note — "New here?" text + link
-        var signupPara = document.querySelector('.lr-signup-note');
-        if (signupPara) {
-            var firstTn = signupPara.firstChild;
+        /* Footer signup note */
+        var $signupPara = $('.lr-signup-note');
+        if ($signupPara.length) {
+            var firstTn = $signupPara[0].firstChild;
             while (firstTn && firstTn.nodeType !== 3) firstTn = firstTn.nextSibling;
             if (firstTn) firstTn.textContent = ' ' + s.signupPre + ' ';
-            var signupAnchor = signupPara.querySelector('a');
-            if (signupAnchor) signupAnchor.textContent = s.signupLink;
+            $signupPara.find('a').text(s.signupLink);
         }
     }
 
     // ── Language switcher ────────────────────────────────────────────────────
     (function () {
-        var switchEl   = document.getElementById('lrLangSwitch');
-        var triggerEl  = document.getElementById('lrLangTrigger');
-        var labelEl    = document.getElementById('lrLangLabel');
-        var opts       = document.querySelectorAll('.lr-lang-opt');
-        if (!switchEl || !triggerEl) return;
+        var $switchEl  = $('#lrLangSwitch');
+        var $triggerEl = $('#lrLangTrigger');
+        var $labelEl   = $('#lrLangLabel');
+        var $opts      = $('.lr-lang-opt');
+        if (!$switchEl.length || !$triggerEl.length) return;
 
-        triggerEl.addEventListener('click', function (e) {
+        $triggerEl.on('click', function (e) {
             e.stopPropagation();
-            switchEl.classList.toggle('open');
+            $switchEl.toggleClass('open');
         });
 
-        opts.forEach(function (opt) {
-            opt.addEventListener('click', function () {
-                var lang = opt.getAttribute('data-lang');
-                labelEl.textContent = lang === 'ta' ? 'த' : 'En';
-                opts.forEach(function (o) { o.classList.remove('lr-lang-active'); });
-                opt.classList.add('lr-lang-active');
-                switchEl.classList.remove('open');
-                applyI18n(lang);
-            });
+        $opts.on('click', function () {
+            var lang = $(this).data('lang');
+            $labelEl.text(lang === 'ta' ? 'த' : 'En');
+            $opts.removeClass('lr-lang-active');
+            $(this).addClass('lr-lang-active');
+            $switchEl.removeClass('open');
+            applyI18n(lang);
         });
 
-        document.addEventListener('click', function () {
-            switchEl.classList.remove('open');
+        $(document).on('click', function () {
+            $switchEl.removeClass('open');
         });
     }());
-})();
+
+}(jQuery));
 </script>
 
 <script>

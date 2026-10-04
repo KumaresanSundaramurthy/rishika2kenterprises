@@ -87,14 +87,18 @@ $route['dev/cache/getUpstashData']     = 'cachemonitor/getUpstashData';
 $route['dev/cache/deleteRedisKey']     = 'cachemonitor/deleteRedisKey';
 $route['dev/cache/deleteUpstashKey']   = 'cachemonitor/deleteUpstashKey';
 
-// Subscription (public — no JWT required; middleware excludes 'subscription' + 'subscriptionrenew')
+// Subscription (JWT required; 'subscriptionrenew' is the public renewal flow — excluded from JWT in middleware)
 $route['subscription/expired']              = 'subscription/expired';
 $route['subscription/plans']               = 'subscription/plans';
 $route['subscription']                      = 'subscription/index';
 $route['subscription/renew']               = 'subscriptionrenew/index';
 $route['subscription/renew/createOrder']   = 'subscriptionrenew/createOrder';
 $route['subscription/renew/confirmPayment']= 'subscriptionrenew/confirmPayment';
-$route['subscription/renew/cancelToken']   = 'subscriptionrenew/cancelToken';
+$route['subscription/renew/cancelToken']      = 'subscriptionrenew/cancelToken';
+$route['subscription/renew/prepareCheckout'] = 'subscriptionrenew/prepareCheckout';
+$route['subscription/payOrder/(:num)']       = 'subscription/payOrder/$1';
+$route['subscription/createOrderPayment']    = 'subscription/createOrderPayment';
+$route['subscription/confirmOrderPayment']   = 'subscription/confirmOrderPayment';
 
 // Signup (public — no JWT required)
 $route['signup']                  = 'signup/index';

@@ -106,9 +106,10 @@ class Signup_model extends CI_Model {
             }
 
             // 2. OrganisationTbl
+            $brandName = !empty(trim($formData['BrandName'] ?? '')) ? trim($formData['BrandName']) : $orgName;
             $orgResult = $this->dbwrite_model->insertData('Organisation', 'OrganisationTbl', [
                 'Name'         => $orgName,
-                'BrandName'    => $orgName,
+                'BrandName'    => $brandName,
                 'ShortCode'    => $shortCode,
                 'OrgToken'     => $orgToken,
                 'SectorUID'    => $sectorUID,

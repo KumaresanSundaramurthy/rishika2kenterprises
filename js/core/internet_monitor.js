@@ -21,13 +21,28 @@ class InternetMonitor {
         this._slowBannerTimer     = null; // auto-hide timer for slow banner
         this._offlineSince        = null; // timestamp when offline started
         this._offlineTimerInterval = null; // interval updating duration counter
+        this._offlineDebounceTimer = null; // debounce timer for the 'offline' browser event
 
         this.init();
     }
 
     init() {
-        window.addEventListener('online',  () => this.handleOnline());
-        window.addEventListener('offline', () => this.handleOffline());
+        window.addEventListener('online', () => {
+            /* Cancel any pending debounced offline call — the network recovered
+               before the grace period expired, so never show the modal. */
+            clearTimeout(this._offlineDebounceTimer);
+            this.handleOnline();
+        });
+        window.addEventListener('offline', () => {
+            /* Defer for 2 s before showing the overlay. Most brief drops
+               (AP roaming, VPN connect, 1-second packet loss) recover within
+               that window, so the user never sees a false alarm.
+               The online listener above cancels this if we reconnect first. */
+            clearTimeout(this._offlineDebounceTimer);
+            this._offlineDebounceTimer = setTimeout(() => {
+                if (!navigator.onLine) this.handleOffline();
+            }, 2000);
+        });
 
         // Track in-flight jQuery AJAX requests.
         // ajaxSend / ajaxComplete fire for every $.ajax call made by the app,
@@ -52,6 +67,13 @@ class InternetMonitor {
         // Skip the ping entirely while the user has AJAX requests running.
         // A slow server response to a user action is NOT a slow internet connection.
         if (this.activeRequests > 0) return;
+
+        /* If the browser already reports no network, act immediately rather
+           than burning a ping attempt that will only time out. */
+        if (!navigator.onLine) {
+            if (this.isOnline) this.handleOffline();
+            return;
+        }
 
         const startTime = Date.now();
         let timedOut = false;
@@ -78,13 +100,19 @@ class InternetMonitor {
                 } else {
                     this.onSlowPing();
                 }
-            } else {
-                this.handleOffline();
             }
+            /* Any non-ok response (401, 403, 404, 5xx) means the server IS
+               reachable — the connection is fine. Do not trigger offline mode.
+               401 specifically can appear when the JWT session expires. */
         })
         .catch(() => {
             clearTimeout(timeoutId);
-            if (!timedOut && this.isOnline) this.handleOffline();
+            /* A fetch error only means the device is offline when the browser
+               itself confirms the network is gone. If navigator.onLine is still
+               true the failure is a transient server issue, not a lost connection. */
+            if (!timedOut && !navigator.onLine && this.isOnline) {
+                this.handleOffline();
+            }
         });
     }
 
@@ -308,8 +336,8 @@ class InternetMonitor {
         // Live duration counter
         this._offlineTimerInterval = setInterval(() => {
             if (!this._offlineSince) return;
-            const el = document.getElementById('io-duration-val');
-            if (el) el.textContent = this._formatOfflineDuration(Date.now() - this._offlineSince);
+            const $el = $('#io-duration-val');
+            if ($el.length) $el.text(this._formatOfflineDuration(Date.now() - this._offlineSince));
         }, 1000);
     }
 

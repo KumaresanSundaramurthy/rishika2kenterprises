@@ -262,7 +262,7 @@ $(document).ready(function () {
             confirmButtonText: 'View Plans',
             allowOutsideClick: false,
         }).then(function () {
-            window.location.href = global_base_url + 'subscription/expired';
+            window.location.href = global_base_url + 'subscription/dashboard';
         });
     });
 
@@ -833,7 +833,7 @@ window._r2kRedirecting = false;
 window._gpoUsingManualProgress = false;
 
 jQuery(document).ajaxStart(function () {
-    if (AjaxLoading == 1) {
+    if (window.AjaxLoading == 1) {
         showUIBlock();
     }
 }).ajaxStop(function () {

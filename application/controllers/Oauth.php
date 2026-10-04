@@ -257,23 +257,16 @@ class Oauth extends CI_Controller {
             }
         }
 
-        // Subscription check — same as normal login
+        // Subscription check — expired orgs are still allowed in so they can renew
         $this->load->library('subscription');
         $subscriptionCheck = $this->subscription->checkSubscription($user->UserUID);
         $this->subscription->logLoginAttempt(
             $user->UserUID,
             $email,
-            $subscriptionCheck->isValid ? 'Success' : 'Blocked_Expired',
+            'Success',
             $subscriptionCheck->status,
-            $subscriptionCheck->isValid ? null : $subscriptionCheck->message
+            null
         );
-
-        if (!$subscriptionCheck->isValid) {
-            $this->session->set_flashdata('subscription_expired',  true);
-            $this->session->set_flashdata('subscription_message',  $subscriptionCheck->message);
-            $this->session->set_flashdata('subscription_status',   $subscriptionCheck->status);
-            throw new Exception($subscriptionCheck->message);
-        }
 
         // Build JWT payload
         $this->load->model('login_model');
@@ -336,9 +329,24 @@ class Oauth extends CI_Controller {
 
         $intendedUrl = $this->session->userdata('intended_url');
         $this->session->unset_userdata('intended_url');
+        /* Never return to payment pages if subscription is not pending */
+        $_oauthPaymentPages = ['subscribe', 'signuppayment'];
+        if (!empty($intendedUrl) && in_array(explode('/', $intendedUrl)[0], $_oauthPaymentPages) && $subscriptionCheck->status !== 'PendingPayment') {
+            $intendedUrl = '';
+        }
 
         if ($isNewAccount) {
             redirect('onboarding', 'refresh');
+        } elseif ($subscriptionCheck->status === 'PendingPayment') {
+            redirect('subscribe', 'refresh');
+        } elseif (!$subscriptionCheck->isValid) {
+            $rToken = bin2hex(random_bytes(16));
+            $this->redisservice->setCache(
+                $this->redisservice->envKey('rnt_' . $rToken),
+                ['orgUID' => (int)($user->UserOrgUID ?? 0), 'createdAt' => time()],
+                604800
+            );
+            redirect('subscription/renew?sid=' . $rToken, 'refresh');
         } else {
             redirect(!empty($intendedUrl) ? $intendedUrl : 'dashboard', 'refresh');
         }

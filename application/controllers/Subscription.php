@@ -6,6 +6,8 @@ class Subscription extends MY_Controller {
         parent::__construct();
         $this->load->model('subscription_model');
         $this->load->model('billingplan_model');
+        $this->load->model('signup_model');
+        $this->load->model('dbwrite_model');
     }
 
     /* ── Pages ──────────────────────────────────────────────────────────────── */
@@ -30,6 +32,7 @@ class Subscription extends MY_Controller {
         $this->load->view('common/header');
         $this->load->view('subscription/dashboard', $this->pageData);
         $this->load->view('common/footer');
+        $this->load->view('subscription/dashboard_js', $this->pageData);
     }
 
     public function expired(): void {
@@ -71,6 +74,7 @@ class Subscription extends MY_Controller {
         $this->load->view('common/header');
         $this->load->view('subscription/plans', $this->pageData);
         $this->load->view('common/footer');
+        $this->load->view('subscription/plans_js');
     }
 
     /* ── AJAX: get plan-change options (for modal) ──────────────────────────── */
@@ -467,10 +471,7 @@ class Subscription extends MY_Controller {
                 ->where_not_in('Status', ['Cancelled'])
                 ->order_by('StartDate', 'DESC')
                 ->limit(1)
-                ->update('Billing.OrgSubscriptionTbl', [
-                    'Status'    => 'Active',
-                    'UpdatedBy' => $userUID,
-                ]);
+                ->update('Billing.OrgSubscriptionTbl', ['Status' => 'Active']);
 
             if ($writeDb->trans_status() === FALSE) {
                 $writeDb->trans_rollback();
@@ -558,12 +559,185 @@ class Subscription extends MY_Controller {
         }
     }
 
+    /* ── Pay a specific pending order ──────────────────────────────────────── */
+
+    /**
+     * @param int $orderUID
+     * @returns void
+     */
+    public function payOrder(int $orderUID): void {
+        $orgUID = $this->_orgUID();
+
+        $orderResult = $this->billingplan_model->getPendingOrder($orgUID, $orderUID);
+        if ($orderResult->Error || !$orderResult->Data || (float)$orderResult->Data->NetAmount <= 0) {
+            redirect('subscription/dashboard', 'refresh');
+            return;
+        }
+
+        $this->pageData['order']   = $orderResult->Data;
+        $this->pageData['orgName'] = $this->pageData['JwtData']->Org->OrgName ?? '';
+
+        $this->load->view('common/header');
+        $this->load->view('subscription/pay_order', $this->pageData);
+        $this->load->view('common/footer');
+        $this->load->view('subscription/pay_order_js', $this->pageData);
+    }
+
+    /* ── AJAX: create Razorpay order for a pending subscription order ───────── */
+
+    public function createOrderPayment(): void {
+        $this->_ajaxOnly();
+        $out = new stdClass();
+        try {
+            $jwtData  = $this->pageData['JwtData'] ?? null;
+            if (!$jwtData) throw new Exception('Session error.');
+
+            $orgUID   = $this->_orgUID();
+            $orderUID = (int)$this->input->post('order_uid');
+
+            if ($orderUID <= 0) throw new ValidationException('Invalid order.');
+
+            $orderResult = $this->billingplan_model->getPendingOrder($orgUID, $orderUID);
+            if ($orderResult->Error || !$orderResult->Data) {
+                throw new ValidationException('Order not found or already paid.');
+            }
+            $order = $orderResult->Data;
+
+            $amountPaise = (int)round((float)$order->NetAmount * 100);
+            if ($amountPaise < 100) throw new ValidationException('Amount too low for online payment.');
+
+            $this->load->library('Razorpayapi');
+            if (!$this->razorpayapi->isConfigured()) {
+                throw new Exception('Online payment is not currently enabled. Please contact support.');
+            }
+
+            $receiptId  = 'spay_' . $orgUID . '_' . $orderUID . '_' . time();
+            $rpOrder = $this->razorpayapi->createOrder($amountPaise, $receiptId, 'INR', [
+                'type'      => 'subscription_pay',
+                'org_uid'   => (string)$orgUID,
+                'order_uid' => (string)$orderUID,
+            ]);
+
+            $out->Error       = false;
+            $out->order_id    = $rpOrder['id'];
+            $out->key_id      = $this->razorpayapi->getKeyId();
+            $out->amount      = $amountPaise;
+            $out->currency    = 'INR';
+            $out->name        = htmlspecialchars($jwtData->Org->OrgName ?? 'Your Organisation', ENT_QUOTES, 'UTF-8');
+            $out->description = $order->PlanName . ' — ' . ($order->BillingCycle ?? '');
+            $out->prefill     = ['name' => $out->name, 'email' => $jwtData->User->EmailAddress ?? ''];
+
+        } catch (ValidationException $e) {
+            $out->Error   = true;
+            $out->Message = $e->getMessage();
+        } catch (Exception $e) {
+            notifyError('Subscription::createOrderPayment', $e);
+            $out->Error   = true;
+            $out->Message = 'Could not initiate payment. Please try again.';
+        }
+        $this->output->set_content_type('application/json')->set_output(json_encode($out));
+    }
+
+    /* ── AJAX: verify Razorpay payment and mark pending order as paid ──────── */
+
+    public function confirmOrderPayment(): void {
+        $this->_ajaxOnly();
+        $out = new stdClass();
+        try {
+            $jwtData = $this->pageData['JwtData'] ?? null;
+            if (!$jwtData) throw new Exception('Session error.');
+
+            $orgUID      = $this->_orgUID();
+            $orderUID    = (int)$this->input->post('order_uid');
+            $rpOrderId   = trim($this->input->post('razorpay_order_id')   ?: '');
+            $rpPaymentId = trim($this->input->post('razorpay_payment_id') ?: '');
+            $rpSignature = trim($this->input->post('razorpay_signature')  ?: '');
+
+            if ($orderUID <= 0) throw new ValidationException('Invalid order.');
+            if (!$rpOrderId || !$rpPaymentId || !$rpSignature) {
+                throw new ValidationException('Incomplete payment data. Please try again.');
+            }
+
+            $orderResult = $this->billingplan_model->getPendingOrder($orgUID, $orderUID);
+            if ($orderResult->Error || !$orderResult->Data) {
+                throw new ValidationException('Order not found or already paid.');
+            }
+            $order = $orderResult->Data;
+
+            $this->load->library('Razorpayapi');
+            if (!$this->razorpayapi->verifySignature($rpOrderId, $rpPaymentId, $rpSignature)) {
+                throw new ValidationException('Payment verification failed. Contact support if amount was deducted.');
+            }
+
+            $paymentMode = 'Razorpay';
+            $bankRrn     = '';
+            try {
+                $rpDetails   = $this->razorpayapi->fetchPayment($rpPaymentId);
+                $paymentMode = $this->_parsePaymentMode($rpDetails);
+                $bankRrn     = (string)(
+                    $rpDetails['acquirer_data']['rrn']
+                    ?? $rpDetails['acquirer_data']['bank_transaction_id']
+                    ?? ''
+                );
+            } catch (Exception $e) {
+                notifyError('Subscription::confirmOrderPayment fetchPayment', $e);
+            }
+
+            $now = gmdate('Y-m-d H:i:s');
+
+            $this->dbwrite_model->updateData('Billing', 'SubscriptionOrdersTbl', [
+                'Status'      => 'Paid',
+                'IsPaid'      => 1,
+                'PaidOn'      => $now,
+                'PaymentMode' => $paymentMode,
+            ], ['OrderUID' => $orderUID, 'OrgUID' => $orgUID]);
+
+            $plan = $this->signup_model->getSectorPlan((int)$order->SectorPlanUID);
+            if (!$plan) throw new Exception('Plan not found.');
+
+            $this->signup_model->createPaymentAndInvoice(
+                $orgUID, $orderUID, $plan,
+                $order->RenewalType,
+                $rpOrderId, $rpPaymentId, $rpSignature, $paymentMode, $now, $bankRrn
+            );
+
+            $out->Error    = false;
+            $out->Message  = 'Payment successful. Thank you!';
+            $out->Redirect = base_url('subscription/dashboard');
+
+        } catch (ValidationException $e) {
+            $out->Error   = true;
+            $out->Message = $e->getMessage();
+        } catch (Exception $e) {
+            notifyError('Subscription::confirmOrderPayment', $e);
+            $out->Error   = true;
+            $out->Message = 'Something went wrong confirming your payment. Please contact support.';
+        }
+        $this->output->set_content_type('application/json')->set_output(json_encode($out));
+    }
+
     /* ── Private helpers ────────────────────────────────────────────────────── */
 
     private function _ajaxOnly(): void {
         if (!$this->input->is_ajax_request()) {
             show_error('Direct access not allowed.', 403);
         }
+    }
+
+    /**
+     * @param array $p  Razorpay fetchPayment response
+     * @returns string
+     */
+    private function _parsePaymentMode(array $p): string {
+        $method = $p['method'] ?? '';
+        return match($method) {
+            'upi'        => 'UPI' . (!empty($p['vpa']) ? ' - ' . $p['vpa'] : ''),
+            'card'       => 'Card - ' . trim(($p['card']['network'] ?? '') . ' ' . ucfirst($p['card']['type'] ?? '')),
+            'netbanking' => 'Netbanking' . (!empty($p['bank']) ? ' - ' . strtoupper($p['bank']) : ''),
+            'wallet'     => 'Wallet - ' . ucfirst($p['wallet'] ?? ''),
+            'emi'        => 'EMI',
+            default      => 'Razorpay',
+        };
     }
 
     private function _getAdminRoleUID(int $orgUID): int {

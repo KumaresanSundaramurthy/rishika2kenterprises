@@ -12,7 +12,7 @@ class Middleware {
 		$Controller = trim($CI->router->fetch_class());  //Controller name
 		$Method     = trim($CI->router->fetch_method());  //Method name
 
-		$ExcludeController = array("website", "login", "receipt", "launch", "oauth", "doc", "signup", "subscriptionrenew", "razorpay", "pay");
+		$ExcludeController = array("website", "login", "receipt", "launch", "oauth", "doc", "signup", "subscriptionrenew", "razorpay", "pay", "ping");
 	    
 		if(in_array($Controller, $ExcludeController)) {
 			return;
@@ -23,22 +23,28 @@ class Middleware {
 
 		// Save the intended URL so the login page can redirect back after successful login
         // Only for non-AJAX, non-excluded page requests
+        $_neverIntended = array_merge($ExcludeController, ['subscribe', 'signuppayment', 'subscription']);
         if (!$CI->input->is_ajax_request()) {
             $intendedUri = trim($CI->uri->uri_string(), '/');
-            if (!empty($intendedUri) && !in_array(explode('/', $intendedUri)[0], $ExcludeController)) {
+            if (!empty($intendedUri) && !in_array(explode('/', $intendedUri)[0], $_neverIntended)) {
                 $CI->session->set_userdata('intended_url', $intendedUri);
             }
         }
 
 		//check JWT
 		if (empty($JwtEncoded)) {
+			if ($CI->input->is_ajax_request()) {
+				$CI->output->set_status_header(401)->set_content_type('application/json', 'utf-8')
+					->set_output(json_encode(['Error' => true, 'SessionExpired' => true, 'Message' => 'Your session has expired. Please sign in to continue.']))->_display();
+				exit;
+			}
 			$CI->session->set_flashdata('warning', 'Your session has expired. Please sign in to continue.');
 			redirect('login', 'refresh');
         }
 
-		/* Billing checkout: allow up to 24 h of JWT clock skew so mid-payment
-		   expiry never interrupts an in-flight payment. */
-		if ($Controller === 'billingcheckout') {
+		/* Billing/signup payment pages: allow up to 24 h of JWT clock skew so
+		   mid-payment expiry never interrupts an in-flight payment. */
+		if (in_array($Controller, ['billingcheckout', 'signuppayment'])) {
 			\Firebase\JWT\JWT::$leeway = 86400;
 		}
 
@@ -65,6 +71,11 @@ class Middleware {
 						exit;
 					}
 
+					if ($CI->input->is_ajax_request()) {
+						$CI->output->set_status_header(401)->set_content_type('application/json', 'utf-8')
+							->set_output(json_encode(['Error' => true, 'SessionExpired' => true, 'Message' => 'Your session has expired. Please sign in to continue.']))->_display();
+						exit;
+					}
 					$CI->session->set_flashdata('warning', 'Your session has expired. Please sign in to continue.');
 					redirect('login', 'refresh');
 
@@ -122,11 +133,13 @@ class Middleware {
 					// ── Subscription expiry check ─────────────────────────────────────────────
 					$sub = $CI->pageData['JwtData']->Subscription ?? null;
 					if ($sub) {
-						$isExpired = !empty($sub->EndDate) && strtotime($sub->EndDate) < strtotime(date('Y-m-d'));
-						if (!$isExpired && isset($sub->Status)) {
-							$isExpired = ($sub->Status === 'Expired' || $sub->Status === 'Cancelled' || $sub->Status === 'Suspended');
-						}
-						if ($isExpired && !in_array($CI->router->fetch_class(), ['signuppayment', 'billingcheckout'])) {
+						$endDateTs  = !empty($sub->EndDate) ? strtotime($sub->EndDate) : 0;
+						$graceDays  = (int)($sub->GracePeriodDays ?? 7);
+						$graceEndTs = $endDateTs + ($graceDays * 86400);
+						$isExpired  = ($endDateTs > 0 && time() > $graceEndTs)
+									|| in_array($sub->Status ?? '', ['Expired', 'Cancelled', 'Suspended']);
+							/* subscription/subscriptionrenew controllers must be reachable so expired users can renew */
+						if ($isExpired && !in_array($CI->router->fetch_class(), ['signuppayment', 'billingcheckout', 'subscription', 'subscriptionrenew'])) {
 							if ($CI->input->is_ajax_request()) {
 								$CI->output
 									->set_status_header(402)
@@ -139,7 +152,14 @@ class Middleware {
 									->_display();
 								exit;
 							}
-							redirect('subscribe', 'refresh');
+							/* Generate a renewal token so the renew page can identify the org */
+							$_rToken = bin2hex(random_bytes(16));
+							$CI->redisservice->setCache(
+								$CI->redisservice->envKey('rnt_' . $_rToken),
+								['orgUID' => (int)($CI->pageData['JwtData']->Org->OrgUID ?? 0), 'createdAt' => time()],
+								604800
+							);
+							redirect('subscription/renew?sid=' . $_rToken, 'refresh');
 						}
 					}
 
@@ -270,22 +290,42 @@ class Middleware {
 				}
 
 			} else {
+				if ($CI->input->is_ajax_request()) {
+					$CI->output->set_status_header(401)->set_content_type('application/json', 'utf-8')
+						->set_output(json_encode(['Error' => true, 'SessionExpired' => true, 'Message' => 'Your session has expired. Please sign in to continue.']))->_display();
+					exit;
+				}
 				$CI->session->set_flashdata('warning', 'Your session has expired. Please sign in to continue.');
 				redirect('login', 'refresh');
 			}
 
 		} catch(\Firebase\JWT\ExpiredException $e) {
 
+			if ($CI->input->is_ajax_request()) {
+				$CI->output->set_status_header(401)->set_content_type('application/json', 'utf-8')
+					->set_output(json_encode(['Error' => true, 'SessionExpired' => true, 'Message' => 'Your session has expired. Please sign in to continue.']))->_display();
+				exit;
+			}
 			$CI->session->set_flashdata('warning', 'Your session has expired. Please sign in to continue.');
 			redirect('login', 'refresh');
 
 		} catch (\Firebase\JWT\SignatureInvalidException $e) {
 
+			if ($CI->input->is_ajax_request()) {
+				$CI->output->set_status_header(401)->set_content_type('application/json', 'utf-8')
+					->set_output(json_encode(['Error' => true, 'SessionExpired' => true, 'Message' => 'Invalid session. Please sign in again.']))->_display();
+				exit;
+			}
 			$CI->session->set_flashdata('danger', 'Invalid session detected. Please sign in again.');
 			redirect('login', 'refresh');
 
 		} catch (Exception $e) {
 
+			if ($CI->input->is_ajax_request()) {
+				$CI->output->set_status_header(401)->set_content_type('application/json', 'utf-8')
+					->set_output(json_encode(['Error' => true, 'SessionExpired' => true, 'Message' => 'An unexpected session error occurred. Please sign in again.']))->_display();
+				exit;
+			}
 			$CI->session->set_flashdata('danger', 'An unexpected error occurred. Please sign in again.');
 			redirect('login', 'refresh');
 

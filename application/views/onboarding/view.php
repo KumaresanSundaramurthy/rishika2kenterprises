@@ -587,8 +587,8 @@ $shortCode  = htmlspecialchars($shortCode ?? '', ENT_QUOTES);
         var gstin     = document.getElementById('obGSTIN').value.trim();
 
         var allOk =
-            orgName.length >= 2 &&
-            brandName.length >= 2 &&
+            orgName.length >= 3 &&
+            brandName.length >= 3 &&
             /^[A-Z0-9]{3}$/.test(shortCode) &&
             mobile.length === 10 && _mobileOk && !_mobileChecking &&
             state !== '' &&
@@ -619,15 +619,21 @@ $shortCode  = htmlspecialchars($shortCode ?? '', ENT_QUOTES);
 
         var orgName = document.getElementById('obOrgName').value.trim();
         _clearErr('obOrgName');
-        if (!orgName || orgName.length < 2) {
-            _showErr('obOrgName', 'Organisation name is required (min 2 characters).');
+        if (!orgName) {
+            _showErr('obOrgName', 'Organisation name is required.');
+            ok = false;
+        } else if (orgName.length < 3) {
+            _showErr('obOrgName', 'Organisation name must be at least 3 characters.');
             ok = false;
         }
 
         var brandName = document.getElementById('obBrandName').value.trim();
         _clearErr('obBrandName');
-        if (!brandName || brandName.length < 2) {
-            _showErr('obBrandName', 'Brand name is required (min 2 characters).');
+        if (!brandName) {
+            _showErr('obBrandName', 'Brand name is required.');
+            ok = false;
+        } else if (brandName.length < 3) {
+            _showErr('obBrandName', 'Brand name must be at least 3 characters.');
             ok = false;
         }
 

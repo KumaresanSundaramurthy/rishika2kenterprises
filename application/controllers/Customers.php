@@ -10,6 +10,37 @@ class Customers extends MY_Controller {
     }
 
     // ── Internal helpers ──────────────────────────────────────────────────────
+
+    /**
+     * Registers a PHP shutdown function that — after the HTTP response is flushed
+     * to the browser — translates the customer name and upserts into CustomersTbl_Lang.
+     * If the user typed Tamil: save original directly (no extra API call).
+     * If the user typed English: translate en→ta via MyMemory API in background.
+     * @param int    $customerUID  CustomerUID saved in base table
+     * @param string $originalName Name as the user typed it (may be Tamil or English)
+     * @param string $typedLang    Language detected from originalName ('en' or 'ta')
+     * @param int    $userUID      UserUID for audit columns
+     * @returns void
+     */
+    private function _triggerLangSave(int $customerUID, string $originalName, string $typedLang, int $userUID): void {
+        register_shutdown_function(function () use ($customerUID, $originalName, $typedLang, $userUID) {
+            if (function_exists('fastcgi_finish_request')) fastcgi_finish_request();
+            ignore_user_abort(true);
+
+            /* Tamil was already typed → store directly; English was typed → translate to Tamil */
+            $tamilName = ($typedLang === 'ta')
+                ? $originalName
+                : translateViaMymemory($originalName, 'en', 'ta');
+
+            if ($tamilName === '') return;
+
+            $CI = &get_instance();
+            $CI->load->model('customers_model');
+            $CI->load->model('dbwrite_model');
+            $CI->customers_model->saveLangRow($customerUID, 'ta', $tamilName, $userUID);
+        });
+    }
+
     private function _initModule() {
         $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
         $this->pageData['Limit'] = $GeneralSettings->RowLimit ?? 10;
@@ -19,6 +50,8 @@ class Customers extends MY_Controller {
 
         $orgUID = $this->pageData['JwtData']->Org->OrgUID;
         $offset = max(0, ($pageNo - 1) * $limit);
+
+        $filter['LangCode'] = $this->_uiLang();
 
         $this->load->model('customers_model');
         $result = $this->customers_model->getCustomerListPaginated($orgUID, $limit, $offset, $filter);
@@ -247,6 +280,13 @@ class Customers extends MY_Controller {
 
             $customerFormData = $this->buildCustomerFormData($PostData, true);
 
+            /* Normalise Name to English in the base table; Tamil goes to _Lang via fire & forget */
+            $_rawName   = $customerFormData['Name'];
+            $_typedLang = detectTextLang($_rawName);
+            if ($_typedLang === 'ta') {
+                $customerFormData['Name'] = translateViaMymemory($_rawName, 'ta', 'en');
+            }
+
             $InsertDataResp = $this->dbwrite_model->insertData('Customers', 'CustomerTbl', $customerFormData);
             if ($InsertDataResp->Error) throw new Exception($InsertDataResp->Message);
             $CustomerUID = $InsertDataResp->ID;
@@ -304,6 +344,14 @@ class Customers extends MY_Controller {
             $this->EndReturnData->Customer = $cust_Data;
 
             $this->dbwrite_model->commitTransaction();
+
+            /* Queue lang row — fires after HTTP response is sent to browser */
+            $this->_triggerLangSave(
+                (int) $CustomerUID,
+                $_rawName,
+                $_typedLang,
+                (int) $this->pageData['JwtData']->User->UserUID
+            );
 
             // Claim next customer number — 5-retry optimistic lock inside claimNextCustomerNumber.
             // FY rollover is handled automatically: if financial year changed since last creation,
@@ -698,6 +746,13 @@ class Customers extends MY_Controller {
             $customerFormData = $this->buildCustomerFormData($PostData, false);
             if (!empty($PostData['ImageRemoved'])) $customerFormData['Image'] = NULL;
 
+            /* Normalise Name to English in the base table; Tamil goes to _Lang via fire & forget */
+            $_rawName   = $customerFormData['Name'];
+            $_typedLang = detectTextLang($_rawName);
+            if ($_typedLang === 'ta') {
+                $customerFormData['Name'] = translateViaMymemory($_rawName, 'ta', 'en');
+            }
+
             $this->load->model('customers_model');
             $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
             $userUID = $this->pageData['JwtData']->User->UserUID;
@@ -705,7 +760,7 @@ class Customers extends MY_Controller {
             // New values from the form
             $newAmt  = (float) getPostValue($PostData, 'DebitCreditAmount', '', 0);
             $newType = getPostValue($PostData, 'DebitCreditCheck', '', 'Debit');
-            $newName = getPostValue($PostData, 'Name');
+            $newName = $customerFormData['Name'];
             $newSgn  = ($newType === 'Debit') ? $newAmt : -$newAmt;
 
             // Compare against CustOpeningBalanceTbl — the source of truth for opening balance.
@@ -808,6 +863,14 @@ class Customers extends MY_Controller {
             }
 
             $this->dbwrite_model->commitTransaction();
+
+            /* Queue lang row — fires after HTTP response is sent to browser */
+            $this->_triggerLangSave(
+                (int) $CustomerUID,
+                $_rawName,
+                $_typedLang,
+                (int) $userUID
+            );
 
             // Post-commit: recalcAndSync reads CustOpeningBalanceTbl via ReadDb.
             // Must run AFTER commit so ReadDb sees the newly written OpeningBalance.

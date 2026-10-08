@@ -403,14 +403,13 @@ html.layout-menu-fixed-offcanvas .layout-horizontal.transactionPage .layout-page
   gap: 14px;
 }
 
-/* Gradient ring outer — spins the full rainbow ring */
+/* Gradient ring outer — static decorative ring around the logo */
 .gpo-ring-outer {
   width: 90px;
   height: 90px;
   border-radius: 50%;
   background: conic-gradient(from 0deg, #696cff, #a78bfa, #38bdf8, #4ade80, #696cff);
   padding: 4px;
-  animation: gpoSpin 1.4s linear infinite;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -427,10 +426,6 @@ html.layout-menu-fixed-offcanvas .layout-horizontal.transactionPage .layout-page
   align-items: center;
   justify-content: center;
   overflow: hidden;
-}
-
-@keyframes gpoSpin {
-  to { transform: rotate(360deg); }
 }
 
 /* Logo — centered inside the ring */

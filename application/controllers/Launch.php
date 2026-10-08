@@ -7,31 +7,42 @@ class Launch extends CI_Controller {
     }
 
     public function index(): void {
-        $this->load->model('billingplan_model');
+        try {
+            $this->load->model('billingplan_model');
 
-        $rawPlans = $this->billingplan_model->getPublicPlans();
+            $rawPlans = $this->billingplan_model->getPublicPlans();
 
-        /* Group by billing cycle (monthly / yearly / free) */
-        $plansByCycle = [];
-        $planModules  = [];
-        foreach ($rawPlans as $plan) {
-            $cycle = strtolower($plan->BillingCycle ?? 'monthly');
-            $plansByCycle[$cycle][] = $plan;
-            /* Fetch modules once per unique PlanUID+SectorUID combination */
-            $key = $plan->PlanUID . '_' . $plan->SectorUID;
-            if (!isset($planModules[$key])) {
-                $planModules[$key] = $this->billingplan_model->getPlanModulesList(
-                    (int)$plan->PlanUID, (int)$plan->SectorUID
-                );
+            /* Group by billing cycle (monthly / yearly / free) */
+            $plansByCycle = [];
+            $planModules  = [];
+            foreach ($rawPlans as $plan) {
+                $cycle = strtolower($plan->BillingCycle ?? 'monthly');
+                $plansByCycle[$cycle][] = $plan;
+                /* Fetch modules once per unique PlanUID+SectorUID combination */
+                $key = $plan->PlanUID . '_' . $plan->SectorUID;
+                if (!isset($planModules[$key])) {
+                    $planModules[$key] = $this->billingplan_model->getPlanModulesList(
+                        (int)$plan->PlanUID, (int)$plan->SectorUID
+                    );
+                }
             }
+
+            $data['plansByCycle'] = $plansByCycle;
+            $data['planModules']  = $planModules;
+            $data['signupUrl']    = rtrim(getenv('HTTP_HOST_URL') ?: '', '/') . '/signup';
+            $data['loginUrl']     = rtrim(getenv('HTTP_HOST_URL') ?: '', '/') . '/login';
+
+            $this->load->view('launch/index', $data);
+
+        } catch (Exception $e) {
+            /* Fail gracefully — show landing page with empty plans rather than a raw 500 */
+            log_message('error', 'Launch::index — ' . $e->getMessage());
+            $data['plansByCycle'] = [];
+            $data['planModules']  = [];
+            $data['signupUrl']    = rtrim(getenv('HTTP_HOST_URL') ?: '', '/') . '/signup';
+            $data['loginUrl']     = rtrim(getenv('HTTP_HOST_URL') ?: '', '/') . '/login';
+            $this->load->view('launch/index', $data);
         }
-
-        $data['plansByCycle'] = $plansByCycle;
-        $data['planModules']  = $planModules;
-        $data['signupUrl']    = rtrim(getenv('HTTP_HOST_URL') ?: '', '/') . '/signup';
-        $data['loginUrl']     = rtrim(getenv('HTTP_HOST_URL') ?: '', '/') . '/login';
-
-        $this->load->view('launch/index', $data);
     }
 
     public function sendEnquiry() {

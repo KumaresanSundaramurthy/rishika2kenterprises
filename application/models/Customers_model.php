@@ -349,13 +349,15 @@ class Customers_model extends CI_Model {
             $totalCount = (int) $cntQuery->row()->cnt;
 
             // Data query
+            $useLang   = (!empty($filter['LangCode']) && $filter['LangCode'] !== 'en');
+            $nameField = $useLang ? 'COALESCE(CL.Name, Customers.Name) AS Name' : 'Customers.Name AS Name';
             $this->ReadDb->select([
                 'Customers.CustomerUID AS TablePrimaryUID',
                 'Customers.CustomerUID AS CustomerUID',
                 'Customers.OrgUID AS OrgUID',
                 'Customers.SalutationUID AS SalutationUID',
                 'Sal.SalutationName AS SalutationName',
-                'Customers.Name AS Name',
+                $nameField,
                 'Customers.Area AS Area',
                 'Customers.CountryISO2 AS CountryISO2',
                 'Customers.CountryCode AS CountryCode',
@@ -412,6 +414,14 @@ class Customers_model extends CI_Model {
                 'Sal.SalutationUID = Customers.SalutationUID AND Sal.IsDeleted = 0',
                 'left'
             );
+            if ($useLang) {
+                $lc = $this->ReadDb->escape($filter['LangCode']);
+                $this->ReadDb->join(
+                    "Customers.CustomersTbl_Lang AS CL",
+                    "CL.CustomerUID = Customers.CustomerUID AND CL.LangCode = {$lc}",
+                    'left'
+                );
+            }
             $this->ReadDb->where($baseWhere);
             if (!empty($filter['SearchAllData'])) {
                 $s = $filter['SearchAllData'];
@@ -2019,6 +2029,31 @@ class Customers_model extends CI_Model {
         } catch (Exception $e) {
             notifyError('Customers_model::claimNextCustomerNumber', $e);
             return null;
+        }
+    }
+
+    /**
+     * UPSERT a translated name row into CustomersTbl_Lang.
+     * LangCode must never be 'en' — English lives in the base table.
+     * @param int    $customerUID  CustomerUID FK
+     * @param string $langCode     Language code e.g. 'ta', 'hi'
+     * @param string $name         Translated name value
+     * @param int    $userUID      CreatedBy / UpdatedBy
+     * @returns void
+     */
+    public function saveLangRow(int $customerUID, string $langCode, string $name, int $userUID): void {
+        try {
+            $this->dbwrite_model->getWriteDb()->query(
+                "INSERT INTO Customers.CustomersTbl_Lang
+                    (CustomerUID, LangCode, Name, CreatedBy, UpdatedBy)
+                 VALUES (?, ?, ?, ?, ?)
+                 ON DUPLICATE KEY UPDATE
+                    Name      = VALUES(Name),
+                    UpdatedBy = VALUES(UpdatedBy)",
+                [$customerUID, $langCode, $name, $userUID, $userUID]
+            );
+        } catch (Exception $e) {
+            notifyError('Customers_model::saveLangRow', $e);
         }
     }
 }

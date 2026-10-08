@@ -1,4 +1,5 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php $_homeUrl = rtrim(preg_replace('#/app/?$#', '', rtrim(base_url(), '/')), '/') . '/'; ?>
 
 <?php $this->load->view('login/header'); ?>
 
@@ -871,7 +872,7 @@
     <div class="lr-form-panel">
 
         <!-- Home pill — top left -->
-        <a href="<?php echo base_url(); ?>" class="lr-home-link" title="Back to homepage">
+        <a href="<?php echo $_homeUrl; ?>" class="lr-home-link" title="Back to homepage">
             <i class="bx bx-arrow-back" style="font-size:14px;"></i>
             Home
         </a>
@@ -906,7 +907,7 @@
                 <div class="lr-form-head">
                     <div class="lr-head-row">
                         <?php if (!empty($OrgLogo)): ?>
-                        <a href="<?php echo base_url(); ?>" class="lr-head-logo-link" title="Back to homepage">
+                        <a href="<?php echo $_homeUrl; ?>" class="lr-head-logo-link" title="Back to homepage">
                             <img class="lr-form-head-logo" src="<?php echo htmlspecialchars($OrgLogo); ?>" alt="<?php echo getSiteConfiguration()->ShortName; ?>">
                         </a>
                         <?php endif; ?>
@@ -1017,7 +1018,7 @@
             <div class="lr-form-head">
                 <div class="lr-head-row">
                     <?php if (!empty($OrgLogo)): ?>
-                    <a href="<?php echo base_url(); ?>" class="lr-head-logo-link" title="Back to homepage">
+                    <a href="<?php echo $_homeUrl; ?>" class="lr-head-logo-link" title="Back to homepage">
                         <img class="lr-form-head-logo" src="<?php echo htmlspecialchars($OrgLogo); ?>" alt="<?php echo getSiteConfiguration()->ShortName; ?>">
                     </a>
                     <?php endif; ?>

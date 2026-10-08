@@ -1,6 +1,16 @@
 <?php
 ob_start();
 
+/* Block only the bare /app and /app/ root — the website must not be accessible via the /app prefix.
+   All specific app routes (/app/login, /app/dashboard, etc.) are allowed through normally. */
+$_uri = $_SERVER['REQUEST_URI'] ?? '';
+$_path = strtok($_uri, '?');
+if ($_path === '/app' || $_path === '/app/') {
+    http_response_code(404);
+    echo '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Page Not Found</title><style>*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f4f6f9;min-height:100vh;display:flex;align-items:center;justify-content:center;color:#2d3748}.err-card{background:#fff;border-radius:12px;padding:48px 40px;max-width:460px;width:90%;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.08)}.err-icon{font-size:52px;margin-bottom:20px;display:block}.err-title{font-size:22px;font-weight:700;margin-bottom:12px;color:#1a202c}.err-msg{font-size:15px;line-height:1.7;color:#5a6475;margin-bottom:28px}.err-btn{display:inline-block;padding:11px 28px;background:#4f63d2;color:#fff;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none}.err-btn:hover{background:#3d50c3}</style></head><body><div class="err-card"><span class="err-icon">&#x1F6AB;</span><h1 class="err-title">Page Not Found</h1><p class="err-msg">This URL is not valid.<br>Please use the correct application URL.</p><a href="/" class="err-btn">Go to Home</a></div></body></html>';
+    exit;
+}
+
 /* Layer 1 — suppress raw PHP warnings (e.g. mysqli connection errors) from leaking to the browser.
    Warnings are forwarded to the PHP error log instead.
    MY_Controller detects the failure and shows a clean "Connection Problem" page. */

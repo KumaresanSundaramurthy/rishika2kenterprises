@@ -1,4 +1,5 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php $_homeUrl = rtrim(preg_replace('#/app/?$#', '', rtrim(base_url(), '/')), '/') . '/'; ?>
 
 <?php $pageTitle = 'Sign Up'; $this->load->view('login/header', ['pageTitle' => $pageTitle]); ?>
 
@@ -852,7 +853,7 @@ html, body {
     <div class="su-brand">
         <div class="su-rain-canvas" id="suRainCanvas"></div>
 
-        <a href="<?php echo base_url(); ?>" class="su-home-link" title="Back to homepage">
+        <a href="<?php echo $_homeUrl; ?>" class="su-home-link" title="Back to homepage">
             <i class="bx bx-arrow-back"></i>
             Home
         </a>

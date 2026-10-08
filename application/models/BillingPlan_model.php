@@ -1570,4 +1570,51 @@ class BillingPlan_model extends CI_Model {
         return $result;
     }
 
+    /**
+     * Fetch all active plans for the public landing page (all sectors, all billing cycles).
+     * @return array
+     */
+    public function getPublicPlans(): array {
+        try {
+            $result = $this->ReadDb
+                ->select('SPT.SectorPlanUID, SPT.SectorUID, SPT.PlanUID, SPT.Price,
+                          SPT.TaxableAmount, SPT.TaxAmount, SPT.TotalAmount,
+                          SPT.DurationDays, SPT.MaxUsers, SPT.MaxBranches,
+                          SP.PlanName, SP.PlanCode, SP.BillingCycle,
+                          S.SectorName, S.SectorCode')
+                ->from('Billing.SectorPlanTbl SPT')
+                ->join('Billing.SubscriptionPlansTbl SP', 'SP.PlanUID = SPT.PlanUID AND SP.IsActive = 1')
+                ->join('Billing.SectorsTbl S', 'S.SectorUID = SPT.SectorUID AND S.IsActive = 1')
+                ->where('SPT.IsActive', 1)
+                ->order_by('SPT.SectorUID', 'ASC')
+                ->order_by('SPT.Price', 'ASC')
+                ->get();
+            return $result ? $result->result() : [];
+        } catch (Exception $e) {
+            notifyError('BillingPlan_model::getPublicPlans', $e);
+            return [];
+        }
+    }
+
+    /**
+     * Fetch modules assigned to a specific plan + sector for the landing page.
+     * @param int $planUID
+     * @param int $sectorUID
+     * @return array
+     */
+    public function getPlanModulesList(int $planUID, int $sectorUID): array {
+        try {
+            $result = $this->ReadDb
+                ->select('M.ModuleUID, M.DisplayName, M.Icon, M.IconBg, M.IconColor, M.Description')
+                ->from('Billing.SectorPlanModulesTbl PM')
+                ->join('Modules.ModuleTbl M', 'M.ModuleUID = PM.ModuleUID AND M.IsDeleted = 0', 'left')
+                ->where('PM.SectorUID', $sectorUID)
+                ->where('PM.PlanUID', $planUID)
+                ->get();
+            return $result ? $result->result() : [];
+        } catch (Exception $e) {
+            return [];
+        }
+    }
+
 }

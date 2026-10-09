@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 /**
  * Onboarding — mandatory profile completion for Google signup users.
@@ -9,7 +9,7 @@ class Onboarding extends MY_Controller {
 
     public function __construct() {
         parent::__construct();
-        $this->load->model('dbwrite_model');
+        $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
     }
 
     /* ── Onboarding page ─────────────────────────────────────────────── */
@@ -28,16 +28,8 @@ class Onboarding extends MY_Controller {
 
         if ($orgUID > 0) {
             try {
-                $readDb = $this->load->database('ReadDB', TRUE);
-                $readDb->db_debug = FALSE;
-                $row = $readDb->select('ShortCode')
-                    ->from('Organisation.OrganisationTbl')
-                    ->where('OrgUID', $orgUID)
-                    ->limit(1)
-                    ->get();
-                if ($row && $row->num_rows() > 0) {
-                    $shortCode = $row->row()->ShortCode ?? '';
-                }
+                $this->load->model('organisation_model');
+                $shortCode = $this->organisation_model->getOrgShortCode($orgUID);
             } catch (Exception $e) {}
         }
 
@@ -52,16 +44,9 @@ class Onboarding extends MY_Controller {
     public function getStates(): void {
         $out = new stdClass();
         try {
-            $readDb = $this->load->database('ReadDB', TRUE);
-            $readDb->db_debug = FALSE;
-            $rows = $readDb->select('name, iso2')
-                ->from('Global.StatesTbl')
-                ->where('country_code', 'IN')
-                ->where('flag', 1)
-                ->order_by('name', 'ASC')
-                ->get();
+            $this->load->model('global_model');
             $out->Error = false;
-            $out->Data  = ($rows && $rows->num_rows() > 0) ? $rows->result() : [];
+            $out->Data  = $this->global_model->getIndianStates();
         } catch (Exception $e) {
             notifyError('Onboarding::getStates', $e);
             $out->Error   = true;
@@ -148,25 +133,12 @@ class Onboarding extends MY_Controller {
             }
 
             /* ── Uniqueness checks ───────────────────────────────────── */
-            $readDb = $this->load->database('ReadDB', TRUE);
-            $readDb->db_debug = FALSE;
-
-            $mobileExists = $readDb->where('MobileNumber', $mobile)
-                ->where('OrgUID !=', $orgUID)
-                ->where('IsDeleted', 0)
-                ->count_all_results('Organisation.OrganisationTbl');
-            if ($mobileExists > 0) {
+            $this->load->model('organisation_model');
+            if ($this->organisation_model->checkOrgMobileExists($mobile, $orgUID)) {
                 throw new ValidationException('This mobile number is already registered with another account.');
             }
-
-            if (!empty($gstin)) {
-                $gstinExists = $readDb->where('GSTIN', $gstin)
-                    ->where('OrgUID !=', $orgUID)
-                    ->where('IsDeleted', 0)
-                    ->count_all_results('Organisation.OrganisationTbl');
-                if ($gstinExists > 0) {
-                    throw new ValidationException('This GSTIN is already registered with another account.');
-                }
+            if (!empty($gstin) && $this->organisation_model->checkOrgGSTINExists($gstin, $orgUID)) {
+                throw new ValidationException('This GSTIN is already registered with another account.');
             }
 
             /* ── Server-side GSTIN validation ───────────────────────── */
@@ -228,9 +200,7 @@ class Onboarding extends MY_Controller {
             /* ── Persist to DB ───────────────────────────────────────── */
             $userUID = (int)($jwtData->User->UserUID ?? 0);
 
-            $writeDb = $this->dbwrite_model->getWriteDb();
-            $writeDb->db_debug = FALSE;
-            $updated = $writeDb->where('OrgUID', $orgUID)->update('Organisation.OrganisationTbl', [
+            $resp = $this->dbwrite_model->updateData('Organisation', 'OrganisationTbl', [
                 'Name'                 => $orgName,
                 'BrandName'            => $brandName,
                 'ShortCode'            => $shortCode,
@@ -243,11 +213,10 @@ class Onboarding extends MY_Controller {
                 'PANNumber'            => $panNumber,
                 'IsOnboardingComplete' => 1,
                 'UpdatedBy'            => $userUID,
-            ]);
+            ], ['OrgUID' => $orgUID]);
 
-            if (!$updated) {
-                $dbErr = $writeDb->error();
-                throw new Exception('DB update failed: ' . ($dbErr['message'] ?? 'Unknown error'));
+            if ($resp->Error) {
+                throw new Exception('DB update failed: ' . ($resp->Message ?? 'Unknown error'));
             }
 
             /* ── Billing address — from GSTIN or manual entry ───────────── */

@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Signup extends CI_Controller {
 
@@ -195,7 +195,7 @@ class Signup extends CI_Controller {
      */
     private function _createLoginSession(object $user, string $provider, bool $isPaidPlan = false): void {
         $this->load->model('login_model');
-        $this->load->model('dbwrite_model');
+        $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
 
         $jwtPayload = $this->login_model->formatJWTPayload($user);
         if ($jwtPayload->Error) throw new Exception('JWT build failed: ' . $jwtPayload->Message);

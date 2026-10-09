@@ -1074,4 +1074,119 @@ class Organisation_model extends CI_Model {
         }
     }
 
+    /**
+     * Returns an org row matching the given email verify token.
+     * @param string $token
+     * @returns object|null
+     */
+    public function getOrgByVerifyToken(string $token): ?object {
+        try {
+            $query = $this->ReadDb->select('OrgUID, IsEmailVerified, EmailVerifyExpiry')
+                ->from('Organisation.OrganisationTbl')
+                ->where('EmailVerifyToken', $token)
+                ->limit(1)
+                ->get();
+            return $query ? $query->row() : null;
+        } catch (Exception $e) {
+            notifyError('Organisation_model::getOrgByVerifyToken', $e);
+            return null;
+        }
+    }
+
+    /**
+     * Returns an unverified org row (with admin first name) for the given email address.
+     * @param string $email
+     * @returns object|null
+     */
+    public function getUnverifiedOrgByEmail(string $email): ?object {
+        try {
+            $query = $this->ReadDb->select('O.OrgUID, O.EmailAddress AS OrgEmail, U.FirstName')
+                ->from('Organisation.OrganisationTbl O')
+                ->join('Users.UserTbl U', 'U.OrgUID = O.OrgUID AND U.IsActive = 1 AND U.IsDeleted = 0', 'left')
+                ->where('O.EmailAddress', $email)
+                ->where('O.IsEmailVerified', 0)
+                ->order_by('U.UserUID', 'ASC')
+                ->limit(1)
+                ->get();
+            return $query ? $query->row() : null;
+        } catch (Exception $e) {
+            notifyError('Organisation_model::getUnverifiedOrgByEmail', $e);
+            return null;
+        }
+    }
+
+    /**
+     * Returns org email verification status fields.
+     * @param int $orgUID
+     * @returns object|null
+     */
+    public function getOrgVerificationStatus(int $orgUID): ?object {
+        try {
+            $query = $this->ReadDb->select('IsEmailVerified, EmailAddress')
+                ->from('Organisation.OrganisationTbl')
+                ->where('OrgUID', $orgUID)
+                ->limit(1)
+                ->get();
+            return $query ? $query->row() : null;
+        } catch (Exception $e) {
+            notifyError('Organisation_model::getOrgVerificationStatus', $e);
+            return null;
+        }
+    }
+
+    /**
+     * Returns the ShortCode for the given org, or empty string if not found.
+     * @param int $orgUID
+     * @returns string
+     */
+    public function getOrgShortCode(int $orgUID): string {
+        try {
+            $query = $this->ReadDb->select('ShortCode')
+                ->from('Organisation.OrganisationTbl')
+                ->where('OrgUID', $orgUID)
+                ->limit(1)
+                ->get();
+            return $query && $query->num_rows() > 0 ? ($query->row()->ShortCode ?? '') : '';
+        } catch (Exception $e) {
+            notifyError('Organisation_model::getOrgShortCode', $e);
+            return '';
+        }
+    }
+
+    /**
+     * Returns true if the mobile number is already registered to another org.
+     * @param string $mobile
+     * @param int    $excludeOrgUID  current org to exclude from the check
+     * @returns bool
+     */
+    public function checkOrgMobileExists(string $mobile, int $excludeOrgUID): bool {
+        try {
+            $this->ReadDb->where('MobileNumber', $mobile);
+            $this->ReadDb->where('OrgUID !=',    $excludeOrgUID);
+            $this->ReadDb->where('IsDeleted',    0);
+            return $this->ReadDb->count_all_results('Organisation.OrganisationTbl') > 0;
+        } catch (Exception $e) {
+            notifyError('Organisation_model::checkOrgMobileExists', $e);
+            return false;
+        }
+    }
+
+    /**
+     * Returns true if the GSTIN is already registered to another org.
+     * @param string $gstin
+     * @param int    $excludeOrgUID  current org to exclude from the check
+     * @returns bool
+     */
+    public function checkOrgGSTINExists(string $gstin, int $excludeOrgUID): bool {
+        try {
+            $this->ReadDb->where('GSTIN',     $gstin);
+            $this->ReadDb->where('OrgUID !=', $excludeOrgUID);
+            $this->ReadDb->where('IsDeleted', 0);
+            return $this->ReadDb->count_all_results('Organisation.OrganisationTbl') > 0;
+        } catch (Exception $e) {
+            notifyError('Organisation_model::checkOrgGSTINExists', $e);
+            return false;
+        }
+    }
+
 }

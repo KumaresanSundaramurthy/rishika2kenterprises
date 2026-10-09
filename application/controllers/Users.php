@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Users extends MY_Controller {
 
@@ -10,7 +10,7 @@ class Users extends MY_Controller {
         $this->load->helper('transaction');
         $this->load->model('users_model');
         $this->load->model('roles_model');
-        $this->load->model('dbwrite_model');
+        $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
     }
 
     // ── List page ─────────────────────────────────────────────────────────────
@@ -50,7 +50,7 @@ class Users extends MY_Controller {
             $this->pageData['StaffStats']      = $this->users_model->getUserStats($orgUID);
             $this->pageData['CanSeeSalary']    = $this->_canSeeSalary();
             $this->load->model('branches_model');
-            $this->pageData['BranchesList'] = $this->branches_model->getBranchList($orgUID);
+            $this->pageData['BranchesList'] = $this->branches_model->getBranchList($orgUID, $this->_uiLang());
             $this->pageData['InitStatus']   = $initStatus;
 
             $this->load->view('users/view', $this->pageData);
@@ -153,7 +153,7 @@ class Users extends MY_Controller {
 
             $filePath = '/' . ltrim($uploadResult->Path, '/');
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $res = $this->dbwrite_model->insertData('Users', 'UserAttachmentTbl', [
                 'UserUID'   => $userUID,
                 'OrgUID'    => $orgUID,
@@ -191,7 +191,7 @@ class Users extends MY_Controller {
 
             if ($attachUID <= 0) throw new Exception('Invalid attachment.');
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $res = $this->dbwrite_model->updateData('Users', 'UserAttachmentTbl',
                 ['IsDeleted' => 1, 'IsActive' => 0],
                 ['AttachUID' => $attachUID, 'OrgUID' => $orgUID]
@@ -428,7 +428,7 @@ class Users extends MY_Controller {
             if ($branchAccessJson !== '') {
                 $branches = json_decode($branchAccessJson, true) ?: [];
                 if (!empty($branches)) {
-                    $this->dbwrite_model->syncUserBranchAccess($UserUID, (int)$JwtData->Org->OrgUID, $branches, $JwtData->User->UserUID, $now);
+                    $this->dbwrite_ext_model->syncUserBranchAccess($UserUID, (int)$JwtData->Org->OrgUID, $branches, $JwtData->User->UserUID, $now);
                 }
             }
 

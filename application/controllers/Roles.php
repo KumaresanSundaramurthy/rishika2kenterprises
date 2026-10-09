@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Roles extends MY_Controller {
 
@@ -102,7 +102,7 @@ class Roles extends MY_Controller {
             if (empty($Name)) throw new Exception('Role name is required.');
 
             $this->load->model('roles_model');
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $JwtData = $this->pageData['JwtData'];
 
             // Block editing global or default roles
@@ -255,7 +255,7 @@ class Roles extends MY_Controller {
             $inUse = $this->roles_model->isRoleInUse($RoleUID);
             if ($inUse) throw new Exception('This role is assigned to one or more users. Reassign them first.');
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $JwtData = $this->pageData['JwtData'];
             $result  = $this->dbwrite_model->updateData('UserRole', 'RolesTbl',
                 ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $JwtData->User->UserUID],

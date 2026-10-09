@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class PrintThemes extends MY_Controller {
 
@@ -239,7 +239,7 @@ class PrintThemes extends MY_Controller {
                 'UpdatedBy'        => $userUID,
             ];
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
 
             if ($themeConfigUID > 0) {
                 $resp = $this->dbwrite_model->updateData(
@@ -284,7 +284,7 @@ class PrintThemes extends MY_Controller {
 
             if ($themeConfigUID <= 0) throw new Exception('Invalid theme config.');
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $resp = $this->dbwrite_model->updateData(
                 'Settings', 'PrintThemeConfigTbl',
                 ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
@@ -372,7 +372,7 @@ class PrintThemes extends MY_Controller {
                 'SortOrder'    => $sortOrder,
             ];
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
 
             if ($templateUID > 0) {
                 $resp = $this->dbwrite_model->updateData(
@@ -409,7 +409,7 @@ class PrintThemes extends MY_Controller {
 
             if ($templateUID <= 0) throw new Exception('Invalid template.');
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $resp = $this->dbwrite_model->updateData(
                 'Settings', 'PrintTemplatesTbl',
                 ['IsDeleted' => 1, 'IsActive' => 0],

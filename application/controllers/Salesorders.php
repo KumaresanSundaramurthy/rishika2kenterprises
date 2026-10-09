@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Salesorders extends MY_Controller {
 
@@ -51,7 +51,7 @@ class Salesorders extends MY_Controller {
         $ErrorInForm = '';
         try {
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             $PostData = $this->input->post();
@@ -112,8 +112,8 @@ class Salesorders extends MY_Controller {
             // Conversion tracking: Quotation -> SalesOrder
             $fromQuotationUID = (int) getPostValue($PostData, 'fromQuotationUID');
             if ($fromQuotationUID > 0 && !$isDraft) {
-                $this->dbwrite_model->updateTransDocStatus($fromQuotationUID, $orgUID, 'Converted', $userUID);
-                $this->dbwrite_model->insertConversionRecord(
+                $this->dbwrite_ext_model->updateTransDocStatus($fromQuotationUID, $orgUID, 'Converted', $userUID);
+                $this->dbwrite_ext_model->insertConversionRecord(
                     $orgUID, $fromQuotationUID, 101, $transUID, $this->pageModuleUID, 'QuotToOrder', $userUID
                 );
             }
@@ -154,7 +154,7 @@ class Salesorders extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             $PostData = $this->input->post();
@@ -316,7 +316,7 @@ class Salesorders extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             $PostData = $this->input->post();
@@ -381,7 +381,7 @@ class Salesorders extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             $PostData = $this->input->post();
@@ -547,7 +547,7 @@ class Salesorders extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $PostData = $this->input->post();
             $transUID = (int) getPostValue($PostData, 'TransUID');
             $userUID  = $this->pageData['JwtData']->User->UserUID;
@@ -598,7 +598,7 @@ class Salesorders extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $PostData = $this->input->post();
             $transUID = (int) getPostValue($PostData, 'TransUID');
             $userUID  = $this->pageData['JwtData']->User->UserUID;
@@ -644,7 +644,7 @@ class Salesorders extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $PostData  = $this->input->post();
             $transUID  = (int) getPostValue($PostData, 'TransUID');
             $newStatus = trim(getPostValue($PostData, 'Status'));
@@ -753,7 +753,7 @@ class Salesorders extends MY_Controller {
             $this->pageData['fltStorageData'] = [];
             if (!empty($this->pageData['JwtData']->GenSettings->EnableStorage)) {
                 $this->load->model('storage_model');
-                $this->pageData['fltStorageData'] = $this->storage_model->getStorageDetails([]) ?? [];
+                $this->pageData['fltStorageData'] = $this->storage_model->getStorageDetails([], 0, 0, '', $this->_uiLang()) ?? [];
             }
 
             $this->load->view('transactions/salesorders/forms/form', $this->pageData);
@@ -779,13 +779,13 @@ class Salesorders extends MY_Controller {
 
             $this->load->model('transactions_model');
 
-            $soData = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
+            $soData = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID, $this->_uiLang());
             if (!$soData) redirect('salesorders', 'refresh');
 
             $soItems = $this->transactions_model->getTransactionItems($transUID, $orgUID);
 
             $this->load->model('customers_model');
-            $custAddr = $this->customers_model->getCustomerAddress(['CustAddress.CustomerUID' => $soData->PartyUID, 'CustAddress.OrgUID' => $orgUID]);
+            $custAddr = $this->customers_model->getCustomerAddress(['CustAddress.CustomerUID' => $soData->PartyUID, 'CustAddress.OrgUID' => $orgUID], $this->_uiLang());
             $shipping = current(array_filter($custAddr, fn($a) => $a->AddressType === 'Shipping'));
             $billing  = current(array_filter($custAddr, fn($a) => $a->AddressType === 'Billing'));
             $this->pageData['CustAddr'] = $shipping ?: ($billing ?: ($custAddr[0] ?? null));
@@ -816,7 +816,7 @@ class Salesorders extends MY_Controller {
             $this->pageData['fltStorageData'] = [];
             if (!empty($this->pageData['JwtData']->GenSettings->EnableStorage)) {
                 $this->load->model('storage_model');
-                $this->pageData['fltStorageData'] = $this->storage_model->getStorageDetails([]) ?? [];
+                $this->pageData['fltStorageData'] = $this->storage_model->getStorageDetails([], 0, 0, '', $this->_uiLang()) ?? [];
             }
 
             // Attachments — load server-side to avoid AJAX call on page load

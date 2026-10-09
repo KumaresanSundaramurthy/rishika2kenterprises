@@ -1617,4 +1617,66 @@ class BillingPlan_model extends CI_Model {
         }
     }
 
+    /**
+     * Returns a map of PlanUID → module count for the given sector.
+     * @param int $sectorUID
+     * @returns array  array of stdClass rows with PlanUID and Cnt
+     */
+    public function getModuleCountByPlan(int $sectorUID): array {
+        try {
+            $query = $this->ReadDb->select('PlanUID, COUNT(*) AS Cnt')
+                ->from('Billing.SectorPlanModulesTbl')
+                ->where('SectorUID', $sectorUID)
+                ->group_by('PlanUID')
+                ->get();
+            return $query ? $query->result() : [];
+        } catch (Exception $e) {
+            notifyError('Billingplan_model::getModuleCountByPlan', $e);
+            return [];
+        }
+    }
+
+    /**
+     * Returns a subscription order row by UID for the given org.
+     * @param int $orgUID
+     * @param int $orderUID
+     * @returns object|null
+     */
+    public function getSubscriptionOrderByUID(int $orgUID, int $orderUID): ?object {
+        try {
+            $query = $this->ReadDb->select('OrderUID, Status, NetAmount')
+                ->from('Billing.SubscriptionOrdersTbl')
+                ->where('OrderUID', $orderUID)
+                ->where('OrgUID',   $orgUID)
+                ->limit(1)
+                ->get();
+            return $query ? $query->row() : null;
+        } catch (Exception $e) {
+            notifyError('Billingplan_model::getSubscriptionOrderByUID', $e);
+            return null;
+        }
+    }
+
+    /**
+     * Returns a subscription invoice row (with its PDF path) by invoice UID for the given org.
+     * @param int $invoiceUID
+     * @param int $orgUID
+     * @returns object|null
+     */
+    public function getSubscriptionInvoiceByUID(int $invoiceUID, int $orgUID): ?object {
+        try {
+            $query = $this->ReadDb->select('SI.InvoiceNumber, SI.PDFPath')
+                ->from('Billing.SubscriptionInvoicesTbl AS SI')
+                ->join('Billing.SubscriptionOrdersTbl AS SO', 'SO.OrderUID = SI.OrderUID')
+                ->where('SI.InvoiceUID', $invoiceUID)
+                ->where('SO.OrgUID',     $orgUID)
+                ->limit(1)
+                ->get();
+            return $query ? $query->row() : null;
+        } catch (Exception $e) {
+            notifyError('Billingplan_model::getSubscriptionInvoiceByUID', $e);
+            return null;
+        }
+    }
+
 }

@@ -63,16 +63,9 @@ class Subscriptionrenew extends CI_Controller {
                 throw new Exception('Online payment is not currently enabled. Please contact support.');
             }
 
-            $readDb = $this->load->database('ReadDB', TRUE);
-            $readDb->db_debug = FALSE;
-            $plan = $readDb->select('SPT.SectorPlanUID, SPT.Price, SP.PlanName, SP.BillingCycle')
-                ->from('Billing.SectorPlanTbl AS SPT')
-                ->join('Billing.SubscriptionPlansTbl AS SP', 'SP.PlanUID = SPT.PlanUID')
-                ->where('SPT.SectorPlanUID', $sectorPlanUID)
-                ->where('SPT.IsActive', 1)
-                ->limit(1)
-                ->get()->row();
-
+            $this->load->model('subscription_model');
+            $planResult = $this->subscription_model->getSectorPlanByUID($sectorPlanUID);
+            $plan = ($planResult->Error || !$planResult->Data) ? null : $planResult->Data;
             if (!$plan) throw new Exception('Selected plan not found.');
 
             $org         = $this->billingplan_model->getOrgByUID($orgUID);
@@ -123,16 +116,8 @@ class Subscriptionrenew extends CI_Controller {
             }
 
             /* Get admin role for menu swap */
-            $readDb = $this->load->database('ReadDB', TRUE);
-            $readDb->db_debug = FALSE;
-            $roleRow = $readDb->select('RoleUID')
-                ->from('UserRole.RolesTbl')
-                ->where('OrgUID',    $orgUID)
-                ->where('IsDeleted', 0)
-                ->order_by('RoleUID', 'ASC')
-                ->limit(1)
-                ->get()->row();
-            $adminRoleUID = $roleRow ? (int)$roleRow->RoleUID : 0;
+            $this->load->model('roles_model');
+            $adminRoleUID = $this->roles_model->getFirstRoleUID($orgUID);
 
             $changeResult = $this->billingplan_model->changePlan(
                 $orgUID,
@@ -177,14 +162,9 @@ class Subscriptionrenew extends CI_Controller {
             if (!$orgUID) throw new Exception('Session expired. Please go back to the login page and try again.');
             if ($sectorPlanUID <= 0) throw new Exception('Please select a plan.');
 
-            $readDb = $this->load->database('ReadDB', TRUE);
-            $readDb->db_debug = FALSE;
-            $plan = $readDb->select('SectorPlanUID, Price')
-                ->from('Billing.SectorPlanTbl')
-                ->where('SectorPlanUID', $sectorPlanUID)
-                ->where('IsActive', 1)
-                ->limit(1)
-                ->get()->row();
+            $this->load->model('subscription_model');
+            $planResult = $this->subscription_model->getSectorPlanByUID($sectorPlanUID);
+            $plan = ($planResult->Error || !$planResult->Data) ? null : $planResult->Data;
             if (!$plan) throw new Exception('Selected plan not found.');
             if ((float)$plan->Price <= 0) throw new Exception('Free plan does not require payment.');
 

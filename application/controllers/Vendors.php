@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 
 class Vendors extends MY_Controller {
 
@@ -17,9 +17,153 @@ class Vendors extends MY_Controller {
         $this->pageData['Limit'] = $GeneralSettings->RowLimit ?? 10;
     }
 
+    /**
+     * Registers a shutdown callback that translates vendor name / contact / notes
+     * to Tamil and upserts the row into VendorTbl_Lang after the HTTP response is sent.
+     * @param int         $vendorUID
+     * @param string      $originalName
+     * @param string      $typedLangName
+     * @param string|null $originalContact
+     * @param string      $typedLangContact
+     * @param string|null $originalNotes
+     * @param string      $typedLangNotes
+     * @param int         $userUID
+     * @returns void
+     */
+    private function _triggerVendLangSave(
+        int $vendorUID,
+        string $originalName, string $typedLangName,
+        ?string $originalContact, string $typedLangContact,
+        ?string $originalNotes, string $typedLangNotes,
+        ?string $originalArea, string $typedLangArea,
+        ?string $originalCompany, string $typedLangCompany,
+        int $userUID
+    ): void {
+        register_shutdown_function(function () use (
+            $vendorUID,
+            $originalName, $typedLangName,
+            $originalContact, $typedLangContact,
+            $originalNotes, $typedLangNotes,
+            $originalArea, $typedLangArea,
+            $originalCompany, $typedLangCompany,
+            $userUID
+        ) {
+            if (function_exists('fastcgi_finish_request')) fastcgi_finish_request();
+            ignore_user_abort(true);
+
+            $tamilName = ($typedLangName === 'ta')
+                ? $originalName
+                : translateViaMymemory($originalName, 'en', 'ta');
+
+            $tamilContact = null;
+            if (!empty($originalContact)) {
+                $tamilContact = ($typedLangContact === 'ta')
+                    ? $originalContact
+                    : translateViaMymemory($originalContact, 'en', 'ta');
+            }
+
+            $tamilNotes = null;
+            if (!empty($originalNotes)) {
+                $tamilNotes = ($typedLangNotes === 'ta')
+                    ? $originalNotes
+                    : translateViaMymemory($originalNotes, 'en', 'ta');
+            }
+
+            $tamilArea = null;
+            if (!empty($originalArea)) {
+                $tamilArea = ($typedLangArea === 'ta')
+                    ? $originalArea
+                    : translateViaMymemory($originalArea, 'en', 'ta');
+            }
+
+            $tamilCompany = null;
+            if (!empty($originalCompany)) {
+                $tamilCompany = ($typedLangCompany === 'ta')
+                    ? $originalCompany
+                    : translateViaMymemory($originalCompany, 'en', 'ta');
+            }
+
+            $CI = &get_instance();
+            $CI->load->model('vendors_model');
+            $CI->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
+            $CI->vendors_model->saveVendLangRow($vendorUID, 'ta', $tamilName, $tamilContact, $tamilNotes, $tamilArea, $tamilCompany, $userUID);
+        });
+    }
+
+    /**
+     * Normalises Tamil address text fields in $PostData to English for base-table storage.
+     * Returns the original raw values so they can be saved to VendAddressTbl_Lang later.
+     * @param array  $PostData  Raw POST array, modified in place
+     * @param string $prefix    Address prefix: 'Bill' or 'Ship'
+     * @returns array{Line1:string,Line2:string,CityText:string,StateText:string,lang:string}
+     */
+    private function _normalizeVendAddrPostData(array &$PostData, string $prefix): array {
+        $line1     = trim((string)($PostData[$prefix . 'AddrLine1']     ?? ''));
+        $line2     = trim((string)($PostData[$prefix . 'AddrLine2']     ?? ''));
+        $cityText  = trim((string)($PostData[$prefix . 'AddrCityText']  ?? ''));
+        $stateText = trim((string)($PostData[$prefix . 'AddrStateText'] ?? ''));
+
+        $lang = $line1 !== '' ? detectTextLang($line1) : 'en';
+
+        if ($lang === 'ta') {
+            if ($line1 !== '')     $PostData[$prefix . 'AddrLine1']     = translateViaMymemory($line1,     'ta', 'en');
+            if ($line2 !== '')     $PostData[$prefix . 'AddrLine2']     = translateViaMymemory($line2,     'ta', 'en');
+            if ($cityText !== '')  $PostData[$prefix . 'AddrCityText']  = translateViaMymemory($cityText,  'ta', 'en');
+            if ($stateText !== '') $PostData[$prefix . 'AddrStateText'] = translateViaMymemory($stateText, 'ta', 'en');
+        }
+
+        return ['Line1' => $line1, 'Line2' => $line2, 'CityText' => $cityText, 'StateText' => $stateText, 'lang' => $lang];
+    }
+
+    /**
+     * Fires background Tamil translation for vendor address fields after HTTP response is sent.
+     * Fetches VendAddressUIDs from DB to key the _Lang rows correctly.
+     * @param int   $vendorUID
+     * @param array $rawBill  Keys: Line1, Line2, CityText, StateText, lang — empty array if no billing addr
+     * @param array $rawShip  Same shape; empty array if no shipping addr
+     * @param int   $userUID
+     * @returns void
+     */
+    private function _triggerVendAddrLangSave(int $vendorUID, array $rawBill, array $rawShip, int $userUID): void {
+        register_shutdown_function(function () use ($vendorUID, $rawBill, $rawShip, $userUID) {
+            if (function_exists('fastcgi_finish_request')) fastcgi_finish_request();
+            ignore_user_abort(true);
+
+            $CI = &get_instance();
+            $CI->load->model('vendors_model');
+            $CI->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
+
+            $addresses = $CI->vendors_model->getVendorAddress([
+                'VendAddress.VendorUID' => $vendorUID,
+                'VendAddress.IsDeleted' => 0,
+                'VendAddress.IsActive'  => 1,
+            ]);
+
+            foreach ($addresses as $addr) {
+                $raw = ($addr->AddressType === 'Billing') ? $rawBill : $rawShip;
+                if (empty($raw)) continue;
+
+                $lang = $raw['lang'] ?? 'en';
+                $xlat = function (?string $val) use ($lang): ?string {
+                    if ($val === null || $val === '') return null;
+                    return ($lang === 'ta') ? $val : translateViaMymemory($val, 'en', 'ta');
+                };
+
+                $CI->vendors_model->saveVendAddrLangRow(
+                    (int) $addr->VendAddressUID, 'ta',
+                    $xlat($raw['Line1']), $xlat($raw['Line2']),
+                    $xlat($raw['CityText']), $xlat($raw['StateText']),
+                    $userUID
+                );
+            }
+        });
+    }
+
     private function _fetchTableData($pageNo, $limit, $filter = []) {
         $orgUID = $this->pageData['JwtData']->Org->OrgUID;
         $offset = max(0, ($pageNo - 1) * $limit);
+
+        $filter['LangCode'] = $this->_uiLang();
 
         $this->load->model('vendors_model');
         $result = $this->vendors_model->getVendorListPaginated($orgUID, $limit, $offset, $filter);
@@ -210,7 +354,7 @@ class Vendors extends MY_Controller {
         $ErrorInForm = '';
         try {
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             $PostData = $this->input->post();
@@ -218,6 +362,27 @@ class Vendors extends MY_Controller {
             $this->load->model('formvalidation_model');
             $ErrorInForm = $this->formvalidation_model->vendorValidateForm($PostData);
             if (!empty($ErrorInForm)) throw new InvalidArgumentException('VALIDATION_ERROR');
+
+            /* Normalize text fields — base table stores English; Tamil typed in will be translated */
+            $origName         = trim((string)($PostData['Name']          ?? ''));
+            $origContact      = trim((string)($PostData['ContactPerson'] ?? '')) ?: null;
+            $origNotes        = trim((string)($PostData['Notes']         ?? '')) ?: null;
+            $origArea         = trim((string)($PostData['Area']          ?? '')) ?: null;
+            $origCompany      = trim((string)($PostData['CompanyName']   ?? '')) ?: null;
+            $typedLangName    = detectTextLang($origName);
+            $typedLangContact = $origContact  !== null ? detectTextLang($origContact)  : 'en';
+            $typedLangNotes   = $origNotes    !== null ? detectTextLang($origNotes)    : 'en';
+            $typedLangArea    = $origArea     !== null ? detectTextLang($origArea)     : 'en';
+            $typedLangCompany = $origCompany  !== null ? detectTextLang($origCompany)  : 'en';
+            if ($typedLangName === 'ta')    $PostData['Name']          = translateViaMymemory($origName,    'ta', 'en');
+            if ($typedLangContact === 'ta') $PostData['ContactPerson'] = translateViaMymemory($origContact, 'ta', 'en');
+            if ($typedLangNotes === 'ta')   $PostData['Notes']         = translateViaMymemory($origNotes,   'ta', 'en');
+            if ($typedLangArea === 'ta')    $PostData['Area']          = translateViaMymemory($origArea,    'ta', 'en');
+            if ($typedLangCompany === 'ta') $PostData['CompanyName']   = translateViaMymemory($origCompany, 'ta', 'en');
+
+            /* Normalize address fields and capture raws for background lang save */
+            $rawBill = $this->_normalizeVendAddrPostData($PostData, 'Bill');
+            $rawShip = $this->_normalizeVendAddrPostData($PostData, 'Ship');
 
             $vendorFormData = $this->buildVendorFormData($PostData, true);
 
@@ -287,6 +452,19 @@ class Vendors extends MY_Controller {
             }
 
             $this->dbwrite_model->commitTransaction();
+
+            /* Fire background Tamil translation for vendor + addresses */
+            $userUID = (int) $this->pageData['JwtData']->User->UserUID;
+            $this->_triggerVendLangSave(
+                (int) $VendorUID,
+                $origName,    $typedLangName,
+                $origContact, $typedLangContact,
+                $origNotes,   $typedLangNotes,
+                $origArea,    $typedLangArea,
+                $origCompany, $typedLangCompany,
+                $userUID
+            );
+            $this->_triggerVendAddrLangSave((int) $VendorUID, $rawBill, $rawShip, $userUID);
 
             // Claim next vendor number — 5-retry optimistic lock inside claimNextVendorNumber.
             $_vOrgUID   = (int) $this->pageData['JwtData']->Org->OrgUID;
@@ -388,11 +566,11 @@ class Vendors extends MY_Controller {
             $shippingAddr = null;
 
             if (in_array($type, ['edit', 'clone']) && $uid > 0) {
-                $getVendorData = $this->vendors_model->getVendors(['Vendors.VendorUID' => $uid]);
+                $getVendorData = $this->vendors_model->getVendors(['Vendors.VendorUID' => $uid], $this->_uiLang());
                 if (!empty($getVendorData)) {
                     $formData    = $getVendorData[0];
                     $bankDetails = $this->vendors_model->getVendorBankInfo(['VendBankDetails.VendorUID' => $uid]);
-                    $addrInfo    = $this->vendors_model->getVendorAddress(['VendAddress.VendorUID' => $uid]);
+                    $addrInfo    = $this->vendors_model->getVendorAddress(['VendAddress.VendorUID' => $uid], $this->_uiLang());
                     foreach ($addrInfo as $addr) {
                         if ($addr->AddressType === 'Billing')  $billingAddr  = $addr;
                         if ($addr->AddressType === 'Shipping') $shippingAddr = $addr;
@@ -481,7 +659,7 @@ class Vendors extends MY_Controller {
             $this->load->model('vendors_model');
 
             // Fetch all active vendors
-            $vendors = $this->vendors_model->getVendors(['Vendors.OrgUID' => $orgUID]);
+            $vendors = $this->vendors_model->getVendors(['Vendors.OrgUID' => $orgUID], $this->_uiLang());
             if (empty($vendors)) throw new ValidationException('No vendors found.');
 
             // DEL old STRING key (handles migration) then rebuild fresh as HSET
@@ -493,7 +671,7 @@ class Vendors extends MY_Controller {
                 $uid = (int)$vend->VendorUID;
 
                 // Fetch address
-                $addrInfo    = $this->vendors_model->getVendorAddress(['VendAddress.VendorUID' => $uid]);
+                $addrInfo    = $this->vendors_model->getVendorAddress(['VendAddress.VendorUID' => $uid], $this->_uiLang());
                 $addressList = [];
                 foreach ($addrInfo as $addr) {
                     $addressList[] = [
@@ -565,11 +743,11 @@ class Vendors extends MY_Controller {
             foreach ($attachments as &$a) { $a['Url'] = $cdnUrl . '/' . ltrim($a['FilePath'], '/'); }
             unset($a);
 
-            $getVendData = $this->vendors_model->getVendors(['Vendors.VendorUID' => $uid]);
+            $getVendData = $this->vendors_model->getVendors(['Vendors.VendorUID' => $uid], $this->_uiLang());
             if (empty($getVendData)) throw new ValidationException('Vendor not found.');
 
             $bankDetails = $this->vendors_model->getVendorBankInfo(['VendBankDetails.VendorUID' => $uid]);
-            $addrInfo    = $this->vendors_model->getVendorAddress(['VendAddress.VendorUID' => $uid]);
+            $addrInfo    = $this->vendors_model->getVendorAddress(['VendAddress.VendorUID' => $uid], $this->_uiLang());
 
             $billingAddr = null; $shippingAddr = null;
             foreach ($addrInfo as $addr) {
@@ -600,7 +778,7 @@ class Vendors extends MY_Controller {
         $ErrorInForm = '';
         try {
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             $PostData = $this->input->post();
@@ -614,6 +792,27 @@ class Vendors extends MY_Controller {
             $oldDCRow    = $this->vendors_model->getVendorDebitCreditRaw((int)$VendorUID);
             $oldDCAmount = $oldDCRow ? (float)$oldDCRow->DebitCreditAmount : 0.0;
             $oldDCType   = $oldDCRow ? $oldDCRow->DebitCreditType : 'Credit';
+
+            /* Normalize text fields — base table stores English; Tamil typed in will be translated */
+            $origName         = trim((string)($PostData['Name']          ?? ''));
+            $origContact      = trim((string)($PostData['ContactPerson'] ?? '')) ?: null;
+            $origNotes        = trim((string)($PostData['Notes']         ?? '')) ?: null;
+            $origArea         = trim((string)($PostData['Area']          ?? '')) ?: null;
+            $origCompany      = trim((string)($PostData['CompanyName']   ?? '')) ?: null;
+            $typedLangName    = detectTextLang($origName);
+            $typedLangContact = $origContact  !== null ? detectTextLang($origContact)  : 'en';
+            $typedLangNotes   = $origNotes    !== null ? detectTextLang($origNotes)    : 'en';
+            $typedLangArea    = $origArea     !== null ? detectTextLang($origArea)     : 'en';
+            $typedLangCompany = $origCompany  !== null ? detectTextLang($origCompany)  : 'en';
+            if ($typedLangName === 'ta')    $PostData['Name']          = translateViaMymemory($origName,    'ta', 'en');
+            if ($typedLangContact === 'ta') $PostData['ContactPerson'] = translateViaMymemory($origContact, 'ta', 'en');
+            if ($typedLangNotes === 'ta')   $PostData['Notes']         = translateViaMymemory($origNotes,   'ta', 'en');
+            if ($typedLangArea === 'ta')    $PostData['Area']          = translateViaMymemory($origArea,    'ta', 'en');
+            if ($typedLangCompany === 'ta') $PostData['CompanyName']   = translateViaMymemory($origCompany, 'ta', 'en');
+
+            /* Normalize address fields and capture raws for background lang save */
+            $rawBill = $this->_normalizeVendAddrPostData($PostData, 'Bill');
+            $rawShip = $this->_normalizeVendAddrPostData($PostData, 'Ship');
 
             $vendorFormData = $this->buildVendorFormData($PostData, false);
             if (!empty($PostData['ImageRemoved'])) $vendorFormData['Image'] = NULL;
@@ -714,6 +913,18 @@ class Vendors extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
+            /* Fire background Tamil translation for vendor + addresses */
+            $this->_triggerVendLangSave(
+                (int) $VendorUID,
+                $origName,    $typedLangName,
+                $origContact, $typedLangContact,
+                $origNotes,   $typedLangNotes,
+                $origArea,    $typedLangArea,
+                $origCompany, $typedLangCompany,
+                (int) $userUID
+            );
+            $this->_triggerVendAddrLangSave((int) $VendorUID, $rawBill, $rawShip, (int) $userUID);
+
             // Handle attachment uploads + deletes after commit
             $orgUID  = (int)$this->pageData['JwtData']->Org->OrgUID;
             $userUID = (int)$this->pageData['JwtData']->User->UserUID;
@@ -794,6 +1005,7 @@ class Vendors extends MY_Controller {
             $timezone = $this->pageData['JwtData']->GenSettings->Timezone ?? 'Asia/Kolkata';
 
             $this->load->model('vendors_model');
+            $filter['LangCode'] = $this->_uiLang();
             $result = $this->vendors_model->getVendorListPaginated($orgUID, 0, 0, $filter);
 
             $this->load->model('organisation_model');
@@ -890,7 +1102,7 @@ class Vendors extends MY_Controller {
             if (!$VendorUID) throw new ValidationException('Vendor ID is missing.');
             if (!in_array($newStatus, [0, 1])) throw new ValidationException('Invalid status value.');
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $resp = $this->dbwrite_model->updateData(
                 'Vendors', 'VendorTbl',
                 ['IsActive' => $newStatus, 'UpdatedBy' => $this->pageData['JwtData']->User->UserUID],
@@ -934,7 +1146,7 @@ class Vendors extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             $VendorUID = (int) $this->input->post('VendorUID');
@@ -1006,7 +1218,7 @@ class Vendors extends MY_Controller {
             }
             if (empty($VendorUIDs)) throw new ValidationException('Invalid vendor IDs provided');
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             foreach ($VendorUIDs as $vendorId) {
@@ -1105,7 +1317,7 @@ class Vendors extends MY_Controller {
         $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
         $offset  = max(0, ($pageNo - 1) * $limit);
         $this->load->model('vendors_model');
-        $result  = $this->vendors_model->getVendorGroupListPaginated($orgUID, $limit, $offset, $filter);
+        $result  = $this->vendors_model->getVendorGroupListPaginated($orgUID, $limit, $offset, $filter, $this->_uiLang());
         $rowHtml = $this->load->view('vendors/groups/list', [
             'DataLists'    => $result->rows,
             'SerialNumber' => $offset,
@@ -1128,7 +1340,7 @@ class Vendors extends MY_Controller {
             $excludeGroupUID = (int)($this->input->get('groupUID') ?? 0);
             if ($term) {
                 $this->load->model('vendors_model');
-                $rows = $this->vendors_model->searchVendorsForGroup($term, $orgUID, $excludeGroupUID);
+                $rows = $this->vendors_model->searchVendorsForGroup($term, $orgUID, $excludeGroupUID, $this->_uiLang());
                 foreach ($rows as $v) {
                     $this->EndReturnData->Lists[] = [
                         'id'   => $v->VendorUID,
@@ -1183,7 +1395,7 @@ class Vendors extends MY_Controller {
             $this->load->model('vendors_model');
             $group   = $this->vendors_model->getVendorGroupByUID($orgUID, $groupUID);
             if (!$group) throw new ValidationException('Group not found.');
-            $members = $this->vendors_model->getVendorGroupMembers($orgUID, $groupUID);
+            $members = $this->vendors_model->getVendorGroupMembers($orgUID, $groupUID, $this->_uiLang());
             $this->EndReturnData->Error      = false;
             $this->EndReturnData->Data       = $group;
             $this->EndReturnData->Members    = $members;
@@ -1199,10 +1411,45 @@ class Vendors extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
+    /**
+     * @param int         $groupUID
+     * @param string      $origGroupName
+     * @param string      $typedLangGroupName
+     * @param string|null $origContactPerson
+     * @param string      $typedLangContact
+     * @param string|null $origNotes
+     * @param string      $typedLangNotes
+     * @param string|null $origAddrLine1
+     * @param string      $typedLangLine1
+     * @param string|null $origAddrLine2
+     * @param string      $typedLangLine2
+     * @param string|null $origAddrCity
+     * @param string      $typedLangCity
+     * @param string|null $origAddrState
+     * @param string      $typedLangState
+     * @param int         $userUID
+     * @returns void
+     */
+    private function _triggerVendorGroupLangSave(int $groupUID, string $origGroupName, string $typedLangGroupName, ?string $origContactPerson, string $typedLangContact, ?string $origNotes, string $typedLangNotes, ?string $origAddrLine1, string $typedLangLine1, ?string $origAddrLine2, string $typedLangLine2, ?string $origAddrCity, string $typedLangCity, ?string $origAddrState, string $typedLangState, int $userUID): void {
+        register_shutdown_function(function () use ($groupUID, $origGroupName, $typedLangGroupName, $origContactPerson, $typedLangContact, $origNotes, $typedLangNotes, $origAddrLine1, $typedLangLine1, $origAddrLine2, $typedLangLine2, $origAddrCity, $typedLangCity, $origAddrState, $typedLangState, $userUID) {
+            if (function_exists('fastcgi_finish_request')) fastcgi_finish_request();
+            ignore_user_abort(true);
+            $tamilGroupName = $typedLangGroupName === 'ta' ? $origGroupName    : translateViaMymemory($origGroupName, 'en', 'ta');
+            $tamilContact   = $typedLangContact   === 'ta' ? $origContactPerson : ($origContactPerson !== null ? translateViaMymemory($origContactPerson, 'en', 'ta') : null);
+            $tamilNotes     = $typedLangNotes     === 'ta' ? $origNotes        : ($origNotes        !== null ? translateViaMymemory($origNotes,        'en', 'ta') : null);
+            $tamilLine1     = $typedLangLine1     === 'ta' ? $origAddrLine1    : ($origAddrLine1    !== null ? translateViaMymemory($origAddrLine1,    'en', 'ta') : null);
+            $tamilLine2     = $typedLangLine2     === 'ta' ? $origAddrLine2    : ($origAddrLine2    !== null ? translateViaMymemory($origAddrLine2,    'en', 'ta') : null);
+            $tamilCity      = $typedLangCity      === 'ta' ? $origAddrCity     : ($origAddrCity     !== null ? translateViaMymemory($origAddrCity,     'en', 'ta') : null);
+            $tamilState     = $typedLangState     === 'ta' ? $origAddrState    : ($origAddrState    !== null ? translateViaMymemory($origAddrState,    'en', 'ta') : null);
+            $this->load->model('vendors_model');
+            $this->vendors_model->saveVendorGroupLangRow($groupUID, 'ta', $tamilGroupName, $tamilContact, $tamilNotes, $tamilLine1, $tamilLine2, $tamilCity, $tamilState, $userUID);
+        });
+    }
+
     public function addGroupData() {
         $this->EndReturnData = new stdClass();
         try {
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
             $post      = $this->input->post();
             $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
@@ -1210,23 +1457,44 @@ class Vendors extends MY_Controller {
             $groupName = trim($post['GroupName'] ?? '');
             if (!$groupName) throw new InvalidArgumentException('Group Name is required.');
             $validTypes = $this->_vendorGroupTypesList();
+            $origGroupName    = $groupName;
+            $typedLangGroup   = detectTextLang($groupName);
+            if ($typedLangGroup === 'ta') $groupName = translateViaMymemory($groupName, 'ta', 'en');
+            $origContact      = trim($post['ContactPerson'] ?? '') ?: null;
+            $typedLangContact = $origContact !== null ? detectTextLang($origContact) : 'en';
+            $_rawContact      = ($typedLangContact === 'ta' && $origContact !== null) ? translateViaMymemory($origContact, 'ta', 'en') : $origContact;
+            $origNotes        = trim($post['Notes']     ?? '') ?: null;
+            $typedLangNotes   = $origNotes !== null ? detectTextLang($origNotes) : 'en';
+            $_rawNotes        = ($typedLangNotes === 'ta' && $origNotes !== null) ? translateViaMymemory($origNotes, 'ta', 'en') : $origNotes;
+            $origLine1        = trim($post['AddrLine1'] ?? '') ?: null;
+            $typedLangLine1   = $origLine1 !== null ? detectTextLang($origLine1) : 'en';
+            $_rawLine1        = ($typedLangLine1 === 'ta' && $origLine1 !== null) ? translateViaMymemory($origLine1, 'ta', 'en') : $origLine1;
+            $origLine2        = trim($post['AddrLine2'] ?? '') ?: null;
+            $typedLangLine2   = $origLine2 !== null ? detectTextLang($origLine2) : 'en';
+            $_rawLine2        = ($typedLangLine2 === 'ta' && $origLine2 !== null) ? translateViaMymemory($origLine2, 'ta', 'en') : $origLine2;
+            $origCity         = trim($post['AddrCity']  ?? '') ?: null;
+            $typedLangCity    = $origCity !== null ? detectTextLang($origCity) : 'en';
+            $_rawCity         = ($typedLangCity === 'ta' && $origCity !== null) ? translateViaMymemory($origCity, 'ta', 'en') : $origCity;
+            $origState        = trim($post['AddrState'] ?? '') ?: null;
+            $typedLangState   = $origState !== null ? detectTextLang($origState) : 'en';
+            $_rawState        = ($typedLangState === 'ta' && $origState !== null) ? translateViaMymemory($origState, 'ta', 'en') : $origState;
             $data = [
                 'OrgUID'            => $orgUID,
                 'GroupCode'         => trim($post['GroupCode']         ?? '') ?: null,
                 'GroupName'         => $groupName,
                 'GroupType'         => in_array($post['GroupType'] ?? '', $validTypes) ? $post['GroupType'] : 'Business Group',
-                'ContactPerson'     => trim($post['ContactPerson']     ?? '') ?: null,
+                'ContactPerson'     => $_rawContact,
                 'Mobile'            => trim($post['Mobile']            ?? '') ?: null,
                 'MobileCountryCode' => trim($post['MobileCountryCode'] ?? '') ?: null,
                 'Email'             => trim($post['Email']             ?? '') ?: null,
-                'GSTNo'             => strtoupper(trim($post['GSTIN']             ?? '')) ?: null,
-                'AddrLine1'         => trim($post['AddrLine1']         ?? '') ?: null,
-                'AddrLine2'         => trim($post['AddrLine2']         ?? '') ?: null,
-                'AddrCity'          => trim($post['AddrCity']          ?? '') ?: null,
-                'AddrState'         => trim($post['AddrState']         ?? '') ?: null,
+                'GSTNo'             => strtoupper(trim($post['GSTIN']  ?? '')) ?: null,
+                'AddrLine1'         => $_rawLine1,
+                'AddrLine2'         => $_rawLine2,
+                'AddrCity'          => $_rawCity,
+                'AddrState'         => $_rawState,
                 'AddrStateCode'     => trim($post['AddrStateCode']     ?? '') ?: null,
                 'AddrPincode'       => trim($post['AddrPincode']       ?? '') ?: null,
-                'Notes'             => trim($post['Notes']             ?? '') ?: null,
+                'Notes'             => $_rawNotes,
                 'IsActive'          => 1,
                 'CreatedBy'         => $userUID,
                 'UpdatedBy'         => $userUID,
@@ -1241,6 +1509,7 @@ class Vendors extends MY_Controller {
                 $this->vendors_model->assignVendorGroupMembers($orgUID, $groupUID, $memberUIDs, $primaryUID, $userUID);
             }
             $this->dbwrite_model->commitTransaction();
+            $this->_triggerVendorGroupLangSave((int)$groupUID, $origGroupName, $typedLangGroup, $origContact, $typedLangContact, $origNotes, $typedLangNotes, $origLine1, $typedLangLine1, $origLine2, $typedLangLine2, $origCity, $typedLangCity, $origState, $typedLangState, (int)$userUID);
             $this->cachehelper->upsertVendorGroup((int) $groupUID);
             $this->EndReturnData->Error    = false;
             $this->EndReturnData->Message  = 'Vendor Group created successfully.';
@@ -1273,7 +1542,7 @@ class Vendors extends MY_Controller {
     public function updateGroupData() {
         $this->EndReturnData = new stdClass();
         try {
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
             $post      = $this->input->post();
             $groupUID  = (int)($post['GroupUID'] ?? 0);
@@ -1283,22 +1552,43 @@ class Vendors extends MY_Controller {
             $groupName = trim($post['GroupName'] ?? '');
             if (!$groupName) throw new InvalidArgumentException('Group Name is required.');
             $validTypes = $this->_vendorGroupTypesList();
+            $origGroupName    = $groupName;
+            $typedLangGroup   = detectTextLang($groupName);
+            if ($typedLangGroup === 'ta') $groupName = translateViaMymemory($groupName, 'ta', 'en');
+            $origContact      = trim($post['ContactPerson'] ?? '') ?: null;
+            $typedLangContact = $origContact !== null ? detectTextLang($origContact) : 'en';
+            $_rawContact      = ($typedLangContact === 'ta' && $origContact !== null) ? translateViaMymemory($origContact, 'ta', 'en') : $origContact;
+            $origNotes        = trim($post['Notes']     ?? '') ?: null;
+            $typedLangNotes   = $origNotes !== null ? detectTextLang($origNotes) : 'en';
+            $_rawNotes        = ($typedLangNotes === 'ta' && $origNotes !== null) ? translateViaMymemory($origNotes, 'ta', 'en') : $origNotes;
+            $origLine1        = trim($post['AddrLine1'] ?? '') ?: null;
+            $typedLangLine1   = $origLine1 !== null ? detectTextLang($origLine1) : 'en';
+            $_rawLine1        = ($typedLangLine1 === 'ta' && $origLine1 !== null) ? translateViaMymemory($origLine1, 'ta', 'en') : $origLine1;
+            $origLine2        = trim($post['AddrLine2'] ?? '') ?: null;
+            $typedLangLine2   = $origLine2 !== null ? detectTextLang($origLine2) : 'en';
+            $_rawLine2        = ($typedLangLine2 === 'ta' && $origLine2 !== null) ? translateViaMymemory($origLine2, 'ta', 'en') : $origLine2;
+            $origCity         = trim($post['AddrCity']  ?? '') ?: null;
+            $typedLangCity    = $origCity !== null ? detectTextLang($origCity) : 'en';
+            $_rawCity         = ($typedLangCity === 'ta' && $origCity !== null) ? translateViaMymemory($origCity, 'ta', 'en') : $origCity;
+            $origState        = trim($post['AddrState'] ?? '') ?: null;
+            $typedLangState   = $origState !== null ? detectTextLang($origState) : 'en';
+            $_rawState        = ($typedLangState === 'ta' && $origState !== null) ? translateViaMymemory($origState, 'ta', 'en') : $origState;
             $data = [
                 'GroupCode'         => trim($post['GroupCode']         ?? '') ?: null,
                 'GroupName'         => $groupName,
                 'GroupType'         => in_array($post['GroupType'] ?? '', $validTypes) ? $post['GroupType'] : 'Business Group',
-                'ContactPerson'     => trim($post['ContactPerson']     ?? '') ?: null,
+                'ContactPerson'     => $_rawContact,
                 'Mobile'            => trim($post['Mobile']            ?? '') ?: null,
                 'MobileCountryCode' => trim($post['MobileCountryCode'] ?? '') ?: null,
                 'Email'             => trim($post['Email']             ?? '') ?: null,
-                'GSTNo'             => strtoupper(trim($post['GSTIN']             ?? '')) ?: null,
-                'AddrLine1'         => trim($post['AddrLine1']         ?? '') ?: null,
-                'AddrLine2'         => trim($post['AddrLine2']         ?? '') ?: null,
-                'AddrCity'          => trim($post['AddrCity']          ?? '') ?: null,
-                'AddrState'         => trim($post['AddrState']         ?? '') ?: null,
+                'GSTNo'             => strtoupper(trim($post['GSTIN']  ?? '')) ?: null,
+                'AddrLine1'         => $_rawLine1,
+                'AddrLine2'         => $_rawLine2,
+                'AddrCity'          => $_rawCity,
+                'AddrState'         => $_rawState,
                 'AddrStateCode'     => trim($post['AddrStateCode']     ?? '') ?: null,
                 'AddrPincode'       => trim($post['AddrPincode']       ?? '') ?: null,
-                'Notes'             => trim($post['Notes']             ?? '') ?: null,
+                'Notes'             => $_rawNotes,
                 'UpdatedBy'         => $userUID,
             ];
             $this->load->model('vendors_model');
@@ -1309,6 +1599,7 @@ class Vendors extends MY_Controller {
             $primaryUID = (int)($post['PrimaryUID'] ?? 0);
             $this->vendors_model->syncVendorGroupMembers($orgUID, $groupUID, $memberUIDs, $primaryUID, $userUID);
             $this->dbwrite_model->commitTransaction();
+            $this->_triggerVendorGroupLangSave($groupUID, $origGroupName, $typedLangGroup, $origContact, $typedLangContact, $origNotes, $typedLangNotes, $origLine1, $typedLangLine1, $origLine2, $typedLangLine2, $origCity, $typedLangCity, $origState, $typedLangState, (int)$userUID);
             $this->cachehelper->upsertVendorGroup((int) $groupUID);
             $this->EndReturnData->Error    = false;
             $this->EndReturnData->Message  = 'Vendor Group updated successfully.';
@@ -1346,7 +1637,7 @@ class Vendors extends MY_Controller {
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
             $userUID  = $this->pageData['JwtData']->User->UserUID;
             if (!$groupUID) throw new ValidationException('Group ID is missing.');
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->load->model('vendors_model');
             $oldGroup = $this->vendors_model->getVendorGroupByUID($orgUID, $groupUID);
             $this->dbwrite_model->startTransaction();
@@ -1398,7 +1689,7 @@ class Vendors extends MY_Controller {
             $userUID   = $this->pageData['JwtData']->User->UserUID;
             if (!$groupUID) throw new ValidationException('Group ID is missing.');
             if (!in_array($newStatus, [0, 1])) throw new ValidationException('Invalid status value.');
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $resp = $this->dbwrite_model->updateData('Vendors', 'VendorGroupTbl',
                 ['IsActive' => $newStatus, 'UpdatedBy' => $userUID],
                 ['GroupUID' => $groupUID, 'OrgUID' => $orgUID]
@@ -1444,7 +1735,7 @@ class Vendors extends MY_Controller {
             $orgUID = $this->pageData['JwtData']->Org->OrgUID;
             $this->load->model('vendors_model');
             $this->EndReturnData->Error  = false;
-            $this->EndReturnData->Groups = $this->vendors_model->getActiveVendorGroupsForDropdown($orgUID);
+            $this->EndReturnData->Groups = $this->vendors_model->getActiveVendorGroupsForDropdown($orgUID, $this->_uiLang());
         } catch (ValidationException $e) {
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
@@ -1461,7 +1752,7 @@ class Vendors extends MY_Controller {
         try {
             $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
             $this->load->model('vendors_model');
-            $groups = $this->vendors_model->getActiveVendorGroupsForDropdown($orgUID);
+            $groups = $this->vendors_model->getActiveVendorGroupsForDropdown($orgUID, $this->_uiLang());
             if (empty($groups)) throw new ValidationException('No active vendor groups found.');
 
             $cacheKey = $this->redisservice->orgKey('vendor-groups');
@@ -1501,7 +1792,7 @@ class Vendors extends MY_Controller {
             $this->load->model('vendors_model');
             $group = $this->vendors_model->getVendorGroupByUID($orgUID, $groupUID);
             if (!$group) throw new ValidationException('Group not found.');
-            $members  = $this->vendors_model->getVendorGroupMembers($orgUID, $groupUID);
+            $members  = $this->vendors_model->getVendorGroupMembers($orgUID, $groupUID, $this->_uiLang());
             $overview = $this->vendors_model->getVendorGroupOverview($orgUID, $groupUID);
             $this->EndReturnData->Error    = false;
             $this->EndReturnData->Data     = $group;
@@ -1686,7 +1977,7 @@ class Vendors extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $this->load->model('vendors_model');
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $PostData  = $this->input->post(null, true);
             $orgUID    = (int) $this->pageData['JwtData']->Org->OrgUID;
             $userUID   = (int) $this->pageData['JwtData']->User->UserUID;
@@ -1706,17 +1997,28 @@ class Vendors extends MY_Controller {
                 'VendAddress.AddressType' => 'Billing',
             ]);
 
+            /* Capture raw Tamil values; normalize to English for base-table storage */
+            $rawLine1     = $line1;
+            $rawLine2     = trim((string) getPostValue($PostData, 'Line2',     '', ''));
+            $rawCityText  = trim((string) getPostValue($PostData, 'CityText',  '', ''));
+            $rawStateText = trim((string) getPostValue($PostData, 'StateText', '', ''));
+            $addrLang     = detectTextLang($rawLine1);
+            $engLine1     = ($addrLang === 'ta') ? translateViaMymemory($rawLine1,     'ta', 'en') : $rawLine1;
+            $engLine2     = ($addrLang === 'ta' && $rawLine2 !== '')     ? translateViaMymemory($rawLine2,     'ta', 'en') : $rawLine2;
+            $engCityText  = ($addrLang === 'ta' && $rawCityText !== '')  ? translateViaMymemory($rawCityText,  'ta', 'en') : $rawCityText;
+            $engStateText = ($addrLang === 'ta' && $rawStateText !== '') ? translateViaMymemory($rawStateText, 'ta', 'en') : $rawStateText;
+
             $addressData = [
                 'VendorUID'   => $vendorUID,
                 'OrgUID'      => $orgUID,
                 'AddressType' => 'Billing',
-                'Line1'       => $line1,
-                'Line2'       => trim((string) getPostValue($PostData, 'Line2',     '', '')),
+                'Line1'       => $engLine1,
+                'Line2'       => $engLine2,
                 'Pincode'     => trim((string) getPostValue($PostData, 'Pincode',   '', '')),
                 'State'       => trim((string) getPostValue($PostData, 'StateId',   '', '')),
-                'StateText'   => trim((string) getPostValue($PostData, 'StateText', '', '')),
+                'StateText'   => $engStateText,
                 'City'        => trim((string) getPostValue($PostData, 'CityId',    '', '')),
-                'CityText'    => trim((string) getPostValue($PostData, 'CityText',  '', '')),
+                'CityText'    => $engCityText,
                 'UpdatedBy'   => $userUID,
             ];
 
@@ -1727,6 +2029,10 @@ class Vendors extends MY_Controller {
                 $resp = $this->dbwrite_model->insertData('Vendors', 'VendAddressTbl', $addressData);
             }
             if ($resp->Error) throw new Exception($resp->Message);
+
+            /* Fire background Tamil translation for billing address */
+            $rawBill = ['Line1' => $rawLine1, 'Line2' => $rawLine2, 'CityText' => $rawCityText, 'StateText' => $rawStateText, 'lang' => $addrLang];
+            $this->_triggerVendAddrLangSave($vendorUID, $rawBill, [], $userUID);
 
             $this->cachehelper->upsertVendor($vendorUID);
 
@@ -1758,8 +2064,7 @@ class Vendors extends MY_Controller {
             $vendorUID = (int) $this->input->post('VendorUID');
 
             $this->load->library('vendorbalance');
-            $readDb = $this->load->database('ReadDB', TRUE);
-            $readDb->db_debug = FALSE;
+            $this->load->model('vendors_model');
 
             if ($vendorUID > 0) {
                 // ── Single vendor ──────────────────────────────────────────
@@ -1773,12 +2078,7 @@ class Vendors extends MY_Controller {
 
             } else {
                 // ── All vendors for this org ───────────────────────────────
-                $rows = $readDb->query(
-                    'SELECT VendorUID FROM Vendors.VendorTbl
-                      WHERE OrgUID = ? AND IsDeleted = 0
-                      ORDER BY VendorUID ASC',
-                    [$orgUID]
-                )->result();
+                $rows = $this->vendors_model->getAllVendorUIDs($orgUID);
 
                 if (empty($rows)) throw new ValidationException('No vendors found for this organisation.');
 
@@ -1884,6 +2184,7 @@ class Vendors extends MY_Controller {
                 }
 
                 $this->load->model('vendors_model');
+                $filter['LangCode'] = $this->_uiLang();
                 $result = $this->vendors_model->getVendorListPaginated($orgUID, $limit, $offset, $filter);
 
                 $this->EndReturnData->Vendors = array_map(function($row) {
@@ -1895,7 +2196,7 @@ class Vendors extends MY_Controller {
                         'Balance'      => $row->ClosingBalance     ?? 0,
                         'BalanceType'  => $row->ClosingBalanceType ?? 'Credit',
                     ];
-                    $addrInfo = $this->vendors_model->getVendorAddress(['VendAddress.VendorUID' => $row->VendorUID]);
+                    $addrInfo = $this->vendors_model->getVendorAddress(['VendAddress.VendorUID' => $row->VendorUID], $this->_uiLang());
                     foreach ($addrInfo as $addr) {
                         if ($addr->AddressType === 'Billing') {
                             $vend['address'] = [
@@ -2055,7 +2356,7 @@ class Vendors extends MY_Controller {
             $orgUID    = (int)$this->pageData['JwtData']->Org->OrgUID;
             $userUID   = (int)$this->pageData['JwtData']->User->UserUID;
             if ($attachUID <= 0) throw new ValidationException('Invalid attachment.');
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->updateData('Vendors', 'VendorAttachmentsTbl',
                 ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
                 ['AttachUID' => $attachUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
@@ -2082,7 +2383,7 @@ class Vendors extends MY_Controller {
     }
 
     private function _handleVendorAttachments(int $vendorUID, int $orgUID, int $userUID, string $deleteUIDs): void {
-        $this->load->model('dbwrite_model');
+        $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
         $this->load->library('fileupload');
         $maxFiles = 3; $maxMB = 3;
         $allowed  = ['image/jpeg','image/jpg','image/png','image/gif'];
@@ -2099,14 +2400,8 @@ class Vendors extends MY_Controller {
 
         $files = $_FILES['VendAttachFiles'] ?? null;
         if (!empty($files) && !empty($files['name'][0])) {
-            $wdb = $this->dbwrite_model->getWriteDb();
-            $wdb->db_debug = FALSE;
-            $maxSortQ = $wdb->query(
-                "SELECT COALESCE(MAX(SortOrder),0) AS ms, COUNT(*) AS cnt, COALESCE(SUM(FileSize),0) AS ts
-                   FROM Vendors.VendorAttachmentsTbl WHERE VendorUID=? AND OrgUID=? AND IsDeleted=0",
-                [$vendorUID, $orgUID]
-            );
-            $msr  = $maxSortQ ? $maxSortQ->row() : null;
+            $this->load->model('vendors_model');
+            $msr = $this->vendors_model->getAttachmentSortStats($vendorUID, $orgUID);
             $sort = (int)($msr->ms ?? 0) + 1;
             $slots = $maxFiles - (int)($msr->cnt ?? 0);
             $used  = (float)($msr->ts ?? 0);
@@ -2124,7 +2419,7 @@ class Vendors extends MY_Controller {
                 $safe   = time() . '_' . $i . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $name);
                 $result = $this->fileupload->fileUpload('file', $folder . '/' . $safe, $tmp);
                 if ($result->Error) continue;
-                $wdb->insert('Vendors.VendorAttachmentsTbl', [
+                $this->dbwrite_model->insertData('Vendors', 'VendorAttachmentsTbl', [
                     'OrgUID'    => $orgUID, 'VendorUID' => $vendorUID,
                     'FileName'  => $name,   'FilePath'  => '/' . ltrim($result->Path, '/'),
                     'FileSize'  => (int)$size, 'SortOrder' => $sort++,
@@ -2140,7 +2435,7 @@ class Vendors extends MY_Controller {
         try {
             $this->load->model('vendors_model');
             $primary = $this->vendors_model->getVendorPrimaryImage($vendorUID, $orgUID);
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->updateData('Vendors', 'VendorTbl',
                 ['Image' => $primary, 'UpdatedBy' => $userUID],
                 ['VendorUID' => $vendorUID, 'OrgUID' => $orgUID]
@@ -2170,7 +2465,7 @@ class Vendors extends MY_Controller {
             if ($uid <= 0) throw new ValidationException('Invalid vendor ID.');
 
             $this->load->model('vendors_model');
-            $vendData = $this->vendors_model->getVendors(['Vendors.VendorUID' => $uid]);
+            $vendData = $this->vendors_model->getVendors(['Vendors.VendorUID' => $uid], $this->_uiLang());
             if (empty($vendData)) throw new ValidationException('Vendor not found.');
             $vend = $vendData[0];
 
@@ -2185,7 +2480,7 @@ class Vendors extends MY_Controller {
             switch ($tab) {
 
                 case 'overview':
-                    $addrInfo    = $this->vendors_model->getVendorAddress(['VendAddress.VendorUID' => $uid]);
+                    $addrInfo    = $this->vendors_model->getVendorAddress(['VendAddress.VendorUID' => $uid], $this->_uiLang());
                     $billingAddr = null; $shippingAddr = null;
                     foreach ($addrInfo as $a) {
                         if ($a->AddressType === 'Billing')  $billingAddr  = $a;
@@ -2310,7 +2605,7 @@ class Vendors extends MY_Controller {
 
             $this->load->model('vendors_model');
             $this->load->model('organisation_model');
-            $vendData = $this->vendors_model->getVendors(['Vendors.VendorUID' => $vendorUID]);
+            $vendData = $this->vendors_model->getVendors(['Vendors.VendorUID' => $vendorUID], $this->_uiLang());
             if (empty($vendData)) throw new ValidationException('Vendor not found.');
 
             $JwtData    = $this->pageData['JwtData'];

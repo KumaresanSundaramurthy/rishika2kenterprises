@@ -10,7 +10,8 @@ $CI->load->model('customers_model');
 $_orgUID      = $CI->pageData['JwtData']->Org->OrgUID  ?? 0;
 $_orgCCode    = $CI->pageData['JwtData']->Org->OrgCCode  ?? '';
 $_orgCISO2    = $CI->pageData['JwtData']->Org->OrgCISO2  ?? '';
-$_groupList   = $CI->customers_model->getActiveGroupsForDropdown($_orgUID);
+$_uiLang      = $CI->pageData['JwtData']->User->UILanguage ?? 'en';
+$_groupList   = $CI->customers_model->getActiveGroupsForDropdown($_orgUID, $_uiLang);
 
 $CI->load->view('customers/forms/modal_body', [
     'FormMode'          => 'add',

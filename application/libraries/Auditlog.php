@@ -47,7 +47,7 @@ class Auditlog {
         array  $formDataJson   = []
     ): void {
         try {
-            $this->CI->load->model('dbwrite_model');
+            $this->CI->load->model('dbwrite_model'); $this->CI->load->model('dbwrite_ext_model');
             $ip = $this->CI->input->ip_address();
 
             // Auto-resolve display name from JWT (no extra DB query)
@@ -83,7 +83,7 @@ class Auditlog {
             $validDevices  = ['Desktop', 'Mobile', 'Tablet', 'Bot', 'Unknown'];
             $validCategory = ['SYSTEM', 'SECURITY', 'TRANSACTION', 'MASTER', 'PAYMENT', 'SETTINGS'];
 
-            $this->CI->dbwrite_model->insertAuditLog([
+            $this->CI->dbwrite_ext_model->insertAuditLog([
                 'OrgUID'        => $orgUID,
                 'UserUID'       => $userUID,
                 'UserName'      => $userName !== '' ? substr($userName, 0, 120) : NULL,

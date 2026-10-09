@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Attendance extends MY_Controller {
 
@@ -95,7 +95,7 @@ class Attendance extends MY_Controller {
                 $hrs  = $diff > 0 ? round($diff / 3600, 2) : NULL;
             }
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $data = [
                 'OrgUID'         => $this->_orgUID(),
                 'BranchUID'      => $this->_branchUID(),
@@ -133,7 +133,7 @@ class Attendance extends MY_Controller {
             $branchUID = $this->_branchUID();
             $userUID   = $this->_userUID();
             $saved = 0;
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             foreach ($records as $r) {
                 if (empty($r['EmployeeUID']) || empty($r['AttendanceDate']) || empty($r['Status'])) continue;
                 $data = ['OrgUID' => $orgUID, 'BranchUID' => $branchUID, 'UserUID' => (int)$r['EmployeeUID'], 'AttendanceDate' => $r['AttendanceDate'], 'Status' => $r['Status'], 'Remarks' => trim($r['Remarks'] ?? ''), 'UpdatedBy' => $userUID];
@@ -157,7 +157,7 @@ class Attendance extends MY_Controller {
         try {
             $uid = (int)$this->input->post('AttendanceUID');
             if (!$uid) throw new Exception('Invalid.');
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $res = $this->dbwrite_model->updateData('Transaction', 'AttendanceTbl', ['IsDeleted' => 1, 'UpdatedBy' => $this->_userUID()], ['AttendanceUID' => $uid, 'OrgUID' => $this->_orgUID()]);
             if ($res->Error) throw new Exception($res->Message);
             $this->EndReturnData->Error = FALSE; $this->EndReturnData->Message = 'Deleted.';

@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 /**
  * @property object $inventory_model
@@ -18,7 +18,7 @@ class Inventory extends MY_Controller {
     public function __construct() {
         parent::__construct();
         $this->load->helper('transaction');
-        $this->load->model(['inventory_model', 'dbwrite_model']);
+        $this->load->model(['inventory_model', 'dbwrite_model', 'dbwrite_ext_model']);
     }
 
     // ── Main page ───────────────────────────────────────────────────────
@@ -152,7 +152,7 @@ class Inventory extends MY_Controller {
 
             $adjUID = (int) $insertResp->ID;
             if ($adjUID <= 0) throw new Exception('Failed to retrieve adjustment ID after insert.');
-            $this->dbwrite_model->applyManualStockAdjustment($adjUID, $orgUID, $userUID, $productUID, $qty, $price, 'IN', $branchUID, $variantUID);
+            $this->dbwrite_ext_model->applyManualStockAdjustment($adjUID, $orgUID, $userUID, $productUID, $qty, $price, 'IN', $branchUID, $variantUID);
 
             $this->dbwrite_model->commitTransaction();
 
@@ -232,7 +232,7 @@ class Inventory extends MY_Controller {
 
             $adjUID = (int) $insertResp->ID;
             if ($adjUID <= 0) throw new Exception('Failed to retrieve adjustment ID after insert.');
-            $this->dbwrite_model->applyManualStockAdjustment($adjUID, $orgUID, $userUID, $productUID, $qty, $price, 'OUT', $branchUID, $variantUID);
+            $this->dbwrite_ext_model->applyManualStockAdjustment($adjUID, $orgUID, $userUID, $productUID, $qty, $price, 'OUT', $branchUID, $variantUID);
 
             $this->dbwrite_model->commitTransaction();
 
@@ -318,7 +318,7 @@ class Inventory extends MY_Controller {
             $this->dbwrite_model->startTransaction();
 
             // Reverse the stock ledger entry + restore product quantity
-            $this->dbwrite_model->reverseStockMovements($adjUID, $orgUID, $userUID);
+            $this->dbwrite_ext_model->reverseStockMovements($adjUID, $orgUID, $userUID);
 
             // Soft-delete the adjustment record
             $resp = $this->dbwrite_model->updateData(
@@ -537,7 +537,7 @@ class Inventory extends MY_Controller {
         try {
             $orgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
             $term    = trim($this->input->post('Term') ?: '');
-            $results = $this->inventory_model->searchProducts($orgUID, $term);
+            $results = $this->inventory_model->searchProducts($orgUID, $term, $this->_uiLang());
             $this->EndReturnData->Error    = FALSE;
             $this->EndReturnData->Products = $results;
         } catch (Exception $e) {
@@ -806,7 +806,7 @@ class Inventory extends MY_Controller {
                 throw new ValidationException('Serial number “' . $serialNumber . '” already exists for this product.');
             }
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $resp = $this->dbwrite_model->insertData('Transaction', 'ProductSerialsTbl', [
                 'OrgUID'       => $orgUID,
                 'ProductUID'   => $productUID,
@@ -854,7 +854,7 @@ class Inventory extends MY_Controller {
             }
             if ($serialUID <= 0) throw new ValidationException('SerialUID is required.');
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $resp = $this->dbwrite_model->updateData(
                 'Transaction', 'ProductSerialsTbl',
                 ['Status' => $status, 'UpdatedBy' => $userUID],

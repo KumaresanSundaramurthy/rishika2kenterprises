@@ -514,7 +514,8 @@ class Cachehelper {
             if ($uid <= 0) return;
 
             $CI->load->model('vendors_model');
-            $groups = $CI->vendors_model->getActiveVendorGroupsForDropdown($orgUID);
+            $uiLang = $CI->pageData['JwtData']->User->UILanguage ?? 'en';
+            $groups = $CI->vendors_model->getActiveVendorGroupsForDropdown($orgUID, $uiLang);
             $group  = null;
             foreach ($groups as $g) {
                 if ((int) $g->GroupUID === $uid) { $group = $g; break; }

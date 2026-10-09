@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Userpreferences extends MY_Controller {
 
@@ -6,7 +6,7 @@ class Userpreferences extends MY_Controller {
 
     public function __construct() {
         parent::__construct();
-        $this->load->model('dbwrite_model');
+        $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
         $this->load->model('Userpreferences_model');
     }
 
@@ -39,7 +39,7 @@ class Userpreferences extends MY_Controller {
                 return;
             }
 
-            $this->dbwrite_model->upsertPreference($orgUID, $branchUID, $userUID, $key, $value);
+            $this->dbwrite_ext_model->upsertPreference($orgUID, $branchUID, $userUID, $key, $value);
 
             $keyModuleMap = [
                 'df_invoices'              => 'Invoices',

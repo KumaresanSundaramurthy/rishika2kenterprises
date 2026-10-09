@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 /**
  * @property object $accountledger_model
@@ -88,7 +88,7 @@ class Accounting extends MY_Controller {
             if (!in_array($type, $validTypes)) throw new Exception('Invalid ledger type.');
 
             $orgUID = (int)$this->pageData['JwtData']->Org->OrgUID;
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $data = [
                 'LedgerName'          => $name,
                 'LedgerType'          => $type,
@@ -149,7 +149,7 @@ class Accounting extends MY_Controller {
 
             $userUID = (int)$this->pageData['JwtData']->User->UserUID;
             $orgUID  = (int)$this->pageData['JwtData']->Org->OrgUID;
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $res = $this->dbwrite_model->updateData('Accounting', 'ChartOfAccounts',
                 ['IsActive' => $newStatus, 'UpdatedBy' => $userUID],
                 ['LedgerUID' => $ledgerUID, 'OrgUID' => $orgUID]
@@ -187,7 +187,7 @@ class Accounting extends MY_Controller {
             }
             $userUID = (int)$this->pageData['JwtData']->User->UserUID;
             $orgUID  = (int)$this->pageData['JwtData']->Org->OrgUID;
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $res = $this->dbwrite_model->updateData('Accounting', 'ChartOfAccounts',
                 ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
                 ['LedgerUID' => $ledgerUID, 'OrgUID' => $orgUID]
@@ -490,7 +490,7 @@ class Accounting extends MY_Controller {
             $fy      = (int)date('Y', strtotime($date));
             $userUID = (int)$this->pageData['JwtData']->User->UserUID;
             $this->load->library('accountledger');
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $jUID      = $this->accountledger->postManualJournal($date, $fy, $narr, $clean, $userUID);
             $journalNo = 'JRN-' . $fy . '-' . str_pad($jUID, 7, '0', STR_PAD_LEFT);
 
@@ -515,7 +515,7 @@ class Accounting extends MY_Controller {
 
             $userUID = (int)$this->pageData['JwtData']->User->UserUID;
             $this->load->library('accountledger');
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->accountledger->reverseManualJournal($journalUID, $userUID);
 
             $this->EndReturnData->Error   = FALSE;
@@ -938,7 +938,7 @@ class Accounting extends MY_Controller {
 
             $orgUID  = (int)$this->pageData['JwtData']->Org->OrgUID;
             $userUID = (int)$this->pageData['JwtData']->User->UserUID;
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
 
             if ($recurUID > 0) {
                 // Update header
@@ -952,9 +952,8 @@ class Accounting extends MY_Controller {
                 ], ['RecurUID' => $recurUID, 'OrgUID' => $orgUID]);
 
                 // Hard-delete old lines and re-insert
-                $WriteDb = $this->load->database('WriteDB', TRUE);
-                $WriteDb->where('RecurUID', $recurUID)->where('OrgUID', $orgUID)
-                        ->delete('Accounting.RecurringJournalLines');
+                $resp = $this->dbwrite_model->deleteData('Accounting', 'RecurringJournalLines', ['RecurUID' => $recurUID, 'OrgUID' => $orgUID]);
+                if ($resp->Error) throw new Exception($resp->Message);
             } else {
                 // Insert header
                 $insertResult = $this->dbwrite_model->insertData('Accounting', 'RecurringJournals', [
@@ -1029,7 +1028,7 @@ class Accounting extends MY_Controller {
             $orgUID  = (int)$this->pageData['JwtData']->Org->OrgUID;
 
             $this->load->library('accountledger');
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
 
             $jUID = $this->accountledger->postManualJournal(
                 $today, $fy, $journal->Narration, $lines, $userUID, 'Recurring'
@@ -1073,7 +1072,7 @@ class Accounting extends MY_Controller {
             }
 
             $this->load->library('accountledger');
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
 
             $today   = date('Y-m-d');
             $fy      = (int)date('Y');
@@ -1143,7 +1142,7 @@ class Accounting extends MY_Controller {
             $userUID = (int)$this->pageData['JwtData']->User->UserUID;
             $newStatus = (int)$journal->IsActive === 1 ? 0 : 1;
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->updateData('Accounting', 'RecurringJournals', [
                 'IsActive'  => $newStatus,
                 'UpdatedBy' => $userUID,
@@ -1170,7 +1169,7 @@ class Accounting extends MY_Controller {
             $orgUID  = (int)$this->pageData['JwtData']->Org->OrgUID;
             $userUID = (int)$this->pageData['JwtData']->User->UserUID;
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->updateData('Accounting', 'RecurringJournals', [
                 'IsDeleted' => 1,
                 'IsActive'  => 0,
@@ -1243,7 +1242,7 @@ class Accounting extends MY_Controller {
             $userUID = (int)$this->pageData['JwtData']->User->UserUID;
             $now     = date('Y-m-d H:i:s');
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $existing = $this->accountledger_model->getPeriodLock();
 
             if ($existing) {
@@ -1278,8 +1277,9 @@ class Accounting extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $orgUID  = (int)$this->pageData['JwtData']->Org->OrgUID;
-            $WriteDb = $this->load->database('WriteDB', TRUE);
-            $WriteDb->where('OrgUID', $orgUID)->delete('Accounting.PeriodLock');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
+            $resp = $this->dbwrite_model->deleteData('Accounting', 'PeriodLock', ['OrgUID' => $orgUID]);
+            if ($resp->Error) throw new Exception($resp->Message);
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Period lock removed. All periods are now open for posting.';

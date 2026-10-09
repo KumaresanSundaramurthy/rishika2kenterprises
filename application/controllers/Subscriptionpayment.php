@@ -44,17 +44,9 @@ class Subscriptionpayment extends CI_Controller {
         }
 
         /* Fetch fresh plan details from DB */
-        $readDb = $this->load->database('ReadDB', TRUE);
-        $readDb->db_debug = FALSE;
-
-        $plan = $readDb
-            ->select('SPT.SectorPlanUID, SPT.Price, SPT.DurationDays, SP.PlanName, SP.BillingCycle')
-            ->from('Billing.SectorPlanTbl AS SPT')
-            ->join('Billing.SubscriptionPlansTbl AS SP', 'SP.PlanUID = SPT.PlanUID')
-            ->where('SPT.SectorPlanUID', $sectorPlanUID)
-            ->where('SPT.IsActive', 1)
-            ->limit(1)
-            ->get()->row();
+        $this->load->model('subscription_model');
+        $planResult = $this->subscription_model->getSectorPlanByUID($sectorPlanUID);
+        $plan = ($planResult->Error || !$planResult->Data) ? null : $planResult->Data;
 
         if (!$plan || (float)$plan->Price <= 0) {
             redirect('subscribe', 'refresh');

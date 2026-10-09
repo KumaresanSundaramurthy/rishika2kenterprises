@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 
 /**
  * Razorpay — public payment endpoints for customer invoice self-pay.
@@ -156,7 +156,7 @@ class Razorpay extends CI_Controller {
             if (!$payTypeUID) throw new Exception('No online payment type is configured in Settings.');
 
             // ── Record payment ────────────────────────────────────────────────
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             $receiptToken = $this->transactions_model->_generateReceiptToken();
@@ -357,9 +357,7 @@ class Razorpay extends CI_Controller {
         $filterResult = $this->signup_model->applyPlanMenuFilter($orgUID, $sectorPlanUID);
         if ($filterResult->Error) throw new Exception('Menu filter failed: ' . ($filterResult->Message ?? ''));
 
-        $this->load->model('dbwrite_model');
-        $writeDb = $this->dbwrite_model->getWriteDb();
-        $writeDb->db_debug = FALSE;
+        $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
 
         $now       = gmdate('Y-m-d H:i:s');
         $_ts = time() + max(1, (int)$plan->DurationDays) * 86400;
@@ -369,31 +367,29 @@ class Razorpay extends CI_Controller {
 
         if ($flow === 'signup') {
 
-            $writeDb->where('OrgSubUID', $orgSubUID)
-                    ->update('Billing.OrgSubscriptionTbl', ['Status' => 'Active']);
+            $this->dbwrite_model->updateData('Billing', 'OrgSubscriptionTbl',
+                ['Status' => 'Active'],
+                ['OrgSubUID' => $orgSubUID]);
 
-            $writeDb->where('OrgUID',  $orgUID)
-                    ->where('Status', 'Pending')
-                    ->update('Billing.SubscriptionOrdersTbl', [
-                        'Status'            => 'Paid',
-                        'IsPaid'            => 1,
-                        'PaidOn'            => $now,
-                        'PaymentMode'       => 'Razorpay',
-                        'RazorpayOrderId'   => $orderId,
-                        'RazorpayPaymentId' => $paymentId,
-                    ]);
+            $this->dbwrite_model->updateData('Billing', 'SubscriptionOrdersTbl', [
+                'Status'            => 'Paid',
+                'IsPaid'            => 1,
+                'PaidOn'            => $now,
+                'PaymentMode'       => 'Razorpay',
+                'RazorpayOrderId'   => $orderId,
+                'RazorpayPaymentId' => $paymentId,
+            ], ['OrgUID' => $orgUID, 'Status' => 'Pending']);
 
         } elseif ($flow === 'renewal') {
 
-            $writeDb->where('OrgSubUID', $orgSubUID)
-                    ->update('Billing.OrgSubscriptionTbl', [
-                        'SectorPlanUID' => $sectorPlanUID,
-                        'Status'        => 'Active',
-                        'StartDate'     => $now,
-                        'EndDate'       => $endDate,
-                    ]);
+            $this->dbwrite_model->updateData('Billing', 'OrgSubscriptionTbl', [
+                'SectorPlanUID' => $sectorPlanUID,
+                'Status'        => 'Active',
+                'StartDate'     => $now,
+                'EndDate'       => $endDate,
+            ], ['OrgSubUID' => $orgSubUID]);
 
-            $writeDb->insert('Billing.SubscriptionOrdersTbl', [
+            $this->dbwrite_model->insertData('Billing', 'SubscriptionOrdersTbl', [
                 'OrgUID'            => $orgUID,
                 'SectorPlanUID'     => $sectorPlanUID,
                 'OrgSubUID'         => $orgSubUID,
@@ -415,7 +411,7 @@ class Razorpay extends CI_Controller {
 
         } elseif ($flow === 'upgrade') {
 
-            $writeDb->insert('Billing.SubscriptionOrdersTbl', [
+            $this->dbwrite_model->insertData('Billing', 'SubscriptionOrdersTbl', [
                 'OrgUID'            => $orgUID,
                 'SectorPlanUID'     => $sectorPlanUID,
                 'OrgSubUID'         => $orgSubUID,
@@ -467,7 +463,7 @@ class Razorpay extends CI_Controller {
         $payTypeUID = $this->razorpay_model->getOnlinePaymentTypeUID((int)$stub->OrgUID);
         if (!$payTypeUID) throw new Exception('No online payment type configured. OrgUID=' . $stub->OrgUID);
 
-        $this->load->model('dbwrite_model');
+        $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
         $this->dbwrite_model->startTransaction();
 
         $receiptToken = $this->transactions_model->_generateReceiptToken();

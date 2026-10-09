@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Designations extends MY_Controller {
 
@@ -51,7 +51,7 @@ class Designations extends MY_Controller {
             $p   = $this->input->post();
             $uid = (int)($p['DesignationUID'] ?? 0);
             if (empty(trim($p['DesignationName'] ?? ''))) throw new Exception('Designation name is required.');
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $data = ['OrgUID' => $this->_orgUID(), 'DesignationName' => trim($p['DesignationName']), 'Description' => trim($p['Description'] ?? ''), 'IsActive' => 1, 'UpdatedBy' => $this->_userUID()];
             if ($uid === 0) {
                 $data['CreatedBy'] = $this->_userUID();
@@ -71,7 +71,7 @@ class Designations extends MY_Controller {
         try {
             $uid = (int)$this->input->post('DesignationUID');
             if (!$uid) throw new Exception('Invalid.');
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $res = $this->dbwrite_model->updateData('Organisation', 'DesignationTbl', ['IsDeleted' => 1, 'UpdatedBy' => $this->_userUID()], ['DesignationUID' => $uid, 'OrgUID' => $this->_orgUID()]);
             if ($res->Error) throw new Exception($res->Message);
             $this->EndReturnData->Error = FALSE; $this->EndReturnData->Message = 'Deleted.';

@@ -15,19 +15,21 @@ class Vendors_model extends CI_Model {
         $this->ReadDb->simple_query('COMMIT');
     }
 
-    public function getVendors(array $FilterArray): array {
+    public function getVendors(array $FilterArray, string $langCode = 'en'): array {
 
         $this->EndReturnData = new StdClass();
         try {
 
+            $useLang = $langCode !== 'en';
+            $lc      = $this->ReadDb->escape_str($langCode);
             $this->ReadDb->db_debug = FALSE;
 
             $select_ary = array(
                 'Vendors.VendorUID AS VendorUID',
                 'Vendors.SalutationUID AS SalutationUID',
                 'Vendors.OrgUID AS OrgUID',
-                'Vendors.Name AS Name',
-                'Vendors.Area AS Area',
+                $useLang ? 'COALESCE(VL.Name, Vendors.Name) AS Name' : 'Vendors.Name AS Name',
+                $useLang ? 'COALESCE(VL.Area, Vendors.Area) AS Area' : 'Vendors.Area AS Area',
                 'Vendors.CountryISO2 as CountryISO2',
                 'Vendors.CountryCode as CountryCode',
                 'Vendors.MobileNumber as MobileNumber',
@@ -36,16 +38,16 @@ class Vendors_model extends CI_Model {
                 'Vendors.GSTIN as GSTIN',
                 'Vendors.GSTINValidated as GSTINValidated',
                 'Vendors.VendorNumber as VendorNumber',
-                'Vendors.CompanyName as CompanyName',
+                $useLang ? 'COALESCE(VL.CompanyName, Vendors.CompanyName) AS CompanyName' : 'Vendors.CompanyName as CompanyName',
                 'Vendors.WorkPhone as WorkPhone',
                 'Vendors.LandlineNumber as LandlineNumber',
                 'Vendors.DebitCreditType as DebitCreditType',
                 'Vendors.DebitCreditAmount as DebitCreditAmount',
                 'Vendors.Image as Image',
                 'Vendors.PANNumber as PANNumber',
-                'Vendors.ContactPerson as ContactPerson',
+                $useLang ? 'COALESCE(VL.ContactPerson, Vendors.ContactPerson) AS ContactPerson' : 'Vendors.ContactPerson as ContactPerson',
                 'Vendors.DateOfBirth as DateOfBirth',
-                'Vendors.Notes as Notes',
+                $useLang ? 'COALESCE(VL.Notes, Vendors.Notes) AS Notes' : 'Vendors.Notes as Notes',
                 'Customers.Name as CustomerName',
                 'Vendors.CreatedOn as CreatedOn',
                 'Vendors.UpdatedOn as UpdatedOn',
@@ -58,6 +60,9 @@ class Vendors_model extends CI_Model {
             $this->ReadDb->select($select_ary);
             $this->ReadDb->from('Vendors.VendorTbl as Vendors');
             $this->ReadDb->join('Customers.CustomerTbl as Customers', 'Customers.CustomerUID = Vendors.CustomerUID', 'left');
+            if ($useLang) {
+                $this->ReadDb->join("Vendors.VendorTbl_Lang AS VL", "VL.VendorUID = Vendors.VendorUID AND VL.LangCode = '{$lc}'", 'left');
+            }
             $this->ReadDb->where($WhereCondition);
             if(sizeof($FilterArray) > 0) {
                 $this->ReadDb->where($FilterArray);
@@ -129,11 +134,13 @@ class Vendors_model extends CI_Model {
 
     }
 
-    public function getVendorAddress(array $FilterArray): array {
+    public function getVendorAddress(array $FilterArray, string $langCode = 'en'): array {
 
         $this->EndReturnData = new StdClass();
         try {
 
+            $useLang = $langCode !== 'en';
+            $lc      = $this->ReadDb->escape_str($langCode);
             $this->ReadDb->db_debug = FALSE;
 
             $select_ary = array(
@@ -141,13 +148,13 @@ class Vendors_model extends CI_Model {
                 'VendAddress.OrgUID AS OrgUID',
                 'VendAddress.VendorUID AS VendorUID',
                 'VendAddress.AddressType AS AddressType',
-                'VendAddress.Line1 as Line1',
-                'VendAddress.Line2 as Line2',
+                $useLang ? 'COALESCE(VAL.Line1, VendAddress.Line1) AS Line1' : 'VendAddress.Line1 as Line1',
+                $useLang ? 'COALESCE(VAL.Line2, VendAddress.Line2) AS Line2' : 'VendAddress.Line2 as Line2',
                 'VendAddress.Pincode as Pincode',
                 'VendAddress.City as City',
-                'VendAddress.CityText as CityText',
+                $useLang ? 'COALESCE(VAL.CityText, VendAddress.CityText) AS CityText' : 'VendAddress.CityText as CityText',
                 'VendAddress.State as State',
-                'VendAddress.StateText as StateText',
+                $useLang ? 'COALESCE(VAL.StateText, VendAddress.StateText) AS StateText' : 'VendAddress.StateText as StateText',
             );
             $WhereCondition = array(
                 'VendAddress.IsDeleted' => 0,
@@ -156,6 +163,9 @@ class Vendors_model extends CI_Model {
 
             $this->ReadDb->select($select_ary);
             $this->ReadDb->from('Vendors.VendAddressTbl as VendAddress');
+            if ($useLang) {
+                $this->ReadDb->join("Vendors.VendAddressTbl_Lang AS VAL", "VAL.VendAddressUID = VendAddress.VendAddressUID AND VAL.LangCode = '{$lc}'", 'left');
+            }
             $this->ReadDb->where($WhereCondition);
             if(sizeof($FilterArray) > 0) {
                 $this->ReadDb->where($FilterArray);
@@ -226,14 +236,20 @@ class Vendors_model extends CI_Model {
 
             // Data query — balance via correlated subqueries to prevent row multiplication
             // from multi-ledger ELM rows (ELM+COA JOINs caused N rows per vendor if >1 ledger)
+            $useLang          = (!empty($filter['LangCode']) && $filter['LangCode'] !== 'en');
+            $nameField        = $useLang ? 'COALESCE(VL.Name,          Vendors.Name)          AS Name'          : 'Vendors.Name          AS Name';
+            $contactField     = $useLang ? 'COALESCE(VL.ContactPerson, Vendors.ContactPerson) AS ContactPerson' : 'Vendors.ContactPerson  AS ContactPerson';
+            $notesField       = $useLang ? 'COALESCE(VL.Notes,         Vendors.Notes)         AS Notes'         : 'Vendors.Notes          AS Notes';
+            $areaField        = $useLang ? 'COALESCE(VL.Area,          Vendors.Area)          AS Area'          : 'Vendors.Area          AS Area';
+            $companyNameField = $useLang ? 'COALESCE(VL.CompanyName,   Vendors.CompanyName)   AS CompanyName'   : 'Vendors.CompanyName   AS CompanyName';
             $this->ReadDb->select([
                 'Vendors.VendorUID AS TablePrimaryUID',
                 'Vendors.VendorUID AS VendorUID',
                 'Vendors.OrgUID AS OrgUID',
                 'Vendors.SalutationUID AS SalutationUID',
                 'Sal.SalutationName AS SalutationName',
-                'Vendors.Name AS Name',
-                'Vendors.Area AS Area',
+                $nameField,
+                $areaField,
                 'Vendors.CountryISO2 AS CountryISO2',
                 'Vendors.CountryCode AS CountryCode',
                 'Vendors.MobileNumber AS MobileNumber',
@@ -241,14 +257,15 @@ class Vendors_model extends CI_Model {
                 'Vendors.GSTIN AS GSTIN',
                 'Vendors.GSTINValidated AS GSTINValidated',
                 'Vendors.VendorNumber AS VendorNumber',
-                'Vendors.CompanyName AS CompanyName',
+                $companyNameField,
                 'Vendors.WorkPhone AS WorkPhone',
                 'Vendors.LandlineNumber AS LandlineNumber',
                 'Vendors.DebitCreditType AS DebitCreditType',
                 'Vendors.DebitCreditAmount AS DebitCreditAmount',
                 'Vendors.Image AS Image',
                 'Vendors.PANNumber AS PANNumber',
-                'Vendors.Notes AS Notes',
+                $contactField,
+                $notesField,
                 'Vendors.Tags AS Tags',
                 'Vendors.CCEmails AS CCEmails',
                 'Vendors.IsActive AS IsActive',
@@ -268,6 +285,14 @@ class Vendors_model extends CI_Model {
                 'Sal.SalutationUID = Vendors.SalutationUID AND Sal.IsDeleted = 0',
                 'left'
             );
+            if ($useLang) {
+                $lc = $this->ReadDb->escape($filter['LangCode']);
+                $this->ReadDb->join(
+                    'Vendors.VendorTbl_Lang AS VL',
+                    "VL.VendorUID = Vendors.VendorUID AND VL.LangCode = {$lc}",
+                    'left'
+                );
+            }
             $this->ReadDb->where($baseWhere);
             if (!empty($filter['SearchAllData'])) {
                 $s = $filter['SearchAllData'];
@@ -885,11 +910,20 @@ class Vendors_model extends CI_Model {
     // Vendor Group model methods
     // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-    public function searchVendorsForGroup(string $term, int $orgUID = 0, int $excludeGroupUID = 0): array {
+    public function searchVendorsForGroup(string $term, int $orgUID = 0, int $excludeGroupUID = 0, string $langCode = 'en'): array {
         try {
+            $useLang = $langCode !== 'en';
+            $lc      = $this->ReadDb->escape_str($langCode);
             $this->ReadDb->db_debug = FALSE;
-            $this->ReadDb->select('V.VendorUID, V.Name, V.Area');
+            $this->ReadDb->select([
+                'V.VendorUID',
+                $useLang ? 'COALESCE(VL.Name, V.Name) AS Name' : 'V.Name',
+                $useLang ? 'COALESCE(VL.Area, V.Area) AS Area' : 'V.Area',
+            ]);
             $this->ReadDb->from('Vendors.VendorTbl V');
+            if ($useLang) {
+                $this->ReadDb->join("Vendors.VendorTbl_Lang VL", "VL.VendorUID = V.VendorUID AND VL.LangCode = '{$lc}'", 'left');
+            }
             if ($orgUID > 0) {
                 $this->ReadDb->join(
                     'Vendors.VendorGroupMemberTbl VGM',
@@ -922,9 +956,11 @@ class Vendors_model extends CI_Model {
         }
     }
 
-    public function getVendorGroupListPaginated(int $orgUID, int $limit, int $offset, array $filter = []): object {
+    public function getVendorGroupListPaginated(int $orgUID, int $limit, int $offset, array $filter = [], string $langCode = 'en'): object {
         try {
             $this->ReadDb->db_debug = FALSE;
+            $useLang = $langCode !== 'en';
+            $lc      = $this->ReadDb->escape_str($langCode);
 
             $tblChk       = $this->ReadDb->query("SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA='Vendors' AND TABLE_NAME='VendorGroupMemberTbl' LIMIT 1");
             $hasMemberTbl = $tblChk && $tblChk->num_rows() > 0;
@@ -956,27 +992,35 @@ class Vendors_model extends CI_Model {
             $totalCount = (int)($countRow->cnt ?? 0);
 
             // ── Step 1: Paginated groups ──
+            $groupNameField     = $useLang ? 'COALESCE(VGL.GroupName, VG.GroupName) AS GroupName' : 'VG.GroupName AS GroupName';
+            $contactPersonField = $useLang ? 'COALESCE(VGL.ContactPerson, VG.ContactPerson) AS ContactPerson' : 'VG.ContactPerson AS ContactPerson';
             if ($hasMemberTbl) {
                 $this->ReadDb->select(
-                    'VG.GroupUID, VG.GroupCode, VG.GroupName, VG.GroupType,
-                     VG.ContactPerson, VG.Mobile, VG.Email, VG.IsActive,
+                    "VG.GroupUID, VG.GroupCode, {$groupNameField}, VG.GroupType,
+                     {$contactPersonField}, VG.Mobile, VG.Email, VG.IsActive,
                      COUNT(V.VendorUID) AS MemberCount,
                      MAX(CASE WHEN VGM.IsGroupPrimary = 1 THEN V.Name ELSE NULL END) AS PrimaryName,
-                     0 AS TotalReceivable, 0 AS TotalPayable',
+                     0 AS TotalReceivable, 0 AS TotalPayable",
                     false
                 );
                 $this->ReadDb->from('Vendors.VendorGroupTbl VG');
+                if ($useLang) {
+                    $this->ReadDb->join("Vendors.VendorGroupTbl_Lang AS VGL", "VGL.GroupUID = VG.GroupUID AND VGL.LangCode = '{$lc}'", 'left');
+                }
                 $this->ReadDb->join('Vendors.VendorGroupMemberTbl VGM', 'VGM.GroupUID = VG.GroupUID AND VGM.OrgUID = VG.OrgUID AND VGM.IsDeleted = 0', 'left');
                 $this->ReadDb->join('Vendors.VendorTbl V', 'V.VendorUID = VGM.VendorUID AND V.IsDeleted = 0', 'left');
             } else {
                 $this->ReadDb->select(
-                    'VG.GroupUID, VG.GroupCode, VG.GroupName, VG.GroupType,
-                     VG.ContactPerson, VG.Mobile, VG.Email, VG.IsActive,
+                    "VG.GroupUID, VG.GroupCode, {$groupNameField}, VG.GroupType,
+                     {$contactPersonField}, VG.Mobile, VG.Email, VG.IsActive,
                      0 AS MemberCount, NULL AS PrimaryName,
-                     0 AS TotalReceivable, 0 AS TotalPayable',
+                     0 AS TotalReceivable, 0 AS TotalPayable",
                     false
                 );
                 $this->ReadDb->from('Vendors.VendorGroupTbl VG');
+                if ($useLang) {
+                    $this->ReadDb->join("Vendors.VendorGroupTbl_Lang AS VGL", "VGL.GroupUID = VG.GroupUID AND VGL.LangCode = '{$lc}'", 'left');
+                }
             }
             $this->ReadDb->where(['VG.OrgUID' => (int)$orgUID, 'VG.IsDeleted' => 0]);
             if (!empty($filter['SearchAllData'])) {
@@ -1097,11 +1141,16 @@ class Vendors_model extends CI_Model {
         }
     }
 
-    public function getVendorGroupMembers(int $orgUID, int $groupUID): array {
+    public function getVendorGroupMembers(int $orgUID, int $groupUID, string $langCode = 'en'): array {
         try {
+            $useLang = $langCode !== 'en';
+            $lc      = $this->ReadDb->escape_str($langCode);
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select([
-                'V.VendorUID', 'V.Name', 'V.Area', 'V.MobileNumber',
+                'V.VendorUID',
+                $useLang ? 'COALESCE(VL.Name, V.Name) AS Name' : 'V.Name',
+                $useLang ? 'COALESCE(VL.Area, V.Area) AS Area' : 'V.Area',
+                'V.MobileNumber',
                 'VGM.IsGroupPrimary',
                 "IFNULL(VOB.PendingBalance, 0)        AS Balance",
                 "IFNULL(VOB.PendingBalType, 'Credit') AS BalanceType",
@@ -1109,6 +1158,9 @@ class Vendors_model extends CI_Model {
             $this->ReadDb->from('Vendors.VendorGroupMemberTbl VGM');
             $this->ReadDb->join('Vendors.VendorTbl V', 'V.VendorUID = VGM.VendorUID AND V.IsDeleted = 0');
             $this->ReadDb->join('Vendors.VendOpeningBalanceTbl VOB', 'VOB.VendorUID = V.VendorUID AND VOB.OrgUID = V.OrgUID AND VOB.IsDeleted = 0', 'left');
+            if ($useLang) {
+                $this->ReadDb->join("Vendors.VendorTbl_Lang VL", "VL.VendorUID = V.VendorUID AND VL.LangCode = '{$lc}'", 'left');
+            }
             $this->ReadDb->where(['VGM.OrgUID' => (int)$orgUID, 'VGM.GroupUID' => (int)$groupUID, 'VGM.IsDeleted' => 0]);
             $this->ReadDb->order_by('VGM.IsGroupPrimary', 'DESC');
             $this->ReadDb->order_by('V.Name', 'ASC');
@@ -1120,13 +1172,23 @@ class Vendors_model extends CI_Model {
         }
     }
 
-    public function getActiveVendorGroupsForDropdown(int $orgUID): array {
+    public function getActiveVendorGroupsForDropdown(int $orgUID, string $langCode = 'en'): array {
         try {
+            $useLang = $langCode !== 'en';
+            $lc      = $this->ReadDb->escape_str($langCode);
             $this->ReadDb->db_debug = FALSE;
-            $this->ReadDb->select(['GroupUID', 'GroupName', 'GroupCode', 'GroupType']);
-            $this->ReadDb->from('Vendors.VendorGroupTbl');
-            $this->ReadDb->where(['OrgUID' => (int)$orgUID, 'IsActive' => 1, 'IsDeleted' => 0]);
-            $this->ReadDb->order_by('GroupName', 'ASC');
+            $this->ReadDb->select([
+                'vg.GroupUID',
+                $useLang ? 'COALESCE(vgl.GroupName, vg.GroupName) AS GroupName' : 'vg.GroupName',
+                'vg.GroupCode',
+                'vg.GroupType',
+            ]);
+            $this->ReadDb->from('Vendors.VendorGroupTbl vg');
+            if ($useLang) {
+                $this->ReadDb->join("Vendors.VendorGroupTbl_Lang vgl", "vgl.GroupUID = vg.GroupUID AND vgl.LangCode = '{$lc}'", 'left');
+            }
+            $this->ReadDb->where(['vg.OrgUID' => (int)$orgUID, 'vg.IsActive' => 1, 'vg.IsDeleted' => 0]);
+            $this->ReadDb->order_by('vg.GroupName', 'ASC');
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
@@ -1147,27 +1209,31 @@ class Vendors_model extends CI_Model {
     }
 
     public function syncVendorGroupMembers(int $orgUID, int $groupUID, array $newMemberUIDs, int $primaryUID, int $userUID): void {
-        $db = $this->dbwrite_model->getWriteDb();
+        $this->load->model('dbwrite_ext_model');
         // Soft-delete members removed from the group
-        $db->where('OrgUID',   (int)$orgUID);
-        $db->where('GroupUID', (int)$groupUID);
-        $db->where('IsDeleted', 0);
         if (!empty($newMemberUIDs)) {
-            $db->where_not_in('VendorUID', array_map('intval', $newMemberUIDs));
-        }
-        $db->update('Vendors.VendorGroupMemberTbl', ['IsDeleted' => 1, 'UpdatedBy' => (int)$userUID]);
-        // Upsert all current members
-        if (!empty($newMemberUIDs)) {
+            $placeholders = implode(', ', array_fill(0, count($newMemberUIDs), '?'));
+            $bindings     = array_merge([(int)$userUID, (int)$orgUID, (int)$groupUID], array_map('intval', $newMemberUIDs));
+            $this->dbwrite_ext_model->execWrite(
+                "UPDATE Vendors.VendorGroupMemberTbl SET IsDeleted = 1, UpdatedBy = ?
+                 WHERE OrgUID = ? AND GroupUID = ? AND IsDeleted = 0 AND VendorUID NOT IN ({$placeholders})",
+                $bindings
+            );
             $this->assignVendorGroupMembers($orgUID, $groupUID, $newMemberUIDs, $primaryUID, $userUID);
+        } else {
+            $this->dbwrite_ext_model->execWrite(
+                "UPDATE Vendors.VendorGroupMemberTbl SET IsDeleted = 1, UpdatedBy = ? WHERE OrgUID = ? AND GroupUID = ? AND IsDeleted = 0",
+                [(int)$userUID, (int)$orgUID, (int)$groupUID]
+            );
         }
     }
 
     public function unlinkAllVendorGroupMembers(int $orgUID, int $groupUID, int $userUID): void {
-        $db = $this->dbwrite_model->getWriteDb();
-        $db->where('OrgUID',   (int)$orgUID);
-        $db->where('GroupUID', (int)$groupUID);
-        $db->where('IsDeleted', 0);
-        $db->update('Vendors.VendorGroupMemberTbl', ['IsDeleted' => 1, 'UpdatedBy' => (int)$userUID]);
+        $this->dbwrite_model->updateData(
+            'Vendors', 'VendorGroupMemberTbl',
+            ['IsDeleted' => 1, 'UpdatedBy' => (int)$userUID],
+            ['OrgUID' => (int)$orgUID, 'GroupUID' => (int)$groupUID, 'IsDeleted' => 0]
+        );
     }
 
     public function getVendorGroupMembership(int $orgUID, int $vendorUID): ?object {
@@ -1186,8 +1252,8 @@ class Vendors_model extends CI_Model {
     }
 
     public function saveVendorGroupMembership(int $orgUID, int $vendorUID, int $groupUID, int $isGroupPrimary, int $userUID): void {
-        $db = $this->dbwrite_model->getWriteDb();
-        $db->query(
+        $this->load->model('dbwrite_ext_model');
+        $this->dbwrite_ext_model->execWrite(
             "INSERT INTO Vendors.VendorGroupMemberTbl
                 (OrgUID, VendorUID, GroupUID, IsGroupPrimary, IsDeleted, CreatedBy, UpdatedBy)
              VALUES (?, ?, ?, ?, 0, ?, ?)
@@ -1201,11 +1267,11 @@ class Vendors_model extends CI_Model {
     }
 
     public function removeVendorFromGroup(int $orgUID, int $vendorUID, int $userUID): void {
-        $db = $this->dbwrite_model->getWriteDb();
-        $db->where('OrgUID',    (int)$orgUID);
-        $db->where('VendorUID', (int)$vendorUID);
-        $db->where('IsDeleted', 0);
-        $db->update('Vendors.VendorGroupMemberTbl', ['IsDeleted' => 1, 'UpdatedBy' => (int)$userUID]);
+        $this->dbwrite_model->updateData(
+            'Vendors', 'VendorGroupMemberTbl',
+            ['IsDeleted' => 1, 'UpdatedBy' => (int)$userUID],
+            ['OrgUID' => (int)$orgUID, 'VendorUID' => (int)$vendorUID, 'IsDeleted' => 0]
+        );
     }
 
     public function getVendorsInOtherGroups(int $orgUID, int $excludeGroupUID = 0): array {
@@ -1548,27 +1614,21 @@ class Vendors_model extends CI_Model {
             $needsInit  = ($vendorSeq === null || $vendorYear === null ||
                            ((int) $vendorSeq === 0 && (int) $vendorYear === 0));
             if ($needsInit) {
-                $db = $this->dbwrite_model->getWriteDb();
-                $db->db_debug = FALSE;
-                $db->where('OrgUID', $orgUID)
-                   ->update('Settings.OrgCreditSettingsTbl', [
-                       'VendorSeq'        => 1,
-                       'VendorSeqYear'    => $fyYear2,
-                       'VendorNextNumber' => 'V-' . $yrPad . '0001',
-                       'UpdatedAt'        => date('Y-m-d H:i:s'),
-                   ]);
+                $this->load->model('dbwrite_ext_model');
+                $this->dbwrite_ext_model->execWrite(
+                    "UPDATE Settings.OrgCreditSettingsTbl SET VendorSeq=1, VendorSeqYear=?, VendorNextNumber=?, UpdatedAt=? WHERE OrgUID=?",
+                    [$fyYear2, 'V-' . $yrPad . '0001', date('Y-m-d H:i:s'), (int)$orgUID]
+                );
                 return $this->getCreditSettings($orgUID);
             }
 
             if (empty($existing->VendorNextNumber)) {
-                $db = $this->dbwrite_model->getWriteDb();
-                $db->db_debug = FALSE;
                 $nextNum = 'V-' . $yrPad . str_pad((int) $vendorSeq, 4, '0', STR_PAD_LEFT);
-                $db->where('OrgUID', $orgUID)
-                   ->update('Settings.OrgCreditSettingsTbl', [
-                       'VendorNextNumber' => $nextNum,
-                       'UpdatedAt'        => date('Y-m-d H:i:s'),
-                   ]);
+                $this->load->model('dbwrite_ext_model');
+                $this->dbwrite_ext_model->execWrite(
+                    "UPDATE Settings.OrgCreditSettingsTbl SET VendorNextNumber=?, UpdatedAt=? WHERE OrgUID=?",
+                    [$nextNum, date('Y-m-d H:i:s'), (int)$orgUID]
+                );
                 return $this->getCreditSettings($orgUID);
             }
 
@@ -1590,8 +1650,7 @@ class Vendors_model extends CI_Model {
      */
     public function claimNextVendorNumber(int $orgUID, int $fyStartMonth, string $timezone): ?array {
         try {
-            $this->load->model('dbwrite_model');
-            $db = $this->dbwrite_model->getWriteDb();
+            $this->load->model('dbwrite_ext_model');
 
             for ($attempt = 1; $attempt <= 5; $attempt++) {
                 $row = ($attempt === 1)
@@ -1620,24 +1679,143 @@ class Vendors_model extends CI_Model {
                 $claimedNum = 'V-' . $yrPad . str_pad($claimedSeq, 4, '0', STR_PAD_LEFT);
                 $nextNum    = 'V-' . $yrPad . str_pad($nextSeq,    4, '0', STR_PAD_LEFT);
 
-                $db->db_debug = FALSE;
-                $db->where('OrgUID',        $orgUID)
-                   ->where('VendorSeq',     $storedSeq)
-                   ->where('VendorSeqYear', $storedFYYear)
-                   ->update('Settings.OrgCreditSettingsTbl', [
-                       'VendorSeq'        => $nextSeq,
-                       'VendorSeqYear'    => $currentFYYear,
-                       'VendorNextNumber' => $nextNum,
-                       'UpdatedAt'        => date('Y-m-d H:i:s'),
-                   ]);
+                $affected = $this->dbwrite_ext_model->execWriteAffected(
+                    "UPDATE Settings.OrgCreditSettingsTbl SET VendorSeq=?, VendorSeqYear=?, VendorNextNumber=?, UpdatedAt=? WHERE OrgUID=? AND VendorSeq=? AND VendorSeqYear=?",
+                    [$nextSeq, $currentFYYear, $nextNum, date('Y-m-d H:i:s'), (int)$orgUID, $storedSeq, $storedFYYear]
+                );
 
-                if ($db->affected_rows() === 1) {
+                if ($affected === 1) {
                     return ['claimed' => $claimedNum, 'next' => $nextNum];
                 }
             }
             return null;
         } catch (Exception $e) {
             notifyError('Vendors_model::claimNextVendorNumber', $e);
+            return null;
+        }
+    }
+
+    /**
+     * Upsert a translated row into VendorTbl_Lang.
+     * LangCode 'en' is never passed — English lives in the base table only.
+     * @param int         $vendorUID
+     * @param string      $langCode
+     * @param string|null $name
+     * @param string|null $contactPerson
+     * @param string|null $notes
+     * @param int         $userUID
+     * @returns void
+     */
+    public function saveVendLangRow(int $vendorUID, string $langCode, ?string $name, ?string $contactPerson, ?string $notes, ?string $area, ?string $companyName, int $userUID): void {
+        $this->load->model('dbwrite_ext_model');
+        $this->dbwrite_ext_model->execWrite(
+            "INSERT INTO Vendors.VendorTbl_Lang
+                (VendorUID, LangCode, Name, ContactPerson, Notes, Area, CompanyName, CreatedBy, UpdatedBy)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE
+                Name=VALUES(Name), ContactPerson=VALUES(ContactPerson), Notes=VALUES(Notes),
+                Area=VALUES(Area), CompanyName=VALUES(CompanyName), UpdatedBy=VALUES(UpdatedBy)",
+            [$vendorUID, $langCode, $name, $contactPerson, $notes, $area, $companyName, $userUID, $userUID]
+        );
+    }
+
+    /**
+     * Upsert a translated row into VendAddressTbl_Lang.
+     * @param int         $vendAddressUID
+     * @param string      $langCode
+     * @param string|null $line1
+     * @param string|null $line2
+     * @param string|null $cityText
+     * @param string|null $stateText
+     * @param int         $userUID
+     * @returns void
+     */
+    public function saveVendAddrLangRow(int $vendAddressUID, string $langCode, ?string $line1, ?string $line2, ?string $cityText, ?string $stateText, int $userUID): void {
+        $this->load->model('dbwrite_ext_model');
+        $this->dbwrite_ext_model->execWrite(
+            "INSERT INTO Vendors.VendAddressTbl_Lang
+                (VendAddressUID, LangCode, Line1, Line2, CityText, StateText, CreatedBy, UpdatedBy)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE
+                Line1=VALUES(Line1), Line2=VALUES(Line2), CityText=VALUES(CityText), StateText=VALUES(StateText), UpdatedBy=VALUES(UpdatedBy)",
+            [$vendAddressUID, $langCode, $line1, $line2, $cityText, $stateText, $userUID, $userUID]
+        );
+    }
+
+    /**
+     * Upsert a translated row into VendorGroupTbl_Lang.
+     * @param int         $groupUID
+     * @param string      $langCode
+     * @param string|null $groupName
+     * @param string|null $contactPerson
+     * @param string|null $notes
+     * @param string|null $addrLine1
+     * @param string|null $addrLine2
+     * @param string|null $addrCity
+     * @param string|null $addrState
+     * @param int         $userUID
+     * @returns void
+     */
+    public function saveVendorGroupLangRow(int $groupUID, string $langCode, ?string $groupName, ?string $contactPerson, ?string $notes, ?string $addrLine1, ?string $addrLine2, ?string $addrCity, ?string $addrState, int $userUID): void {
+        try {
+            $this->load->model('dbwrite_ext_model');
+            $this->dbwrite_ext_model->execWrite(
+                "INSERT INTO Vendors.VendorGroupTbl_Lang
+                    (GroupUID, LangCode, GroupName, ContactPerson, Notes, AddrLine1, AddrLine2, AddrCity, AddrState, CreatedBy, UpdatedBy)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 ON DUPLICATE KEY UPDATE
+                    GroupName     = VALUES(GroupName),
+                    ContactPerson = VALUES(ContactPerson),
+                    Notes         = VALUES(Notes),
+                    AddrLine1     = VALUES(AddrLine1),
+                    AddrLine2     = VALUES(AddrLine2),
+                    AddrCity      = VALUES(AddrCity),
+                    AddrState     = VALUES(AddrState),
+                    UpdatedBy     = VALUES(UpdatedBy)",
+                [$groupUID, $langCode, $groupName, $contactPerson, $notes, $addrLine1, $addrLine2, $addrCity, $addrState, $userUID, $userUID]
+            );
+        } catch (Exception $e) {
+            notifyError('Vendors_model::saveVendorGroupLangRow', $e);
+        }
+    }
+
+    /**
+     * Returns all VendorUIDs for an org (used by recalcBalance bulk path).
+     * @param int $orgUID
+     * @returns array
+     */
+    public function getAllVendorUIDs(int $orgUID): array {
+        try {
+            $query = $this->ReadDb->query(
+                'SELECT VendorUID FROM Vendors.VendorTbl
+                  WHERE OrgUID = ? AND IsDeleted = 0
+                  ORDER BY VendorUID ASC',
+                [$orgUID]
+            );
+            return $query ? $query->result() : [];
+        } catch (Exception $e) {
+            notifyError('Vendors_model::getAllVendorUIDs', $e);
+            return [];
+        }
+    }
+
+    /**
+     * Returns sort/count/totalSize stats for vendor attachments.
+     * @param int $vendorUID
+     * @param int $orgUID
+     * @returns object|null
+     */
+    public function getAttachmentSortStats(int $vendorUID, int $orgUID): ?object {
+        try {
+            $query = $this->ReadDb->query(
+                "SELECT COALESCE(MAX(SortOrder), 0) AS ms, COUNT(*) AS cnt, COALESCE(SUM(FileSize), 0) AS ts
+                   FROM Vendors.VendorAttachmentsTbl
+                  WHERE VendorUID = ? AND OrgUID = ? AND IsDeleted = 0",
+                [$vendorUID, $orgUID]
+            );
+            return $query ? $query->row() : null;
+        } catch (Exception $e) {
+            notifyError('Vendors_model::getAttachmentSortStats', $e);
             return null;
         }
     }

@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Purchaseorders extends MY_Controller {
 
@@ -42,7 +42,7 @@ class Purchaseorders extends MY_Controller {
         $ErrorInForm = '';
         try {
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             $PostData = $this->input->post();
@@ -134,7 +134,7 @@ class Purchaseorders extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             $PostData = $this->input->post();
@@ -291,7 +291,7 @@ class Purchaseorders extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             $PostData = $this->input->post();
@@ -357,7 +357,7 @@ class Purchaseorders extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             $PostData = $this->input->post();
@@ -518,7 +518,7 @@ class Purchaseorders extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $PostData  = $this->input->post();
             $transUID  = (int) getPostValue($PostData, 'TransUID');
             $newStatus = trim(getPostValue($PostData, 'Status'));
@@ -639,7 +639,7 @@ class Purchaseorders extends MY_Controller {
 
             $this->load->model('transactions_model');
 
-            $poData  = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
+            $poData  = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID, $this->_uiLang());
             if (!$poData) redirect('purchaseorders');
 
             $poItems = $this->transactions_model->getTransactionItems($transUID, $orgUID);
@@ -660,7 +660,7 @@ class Purchaseorders extends MY_Controller {
 
             // Load vendor address for inter-state detection
             $this->load->model('vendors_model');
-            $vendorAddrArr                = $this->vendors_model->getVendorAddress(['VendAddress.VendorUID' => (int)$poData->PartyUID, 'VendAddress.OrgUID' => $orgUID]);
+            $vendorAddrArr                = $this->vendors_model->getVendorAddress(['VendAddress.VendorUID' => (int)$poData->PartyUID, 'VendAddress.OrgUID' => $orgUID], $this->_uiLang());
             $this->pageData['VendorAddr'] = !empty($vendorAddrArr) ? $vendorAddrArr[0] : null;
 
             $this->pageData['AdditionalCharges']  = $this->_getAdditionalChargesForOrg((int)$orgUID, true);

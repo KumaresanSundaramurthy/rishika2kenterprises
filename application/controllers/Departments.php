@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Departments extends MY_Controller {
 
@@ -54,7 +54,7 @@ class Departments extends MY_Controller {
             $pageNo   = max(1, (int)($p['CurrentPage'] ?? 1));
             $filter   = is_array($p['Filter'] ?? null) ? $p['Filter'] : [];
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
 
             if ($isSystem && $uid > 0) {
                 $data = ['Description' => trim($p['Description'] ?? ''), 'UpdatedBy' => $this->_userUID()];
@@ -88,7 +88,7 @@ class Departments extends MY_Controller {
         try {
             $uid = (int)$this->input->post('DepartmentUID');
             if (!$uid) throw new Exception('Invalid.');
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $res = $this->dbwrite_model->updateData('Organisation', 'DepartmentTbl', ['IsDeleted' => 1, 'UpdatedBy' => $this->_userUID()], ['DepartmentUID' => $uid, 'OrgUID' => $this->_orgUID()]);
             if ($res->Error) throw new Exception($res->Message);
             $this->EndReturnData->Error = FALSE; $this->EndReturnData->Message = 'Deleted.';

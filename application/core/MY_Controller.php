@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 require_once APPPATH . 'core/ValidationException.php';
 
@@ -48,7 +48,7 @@ class MY_Controller extends CI_Controller {
     ): void {
         if (!$bankAccountUID || $amount <= 0) return;
         try {
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->insertData('Transaction', 'AccountLedgerTbl', [
                 'OrgUID'         => $orgUID,
                 'BankAccountUID' => $bankAccountUID,
@@ -500,7 +500,7 @@ class MY_Controller extends CI_Controller {
         $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
 
         $this->load->library('fileupload');
-        $this->load->model('dbwrite_model');
+        $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
 
         // Determine storage folder
         if ($sourceType === 'Expense') {
@@ -656,7 +656,7 @@ class MY_Controller extends CI_Controller {
     // $headerData is passed by reference so TransNumber/UniqueNumber stay in sync with caller.
     // On 6th failure returns a user-friendly message instead of a raw DB error.
     protected function _insertTransactionWithRetry(&$headerData, $prefixUID, $orgUID, $prefix, $transDate) {
-        $this->load->model('dbwrite_model');
+        $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
         $this->load->model('transactions_model');
         for ($attempt = 0; $attempt <= 5; $attempt++) {
             $result = $this->dbwrite_model->insertData('Transaction', 'TransactionsTbl', $headerData);
@@ -700,7 +700,7 @@ class MY_Controller extends CI_Controller {
         if (empty($uids) || !is_array($uids)) return;
         $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
         $userUID = $this->pageData['JwtData']->User->UserUID;
-        $this->load->model('dbwrite_model');
+        $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
         foreach ($uids as $attachUID) {
             $attachUID = (int) $attachUID;
             if ($attachUID <= 0) continue;
@@ -728,7 +728,7 @@ class MY_Controller extends CI_Controller {
         $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
 
         $this->load->library('fileupload');
-        $this->load->model('dbwrite_model');
+        $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
 
         $orgToken = strtolower(preg_replace('/[^a-zA-Z0-9_-]/', '', $this->pageData['JwtData']->Org->OrgToken ?? ''));
         if (empty($orgToken)) $orgToken = 'org-' . $orgUID;
@@ -995,7 +995,7 @@ class MY_Controller extends CI_Controller {
         $filter['OrgUID']    = $this->_orgUID();
         $filter['BranchUID'] = $this->_branchUID();
         $this->load->model('transactions_model');
-        $data  = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, 0);
+        $data  = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, false, $this->_uiLang());
         $count = $this->transactions_model->getTransactionCount($this->pageModuleUID, $filter);
         $orgUID = (int)($this->pageData['JwtData']->Org->OrgUID);
         if ($this->pageModuleUID === 108) { $this->_annotatePRListWithCancelDeps($data, $orgUID); }
@@ -1340,7 +1340,7 @@ class MY_Controller extends CI_Controller {
      * @return void
      */
     protected function _insertTransItems(int $transUID, int $financialYear, int $orgUID, int $userUID, array $items, int $seqOffset = 0): void {
-        $this->load->model('dbwrite_model');
+        $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
         $rows = [];
         foreach ($items as $seq => $item) {
             $productUID = isset($item['productUID']) ? (int)$item['productUID'] : (isset($item['id']) ? (int)$item['id'] : 0);
@@ -1419,7 +1419,7 @@ class MY_Controller extends CI_Controller {
      * @throws Exception on DB error
      */
     protected function _saveTransSerials(int $transUID, int $orgUID, int $userUID, string $transType, array $items, int $partyUID = 0): void {
-        $this->load->model('dbwrite_model');
+        $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
 
         foreach ($items as $item) {
             $productUID = isset($item['productUID']) ? (int)$item['productUID']
@@ -1626,7 +1626,7 @@ class MY_Controller extends CI_Controller {
     }
 
     protected function _updateTransSerials(int $transUID, int $orgUID, int $userUID, string $transType, array $items, int $partyUID = 0): void {
-        $this->load->model('dbwrite_model');
+        $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
 
         if ($transType === 'SalesReturn' || $transType === 'PurchaseReturn') {
             $this->_updateReturnSerials($transUID, $orgUID, $userUID, $transType, $items);
@@ -1715,7 +1715,7 @@ class MY_Controller extends CI_Controller {
      * @return void
      */
     protected function _updateTransItems(int $transUID, array $items, int $orgUID, int $financialYear, int $userUID): void {
-        $this->load->model(['transactions_model', 'dbwrite_model']);
+        $this->load->model(['transactions_model', 'dbwrite_model', 'dbwrite_ext_model']);
 
         $existingItems     = $this->transactions_model->getTransactionItems($transUID, $orgUID);
         $existingByProduct = [];
@@ -1729,13 +1729,13 @@ class MY_Controller extends CI_Controller {
 
         $removedProductUIDs = array_diff(array_keys($existingByProduct), $submittedProductUIDs);
         if (!empty($removedProductUIDs)) {
-            $this->dbwrite_model->softDeleteTransactionItemsByProductUIDs($transUID, array_values($removedProductUIDs), $userUID);
+            $this->dbwrite_ext_model->softDeleteTransactionItemsByProductUIDs($transUID, array_values($removedProductUIDs), $userUID);
         }
 
         // Pass 1: shift updating items to vacate sequence slots before renumbering.
         $updatingProductUIDs = array_values(array_intersect(array_keys($existingByProduct), $submittedProductUIDs));
         if (!empty($updatingProductUIDs)) {
-            $this->dbwrite_model->shiftTransProductSequences($transUID, $updatingProductUIDs);
+            $this->dbwrite_ext_model->shiftTransProductSequences($transUID, $updatingProductUIDs);
         }
 
         $newRows = [];
@@ -1781,7 +1781,7 @@ class MY_Controller extends CI_Controller {
             ];
 
             if (isset($existingByProduct[$productUID])) {
-                $this->dbwrite_model->updateTransProductItem($transUID, $productUID, $rowData);
+                $this->dbwrite_ext_model->updateTransProductItem($transUID, $productUID, $rowData);
             } else {
                 $sourceProdUID = isset($item['sourceTransProdUID']) && $item['sourceTransProdUID'] > 0
                     ? (int) $item['sourceTransProdUID'] : NULL;
@@ -1937,7 +1937,7 @@ class MY_Controller extends CI_Controller {
     protected function _updateTransactionBalance(int $transUID, float $netAmount, float $paidAmount, int $userUID): void {
         $isFullyPaid   = ($netAmount > 0 && round($netAmount - $paidAmount, 4) <= 0) ? 1 : 0;
         $balanceAmount = max(0, round($netAmount - $paidAmount, 4));
-        $ok = $this->dbwrite_model->updateTransIsFullyPaid($transUID, $isFullyPaid, $paidAmount, $balanceAmount, $userUID);
+        $ok = $this->dbwrite_ext_model->updateTransIsFullyPaid($transUID, $isFullyPaid, $paidAmount, $balanceAmount, $userUID);
         if ($ok === false) {
             throw new Exception('Failed to update transaction balance for TransUID ' . $transUID);
         }
@@ -1991,7 +1991,7 @@ class MY_Controller extends CI_Controller {
         $rawFilter    = $this->input->post('Filter');
         $filter       = is_array($rawFilter) ? $rawFilter : (is_string($rawFilter) && $rawFilter !== '' ? (json_decode($rawFilter, true) ?? []) : []);
         $offset       = ($pageNo - 1) * $limit;
-        $allData      = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, 0);
+        $allData      = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, false, $this->_uiLang());
         $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $filter);
         $this->EndReturnData->RecordHtmlData = $this->load->view($viewPath, ['DataLists' => $allData, 'SerialNumber' => $offset, 'JwtData' => $this->pageData['JwtData']], true);
         $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml($paginationUrl, $allDataCount, $pageNo, $limit);
@@ -2015,7 +2015,7 @@ class MY_Controller extends CI_Controller {
         $filter       = is_array($rawFilter) ? $rawFilter : (is_string($rawFilter) && $rawFilter !== '' ? (json_decode($rawFilter, true) ?? []) : []);
         $offset       = ($pageNo - 1) * $limit;
         $orgUID       = (int) $this->pageData['JwtData']->Org->OrgUID;
-        $allData      = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, 0);
+        $allData      = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, false, $this->_uiLang());
         $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $filter);
         $this->pageData['JwtData']->GenSettings  = $genSettings;
         $this->EndReturnData->RecordHtmlData = $this->load->view($viewPath, ['DataLists' => $allData, 'SerialNumber' => $offset, 'JwtData' => $this->pageData['JwtData']], true);
@@ -2053,7 +2053,7 @@ class MY_Controller extends CI_Controller {
         $rows = json_decode($rowsJson, true);
         if (!is_array($rows) || empty($rows)) return ['totalPaid' => 0.0, 'firstPaymentUID' => null];
 
-        $this->load->model(['transactions_model', 'dbwrite_model']);
+        $this->load->model(['transactions_model', 'dbwrite_model', 'dbwrite_ext_model']);
 
         // 110 = Payments In (received); 111 = Payments Out (paid to vendor)
         $paymentModuleUID = $paymentDirection === 'In' ? 110 : 111;

@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Profile extends MY_Controller {
 
@@ -46,7 +46,7 @@ class Profile extends MY_Controller {
             $p       = $this->input->post();
 
             $this->load->model('users_model');
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
 
             $saved = 0;
             foreach (['Current', 'Permanent'] as $type) {
@@ -146,7 +146,7 @@ class Profile extends MY_Controller {
             if (!empty($lastWorkDate) && strtotime($lastWorkDate)) $data['LastWorkingDate']  = date('Y-m-d', strtotime($lastWorkDate));
             else                                                    $data['LastWorkingDate']  = null;
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $res = $this->dbwrite_model->updateData('Users', 'UserTbl', $data, ['UserUID' => $userUID, 'OrgUID' => $orgUID]);
             if ($res->Error) throw new Exception($res->Message);
 
@@ -187,7 +187,7 @@ class Profile extends MY_Controller {
 
             $filePath = '/' . ltrim($uploadResult->Path, '/');
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $res = $this->dbwrite_model->insertData('Users', 'UserAttachmentTbl', [
                 'UserUID'   => $userUID,
                 'OrgUID'    => $orgUID,
@@ -228,7 +228,7 @@ class Profile extends MY_Controller {
 
             if ($attachUID <= 0) throw new Exception('Invalid attachment.');
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $res = $this->dbwrite_model->updateData('Users', 'UserAttachmentTbl',
                 ['IsDeleted' => 1, 'IsActive' => 0],
                 ['AttachUID' => $attachUID, 'UserUID' => $userUID, 'OrgUID' => $orgUID]
@@ -293,7 +293,7 @@ class Profile extends MY_Controller {
 
             $filePath = '/' . ltrim($uploadResult->Path, '/');
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $res = $this->dbwrite_model->insertData('Users', 'UserAttachmentTbl', [
                 'UserUID'   => $userUID,
                 'OrgUID'    => $orgUID,
@@ -335,7 +335,7 @@ class Profile extends MY_Controller {
             if ($attachUID  <= 0) throw new Exception('Invalid attachment.');
             if ($expenseUID <= 0) throw new Exception('Invalid expense.');
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $res = $this->dbwrite_model->updateData('Users', 'UserAttachmentTbl',
                 ['IsDeleted' => 1, 'IsActive' => 0],
                 ['AttachUID' => $attachUID, 'RefType' => 'Expense', 'RefUID' => $expenseUID, 'UserUID' => $userUID, 'OrgUID' => $orgUID]
@@ -401,7 +401,7 @@ class Profile extends MY_Controller {
                 $updateProfData['Password'] = base64_encode($PostData['newPassword']);
             }
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $updateResp = $this->dbwrite_model->updateData('Users', 'UserTbl', $updateProfData, array('UserUID' => $PostData['userUid']));
             if ($updateResp->Error) {
                 throw new Exception($updateResp->Message);
@@ -532,7 +532,7 @@ class Profile extends MY_Controller {
                 $insertData['MimeType'] = 'image/png';
             }
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $insertResp = $this->dbwrite_model->insertData('Users', 'UserSignaturesTbl', $insertData);
             if ($insertResp->Error) {
                 throw new Exception($insertResp->Message);
@@ -635,7 +635,7 @@ class Profile extends MY_Controller {
                 }
             }
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $resp = $this->dbwrite_model->updateData(
                 'Users', 'UserSignaturesTbl',
                 $updateData,
@@ -690,7 +690,7 @@ class Profile extends MY_Controller {
                 throw new Exception('Invalid signature');
             }
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $resp = $this->dbwrite_model->updateData(
                 'Users', 'UserSignaturesTbl',
                 ['IsDeleted' => 1, 'IsActive' => 0, 'IsDefault' => 0, 'UpdatedBy' => (int)$userUID],
@@ -729,7 +729,7 @@ class Profile extends MY_Controller {
                 throw new Exception('Invalid signature');
             }
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
 
             // Clear all defaults for this user first
             $this->dbwrite_model->updateData('Users', 'UserSignaturesTbl',
@@ -795,7 +795,7 @@ class Profile extends MY_Controller {
             $isPrimary = (int)($p['IsPrimary'] ?? 0) ? 1 : 0;
             $now       = date('Y-m-d H:i:s');
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
 
             // If marking as primary — clear existing primary for this user first
             if ($isPrimary) {
@@ -848,7 +848,7 @@ class Profile extends MY_Controller {
             $userUID = (int)$this->pageData['JwtData']->User->UserUID;
             $emgUID  = (int)($this->input->post('EmgContactUID') ?? 0);
             if ($emgUID <= 0) throw new Exception('Invalid record.');
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $res = $this->dbwrite_model->updateData('Users', 'UserEmergencyContactTbl',
                 ['IsDeleted' => 1, 'IsActive' => 0, 'IsPrimary' => 0, 'UpdatedBy' => $userUID],
                 ['EmgContactUID' => $emgUID, 'UserUID' => $userUID]
@@ -873,27 +873,22 @@ class Profile extends MY_Controller {
             $emgUID  = (int)($this->input->post('EmgContactUID') ?? 0);
             if ($emgUID <= 0) throw new Exception('Invalid contact.');
 
-            $this->load->model('dbwrite_model');
-            $db  = $this->dbwrite_model->getWriteDb();
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $now = date('Y-m-d H:i:s');
 
-            $db->trans_start();
+            $this->dbwrite_model->startTransaction();
 
             // Step 1: clear all primaries for this user
-            $db->where(['UserUID' => $userUID, 'IsDeleted' => 0]);
-            $db->update('Users.UserEmergencyContactTbl',
-                ['IsPrimary' => 0, 'UpdatedBy' => $userUID]);
+            $this->dbwrite_model->updateData('Users', 'UserEmergencyContactTbl',
+                ['IsPrimary' => 0, 'UpdatedBy' => $userUID],
+                ['UserUID' => $userUID, 'IsDeleted' => 0]);
 
             // Step 2: set the chosen contact as primary
-            $db->where(['EmgContactUID' => $emgUID, 'UserUID' => $userUID]);
-            $db->update('Users.UserEmergencyContactTbl',
-                ['IsPrimary' => 1, 'UpdatedBy' => $userUID]);
+            $this->dbwrite_model->updateData('Users', 'UserEmergencyContactTbl',
+                ['IsPrimary' => 1, 'UpdatedBy' => $userUID],
+                ['EmgContactUID' => $emgUID, 'UserUID' => $userUID]);
 
-            $db->trans_complete();
-
-            if ($db->trans_status() === FALSE) {
-                throw new Exception('DB error while updating primary contact.');
-            }
+            $this->dbwrite_model->commitTransaction();
 
             $this->load->model('users_model');
             $this->EndReturnData->Error    = FALSE;
@@ -944,7 +939,7 @@ class Profile extends MY_Controller {
                 'UpdatedBy'     => $userUID,
             ];
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             if ($bankDetailUID > 0) {
                 $res = $this->dbwrite_model->updateData('Users', 'UserBankDetailsTbl', $data,
                     ['BankDetailUID' => $bankDetailUID, 'UserUID' => $userUID]);
@@ -1009,7 +1004,7 @@ class Profile extends MY_Controller {
                 'DateOfCompletion' => ($doc && strtotime($doc)) ? date('Y-m-d', strtotime($doc)) : null,
                 'UpdatedBy'        => $userUID,
             ];
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             if ($eduUID > 0) {
                 $res = $this->dbwrite_model->updateData('Users', 'UserEducationTbl', $data, ['EduUID' => $eduUID, 'UserUID' => $userUID]);
             } else {
@@ -1038,7 +1033,7 @@ class Profile extends MY_Controller {
             $userUID = (int)$this->pageData['JwtData']->User->UserUID;
             $eduUID  = (int)($this->input->post('EduUID') ?? 0);
             if ($eduUID <= 0) throw new Exception('Invalid record.');
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $res = $this->dbwrite_model->updateData('Users', 'UserEducationTbl',
                 ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
                 ['EduUID' => $eduUID, 'UserUID' => $userUID]
@@ -1077,7 +1072,7 @@ class Profile extends MY_Controller {
                 'JobDescription' => $jobDesc ?: null,
                 'UpdatedBy'      => $userUID,
             ];
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             if ($expUID > 0) {
                 $res = $this->dbwrite_model->updateData('Users', 'UserExperienceTbl', $data, ['ExpUID' => $expUID, 'UserUID' => $userUID]);
             } else {
@@ -1106,7 +1101,7 @@ class Profile extends MY_Controller {
             $userUID = (int)$this->pageData['JwtData']->User->UserUID;
             $expUID  = (int)($this->input->post('ExpUID') ?? 0);
             if ($expUID <= 0) throw new Exception('Invalid record.');
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $res = $this->dbwrite_model->updateData('Users', 'UserExperienceTbl',
                 ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
                 ['ExpUID' => $expUID, 'UserUID' => $userUID]
@@ -1176,7 +1171,7 @@ class Profile extends MY_Controller {
                 'UpdatedBy'         => $userUID,
             ];
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
 
             if ($expenseUID > 0) {
                 $res = $this->dbwrite_model->updateData('Users', 'UserExpenseTbl', $data,
@@ -1243,7 +1238,7 @@ class Profile extends MY_Controller {
             $orgUID     = (int)$this->pageData['JwtData']->Org->OrgUID;
             $expenseUID = (int)($this->input->post('ExpenseUID') ?? 0);
             if ($expenseUID <= 0) throw new Exception('Invalid record.');
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $res = $this->dbwrite_model->updateData('Users', 'UserExpenseTbl',
                 ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
                 ['ExpenseUID' => $expenseUID, 'UserUID' => $userUID]

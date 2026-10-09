@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Quotations extends MY_Controller {
 
@@ -51,7 +51,7 @@ class Quotations extends MY_Controller {
         $ErrorInForm = '';
         try {
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             $PostData = $this->input->post();
@@ -158,7 +158,7 @@ class Quotations extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             $PostData = $this->input->post();
@@ -210,8 +210,8 @@ class Quotations extends MY_Controller {
                 $prefix = $prefixData->Data[0];
 
                 // Race condition guard for updateQuotation
-                if ($this->dbwrite_model->checkTransactionNumberExists($prefixUID, $transNumber, $orgUID)) {
-                    $transNumber = $this->dbwrite_model->getNextAvailableTransNumber($prefixUID, $orgUID);
+                if ($this->dbwrite_ext_model->checkTransactionNumberExists($prefixUID, $transNumber, $orgUID)) {
+                    $transNumber = $this->dbwrite_ext_model->getNextAvailableTransNumber($prefixUID, $orgUID);
                     if ($transNumber === -1) throw new ValidationException('This prefix series has reached its maximum (2,147,483,647). Please create a new prefix to continue.');
                 }
 
@@ -333,7 +333,7 @@ class Quotations extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             $PostData = $this->input->post();
@@ -437,7 +437,7 @@ class Quotations extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $PostData  = $this->input->post();
             $transUID  = (int) getPostValue($PostData, 'TransUID');
             $newStatus = trim(getPostValue($PostData, 'Status'));
@@ -546,7 +546,7 @@ class Quotations extends MY_Controller {
             $this->pageData['fltStorageData'] = [];
             if (!empty($this->pageData['JwtData']->GenSettings->EnableStorage)) {
                 $this->load->model('storage_model');
-                $this->pageData['fltStorageData'] = $this->storage_model->getStorageDetails([]) ?? [];
+                $this->pageData['fltStorageData'] = $this->storage_model->getStorageDetails([], 0, 0, '', $this->_uiLang()) ?? [];
             }
 
             $defaultValidityDays = (int)($this->pageData['JwtData']->TransSettings->QuotValidityDays ?? 7);
@@ -585,7 +585,7 @@ class Quotations extends MY_Controller {
             $this->load->model('transactions_model');
 
             // Load the quotation header + detail fields
-            $quotData = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
+            $quotData = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID, $this->_uiLang());
             if (!$quotData) redirect('quotations', 'refresh');
 
             // Load the line items
@@ -593,7 +593,7 @@ class Quotations extends MY_Controller {
 
             // Load the party address information
             $this->load->model('customers_model');
-            $custAddr = $this->customers_model->getCustomerAddress(['CustAddress.CustomerUID' => $quotData->PartyUID, 'CustAddress.OrgUID' => $orgUID]);
+            $custAddr = $this->customers_model->getCustomerAddress(['CustAddress.CustomerUID' => $quotData->PartyUID, 'CustAddress.OrgUID' => $orgUID], $this->_uiLang());
             $shipping = current(array_filter($custAddr, fn($a) => $a->AddressType === 'Shipping'));
             $billing  = current(array_filter($custAddr, fn($a) => $a->AddressType === 'Billing'));
             $this->pageData['CustAddr'] = $shipping ?: ($billing ?: ($custAddr[0] ?? null));
@@ -622,7 +622,7 @@ class Quotations extends MY_Controller {
             $this->pageData['fltStorageData'] = [];
             if (!empty($this->pageData['JwtData']->GenSettings->EnableStorage)) {
                 $this->load->model('storage_model');
-                $this->pageData['fltStorageData'] = $this->storage_model->getStorageDetails([]) ?? [];
+                $this->pageData['fltStorageData'] = $this->storage_model->getStorageDetails([], 0, 0, '', $this->_uiLang()) ?? [];
             }
 
             $defaultValidityDays = (int)($this->pageData['JwtData']->TransSettings->QuotValidityDays ?? 7);

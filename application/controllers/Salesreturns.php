@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Salesreturns extends MY_Controller {
 
@@ -38,7 +38,7 @@ class Salesreturns extends MY_Controller {
         $this->EndReturnData = new stdClass();
         $ErrorInForm = '';
         try {
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             $PostData = $this->input->post();
@@ -115,9 +115,9 @@ class Salesreturns extends MY_Controller {
 
             if (!$isDraft) {
                 $this->_saveTransSerials($transUID, $orgUID, $userUID, 'SalesReturn', $items, $customerUID);
-                $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items, $this->_branchUID());
+                $this->dbwrite_ext_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items, $this->_branchUID());
                 foreach ($fromInvoiceUIDs as $invUID) {
-                    $this->dbwrite_model->insertConversionRecord(
+                    $this->dbwrite_ext_model->insertConversionRecord(
                         $orgUID, $invUID, 103, $transUID, $this->pageModuleUID, 'InvoiceToSalesReturn', $userUID
                     );
                 }
@@ -149,9 +149,9 @@ class Salesreturns extends MY_Controller {
                     $hasPayment    = true;
                     $isFullyPaid   = ($netAmount > 0 && round($netAmount - $payResult['totalPaid'], 4) <= 0) ? 1 : 0;
                     $balanceAmount = max(0, round($netAmount - $payResult['totalPaid'], $this->_decimals()));
-                    $this->dbwrite_model->updateTransIsFullyPaid($transUID, $isFullyPaid, $payResult['totalPaid'], $balanceAmount, $userUID);
+                    $this->dbwrite_ext_model->updateTransIsFullyPaid($transUID, $isFullyPaid, $payResult['totalPaid'], $balanceAmount, $userUID);
                     $newStatus = $isFullyPaid ? 'Paid' : 'Partial';
-                    $this->dbwrite_model->updateTransDocStatus($transUID, $orgUID, $newStatus, $userUID);
+                    $this->dbwrite_ext_model->updateTransDocStatus($transUID, $orgUID, $newStatus, $userUID);
                 }
                 if (!empty($payResult['firstPaymentUID'])) {
                     $this->_savePaymentAttachments($payResult['firstPaymentUID']);
@@ -223,7 +223,7 @@ class Salesreturns extends MY_Controller {
     public function updateSalesReturn() {
         $this->EndReturnData = new stdClass();
         try {
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             $PostData = $this->input->post();
@@ -292,7 +292,7 @@ class Salesreturns extends MY_Controller {
 
             $wasNonDraft = ($existing->DocStatus !== 'Draft');
             if ($wasNonDraft) {
-                $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
+                $this->dbwrite_ext_model->reverseStockMovements($transUID, $orgUID, $userUID);
             }
 
             if ($existing->DocStatus === 'Draft' && !$isDraft
@@ -318,7 +318,7 @@ class Salesreturns extends MY_Controller {
                 $this->_insertTransItems($newTransUID, $amounts['financialYear'], $orgUID, $userUID, $items);
                 if (!$isDraft) {
                     $this->_saveTransSerials($newTransUID, $orgUID, $userUID, 'SalesReturn', $items, $customerUID);
-                    $this->dbwrite_model->saveStockMovements($newTransUID, $this->pageModuleUID, $orgUID, $userUID, $items, $this->_branchUID());
+                    $this->dbwrite_ext_model->saveStockMovements($newTransUID, $this->pageModuleUID, $orgUID, $userUID, $items, $this->_branchUID());
                 }
                 $this->dbwrite_model->deleteInTransaction('Transaction', 'TransactionsTbl', ['TransUID' => $transUID]);
             } else {
@@ -338,7 +338,7 @@ class Salesreturns extends MY_Controller {
                 $this->_updateTransItems($transUID, $items, $orgUID, $amounts['financialYear'], $userUID);
                 if (!$isDraft) {
                     $this->_updateTransSerials($transUID, $orgUID, $userUID, 'SalesReturn', $items, $customerUID);
-                    $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items, $this->_branchUID());
+                    $this->dbwrite_ext_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items, $this->_branchUID());
                 }
             }
 
@@ -347,49 +347,26 @@ class Salesreturns extends MY_Controller {
 
             // Sync TransConversionTbl: soft-delete records for invoices that no longer
             // have any active items linked to this SR (items removed during edit).
-            $wdb = $this->dbwrite_model->getWriteDb();
-            $wdb->db_debug = FALSE;
-            $activeInvoiceRows = $wdb->query(
-                'SELECT DISTINCT src.TransUID
-                 FROM Transaction.TransProductsTbl sr
-                 INNER JOIN Transaction.TransProductsTbl src ON src.TransProdUID = sr.SourceTransProdUID
-                 WHERE sr.TransUID = ? AND sr.IsDeleted = 0 AND sr.IsActive = 1
-                   AND src.IsDeleted = 0',
-                [$activeTransUID]
-            )->result_array();
+            $activeInvoiceRows = $this->transactions_model->getActiveSourceInvoiceUIDs($activeTransUID);
             $activeInvoiceUIDs = array_column($activeInvoiceRows, 'TransUID');
-            $wdb->where(['TargetTransUID' => $activeTransUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
-            if (!empty($activeInvoiceUIDs)) {
-                $wdb->where_not_in('SourceTransUID', $activeInvoiceUIDs);
-            }
-            $wdb->update('Transaction.TransConversionTbl', [
-                'IsDeleted' => 1,
-                'UpdatedBy' => $userUID,
-            ]);
+            $this->dbwrite_ext_model->softDeleteSalesReturnConversionLinks($activeTransUID, $orgUID, $activeInvoiceUIDs, $userUID);
 
             // Insert or restore conversion records for invoices newly linked in this edit.
             foreach ($activeInvoiceUIDs as $invUID) {
                 $invUID   = (int) $invUID;
-                $existing = $wdb->query(
-                    'SELECT ConversionUID, IsDeleted FROM Transaction.TransConversionTbl
-                     WHERE SourceTransUID = ? AND TargetTransUID = ? LIMIT 1',
-                    [$invUID, $activeTransUID]
-                )->row();
+                $existing = $this->transactions_model->getConversionRecord((int)$invUID, $activeTransUID);
 
                 if ($existing) {
                     if ((int) $existing->IsDeleted === 1) {
                         // Previously removed — restore it
-                        $wdb->where('ConversionUID', $existing->ConversionUID)
-                            ->update('Transaction.TransConversionTbl', [
-                                'IsDeleted'   => 0,
-                                'IsCancelled' => 0,
-                                'UpdatedBy'   => $userUID,
-                            ]);
+                        $this->dbwrite_model->updateData('Transaction', 'TransConversionTbl',
+                            ['IsDeleted' => 0, 'IsCancelled' => 0, 'UpdatedBy' => $userUID],
+                            ['ConversionUID' => $existing->ConversionUID]);
                     }
                     // else: record is already active — nothing to do
                 } else {
                     // Brand new invoice added in this edit — insert fresh record
-                    $this->dbwrite_model->insertConversionRecord(
+                    $this->dbwrite_ext_model->insertConversionRecord(
                         $orgUID, $invUID, 103, $activeTransUID, $this->pageModuleUID, 'InvoiceToSalesReturn', $userUID
                     );
                 }
@@ -425,7 +402,7 @@ class Salesreturns extends MY_Controller {
     public function deleteSalesReturn() {
         $this->EndReturnData = new stdClass();
         try {
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $PostData = $this->input->post();
             $userUID  = $this->pageData['JwtData']->User->UserUID;
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
@@ -449,17 +426,7 @@ class Salesreturns extends MY_Controller {
             }
 
             // Check 2: block if CN was applied via applyCreditNote() Ã¢â‚¬â€ CN Status path
-            $readDb = $this->load->database('ReadDB', TRUE);
-            $readDb->db_debug = FALSE;
-            $readDb->from('Transaction.TransCreditNoteTbl');
-            $readDb->where([
-                'SourceTransUID'  => $transUID,
-                'SourceModuleUID' => 106,
-                'IsDeleted'       => 0,
-                'IsCancelled'     => 0,
-                'Status'          => 'Applied',
-            ]);
-            if ($readDb->get()->num_rows() > 0) {
+            if ($this->transactions_model->hasCNAppliedForSR($transUID)) {
                 throw new ValidationException(
                     'This Sales Return\'s credit note has been applied to an invoice. ' .
                     'Please reverse the credit allocation before deleting.'
@@ -468,7 +435,7 @@ class Salesreturns extends MY_Controller {
 
             $this->dbwrite_model->startTransaction();
 
-            $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
+            $this->dbwrite_ext_model->reverseStockMovements($transUID, $orgUID, $userUID);
 
             $this->dbwrite_model->updateData(
                 'Transaction', 'PaymentsTbl',
@@ -479,25 +446,16 @@ class Salesreturns extends MY_Controller {
             $this->_reverseCreditPayments($existing, $orgUID, $userUID);
 
             // Soft-delete any pending credit note that was auto-created for this SR
-            $wdb = $this->dbwrite_model->getWriteDb();
-            $wdb->db_debug = FALSE;
-            $wdb->where([
-                'SourceTransUID'  => $transUID,
-                'SourceModuleUID' => 106,
-                'Status'          => 'Pending',
-                'IsCancelled'     => 0,
-                'IsDeleted'       => 0,
-            ])->update('Transaction.TransCreditNoteTbl', [
-                'IsDeleted' => 1,
-                'UpdatedBy' => $userUID,
-            ]);
+            $this->dbwrite_model->updateData('Transaction', 'TransCreditNoteTbl',
+                ['IsDeleted' => 1, 'UpdatedBy' => $userUID],
+                ['SourceTransUID' => $transUID, 'SourceModuleUID' => 106, 'Status' => 'Pending', 'IsCancelled' => 0, 'IsDeleted' => 0]);
 
             $this->dbwrite_model->updateData('Transaction', 'TransProductsTbl', ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID], ['TransUID' => $transUID, 'IsDeleted' => 0]);
             $deleteData = $this->globalservice->baseDeleteArrayDetails();
             $deleteData['IsActive'] = 0;
             $deleteResp = $this->dbwrite_model->updateData('Transaction', 'TransactionsTbl', $deleteData, ['TransUID' => $transUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
             if ($deleteResp->Error) throw new Exception($deleteResp->Message);
-            $this->dbwrite_model->markConversionDeleted($transUID, $orgUID, $userUID);
+            $this->dbwrite_ext_model->markConversionDeleted($transUID, $orgUID, $userUID);
             $this->dbwrite_model->commitTransaction();
             $this->_syncProductCacheByTransUID($transUID); // after commit — ReadDB now sees reverted stock
 
@@ -535,7 +493,7 @@ class Salesreturns extends MY_Controller {
     public function duplicateSalesReturn() {
         $this->EndReturnData = new stdClass();
         try {
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
             $PostData = $this->input->post();
             $srcUID   = (int) getPostValue($PostData, 'TransUID');
@@ -687,7 +645,7 @@ class Salesreturns extends MY_Controller {
     public function updateSalesReturnStatus() {
         $this->EndReturnData = new stdClass();
         try {
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $PostData  = $this->input->post();
             $transUID  = (int) getPostValue($PostData, 'TransUID');
             $newStatus = trim(getPostValue($PostData, 'Status'));
@@ -766,57 +724,40 @@ class Salesreturns extends MY_Controller {
 
                 // Handle cash/bank refund payments per the chosen action
                 if ($hasCashRefunds) {
-                    $wdb = $this->dbwrite_model->getWriteDb();
-                    $wdb->db_debug = FALSE;
                     if ($cancelAction === 'writeoff') {
                         // Accept the refund as a business loss Ã¢â‚¬â€ mark payments written off
-                        $wdb->where(['TransUID' => $transUID, 'IsDeleted' => 0])
-                            ->where('PaymentTypeUID !=', 0)
-                            ->update('Transaction.PaymentsTbl', ['IsCancelled' => 1, 'UpdatedBy' => $userUID]);
+                        $this->dbwrite_ext_model->cancelRefundPaymentsForTrans($transUID, $userUID);
                     } else {
                         // Recover: void the refund payments; recovery amount added to customer balance below
-                        $wdb->where(['TransUID' => $transUID, 'IsDeleted' => 0])
-                            ->where('PaymentTypeUID !=', 0)
-                            ->update('Transaction.PaymentsTbl', ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID]);
+                        $this->dbwrite_ext_model->deleteRefundPaymentsForTrans($transUID, $userUID);
                     }
                 }
 
                 // Reverse stock that came in when the SR was approved
-                $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
+                $this->dbwrite_ext_model->reverseStockMovements($transUID, $orgUID, $userUID);
 
                 // Reset SR payment counters
-                $this->dbwrite_model->updateTransIsFullyPaid($transUID, 0, 0, 0, $userUID);
+                $this->dbwrite_ext_model->updateTransIsFullyPaid($transUID, 0, 0, 0, $userUID);
 
                 // Recover: create a formal debit note so the customer owes back the refunded amount.
                 // Must happen inside the transaction so it is atomic with the cancellation.
                 if ($cancelAction === 'recover' && $hasCashRefunds) {
-                    $this->load->library('customerbalance');
-                    $this->customerbalance->createDebitNote(
+                    $this->dbwrite_ext_model->callCustomerDebitNote(
                         $orgUID, (int)$existing->PartyUID, $transUID,
-                        $existing->UniqueNumber ?? '', $totalRefunded, $userUID,
-                        $this->dbwrite_model->getWriteDb()
+                        $existing->UniqueNumber ?? '', $totalRefunded, $userUID
                     );
                 }
 
                 // Cancel any pending credit note that was auto-created when this SR had no payment.
                 // Without this, the cancelled SR stays out of totalReturned but its CN stays in
                 // pendingCreditNotes, wrongly reducing the customer balance.
-                $wdb = $this->dbwrite_model->getWriteDb();
-                $wdb->db_debug = FALSE;
-                $wdb->where([
-                    'SourceTransUID'  => $transUID,
-                    'SourceModuleUID' => 106,
-                    'Status'          => 'Pending',
-                    'IsCancelled'     => 0,
-                    'IsDeleted'       => 0,
-                ])->update('Transaction.TransCreditNoteTbl', [
-                    'IsCancelled' => 1,
-                    'UpdatedBy'   => $userUID,
-                ]);
+                $this->dbwrite_model->updateData('Transaction', 'TransCreditNoteTbl',
+                    ['IsCancelled' => 1, 'UpdatedBy' => $userUID],
+                    ['SourceTransUID' => $transUID, 'SourceModuleUID' => 106, 'Status' => 'Pending', 'IsCancelled' => 0, 'IsDeleted' => 0]);
             }
 
             if ($newStatus === 'Cancelled') {
-                $this->dbwrite_model->markConversionCancelled($transUID, $orgUID, $userUID);
+                $this->dbwrite_ext_model->markConversionCancelled($transUID, $orgUID, $userUID);
             }
 
             // Commit BEFORE recalculating balance so ReadDB sees DocStatus='Cancelled'
@@ -1077,7 +1018,7 @@ class Salesreturns extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             $PostData       = $this->input->post();
@@ -1101,10 +1042,10 @@ class Salesreturns extends MY_Controller {
             if ($existing->DocStatus === 'Draft')                          throw new ValidationException('Cannot record payment for a Draft.');
             if (in_array($existing->DocStatus, ['Cancelled', 'Rejected'])) throw new ValidationException('Sales Return is cancelled.');
 
-            if (!$this->dbwrite_model->lockTransactionRow($transUID, $orgUID)) {
+            if (!$this->dbwrite_ext_model->lockTransactionRow($transUID, $orgUID)) {
                 throw new ValidationException('Sales Return not found.');
             }
-            $alreadyPaid = $this->dbwrite_model->sumTransactionPayments($transUID, $orgUID);
+            $alreadyPaid = $this->dbwrite_ext_model->sumTransactionPayments($transUID, $orgUID);
             $pending     = max(0, round((float)$existing->NetAmount - $alreadyPaid, $this->_decimals()));
 
             if ($amount > $pending + 0.01) {
@@ -1171,31 +1112,18 @@ class Salesreturns extends MY_Controller {
             $paymentUID = $resp->ID ?? null;
 
             $balanceAmount = max(0, round((float)$existing->NetAmount - $newTotalPaid, $this->_decimals()));
-            $this->dbwrite_model->updateTransIsFullyPaid($transUID, $isFullyPaid, $newTotalPaid, $balanceAmount, $userUID);
-            $this->dbwrite_model->updateTransDocStatus($transUID, $orgUID, $newStatus, $userUID);
+            $this->dbwrite_ext_model->updateTransIsFullyPaid($transUID, $isFullyPaid, $newTotalPaid, $balanceAmount, $userUID);
+            $this->dbwrite_ext_model->updateTransDocStatus($transUID, $orgUID, $newStatus, $userUID);
 
             // Ã¢â€â‚¬Ã¢â€â‚¬ Reduce linked Credit Note by the payment amount Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
             // Only acts when a Pending CN exists (partial SR scenario).
             // Full-payment SR never has a CN, so this block is a no-op there.
-            $wdb = $this->dbwrite_model->getWriteDb();
-            $wdb->db_debug = FALSE;
-            $wdb->from('Transaction.TransCreditNoteTbl');
-            $wdb->where([
-                'SourceTransUID'  => $transUID,
-                'SourceModuleUID' => 106,
-                'Status'          => 'Pending',
-                'IsCancelled'     => 0,
-                'IsDeleted'       => 0,
-            ]);
-            $cn = $wdb->get()->row();
+            $cn = $this->transactions_model->getPendingCNForSR($transUID);
             if ($cn) {
                 $newCNAmount = round(max(0, (float)$cn->Amount - $amount), $this->_decimals());
-                $wdb->where('CreditNoteUID', (int)$cn->CreditNoteUID);
-                $wdb->update('Transaction.TransCreditNoteTbl', [
-                    'Amount'         => $newCNAmount,
-                    'PaymentCleared' => ($newCNAmount <= 0) ? 1 : 0,
-                    'UpdatedBy'      => $userUID,
-                ]);
+                $this->dbwrite_model->updateData('Transaction', 'TransCreditNoteTbl',
+                    ['Amount' => $newCNAmount, 'PaymentCleared' => ($newCNAmount <= 0) ? 1 : 0, 'UpdatedBy' => $userUID],
+                    ['CreditNoteUID' => (int)$cn->CreditNoteUID]);
             }
 
             $this->dbwrite_model->commitTransaction();
@@ -1353,7 +1281,7 @@ class Salesreturns extends MY_Controller {
     public function applyCredit() {
         $this->EndReturnData = new stdClass();
         try {
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->load->model('transactions_model');
 
             $PostData   = $this->input->post();
@@ -1458,17 +1386,17 @@ class Salesreturns extends MY_Controller {
             $newInvBalance = max(0, round((float)$invoice->NetAmount - $newInvPaid, $this->_decimals()));
             $invFullyPaid  = ($invoice->NetAmount > 0 && $newInvBalance <= 0) ? 1 : 0;
             $invStatus     = $invFullyPaid ? 'Paid' : 'Partial';
-            $this->dbwrite_model->updateTransIsFullyPaid($invoiceUID, $invFullyPaid, $newInvPaid, $newInvBalance, $userUID);
-            $this->dbwrite_model->updateTransDocStatus($invoiceUID, $orgUID, $invStatus, $userUID);
+            $this->dbwrite_ext_model->updateTransIsFullyPaid($invoiceUID, $invFullyPaid, $newInvPaid, $newInvBalance, $userUID);
+            $this->dbwrite_ext_model->updateTransDocStatus($invoiceUID, $orgUID, $invStatus, $userUID);
 
             // Update Sales Return
             $newSrPaid    = round($srPaid + $amount, $this->_decimals());
             $newSrBalance = max(0, round((float)$sr->NetAmount - $newSrPaid, $this->_decimals()));
             $srFullyPaid  = ($sr->NetAmount > 0 && $newSrBalance <= 0) ? 1 : 0;
             $srNewStatus  = $srFullyPaid ? 'Paid' : ($newSrPaid > 0 ? 'Partial' : $sr->DocStatus);
-            $this->dbwrite_model->updateTransIsFullyPaid($srUID, $srFullyPaid, $newSrPaid, $newSrBalance, $userUID);
+            $this->dbwrite_ext_model->updateTransIsFullyPaid($srUID, $srFullyPaid, $newSrPaid, $newSrBalance, $userUID);
             if ($srNewStatus !== $sr->DocStatus) {
-                $this->dbwrite_model->updateTransDocStatus($srUID, $orgUID, $srNewStatus, $userUID);
+                $this->dbwrite_ext_model->updateTransDocStatus($srUID, $orgUID, $srNewStatus, $userUID);
             }
 
             $this->dbwrite_model->commitTransaction();
@@ -1529,8 +1457,8 @@ class Salesreturns extends MY_Controller {
                 $newStatus = 'Approved';
             }
 
-            $this->dbwrite_model->updateTransIsFullyPaid($invoiceUID, $isFullyPaid, $newPaid, $newBalance, $userUID);
-            $this->dbwrite_model->updateTransDocStatus($invoiceUID, $orgUID, $newStatus, $userUID);
+            $this->dbwrite_ext_model->updateTransIsFullyPaid($invoiceUID, $isFullyPaid, $newPaid, $newBalance, $userUID);
+            $this->dbwrite_ext_model->updateTransDocStatus($invoiceUID, $orgUID, $newStatus, $userUID);
         }
     }
 

@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Transactions extends MY_Controller {
 
@@ -95,7 +95,7 @@ class Transactions extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             $PostData = $this->input->post();
@@ -121,7 +121,7 @@ class Transactions extends MY_Controller {
                 'UpdatedBy'        => $userUID,
             ];
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $getResp = $this->dbwrite_model->insertData('Settings', 'TransactionPrefixTbl', $addFormData);
             if ($getResp->Error) throw new Exception($getResp->Message);
 
@@ -154,7 +154,7 @@ class Transactions extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             $PostData  = $this->input->post();
@@ -180,7 +180,7 @@ class Transactions extends MY_Controller {
                 'UpdatedBy'        => $userUID,
             ];
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $resp = $this->dbwrite_model->updateData(
                 'Settings', 'TransactionPrefixTbl',
                 $updateData,
@@ -212,7 +212,7 @@ class Transactions extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             $PostData  = $this->input->post();
@@ -222,7 +222,7 @@ class Transactions extends MY_Controller {
             $userUID = $this->pageData['JwtData']->User->UserUID;
             $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $resp = $this->dbwrite_model->updateData(
                 'Settings', 'TransactionPrefixTbl',
                 ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
@@ -253,7 +253,7 @@ class Transactions extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             $PostData  = $this->input->post();
@@ -311,6 +311,7 @@ class Transactions extends MY_Controller {
             $this->load->model('vendors_model');
             $orgUID = $this->pageData['JwtData']->Org->OrgUID;
             $filter = !empty($term) ? ['SearchAllData' => $term] : [];
+            $filter['LangCode'] = $this->_uiLang();
             $result = $this->vendors_model->getVendorListPaginated($orgUID, 20, 0, $filter);
 
             $vendorDetails = [];
@@ -349,7 +350,7 @@ class Transactions extends MY_Controller {
             $term = $this->input->get('term') ? trim($this->input->get('term')) : '';
 
             $this->load->model('transactions_model');
-            $customersData = $this->transactions_model->getCustomersDetails($term, []);
+            $customersData = $this->transactions_model->getCustomersDetails($term, [], $this->_uiLang());
 
             $customersDetails = [];
             foreach ($customersData as $value) {
@@ -657,7 +658,7 @@ class Transactions extends MY_Controller {
             }
 
             $this->load->model('transactions_model');
-            $productData = $this->transactions_model->getTransProductsDetails($term, $whereArr);
+            $productData = $this->transactions_model->getTransProductsDetails($term, $whereArr, $this->_uiLang());
 
             $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? null;
 
@@ -727,7 +728,7 @@ class Transactions extends MY_Controller {
             $orgUID  = (int)$this->pageData['JwtData']->Org->OrgUID;
             $userUID = (int)$this->pageData['JwtData']->User->UserUID;
 
-            $this->load->model(['transactions_model', 'dbwrite_model']);
+            $this->load->model(['transactions_model', 'dbwrite_model', 'dbwrite_ext_model']);
 
             $selectAll = (int)$this->input->post('SelectAll');
             if ($selectAll === 1) {
@@ -795,17 +796,7 @@ class Transactions extends MY_Controller {
             if ($creditApplied > 0) {
                 throw new Exception('SR has credit applied to invoices. Reverse allocations first.');
             }
-            $readDb = $this->load->database('ReadDB', TRUE);
-            $readDb->db_debug = FALSE;
-            $readDb->from('Transaction.TransCreditNoteTbl');
-            $readDb->where([
-                'SourceTransUID'  => $transUID,
-                'SourceModuleUID' => 106,
-                'IsDeleted'       => 0,
-                'IsCancelled'     => 0,
-                'Status'          => 'Applied',
-            ]);
-            if ($readDb->get()->num_rows() > 0) {
+            if ($this->transactions_model->hasCNAppliedForSR($transUID)) {
                 throw new Exception('SR credit note is applied to an invoice. Reverse it first.');
             }
         }
@@ -815,13 +806,13 @@ class Transactions extends MY_Controller {
         // Stock reversal (Invoices, Purchases, Sales Returns, Purchase Returns)
         $stockModules = [103, 105, 106, 108];
         if (in_array($moduleUID, $stockModules, true)) {
-            $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
+            $this->dbwrite_ext_model->reverseStockMovements($transUID, $orgUID, $userUID);
             $this->_syncProductCacheByTransUID($transUID);
         } elseif ($moduleUID === 112) {
             // Delivery Challans: only reverse stock if goods were dispatched
             $status = $existing->DocStatus ?? '';
             if (in_array($status, ['Dispatched', 'Delivered', 'Partially Returned', 'Converted'], true)) {
-                $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
+                $this->dbwrite_ext_model->reverseStockMovements($transUID, $orgUID, $userUID);
                 $this->_syncProductCacheByTransUID($transUID);
             }
         }
@@ -833,22 +824,13 @@ class Transactions extends MY_Controller {
                 ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
                 ['TransUID' => $transUID, 'IsDeleted' => 0]
             );
-            $wdb = $this->dbwrite_model->getWriteDb();
-            $wdb->db_debug = FALSE;
-            $wdb->where([
-                'SourceTransUID'  => $transUID,
-                'SourceModuleUID' => 106,
-                'Status'          => 'Pending',
-                'IsCancelled'     => 0,
-                'IsDeleted'       => 0,
-            ])->update('Transaction.TransCreditNoteTbl', [
-                'IsDeleted' => 1,
-                'UpdatedBy' => $userUID,
-            ]);
+            $this->dbwrite_model->updateData('Transaction', 'TransCreditNoteTbl',
+                ['IsDeleted' => 1, 'UpdatedBy' => $userUID],
+                ['SourceTransUID' => $transUID, 'SourceModuleUID' => 106, 'Status' => 'Pending', 'IsCancelled' => 0, 'IsDeleted' => 0]);
         }
 
-        $this->dbwrite_model->softDeleteTransactionItems($transUID, $userUID);
-        $this->dbwrite_model->softDeleteTransaction($transUID, $orgUID, $userUID);
+        $this->dbwrite_ext_model->softDeleteTransactionItems($transUID, $userUID);
+        $this->dbwrite_ext_model->softDeleteTransaction($transUID, $orgUID, $userUID);
         $this->dbwrite_model->commitTransaction();
 
         // Post-commit ledger operations (all non-fatal)

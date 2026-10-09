@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 /**
  * Unified subscribe page controller — handles plan selection + Razorpay payment
@@ -10,7 +10,7 @@ class Signuppayment extends CI_Controller {
     public function __construct() {
         parent::__construct();
         $this->load->model('signup_model');
-        $this->load->model('dbwrite_model');
+        $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
     }
 
     /* ── Subscribe page ───────────────────────────────────────────────── */

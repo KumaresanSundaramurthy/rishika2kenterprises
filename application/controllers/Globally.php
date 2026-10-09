@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Globally extends CI_Controller {
 
@@ -287,14 +287,8 @@ class Globally extends CI_Controller {
             // ── Deduct 1 credit + refresh Upstash cache ───────────────────────
             if ($orgUID > 0) {
                 try {
-                    $this->load->model('dbwrite_model');
-                    $db = $this->dbwrite_model->getWriteDb();
-                    $db->db_debug = FALSE;
-                    $db->set('GstinPoints', 'GstinPoints - 1', FALSE)
-                       ->set('UpdatedAt',   date('Y-m-d H:i:s'))
-                       ->where('OrgUID',        $orgUID)
-                       ->where('GstinPoints >',  0)
-                       ->update('Settings.OrgCreditSettingsTbl');
+                    $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
+                    $this->dbwrite_ext_model->decrementGstinPoints($orgUID);
 
                     $freshSettings = $this->customers_model->getCreditSettings($orgUID);
                     if ($freshSettings) {
@@ -708,7 +702,7 @@ class Globally extends CI_Controller {
 
     // public function importCities() {
 
-    //         $this->load->model('dbwrite_model');
+    //         $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
 
     //         $folderPath = APPPATH . 'data/cities/';
     //         $files = glob($folderPath . '*.json');

@@ -369,7 +369,7 @@ class Reports extends MY_Controller {
             if (empty($this->pageData['JwtData'])) { throw new Exception('Unauthorised'); }
             $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
             $this->load->model('reports_model');
-            $rows = $this->reports_model->getCustomerOutstandingData($orgUID);
+            $rows = $this->reports_model->getCustomerOutstandingData($orgUID, $this->_uiLang());
             $this->EndReturnData->Status = 'Success';
             $this->EndReturnData->rows   = $rows;
         } catch (Exception $e) {
@@ -434,7 +434,7 @@ class Reports extends MY_Controller {
             if (empty($this->pageData['JwtData'])) { throw new Exception('Unauthorised'); }
             $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
             $this->load->model('reports_model');
-            $rows = $this->reports_model->getCustomerAgeingData($orgUID);
+            $rows = $this->reports_model->getCustomerAgeingData($orgUID, $this->_uiLang());
             $this->EndReturnData->Status = 'Success';
             $this->EndReturnData->rows   = $rows;
         } catch (Exception $e) {
@@ -460,7 +460,7 @@ class Reports extends MY_Controller {
             if (empty($this->pageData['JwtData'])) { throw new Exception('Unauthorised'); }
             $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
             $this->load->model('reports_model');
-            $rows = $this->reports_model->getSupplierOutstandingData($orgUID);
+            $rows = $this->reports_model->getSupplierOutstandingData($orgUID, $this->_uiLang());
             $this->EndReturnData->Status = 'Success';
             $this->EndReturnData->rows   = $rows;
         } catch (Exception $e) {

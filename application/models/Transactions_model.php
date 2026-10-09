@@ -35,10 +35,12 @@ class Transactions_model extends MY_Model {
         }
     }
 
-    public function getTransactionPageList(int $limit, int $offset, int $ModuleUID, array $filter, bool $isCount = false): mixed {
+    public function getTransactionPageList(int $limit, int $offset, int $ModuleUID, array $filter, bool $isCount = false, string $langCode = 'en'): mixed {
 
         try {
 
+            $useLang = $langCode !== 'en';
+            $lc      = $this->ReadDb->escape_str($langCode);
             $this->ReadDb->db_debug = FALSE;
 
             // ── Smart COUNT path ──────────────────────────────────────────────────
@@ -67,8 +69,8 @@ class Transactions_model extends MY_Model {
                 'Ts.TransDate AS TransDate',
                 'Ts.DocStatus AS Status',
                 'Ts.NetAmount AS NetAmount',
-                'COALESCE(Cust.Name, Vend.Name) AS PartyName',
-                'COALESCE(Cust.Area, Vend.Area) AS PartyArea',
+                $useLang ? 'COALESCE(CL.Name, Cust.Name, VL.Name, Vend.Name) AS PartyName' : 'COALESCE(Cust.Name, Vend.Name) AS PartyName',
+                $useLang ? 'COALESCE(CL.Area, Cust.Area, VL.Area, Vend.Area) AS PartyArea' : 'COALESCE(Cust.Area, Vend.Area) AS PartyArea',
                 'COALESCE(Cust.MobileNumber, Vend.MobileNumber) AS MobileNumber',
                 'COALESCE(Cust.CountryCode, Vend.CountryCode) AS CountryCode',
                 'COALESCE(Cust.EmailAddress, Vend.EmailAddress) AS EmailAddress',
@@ -98,6 +100,10 @@ class Transactions_model extends MY_Model {
             $this->ReadDb->from('Transaction.TransactionsTbl as Ts');
             $this->ReadDb->join('Customers.CustomerTbl as Cust', 'Cust.CustomerUID = Ts.PartyUID AND Ts.PartyType = \'C\'', 'LEFT');
             $this->ReadDb->join('Vendors.VendorTbl as Vend', 'Vend.VendorUID = Ts.PartyUID AND Ts.PartyType = \'S\'', 'LEFT');
+            if ($useLang) {
+                $this->ReadDb->join("Customers.CustomersTbl_Lang CL", "CL.CustomerUID = Ts.PartyUID AND Ts.PartyType = 'C' AND CL.LangCode = '{$lc}'", 'LEFT');
+                $this->ReadDb->join("Vendors.VendorTbl_Lang VL", "VL.VendorUID = Ts.PartyUID AND Ts.PartyType = 'S' AND VL.LangCode = '{$lc}'", 'LEFT');
+            }
             $this->ReadDb->join('Transaction.TransDetailTbl as Td', 'Td.TransUID = Ts.TransUID AND Td.FinancialYear = YEAR(Ts.TransDate)', 'LEFT');
             $this->ReadDb->join('Users.UserTbl as User', 'User.UserUID = Ts.UpdatedBy', 'left');
             $this->ReadDb->join('Users.UserTbl as CreatedUser', 'CreatedUser.UserUID = Ts.CreatedBy', 'left');
@@ -381,18 +387,26 @@ class Transactions_model extends MY_Model {
     }
 
     /** Full transaction header row by TransToken + OrgUID (token-based edit URL). */
-    public function getTransactionByToken(string $token, int $orgUID, int $moduleUID): ?object {
+    public function getTransactionByToken(string $token, int $orgUID, int $moduleUID, string $langCode = 'en'): ?object {
+        $useLang = $langCode !== 'en';
+        $lc      = $this->ReadDb->escape_str($langCode);
         $this->ReadDb->select([
             'Ts.*',
-            'COALESCE(Cust.Name, Vend.Name) AS PartyName',
-            'COALESCE(Cust.Area, Vend.Area) AS PartyArea',
+            $useLang ? 'COALESCE(CustL.Name, Cust.Name, VendL.Name, Vend.Name) AS PartyName' : 'COALESCE(Cust.Name, Vend.Name) AS PartyName',
+            $useLang ? 'COALESCE(CustL.Area, Cust.Area, VendL.Area, Vend.Area) AS PartyArea' : 'COALESCE(Cust.Area, Vend.Area) AS PartyArea',
             'COALESCE(Cust.CountryCode, Vend.CountryCode) AS PartyCountryCode',
             'COALESCE(Cust.MobileNumber, Vend.MobileNumber) AS PartyMobile',
             'COALESCE(Cust.GSTIN, Vend.GSTIN) AS PartyGSTIN',
-            'BillAddr.Line1 AS BillLine1', 'BillAddr.Line2 AS BillLine2',
-            'BillAddr.CityText AS BillCity', 'BillAddr.StateText AS BillState', 'BillAddr.Pincode AS BillPincode',
-            'ShipAddr.Line1 AS ShipLine1', 'ShipAddr.Line2 AS ShipLine2',
-            'ShipAddr.CityText AS ShipCity', 'ShipAddr.StateText AS ShipState', 'ShipAddr.Pincode AS ShipPincode',
+            $useLang ? 'COALESCE(BillAddrL.Line1, BillAddr.Line1) AS BillLine1' : 'BillAddr.Line1 AS BillLine1',
+            $useLang ? 'COALESCE(BillAddrL.Line2, BillAddr.Line2) AS BillLine2' : 'BillAddr.Line2 AS BillLine2',
+            $useLang ? 'COALESCE(BillAddrL.CityText, BillAddr.CityText) AS BillCity' : 'BillAddr.CityText AS BillCity',
+            $useLang ? 'COALESCE(BillAddrL.StateText, BillAddr.StateText) AS BillState' : 'BillAddr.StateText AS BillState',
+            'BillAddr.Pincode AS BillPincode',
+            $useLang ? 'COALESCE(ShipAddrL.Line1, ShipAddr.Line1) AS ShipLine1' : 'ShipAddr.Line1 AS ShipLine1',
+            $useLang ? 'COALESCE(ShipAddrL.Line2, ShipAddr.Line2) AS ShipLine2' : 'ShipAddr.Line2 AS ShipLine2',
+            $useLang ? 'COALESCE(ShipAddrL.CityText, ShipAddr.CityText) AS ShipCity' : 'ShipAddr.CityText AS ShipCity',
+            $useLang ? 'COALESCE(ShipAddrL.StateText, ShipAddr.StateText) AS ShipState' : 'ShipAddr.StateText AS ShipState',
+            'ShipAddr.Pincode AS ShipPincode',
             'Td.ValidityDays', 'Td.ValidityDate', 'Td.Reference', 'Td.SupplierInvoiceNo',
             'Td.Notes', 'Td.TermsConditions',
             'Td.PlaceOfSupplyCode', 'Td.PlaceOfSupplyName',
@@ -400,28 +414,44 @@ class Transactions_model extends MY_Model {
         $this->ReadDb->from('Transaction.TransactionsTbl AS Ts');
         $this->ReadDb->join('Customers.CustomerTbl AS Cust', 'Cust.CustomerUID = Ts.PartyUID AND Ts.PartyType = \'C\'', 'LEFT');
         $this->ReadDb->join('Vendors.VendorTbl AS Vend', 'Vend.VendorUID = Ts.PartyUID AND Ts.PartyType = \'S\'', 'LEFT');
+        if ($useLang) {
+            $this->ReadDb->join("Customers.CustomersTbl_Lang CustL", "CustL.CustomerUID = Ts.PartyUID AND Ts.PartyType = 'C' AND CustL.LangCode = '{$lc}'", 'LEFT');
+            $this->ReadDb->join("Vendors.VendorTbl_Lang VendL", "VendL.VendorUID = Ts.PartyUID AND Ts.PartyType = 'S' AND VendL.LangCode = '{$lc}'", 'LEFT');
+        }
         $this->ReadDb->join('Transaction.TransDetailTbl AS Td', 'Td.TransUID = Ts.TransUID AND Td.FinancialYear = YEAR(Ts.TransDate)', 'LEFT');
         $this->ReadDb->join('Customers.CustAddressTbl AS BillAddr', "BillAddr.CustomerUID = Ts.PartyUID AND BillAddr.AddressType = 'Billing' AND BillAddr.IsDeleted = 0 AND BillAddr.IsActive = 1", 'LEFT');
         $this->ReadDb->join('Customers.CustAddressTbl AS ShipAddr', "ShipAddr.CustomerUID = Ts.PartyUID AND ShipAddr.AddressType = 'Shipping' AND ShipAddr.IsDeleted = 0 AND ShipAddr.IsActive = 1", 'LEFT');
+        if ($useLang) {
+            $this->ReadDb->join("Customers.CustAddressTbl_Lang BillAddrL", "BillAddrL.CustAddressUID = BillAddr.CustAddressUID AND BillAddrL.LangCode = '{$lc}'", 'LEFT');
+            $this->ReadDb->join("Customers.CustAddressTbl_Lang ShipAddrL", "ShipAddrL.CustAddressUID = ShipAddr.CustAddressUID AND ShipAddrL.LangCode = '{$lc}'", 'LEFT');
+        }
         $this->ReadDb->where(['Ts.TransToken' => $token, 'Ts.OrgUID' => $orgUID, 'Ts.ModuleUID' => $moduleUID, 'Ts.IsDeleted' => 0]);
         $row = $this->ReadDb->get()->row();
         return $row ?: null;
     }
 
     /** Full transaction header row by TransUID + OrgUID. Pass null for $moduleUID to skip the module filter (cross-module lookups). */
-    public function getTransactionById(int $transUID, int $orgUID, ?int $moduleUID = null): ?object {
+    public function getTransactionById(int $transUID, int $orgUID, ?int $moduleUID = null, string $langCode = 'en'): ?object {
+        $useLang = $langCode !== 'en';
+        $lc      = $this->ReadDb->escape_str($langCode);
         $this->ReadDb->select([
             'Ts.*',
-            'COALESCE(Cust.Name, Vend.Name) AS PartyName',
-            'COALESCE(Cust.Area, Vend.Area) AS PartyArea',
+            $useLang ? 'COALESCE(CustL.Name, Cust.Name, VendL.Name, Vend.Name) AS PartyName' : 'COALESCE(Cust.Name, Vend.Name) AS PartyName',
+            $useLang ? 'COALESCE(CustL.Area, Cust.Area, VendL.Area, Vend.Area) AS PartyArea' : 'COALESCE(Cust.Area, Vend.Area) AS PartyArea',
             'COALESCE(Cust.CountryCode, Vend.CountryCode) AS PartyCountryCode',
             'COALESCE(Cust.MobileNumber, Vend.MobileNumber) AS PartyMobile',
             'COALESCE(Cust.EmailAddress, Vend.EmailAddress) AS PartyEmail',
             'COALESCE(Cust.GSTIN, Vend.GSTIN) AS PartyGSTIN',
-            'BillAddr.Line1 AS BillLine1', 'BillAddr.Line2 AS BillLine2',
-            'BillAddr.CityText AS BillCity', 'BillAddr.StateText AS BillState', 'BillAddr.Pincode AS BillPincode',
-            'ShipAddr.Line1 AS ShipLine1', 'ShipAddr.Line2 AS ShipLine2',
-            'ShipAddr.CityText AS ShipCity', 'ShipAddr.StateText AS ShipState', 'ShipAddr.Pincode AS ShipPincode',
+            $useLang ? 'COALESCE(BillAddrL.Line1, BillAddr.Line1) AS BillLine1' : 'BillAddr.Line1 AS BillLine1',
+            $useLang ? 'COALESCE(BillAddrL.Line2, BillAddr.Line2) AS BillLine2' : 'BillAddr.Line2 AS BillLine2',
+            $useLang ? 'COALESCE(BillAddrL.CityText, BillAddr.CityText) AS BillCity' : 'BillAddr.CityText AS BillCity',
+            $useLang ? 'COALESCE(BillAddrL.StateText, BillAddr.StateText) AS BillState' : 'BillAddr.StateText AS BillState',
+            'BillAddr.Pincode AS BillPincode',
+            $useLang ? 'COALESCE(ShipAddrL.Line1, ShipAddr.Line1) AS ShipLine1' : 'ShipAddr.Line1 AS ShipLine1',
+            $useLang ? 'COALESCE(ShipAddrL.Line2, ShipAddr.Line2) AS ShipLine2' : 'ShipAddr.Line2 AS ShipLine2',
+            $useLang ? 'COALESCE(ShipAddrL.CityText, ShipAddr.CityText) AS ShipCity' : 'ShipAddr.CityText AS ShipCity',
+            $useLang ? 'COALESCE(ShipAddrL.StateText, ShipAddr.StateText) AS ShipState' : 'ShipAddr.StateText AS ShipState',
+            'ShipAddr.Pincode AS ShipPincode',
             'Td.ValidityDays', 'Td.ValidityDate', 'Td.Reference', 'Td.SupplierInvoiceNo',
             'Td.Notes', 'Td.TermsConditions',
             'Td.PlaceOfSupplyCode', 'Td.PlaceOfSupplyName', 'Td.SignatureUID',
@@ -431,9 +461,17 @@ class Transactions_model extends MY_Model {
         $this->ReadDb->from('Transaction.TransactionsTbl AS Ts');
         $this->ReadDb->join('Customers.CustomerTbl AS Cust', 'Cust.CustomerUID = Ts.PartyUID AND Ts.PartyType = \'C\'', 'LEFT');
         $this->ReadDb->join('Vendors.VendorTbl AS Vend', 'Vend.VendorUID = Ts.PartyUID AND Ts.PartyType = \'S\'', 'LEFT');
+        if ($useLang) {
+            $this->ReadDb->join("Customers.CustomersTbl_Lang CustL", "CustL.CustomerUID = Ts.PartyUID AND Ts.PartyType = 'C' AND CustL.LangCode = '{$lc}'", 'LEFT');
+            $this->ReadDb->join("Vendors.VendorTbl_Lang VendL", "VendL.VendorUID = Ts.PartyUID AND Ts.PartyType = 'S' AND VendL.LangCode = '{$lc}'", 'LEFT');
+        }
         $this->ReadDb->join('Transaction.TransDetailTbl AS Td', 'Td.TransUID = Ts.TransUID AND Td.FinancialYear = YEAR(Ts.TransDate)', 'LEFT');
         $this->ReadDb->join('Customers.CustAddressTbl AS BillAddr', "BillAddr.CustomerUID = Ts.PartyUID AND BillAddr.AddressType = 'Billing' AND BillAddr.IsDeleted = 0 AND BillAddr.IsActive = 1", 'LEFT');
         $this->ReadDb->join('Customers.CustAddressTbl AS ShipAddr', "ShipAddr.CustomerUID = Ts.PartyUID AND ShipAddr.AddressType = 'Shipping' AND ShipAddr.IsDeleted = 0 AND ShipAddr.IsActive = 1", 'LEFT');
+        if ($useLang) {
+            $this->ReadDb->join("Customers.CustAddressTbl_Lang BillAddrL", "BillAddrL.CustAddressUID = BillAddr.CustAddressUID AND BillAddrL.LangCode = '{$lc}'", 'LEFT');
+            $this->ReadDb->join("Customers.CustAddressTbl_Lang ShipAddrL", "ShipAddrL.CustAddressUID = ShipAddr.CustAddressUID AND ShipAddrL.LangCode = '{$lc}'", 'LEFT');
+        }
         $where = ['Ts.TransUID' => $transUID, 'Ts.OrgUID' => $orgUID, 'Ts.IsDeleted' => 0];
         if ($moduleUID !== null) $where['Ts.ModuleUID'] = $moduleUID;
         $this->ReadDb->where($where);
@@ -786,16 +824,18 @@ class Transactions_model extends MY_Model {
 
     }
 
-    public function getCustomersDetails(string $Term = '', array $WhereCondition = []): array {
-        
+    public function getCustomersDetails(string $Term = '', array $WhereCondition = [], string $langCode = 'en'): array {
+
         $this->EndReturnData = new StdClass();
         try {
 
+            $useLang = $langCode !== 'en';
+            $lc      = $this->ReadDb->escape_str($langCode);
             $this->ReadDb->db_debug = FALSE;
             $select_ary = array(
                 'Customers.CustomerUID AS CustomerUID',
-                'Customers.Name AS Name',
-                'Customers.Area AS Area',
+                $useLang ? "COALESCE(CL.Name, Customers.Name) AS Name" : 'Customers.Name AS Name',
+                $useLang ? "COALESCE(CL.Area, Customers.Area) AS Area" : 'Customers.Area AS Area',
                 'Customers.MobileNumber AS MobileNumber',
                 'MAX(COALESCE(Ship.CustAddressUID, Bill.CustAddressUID)) AS AddrUID',
                 'MAX(COALESCE(Ship.Line1, Bill.Line1)) AS Line1',
@@ -812,6 +852,9 @@ class Transactions_model extends MY_Model {
             );
             $this->ReadDb->select($select_ary);
             $this->ReadDb->from('Customers.CustomerTbl as Customers');
+            if ($useLang) {
+                $this->ReadDb->join("Customers.CustomersTbl_Lang AS CL", "CL.CustomerUID = Customers.CustomerUID AND CL.LangCode = '{$lc}'", 'left');
+            }
             $this->ReadDb->join('Customers.CustAddressTbl as Bill', 'Bill.CustomerUID = Customers.CustomerUID AND Bill.IsDeleted = 0 AND Bill.IsActive = 1', 'LEFT');
             $this->ReadDb->join('Customers.CustAddressTbl as Ship', 'Ship.CustomerUID = Customers.CustomerUID AND Ship.IsDeleted = 0 AND Ship.IsActive = 1', 'LEFT');
             $this->ReadDb->join('Accounting.EntityLedgerMap AS ELM', "ELM.CustomerUID = Customers.CustomerUID AND ELM.EntityType = 'Customer' AND ELM.IsDeleted = 0", 'LEFT');
@@ -880,15 +923,17 @@ class Transactions_model extends MY_Model {
         return $row ? ($row->StateText ?: NULL) : NULL;
     }
 
-    public function getTransProductsDetails(string $Term = '', array $WhereCondition = []): array {
+    public function getTransProductsDetails(string $Term = '', array $WhereCondition = [], string $langCode = 'en'): array {
 
         $this->EndReturnData = new StdClass();
         try {
 
+            $useLang = $langCode !== 'en';
+            $lc      = $this->ReadDb->escape_str($langCode);
             $this->ReadDb->db_debug = FALSE;
             $select_ary = array(
                 'product.ProductUID AS ProductUID',
-                'product.ItemName AS ItemName',
+                $useLang ? 'COALESCE(PL.ItemName, product.ItemName) AS ItemName' : 'product.ItemName AS ItemName',
                 'product.ProductType AS ProductType',
                 'product.SellingPrice AS UnitPrice',
                 'product.SellingPrice AS SellingPrice',
@@ -900,7 +945,7 @@ class Transactions_model extends MY_Model {
                 'product.SGST AS SGST',
                 'product.IGST AS IGST',
                 'product.CategoryUID AS CategoryUID',
-                'category.Name AS CatgName',
+                $useLang ? 'COALESCE(CL.Name, category.Name) AS CatgName' : 'category.Name AS CatgName',
                 'product.HSNSACCode AS HSNSACCode',
                 'COALESCE(productStock.AvailableQty, 0) AS AvailableQuantity',
                 'product.Discount AS Discount',
@@ -924,6 +969,10 @@ class Transactions_model extends MY_Model {
             $this->ReadDb->join('Products.CategoryTbl as category', 'category.CategoryUID = product.CategoryUID AND category.IsDeleted = 0 AND category.IsActive = 1', 'LEFT');
             $this->ReadDb->join('Global.DiscountTypeTbl as discountType', 'discountType.DiscountTypeUID = product.DiscountTypeUID AND discountType.IsDeleted = 0 AND discountType.IsActive = 1', 'LEFT');
             $this->ReadDb->join('Global.PrimaryUnitTbl as primaryUnit', 'primaryUnit.PrimaryUnitUID = product.PrimaryUnitUID', 'LEFT');
+            if ($useLang) {
+                $this->ReadDb->join("Products.ProductTbl_Lang AS PL", "PL.ProductUID = product.ProductUID AND PL.LangCode = '{$lc}'", 'LEFT');
+                $this->ReadDb->join("Products.CategoryTbl_Lang AS CL", "CL.CategoryUID = product.CategoryUID AND CL.LangCode = '{$lc}'", 'LEFT');
+            }
             if(!empty($Term)) {
                 $this->ReadDb->group_start();
                 $this->ReadDb->or_like('product.ItemName', $Term, 'both');
@@ -3466,17 +3515,14 @@ class Transactions_model extends MY_Model {
      * @return ?object Row with NetAmount, PaidAmount, DocStatus, IsDeleted; null if not found
      */
     public function lockInvoiceForUpdate(int $transUID, int $orgUID): ?object {
-        $this->load->model('dbwrite_model');
-        $wdb = $this->dbwrite_model->getWriteDb();
-        $wdb->db_debug = FALSE;
-        $result = $wdb->query(
+        $this->load->model('dbwrite_ext_model');
+        return $this->dbwrite_ext_model->queryWriteRow(
             'SELECT NetAmount, PaidAmount, DocStatus, IsDeleted
              FROM Transaction.TransactionsTbl
              WHERE TransUID = ? AND OrgUID = ?
              FOR UPDATE',
             [$transUID, $orgUID]
         );
-        return $result ? $result->row() : null;
     }
 
     /**
@@ -3490,17 +3536,14 @@ class Transactions_model extends MY_Model {
      * @return ?object Row with PaymentUID, ExcessAmount, IsDeleted, IsCancelled
      */
     public function lockExcessSourcePayment(int $paymentUID, int $orgUID, int $partyUID, string $partyType): ?object {
-        $this->load->model('dbwrite_model');
-        $wdb = $this->dbwrite_model->getWriteDb();
-        $wdb->db_debug = FALSE;
-        $result = $wdb->query(
+        $this->load->model('dbwrite_ext_model');
+        return $this->dbwrite_ext_model->queryWriteRow(
             'SELECT PaymentUID, ExcessAmount, IsDeleted, IsCancelled
              FROM Transaction.PaymentsTbl
              WHERE PaymentUID = ? AND OrgUID = ? AND PartyUID = ? AND PartyType = ?
              FOR UPDATE',
             [$paymentUID, $orgUID, $partyUID, $partyType]
         );
-        return $result ? $result->row() : null;
     }
 
     /**
@@ -3514,10 +3557,8 @@ class Transactions_model extends MY_Model {
      * @return void
      */
     public function reduceExcessAmount(int $paymentUID, int $orgUID, float $newExcess, int $userUID): void {
-        $this->load->model('dbwrite_model');
-        $wdb = $this->dbwrite_model->getWriteDb();
-        $wdb->db_debug = FALSE;
-        $wdb->query(
+        $this->load->model('dbwrite_ext_model');
+        $this->dbwrite_ext_model->execWrite(
             'UPDATE Transaction.PaymentsTbl SET ExcessAmount = ?, UpdatedBy = ? WHERE PaymentUID = ? AND OrgUID = ?',
             [$newExcess, $userUID, $paymentUID, $orgUID]
         );
@@ -3568,17 +3609,14 @@ class Transactions_model extends MY_Model {
      * @return ?object Row with IsDeleted, IsCancelled, IsTransferredToCreditNote, IsOnAccount, IsExcessApplied
      */
     public function lockPaymentForDelete(int $paymentUID, int $orgUID): ?object {
-        $this->load->model('dbwrite_model');
-        $wdb = $this->dbwrite_model->getWriteDb();
-        $wdb->db_debug = FALSE;
-        $result = $wdb->query(
+        $this->load->model('dbwrite_ext_model');
+        return $this->dbwrite_ext_model->queryWriteRow(
             'SELECT IsDeleted, IsCancelled, IsTransferredToCreditNote, IsOnAccount, IsExcessApplied
              FROM Transaction.PaymentsTbl
              WHERE PaymentUID = ? AND OrgUID = ?
              FOR UPDATE',
             [$paymentUID, $orgUID]
         );
-        return $result ? $result->row() : null;
     }
 
     /**
@@ -3589,16 +3627,13 @@ class Transactions_model extends MY_Model {
      * @return ?object Row with PaymentUID, ExcessAmount; null if not found / already deleted
      */
     public function lockAndGetExcessSource(int $srcUID, int $orgUID): ?object {
-        $this->load->model('dbwrite_model');
-        $wdb = $this->dbwrite_model->getWriteDb();
-        $wdb->db_debug = FALSE;
-        $result = $wdb->query(
+        $this->load->model('dbwrite_ext_model');
+        return $this->dbwrite_ext_model->queryWriteRow(
             'SELECT PaymentUID, ExcessAmount FROM Transaction.PaymentsTbl
              WHERE PaymentUID = ? AND OrgUID = ? AND IsDeleted = 0
              FOR UPDATE',
             [$srcUID, $orgUID]
         );
-        return $result ? $result->row() : null;
     }
 
     /**
@@ -3612,10 +3647,8 @@ class Transactions_model extends MY_Model {
      * @return void
      */
     public function restoreExcessAmount(int $srcUID, int $orgUID, float $restoredExcess, int $userUID): void {
-        $this->load->model('dbwrite_model');
-        $wdb = $this->dbwrite_model->getWriteDb();
-        $wdb->db_debug = FALSE;
-        $wdb->query(
+        $this->load->model('dbwrite_ext_model');
+        $this->dbwrite_ext_model->execWrite(
             'UPDATE Transaction.PaymentsTbl SET ExcessAmount = ?, UpdatedBy = ? WHERE PaymentUID = ? AND OrgUID = ?',
             [$restoredExcess, $userUID, $srcUID, $orgUID]
         );
@@ -3631,15 +3664,11 @@ class Transactions_model extends MY_Model {
      * @return void
      */
     public function updateSRCreditNoteAmount(int $creditNoteUID, float $newAmount, int $userUID): void {
-        $this->load->model('dbwrite_model');
-        $wdb = $this->dbwrite_model->getWriteDb();
-        $wdb->db_debug = FALSE;
-        $wdb->where('CreditNoteUID', $creditNoteUID);
-        $wdb->update('Transaction.TransCreditNoteTbl', [
-            'Amount'         => $newAmount,
-            'PaymentCleared' => 0,
-            'UpdatedBy'      => $userUID,
-        ]);
+        $this->load->model('dbwrite_ext_model');
+        $this->dbwrite_ext_model->execWrite(
+            'UPDATE Transaction.TransCreditNoteTbl SET Amount = ?, PaymentCleared = 0, UpdatedBy = ? WHERE CreditNoteUID = ?',
+            [$newAmount, $userUID, $creditNoteUID]
+        );
     }
 
     /**
@@ -3774,10 +3803,8 @@ class Transactions_model extends MY_Model {
      * @return object|null
      */
     public function lockOnAccountSourcePayment(int $paymentUID, int $orgUID, int $partyUID): ?object {
-        $this->load->model('dbwrite_model');
-        $wdb = $this->dbwrite_model->getWriteDb();
-        $wdb->db_debug = FALSE;
-        $query = $wdb->query(
+        $this->load->model('dbwrite_ext_model');
+        return $this->dbwrite_ext_model->queryWriteRow(
             'SELECT PaymentUID, Amount FROM `Transaction`.`PaymentsTbl`
               WHERE PaymentUID = ? AND OrgUID = ? AND PartyUID = ?
                 AND IsOnAccount = 1 AND IsDeleted = 0 AND IsCancelled = 0
@@ -3785,8 +3812,6 @@ class Transactions_model extends MY_Model {
               FOR UPDATE',
             [$paymentUID, $orgUID, $partyUID]
         );
-        if (!$query || !$query->num_rows()) return null;
-        return $query->row();
     }
 
     /**
@@ -3800,13 +3825,523 @@ class Transactions_model extends MY_Model {
      * @return void
      */
     public function reduceOnAccountAmount(int $paymentUID, int $orgUID, float $newAmount, int $userUID): void {
-        $this->load->model('dbwrite_model');
-        $wdb = $this->dbwrite_model->getWriteDb();
-        $wdb->db_debug = FALSE;
-        $wdb->query(
+        $this->load->model('dbwrite_ext_model');
+        $this->dbwrite_ext_model->execWrite(
             'UPDATE `Transaction`.`PaymentsTbl` SET Amount = ?, UpdatedBy = ? WHERE PaymentUID = ? AND OrgUID = ?',
             [$newAmount, $userUID, $paymentUID, $orgUID]
         );
+    }
+
+    // ── Credit Note query helpers ──────────────────────────────────────────────
+
+    /**
+     * Returns a Credit Note row if its status is 'Applied'.
+     * @param int $orgUID
+     * @param int $cnUID
+     * @returns object|null
+     */
+    public function getAppliedCreditNote(int $orgUID, int $cnUID): ?object {
+        try {
+            $query = $this->ReadDb->query(
+                'SELECT CreditNoteUID, CreditNoteNumber FROM Transaction.TransCreditNoteTbl
+                  WHERE CreditNoteUID = ? AND OrgUID = ? AND Status = ? AND IsDeleted = 0 AND IsCancelled = 0 LIMIT 1',
+                [$cnUID, $orgUID, 'Applied']
+            );
+            return $query ? $query->row() : null;
+        } catch (Exception $e) {
+            notifyError('Transactions_model::getAppliedCreditNote', $e);
+            return null;
+        }
+    }
+
+    /**
+     * Returns a Credit Note row if its status is 'Pending'.
+     * @param int $orgUID
+     * @param int $cnUID
+     * @returns object|null
+     */
+    public function getPendingCreditNote(int $orgUID, int $cnUID): ?object {
+        try {
+            $query = $this->ReadDb->query(
+                'SELECT CreditNoteUID, Amount FROM Transaction.TransCreditNoteTbl
+                  WHERE CreditNoteUID = ? AND OrgUID = ? AND Status = ? AND IsDeleted = 0 LIMIT 1',
+                [$cnUID, $orgUID, 'Pending']
+            );
+            return $query ? $query->row() : null;
+        } catch (Exception $e) {
+            notifyError('Transactions_model::getPendingCreditNote', $e);
+            return null;
+        }
+    }
+
+    /**
+     * Returns a Credit Note row if it is already Applied to the given transaction (idempotency check).
+     * @param int $orgUID
+     * @param int $cnUID
+     * @param int $transUID
+     * @returns object|null
+     */
+    public function getCNAlreadyAppliedToTrans(int $orgUID, int $cnUID, int $transUID): ?object {
+        try {
+            $query = $this->ReadDb->query(
+                'SELECT CreditNoteUID FROM Transaction.TransCreditNoteTbl
+                  WHERE CreditNoteUID = ? AND OrgUID = ? AND AppliedTransUID = ? AND Status = ? AND IsDeleted = 0 LIMIT 1',
+                [$cnUID, $orgUID, $transUID, 'Applied']
+            );
+            return $query ? $query->row() : null;
+        } catch (Exception $e) {
+            notifyError('Transactions_model::getCNAlreadyAppliedToTrans', $e);
+            return null;
+        }
+    }
+
+    /**
+     * Returns true if an on-account payment has been applied to the transaction.
+     * @param int $orgUID
+     * @param int $transUID
+     * @returns bool
+     */
+    public function hasOnAccountPaymentApplied(int $orgUID, int $transUID): bool {
+        try {
+            $query = $this->ReadDb->query(
+                'SELECT PaymentUID FROM Transaction.PaymentsTbl
+                  WHERE TransUID = ? AND OrgUID = ? AND OnAccountSourcePaymentUID > 0
+                    AND IsDeleted = 0 AND IsCancelled = 0 LIMIT 1',
+                [$transUID, $orgUID]
+            );
+            return $query && $query->num_rows() > 0;
+        } catch (Exception $e) {
+            notifyError('Transactions_model::hasOnAccountPaymentApplied', $e);
+            return false;
+        }
+    }
+
+    /**
+     * Returns true if a Credit Note payment has been applied to the transaction.
+     * @param int $orgUID
+     * @param int $transUID
+     * @returns bool
+     */
+    public function hasCreditNotePaymentApplied(int $orgUID, int $transUID): bool {
+        try {
+            $query = $this->ReadDb->query(
+                'SELECT PaymentUID FROM Transaction.PaymentsTbl
+                  WHERE TransUID = ? AND SourceType = ? AND IsDeleted = 0 AND IsCancelled = 0 LIMIT 1',
+                [$transUID, 'CreditNote']
+            );
+            return $query && $query->num_rows() > 0;
+        } catch (Exception $e) {
+            notifyError('Transactions_model::hasCreditNotePaymentApplied', $e);
+            return false;
+        }
+    }
+
+    /**
+     * Returns true if a sales return exists against the given invoice transaction.
+     * @param int $orgUID
+     * @param int $transUID
+     * @returns bool
+     */
+    public function hasSalesReturnAgainstTrans(int $orgUID, int $transUID): bool {
+        try {
+            $query = $this->ReadDb->query(
+                'SELECT RP.TransProdUID FROM Transaction.TransProductsTbl RP
+                 INNER JOIN Transaction.TransactionsTbl RTP ON RTP.TransUID = RP.TransUID
+                 WHERE RP.SourceTransProdUID IN (
+                     SELECT TransProdUID FROM Transaction.TransProductsTbl
+                      WHERE TransUID = ? AND IsDeleted = 0 AND IsActive = 1
+                 )
+                 AND RTP.ModuleUID = 106 AND RTP.OrgUID = ?
+                 AND RTP.IsDeleted = 0 AND RTP.IsCancelled = 0
+                 AND RP.IsDeleted = 0 AND RP.IsActive = 1
+                 LIMIT 1',
+                [$transUID, $orgUID]
+            );
+            return $query && $query->num_rows() > 0;
+        } catch (Exception $e) {
+            notifyError('Transactions_model::hasSalesReturnAgainstTrans', $e);
+            return false;
+        }
+    }
+
+    /**
+     * Returns the advance payment row applied TO this transaction (Guard A — excess applied here).
+     * @param int $orgUID
+     * @param int $transUID
+     * @returns object|null
+     */
+    public function hasExcessAppliedToTrans(int $orgUID, int $transUID): ?object {
+        try {
+            $query = $this->ReadDb->query(
+                'SELECT p.PaymentUID, src.TransUID AS SourceTransUID
+                   FROM Transaction.PaymentsTbl p
+                   LEFT JOIN Transaction.PaymentsTbl src ON src.PaymentUID = p.ExcessSourcePaymentUID
+                  WHERE p.TransUID = ? AND p.OrgUID = ? AND p.IsExcessApplied = 1
+                    AND p.IsDeleted = 0 AND p.IsCancelled = 0
+                  LIMIT 1',
+                [$transUID, $orgUID]
+            );
+            return $query ? $query->row() : null;
+        } catch (Exception $e) {
+            notifyError('Transactions_model::hasExcessAppliedToTrans', $e);
+            return null;
+        }
+    }
+
+    /**
+     * Returns the advance payment row FROM this transaction applied elsewhere (Guard B).
+     * @param int $orgUID
+     * @param int $transUID
+     * @returns object|null
+     */
+    public function hasExcessFromTrans(int $orgUID, int $transUID): ?object {
+        try {
+            $query = $this->ReadDb->query(
+                'SELECT linked.TransUID AS LinkedTransUID
+                   FROM Transaction.PaymentsTbl src
+                   INNER JOIN Transaction.PaymentsTbl linked
+                           ON linked.ExcessSourcePaymentUID = src.PaymentUID
+                  WHERE src.TransUID = ? AND src.OrgUID = ?
+                    AND src.IsDeleted = 0 AND src.IsCancelled = 0
+                    AND linked.IsDeleted = 0 AND linked.IsCancelled = 0
+                  LIMIT 1',
+                [$transUID, $orgUID]
+            );
+            return $query ? $query->row() : null;
+        } catch (Exception $e) {
+            notifyError('Transactions_model::hasExcessFromTrans', $e);
+            return null;
+        }
+    }
+
+    /**
+     * Returns a single row from TransDetailTbl for a transaction.
+     * @param int $transUID
+     * @returns object|null
+     */
+    public function getTransDetailRow(int $transUID): ?object {
+        try {
+            $query = $this->ReadDb->query(
+                'SELECT * FROM Transaction.TransDetailTbl WHERE TransUID = ? LIMIT 1',
+                [$transUID]
+            );
+            return $query ? $query->row() : null;
+        } catch (Exception $e) {
+            notifyError('Transactions_model::getTransDetailRow', $e);
+            return null;
+        }
+    }
+
+    /**
+     * Returns a Credit Note row by its UID. Pass $excludeCancelled = true to also filter IsCancelled = 0.
+     * @param int  $orgUID
+     * @param int  $cnUID
+     * @param bool $excludeCancelled
+     * @returns object|null
+     */
+    public function getCreditNoteByUID(int $orgUID, int $cnUID, bool $excludeCancelled = false): ?object {
+        try {
+            $where = ['CreditNoteUID' => $cnUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0];
+            if ($excludeCancelled) $where['IsCancelled'] = 0;
+            $this->ReadDb->from('Transaction.TransCreditNoteTbl');
+            $this->ReadDb->where($where);
+            $query = $this->ReadDb->get();
+            return $query ? $query->row() : null;
+        } catch (Exception $e) {
+            notifyError('Transactions_model::getCreditNoteByUID', $e);
+            return null;
+        }
+    }
+
+    /**
+     * Returns paginated Credit Notes with TotalCount and Rows.
+     * @param int    $orgUID
+     * @param int    $limit
+     * @param int    $offset
+     * @param string $status  empty string means no status filter
+     * @param string $search
+     * @returns object  (Error, TotalCount, Rows)
+     */
+    public function getCreditNotesList(int $orgUID, int $limit, int $offset, string $status = '', string $search = ''): object {
+        $result             = new stdClass();
+        $result->Error      = false;
+        $result->TotalCount = 0;
+        $result->Rows       = [];
+        try {
+            $baseWhere = ['CN.OrgUID' => $orgUID, 'CN.IsDeleted' => 0, 'CN.IsCancelled' => 0];
+            if ($status !== '' && $status !== 'All') $baseWhere['CN.Status'] = $status;
+
+            $this->ReadDb->select('COUNT(*) AS total');
+            $this->ReadDb->from('Transaction.TransCreditNoteTbl CN');
+            $this->ReadDb->join('Customers.CustomerTbl C', 'C.CustomerUID = CN.PartyUID', 'left');
+            $this->ReadDb->where($baseWhere);
+            if ($search !== '') {
+                $this->ReadDb->group_start();
+                $this->ReadDb->like('CN.CreditNoteNumber', $search);
+                $this->ReadDb->or_like('C.Name', $search);
+                $this->ReadDb->or_like('CN.SourceTransNumber', $search);
+                $this->ReadDb->group_end();
+            }
+            $countQ             = $this->ReadDb->get();
+            $result->TotalCount = $countQ ? (int)($countQ->row()->total ?? 0) : 0;
+
+            $this->ReadDb->select([
+                'CN.CreditNoteUID', 'CN.CreditNoteNumber', 'CN.CreditNoteToken',
+                'CN.CreditNoteType', 'CN.SourceTransUID', 'CN.SourceTransNumber',
+                'CN.SourceModuleUID', 'CN.Amount', 'CN.Status', 'CN.Notes', 'CN.CreatedOn',
+                'C.CustomerUID', 'C.Name AS CustomerName', 'C.MobileNumber AS MobileNo',
+                'C.Area AS CustomerArea', 'C.Image AS CustomerImage',
+                'T.TransDate AS SourceTransDate', 'T.TransToken AS SourceTransToken',
+                "CONCAT(U.FirstName, ' ', U.LastName) AS CreatorName",
+            ]);
+            $this->ReadDb->from('Transaction.TransCreditNoteTbl CN');
+            $this->ReadDb->join('Customers.CustomerTbl C',       'C.CustomerUID = CN.PartyUID',                        'left');
+            $this->ReadDb->join('Transaction.TransactionsTbl T', 'T.TransUID = CN.SourceTransUID AND T.IsDeleted = 0', 'left');
+            $this->ReadDb->join('Users.UserTbl U',               'U.UserUID = CN.CreatedBy',                          'left');
+            $this->ReadDb->where($baseWhere);
+            if ($search !== '') {
+                $this->ReadDb->group_start();
+                $this->ReadDb->like('CN.CreditNoteNumber', $search);
+                $this->ReadDb->or_like('C.Name', $search);
+                $this->ReadDb->or_like('CN.SourceTransNumber', $search);
+                $this->ReadDb->group_end();
+            }
+            $this->ReadDb->order_by('CN.CreatedOn', 'DESC');
+            $this->ReadDb->limit($limit, $offset);
+            $dataQ        = $this->ReadDb->get();
+            $result->Rows = $dataQ ? $dataQ->result() : [];
+        } catch (Exception $e) {
+            notifyError('Transactions_model::getCreditNotesList', $e);
+            $result->Error = true;
+        }
+        return $result;
+    }
+
+    /**
+     * Returns true if the sales return has an Applied Credit Note (blocks SR delete/cancel).
+     * @param int $transUID  the SR's TransUID
+     * @returns bool
+     */
+    public function hasCNAppliedForSR(int $transUID): bool {
+        try {
+            $this->ReadDb->from('Transaction.TransCreditNoteTbl');
+            $this->ReadDb->where([
+                'SourceTransUID'  => $transUID,
+                'SourceModuleUID' => 106,
+                'IsDeleted'       => 0,
+                'IsCancelled'     => 0,
+                'Status'          => 'Applied',
+            ]);
+            return $this->ReadDb->get()->num_rows() > 0;
+        } catch (Exception $e) {
+            notifyError('Transactions_model::hasCNAppliedForSR', $e);
+            return false;
+        }
+    }
+
+    /**
+     * Returns a Pending Credit Note row linked to a sales return.
+     * @param int $transUID
+     * @returns object|null
+     */
+    public function getPendingCNForSR(int $transUID): ?object {
+        try {
+            $this->ReadDb->from('Transaction.TransCreditNoteTbl');
+            $this->ReadDb->where([
+                'SourceTransUID'  => $transUID,
+                'SourceModuleUID' => 106,
+                'Status'          => 'Pending',
+                'IsCancelled'     => 0,
+                'IsDeleted'       => 0,
+            ]);
+            $query = $this->ReadDb->get();
+            return $query ? $query->row() : null;
+        } catch (Exception $e) {
+            notifyError('Transactions_model::getPendingCNForSR', $e);
+            return null;
+        }
+    }
+
+    /**
+     * Returns distinct source invoice UIDs still active on a sales return (for conversion sync).
+     * @param int $activeTransUID
+     * @returns array
+     */
+    public function getActiveSourceInvoiceUIDs(int $activeTransUID): array {
+        try {
+            $query = $this->ReadDb->query(
+                'SELECT DISTINCT src.TransUID
+                   FROM Transaction.TransProductsTbl sr
+                   INNER JOIN Transaction.TransProductsTbl src ON src.TransProdUID = sr.SourceTransProdUID
+                  WHERE sr.TransUID = ? AND sr.IsDeleted = 0 AND sr.IsActive = 1
+                    AND src.IsDeleted = 0',
+                [$activeTransUID]
+            );
+            return $query ? $query->result_array() : [];
+        } catch (Exception $e) {
+            notifyError('Transactions_model::getActiveSourceInvoiceUIDs', $e);
+            return [];
+        }
+    }
+
+    /**
+     * Returns an existing TransConversionTbl row for a source-target pair.
+     * @param int $sourceUID
+     * @param int $targetUID
+     * @returns object|null
+     */
+    public function getConversionRecord(int $sourceUID, int $targetUID): ?object {
+        try {
+            $query = $this->ReadDb->query(
+                'SELECT ConversionUID, IsDeleted FROM Transaction.TransConversionTbl
+                  WHERE SourceTransUID = ? AND TargetTransUID = ? LIMIT 1',
+                [$sourceUID, $targetUID]
+            );
+            return $query ? $query->row() : null;
+        } catch (Exception $e) {
+            notifyError('Transactions_model::getConversionRecord', $e);
+            return null;
+        }
+    }
+
+    /**
+     * Returns a Credit Note row whose applied payment is being deleted (to revert it to Pending).
+     * @param int $orgUID
+     * @param int $paymentUID
+     * @returns object|null
+     */
+    public function getCNByAppliedPayment(int $orgUID, int $paymentUID): ?object {
+        try {
+            $query = $this->ReadDb->query(
+                'SELECT CreditNoteUID FROM Transaction.TransCreditNoteTbl
+                  WHERE AppliedPaymentUID = ? AND OrgUID = ? AND Status = ? AND IsDeleted = 0 LIMIT 1',
+                [$paymentUID, $orgUID, 'Applied']
+            );
+            return $query ? $query->row() : null;
+        } catch (Exception $e) {
+            notifyError('Transactions_model::getCNByAppliedPayment', $e);
+            return null;
+        }
+    }
+
+    // ── Debit Note query helpers ───────────────────────────────────────────────
+
+    /**
+     * Returns true if a Debit Note credit has been applied to the purchase transaction.
+     * @param int $orgUID
+     * @param int $transUID
+     * @returns bool
+     */
+    public function hasDebitNoteApplied(int $orgUID, int $transUID): bool {
+        try {
+            $query = $this->ReadDb->query(
+                'SELECT PaymentUID FROM Transaction.PaymentsTbl
+                  WHERE TransUID = ? AND OrgUID = ? AND PaymentTypeUID = 0
+                    AND PartyType = ? AND IsDeleted = 0 AND IsCancelled = 0 LIMIT 1',
+                [$transUID, $orgUID, 'S']
+            );
+            return $query && $query->num_rows() > 0;
+        } catch (Exception $e) {
+            notifyError('Transactions_model::hasDebitNoteApplied', $e);
+            return false;
+        }
+    }
+
+    /**
+     * Returns a Debit Note row by its UID. Pass $excludeCancelled = true to also filter IsCancelled = 0.
+     * @param int  $orgUID
+     * @param int  $dnUID
+     * @param bool $excludeCancelled
+     * @returns object|null
+     */
+    public function getDebitNoteByUID(int $orgUID, int $dnUID, bool $excludeCancelled = false): ?object {
+        try {
+            $where = ['DebitNoteUID' => $dnUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0];
+            if ($excludeCancelled) $where['IsCancelled'] = 0;
+            $this->ReadDb->from('Transaction.TransDebitNoteTbl');
+            $this->ReadDb->where($where);
+            $query = $this->ReadDb->get();
+            return $query ? $query->row() : null;
+        } catch (Exception $e) {
+            notifyError('Transactions_model::getDebitNoteByUID', $e);
+            return null;
+        }
+    }
+
+    /**
+     * Returns paginated Debit Notes with TotalCount and Rows.
+     * @param int    $orgUID
+     * @param int    $limit
+     * @param int    $offset
+     * @param string $status  empty string means no status filter
+     * @param string $search
+     * @returns object  (Error, TotalCount, Rows)
+     */
+    public function getDebitNotesList(int $orgUID, int $limit, int $offset, string $status = '', string $search = ''): object {
+        $result             = new stdClass();
+        $result->Error      = false;
+        $result->TotalCount = 0;
+        $result->Rows       = [];
+        try {
+            $baseWhere = ['DN.OrgUID' => $orgUID, 'DN.PartyType' => 'S', 'DN.IsDeleted' => 0, 'DN.IsCancelled' => 0];
+            if ($status !== '' && $status !== 'All') $baseWhere['DN.Status'] = $status;
+
+            $this->ReadDb->select('COUNT(*) AS total');
+            $this->ReadDb->from('Transaction.TransDebitNoteTbl DN');
+            $this->ReadDb->join('Vendors.VendorTbl V', 'V.VendorUID = DN.PartyUID', 'left');
+            $this->ReadDb->where($baseWhere);
+            if ($search !== '') {
+                $this->ReadDb->group_start();
+                $this->ReadDb->like('DN.SourceTransNumber', $search);
+                $this->ReadDb->or_like('V.Name', $search);
+                $this->ReadDb->group_end();
+            }
+            $result->TotalCount = (int)($this->ReadDb->get()->row()->total ?? 0);
+
+            $this->ReadDb->select([
+                'DN.DebitNoteUID', 'DN.SourceTransUID', 'DN.SourceTransNumber',
+                'DN.SourceModuleUID', 'DN.Amount', 'DN.Status', 'DN.Notes', 'DN.CreatedOn',
+                'V.VendorUID', 'V.Name AS VendorName', 'V.Image AS VendorImage',
+                "CONCAT(U.FirstName, ' ', U.LastName) AS CreatorName",
+            ]);
+            $this->ReadDb->from('Transaction.TransDebitNoteTbl DN');
+            $this->ReadDb->join('Vendors.VendorTbl V', 'V.VendorUID = DN.PartyUID', 'left');
+            $this->ReadDb->join('Users.UserTbl U',     'U.UserUID = DN.CreatedBy',  'left');
+            $this->ReadDb->where($baseWhere);
+            if ($search !== '') {
+                $this->ReadDb->group_start();
+                $this->ReadDb->like('DN.SourceTransNumber', $search);
+                $this->ReadDb->or_like('V.Name', $search);
+                $this->ReadDb->group_end();
+            }
+            $this->ReadDb->order_by('DN.DebitNoteUID', 'DESC');
+            $this->ReadDb->limit($limit, $offset);
+            $dataQ        = $this->ReadDb->get();
+            $result->Rows = $dataQ ? $dataQ->result() : [];
+        } catch (Exception $e) {
+            notifyError('Transactions_model::getDebitNotesList', $e);
+            $result->Error = true;
+        }
+        return $result;
+    }
+
+    /**
+     * Returns a bank account row for the given org.
+     * @param int $bankAccountUID
+     * @param int $orgUID
+     * @returns object|null
+     */
+    public function getBankAccountByUID(int $bankAccountUID, int $orgUID): ?object {
+        try {
+            $this->ReadDb->select('BankAccountUID, AccountName, BankName, AccountNumber, IFSC, BranchName, UPIId, UPINumber, IsDefault');
+            $this->ReadDb->from('Organisation.OrgBankAccountsTbl');
+            $this->ReadDb->where(['BankAccountUID' => $bankAccountUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
+            $query = $this->ReadDb->get();
+            return $query ? $query->row() : null;
+        } catch (Exception $e) {
+            notifyError('Transactions_model::getBankAccountByUID', $e);
+            return null;
+        }
     }
 
 }

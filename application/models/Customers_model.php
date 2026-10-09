@@ -32,35 +32,37 @@ class Customers_model extends CI_Model {
         }
     }
 
-    public function getCustomers(array $FilterArray): array {
+    public function getCustomers(array $FilterArray, string $langCode = 'en'): array {
 
         try {
 
+            $useLang = $langCode !== 'en';
+            $lc      = $this->ReadDb->escape_str($langCode);
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select([
                 'Customers.CustomerUID AS CustomerUID',
                 'Customers.OrgUID AS OrgUID',
                 'Customers.SalutationUID AS SalutationUID',
-                'Customers.Name AS Name',
-                'Customers.Area AS Area',
+                $useLang ? 'COALESCE(CL.Name, Customers.Name) AS Name' : 'Customers.Name AS Name',
+                $useLang ? 'COALESCE(CL.Area, Customers.Area) AS Area' : 'Customers.Area AS Area',
                 'Customers.CountryISO2 as CountryISO2',
                 'Customers.CountryCode as CountryCode',
                 'Customers.MobileNumber as MobileNumber',
                 'Customers.EmailAddress as EmailAddress',
                 'Customers.GSTIN as GSTIN',
-                'Customers.CompanyName as CompanyName',
+                $useLang ? 'COALESCE(CL.CompanyName, Customers.CompanyName) AS CompanyName' : 'Customers.CompanyName as CompanyName',
                 'Customers.WorkPhone as WorkPhone',
                 'Customers.LandlineNumber as LandlineNumber',
                 'Customers.DebitCreditType as DebitCreditType',
                 'Customers.DebitCreditAmount as DebitCreditAmount',
                 'Customers.Image as Image',
                 'Customers.PANNumber as PANNumber',
-                'Customers.ContactPerson as ContactPerson',
+                $useLang ? 'COALESCE(CL.ContactPerson, Customers.ContactPerson) AS ContactPerson' : 'Customers.ContactPerson as ContactPerson',
                 'Customers.DateOfBirth as DateOfBirth',
                 'Customers.DiscountPercent as DiscountPercent',
                 'Customers.CreditPeriod as CreditPeriod',
                 'Customers.CreditLimit as CreditLimit',
-                'Customers.Notes as Notes',
+                $useLang ? 'COALESCE(CL.Notes, Customers.Notes) AS Notes' : 'Customers.Notes as Notes',
                 'Customers.Tags as Tags',
                 'Customers.CCEmails as CCEmails',
                 'Customers.AllowPortalAccess as AllowPortalAccess',
@@ -85,6 +87,13 @@ class Customers_model extends CI_Model {
                 'CGM.CustomerUID = Customers.CustomerUID AND CGM.OrgUID = Customers.OrgUID AND CGM.IsDeleted = 0',
                 'left'
             );
+            if ($useLang) {
+                $this->ReadDb->join(
+                    "Customers.CustomersTbl_Lang AS CL",
+                    "CL.CustomerUID = Customers.CustomerUID AND CL.LangCode = '{$lc}'",
+                    'left'
+                );
+            }
             $this->ReadDb->where(['Customers.IsDeleted' => 0, 'Customers.IsActive' => 1]);
             if(sizeof($FilterArray) > 0) {
                 $this->ReadDb->where($FilterArray);
@@ -104,25 +113,34 @@ class Customers_model extends CI_Model {
 
     }
 
-    public function getCustomerAddress(array $FilterArray): array {
+    public function getCustomerAddress(array $FilterArray, string $langCode = 'en'): array {
 
         try {
 
+            $useLang = $langCode !== 'en';
+            $lc      = $this->ReadDb->escape_str($langCode);
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select([
                 'CustAddress.CustAddressUID AS CustAddressUID',
                 'CustAddress.OrgUID AS OrgUID',
                 'CustAddress.CustomerUID AS CustomerUID',
                 'CustAddress.AddressType as AddressType',
-                'CustAddress.Line1 as Line1',
-                'CustAddress.Line2 as Line2',
+                $useLang ? 'COALESCE(CAL.Line1, CustAddress.Line1) AS Line1' : 'CustAddress.Line1 as Line1',
+                $useLang ? 'COALESCE(CAL.Line2, CustAddress.Line2) AS Line2' : 'CustAddress.Line2 as Line2',
                 'CustAddress.Pincode as Pincode',
                 'CustAddress.City as City',
-                'CustAddress.CityText as CityText',
+                $useLang ? 'COALESCE(CAL.CityText, CustAddress.CityText) AS CityText' : 'CustAddress.CityText as CityText',
                 'CustAddress.State as State',
-                'CustAddress.StateText as StateText',
+                $useLang ? 'COALESCE(CAL.StateText, CustAddress.StateText) AS StateText' : 'CustAddress.StateText as StateText',
             ]);
             $this->ReadDb->from('Customers.CustAddressTbl as CustAddress');
+            if ($useLang) {
+                $this->ReadDb->join(
+                    "Customers.CustAddressTbl_Lang AS CAL",
+                    "CAL.CustAddressUID = CustAddress.CustAddressUID AND CAL.LangCode = '{$lc}'",
+                    'left'
+                );
+            }
             $this->ReadDb->where(['CustAddress.IsDeleted' => 0, 'CustAddress.IsActive' => 1]);
             if(sizeof($FilterArray) > 0) {
                 $this->ReadDb->where($FilterArray);
@@ -132,7 +150,7 @@ class Customers_model extends CI_Model {
                 $error = $this->ReadDb->error();
                 throw new Exception($error['message'] ?? 'Database error occurred');
             }
-            
+
             return $query->result();
 
         } catch (Exception $e) {
@@ -177,17 +195,22 @@ class Customers_model extends CI_Model {
 
     }
 
-    public function getCustomersDetails(string $Term, array $WhereCondition = []): array {
-        
+    public function getCustomersDetails(string $Term, array $WhereCondition = [], string $langCode = 'en'): array {
+
         try {
 
+            $useLang = $langCode !== 'en';
+            $lc      = $this->ReadDb->escape_str($langCode);
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select([
                 'Customers.CustomerUID AS CustomerUID',
-                'Customers.Name AS Name',
-                'Customers.Area AS Area',
+                $useLang ? 'COALESCE(CL.Name, Customers.Name) AS Name' : 'Customers.Name AS Name',
+                $useLang ? 'COALESCE(CL.Area, Customers.Area) AS Area' : 'Customers.Area AS Area',
             ]);
             $this->ReadDb->from('Customers.CustomerTbl as Customers');
+            if ($useLang) {
+                $this->ReadDb->join("Customers.CustomersTbl_Lang AS CL", "CL.CustomerUID = Customers.CustomerUID AND CL.LangCode = '{$lc}'", 'left');
+            }
             if($Term) {
                 $this->ReadDb->group_start();
                 $this->ReadDb->or_like('Customers.Name', $Term, 'both');
@@ -349,8 +372,12 @@ class Customers_model extends CI_Model {
             $totalCount = (int) $cntQuery->row()->cnt;
 
             // Data query
-            $useLang   = (!empty($filter['LangCode']) && $filter['LangCode'] !== 'en');
-            $nameField = $useLang ? 'COALESCE(CL.Name, Customers.Name) AS Name' : 'Customers.Name AS Name';
+            $useLang       = (!empty($filter['LangCode']) && $filter['LangCode'] !== 'en');
+            $nameField        = $useLang ? 'COALESCE(CL.Name, Customers.Name) AS Name'                           : 'Customers.Name AS Name';
+            $contactField     = $useLang ? 'COALESCE(CL.ContactPerson, Customers.ContactPerson) AS ContactPerson' : 'Customers.ContactPerson AS ContactPerson';
+            $notesField       = $useLang ? 'COALESCE(CL.Notes, Customers.Notes) AS Notes'                        : 'Customers.Notes AS Notes';
+            $areaField        = $useLang ? 'COALESCE(CL.Area, Customers.Area) AS Area'                           : 'Customers.Area AS Area';
+            $companyNameField = $useLang ? 'COALESCE(CL.CompanyName, Customers.CompanyName) AS CompanyName'       : 'Customers.CompanyName AS CompanyName';
             $this->ReadDb->select([
                 'Customers.CustomerUID AS TablePrimaryUID',
                 'Customers.CustomerUID AS CustomerUID',
@@ -358,24 +385,24 @@ class Customers_model extends CI_Model {
                 'Customers.SalutationUID AS SalutationUID',
                 'Sal.SalutationName AS SalutationName',
                 $nameField,
-                'Customers.Area AS Area',
+                $areaField,
                 'Customers.CountryISO2 AS CountryISO2',
                 'Customers.CountryCode AS CountryCode',
                 'Customers.MobileNumber AS MobileNumber',
                 'Customers.EmailAddress AS EmailAddress',
                 'Customers.GSTIN AS GSTIN',
                 'Customers.GSTINValidated AS GSTINValidated',
-                'Customers.CompanyName AS CompanyName',
+                $companyNameField,
                 'Customers.DebitCreditType AS DebitCreditType',
                 'Customers.DebitCreditAmount AS DebitCreditAmount',
                 'Customers.Image AS Image',
                 'Customers.PANNumber AS PANNumber',
-                'Customers.ContactPerson AS ContactPerson',
+                $contactField,
                 'Customers.DateOfBirth AS DateOfBirth',
                 'Customers.DiscountPercent AS DiscountPercent',
                 'Customers.CreditPeriod AS CreditPeriod',
                 'Customers.CreditLimit AS CreditLimit',
-                'Customers.Notes AS Notes',
+                $notesField,
                 'Customers.Tags AS Tags',
                 'Customers.CCEmails AS CCEmails',
                 'Customers.CustomerTypeUID AS CustomerTypeUID',
@@ -386,10 +413,10 @@ class Customers_model extends CI_Model {
                 'IFNULL(COB.PendingBalance, 0.00) AS ClosingBalance',
                 "IFNULL(COB.PendingBalType, 'Debit') AS ClosingBalanceType",
                 'CT.TypeName AS CustomerTypeName',
-                'ShipAddr.Line1 AS ShipLine1',
-                'ShipAddr.Line2 AS ShipLine2',
-                'ShipAddr.CityText AS ShipCity',
-                'ShipAddr.StateText AS ShipState',
+                $useLang ? 'COALESCE(CAL.Line1,     ShipAddr.Line1)     AS ShipLine1'  : 'ShipAddr.Line1     AS ShipLine1',
+                $useLang ? 'COALESCE(CAL.Line2,     ShipAddr.Line2)     AS ShipLine2'  : 'ShipAddr.Line2     AS ShipLine2',
+                $useLang ? 'COALESCE(CAL.CityText,  ShipAddr.CityText)  AS ShipCity'   : 'ShipAddr.CityText  AS ShipCity',
+                $useLang ? 'COALESCE(CAL.StateText, ShipAddr.StateText) AS ShipState'  : 'ShipAddr.StateText AS ShipState',
                 'ShipAddr.Pincode AS ShipPincode',
             ]);
             $this->ReadDb->from('Customers.CustomerTbl as Customers');
@@ -419,6 +446,11 @@ class Customers_model extends CI_Model {
                 $this->ReadDb->join(
                     "Customers.CustomersTbl_Lang AS CL",
                     "CL.CustomerUID = Customers.CustomerUID AND CL.LangCode = {$lc}",
+                    'left'
+                );
+                $this->ReadDb->join(
+                    "Customers.CustAddressTbl_Lang AS CAL",
+                    "CAL.CustAddressUID = ShipAddr.CustAddressUID AND CAL.LangCode = {$lc}",
                     'left'
                 );
             }
@@ -824,7 +856,8 @@ class Customers_model extends CI_Model {
     public function updateCustomerPendingBalance(int $orgUID, int $customerUID, float $pendingBalance, string $pendingBalType, int $userUID): void {
         try {
             // UPSERT: inserts if no row exists, updates if it does (handles "no change" case without duplicate key error)
-            $this->dbwrite_model->getWriteDb()->query(
+            $this->load->model('dbwrite_ext_model');
+            $this->dbwrite_ext_model->execWrite(
                 "INSERT INTO Customers.CustOpeningBalanceTbl
                     (OrgUID, CustomerUID, OpeningBalance, OpeningBalType, PendingBalance, PendingBalType, IsActive, IsDeleted, CreatedBy, UpdatedBy)
                  VALUES (?, ?, 0.00, 'Debit', ?, ?, 1, 0, ?, ?)
@@ -1025,9 +1058,10 @@ class Customers_model extends CI_Model {
                 'Corporate Group', 'Dealer Network', 'Franchise Group', 'Custom'];
     }
 
-    public function getGroupListPaginated(int $orgUID, int $limit, int $offset, array $filter = []): object {
+    public function getGroupListPaginated(int $orgUID, int $limit, int $offset, array $filter = [], string $langCode = 'en'): object {
         try {
             $this->ReadDb->db_debug = false;
+            $useLang = $langCode !== 'en';
 
             // ── Count (no joins needed; all filters are on CG) ──
             $this->ReadDb->select('COUNT(*) AS cnt', false);
@@ -1056,15 +1090,21 @@ class Customers_model extends CI_Model {
             $totalCount = (int)($countRow->cnt ?? 0);
 
             // ── Step 1: Paginated groups with member count + primary name (no COB join) ──
+            $groupNameField    = $useLang ? 'COALESCE(CGL.GroupName, CG.GroupName) AS GroupName' : 'CG.GroupName AS GroupName';
+            $contactPersonField = $useLang ? 'COALESCE(CGL.ContactPerson, CG.ContactPerson) AS ContactPerson' : 'CG.ContactPerson AS ContactPerson';
+            $lc = $this->ReadDb->escape_str($langCode);
             $this->ReadDb->select(
-                'CG.GroupUID, CG.GroupCode, CG.GroupName, CG.GroupType,
-                 CG.ContactPerson, CG.Mobile, CG.Email, CG.IsActive, CG.CreatedOn,
+                "CG.GroupUID, CG.GroupCode, {$groupNameField}, CG.GroupType,
+                 {$contactPersonField}, CG.Mobile, CG.Email, CG.IsActive, CG.CreatedOn,
                  COUNT(CGM.CustomerUID) AS MemberCount,
                  MAX(CASE WHEN CGM.IsGroupPrimary = 1 THEN C.Name ELSE NULL END) AS PrimaryName,
-                 0 AS TotalReceivable, 0 AS TotalPayable',
+                 0 AS TotalReceivable, 0 AS TotalPayable",
                 false
             );
             $this->ReadDb->from('Customers.CustomerGroupTbl CG');
+            if ($useLang) {
+                $this->ReadDb->join("Customers.CustomerGroupTbl_Lang AS CGL", "CGL.GroupUID = CG.GroupUID AND CGL.LangCode = '{$lc}'", 'left');
+            }
             $this->ReadDb->join('Customers.CustGroupMemberTbl CGM', 'CGM.GroupUID = CG.GroupUID AND CGM.OrgUID = CG.OrgUID AND CGM.IsDeleted = 0', 'left');
             $this->ReadDb->join('Customers.CustomerTbl C', 'C.CustomerUID = CGM.CustomerUID AND C.IsDeleted = 0', 'left');
             $this->ReadDb->where(['CG.OrgUID' => (int)$orgUID, 'CG.IsDeleted' => 0]);
@@ -1160,17 +1200,25 @@ class Customers_model extends CI_Model {
         }
     }
 
-    public function getGroupMembers(int $orgUID, int $groupUID): array {
+    public function getGroupMembers(int $orgUID, int $groupUID, string $langCode = 'en'): array {
         try {
+            $useLang = $langCode !== 'en';
+            $lc      = $this->ReadDb->escape_str($langCode);
             $this->ReadDb->db_debug = false;
             $this->ReadDb->select([
-                'C.CustomerUID', 'C.Name', 'C.Area', 'C.MobileNumber', 'CGM.IsGroupPrimary',
+                'C.CustomerUID',
+                $useLang ? 'COALESCE(CL.Name, C.Name) AS Name' : 'C.Name',
+                $useLang ? 'COALESCE(CL.Area, C.Area) AS Area' : 'C.Area',
+                'C.MobileNumber', 'CGM.IsGroupPrimary',
                 "IFNULL(COB.PendingBalance, 0)       AS Balance",
                 "IFNULL(COB.PendingBalType, 'Debit') AS BalanceType",
             ]);
             $this->ReadDb->from('Customers.CustomerTbl C');
             $this->ReadDb->join('Customers.CustGroupMemberTbl CGM', 'CGM.CustomerUID = C.CustomerUID AND CGM.OrgUID = C.OrgUID AND CGM.IsDeleted = 0', 'inner');
             $this->ReadDb->join('Customers.CustOpeningBalanceTbl COB', 'COB.CustomerUID = C.CustomerUID AND COB.OrgUID = C.OrgUID AND COB.IsDeleted = 0', 'left');
+            if ($useLang) {
+                $this->ReadDb->join("Customers.CustomersTbl_Lang CL", "CL.CustomerUID = C.CustomerUID AND CL.LangCode = '{$lc}'", 'left');
+            }
             $this->ReadDb->where(['C.OrgUID' => (int)$orgUID, 'CGM.GroupUID' => (int)$groupUID, 'C.IsDeleted' => 0]);
             $this->ReadDb->order_by('CGM.IsGroupPrimary', 'DESC');
             $this->ReadDb->order_by('C.Name', 'ASC');
@@ -1202,16 +1250,22 @@ class Customers_model extends CI_Model {
         }
     }
 
-    public function getGroupOutstanding(int $orgUID, int $groupUID): array {
+    public function getGroupOutstanding(int $orgUID, int $groupUID, string $langCode = 'en'): array {
         try {
+            $useLang   = $langCode !== 'en';
+            $lc        = $this->ReadDb->escape_str($langCode);
+            $nameField = $useLang ? 'COALESCE(CL.Name, C.Name) AS Name' : 'C.Name';
+            $areaField = $useLang ? 'COALESCE(CL.Area, C.Area) AS Area' : 'C.Area';
+            $langJoin  = $useLang ? "LEFT JOIN Customers.CustomersTbl_Lang CL ON CL.CustomerUID = C.CustomerUID AND CL.LangCode = '{$lc}'" : '';
             $this->ReadDb->db_debug = false;
             $query = $this->ReadDb->query(
-                "SELECT C.CustomerUID, C.Name, C.Area, C.MobileNumber, CGM.IsGroupPrimary,
+                "SELECT C.CustomerUID, {$nameField}, {$areaField}, C.MobileNumber, CGM.IsGroupPrimary,
                         IFNULL(COB.PendingBalance,0)       AS Balance,
                         IFNULL(COB.PendingBalType,'Debit') AS BalanceType
                  FROM Customers.CustomerTbl C
                  INNER JOIN Customers.CustGroupMemberTbl CGM ON CGM.CustomerUID=C.CustomerUID AND CGM.OrgUID=C.OrgUID AND CGM.IsDeleted=0
                  LEFT JOIN Customers.CustOpeningBalanceTbl COB ON COB.CustomerUID=C.CustomerUID AND COB.OrgUID=C.OrgUID AND COB.IsDeleted=0
+                 {$langJoin}
                  WHERE CGM.GroupUID=? AND C.OrgUID=? AND C.IsDeleted=0
                  ORDER BY CGM.IsGroupPrimary DESC, C.Name ASC",
                 [(int)$groupUID, (int)$orgUID]
@@ -1223,17 +1277,24 @@ class Customers_model extends CI_Model {
         }
     }
 
-    public function getCustomerGroupsForExport(int $orgUID, array $filter = []): array {
+    public function getCustomerGroupsForExport(int $orgUID, array $filter = [], string $langCode = 'en'): array {
         try {
+            $useLang      = $langCode !== 'en';
+            $lc           = $this->ReadDb->escape_str($langCode);
+            $groupNameCol = $useLang ? 'COALESCE(CGL.GroupName, CG.GroupName) AS GroupName' : 'CG.GroupName';
+            $contactCol   = $useLang ? 'COALESCE(CGL.ContactPerson, CG.ContactPerson) AS ContactPerson' : 'CG.ContactPerson';
             $this->ReadDb->db_debug = false;
             $this->ReadDb->select(
-                'CG.GroupUID, CG.GroupCode, CG.GroupName, CG.GroupType,
-                 CG.ContactPerson, CG.Mobile, CG.Email, CG.IsActive,
-                 COUNT(CGM.CustomerUID) AS MemberCount',
+                "CG.GroupUID, CG.GroupCode, {$groupNameCol}, CG.GroupType,
+                 {$contactCol}, CG.Mobile, CG.Email, CG.IsActive,
+                 COUNT(CGM.CustomerUID) AS MemberCount",
                 false
             );
             $this->ReadDb->from('Customers.CustomerGroupTbl CG');
             $this->ReadDb->join('Customers.CustGroupMemberTbl CGM', 'CGM.GroupUID = CG.GroupUID AND CGM.OrgUID = CG.OrgUID AND CGM.IsDeleted = 0', 'left');
+            if ($useLang) {
+                $this->ReadDb->join("Customers.CustomerGroupTbl_Lang CGL", "CGL.GroupUID = CG.GroupUID AND CGL.LangCode = '{$lc}'", 'left');
+            }
             $this->ReadDb->where(['CG.OrgUID' => $orgUID, 'CG.IsDeleted' => 0]);
             if (!empty($filter['SearchAllData'])) {
                 $s = $filter['SearchAllData'];
@@ -1290,13 +1351,23 @@ class Customers_model extends CI_Model {
         }
     }
 
-    public function getActiveGroupsForDropdown(int $orgUID): array {
+    public function getActiveGroupsForDropdown(int $orgUID, string $langCode = 'en'): array {
         try {
+            $useLang = $langCode !== 'en';
+            $lc      = $this->ReadDb->escape_str($langCode);
             $this->ReadDb->db_debug = false;
-            $this->ReadDb->select(['GroupUID', 'GroupName', 'GroupCode', 'GroupType']);
-            $this->ReadDb->from('Customers.CustomerGroupTbl');
-            $this->ReadDb->where(['OrgUID' => (int)$orgUID, 'IsActive' => 1, 'IsDeleted' => 0]);
-            $this->ReadDb->order_by('GroupName', 'ASC');
+            $this->ReadDb->select([
+                'cg.GroupUID',
+                $useLang ? 'COALESCE(cgl.GroupName, cg.GroupName) AS GroupName' : 'cg.GroupName',
+                'cg.GroupCode',
+                'cg.GroupType',
+            ]);
+            $this->ReadDb->from('Customers.CustomerGroupTbl cg');
+            if ($useLang) {
+                $this->ReadDb->join("Customers.CustomerGroupTbl_Lang cgl", "cgl.GroupUID = cg.GroupUID AND cgl.LangCode = '{$lc}'", 'left');
+            }
+            $this->ReadDb->where(['cg.OrgUID' => (int)$orgUID, 'cg.IsActive' => 1, 'cg.IsDeleted' => 0]);
+            $this->ReadDb->order_by('cg.GroupName', 'ASC');
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
@@ -1305,13 +1376,23 @@ class Customers_model extends CI_Model {
         }
     }
 
-    public function getActiveCustomerGroupsForDropdown(int $orgUID): array {
+    public function getActiveCustomerGroupsForDropdown(int $orgUID, string $langCode = 'en'): array {
         try {
+            $useLang = $langCode !== 'en';
+            $lc      = $this->ReadDb->escape_str($langCode);
             $this->ReadDb->db_debug = false;
-            $this->ReadDb->select(['GroupUID', 'GroupName', 'GroupCode', 'GroupType']);
-            $this->ReadDb->from('Customers.CustomerGroupTbl');
-            $this->ReadDb->where(['OrgUID' => $orgUID, 'IsActive' => 1, 'IsDeleted' => 0]);
-            $this->ReadDb->order_by('GroupName', 'ASC');
+            $this->ReadDb->select([
+                'cg.GroupUID',
+                $useLang ? 'COALESCE(cgl.GroupName, cg.GroupName) AS GroupName' : 'cg.GroupName',
+                'cg.GroupCode',
+                'cg.GroupType',
+            ]);
+            $this->ReadDb->from('Customers.CustomerGroupTbl cg');
+            if ($useLang) {
+                $this->ReadDb->join("Customers.CustomerGroupTbl_Lang cgl", "cgl.GroupUID = cg.GroupUID AND cgl.LangCode = '{$lc}'", 'left');
+            }
+            $this->ReadDb->where(['cg.OrgUID' => (int)$orgUID, 'cg.IsActive' => 1, 'cg.IsDeleted' => 0]);
+            $this->ReadDb->order_by('cg.GroupName', 'ASC');
             $q = $this->ReadDb->get();
             return $q ? $q->result() : [];
         } catch (Exception $e) {
@@ -1336,10 +1417,10 @@ class Customers_model extends CI_Model {
 
     public function assignGroupMembers(int $orgUID, int $groupUID, array $memberUIDs, int $primaryUID, int $userUID): void {
         if (empty($memberUIDs)) return;
-        $db = $this->dbwrite_model->getWriteDb();
+        $this->load->model('dbwrite_ext_model');
         foreach ($memberUIDs as $custUID) {
             $isPrimary = ((int)$custUID === (int)$primaryUID) ? 1 : 0;
-            $db->query(
+            $this->dbwrite_ext_model->execWrite(
                 "INSERT INTO Customers.CustGroupMemberTbl
                     (OrgUID, CustomerUID, GroupUID, IsGroupPrimary, IsDeleted, CreatedBy, UpdatedBy)
                  VALUES (?, ?, ?, ?, 0, ?, ?)
@@ -1352,24 +1433,31 @@ class Customers_model extends CI_Model {
     }
 
     public function syncGroupMembers(int $orgUID, int $groupUID, array $newMemberUIDs, int $primaryUID, int $userUID): void {
-        $db = $this->dbwrite_model->getWriteDb();
+        $this->load->model('dbwrite_ext_model');
         // Soft-delete members removed from the group
-        $db->where('OrgUID', (int)$orgUID);
-        $db->where('GroupUID', (int)$groupUID);
-        $db->where('IsDeleted', 0);
         if (!empty($newMemberUIDs)) {
-            $db->where_not_in('CustomerUID', array_map('intval', $newMemberUIDs));
-        }
-        $db->update('Customers.CustGroupMemberTbl', ['IsDeleted' => 1, 'UpdatedBy' => (int)$userUID]);
-        if (!empty($newMemberUIDs)) {
+            $placeholders = implode(', ', array_fill(0, count($newMemberUIDs), '?'));
+            $bindings     = array_merge([(int)$userUID, (int)$orgUID, (int)$groupUID], array_map('intval', $newMemberUIDs));
+            $this->dbwrite_ext_model->execWrite(
+                "UPDATE Customers.CustGroupMemberTbl SET IsDeleted = 1, UpdatedBy = ?
+                 WHERE OrgUID = ? AND GroupUID = ? AND IsDeleted = 0 AND CustomerUID NOT IN ({$placeholders})",
+                $bindings
+            );
             $this->assignGroupMembers($orgUID, $groupUID, $newMemberUIDs, $primaryUID, $userUID);
+        } else {
+            $this->dbwrite_ext_model->execWrite(
+                "UPDATE Customers.CustGroupMemberTbl SET IsDeleted = 1, UpdatedBy = ? WHERE OrgUID = ? AND GroupUID = ? AND IsDeleted = 0",
+                [(int)$userUID, (int)$orgUID, (int)$groupUID]
+            );
         }
     }
 
     public function unlinkAllGroupMembers(int $orgUID, int $groupUID, int $userUID): void {
-        $db = $this->dbwrite_model->getWriteDb();
-        $db->where(['OrgUID' => (int)$orgUID, 'GroupUID' => (int)$groupUID, 'IsDeleted' => 0]);
-        $db->update('Customers.CustGroupMemberTbl', ['IsDeleted' => 1, 'UpdatedBy' => (int)$userUID]);
+        $this->dbwrite_model->updateData(
+            'Customers', 'CustGroupMemberTbl',
+            ['IsDeleted' => 1, 'UpdatedBy' => (int)$userUID],
+            ['OrgUID' => (int)$orgUID, 'GroupUID' => (int)$groupUID, 'IsDeleted' => 0]
+        );
     }
 
     public function getCustomerGroupMembership(int $orgUID, int $customerUID): ?object {
@@ -1387,8 +1475,8 @@ class Customers_model extends CI_Model {
     }
 
     public function saveCustomerGroupMembership(int $orgUID, int $customerUID, int $groupUID, int $isGroupPrimary, int $userUID): void {
-        $db = $this->dbwrite_model->getWriteDb();
-        $db->query(
+        $this->load->model('dbwrite_ext_model');
+        $this->dbwrite_ext_model->execWrite(
             "INSERT INTO Customers.CustGroupMemberTbl
                 (OrgUID, CustomerUID, GroupUID, IsGroupPrimary, IsDeleted, CreatedBy, UpdatedBy)
              VALUES (?, ?, ?, ?, 0, ?, ?)
@@ -1400,9 +1488,11 @@ class Customers_model extends CI_Model {
     }
 
     public function removeCustomerFromGroup(int $orgUID, int $customerUID, int $userUID): void {
-        $db = $this->dbwrite_model->getWriteDb();
-        $db->where(['OrgUID' => (int)$orgUID, 'CustomerUID' => (int)$customerUID, 'IsDeleted' => 0]);
-        $db->update('Customers.CustGroupMemberTbl', ['IsDeleted' => 1, 'UpdatedBy' => (int)$userUID]);
+        $this->dbwrite_model->updateData(
+            'Customers', 'CustGroupMemberTbl',
+            ['IsDeleted' => 1, 'UpdatedBy' => (int)$userUID],
+            ['OrgUID' => (int)$orgUID, 'CustomerUID' => (int)$customerUID, 'IsDeleted' => 0]
+        );
     }
 
     public function getCustomersInOtherGroups(int $orgUID, int $excludeGroupUID = 0): array {
@@ -1913,17 +2003,11 @@ class Customers_model extends CI_Model {
                 // Financial year rolled over — reset Customer sequence for new FY.
                 // Optimistic WHERE on CustomerSeqYear: only one concurrent caller wins;
                 // losers fall through to getCreditSettings() and get the corrected row.
-                $this->load->model('dbwrite_model');
-                $db = $this->dbwrite_model->getWriteDb();
-                $db->db_debug = FALSE;
-                $db->where('OrgUID',          $orgUID)
-                   ->where('CustomerSeqYear', (int) $existing->CustomerSeqYear)
-                   ->update('Settings.OrgCreditSettingsTbl', [
-                       'CustomerSeq'        => 1,
-                       'CustomerSeqYear'    => $fyYear2,
-                       'CustomerNextNumber' => 'C-' . $yrPad . '0001',
-                       'UpdatedAt'          => date('Y-m-d H:i:s'),
-                   ]);
+                $this->load->model('dbwrite_ext_model');
+                $this->dbwrite_ext_model->execWrite(
+                    "UPDATE Settings.OrgCreditSettingsTbl SET CustomerSeq=1, CustomerSeqYear=?, CustomerNextNumber=?, UpdatedAt=? WHERE OrgUID=? AND CustomerSeqYear=?",
+                    [$fyYear2, 'C-' . $yrPad . '0001', date('Y-m-d H:i:s'), (int)$orgUID, (int)$existing->CustomerSeqYear]
+                );
                 return $this->getCreditSettings($orgUID);
             }
             if (empty($existing->CustomerNextNumber)) {
@@ -1931,15 +2015,11 @@ class Customers_model extends CI_Model {
                 // created (ALTER TABLE migration). Backfill next number AND correct the year
                 // so claimNextCustomerNumber never sees a stale CustomerSeqYear mismatch.
                 $nextNum = 'C-' . $yrPad . str_pad((int) $existing->CustomerSeq, 4, '0', STR_PAD_LEFT);
-                $this->load->model('dbwrite_model');
-                $db = $this->dbwrite_model->getWriteDb();
-                $db->db_debug = FALSE;
-                $db->where('OrgUID', $orgUID)
-                   ->update('Settings.OrgCreditSettingsTbl', [
-                       'CustomerNextNumber' => $nextNum,
-                       'CustomerSeqYear'    => $fyYear2,
-                       'UpdatedAt'          => date('Y-m-d H:i:s'),
-                   ]);
+                $this->load->model('dbwrite_ext_model');
+                $this->dbwrite_ext_model->execWrite(
+                    "UPDATE Settings.OrgCreditSettingsTbl SET CustomerNextNumber=?, CustomerSeqYear=?, UpdatedAt=? WHERE OrgUID=?",
+                    [$nextNum, $fyYear2, date('Y-m-d H:i:s'), (int)$orgUID]
+                );
                 return $this->getCreditSettings($orgUID);
             }
             return $existing;
@@ -1975,8 +2055,7 @@ class Customers_model extends CI_Model {
      */
     public function claimNextCustomerNumber(int $orgUID, int $fyStartMonth, string $timezone): ?array {
         try {
-            $this->load->model('dbwrite_model');
-            $db = $this->dbwrite_model->getWriteDb();
+            $this->load->model('dbwrite_ext_model');
 
             for ($attempt = 1; $attempt <= 5; $attempt++) {
                 $row = $this->getCreditSettings($orgUID);
@@ -2009,18 +2088,12 @@ class Customers_model extends CI_Model {
                 $claimedNum = 'C-' . $yrPad . str_pad($claimedSeq, 4, '0', STR_PAD_LEFT);
                 $nextNum    = 'C-' . $yrPad . str_pad($nextSeq,    4, '0', STR_PAD_LEFT);
 
-                $db->db_debug = FALSE;
-                $db->where('OrgUID',          $orgUID)
-                   ->where('CustomerSeq',     $storedSeq)
-                   ->where('CustomerSeqYear', $storedFYYear)
-                   ->update('Settings.OrgCreditSettingsTbl', [
-                       'CustomerSeq'        => $nextSeq,
-                       'CustomerSeqYear'    => $currentFYYear,
-                       'CustomerNextNumber' => $nextNum,
-                       'UpdatedAt'          => date('Y-m-d H:i:s'),
-                   ]);
+                $affected = $this->dbwrite_ext_model->execWriteAffected(
+                    "UPDATE Settings.OrgCreditSettingsTbl SET CustomerSeq=?, CustomerSeqYear=?, CustomerNextNumber=?, UpdatedAt=? WHERE OrgUID=? AND CustomerSeq=? AND CustomerSeqYear=?",
+                    [$nextSeq, $currentFYYear, $nextNum, date('Y-m-d H:i:s'), (int)$orgUID, $storedSeq, $storedFYYear]
+                );
 
-                if ($db->affected_rows() === 1) {
+                if ($affected === 1) {
                     return ['claimed' => $claimedNum, 'next' => $nextNum];
                 }
                 // Lost optimistic race — retry with fresh row values
@@ -2033,27 +2106,146 @@ class Customers_model extends CI_Model {
     }
 
     /**
-     * UPSERT a translated name row into CustomersTbl_Lang.
+     * UPSERT translated fields into CustomersTbl_Lang.
      * LangCode must never be 'en' — English lives in the base table.
-     * @param int    $customerUID  CustomerUID FK
-     * @param string $langCode     Language code e.g. 'ta', 'hi'
-     * @param string $name         Translated name value
-     * @param int    $userUID      CreatedBy / UpdatedBy
+     * @param int         $customerUID    CustomerUID FK
+     * @param string      $langCode       Language code e.g. 'ta', 'hi'
+     * @param string      $name           Translated customer name
+     * @param string|null $contactPerson  Translated contact person name (null = skip)
+     * @param string|null $notes          Translated notes text (null = skip)
+     * @param int         $userUID        CreatedBy / UpdatedBy
      * @returns void
      */
-    public function saveLangRow(int $customerUID, string $langCode, string $name, int $userUID): void {
+    public function saveLangRow(int $customerUID, string $langCode, string $name, ?string $contactPerson, ?string $notes, ?string $area, ?string $companyName, int $userUID): void {
         try {
-            $this->dbwrite_model->getWriteDb()->query(
+            $this->load->model('dbwrite_ext_model');
+            $this->dbwrite_ext_model->execWrite(
                 "INSERT INTO Customers.CustomersTbl_Lang
-                    (CustomerUID, LangCode, Name, CreatedBy, UpdatedBy)
-                 VALUES (?, ?, ?, ?, ?)
+                    (CustomerUID, LangCode, Name, ContactPerson, Notes, Area, CompanyName, CreatedBy, UpdatedBy)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                  ON DUPLICATE KEY UPDATE
-                    Name      = VALUES(Name),
-                    UpdatedBy = VALUES(UpdatedBy)",
-                [$customerUID, $langCode, $name, $userUID, $userUID]
+                    Name          = VALUES(Name),
+                    ContactPerson = VALUES(ContactPerson),
+                    Notes         = VALUES(Notes),
+                    Area          = VALUES(Area),
+                    CompanyName   = VALUES(CompanyName),
+                    UpdatedBy     = VALUES(UpdatedBy)",
+                [$customerUID, $langCode, $name, $contactPerson, $notes, $area, $companyName, $userUID, $userUID]
             );
         } catch (Exception $e) {
             notifyError('Customers_model::saveLangRow', $e);
+        }
+    }
+
+    /**
+     * UPSERT translated address fields into CustAddressTbl_Lang.
+     * LangCode must never be 'en' — English lives in the base table.
+     * @param int         $custAddrUID  CustAddressUID FK
+     * @param string      $langCode     Language code e.g. 'ta'
+     * @param string|null $line1        Translated address line 1
+     * @param string|null $line2        Translated address line 2
+     * @param string|null $cityText     Translated city free-text
+     * @param string|null $stateText    Translated state free-text
+     * @param int         $userUID      CreatedBy / UpdatedBy
+     * @returns void
+     */
+    public function saveAddrLangRow(int $custAddrUID, string $langCode, ?string $line1, ?string $line2, ?string $cityText, ?string $stateText, int $userUID): void {
+        try {
+            $this->load->model('dbwrite_ext_model');
+            $this->dbwrite_ext_model->execWrite(
+                "INSERT INTO Customers.CustAddressTbl_Lang
+                    (CustAddressUID, LangCode, Line1, Line2, CityText, StateText, CreatedBy, UpdatedBy)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                 ON DUPLICATE KEY UPDATE
+                    Line1     = VALUES(Line1),
+                    Line2     = VALUES(Line2),
+                    CityText  = VALUES(CityText),
+                    StateText = VALUES(StateText),
+                    UpdatedBy = VALUES(UpdatedBy)",
+                [$custAddrUID, $langCode, $line1, $line2, $cityText, $stateText, $userUID, $userUID]
+            );
+        } catch (Exception $e) {
+            notifyError('Customers_model::saveAddrLangRow', $e);
+        }
+    }
+
+    /**
+     * Upsert a translated row into CustomerGroupTbl_Lang.
+     * @param int         $groupUID
+     * @param string      $langCode
+     * @param string|null $groupName
+     * @param string|null $contactPerson
+     * @param string|null $notes
+     * @param string|null $addrLine1
+     * @param string|null $addrLine2
+     * @param string|null $addrCity
+     * @param string|null $addrState
+     * @param int         $userUID
+     * @returns void
+     */
+    public function saveCustomerGroupLangRow(int $groupUID, string $langCode, ?string $groupName, ?string $contactPerson, ?string $notes, ?string $addrLine1, ?string $addrLine2, ?string $addrCity, ?string $addrState, int $userUID): void {
+        try {
+            $this->load->model('dbwrite_ext_model');
+            $this->dbwrite_ext_model->execWrite(
+                "INSERT INTO Customers.CustomerGroupTbl_Lang
+                    (GroupUID, LangCode, GroupName, ContactPerson, Notes, AddrLine1, AddrLine2, AddrCity, AddrState, CreatedBy, UpdatedBy)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 ON DUPLICATE KEY UPDATE
+                    GroupName     = VALUES(GroupName),
+                    ContactPerson = VALUES(ContactPerson),
+                    Notes         = VALUES(Notes),
+                    AddrLine1     = VALUES(AddrLine1),
+                    AddrLine2     = VALUES(AddrLine2),
+                    AddrCity      = VALUES(AddrCity),
+                    AddrState     = VALUES(AddrState),
+                    UpdatedBy     = VALUES(UpdatedBy)",
+                [$groupUID, $langCode, $groupName, $contactPerson, $notes, $addrLine1, $addrLine2, $addrCity, $addrState, $userUID, $userUID]
+            );
+        } catch (Exception $e) {
+            notifyError('Customers_model::saveCustomerGroupLangRow', $e);
+        }
+    }
+
+    /**
+     * Returns all non-deleted CustomerUIDs for an org, ordered by CustomerUID ASC.
+     * @param int $orgUID
+     * @returns array
+     */
+    public function getAllCustomerUIDs(int $orgUID): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $q = $this->ReadDb->query(
+                'SELECT CustomerUID FROM Customers.CustomerTbl
+                  WHERE OrgUID = ? AND IsDeleted = 0
+                  ORDER BY CustomerUID ASC',
+                [$orgUID]
+            );
+            return $q ? $q->result() : [];
+        } catch (Exception $e) {
+            notifyError('Customers_model::getAllCustomerUIDs', $e);
+            return [];
+        }
+    }
+
+    /**
+     * Returns MAX(SortOrder), COUNT(*) and SUM(FileSize) for a customer's attachments.
+     * @param int $customerUID
+     * @param int $orgUID
+     * @returns object|null
+     */
+    public function getAttachmentSortStats(int $customerUID, int $orgUID): ?object {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $q = $this->ReadDb->query(
+                "SELECT COALESCE(MAX(SortOrder),0) AS ms, COUNT(*) AS cnt, COALESCE(SUM(FileSize),0) AS ts
+                   FROM Customers.CustomerAttachmentsTbl
+                  WHERE CustomerUID = ? AND OrgUID = ? AND IsDeleted = 0",
+                [$customerUID, $orgUID]
+            );
+            return $q ? ($q->row() ?: null) : null;
+        } catch (Exception $e) {
+            notifyError('Customers_model::getAttachmentSortStats', $e);
+            return null;
         }
     }
 }

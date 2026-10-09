@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Settings extends MY_Controller {
 
@@ -109,8 +109,8 @@ class Settings extends MY_Controller {
                 'UpdatedBy'              => $userUID,
             ];
 
-            $this->load->model('dbwrite_model');
-            $this->dbwrite_model->upsertProductSettings($orgUID, $productTypeUID, $discountTypeUID, $productTaxUID, $taxDetailUID, $userUID);
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
+            $this->dbwrite_ext_model->upsertProductSettings($orgUID, $productTypeUID, $discountTypeUID, $productTaxUID, $taxDetailUID, $userUID);
 
             // Patch ONLY ProdSettings in the main JWT payload — takes effect on very next request
             $this->load->model('login_model');
@@ -229,7 +229,7 @@ class Settings extends MY_Controller {
                 'EmpCodeDigits'        => $empCodeDigits,
             ];
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $resp = $this->dbwrite_model->updateData(
                 'Settings', 'OrgSettingsTbl',
                 $data,
@@ -390,8 +390,8 @@ class Settings extends MY_Controller {
                 $autoUpdatePurchasePrice = 'off';
             }
 
-            $this->load->model('dbwrite_model');
-            $this->dbwrite_model->upsertTransactionSettings($orgUID, $invoiceCancelAction, $srCancelAction, $salesReturnItemMethod, $termsAndConditions, $hideNavOnTransForm, $purchaseShowSignature, $purchaseShowTerms, $prCancelAction, $purchaseReturnItemMethod, $showProductDescription, $userUID, $dcDefaultReturnDays, $quotValidityDays, $showTransactionStats, $comboPriceDistribution, $belowPurchasePriceAction, $defaultTransactionType, $autoDraftSave, $autoUpdatePurchasePrice, $purchaseCancelAction);
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
+            $this->dbwrite_ext_model->upsertTransactionSettings($orgUID, $invoiceCancelAction, $srCancelAction, $salesReturnItemMethod, $termsAndConditions, $hideNavOnTransForm, $purchaseShowSignature, $purchaseShowTerms, $prCancelAction, $purchaseReturnItemMethod, $showProductDescription, $userUID, $dcDefaultReturnDays, $quotValidityDays, $showTransactionStats, $comboPriceDistribution, $belowPurchasePriceAction, $defaultTransactionType, $autoDraftSave, $autoUpdatePurchasePrice, $purchaseCancelAction);
 
             // Patch only TransSettings in JWT payload
             $this->load->model('login_model');
@@ -579,7 +579,7 @@ class Settings extends MY_Controller {
                 'UpdatedBy'             => $userUID,
             ];
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
 
             if ($configUID > 0) {
                 // Update existing row
@@ -740,7 +740,7 @@ class Settings extends MY_Controller {
             if (!$bankName)    throw new Exception('Bank Name is required.');
             if (!$branchName)  throw new Exception('Branch Name is required.');
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
 
             if ($isDefault) {
                 $this->dbwrite_model->updateData(
@@ -820,7 +820,7 @@ class Settings extends MY_Controller {
             if (!$row->Data) throw new Exception('Bank account not found.');
             if ($row->Data->IsCash) throw new Exception('Cash account cannot be deleted.');
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->updateData(
                 'Organisation', 'OrgBankAccountsTbl',
                 ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
@@ -853,7 +853,7 @@ class Settings extends MY_Controller {
 
             if ($bankUID <= 0) throw new Exception('Invalid bank account ID.');
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->updateData(
                 'Organisation', 'OrgBankAccountsTbl',
                 ['IsDefault' => 0, 'UpdatedBy' => $userUID],
@@ -899,7 +899,7 @@ class Settings extends MY_Controller {
             if ($fromUID === $toUID) throw new Exception('Source and destination cannot be the same.');
             if ($amount <= 0)  throw new Exception('Transfer amount must be greater than zero.');
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $insertResp = $this->dbwrite_model->insertData('Transaction', 'FundTransfersTbl', [
                 'OrgUID'       => $orgUID,
                 'FromBankUID'  => $fromUID,
@@ -1046,7 +1046,7 @@ class Settings extends MY_Controller {
             if (!$moduleUID) throw new Exception('Please select a transaction type.');
             if (!$body)      throw new Exception('Template body is required.');
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $data = [
                 'ModuleUID'  => $moduleUID,
                 'Channel'    => $channel,
@@ -1094,7 +1094,7 @@ class Settings extends MY_Controller {
             $userUID     = $this->pageData['JwtData']->User->UserUID;
             $templateUID = (int) getPostValue($PostData, 'TemplateUID');
             if ($templateUID <= 0) throw new Exception('Invalid template.');
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->updateData('Settings', 'MessageTemplatesTbl',
                 ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
                 ['TemplateUID' => $templateUID, 'OrgUID' => $orgUID]);
@@ -1207,7 +1207,7 @@ class Settings extends MY_Controller {
 
             $isDefault = getPostValue($PostData, 'isDefault') ? 1 : 0;
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->load->model('organisation_model');
 
             $data = [
@@ -1313,7 +1313,7 @@ class Settings extends MY_Controller {
             if (!$row->Data) throw new Exception('Prefix not found.');
             if ($row->Data->IsDefault) throw new Exception('Cannot delete the default prefix. Set another prefix as default first.');
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $resp = $this->dbwrite_model->updateData(
                 'Settings', 'TransactionPrefixTbl',
                 ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
@@ -1348,7 +1348,7 @@ class Settings extends MY_Controller {
             }
             $moduleUID = (int)($existingRow->Data->ModuleUID ?? 0);
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             /* Clear defaults only within this module, not across the entire org */
             $this->dbwrite_model->updateData(
                 'Settings', 'TransactionPrefixTbl',
@@ -1385,7 +1385,7 @@ class Settings extends MY_Controller {
 
             if ($configUID <= 0) throw new Exception('Invalid config ID.');
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->updateData(
                 'Organisation', 'ThermalPrintConfigTbl',
                 ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
@@ -1416,7 +1416,7 @@ class Settings extends MY_Controller {
             $orgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
             $userUID = (int) $this->pageData['JwtData']->User->UserUID;
 
-            $this->load->model(['organisation_model', 'global_model', 'dbwrite_model']);
+            $this->load->model(['organisation_model', 'global_model', 'dbwrite_model', 'dbwrite_ext_model']);
             $this->_seedSystemCharges($orgUID, $userUID);
 
             $chargeLimit = (int)($this->pageData['JwtData']->TransSettings->MaxAdditionalCharges ?? self::CHARGE_LIMIT);
@@ -1526,7 +1526,7 @@ class Settings extends MY_Controller {
             if (!$displayName) throw new Exception('Display name is required.');
             if (mb_strlen($displayName) > 150) throw new Exception('Display name must not exceed 150 characters.');
 
-            $this->load->model(['organisation_model', 'dbwrite_model']);
+            $this->load->model(['organisation_model', 'dbwrite_model', 'dbwrite_ext_model']);
 
             if ($chargeUID > 0) {
                 $existing = $this->organisation_model->getAdditionalChargeByUID($chargeUID, $orgUID);

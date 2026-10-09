@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Indirectincome extends MY_Controller {
 
@@ -10,7 +10,7 @@ class Indirectincome extends MY_Controller {
         parent::__construct();
         $this->load->helper('transaction');
         $this->load->model('indirectincome_model');
-        $this->load->model('dbwrite_model');
+        $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
         $this->load->model('transactions_model');
     }
 

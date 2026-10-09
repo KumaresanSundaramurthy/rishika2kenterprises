@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
@@ -40,15 +40,10 @@ class Login extends CI_Controller {
 
         if (!empty($token)) {
             try {
-                $ReadDb = $this->load->database('ReadDB', TRUE);
-                $ReadDb->db_debug = FALSE;
+                $this->load->model('organisation_model');
 
                 /* Fetch the token row regardless of expiry to distinguish all cases */
-                $row = $ReadDb->select('OrgUID, IsEmailVerified, EmailVerifyExpiry')
-                    ->from('Organisation.OrganisationTbl')
-                    ->where('EmailVerifyToken', $token)
-                    ->limit(1)
-                    ->get()->row();
+                $row = $this->organisation_model->getOrgByVerifyToken($token);
 
                 if (!$row) {
                     /* Token not found — invalid or already cleared after previous success */
@@ -64,14 +59,12 @@ class Login extends CI_Controller {
                     $message = 'This verification link has expired. Links are valid for 24 hours only. Please request a new one below.';
                 } else {
                     /* Valid — verify now */
-                    $this->load->model('dbwrite_model');
-                    $WriteDb = $this->dbwrite_model->getWriteDb();
-                    $WriteDb->db_debug = FALSE;
-                    $WriteDb->where('OrgUID', (int)$row->OrgUID)->update('Organisation.OrganisationTbl', [
+                    $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
+                    $this->dbwrite_model->updateData('Organisation', 'OrganisationTbl', [
                         'IsEmailVerified'   => 1,
                         'EmailVerifyToken'  => null,
                         'EmailVerifyExpiry' => null,
-                    ]);
+                    ], ['OrgUID' => (int)$row->OrgUID]);
                     $status  = 'success';
                     $message = 'Your email address has been verified successfully. You can now log in.';
                 }
@@ -101,23 +94,14 @@ class Login extends CI_Controller {
                 throw new Exception('Please enter your username or email.');
             }
 
-            $ReadDb = $this->load->database('ReadDB', TRUE);
-            $ReadDb->db_debug = FALSE;
+            $this->load->model('organisation_model');
 
             /* Look up the org directly by its email address, then join to get admin's first name */
-            $row = $ReadDb->select('O.OrgUID, O.EmailAddress AS OrgEmail, U.FirstName')
-                ->from('Organisation.OrganisationTbl O')
-                ->join('Users.UserTbl U', 'U.OrgUID = O.OrgUID AND U.IsActive = 1 AND U.IsDeleted = 0', 'left')
-                ->where('O.EmailAddress',    $identifier)
-                ->where('O.IsEmailVerified', 0)
-                ->order_by('U.UserUID', 'ASC')
-                ->limit(1)
-                ->get()->row();
+            $row = $this->organisation_model->getUnverifiedOrgByEmail($identifier);
 
             if (!$row || empty($row->OrgUID)) {
                 Telegramnotifier::alert('resendVerificationEmail: user/org not found', [
                     'Identifier' => $identifier,
-                    'LastQuery'  => $ReadDb->last_query(),
                 ]);
             } else {
                 $this->load->model('signup_model');
@@ -204,7 +188,7 @@ class Login extends CI_Controller {
 
                         // Lazy bcrypt migration — upgrade base64 hash on first successful login
                         if (!$isBcrypt) {
-                            $this->load->model('dbwrite_model');
+                            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
                             $this->dbwrite_model->updateData('Users', 'UserTbl',
                                 ['Password' => password_hash($inputPassword, PASSWORD_BCRYPT)],
                                 ['UserUID'  => $UserData->Data[0]->UserUID]
@@ -244,7 +228,7 @@ class Login extends CI_Controller {
                             $JwtReturnData = $this->login_model->setJwtToken($UserData->Data[0], $jwtPayload);
                             if(!$JwtReturnData->Error) {
 
-                                $this->load->model('dbwrite_model');
+                                $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
                                 $deviceInfo = $this->getDeviceInfo();
                                 $this->dbwrite_model->updateData('Users', 'UserTbl', [
                                     'LastLogin'           => date('Y-m-d H:i:s'),
@@ -313,7 +297,7 @@ class Login extends CI_Controller {
                         $failedAttempts = $this->login_model->getFailedAttempts($PostData['UserName']);
                         if ($failedAttempts >= 5) {
 
-                            $this->load->model('dbwrite_model');
+                            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
                             $this->dbwrite_model->updateData('Users', 'UserTbl', ['IsLocked' => 1], array('UserName' => $PostData['UserName']));
 
                             $this->logLoginFailure($PostData['UserName'], 'Account locked - too many attempts');
@@ -347,7 +331,7 @@ class Login extends CI_Controller {
 
         try {
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             
             $deviceInfo = $this->getDeviceInfo();
             
@@ -381,7 +365,7 @@ class Login extends CI_Controller {
 
         try {
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
 
             $deviceInfo = $this->getDeviceInfo();
             
@@ -481,7 +465,7 @@ class Login extends CI_Controller {
             $token   = bin2hex(random_bytes(32));
             $expires = date('Y-m-d H:i:s', strtotime('+15 minutes'));
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->insertData('Users', 'PasswordResetTbl', [
                 'UserUID'   => $user->UserUID,
                 'Token'     => $token,
@@ -574,7 +558,7 @@ class Login extends CI_Controller {
                 return;
             }
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
 
             $now = date('Y-m-d H:i:s');
             $this->dbwrite_model->updateData('Users', 'UserTbl',
@@ -621,16 +605,9 @@ class Login extends CI_Controller {
      */
     private function _isPasswordReused(int $uid, string $newPw): bool {
         try {
-            $db = $this->load->database('ReadDB', TRUE);
-            $db->db_debug = FALSE;
-            $db->select('Password');
-            $db->from('Users.PasswordHistoryTbl');
-            $db->where('UserUID', $uid);
-            $db->order_by('CreatedOn', 'DESC');
-            $db->limit(3);
-            $query = $db->get();
-            if (!$query) return false;
-            foreach ($query->result() as $row) {
+            $this->load->model('users_model');
+            $hashes = $this->users_model->getRecentPasswordHashes($uid, 3);
+            foreach ($hashes as $row) {
                 if (password_verify($newPw, $row->Password)) return true;
             }
         } catch (Throwable $t) { /* table not yet migrated — skip silently */ }
@@ -646,25 +623,12 @@ class Login extends CI_Controller {
     private function _recordPasswordHistory(int $uid, string $oldHash): void {
         if (empty($oldHash)) return;
         try {
-            $db = $this->load->database('WriteDB', TRUE);
-            $db->db_debug = FALSE;
-            $db->insert('Users.PasswordHistoryTbl', [
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
+            $this->dbwrite_model->insertData('Users', 'PasswordHistoryTbl', [
                 'UserUID'  => $uid,
                 'Password' => $oldHash,
             ]);
-            $db->query(
-                "DELETE FROM Users.PasswordHistoryTbl
-                  WHERE UserUID = ?
-                    AND HistoryUID NOT IN (
-                        SELECT h FROM (
-                            SELECT HistoryUID AS h FROM Users.PasswordHistoryTbl
-                             WHERE UserUID = ?
-                             ORDER BY CreatedOn DESC
-                             LIMIT 5
-                        ) tmp
-                    )",
-                [$uid, $uid]
-            );
+            $this->dbwrite_ext_model->prunePasswordHistory($uid);
         } catch (Throwable $t) {
             error_log('[PasswordHistory] ' . $t->getMessage());
         }
@@ -868,7 +832,7 @@ class Login extends CI_Controller {
                 return;
             }
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->updateData('Users', 'UserTbl',
                 ['Password' => password_hash($newPw, PASSWORD_BCRYPT), 'PasswordChangedOn' => date('Y-m-d H:i:s')],
                 ['UserUID'  => $uid]
@@ -924,7 +888,7 @@ class Login extends CI_Controller {
 
                 } else {
 
-                    $this->load->model('dbwrite_model');
+                    $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
                     $userUID        = (int)$PostData['UserUID'];
                     $UpdateDataResp = $this->dbwrite_model->updateData('Users', 'UserTbl', ['Password' => password_hash($PostData['ConfirmPassword'], PASSWORD_BCRYPT), 'PasswordChangedOn' => date('Y-m-d H:i:s')], ['UserUID' => $userUID]);
 
@@ -1080,12 +1044,12 @@ class Login extends CI_Controller {
     public function logout() {
 
         $JwtEncoded = get_cookie(getenv('JWT_COOKIE_NAME'));
-        if(isset($JwtEncoded)) {
+        if (!empty($JwtEncoded)) {
 
             try {
                 $JwtData = JWT::decode($JwtEncoded, new Key(getenv('JWT_KEY'), 'HS256'));
             } catch (Exception $e) {
-                notifyError('Login::logout', $e);
+                /* Expired/invalid token on logout is normal — clear silently, no alert */
                 $JwtData = null;
             }
 
@@ -1101,7 +1065,7 @@ class Login extends CI_Controller {
                         $UserData = $this->login_model->getUserAuditInfo(array('ula.AuditID' => $auditId));
                         if(isset($UserData) && count($UserData) > 0) {
                             $userData = $UserData[0];
-                            $this->load->model('dbwrite_model');
+                            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
                             $this->dbwrite_model->updateData('Security', 'UserLoginAudit', ['LogoutTime' => date('Y-m-d H:i:s'), 'SessionDuration' => time() - strtotime($userData->LoginTime)], ['AuditID' => $auditId]);
                         }
                     }
@@ -1110,7 +1074,7 @@ class Login extends CI_Controller {
                     $userUID = $getAuditInfo->Value->User->UserUID ?? null;
                     if ($userUID) {
                         $this->redisservice->deleteCache($this->redisservice->envKey('UserActiveSession_' . $userUID));
-                        $this->load->model('dbwrite_model');
+                        $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
                         $this->dbwrite_model->updateData('Users', 'UserTbl', ['CurrentSessionToken' => null], ['UserUID' => $userUID]);
                     }
 

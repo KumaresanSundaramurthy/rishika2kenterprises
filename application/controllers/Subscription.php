@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Subscription extends MY_Controller {
 
@@ -7,7 +7,7 @@ class Subscription extends MY_Controller {
         $this->load->model('subscription_model');
         $this->load->model('billingplan_model');
         $this->load->model('signup_model');
-        $this->load->model('dbwrite_model');
+        $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
     }
 
     /* ── Pages ──────────────────────────────────────────────────────────────── */
@@ -51,15 +51,9 @@ class Subscription extends MY_Controller {
         /* Module count per PlanUID */
         $moduleCountMap = [];
         if (!empty($plans)) {
-            $readDb = $this->load->database('ReadDB', TRUE);
-            $readDb->db_debug = FALSE;
             $sectorUID = (int)($plans[0]->SectorUID ?? 0);
             if ($sectorUID > 0) {
-                $rows = $readDb->select('PlanUID, COUNT(*) AS Cnt')
-                    ->from('Billing.SectorPlanModulesTbl')
-                    ->where('SectorUID', $sectorUID)
-                    ->group_by('PlanUID')
-                    ->get()->result();
+                $rows = $this->billingplan_model->getModuleCountByPlan($sectorUID);
                 foreach ($rows as $r) {
                     $moduleCountMap[(int)$r->PlanUID] = (int)$r->Cnt;
                 }
@@ -424,17 +418,8 @@ class Subscription extends MY_Controller {
                 throw new ValidationException('Payment mode is required.');
             }
 
-            $this->load->database('WriteDB', FALSE);
-            $writeDb = $this->load->database('WriteDB', TRUE);
-
             /* Verify order belongs to this org */
-            $readDb  = $this->load->database('ReadDB', TRUE);
-            $orderRow = $readDb->select('OrderUID, Status, NetAmount')
-                ->from('Billing.SubscriptionOrdersTbl')
-                ->where('OrderUID', $orderUID)
-                ->where('OrgUID',   $orgUID)
-                ->limit(1)
-                ->get()->row();
+            $orderRow = $this->billingplan_model->getSubscriptionOrderByUID($orgUID, $orderUID);
 
             if (!$orderRow) {
                 throw new ValidationException('Order not found.');
@@ -443,41 +428,33 @@ class Subscription extends MY_Controller {
                 throw new ValidationException('This order is already paid.');
             }
 
-            $writeDb->trans_begin();
+            $this->dbwrite_model->startTransaction();
 
             /* Insert payment row */
-            $writeDb->insert('Billing.SubscriptionPaymentsTbl', [
+            $this->dbwrite_model->insertData('Billing', 'SubscriptionPaymentsTbl', [
                 'OrderUID'         => $orderUID,
                 'FinancialYear'    => billing_fy('long'),
                 'PaymentDate'      => date('Y-m-d H:i:s'),
                 'Amount'           => $amount,
                 'Mode'             => $mode,
-                'PaymentID'        => null,   /* manual — no gateway transaction */
+                'PaymentID'        => null,
                 'GatewayOrderID'   => null,
                 'GatewaySignature' => null,
                 'Status'           => 'Success',
             ]);
 
             /* Mark order paid */
-            $writeDb->where('OrderUID', $orderUID)->update('Billing.SubscriptionOrdersTbl', [
+            $this->dbwrite_model->updateData('Billing', 'SubscriptionOrdersTbl', [
                 'Status'      => 'Paid',
                 'IsPaid'      => 1,
                 'PaidOn'      => date('Y-m-d H:i:s'),
                 'PaymentMode' => $mode,
-            ]);
+            ], ['OrderUID' => $orderUID]);
 
             /* Activate subscription */
-            $writeDb->where('OrgUID', $orgUID)
-                ->where_not_in('Status', ['Cancelled'])
-                ->order_by('StartDate', 'DESC')
-                ->limit(1)
-                ->update('Billing.OrgSubscriptionTbl', ['Status' => 'Active']);
+            $this->dbwrite_ext_model->activateLatestOrgSubscription($orgUID);
 
-            if ($writeDb->trans_status() === FALSE) {
-                $writeDb->trans_rollback();
-                throw new Exception('Payment recording failed.');
-            }
-            $writeDb->trans_commit();
+            $this->dbwrite_model->commitTransaction();
 
             $result->Status  = 'OK';
             $result->Message = 'Payment recorded successfully.';
@@ -509,15 +486,7 @@ class Subscription extends MY_Controller {
                 return;
             }
 
-            $ReadDb = $this->load->database('ReadDB', TRUE);
-            $ReadDb->db_debug = FALSE;
-            $row = $ReadDb->select('SI.InvoiceNumber, SI.PDFPath')
-                ->from('Billing.SubscriptionInvoicesTbl AS SI')
-                ->join('Billing.SubscriptionOrdersTbl AS SO', 'SO.OrderUID = SI.OrderUID')
-                ->where('SI.InvoiceUID', $invoiceUID)
-                ->where('SO.OrgUID', $orgUID)
-                ->limit(1)
-                ->get()->row();
+            $row = $this->billingplan_model->getSubscriptionInvoiceByUID($invoiceUID, $orgUID);
 
             if (!$row || empty($row->PDFPath)) {
                 show_error('Invoice PDF is not available yet.', 404);
@@ -741,15 +710,8 @@ class Subscription extends MY_Controller {
     }
 
     private function _getAdminRoleUID(int $orgUID): int {
-        $readDb = $this->load->database('ReadDB', TRUE);
-        $row = $readDb->select('RoleUID')
-            ->from('UserRole.RolesTbl')
-            ->where('OrgUID',    $orgUID)
-            ->where('IsDeleted', 0)
-            ->order_by('RoleUID', 'ASC')
-            ->limit(1)
-            ->get()->row();
-        return $row ? (int)$row->RoleUID : 0;
+        $this->load->model('roles_model');
+        return $this->roles_model->getFirstRoleUID($orgUID);
     }
 
 }

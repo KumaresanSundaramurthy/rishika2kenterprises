@@ -137,18 +137,20 @@ class Products_model extends CI_Model {
 
     }
 
-    public function getProductsDetails(array $FilterArray = [], string $OrderBy = 'ASC', array $whereInCondition = []): array {
+    public function getProductsDetails(array $FilterArray = [], string $OrderBy = 'ASC', array $whereInCondition = [], string $langCode = 'en'): array {
 
         $this->EndReturnData = new StdClass();
         try {
 
+            $useLang = $langCode !== 'en';
+            $lc      = $this->ReadDb->escape_str($langCode);
             $this->ReadDb->db_debug = FALSE;
 
             $select_ary = array(
                 'Products.ProductUID AS ProductUID',
                 'Products.OrgUID AS OrgUID',
-                'Products.ItemName AS ItemName',
-                'Category.Name as CategoryName',
+                $useLang ? 'COALESCE(PL.ItemName, Products.ItemName) AS ItemName' : 'Products.ItemName AS ItemName',
+                $useLang ? 'COALESCE(CL.Name, Category.Name) AS CategoryName' : 'Category.Name as CategoryName',
                 'Products.ProductType AS ProductType',
                 'Products.MRP AS MRP',
                 'Products.SellingPrice AS SellingPrice',
@@ -192,6 +194,10 @@ class Products_model extends CI_Model {
             $this->ReadDb->from('Products.ProductTbl as Products');
             $this->ReadDb->join('Products.CategoryTbl as Category', 'Category.CategoryUID = Products.CategoryUID', 'left');
             $this->ReadDb->join('Products.ProductStockTbl as ProductStock', 'ProductStock.ProductUID = Products.ProductUID', 'left');
+            if ($useLang) {
+                $this->ReadDb->join("Products.ProductTbl_Lang AS PL", "PL.ProductUID = Products.ProductUID AND PL.LangCode = '{$lc}'", 'left');
+                $this->ReadDb->join("Products.CategoryTbl_Lang AS CL", "CL.CategoryUID = Category.CategoryUID AND CL.LangCode = '{$lc}'", 'left');
+            }
             $this->ReadDb->where($WhereCondition);
             if (!empty($FilterArray)) {
                 $this->ReadDb->where($FilterArray);
@@ -270,18 +276,20 @@ class Products_model extends CI_Model {
 
     }
 
-    public function getCategoriesDetails1(array $FilterArray = [], string $OrderBy = 'ASC', array $whereInCondition = []): array {
+    public function getCategoriesDetails1(array $FilterArray = [], string $OrderBy = 'ASC', array $whereInCondition = [], string $langCode = 'en'): array {
 
         $this->EndReturnData = new StdClass();
         try {
 
+            $useLang = $langCode !== 'en';
+            $lc      = $this->ReadDb->escape_str($langCode);
             $this->ReadDb->db_debug = FALSE;
 
             $select_ary = array(
                 'Category.CategoryUID AS CategoryUID',
                 'Category.OrgUID AS OrgUID',
-                'Category.Name AS Name',
-                'Category.Description AS Description',
+                $useLang ? 'COALESCE(CL.Name, Category.Name) AS Name' : 'Category.Name AS Name',
+                $useLang ? 'COALESCE(CL.Description, Category.Description) AS Description' : 'Category.Description AS Description',
                 'Category.CreatedOn as CreatedOn',
                 'Category.UpdatedOn as UpdatedOn',
             );
@@ -293,6 +301,9 @@ class Products_model extends CI_Model {
 
             $this->ReadDb->select($select_ary);
             $this->ReadDb->from('Products.CategoryTbl as Category');
+            if ($useLang) {
+                $this->ReadDb->join("Products.CategoryTbl_Lang AS CL", "CL.CategoryUID = Category.CategoryUID AND CL.LangCode = '{$lc}'", 'left');
+            }
             $this->ReadDb->where($WhereCondition);
 
             // Standard Array Filtering
@@ -329,14 +340,17 @@ class Products_model extends CI_Model {
 
     }
 
-    public function getCategoriesDetails(array $FilterArray): array {
+    public function getCategoriesDetails(array $FilterArray, string $langCode = 'en'): array {
 
         $this->EndReturnData = new StdClass();
         try {
 
-            // Cache all-categories (no filter) in Upstash as a hash keyed by CategoryUID
+            $useLang = $langCode !== 'en';
+            $lc      = $this->ReadDb->escape_str($langCode);
+
+            /* Cache only for English — Tamil bypasses cache to get COALESCE fields */
             $cacheKey = null;
-            if (empty($FilterArray)) {
+            if (empty($FilterArray) && !$useLang) {
                 $cacheKey = $this->redisservice->orgKey('categories');
                 $cached   = $this->upstashservice->hgetall($cacheKey);
                 if (!empty($cached)) {
@@ -352,8 +366,8 @@ class Products_model extends CI_Model {
             $select_ary = array(
                 'Category.CategoryUID AS CategoryUID',
                 'Category.OrgUID AS OrgUID',
-                'Category.Name AS Name',
-                'Category.Description AS Description',
+                $useLang ? 'COALESCE(CL.Name, Category.Name) AS Name' : 'Category.Name AS Name',
+                $useLang ? 'COALESCE(CL.Description, Category.Description) AS Description' : 'Category.Description AS Description',
                 'Category.CreatedOn as CreatedOn',
                 'Category.UpdatedOn as UpdatedOn',
             );
@@ -363,6 +377,9 @@ class Products_model extends CI_Model {
             );
             $this->ReadDb->select($select_ary);
             $this->ReadDb->from('Products.CategoryTbl as Category');
+            if ($useLang) {
+                $this->ReadDb->join("Products.CategoryTbl_Lang AS CL", "CL.CategoryUID = Category.CategoryUID AND CL.LangCode = '{$lc}'", 'left');
+            }
             $this->ReadDb->where($WhereCondition);
             if (!empty($FilterArray)) {
                 $this->ReadDb->where($FilterArray);
@@ -405,14 +422,16 @@ class Products_model extends CI_Model {
     }
 
 
-    public function getProductBOM(int $ParentProductUID): array {
+    public function getProductBOM(int $ParentProductUID, string $langCode = 'en'): array {
 
         try {
+            $useLang = $langCode !== 'en';
+            $lc      = $this->ReadDb->escape_str($langCode);
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select([
                 'Comp.ComponentUID AS ComponentUID',
                 'Comp.ChildProductUID AS ChildProductUID',
-                'Prod.ItemName AS ItemName',
+                $useLang ? "COALESCE(PL.ItemName, Prod.ItemName) AS ItemName" : 'Prod.ItemName AS ItemName',
                 'Comp.Quantity AS Quantity',
                 'Prod.MRP AS MRP',
                 'Prod.SellingPrice AS SellingPrice',
@@ -421,6 +440,9 @@ class Products_model extends CI_Model {
             ]);
             $this->ReadDb->from('Products.ProductBOMTbl as Comp');
             $this->ReadDb->join('Products.ProductTbl as Prod', 'Prod.ProductUID = Comp.ChildProductUID', 'left');
+            if ($useLang) {
+                $this->ReadDb->join("Products.ProductTbl_Lang AS PL", "PL.ProductUID = Comp.ChildProductUID AND PL.LangCode = '{$lc}'", 'left');
+            }
             $this->ReadDb->where([
                 'Comp.ParentProductUID' => (int) $ParentProductUID,
                 'Comp.IsDeleted'        => 0,
@@ -437,12 +459,20 @@ class Products_model extends CI_Model {
 
     }
 
-    public function getItemsForBOM(int $OrgUID, string $search = '', int $excludeUID = 0): array {
+    public function getItemsForBOM(int $OrgUID, string $search = '', int $excludeUID = 0, string $langCode = 'en'): array {
 
         try {
+            $useLang = $langCode !== 'en';
+            $lc      = $this->ReadDb->escape_str($langCode);
             $this->ReadDb->db_debug = FALSE;
-            $this->ReadDb->select(['Products.ProductUID', 'Products.ItemName']);
+            $this->ReadDb->select([
+                'Products.ProductUID',
+                $useLang ? 'COALESCE(PL.ItemName, Products.ItemName) AS ItemName' : 'Products.ItemName',
+            ]);
             $this->ReadDb->from('Products.ProductTbl as Products');
+            if ($useLang) {
+                $this->ReadDb->join("Products.ProductTbl_Lang AS PL", "PL.ProductUID = Products.ProductUID AND PL.LangCode = '{$lc}'", 'left');
+            }
             $this->ReadDb->where([
                 'Products.IsDeleted'  => 0,
                 'Products.IsActive'   => 1,
@@ -471,10 +501,10 @@ class Products_model extends CI_Model {
     // ─────────────────────────────────────────────────────────
     // Dedicated paginated list queries (replacing generic service)
     // ─────────────────────────────────────────────────────────
-    public function getProductListPaginated(int $OrgUID, int $limit, int $offset, string $searchQuery = '', array $sortArr = []): object {
+    public function getProductListPaginated(int $OrgUID, int $limit, int $offset, string $searchQuery = '', array $sortArr = [], string $langCode = 'en'): object {
 
         try {
-            
+
             $this->ReadDb->db_debug = FALSE;
             $baseWhere = [
                 'Products.IsDeleted' => 0,
@@ -491,12 +521,20 @@ class Products_model extends CI_Model {
             if ($countError['code']) throw new Exception($countError['message']);
             $totalCount = (int) ($countQuery->row()->TotalCount ?? 0);
 
+            $useLang          = ($langCode !== 'en' && $langCode !== '');
+            $itemNameField    = $useLang
+                ? 'COALESCE(PL.ItemName, Products.ItemName) AS ItemName'
+                : 'Products.ItemName AS ItemName';
+            $categoryNameField = $useLang
+                ? 'COALESCE(CLang.Name, Category.Name) AS CategoryName'
+                : 'Category.Name AS CategoryName';
+
             // Data query
             $this->ReadDb->select([
                 'Products.ProductUID AS ProductUID',
-                'Products.ItemName AS ItemName',
+                $itemNameField,
                 'Products.ProductType AS ProductType',
-                'Category.Name AS CategoryName',
+                $categoryNameField,
                 'Products.SellingPrice AS SellingPrice',
                 'Products.MRP AS MRP',
                 'Products.PurchasePrice AS PurchasePrice',
@@ -522,6 +560,19 @@ class Products_model extends CI_Model {
             $this->ReadDb->join('Global.ProductTaxTbl as PurTaxType', 'PurTaxType.ProductTaxUID = Products.PurchasePriceProductTaxUID', 'left');
             $this->ReadDb->join('Global.PrimaryUnitTbl as puid', 'puid.PrimaryUnitUID = Products.PrimaryUnitUID', 'left');
             $this->ReadDb->join('Users.UserTbl as User', 'User.UserUID = Products.UpdatedBy', 'left');
+            if ($useLang) {
+                $lc = $this->ReadDb->escape($langCode);
+                $this->ReadDb->join(
+                    'Products.ProductTbl_Lang AS PL',
+                    "PL.ProductUID = Products.ProductUID AND PL.LangCode = {$lc}",
+                    'left'
+                );
+                $this->ReadDb->join(
+                    'Products.CategoryTbl_Lang AS CLang',
+                    "CLang.CategoryUID = Category.CategoryUID AND CLang.LangCode = {$lc}",
+                    'left'
+                );
+            }
             $this->ReadDb->where($baseWhere);
             if (!empty($searchQuery)) { $this->ReadDb->where($searchQuery, null, false); }
             if (!empty($sortArr)) {
@@ -573,12 +624,14 @@ class Products_model extends CI_Model {
 
     }
 
-    public function getProductsForExport(int $OrgUID): array {
+    public function getProductsForExport(int $OrgUID, string $langCode = 'en'): array {
         try {
+            $useLang = $langCode !== 'en';
+            $lc      = $this->ReadDb->escape_str($langCode);
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select([
-                'Products.ItemName AS ItemName',
-                'Category.Name AS CategoryName',
+                $useLang ? 'COALESCE(PL.ItemName, Products.ItemName) AS ItemName' : 'Products.ItemName AS ItemName',
+                $useLang ? 'COALESCE(CL.Name, Category.Name) AS CategoryName' : 'Category.Name AS CategoryName',
                 'Products.HSNSACCode AS HSNSACCode',
                 'Products.PartNumber AS PartNumber',
                 'Products.SellingPrice AS SellingPrice',
@@ -593,6 +646,10 @@ class Products_model extends CI_Model {
             $this->ReadDb->join('Products.CategoryTbl as Category', 'Category.CategoryUID = Products.CategoryUID', 'left');
             $this->ReadDb->join('Products.ProductStockTbl as ProductStock', 'ProductStock.ProductUID = Products.ProductUID', 'left');
             $this->ReadDb->join('Users.UserTbl as User', 'User.UserUID = Products.UpdatedBy', 'left');
+            if ($useLang) {
+                $this->ReadDb->join("Products.ProductTbl_Lang AS PL", "PL.ProductUID = Products.ProductUID AND PL.LangCode = '{$lc}'", 'left');
+                $this->ReadDb->join("Products.CategoryTbl_Lang AS CL", "CL.CategoryUID = Category.CategoryUID AND CL.LangCode = '{$lc}'", 'left');
+            }
             $this->ReadDb->where(['Products.IsDeleted' => 0, 'Products.OrgUID' => $OrgUID]);
             $this->ReadDb->order_by('Products.ItemName', 'ASC');
             $query = $this->ReadDb->get();
@@ -605,7 +662,7 @@ class Products_model extends CI_Model {
         }
     }
 
-    public function getCategoryListPaginated(int $OrgUID, int $limit, int $offset, string $searchQuery = '', array $sortArr = []): object {
+    public function getCategoryListPaginated(int $OrgUID, int $limit, int $offset, string $searchQuery = '', array $sortArr = [], string $langCode = 'en'): object {
 
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -625,11 +682,19 @@ class Products_model extends CI_Model {
             if ($countError['code']) throw new Exception($countError['message']);
             $totalCount = (int) ($countQuery->row()->TotalCount ?? 0);
 
+            $useLang      = ($langCode !== 'en' && $langCode !== '');
+            $nameField    = $useLang
+                ? 'COALESCE(CL.Name, Category.Name) AS Name'
+                : 'Category.Name AS Name';
+            $catgDescField = $useLang
+                ? 'COALESCE(CL.Description, Category.Description) AS Description'
+                : 'Category.Description AS Description';
+
             // Data query
             $this->ReadDb->select([
                 'Category.CategoryUID AS CategoryUID',
-                'Category.Name AS Name',
-                'Category.Description AS Description',
+                $nameField,
+                $catgDescField,
                 'Category.UpdatedOn AS UpdatedOn',
                 "CONCAT(User.FirstName, ' ', User.LastName) AS UpdatedBy",
                 'COUNT(CASE WHEN Products.IsDeleted = 0 AND Products.IsActive = 1 THEN 1 END) AS ProductCount',
@@ -637,6 +702,14 @@ class Products_model extends CI_Model {
             $this->ReadDb->from('Products.CategoryTbl as Category');
             $this->ReadDb->join('Users.UserTbl as User', 'User.UserUID = Category.UpdatedBy', 'left');
             $this->ReadDb->join('Products.ProductTbl as Products', 'Products.CategoryUID = Category.CategoryUID', 'left');
+            if ($useLang) {
+                $lc = $this->ReadDb->escape($langCode);
+                $this->ReadDb->join(
+                    'Products.CategoryTbl_Lang AS CL',
+                    "CL.CategoryUID = Category.CategoryUID AND CL.LangCode = {$lc}",
+                    'left'
+                );
+            }
             $this->ReadDb->where($baseWhere);
             if (!empty($searchQuery)) { $this->ReadDb->where($searchQuery, null, false); }
             $this->ReadDb->group_by('Category.CategoryUID');
@@ -689,13 +762,15 @@ class Products_model extends CI_Model {
 
     }
 
-    public function getProductsByCategoryUID(int $CategoryUID, int $OrgUID): array {
+    public function getProductsByCategoryUID(int $CategoryUID, int $OrgUID, string $langCode = 'en'): array {
 
         try {
+            $useLang = $langCode !== 'en';
+            $lc      = $this->ReadDb->escape_str($langCode);
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select([
                 'Products.ProductUID AS ProductUID',
-                'Products.ItemName AS ItemName',
+                $useLang ? "COALESCE(PL.ItemName, Products.ItemName) AS ItemName" : 'Products.ItemName AS ItemName',
                 'Products.SellingPrice AS SellingPrice',
                 'Products.MRP AS MRP',
                 'Products.PurchasePrice AS PurchasePrice',
@@ -705,6 +780,9 @@ class Products_model extends CI_Model {
             ]);
             $this->ReadDb->from('Products.ProductTbl as Products');
             $this->ReadDb->join('Products.ProductStockTbl as ProductStock', 'ProductStock.ProductUID = Products.ProductUID', 'left');
+            if ($useLang) {
+                $this->ReadDb->join("Products.ProductTbl_Lang AS PL", "PL.ProductUID = Products.ProductUID AND PL.LangCode = '{$lc}'", 'left');
+            }
             $this->ReadDb->where([
                 'Products.CategoryUID' => (int) $CategoryUID,
                 'Products.OrgUID'      => (int) $OrgUID,
@@ -1089,7 +1167,7 @@ class Products_model extends CI_Model {
 
     }
 
-    public function getBrandListPaginated(int $orgUID, int $limit, int $offset, string $searchQuery = '', array $sortArr = []): object {
+    public function getBrandListPaginated(int $orgUID, int $limit, int $offset, string $searchQuery = '', array $sortArr = [], string $langCode = 'en'): object {
 
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -1109,12 +1187,20 @@ class Products_model extends CI_Model {
             if ($countError['code']) throw new Exception($countError['message']);
             $totalCount = (int) ($countQuery->row()->TotalCount ?? 0);
 
+            $useLang           = ($langCode !== 'en' && $langCode !== '');
+            $brandNameField    = $useLang
+                ? 'COALESCE(BL.BrandName, Brand.BrandName) AS BrandName'
+                : 'Brand.BrandName AS BrandName';
+            $brandDescField    = $useLang
+                ? 'COALESCE(BL.Description, Brand.Description) AS Description'
+                : 'Brand.Description AS Description';
+
             // Data query
             $this->ReadDb->select([
                 'Brand.BrandUID AS BrandUID',
-                'Brand.BrandName AS BrandName',
+                $brandNameField,
                 'Brand.BrandCode AS BrandCode',
-                'Brand.Description AS Description',
+                $brandDescField,
                 'Brand.UpdatedOn AS UpdatedOn',
                 "CONCAT(User.FirstName, ' ', User.LastName) AS UpdatedBy",
             ]);
@@ -1124,6 +1210,14 @@ class Products_model extends CI_Model {
             );
             $this->ReadDb->from('Products.BrandTbl as Brand');
             $this->ReadDb->join('Users.UserTbl as User', 'User.UserUID = Brand.UpdatedBy', 'left');
+            if ($useLang) {
+                $lc = $this->ReadDb->escape($langCode);
+                $this->ReadDb->join(
+                    'Products.BrandTbl_Lang AS BL',
+                    "BL.BrandUID = Brand.BrandUID AND BL.LangCode = {$lc}",
+                    'left'
+                );
+            }
             $this->ReadDb->where($baseWhere);
             if (!empty($searchQuery)) { $this->ReadDb->where($searchQuery, null, false); }
             $this->ReadDb->group_by('Brand.BrandUID');
@@ -1369,17 +1463,21 @@ class Products_model extends CI_Model {
      * @param  int $orgUID
      * @return object|null
      */
-    public function getProductProfile(int $productUID, int $orgUID): ?object
+    public function getProductProfile(int $productUID, int $orgUID, string $langCode = 'en'): ?object
     {
         try {
+            $useLang = $langCode !== 'en';
+            $lc      = $this->ReadDb->escape_str($langCode);
             $this->ReadDb->db_debug = FALSE;
 
             $this->ReadDb->select([
-                'P.ProductUID', 'P.ItemName', 'P.PartNumber', 'P.SKU', 'P.ProductType',
+                'P.ProductUID',
+                $useLang ? 'COALESCE(PTL.ItemName, P.ItemName) AS ItemName' : 'P.ItemName',
+                'P.PartNumber', 'P.SKU', 'P.ProductType',
                 'P.IsComposite', 'P.Description', 'P.SellingPrice', 'P.PurchasePrice',
                 'P.MRP', 'P.TaxPercentage', 'P.LowStockAlertAt', 'P.OpeningQuantity',
                 'P.IsRentable', 'P.NotForSale', 'P.HSNSACCode', 'P.CreatedOn', 'P.UpdatedOn',
-                'Cat.Name AS CategoryName',
+                $useLang ? 'COALESCE(CTL.Name, Cat.Name) AS CategoryName' : 'Cat.Name AS CategoryName',
                 'SelTax.Name AS SellingTaxType',
                 'PurTax.Name AS PurchaseTaxType',
                 'Unit.ShortName AS UnitShortName',
@@ -1391,6 +1489,10 @@ class Products_model extends CI_Model {
             $this->ReadDb->join('Global.ProductTaxTbl AS SelTax', 'SelTax.ProductTaxUID = P.SellingProductTaxUID', 'LEFT');
             $this->ReadDb->join('Global.ProductTaxTbl AS PurTax', 'PurTax.ProductTaxUID = P.PurchasePriceProductTaxUID', 'LEFT');
             $this->ReadDb->join('Global.PrimaryUnitTbl AS Unit', 'Unit.PrimaryUnitUID = P.PrimaryUnitUID', 'LEFT');
+            if ($useLang) {
+                $this->ReadDb->join("Products.ProductTbl_Lang AS PTL", "PTL.ProductUID = P.ProductUID AND PTL.LangCode = '{$lc}'", 'LEFT');
+                $this->ReadDb->join("Products.CategoryTbl_Lang AS CTL", "CTL.CategoryUID = P.CategoryUID AND CTL.LangCode = '{$lc}'", 'LEFT');
+            }
             $this->ReadDb->where(['P.ProductUID' => $productUID, 'P.OrgUID' => $orgUID, 'P.IsDeleted' => 0]);
             $q   = $this->ReadDb->get();
             $row = $q ? $q->row() : null;
@@ -1738,7 +1840,7 @@ class Products_model extends CI_Model {
         }
     }
 
-    public function getSizeListPaginated(int $orgUID, int $limit, int $offset, string $searchQuery = '', array $sortArr = []): object {
+    public function getSizeListPaginated(int $orgUID, int $limit, int $offset, string $searchQuery = '', array $sortArr = [], string $langCode = 'en'): object {
 
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -1756,9 +1858,17 @@ class Products_model extends CI_Model {
             if ($countError['code']) throw new Exception($countError['message']);
             $totalCount = (int) ($countQuery->row()->TotalCount ?? 0);
 
+            $useLang       = ($langCode !== 'en' && $langCode !== '');
+            $sizeNameField = $useLang
+                ? 'COALESCE(SZ.Name, Size.Name) AS SizeName'
+                : 'Size.Name AS SizeName';
+            $sizeDescField = $useLang
+                ? 'COALESCE(SZ.Description, Size.Description) AS Description'
+                : 'Size.Description AS Description';
+
             $this->ReadDb->select([
                 'Size.SizeUID      AS SizeUID',
-                'Size.Name         AS SizeName',
+                $sizeNameField,
                 'Size.SizeCode     AS SizeCode',
                 'Size.Length       AS Length',
                 'Size.Width        AS Width',
@@ -1769,7 +1879,7 @@ class Products_model extends CI_Model {
                 'Size.Weight       AS Weight',
                 'Size.DimensionUOM AS DimensionUOM',
                 'Size.WeightUOM    AS WeightUOM',
-                'Size.Description  AS Description',
+                $sizeDescField,
                 'Size.UpdatedOn    AS UpdatedOn',
                 "CONCAT(COALESCE(User.FirstName,''), ' ', COALESCE(User.LastName,'')) AS UpdatedBy",
             ]);
@@ -1779,6 +1889,10 @@ class Products_model extends CI_Model {
             );
             $this->ReadDb->from('Products.SizeTbl as Size');
             $this->ReadDb->join('Users.UserTbl as User', 'User.UserUID = Size.UpdatedBy', 'left');
+            if ($useLang) {
+                $lc = $this->ReadDb->escape_str($langCode);
+                $this->ReadDb->join("Products.SizeTbl_Lang AS SZ", "SZ.SizeUID = Size.SizeUID AND SZ.LangCode = '{$lc}'", 'left');
+            }
             $this->ReadDb->where($baseWhere);
             if (!empty($searchQuery)) { $this->ReadDb->where($searchQuery, null, false); }
             $this->ReadDb->group_by('Size.SizeUID');
@@ -1871,6 +1985,242 @@ class Products_model extends CI_Model {
             return null;
         }
 
+    }
+
+    /**
+     * Upsert a translated row into ProductTbl_Lang.
+     * LangCode 'en' is never passed — English lives in the base table only.
+     * @param int         $productUID
+     * @param string      $langCode
+     * @param string|null $itemName
+     * @param string|null $description
+     * @param int         $userUID
+     * @returns void
+     */
+    public function saveProdLangRow(int $productUID, string $langCode, ?string $itemName, ?string $description, int $userUID): void {
+        $this->load->model('dbwrite_ext_model');
+        $this->dbwrite_ext_model->execWrite(
+            "INSERT INTO Products.ProductTbl_Lang
+                (ProductUID, LangCode, ItemName, Description, CreatedBy, UpdatedBy)
+             VALUES (?, ?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE
+                ItemName=VALUES(ItemName), Description=VALUES(Description), UpdatedBy=VALUES(UpdatedBy)",
+            [$productUID, $langCode, $itemName, $description, $userUID, $userUID]
+        );
+    }
+
+    /**
+     * Upsert a translated row into BrandTbl_Lang.
+     * LangCode 'en' is never passed — English lives in the base table only.
+     * @param int         $brandUID
+     * @param string      $langCode
+     * @param string|null $brandName
+     * @param string|null $description
+     * @param int         $userUID
+     * @returns void
+     */
+    public function saveBrandLangRow(int $brandUID, string $langCode, ?string $brandName, ?string $description, int $userUID): void {
+        $this->load->model('dbwrite_ext_model');
+        $this->dbwrite_ext_model->execWrite(
+            "INSERT INTO Products.BrandTbl_Lang
+                (BrandUID, LangCode, BrandName, Description, CreatedBy, UpdatedBy)
+             VALUES (?, ?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE
+                BrandName=VALUES(BrandName), Description=VALUES(Description), UpdatedBy=VALUES(UpdatedBy)",
+            [$brandUID, $langCode, $brandName, $description, $userUID, $userUID]
+        );
+    }
+
+    /**
+     * Upsert a translated row into CategoryTbl_Lang.
+     * LangCode 'en' is never passed — English lives in the base table only.
+     * @param int         $categoryUID
+     * @param string      $langCode
+     * @param string|null $name
+     * @param string|null $description
+     * @param int         $userUID
+     * @returns void
+     */
+    public function saveCatgLangRow(int $categoryUID, string $langCode, ?string $name, ?string $description, int $userUID): void {
+        $this->load->model('dbwrite_ext_model');
+        $this->dbwrite_ext_model->execWrite(
+            "INSERT INTO Products.CategoryTbl_Lang
+                (CategoryUID, LangCode, Name, Description, CreatedBy, UpdatedBy)
+             VALUES (?, ?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE
+                Name=VALUES(Name), Description=VALUES(Description), UpdatedBy=VALUES(UpdatedBy)",
+            [$categoryUID, $langCode, $name, $description, $userUID, $userUID]
+        );
+    }
+
+    /**
+     * Upsert a Tamil (or other non-English) translation row for a Size.
+     * @param int         $sizeUID
+     * @param string      $langCode
+     * @param string|null $name
+     * @param string|null $description
+     * @param int         $userUID
+     * @returns void
+     */
+    public function saveSizeLangRow(int $sizeUID, string $langCode, ?string $name, ?string $description, int $userUID): void {
+        $this->load->model('dbwrite_ext_model');
+        $this->dbwrite_ext_model->execWrite(
+            "INSERT INTO Products.SizeTbl_Lang
+                (SizeUID, LangCode, Name, Description, CreatedBy, UpdatedBy)
+             VALUES (?, ?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE
+                Name=VALUES(Name), Description=VALUES(Description), UpdatedBy=VALUES(UpdatedBy)",
+            [$sizeUID, $langCode, $name, $description, $userUID, $userUID]
+        );
+    }
+
+    /**
+     * Returns OpeningQuantity and ProductType for a single product.
+     * @param int $productUID
+     * @returns object|null
+     */
+    public function getProductTypeAndOpeningQty(int $productUID): ?object {
+        try {
+            $query = $this->ReadDb->query(
+                'SELECT OpeningQuantity, ProductType FROM Products.ProductTbl
+                  WHERE ProductUID = ? LIMIT 1',
+                [$productUID]
+            );
+            return $query ? $query->row() : null;
+        } catch (Exception $e) {
+            notifyError('Products_model::getProductTypeAndOpeningQty', $e);
+            return null;
+        }
+    }
+
+    /**
+     * Returns available serial numbers for a product.
+     * @param int $orgUID
+     * @param int $productUID
+     * @returns array
+     */
+    public function getAvailableSerialNumbers(int $orgUID, int $productUID): array {
+        try {
+            $query = $this->ReadDb->query(
+                'SELECT SerialNumber FROM Transaction.ProductSerialsTbl
+                  WHERE OrgUID = ? AND ProductUID = ? AND Status = ? AND IsDeleted = 0
+                  ORDER BY SerialNumber ASC',
+                [$orgUID, $productUID, 'Available']
+            );
+            return $query ? $query->result() : [];
+        } catch (Exception $e) {
+            notifyError('Products_model::getAvailableSerialNumbers', $e);
+            return [];
+        }
+    }
+
+    /**
+     * Returns attachment count for an entity (used by legacy-image migration check).
+     * @param string $entityType
+     * @param int    $entityUID
+     * @param int    $orgUID
+     * @returns int
+     */
+    public function getEntityAttachmentCount(string $entityType, int $entityUID, int $orgUID): int {
+        try {
+            $query = $this->ReadDb->query(
+                "SELECT COUNT(*) AS cnt FROM Products.EntityAttachmentsTbl
+                  WHERE EntityType = ? AND EntityUID = ? AND OrgUID = ? AND IsDeleted = 0",
+                [$entityType, $entityUID, $orgUID]
+            );
+            return $query ? (int)($query->row()->cnt ?? 0) : 0;
+        } catch (Exception $e) {
+            notifyError('Products_model::getEntityAttachmentCount', $e);
+            return 0;
+        }
+    }
+
+    /**
+     * Returns sort/count/totalSize stats for entity attachments (used before uploading new files).
+     * @param string $entityType
+     * @param int    $entityUID
+     * @param int    $orgUID
+     * @returns object|null
+     */
+    public function getEntityAttachmentSortStats(string $entityType, int $entityUID, int $orgUID): ?object {
+        try {
+            $query = $this->ReadDb->query(
+                "SELECT COALESCE(MAX(SortOrder), 0) AS maxSort, COUNT(*) AS cnt, COALESCE(SUM(FileSize), 0) AS totalSize
+                   FROM Products.EntityAttachmentsTbl
+                  WHERE EntityType = ? AND EntityUID = ? AND OrgUID = ? AND IsDeleted = 0",
+                [$entityType, $entityUID, $orgUID]
+            );
+            return $query ? $query->row() : null;
+        } catch (Exception $e) {
+            notifyError('Products_model::getEntityAttachmentSortStats', $e);
+            return null;
+        }
+    }
+
+    /**
+     * Returns opening quantity + ledger IN/OUT sums for a single product.
+     * @param int $productUID
+     * @param int $orgUID
+     * @returns object|null  (OpeningQuantity, SumIn, SumOut)
+     */
+    public function getProductStockData(int $productUID, int $orgUID): ?object {
+        try {
+            $inv = $this->ReadDb->query(
+                'SELECT OpeningQuantity FROM Products.ProductTbl
+                  WHERE ProductUID = ? AND OrgUID = ? AND IsDeleted = 0 LIMIT 1',
+                [$productUID, $orgUID]
+            );
+            if (!$inv || $inv->num_rows() === 0) return null;
+            $invRow = $inv->row();
+
+            $ledger = $this->ReadDb->query(
+                "SELECT
+                     COALESCE(SUM(CASE WHEN MovementType = 'IN'  THEN Quantity ELSE 0 END), 0) AS SumIn,
+                     COALESCE(SUM(CASE WHEN MovementType = 'OUT' THEN Quantity ELSE 0 END), 0) AS SumOut
+                   FROM Products.StockLedgerTbl
+                  WHERE ProductUID = ? AND OrgUID = ? AND IsDeleted = 0",
+                [$productUID, $orgUID]
+            );
+            $ledgerRow = $ledger ? $ledger->row() : null;
+
+            $result                  = new stdClass();
+            $result->OpeningQuantity = (float)($invRow->OpeningQuantity ?? 0);
+            $result->SumIn           = (float)($ledgerRow->SumIn  ?? 0);
+            $result->SumOut          = (float)($ledgerRow->SumOut ?? 0);
+            return $result;
+        } catch (Exception $e) {
+            notifyError('Products_model::getProductStockData', $e);
+            return null;
+        }
+    }
+
+    /**
+     * Returns opening qty + ledger IN/OUT for all non-deleted products in an org.
+     * @param int $orgUID
+     * @returns array
+     */
+    public function getAllProductsStockData(int $orgUID): array {
+        try {
+            $query = $this->ReadDb->query(
+                "SELECT
+                     p.ProductUID,
+                     COALESCE(p.OpeningQuantity, 0) AS OpeningQty,
+                     COALESCE(SUM(CASE WHEN sl.MovementType = 'IN'  THEN sl.Quantity ELSE 0 END), 0) AS SumIn,
+                     COALESCE(SUM(CASE WHEN sl.MovementType = 'OUT' THEN sl.Quantity ELSE 0 END), 0) AS SumOut
+                 FROM Products.ProductTbl p
+                 LEFT JOIN Products.StockLedgerTbl sl
+                        ON sl.ProductUID = p.ProductUID
+                       AND sl.OrgUID    = p.OrgUID
+                       AND sl.IsDeleted = 0
+                 WHERE p.OrgUID = ? AND p.IsDeleted = 0
+                 GROUP BY p.ProductUID, p.OpeningQuantity",
+                [$orgUID]
+            );
+            return $query ? $query->result() : [];
+        } catch (Exception $e) {
+            notifyError('Products_model::getAllProductsStockData', $e);
+            return [];
+        }
     }
 
 }

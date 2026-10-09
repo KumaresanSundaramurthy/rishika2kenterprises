@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Storage extends MY_Controller {
 
@@ -30,13 +30,36 @@ class Storage extends MY_Controller {
         return implode(' AND ', $parts);
     }
 
-    private function renderStorageList(int $orgUID, array $filter, int $pageNo, int $limit): object {
+    /**
+     * @param int         $storageUID
+     * @param string      $origName
+     * @param string      $typedLangName
+     * @param string|null $origShortName
+     * @param string      $typedLangShort
+     * @param string|null $origDescription
+     * @param string      $typedLangDesc
+     * @param int         $userUID
+     * @returns void
+     */
+    private function _triggerStorageLangSave(int $storageUID, string $origName, string $typedLangName, ?string $origShortName, string $typedLangShort, ?string $origDescription, string $typedLangDesc, int $userUID): void {
+        register_shutdown_function(function () use ($storageUID, $origName, $typedLangName, $origShortName, $typedLangShort, $origDescription, $typedLangDesc, $userUID) {
+            if (function_exists('fastcgi_finish_request')) fastcgi_finish_request();
+            ignore_user_abort(true);
+            $tamilName  = $typedLangName  === 'ta' ? $origName      : translateViaMymemory($origName, 'en', 'ta');
+            $tamilShort = $typedLangShort === 'ta' ? $origShortName  : ($origShortName  !== null ? translateViaMymemory($origShortName,  'en', 'ta') : null);
+            $tamilDesc  = $typedLangDesc  === 'ta' ? $origDescription : ($origDescription !== null ? translateViaMymemory($origDescription, 'en', 'ta') : null);
+            $this->load->model('storage_model');
+            $this->storage_model->saveStorageLangRow($storageUID, 'ta', $tamilName, $tamilShort, $tamilDesc, $userUID);
+        });
+    }
+
+    private function renderStorageList(int $orgUID, array $filter, int $pageNo, int $limit, string $langCode = 'en'): object {
         $offset    = $pageNo > 0 ? ($pageNo - 1) * $limit : 0;
         $where     = $this->buildStorageFilter($filter, $orgUID);
         $directQ   = $this->buildStorageDirectQuery($filter);
 
         $this->load->model('storage_model');
-        $data  = $this->storage_model->getStorageDetails($where, $limit, $offset, $directQ);
+        $data  = $this->storage_model->getStorageDetails($where, $limit, $offset, $directQ, $langCode);
         $total = $this->storage_model->getTotalStorageCount($where, $directQ);
 
         $rowHtml = $this->load->view('storage/list/storage_list', [
@@ -72,7 +95,7 @@ class Storage extends MY_Controller {
             $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
             $limit  = (int) ($GeneralSettings->RowLimit ?? 10);
 
-            $rendered = $this->renderStorageList($orgUID, [], 1, $limit);
+            $rendered = $this->renderStorageList($orgUID, [], 1, $limit, $this->_uiLang());
 
             $this->load->model('global_model');
             $this->pageData['StorageTypeInfo'] = $this->global_model->getStorageTypeData()->Data ?? [];
@@ -98,7 +121,7 @@ class Storage extends MY_Controller {
             $limit   = (int) ($this->input->post('RowLimit') ?? $this->pageData['JwtData']->GenSettings->RowLimit ?? 10);
             $filter  = $this->input->post('Filter') ?? [];
 
-            $rendered = $this->renderStorageList($orgUID, $filter, (int)$pageNo, $limit);
+            $rendered = $this->renderStorageList($orgUID, $filter, (int)$pageNo, $limit, $this->_uiLang());
 
             $this->EndReturnData->Error      = FALSE;
             $this->EndReturnData->List       = $rendered->List;
@@ -121,7 +144,7 @@ class Storage extends MY_Controller {
         try {
 
             $this->load->model('storage_model');
-            $getAllStorage['Storage'] = $this->storage_model->getStorageDetails([]);
+            $getAllStorage['Storage'] = $this->storage_model->getStorageDetails([], 0, 0, '', $this->_uiLang());
             $this->EndReturnData->HtmlData = $this->load->view('products/items/storagefilter', $getAllStorage, TRUE);
 
             $this->EndReturnData->Error   = FALSE;
@@ -167,13 +190,26 @@ class Storage extends MY_Controller {
                 throw new Exception($ErrorInForm);
             }
 
-            $this->load->model('dbwrite_model');
+            $origName         = getPostValue($postData, 'Name');
+            $typedLangName    = detectTextLang($origName);
+            if ($typedLangName === 'ta') $postData['Name'] = translateViaMymemory($origName, 'ta', 'en');
+            $origShortName    = getPostValue($postData, 'ShortName') ?: null;
+            $typedLangShort   = $origShortName !== null ? detectTextLang($origShortName) : 'en';
+            if ($typedLangShort === 'ta' && $origShortName !== null) $postData['ShortName'] = translateViaMymemory($origShortName, 'ta', 'en');
+            $origDesc         = getPostValue($postData, 'Description') ?: null;
+            $typedLangDesc    = $origDesc !== null ? detectTextLang($origDesc) : 'en';
+            if ($typedLangDesc === 'ta' && $origDesc !== null) $postData['Description'] = translateViaMymemory($origDesc, 'ta', 'en');
+
+            $userUID = (int) $this->pageData['JwtData']->User->UserUID;
+
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $InsertDataResp = $this->dbwrite_model->insertData('Products', 'StorageTbl', $this->buildStorageFormData($postData, true));
             if ($InsertDataResp->Error) {
                 throw new Exception($InsertDataResp->Message);
             }
 
             $StorageUID = $InsertDataResp->ID;
+            $this->_triggerStorageLangSave($StorageUID, $origName, $typedLangName, $origShortName, $typedLangShort, $origDesc, $typedLangDesc, $userUID);
 
             if (isset($_FILES['UploadImage'])) {
                 $UploadResp = $this->globalservice->fileUploadService($_FILES['UploadImage'], 'products/storage/images/', 'Image', ['Products', 'StorageTbl', ['StorageUID' => $StorageUID]]);
@@ -187,7 +223,7 @@ class Storage extends MY_Controller {
             $pageNo  = (int) ($this->input->post('PageNo') ?? 1);
             $filter  = $this->input->post('Filter') ?? [];
 
-            $rendered = $this->renderStorageList($orgUID, $filter, $pageNo, $limit);
+            $rendered = $this->renderStorageList($orgUID, $filter, $pageNo, $limit, $this->_uiLang());
 
             $this->EndReturnData->Error      = FALSE;
             $this->EndReturnData->Message    = 'Created Successfully';
@@ -217,16 +253,31 @@ class Storage extends MY_Controller {
             }
 
             $StorageUID       = getPostValue($postData, 'StorageUID');
+
+            $origName         = getPostValue($postData, 'Name');
+            $typedLangName    = detectTextLang($origName);
+            if ($typedLangName === 'ta') $postData['Name'] = translateViaMymemory($origName, 'ta', 'en');
+            $origShortName    = getPostValue($postData, 'ShortName') ?: null;
+            $typedLangShort   = $origShortName !== null ? detectTextLang($origShortName) : 'en';
+            if ($typedLangShort === 'ta' && $origShortName !== null) $postData['ShortName'] = translateViaMymemory($origShortName, 'ta', 'en');
+            $origDesc         = getPostValue($postData, 'Description') ?: null;
+            $typedLangDesc    = $origDesc !== null ? detectTextLang($origDesc) : 'en';
+            if ($typedLangDesc === 'ta' && $origDesc !== null) $postData['Description'] = translateViaMymemory($origDesc, 'ta', 'en');
+
+            $userUID          = (int) $this->pageData['JwtData']->User->UserUID;
+
             $storageFormData  = $this->buildStorageFormData($postData, false);
             if (!empty($postData['ImageRemoved'])) {
                 $storageFormData['Image'] = NULL;
             }
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $updateDataResp = $this->dbwrite_model->updateData('Products', 'StorageTbl', $storageFormData, ['StorageUID' => $StorageUID]);
             if ($updateDataResp->Error) {
                 throw new Exception($updateDataResp->Message);
             }
+
+            $this->_triggerStorageLangSave((int)$StorageUID, $origName, $typedLangName, $origShortName, $typedLangShort, $origDesc, $typedLangDesc, $userUID);
 
             if (isset($_FILES['UploadImage'])) {
                 $UploadResp = $this->globalservice->fileUploadService($_FILES['UploadImage'], 'products/storage/images/', 'Image', ['Products', 'StorageTbl', ['StorageUID' => $StorageUID]]);
@@ -240,7 +291,7 @@ class Storage extends MY_Controller {
             $pageNo  = (int) ($this->input->post('PageNo') ?? 1);
             $filter  = $this->input->post('Filter') ?? [];
 
-            $rendered = $this->renderStorageList($orgUID, $filter, $pageNo, $limit);
+            $rendered = $this->renderStorageList($orgUID, $filter, $pageNo, $limit, $this->_uiLang());
 
             $this->EndReturnData->Error      = FALSE;
             $this->EndReturnData->Message    = 'Updated Successfully';
@@ -273,7 +324,7 @@ class Storage extends MY_Controller {
                 throw new Exception('Storage is linked to Product.');
             }
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $UpdateResp = $this->dbwrite_model->updateData('Products', 'StorageTbl', $this->globalservice->baseDeleteArrayDetails(), ['StorageUID' => $StorageUID]);
             if ($UpdateResp->Error) {
                 throw new Exception($UpdateResp->Message);
@@ -284,7 +335,7 @@ class Storage extends MY_Controller {
             $pageNo  = (int) ($this->input->post('PageNo') ?? 1);
             $filter  = $this->input->post('Filter') ?? [];
 
-            $rendered = $this->renderStorageList($orgUID, $filter, $pageNo, $limit);
+            $rendered = $this->renderStorageList($orgUID, $filter, $pageNo, $limit, $this->_uiLang());
 
             $this->EndReturnData->Error      = FALSE;
             $this->EndReturnData->Message    = 'Deleted Successfully';
@@ -317,7 +368,7 @@ class Storage extends MY_Controller {
                 throw new Exception('Storage is linked to Product.');
             }
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $UpdateResp = $this->dbwrite_model->updateData('Products', 'StorageTbl', $this->globalservice->baseDeleteArrayDetails(), [], ['StorageUID' => $StorageUIDs]);
             if ($UpdateResp->Error) {
                 throw new Exception($UpdateResp->Message);
@@ -328,7 +379,7 @@ class Storage extends MY_Controller {
             $pageNo  = (int) ($this->input->post('PageNo') ?? 1);
             $filter  = $this->input->post('Filter') ?? [];
 
-            $rendered = $this->renderStorageList($orgUID, $filter, $pageNo, $limit);
+            $rendered = $this->renderStorageList($orgUID, $filter, $pageNo, $limit, $this->_uiLang());
 
             $this->EndReturnData->Error      = FALSE;
             $this->EndReturnData->Message    = 'Deleted Successfully';

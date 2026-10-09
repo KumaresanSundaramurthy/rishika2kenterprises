@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Expenses extends MY_Controller {
 
@@ -10,7 +10,7 @@ class Expenses extends MY_Controller {
         parent::__construct();
         $this->load->helper('transaction');
         $this->load->model('expenses_model');
-        $this->load->model('dbwrite_model');
+        $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
         $this->load->model('transactions_model');
     }
 

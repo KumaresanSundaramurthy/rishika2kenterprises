@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 /**
  * PackingLists — standalone controller for packing list documents.
@@ -76,7 +76,7 @@ class Packinglists extends MY_Controller {
     public function save(): void {
         $this->EndReturnData = new stdClass();
         try {
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             $post     = $this->input->post();

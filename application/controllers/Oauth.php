@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 /**
  * Oauth — Social login controller (Google & Facebook OAuth 2.0).
@@ -244,13 +244,8 @@ class Oauth extends CI_Controller {
 
         // Check org email verification — skip for Google/social OAuth (provider already verified the email)
         if ($provider === 'LOCAL') {
-            $ReadDb = $this->load->database('ReadDB', TRUE);
-            $ReadDb->db_debug = FALSE;
-            $org = $ReadDb->select('IsEmailVerified, EmailAddress')
-                ->from('Organisation.OrganisationTbl')
-                ->where('OrgUID', (int)$user->UserOrgUID)
-                ->limit(1)
-                ->get()->row();
+            $this->load->model('organisation_model');
+            $org = $this->organisation_model->getOrgVerificationStatus((int)$user->UserOrgUID);
             if ($org && !(int)(bool)$org->IsEmailVerified) {
                 $this->session->set_flashdata('unverified_org_email', strtolower(trim($org->EmailAddress ?? '')));
                 throw new ValidationException('Your organisation email address has not been verified. Please check your inbox for the verification link.');
@@ -290,7 +285,7 @@ class Oauth extends CI_Controller {
         }
 
         // Update user record
-        $this->load->model('dbwrite_model');
+        $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
         $deviceInfo = $this->_getDeviceInfo();
         $this->dbwrite_model->updateData('Users', 'UserTbl', [
             'LastLogin'           => date('Y-m-d H:i:s'),
@@ -425,7 +420,7 @@ class Oauth extends CI_Controller {
      * =================================================================== */
     private function _logOAuthSuccess($userData, $provider, $email) {
         try {
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $deviceInfo = $this->_getDeviceInfo();
             $result = $this->dbwrite_model->insertData('Security', 'UserLoginAudit', [
                 'UserUID'           => $userData->UserUID,

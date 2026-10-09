@@ -123,8 +123,7 @@ class Roles_model extends CI_Model {
 
     public function saveRolePermissions(int $RoleUID, array $PostData, int $UserUID): void {
 
-        $this->load->model('dbwrite_model');
-        $db = $this->dbwrite_model->getWriteDb();
+        $this->load->model('dbwrite_ext_model');
         $now     = date('Y-m-d H:i:s');
 
         // ── Main menus ──────────────────────────────────────────────────────────
@@ -152,7 +151,7 @@ class Roles_model extends CI_Model {
                 $mmBinds[] = $now;     // CreatedOn
             }
             if (!empty($mmVals)) {
-                $db->query(
+                $this->dbwrite_ext_model->execWrite(
                     "INSERT INTO UserRole.RoleMainMenusTbl
                         (RoleUID, MainMenuUID, CanView, CanCreate, CanEdit, CanDelete, Sorting, IsActive, IsDeleted, UpdatedBy, UpdatedOn, CreatedBy, CreatedOn)
                      VALUES " . implode(',', $mmVals) . "
@@ -209,7 +208,7 @@ class Roles_model extends CI_Model {
                 $smBinds[] = $now;     // CreatedOn
             }
             if (!empty($smVals)) {
-                $db->query(
+                $this->dbwrite_ext_model->execWrite(
                     "INSERT INTO UserRole.RoleSubMenusTbl
                         (RoleUID, RoleMainMenuUID, SubMenuUID, CanView, CanCreate, CanEdit, CanDelete, Sorting, IsActive, IsDeleted, UpdatedBy, UpdatedOn, CreatedBy, CreatedOn)
                      VALUES " . implode(',', $smVals) . "
@@ -263,6 +262,27 @@ class Roles_model extends CI_Model {
         $query = $this->ReadDb->get();
         return $query->num_rows() > 0;
 
+    }
+
+    /**
+     * Returns the first RoleUID for the org (used as the admin role when applying plan changes).
+     * @param int $orgUID
+     * @returns int  0 if not found
+     */
+    public function getFirstRoleUID(int $orgUID): int {
+        try {
+            $query = $this->ReadDb->select('RoleUID')
+                ->from('UserRole.RolesTbl')
+                ->where('OrgUID',    $orgUID)
+                ->where('IsDeleted', 0)
+                ->order_by('RoleUID', 'ASC')
+                ->limit(1)
+                ->get();
+            return $query && $query->num_rows() > 0 ? (int)$query->row()->RoleUID : 0;
+        } catch (Exception $e) {
+            notifyError('Roles_model::getFirstRoleUID', $e);
+            return 0;
+        }
     }
 
 }

@@ -759,20 +759,17 @@ class Signup_model extends CI_Model {
             }
 
             /* ── Step 2: generate token and update DB ─────────────────────── */
-            $this->load->model('dbwrite_model');
-            $token   = bin2hex(random_bytes(32));
-            $expiry  = date('Y-m-d H:i:s', strtotime('+24 hours'));
-            $WriteDb = $this->dbwrite_model->getWriteDb();
-            $WriteDb->db_debug = FALSE;
+            $this->load->model('dbwrite_ext_model');
+            $token  = bin2hex(random_bytes(32));
+            $expiry = date('Y-m-d H:i:s', strtotime('+24 hours'));
 
-            $updated = $WriteDb->where('OrgUID', $orgUID)->update('Organisation.OrganisationTbl', [
-                'EmailVerifyToken'  => $token,
-                'EmailVerifyExpiry' => $expiry,
-            ]);
+            $affected = $this->dbwrite_ext_model->execWriteAffected(
+                "UPDATE Organisation.OrganisationTbl SET EmailVerifyToken = ?, EmailVerifyExpiry = ? WHERE OrgUID = ?",
+                [$token, $expiry, $orgUID]
+            );
 
-            if (!$updated) {
-                $dbErr = $WriteDb->error();
-                throw new Exception('DB update failed for OrgUID=' . $orgUID . '. ' . ($dbErr['message'] ?? 'Unknown DB error'));
+            if ($affected === 0) {
+                throw new Exception('DB update failed for OrgUID=' . $orgUID . ' — no rows affected');
             }
 
             /* ── Step 3: build and send email via Brevo ───────────────────── */
@@ -940,25 +937,27 @@ class Signup_model extends CI_Model {
         }
 
         /* 6. Batch-update all 4 tables */
-        $this->load->model('dbwrite_model');
-        $writeDb = $this->dbwrite_model->getWriteDb();
-        $writeDb->db_debug = FALSE;
+        $this->load->model('dbwrite_ext_model');
 
         if (!empty($activeMMList)) {
-            $writeDb->where_in('MainMenuUID', $activeMMList)->update('Modules.MainMenusTbl',      ['IsActive' => 1]);
-            $writeDb->where_in('MainMenuUID', $activeMMList)->update('UserRole.RoleMainMenusTbl', ['IsActive' => 1]);
+            $ph = implode(',', array_fill(0, count($activeMMList), '?'));
+            $this->dbwrite_ext_model->execWrite("UPDATE Modules.MainMenusTbl SET IsActive=1 WHERE MainMenuUID IN ({$ph})", $activeMMList);
+            $this->dbwrite_ext_model->execWrite("UPDATE UserRole.RoleMainMenusTbl SET IsActive=1 WHERE MainMenuUID IN ({$ph})", $activeMMList);
         }
         if (!empty($inactiveMMList)) {
-            $writeDb->where_in('MainMenuUID', $inactiveMMList)->update('Modules.MainMenusTbl',      ['IsActive' => 0]);
-            $writeDb->where_in('MainMenuUID', $inactiveMMList)->update('UserRole.RoleMainMenusTbl', ['IsActive' => 0]);
+            $ph = implode(',', array_fill(0, count($inactiveMMList), '?'));
+            $this->dbwrite_ext_model->execWrite("UPDATE Modules.MainMenusTbl SET IsActive=0 WHERE MainMenuUID IN ({$ph})", $inactiveMMList);
+            $this->dbwrite_ext_model->execWrite("UPDATE UserRole.RoleMainMenusTbl SET IsActive=0 WHERE MainMenuUID IN ({$ph})", $inactiveMMList);
         }
         if (!empty($activeSMUIDs)) {
-            $writeDb->where_in('SubMenuUID', $activeSMUIDs)->update('Modules.SubMenusTbl',      ['IsActive' => 1]);
-            $writeDb->where_in('SubMenuUID', $activeSMUIDs)->update('UserRole.RoleSubMenusTbl', ['IsActive' => 1]);
+            $ph = implode(',', array_fill(0, count($activeSMUIDs), '?'));
+            $this->dbwrite_ext_model->execWrite("UPDATE Modules.SubMenusTbl SET IsActive=1 WHERE SubMenuUID IN ({$ph})", $activeSMUIDs);
+            $this->dbwrite_ext_model->execWrite("UPDATE UserRole.RoleSubMenusTbl SET IsActive=1 WHERE SubMenuUID IN ({$ph})", $activeSMUIDs);
         }
         if (!empty($inactiveSMUIDs)) {
-            $writeDb->where_in('SubMenuUID', $inactiveSMUIDs)->update('Modules.SubMenusTbl',      ['IsActive' => 0]);
-            $writeDb->where_in('SubMenuUID', $inactiveSMUIDs)->update('UserRole.RoleSubMenusTbl', ['IsActive' => 0]);
+            $ph = implode(',', array_fill(0, count($inactiveSMUIDs), '?'));
+            $this->dbwrite_ext_model->execWrite("UPDATE Modules.SubMenusTbl SET IsActive=0 WHERE SubMenuUID IN ({$ph})", $inactiveSMUIDs);
+            $this->dbwrite_ext_model->execWrite("UPDATE UserRole.RoleSubMenusTbl SET IsActive=0 WHERE SubMenuUID IN ({$ph})", $inactiveSMUIDs);
         }
 
         $out->SectorUID    = $sectorUID;

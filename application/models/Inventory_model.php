@@ -547,12 +547,22 @@ class Inventory_model extends CI_Model {
 
     // ── Product search (for timeline filter) ─────────────────────────────────
 
-    public function searchProducts(int $orgUID, string $term = ''): array {
+    public function searchProducts(int $orgUID, string $term = '', string $langCode = 'en'): array {
 
+        $useLang = $langCode !== 'en';
+        $lc      = $this->ReadDb->escape_str($langCode);
         $this->ReadDb->db_debug = FALSE;
-        $this->ReadDb->select('p.ProductUID, p.ItemName, cat.Name AS CategoryName');
+        $this->ReadDb->select([
+            'p.ProductUID',
+            $useLang ? 'COALESCE(PL.ItemName, p.ItemName) AS ItemName' : 'p.ItemName',
+            $useLang ? 'COALESCE(CL.Name, cat.Name) AS CategoryName' : 'cat.Name AS CategoryName',
+        ]);
         $this->ReadDb->from('Products.ProductTbl p');
         $this->ReadDb->join('Products.CategoryTbl cat', 'cat.CategoryUID = p.CategoryUID AND cat.IsDeleted = 0', 'left');
+        if ($useLang) {
+            $this->ReadDb->join("Products.ProductTbl_Lang PL", "PL.ProductUID = p.ProductUID AND PL.LangCode = '{$lc}'", 'left');
+            $this->ReadDb->join("Products.CategoryTbl_Lang CL", "CL.CategoryUID = cat.CategoryUID AND CL.LangCode = '{$lc}'", 'left');
+        }
         $this->ReadDb->where(['p.OrgUID' => (int)$orgUID, 'p.IsDeleted' => 0, 'p.IsActive' => 1, 'p.ProductType' => 'Product']);
         $this->ReadDb->where('NOT EXISTS (SELECT 1 FROM Products.ProductBOMTbl b WHERE b.ParentProductUID = p.ProductUID AND b.IsDeleted = 0)', null, false);
         if ($term) {

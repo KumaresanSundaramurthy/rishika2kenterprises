@@ -174,15 +174,18 @@ class Pricelists_model extends CI_Model {
      * @param int    $limit
      * @param int    $offset
      * @param array  $filter  keys: SearchAllData, StatusFilter (array), AssignedToFilter (array), ScopeFilter (array)
+     * @param string $langCode
      * @return object  ->rows (array), ->totalCount (int)
      */
-    public function getPriceListPaginated(int $orgUID, int $limit, int $offset, array $filter = []): object {
+    public function getPriceListPaginated(int $orgUID, int $limit, int $offset, array $filter = [], string $langCode = 'en'): object {
 
         $result             = new stdClass();
         $result->rows       = [];
         $result->totalCount = 0;
         try {
             $this->ReadDb->db_debug = false;
+            $useLang   = $langCode !== 'en';
+            $lc        = $this->ReadDb->escape($langCode);
             $baseWhere = ['PL.OrgUID' => $orgUID, 'PL.IsDeleted' => 0];
             $search    = trim($filter['SearchAllData'] ?? '');
 
@@ -197,14 +200,21 @@ class Pricelists_model extends CI_Model {
             $cq = $this->ReadDb->get();
             $result->totalCount = (int) ($cq ? $cq->row()->TotalCount : 0);
 
+            $nameField = $useLang
+                ? "COALESCE(PLL.Name, PL.Name) AS Name"
+                : "PL.Name AS Name";
+
             $this->ReadDb->select([
-                'PL.PriceListUID', 'PL.Name', 'PL.AssignedToType', 'PL.Scope',
+                'PL.PriceListUID', $nameField, 'PL.AssignedToType', 'PL.Scope',
                 'PL.GlobalBasedOn', 'PL.Status', 'PL.Priority',
                 'PL.ValidFrom', 'PL.ValidTo', 'PL.UpdatedAt',
                 "CONCAT(U.FirstName, ' ', U.LastName) AS UpdatedByName",
             ]);
             $this->ReadDb->from('Products.PriceListTbl PL');
             $this->ReadDb->join('Users.UserTbl U', 'U.UserUID = PL.UpdatedBy', 'left');
+            if ($useLang) {
+                $this->ReadDb->join("Products.PriceListTbl_Lang AS PLL", "PLL.PriceListUID = PL.PriceListUID AND PLL.LangCode = {$lc}", 'left');
+            }
             $this->ReadDb->where($baseWhere);
             if ($search !== '') $this->ReadDb->like('PL.Name', $search);
             if (!empty($filter['StatusFilter']))       $this->ReadDb->where_in('PL.Status',         array_map('intval', (array) $filter['StatusFilter']));
@@ -254,11 +264,20 @@ class Pricelists_model extends CI_Model {
      * @param int $priceListUID
      * @return object|null
      */
-    public function getByUID(int $orgUID, int $priceListUID): ?object {
+    public function getByUID(int $orgUID, int $priceListUID, string $langCode = 'en'): ?object {
+        $useLang = $langCode !== 'en';
+        $lc      = $this->ReadDb->escape($langCode);
         $this->ReadDb->db_debug = false;
-        $this->ReadDb->select('*');
-        $this->ReadDb->from('Products.PriceListTbl');
-        $this->ReadDb->where(['OrgUID' => $orgUID, 'PriceListUID' => $priceListUID, 'IsDeleted' => 0]);
+        if ($useLang) {
+            $this->ReadDb->select('PL.*, COALESCE(PLL.Name, PL.Name) AS Name, COALESCE(PLL.Description, PL.Description) AS Description', false);
+            $this->ReadDb->from('Products.PriceListTbl PL');
+            $this->ReadDb->join("Products.PriceListTbl_Lang AS PLL", "PLL.PriceListUID = PL.PriceListUID AND PLL.LangCode = {$lc}", 'left');
+            $this->ReadDb->where(['PL.OrgUID' => $orgUID, 'PL.PriceListUID' => $priceListUID, 'PL.IsDeleted' => 0]);
+        } else {
+            $this->ReadDb->select('*');
+            $this->ReadDb->from('Products.PriceListTbl');
+            $this->ReadDb->where(['OrgUID' => $orgUID, 'PriceListUID' => $priceListUID, 'IsDeleted' => 0]);
+        }
         $q = $this->ReadDb->get();
         return $q ? ($q->row() ?: null) : null;
     }
@@ -270,8 +289,10 @@ class Pricelists_model extends CI_Model {
      * @param int $priceListUID
      * @return object|null  has ->Assignments (array), ->Discounts (array), ->Rules (array)
      */
-    public function getForEdit(int $orgUID, int $priceListUID): ?object {
-        $header = $this->getByUID($orgUID, $priceListUID);
+    public function getForEdit(int $orgUID, int $priceListUID, string $langCode = 'en'): ?object {
+        $useLang = $langCode !== 'en';
+        $lc      = $this->ReadDb->escape($langCode);
+        $header  = $this->getByUID($orgUID, $priceListUID, $langCode);
         if (!$header) return null;
 
         $result = clone $header;
@@ -289,9 +310,11 @@ class Pricelists_model extends CI_Model {
         $q = $this->ReadDb->get();
         $result->Discounts = $q ? $q->result() : [];
 
+        $productNameCol = $useLang ? 'COALESCE(PTL.ItemName, P.ItemName) AS ProductName' : 'P.ItemName AS ProductName';
+        $brandNameCol   = $useLang ? 'COALESCE(BL.BrandName, b.BrandName, \'\') AS BrandName' : 'COALESCE(b.BrandName, \'\') AS BrandName';
+        $sizeNameCol    = $useLang ? 'COALESCE(SZL.Name, sz.Name, \'\') AS SizeName' : 'COALESCE(sz.Name, \'\') AS SizeName';
         $this->ReadDb->select(
-            'R.ProductUID, R.VariantUID, P.ItemName AS ProductName, R.MinQty, R.MaxQty, R.CustomerTypeUID, R.Price,'
-            . ' COALESCE(b.BrandName, \'\') AS BrandName, COALESCE(sz.Name, \'\') AS SizeName',
+            "R.ProductUID, R.VariantUID, {$productNameCol}, R.MinQty, R.MaxQty, R.CustomerTypeUID, R.Price, {$brandNameCol}, {$sizeNameCol}",
             false
         );
         $this->ReadDb->from('Products.PriceListRuleTbl R');
@@ -299,6 +322,11 @@ class Pricelists_model extends CI_Model {
         $this->ReadDb->join('Products.ProductVariantTbl pv', 'pv.VariantUID = R.VariantUID AND pv.OrgUID = R.OrgUID', 'left');
         $this->ReadDb->join('Products.BrandTbl b',           'b.BrandUID = pv.BrandUID AND pv.BrandUID > 0', 'left');
         $this->ReadDb->join('Products.SizeTbl sz',           'sz.SizeUID = pv.SizeUID AND pv.SizeUID > 0', 'left');
+        if ($useLang) {
+            $this->ReadDb->join("Products.ProductTbl_Lang AS PTL", "PTL.ProductUID = R.ProductUID AND PTL.LangCode = {$lc}", 'left');
+            $this->ReadDb->join("Products.BrandTbl_Lang AS BL",   "BL.BrandUID = pv.BrandUID AND pv.BrandUID > 0 AND BL.LangCode = {$lc}", 'left');
+            $this->ReadDb->join("Products.SizeTbl_Lang AS SZL",   "SZL.SizeUID = pv.SizeUID AND pv.SizeUID > 0 AND SZL.LangCode = {$lc}", 'left');
+        }
         $this->ReadDb->where(['R.PriceListUID' => $priceListUID, 'R.OrgUID' => $orgUID, 'R.IsDeleted' => 0]);
         $this->ReadDb->order_by('R.ProductUID', 'ASC');
         $this->ReadDb->order_by('R.VariantUID', 'ASC');
@@ -509,5 +537,32 @@ class Pricelists_model extends CI_Model {
         $this->dbwrite_model->updateData('Products', 'PriceListAssignmentTbl', ['IsDeleted' => 1], $where);
         $this->dbwrite_model->updateData('Products', 'PriceListDiscountTbl',   ['IsDeleted' => 1], $where);
         $this->dbwrite_model->updateData('Products', 'PriceListRuleTbl',       ['IsDeleted' => 1], $where);
+    }
+
+    /**
+     * Upsert a translated row into PriceListTbl_Lang.
+     * @param int         $priceListUID
+     * @param string      $langCode
+     * @param string|null $name
+     * @param string|null $description
+     * @param int         $userUID
+     * @returns void
+     */
+    public function savePriceListLangRow(int $priceListUID, string $langCode, ?string $name, ?string $description, int $userUID): void {
+        try {
+            $this->load->model('dbwrite_ext_model');
+            $this->dbwrite_ext_model->execWrite(
+                "INSERT INTO Products.PriceListTbl_Lang
+                    (PriceListUID, LangCode, Name, Description, CreatedBy, UpdatedBy)
+                 VALUES (?, ?, ?, ?, ?, ?)
+                 ON DUPLICATE KEY UPDATE
+                    Name        = VALUES(Name),
+                    Description = VALUES(Description),
+                    UpdatedBy   = VALUES(UpdatedBy)",
+                [$priceListUID, $langCode, $name, $description, $userUID, $userUID]
+            );
+        } catch (Exception $e) {
+            notifyError('Pricelists_model::savePriceListLangRow', $e);
+        }
     }
 }

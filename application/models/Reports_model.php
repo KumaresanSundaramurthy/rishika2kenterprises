@@ -339,12 +339,16 @@ class Reports_model extends CI_Model
      * @param int $orgUID
      * @return array
      */
-    public function getCustomerOutstandingData(int $orgUID): array
+    public function getCustomerOutstandingData(int $orgUID, string $langCode = 'en'): array
     {
+        $useLang   = $langCode !== 'en';
+        $lc        = $this->ReadDb->escape_str($langCode);
+        $nameField = $useLang ? "COALESCE(CL.Name, Cust.Name) AS CustomerName" : "Cust.Name AS CustomerName";
+        $langJoin  = $useLang ? "LEFT JOIN Customers.CustomersTbl_Lang CL ON CL.CustomerUID = Cust.CustomerUID AND CL.LangCode = '{$lc}'" : '';
         $q = $this->ReadDb->query(
             "SELECT
                 Cust.CustomerUID,
-                Cust.Name          AS CustomerName,
+                {$nameField},
                 Cust.MobileNumber,
                 Cust.Area,
                 COUNT(DISTINCT Ts.TransUID)                                 AS InvoiceCount,
@@ -352,6 +356,7 @@ class Reports_model extends CI_Model
                 COALESCE(SUM(COALESCE(Ts.PaidAmount, 0)), 0)               AS TotalPaid,
                 COALESCE(SUM(COALESCE(Ts.BalanceAmount, Ts.NetAmount)), 0) AS TotalOutstanding
              FROM Customers.CustomerTbl Cust
+             {$langJoin}
              JOIN Transaction.TransactionsTbl Ts
                   ON  Ts.PartyUID  = Cust.CustomerUID
                   AND Ts.PartyType = 'C'
@@ -378,12 +383,16 @@ class Reports_model extends CI_Model
      * @param int $orgUID
      * @return array
      */
-    public function getSupplierOutstandingData(int $orgUID): array
+    public function getSupplierOutstandingData(int $orgUID, string $langCode = 'en'): array
     {
+        $useLang   = $langCode !== 'en';
+        $lc        = $this->ReadDb->escape_str($langCode);
+        $nameField = $useLang ? "COALESCE(VL.Name, Vend.Name) AS VendorName" : "Vend.Name AS VendorName";
+        $langJoin  = $useLang ? "LEFT JOIN Vendors.VendorTbl_Lang VL ON VL.VendorUID = Vend.VendorUID AND VL.LangCode = '{$lc}'" : '';
         $q = $this->ReadDb->query(
             "SELECT
                 Vend.VendorUID,
-                Vend.Name          AS VendorName,
+                {$nameField},
                 Vend.MobileNumber,
                 Vend.Area,
                 COUNT(DISTINCT Ts.TransUID)                                 AS BillCount,
@@ -391,6 +400,7 @@ class Reports_model extends CI_Model
                 COALESCE(SUM(COALESCE(Ts.PaidAmount, 0)), 0)               AS TotalPaid,
                 COALESCE(SUM(COALESCE(Ts.BalanceAmount, Ts.NetAmount)), 0) AS TotalOutstanding
              FROM Vendors.VendorTbl Vend
+             {$langJoin}
              JOIN Transaction.TransactionsTbl Ts
                   ON  Ts.PartyUID  = Vend.VendorUID
                   AND Ts.PartyType = 'S'
@@ -418,12 +428,16 @@ class Reports_model extends CI_Model
      * @param int $orgUID
      * @return array
      */
-    public function getCustomerAgeingData(int $orgUID): array
+    public function getCustomerAgeingData(int $orgUID, string $langCode = 'en'): array
     {
+        $useLang   = $langCode !== 'en';
+        $lc        = $this->ReadDb->escape_str($langCode);
+        $nameField = $useLang ? "COALESCE(CL.Name, Cust.Name) AS CustomerName" : "Cust.Name AS CustomerName";
+        $langJoin  = $useLang ? "LEFT JOIN Customers.CustomersTbl_Lang CL ON CL.CustomerUID = Cust.CustomerUID AND CL.LangCode = '{$lc}'" : '';
         $q = $this->ReadDb->query(
             "SELECT
                 Cust.CustomerUID,
-                Cust.Name          AS CustomerName,
+                {$nameField},
                 Cust.MobileNumber,
                 Cust.Area,
                 COUNT(DISTINCT Ts.TransUID)                                                                                    AS InvoiceCount,
@@ -439,6 +453,7 @@ class Reports_model extends CI_Model
                 COALESCE(SUM(CASE WHEN DATEDIFF(CURDATE(), Ts.TransDate) > 120
                                    THEN COALESCE(Ts.BalanceAmount, Ts.NetAmount) ELSE 0 END), 0)                               AS Bucket120Plus
              FROM Customers.CustomerTbl Cust
+             {$langJoin}
              JOIN Transaction.TransactionsTbl Ts
                   ON  Ts.PartyUID  = Cust.CustomerUID
                   AND Ts.PartyType = 'C'

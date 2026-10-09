@@ -147,13 +147,11 @@ class Subscription {
         try {
             $orgUID = $this->CI->subscription_model->getOrgUIDByUser((int)$userUID);
             if (!$orgUID) return false;
-            $db  = $this->CI->dbwrite_model->getWriteDb();
-            $sql = 'UPDATE Billing.OrgSubscriptionTbl'
-                 . ' SET Status = ?'
-                 . ' WHERE OrgUID = ? AND Status != ?'
-                 . ' ORDER BY StartDate DESC LIMIT 1';
-            $db->query($sql, [$status, $orgUID, 'Cancelled']);
-            return $db->affected_rows() >= 0;
+            $this->CI->dbwrite_ext_model->execWrite(
+                'UPDATE Billing.OrgSubscriptionTbl SET Status = ? WHERE OrgUID = ? AND Status != ? ORDER BY StartDate DESC LIMIT 1',
+                [$status, $orgUID, 'Cancelled']
+            );
+            return true;
         } catch (Exception $e) {
             notifyError('Subscription::updateSubscriptionStatus', $e);
             return false;
@@ -180,14 +178,11 @@ class Subscription {
             $orgUID = $this->CI->subscription_model->getOrgUIDByUser((int)$userUID);
             if (!$orgUID) return ['success' => false, 'message' => 'Org not found for user'];
 
-            $db    = $this->CI->dbwrite_model->getWriteDb();
-            $sql   = 'UPDATE Billing.OrgSubscriptionTbl'
-                   . ' SET Status = ?, EndDate = ?'
-                   . ' WHERE OrgUID = ? AND Status != ?'
-                   . ' ORDER BY StartDate DESC LIMIT 1';
-            $binds = ['Active', $newEndDate->format('Y-m-d H:i:s'), $orgUID, 'Cancelled'];
-            $db->query($sql, $binds);
-            if ($db->affected_rows() === 0) {
+            $affected = $this->CI->dbwrite_ext_model->execWriteAffected(
+                'UPDATE Billing.OrgSubscriptionTbl SET Status = ?, EndDate = ? WHERE OrgUID = ? AND Status != ? ORDER BY StartDate DESC LIMIT 1',
+                ['Active', $newEndDate->format('Y-m-d H:i:s'), $orgUID, 'Cancelled']
+            );
+            if ($affected === 0) {
                 return ['success' => false, 'message' => 'No active subscription record found to extend'];
             }
 

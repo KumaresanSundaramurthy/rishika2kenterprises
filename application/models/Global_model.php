@@ -434,5 +434,24 @@ class Global_model extends CI_Model {
         }
         return null;
     }
-    
+
+    /**
+     * Returns Indian states (country_code='IN', flag=1) ordered by name.
+     * @returns array
+     */
+    public function getIndianStates(): array {
+        try {
+            $query = $this->ReadDb->select('name, iso2')
+                ->from('Global.StatesTbl')
+                ->where('country_code', 'IN')
+                ->where('flag', 1)
+                ->order_by('name', 'ASC')
+                ->get();
+            return $query ? $query->result() : [];
+        } catch (Exception $e) {
+            notifyError('Global_model::getIndianStates', $e);
+            return [];
+        }
+    }
+
 }

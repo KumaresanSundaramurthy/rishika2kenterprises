@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 /**
  * @property object $transactions_model
@@ -94,7 +94,7 @@ class Deliverychallans extends MY_Controller {
             $this->pageData['fltStorageData']  = [];
             if (!empty($this->pageData['JwtData']->GenSettings->EnableStorage)) {
                 $this->load->model('storage_model');
-                $this->pageData['fltStorageData'] = $this->storage_model->getStorageDetails([]) ?? [];
+                $this->pageData['fltStorageData'] = $this->storage_model->getStorageDetails([], 0, 0, '', $this->_uiLang()) ?? [];
             }
 
             $this->load->view('transactions/deliverychallans/forms/form', $this->pageData);
@@ -116,13 +116,13 @@ class Deliverychallans extends MY_Controller {
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
 
             $this->load->model('transactions_model');
-            $dcData = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
+            $dcData = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID, $this->_uiLang());
             if (!$dcData) redirect('deliverychallan', 'refresh');
 
             $dcItems = $this->transactions_model->getTransactionItems($transUID, $orgUID);
 
             $this->load->model('customers_model');
-            $custAddr = $this->customers_model->getCustomerAddress(['CustAddress.CustomerUID' => $dcData->PartyUID, 'CustAddress.OrgUID' => $orgUID]);
+            $custAddr = $this->customers_model->getCustomerAddress(['CustAddress.CustomerUID' => $dcData->PartyUID, 'CustAddress.OrgUID' => $orgUID], $this->_uiLang());
             $shipping = current(array_filter($custAddr, fn($a) => $a->AddressType === 'Shipping'));
             $billing  = current(array_filter($custAddr, fn($a) => $a->AddressType === 'Billing'));
             $this->pageData['CustAddr'] = $shipping ?: ($billing ?: ($custAddr[0] ?? null));
@@ -157,7 +157,7 @@ class Deliverychallans extends MY_Controller {
             $this->pageData['fltStorageData']  = [];
             if (!empty($this->pageData['JwtData']->GenSettings->EnableStorage)) {
                 $this->load->model('storage_model');
-                $this->pageData['fltStorageData'] = $this->storage_model->getStorageDetails([]) ?? [];
+                $this->pageData['fltStorageData'] = $this->storage_model->getStorageDetails([], 0, 0, '', $this->_uiLang()) ?? [];
             }
 
             $this->load->view('transactions/deliverychallans/forms/form', $this->pageData);
@@ -174,7 +174,7 @@ class Deliverychallans extends MY_Controller {
         $this->EndReturnData = new stdClass();
         $ErrorInForm = '';
         try {
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             $PostData = $this->input->post();
@@ -269,8 +269,8 @@ class Deliverychallans extends MY_Controller {
             // Conversion tracking: SalesOrder â†' DeliveryChallan
             $fromSOUID = (int) getPostValue($PostData, 'fromSOUID');
             if ($fromSOUID > 0 && !$isDraft) {
-                $this->dbwrite_model->updateTransDocStatus($fromSOUID, $orgUID, 'Converted', $userUID);
-                $this->dbwrite_model->insertConversionRecord(
+                $this->dbwrite_ext_model->updateTransDocStatus($fromSOUID, $orgUID, 'Converted', $userUID);
+                $this->dbwrite_ext_model->insertConversionRecord(
                     $orgUID, $fromSOUID, 102, $transUID, $this->pageModuleUID, 'OrderToChallan', $userUID
                 );
             }
@@ -281,7 +281,7 @@ class Deliverychallans extends MY_Controller {
 
             // Reduce AvailableQty for all modes (Non-Returnable / Returnable / Job Work)
             if (!$isDraft) {
-                $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items, $this->_branchUID());
+                $this->dbwrite_ext_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items, $this->_branchUID());
                 $this->_syncProductCacheFromItems($items);
             }
 
@@ -311,7 +311,7 @@ class Deliverychallans extends MY_Controller {
     public function updateDeliveryChallan() {
         $this->EndReturnData = new stdClass();
         try {
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             $PostData = $this->input->post();
@@ -421,10 +421,10 @@ class Deliverychallans extends MY_Controller {
             if (!$isDraft) {
                 $wasDispatched = ($existing->DocStatus === 'Dispatched');
                 if ($wasDispatched) {
-                    $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
+                    $this->dbwrite_ext_model->reverseStockMovements($transUID, $orgUID, $userUID);
                     $this->_syncProductCacheByTransUID($transUID);
                 }
-                $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items, $this->_branchUID());
+                $this->dbwrite_ext_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items, $this->_branchUID());
                 $this->_syncProductCacheFromItems($items);
             }
 
@@ -453,7 +453,7 @@ class Deliverychallans extends MY_Controller {
     public function deleteDeliveryChallan() {
         $this->EndReturnData = new stdClass();
         try {
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             $PostData = $this->input->post();
@@ -486,7 +486,7 @@ class Deliverychallans extends MY_Controller {
 
             // Restore AvailableQty for any status that had stock deducted
             if ($needsStockReversal) {
-                $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
+                $this->dbwrite_ext_model->reverseStockMovements($transUID, $orgUID, $userUID);
                 $this->_syncProductCacheByTransUID($transUID);
             }
 
@@ -515,7 +515,7 @@ class Deliverychallans extends MY_Controller {
     public function duplicateDeliveryChallan() {
         $this->EndReturnData = new stdClass();
         try {
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             $PostData = $this->input->post();
@@ -637,7 +637,7 @@ class Deliverychallans extends MY_Controller {
     public function updateDeliveryChallanStatus() {
         $this->EndReturnData = new stdClass();
         try {
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $PostData  = $this->input->post();
             $transUID  = (int) getPostValue($PostData, 'TransUID');
             $newStatus = trim(getPostValue($PostData, 'Status'));
@@ -681,7 +681,7 @@ class Deliverychallans extends MY_Controller {
 
             // Restore AvailableQty when goods come back (Returned) or are cancelled before delivery
             if (in_array($newStatus, ['Returned', 'Cancelled']) && $current === 'Dispatched') {
-                $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
+                $this->dbwrite_ext_model->reverseStockMovements($transUID, $orgUID, $userUID);
                 $this->_syncProductCacheByTransUID($transUID);
             }
 
@@ -761,7 +761,7 @@ class Deliverychallans extends MY_Controller {
     public function partialReturn(): void {
         $this->EndReturnData = new stdClass();
         try {
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             $transUID   = (int) $this->input->post('TransUID');
@@ -793,7 +793,6 @@ class Deliverychallans extends MY_Controller {
                 $dcItemMap[(int)$item->TransProdUID] = $item;
             }
 
-            $wdb = $this->dbwrite_model->getWriteDb();
             $now = date('Y-m-d H:i:s');
             $totalStillOut = 0;
             $anyReturn     = false;
@@ -815,8 +814,7 @@ class Deliverychallans extends MY_Controller {
                 }
 
                 // Insert DCReturnItemsTbl row
-                $wdb->db_debug = FALSE;
-                $insOk = $wdb->insert('Transaction.DCReturnItemsTbl', [
+                $insResp = $this->dbwrite_model->insertData('Transaction', 'DCReturnItemsTbl', [
                     'TransUID'    => $transUID,
                     'TransProdUID'=> $transProdUID,
                     'ProductUID'  => (int)$item->ProductUID,
@@ -827,10 +825,10 @@ class Deliverychallans extends MY_Controller {
                     'IsDeleted'   => 0,
                     'CreatedBy'   => $userUID,
                 ]);
-                if (!$insOk) throw new Exception('Failed to record return for ' . $item->ProductName);
+                if ($insResp->Error) throw new Exception('Failed to record return for ' . $item->ProductName);
 
                 // Add stock back via ledger so reverseStockMovements nets it on DC delete
-                $this->dbwrite_model->applyDCReturnStockMovement(
+                $this->dbwrite_ext_model->applyDCReturnStockMovement(
                     $transUID,
                     $this->pageModuleUID,
                     $orgUID,
@@ -869,13 +867,10 @@ class Deliverychallans extends MY_Controller {
             }
 
             $newStatus = ($totalStillOut <= 0) ? 'Returned' : 'Partially Returned';
-            $updOk = $wdb->query(
-                "UPDATE Transaction.TransactionsTbl
-                    SET DocStatus = ?, UpdatedBy = ?, UpdatedOn = ?
-                  WHERE TransUID = ? AND OrgUID = ? AND IsDeleted = 0",
-                [$newStatus, $userUID, $now, $transUID, $orgUID]
-            );
-            if (!$updOk) throw new Exception('Failed to update DC status.');
+            $updResp = $this->dbwrite_model->updateData('Transaction', 'TransactionsTbl',
+                ['DocStatus' => $newStatus, 'UpdatedBy' => $userUID, 'UpdatedOn' => $now],
+                ['TransUID' => $transUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
+            if ($updResp->Error) throw new Exception('Failed to update DC status.');
 
             $this->dbwrite_model->commitTransaction();
 
@@ -904,7 +899,7 @@ class Deliverychallans extends MY_Controller {
     public function convertChallanToInvoice() {
         $this->EndReturnData = new stdClass();
         try {
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $PostData = $this->input->post();
             $transUID = (int) getPostValue($PostData, 'TransUID');
             $userUID  = $this->pageData['JwtData']->User->UserUID;

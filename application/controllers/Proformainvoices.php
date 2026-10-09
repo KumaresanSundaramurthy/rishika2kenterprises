@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Proformainvoices extends MY_Controller {
 
@@ -58,7 +58,7 @@ class Proformainvoices extends MY_Controller {
             $this->pageData['fltStorageData']  = [];
             if (!empty($this->pageData['JwtData']->GenSettings->EnableStorage)) {
                 $this->load->model('storage_model');
-                $this->pageData['fltStorageData'] = $this->storage_model->getStorageDetails([]) ?? [];
+                $this->pageData['fltStorageData'] = $this->storage_model->getStorageDetails([], 0, 0, '', $this->_uiLang()) ?? [];
             }
 
             $this->load->view('transactions/proformainvoices/forms/form', $this->pageData);
@@ -79,13 +79,13 @@ class Proformainvoices extends MY_Controller {
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
 
             $this->load->model('transactions_model');
-            $pfData = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
+            $pfData = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID, $this->_uiLang());
             if (!$pfData) redirect('proforma', 'refresh');
 
             $pfItems = $this->transactions_model->getTransactionItems($transUID, $orgUID);
 
             $this->load->model('customers_model');
-            $custAddr = $this->customers_model->getCustomerAddress(['CustAddress.CustomerUID' => $pfData->PartyUID, 'CustAddress.OrgUID' => $orgUID]);
+            $custAddr = $this->customers_model->getCustomerAddress(['CustAddress.CustomerUID' => $pfData->PartyUID, 'CustAddress.OrgUID' => $orgUID], $this->_uiLang());
             $shipping = current(array_filter($custAddr, fn($a) => $a->AddressType === 'Shipping'));
             $billing  = current(array_filter($custAddr, fn($a) => $a->AddressType === 'Billing'));
             $this->pageData['CustAddr'] = $shipping ?: ($billing ?: ($custAddr[0] ?? null));
@@ -111,7 +111,7 @@ class Proformainvoices extends MY_Controller {
             $this->pageData['fltStorageData']  = [];
             if (!empty($this->pageData['JwtData']->GenSettings->EnableStorage)) {
                 $this->load->model('storage_model');
-                $this->pageData['fltStorageData'] = $this->storage_model->getStorageDetails([]) ?? [];
+                $this->pageData['fltStorageData'] = $this->storage_model->getStorageDetails([], 0, 0, '', $this->_uiLang()) ?? [];
             }
 
             // Attachments — load server-side to avoid AJAX call on page load
@@ -128,7 +128,7 @@ class Proformainvoices extends MY_Controller {
     public function addProFormaInvoice() {
         $this->EndReturnData = new stdClass();
         try {
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             $PostData = $this->input->post();
@@ -212,7 +212,7 @@ class Proformainvoices extends MY_Controller {
     public function updateProFormaInvoice() {
         $this->EndReturnData = new stdClass();
         try {
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             $PostData = $this->input->post();
@@ -331,7 +331,7 @@ class Proformainvoices extends MY_Controller {
     public function deleteProFormaInvoice() {
         $this->EndReturnData = new stdClass();
         try {
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             $PostData = $this->input->post();
@@ -380,7 +380,7 @@ class Proformainvoices extends MY_Controller {
     public function duplicateProFormaInvoice() {
         $this->EndReturnData = new stdClass();
         try {
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             $PostData = $this->input->post();
@@ -507,7 +507,7 @@ class Proformainvoices extends MY_Controller {
     public function updateProFormaStatus() {
         $this->EndReturnData = new stdClass();
         try {
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $PostData  = $this->input->post();
             $transUID  = (int) getPostValue($PostData, 'TransUID');
             $newStatus = trim(getPostValue($PostData, 'Status'));
@@ -562,7 +562,7 @@ class Proformainvoices extends MY_Controller {
     public function convertProFormaToInvoice() {
         $this->EndReturnData = new stdClass();
         try {
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $PostData = $this->input->post();
             $transUID = (int) getPostValue($PostData, 'TransUID');
             $userUID  = $this->pageData['JwtData']->User->UserUID;

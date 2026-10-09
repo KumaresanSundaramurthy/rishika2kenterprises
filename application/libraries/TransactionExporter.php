@@ -318,22 +318,28 @@ class TransactionExporter {
         switch ($moduleUID) {
             case 201:
                 $this->CI->load->model('customers_model');
+                $uiLang = $this->CI->pageData['JwtData']->User->UILanguage ?? 'en';
+                $filters['LangCode'] = $uiLang;
                 $result = $this->CI->customers_model->getCustomerListPaginated($orgUID, 0, 0, $filters);
                 $rows   = $result->rows ?? [];
                 foreach ($rows as $r) { $r->CustName = $r->Name ?? ''; }
                 return $rows;
             case 204:
                 $this->CI->load->model('customers_model');
-                return $this->CI->customers_model->getCustomerGroupsForExport($orgUID, $filters);
+                $uiLang = $this->CI->pageData['JwtData']->User->UILanguage ?? 'en';
+                return $this->CI->customers_model->getCustomerGroupsForExport($orgUID, $filters, $uiLang);
             case 202:
                 $this->CI->load->model('vendors_model');
+                $uiLang = $this->CI->pageData['JwtData']->User->UILanguage ?? 'en';
+                $filters['LangCode'] = $uiLang;
                 $result = $this->CI->vendors_model->getVendorListPaginated($orgUID, 0, 0, $filters);
                 $rows   = $result->rows ?? [];
                 foreach ($rows as $r) { $r->VendName = $r->Name ?? ''; }
                 return $rows;
             case 203:
                 $this->CI->load->model('products_model');
-                return $this->CI->products_model->getProductsForExport($orgUID);
+                $uiLang = $this->CI->pageData['JwtData']->User->UILanguage ?? 'en';
+                return $this->CI->products_model->getProductsForExport($orgUID, $uiLang);
             case 700:
                 $this->CI->load->model('activitylog_model');
                 return $this->CI->activitylog_model->getAuditLogs($orgUID, $filters, 5000, 0);

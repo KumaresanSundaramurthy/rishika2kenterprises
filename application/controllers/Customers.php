@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Customers extends MY_Controller {
 
@@ -22,22 +22,144 @@ class Customers extends MY_Controller {
      * @param int    $userUID      UserUID for audit columns
      * @returns void
      */
-    private function _triggerLangSave(int $customerUID, string $originalName, string $typedLang, int $userUID): void {
-        register_shutdown_function(function () use ($customerUID, $originalName, $typedLang, $userUID) {
+    /**
+     * @param int         $customerUID
+     * @param string      $originalName
+     * @param string      $typedLangName
+     * @param string|null $originalContact
+     * @param string      $typedLangContact
+     * @param string|null $originalNotes
+     * @param string      $typedLangNotes
+     * @param int         $userUID
+     * @returns void
+     */
+    private function _triggerLangSave(
+        int $customerUID,
+        string $originalName, string $typedLangName,
+        ?string $originalContact, string $typedLangContact,
+        ?string $originalNotes, string $typedLangNotes,
+        ?string $originalArea, string $typedLangArea,
+        ?string $originalCompany, string $typedLangCompany,
+        int $userUID
+    ): void {
+        register_shutdown_function(function () use (
+            $customerUID,
+            $originalName, $typedLangName,
+            $originalContact, $typedLangContact,
+            $originalNotes, $typedLangNotes,
+            $originalArea, $typedLangArea,
+            $originalCompany, $typedLangCompany,
+            $userUID
+        ) {
             if (function_exists('fastcgi_finish_request')) fastcgi_finish_request();
             ignore_user_abort(true);
 
-            /* Tamil was already typed → store directly; English was typed → translate to Tamil */
-            $tamilName = ($typedLang === 'ta')
+            /* Tamil typed → store directly; English typed → translate to Tamil */
+            $tamilName = ($typedLangName === 'ta')
                 ? $originalName
                 : translateViaMymemory($originalName, 'en', 'ta');
 
-            if ($tamilName === '') return;
+            $tamilContact = null;
+            if (!empty($originalContact)) {
+                $tamilContact = ($typedLangContact === 'ta')
+                    ? $originalContact
+                    : translateViaMymemory($originalContact, 'en', 'ta');
+            }
+
+            $tamilNotes = null;
+            if (!empty($originalNotes)) {
+                $tamilNotes = ($typedLangNotes === 'ta')
+                    ? $originalNotes
+                    : translateViaMymemory($originalNotes, 'en', 'ta');
+            }
+
+            $tamilArea = null;
+            if (!empty($originalArea)) {
+                $tamilArea = ($typedLangArea === 'ta')
+                    ? $originalArea
+                    : translateViaMymemory($originalArea, 'en', 'ta');
+            }
+
+            $tamilCompany = null;
+            if (!empty($originalCompany)) {
+                $tamilCompany = ($typedLangCompany === 'ta')
+                    ? $originalCompany
+                    : translateViaMymemory($originalCompany, 'en', 'ta');
+            }
 
             $CI = &get_instance();
             $CI->load->model('customers_model');
-            $CI->load->model('dbwrite_model');
-            $CI->customers_model->saveLangRow($customerUID, 'ta', $tamilName, $userUID);
+            $CI->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
+            $CI->customers_model->saveLangRow($customerUID, 'ta', $tamilName, $tamilContact, $tamilNotes, $tamilArea, $tamilCompany, $userUID);
+        });
+    }
+
+    /**
+     * Normalises Tamil address text fields in $PostData to English for base-table storage.
+     * Returns the original raw values so they can be saved to CustAddressTbl_Lang later.
+     * @param array  $PostData  Raw POST array, modified in place
+     * @param string $prefix    Address prefix: 'Bill' or 'Ship'
+     * @returns array{Line1:string,Line2:string,CityText:string,StateText:string,lang:string}
+     */
+    private function _normalizeAddrPostData(array &$PostData, string $prefix): array {
+        $line1     = trim((string)($PostData[$prefix . 'AddrLine1']     ?? ''));
+        $line2     = trim((string)($PostData[$prefix . 'AddrLine2']     ?? ''));
+        $cityText  = trim((string)($PostData[$prefix . 'AddrCityText']  ?? ''));
+        $stateText = trim((string)($PostData[$prefix . 'AddrStateText'] ?? ''));
+
+        $lang = $line1 !== '' ? detectTextLang($line1) : 'en';
+
+        if ($lang === 'ta') {
+            if ($line1 !== '')     $PostData[$prefix . 'AddrLine1']     = translateViaMymemory($line1,     'ta', 'en');
+            if ($line2 !== '')     $PostData[$prefix . 'AddrLine2']     = translateViaMymemory($line2,     'ta', 'en');
+            if ($cityText !== '')  $PostData[$prefix . 'AddrCityText']  = translateViaMymemory($cityText,  'ta', 'en');
+            if ($stateText !== '') $PostData[$prefix . 'AddrStateText'] = translateViaMymemory($stateText, 'ta', 'en');
+        }
+
+        return ['Line1' => $line1, 'Line2' => $line2, 'CityText' => $cityText, 'StateText' => $stateText, 'lang' => $lang];
+    }
+
+    /**
+     * Fires background Tamil translation for address fields after HTTP response is sent.
+     * Fetches CustAddressUIDs from DB to key the _Lang rows correctly.
+     * @param int   $customerUID
+     * @param array $rawBill  Keys: Line1, Line2, CityText, StateText, lang — empty array if no billing addr
+     * @param array $rawShip  Same shape; empty array if no shipping addr
+     * @param int   $userUID
+     * @returns void
+     */
+    private function _triggerAddrLangSave(int $customerUID, array $rawBill, array $rawShip, int $userUID): void {
+        register_shutdown_function(function () use ($customerUID, $rawBill, $rawShip, $userUID) {
+            if (function_exists('fastcgi_finish_request')) fastcgi_finish_request();
+            ignore_user_abort(true);
+
+            $CI = &get_instance();
+            $CI->load->model('customers_model');
+            $CI->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
+
+            $addresses = $CI->customers_model->getCustomerAddress([
+                'CustAddress.CustomerUID' => $customerUID,
+                'CustAddress.IsDeleted'   => 0,
+                'CustAddress.IsActive'    => 1,
+            ]);
+
+            foreach ($addresses as $addr) {
+                $raw = ($addr->AddressType === 'Billing') ? $rawBill : $rawShip;
+                if (empty($raw)) continue;
+
+                $lang = $raw['lang'] ?? 'en';
+                $xlat = function (?string $val) use ($lang): ?string {
+                    if ($val === null || $val === '') return null;
+                    return ($lang === 'ta') ? $val : translateViaMymemory($val, 'en', 'ta');
+                };
+
+                $CI->customers_model->saveAddrLangRow(
+                    (int) $addr->CustAddressUID, 'ta',
+                    $xlat($raw['Line1']), $xlat($raw['Line2']),
+                    $xlat($raw['CityText']), $xlat($raw['StateText']),
+                    $userUID
+                );
+            }
         });
     }
 
@@ -205,7 +327,8 @@ class Customers extends MY_Controller {
 
                 $customersData = $this->customers_model->getCustomersDetails(
                     $term,
-                    ['Customers.OrgUID' => $orgUID]
+                    ['Customers.OrgUID' => $orgUID],
+                    $this->_uiLang()
                 );
 
                 foreach ($customersData as $value) {
@@ -269,7 +392,7 @@ class Customers extends MY_Controller {
         $this->EndReturnData = new stdClass();
         $ErrorInForm = '';
         try {
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             $PostData = $this->input->post();
@@ -280,11 +403,35 @@ class Customers extends MY_Controller {
 
             $customerFormData = $this->buildCustomerFormData($PostData, true);
 
-            /* Normalise Name to English in the base table; Tamil goes to _Lang via fire & forget */
-            $_rawName   = $customerFormData['Name'];
-            $_typedLang = detectTextLang($_rawName);
-            if ($_typedLang === 'ta') {
+            /* Normalise text fields to English in the base table; Tamil goes to _Lang via fire & forget */
+            $_rawName         = $customerFormData['Name'];
+            $_typedLangName   = detectTextLang($_rawName);
+            if ($_typedLangName === 'ta') {
                 $customerFormData['Name'] = translateViaMymemory($_rawName, 'ta', 'en');
+            }
+
+            $_rawContact        = trim((string)($customerFormData['ContactPerson'] ?? ''));
+            $_typedLangContact  = !empty($_rawContact) ? detectTextLang($_rawContact) : 'en';
+            if ($_typedLangContact === 'ta' && $_rawContact !== '') {
+                $customerFormData['ContactPerson'] = translateViaMymemory($_rawContact, 'ta', 'en');
+            }
+
+            $_rawNotes        = trim((string)($customerFormData['Notes'] ?? ''));
+            $_typedLangNotes  = !empty($_rawNotes) ? detectTextLang($_rawNotes) : 'en';
+            if ($_typedLangNotes === 'ta' && $_rawNotes !== '') {
+                $customerFormData['Notes'] = translateViaMymemory($_rawNotes, 'ta', 'en');
+            }
+
+            $_rawArea         = trim((string)($customerFormData['Area'] ?? ''));
+            $_typedLangArea   = !empty($_rawArea) ? detectTextLang($_rawArea) : 'en';
+            if ($_typedLangArea === 'ta' && $_rawArea !== '') {
+                $customerFormData['Area'] = translateViaMymemory($_rawArea, 'ta', 'en');
+            }
+
+            $_rawCompany      = trim((string)($customerFormData['CompanyName'] ?? ''));
+            $_typedLangCompany = !empty($_rawCompany) ? detectTextLang($_rawCompany) : 'en';
+            if ($_typedLangCompany === 'ta' && $_rawCompany !== '') {
+                $customerFormData['CompanyName'] = translateViaMymemory($_rawCompany, 'ta', 'en');
             }
 
             $InsertDataResp = $this->dbwrite_model->insertData('Customers', 'CustomerTbl', $customerFormData);
@@ -292,6 +439,10 @@ class Customers extends MY_Controller {
             $CustomerUID = $InsertDataResp->ID;
 
             $this->globalservice->saveBankDetails($CustomerUID, $this->input->post('BankDetailsJSON'), 'Customers', 'CustBankDetailsTbl', [], 'CustBankDetUID');
+
+            /* Normalise address text to English before storing; keep raw originals for _Lang */
+            $_rawBillAddr = $this->_normalizeAddrPostData($PostData, 'Bill');
+            $_rawShipAddr = $this->_normalizeAddrPostData($PostData, 'Ship');
 
             foreach ([['Bill', 'Billing'], ['Ship', 'Shipping']] as [$prefix, $type]) {
                 $this->globalservice->saveAddressInfo($PostData, $CustomerUID, $prefix, $type, 'Customers', 'CustAddressTbl', 'CustAddressUID', 'CustomerUID');
@@ -345,11 +496,19 @@ class Customers extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            /* Queue lang row — fires after HTTP response is sent to browser */
+            /* Queue lang rows — fire after HTTP response is sent to browser */
             $this->_triggerLangSave(
                 (int) $CustomerUID,
-                $_rawName,
-                $_typedLang,
+                $_rawName,              $_typedLangName,
+                $_rawContact ?: null,   $_typedLangContact,
+                $_rawNotes   ?: null,   $_typedLangNotes,
+                $_rawArea    ?: null,   $_typedLangArea,
+                $_rawCompany ?: null,   $_typedLangCompany,
+                (int) $this->pageData['JwtData']->User->UserUID
+            );
+            $this->_triggerAddrLangSave(
+                (int) $CustomerUID,
+                $_rawBillAddr, $_rawShipAddr,
                 (int) $this->pageData['JwtData']->User->UserUID
             );
 
@@ -456,11 +615,11 @@ class Customers extends MY_Controller {
             $shippingAddr = null;
 
             if (in_array($type, ['edit', 'clone']) && $uid > 0) {
-                $getCustData = $this->customers_model->getCustomers(['Customers.CustomerUID' => $uid]);
+                $getCustData = $this->customers_model->getCustomers(['Customers.CustomerUID' => $uid], $this->_uiLang());
                 if (!empty($getCustData)) {
                     $formData    = $getCustData[0];
                     $bankDetails = $this->customers_model->getCustomerBankInfo(['CustBankDetails.CustomerUID' => $uid]);
-                    $addrInfo    = $this->customers_model->getCustomerAddress(['CustAddress.CustomerUID' => $uid]);
+                    $addrInfo    = $this->customers_model->getCustomerAddress(['CustAddress.CustomerUID' => $uid], $this->_uiLang());
                     foreach ($addrInfo as $addr) {
                         if ($addr->AddressType === 'Billing')  $billingAddr  = $addr;
                         if ($addr->AddressType === 'Shipping') $shippingAddr = $addr;
@@ -554,7 +713,7 @@ class Customers extends MY_Controller {
             $this->load->model('customers_model');
 
             // Fetch all active customers
-            $customers = $this->customers_model->getCustomers(['Customers.OrgUID' => $orgUID]);
+            $customers = $this->customers_model->getCustomers(['Customers.OrgUID' => $orgUID], $this->_uiLang());
             if (empty($customers)) throw new ValidationException('No customers found.');
 
             // Build the HSET map — DEL old key first to clear stale entries (handles migration from old STRING format)
@@ -566,7 +725,7 @@ class Customers extends MY_Controller {
                 $uid = (int)$cust->CustomerUID;
 
                 // Fetch address
-                $addrInfo     = $this->customers_model->getCustomerAddress(['CustAddress.CustomerUID' => $uid]);
+                $addrInfo     = $this->customers_model->getCustomerAddress(['CustAddress.CustomerUID' => $uid], $this->_uiLang());
                 $addressList  = [];
                 foreach ($addrInfo as $addr) {
                     $addressList[] = [
@@ -654,7 +813,7 @@ class Customers extends MY_Controller {
         try {
             $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
             $this->load->model('customers_model');
-            $groups = $this->customers_model->getActiveCustomerGroupsForDropdown($orgUID);
+            $groups = $this->customers_model->getActiveCustomerGroupsForDropdown($orgUID, $this->_uiLang());
             if (empty($groups)) throw new ValidationException('No active customer groups found.');
 
             $cacheKey = $this->redisservice->orgKey('customer-groups');
@@ -699,11 +858,11 @@ class Customers extends MY_Controller {
             foreach ($attachments as &$a) { $a['Url'] = $cdnUrl . '/' . ltrim($a['FilePath'], '/'); }
             unset($a);
 
-            $getCustData = $this->customers_model->getCustomers(['Customers.CustomerUID' => $uid]);
+            $getCustData = $this->customers_model->getCustomers(['Customers.CustomerUID' => $uid], $this->_uiLang());
             if (empty($getCustData)) throw new ValidationException('Customer not found.');
 
             $bankDetails = $this->customers_model->getCustomerBankInfo(['CustBankDetails.CustomerUID' => $uid]);
-            $addrInfo    = $this->customers_model->getCustomerAddress(['CustAddress.CustomerUID' => $uid]);
+            $addrInfo    = $this->customers_model->getCustomerAddress(['CustAddress.CustomerUID' => $uid], $this->_uiLang());
 
             $billingAddr = null; $shippingAddr = null;
             foreach ($addrInfo as $addr) {
@@ -734,7 +893,7 @@ class Customers extends MY_Controller {
         $ErrorInForm = '';
         try {
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             $PostData = $this->input->post();
@@ -746,11 +905,35 @@ class Customers extends MY_Controller {
             $customerFormData = $this->buildCustomerFormData($PostData, false);
             if (!empty($PostData['ImageRemoved'])) $customerFormData['Image'] = NULL;
 
-            /* Normalise Name to English in the base table; Tamil goes to _Lang via fire & forget */
-            $_rawName   = $customerFormData['Name'];
-            $_typedLang = detectTextLang($_rawName);
-            if ($_typedLang === 'ta') {
+            /* Normalise text fields to English in the base table; Tamil goes to _Lang via fire & forget */
+            $_rawName         = $customerFormData['Name'];
+            $_typedLangName   = detectTextLang($_rawName);
+            if ($_typedLangName === 'ta') {
                 $customerFormData['Name'] = translateViaMymemory($_rawName, 'ta', 'en');
+            }
+
+            $_rawContact        = trim((string)($customerFormData['ContactPerson'] ?? ''));
+            $_typedLangContact  = !empty($_rawContact) ? detectTextLang($_rawContact) : 'en';
+            if ($_typedLangContact === 'ta' && $_rawContact !== '') {
+                $customerFormData['ContactPerson'] = translateViaMymemory($_rawContact, 'ta', 'en');
+            }
+
+            $_rawNotes        = trim((string)($customerFormData['Notes'] ?? ''));
+            $_typedLangNotes  = !empty($_rawNotes) ? detectTextLang($_rawNotes) : 'en';
+            if ($_typedLangNotes === 'ta' && $_rawNotes !== '') {
+                $customerFormData['Notes'] = translateViaMymemory($_rawNotes, 'ta', 'en');
+            }
+
+            $_rawArea         = trim((string)($customerFormData['Area'] ?? ''));
+            $_typedLangArea   = !empty($_rawArea) ? detectTextLang($_rawArea) : 'en';
+            if ($_typedLangArea === 'ta' && $_rawArea !== '') {
+                $customerFormData['Area'] = translateViaMymemory($_rawArea, 'ta', 'en');
+            }
+
+            $_rawCompany      = trim((string)($customerFormData['CompanyName'] ?? ''));
+            $_typedLangCompany = !empty($_rawCompany) ? detectTextLang($_rawCompany) : 'en';
+            if ($_typedLangCompany === 'ta' && $_rawCompany !== '') {
+                $customerFormData['CompanyName'] = translateViaMymemory($_rawCompany, 'ta', 'en');
             }
 
             $this->load->model('customers_model');
@@ -790,6 +973,11 @@ class Customers extends MY_Controller {
             if ($delAddrFlag == 1) {
                 $this->globalservice->softDeleteAddressRecords(getPostValue($PostData, 'delAddrData'), 'Customers', 'CustAddressTbl', 'CustAddressUID');
             }
+
+            /* Normalise address text to English before storing; keep raw originals for _Lang */
+            $_rawBillAddr = $this->_normalizeAddrPostData($PostData, 'Bill');
+            $_rawShipAddr = $this->_normalizeAddrPostData($PostData, 'Ship');
+
             foreach ([['Bill', 'Billing'], ['Ship', 'Shipping']] as [$prefix, $type]) {
                 $this->globalservice->saveAddressInfo($PostData, $CustomerUID, $prefix, $type, 'Customers', 'CustAddressTbl', 'CustAddressUID', 'CustomerUID');
             }
@@ -864,11 +1052,19 @@ class Customers extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            /* Queue lang row — fires after HTTP response is sent to browser */
+            /* Queue lang rows — fire after HTTP response is sent to browser */
             $this->_triggerLangSave(
                 (int) $CustomerUID,
-                $_rawName,
-                $_typedLang,
+                $_rawName,              $_typedLangName,
+                $_rawContact ?: null,   $_typedLangContact,
+                $_rawNotes   ?: null,   $_typedLangNotes,
+                $_rawArea    ?: null,   $_typedLangArea,
+                $_rawCompany ?: null,   $_typedLangCompany,
+                (int) $userUID
+            );
+            $this->_triggerAddrLangSave(
+                (int) $CustomerUID,
+                $_rawBillAddr, $_rawShipAddr,
                 (int) $userUID
             );
 
@@ -956,7 +1152,7 @@ class Customers extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             $CustomerUID = (int) $this->input->post('CustomerUID');
@@ -1018,6 +1214,7 @@ class Customers extends MY_Controller {
             $orgInfo   = ($orgResult->Error === FALSE) ? $orgResult->Data : null;
 
             $this->load->model('customers_model');
+            $filter['LangCode'] = $this->_uiLang();
             $result = $this->customers_model->getCustomerListPaginated($orgUID, 0, 0, $filter);
             $data   = $result->rows;
 
@@ -1079,7 +1276,7 @@ class Customers extends MY_Controller {
             if (!$CustomerUID) throw new ValidationException('Customer ID is missing');
             if (!in_array($newStatus, [0, 1])) throw new ValidationException('Invalid status value');
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $resp = $this->dbwrite_model->updateData(
                 'Customers', 'CustomerTbl',
                 ['IsActive' => $newStatus, 'UpdatedBy' => $this->pageData['JwtData']->User->UserUID],
@@ -1149,7 +1346,7 @@ class Customers extends MY_Controller {
                 if (empty($CustomerUIDs)) throw new ValidationException('Invalid customer IDs provided');
             }
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             foreach ($CustomerUIDs as $customerId) {
@@ -1527,6 +1724,7 @@ class Customers extends MY_Controller {
             }
 
             $this->load->model('customers_model');
+            $filter['LangCode'] = $this->_uiLang();
             $result = $this->customers_model->getCustomerListPaginated($orgUID, $limit, $offset, $filter);
 
             $this->EndReturnData->Error      = false;
@@ -1613,14 +1811,14 @@ class Customers extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $this->load->model('customers_model');
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $PostData    = $this->input->post(null, true);
             $orgUID      = (int) $this->pageData['JwtData']->Org->OrgUID;
             $userUID     = (int) $this->pageData['JwtData']->User->UserUID;
             $customerUID = (int) getPostValue($PostData, 'CustomerUID', 0);
-            $line1       = trim((string) getPostValue($PostData, 'Line1', '', ''));
+            $_rawLine1   = trim((string) getPostValue($PostData, 'Line1', '', ''));
 
-            if ($customerUID <= 0 || $line1 === '') {
+            if ($customerUID <= 0 || $_rawLine1 === '') {
                 $this->EndReturnData->Error   = true;
                 $this->EndReturnData->Message = 'Line 1 is required.';
                 $this->globalservice->sendJsonResponse($this->EndReturnData);
@@ -1633,27 +1831,44 @@ class Customers extends MY_Controller {
                 'CustAddress.AddressType' => 'Billing',
             ]);
 
+            /* Detect language from Line1; normalise all text fields to English for base table */
+            $_rawLine2     = trim((string) getPostValue($PostData, 'Line2',     '', ''));
+            $_rawCityText  = trim((string) getPostValue($PostData, 'CityText',  '', ''));
+            $_rawStateText = trim((string) getPostValue($PostData, 'StateText', '', ''));
+            $_addrLang     = detectTextLang($_rawLine1);
+
+            $line1     = $_addrLang === 'ta' ? translateViaMymemory($_rawLine1,     'ta', 'en') : $_rawLine1;
+            $line2     = ($_addrLang === 'ta' && $_rawLine2     !== '') ? translateViaMymemory($_rawLine2,     'ta', 'en') : $_rawLine2;
+            $cityText  = ($_addrLang === 'ta' && $_rawCityText  !== '') ? translateViaMymemory($_rawCityText,  'ta', 'en') : $_rawCityText;
+            $stateText = ($_addrLang === 'ta' && $_rawStateText !== '') ? translateViaMymemory($_rawStateText, 'ta', 'en') : $_rawStateText;
+
             $addressData = [
                 'CustomerUID' => $customerUID,
                 'OrgUID'      => $orgUID,
                 'AddressType' => 'Billing',
                 'Line1'       => $line1,
-                'Line2'       => trim((string) getPostValue($PostData, 'Line2',     '', '')),
+                'Line2'       => $line2,
                 'Pincode'     => trim((string) getPostValue($PostData, 'Pincode',   '', '')),
                 'State'       => trim((string) getPostValue($PostData, 'StateId',   '', '')),
-                'StateText'   => trim((string) getPostValue($PostData, 'StateText', '', '')),
+                'StateText'   => $stateText,
                 'City'        => trim((string) getPostValue($PostData, 'CityId',    '', '')),
-                'CityText'    => trim((string) getPostValue($PostData, 'CityText',  '', '')),
+                'CityText'    => $cityText,
                 'UpdatedBy'   => $userUID,
             ];
 
             if (!empty($existing)) {
-                $resp = $this->dbwrite_model->updateData('Customers', 'CustAddressTbl', $addressData, ['CustAddressUID' => (int) $existing[0]->CustAddressUID]);
+                $_custAddrUID = (int) $existing[0]->CustAddressUID;
+                $resp = $this->dbwrite_model->updateData('Customers', 'CustAddressTbl', $addressData, ['CustAddressUID' => $_custAddrUID]);
             } else {
                 $addressData['CreatedBy'] = $userUID;
                 $resp = $this->dbwrite_model->insertData('Customers', 'CustAddressTbl', $addressData);
+                $_custAddrUID = (int) $resp->ID;
             }
             if ($resp->Error) throw new Exception($resp->Message);
+
+            /* Queue address lang row for background translation */
+            $_rawBillForLang = ['Line1' => $_rawLine1, 'Line2' => $_rawLine2, 'CityText' => $_rawCityText, 'StateText' => $_rawStateText, 'lang' => $_addrLang];
+            $this->_triggerAddrLangSave($customerUID, $_rawBillForLang, [], $userUID);
 
             $this->cachehelper->upsertCustomer($customerUID);
 
@@ -1679,8 +1894,7 @@ class Customers extends MY_Controller {
             $customerUID = (int) $this->input->post('CustomerUID');
 
             $this->load->library('customerbalance');
-            $readDb = $this->load->database('ReadDB', TRUE);
-            $readDb->db_debug = FALSE;
+            $this->load->model('customers_model');
 
             if ($customerUID > 0) {
                 // ── Single customer ────────────────────────────────────────
@@ -1694,12 +1908,7 @@ class Customers extends MY_Controller {
 
             } else {
                 // ── All customers for this org ─────────────────────────────
-                $rows = $readDb->query(
-                    'SELECT CustomerUID FROM Customers.CustomerTbl
-                      WHERE OrgUID = ? AND IsDeleted = 0
-                      ORDER BY CustomerUID ASC',
-                    [$orgUID]
-                )->result();
+                $rows = $this->customers_model->getAllCustomerUIDs($orgUID);
 
                 if (empty($rows)) throw new ValidationException('No customers found for this organisation.');
 
@@ -1744,15 +1953,15 @@ class Customers extends MY_Controller {
             $transUID    = (int) $this->input->post('TransUID');
             if ($paymentUID <= 0 || $transUID <= 0) throw new ValidationException('PaymentUID and TransUID are required.');
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->load->model('transactions_model');
 
-            $payment = $this->dbwrite_model->getOnAccountPayment($paymentUID, $orgUID);
+            $payment = $this->dbwrite_ext_model->getOnAccountPayment($paymentUID, $orgUID);
             if (!$payment) throw new ValidationException('On Account payment not found or already applied.');
 
             $this->dbwrite_model->startTransaction();
 
-            $this->dbwrite_model->applyOnAccountPayment($paymentUID, $orgUID, $transUID, $userUID);
+            $this->dbwrite_ext_model->applyOnAccountPayment($paymentUID, $orgUID, $transUID, $userUID);
 
             // Update invoice paid/balance
             $existingPaid = $this->transactions_model->getSumPaidForTransaction($transUID, $orgUID);
@@ -1764,8 +1973,8 @@ class Customers extends MY_Controller {
                 $isFullyPaid   = ($netAmount > 0 && $balanceAmount <= 0) ? 1 : 0;
                 $newStatus     = $isFullyPaid ? 'Paid' : ($newPaid > 0 ? 'Partial' : 'Issued');
 
-                $this->dbwrite_model->updateTransIsFullyPaid($transUID, $isFullyPaid, $newPaid, $balanceAmount, $userUID);
-                $this->dbwrite_model->updateTransDocStatus($transUID, $orgUID, $newStatus, $userUID);
+                $this->dbwrite_ext_model->updateTransIsFullyPaid($transUID, $isFullyPaid, $newPaid, $balanceAmount, $userUID);
+                $this->dbwrite_ext_model->updateTransDocStatus($transUID, $orgUID, $newStatus, $userUID);
             }
 
             $this->dbwrite_model->commitTransaction();
@@ -1815,7 +2024,7 @@ class Customers extends MY_Controller {
             if ($uid <= 0) throw new ValidationException('Invalid customer ID.');
 
             $this->load->model('customers_model');
-            $custData = $this->customers_model->getCustomers(['Customers.CustomerUID' => $uid]);
+            $custData = $this->customers_model->getCustomers(['Customers.CustomerUID' => $uid], $this->_uiLang());
             if (empty($custData)) throw new ValidationException('Customer not found.');
             $cust = $custData[0];
 
@@ -1830,7 +2039,7 @@ class Customers extends MY_Controller {
             switch ($tab) {
 
                 case 'overview':
-                    $addrInfo = $this->customers_model->getCustomerAddress(['CustAddress.CustomerUID' => $uid]);
+                    $addrInfo = $this->customers_model->getCustomerAddress(['CustAddress.CustomerUID' => $uid], $this->_uiLang());
                     $billingAddr = null; $shippingAddr = null;
                     foreach ($addrInfo as $a) {
                         if ($a->AddressType === 'Billing')  $billingAddr  = $a;
@@ -1997,7 +2206,7 @@ class Customers extends MY_Controller {
 
             $this->load->model('customers_model');
             $this->load->model('organisation_model');
-            $custData = $this->customers_model->getCustomers(['Customers.CustomerUID' => $customerUID]);
+            $custData = $this->customers_model->getCustomers(['Customers.CustomerUID' => $customerUID], $this->_uiLang());
             if (empty($custData)) throw new ValidationException('Customer not found.');
 
             $JwtData    = $this->pageData['JwtData'];
@@ -2090,7 +2299,7 @@ class Customers extends MY_Controller {
         $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
         $offset  = max(0, ($pageNo - 1) * $limit);
         $this->load->model('customers_model');
-        $result  = $this->customers_model->getGroupListPaginated($orgUID, $limit, $offset, $filter);
+        $result  = $this->customers_model->getGroupListPaginated($orgUID, $limit, $offset, $filter, $this->_uiLang());
         $rowHtml = $this->load->view('customers/groups/list', [
             'DataLists'    => $result->rows,
             'SerialNumber' => $offset,
@@ -2138,7 +2347,7 @@ class Customers extends MY_Controller {
             $this->load->model('customers_model');
             $group   = $this->customers_model->getGroupByUID($orgUID, $groupUID);
             if (!$group) throw new ValidationException('Group not found.');
-            $members = $this->customers_model->getGroupMembers($orgUID, $groupUID);
+            $members = $this->customers_model->getGroupMembers($orgUID, $groupUID, $this->_uiLang());
             $this->EndReturnData->Error      = false;
             $this->EndReturnData->Data       = $group;
             $this->EndReturnData->Members    = $members;
@@ -2163,10 +2372,45 @@ class Customers extends MY_Controller {
         $this->load->view('customers/groups/form', $this->pageData);
     }
 
+    /**
+     * @param int         $groupUID
+     * @param string      $origGroupName
+     * @param string      $typedLangGroupName
+     * @param string|null $origContactPerson
+     * @param string      $typedLangContact
+     * @param string|null $origNotes
+     * @param string      $typedLangNotes
+     * @param string|null $origAddrLine1
+     * @param string      $typedLangLine1
+     * @param string|null $origAddrLine2
+     * @param string      $typedLangLine2
+     * @param string|null $origAddrCity
+     * @param string      $typedLangCity
+     * @param string|null $origAddrState
+     * @param string      $typedLangState
+     * @param int         $userUID
+     * @returns void
+     */
+    private function _triggerCustGroupLangSave(int $groupUID, string $origGroupName, string $typedLangGroupName, ?string $origContactPerson, string $typedLangContact, ?string $origNotes, string $typedLangNotes, ?string $origAddrLine1, string $typedLangLine1, ?string $origAddrLine2, string $typedLangLine2, ?string $origAddrCity, string $typedLangCity, ?string $origAddrState, string $typedLangState, int $userUID): void {
+        register_shutdown_function(function () use ($groupUID, $origGroupName, $typedLangGroupName, $origContactPerson, $typedLangContact, $origNotes, $typedLangNotes, $origAddrLine1, $typedLangLine1, $origAddrLine2, $typedLangLine2, $origAddrCity, $typedLangCity, $origAddrState, $typedLangState, $userUID) {
+            if (function_exists('fastcgi_finish_request')) fastcgi_finish_request();
+            ignore_user_abort(true);
+            $tamilGroupName    = $typedLangGroupName    === 'ta' ? $origGroupName    : translateViaMymemory($origGroupName,    'en', 'ta');
+            $tamilContact      = $typedLangContact      === 'ta' ? $origContactPerson : ($origContactPerson !== null ? translateViaMymemory($origContactPerson, 'en', 'ta') : null);
+            $tamilNotes        = $typedLangNotes        === 'ta' ? $origNotes        : ($origNotes        !== null ? translateViaMymemory($origNotes,        'en', 'ta') : null);
+            $tamilLine1        = $typedLangLine1        === 'ta' ? $origAddrLine1    : ($origAddrLine1    !== null ? translateViaMymemory($origAddrLine1,    'en', 'ta') : null);
+            $tamilLine2        = $typedLangLine2        === 'ta' ? $origAddrLine2    : ($origAddrLine2    !== null ? translateViaMymemory($origAddrLine2,    'en', 'ta') : null);
+            $tamilCity         = $typedLangCity         === 'ta' ? $origAddrCity     : ($origAddrCity     !== null ? translateViaMymemory($origAddrCity,     'en', 'ta') : null);
+            $tamilState        = $typedLangState        === 'ta' ? $origAddrState    : ($origAddrState    !== null ? translateViaMymemory($origAddrState,    'en', 'ta') : null);
+            $this->load->model('customers_model');
+            $this->customers_model->saveCustomerGroupLangRow($groupUID, 'ta', $tamilGroupName, $tamilContact, $tamilNotes, $tamilLine1, $tamilLine2, $tamilCity, $tamilState, $userUID);
+        });
+    }
+
     public function addGroupData() {
         $this->EndReturnData = new stdClass();
         try {
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
             $post      = $this->input->post();
             $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
@@ -2174,24 +2418,45 @@ class Customers extends MY_Controller {
             $groupName = trim($post['GroupName'] ?? '');
             if (!$groupName) throw new InvalidArgumentException('Group Name is required.');
             $validTypes = $this->_groupTypesList();
+            $origGroupName    = $groupName;
+            $typedLangGroup   = detectTextLang($groupName);
+            if ($typedLangGroup === 'ta') $groupName = translateViaMymemory($groupName, 'ta', 'en');
+            $origContact      = trim($post['ContactPerson'] ?? '') ?: null;
+            $typedLangContact = $origContact !== null ? detectTextLang($origContact) : 'en';
+            $_rawContact      = ($typedLangContact === 'ta' && $origContact !== null) ? translateViaMymemory($origContact, 'ta', 'en') : $origContact;
+            $origNotes        = trim($post['Notes']     ?? '') ?: null;
+            $typedLangNotes   = $origNotes !== null ? detectTextLang($origNotes) : 'en';
+            $_rawNotes        = ($typedLangNotes === 'ta' && $origNotes !== null) ? translateViaMymemory($origNotes, 'ta', 'en') : $origNotes;
+            $origLine1        = trim($post['AddrLine1'] ?? '') ?: null;
+            $typedLangLine1   = $origLine1 !== null ? detectTextLang($origLine1) : 'en';
+            $_rawLine1        = ($typedLangLine1 === 'ta' && $origLine1 !== null) ? translateViaMymemory($origLine1, 'ta', 'en') : $origLine1;
+            $origLine2        = trim($post['AddrLine2'] ?? '') ?: null;
+            $typedLangLine2   = $origLine2 !== null ? detectTextLang($origLine2) : 'en';
+            $_rawLine2        = ($typedLangLine2 === 'ta' && $origLine2 !== null) ? translateViaMymemory($origLine2, 'ta', 'en') : $origLine2;
+            $origCity         = trim($post['AddrCity']  ?? '') ?: null;
+            $typedLangCity    = $origCity !== null ? detectTextLang($origCity) : 'en';
+            $_rawCity         = ($typedLangCity === 'ta' && $origCity !== null) ? translateViaMymemory($origCity, 'ta', 'en') : $origCity;
+            $origState        = trim($post['AddrState'] ?? '') ?: null;
+            $typedLangState   = $origState !== null ? detectTextLang($origState) : 'en';
+            $_rawState        = ($typedLangState === 'ta' && $origState !== null) ? translateViaMymemory($origState, 'ta', 'en') : $origState;
             $data = [
                 'OrgUID'            => $orgUID,
                 'GroupCode'         => trim($post['GroupCode']         ?? '') ?: null,
                 'GroupName'         => $groupName,
                 'GroupType'         => in_array($post['GroupType'] ?? '', $validTypes) ? $post['GroupType'] : 'Business Group',
-                'ContactPerson'     => trim($post['ContactPerson']     ?? '') ?: null,
+                'ContactPerson'     => $_rawContact,
                 'Mobile'            => trim($post['Mobile']            ?? '') ?: null,
                 'MobileCountryCode' => trim($post['MobileCountryCode'] ?? '') ?: null,
                 'Email'             => trim($post['Email']             ?? '') ?: null,
-                'GSTNo'             => strtoupper(trim($post['GSTIN']             ?? '')) ?: null,
+                'GSTNo'             => strtoupper(trim($post['GSTIN']  ?? '')) ?: null,
                 'GSTINValidated'    => (int)($post['GSTINValidated']   ?? 0),
-                'AddrLine1'         => trim($post['AddrLine1']         ?? '') ?: null,
-                'AddrLine2'         => trim($post['AddrLine2']         ?? '') ?: null,
-                'AddrCity'          => trim($post['AddrCity']          ?? '') ?: null,
-                'AddrState'         => trim($post['AddrState']         ?? '') ?: null,
+                'AddrLine1'         => $_rawLine1,
+                'AddrLine2'         => $_rawLine2,
+                'AddrCity'          => $_rawCity,
+                'AddrState'         => $_rawState,
                 'AddrStateCode'     => trim($post['AddrStateCode']     ?? '') ?: null,
                 'AddrPincode'       => trim($post['AddrPincode']       ?? '') ?: null,
-                'Notes'             => trim($post['Notes']             ?? '') ?: null,
+                'Notes'             => $_rawNotes,
                 'IsActive'          => 1,
                 'CreatedBy'         => $userUID,
                 'UpdatedBy'         => $userUID,
@@ -2206,6 +2471,7 @@ class Customers extends MY_Controller {
                 $this->customers_model->assignGroupMembers($orgUID, $groupUID, $memberUIDs, $primaryUID, $userUID);
             }
             $this->dbwrite_model->commitTransaction();
+            $this->_triggerCustGroupLangSave((int)$groupUID, $origGroupName, $typedLangGroup, $origContact, $typedLangContact, $origNotes, $typedLangNotes, $origLine1, $typedLangLine1, $origLine2, $typedLangLine2, $origCity, $typedLangCity, $origState, $typedLangState, (int)$userUID);
             $this->cachehelper->upsertCustomerGroup((int) $groupUID);
             foreach ($memberUIDs as $mUID) { $this->cachehelper->upsertCustomer($mUID); }
             $this->EndReturnData->Error     = false;
@@ -2255,7 +2521,7 @@ class Customers extends MY_Controller {
             if (!$group) { redirect('customers'); return; }
             $this->pageData['FormMode']   = 'edit';
             $this->pageData['FormData']   = $group;
-            $this->pageData['Members']    = $this->customers_model->getGroupMembers($orgUID, $groupUID);
+            $this->pageData['Members']    = $this->customers_model->getGroupMembers($orgUID, $groupUID, $this->_uiLang());
             $this->pageData['GroupTypes'] = $this->_groupTypesList();
             $this->load->view('customers/groups/form', $this->pageData);
         } catch (ValidationException $e) {
@@ -2269,7 +2535,7 @@ class Customers extends MY_Controller {
     public function updateGroupData() {
         $this->EndReturnData = new stdClass();
         try {
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
             $post      = $this->input->post();
             $groupUID  = (int)($post['GroupUID'] ?? 0);
@@ -2279,28 +2545,49 @@ class Customers extends MY_Controller {
             $groupName = trim($post['GroupName'] ?? '');
             if (!$groupName) throw new InvalidArgumentException('Group Name is required.');
             $validTypes = $this->_groupTypesList();
+            $origGroupName    = $groupName;
+            $typedLangGroup   = detectTextLang($groupName);
+            if ($typedLangGroup === 'ta') $groupName = translateViaMymemory($groupName, 'ta', 'en');
+            $origContact      = trim($post['ContactPerson'] ?? '') ?: null;
+            $typedLangContact = $origContact !== null ? detectTextLang($origContact) : 'en';
+            $_rawContact      = ($typedLangContact === 'ta' && $origContact !== null) ? translateViaMymemory($origContact, 'ta', 'en') : $origContact;
+            $origNotes        = trim($post['Notes']     ?? '') ?: null;
+            $typedLangNotes   = $origNotes !== null ? detectTextLang($origNotes) : 'en';
+            $_rawNotes        = ($typedLangNotes === 'ta' && $origNotes !== null) ? translateViaMymemory($origNotes, 'ta', 'en') : $origNotes;
+            $origLine1        = trim($post['AddrLine1'] ?? '') ?: null;
+            $typedLangLine1   = $origLine1 !== null ? detectTextLang($origLine1) : 'en';
+            $_rawLine1        = ($typedLangLine1 === 'ta' && $origLine1 !== null) ? translateViaMymemory($origLine1, 'ta', 'en') : $origLine1;
+            $origLine2        = trim($post['AddrLine2'] ?? '') ?: null;
+            $typedLangLine2   = $origLine2 !== null ? detectTextLang($origLine2) : 'en';
+            $_rawLine2        = ($typedLangLine2 === 'ta' && $origLine2 !== null) ? translateViaMymemory($origLine2, 'ta', 'en') : $origLine2;
+            $origCity         = trim($post['AddrCity']  ?? '') ?: null;
+            $typedLangCity    = $origCity !== null ? detectTextLang($origCity) : 'en';
+            $_rawCity         = ($typedLangCity === 'ta' && $origCity !== null) ? translateViaMymemory($origCity, 'ta', 'en') : $origCity;
+            $origState        = trim($post['AddrState'] ?? '') ?: null;
+            $typedLangState   = $origState !== null ? detectTextLang($origState) : 'en';
+            $_rawState        = ($typedLangState === 'ta' && $origState !== null) ? translateViaMymemory($origState, 'ta', 'en') : $origState;
             $data = [
                 'GroupCode'         => trim($post['GroupCode']         ?? '') ?: null,
                 'GroupName'         => $groupName,
                 'GroupType'         => in_array($post['GroupType'] ?? '', $validTypes) ? $post['GroupType'] : 'Business Group',
-                'ContactPerson'     => trim($post['ContactPerson']     ?? '') ?: null,
+                'ContactPerson'     => $_rawContact,
                 'Mobile'            => trim($post['Mobile']            ?? '') ?: null,
                 'MobileCountryCode' => trim($post['MobileCountryCode'] ?? '') ?: null,
                 'Email'             => trim($post['Email']             ?? '') ?: null,
-                'GSTNo'             => strtoupper(trim($post['GSTIN']             ?? '')) ?: null,
+                'GSTNo'             => strtoupper(trim($post['GSTIN']  ?? '')) ?: null,
                 'GSTINValidated'    => (int)($post['GSTINValidated']   ?? 0),
-                'AddrLine1'         => trim($post['AddrLine1']         ?? '') ?: null,
-                'AddrLine2'         => trim($post['AddrLine2']         ?? '') ?: null,
-                'AddrCity'          => trim($post['AddrCity']          ?? '') ?: null,
-                'AddrState'         => trim($post['AddrState']         ?? '') ?: null,
+                'AddrLine1'         => $_rawLine1,
+                'AddrLine2'         => $_rawLine2,
+                'AddrCity'          => $_rawCity,
+                'AddrState'         => $_rawState,
                 'AddrStateCode'     => trim($post['AddrStateCode']     ?? '') ?: null,
                 'AddrPincode'       => trim($post['AddrPincode']       ?? '') ?: null,
-                'Notes'             => trim($post['Notes']             ?? '') ?: null,
+                'Notes'             => $_rawNotes,
                 'UpdatedBy'         => $userUID,
             ];
             $this->load->model('customers_model');
             $oldGroup      = $this->customers_model->getGroupByUID($orgUID, $groupUID);
-            $oldMembers    = $this->customers_model->getGroupMembers($orgUID, $groupUID);
+            $oldMembers    = $this->customers_model->getGroupMembers($orgUID, $groupUID, $this->_uiLang());
             $oldMemberUIDs = array_map(function($m) { return (int)$m->CustomerUID; }, $oldMembers);
             $resp = $this->dbwrite_model->updateData('Customers', 'CustomerGroupTbl', $data, ['GroupUID' => $groupUID, 'OrgUID' => $orgUID]);
             if ($resp->Error) throw new Exception($resp->Message);
@@ -2308,6 +2595,7 @@ class Customers extends MY_Controller {
             $primaryUID = (int)($post['PrimaryUID'] ?? 0);
             $this->customers_model->syncGroupMembers($orgUID, $groupUID, $memberUIDs, $primaryUID, $userUID);
             $this->dbwrite_model->commitTransaction();
+            $this->_triggerCustGroupLangSave($groupUID, $origGroupName, $typedLangGroup, $origContact, $typedLangContact, $origNotes, $typedLangNotes, $origLine1, $typedLangLine1, $origLine2, $typedLangLine2, $origCity, $typedLangCity, $origState, $typedLangState, (int)$userUID);
             $this->cachehelper->upsertCustomerGroup((int) $groupUID);
             foreach (array_unique(array_merge($oldMemberUIDs, $memberUIDs)) as $mUID) {
                 $this->cachehelper->upsertCustomer($mUID);
@@ -2356,7 +2644,7 @@ class Customers extends MY_Controller {
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
             $userUID  = $this->pageData['JwtData']->User->UserUID;
             if (!$groupUID) throw new ValidationException('Group ID is missing.');
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->load->model('customers_model');
             $oldGroup = $this->customers_model->getGroupByUID($orgUID, $groupUID);
             $this->dbwrite_model->startTransaction();
@@ -2407,7 +2695,7 @@ class Customers extends MY_Controller {
             $userUID   = $this->pageData['JwtData']->User->UserUID;
             if (!$groupUID) throw new ValidationException('Group ID is missing.');
             if (!in_array($newStatus, [0, 1])) throw new ValidationException('Invalid status value.');
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $resp = $this->dbwrite_model->updateData('Customers', 'CustomerGroupTbl',
                 ['IsActive' => $newStatus, 'UpdatedBy' => $userUID],
                 ['GroupUID' => $groupUID, 'OrgUID' => $orgUID]
@@ -2457,7 +2745,7 @@ class Customers extends MY_Controller {
             if (!$group) throw new ValidationException('Group not found.');
             $this->EndReturnData->Error    = false;
             $this->EndReturnData->Data     = $group;
-            $this->EndReturnData->Members  = $this->customers_model->getGroupMembers($orgUID, $groupUID);
+            $this->EndReturnData->Members  = $this->customers_model->getGroupMembers($orgUID, $groupUID, $this->_uiLang());
             $this->EndReturnData->Overview = $this->customers_model->getGroupOverview($orgUID, $groupUID);
         } catch (ValidationException $e) {
             $this->EndReturnData->Error   = true;
@@ -2476,7 +2764,7 @@ class Customers extends MY_Controller {
             $orgUID = $this->pageData['JwtData']->Org->OrgUID;
             $this->load->model('customers_model');
             $this->EndReturnData->Error = false;
-            $this->EndReturnData->Data  = $this->customers_model->getGroupOutstanding($orgUID, (int)$groupUID);
+            $this->EndReturnData->Data  = $this->customers_model->getGroupOutstanding($orgUID, (int)$groupUID, $this->_uiLang());
         } catch (ValidationException $e) {
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
@@ -2493,7 +2781,7 @@ class Customers extends MY_Controller {
         try {
             $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
             $this->load->model('customers_model');
-            $rows = $this->customers_model->getActiveGroupsForDropdown($orgUID);
+            $rows = $this->customers_model->getActiveGroupsForDropdown($orgUID, $this->_uiLang());
             if (!empty($rows)) {
                 $key = $this->redisservice->orgKey('customer-groups');
                 $this->upstashservice->del($key);
@@ -2576,7 +2864,7 @@ class Customers extends MY_Controller {
             $orgUID      = (int)$this->pageData['JwtData']->Org->OrgUID;
             $userUID     = (int)$this->pageData['JwtData']->User->UserUID;
             if ($attachUID <= 0) throw new ValidationException('Invalid attachment.');
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->updateData('Customers', 'CustomerAttachmentsTbl',
                 ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
                 ['AttachUID' => $attachUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
@@ -2603,7 +2891,7 @@ class Customers extends MY_Controller {
     }
 
     private function _handleCustomerAttachments(int $customerUID, int $orgUID, int $userUID, string $deleteUIDs, bool $fromForm = true): array {
-        $this->load->model('dbwrite_model');
+        $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
         $this->load->model('customers_model');
         $this->load->library('fileupload');
         $maxFiles = 3; $maxMB = 3;
@@ -2625,14 +2913,7 @@ class Customers extends MY_Controller {
         $files    = $_FILES[$filesKey] ?? null;
         $saved    = [];
         if (!empty($files) && !empty($files['name'][0])) {
-            $wdb = $this->dbwrite_model->getWriteDb();
-            $wdb->db_debug = FALSE;
-            $maxSortQ = $wdb->query(
-                "SELECT COALESCE(MAX(SortOrder),0) AS ms, COUNT(*) AS cnt, COALESCE(SUM(FileSize),0) AS ts
-                   FROM Customers.CustomerAttachmentsTbl WHERE CustomerUID=? AND OrgUID=? AND IsDeleted=0",
-                [$customerUID, $orgUID]
-            );
-            $msr  = $maxSortQ ? $maxSortQ->row() : null;
+            $msr = $this->customers_model->getAttachmentSortStats($customerUID, $orgUID);
             $sort = (int)($msr->ms ?? 0) + 1;
             $slots = $maxFiles - (int)($msr->cnt ?? 0);
             $used  = (float)($msr->ts ?? 0);
@@ -2650,7 +2931,7 @@ class Customers extends MY_Controller {
                 $safe   = time() . '_' . $i . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $name);
                 $result = $this->fileupload->fileUpload('file', $folder . '/' . $safe, $tmp);
                 if ($result->Error) continue;
-                $wdb->insert('Customers.CustomerAttachmentsTbl', [
+                $this->dbwrite_model->insertData('Customers', 'CustomerAttachmentsTbl', [
                     'OrgUID'      => $orgUID, 'CustomerUID' => $customerUID,
                     'FileName'    => $name,   'FilePath'    => '/' . ltrim($result->Path, '/'),
                     'FileSize'    => (int)$size, 'SortOrder' => $sort + count($saved),
@@ -2668,7 +2949,7 @@ class Customers extends MY_Controller {
         try {
             $this->load->model('customers_model');
             $primary = $this->customers_model->getCustomerPrimaryImage($customerUID, $orgUID);
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->updateData('Customers', 'CustomerTbl',
                 ['Image' => $primary, 'UpdatedBy' => $userUID],
                 ['CustomerUID' => $customerUID, 'OrgUID' => $orgUID]

@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Products extends MY_Controller {
 
@@ -10,6 +10,52 @@ class Products extends MY_Controller {
 
         $this->load->model(['products_model']);
 
+    }
+
+    /**
+     * Registers a shutdown callback that translates product item name and description
+     * to Tamil and upserts the row into ProductTbl_Lang after the HTTP response is sent.
+     * If the user typed Tamil: save original directly (no extra API call).
+     * If the user typed English: translate en→ta via MyMemory API in background.
+     * @param int         $productUID
+     * @param string      $originalItemName
+     * @param string      $typedLangName
+     * @param string|null $originalDescription
+     * @param string      $typedLangDesc
+     * @param int         $userUID
+     * @returns void
+     */
+    private function _triggerProdLangSave(
+        int $productUID,
+        string $originalItemName, string $typedLangName,
+        ?string $originalDescription, string $typedLangDesc,
+        int $userUID
+    ): void {
+        register_shutdown_function(function () use (
+            $productUID,
+            $originalItemName, $typedLangName,
+            $originalDescription, $typedLangDesc,
+            $userUID
+        ) {
+            if (function_exists('fastcgi_finish_request')) fastcgi_finish_request();
+            ignore_user_abort(true);
+
+            $tamilName = ($typedLangName === 'ta')
+                ? $originalItemName
+                : translateViaMymemory($originalItemName, 'en', 'ta');
+
+            $tamilDesc = null;
+            if (!empty($originalDescription)) {
+                $tamilDesc = ($typedLangDesc === 'ta')
+                    ? $originalDescription
+                    : translateViaMymemory($originalDescription, 'en', 'ta');
+            }
+
+            $CI = &get_instance();
+            $CI->load->model('products_model');
+            $CI->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
+            $CI->products_model->saveProdLangRow($productUID, 'ta', $tamilName, $tamilDesc, $userUID);
+        });
     }
 
     private function sanitizeTabInput($tab): string {
@@ -52,7 +98,7 @@ class Products extends MY_Controller {
             ? $baseQuery . ' AND (' . $filterResult->SearchDirectQuery . ')'
             : $baseQuery;
 
-        $result = $this->products_model->getProductListPaginated($OrgUID, $limit, $offset, $searchQuery, $filterResult->sortOperation);
+        $result = $this->products_model->getProductListPaginated($OrgUID, $limit, $offset, $searchQuery, $filterResult->sortOperation, $this->_uiLang());
 
 
         $rowHtml = $this->load->view('products/items/list', [
@@ -83,6 +129,83 @@ class Products extends MY_Controller {
         return ($html !== false && $html !== '') ? $html : '';
     }
 
+    /**
+     * Registers a shutdown callback that translates category name and description
+     * to Tamil and upserts into CategoryTbl_Lang after the HTTP response is sent.
+     * @param int         $categoryUID
+     * @param string      $originalName
+     * @param string      $typedLangName
+     * @param string|null $originalDescription
+     * @param string      $typedLangDesc
+     * @param int         $userUID
+     * @returns void
+     */
+    private function _triggerCatgLangSave(
+        int $categoryUID,
+        string $originalName, string $typedLangName,
+        ?string $originalDescription, string $typedLangDesc,
+        int $userUID
+    ): void {
+        register_shutdown_function(function () use (
+            $categoryUID,
+            $originalName, $typedLangName,
+            $originalDescription, $typedLangDesc,
+            $userUID
+        ) {
+            if (function_exists('fastcgi_finish_request')) fastcgi_finish_request();
+            ignore_user_abort(true);
+
+            $tamilName = ($typedLangName === 'ta')
+                ? $originalName
+                : translateViaMymemory($originalName, 'en', 'ta');
+
+            $tamilDesc = null;
+            if (!empty($originalDescription)) {
+                $tamilDesc = ($typedLangDesc === 'ta')
+                    ? $originalDescription
+                    : translateViaMymemory($originalDescription, 'en', 'ta');
+            }
+
+            $CI = &get_instance();
+            $CI->load->model('products_model');
+            $CI->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
+            $CI->products_model->saveCatgLangRow($categoryUID, 'ta', $tamilName, $tamilDesc, $userUID);
+        });
+    }
+
+    private function _triggerSizeLangSave(
+        int $sizeUID,
+        string $originalName, string $typedLangName,
+        ?string $originalDescription, string $typedLangDesc,
+        int $userUID
+    ): void {
+        register_shutdown_function(function () use (
+            $sizeUID,
+            $originalName, $typedLangName,
+            $originalDescription, $typedLangDesc,
+            $userUID
+        ) {
+            if (function_exists('fastcgi_finish_request')) fastcgi_finish_request();
+            ignore_user_abort(true);
+
+            $tamilName = ($typedLangName === 'ta')
+                ? $originalName
+                : translateViaMymemory($originalName, 'en', 'ta');
+
+            $tamilDesc = null;
+            if (!empty($originalDescription)) {
+                $tamilDesc = ($typedLangDesc === 'ta')
+                    ? $originalDescription
+                    : translateViaMymemory($originalDescription, 'en', 'ta');
+            }
+
+            $CI = &get_instance();
+            $CI->load->model('products_model');
+            $CI->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
+            $CI->products_model->saveSizeLangRow($sizeUID, 'ta', $tamilName, $tamilDesc, $userUID);
+        });
+    }
+
     private function fetchCategoryTableData($pageNo, $limit = 0) {
 
         $OrgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
@@ -98,7 +221,7 @@ class Products extends MY_Controller {
         $offset = ($pageNo - 1) * $limit;
 
 
-        $result  = $this->products_model->getCategoryListPaginated($OrgUID, $limit, $offset);
+        $result  = $this->products_model->getCategoryListPaginated($OrgUID, $limit, $offset, '', [], $this->_uiLang());
         $rowHtml = $this->load->view('products/categories/list', [
             'DataLists' => $result->rows,
             'StartFrom' => $offset,
@@ -112,6 +235,50 @@ class Products extends MY_Controller {
 
     }
 
+    /**
+     * Registers a shutdown callback that translates brand name and description
+     * to Tamil and upserts into BrandTbl_Lang after the HTTP response is sent.
+     * @param int         $brandUID
+     * @param string      $originalBrandName
+     * @param string      $typedLangName
+     * @param string|null $originalDescription
+     * @param string      $typedLangDesc
+     * @param int         $userUID
+     * @returns void
+     */
+    private function _triggerBrandLangSave(
+        int $brandUID,
+        string $originalBrandName, string $typedLangName,
+        ?string $originalDescription, string $typedLangDesc,
+        int $userUID
+    ): void {
+        register_shutdown_function(function () use (
+            $brandUID,
+            $originalBrandName, $typedLangName,
+            $originalDescription, $typedLangDesc,
+            $userUID
+        ) {
+            if (function_exists('fastcgi_finish_request')) fastcgi_finish_request();
+            ignore_user_abort(true);
+
+            $tamilName = ($typedLangName === 'ta')
+                ? $originalBrandName
+                : translateViaMymemory($originalBrandName, 'en', 'ta');
+
+            $tamilDesc = null;
+            if (!empty($originalDescription)) {
+                $tamilDesc = ($typedLangDesc === 'ta')
+                    ? $originalDescription
+                    : translateViaMymemory($originalDescription, 'en', 'ta');
+            }
+
+            $CI = &get_instance();
+            $CI->load->model('products_model');
+            $CI->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
+            $CI->products_model->saveBrandLangRow($brandUID, 'ta', $tamilName, $tamilDesc, $userUID);
+        });
+    }
+
     private function fetchBrandTableData(int $pageNo, int $limit = 0): object {
 
         $OrgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
@@ -123,7 +290,7 @@ class Products extends MY_Controller {
         $pageNo = max(1, $pageNo);
         $offset = ($pageNo - 1) * $limit;
 
-        $result  = $this->products_model->getBrandListPaginated($OrgUID, $limit, $offset);
+        $result  = $this->products_model->getBrandListPaginated($OrgUID, $limit, $offset, '', [], $this->_uiLang());
         $rowHtml = $this->load->view('products/brands/list', [
             'DataLists' => $result->rows,
             'StartFrom' => $offset,
@@ -161,7 +328,7 @@ class Products extends MY_Controller {
                 $fr        = $this->products_model->itemFilterFormation((object)['TableAliasName' => 'Products'], $initFilter);
                 $baseQuery = 'Products.IsComposite = 0';
                 $sqry      = $fr->SearchDirectQuery ? $baseQuery . ' AND (' . $fr->SearchDirectQuery . ')' : $baseQuery;
-                $tableData = $this->products_model->getProductListPaginated($OrgUID, $limit, 0, $sqry);
+                $tableData = $this->products_model->getProductListPaginated($OrgUID, $limit, 0, $sqry, [], $this->_uiLang());
                 $this->pageData['ModRowData'] = $this->load->view('products/items/list', [
                     'DataLists' => $tableData->rows,
                     'StartFrom' => 0,
@@ -174,7 +341,7 @@ class Products extends MY_Controller {
                 $fr        = $this->products_model->itemFilterFormation((object)['TableAliasName' => 'Products'], $initFilter);
                 $baseQuery = 'Products.IsComposite = 1';
                 $sqry      = $fr->SearchDirectQuery ? $baseQuery . ' AND (' . $fr->SearchDirectQuery . ')' : $baseQuery;
-                $tableData = $this->products_model->getProductListPaginated($OrgUID, $limit, 0, $sqry);
+                $tableData = $this->products_model->getProductListPaginated($OrgUID, $limit, 0, $sqry, [], $this->_uiLang());
                 $this->pageData['ModRowData'] = $this->load->view('products/items/list', [
                     'DataLists' => $tableData->rows,
                     'StartFrom' => 0,
@@ -186,7 +353,7 @@ class Products extends MY_Controller {
                 $this->pageData['ModTotalCount'] = $tableData->totalCount;
             } elseif ($activeTab === 'pricelist') {
                 $this->load->model('pricelists_model');
-                $tableData = $this->pricelists_model->getPriceListPaginated($OrgUID, $limit, 0, $initFilter);
+                $tableData = $this->pricelists_model->getPriceListPaginated($OrgUID, $limit, 0, $initFilter, $this->_uiLang());
                 $this->pageData['ModRowData'] = $this->load->view('products/pricelists/list', [
                     'DataLists' => $tableData->rows,
                     'StartFrom' => 0,
@@ -196,7 +363,7 @@ class Products extends MY_Controller {
                 $this->pageData['ModTotalCount'] = $tableData->totalCount;
             } elseif ($activeTab === 'category') {
                 $fr        = $this->products_model->catgFilterFormation((object)['TableAliasName' => 'Category'], $initFilter);
-                $tableData = $this->products_model->getCategoryListPaginated($OrgUID, $limit, 0, $fr->SearchDirectQuery);
+                $tableData = $this->products_model->getCategoryListPaginated($OrgUID, $limit, 0, $fr->SearchDirectQuery, [], $this->_uiLang());
                 $this->pageData['ModRowData'] = $this->load->view('products/categories/list', [
                     'DataLists' => $tableData->rows,
                     'StartFrom' => 0,
@@ -206,7 +373,7 @@ class Products extends MY_Controller {
                 $this->pageData['ModTotalCount'] = $tableData->totalCount;
             } elseif ($activeTab === 'brand') {
                 $fr        = $this->products_model->brandFilterFormation((object)['TableAliasName' => 'Brand'], $initFilter);
-                $tableData = $this->products_model->getBrandListPaginated($OrgUID, $limit, 0, $fr->SearchDirectQuery);
+                $tableData = $this->products_model->getBrandListPaginated($OrgUID, $limit, 0, $fr->SearchDirectQuery, [], $this->_uiLang());
                 $this->pageData['ModRowData'] = $this->load->view('products/brands/list', [
                     'DataLists' => $tableData->rows,
                     'StartFrom' => 0,
@@ -216,7 +383,7 @@ class Products extends MY_Controller {
                 $this->pageData['ModTotalCount'] = $tableData->totalCount;
             } elseif ($activeTab === 'size') {
                 $fr        = $this->products_model->sizeFilterFormation((object)['TableAliasName' => 'Size'], $initFilter);
-                $tableData = $this->products_model->getSizeListPaginated($OrgUID, $limit, 0, $fr->SearchDirectQuery);
+                $tableData = $this->products_model->getSizeListPaginated($OrgUID, $limit, 0, $fr->SearchDirectQuery, [], $this->_uiLang());
                 $this->pageData['ModRowData'] = $this->load->view('products/sizes/list', [
                     'DataLists' => $tableData->rows,
                     'StartFrom' => 0,
@@ -424,8 +591,7 @@ class Products extends MY_Controller {
             $searchQuery = $filterResult->SearchDirectQuery
                 ? $baseQuery . ' AND (' . $filterResult->SearchDirectQuery . ')'
                 : $baseQuery;
-            $result  = $this->products_model->getProductListPaginated($OrgUID, $limit, $offset, $searchQuery, $filterResult->sortOperation);
-
+            $result  = $this->products_model->getProductListPaginated($OrgUID, $limit, $offset, $searchQuery, $filterResult->sortOperation, $this->_uiLang());
 
             $rowHtml = $this->load->view('products/items/list', [
                 'DataLists' => $result->rows,
@@ -467,7 +633,7 @@ class Products extends MY_Controller {
             $searchQuery = $filterResult->SearchDirectQuery
                 ? $baseQuery . ' AND (' . $filterResult->SearchDirectQuery . ')'
                 : $baseQuery;
-            $result = $this->products_model->getProductListPaginated($OrgUID, $limit, $offset, $searchQuery, $filterResult->sortOperation);
+            $result = $this->products_model->getProductListPaginated($OrgUID, $limit, $offset, $searchQuery, $filterResult->sortOperation, $this->_uiLang());
 
 
             $rowHtml = $this->load->view('products/items/list', [
@@ -500,7 +666,7 @@ class Products extends MY_Controller {
         $ErrorInForm = '';
 		try {
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
             
             $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
@@ -516,6 +682,14 @@ class Products extends MY_Controller {
             $this->load->model('global_model');
             $TaxDetails = $this->global_model->getTaxPercentageDetailsInfo(['TaxDetail.TaxDetailsUID' => $PostData['TaxPercentage']])->Data[0] ?? null;
 
+            /* Normalize text fields — base table stores English; Tamil typed in will be translated */
+            $origItemName    = trim((string)($PostData['ItemName']    ?? ''));
+            $origDescription = trim((string)($PostData['Description'] ?? '')) ?: null;
+            $typedLangName   = detectTextLang($origItemName);
+            $typedLangDesc   = $origDescription !== null ? detectTextLang($origDescription) : 'en';
+            if ($typedLangName === 'ta') $PostData['ItemName']    = translateViaMymemory($origItemName,    'ta', 'en');
+            if ($typedLangDesc === 'ta') $PostData['Description'] = translateViaMymemory($origDescription, 'ta', 'en');
+
             $prodFormData = $this->buildProductFormData($PostData, $TaxDetails, true);
 
             $InsertDataResp = $this->dbwrite_model->insertData('Products', 'ProductTbl', $prodFormData);
@@ -529,6 +703,14 @@ class Products extends MY_Controller {
             $this->_saveRentalConfig($ProductUID, $PostData);
 
             $this->dbwrite_model->commitTransaction();
+
+            /* Fire background Tamil translation for product */
+            $this->_triggerProdLangSave(
+                (int) $ProductUID,
+                $origItemName, $typedLangName,
+                $origDescription, $typedLangDesc,
+                (int) $this->pageData['JwtData']->User->UserUID
+            );
 
             // Variant or plain opening stock
             $orgUID      = (int)$this->pageData['JwtData']->Org->OrgUID;
@@ -546,18 +728,18 @@ class Products extends MY_Controller {
                     $selPrice    = (float)($v['SellingPrice']  ?? 0);
                     $selTaxUID   = (int)($v['SellingTaxUID']  ?? 0);
                     $openQty     = (float)($v['OpeningQty']   ?? 0);
-                    $variantUID  = $this->dbwrite_model->upsertProductVariant($ProductUID, $orgUID, $brandUID, $sizeUID, $partNo, $purPrice, $purTaxUID, $selPrice, $selTaxUID, $userUID);
+                    $variantUID  = $this->dbwrite_ext_model->upsertProductVariant($ProductUID, $orgUID, $brandUID, $sizeUID, $partNo, $purPrice, $purTaxUID, $selPrice, $selTaxUID, $userUID);
                     if ($variantUID > 0) {
-                        $this->dbwrite_model->upsertVariantStock($variantUID, $orgUID, $openQty);
+                        $this->dbwrite_ext_model->upsertVariantStock($variantUID, $orgUID, $openQty);
                         $totalVarQty += $openQty;
                     }
                 }
-                $this->dbwrite_model->initProductStock($ProductUID, $orgUID, $totalVarQty);
-                $this->dbwrite_model->syncVariantStockTotal($ProductUID, $orgUID);
+                $this->dbwrite_ext_model->initProductStock($ProductUID, $orgUID, $totalVarQty);
+                $this->dbwrite_ext_model->syncVariantStockTotal($ProductUID, $orgUID);
             } else {
                 // Create initial stock row in ProductStockTbl — seed with OpeningQuantity
                 $openingQty = (float)($prodFormData['OpeningQuantity'] ?? 0);
-                $this->dbwrite_model->initProductStock($ProductUID, $orgUID, $openingQty);
+                $this->dbwrite_ext_model->initProductStock($ProductUID, $orgUID, $openingQty);
             }
 
             // Sync new product into the Upstash bulk cache
@@ -656,7 +838,7 @@ class Products extends MY_Controller {
                 $rentalConfig = isset($cached['RentalConfig']) ? (object)$cached['RentalConfig'] : null;
             } else {
                 $this->load->model('products_model');
-                $GetProductData = $this->products_model->getProductsDetails(['Products.ProductUID' => $ProductUID]);
+                $GetProductData = $this->products_model->getProductsDetails(['Products.ProductUID' => $ProductUID], 'ASC', [], $this->_uiLang());
                 if (count($GetProductData) != 1) {
                     throw new ValidationException('Product not found');
                 }
@@ -701,7 +883,7 @@ class Products extends MY_Controller {
         $ErrorInForm = '';
 		try {
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
             
             $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
@@ -730,14 +912,17 @@ class Products extends MY_Controller {
             }
 
             // Read current OpeningQuantity BEFORE update to compute delta later
-            $readDb = $this->load->database('ReadDB', TRUE);
-            $readDb->db_debug = FALSE;
-            $readDb->select('OpeningQuantity, ProductType');
-            $readDb->from('Products.ProductTbl');
-            $readDb->where('ProductUID', $ProductUID);
-            $currentProd    = $readDb->get()->row();
+            $currentProd    = $this->products_model->getProductTypeAndOpeningQty($ProductUID);
             $oldOpeningQty  = (float)($currentProd->OpeningQuantity ?? 0);
             $isPhysicalItem = ($currentProd->ProductType ?? 'Product') === 'Product';
+
+            /* Normalize text fields — base table stores English; Tamil typed in will be translated */
+            $origItemName    = trim((string)($PostData['ItemName']    ?? ''));
+            $origDescription = trim((string)($PostData['Description'] ?? '')) ?: null;
+            $typedLangName   = detectTextLang($origItemName);
+            $typedLangDesc   = $origDescription !== null ? detectTextLang($origDescription) : 'en';
+            if ($typedLangName === 'ta') $PostData['ItemName']    = translateViaMymemory($origItemName,    'ta', 'en');
+            if ($typedLangDesc === 'ta') $PostData['Description'] = translateViaMymemory($origDescription, 'ta', 'en');
 
             $prodFormData = $this->buildProductFormData($PostData, $TaxDetails, false);
 
@@ -782,17 +967,17 @@ class Products extends MY_Controller {
                         $selPrice   = (float)($v['SellingPrice']  ?? 0);
                         $selTaxUID  = (int)($v['SellingTaxUID']  ?? 0);
                         $openQty    = (float)($v['OpeningQty']   ?? 0);
-                        $variantUID = $this->dbwrite_model->upsertProductVariant($ProductUID, $orgUID, $brandUID, $sizeUID, $partNo, $purPrice, $purTaxUID, $selPrice, $selTaxUID, $editUserUID);
+                        $variantUID = $this->dbwrite_ext_model->upsertProductVariant($ProductUID, $orgUID, $brandUID, $sizeUID, $partNo, $purPrice, $purTaxUID, $selPrice, $selTaxUID, $editUserUID);
                         if ($variantUID > 0) {
-                            $this->dbwrite_model->upsertVariantStock($variantUID, $orgUID, $openQty);
+                            $this->dbwrite_ext_model->upsertVariantStock($variantUID, $orgUID, $openQty);
                         }
                     }
-                    $this->dbwrite_model->syncVariantStockTotal($ProductUID, $orgUID);
+                    $this->dbwrite_ext_model->syncVariantStockTotal($ProductUID, $orgUID);
                 } else {
                     $newOpeningQty = (float)($prodFormData['OpeningQuantity'] ?? 0);
                     $delta         = round($newOpeningQty - $oldOpeningQty, 4);
                     if ($delta != 0.0) {
-                        $this->dbwrite_model->applyOpeningQtyDelta($ProductUID, $orgUID, $delta);
+                        $this->dbwrite_ext_model->applyOpeningQtyDelta($ProductUID, $orgUID, $delta);
                     }
                 }
             }
@@ -801,6 +986,14 @@ class Products extends MY_Controller {
             $this->_saveRentalConfig($ProductUID, $PostData);
 
             $this->dbwrite_model->commitTransaction();
+
+            /* Fire background Tamil translation for product */
+            $this->_triggerProdLangSave(
+                (int) $ProductUID,
+                $origItemName, $typedLangName,
+                $origDescription, $typedLangDesc,
+                (int) $this->pageData['JwtData']->User->UserUID
+            );
 
             // Sync updated product into the Upstash bulk cache
             $this->cachehelper->upsertProduct($ProductUID);
@@ -865,9 +1058,9 @@ class Products extends MY_Controller {
             if ($this->products_model->productUsedInComboWithTransactions($ProductUID)) {
                 throw new ValidationException('This item has been used in a combo that has transactions. You cannot delete it.');
             }
-            $oldProductRows = $this->products_model->getProductsDetails(['Products.ProductUID' => $ProductUID]);
+            $oldProductRows = $this->products_model->getProductsDetails(['Products.ProductUID' => $ProductUID], 'ASC', [], $this->_uiLang());
             $oldProductData = !empty($oldProductRows) ? (array) $oldProductRows[0] : [];
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $UpdateResp = $this->dbwrite_model->updateData('Products', 'ProductTbl', $this->globalservice->baseDeleteArrayDetails(), array('ProductUID' => $ProductUID));
             if($UpdateResp->Error) {
                 throw new Exception($UpdateResp->Message);
@@ -949,7 +1142,7 @@ class Products extends MY_Controller {
                 }
             }
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $UpdateResp = $this->dbwrite_model->updateData('Products', 'ProductTbl', $this->globalservice->baseDeleteArrayDetails(), [], array('ProductUID' => $ProductUIDs));
             if($UpdateResp->Error) {
                 throw new Exception($UpdateResp->Message);
@@ -997,7 +1190,7 @@ class Products extends MY_Controller {
         try {
             $search = trim($this->input->post('search') ?? '');
             $OrgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
-            $items  = $this->products_model->getItemsForBOM($OrgUID, $search);
+            $items  = $this->products_model->getItemsForBOM($OrgUID, $search, 0, $this->_uiLang());
             $this->EndReturnData->Error = false;
             $this->EndReturnData->Items = $items;
         } catch (Exception $e) {
@@ -1015,14 +1208,16 @@ class Products extends MY_Controller {
 
         $this->EndReturnData = new stdClass();
         try {
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
 
             $PostData = $this->input->post();
 
-            $comboName      = trim(getPostValue($PostData, 'ComboName'));
+            $origComboName  = trim(getPostValue($PostData, 'ComboName'));
+            $_rawComboName  = detectTextLang($origComboName) === 'ta' ? translateViaMymemory($origComboName, 'ta', 'en') : $origComboName;
+            $comboName      = $_rawComboName;
             $comboPrice     = (float) getPostValue($PostData, 'ComboSellingPrice', '', 0);
             $comboPurchasePrice = (float) getPostValue($PostData, 'ComboPurchasePrice', '', -1);
 
@@ -1102,6 +1297,7 @@ class Products extends MY_Controller {
             $this->dbwrite_model->commitTransaction();
 
             $this->cachehelper->upsertComboProduct($InsertResp->ID);
+            $this->_triggerProdLangSave((int) $InsertResp->ID, $origComboName, $comboName, '', '', $userUID);
 
             $this->EndReturnData->Error   = false;
             $this->EndReturnData->Message = 'Combo item created successfully';
@@ -1139,7 +1335,7 @@ class Products extends MY_Controller {
 
         $this->EndReturnData = new stdClass();
         try {
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
@@ -1151,7 +1347,9 @@ class Products extends MY_Controller {
                 throw new InvalidArgumentException('Invalid combo item.');
             }
 
-            $comboName          = trim(getPostValue($PostData, 'ComboName'));
+            $origComboName      = trim(getPostValue($PostData, 'ComboName'));
+            $_rawComboName      = detectTextLang($origComboName) === 'ta' ? translateViaMymemory($origComboName, 'ta', 'en') : $origComboName;
+            $comboName          = $_rawComboName;
             $comboPrice         = (float) getPostValue($PostData, 'ComboSellingPrice', '', 0);
             $comboPurchasePrice = (float) getPostValue($PostData, 'ComboPurchasePrice', '', -1);
 
@@ -1210,7 +1408,7 @@ class Products extends MY_Controller {
             ];
 
             $this->load->model('products_model');
-            $oldComboRows = $this->products_model->getProductsDetails(['Products.ProductUID' => $comboUID, 'Products.IsComposite' => 1]);
+            $oldComboRows = $this->products_model->getProductsDetails(['Products.ProductUID' => $comboUID, 'Products.IsComposite' => 1], 'ASC', [], $this->_uiLang());
             $oldComboData = !empty($oldComboRows) ? (array) $oldComboRows[0] : [];
             $UpdateResp = $this->dbwrite_model->updateData('Products', 'ProductTbl', $comboData, ['ProductUID' => $comboUID]);
             if ($UpdateResp->Error) {
@@ -1221,6 +1419,7 @@ class Products extends MY_Controller {
             $this->dbwrite_model->commitTransaction();
 
             $this->cachehelper->upsertComboProduct($comboUID);
+            $this->_triggerProdLangSave($comboUID, $origComboName, $comboName, '', '', $userUID);
 
             if (getPostValue($PostData, 'getTableDetails') == 1) {
                 $pageNo  = (int) $this->input->post('PageNo') ?: 1;
@@ -1267,14 +1466,14 @@ class Products extends MY_Controller {
             $data = $this->products_model->getProductsDetails([
                 'Products.ProductUID'   => $comboUID,
                 'Products.IsComposite'  => 1,
-            ]);
+            ], 'ASC', [], $this->_uiLang());
             if (empty($data)) {
                 throw new ValidationException('Combo item not found.');
             }
 
             $this->EndReturnData->Error      = false;
             $this->EndReturnData->Data       = $data[0];
-            $this->EndReturnData->Components = $this->products_model->getProductBOM($comboUID);
+            $this->EndReturnData->Components = $this->products_model->getProductBOM($comboUID, $this->_uiLang());
 
         } catch (ValidationException $e) {
             $this->EndReturnData->Error   = true;
@@ -1295,7 +1494,7 @@ class Products extends MY_Controller {
             $productUID = (int) $this->input->post('ProductUID');
             if (!$productUID) throw new ValidationException('Invalid product.');
             $this->EndReturnData->Error      = false;
-            $this->EndReturnData->Components = $this->products_model->getProductBOM($productUID);
+            $this->EndReturnData->Components = $this->products_model->getProductBOM($productUID, $this->_uiLang());
         } catch (ValidationException $e) {
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
@@ -1318,9 +1517,9 @@ class Products extends MY_Controller {
             }
 
             $this->load->model('products_model');
-            $oldComboRows = $this->products_model->getProductsDetails(['Products.ProductUID' => $comboUID, 'Products.IsComposite' => 1]);
+            $oldComboRows = $this->products_model->getProductsDetails(['Products.ProductUID' => $comboUID, 'Products.IsComposite' => 1], 'ASC', [], $this->_uiLang());
             $oldComboData = !empty($oldComboRows) ? (array) $oldComboRows[0] : [];
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             $this->dbwrite_model->updateData(
@@ -1375,7 +1574,7 @@ class Products extends MY_Controller {
             if (!$ProductUID) throw new ValidationException('Product ID is missing');
             if (!in_array($newStatus, [0, 1])) throw new ValidationException('Invalid status value');
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $resp = $this->dbwrite_model->updateData(
                 'Products', 'ProductTbl',
                 ['IsActive' => $newStatus, 'UpdatedBy' => $this->pageData['JwtData']->User->UserUID],
@@ -1425,7 +1624,7 @@ class Products extends MY_Controller {
 
             $filterResult = $this->products_model->catgFilterFormation((object)['TableAliasName' => 'Category'], $filter);
 
-            $result  = $this->products_model->getCategoryListPaginated($OrgUID, $limit, $offset, $filterResult->SearchDirectQuery, $filterResult->sortOperation);
+            $result  = $this->products_model->getCategoryListPaginated($OrgUID, $limit, $offset, $filterResult->SearchDirectQuery, $filterResult->sortOperation, $this->_uiLang());
 
 
             $rowHtml = $this->load->view('products/categories/list', [
@@ -1456,7 +1655,7 @@ class Products extends MY_Controller {
 		try {
 
             $this->load->model('products_model');
-            $getAllCatgs['Categories'] = $this->products_model->getCategoriesDetails([]);
+            $getAllCatgs['Categories'] = $this->products_model->getCategoriesDetails([], $this->_uiLang());
             $this->EndReturnData->HtmlData = $this->load->view('products/items/catgfilter', $getAllCatgs, TRUE);
             
             $this->EndReturnData->Error = FALSE;
@@ -1477,7 +1676,7 @@ class Products extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $this->load->model('products_model');
-            $rows = $this->products_model->getCategoriesDetails([]) ?? [];
+            $rows = $this->products_model->getCategoriesDetails([], $this->_uiLang()) ?? [];
             $this->EndReturnData->Error   = false;
             $this->EndReturnData->Options = array_values(array_map(function ($c) {
                 return ['uid' => (int) $c->CategoryUID, 'name' => $c->Name];
@@ -1509,16 +1708,8 @@ class Products extends MY_Controller {
 
             $orgUID = (int)$this->pageData['JwtData']->Org->OrgUID;
 
-            $db = $this->load->database('ReadDB', TRUE);
-            $db->db_debug = FALSE;
-
-            $rows = $db->query(
-                'SELECT SerialNumber
-                   FROM Transaction.ProductSerialsTbl
-                  WHERE OrgUID = ? AND ProductUID = ? AND Status = ? AND IsDeleted = 0
-                  ORDER BY SerialNumber ASC',
-                [$orgUID, $productUID, 'Available']
-            )->result();
+            $this->load->model('products_model');
+            $rows = $this->products_model->getAvailableSerialNumbers($orgUID, $productUID);
 
             $serials = array_map(fn(object $r): string => $r->SerialNumber, $rows);
 
@@ -1631,7 +1822,7 @@ class Products extends MY_Controller {
                         case 'prodType':    $data['prodType']    = $this->global_model->getProductTypeInfo()->Data  ?? []; break;
                         case 'prodTax':     $data['prodTax']     = $this->global_model->getProductTaxInfo()->Data   ?? []; break;
                         case 'taxDetails':  $data['taxDetails']  = $this->global_model->getTaxDetailsInfo()->Data   ?? []; break;
-                        case 'categories':  $data['categories']  = $this->products_model->getCategoriesDetails([])  ?? []; break;
+                        case 'categories':  $data['categories']  = $this->products_model->getCategoriesDetails([], $this->_uiLang())  ?? []; break;
                         case 'brands':      $data['brands']      = $this->products_model->getBrandsForCache((int)$this->pageData['JwtData']->Org->OrgUID) ?? []; break;
                     }
                 }
@@ -1658,7 +1849,7 @@ class Products extends MY_Controller {
             $OrgUID      = (int) $this->pageData['JwtData']->Org->OrgUID;
             if ($CategoryUID <= 0) throw new ValidationException('Invalid Category.');
 
-            $products = $this->products_model->getProductsByCategoryUID($CategoryUID, $OrgUID);
+            $products = $this->products_model->getProductsByCategoryUID($CategoryUID, $OrgUID, $this->_uiLang());
 
             $this->EndReturnData->Error    = false;
             $this->EndReturnData->Products = $products;
@@ -1695,7 +1886,7 @@ class Products extends MY_Controller {
         $ErrorInForm = '';
 		try {
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             $PostData = $this->input->post();
@@ -1706,20 +1897,31 @@ class Products extends MY_Controller {
                 throw new InvalidArgumentException('VALIDATION_ERROR');
             }
 
+            /* Normalize text fields — base table stores English; Tamil typed in will be translated */
+            $origName        = trim((string)($PostData['CategoryName']        ?? ''));
+            $origDescription = trim((string)($PostData['CategoryDescription'] ?? '')) ?: null;
+            $typedLangName   = detectTextLang($origName);
+            $typedLangDesc   = $origDescription !== null ? detectTextLang($origDescription) : 'en';
+            if ($typedLangName === 'ta') $PostData['CategoryName']        = translateViaMymemory($origName,        'ta', 'en');
+            if ($typedLangDesc === 'ta') $PostData['CategoryDescription'] = translateViaMymemory($origDescription, 'ta', 'en');
+
             $catgFormData = $this->buildCategoryFormData($PostData, true);
 
             $insDataResp = $this->dbwrite_model->insertData('Products', 'CategoryTbl', $catgFormData);
             if($insDataResp->Error) {
                 throw new Exception($insDataResp->Message);
             }
-            
+
             $CategoryUID = $insDataResp->ID;
 
             $this->dbwrite_model->commitTransaction();
 
-            // Handle attachment uploads + deletes (same request, after commit)
+            /* Fire background Tamil translation for category */
             $orgUID  = (int)$this->pageData['JwtData']->Org->OrgUID;
             $userUID = (int)$this->pageData['JwtData']->User->UserUID;
+            $this->_triggerCatgLangSave((int) $CategoryUID, $origName, $typedLangName, $origDescription, $typedLangDesc, $userUID);
+
+            // Handle attachment uploads + deletes (same request, after commit)
             $this->_handleAttachments('Category', $CategoryUID, $orgUID, $userUID, 'CatgAttachFiles', 'CatgAttachDeleteUIDs');
 
             // Cache update must be after commit so ReadDB can see the new row
@@ -1778,7 +1980,7 @@ class Products extends MY_Controller {
                 $this->EndReturnData->Data    = (object)$cached['Data'];
             } else {
                 $this->load->model('products_model');
-                $GetCatgData = $this->products_model->getCategoriesDetails(['Category.CategoryUID' => $CategoryUID]);
+                $GetCatgData = $this->products_model->getCategoriesDetails(['Category.CategoryUID' => $CategoryUID], $this->_uiLang());
                 if (count($GetCatgData) != 1) {
                     throw new ValidationException('Category not found');
                 }
@@ -1808,7 +2010,7 @@ class Products extends MY_Controller {
         $ErrorInForm = '';
 		try {
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             $PostData = $this->input->post();
@@ -1822,8 +2024,16 @@ class Products extends MY_Controller {
             $CategoryUID = (int) getPostValue($PostData, 'CategoryUID');
 
             $this->load->model('products_model');
-            $oldCatgRows = $this->products_model->getCategoriesDetails(['Category.CategoryUID' => $CategoryUID]);
+            $oldCatgRows = $this->products_model->getCategoriesDetails(['Category.CategoryUID' => $CategoryUID], $this->_uiLang());
             $oldCatgData = !empty($oldCatgRows) ? (array) $oldCatgRows[0] : [];
+
+            /* Normalize text fields — base table stores English; Tamil typed in will be translated */
+            $origName        = trim((string)($PostData['CategoryName']        ?? ''));
+            $origDescription = trim((string)($PostData['CategoryDescription'] ?? '')) ?: null;
+            $typedLangName   = detectTextLang($origName);
+            $typedLangDesc   = $origDescription !== null ? detectTextLang($origDescription) : 'en';
+            if ($typedLangName === 'ta') $PostData['CategoryName']        = translateViaMymemory($origName,        'ta', 'en');
+            if ($typedLangDesc === 'ta') $PostData['CategoryDescription'] = translateViaMymemory($origDescription, 'ta', 'en');
 
             $catgFormData = $this->buildCategoryFormData($PostData, false);
 
@@ -1834,9 +2044,12 @@ class Products extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            // Handle attachment uploads + deletes (same request, after commit)
+            /* Fire background Tamil translation for category */
             $orgUID  = (int)$this->pageData['JwtData']->Org->OrgUID;
             $userUID = (int)$this->pageData['JwtData']->User->UserUID;
+            $this->_triggerCatgLangSave((int) $CategoryUID, $origName, $typedLangName, $origDescription, $typedLangDesc, $userUID);
+
+            // Handle attachment uploads + deletes (same request, after commit)
             $this->_handleAttachments('Category', $CategoryUID, $orgUID, $userUID, 'CatgAttachFiles', 'CatgAttachDeleteUIDs');
 
             // Sync updated category into the Upstash bulk cache
@@ -1894,10 +2107,10 @@ class Products extends MY_Controller {
             if (!empty($ExistsInProducts) && count($ExistsInProducts) > 0) {
                 throw new ValidationException('Category is linked to Product(s). Cannot delete.');
             }
-            $oldCatgRows = $this->products_model->getCategoriesDetails(['Category.CategoryUID' => $CategoryUID]);
+            $oldCatgRows = $this->products_model->getCategoriesDetails(['Category.CategoryUID' => $CategoryUID], $this->_uiLang());
             $oldCatgData = !empty($oldCatgRows) ? (array) $oldCatgRows[0] : [];
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $UpdateResp = $this->dbwrite_model->updateData('Products', 'CategoryTbl', $this->globalservice->baseDeleteArrayDetails(), array('CategoryUID' => $CategoryUID));
             if($UpdateResp->Error) {
                 throw new Exception($UpdateResp->Message);
@@ -1961,7 +2174,7 @@ class Products extends MY_Controller {
                 throw new ValidationException('One or more categories are linked to Product(s). Cannot delete.');
             }
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $UpdateResp = $this->dbwrite_model->updateData('Products', 'CategoryTbl', $this->globalservice->baseDeleteArrayDetails(), [], array('CategoryUID' => $CategoryUIDs));
             if($UpdateResp->Error) {
                 throw new Exception($UpdateResp->Message);
@@ -2033,7 +2246,7 @@ class Products extends MY_Controller {
             }
             $orgUID  = (int)$this->pageData['JwtData']->Org->OrgUID;
             $userUID = (int)$this->pageData['JwtData']->User->UserUID;
-            $sizeUID = $this->dbwrite_model->addSize($orgUID, $sizeName, $userUID);
+            $sizeUID = $this->dbwrite_ext_model->addSize($orgUID, $sizeName, $userUID);
             if ($sizeUID <= 0) {
                 throw new RuntimeException('Failed to create size');
             }
@@ -2063,7 +2276,7 @@ class Products extends MY_Controller {
 
             $filterResult = $this->products_model->sizeFilterFormation((object)['TableAliasName' => 'Size'], $filter);
 
-            $result  = $this->products_model->getSizeListPaginated($OrgUID, $limit, $offset, $filterResult->SearchDirectQuery, $filterResult->sortOperation);
+            $result  = $this->products_model->getSizeListPaginated($OrgUID, $limit, $offset, $filterResult->SearchDirectQuery, $filterResult->sortOperation, $this->_uiLang());
             $rowHtml = $this->load->view('products/sizes/list', [
                 'DataLists' => $result->rows,
                 'StartFrom' => $offset,
@@ -2091,7 +2304,13 @@ class Products extends MY_Controller {
             $userUID = (int) $this->pageData['JwtData']->User->UserUID;
             $post    = $this->input->post(null, true);
 
-            $sizeName  = trim($post['SizeName'] ?? '');
+            $origSizeName  = trim($post['SizeName'] ?? '');
+            $typedSizeLang = detectTextLang($origSizeName);
+            $sizeName      = ($typedSizeLang === 'ta') ? translateViaMymemory($origSizeName, 'ta', 'en') : $origSizeName;
+
+            $origSizeDesc  = trim($post['Description'] ?? '') ?: null;
+            $typedSizeDesc = $origSizeDesc !== null ? detectTextLang($origSizeDesc) : 'en';
+            $description   = ($origSizeDesc !== null && $typedSizeDesc === 'ta') ? translateViaMymemory($origSizeDesc, 'ta', 'en') : $origSizeDesc;
 
             if ($sizeName === '') throw new ValidationException('Size name is required.');
             if (strlen($sizeName) > 100) throw new ValidationException('Size name is too long (max 100 characters).');
@@ -2114,13 +2333,13 @@ class Products extends MY_Controller {
                 'Weight'       => $post['Weight']    !== '' && $post['Weight']    !== null ? (float)$post['Weight']    : null,
                 'DimensionUOM' => trim($post['DimensionUOM'] ?? '') ?: null,
                 'WeightUOM'    => trim($post['WeightUOM']    ?? '') ?: null,
-                'Description'  => trim($post['Description']  ?? '') ?: null,
+                'Description'  => $description,
                 'IsActive'     => 1,
                 'UpdatedBy'    => $userUID,
                 'CreatedBy'    => $userUID,
             ];
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $resp = $this->dbwrite_model->insertData('Products', 'SizeTbl', $data);
             if ($resp->Error) throw new Exception($resp->Message);
 
@@ -2134,6 +2353,7 @@ class Products extends MY_Controller {
             );
 
             $this->cachehelper->touchSize($sizeUID);
+            $this->_triggerSizeLangSave($sizeUID, $origSizeName, $typedSizeLang, $origSizeDesc, $typedSizeDesc, $userUID);
 
             $this->EndReturnData->Error    = false;
             $this->EndReturnData->Message  = 'Size created successfully.';
@@ -2161,7 +2381,13 @@ class Products extends MY_Controller {
             $sizeUID = (int) ($post['SizeUID'] ?? 0);
             if ($sizeUID <= 0) throw new ValidationException('Invalid size.');
 
-            $sizeName  = trim($post['SizeName'] ?? '');
+            $origSizeName  = trim($post['SizeName'] ?? '');
+            $typedSizeLang = detectTextLang($origSizeName);
+            $sizeName      = ($typedSizeLang === 'ta') ? translateViaMymemory($origSizeName, 'ta', 'en') : $origSizeName;
+
+            $origSizeDesc  = trim($post['Description'] ?? '') ?: null;
+            $typedSizeDesc = $origSizeDesc !== null ? detectTextLang($origSizeDesc) : 'en';
+            $description   = ($origSizeDesc !== null && $typedSizeDesc === 'ta') ? translateViaMymemory($origSizeDesc, 'ta', 'en') : $origSizeDesc;
 
             if ($sizeName === '') throw new ValidationException('Size name is required.');
             if (strlen($sizeName) > 100) throw new ValidationException('Size name is too long (max 100 characters).');
@@ -2183,11 +2409,11 @@ class Products extends MY_Controller {
                 'Weight'       => $post['Weight']    !== '' && $post['Weight']    !== null ? (float)$post['Weight']    : null,
                 'DimensionUOM' => trim($post['DimensionUOM'] ?? '') ?: null,
                 'WeightUOM'    => trim($post['WeightUOM']    ?? '') ?: null,
-                'Description'  => trim($post['Description']  ?? '') ?: null,
+                'Description'  => $description,
                 'UpdatedBy'    => $userUID,
             ];
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $resp = $this->dbwrite_model->updateData('Products', 'SizeTbl', $data, ['SizeUID' => $sizeUID, 'OrgUID' => $orgUID]);
             if ($resp->Error) throw new Exception($resp->Message);
 
@@ -2199,6 +2425,7 @@ class Products extends MY_Controller {
             );
 
             $this->cachehelper->touchSize($sizeUID);
+            $this->_triggerSizeLangSave($sizeUID, $origSizeName, $typedSizeLang, $origSizeDesc, $typedSizeDesc, $userUID);
 
             $this->EndReturnData->Error   = false;
             $this->EndReturnData->Message = 'Size updated successfully.';
@@ -2228,7 +2455,7 @@ class Products extends MY_Controller {
                 throw new ValidationException('This size is linked to one or more product variants and cannot be deleted.');
             }
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $resp = $this->dbwrite_model->updateData('Products', 'SizeTbl', ['IsActive' => 0, 'UpdatedBy' => $userUID], ['SizeUID' => $sizeUID, 'OrgUID' => $orgUID]);
             if ($resp->Error) throw new Exception($resp->Message);
 
@@ -2277,7 +2504,7 @@ class Products extends MY_Controller {
                 throw new ValidationException($count . ' of the selected size' . ($count > 1 ? 's are' : ' is') . ' linked to product variants and cannot be deleted.');
             }
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $resp = $this->dbwrite_model->updateData('Products', 'SizeTbl', ['IsActive' => 0, 'UpdatedBy' => $userUID], [], ['SizeUID' => array_values($sizeUIDs)]);
             if ($resp->Error) throw new Exception($resp->Message);
 
@@ -2377,7 +2604,7 @@ class Products extends MY_Controller {
 
             $filterResult = $this->products_model->brandFilterFormation((object)['TableAliasName' => 'Brand'], $filter);
 
-            $result  = $this->products_model->getBrandListPaginated($OrgUID, $limit, $offset, $filterResult->SearchDirectQuery, $filterResult->sortOperation);
+            $result  = $this->products_model->getBrandListPaginated($OrgUID, $limit, $offset, $filterResult->SearchDirectQuery, $filterResult->sortOperation, $this->_uiLang());
             $rowHtml = $this->load->view('products/brands/list', [
                 'DataLists' => $result->rows,
                 'StartFrom' => $offset,
@@ -2436,13 +2663,24 @@ class Products extends MY_Controller {
                 throw new ValidationException('A brand with this name already exists.');
             }
 
+            /* Normalize text fields — base table stores English; Tamil typed in will be translated */
+            $origBrandName   = trim((string)($post['BrandName']    ?? ''));
+            $origDescription = trim((string)($post['Description']  ?? '')) ?: null;
+            $typedLangName   = detectTextLang($origBrandName);
+            $typedLangDesc   = $origDescription !== null ? detectTextLang($origDescription) : 'en';
+            if ($typedLangName === 'ta') $post['BrandName']    = translateViaMymemory($origBrandName,    'ta', 'en');
+            if ($typedLangDesc === 'ta') $post['Description']  = translateViaMymemory($origDescription,  'ta', 'en');
+
             $data = $this->buildBrandFormData($post, true);
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $resp = $this->dbwrite_model->insertData('Products', 'BrandTbl', $data);
             if ($resp->Error) throw new Exception($resp->Message);
 
             $brandUID = (int) $resp->ID;
+
+            /* Fire background Tamil translation for brand */
+            $this->_triggerBrandLangSave($brandUID, $origBrandName, $typedLangName, $origDescription, $typedLangDesc, $userUID);
 
             $this->_handleAttachments('Brand', $brandUID, $orgUID, $userUID, 'BrandAttachFiles', 'BrandAttachDeleteUIDs');
             $this->cachehelper->upsertBrand($brandUID);
@@ -2527,11 +2765,22 @@ class Products extends MY_Controller {
             $oldBrand = $this->products_model->getBrandByUID($brandUID, $orgUID);
             $oldRec   = $oldBrand ? (array) $oldBrand : [];
 
+            /* Normalize text fields — base table stores English; Tamil typed in will be translated */
+            $origBrandName   = trim((string)($post['BrandName']    ?? ''));
+            $origDescription = trim((string)($post['Description']  ?? '')) ?: null;
+            $typedLangName   = detectTextLang($origBrandName);
+            $typedLangDesc   = $origDescription !== null ? detectTextLang($origDescription) : 'en';
+            if ($typedLangName === 'ta') $post['BrandName']    = translateViaMymemory($origBrandName,    'ta', 'en');
+            if ($typedLangDesc === 'ta') $post['Description']  = translateViaMymemory($origDescription,  'ta', 'en');
+
             $data = $this->buildBrandFormData($post, false);
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $resp = $this->dbwrite_model->updateData('Products', 'BrandTbl', $data, ['BrandUID' => $brandUID, 'OrgUID' => $orgUID]);
             if ($resp->Error) throw new Exception($resp->Message);
+
+            /* Fire background Tamil translation for brand */
+            $this->_triggerBrandLangSave($brandUID, $origBrandName, $typedLangName, $origDescription, $typedLangDesc, $userUID);
 
             $this->_handleAttachments('Brand', $brandUID, $orgUID, $userUID, 'BrandAttachFiles', 'BrandAttachDeleteUIDs');
             $this->cachehelper->upsertBrand($brandUID);
@@ -2571,7 +2820,7 @@ class Products extends MY_Controller {
                 throw new ValidationException('This brand is linked to one or more product variants and cannot be deleted.');
             }
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $resp = $this->dbwrite_model->updateData('Products', 'BrandTbl', $this->globalservice->baseDeleteArrayDetails(), ['BrandUID' => $brandUID, 'OrgUID' => $orgUID]);
             if ($resp->Error) throw new Exception($resp->Message);
 
@@ -2620,7 +2869,7 @@ class Products extends MY_Controller {
                 throw new ValidationException($count . ' of the selected brand' . ($count > 1 ? 's are' : ' is') . ' linked to product variants and cannot be deleted.');
             }
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $resp = $this->dbwrite_model->updateData('Products', 'BrandTbl', $this->globalservice->baseDeleteArrayDetails(), [], ['BrandUID' => array_values($brandUIDs)]);
             if ($resp->Error) throw new Exception($resp->Message);
 
@@ -2887,7 +3136,7 @@ class Products extends MY_Controller {
      * Deletes key : ProdAttachDeleteUIDs (comma list) / CatgAttachDeleteUIDs
      */
     private function _handleAttachments(string $entityType, int $entityUID, int $orgUID, int $userUID, string $filesKey, string $deleteKey): void {
-        $this->load->model('dbwrite_model');
+        $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
         $this->load->library('fileupload');
 
         $maxFiles   = in_array($entityType, ['Category', 'Brand']) ? 3 : 5;
@@ -2901,48 +3150,32 @@ class Products extends MY_Controller {
             $folder = 'products/attachments/' . $entityUID;
         }
 
-        // Use WriteDb directly — avoids ReadDb replication lag
-        $wdb = $this->dbwrite_model->getWriteDb();
-        $wdb->db_debug = FALSE;
-
         // 1. Auto-migrate legacy Image field into the attachment table (once per entity)
         //    Prevents the old single image from being silently replaced on first new upload.
         if ($entityType === 'Product')       { $legacyTbl = 'ProductTbl';  $legacyPkCol = 'ProductUID'; }
         elseif ($entityType === 'Brand')    { $legacyTbl = 'BrandTbl';    $legacyPkCol = 'BrandUID'; }
         else                                { $legacyTbl = 'CategoryTbl'; $legacyPkCol = 'CategoryUID'; }
-        $existCountQ = $wdb->query(
-            "SELECT COUNT(*) AS cnt FROM Products.EntityAttachmentsTbl
-              WHERE EntityType = ? AND EntityUID = ? AND OrgUID = ? AND IsDeleted = 0",
-            [$entityType, $entityUID, $orgUID]
-        );
-        $existCount = $existCountQ ? (int)($existCountQ->row()->cnt ?? 0) : 0;
+        $this->load->model('products_model');
+        $existCount = $this->products_model->getEntityAttachmentCount($entityType, $entityUID, $orgUID);
 
         // 2. Process pending deletions
         $deleteRaw = $this->input->post($deleteKey) ?: '';
         if ($deleteRaw) {
             foreach (array_filter(array_map('intval', explode(',', $deleteRaw))) as $attachUID) {
-                $wdb->query(
-                    "UPDATE Products.EntityAttachmentsTbl SET IsDeleted=1, IsActive=0, UpdatedBy=? WHERE AttachUID=? AND OrgUID=? AND IsDeleted=0",
-                    [$userUID, $attachUID, $orgUID]
-                );
+                $this->dbwrite_model->updateData('Products', 'EntityAttachmentsTbl',
+                    ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
+                    ['AttachUID' => $attachUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
             }
         }
 
-        // 3. Upload new files — determine next SortOrder from WriteDb (not ReadDb)
+        // 3. Upload new files — determine next SortOrder
         $files = $_FILES[$filesKey] ?? null;
         if (empty($files) || !isset($files['name']) || (is_array($files['name']) ? empty($files['name'][0]) : empty($files['name']))) {
             $this->_syncPrimaryImage($entityType, $entityUID, $orgUID, $userUID);
             return;
         }
 
-        // MAX(SortOrder) via WriteDb — the only reliable source after a just-committed write
-        $maxSortQ  = $wdb->query(
-            "SELECT COALESCE(MAX(SortOrder), 0) AS maxSort, COUNT(*) AS cnt, COALESCE(SUM(FileSize), 0) AS totalSize
-               FROM Products.EntityAttachmentsTbl
-              WHERE EntityType = ? AND EntityUID = ? AND OrgUID = ? AND IsDeleted = 0",
-            [$entityType, $entityUID, $orgUID]
-        );
-        $maxSortRow = $maxSortQ ? $maxSortQ->row() : null;
+        $maxSortRow = $this->products_model->getEntityAttachmentSortStats($entityType, $entityUID, $orgUID);
         $sortStart  = (int)($maxSortRow->maxSort ?? 0) + 1;
         $existSlots = (int)($maxSortRow->cnt      ?? 0);
         $totalSize  = (float)($maxSortRow->totalSize ?? 0);
@@ -2968,7 +3201,7 @@ class Products extends MY_Controller {
             $result = $this->fileupload->fileUpload('file', $folder . '/' . $safe, $tmp);
             if ($result->Error) continue;
 
-            $wdb->insert('Products.EntityAttachmentsTbl', [
+            $this->dbwrite_model->insertData('Products', 'EntityAttachmentsTbl', [
                 'OrgUID'     => $orgUID,
                 'EntityType' => $entityType,
                 'EntityUID'  => $entityUID,
@@ -3064,7 +3297,7 @@ class Products extends MY_Controller {
             $totalSize = 0;
             $saved     = [];
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->load->library('fileupload');
 
             if ($entityType === 'Category')     { $folder = 'categories/attachments/' . $entityUID; }
@@ -3135,7 +3368,7 @@ class Products extends MY_Controller {
 
             if ($attachUID <= 0) throw new ValidationException('Invalid attachment.');
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $resp = $this->dbwrite_model->updateData('Products', 'EntityAttachmentsTbl',
                 ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
                 ['AttachUID' => $attachUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
@@ -3165,7 +3398,7 @@ class Products extends MY_Controller {
         try {
             $this->load->model('products_model');
             $primary = $this->products_model->getEntityPrimaryImage($entityType, $entityUID, $orgUID);
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             if ($entityType === 'Product') {
                 $this->dbwrite_model->updateData('Products', 'ProductTbl',
                     ['Image' => $primary, 'UpdatedBy' => $userUID],
@@ -3195,7 +3428,7 @@ class Products extends MY_Controller {
             $filter    = is_array($rawFilter) ? $rawFilter : (json_decode($rawFilter ?: '{}', true) ?? []);
 
             $this->load->model('pricelists_model');
-            $result = $this->pricelists_model->getPriceListPaginated($orgUID, $limit, $offset, $filter);
+            $result = $this->pricelists_model->getPriceListPaginated($orgUID, $limit, $offset, $filter, $this->_uiLang());
 
             $this->EndReturnData->Error      = false;
             $this->EndReturnData->List       = $this->_buildPriceListHtml($result->rows, $offset);
@@ -3223,15 +3456,47 @@ class Products extends MY_Controller {
     }
 
     /**
-     * @param int $orgUID
-     * @param int $pageNo
-     * @param int $limit
-     * @param array $filter
+     * Fire-and-forget: translate price list Name and Description and upsert into PriceListTbl_Lang.
+     * @param int    $priceListUID
+     * @param string $origName         raw user input
+     * @param string $typedLangName    English value stored in base table
+     * @param string $origDescription
+     * @param string $typedLangDesc
+     * @param int    $userUID
+     * @returns void
+     */
+    private function _triggerPriceListLangSave(int $priceListUID, string $origName, string $typedLangName, string $origDescription, string $typedLangDesc, int $userUID): void {
+        $this->load->model('pricelists_model');
+        register_shutdown_function(function () use ($priceListUID, $origName, $typedLangName, $origDescription, $typedLangDesc, $userUID) {
+            if (function_exists('fastcgi_finish_request')) fastcgi_finish_request();
+            ignore_user_abort(true);
+
+            $typedLang = detectTextLang($origName) === 'ta' ? 'ta' : 'en';
+            $langCode  = 'ta';
+
+            $taName = $typedLang === 'ta' ? $origName        : translateViaMymemory($typedLangName, 'en', 'ta');
+            $taDesc = $typedLang === 'ta' ? $origDescription : translateViaMymemory($typedLangDesc, 'en', 'ta');
+
+            $this->pricelists_model->savePriceListLangRow(
+                $priceListUID, $langCode,
+                $taName ?: null,
+                $taDesc ?: null,
+                $userUID
+            );
+        });
+    }
+
+    /**
+     * @param int    $orgUID
+     * @param int    $pageNo
+     * @param int    $limit
+     * @param array  $filter
+     * @param string $langCode
      * @return void  populates $this->EndReturnData with List/Pagination/TotalCount
      */
-    private function _appendPriceListRefresh(int $orgUID, int $pageNo, int $limit, array $filter): void {
+    private function _appendPriceListRefresh(int $orgUID, int $pageNo, int $limit, array $filter, string $langCode = 'en'): void {
         $offset  = ($pageNo - 1) * $limit;
-        $result  = $this->pricelists_model->getPriceListPaginated($orgUID, $limit, $offset, $filter);
+        $result  = $this->pricelists_model->getPriceListPaginated($orgUID, $limit, $offset, $filter, $langCode);
         $this->EndReturnData->List       = $this->_buildPriceListHtml($result->rows, $offset);
         $this->EndReturnData->Pagination = $this->globalservice->buildPagePaginationHtml('/products/getPriceListData', $result->totalCount, $pageNo, $limit);
         $this->EndReturnData->TotalCount = $result->totalCount;
@@ -3245,7 +3510,7 @@ class Products extends MY_Controller {
             if ($priceListUID <= 0) throw new InvalidArgumentException('Invalid price list ID.');
 
             $this->load->model('pricelists_model');
-            $data = $this->pricelists_model->getForEdit($orgUID, $priceListUID);
+            $data = $this->pricelists_model->getForEdit($orgUID, $priceListUID, $this->_uiLang());
             if (!$data) throw new ValidationException('Price list not found.');
 
             $this->EndReturnData->Error = false;
@@ -3272,10 +3537,16 @@ class Products extends MY_Controller {
             $userUID = (int) $jwt->User->UserUID;
             $post    = $this->input->post(null, true);
 
-            $plUID = (int) ($post['PLUID'] ?? 0);
+            $plUID  = (int) ($post['PLUID'] ?? 0);
             $isEdit = $plUID > 0;
 
-            $name = trim($post['Name'] ?? '');
+            $origName        = trim($post['Name']        ?? '');
+            $origDescription = trim($post['Description'] ?? '');
+
+            $_rawName        = detectTextLang($origName)        === 'ta' ? translateViaMymemory($origName,        'ta', 'en') : $origName;
+            $_rawDescription = detectTextLang($origDescription) === 'ta' ? translateViaMymemory($origDescription, 'ta', 'en') : $origDescription;
+
+            $name = $_rawName;
             if ($name === '') throw new InvalidArgumentException('Price list name is required.');
 
             $assignedTo = $post['AssignedToType'] ?? 'All';
@@ -3293,7 +3564,7 @@ class Products extends MY_Controller {
             if ($scope === 'Specific' && empty($rules))
                 throw new InvalidArgumentException('Add at least one product rule for Specific Products scope.');
 
-            $this->load->model(['pricelists_model', 'dbwrite_model']);
+            $this->load->model(['pricelists_model', 'dbwrite_model', 'dbwrite_ext_model']);
 
             if ($isEdit && !$this->pricelists_model->getByUID($orgUID, $plUID))
                 throw new ValidationException('Price list not found.');
@@ -3304,7 +3575,7 @@ class Products extends MY_Controller {
                 'Priority'       => max(1, (int) ($post['Priority'] ?? 1)),
                 'ValidFrom'      => $post['ValidFrom'] ?? '',
                 'ValidTo'        => $post['ValidTo']   ?? '',
-                'Description'    => $post['Description'] ?? '',
+                'Description'    => $_rawDescription,
                 'AssignedToType' => $assignedTo,
                 'Scope'          => $scope,
                 'GlobalBasedOn'  => $post['GlobalBasedOn'] ?? 'SellingPrice',
@@ -3337,6 +3608,7 @@ class Products extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
             $this->_upsertOnePriceListCache($orgUID, $plUID);
+            $this->_triggerPriceListLangSave($plUID, $origName, $name, $origDescription, $_rawDescription, $userUID);
 
             $newValues = [
                 'Header'      => $headerData,
@@ -3362,7 +3634,7 @@ class Products extends MY_Controller {
             $this->EndReturnData->Error        = false;
             $this->EndReturnData->Message      = $isEdit ? 'Price list updated successfully.' : 'Price list created successfully.';
             $this->EndReturnData->PriceListUID = $plUID;
-            $this->_appendPriceListRefresh($orgUID, $pageNo, $limit, $filter);
+            $this->_appendPriceListRefresh($orgUID, $pageNo, $limit, $filter, $this->_uiLang());
 
         } catch (InvalidArgumentException $e) {
             $this->EndReturnData->Error   = true;
@@ -3389,7 +3661,7 @@ class Products extends MY_Controller {
             $priceListUID = (int) ($post['PriceListUID'] ?? 0);
             if ($priceListUID <= 0) throw new InvalidArgumentException('Invalid price list ID.');
 
-            $this->load->model(['pricelists_model', 'dbwrite_model']);
+            $this->load->model(['pricelists_model', 'dbwrite_model', 'dbwrite_ext_model']);
             if (!$this->pricelists_model->getByUID($orgUID, $priceListUID))
                 throw new ValidationException('Price list not found.');
 
@@ -3416,7 +3688,7 @@ class Products extends MY_Controller {
 
             $this->EndReturnData->Error   = false;
             $this->EndReturnData->Message = 'Price list deleted successfully.';
-            $this->_appendPriceListRefresh($orgUID, $pageNo, $limit, $filter);
+            $this->_appendPriceListRefresh($orgUID, $pageNo, $limit, $filter, $this->_uiLang());
 
         } catch (InvalidArgumentException $e) {
             $this->EndReturnData->Error   = true;
@@ -3443,7 +3715,7 @@ class Products extends MY_Controller {
             $uidList  = array_filter(array_map('intval', explode(',', $rawUIDs)));
             if (empty($uidList)) throw new InvalidArgumentException('No price list IDs provided.');
 
-            $this->load->model(['pricelists_model', 'dbwrite_model']);
+            $this->load->model(['pricelists_model', 'dbwrite_model', 'dbwrite_ext_model']);
             foreach ($uidList as $plUID) {
                 $oldData = $this->pricelists_model->getForEdit($orgUID, $plUID);
                 if (!$oldData) continue;
@@ -3467,7 +3739,7 @@ class Products extends MY_Controller {
 
             $this->EndReturnData->Error   = false;
             $this->EndReturnData->Message = count($uidList) . ' price list(s) deleted successfully.';
-            $this->_appendPriceListRefresh($orgUID, $pageNo, $limit, $filter);
+            $this->_appendPriceListRefresh($orgUID, $pageNo, $limit, $filter, $this->_uiLang());
 
         } catch (InvalidArgumentException $e) {
             $this->EndReturnData->Error   = true;
@@ -3594,44 +3866,22 @@ class Products extends MY_Controller {
             $productUID = (int) $this->input->post('ProductUID');
 
             $this->load->model('products_model');
-            $this->load->model('dbwrite_model');
-
-            $readDb = $this->load->database('ReadDB', TRUE);
-            $readDb->db_debug = FALSE;
-
-            $wdb = $this->dbwrite_model->getWriteDb();
-            $wdb->db_debug = FALSE;
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
 
             if ($productUID > 0) {
                 // ── Single product ─────────────────────────────────────────
-                $inv = $readDb->query(
-                    'SELECT OpeningQuantity
-                     FROM Products.ProductTbl
-                     WHERE ProductUID = ? AND OrgUID = ? AND IsDeleted = 0
-                     LIMIT 1',
-                    [$productUID, $orgUID]
-                )->row();
+                $stockData = $this->products_model->getProductStockData($productUID, $orgUID);
 
-                if (!$inv) throw new ValidationException('Product not found.');
+                if (!$stockData) throw new ValidationException('Product not found.');
 
-                $ledger = $readDb->query(
-                    'SELECT
-                         COALESCE(SUM(CASE WHEN MovementType = \'IN\'  THEN Quantity ELSE 0 END), 0) AS SumIn,
-                         COALESCE(SUM(CASE WHEN MovementType = \'OUT\' THEN Quantity ELSE 0 END), 0) AS SumOut
-                     FROM Products.StockLedgerTbl
-                     WHERE ProductUID = ? AND OrgUID = ? AND IsDeleted = 0',
-                    [$productUID, $orgUID]
-                )->row();
-
-                $openingQty = (float)($inv->OpeningQuantity ?? 0);
-                $sumIn      = (float)($ledger->SumIn  ?? 0);
-                $sumOut     = (float)($ledger->SumOut ?? 0);
+                $openingQty = $stockData->OpeningQuantity;
+                $sumIn      = $stockData->SumIn;
+                $sumOut     = $stockData->SumOut;
                 $newQty     = round($openingQty + $sumIn - $sumOut, $this->_decimals());
 
-                $wdb->query(
-                    'UPDATE Products.ProductStockTbl SET AvailableQty = ? WHERE ProductUID = ? AND OrgUID = ?',
-                    [$newQty, $productUID, $orgUID]
-                );
+                $this->dbwrite_model->updateData('Products', 'ProductStockTbl',
+                    ['AvailableQty' => $newQty],
+                    ['ProductUID' => $productUID, 'OrgUID' => $orgUID]);
 
                 // Refresh this product's entry in the org hash + invalidate individual key
                 $this->cachehelper->upsertProduct($productUID);
@@ -3645,21 +3895,7 @@ class Products extends MY_Controller {
 
             } else {
                 // ── All products for this org ──────────────────────────────
-                $rows = $readDb->query(
-                    'SELECT
-                         p.ProductUID,
-                         COALESCE(p.OpeningQuantity, 0) AS OpeningQty,
-                         COALESCE(SUM(CASE WHEN sl.MovementType = \'IN\'  THEN sl.Quantity ELSE 0 END), 0) AS SumIn,
-                         COALESCE(SUM(CASE WHEN sl.MovementType = \'OUT\' THEN sl.Quantity ELSE 0 END), 0) AS SumOut
-                     FROM Products.ProductTbl p
-                     LEFT JOIN Products.StockLedgerTbl sl
-                            ON sl.ProductUID = p.ProductUID
-                           AND sl.OrgUID    = p.OrgUID
-                           AND sl.IsDeleted = 0
-                     WHERE p.OrgUID = ? AND p.IsDeleted = 0
-                     GROUP BY p.ProductUID, p.OpeningQuantity',
-                    [$orgUID]
-                )->result();
+                $rows = $this->products_model->getAllProductsStockData($orgUID);
 
                 if (empty($rows)) throw new ValidationException('No products found for this organisation.');
 
@@ -3669,10 +3905,9 @@ class Products extends MY_Controller {
                         (float)$r->OpeningQty + (float)$r->SumIn - (float)$r->SumOut,
                         $this->_decimals()
                     );
-                    $wdb->query(
-                        'UPDATE Products.ProductStockTbl SET AvailableQty = ? WHERE ProductUID = ? AND OrgUID = ?',
-                        [$qty, (int)$r->ProductUID, $orgUID]
-                    );
+                    $this->dbwrite_model->updateData('Products', 'ProductStockTbl',
+                        ['AvailableQty' => $qty],
+                        ['ProductUID' => (int)$r->ProductUID, 'OrgUID' => $orgUID]);
                 }
 
                 // Invalidate individual keyProduct entries so the next detail fetch hits DB
@@ -3789,7 +4024,7 @@ class Products extends MY_Controller {
             switch ($tab) {
 
                 case 'overview':
-                    $prod = $this->products_model->getProductProfile($uid, $orgUID);
+                    $prod = $this->products_model->getProductProfile($uid, $orgUID, $this->_uiLang());
                     if (!$prod) throw new ValidationException('Product not found.');
                     $topCustomers = $this->products_model->getProductTopCustomers($uid, $orgUID);
                     $html = $this->load->view('products/modals/profile_overview', [
@@ -3811,7 +4046,7 @@ class Products extends MY_Controller {
                     break;
 
                 case 'stock':
-                    $prod     = $this->products_model->getProductProfile($uid, $orgUID);
+                    $prod     = $this->products_model->getProductProfile($uid, $orgUID, $this->_uiLang());
                     $moves    = $this->products_model->getProductStockMovements($uid, $orgUID);
                     $variants = $this->products_model->getProductVariants($uid, $orgUID);
                     $html     = $this->load->view('products/modals/profile_stock', [

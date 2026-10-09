@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 /**
  * @property object $attendance_model
@@ -64,7 +64,7 @@ class Salaryadvances extends MY_Controller {
             $amt = (float)($p['AdvanceAmount'] ?? 0);
             if ($amt <= 0) throw new Exception('Amount must be greater than 0.');
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $data = [
                 'OrgUID'        => $this->_orgUID(),
                 'BranchUID'     => $this->_branchUID(),
@@ -103,7 +103,7 @@ class Salaryadvances extends MY_Controller {
         try {
             $uid = (int)$this->input->post('AdvanceUID');
             if (!$uid) throw new Exception('Invalid advance.');
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
 
             // Fetch advance details before status change (need date + amount for journal)
             $this->load->model('attendance_model');
@@ -146,7 +146,7 @@ class Salaryadvances extends MY_Controller {
         try {
             $uid = (int)$this->input->post('AdvanceUID');
             if (!$uid) throw new Exception('Invalid advance.');
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $res = $this->dbwrite_model->updateData('Transaction', 'SalaryAdvanceTbl',
                 ['AdvanceStatus' => 'Rejected', 'UpdatedBy' => $this->_userUID()],
                 ['AdvanceUID' => $uid, 'OrgUID' => $this->_orgUID(), 'AdvanceStatus' => 'Requested']
@@ -174,7 +174,7 @@ class Salaryadvances extends MY_Controller {
             $advance    = !empty($advances->rows) ? $advances->rows[0] : null;
             $wasApproved = $advance && ($advance->AdvanceStatus ?? '') === 'Approved';
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $res = $this->dbwrite_model->updateData('Transaction', 'SalaryAdvanceTbl',
                 ['IsDeleted' => 1, 'UpdatedBy' => $this->_userUID()],
                 ['AdvanceUID' => $uid, 'OrgUID' => $this->_orgUID()]

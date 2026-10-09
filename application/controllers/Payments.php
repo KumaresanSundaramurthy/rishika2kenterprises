@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Payments extends MY_Controller {
 
@@ -146,7 +146,7 @@ class Payments extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->load->model('transactions_model');
             $this->dbwrite_model->startTransaction();
 
@@ -481,7 +481,7 @@ class Payments extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->load->model('transactions_model');
 
             $PostData   = $this->input->post();
@@ -509,7 +509,7 @@ class Payments extends MY_Controller {
             }
 
             // Guard 2 — Block cancellation of source On Account if applied child payments exist
-            $appliedChild = $this->dbwrite_model->getAppliedChildPayment($paymentUID, $orgUID);
+            $appliedChild = $this->dbwrite_ext_model->getAppliedChildPayment($paymentUID, $orgUID);
             if ($appliedChild) {
                 throw new ValidationException(
                     'This On Account payment has been applied to Invoice ' .
@@ -630,13 +630,13 @@ class Payments extends MY_Controller {
                     $balanceAmount = max(0, round($netAmount - $newTotalPaid, $this->_decimals()));
                     $isFullyPaid   = ($netAmount > 0 && $balanceAmount <= 0) ? 1 : 0;
 
-                    $this->dbwrite_model->updateTransIsFullyPaid($transUID, $isFullyPaid, $newTotalPaid, $balanceAmount, $userUID);
+                    $this->dbwrite_ext_model->updateTransIsFullyPaid($transUID, $isFullyPaid, $newTotalPaid, $balanceAmount, $userUID);
 
                     if ($newTotalPaid <= 0)  $newStatus = ((int)$trans->ModuleUID === 106) ? 'Approved' : 'Issued';
                     elseif ($isFullyPaid)    $newStatus = 'Paid';
                     else                     $newStatus = 'Partial';
 
-                    $this->dbwrite_model->updateTransDocStatus($transUID, $orgUID, $newStatus, $userUID);
+                    $this->dbwrite_ext_model->updateTransDocStatus($transUID, $orgUID, $newStatus, $userUID);
 
                     $this->EndReturnData->NewPaidAmount    = round($newTotalPaid, $this->_decimals());
                     $this->EndReturnData->NewBalanceAmount = $balanceAmount;
@@ -653,20 +653,16 @@ class Payments extends MY_Controller {
             // 3c. If this payment was created from an On Account source, restore the source
             $sourceOAUID = (int)($payment->OnAccountSourcePaymentUID ?? 0);
             if ($sourceOAUID > 0) {
-                $sourceOA = $this->dbwrite_model->getOnAccountSourcePayment($sourceOAUID, $orgUID);
+                $sourceOA = $this->dbwrite_ext_model->getOnAccountSourcePayment($sourceOAUID, $orgUID);
                 if ($sourceOA) {
                     $restoredAmount = round((float)$sourceOA->Amount + (float)$payment->Amount, $this->_decimals());
-                    $this->dbwrite_model->restoreOnAccountPayment($sourceOAUID, $orgUID, $restoredAmount, $userUID);
+                    $this->dbwrite_ext_model->restoreOnAccountPayment($sourceOAUID, $orgUID, $restoredAmount, $userUID);
                 }
             }
 
             // 3d. Revert Credit Note back to Pending when its applied payment is removed
-            $appliedCNRow = $this->dbwrite_model->getWriteDb()->query(
-                'SELECT CreditNoteUID FROM Transaction.TransCreditNoteTbl
-                 WHERE AppliedPaymentUID = ? AND OrgUID = ? AND Status = ? AND IsDeleted = 0
-                 LIMIT 1',
-                [$paymentUID, $orgUID, 'Applied']
-            )->row();
+            $this->load->model('transactions_model');
+            $appliedCNRow = $this->transactions_model->getCNByAppliedPayment($orgUID, $paymentUID);
             if ($appliedCNRow) {
                 $this->dbwrite_model->updateData(
                     'Transaction', 'TransCreditNoteTbl',
@@ -882,7 +878,7 @@ class Payments extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
 
             $PostData    = $this->input->post();
             $orgUID      = $this->pageData['JwtData']->Org->OrgUID;
@@ -976,12 +972,7 @@ class Payments extends MY_Controller {
 
             $this->load->model('transactions_model');
 
-            $this->transactions_model->ReadDb->db_debug = FALSE;
-            $this->transactions_model->ReadDb->select('BankAccountUID, AccountName, BankName, AccountNumber, IFSC, BranchName, UPIId, UPINumber, IsDefault');
-            $this->transactions_model->ReadDb->from('Organisation.OrgBankAccountsTbl');
-            $this->transactions_model->ReadDb->where(['BankAccountUID' => $bankAccountUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
-            $query  = $this->transactions_model->ReadDb->get();
-            $record = $query ? $query->row() : null;
+            $record = $this->transactions_model->getBankAccountByUID($bankAccountUID, $orgUID);
             if (!$record) throw new ValidationException('Bank account not found.');
 
             $this->EndReturnData->Error = FALSE;
@@ -1005,7 +996,7 @@ class Payments extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
 
             $PostData       = $this->input->post();
             $orgUID         = $this->pageData['JwtData']->Org->OrgUID;
@@ -1057,7 +1048,7 @@ class Payments extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
 
             $PostData       = $this->input->post();
             $orgUID         = $this->pageData['JwtData']->Org->OrgUID;

@@ -249,14 +249,12 @@ class Users_model extends CI_Model {
                                 ->row();
             [$prefix, $separator, $digits] = $this->_parseEmpCodeFormat($fmt);
 
-            $this->load->model('dbwrite_model');
-            $db = $this->dbwrite_model->getWriteDb();
-            $db->db_debug = FALSE;
+            $this->load->model('dbwrite_ext_model');
 
             // LAST_INSERT_ID(expr) stores the value per-connection, so the
             // subsequent SELECT LAST_INSERT_ID() returns THIS request's claimed
             // number even if another request incremented the counter in between.
-            $db->query(
+            $affected = $this->dbwrite_ext_model->execWriteAffected(
                 'UPDATE Settings.OrgCreditSettingsTbl
                     SET EmpCodeLastNum = LAST_INSERT_ID(EmpCodeLastNum + 1),
                         UpdatedAt      = NOW()
@@ -264,8 +262,8 @@ class Users_model extends CI_Model {
                 [$orgUID]
             );
 
-            if ($db->affected_rows() > 0) {
-                $row     = $db->query('SELECT LAST_INSERT_ID() AS ClaimedNum')->row();
+            if ($affected > 0) {
+                $row     = $this->dbwrite_ext_model->queryWriteRow('SELECT LAST_INSERT_ID() AS ClaimedNum');
                 $nextNum = (int)($row->ClaimedNum ?? 1);
             } else {
                 // OrgCreditSettingsTbl row not yet seeded — fall back to MAX scan
@@ -640,6 +638,27 @@ class Users_model extends CI_Model {
     }
 
     // ── Branch access assignments for a user ──────────────────────────────────
+    /**
+     * Returns the last N bcrypt hashes from PasswordHistoryTbl for reuse checking.
+     * @param int $userUID
+     * @param int $limit
+     * @returns array
+     */
+    public function getRecentPasswordHashes(int $userUID, int $limit = 3): array {
+        try {
+            $this->ReadDb->select('Password');
+            $this->ReadDb->from('Users.PasswordHistoryTbl');
+            $this->ReadDb->where('UserUID', $userUID);
+            $this->ReadDb->order_by('CreatedOn', 'DESC');
+            $this->ReadDb->limit($limit);
+            $query = $this->ReadDb->get();
+            return $query ? $query->result() : [];
+        } catch (Exception $e) {
+            notifyError('Users_model::getRecentPasswordHashes', $e);
+            return [];
+        }
+    }
+
     public function getUserBranchAccess(int $userUID, int $orgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;

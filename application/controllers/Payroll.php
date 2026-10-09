@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Payroll extends MY_Controller {
 
@@ -165,7 +165,7 @@ class Payroll extends MY_Controller {
             if (empty($lines) || !is_array($lines)) throw new Exception('No payroll lines provided.');
 
             $this->load->model('payroll_model');
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
 
             // Totals
             $totalGross = 0; $totalDed = 0; $totalNet = 0;
@@ -244,7 +244,7 @@ class Payroll extends MY_Controller {
             $deduct  = min($remaining, (float)$adv->BalancePending);
             $newBal  = round((float)$adv->BalancePending - $deduct, $this->_decimals());
             $settled = $newBal <= 0 ? 1 : 0;
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->updateData('Transaction', 'SalaryAdvanceTbl', ['BalancePending' => $newBal, 'IsSettled' => $settled, 'UpdatedBy' => $userUID], ['AdvanceUID' => $adv->AdvanceUID]);
             $remaining -= $deduct;
         }
@@ -257,7 +257,7 @@ class Payroll extends MY_Controller {
             $status = $this->input->post('Status');
             $valid  = ['Draft','Processed','Paid','Cancelled'];
             if (!$uid || !in_array($status, $valid)) throw new Exception('Invalid request.');
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $res = $this->dbwrite_model->updateData('Transaction', 'PayrollTbl', ['PayrollStatus' => $status, 'UpdatedBy' => $this->_userUID()], ['PayrollUID' => $uid, 'OrgUID' => $this->_orgUID()]);
             if ($res->Error) throw new Exception($res->Message);
 
@@ -289,7 +289,7 @@ class Payroll extends MY_Controller {
             $payroll = $this->payroll_model->getPayrollByUID($uid, $this->_orgUID());
             if (!$payroll) throw new Exception('Payroll not found.');
             if ($payroll->PayrollStatus === 'Paid') throw new Exception('Paid payroll cannot be deleted.');
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->updateData('Transaction', 'PayrollLineTbl', ['IsDeleted' => 1], ['PayrollUID' => $uid]);
             $res = $this->dbwrite_model->updateData('Transaction', 'PayrollTbl', ['IsDeleted' => 1, 'UpdatedBy' => $this->_userUID()], ['PayrollUID' => $uid, 'OrgUID' => $this->_orgUID()]);
             if ($res->Error) throw new Exception($res->Message);

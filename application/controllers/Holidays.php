@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Holidays extends MY_Controller {
 
@@ -61,7 +61,7 @@ class Holidays extends MY_Controller {
             if (empty($filter['Year'])) $filter['Year'] = date('Y');
             if (empty(trim($p['HolidayName'] ?? ''))) throw new Exception('Holiday name is required.');
             if (empty($p['HolidayDate']))              throw new Exception('Holiday date is required.');
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $data = ['OrgUID' => $this->_orgUID(), 'HolidayName' => trim($p['HolidayName']), 'HolidayDate' => $p['HolidayDate'], 'Description' => trim($p['Description'] ?? ''), 'IsOptional' => (int)($p['IsOptional'] ?? 0), 'IsActive' => 1, 'UpdatedBy' => $this->_userUID()];
             if ($uid === 0) {
                 $data['CreatedBy'] = $this->_userUID();
@@ -93,7 +93,7 @@ class Holidays extends MY_Controller {
             $filter = is_array($p['Filter'] ?? null) ? $p['Filter'] : [];
             if (empty($filter['Year'])) $filter['Year'] = date('Y');
             if (!$uid) throw new Exception('Invalid.');
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $res = $this->dbwrite_model->updateData('Organisation', 'HolidayTbl', ['IsDeleted' => 1, 'UpdatedBy' => $this->_userUID()], ['HolidayUID' => $uid, 'OrgUID' => $this->_orgUID()]);
             if ($res->Error) throw new Exception($res->Message);
             $pd = $this->_fetchTableData($pageNo, $this->_rowLimit(), $filter);

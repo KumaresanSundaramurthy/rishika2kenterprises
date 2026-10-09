@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Organisation extends MY_Controller {
 
@@ -109,7 +109,7 @@ class Organisation extends MY_Controller {
                 'UpdatedBy'         => $userUID,
             ];
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $UpdateDataResp = $this->dbwrite_model->updateData('Organisation', 'OrganisationTbl', $updateOrgData, array('OrgUID' => $PostData['OrgUID']));
             if ($UpdateDataResp->Error) {
                 throw new Exception($UpdateDataResp->Message);
@@ -281,7 +281,7 @@ class Organisation extends MY_Controller {
             $now     = date('Y-m-d H:i:s');
 
             $this->load->model('organisation_model');
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $shipResult   = $this->organisation_model->getOrgShippingAddresses($orgUID);
             $currentCount = (!$shipResult->Error) ? count($shipResult->Data) : 0;
 
@@ -368,7 +368,7 @@ class Organisation extends MY_Controller {
 
             if (empty($line1)) throw new Exception('Address Line 1 is required.');
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $resp = $this->dbwrite_model->updateData('Organisation', 'OrgAddressTbl', [
                 'Line1'     => $line1,
                 'Line2'     => $line2,

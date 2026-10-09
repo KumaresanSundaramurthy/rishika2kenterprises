@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Purchasereturns extends MY_Controller {
 
@@ -38,7 +38,7 @@ class Purchasereturns extends MY_Controller {
         $this->EndReturnData = new stdClass();
         $ErrorInForm = '';
         try {
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             $PostData = $this->input->post();
@@ -102,7 +102,7 @@ class Purchasereturns extends MY_Controller {
 
             if (!$isDraft) {
                 $this->_saveTransSerials($transUID, $orgUID, $userUID, 'PurchaseReturn', $items, $vendorUID);
-                $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items, $this->_branchUID());
+                $this->dbwrite_ext_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items, $this->_branchUID());
             }
 
             $this->dbwrite_model->commitTransaction();
@@ -137,7 +137,7 @@ class Purchasereturns extends MY_Controller {
                     $balanceAmount = max(0, round($netAmount - $payResult['totalPaid'], $this->_decimals()));
                     $this->_updateTransactionBalance($transUID, $netAmount, $payResult['totalPaid'], $userUID);
                     $newStatus = $isFullyPaid ? 'Paid' : 'Partial';
-                    $this->dbwrite_model->updateTransDocStatus($transUID, $orgUID, $newStatus, $userUID);
+                    $this->dbwrite_ext_model->updateTransDocStatus($transUID, $orgUID, $newStatus, $userUID);
                 }
                 if (!empty($payResult['firstPaymentUID'])) {
                     $this->_savePaymentAttachments($payResult['firstPaymentUID']);
@@ -179,7 +179,7 @@ class Purchasereturns extends MY_Controller {
     public function updatePurchaseReturn() {
         $this->EndReturnData = new stdClass();
         try {
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             $PostData = $this->input->post();
@@ -244,7 +244,7 @@ class Purchasereturns extends MY_Controller {
 
             $wasNonDraft = ($existing->DocStatus !== 'Draft');
             if ($wasNonDraft) {
-                $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
+                $this->dbwrite_ext_model->reverseStockMovements($transUID, $orgUID, $userUID);
             }
 
             if ($existing->DocStatus === 'Draft' && !$isDraft
@@ -270,7 +270,7 @@ class Purchasereturns extends MY_Controller {
                 $this->_insertTransItems($newTransUID, $amounts['financialYear'], $orgUID, $userUID, $items);
                 if (!$isDraft) {
                     $this->_saveTransSerials($newTransUID, $orgUID, $userUID, 'PurchaseReturn', $items, $vendorUID);
-                    $this->dbwrite_model->saveStockMovements($newTransUID, $this->pageModuleUID, $orgUID, $userUID, $items, $this->_branchUID());
+                    $this->dbwrite_ext_model->saveStockMovements($newTransUID, $this->pageModuleUID, $orgUID, $userUID, $items, $this->_branchUID());
                 }
                 $this->dbwrite_model->deleteInTransaction('Transaction', 'TransactionsTbl', ['TransUID' => $transUID]);
             } else {
@@ -290,7 +290,7 @@ class Purchasereturns extends MY_Controller {
                 $this->_updateTransItems($transUID, $items, $orgUID, $amounts['financialYear'], $userUID);
                 if (!$isDraft) {
                     $this->_updateTransSerials($transUID, $orgUID, $userUID, 'PurchaseReturn', $items, $vendorUID);
-                    $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items, $this->_branchUID());
+                    $this->dbwrite_ext_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items, $this->_branchUID());
                 }
             }
 
@@ -326,7 +326,7 @@ class Purchasereturns extends MY_Controller {
     public function deletePurchaseReturn() {
         $this->EndReturnData = new stdClass();
         try {
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
             $PostData = $this->input->post();
             $userUID  = $this->pageData['JwtData']->User->UserUID;
@@ -337,7 +337,7 @@ class Purchasereturns extends MY_Controller {
             $existing = $this->transactions_model->getTransactionPageList(1, 0, $this->pageModuleUID, ['TransUID' => $transUID, 'OrgUID' => $orgUID]);
             if (empty($existing)) throw new ValidationException('Purchase Return not found.');
 
-            $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
+            $this->dbwrite_ext_model->reverseStockMovements($transUID, $orgUID, $userUID);
 
             $now = time();
             $this->dbwrite_model->updateData('Transaction', 'TransProductsTbl', ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID], ['TransUID' => $transUID, 'IsDeleted' => 0]);
@@ -384,7 +384,7 @@ class Purchasereturns extends MY_Controller {
     public function duplicatePurchaseReturn() {
         $this->EndReturnData = new stdClass();
         try {
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
             $PostData = $this->input->post();
             $srcUID   = (int) getPostValue($PostData, 'TransUID');
@@ -534,7 +534,7 @@ class Purchasereturns extends MY_Controller {
     public function updatePurchaseReturnStatus() {
         $this->EndReturnData = new stdClass();
         try {
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $PostData  = $this->input->post();
             $transUID  = (int) getPostValue($PostData, 'TransUID');
             $newStatus = trim(getPostValue($PostData, 'Status'));
@@ -599,50 +599,33 @@ class Purchasereturns extends MY_Controller {
 
                 // Handle refund payments per chosen action
                 if ($hasCashRefunds) {
-                    $wdb = $this->dbwrite_model->getWriteDb();
-                    $wdb->db_debug = FALSE;
                     if ($cancelAction === 'writeoff') {
                         // Keep the vendor's refund as a business gain Ã¢â‚¬â€ mark payments written off
-                        $wdb->where(['TransUID' => $transUID, 'IsDeleted' => 0])
-                            ->where('PaymentTypeUID !=', 0)
-                            ->update('Transaction.PaymentsTbl', ['IsCancelled' => 1, 'UpdatedBy' => $userUID]);
+                        $this->dbwrite_ext_model->cancelRefundPaymentsForTrans($transUID, $userUID);
                     } else {
                         // Recover Ã¢â‚¬â€ void the refund payments; we owe vendor back, tracked via VendorCreditNote
-                        $wdb->where(['TransUID' => $transUID, 'IsDeleted' => 0])
-                            ->where('PaymentTypeUID !=', 0)
-                            ->update('Transaction.PaymentsTbl', ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID]);
+                        $this->dbwrite_ext_model->deleteRefundPaymentsForTrans($transUID, $userUID);
                     }
                 }
 
                 // Reverse stock that went out when PR was approved
-                $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
+                $this->dbwrite_ext_model->reverseStockMovements($transUID, $orgUID, $userUID);
 
                 // Reset PR payment counters
-                $this->dbwrite_model->updateTransIsFullyPaid($transUID, 0, 0, 0, $userUID);
+                $this->dbwrite_ext_model->updateTransIsFullyPaid($transUID, 0, 0, 0, $userUID);
 
                 // Recover: create a vendor credit note so we track that we owe vendor back
                 if ($cancelAction === 'recover' && $hasCashRefunds) {
-                    $this->load->library('vendorbalance');
-                    $this->vendorbalance->createVendorCreditNote(
+                    $this->dbwrite_ext_model->callVendorCreditNote(
                         $orgUID, (int)$existing->PartyUID, $transUID,
-                        $existing->UniqueNumber ?? '', $totalRefunded, $userUID,
-                        $this->dbwrite_model->getWriteDb()
+                        $existing->UniqueNumber ?? '', $totalRefunded, $userUID
                     );
                 }
 
                 // Cancel any pending VendorDebitNote that was auto-created when this PR had no cash refund
-                $wdb = $this->dbwrite_model->getWriteDb();
-                $wdb->db_debug = FALSE;
-                $wdb->where([
-                    'SourceTransUID'  => $transUID,
-                    'SourceModuleUID' => 108,
-                    'Status'          => 'Pending',
-                    'IsCancelled'     => 0,
-                    'IsDeleted'       => 0,
-                ])->update('Transaction.TransDebitNoteTbl', [
-                    'IsCancelled' => 1,
-                    'UpdatedBy'   => $userUID,
-                ]);
+                $this->dbwrite_model->updateData('Transaction', 'TransDebitNoteTbl',
+                    ['IsCancelled' => 1, 'UpdatedBy' => $userUID],
+                    ['SourceTransUID' => $transUID, 'SourceModuleUID' => 108, 'Status' => 'Pending', 'IsCancelled' => 0, 'IsDeleted' => 0]);
             }
 
             $this->dbwrite_model->commitTransaction();
@@ -809,7 +792,7 @@ class Purchasereturns extends MY_Controller {
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
 
             $this->load->model('transactions_model');
-            $transData  = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
+            $transData  = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID, $this->_uiLang());
             if (!$transData) redirect('purchasereturns');
             $transItems = $this->transactions_model->getTransactionItems($transUID, $orgUID);
             $this->pageData['PRData']    = $transData;
@@ -827,7 +810,7 @@ class Purchasereturns extends MY_Controller {
             $this->pageData['TransactionCharges'] = $this->transactions_model->getTransactionCharges($transUID, (int)$orgUID);
             $this->pageData['TaxList']            = $this->_getTaxList();
             $this->load->model('vendors_model');
-            $vendorAddrArr                = $this->vendors_model->getVendorAddress(['VendAddress.VendorUID' => (int)$transData->PartyUID, 'VendAddress.OrgUID' => $orgUID]);
+            $vendorAddrArr                = $this->vendors_model->getVendorAddress(['VendAddress.VendorUID' => (int)$transData->PartyUID, 'VendAddress.OrgUID' => $orgUID], $this->_uiLang());
             $this->pageData['VendorAddr'] = !empty($vendorAddrArr) ? $vendorAddrArr[0] : null;
 
             $this->pageData['IsEditMode']         = true;
@@ -853,7 +836,7 @@ class Purchasereturns extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
             $PostData       = $this->input->post();
@@ -877,10 +860,10 @@ class Purchasereturns extends MY_Controller {
             if ($existing->DocStatus === 'Draft')                          throw new ValidationException('Cannot record payment for a Draft.');
             if (in_array($existing->DocStatus, ['Cancelled', 'Rejected'])) throw new ValidationException('Purchase Return is cancelled.');
 
-            if (!$this->dbwrite_model->lockTransactionRow($transUID, $orgUID)) {
+            if (!$this->dbwrite_ext_model->lockTransactionRow($transUID, $orgUID)) {
                 throw new ValidationException('Purchase Return not found.');
             }
-            $alreadyPaid = $this->dbwrite_model->sumTransactionPayments($transUID, $orgUID);
+            $alreadyPaid = $this->dbwrite_ext_model->sumTransactionPayments($transUID, $orgUID);
             $pending     = max(0, round((float)$existing->NetAmount - $alreadyPaid, $this->_decimals()));
 
             if ($amount > $pending + 0.01) {
@@ -948,8 +931,8 @@ class Purchasereturns extends MY_Controller {
             $paymentUID = $resp->ID ?? null;
 
             $balanceAmount = max(0, round((float)$existing->NetAmount - $newTotalPaid, $this->_decimals()));
-            $this->dbwrite_model->updateTransIsFullyPaid($transUID, $isFullyPaid, $newTotalPaid, $balanceAmount, $userUID);
-            $this->dbwrite_model->updateTransDocStatus($transUID, $orgUID, $newStatus, $userUID);
+            $this->dbwrite_ext_model->updateTransIsFullyPaid($transUID, $isFullyPaid, $newTotalPaid, $balanceAmount, $userUID);
+            $this->dbwrite_ext_model->updateTransDocStatus($transUID, $orgUID, $newStatus, $userUID);
 
             $this->dbwrite_model->commitTransaction();
 
@@ -1009,7 +992,7 @@ class Purchasereturns extends MY_Controller {
     public function applyDebit() {
         $this->EndReturnData = new stdClass();
         try {
-            $this->load->model('dbwrite_model');
+            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->load->model('transactions_model');
 
             $PostData   = $this->input->post();
@@ -1114,17 +1097,17 @@ class Purchasereturns extends MY_Controller {
             $newPurchBalance = max(0, round((float)$purchase->NetAmount - $newPurchPaid, $this->_decimals()));
             $purchFullyPaid  = ($purchase->NetAmount > 0 && $newPurchBalance <= 0) ? 1 : 0;
             $purchStatus     = $purchFullyPaid ? 'Paid' : 'Partial';
-            $this->dbwrite_model->updateTransIsFullyPaid($purchUID, $purchFullyPaid, $newPurchPaid, $newPurchBalance, $userUID);
-            $this->dbwrite_model->updateTransDocStatus($purchUID, $orgUID, $purchStatus, $userUID);
+            $this->dbwrite_ext_model->updateTransIsFullyPaid($purchUID, $purchFullyPaid, $newPurchPaid, $newPurchBalance, $userUID);
+            $this->dbwrite_ext_model->updateTransDocStatus($purchUID, $orgUID, $purchStatus, $userUID);
 
             // Update Purchase Return
             $newPrPaid    = round($prPaid + $amount, $this->_decimals());
             $newPrBalance = max(0, round((float)$pr->NetAmount - $newPrPaid, $this->_decimals()));
             $prFullyPaid  = ($pr->NetAmount > 0 && $newPrBalance <= 0) ? 1 : 0;
             $prNewStatus  = $prFullyPaid ? 'Paid' : ($newPrPaid > 0 ? 'Partial' : $pr->DocStatus);
-            $this->dbwrite_model->updateTransIsFullyPaid($prUID, $prFullyPaid, $newPrPaid, $newPrBalance, $userUID);
+            $this->dbwrite_ext_model->updateTransIsFullyPaid($prUID, $prFullyPaid, $newPrPaid, $newPrBalance, $userUID);
             if ($prNewStatus !== $pr->DocStatus) {
-                $this->dbwrite_model->updateTransDocStatus($prUID, $orgUID, $prNewStatus, $userUID);
+                $this->dbwrite_ext_model->updateTransDocStatus($prUID, $orgUID, $prNewStatus, $userUID);
             }
 
             $this->dbwrite_model->commitTransaction();

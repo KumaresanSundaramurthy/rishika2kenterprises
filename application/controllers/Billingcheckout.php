@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 /**
  * Billing checkout — subscription payment confirmation page + payment AJAX.
@@ -14,7 +14,7 @@ class Billingcheckout extends CI_Controller {
     public function __construct() {
         parent::__construct();
         $this->load->model('signup_model');
-        $this->load->model('dbwrite_model');
+        $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
     }
 
     /* ── Checkout page ────────────────────────────────────────────────── */

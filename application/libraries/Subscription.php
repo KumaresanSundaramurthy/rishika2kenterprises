@@ -8,6 +8,7 @@ class Subscription {
         $this->CI =& get_instance();
         $this->CI->load->model('subscription_model');
         $this->CI->load->model('dbwrite_model');
+        $this->CI->load->model('dbwrite_ext_model');
         $this->CI->load->library('telegramnotifier');
     }
 

@@ -4,6 +4,7 @@
 <?php $this->load->view('login/header'); ?>
 
 <style>
+html, body { height: 100%; overflow: hidden; }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 .lr-root {

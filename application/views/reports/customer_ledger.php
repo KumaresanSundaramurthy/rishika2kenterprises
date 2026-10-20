@@ -53,6 +53,12 @@ $this->load->view('common/transactions/header'); ?>
 .cl-placeholder{display:flex;flex-direction:column;align-items:center;padding:70px 20px;color:#94a3b8}
 .cl-placeholder i{font-size:3rem;margin-bottom:10px;opacity:.4}
 .cl-placeholder-title{font-size:.9rem;font-weight:600;color:#64748b;margin-bottom:4px}
+@media print {
+    .apex-page-header,.rpt-filter-bar,.layout-menu,.apex-menu,.common-footer,
+    .dropdown { display:none !important; }
+    .rpt-table thead th { background:#f8fafc !important; -webkit-print-color-adjust:exact; }
+    .cl-ob-row td { background:#f0fdf4 !important; -webkit-print-color-adjust:exact; }
+}
 @media(prefers-color-scheme:dark){
     .rpt-filter-bar{border-color:#334155}
     .rpt-stat-card{background:#1e293b;border-color:#334155}
@@ -110,6 +116,10 @@ $this->load->view('common/transactions/header'); ?>
                                 <button class="btn btn-primary" id="clApplyBtn">
                                     <i class="bx bx-search me-1"></i>Apply
                                 </button>
+                            </div>
+                            <div class="rpt-filter-group">
+                                <div class="rpt-filter-label">&nbsp;</div>
+                                <?php $this->load->view('common/partials/export_btn'); ?>
                             </div>
                         </div>
                     </div>

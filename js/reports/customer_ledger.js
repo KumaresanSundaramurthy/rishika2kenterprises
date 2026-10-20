@@ -62,6 +62,9 @@
      * @returns {void}
      */
     function _render(rows, opening) {
+        _lastRows    = rows    || [];
+        _lastOpening = opening || { debit: 0, credit: 0 };
+
         var tbody  = document.getElementById('clTableBody');
         var tfoot  = document.getElementById('clTableFoot');
         var footer = document.getElementById('clTblFooter');
@@ -264,14 +267,128 @@
         });
     }
 
+    /* ── Export helpers ──────────────────────────────────────────────────── */
+
+    var _lastRows    = [];
+    var _lastOpening = { debit: 0, credit: 0 };
+    var _lastFrom    = '';
+    var _lastTo      = '';
+    var _lastName    = '';
+
+    /**
+     * Builds a CSV string from the current ledger data.
+     * @returns {string}
+     */
+    function _buildCsv() {
+        var sym  = _sym + ' ';
+        var rows = [['#', 'Date', 'Type', 'Ref No', 'Debit', 'Credit', 'Balance']];
+
+        var obDebit  = parseFloat(_lastOpening.debit  || 0);
+        var obCredit = parseFloat(_lastOpening.credit || 0);
+        var runBal   = obDebit - obCredit;
+        var rowNum   = 0;
+
+        if (obDebit > 0.005 || obCredit > 0.005) {
+            rowNum++;
+            rows.push([
+                rowNum,
+                '—',
+                'Opening Balance',
+                'Opening Balance',
+                obDebit  > 0.005 ? sym + obDebit.toFixed(_dec)  : '',
+                obCredit > 0.005 ? sym + obCredit.toFixed(_dec) : '',
+                sym + Math.abs(runBal).toFixed(_dec) + (runBal < 0 ? ' Cr' : ' Dr'),
+            ]);
+        }
+
+        (_lastRows || []).forEach(function (r) {
+            rowNum++;
+            var dr = parseFloat(r.Debit  || 0);
+            var cr = parseFloat(r.Credit || 0);
+            runBal += dr - cr;
+            rows.push([
+                rowNum,
+                _fmtDate(r.TxDate),
+                r.TxType || '',
+                r.RefNo  || '',
+                dr > 0.005 ? sym + dr.toFixed(_dec) : '',
+                cr > 0.005 ? sym + cr.toFixed(_dec) : '',
+                sym + Math.abs(runBal).toFixed(_dec) + (runBal < 0 ? ' Cr' : ' Dr'),
+            ]);
+        });
+
+        return rows.map(function (row) {
+            return row.map(function (cell) {
+                return '"' + String(cell).replace(/"/g, '""') + '"';
+            }).join(',');
+        }).join('\n');
+    }
+
+    /**
+     * Triggers a file download in the browser.
+     * @param {string} content
+     * @param {string} filename
+     * @param {string} mimeType
+     * @returns {void}
+     */
+    function _downloadFile(content, filename, mimeType) {
+        var blob = new Blob([content], { type: mimeType });
+        var url  = URL.createObjectURL(blob);
+        var a    = document.createElement('a');
+        a.href     = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    /**
+     * Handles export button clicks (Print / CSV / Excel / PDF).
+     * @param {string} format
+     * @returns {void}
+     */
+    function _handleExport(format) {
+        if (_customerUID <= 0) {
+            showToastError('Please select a customer and apply filters first.');
+            return;
+        }
+
+        var safeName = (_lastName || 'customer').replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        var suffix   = (_lastFrom || '') + ((_lastTo && _lastTo !== _lastFrom) ? '_to_' + _lastTo : '');
+        var filename  = 'ledger_' + safeName + (suffix ? '_' + suffix : '');
+
+        if (format === 'print' || format === 'pdf') {
+            window.print();
+            return;
+        }
+
+        var csv = _buildCsv();
+
+        if (format === 'csv') {
+            _downloadFile(csv, filename + '.csv', 'text/csv;charset=utf-8;');
+        } else if (format === 'excel') {
+            _downloadFile(csv, filename + '.xlsx', 'application/vnd.ms-excel');
+        }
+    }
+
     /**
      * @returns {void}
      */
     function _init() {
         _initDatePickers();
         _initSelect2();
-        document.getElementById('clApplyBtn').addEventListener('click', function () {
+
+        $('#clApplyBtn').on('click', function () {
+            _lastFrom = $('#clFrom').val() || '';
+            _lastTo   = $('#clTo').val()   || '';
+            var sel   = $('#clCustomer').select2('data');
+            _lastName = (sel && sel.length && sel[0].text) ? sel[0].text : '';
             _fetch();
+        });
+
+        $(document).on('click', '.r2k-export-btn[data-format]', function () {
+            _handleExport($(this).data('format'));
         });
     }
 

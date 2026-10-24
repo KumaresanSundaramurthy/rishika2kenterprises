@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 $this->load->view('common/transactions/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -271,7 +271,7 @@ $this->load->view('common/transactions/header'); ?>
                                         <div id="transAttachLabel" style="font-size:.78rem;font-weight:600;color:#6b7280;">Drag &amp; drop files here</div>
                                     </div>
                                 </div>
-                                <span id="transAttachHint" style="font-size:.72rem;color:#9ca3af;"></span>
+                                <span id="transAttachHint" style="font-size:var(--r2k-text-sm);color:#9ca3af;"></span>
                                 <div id="transAttachList" class="prod-attach-list mt-2" style="display:none;"></div>
                                 <input type="file" id="transAttachInput" multiple style="display:none;">
                                 <input type="hidden" id="RemovedAttachIDs" name="RemovedAttachIDs" value="">
@@ -426,7 +426,7 @@ $this->load->view('common/transactions/payment_modal');
                     </div>
                     <div>
                         <div class="fw-semibold" id="incDetailNum" style="font-size:1rem;color:#111;letter-spacing:.2px;"></div>
-                        <div style="font-size:.72rem;color:#6b7280;" id="incDetailDate"></div>
+                        <div style="font-size:var(--r2k-text-sm);color:#6b7280;" id="incDetailDate"></div>
                     </div>
                     <span class="trans-badge ms-1" id="incDetailBadge"></span>
                 </div>
@@ -799,7 +799,7 @@ $(function () {
                         html += '  <div style="min-width:0;">';
                         html += '    <div style="font-size:.83rem;font-weight:600;color:#059669;">' + incCurSymbol + ' ' + amt + '</div>';
                         html += '    <div style="font-size:.75rem;color:#566a7f;">' + (p.PaymentTypeName || '—') + '</div>';
-                        if (date) html += '  <div style="font-size:.72rem;color:#aaa;margin-top:1px;">' + date + '</div>';
+                        if (date) html += '  <div style="font-size:var(--r2k-text-sm);color:#aaa;margin-top:1px;">' + date + '</div>';
                         html += '  </div>';
                         html += '</div>';
                     });

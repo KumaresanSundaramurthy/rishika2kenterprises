@@ -81,7 +81,7 @@ Class Globalservice {
                 echo '</ul>';
                 echo '</li>';
             } else {
-                $urlPath = '/' . ltrim($subMenu->UrlPath ?? $subMenu->ControllerName, '/');
+                $urlPath = site_url(ltrim($subMenu->UrlPath ?? $subMenu->ControllerName, '/'));
                 if ($currentUrlPath !== null) {
                     $itemPath = strtolower(ltrim($subMenu->UrlPath ?? $subMenu->ControllerName, '/'));
                     $isActive = ($itemPath === strtolower(ltrim($currentUrlPath, '/')));
@@ -89,7 +89,7 @@ Class Globalservice {
                     $isActive = (strtolower($ControllerName) == strtolower($subMenu->ControllerName));
                 }
                 $activeClass = $isActive ? 'active' : '';
-                $href = $isActive ? 'javascript: void(0);' : htmlspecialchars($urlPath);
+                $href = $isActive ? 'javascript: void(0);' : $urlPath;
                 echo '<li class="menu-item ' . $activeClass . '">';
                 echo '<a href="' . $href . '" class="menu-link">';
                 echo $iconHtml;
@@ -122,20 +122,40 @@ Class Globalservice {
         return false;
     }
 
-    public function buildPagePaginationHtml($pageUrl, $totalCount, $pageNo, $limit) {
+    public function buildPagePaginationHtml($pageUrl, $totalCount, $pageNo, $limit): string {
 
-        $config['base_url']        = $pageUrl;
-        $config['first_url']       = rtrim($pageUrl, '/') . '/1';
-        $config['use_page_numbers'] = TRUE;
-        $config['total_rows']      = $totalCount;
-        $config['per_page']        = $limit;
-        $config['cur_page']        = (int) $pageNo;
-        $config['result_count']    = pageResultCount($pageNo, $limit, $totalCount);
+        if ($totalCount <= 0 || $limit <= 0) return '';
 
-        $this->CI->load->library('pagination');
-        $this->CI->pagination->initialize($config);
+        $totalPages = (int) ceil($totalCount / $limit);
+        $pageNo     = max(1, min((int) $pageNo, $totalPages));
+        $base       = rtrim($pageUrl, '/');
 
-        return $this->CI->pagination->create_links();
+        /* page window: up to 3 numbers centred on current page */
+        $winStart = max(1, $pageNo - 1);
+        $winEnd   = min($totalPages, $winStart + 2);
+        $winStart = max(1, $winEnd - 2);
+
+        $btn = function (string $label, int $page, bool $active, bool $disabled, bool $arrow) use ($base): string {
+            $cls  = 'r2k-pag-btn';
+            if ($arrow)   $cls .= ' r2k-pag-arrow';
+            if ($active)  $cls .= ' active';
+            if ($disabled) $cls .= ' disabled';
+            $attr = ' data-ci-pagination-page="' . $page . '" data-page="' . $page . '"';
+            return '<a class="' . $cls . '" href="javascript:void(0);"' . $attr . '>' . $label . '</a>';
+        };
+
+        $html  = '<span class="r2k-pag-info">' . pageResultCount($pageNo, $limit, $totalCount) . '</span>';
+        $html .= '<nav class="r2k-pag-nav">';
+        $html .= $btn('&laquo;', 1,          false, $pageNo <= 1,          true);
+        $html .= $btn('&lsaquo;', max(1, $pageNo - 1), false, $pageNo <= 1, true);
+        for ($p = $winStart; $p <= $winEnd; $p++) {
+            $html .= $btn((string) $p, $p, $p === $pageNo, false, false);
+        }
+        $html .= $btn('&rsaquo;', min($totalPages, $pageNo + 1), false, $pageNo >= $totalPages, true);
+        $html .= $btn('&raquo;', $totalPages, false, $pageNo >= $totalPages, true);
+        $html .= '</nav>';
+
+        return $html;
 
         // if ($totalCount <= 0 || $limit <= 0) return '';
         // $totalPages = (int) ceil($totalCount / $limit);

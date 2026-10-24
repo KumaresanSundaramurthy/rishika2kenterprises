@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php $this->load->view('common/header'); ?>
 
@@ -188,7 +188,7 @@
 }
 .cm-val-pre.expanded { max-height: none; }
 .cm-expand-btn {
-    font-size: .72rem;
+    font-size:var(--r2k-text-sm);
     cursor: pointer;
     color: #6366f1;
     border: none;

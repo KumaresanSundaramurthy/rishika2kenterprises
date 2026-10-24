@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 
 $_from    = $this->pageData['_srrInitFrom'] ?? date('Y-01-01');
 $_to      = $this->pageData['_srrInitTo']   ?? date('Y-m-d');
@@ -8,7 +8,7 @@ $this->load->view('common/transactions/header'); ?>
 <style>
 .rpt-filter-bar{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;padding:14px 16px;border-bottom:1px solid #e2e8f0}
 .rpt-filter-group{display:flex;flex-direction:column;gap:4px}
-.rpt-filter-label{font-size:.72rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.03em}
+.rpt-filter-label{font-size:var(--r2k-text-sm);font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.03em}
 .rpt-filter-date{width:150px}
 .rpt-stat-card{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;display:flex;align-items:center;gap:12px;transition:box-shadow .15s}
 .rpt-stat-card:hover{box-shadow:0 2px 12px rgba(0,0,0,.07)}
@@ -19,7 +19,7 @@ $this->load->view('common/transactions/header'); ?>
 .rpt-icon-yellow{background:#fef9c3}.rpt-icon-yellow i{color:#ca8a04}
 .rpt-icon-purple{background:#ede9fe}.rpt-icon-purple i{color:#7c3aed}
 .rpt-stat-body{flex:1;min-width:0}
-.rpt-stat-label{font-size:.72rem;color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.03em}
+.rpt-stat-label{font-size:var(--r2k-text-sm);color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.03em}
 .rpt-stat-val{font-size:1.05rem;font-weight:700;color:#1e293b;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rpt-table-wrap{overflow-x:auto}
 .rpt-table{width:100%;border-collapse:collapse;font-size:.82rem}
@@ -42,7 +42,7 @@ $this->load->view('common/transactions/header'); ?>
 .rpt-footer-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:8px;font-size:.78rem;font-weight:600}
 .rpt-footer-chip-red{background:#fee2e2;color:#991b1b}
 .rpt-footer-chip-yellow{background:#fef9c3;color:#854d0e}
-.reg-status{display:inline-block;padding:1px 8px;border-radius:5px;font-size:.72rem;font-weight:600}
+.reg-status{display:inline-block;padding:1px 8px;border-radius:5px;font-size:var(--r2k-text-sm);font-weight:600}
 .reg-status-issued{background:#dcfce7;color:#15803d}
 .reg-status-paid{background:#dbeafe;color:#1d4ed8}
 .reg-status-other{background:#f1f5f9;color:#475569}

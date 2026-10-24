@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <!-- Remove from Cart confirmation modal — populated by transactions.js -->
 <div class="modal fade" id="removeCartModal" tabindex="-1" aria-hidden="true">
@@ -41,7 +41,7 @@
 
                 <!-- Net Amount highlight -->
                 <div style="background:#fff7ed;border-left:3px solid #fb923c;border-radius:0 8px 8px 0;padding:10px 14px;margin-bottom:20px;">
-                    <div style="font-size:.68rem;color:#9a3412;font-weight:600;text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px;">Net Amount</div>
+                    <div style="font-size:var(--r2k-text-xs);color:#9a3412;font-weight:600;text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px;">Net Amount</div>
                     <div id="rcm-net" style="font-weight:800;font-size:1.15rem;color:#dc2626;"></div>
                 </div>
 

@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 $cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? 'â‚¹');
 $this->load->view('common/header'); ?>
 
@@ -79,7 +79,7 @@ $this->load->view('common/header'); ?>
                                     <div>
                                         <div class="text-muted" style="font-size:.75rem;">Income Variance</div>
                                         <div class="fw-bold" style="font-size:1rem;" id="cmpSumIncVar">—</div>
-                                        <div class="text-muted" style="font-size:.72rem;" id="cmpSumIncPct">—</div>
+                                        <div class="text-muted" style="font-size:var(--r2k-text-sm);" id="cmpSumIncPct">—</div>
                                     </div>
                                 </div>
                             </div>
@@ -91,7 +91,7 @@ $this->load->view('common/header'); ?>
                                     <div>
                                         <div class="text-muted" style="font-size:.75rem;">Expense Variance</div>
                                         <div class="fw-bold" style="font-size:1rem;" id="cmpSumExpVar">—</div>
-                                        <div class="text-muted" style="font-size:.72rem;" id="cmpSumExpPct">—</div>
+                                        <div class="text-muted" style="font-size:var(--r2k-text-sm);" id="cmpSumExpPct">—</div>
                                     </div>
                                 </div>
                             </div>
@@ -103,7 +103,7 @@ $this->load->view('common/header'); ?>
                                     <div>
                                         <div class="text-muted" style="font-size:.75rem;">Period 1 Net</div>
                                         <div class="fw-bold" style="font-size:1rem;" id="cmpSumNet1">—</div>
-                                        <div class="text-muted" style="font-size:.72rem;">P2: <span id="cmpSumNet2">—</span></div>
+                                        <div class="text-muted" style="font-size:var(--r2k-text-sm);">P2: <span id="cmpSumNet2">—</span></div>
                                     </div>
                                 </div>
                             </div>
@@ -115,7 +115,7 @@ $this->load->view('common/header'); ?>
                                     <div>
                                         <div class="text-muted" style="font-size:.75rem;">Net Variance</div>
                                         <div class="fw-bold" style="font-size:1rem;" id="cmpSumNetVar">—</div>
-                                        <div class="text-muted" style="font-size:.72rem;" id="cmpSumNetPct">—</div>
+                                        <div class="text-muted" style="font-size:var(--r2k-text-sm);" id="cmpSumNetPct">—</div>
                                     </div>
                                 </div>
                             </div>

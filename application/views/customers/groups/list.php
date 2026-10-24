@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php
 $currency = $JwtData->GenSettings->CurrenySymbol ?? '₹';
@@ -39,7 +39,7 @@ if (!empty($DataLists)):
             </div>
             <?php if ($list->PrimaryName): ?>
             <div class="text-muted" style="font-size:.74rem;">
-                <i class="bx bx-star" style="color:#f59e0b;font-size:.72rem;"></i> <?php echo $primary; ?>
+                <i class="bx bx-star" style="color:#f59e0b;font-size:var(--r2k-text-sm);"></i> <?php echo $primary; ?>
             </div>
             <?php endif; ?>
         </td>
@@ -49,7 +49,7 @@ if (!empty($DataLists)):
             <?php else: ?><span class="text-muted">—</span><?php endif; ?>
         </td>
         <td>
-            <span class="badge" style="background:<?php echo $tc['bg']; ?>;color:<?php echo $tc['c']; ?>;font-size:.72rem;font-weight:600;"><?php echo $groupType; ?></span>
+            <span class="badge" style="background:<?php echo $tc['bg']; ?>;color:<?php echo $tc['c']; ?>;font-size:var(--r2k-text-sm);font-weight:600;"><?php echo $groupType; ?></span>
         </td>
         <td class="text-center">
             <span class="badge bg-label-primary" style="font-size:.78rem;"><?php echo $members; ?></span>
@@ -72,7 +72,7 @@ if (!empty($DataLists)):
         </td>
         <td>
             <div class="dropdown d-inline-block">
-                <span class="badge <?php echo $isActive ? 'bg-label-success' : 'bg-label-danger'; ?> cursor-pointer" style="font-size:.68rem;" data-bs-toggle="dropdown">
+                <span class="badge <?php echo $isActive ? 'bg-label-success' : 'bg-label-danger'; ?> cursor-pointer" style="font-size:var(--r2k-text-xs);" data-bs-toggle="dropdown">
                     <?php echo $isActive ? 'Active' : 'Inactive'; ?> <i class="bx bx-chevron-down" style="font-size:.65rem;"></i>
                 </span>
                 <ul class="dropdown-menu shadow-sm" style="min-width:150px;font-size:.82rem;">

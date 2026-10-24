@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var array $Rows */   $Rows    = $Rows    ?? [];
 /** @var array $Totals */ $Totals  = $Totals  ?? [];
 $cur     = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
@@ -122,7 +122,7 @@ function _apFmt(float $n, string $cur): string {
 
     <?php endif; ?>
 
-    <div class="text-muted mt-2" style="font-size:.72rem;">
+    <div class="text-muted mt-2" style="font-size:var(--r2k-text-sm);">
         Aging is based on FIFO matching of payments against oldest bills.
         Opening balances are treated as pre-period (90+ band).
     </div>

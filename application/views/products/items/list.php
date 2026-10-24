@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php
 $hideType = $HideType ?? false;
@@ -135,7 +135,7 @@ if (!empty($DataLists)) {
             <!-- Status -->
             <td>
                 <div class="dropdown d-inline-block">
-                    <span class="badge <?php echo $row->IsActive == 1 ? 'bg-label-success' : 'bg-label-danger'; ?> cursor-pointer" style="font-size:.68rem;" data-bs-toggle="dropdown">
+                    <span class="badge <?php echo $row->IsActive == 1 ? 'bg-label-success' : 'bg-label-danger'; ?> cursor-pointer" style="font-size:var(--r2k-text-xs);" data-bs-toggle="dropdown">
                         <?php echo $row->IsActive == 1 ? 'Active' : 'In-Active'; ?>
                         <i class="bx bx-chevron-down" style="font-size:.65rem;"></i>
                     </span>
@@ -240,7 +240,7 @@ if (!empty($DataLists)) {
                         <ul class="dropdown-menu dropdown-menu-end r2k-action-menu">
 
                             <?php if (!$row->IsComposite && !empty($row->PartNumber)): ?>
-                            <li><span class="dropdown-header text-uppercase" style="font-size:.68rem;letter-spacing:.4px;color:#adb5bd;padding:4px 12px 2px;">Print Label</span></li>
+                            <li><span class="dropdown-header text-uppercase" style="font-size:var(--r2k-text-xs);letter-spacing:.4px;color:#adb5bd;padding:4px 12px 2px;">Print Label</span></li>
                             <li>
                                 <button class="dropdown-item BarcodeOnlyBtn" <?php echo $bcAttrs; ?>>
                                     <i class="bx bx-barcode me-2 text-primary"></i>Print Barcode

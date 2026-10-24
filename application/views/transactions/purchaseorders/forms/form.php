@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php
 $isEdit      = isset($POData);
 $isDraftEdit = $isEdit && ($POData->DocStatus === 'Draft');
@@ -100,7 +100,7 @@ $editPrefixSeg    = $_prefix['seg'];
                                     <?php else: ?>
                                         <div class="d-flex align-items-center justify-content-between mb-2">
                                             <label for="vendorSearch" class="trans-field-label mb-0">Vendor <span class="text-danger">*</span></label>
-                                            <button type="button" id="addTransVendor" class="trans-add-btn btn btn-outline-primary btn-sm" style="font-size:.72rem;white-space:nowrap;" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_create_vendor', 'Create Vendor'); ?>"><i class="bx bx-plus-circle me-1"></i><?php echo t('btn_add_vendor', 'Add Vendor'); ?></button>
+                                            <button type="button" id="addTransVendor" class="trans-add-btn btn btn-outline-primary btn-sm" style="font-size:var(--r2k-text-sm);white-space:nowrap;" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_create_vendor', 'Create Vendor'); ?>"><i class="bx bx-plus-circle me-1"></i><?php echo t('btn_add_vendor', 'Add Vendor'); ?></button>
                                         </div>
                                         <select id="vendorSearch" name="vendorSearch" class="form-select form-select-sm"></select>
                                     <?php endif; ?>

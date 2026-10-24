@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var object $Ratios */ $Ratios = $Ratios ?? (object)[];
 $cur     = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
 $dateFmt = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
@@ -65,7 +65,7 @@ function _ratioBadge(?float $v, float $good, float $warn, bool $higherIsBetter =
                         <div class="card-body p-3 d-flex align-items-center gap-2">
                             <i class="bx <?php echo $item['icon']; ?> fs-3" style="color:<?php echo $item['col']; ?>;"></i>
                             <div>
-                                <div class="text-muted" style="font-size:.72rem;"><?php echo $item['label']; ?></div>
+                                <div class="text-muted" style="font-size:var(--r2k-text-sm);"><?php echo $item['label']; ?></div>
                                 <div class="fw-bold" style="font-size:.9rem;color:<?php echo $item['col']; ?>;"><?php echo $item['val']; ?></div>
                             </div>
                         </div>

@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var array       $Lines */
 /** @var object      $Ledger */
 /** @var float       $OpeningBalance */
@@ -39,7 +39,7 @@ function _glFmt(mixed $n, string $cur): string {
             <td class="text-end">—</td>
             <td class="text-end fw-semibold" style="color:#7c3aed;">
                 <?php echo _glFmt($OpeningBalance, $cur); ?>
-                <div style="font-size:.68rem;color:#8b8bcc;"><?php echo htmlspecialchars($OpeningBalanceType); ?></div>
+                <div style="font-size:var(--r2k-text-xs);color:#8b8bcc;"><?php echo htmlspecialchars($OpeningBalanceType); ?></div>
             </td>
         </tr>
 
@@ -66,7 +66,7 @@ function _glFmt(mixed $n, string $cur): string {
             <td>
                 <div><?php echo htmlspecialchars($ln->Particulars ?? $ln->Narration ?? ''); ?></div>
                 <?php if (!empty($ln->Narration) && $ln->Narration !== $ln->Particulars): ?>
-                <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars($ln->Narration); ?></div>
+                <div class="text-muted" style="font-size:var(--r2k-text-sm);"><?php echo htmlspecialchars($ln->Narration); ?></div>
                 <?php endif; ?>
             </td>
             <td class="text-end text-success fw-semibold">
@@ -77,7 +77,7 @@ function _glFmt(mixed $n, string $cur): string {
             </td>
             <td class="text-end fw-semibold <?php echo $balClass; ?>">
                 <?php echo _glFmt($ln->RunningBalance, $cur); ?>
-                <div style="font-size:.68rem;font-weight:400;opacity:.75;"><?php echo htmlspecialchars($ln->RunningBalanceType ?? ''); ?></div>
+                <div style="font-size:var(--r2k-text-xs);font-weight:400;opacity:.75;"><?php echo htmlspecialchars($ln->RunningBalanceType ?? ''); ?></div>
             </td>
         </tr>
         <?php endforeach; ?>
@@ -90,7 +90,7 @@ function _glFmt(mixed $n, string $cur): string {
             <td class="text-end text-danger"><?php echo _glFmt($TotalCredit, $cur); ?></td>
             <td class="text-end" style="color:#7c3aed;">
                 <?php echo _glFmt($ClosingBalance, $cur); ?>
-                <div style="font-size:.68rem;font-weight:400;color:#8b8bcc;"><?php echo htmlspecialchars($ClosingBalanceType); ?></div>
+                <div style="font-size:var(--r2k-text-xs);font-weight:400;color:#8b8bcc;"><?php echo htmlspecialchars($ClosingBalanceType); ?></div>
             </td>
         </tr>
     </tbody>

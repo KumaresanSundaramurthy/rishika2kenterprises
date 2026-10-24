@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 
 $_listFmt = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
 $this->load->view('common/transactions/header'); ?>
@@ -13,7 +13,7 @@ $this->load->view('common/transactions/header'); ?>
 .rpt-icon-yellow{background:#fef9c3}.rpt-icon-yellow i{color:#ca8a04}
 .rpt-icon-purple{background:#ede9fe}.rpt-icon-purple i{color:#7c3aed}
 .rpt-stat-body{flex:1;min-width:0}
-.rpt-stat-label{font-size:.72rem;color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.03em}
+.rpt-stat-label{font-size:var(--r2k-text-sm);color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.03em}
 .rpt-stat-val{font-size:1.05rem;font-weight:700;color:#1e293b;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rpt-table-wrap{overflow-x:auto}
 .rpt-table{width:100%;border-collapse:collapse;font-size:.82rem}
@@ -41,7 +41,7 @@ $this->load->view('common/transactions/header'); ?>
 .ls-bar-ok{background:#16a34a}
 .ls-bar-low{background:#ea580c}
 .ls-bar-zero{background:#dc2626}
-.ls-severity-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:6px;font-size:.72rem;font-weight:600}
+.ls-severity-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:6px;font-size:var(--r2k-text-sm);font-weight:600}
 .ls-sev-out{background:#fee2e2;color:#991b1b}
 .ls-sev-critical{background:#ffedd5;color:#9a3412}
 .ls-sev-low{background:#fef9c3;color:#854d0e}

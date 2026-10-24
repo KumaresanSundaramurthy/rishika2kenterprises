@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 /**
  * Customer Profile Modal — Transactions Tab
  *
@@ -67,7 +67,7 @@ $statusColors = [
                     <?php if (!empty($rows)): ?>
                         <span class="badge bg-label-primary ms-2"><?php echo count($rows); ?></span>
                     <?php endif; ?>
-                    <span class="ms-auto me-2 text-muted fw-normal" style="font-size:.72rem;">
+                    <span class="ms-auto me-2 text-muted fw-normal" style="font-size:var(--r2k-text-sm);">
                         <?php echo empty($rows) ? 'No records' : 'Recent ' . count($rows); ?>
                     </span>
                 </button>

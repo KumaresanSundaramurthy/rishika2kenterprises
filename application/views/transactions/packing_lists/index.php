@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 $this->load->view('common/transactions/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -97,7 +97,7 @@ $this->load->view('common/transactions/header'); ?>
                                         </td>
 
                                         <td>
-                                            <span class="badge <?php echo $srcBadge; ?>" style="font-size:.68rem;">
+                                            <span class="badge <?php echo $srcBadge; ?>" style="font-size:var(--r2k-text-xs);">
                                                 <?php echo $srcLabel; ?>
                                             </span>
                                             <span class="ms-1" style="font-size:.82rem;">

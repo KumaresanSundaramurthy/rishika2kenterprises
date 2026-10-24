@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <!-- Product Search Modal — included via common_form.php — available on all transaction pages -->
 <div class="modal fade" id="productSearchModal" tabindex="-1" aria-hidden="true">
@@ -102,7 +102,7 @@
     background: #eafff4;
     color: #28c76f;
     border-radius: 50%;
-    font-size: .72rem;
+    font-size:var(--r2k-text-sm);
     font-weight: 700;
 }
 .prod-name         { font-size: .88rem; font-weight: 600; color: #566a7f; }

@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -92,7 +92,7 @@
     background: rgba(105, 108, 255, 0.12);
     border: 1px solid rgba(105, 108, 255, 0.25);
     color: rgba(140, 143, 255, 1);
-    font-size: 0.72rem;
+    font-size:var(--r2k-text-sm);
     font-weight: 700;
     letter-spacing: 0.1em;
     text-transform: uppercase;
@@ -253,7 +253,7 @@
 }
 .sub-plan-price.free-price { color: #4ade80; font-size: 1.15rem; }
 .sub-plan-duration {
-    font-size: 0.72rem;
+    font-size:var(--r2k-text-sm);
     color: rgba(160, 190, 215, 0.4);
     margin-top: 0.2rem;
 }
@@ -268,7 +268,7 @@
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
-    font-size: 0.72rem;
+    font-size:var(--r2k-text-sm);
     color: rgba(160, 190, 215, 0.55);
     letter-spacing: 0.02em;
 }

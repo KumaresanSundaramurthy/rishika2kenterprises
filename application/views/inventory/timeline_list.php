@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php
 $currency = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
 
@@ -59,23 +59,23 @@ if (!empty($DataLists)):
 
     <!-- Item — same style as inventory list -->
     <td>
-        <div class="fw-semibold" style="font-size:.85rem;"><?php echo htmlspecialchars($row->ItemName); ?></div>
+        <div class="fw-semibold"><?php echo htmlspecialchars($row->ItemName); ?></div>
         <?php if (!empty($row->SnapItemName) && $row->SnapItemName !== $row->ItemName): ?>
-        <div class="text-muted" style="font-size:.68rem;">
+        <div class="text-muted" style="font-size:var(--r2k-text-xs);">
             <i class="bx bx-history me-1" style="color:#94a3b8;"></i>At movement: <?php echo htmlspecialchars($row->SnapItemName); ?>
         </div>
         <?php endif; ?>
         <?php if (!empty($row->PartNumber)): ?>
         <div class="text-muted" style="font-size:.7rem;">Part# <?php echo htmlspecialchars($row->PartNumber); ?></div>
         <?php endif; ?>
-        <div class="d-flex align-items-center flex-wrap gap-1 mt-1" style="font-size:.72rem;">
+        <div class="d-flex align-items-center flex-wrap gap-1 mt-1" style="font-size:var(--r2k-text-sm);">
             <?php if (($row->ProductType ?? '') === 'Service'): ?>
                 <span class="badge bg-label-info" style="font-size:.65rem;">Service</span>
             <?php else: ?>
                 <span class="badge bg-label-primary" style="font-size:.65rem;">Product</span>
             <?php endif; ?>
             <?php if (!empty($row->HSNSACCode)): ?>
-                <span class="text-muted" style="font-size:.68rem;"><strong>HSN:</strong> <?php echo htmlspecialchars($row->HSNSACCode); ?></span>
+                <span class="text-muted" style="font-size:var(--r2k-text-xs);"><strong>HSN:</strong> <?php echo htmlspecialchars($row->HSNSACCode); ?></span>
             <?php endif; ?>
             <?php if (!empty($row->PartNumber)): ?>
                 <span title="Barcode — <?php echo htmlspecialchars($row->PartNumber); ?>" style="cursor:default;line-height:1;">
@@ -89,7 +89,7 @@ if (!empty($DataLists)):
                 $descPlain = strip_tags($row->Description);
                 $descTip   = htmlspecialchars(mb_strimwidth($descPlain, 0, 160, '…')); ?>
                 <i class="bx bx-info-circle text-warning"
-                   style="font-size:.95rem;cursor:pointer;vertical-align:middle;"
+                   style="cursor:pointer;vertical-align:middle;"
                    data-bs-toggle="tooltip" data-bs-placement="top"
                    data-bs-title="<?php echo $descTip; ?>"
                    title="<?php echo $descTip; ?>"></i>
@@ -100,7 +100,7 @@ if (!empty($DataLists)):
     <!-- Stock In -->
     <td style="text-align:right;">
         <?php if ($isIN): ?>
-        <span class="fw-bold" style="color:#16a34a;font-size:.92rem;"><?php echo smartDecimal($qty); ?></span>
+        <span class="fw-bold" style="color:#16a34a;"><?php echo smartDecimal($qty); ?></span>
         <span style="font-size:.78rem;color:#6c757d;margin-left:3px;"><?php echo htmlspecialchars($row->UnitName ?? 'PCS'); ?></span>
         <?php else: ?>
         <span class="text-muted">—</span>
@@ -110,7 +110,7 @@ if (!empty($DataLists)):
     <!-- Stock Out -->
     <td style="text-align:right;">
         <?php if (!$isIN): ?>
-        <span class="fw-bold" style="color:#dc2626;font-size:.92rem;"><?php echo smartDecimal($qty); ?></span>
+        <span class="fw-bold" style="color:#dc2626;"><?php echo smartDecimal($qty); ?></span>
         <span style="font-size:.78rem;color:#6c757d;margin-left:3px;"><?php echo htmlspecialchars($row->UnitName ?? 'PCS'); ?></span>
         <?php else: ?>
         <span class="text-muted">—</span>
@@ -118,8 +118,8 @@ if (!empty($DataLists)):
     </td>
 
     <!-- Price -->
-    <td style="text-align:right;font-size:.85rem;font-weight:600;">
-        <?php echo $cost > 0 ? ($currency . ' ' . smartDecimal($cost)) : '<span class="text-muted" style="font-weight:400;">—</span>'; ?>
+    <td style="text-align:right;font-weight:600;">
+        <?php echo $cost > 0 ? ($currency . ' ' . smartDecimal($cost, 2)) : '<span class="text-muted" style="font-weight:400;">—</span>'; ?>
     </td>
 
     <!-- Source: click opens viewTransModal; Manual Adj. shown as plain text -->
@@ -133,18 +133,18 @@ if (!empty($DataLists)):
            data-number="<?php echo htmlspecialchars($refNum); ?>"
            data-date="<?php echo $transDate; ?>"
            data-status="<?php echo $docStatus; ?>"
-           style="font-weight:600;font-size:.82rem;color:<?php echo $modMeta['color']; ?>;text-decoration:none;"
+           style="font-weight:600;color:<?php echo $modMeta['color']; ?>;text-decoration:none;"
            title="Click to view details"
            onmouseover="this.style.textDecoration='underline'"
            onmouseout="this.style.textDecoration='none'">
             <?php echo htmlspecialchars($refNum); ?>
         </a>
         <?php elseif ($refNum): ?>
-        <div style="font-weight:600;font-size:.82rem;color:<?php echo $modMeta['color']; ?>;"><?php echo htmlspecialchars($refNum); ?></div>
+        <div style="font-weight:600;color:<?php echo $modMeta['color']; ?>;"><?php echo htmlspecialchars($refNum); ?></div>
         <?php else: ?>
-        <div style="font-weight:600;font-size:.82rem;color:<?php echo $modMeta['color']; ?>;"><?php echo $modMeta['label']; ?></div>
+        <div style="font-weight:600;color:<?php echo $modMeta['color']; ?>;"><?php echo $modMeta['label']; ?></div>
         <?php endif; ?>
-        <div style="font-size:.72rem;color:#6c757d;"><?php echo $modMeta['label']; ?></div>
+        <div style="font-size:var(--r2k-text-sm);color:#6c757d;"><?php echo $modMeta['label']; ?></div>
     </td>
 
     <!-- Category -->
@@ -159,16 +159,16 @@ if (!empty($DataLists)):
     <!-- Remarks -->
     <td style="max-width:160px;">
         <?php if ($remarks): ?>
-        <div style="font-size:.8rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+        <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
              title="<?php echo htmlspecialchars($row->Remarks ?? ''); ?>"><?php echo $remarks; ?></div>
         <?php else: ?>
-        <span class="text-muted" style="font-size:.8rem;">—</span>
+        <span class="text-muted">—</span>
         <?php endif; ?>
     </td>
 
     <!-- Date / Updated By -->
     <td>
-        <div style="font-size:.82rem;"><?php echo $effDate; ?></div>
+        <div><?php echo $effDate; ?></div>
         <?php if ($byName): ?>
         <div style="font-size:.7rem;color:#6c757d;">by <?php echo htmlspecialchars($byName); ?></div>
         <?php endif; ?>
@@ -198,7 +198,7 @@ else:
         <div class="d-flex flex-column align-items-center py-5">
             <img src="/assets/img/elements/no-record-found.png" alt="No Records"
                  class="img-fluid mb-3" style="max-height:150px;object-fit:contain;">
-            <span class="text-muted" style="font-size:.9rem;">No stock movements found for this period</span>
+            <span class="text-muted">No stock movements found for this period</span>
         </div>
     </td>
 </tr>

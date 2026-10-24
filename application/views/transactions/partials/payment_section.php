@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 /**
  * Payment Section Partial — Swipe-style layout
  * Variables expected:
@@ -130,7 +130,7 @@ $currSymbol       = $JwtData->GenSettings->CurrenySymbol ?? '₹';
                     </div>
                     <div>
                         <h6 class="modal-title fw-bold text-white mb-0" id="cnSelectModalLabel" style="font-size:.95rem;">Select Credit Note to Apply</h6>
-                        <div class="text-white opacity-75" style="font-size:.72rem;">Choose one credit note from the list below</div>
+                        <div class="text-white opacity-75" style="font-size:var(--r2k-text-sm);">Choose one credit note from the list below</div>
                     </div>
                 </div>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>

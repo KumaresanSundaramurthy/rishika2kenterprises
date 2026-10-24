@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php
 if (!isset($ModAllCount))  { $ModAllCount  = 0; }
 if (!isset($ModRowData))   { $ModRowData   = ''; }
@@ -676,7 +676,7 @@ $(function () {
             var iconCls  = isImg ? 'bx-image-alt text-success' : (isPdf ? 'bxs-file-pdf text-danger' : 'bx-file text-secondary');
             var ftype    = isImg ? 'img' : (isPdf ? 'pdf' : 'file');
             var encUrl   = encodeURIComponent(fullUrl);
-            var docLabel = a.DocType ? ('<span class="badge bg-label-info me-1" style="font-size:.68rem;">' + $('<span>').text(a.DocType).html() + '</span>') : '';
+            var docLabel = a.DocType ? ('<span class="badge bg-label-info me-1" style="font-size:var(--r2k-text-xs);">' + $('<span>').text(a.DocType).html() + '</span>') : '';
 
             var $item = $('<div>', {
                 'class'    : 'd-flex align-items-center gap-2 border rounded px-3 py-2 mb-2 bg-light user-attach-item',

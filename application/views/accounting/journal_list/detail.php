@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var object $Journal */
 $cur     = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
 $dateFmt = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
@@ -9,24 +9,24 @@ $totCr   = 0;
 <!-- Journal Header Info -->
 <div class="row g-3 mb-3">
     <div class="col-md-3">
-        <div class="text-muted" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.3px;">Journal #</div>
+        <div class="text-muted" style="font-size:var(--r2k-text-sm);text-transform:uppercase;letter-spacing:.3px;">Journal #</div>
         <div class="fw-semibold" style="color:#7c3aed;"><?php echo htmlspecialchars($Journal->JournalNo ?? ''); ?></div>
     </div>
     <div class="col-md-3">
-        <div class="text-muted" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.3px;">Date</div>
+        <div class="text-muted" style="font-size:var(--r2k-text-sm);text-transform:uppercase;letter-spacing:.3px;">Date</div>
         <div class="fw-semibold"><?php echo !empty($Journal->JournalDate) ? date($dateFmt, strtotime($Journal->JournalDate)) : '—'; ?></div>
     </div>
     <div class="col-md-3">
-        <div class="text-muted" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.3px;">Reference Type</div>
+        <div class="text-muted" style="font-size:var(--r2k-text-sm);text-transform:uppercase;letter-spacing:.3px;">Reference Type</div>
         <div class="fw-semibold"><?php echo htmlspecialchars($Journal->ReferenceType ?? '—'); ?></div>
     </div>
     <div class="col-md-3">
-        <div class="text-muted" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.3px;">Reference #</div>
+        <div class="text-muted" style="font-size:var(--r2k-text-sm);text-transform:uppercase;letter-spacing:.3px;">Reference #</div>
         <div class="fw-semibold"><?php echo htmlspecialchars($Journal->ReferenceNo ?? '—'); ?></div>
     </div>
     <?php if (!empty($Journal->Narration)): ?>
     <div class="col-12">
-        <div class="text-muted" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.3px;">Narration</div>
+        <div class="text-muted" style="font-size:var(--r2k-text-sm);text-transform:uppercase;letter-spacing:.3px;">Narration</div>
         <div style="font-size:.84rem;"><?php echo htmlspecialchars($Journal->Narration); ?></div>
     </div>
     <?php endif; ?>
@@ -55,7 +55,7 @@ $totCr   = 0;
             <tr>
                 <td>
                     <div class="fw-semibold"><?php echo htmlspecialchars($ln->LedgerName ?? ''); ?></div>
-                    <code style="font-size:.72rem;color:#7c3aed;"><?php echo htmlspecialchars($ln->LedgerCode ?? ''); ?></code>
+                    <code style="font-size:var(--r2k-text-sm);color:#7c3aed;"><?php echo htmlspecialchars($ln->LedgerCode ?? ''); ?></code>
                     <span class="text-muted" style="font-size:.7rem;"> · <?php echo htmlspecialchars($ln->LedgerType ?? ''); ?></span>
                 </td>
                 <td>

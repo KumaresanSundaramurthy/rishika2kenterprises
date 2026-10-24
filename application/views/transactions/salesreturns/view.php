@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 $this->load->view('common/transactions/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -211,19 +211,19 @@ $this->load->view('common/transactions/header'); ?>
                                 <div class="row g-2">
                                     <div class="col-4">
                                         <div class="p-2 rounded text-center" style="background:#f3e5f5;border:1px solid #e1bee7;">
-                                            <div class="text-muted" style="font-size:.68rem;">Invoice Total</div>
+                                            <div class="text-muted" style="font-size:var(--r2k-text-xs);">Invoice Total</div>
                                             <div class="fw-semibold" style="font-size:.82rem;" id="acInvTotal">—</div>
                                         </div>
                                     </div>
                                     <div class="col-4">
                                         <div class="p-2 rounded text-center" style="background:#e8eaf6;border:1px solid #c5cae9;">
-                                            <div class="text-muted" style="font-size:.68rem;">Paid</div>
+                                            <div class="text-muted" style="font-size:var(--r2k-text-xs);">Paid</div>
                                             <div class="fw-semibold" style="font-size:.82rem;" id="acInvPaid">—</div>
                                         </div>
                                     </div>
                                     <div class="col-4">
                                         <div class="p-2 rounded text-center" style="background:#e3f2fd;border:1px solid #bbdefb;">
-                                            <div class="text-muted" style="font-size:.68rem;">Pending</div>
+                                            <div class="text-muted" style="font-size:var(--r2k-text-xs);">Pending</div>
                                             <div class="fw-semibold" style="font-size:.82rem;color:#1565c0;" id="acInvBalance">—</div>
                                         </div>
                                     </div>

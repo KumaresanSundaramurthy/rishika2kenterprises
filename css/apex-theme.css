@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Apex Theme — R2K Enterprises
  * Global UI theme applied page-by-page. Not transaction-specific.
  */
@@ -189,7 +189,7 @@
     line-height: 1.2;
 }
 .apex-page-desc {
-    /* font-size: 0.72rem; */
+    /* font-size:var(--r2k-text-sm); */
     font-size: 0.8rem;
     color: #94a3b8;
     margin-top: 2px;
@@ -365,7 +365,7 @@
     border: 1px solid #e2e8f0;
     border-radius: 5px;
     padding: 2px 6px;
-    font-size: 0.68rem;
+    font-size:var(--r2k-text-xs);
     color: #64748b;
     font-family: inherit;
     box-shadow: 0 1px 0 #cbd5e1;
@@ -473,7 +473,7 @@
     flex-shrink: 0;
 }
 .r2k-qs-item-name {
-    font-size: 0.72rem;
+    font-size:var(--r2k-text-sm);
     font-weight: 600;
     color: #334155;
     line-height: 1.3;
@@ -690,7 +690,7 @@
     line-height: 1;
 }
 .apex-stat-amount {
-    font-size: 0.72rem;
+    font-size:var(--r2k-text-sm);
     color: #475569;
     font-weight: 500;
     white-space: nowrap;
@@ -792,7 +792,7 @@
     align-items: center;
     gap: 5px;
     padding: 5px 11px;
-    font-size: 0.8rem;
+    font-size: var(--bs-body-font-size);
     font-weight: 500;
     color: #495057;
     background: #fff;
@@ -898,7 +898,7 @@
    Tabs Row
    ══════════════════════════════════════════════════════════════════ */
 .apex-tabs-row {
-    padding: 0 16px;
+    padding: 0 0px;
     background: #fff;
     border-bottom: 1px solid #e9ecef;
     display: flex;
@@ -915,7 +915,7 @@
     padding: 3px 8px 3px 8px;
     flex-shrink: 0;
     border-radius: 20px;
-    font-size: 0.72rem;
+    font-size:var(--r2k-text-sm);
 }
 .apex-tabs-row .apex-filter-active-notice .notice-dismiss {
     cursor: pointer;
@@ -931,7 +931,7 @@
    Expected Date labels (used in list rows)
    ══════════════════════════════════════════════════════════════════ */
 .apex-ed-label {
-    font-size: 0.72rem;
+    font-size:var(--r2k-text-sm);
     font-weight: 600;
     line-height: 1.2;
     margin-top: 2px;
@@ -1005,7 +1005,7 @@
     text-overflow: ellipsis;
 }
 .apex-party-sub {
-    font-size: 0.72rem;
+    font-size:var(--r2k-text-sm);
     color: #64748b;
     line-height: 1.35;
     display: flex;
@@ -1710,6 +1710,33 @@ tr:hover .apex-party-actions {
     margin: 0 8px 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, .1);
 }
+/* ── r2k pagination ─────────────────────────────────────────────────── */
+.apex-pag-sticky { padding: 8px 14px !important; margin-top: 0 !important; display: flex !important; flex-wrap: nowrap !important; align-items: center !important; justify-content: space-between !important; }
+.apex-pag-sticky > * { width: auto !important; max-width: none !important; padding-left: 0 !important; padding-right: 0 !important; flex-shrink: 0; }
+.r2k-pag-info { font-size: var(--bs-body-font-size); color: #6c757d; white-space: nowrap; }
+.r2k-pag-nav  { display: flex; align-items: center; gap: 3px; }
+.r2k-pag-btn  {
+    display:         inline-flex;
+    align-items:     center;
+    justify-content: center;
+    min-width:       28px;
+    height:          28px;
+    padding:         0 7px;
+    font-size:       var(--bs-body-font-size);
+    font-weight:     500;
+    line-height:     1;
+    border:          1px solid #dee2e6;
+    border-radius:   6px;
+    background:      #fff;
+    color:           #6c757d;
+    text-decoration: none;
+    cursor:          pointer;
+    transition:      background .12s, color .12s, border-color .12s;
+    user-select:     none;
+}
+.r2k-pag-btn:hover:not(.disabled):not(.active) { border-color: #7367f0; color: #7367f0; background: #f3f0ff; }
+.r2k-pag-btn.active  { background: #7367f0; border-color: #7367f0; color: #fff; font-weight: 600; }
+.r2k-pag-btn.disabled { opacity: .4; cursor: not-allowed; pointer-events: none; }
 
 /* ── viewTransModal (vtm) banner — shared modal header pattern ─────────── */
 .vtm-banner                { padding: 14px 20px; border-left: 4px solid var(--vtm-color, #0d6efd); background: var(--vtm-bg, #e8f0fe); }
@@ -1846,7 +1873,7 @@ tr:hover .apex-party-actions {
 }
 
 /* ── Country picker overlay ────────────────────────────────────────── */
-.country-code-hint  { font-size: .72rem; color: #696cff; margin-top: 3px; }
+.country-code-hint  { font-size:var(--r2k-text-sm); color: #696cff; margin-top: 3px; }
 .country-code-trigger,
 .country-code-trigger:hover { cursor: pointer; }
 
@@ -1908,7 +1935,7 @@ tr:hover .apex-party-actions {
 .pp-stat-card        { border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; height: 100%; }
 .pp-stat-icon        { font-size: 1.3rem; margin-bottom: 2px; }
 .pp-stat-val         { font-size: 1.02rem; font-weight: 700; line-height: 1.2; word-break: break-all; }
-.pp-stat-label       { font-size: .72rem; font-weight: 500; text-transform: uppercase; letter-spacing: .04em; opacity: .75; }
+.pp-stat-label       { font-size:var(--r2k-text-sm); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; opacity: .75; }
 .pp-stat-green       { background: #ecfdf5; color: #065f46; }
 .pp-stat-blue        { background: #eff6ff; color: #1e40af; }
 .pp-stat-purple      { background: #f5f3ff; color: #5b21b6; }
@@ -1917,7 +1944,7 @@ tr:hover .apex-party-actions {
 
 /* Detail cards */
 .pp-detail-card      { background: var(--bs-card-bg, #fff); border: 1px solid var(--bs-border-color, #dee2e6); border-radius: 8px; padding: 14px 16px; }
-.pp-detail-title     { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #6c757d; margin-bottom: 10px; }
+.pp-detail-title     { font-size:var(--r2k-text-sm); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #6c757d; margin-bottom: 10px; }
 .pp-detail-grid      { display: flex; flex-direction: column; gap: 8px; }
 .pp-detail-row       { display: flex; align-items: baseline; gap: 8px; }
 .pp-detail-key       { font-size: .78rem; color: #6c757d; flex: 0 0 120px; }
@@ -1940,14 +1967,14 @@ tr:hover .apex-party-actions {
 .pp-tx-count-label   { font-size: .78rem; }
 .pp-tx-table-wrap    { max-height: 420px; overflow-y: auto; }
 .pp-tx-table         { font-size: .82rem; }
-.pp-module-badge     { font-size: .68rem; }
+.pp-module-badge     { font-size:var(--r2k-text-xs); }
 .pp-tx-footer        { font-size: .73rem; }
 .pp-dir-in           { color: #10b981; font-weight: 600; }
 .pp-dir-out          { color: #ef4444; font-weight: 600; }
 
 /* Stock movement tab */
 .pp-stock-summary-card  { background: var(--bs-card-bg, #fff); border: 1px solid var(--bs-border-color, #dee2e6); border-radius: 8px; padding: 10px 16px; min-width: 120px; }
-.pp-stock-summary-label { font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; color: #6c757d; margin-bottom: 2px; }
+.pp-stock-summary-label { font-size:var(--r2k-text-xs); text-transform: uppercase; letter-spacing: .05em; color: #6c757d; margin-bottom: 2px; }
 .pp-stock-summary-val   { font-size: .95rem; font-weight: 700; }
 .pp-stock-summary-green { border-left: 3px solid #10b981; }
 .pp-stock-summary-red   { border-left: 3px solid #ef4444; }
@@ -2016,7 +2043,7 @@ tr:hover .apex-party-actions {
 .cp-note-empty  { font-size: .85rem; }
 .cp-note-avatar { font-size: .7rem; }
 .cp-note-user   { font-size: .82rem; }
-.cp-note-time   { font-size: .72rem; }
+.cp-note-time   { font-size:var(--r2k-text-sm); }
 .cp-note-html   { font-size: .83rem; word-break: break-word; }
 .cp-note-html p { margin-bottom: .2rem; }
 .cp-note-html ul,
@@ -2299,10 +2326,10 @@ tr:hover .apex-party-actions {
 
 /* Table */
 .comp-tbl { font-size:.82rem;margin-bottom:0; }
-.comp-section-head th { font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;padding:5px 8px; }
+.comp-section-head th { font-size:var(--r2k-text-sm);letter-spacing:.06em;text-transform:uppercase;padding:5px 8px; }
 .comp-income-head  th { background:#f0fdf4;color:#15803d; }
 .comp-expense-head th { background:#fff1f2;color:#b91c1c; }
-.comp-col-head th { background:#f8fafc;font-size:.72rem;font-weight:600;padding:5px 8px;color:#64748b; }
+.comp-col-head th { background:#f8fafc;font-size:var(--r2k-text-sm);font-weight:600;padding:5px 8px;color:#64748b; }
 .comp-row:hover td { background:#f8fafc; }
 .comp-p1-val { color:#1d4ed8 !important; }
 .comp-p2-val { color:#64748b; }
@@ -2361,16 +2388,16 @@ tr:hover .apex-party-actions {
 
 .ratio-tbl { margin-bottom:0; }
 .ratio-col-head th { font-size:.7rem;font-weight:600;color:#94a3b8;padding:5px 10px;background:#f8fafc;text-transform:uppercase;letter-spacing:.04em; }
-.ratio-bench-col { width:80px;font-size:.72rem; }
-.ratio-explain-col { font-size:.72rem;color:#94a3b8; }
+.ratio-bench-col { width:80px;font-size:var(--r2k-text-sm); }
+.ratio-explain-col { font-size:var(--r2k-text-sm);color:#94a3b8; }
 .ratio-name { font-size:.82rem;font-weight:500; }
 .ratio-bench { font-size:.75rem;color:#94a3b8; }
-.ratio-explain { font-size:.72rem;color:#94a3b8;max-width:180px; }
+.ratio-explain { font-size:var(--r2k-text-sm);color:#94a3b8;max-width:180px; }
 .ratio-number { font-size:.88rem;font-weight:700;font-variant-numeric:tabular-nums; }
 .ratio-na { font-size:.8rem;color:#94a3b8;font-style:italic; }
 
 /* Badges */
-.ratio-badge { display:inline-block;font-size:.68rem;padding:2px 7px;border-radius:20px;font-weight:600; }
+.ratio-badge { display:inline-block;font-size:var(--r2k-text-xs);padding:2px 7px;border-radius:20px;font-weight:600; }
 .ratio-badge-good { background:#dcfce7;color:#15803d; }
 .ratio-badge-warn { background:#fef9c3;color:#a16207; }
 .ratio-badge-bad  { background:#fee2e2;color:#b91c1c; }
@@ -2442,7 +2469,7 @@ tr:hover .apex-party-actions {
 .ai-panel-icon { display:flex; width:30px; height:30px; background:rgba(255,255,255,.18); border-radius:50%; align-items:center; justify-content:center; flex-shrink:0; }
 .ai-panel-icon svg { width:16px; height:16px; }
 .ai-panel-name { font-size:.92rem; font-weight:700; line-height:1.2; }
-.ai-panel-sub  { font-size:.72rem; opacity:.75; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:200px; }
+.ai-panel-sub  { font-size:var(--r2k-text-sm); opacity:.75; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:200px; }
 .ai-close-btn  { background:none; border:none; color:rgba(255,255,255,.8); cursor:pointer; padding:4px; display:flex; align-items:center; border-radius:6px; font-size:1.3rem; transition:color .15s; }
 .ai-close-btn:hover { color:#fff; }
 
@@ -2507,7 +2534,7 @@ tr:hover .apex-party-actions {
 
 /* Footer line */
 .ai-panel-footer {
-    text-align:center; font-size:.68rem; color:#94a3b8; padding:5px 12px 8px;
+    text-align:center; font-size:var(--r2k-text-xs); color:#94a3b8; padding:5px 12px 8px;
     border-top:1px solid #f1f5f9; flex-shrink:0;
 }
 
@@ -2538,7 +2565,7 @@ tr:hover .apex-party-actions {
 
 
 /* ── GSTIN Validated indicator ─────────────────────────────────────────────── */
-.gstin-validated-msg { display:none; font-size:.72rem; color:#16a34a; margin-top:4px; }
+.gstin-validated-msg { display:none; font-size:var(--r2k-text-sm); color:#16a34a; margin-top:4px; }
 .gstin-validated-msg.show { display:flex; align-items:center; gap:4px; }
 
 /* ── GSTIN Confirm Overlay ──────────────────────────────────────────────────── */
@@ -2691,7 +2718,7 @@ tr:hover .apex-party-actions {
     border-bottom: 1px solid var(--bs-border-color, #dee2e6);
     padding: 14px 20px;
 }
-.bsm-summary-label { font-size: .68rem; letter-spacing: .4px; text-transform: uppercase; color: var(--bs-secondary-color, #6c757d); }
+.bsm-summary-label { font-size:var(--r2k-text-xs); letter-spacing: .4px; text-transform: uppercase; color: var(--bs-secondary-color, #6c757d); }
 .bsm-total-avail   { font-size: 1.9rem; font-weight: 700; line-height: 1.15; }
 .bsm-total-open    { font-size: 1rem; color: var(--bs-secondary-color, #6c757d); }
 .bsm-unit-label    { font-size: .78rem; color: #696cff; font-weight: 600; letter-spacing: .3px; margin-top: 1px; }
@@ -2754,7 +2781,7 @@ tr:hover .apex-party-actions {
 :root[data-theme="light"] .bs-row:hover { background: var(--bs-light, #f8f9fa); }
 
 /* ── Brand Picker Modal — list view ─────────────────────────────────── */
-.bp-product-name { font-size: .72rem; color: #6c757d; }
+.bp-product-name { font-size:var(--r2k-text-sm); color: #6c757d; }
 
 .bp-list {
     max-height: 380px;
@@ -2831,7 +2858,7 @@ tr:hover .apex-party-actions {
     text-overflow: ellipsis;
 }
 .bp-code {
-    font-size: .68rem;
+    font-size:var(--r2k-text-xs);
     font-weight: 600;
     background: var(--bs-secondary-bg, #e9ecef);
     color: #6c757d;
@@ -2883,7 +2910,7 @@ tr:hover .apex-party-actions {
 .brand-chip {
     display: inline-flex;
     align-items: center;
-    font-size: .72rem;
+    font-size:var(--r2k-text-sm);
     padding: 2px 8px;
     border-radius: 20px;
     cursor: pointer;
@@ -2965,7 +2992,7 @@ tr:hover .apex-party-actions {
     margin-top: 2px;
 }
 .vp-brand, .vp-size {
-    font-size: .68rem;
+    font-size:var(--r2k-text-xs);
     background: var(--bs-secondary-bg, #e9ecef);
     color: #6c757d;
     border: 1px solid var(--bs-border-color, #dee2e6);
@@ -3004,7 +3031,7 @@ tr:hover .apex-party-actions {
 .variant-chip {
     display: inline-flex;
     align-items: center;
-    font-size: .72rem;
+    font-size:var(--r2k-text-sm);
     padding: 2px 8px;
     border-radius: 20px;
     cursor: pointer;
@@ -3036,7 +3063,7 @@ tr:hover .apex-party-actions {
     display: inline-flex;
     align-items: center;
     font-family: ui-monospace, 'Cascadia Code', 'Courier New', monospace;
-    font-size: .68rem;
+    font-size:var(--r2k-text-xs);
     font-weight: 600;
     letter-spacing: .3px;
     padding: 1px 7px;
@@ -3286,4 +3313,4 @@ body.apex-help-open {
     line-height: 1.4;
     user-select: none;
 }
-.branch-code-hint { font-size: .72rem; }
+.branch-code-hint { font-size:var(--r2k-text-sm); }

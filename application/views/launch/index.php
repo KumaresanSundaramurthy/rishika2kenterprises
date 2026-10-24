@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -153,7 +153,7 @@ button{cursor:pointer;font-family:inherit}
 /* ── TRUST ─────────────────────────────────────────────────────────── */
 .trust{padding:20px 6%;background:var(--bg2);border-top:1px solid var(--bdr);border-bottom:1px solid var(--bdr)}
 .trust-inner{max-width:1280px;margin:0 auto;display:flex;align-items:center;gap:28px;flex-wrap:wrap;justify-content:center}
-.trust-lbl{font-size:.72rem;color:var(--tx3);white-space:nowrap;letter-spacing:.8px;text-transform:uppercase;font-weight:600}
+.trust-lbl{font-size:var(--r2k-text-sm);color:var(--tx3);white-space:nowrap;letter-spacing:.8px;text-transform:uppercase;font-weight:600}
 .trust-line{width:1px;height:22px;background:var(--bdr2)}
 .trust-chips{display:flex;gap:10px;flex-wrap:wrap}
 .trust-chip{padding:5px 14px;border-radius:30px;background:var(--bg4);border:1px solid var(--bdr2);
@@ -267,9 +267,9 @@ button{cursor:pointer;font-family:inherit}
 .plan-card.pop::before{content:'Most Popular';position:absolute;top:-13px;left:50%;
                         transform:translateX(-50%);
                         background:linear-gradient(90deg,var(--pri),var(--sec));
-                        color:#fff;font-size:.68rem;font-weight:700;padding:4px 16px;
+                        color:#fff;font-size:var(--r2k-text-xs);font-weight:700;padding:4px 16px;
                         border-radius:20px;white-space:nowrap;text-transform:uppercase;letter-spacing:.5px}
-.plan-cyc{display:inline-block;font-size:.68rem;font-weight:700;padding:3px 10px;
+.plan-cyc{display:inline-block;font-size:var(--r2k-text-xs);font-weight:700;padding:3px 10px;
           border-radius:20px;margin-bottom:12px;background:rgba(105,108,255,.1);
           color:var(--pri);letter-spacing:.5px;text-transform:uppercase}
 .plan-nm{font-family:'Outfit',sans-serif;font-size:1.3rem;font-weight:800;color:var(--tx);margin-bottom:6px}

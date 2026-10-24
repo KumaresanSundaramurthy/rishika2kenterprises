@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 $this->load->view('common/transactions/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -77,7 +77,7 @@ $this->load->view('common/transactions/header'); ?>
                             transition: width .4s ease;
                         }
                         .drive-usage-label {
-                            font-size: .72rem;
+                            font-size:var(--r2k-text-sm);
                             color: #64748b;
                             white-space: nowrap;
                             min-width: 120px;
@@ -152,7 +152,7 @@ $this->load->view('common/transactions/header'); ?>
                         .drive-act-btn.del:hover { background: #fee2e2; color: #dc2626; }
                         .drive-list-tbl { width: 100%; border-collapse: collapse; }
                         .drive-list-tbl th {
-                            font-size: .72rem;
+                            font-size:var(--r2k-text-sm);
                             font-weight: 700;
                             color: #64748b;
                             text-transform: uppercase;
@@ -320,7 +320,7 @@ $this->load->view('common/transactions/header'); ?>
 <div class="drive-upload-toast" id="driveUploadToast">
     <div class="d-flex justify-content-between align-items-center mb-1">
         <span style="font-size:.8rem;font-weight:600;">Uploading…</span>
-        <span style="font-size:.72rem;color:#64748b;" id="uploadPct">0%</span>
+        <span style="font-size:var(--r2k-text-sm);color:#64748b;" id="uploadPct">0%</span>
     </div>
     <div style="height:4px;background:#e2e8f0;border-radius:3px;overflow:hidden;">
         <div id="uploadBar" style="height:100%;background:linear-gradient(90deg,#38bdf8,#0369a1);width:0%;border-radius:3px;transition:width .15s;"></div>
@@ -380,7 +380,7 @@ $this->load->view('common/transactions/header'); ?>
             <div class="modal-header py-2 px-3">
                 <div>
                     <h6 class="modal-title mb-0" style="font-size:.88rem;">Move to…</h6>
-                    <div style="font-size:.72rem;color:#64748b;" id="moveItemLabel"></div>
+                    <div style="font-size:var(--r2k-text-sm);color:#64748b;" id="moveItemLabel"></div>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>

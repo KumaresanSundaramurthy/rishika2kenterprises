@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
 <?php $this->load->view('common/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -142,7 +142,7 @@
                         <div class="col-6">
                             <div class="text-muted" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;font-weight:600;">Vendor</div>
                             <div class="fw-semibold" style="font-size:.85rem;" id="pdParty">—</div>
-                            <div class="text-muted" style="font-size:.72rem;" id="pdPartyMobile"></div>
+                            <div class="text-muted" style="font-size:var(--r2k-text-sm);" id="pdPartyMobile"></div>
                         </div>
                         <div class="col-6">
                             <div class="text-muted" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;font-weight:600;">Linked Bill</div>

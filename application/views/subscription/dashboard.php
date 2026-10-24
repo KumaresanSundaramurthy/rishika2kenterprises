@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
     <div class="layout-container">
         <?php $this->load->view('common/menu_view'); ?>
@@ -120,7 +120,7 @@
 .sdb-billing-header h6 { font-size: .85rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--bs-secondary-color, #888); margin: 0; }
 .sdb-table { width: 100%; border-collapse: collapse; }
 .sdb-table th {
-    font-size: .72rem; text-transform: uppercase; letter-spacing: .06em;
+    font-size:var(--r2k-text-sm); text-transform: uppercase; letter-spacing: .06em;
     color: var(--bs-secondary-color, #888); font-weight: 600;
     padding: .6rem 1rem; border-bottom: 1.5px solid var(--bs-border-color, #e8e8e8);
     white-space: nowrap; background: var(--bs-body-bg, #fafafa);
@@ -129,7 +129,7 @@
 .sdb-table tr:last-child td { border-bottom: none; }
 .sdb-table tr:hover td { background: var(--bs-body-bg, #fafafa); }
 .sdb-type-pill {
-    display: inline-block; font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+    display: inline-block; font-size:var(--r2k-text-xs); font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
     padding: .15rem .5rem; border-radius: 99px;
 }
 .sdb-type-new      { background: #dbeafe; color: #1d4ed8; }

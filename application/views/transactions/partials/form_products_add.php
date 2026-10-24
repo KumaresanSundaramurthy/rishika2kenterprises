@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 // Shared product section (search bar, bill table, notes/terms, summary) for all transaction forms.
 // Required (from controller pageData): $JwtData
 // Optional variables (pass via load->view second arg):
@@ -343,7 +343,7 @@ $_showCompliment = !empty($transShowCompliment);
                           style="background:#ede9fe;color:#6366f1;font-size:.7rem;font-weight:600;"></span>
                 </div>
                 <!-- id="transAttachHint" is updated by _attachResetState on DOM ready -->
-                <span id="transAttachHint" style="font-size:.72rem;color:#9ca3af;"></span>
+                <span id="transAttachHint" style="font-size:var(--r2k-text-sm);color:#9ca3af;"></span>
             </div>
             <div class="card-body px-3 pt-0 pb-3">
                 <div id="transAttachZone" class="prod-attach-zone" onclick="_attachZoneTrigger('Transaction', event)">
@@ -527,7 +527,7 @@ $_showCompliment = !empty($transShowCompliment);
                             <span style="font-size:.6rem;font-weight:700;letter-spacing:.5px;padding:2px 7px;border-radius:4px;background:#f0edff;color:#7c3aed;border:1px solid #d9d0ff;">COMBO</span>
                             <span id="comboBOMModalProductName" class="fw-bold" style="font-size:.94rem;color:#2d3748;"></span>
                         </div>
-                        <div style="font-size:.72rem;color:#94a3b8;margin-top:2px;"><i class="bx bx-edit-alt me-1"></i>Edit component prices · totals update live</div>
+                        <div style="font-size:var(--r2k-text-sm);color:#94a3b8;margin-top:2px;"><i class="bx bx-edit-alt me-1"></i>Edit component prices · totals update live</div>
                     </div>
                 </div>
                 <button type="button" class="btn-close ms-2" data-bs-dismiss="modal"></button>
@@ -539,11 +539,11 @@ $_showCompliment = !empty($transShowCompliment);
                     <table class="table mb-0" id="comboBOMTable">
                         <thead>
                             <tr style="background:#f8f7ff;border-bottom:2px solid #e8e5ff;">
-                                <th class="ps-4 py-3" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.55px;color:#64748b;font-weight:600;">Component</th>
-                                <th class="text-center py-3" style="width:72px;font-size:.68rem;text-transform:uppercase;letter-spacing:.55px;color:#64748b;font-weight:600;">Qty</th>
-                                <th class="text-end py-3" style="width:130px;font-size:.68rem;text-transform:uppercase;letter-spacing:.55px;color:#64748b;font-weight:600;">Unit Price</th>
-                                <th class="py-3" style="width:190px;font-size:.68rem;text-transform:uppercase;letter-spacing:.55px;color:#64748b;font-weight:600;">Selling Price</th>
-                                <th class="text-end pe-4 py-3" style="width:130px;font-size:.68rem;letter-spacing:.55px;color:#64748b;font-weight:600;">
+                                <th class="ps-4 py-3" style="font-size:var(--r2k-text-xs);text-transform:uppercase;letter-spacing:.55px;color:#64748b;font-weight:600;">Component</th>
+                                <th class="text-center py-3" style="width:72px;font-size:var(--r2k-text-xs);text-transform:uppercase;letter-spacing:.55px;color:#64748b;font-weight:600;">Qty</th>
+                                <th class="text-end py-3" style="width:130px;font-size:var(--r2k-text-xs);text-transform:uppercase;letter-spacing:.55px;color:#64748b;font-weight:600;">Unit Price</th>
+                                <th class="py-3" style="width:190px;font-size:var(--r2k-text-xs);text-transform:uppercase;letter-spacing:.55px;color:#64748b;font-weight:600;">Selling Price</th>
+                                <th class="text-end pe-4 py-3" style="width:130px;font-size:var(--r2k-text-xs);letter-spacing:.55px;color:#64748b;font-weight:600;">
                                     <span style="text-transform:uppercase;">Amount</span><br>
                                     <span style="font-size:.6rem;color:#94a3b8;font-weight:500;text-transform:none;letter-spacing:.3px;">incl. of tax</span>
                                 </th>

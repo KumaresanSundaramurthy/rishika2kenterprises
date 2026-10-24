@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 
 $_today      = date('Y-m-d');
 $_listFmt    = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
@@ -25,7 +25,7 @@ $this->load->view('common/transactions/header'); ?>
 .db-stat-icon-blue   { background:#dbeafe; } .db-stat-icon-blue   i { color:#2563eb; }
 .db-stat-icon-emerald{ background:#f0fdf4; } .db-stat-icon-emerald i { color:#059669; }
 .db-stat-body { flex:1;min-width:0; }
-.db-stat-label { font-size:.72rem;color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.03em; }
+.db-stat-label { font-size:var(--r2k-text-sm);color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.03em; }
 .db-stat-val { font-size:1.05rem;font-weight:700;color:#1e293b;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
 
 /* ── Date wrap (inline in filter row) ────────────────────────── */
@@ -73,7 +73,7 @@ $this->load->view('common/transactions/header'); ?>
 
 /* Party sub-info (area / mobile) */
 .db-party-name   { font-weight:600;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px; }
-.db-party-sub    { font-size:.72rem;color:#64748b;margin-top:2px;display:flex;align-items:center;gap:3px;white-space:nowrap; }
+.db-party-sub    { font-size:var(--r2k-text-sm);color:#64748b;margin-top:2px;display:flex;align-items:center;gap:3px;white-space:nowrap; }
 .db-party-sub i  { font-size:.75rem;flex-shrink:0; }
 
 /* Party type chip (Customer / Vendor) */
@@ -82,7 +82,7 @@ $this->load->view('common/transactions/header'); ?>
 .db-ptype-c i,.db-ptype-s i { font-size:.77rem; }
 
 /* Transaction type badges */
-.db-badge { display:inline-block;padding:3px 9px;border-radius:12px;font-size:.72rem;font-weight:700;letter-spacing:.02em;white-space:nowrap; }
+.db-badge { display:inline-block;padding:3px 9px;border-radius:12px;font-size:var(--r2k-text-sm);font-weight:700;letter-spacing:.02em;white-space:nowrap; }
 .db-badge-invoice  { background:#dcfce7;color:#166534; }
 .db-badge-purchase { background:#fee2e2;color:#991b1b; }
 .db-badge-payin    { background:#dbeafe;color:#1d4ed8; }
@@ -102,7 +102,7 @@ $this->load->view('common/transactions/header'); ?>
 .db-amt-neutral { color:#334155; }
 
 /* Payment mode chip */
-.db-mode-chip { display:inline-block;padding:2px 7px;border-radius:8px;font-size:.72rem;font-weight:600;background:#f1f5f9;color:#475569; }
+.db-mode-chip { display:inline-block;padding:2px 7px;border-radius:8px;font-size:var(--r2k-text-sm);font-weight:600;background:#f1f5f9;color:#475569; }
 .db-mode-na   { color:#cbd5e1;font-size:.8rem; }
 
 /* Serial link */

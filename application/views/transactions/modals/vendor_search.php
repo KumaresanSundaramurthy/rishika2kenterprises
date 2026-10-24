@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <!-- Vendor Search Modal -->
 <div class="modal fade" id="vendorSearchModal" tabindex="-1" aria-hidden="true">
@@ -71,7 +71,7 @@
 }
 .vend-search-table thead th {
     padding: 9px 12px;
-    font-size: .72rem;
+    font-size:var(--r2k-text-sm);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: .04em;

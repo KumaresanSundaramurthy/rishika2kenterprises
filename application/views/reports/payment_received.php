@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 
 $_today    = date('Y-m-d');
 $_listFmt  = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
@@ -17,7 +17,7 @@ $this->load->view('common/transactions/header'); ?>
 .rpt-icon-purple{background:#ede9fe}.rpt-icon-purple i{color:#7c3aed}
 .rpt-icon-teal{background:#ccfbf1}.rpt-icon-teal i{color:#0d9488}
 .rpt-stat-body{flex:1;min-width:0}
-.rpt-stat-label{font-size:.72rem;color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.03em}
+.rpt-stat-label{font-size:var(--r2k-text-sm);color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.03em}
 .rpt-stat-val{font-size:1.05rem;font-weight:700;color:#1e293b;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rpt-date-group{display:flex;align-items:center;gap:6px;flex-shrink:0}
 .rpt-date-label{font-size:.75rem;color:#64748b;font-weight:600;white-space:nowrap}
@@ -36,9 +36,9 @@ $this->load->view('common/transactions/header'); ?>
 .rpt-col-num{text-align:right;white-space:nowrap}
 .rpt-col-num-hd{text-align:right}
 .rpt-num-green{color:#16a34a;font-weight:700}
-.pay-mode-chip{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:8px;font-size:.72rem;font-weight:600;background:#f1f5f9;color:#475569}
+.pay-mode-chip{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:8px;font-size:var(--r2k-text-sm);font-weight:600;background:#f1f5f9;color:#475569}
 .pay-mode-cash{background:#dcfce7;color:#166534}
-.pay-onaccount{background:#ede9fe;color:#5b21b6;font-size:.68rem;padding:1px 5px;border-radius:4px;margin-left:3px}
+.pay-onaccount{background:#ede9fe;color:#5b21b6;font-size:var(--r2k-text-xs);padding:1px 5px;border-radius:4px;margin-left:3px}
 .rpt-loading-cell{padding:48px 0!important;text-align:center}
 .rpt-loading{display:flex;align-items:center;justify-content:center;color:#64748b;font-size:.85rem}
 .rpt-empty{display:flex;flex-direction:column;align-items:center;padding:50px 20px;color:#94a3b8}

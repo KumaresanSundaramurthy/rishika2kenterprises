@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php $this->load->view('common/header'); ?>
 
 <style>
@@ -9,7 +9,7 @@
 .bc-type-icon-qr        { background: #e0f5fb; }
 .bc-type-icon i         { font-size: 1.2rem; }
 .bc-type-name           { font-size: .85rem; }
-.bc-type-desc           { font-size: .72rem; }
+.bc-type-desc           { font-size:var(--r2k-text-sm); }
 .bc-field-label         { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
 .bc-check-label         { font-size: .78rem; }
 .bc-section-title       { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }

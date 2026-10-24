@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <div class="modal fade" id="priceListModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true" aria-modal="true" role="dialog">
     <div class="modal-dialog modal-dialog-full-height modal-xl">
@@ -47,14 +47,14 @@
                         <div class="mb-3 col-md-3">
                             <label class="form-label" for="PLPriority">
                                 Priority
-                                <span class="text-muted fw-normal" style="font-size:.72rem;">higher = applied first</span>
+                                <span class="text-muted fw-normal" style="font-size:var(--r2k-text-sm);">higher = applied first</span>
                             </label>
                             <input type="number" class="form-control" id="PLPriority" value="1" min="1" step="1">
                         </div>
                         <div class="mb-3 col-md-6">
                             <label class="form-label" for="PLValidFrom">
                                 Valid From
-                                <span class="text-muted fw-normal" style="font-size:.72rem;">blank = permanent</span>
+                                <span class="text-muted fw-normal" style="font-size:var(--r2k-text-sm);">blank = permanent</span>
                             </label>
                             <input type="text" class="form-control" id="PLValidFrom" placeholder="Select start date" readonly>
                             <input type="hidden" id="PLValidFromRaw">
@@ -62,14 +62,14 @@
                         <div class="mb-3 col-md-6">
                             <label class="form-label" for="PLValidTo">
                                 Valid To
-                                <span class="text-muted fw-normal" style="font-size:.72rem;">blank = no expiry</span>
+                                <span class="text-muted fw-normal" style="font-size:var(--r2k-text-sm);">blank = no expiry</span>
                             </label>
                             <input type="text" class="form-control" id="PLValidTo" placeholder="Select end date" readonly>
                             <input type="hidden" id="PLValidToRaw">
                         </div>
                         <div class="mb-3 col-12">
                             <label class="form-label" for="PLDescription">Description
-                                <span class="text-muted fw-normal" style="font-size:.72rem;">optional</span>
+                                <span class="text-muted fw-normal" style="font-size:var(--r2k-text-sm);">optional</span>
                             </label>
                             <textarea class="form-control" id="PLDescription" rows="2"
                                 placeholder="e.g. Standard permanent prices per customer type — replaces manual customer type pricing"></textarea>

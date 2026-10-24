@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var int $SerialNumber */ $SerialNumber = $SerialNumber ?? 0;
 /** @var object $JwtData */
 ?>
@@ -59,7 +59,7 @@ if (!empty($DataLists)):
                     <?php $isActive = (int)($list->IsActive ?? 1); ?>
                     <div class="mt-1">
                         <div class="dropdown d-inline-block">
-                            <span class="badge <?php echo $isActive ? 'bg-label-success' : 'bg-label-danger'; ?> cursor-pointer" style="font-size:.68rem;" data-bs-toggle="dropdown">
+                            <span class="badge <?php echo $isActive ? 'bg-label-success' : 'bg-label-danger'; ?> cursor-pointer" style="font-size:var(--r2k-text-xs);" data-bs-toggle="dropdown">
                                 <?php echo $isActive ? 'Active' : 'In-Active'; ?>
                                 <i class="bx bx-chevron-down" style="font-size:.65rem;"></i>
                             </span>
@@ -135,7 +135,7 @@ if (!empty($DataLists)):
                 $balLabel = $bal == 0 ? '' : (($balType === 'Debit') ? 'To Collect' : 'To Pay');
             ?>
                 <div class="fw-semibold <?php echo $balClass; ?>"><?php echo $currency . ' ' . smartDecimal($bal); ?></div>
-                <div style="font-size:.72rem;color:#aaa;"><?php echo $balLabel; ?></div>
+                <div style="font-size:var(--r2k-text-sm);color:#aaa;"><?php echo $balLabel; ?></div>
         </td>
 
         <!-- Customer Type -->

@@ -75,12 +75,14 @@ class Billinginvoice {
         $addressParts = array_filter([$addr1, $addr2, $city, $state, $pincode]);
         $addressHtml  = implode('<br>', $addressParts);
 
-        /* Seller (Rishika 2K Enterprises) details */
-        $sellerName  = 'Rishika 2K Enterprises';
-        $sellerGstin = '33ESZPK0894R1ZH';
-        $sellerAddr  = '123, Tech Park Road<br>Chennai, Tamil Nadu 600001';
-        $sellerPhone = '+91 98765 43210';
-        $sellerEmail = 'billing@rishika2k.com';
+        /* Seller details — fetched from Cloudflare R2 JSON; URL stored in BILLING_SELLER_CONFIG_URL env var */
+        $seller = $this->_fetchSellerConfig();
+
+        $sellerName  = $seller['name']  ?? '';
+        $sellerGstin = $seller['gstin'] ?? '';
+        $sellerAddr  = nl2br(htmlspecialchars($seller['addr']  ?? '', ENT_QUOTES, 'UTF-8'));
+        $sellerPhone = $seller['phone'] ?? '';
+        $sellerEmail = $seller['email'] ?? '';
 
         return <<<HTML
 <!DOCTYPE html>
@@ -363,6 +365,32 @@ HTML;
         } finally {
             @unlink($tmpFile);
         }
+    }
+
+    /**
+     * Fetch seller config JSON from Cloudflare R2.
+     * URL is set via BILLING_SELLER_CONFIG_URL env var.
+     * Returns empty array on failure so invoice generation never breaks.
+     *
+     * @return array<string,string>
+     */
+    private function _fetchSellerConfig(): array {
+        $cdn = getenv('CFLARE_R2_CDN');
+        if (empty($cdn)) return [];
+        $url = rtrim($cdn, '/') . '/Global/billing_seller.json';
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 5,
+            CURLOPT_FAILONERROR    => true,
+        ]);
+        $body = curl_exec($ch);
+        curl_close($ch);
+
+        if ($body === false) return [];
+
+        return json_decode($body, true) ?? [];
     }
 
 }

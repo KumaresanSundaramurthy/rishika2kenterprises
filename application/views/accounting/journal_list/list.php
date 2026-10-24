@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var int $SerialNumber */ $SerialNumber = $SerialNumber ?? 0;
 $cur     = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
 $dateFmt = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
@@ -39,7 +39,7 @@ if (!empty($DataLists)):
             <i class="bx <?php echo $badge[1]; ?> me-1"></i><?php echo htmlspecialchars($ref); ?>
         </span>
         <?php if (!empty($row->ReferenceNo)): ?>
-        <div class="text-muted" style="font-size:.72rem;margin-top:2px;"><?php echo htmlspecialchars($row->ReferenceNo); ?></div>
+        <div class="text-muted" style="font-size:var(--r2k-text-sm);margin-top:2px;"><?php echo htmlspecialchars($row->ReferenceNo); ?></div>
         <?php endif; ?>
     </td>
     <td class="text-muted" style="font-size:.8rem;"><?php echo htmlspecialchars($row->Narration ?? '—'); ?></td>

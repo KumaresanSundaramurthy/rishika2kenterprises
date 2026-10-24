@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var array $Entries */ $Entries = $Entries ?? [];
 $cur     = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
 $dateFmt = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
@@ -41,7 +41,7 @@ if (!empty($Entries)):
         <code style="font-size:.78rem;color:#7c3aed;"><?php echo htmlspecialchars($en->JournalNo ?? ''); ?></code>
     </td>
     <td>
-        <span class="badge <?php echo $bCls; ?>" style="font-size:.68rem;"><?php echo htmlspecialchars($ref); ?></span>
+        <span class="badge <?php echo $bCls; ?>" style="font-size:var(--r2k-text-xs);"><?php echo htmlspecialchars($ref); ?></span>
         <?php if (!empty($en->ReferenceNo)): ?>
         <div class="text-muted" style="font-size:.7rem;"><?php echo htmlspecialchars($en->ReferenceNo); ?></div>
         <?php endif; ?>

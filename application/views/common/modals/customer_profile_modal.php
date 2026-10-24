@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <!-- ── Customer Profile Modal ──────────────────────────────────────────────── -->
 <div class="modal fade" id="customerProfileModal" tabindex="-1"
@@ -30,7 +30,7 @@
                                 <i class="bx bx-plus me-1"></i>Transaction
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="cpTxDropdown">
-                                <li><h6 class="dropdown-header" style="font-size:.68rem;letter-spacing:.04em;">SALES</h6></li>
+                                <li><h6 class="dropdown-header" style="font-size:var(--r2k-text-xs);letter-spacing:.04em;">SALES</h6></li>
                                 <li><a class="dropdown-item cp-tx-dd-item" href="javascript:void(0);" data-route="/invoices/create">
                                     <i class="bx bx-file-blank me-2 text-primary"></i>Invoice</a></li>
                                 <li><a class="dropdown-item cp-tx-dd-item" href="javascript:void(0);" data-route="/quotations/create">

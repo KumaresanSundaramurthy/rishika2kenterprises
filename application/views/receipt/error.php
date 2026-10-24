@@ -4,9 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Receipt Not Found</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
-body { font-family:Arial,sans-serif; background:#f0f2f5; display:flex; align-items:center; justify-content:center; min-height:100vh; }
+body { font-family:'Public Sans',sans-serif; background:#f0f2f5; display:flex; align-items:center; justify-content:center; min-height:100vh; }
 .box { background:#fff; border-radius:12px; padding:40px 32px; text-align:center; max-width:380px; box-shadow:0 4px 20px rgba(0,0,0,.08); }
 .icon { font-size:48px; margin-bottom:16px; }
 .title { font-size:18px; font-weight:700; color:#222; margin-bottom:8px; }

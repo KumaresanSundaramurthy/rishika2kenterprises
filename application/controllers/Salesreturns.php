@@ -66,9 +66,6 @@ class Salesreturns extends MY_Controller {
             // Log customer balance before SR creation
             $this->load->model('customers_model');
             $_preSR = $this->customers_model->getCustomerOpeningBalance($orgUID, $customerUID);
-                . ' SRAmount=' . $netAmount
-                . ' PendingBalance=' . ($_preSR ? $_preSR->PendingBalance : 'NULL')
-                . ' PendingBalType=' . ($_preSR ? $_preSR->PendingBalType : 'NULL'));
 
             $resolved = $this->_resolveTransPrefix(
                 $isDraft, $amounts['prefixUID'], $amounts['transNumber'], $transDate, $orgUID
@@ -159,21 +156,12 @@ class Salesreturns extends MY_Controller {
             }
 
             if (!$isDraft) {
-                    . ' hasPayment=' . ($hasPayment ? 'true' : 'false')
-                    . ' netAmount=' . $netAmount
-                    . ' uniqueNumber=' . $uniqueNumber
-                    . ' customerUID=' . $customerUID
-                    . ' orgUID=' . $orgUID
-                    . ' RecordPayment_POST=' . (int)getPostValue($PostData, 'RecordPayment'));
 
                 // Ã¢â€â‚¬Ã¢â€â‚¬ Create credit note for the outstanding balance Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
                 // No payment  Ã¢â€ ’ CN for full NetAmount
                 // Partial pay Ã¢â€ ’ CN for remaining BalanceAmount
                 // Full pay    Ã¢â€ ’ no CN (balanceAmount = 0)
                 $cnAmount = $hasPayment ? ($balanceAmount ?? 0) : $netAmount;
-                    . ' hasPayment=' . ($hasPayment ? 'true' : 'false')
-                    . ' netAmount=' . $netAmount
-                    . ' balanceAmount=' . ($balanceAmount ?? 'N/A'));
 
                 if ($cnAmount > 0) {
                     $this->load->library('customerbalance');
@@ -192,7 +180,6 @@ class Salesreturns extends MY_Controller {
                 if ($balResult) {
                     $this->EndReturnData->CustomerBalance     = $balResult['balance'];
                     $this->EndReturnData->CustomerBalanceType = $balResult['type'];
-                        . ' NewBalance=' . $balResult['balance'] . '(' . $balResult['type'] . ')');
                 } else {
                 }
             } else {

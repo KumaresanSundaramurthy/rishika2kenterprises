@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 
 if (empty($DataLists)) { ?>
     <tr>
@@ -36,7 +36,7 @@ foreach ($DataLists as $row):
     <td class="align-middle">
         <div class="fw-semibold"><?php echo htmlspecialchars($row->DisplayName ?? ''); ?></div>
         <?php if ($isSystem): ?>
-            <span class="badge bg-label-secondary mt-1" style="font-size:.68rem;"><?php echo t('lbl_system', 'System'); ?></span>
+            <span class="badge bg-label-secondary mt-1" style="font-size:var(--r2k-text-xs);"><?php echo t('lbl_system', 'System'); ?></span>
         <?php endif; ?>
     </td>
 

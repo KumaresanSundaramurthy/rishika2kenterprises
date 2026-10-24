@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php $this->load->view('common/header'); ?>
 
@@ -172,7 +172,7 @@
                                                     <div class="d-flex align-items-center gap-2 mb-2">
                                                         <i class="bx bx-calendar-alt" style="font-size:1.15rem;color:#b45309;"></i>
                                                         <span class="fw-bold" style="font-size:.92rem;">Financial Year</span>
-                                                        <span class="badge bg-label-warning ms-1" style="font-size:.68rem;letter-spacing:.3px;">Critical Setting</span>
+                                                        <span class="badge bg-label-warning ms-1" style="font-size:var(--r2k-text-xs);letter-spacing:.3px;">Critical Setting</span>
                                                     </div>
                                                     <p class="text-muted mb-3" style="font-size:.79rem;">
                                                         The month from which your financial year begins. Transaction sequence numbers (INV-001, PO-001 etc.)

@@ -123,7 +123,7 @@ $this->load->view('common/transactions/header'); ?>
 
                         <!-- Pagination -->
                         <hr class="my-0">
-                        <div class="row mx-3 my-2 justify-content-between align-items-center" id="snPagination">
+                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center apex-pag-sticky" id="snPagination">
                             <?php echo $ModPagination; ?>
                         </div>
 

@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php $this->load->view('common/header'); ?>
 
@@ -68,9 +68,9 @@
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">Combined Stats</div>
                             <div class="apex-stat-bottom" style="gap:8px">
-                                <span style="font-size:.72rem"><span class="cust-stat-month fw-bold"><?php echo number_format((int)($s->MonthCount ?? 0)); ?></span> Month</span>
-                                <span style="font-size:.72rem"><span class="cust-stat-lastmonth fw-bold"><?php echo number_format((int)($s->LastMonthCount ?? 0)); ?></span> Last</span>
-                                <span style="font-size:.72rem"><span class="cust-stat-fy fw-bold"><?php echo number_format((int)($s->FYCount ?? 0)); ?></span> FY</span>
+                                <span style="font-size:var(--r2k-text-sm)"><span class="cust-stat-month fw-bold"><?php echo number_format((int)($s->MonthCount ?? 0)); ?></span> Month</span>
+                                <span style="font-size:var(--r2k-text-sm)"><span class="cust-stat-lastmonth fw-bold"><?php echo number_format((int)($s->LastMonthCount ?? 0)); ?></span> Last</span>
+                                <span style="font-size:var(--r2k-text-sm)"><span class="cust-stat-fy fw-bold"><?php echo number_format((int)($s->FYCount ?? 0)); ?></span> FY</span>
                             </div>
                         </div>
                     </div>
@@ -453,7 +453,7 @@ document.addEventListener('DOMContentLoaded', function () {
             badges += '<span class="badge bg-label-secondary" style="font-size:.7rem;font-family:monospace;">' + _esc(g.GroupCode) + '</span>';
         }
         badges += '<span class="badge" style="background:' + tc.bg + ';color:' + tc.c + ';font-size:.7rem;font-weight:600;">' + _esc(g.GroupType || '') + '</span>';
-        badges += '<span class="badge ' + (g.IsActive ? 'bg-label-success' : 'bg-label-danger') + '" style="font-size:.68rem;">' + (g.IsActive ? 'Active' : 'Inactive') + '</span>';
+        badges += '<span class="badge ' + (g.IsActive ? 'bg-label-success' : 'bg-label-danger') + '" style="font-size:var(--r2k-text-xs);">' + (g.IsActive ? 'Active' : 'Inactive') + '</span>';
         $('#grpDetailBadges').html(badges);
 
         $('#grpDetailEditBtn').show().off('click').on('click', function () {
@@ -1242,7 +1242,7 @@ $(function () {
     }
 
     // ── Groups pagination ──
-    $(document).on('click', '#GroupsPagination .pagination .page-link', function (e) {
+    $(document).on('click', '#GroupsPagination .r2k-pag-btn:not(.disabled)', function (e) {
         e.preventDefault();
         var pg = parseInt($(this).data('page'), 10);
         if (!isNaN(pg) && pg !== _grpPageNo) _grpReload(pg);

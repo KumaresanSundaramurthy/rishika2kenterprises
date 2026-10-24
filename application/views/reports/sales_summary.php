@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 
 $_today      = date('Y-m-d');
 $_listFmt    = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
@@ -19,7 +19,7 @@ $this->load->view('common/transactions/header'); ?>
 .rpt-icon-red    { background:#fee2e2; } .rpt-icon-red    i { color:#dc2626; }
 .rpt-icon-purple { background:#ede9fe; } .rpt-icon-purple i { color:#7c3aed; }
 .rpt-stat-body { flex:1;min-width:0; }
-.rpt-stat-label { font-size:.72rem;color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.03em; }
+.rpt-stat-label { font-size:var(--r2k-text-sm);color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.03em; }
 .rpt-stat-val   { font-size:1.05rem;font-weight:700;color:#1e293b;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
 
 /* ── Date range inputs ──────────────────────────────────────────── */
@@ -51,7 +51,7 @@ $this->load->view('common/transactions/header'); ?>
 .rpt-num-green { color:#16a34a;font-weight:700; }
 .rpt-num-red   { color:#dc2626;font-weight:700; }
 .rpt-num-blue  { color:#2563eb;font-weight:700; }
-.rpt-count-chip { display:inline-block;padding:2px 7px;background:#f1f5f9;color:#475569;border-radius:8px;font-size:.72rem;font-weight:600; }
+.rpt-count-chip { display:inline-block;padding:2px 7px;background:#f1f5f9;color:#475569;border-radius:8px;font-size:var(--r2k-text-sm);font-weight:600; }
 
 /* ── Loading / empty ────────────────────────────────────────────── */
 .rpt-loading-cell { padding:48px 0 !important;text-align:center; }
@@ -69,7 +69,7 @@ $this->load->view('common/transactions/header'); ?>
 .rpt-footer-chip-blue  { background:#dbeafe;color:#1d4ed8; }
 
 /* ── Section divider in thead ───────────────────────────────────── */
-.rpt-th-group { text-align:center;border-bottom:none !important;padding-bottom:2px !important;color:#2563eb !important;font-size:.68rem !important; }
+.rpt-th-group { text-align:center;border-bottom:none !important;padding-bottom:2px !important;color:#2563eb !important;font-size:var(--r2k-text-xs) !important; }
 .rpt-th-group-red { color:#dc2626 !important; }
 
 /* ── Dark mode ──────────────────────────────────────────────────── */

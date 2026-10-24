@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php $_homeUrl = rtrim(preg_replace('#/app/?$#', '', rtrim(base_url(), '/')), '/') . '/'; ?>
 
 <?php $pageTitle = 'Sign Up'; $this->load->view('login/header', ['pageTitle' => $pageTitle]); ?>
@@ -828,7 +828,7 @@ html, body {
     gap: 0.22rem;
 }
 .su-plan-card-meta span { display: flex; align-items: center; gap: 0.3rem; }
-.su-plan-card-meta .bx { font-size: 0.72rem; opacity: 0.7; }
+.su-plan-card-meta .bx { font-size:var(--r2k-text-sm); opacity: 0.7; }
 
 /* Free badge (inline next to plan name) */
 .su-plan-free-badge {
@@ -933,7 +933,7 @@ html, body {
                 </div>
                 <div style="display:flex;align-items:center;gap:0.7rem;margin-bottom:1.25rem;">
                     <div style="flex:1;height:1px;background:rgba(96,165,200,0.13);"></div>
-                    <span class="su-or-divider" style="font-size:0.72rem;color:rgba(160,190,215,0.38);white-space:nowrap;">or fill manually</span>
+                    <span class="su-or-divider" style="font-size:var(--r2k-text-sm);color:rgba(160,190,215,0.38);white-space:nowrap;">or fill manually</span>
                     <div style="flex:1;height:1px;background:rgba(96,165,200,0.13);"></div>
                 </div>
                 <?php endif; ?>

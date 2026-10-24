@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 
 $_listFmt = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
 $this->load->view('common/transactions/header'); ?>
@@ -14,7 +14,7 @@ $this->load->view('common/transactions/header'); ?>
 .rpt-icon-orange{background:#ffedd5}.rpt-icon-orange i{color:#ea580c}
 .rpt-icon-red{background:#fee2e2}.rpt-icon-red i{color:#dc2626}
 .rpt-stat-body{flex:1;min-width:0}
-.rpt-stat-label{font-size:.72rem;color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.03em}
+.rpt-stat-label{font-size:var(--r2k-text-sm);color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.03em}
 .rpt-stat-val{font-size:1.05rem;font-weight:700;color:#1e293b;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rpt-table-wrap{overflow-x:auto}
 .rpt-table{width:100%;border-collapse:collapse;font-size:.82rem}
@@ -36,8 +36,8 @@ $this->load->view('common/transactions/header'); ?>
 .rpt-footer-left{color:#64748b}
 .rpt-footer-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:8px;font-size:.78rem;font-weight:600}
 .rpt-footer-chip-green{background:#dcfce7;color:#15803d}
-.vs-brand-chip{display:inline-block;padding:1px 7px;border-radius:5px;font-size:.72rem;font-weight:600;background:#ffedd5;color:#c2410c}
-.vs-size-chip{display:inline-block;padding:1px 7px;border-radius:5px;font-size:.72rem;font-weight:600;background:#dbeafe;color:#1d4ed8}
+.vs-brand-chip{display:inline-block;padding:1px 7px;border-radius:5px;font-size:var(--r2k-text-sm);font-weight:600;background:#ffedd5;color:#c2410c}
+.vs-size-chip{display:inline-block;padding:1px 7px;border-radius:5px;font-size:var(--r2k-text-sm);font-weight:600;background:#dbeafe;color:#1d4ed8}
 @media(prefers-color-scheme:dark){
     .rpt-tbl-footer{border-color:#334155}
     .rpt-stat-card{background:#1e293b;border-color:#334155}

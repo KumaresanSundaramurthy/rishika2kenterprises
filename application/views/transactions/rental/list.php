@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php
 $cdnUrl     = getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN');
@@ -64,7 +64,7 @@ if (!empty($DataLists)):
         <!-- Rental # / Date -->
         <td>
             <div class="trans-doc-number fw-semibold"><?php echo htmlspecialchars($list->RentalNumber ?? '—'); ?></div>
-            <div class="text-muted" style="font-size:.72rem;">
+            <div class="text-muted" style="font-size:var(--r2k-text-sm);">
                 <?php echo $list->RentalStartDateTime ? format_datedisplay($list->RentalStartDateTime) : '—'; ?>
             </div>
         </td>
@@ -77,11 +77,11 @@ if (!empty($DataLists)):
                     <div class="trans-party-name"><?php echo r2k_party_name($list->CustomerName ?? '', $list->CustomerMobile ?? '', $list->CountryCode ?? '', $list->PartyArea ?? '', !empty($list->PartyImage) ? $cdnUrl . $list->PartyImage : ''); ?></div>
                     <?php if (!empty($list->PartyArea)): ?>
                     <div style="font-size:.7rem;color:#888;margin-top:1px;">
-                        <i class="bx bx-map" style="font-size:.72rem;"></i> <?php echo htmlspecialchars($list->PartyArea); ?>
+                        <i class="bx bx-map" style="font-size:var(--r2k-text-sm);"></i> <?php echo htmlspecialchars($list->PartyArea); ?>
                     </div>
                     <?php endif; ?>
                     <?php if ($rntHasMobile): ?>
-                    <div class="trans-party-mobile" style="font-size:.72rem;color:#666;margin-top:1px;">
+                    <div class="trans-party-mobile" style="font-size:var(--r2k-text-sm);color:#666;margin-top:1px;">
                         <?php echo ($rntCountryCode ? htmlspecialchars($rntCountryCode) . ' ' : '') . htmlspecialchars($rntMobileNum); ?>
                     </div>
                     <?php endif; ?>
@@ -166,7 +166,7 @@ if (!empty($DataLists)):
                 <?php echo $sb['label']; ?>
             </span>
             <div class="mt-1">
-                <span style="font-size:.68rem;font-weight:600;color:<?php echo $pb['color']; ?>;">
+                <span style="font-size:var(--r2k-text-xs);font-weight:600;color:<?php echo $pb['color']; ?>;">
                     <?php echo $pb['label']; ?>
                 </span>
             </div>

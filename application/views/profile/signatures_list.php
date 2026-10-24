@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php if (empty($signatures)): ?>
     <div class="text-center py-5">
@@ -33,12 +33,12 @@
                 <div class="card-body pb-2" style="background:#f8f9fc;border-radius:8px 8px 0 0;">
                     <div class="d-flex align-items-center justify-content-between mb-2">
                         <div class="d-flex align-items-center gap-2">
-                            <span class="badge <?php echo $isDraw ? 'bg-label-info' : 'bg-label-secondary'; ?>" style="font-size:0.68rem;">
+                            <span class="badge <?php echo $isDraw ? 'bg-label-info' : 'bg-label-secondary'; ?>" style="font-size:var(--r2k-text-xs);">
                                 <i class="bx <?php echo $isDraw ? 'bx-pencil' : 'bx-image'; ?> me-1"></i>
                                 <?php echo $isDraw ? 'Drawn' : 'Uploaded'; ?>
                             </span>
                             <?php if ($isDefault): ?>
-                            <span class="badge bg-label-primary" style="font-size:0.68rem;">
+                            <span class="badge bg-label-primary" style="font-size:var(--r2k-text-xs);">
                                 <i class="bx bx-star me-1"></i>Default
                             </span>
                             <?php endif; ?>
@@ -88,7 +88,7 @@
                             <div class="fw-semibold" style="font-size:0.875rem;">
                                 <?php echo htmlspecialchars($sig->Label ?? 'My Signature'); ?>
                             </div>
-                            <div class="text-muted" style="font-size:0.72rem;">
+                            <div class="text-muted" style="font-size:var(--r2k-text-sm);">
                                 <?php echo format_datedisplay($sig->CreatedOn ?? ''); ?>
                                 <?php if (!empty($sig->FileSize)): ?>
                                 &nbsp;&bull;&nbsp;<?php echo round($sig->FileSize / 1024, 1); ?> KB

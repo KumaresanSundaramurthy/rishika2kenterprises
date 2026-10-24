@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var array $Income */  $Income  = $Income  ?? [];
 /** @var array $Expense */ $Expense = $Expense ?? [];
 /** @var array $Totals */  $Totals  = $Totals  ?? [];
@@ -26,7 +26,7 @@ function _bvaFmt(?float $n, string $cur): string {
  * @returns string
  */
 function _bvaPctBadge(?float $pct, string $type): string {
-    if ($pct === null) return '<span class="text-muted" style="font-size:.72rem;">—</span>';
+    if ($pct === null) return '<span class="text-muted" style="font-size:var(--r2k-text-sm);">—</span>';
     if ($type === 'income') {
         $cls = $pct >= 100 ? 'bg-success' : ($pct >= 75 ? 'bg-primary' : 'bg-warning');
     } else {

@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <div class="modal fade" id="stockOutModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" style="max-width:540px;">
@@ -77,7 +77,7 @@
                             <label class="form-label fw-semibold mb-1" style="font-size:.8rem;">Price</label>
                             <input type="number" class="form-control form-control-sm" id="soPrice" min="0" step="any"
                                    placeholder="0.00" oninput="invCalcStockValue('out')">
-                            <div class="text-muted mt-1" style="font-size:.68rem;">Includes tax</div>
+                            <div class="text-muted mt-1" style="font-size:var(--r2k-text-xs);">Includes tax</div>
                         </div>
                         <div class="col-4">
                             <label class="form-label fw-semibold mb-1" style="font-size:.8rem;">Price Type</label>

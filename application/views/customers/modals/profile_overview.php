@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 /**
  * Customer Profile Modal — Overview Tab
  *
@@ -61,7 +61,7 @@ $initials = strtoupper(substr($words[0] ?? '', 0, 1)) . strtoupper(substr($words
                         <i class="bx bx-heart-circle me-1"></i><?php echo htmlspecialchars($HealthData['HealthScore']); ?>
                     </span>
                     <?php if ($HealthData['OverdueCount'] > 0): ?>
-                    <span class="badge bg-label-danger" style="font-size:.72rem;">
+                    <span class="badge bg-label-danger" style="font-size:var(--r2k-text-sm);">
                         <i class="bx bx-error-circle me-1"></i><?php echo $HealthData['OverdueCount']; ?> overdue
                     </span>
                     <?php endif; ?>
@@ -94,7 +94,7 @@ $initials = strtoupper(substr($words[0] ?? '', 0, 1)) . strtoupper(substr($words
 
                         <?php if (!empty($Cust->MobileNumber)): ?>
                         <div class="col-sm-6">
-                            <div class="text-muted mb-1" style="font-size:.72rem;">Mobile</div>
+                            <div class="text-muted mb-1" style="font-size:var(--r2k-text-sm);">Mobile</div>
                             <div class="fw-semibold">
                                 <?php if (!empty($Cust->CountryCode)): ?>
                                     <span class="text-muted"><?php echo htmlspecialchars($Cust->CountryCode); ?></span>
@@ -110,35 +110,35 @@ $initials = strtoupper(substr($words[0] ?? '', 0, 1)) . strtoupper(substr($words
 
                         <?php if (!empty($Cust->EmailAddress)): ?>
                         <div class="col-sm-6">
-                            <div class="text-muted mb-1" style="font-size:.72rem;">Email</div>
+                            <div class="text-muted mb-1" style="font-size:var(--r2k-text-sm);">Email</div>
                             <div class="fw-semibold text-truncate"><?php echo htmlspecialchars($Cust->EmailAddress); ?></div>
                         </div>
                         <?php endif; ?>
 
                         <?php if (!empty($Cust->CompanyName)): ?>
                         <div class="col-sm-6">
-                            <div class="text-muted mb-1" style="font-size:.72rem;">Company</div>
+                            <div class="text-muted mb-1" style="font-size:var(--r2k-text-sm);">Company</div>
                             <div><?php echo htmlspecialchars($Cust->CompanyName); ?></div>
                         </div>
                         <?php endif; ?>
 
                         <?php if (!empty($Cust->Area)): ?>
                         <div class="col-sm-6">
-                            <div class="text-muted mb-1" style="font-size:.72rem;">Area</div>
+                            <div class="text-muted mb-1" style="font-size:var(--r2k-text-sm);">Area</div>
                             <div><?php echo htmlspecialchars($Cust->Area); ?></div>
                         </div>
                         <?php endif; ?>
 
                         <?php if (!empty($Cust->ContactPerson)): ?>
                         <div class="col-sm-6">
-                            <div class="text-muted mb-1" style="font-size:.72rem;">Contact Person</div>
+                            <div class="text-muted mb-1" style="font-size:var(--r2k-text-sm);">Contact Person</div>
                             <div><?php echo htmlspecialchars($Cust->ContactPerson); ?></div>
                         </div>
                         <?php endif; ?>
 
                         <?php if (!empty($Cust->DateOfBirth)): ?>
                         <div class="col-sm-6">
-                            <div class="text-muted mb-1" style="font-size:.72rem;">Date of Birth</div>
+                            <div class="text-muted mb-1" style="font-size:var(--r2k-text-sm);">Date of Birth</div>
                             <div><?php echo date($DateFormat, strtotime($Cust->DateOfBirth)); ?></div>
                         </div>
                         <?php endif; ?>
@@ -158,35 +158,35 @@ $initials = strtoupper(substr($words[0] ?? '', 0, 1)) . strtoupper(substr($words
 
                         <?php if (!empty($Cust->GSTIN)): ?>
                         <div class="col-sm-6">
-                            <div class="text-muted mb-1" style="font-size:.72rem;">GSTIN</div>
+                            <div class="text-muted mb-1" style="font-size:var(--r2k-text-sm);">GSTIN</div>
                             <div class="fw-semibold" style="font-family:monospace;"><?php echo htmlspecialchars($Cust->GSTIN); ?></div>
                         </div>
                         <?php endif; ?>
 
                         <?php if (!empty($Cust->PANNumber)): ?>
                         <div class="col-sm-6">
-                            <div class="text-muted mb-1" style="font-size:.72rem;">PAN</div>
+                            <div class="text-muted mb-1" style="font-size:var(--r2k-text-sm);">PAN</div>
                             <div style="font-family:monospace;"><?php echo htmlspecialchars($Cust->PANNumber); ?></div>
                         </div>
                         <?php endif; ?>
 
                         <?php if (!empty($Cust->CreditLimit) && $Cust->CreditLimit > 0): ?>
                         <div class="col-sm-6">
-                            <div class="text-muted mb-1" style="font-size:.72rem;">Credit Limit</div>
+                            <div class="text-muted mb-1" style="font-size:var(--r2k-text-sm);">Credit Limit</div>
                             <div><?php echo $fmt((float)$Cust->CreditLimit); ?></div>
                         </div>
                         <?php endif; ?>
 
                         <?php if (!empty($Cust->CreditPeriod) && $Cust->CreditPeriod > 0): ?>
                         <div class="col-sm-6">
-                            <div class="text-muted mb-1" style="font-size:.72rem;">Credit Period</div>
+                            <div class="text-muted mb-1" style="font-size:var(--r2k-text-sm);">Credit Period</div>
                             <div><?php echo (int)$Cust->CreditPeriod; ?> days</div>
                         </div>
                         <?php endif; ?>
 
                         <?php if (!empty($Cust->DiscountPercent) && $Cust->DiscountPercent > 0): ?>
                         <div class="col-sm-6">
-                            <div class="text-muted mb-1" style="font-size:.72rem;">Default Discount</div>
+                            <div class="text-muted mb-1" style="font-size:var(--r2k-text-sm);">Default Discount</div>
                             <div><?php echo smartDecimal($Cust->DiscountPercent ?? 0); ?>%</div>
                         </div>
                         <?php endif; ?>
@@ -197,7 +197,7 @@ $initials = strtoupper(substr($words[0] ?? '', 0, 1)) . strtoupper(substr($words
                         if ($obVal > 0):
                         ?>
                         <div class="col-sm-6">
-                            <div class="text-muted mb-1" style="font-size:.72rem;">Opening Balance</div>
+                            <div class="text-muted mb-1" style="font-size:var(--r2k-text-sm);">Opening Balance</div>
                             <div class="<?php echo $obType === 'Debit' ? 'text-success' : 'text-danger'; ?>">
                                 <?php echo $fmt($obVal); ?>
                                 <span class="badge bg-label-secondary ms-1" style="font-size:.65rem;"><?php echo $obType === 'Debit' ? 'To Collect' : 'To Pay'; ?></span>
@@ -220,7 +220,7 @@ $initials = strtoupper(substr($words[0] ?? '', 0, 1)) . strtoupper(substr($words
                     <div class="row g-3" style="font-size:.82rem;">
                         <?php if ($BillingAddr): ?>
                         <div class="col-sm-6">
-                            <div class="text-muted mb-1" style="font-size:.72rem;">Billing Address</div>
+                            <div class="text-muted mb-1" style="font-size:var(--r2k-text-sm);">Billing Address</div>
                             <div>
                                 <?php
                                 $bParts = array_filter([
@@ -237,7 +237,7 @@ $initials = strtoupper(substr($words[0] ?? '', 0, 1)) . strtoupper(substr($words
                         <?php endif; ?>
                         <?php if ($ShippingAddr): ?>
                         <div class="col-sm-6">
-                            <div class="text-muted mb-1" style="font-size:.72rem;">Shipping Address</div>
+                            <div class="text-muted mb-1" style="font-size:var(--r2k-text-sm);">Shipping Address</div>
                             <div>
                                 <?php
                                 $sParts = array_filter([
@@ -306,7 +306,7 @@ $initials = strtoupper(substr($words[0] ?? '', 0, 1)) . strtoupper(substr($words
                                         <i class="bx <?php echo $card['icon']; ?>" style="font-size:.9rem;"></i>
                                     </span>
                                 </div>
-                                <span class="text-muted" style="font-size:.72rem;"><?php echo $card['label']; ?></span>
+                                <span class="text-muted" style="font-size:var(--r2k-text-sm);"><?php echo $card['label']; ?></span>
                             </div>
                             <div class="fw-bold text-<?php echo $card['color']; ?>" style="font-size:.92rem;"><?php echo $card['value']; ?></div>
                             <div class="text-muted" style="font-size:.7rem;"><?php echo $card['sub']; ?></div>
@@ -332,15 +332,15 @@ $initials = strtoupper(substr($words[0] ?? '', 0, 1)) . strtoupper(substr($words
                 <div class="card-body p-3">
                     <div class="row g-2 text-center" style="font-size:.8rem;">
                         <div class="col-4">
-                            <div class="text-muted mb-1" style="font-size:.68rem;">Revenue</div>
+                            <div class="text-muted mb-1" style="font-size:var(--r2k-text-xs);">Revenue</div>
                             <div class="fw-bold text-primary" style="font-size:.82rem;"><?php echo $fmt($Profitability['Revenue']); ?></div>
                         </div>
                         <div class="col-4">
-                            <div class="text-muted mb-1" style="font-size:.68rem;">Est. COGS</div>
+                            <div class="text-muted mb-1" style="font-size:var(--r2k-text-xs);">Est. COGS</div>
                             <div class="fw-bold text-danger" style="font-size:.82rem;"><?php echo $fmt($Profitability['COGS']); ?></div>
                         </div>
                         <div class="col-4">
-                            <div class="text-muted mb-1" style="font-size:.68rem;">Gross Profit</div>
+                            <div class="text-muted mb-1" style="font-size:var(--r2k-text-xs);">Gross Profit</div>
                             <div class="fw-bold text-<?php echo $Profitability['Profit'] >= 0 ? 'success' : 'danger'; ?>" style="font-size:.82rem;">
                                 <?php echo $fmt(abs($Profitability['Profit'])); ?>
                             </div>
@@ -379,7 +379,7 @@ $initials = strtoupper(substr($words[0] ?? '', 0, 1)) . strtoupper(substr($words
                                 <?php echo $Cur . number_format($row['Total'] / 1000, 1); ?>k
                             </div>
                             <div class="w-100 rounded-top" style="height:<?php echo max(4, $pct); ?>px;background:#696cff;opacity:.8;min-width:20px;"></div>
-                            <div class="text-muted" style="font-size:.68rem;"><?php echo htmlspecialchars($monthLbl); ?></div>
+                            <div class="text-muted" style="font-size:var(--r2k-text-xs);"><?php echo htmlspecialchars($monthLbl); ?></div>
                         </div>
                         <?php endforeach; ?>
                     </div>

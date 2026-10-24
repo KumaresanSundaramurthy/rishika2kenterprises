@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <style>
 #commAttachList .prod-attach-item { cursor: pointer; }
@@ -99,7 +99,7 @@
                     <div class="mb-3">
                         <div class="d-flex align-items-center justify-content-between mb-1">
                             <label class="form-label fw-semibold small mb-0">Subject <span class="text-danger">*</span></label>
-                            <button type="button" id="CommTokenToggleBtn" class="btn btn-xs btn-outline-secondary d-none" style="font-size:.72rem;padding:2px 8px;line-height:1.4;">
+                            <button type="button" id="CommTokenToggleBtn" class="btn btn-xs btn-outline-secondary d-none" style="font-size:var(--r2k-text-sm);padding:2px 8px;line-height:1.4;">
                                 <i class="bx bx-code-alt me-1"></i><span id="CommTokenToggleLabel">Show Tokens</span>
                             </button>
                         </div>

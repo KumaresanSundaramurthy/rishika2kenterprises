@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -65,7 +65,7 @@ body {
     display: flex;
     align-items: center;
     gap: 0.4rem;
-    font-size: 0.72rem;
+    font-size:var(--r2k-text-sm);
     color: rgba(160, 190, 215, 0.45);
     border: 1px solid rgba(105, 108, 255, 0.12);
     border-radius: 100px;

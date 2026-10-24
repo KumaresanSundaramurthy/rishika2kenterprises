@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Renders a party avatar inline.
  * Call: partyAvatar($list->PartyName, $list->PartyImage ?? null, $cdnUrl)
@@ -23,7 +23,7 @@ if (!function_exists('partyAvatar')) {
                . '</div>';
         } else {
             echo '<div class="avatar avatar-sm flex-shrink-0">'
-               . '<span class="avatar-initial rounded-circle bg-label-primary" style="font-size:.72rem;">'
+               . '<span class="avatar-initial rounded-circle bg-label-primary" style="font-size:var(--r2k-text-sm);">'
                . htmlspecialchars($initials ?: '?')
                . '</span>'
                . '</div>';

@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 $this->load->view('common/transactions/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -795,7 +795,7 @@ $(function () {
                         html += '  <div style="min-width:0;">';
                         html += '    <div style="font-size:.83rem;font-weight:600;color:#d97706;">' + expCurSymbol + ' ' + amt + '</div>';
                         html += '    <div style="font-size:.75rem;color:#566a7f;">' + (p.PaymentTypeName || '—') + '</div>';
-                        if (date) html += '  <div style="font-size:.72rem;color:#aaa;margin-top:1px;">' + date + '</div>';
+                        if (date) html += '  <div style="font-size:var(--r2k-text-sm);color:#aaa;margin-top:1px;">' + date + '</div>';
                         html += '  </div>';
                         html += '</div>';
                     });

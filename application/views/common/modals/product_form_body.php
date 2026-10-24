@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php
 $CI =& get_instance();
 $_orgUID          = (int)($CI->pageData['JwtData']->Org->OrgUID ?? 0);
@@ -324,7 +324,7 @@ if (!empty($_JwtData->GenSettings->EnableStorage)) {
                 </div>
                 <div class="mb-3 col-md-4">
                     <label for="IsRentable" class="form-label d-block">Is Rentable
-                        <span class="badge bg-label-warning ms-1" style="font-size:.68rem;">Rental</span>
+                        <span class="badge bg-label-warning ms-1" style="font-size:var(--r2k-text-xs);">Rental</span>
                     </label>
                     <label class="switch switch-warning switch-lg">
                         <input type="checkbox" id="IsRentable" name="IsRentable" class="switch-input">

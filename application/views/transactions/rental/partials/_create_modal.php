@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <div class="modal fade modal-select2-search" id="rntCreateModal" tabindex="-1"
      data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true">
@@ -124,7 +124,7 @@
                                         <span class="input-group-text"><?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?></span>
                                         <input type="number" id="rntDepositCollected" class="form-control" value="0" min="0" step="any">
                                     </div>
-                                    <div id="rntDepositSuggestion" class="text-muted mt-1" style="font-size:.72rem;"></div>
+                                    <div id="rntDepositSuggestion" class="text-muted mt-1" style="font-size:var(--r2k-text-sm);"></div>
                                 </div>
 
                                 <!-- Deposit Payment Type -->

@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 /**
  * Vendor Profile Modal — Overview Tab
  *
@@ -74,7 +74,7 @@ $initials = strtoupper(substr($words[0] ?? '', 0, 1)) . strtoupper(substr($words
 
                         <?php if (!empty($Vend->MobileNumber)): ?>
                         <div class="col-sm-6">
-                            <div class="text-muted mb-1" style="font-size:.72rem;">Mobile</div>
+                            <div class="text-muted mb-1" style="font-size:var(--r2k-text-sm);">Mobile</div>
                             <div class="fw-semibold">
                                 <?php if (!empty($Vend->CountryCode)): ?>
                                     <span class="text-muted"><?php echo htmlspecialchars($Vend->CountryCode); ?></span>
@@ -90,28 +90,28 @@ $initials = strtoupper(substr($words[0] ?? '', 0, 1)) . strtoupper(substr($words
 
                         <?php if (!empty($Vend->EmailAddress)): ?>
                         <div class="col-sm-6">
-                            <div class="text-muted mb-1" style="font-size:.72rem;">Email</div>
+                            <div class="text-muted mb-1" style="font-size:var(--r2k-text-sm);">Email</div>
                             <div class="fw-semibold text-truncate"><?php echo htmlspecialchars($Vend->EmailAddress); ?></div>
                         </div>
                         <?php endif; ?>
 
                         <?php if (!empty($Vend->CompanyName)): ?>
                         <div class="col-sm-6">
-                            <div class="text-muted mb-1" style="font-size:.72rem;">Company</div>
+                            <div class="text-muted mb-1" style="font-size:var(--r2k-text-sm);">Company</div>
                             <div><?php echo htmlspecialchars($Vend->CompanyName); ?></div>
                         </div>
                         <?php endif; ?>
 
                         <?php if (!empty($Vend->Area)): ?>
                         <div class="col-sm-6">
-                            <div class="text-muted mb-1" style="font-size:.72rem;">Area</div>
+                            <div class="text-muted mb-1" style="font-size:var(--r2k-text-sm);">Area</div>
                             <div><?php echo htmlspecialchars($Vend->Area); ?></div>
                         </div>
                         <?php endif; ?>
 
                         <?php if (!empty($Vend->ContactPerson)): ?>
                         <div class="col-sm-6">
-                            <div class="text-muted mb-1" style="font-size:.72rem;">Contact Person</div>
+                            <div class="text-muted mb-1" style="font-size:var(--r2k-text-sm);">Contact Person</div>
                             <div><?php echo htmlspecialchars($Vend->ContactPerson); ?></div>
                         </div>
                         <?php endif; ?>
@@ -131,14 +131,14 @@ $initials = strtoupper(substr($words[0] ?? '', 0, 1)) . strtoupper(substr($words
 
                         <?php if (!empty($Vend->GSTIN)): ?>
                         <div class="col-sm-6">
-                            <div class="text-muted mb-1" style="font-size:.72rem;">GSTIN</div>
+                            <div class="text-muted mb-1" style="font-size:var(--r2k-text-sm);">GSTIN</div>
                             <div class="fw-semibold" style="font-family:monospace;"><?php echo htmlspecialchars($Vend->GSTIN); ?></div>
                         </div>
                         <?php endif; ?>
 
                         <?php if (!empty($Vend->PANNumber)): ?>
                         <div class="col-sm-6">
-                            <div class="text-muted mb-1" style="font-size:.72rem;">PAN</div>
+                            <div class="text-muted mb-1" style="font-size:var(--r2k-text-sm);">PAN</div>
                             <div style="font-family:monospace;"><?php echo htmlspecialchars($Vend->PANNumber); ?></div>
                         </div>
                         <?php endif; ?>
@@ -149,7 +149,7 @@ $initials = strtoupper(substr($words[0] ?? '', 0, 1)) . strtoupper(substr($words
                         if ($obVal > 0):
                         ?>
                         <div class="col-sm-6">
-                            <div class="text-muted mb-1" style="font-size:.72rem;">Opening Balance</div>
+                            <div class="text-muted mb-1" style="font-size:var(--r2k-text-sm);">Opening Balance</div>
                             <div class="<?php echo $obType === 'Credit' ? 'text-danger' : 'text-success'; ?>">
                                 <?php echo $fmt($obVal); ?>
                                 <span class="badge bg-label-secondary ms-1" style="font-size:.65rem;"><?php echo $obType === 'Credit' ? 'To Pay' : 'Advance'; ?></span>
@@ -172,7 +172,7 @@ $initials = strtoupper(substr($words[0] ?? '', 0, 1)) . strtoupper(substr($words
                     <div class="row g-3" style="font-size:.82rem;">
                         <?php if ($BillingAddr): ?>
                         <div class="col-sm-6">
-                            <div class="text-muted mb-1" style="font-size:.72rem;">Billing Address</div>
+                            <div class="text-muted mb-1" style="font-size:var(--r2k-text-sm);">Billing Address</div>
                             <div>
                                 <?php
                                 $bParts = array_filter([
@@ -189,7 +189,7 @@ $initials = strtoupper(substr($words[0] ?? '', 0, 1)) . strtoupper(substr($words
                         <?php endif; ?>
                         <?php if ($ShippingAddr): ?>
                         <div class="col-sm-6">
-                            <div class="text-muted mb-1" style="font-size:.72rem;">Shipping Address</div>
+                            <div class="text-muted mb-1" style="font-size:var(--r2k-text-sm);">Shipping Address</div>
                             <div>
                                 <?php
                                 $sParts = array_filter([
@@ -258,7 +258,7 @@ $initials = strtoupper(substr($words[0] ?? '', 0, 1)) . strtoupper(substr($words
                                         <i class="bx <?php echo $card['icon']; ?>" style="font-size:.9rem;"></i>
                                     </span>
                                 </div>
-                                <span class="text-muted" style="font-size:.72rem;"><?php echo $card['label']; ?></span>
+                                <span class="text-muted" style="font-size:var(--r2k-text-sm);"><?php echo $card['label']; ?></span>
                             </div>
                             <div class="fw-bold text-<?php echo $card['color']; ?>" style="font-size:.92rem;"><?php echo $card['value']; ?></div>
                             <div class="text-muted" style="font-size:.7rem;"><?php echo $card['sub']; ?></div>
@@ -294,7 +294,7 @@ $initials = strtoupper(substr($words[0] ?? '', 0, 1)) . strtoupper(substr($words
                                 <?php echo $Cur . number_format($row['Total'] / 1000, 1); ?>k
                             </div>
                             <div class="w-100 rounded-top" style="height:<?php echo max(4, $pct); ?>px;background:#f59e0b;opacity:.8;min-width:20px;"></div>
-                            <div class="text-muted" style="font-size:.68rem;"><?php echo htmlspecialchars($monthLbl); ?></div>
+                            <div class="text-muted" style="font-size:var(--r2k-text-xs);"><?php echo htmlspecialchars($monthLbl); ?></div>
                         </div>
                         <?php endforeach; ?>
                     </div>

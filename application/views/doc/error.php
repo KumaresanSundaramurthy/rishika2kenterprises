@@ -4,9 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Document Not Available</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;display:flex;align-items:center;justify-content:center;min-height:100vh;}
+body{font-family:'Public Sans',sans-serif;background:#f0f4f8;display:flex;align-items:center;justify-content:center;min-height:100vh;}
 .box{background:#fff;border-radius:14px;padding:44px 36px;text-align:center;max-width:400px;width:90%;box-shadow:0 4px 24px rgba(0,0,0,.09);}
 .icon{font-size:52px;margin-bottom:18px;}
 .title{font-size:18px;font-weight:700;color:#1e293b;margin-bottom:10px;}

@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var array $FinancialYears */ $FinancialYears = $FinancialYears ?? [];
 /** @var int   $DefaultFY */      $DefaultFY      = $DefaultFY      ?? (int)date('Y');
 $cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
@@ -57,25 +57,25 @@ $this->load->view('common/header'); ?>
                         <div class="row g-3">
                             <div class="col-6 col-md-3">
                                 <div class="card text-center py-3">
-                                    <div class="text-muted" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.3px;">Total Accounts</div>
+                                    <div class="text-muted" style="font-size:var(--r2k-text-sm);text-transform:uppercase;letter-spacing:.3px;">Total Accounts</div>
                                     <div class="fw-bold mt-1" id="tbStatCount" style="font-size:1.2rem;color:#7c3aed;">—</div>
                                 </div>
                             </div>
                             <div class="col-6 col-md-3">
                                 <div class="card text-center py-3">
-                                    <div class="text-muted" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.3px;">Total Debits</div>
+                                    <div class="text-muted" style="font-size:var(--r2k-text-sm);text-transform:uppercase;letter-spacing:.3px;">Total Debits</div>
                                     <div class="fw-bold mt-1 text-success" id="tbStatDr" style="font-size:1.1rem;">—</div>
                                 </div>
                             </div>
                             <div class="col-6 col-md-3">
                                 <div class="card text-center py-3">
-                                    <div class="text-muted" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.3px;">Total Credits</div>
+                                    <div class="text-muted" style="font-size:var(--r2k-text-sm);text-transform:uppercase;letter-spacing:.3px;">Total Credits</div>
                                     <div class="fw-bold mt-1 text-danger" id="tbStatCr" style="font-size:1.1rem;">—</div>
                                 </div>
                             </div>
                             <div class="col-6 col-md-3">
                                 <div class="card text-center py-3">
-                                    <div class="text-muted" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.3px;">Status</div>
+                                    <div class="text-muted" style="font-size:var(--r2k-text-sm);text-transform:uppercase;letter-spacing:.3px;">Status</div>
                                     <div class="fw-bold mt-1" id="tbStatStatus" style="font-size:1rem;">—</div>
                                 </div>
                             </div>

@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 $this->load->view('common/transactions/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -164,7 +164,7 @@ $this->load->view('common/transactions/header'); ?>
                                         </div>
                                         <div class="min-w-0">
                                             <div style="font-size:.95rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" id="dcPRModalTitle">Partial / Full Return</div>
-                                            <div style="font-size:.72rem;color:rgba(255,255,255,.75);">Enter qty to return for each item</div>
+                                            <div style="font-size:var(--r2k-text-sm);color:rgba(255,255,255,.75);">Enter qty to return for each item</div>
                                         </div>
                                     </div>
                                     <button type="button" class="btn-close btn-close-white ms-3" data-bs-dismiss="modal"></button>
@@ -567,7 +567,7 @@ $(function () {
                     var unit       = $('<span>').text(item.UnitName || '').html();
                     var allowDec   = _isDecimalUnit(item.UnitName);
                     var step       = allowDec ? '0.001' : '1';
-                    var unitSpan   = unit ? '<span class="text-muted ms-1" style="font-size:.72rem;font-weight:400;">' + unit + '</span>' : '';
+                    var unitSpan   = unit ? '<span class="text-muted ms-1" style="font-size:var(--r2k-text-sm);font-weight:400;">' + unit + '</span>' : '';
                     var stillColor = stillOut > 0 ? '#0f766e' : '#6c757d';
                     rows += '<tr class="' + rowClass + '">' +
                         '<td class="px-3" style="font-size:.83rem;">' +
@@ -586,7 +586,7 @@ $(function () {
                                     'min="0" max="' + stillOut + '" step="' + step + '" ' +
                                     'value="0" ' + disabled + ' ' +
                                     'style="width:75px;">' +
-                                (unit ? '<span class="text-muted" style="font-size:.72rem;white-space:nowrap;">' + unit + '</span>' : '') +
+                                (unit ? '<span class="text-muted" style="font-size:var(--r2k-text-sm);white-space:nowrap;">' + unit + '</span>' : '') +
                             '</div>' +
                         '</td>' +
                     '</tr>';

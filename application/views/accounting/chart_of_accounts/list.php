@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var int $SerialNumber */ $SerialNumber = $SerialNumber ?? 0;
 $cur     = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
 $dateFmt = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
@@ -45,14 +45,14 @@ if (!empty($DataLists)):
     <td>
         <div class="fw-semibold" style="font-size:.84rem;"><?php echo htmlspecialchars($row->LedgerName ?? ''); ?></div>
         <?php if (!empty($row->ParentLedgerName)): ?>
-        <div class="text-muted" style="font-size:.72rem;"><i class="bx bx-subdirectory-right me-1"></i><?php echo htmlspecialchars($row->ParentLedgerName); ?></div>
+        <div class="text-muted" style="font-size:var(--r2k-text-sm);"><i class="bx bx-subdirectory-right me-1"></i><?php echo htmlspecialchars($row->ParentLedgerName); ?></div>
         <?php endif; ?>
     </td>
-    <td><span class="badge <?php echo $badge; ?>" style="font-size:.72rem;"><?php echo htmlspecialchars($row->LedgerType ?? ''); ?></span></td>
+    <td><span class="badge <?php echo $badge; ?>" style="font-size:var(--r2k-text-sm);"><?php echo htmlspecialchars($row->LedgerType ?? ''); ?></span></td>
     <td class="text-muted" style="font-size:.8rem;"><?php echo htmlspecialchars($row->ParentLedgerName ?? '—'); ?></td>
     <td class="text-end fw-semibold <?php echo $balClass; ?>" style="font-size:.84rem;">
         <?php echo $cur . ' ' . smartDecimal($row->CurrentBalance ?? 0); ?>
-        <div class="text-muted" style="font-size:.68rem;font-weight:400;"><?php echo htmlspecialchars($row->CurrentBalanceType ?? 'Debit'); ?></div>
+        <div class="text-muted" style="font-size:var(--r2k-text-xs);font-weight:400;"><?php echo htmlspecialchars($row->CurrentBalanceType ?? 'Debit'); ?></div>
     </td>
     <td class="text-center">
         <span class="badge <?php echo $isActive ? 'bg-label-success' : 'bg-label-danger'; ?>" style="font-size:.7rem;">

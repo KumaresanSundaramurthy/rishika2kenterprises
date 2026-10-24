@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <!-- ── Template Create / Edit Modal ──────────────────────────────────────── -->
 <div class="modal fade" id="templateModal" tabindex="-1" aria-hidden="true">
@@ -86,7 +86,7 @@
                             </span>
                         </label>
                         <textarea class="form-control font-monospace" id="TplPreviewHtmlContent"
-                            rows="10" style="font-size:.72rem;resize:vertical;"
+                            rows="10" style="font-size:var(--r2k-text-sm);resize:vertical;"
                             placeholder="Paste a simplified HTML snippet for live preview (tokens like {{PRIMARY_COLOR}}, {{ORG_NAME}}, {{FOOTER_TEXT}} are replaced in real-time)…"></textarea>
                     </div>
 
@@ -110,7 +110,7 @@
                             <code>{{FONT_SIZE}}</code> <code>{{ORG_LOGO}}</code>
                         </div>
                         <textarea class="form-control font-monospace" id="TplHtmlContent"
-                            rows="14" style="font-size:.72rem;resize:vertical;"
+                            rows="14" style="font-size:var(--r2k-text-sm);resize:vertical;"
                             placeholder="Paste full HTML template here with {{PLACEHOLDER}} tokens…"></textarea>
                     </div>
 

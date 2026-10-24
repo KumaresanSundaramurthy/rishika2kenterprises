@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 $_stats    = $this->pageData['TodoStats']  ?? ['total' => 0, 'active' => 0, 'overdue' => 0, 'today' => 0, 'completed' => 0];
 $_userList = $this->pageData['UserList']   ?? [];
 $_myUID    = (int)($this->pageData['JwtData']->User->UserUID ?? 0);
@@ -20,7 +20,7 @@ $_myUID    = (int)($this->pageData['JwtData']->User->UserUID ?? 0);
 .todo-due-overdue{color:#dc2626;font-weight:600}
 .todo-due-today  {color:#ea580c;font-weight:600}
 .todo-due-soon   {color:#ca8a04}
-.todo-ref-chip{display:inline-block;padding:1px 7px;border-radius:4px;font-size:.68rem;font-weight:600;background:#e0e7ff;color:#4338ca;margin-top:2px}
+.todo-ref-chip{display:inline-block;padding:1px 7px;border-radius:4px;font-size:var(--r2k-text-xs);font-weight:600;background:#e0e7ff;color:#4338ca;margin-top:2px}
 .todo-done-cb{width:16px;height:16px;cursor:pointer;accent-color:#22c55e;flex-shrink:0}
 .todo-title-wrap{display:flex;flex-direction:column;gap:2px}
 .todo-title{font-weight:500;font-size:.83rem;color:#1e293b}

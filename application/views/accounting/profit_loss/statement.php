@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var array $Income */   $Income      = $Income      ?? [];
 /** @var array $Expense */  $Expense     = $Expense     ?? [];
 /** @var float $TotalIncome */  $TotalIncome  = (float)($TotalIncome  ?? 0);
@@ -121,14 +121,14 @@ function _plFmt(float $n, string $cur): string {
             <tr class="pl-net <?php echo $isLoss ? 'pl-net-loss' : 'pl-net-profit'; ?>">
                 <td class="fw-bold" style="font-size:.95rem;padding:12px 16px;">
                     <?php echo $isLoss ? 'NET LOSS' : 'NET PROFIT'; ?>
-                    <div class="text-muted fw-normal" style="font-size:.72rem;margin-top:2px;">
+                    <div class="text-muted fw-normal" style="font-size:var(--r2k-text-sm);margin-top:2px;">
                         Income <?php echo $TotalIncome >= $TotalExpense ? '−' : '+'; ?> Expenses
                     </div>
                 </td>
                 <td class="text-end fw-bold" style="font-size:1rem;padding:12px 16px;width:150px;
                     <?php echo $isLoss ? 'color:#dc2626;' : 'color:#16a34a;'; ?>">
                     <?php echo $cur . ' ' . smartDecimal(abs($NetProfit)); ?>
-                    <?php if ($isLoss): ?><div style="font-size:.72rem;font-weight:400;">(Loss)</div><?php endif; ?>
+                    <?php if ($isLoss): ?><div style="font-size:var(--r2k-text-sm);font-weight:400;">(Loss)</div><?php endif; ?>
                 </td>
             </tr>
         </tbody>

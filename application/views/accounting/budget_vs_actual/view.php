@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 $cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? 'â‚¹');
 $this->load->view('common/header'); ?>
 
@@ -73,7 +73,7 @@ $this->load->view('common/header'); ?>
                                     <div>
                                         <div class="text-muted" style="font-size:.75rem;">Budget Income</div>
                                         <div class="fw-bold text-success" style="font-size:1rem;" id="bvaSumBudgetInc">—</div>
-                                        <div class="text-muted" style="font-size:.72rem;">Actual: <span id="bvaSumActualInc">—</span></div>
+                                        <div class="text-muted" style="font-size:var(--r2k-text-sm);">Actual: <span id="bvaSumActualInc">—</span></div>
                                     </div>
                                 </div>
                             </div>
@@ -85,7 +85,7 @@ $this->load->view('common/header'); ?>
                                     <div>
                                         <div class="text-muted" style="font-size:.75rem;">Budget Expense</div>
                                         <div class="fw-bold text-danger" style="font-size:1rem;" id="bvaSumBudgetExp">—</div>
-                                        <div class="text-muted" style="font-size:.72rem;">Actual: <span id="bvaSumActualExp">—</span></div>
+                                        <div class="text-muted" style="font-size:var(--r2k-text-sm);">Actual: <span id="bvaSumActualExp">—</span></div>
                                     </div>
                                 </div>
                             </div>
@@ -97,7 +97,7 @@ $this->load->view('common/header'); ?>
                                     <div>
                                         <div class="text-muted" style="font-size:.75rem;">Budget Net Profit</div>
                                         <div class="fw-bold" style="font-size:1rem;" id="bvaSumBudgetNet">—</div>
-                                        <div class="text-muted" style="font-size:.72rem;">Actual: <span id="bvaSumActualNet">—</span></div>
+                                        <div class="text-muted" style="font-size:var(--r2k-text-sm);">Actual: <span id="bvaSumActualNet">—</span></div>
                                     </div>
                                 </div>
                             </div>
@@ -109,7 +109,7 @@ $this->load->view('common/header'); ?>
                                     <div>
                                         <div class="text-muted" style="font-size:.75rem;">Net Variance</div>
                                         <div class="fw-bold" style="font-size:1rem;" id="bvaSumNetVar">—</div>
-                                        <div class="text-muted" style="font-size:.72rem;" id="bvaSumVarLabel">vs Budget</div>
+                                        <div class="text-muted" style="font-size:var(--r2k-text-sm);" id="bvaSumVarLabel">vs Budget</div>
                                     </div>
                                 </div>
                             </div>

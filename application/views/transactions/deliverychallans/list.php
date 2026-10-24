@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php
 $cdnUrl = getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN');
@@ -49,7 +49,7 @@ if (!empty($DataLists)):
             $dueTs = strtotime($list->ExpectedDeliveryDate);
             if ($dueTs < $today) {
                 $dueClass = 'trans-due-overdue';
-                $dueTag   = '<br><span style="font-size:.68rem;">Overdue</span>';
+                $dueTag   = '<br><span style="font-size:var(--r2k-text-xs);">Overdue</span>';
             } elseif ($dueTs <= strtotime('+3 days')) {
                 $dueClass = 'trans-due-soon';
             }
@@ -83,7 +83,7 @@ if (!empty($DataLists)):
             <?php if ($isDraft || empty($list->UniqueNumber)): ?>
                 <span class="trans-doc-draft"><i class="bx bx-pencil me-1" style="font-size:.8rem;"></i><?php echo t('status_draft', 'Draft'); ?></span>
                 <?php if (!empty($list->TransDate)): ?>
-                    <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate)); ?></div>
+                    <div class="text-muted" style="font-size:var(--r2k-text-sm);"><?php echo htmlspecialchars(format_datedisplay($list->TransDate)); ?></div>
                 <?php endif; ?>
             <?php else: ?>
                 <a href="javascript:void(0)" class="trans-doc-number viewTransaction"
@@ -96,7 +96,7 @@ if (!empty($DataLists)):
                     <?php echo htmlspecialchars($list->UniqueNumber); ?>
                 </a>
                 <div class="d-flex align-items-center gap-2 mt-1">
-                    <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate)); ?></div>
+                    <div class="text-muted" style="font-size:var(--r2k-text-sm);"><?php echo htmlspecialchars(format_datedisplay($list->TransDate)); ?></div>
                     <?php if ($hasAttach): ?>
                     <button type="button" class="btn btn-link p-0 transAttachBtn"
                             data-uid="<?php echo (int)$list->TransUID; ?>"
@@ -110,7 +110,7 @@ if (!empty($DataLists)):
                     <?php endif; ?>
                 </div>
                 <?php if (!empty($list->CreatedBy)): ?>
-                <div style="font-size:.68rem;color:#bbb;">by <?php echo htmlspecialchars($list->CreatedBy); ?></div>
+                <div style="font-size:var(--r2k-text-xs);color:#bbb;">by <?php echo htmlspecialchars($list->CreatedBy); ?></div>
                 <?php endif; ?>
             <?php endif; ?>
         </td>
@@ -134,7 +134,7 @@ if (!empty($DataLists)):
 
         <!-- Challan Type -->
         <td>
-            <span class="<?php echo $typeBadge; ?>" style="font-size:.68rem;">
+            <span class="<?php echo $typeBadge; ?>" style="font-size:var(--r2k-text-xs);">
                 <?php echo htmlspecialchars($challanType); ?>
             </span>
         </td>
@@ -147,11 +147,11 @@ if (!empty($DataLists)):
                     <div class="trans-party-name"><?php echo r2k_party_name($list->PartyName ?? '', $list->MobileNumber ?? '', $list->CountryCode ?? '', $list->PartyArea ?? '', !empty($list->PartyImage) ? $cdnUrl . $list->PartyImage : ''); ?></div>
                     <?php if (!empty($list->PartyArea)): ?>
                     <div style="font-size:.7rem;color:#888;margin-top:1px;">
-                        <i class="bx bx-map" style="font-size:.72rem;"></i> <?php echo htmlspecialchars($list->PartyArea); ?>
+                        <i class="bx bx-map" style="font-size:var(--r2k-text-sm);"></i> <?php echo htmlspecialchars($list->PartyArea); ?>
                     </div>
                     <?php endif; ?>
                     <?php if ($hasMobile): ?>
-                    <div class="trans-party-mobile" style="font-size:.72rem;color:#666;margin-top:1px;">
+                    <div class="trans-party-mobile" style="font-size:var(--r2k-text-sm);color:#666;margin-top:1px;">
                         <?php echo ($countryCode ? htmlspecialchars($countryCode) . ' ' : '') . htmlspecialchars($mobileNum); ?>
                     </div>
                     <?php endif; ?>
@@ -214,7 +214,7 @@ if (!empty($DataLists)):
                             $pillColor  = '#495057'; $pillBg = '#dee2e6'; $pillBorder = '#ced4da';
                         }
                     ?>
-                    <span style="font-size:.68rem;font-weight:600;color:<?php echo $pillColor; ?>;background:<?php echo $pillBg; ?>;border:1px solid <?php echo $pillBorder; ?>;padding:1px 7px;border-radius:10px;display:inline-block;">
+                    <span style="font-size:var(--r2k-text-xs);font-weight:600;color:<?php echo $pillColor; ?>;background:<?php echo $pillBg; ?>;border:1px solid <?php echo $pillBorder; ?>;padding:1px 7px;border-radius:10px;display:inline-block;">
                         <?php echo $daysOut === 0 ? 'Today' : $daysOut . ' day' . ($daysOut > 1 ? 's' : '') . ' out'; ?>
                     </span>
                 </div>

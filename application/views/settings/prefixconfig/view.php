@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php $this->load->view('common/header'); ?>
 
@@ -291,7 +291,7 @@ window.addEventListener('load', function () {
                   + '</div>';
 
             if (def.alwaysOn) {
-                html += '<span class="badge bg-label-secondary ms-auto" style="font-size:.68rem;">required</span>';
+                html += '<span class="badge bg-label-secondary ms-auto" style="font-size:var(--r2k-text-xs);">required</span>';
             } else {
                 html += '<div class="form-check form-switch mb-0 ms-auto">'
                       + '<input class="form-check-input pc-comp-toggle" type="checkbox" data-key="' + key + '"'

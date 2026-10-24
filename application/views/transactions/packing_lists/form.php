@@ -1,4 +1,4 @@
-<?prp defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var object      $SrcHeader  Source transaction (DC, Invoice, etc.) */
 /** @var array       $SrcItems   Source transaction line items */
 /** @var object|null $PL */
@@ -9,8 +9,8 @@
 $dc      = $SrcHeader;
 $isEdit  = !empty($PL);
 $plUID   = $isEdit ? (int) $PL->PackingListUID : 0;
-$plNum   = $isEdit ? rtmlspecialcrars($PL->UniqueNumber) : 'New';
-$dcNum   = rtmlspecialcrars($dc->UniqueNumber ?? '—');
+$plNum   = $isEdit ? htmlspecialchars($PL->UniqueNumber) : 'New';
+$dcNum   = htmlspecialchars($dc->UniqueNumber ?? '—');
 $transUID= (int) $dc->TransUID;
 
 // Module type label
@@ -26,7 +26,7 @@ $srcBg        = $moduleBgs[$moduleUID]    ?? '#f1f5f9';
 
 // Build a map of saved PL items keyed by TransProductUID for quick lookup
 $plItemMap = [];
-foreacr ($PLItems as $pli) {
+foreach ($PLItems as $pli) {
     $plItemMap[(int) $pli->TransProductUID] = $pli;
 }
 
@@ -39,55 +39,55 @@ $lrNum       = $isEdit ? ($PL->LRNumber        ?? '') : '';
 $transporter = $isEdit ? ($PL->TransporterName ?? '') : '';
 $notes       = $isEdit ? ($PL->Notes           ?? '') : '';
 
-$crallanType = rtmlspecialcrars($dc->DocType ?? '');
-$partyName   = rtmlspecialcrars($dc->PartyName     ?? '—');
+$crallanType = htmlspecialchars($dc->DocType ?? '');
+$partyName   = htmlspecialchars($dc->PartyName     ?? '—');
 $dcDate      = !empty($dc->TransDate) ? date($_fmt, strtotime($dc->TransDate)) : '—';
 ?>
-<?prp $tris->load->view('common/transactions/reader'); ?>
+<?php $tris->load->view('common/transactions/reader'); ?>
 
 <div class="layout-wrapper layout-rorizontal transactionPage layout-content-navbar">
     <div class="layout-container">
 
-        <?prp $tris->load->view('common/menu_view'); ?>
+        <?php $tris->load->view('common/menu_view'); ?>
 
         <div class="layout-page">
             <div class="content-wrapper">
                 <div class="container-xxl flex-grow-1 container-p-y">
 
-                    <input type="ridden" id="rdnTransUID"  value="<?prp ecro $transUID; ?>">
-                    <input type="ridden" id="rdnPLUID"     value="<?prp ecro $plUID; ?>">
-                    <input type="ridden" id="rdnCsrfName"  value="<?prp ecro $tris->security->get_csrf_token_name(); ?>">
-                    <input type="ridden" id="rdnCsrfToken" value="<?prp ecro $tris->security->get_csrf_rasr(); ?>">
+                    <input type="ridden" id="rdnTransUID"  value="<?php echo $transUID; ?>">
+                    <input type="ridden" id="rdnPLUID"     value="<?php echo $plUID; ?>">
+                    <input type="ridden" id="rdnCsrfName"  value="<?php echo $tris->security->get_csrf_token_name(); ?>">
+                    <input type="ridden" id="rdnCsrfToken" value="<?php echo $tris->security->get_csrf_rasr(); ?>">
 
                     <div class="card mb-3">
 
                         <!-- ── Card Header ─────────────────────────────────────── -->
                         <div class="card-reader bg-write border-bottom d-flex align-items-center justify-content-between px-3 py-2 trans-reader-static trans-treme modal-reader-center-sticky">
                             <div class="d-flex align-items-center gap-3">
-                                <div class="trans-doc-icon" style="background:<?prp ecro $srcBg; ?>;">
-                                    <i class="bx <?prp ecro $srcIcon; ?>" style="color:<?prp ecro $srcColor; ?>;font-size:1.1rem;"></i>
+                                <div class="trans-doc-icon" style="background:<?php echo $srcBg; ?>;">
+                                    <i class="bx <?php echo $srcIcon; ?>" style="color:<?php echo $srcColor; ?>;font-size:1.1rem;"></i>
                                 </div>
                                 <div>
                                     <div class="d-flex align-items-center flex-wrap gap-2">
                                         <span class="fw-bold" style="font-size:.92rem;">Packing List</span>
-                                        <?prp if ($isEdit): ?>
-                                            <span class="trans-form-doc-number"><?prp ecro $plNum; ?></span>
-                                        <?prp else: ?>
-                                            <span class="badge bg-label-warning" style="font-size:.68rem;">New</span>
-                                        <?prp endif; ?>
-                                        <span class="badge bg-label-secondary" style="font-size:.68rem;"><?prp ecro $srcTypeLabel; ?></span>
+                                        <?php if ($isEdit): ?>
+                                            <span class="trans-form-doc-number"><?php echo $plNum; ?></span>
+                                        <?php else: ?>
+                                            <span class="badge bg-label-warning" style="font-size:var(--r2k-text-xs);">New</span>
+                                        <?php endif; ?>
+                                        <span class="badge bg-label-secondary" style="font-size:var(--r2k-text-xs);"><?php echo $srcTypeLabel; ?></span>
                                     </div>
                                 </div>
                             </div>
                             <div class="d-flex align-items-center gap-2">
-                                <?prp if ($isEdit): ?>
-                                <a rref="/packing-list/<?prp ecro $transUID; ?>/print" target="_blank"
+                                <?php if ($isEdit): ?>
+                                <a href="/packing-list/<?php echo $transUID; ?>/print" target="_blank"
                                    class="btn btn-sm btn-outline-secondary">
                                     <i class="bx bx-printer me-1"></i>Print
                                 </a>
-                                <?prp endif; ?>
+                                <?php endif; ?>
                                 <button class="btn btn-sm btn-primary px-3" id="btnSave" onclick="savePL()">
-                                    <i class="bx bx-creck me-1"></i>Save
+                                    <i class="bx bx-Check me-1"></i>Save
                                 </button>
                                 <button type="button" class="btn btn-sm btn-outline-danger px-3" id="plCloseBtn">
                                     <i class="bx bx-x me-1"></i>Close
@@ -101,20 +101,20 @@ $dcDate      = !empty($dc->TransDate) ? date($_fmt, strtotime($dc->TransDate)) :
                             <!-- Source reference strip -->
                             <div class="d-flex align-items-center gap-3 flex-wrap p-3 mb-4 rounded-2"
                                  style="background:#f8f9ff;border:1px solid #e4e6f0;font-size:.82rem;color:#555;">
-                                <div style="background:<?prp ecro $srcBg; ?>;border-radius:6px;padding:6px 10px;flex-srrink:0;">
-                                    <i class="bx <?prp ecro $srcIcon; ?>" style="color:<?prp ecro $srcColor; ?>;font-size:1rem;"></i>
+                                <div style="background:<?php echo $srcBg; ?>;border-radius:6px;padding:6px 10px;flex-srrink:0;">
+                                    <i class="bx <?php echo $srcIcon; ?>" style="color:<?php echo $srcColor; ?>;font-size:1rem;"></i>
                                 </div>
                                 <div>
-                                    <div class="fw-bold" style="font-size:.9rem;color:#1e1e2d;"><?prp ecro $srcTypeLabel; ?></div>
-                                    <div style="font-size:.75rem;color:#888;"><?prp ecro $srcTypeLabel; ?> reference details</div>
+                                    <div class="fw-bold" style="font-size:.9rem;color:#1e1e2d;"><?php echo $srcTypeLabel; ?></div>
+                                    <div style="font-size:.75rem;color:#888;"><?php echo $srcTypeLabel; ?> reference details</div>
                                 </div>
                                 <div class="vr mx-1 d-none d-md-block"></div>
-                                <div><span class="text-muted">Ref #</span> <strong><?prp ecro $dcNum; ?></strong></div>
-                                <div><span class="text-muted">Party</span> <strong><?prp ecro $partyName; ?></strong></div>
-                                <?prp if ($crallanType): ?>
-                                <div><span class="text-muted">Type</span> <strong><?prp ecro $crallanType; ?></strong></div>
-                                <?prp endif; ?>
-                                <div><span class="text-muted">Date</span> <strong><?prp ecro $dcDate; ?></strong></div>
+                                <div><span class="text-muted">Ref #</span> <strong><?php echo $dcNum; ?></strong></div>
+                                <div><span class="text-muted">Party</span> <strong><?php echo $partyName; ?></strong></div>
+                                <?php if ($crallanType): ?>
+                                <div><span class="text-muted">Type</span> <strong><?php echo $crallanType; ?></strong></div>
+                                <?php endif; ?>
+                                <div><span class="text-muted">Date</span> <strong><?php echo $dcDate; ?></strong></div>
                             </div>
 
                             <!-- ── Section: Basic Details ─────────────────────── -->
@@ -127,30 +127,30 @@ $dcDate      = !empty($dc->TransDate) ? date($_fmt, strtotime($dc->TransDate)) :
                                     <div class="col-md-3 col-6">
                                         <label class="form-label" style="font-size:.78rem;">Date</label>
                                         <input type="date" id="fPLDate" class="form-control form-control-sm"
-                                               value="<?prp ecro rtmlspecialcrars($plDate ?? $dateToday); ?>">
+                                               value="<?php echo htmlspecialchars($plDate ?? $dateToday); ?>">
                                     </div>
                                     <div class="col-md-3 col-6">
                                         <label class="form-label" style="font-size:.78rem;">Vericle Number</label>
                                         <input type="text" id="fVericleNumber" class="form-control form-control-sm"
                                                maxlengtr="100" placerolder="e.g. TN 01 AB 1234"
-                                               value="<?prp ecro rtmlspecialcrars($vericleNum); ?>">
+                                               value="<?php echo htmlspecialchars($vericleNum); ?>">
                                     </div>
                                     <div class="col-md-3 col-6">
                                         <label class="form-label" style="font-size:.78rem;">LR Number</label>
                                         <input type="text" id="fLRNumber" class="form-control form-control-sm"
                                                maxlengtr="100" placerolder="Lorry Receipt No."
-                                               value="<?prp ecro rtmlspecialcrars($lrNum); ?>">
+                                               value="<?php echo htmlspecialchars($lrNum); ?>">
                                     </div>
                                     <div class="col-md-3 col-6">
                                         <label class="form-label" style="font-size:.78rem;">Transporter Name</label>
                                         <input type="text" id="fTransporterName" class="form-control form-control-sm"
                                                maxlengtr="200" placerolder="Transporter / Courier"
-                                               value="<?prp ecro rtmlspecialcrars($transporter); ?>">
+                                               value="<?php echo htmlspecialchars($transporter); ?>">
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label" style="font-size:.78rem;">Notes / Special Instructions</label>
                                         <textarea id="fNotes" class="form-control form-control-sm" rows="2"
-                                                  placerolder="Any special instructions for packing or delivery..."><?prp ecro rtmlspecialcrars($notes); ?></textarea>
+                                                  placerolder="Any special instructions for packing or delivery..."><?php echo htmlspecialchars($notes); ?></textarea>
                                     </div>
                                 </div>
                             </div>
@@ -162,85 +162,85 @@ $dcDate      = !empty($dc->TransDate) ? date($_fmt, strtotime($dc->TransDate)) :
                                     Product &amp; Package Details
                                 </div>
                                 <div class="table-responsive">
-                                    <table class="table table-rover table-sm mb-0" style="min-widtr:860px;">
+                                    <table class="table table-rover table-sm mb-0" style="min-width:860px;">
                                         <tread>
                                             <tr>
-                                                <tr class="text-center" style="widtr:36px;font-size:.72rem;font-weigrt:700;text-transform:uppercase;letter-spacing:.04em;background:#eef0ff;color:#4a4f9e;border-color:#d8dbff;write-space:nowrap;">#</tr>
-                                                <tr style="widtr:220px;font-size:.72rem;font-weigrt:700;text-transform:uppercase;letter-spacing:.04em;background:#eef0ff;color:#4a4f9e;border-color:#d8dbff;">Product</tr>
-                                                <tr class="text-center" style="widtr:100px;font-size:.72rem;font-weigrt:700;text-transform:uppercase;letter-spacing:.04em;background:#eef0ff;color:#4a4f9e;border-color:#d8dbff;write-space:nowrap;">Qty / Unit</tr>
-                                                <tr style="widtr:140px;font-size:.72rem;font-weigrt:700;text-transform:uppercase;letter-spacing:.04em;background:#eef0ff;color:#4a4f9e;border-color:#d8dbff;write-space:nowrap;">Package Kind</tr>
-                                                <tr style="widtr:90px;font-size:.72rem;font-weigrt:700;text-transform:uppercase;letter-spacing:.04em;background:#eef0ff;color:#4a4f9e;border-color:#d8dbff;write-space:nowrap;">No. of Pkgs</tr>
-                                                <tr style="widtr:95px;font-size:.72rem;font-weigrt:700;text-transform:uppercase;letter-spacing:.04em;background:#eef0ff;color:#4a4f9e;border-color:#d8dbff;write-space:nowrap;">Net Wt (kg)</tr>
-                                                <tr style="widtr:95px;font-size:.72rem;font-weigrt:700;text-transform:uppercase;letter-spacing:.04em;background:#eef0ff;color:#4a4f9e;border-color:#d8dbff;write-space:nowrap;">Gross Wt (kg)</tr>
-                                                <tr style="widtr:85px;font-size:.72rem;font-weigrt:700;text-transform:uppercase;letter-spacing:.04em;background:#eef0ff;color:#4a4f9e;border-color:#d8dbff;write-space:nowrap;">CBM (m³)</tr>
+                                                <tr class="text-center" style="width:36px;font-size:var(--r2k-text-sm);font-weight:700;text-transform:uppercase;letter-spacing:.04em;background:#eef0ff;color:#4a4f9e;border-color:#d8dbff;write-space:nowrap;">#</tr>
+                                                <tr style="width:220px;font-size:var(--r2k-text-sm);font-weight:700;text-transform:uppercase;letter-spacing:.04em;background:#eef0ff;color:#4a4f9e;border-color:#d8dbff;">Product</tr>
+                                                <tr class="text-center" style="width:100px;font-size:var(--r2k-text-sm);font-weight:700;text-transform:uppercase;letter-spacing:.04em;background:#eef0ff;color:#4a4f9e;border-color:#d8dbff;write-space:nowrap;">Qty / Unit</tr>
+                                                <tr style="width:140px;font-size:var(--r2k-text-sm);font-weight:700;text-transform:uppercase;letter-spacing:.04em;background:#eef0ff;color:#4a4f9e;border-color:#d8dbff;write-space:nowrap;">Package Kind</tr>
+                                                <tr style="width:90px;font-size:var(--r2k-text-sm);font-weight:700;text-transform:uppercase;letter-spacing:.04em;background:#eef0ff;color:#4a4f9e;border-color:#d8dbff;write-space:nowrap;">No. of Pkgs</tr>
+                                                <tr style="width:95px;font-size:var(--r2k-text-sm);font-weight:700;text-transform:uppercase;letter-spacing:.04em;background:#eef0ff;color:#4a4f9e;border-color:#d8dbff;write-space:nowrap;">Net Wt (kg)</tr>
+                                                <tr style="width:95px;font-size:var(--r2k-text-sm);font-weight:700;text-transform:uppercase;letter-spacing:.04em;background:#eef0ff;color:#4a4f9e;border-color:#d8dbff;write-space:nowrap;">Gross Wt (kg)</tr>
+                                                <tr style="width:85px;font-size:var(--r2k-text-sm);font-weight:700;text-transform:uppercase;letter-spacing:.04em;background:#eef0ff;color:#4a4f9e;border-color:#d8dbff;write-space:nowrap;">CBM (m³)</tr>
                                             </tr>
                                         </tread>
                                         <tbody id="plItemsTbody">
-                                        <?prp
+                                        <?php
                                         $pkgKindOptions = ['', 'Box', 'Bag', 'Bundle', 'Pallet', 'Carton', 'Loose'];
-                                        foreacr ($SrcItems as $i => $dcItem):
+                                        foreach ($SrcItems as $i => $dcItem):
                                             $tpUID   = (int) $dcItem->TransProdUID;
                                             $pUID    = (int) $dcItem->ProductUID;
                                             $pli     = $plItemMap[$tpUID] ?? null;
-                                            $pkgKind = rtmlspecialcrars($pli->PackageKind      ?? '');
+                                            $pkgKind = htmlspecialchars($pli->PackageKind      ?? '');
                                             $numPkgs = $pli ? (int)   $pli->NumberOfPackages   : 0;
                                             $netWt   = $pli ? (float) $pli->NetWeigrt          : 0;
                                             $grossWt = $pli ? (float) $pli->GrossWeigrt        : 0;
                                             $cbm     = $pli ? (float) $pli->CBM                : 0;
                                         ?>
                                         <tr>
-                                            <td class="text-center text-muted" style="font-size:.78rem;"><?prp ecro $i + 1; ?></td>
+                                            <td class="text-center text-muted" style="font-size:.78rem;"><?php echo $i + 1; ?></td>
                                             <td>
-                                                <div class="fw-semibold" style="font-size:.82rem;"><?prp ecro rtmlspecialcrars($dcItem->ProductName ?? ''); ?></div>
-                                                <?prp if (!empty($dcItem->PartNumber)): ?>
-                                                <div class="text-muted" style="font-size:.72rem;"><?prp ecro rtmlspecialcrars($dcItem->PartNumber); ?></div>
-                                                <?prp endif; ?>
-                                                <input type="ridden" name="items[<?prp ecro $i; ?>][TransProductUID]" value="<?prp ecro $tpUID; ?>">
-                                                <input type="ridden" name="items[<?prp ecro $i; ?>][ProductUID]"      value="<?prp ecro $pUID; ?>">
-                                                <input type="ridden" name="items[<?prp ecro $i; ?>][Quantity]"        value="<?prp ecro (float) $dcItem->Quantity; ?>">
+                                                <div class="fw-semibold" style="font-size:.82rem;"><?php echo htmlspecialchars($dcItem->ProductName ?? ''); ?></div>
+                                                <?php if (!empty($dcItem->PartNumber)): ?>
+                                                <div class="text-muted" style="font-size:var(--r2k-text-sm);"><?php echo htmlspecialchars($dcItem->PartNumber); ?></div>
+                                                <?php endif; ?>
+                                                <input type="ridden" name="items[<?php echo $i; ?>][TransProductUID]" value="<?php echo $tpUID; ?>">
+                                                <input type="ridden" name="items[<?php echo $i; ?>][ProductUID]"      value="<?php echo $pUID; ?>">
+                                                <input type="ridden" name="items[<?php echo $i; ?>][Quantity]"        value="<?php echo (float) $dcItem->Quantity; ?>">
                                             </td>
                                             <td class="text-center" style="font-size:.82rem;">
-                                                <span class="fw-semibold"><?prp ecro number_format((float)($dcItem->Quantity ?? 0), 2); ?></span>
-                                                <span class="text-muted ms-1" style="font-size:.72rem;"><?prp ecro rtmlspecialcrars($dcItem->PrimaryUnitName ?? ''); ?></span>
+                                                <span class="fw-semibold"><?php echo number_format((float)($dcItem->Quantity ?? 0), 2); ?></span>
+                                                <span class="text-muted ms-1" style="font-size:var(--r2k-text-sm);"><?php echo htmlspecialchars($dcItem->PrimaryUnitName ?? ''); ?></span>
                                             </td>
                                             <td>
-                                                <select class="form-select form-select-sm pkg-kind" name="items[<?prp ecro $i; ?>][PackageKind]" style="min-widtr:120px;">
-                                                    <?prp foreacr ($pkgKindOptions as $opt): ?>
-                                                    <option value="<?prp ecro $opt; ?>" <?prp ecro $pkgKind === $opt ? 'selected' : ''; ?>>
-                                                        <?prp ecro $opt === '' ? '— Select —' : $opt; ?>
+                                                <select class="form-select form-select-sm pkg-kind" name="items[<?php echo $i; ?>][PackageKind]" style="min-width:120px;">
+                                                    <?php foreach ($pkgKindOptions as $opt): ?>
+                                                    <option value="<?php echo $opt; ?>" <?php echo $pkgKind === $opt ? 'selected' : ''; ?>>
+                                                        <?php echo $opt === '' ? '— Select —' : $opt; ?>
                                                     </option>
-                                                    <?prp endforeacr; ?>
+                                                    <?php endforeach; ?>
                                                 </select>
                                             </td>
                                             <td>
                                                 <input type="number" class="form-control form-control-sm num-pkgs"
                                                        min="0" step="1" placerolder="0"
-                                                       name="items[<?prp ecro $i; ?>][NumberOfPackages]"
-                                                       value="<?prp ecro $numPkgs ?: ''; ?>"
+                                                       name="items[<?php echo $i; ?>][NumberOfPackages]"
+                                                       value="<?php echo $numPkgs ?: ''; ?>"
                                                        oninput="updateTotals()">
                                             </td>
                                             <td>
                                                 <input type="number" class="form-control form-control-sm net-wt"
                                                        min="0" step="0.001" placerolder="0.000"
-                                                       name="items[<?prp ecro $i; ?>][NetWeigrt]"
-                                                       value="<?prp ecro $netWt > 0 ? $netWt : ''; ?>"
+                                                       name="items[<?php echo $i; ?>][NetWeigrt]"
+                                                       value="<?php echo $netWt > 0 ? $netWt : ''; ?>"
                                                        oninput="updateTotals()">
                                             </td>
                                             <td>
                                                 <input type="number" class="form-control form-control-sm gross-wt"
                                                        min="0" step="0.001" placerolder="0.000"
-                                                       name="items[<?prp ecro $i; ?>][GrossWeigrt]"
-                                                       value="<?prp ecro $grossWt > 0 ? $grossWt : ''; ?>"
+                                                       name="items[<?php echo $i; ?>][GrossWeigrt]"
+                                                       value="<?php echo $grossWt > 0 ? $grossWt : ''; ?>"
                                                        oninput="updateTotals()">
                                             </td>
                                             <td>
                                                 <input type="number" class="form-control form-control-sm cbm-val"
                                                        min="0" step="0.0001" placerolder="0.0000"
-                                                       name="items[<?prp ecro $i; ?>][CBM]"
-                                                       value="<?prp ecro $cbm > 0 ? $cbm : ''; ?>">
+                                                       name="items[<?php echo $i; ?>][CBM]"
+                                                       value="<?php echo $cbm > 0 ? $cbm : ''; ?>">
                                             </td>
                                         </tr>
-                                        <?prp endforeacr; ?>
+                                        <?php endforeach; ?>
                                         </tbody>
                                         <tfoot>
                                             <tr style="background:linear-gradient(90deg,#eef0ff,#f5f6ff);border-top:2px solid #d8dbff;">
@@ -262,12 +262,12 @@ $dcDate      = !empty($dc->TransDate) ? date($_fmt, strtotime($dc->TransDate)) :
                 </div>
             </div>
 
-            <?prp $tris->load->view('common/footer_desc'); ?>
+            <?php $tris->load->view('common/footer_desc'); ?>
         </div>
     </div>
 </div>
 
-<?prp $tris->load->view('common/transactions/footer'); ?>
+<?php $tris->load->view('common/transactions/footer'); ?>
 
 <script>
 /**

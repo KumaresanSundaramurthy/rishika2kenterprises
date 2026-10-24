@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var int $SerialNumber */ $SerialNumber = $SerialNumber ?? 0;
 $dateFmt = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
 $today   = date('Y-m-d');
@@ -49,12 +49,12 @@ if (!empty($DataLists)):
         </div>
     </td>
     <td>
-        <span class="badge <?php echo $fCls; ?>" style="font-size:.72rem;"><?php echo htmlspecialchars($freq); ?></span>
+        <span class="badge <?php echo $fCls; ?>" style="font-size:var(--r2k-text-sm);"><?php echo htmlspecialchars($freq); ?></span>
     </td>
     <td style="font-size:.82rem;white-space:nowrap;">
         <?php echo $startDate; ?>
         <?php if ($row->EndDate): ?>
-        <div class="text-muted" style="font-size:.72rem;">Until <?php echo $endDate; ?></div>
+        <div class="text-muted" style="font-size:var(--r2k-text-sm);">Until <?php echo $endDate; ?></div>
         <?php endif; ?>
     </td>
     <td class="<?php echo $isDue && $isActive ? 'fw-semibold text-danger' : ''; ?>" style="font-size:.82rem;white-space:nowrap;">
@@ -63,11 +63,11 @@ if (!empty($DataLists)):
     <td style="font-size:.82rem;">
         <?php echo $lastRun; ?>
         <?php if ($runs > 0): ?>
-        <div class="text-muted" style="font-size:.72rem;"><?php echo $runs; ?> run<?php echo $runs !== 1 ? 's' : ''; ?></div>
+        <div class="text-muted" style="font-size:var(--r2k-text-sm);"><?php echo $runs; ?> run<?php echo $runs !== 1 ? 's' : ''; ?></div>
         <?php endif; ?>
     </td>
     <td>
-        <span class="badge <?php echo $sCls; ?>" style="font-size:.72rem;"><?php echo $status; ?></span>
+        <span class="badge <?php echo $sCls; ?>" style="font-size:var(--r2k-text-sm);"><?php echo $status; ?></span>
     </td>
     <td class="text-center" style="white-space:nowrap;width:130px;">
         <?php if ($isActive && $status !== 'Ended'): ?>

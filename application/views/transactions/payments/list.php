@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
 
 <?php
 $cdnUrl    = getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN');
@@ -123,12 +123,12 @@ if (!function_exists('_allPmtModeBadge')) {
             <?php else: ?>
                 <span class="text-muted" style="font-size:.8rem;">—</span>
             <?php endif; ?>
-            <div class="text-muted" style="font-size:.68rem;"><?php echo $createdTs->formatted; ?></div>
+            <div class="text-muted" style="font-size:var(--r2k-text-xs);"><?php echo $createdTs->formatted; ?></div>
         </td>
 
         <!-- Type badge -->
         <td>
-            <span style="display:inline-flex;align-items:center;gap:2px;font-size:.68rem;font-weight:700;
+            <span style="display:inline-flex;align-items:center;gap:2px;font-size:var(--r2k-text-xs);font-weight:700;
                          padding:3px 7px;border-radius:10px;
                          background:<?php echo $typeBg; ?>;color:<?php echo $typeColor; ?>;">
                 <i class="bx <?php echo $typeIcon; ?>" style="font-size:.8rem;"></i>
@@ -174,7 +174,7 @@ if (!function_exists('_allPmtModeBadge')) {
                 </div>
             <?php endif; ?>
             <?php if (!empty($row->ReferenceNo)): ?>
-                <div class="text-muted" style="font-size:.68rem;font-family:monospace;">
+                <div class="text-muted" style="font-size:var(--r2k-text-xs);font-family:monospace;">
                     <?php echo htmlspecialchars($row->ReferenceNo); ?>
                 </div>
             <?php endif; ?>
@@ -188,7 +188,7 @@ if (!function_exists('_allPmtModeBadge')) {
                     <?php echo htmlspecialchars($row->BankName); ?>
                 </div>
                 <?php if (!empty($row->AccountNumber)): ?>
-                    <div class="text-muted" style="font-size:.68rem;font-family:monospace;">
+                    <div class="text-muted" style="font-size:var(--r2k-text-xs);font-family:monospace;">
                         <?php echo htmlspecialchars($row->AccountNumber); ?>
                     </div>
                 <?php endif; ?>
@@ -208,13 +208,13 @@ if (!function_exists('_allPmtModeBadge')) {
                     </span>
                     <?php endif; ?>
                     <?php if (!empty($row->PartyArea)): ?>
-                        <div style="font-size:.68rem;color:#888;margin-top:1px;">
+                        <div style="font-size:var(--r2k-text-xs);color:#888;margin-top:1px;">
                             <i class="bx bx-map" style="font-size:.7rem;"></i>
                             <?php echo htmlspecialchars($row->PartyArea); ?>
                         </div>
                     <?php endif; ?>
                     <?php if ($fullMobile): ?>
-                        <div style="font-size:.68rem;color:#666;"><?php echo htmlspecialchars($fullMobile); ?></div>
+                        <div style="font-size:var(--r2k-text-xs);color:#666;"><?php echo htmlspecialchars($fullMobile); ?></div>
                     <?php endif; ?>
                 </div>
             </div>
@@ -287,7 +287,7 @@ if (!function_exists('_allPmtModeBadge')) {
                 <?php echo htmlspecialchars($row->CreatedByName ?? '—'); ?>
             </div>
             <?php if ($createdTs->ago): ?>
-                <div style="font-size:.68rem;color:#4f46e5;font-weight:500;"><?php echo $createdTs->ago; ?></div>
+                <div style="font-size:var(--r2k-text-xs);color:#4f46e5;font-weight:500;"><?php echo $createdTs->ago; ?></div>
             <?php endif; ?>
         </td>
 

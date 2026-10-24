@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 $_from = $this->pageData['_from'] ?? date('Y-m-01');
 $_to   = $this->pageData['_to']   ?? date('Y-m-d');
 $this->load->view('common/transactions/header'); ?>
@@ -6,7 +6,7 @@ $this->load->view('common/transactions/header'); ?>
 <style>
 .rpt-filter-bar{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;padding:14px 16px;border-bottom:1px solid #e2e8f0}
 .rpt-filter-group{display:flex;flex-direction:column;gap:4px}
-.rpt-filter-label{font-size:.72rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.03em}
+.rpt-filter-label{font-size:var(--r2k-text-sm);font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.03em}
 .rpt-filter-date{width:150px}
 .rpt-stat-card{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;display:flex;align-items:center;gap:12px}
 .rpt-stat-icon{width:40px;height:40px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
@@ -16,7 +16,7 @@ $this->load->view('common/transactions/header'); ?>
 .rpt-icon-orange{background:#ffedd5}.rpt-icon-orange i{color:#ea580c}
 .rpt-icon-green{background:#dcfce7}.rpt-icon-green i{color:#16a34a}
 .rpt-stat-body{flex:1;min-width:0}
-.rpt-stat-label{font-size:.72rem;color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.03em}
+.rpt-stat-label{font-size:var(--r2k-text-sm);color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.03em}
 .rpt-stat-val{font-size:1.05rem;font-weight:700;color:#1e293b;margin-top:1px}
 .rpt-table-wrap{overflow-x:auto}
 .rpt-table{width:100%;border-collapse:collapse;font-size:.82rem}

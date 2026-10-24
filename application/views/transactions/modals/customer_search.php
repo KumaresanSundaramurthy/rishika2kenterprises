@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <!-- Customer Search Modal — included via common_form.php — available on all pages -->
 <div class="modal fade" id="customerSearchModal" tabindex="-1" aria-hidden="true">
@@ -107,7 +107,7 @@
     background: #f0efff;
     color: #696cff;
     border-radius: 50%;
-    font-size: .72rem;
+    font-size:var(--r2k-text-sm);
     font-weight: 700;
 }
 .cust-avatar-ini {

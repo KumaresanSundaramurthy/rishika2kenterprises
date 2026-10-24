@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <!-- ── Vendor Profile Modal ─────────────────────────────────────────────────── -->
 <div class="modal fade" id="vendorProfileModal" tabindex="-1"
@@ -30,7 +30,7 @@
                                 <i class="bx bx-plus me-1"></i>Transaction
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="vpTxDropdown">
-                                <li><h6 class="dropdown-header" style="font-size:.68rem;letter-spacing:.04em;">PURCHASES</h6></li>
+                                <li><h6 class="dropdown-header" style="font-size:var(--r2k-text-xs);letter-spacing:.04em;">PURCHASES</h6></li>
                                 <li><a class="dropdown-item vp-tx-dd-item" href="javascript:void(0);" data-route="/purchases/create">
                                     <i class="bx bx-package me-2 text-warning"></i>Purchase</a></li>
                                 <li><a class="dropdown-item vp-tx-dd-item" href="javascript:void(0);" data-route="/purchaseorders/create">

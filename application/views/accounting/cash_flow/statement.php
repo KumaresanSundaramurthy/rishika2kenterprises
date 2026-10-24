@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var array $Accounts */       $Accounts       = $Accounts       ?? [];
 /** @var float $GrandOpeningBal */$GrandOpeningBal= (float)($GrandOpeningBal ?? 0);
 /** @var float $GrandPeriodDr */  $GrandPeriodDr  = (float)($GrandPeriodDr  ?? 0);
@@ -69,7 +69,7 @@ $netPos         = $grandNetChange >= 0;
                 <span class="badge bg-label-secondary" style="font-size:.65rem;"><?php echo $acc->LedgerType; ?></span>
             </div>
             <div class="text-end">
-                <div class="text-muted" style="font-size:.72rem;">Net Change</div>
+                <div class="text-muted" style="font-size:var(--r2k-text-sm);">Net Change</div>
                 <div class="fw-bold <?php echo $acc->NetChange >= 0 ? 'text-success' : 'text-danger'; ?>" style="font-size:.88rem;">
                     <?php echo _cfFmt($acc->NetChange, $cur, true); ?>
                 </div>
@@ -86,7 +86,7 @@ $netPos         = $grandNetChange >= 0;
                     <td class="text-end fw-bold" style="font-size:.82rem;">
                         <?php echo _cfFmt($acc->OpeningBal, $cur); ?>
                         <?php if (abs($acc->OpeningBal) > 0.005): ?>
-                        <span class="ms-1 text-muted" style="font-size:.68rem;"><?php echo $acc->OpeningBal >= 0 ? 'Dr' : 'Cr'; ?></span>
+                        <span class="ms-1 text-muted" style="font-size:var(--r2k-text-xs);"><?php echo $acc->OpeningBal >= 0 ? 'Dr' : 'Cr'; ?></span>
                         <?php endif; ?>
                     </td>
                 </tr>
@@ -155,7 +155,7 @@ $netPos         = $grandNetChange >= 0;
                         color:<?php echo $acc->ClosingBal >= 0 ? '#059669' : '#dc2626'; ?>;">
                         <?php echo _cfFmt($acc->ClosingBal, $cur); ?>
                         <?php if (abs($acc->ClosingBal) > 0.005): ?>
-                        <span class="ms-1 text-muted" style="font-size:.68rem;"><?php echo $acc->ClosingBal >= 0 ? 'Dr' : 'Cr'; ?></span>
+                        <span class="ms-1 text-muted" style="font-size:var(--r2k-text-xs);"><?php echo $acc->ClosingBal >= 0 ? 'Dr' : 'Cr'; ?></span>
                         <?php endif; ?>
                     </td>
                 </tr>

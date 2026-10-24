@@ -12,7 +12,7 @@ $this->load->view('common/transactions/header'); ?>
                     'pageTitle'       => $PageTitle,
                     'pageDescription' => $PageDescription ?? '',
                 ]); ?>
-                <div class="container-xxl flex-grow-1 container-p-y">
+                <div class="container-xxl flex-grow-1">
 
                     <?php
                         $cur           = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
@@ -117,7 +117,7 @@ $this->load->view('common/transactions/header'); ?>
                         </div>
 
                         <hr class="my-0">
-                        <div class="row mx-3 my-2 justify-content-between align-items-center tlPagination" id="tlPagination">
+                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center tlPagination apex-pag-sticky" id="tlPagination">
                             <?php echo $ModPagination; ?>
                         </div>
 

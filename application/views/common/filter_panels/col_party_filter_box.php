@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 defined('BASEPATH') or exit('No direct script access allowed');
 /**
  * Reusable party (customer / vendor) column filter box.
@@ -75,7 +75,7 @@ var _vendorCacheKey   = '<?php echo addslashes($VendorCacheKey   ?? ''); ?>';
         <button type="button" class="btn btn-outline-secondary btn-sm tpcf-clear-btn" style="display:none;">
             <i class="bx bx-x me-1"></i>Clear Filter
         </button>
-        <span class="tpcf-hint text-muted ms-auto" style="font-size:.72rem;">Scroll to load more</span>
+        <span class="tpcf-hint text-muted ms-auto" style="font-size:var(--r2k-text-sm);">Scroll to load more</span>
     </div>
 
 </div>

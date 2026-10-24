@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php $this->load->view('common/header'); ?>
 
@@ -32,7 +32,7 @@
                             <div class="apex-stat-label">Total Products</div>
                             <div class="apex-stat-bottom">
                                 <span class="apex-stat-count"><?php echo number_format((int)($s->TotalProducts ?? 0)); ?></span>
-                                <span class="apex-stat-amount" style="font-size:.72rem">
+                                <span class="apex-stat-amount" style="font-size:var(--r2k-text-sm)">
                                     <span class="text-success"><?php echo number_format((int)($s->ActiveCount ?? 0)); ?> Active</span>
                                     &nbsp;|&nbsp;
                                     <span class="text-danger"><?php echo number_format((int)($s->InActiveCount ?? 0)); ?> In-Active</span>
@@ -55,9 +55,9 @@
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">Added</div>
                             <div class="apex-stat-bottom" style="gap:8px">
-                                <span style="font-size:.72rem"><span class="fw-bold"><?php echo number_format((int)($s->AddedThisMonth ?? 0)); ?></span> Month</span>
-                                <span style="font-size:.72rem"><span class="fw-bold"><?php echo number_format((int)($s->AddedThisFY ?? 0)); ?></span> FY</span>
-                                <span style="font-size:.72rem"><span class="fw-bold"><?php echo number_format((int)($s->RecentlyUpdated ?? 0)); ?></span> 7d</span>
+                                <span style="font-size:var(--r2k-text-sm)"><span class="fw-bold"><?php echo number_format((int)($s->AddedThisMonth ?? 0)); ?></span> Month</span>
+                                <span style="font-size:var(--r2k-text-sm)"><span class="fw-bold"><?php echo number_format((int)($s->AddedThisFY ?? 0)); ?></span> FY</span>
+                                <span style="font-size:var(--r2k-text-sm)"><span class="fw-bold"><?php echo number_format((int)($s->RecentlyUpdated ?? 0)); ?></span> 7d</span>
                             </div>
                         </div>
                     </div>
@@ -2631,7 +2631,7 @@ function _renderPLSearchResults(term) {
         rows += '<tr class="pl-prod-search-row" data-uid="' + p.id + '">'
             + '<td>'
             +   '<div class="fw-semibold" style="font-size:.84rem;">' + $('<span>').text(p.text).html() + varBadge + '</div>'
-            +   (p.categoryName ? '<div class="text-muted" style="font-size:.72rem;">' + $('<span>').text(p.categoryName).html() + '</div>' : '')
+            +   (p.categoryName ? '<div class="text-muted" style="font-size:var(--r2k-text-sm);">' + $('<span>').text(p.categoryName).html() + '</div>' : '')
             + '</td>'
             + '<td class="text-muted" style="font-size:.78rem;">' + $('<span>').text(p.primaryUnit || '').html() + '</td>'
             + '</tr>';
@@ -3406,9 +3406,9 @@ $(document).on('click', '.catg-prod-count-btn', function () {
             res.Products.forEach(function(p) {
                 totalStockVal += parseFloat(p.AvailableQuantity || 0) * parseFloat(p.PurchasePrice || 0);
             });
-            var card1 = '<div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#6c757d;margin-bottom:5px;"><i class="bx bx-package me-1"></i>Total Items</div>'
+            var card1 = '<div style="font-size:var(--r2k-text-xs);font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#6c757d;margin-bottom:5px;"><i class="bx bx-package me-1"></i>Total Items</div>'
                 + '<div style="font-size:1.3rem;font-weight:800;color:#0d6efd;">' + res.Products.length + '</div>';
-            var card2 = '<div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#6c757d;margin-bottom:5px;"><i class="bx bx-rupee me-1"></i>Stock Value</div>'
+            var card2 = '<div style="font-size:var(--r2k-text-xs);font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#6c757d;margin-bottom:5px;"><i class="bx bx-rupee me-1"></i>Stock Value</div>'
                 + '<div style="font-size:1.1rem;font-weight:800;color:#198754;">' + sym + ' ' + totalStockVal.toFixed(dec) + '</div>';
             html += '<div style="padding:14px 20px;border-bottom:1px solid #e9ecef;">'
                 + _secHdr('bx-bar-chart-alt-2', 'Summary', '#6c757d')

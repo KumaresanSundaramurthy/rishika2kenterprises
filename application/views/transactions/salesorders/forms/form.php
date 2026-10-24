@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php
 $isEdit      = isset($SOData);
 $isDraftEdit = $isEdit && ($SOData->DocStatus === 'Draft');
@@ -112,7 +112,7 @@ $_addrLines = buildDispatchAddressLines($DispatchAddress ?? null);
                                     <div class="d-flex align-items-center justify-content-between mb-2">
                                         <label for="customerSearch" class="trans-field-label mb-0">Select Customer <span class="text-danger">*</span></label>
                                         <?php if (!$isEdit): ?>
-                                        <button type="button" id="addTransCustomer" class="trans-add-btn btn btn-outline-primary btn-sm" style="font-size:.72rem;white-space:nowrap;" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_create_customer', 'Create Customer'); ?>"><i class="bx bx-plus-circle me-1"></i><?php echo t('btn_add_customer', 'Add Customer'); ?></button>
+                                        <button type="button" id="addTransCustomer" class="trans-add-btn btn btn-outline-primary btn-sm" style="font-size:var(--r2k-text-sm);white-space:nowrap;" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('tooltip_create_customer', 'Create Customer'); ?>"><i class="bx bx-plus-circle me-1"></i><?php echo t('btn_add_customer', 'Add Customer'); ?></button>
                                         <?php endif; ?>
                                     </div>
                                     <?php if ($isEdit && !$isDraftEdit): ?>

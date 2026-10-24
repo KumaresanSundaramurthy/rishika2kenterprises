@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php $this->load->view('common/header'); ?>
 
 <?php
@@ -95,11 +95,11 @@ $kpiData = [
     transition: background .18s;
 }
 .kpi-tab .kpi-value { font-size: 1.35rem; font-weight: 700; line-height: 1.2; }
-.kpi-tab .kpi-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .4px; }
-.kpi-tab .kpi-sub   { font-size: .72rem; margin-top: 3px; }
+.kpi-tab .kpi-label { font-size:var(--r2k-text-sm); text-transform: uppercase; letter-spacing: .4px; }
+.kpi-tab .kpi-sub   { font-size:var(--r2k-text-sm); margin-top: 3px; }
 .kpi-badge {
     display: inline-flex; align-items: center; gap: 2px;
-    font-size: .68rem; font-weight: 600;
+    font-size:var(--r2k-text-xs); font-weight: 600;
     padding: 2px 6px; border-radius: 20px;
 }
 .kpi-badge.up   { background: #d1e7dd; color: #198754; }
@@ -123,8 +123,8 @@ $kpiData = [
 }
 .kpi-info .kpi-icon-wrap { border-radius: 8px; padding: 6px 8px; }
 .kpi-info .kpi-value { font-size: 1.35rem; font-weight: 700; line-height: 1.2; }
-.kpi-info .kpi-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .4px; }
-.kpi-info .kpi-sub   { font-size: .72rem; margin-top: 3px; }
+.kpi-info .kpi-label { font-size:var(--r2k-text-sm); text-transform: uppercase; letter-spacing: .4px; }
+.kpi-info .kpi-sub   { font-size:var(--r2k-text-sm); margin-top: 3px; }
 
 /* ── Pending action strip ── */
 .pend-strip { font-size: .78rem; }
@@ -153,10 +153,10 @@ $kpiData = [
 .kpi-mpurch-val   { color: #0284c7; }
 
 /* ── Pending strip label ── */
-.pend-strip-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .4px; }
+.pend-strip-label { font-size:var(--r2k-text-sm); text-transform: uppercase; letter-spacing: .4px; }
 
 /* ── Top Vendors card ── */
-.vend-avatar { width: 32px; height: 32px; background: #fef3c7; color: #b45309; font-size: .72rem; font-weight: 700; }
+.vend-avatar { width: 32px; height: 32px; background: #fef3c7; color: #b45309; font-size:var(--r2k-text-sm); font-weight: 700; }
 .vend-balance { font-size: .82rem; color: #dc3545; }
 
 /* ── Expense Summary card ── */
@@ -164,7 +164,7 @@ $kpiData = [
 .exp-cat-bar   { flex: 1; height: 6px; border-radius: 3px; background: #f0f0f0; overflow: hidden; }
 .exp-cat-fill  { height: 100%; border-radius: 3px; background: #dc3545; }
 .exp-cat-amt   { font-size: .78rem; font-weight: 600; min-width: 80px; text-align: right; color: #dc3545; }
-.exp-total-lbl { font-size: .72rem; text-transform: uppercase; letter-spacing: .4px; }
+.exp-total-lbl { font-size:var(--r2k-text-sm); text-transform: uppercase; letter-spacing: .4px; }
 .exp-total-val { font-size: 1.1rem; font-weight: 700; color: #dc3545; }
 
 /* ── Top Products card ── */
@@ -401,8 +401,8 @@ $kpiData = [
                                         <div class="d-flex align-items-center justify-content-between px-3 py-2" style="border-bottom:1px solid #f0f0f0;">
                                             <div>
                                                 <div style="font-size:.82rem;font-weight:600;color:#0d6efd;"><?php echo htmlspecialchars($inv->UniqueNumber ?? '—'); ?></div>
-                                                <div style="font-size:.72rem;color:#6c757d;"><?php echo htmlspecialchars($inv->PartyName ?? '—'); ?></div>
-                                                <div style="font-size:.68rem;color:#dc3545;">Due: <?php echo format_datedisplay($inv->ValidityDate, $dateFmt); ?></div>
+                                                <div style="font-size:var(--r2k-text-sm);color:#6c757d;"><?php echo htmlspecialchars($inv->PartyName ?? '—'); ?></div>
+                                                <div style="font-size:var(--r2k-text-xs);color:#dc3545;">Due: <?php echo format_datedisplay($inv->ValidityDate, $dateFmt); ?></div>
                                             </div>
                                             <div class="text-end">
                                                 <div style="font-size:.82rem;font-weight:700;color:#dc3545;"><?php echo dashFmt($inv->BalanceAmount, $cur); ?></div>
@@ -424,7 +424,7 @@ $kpiData = [
                             <div class="card">
                                 <div class="card-header d-flex align-items-center justify-content-between py-2">
                                     <span class="fw-semibold" style="font-size:.88rem;">Top Customers</span>
-                                    <a href="<?= site_url('customers') ?>" class="btn btn-sm btn-outline-secondary" style="font-size:.72rem;">View All</a>
+                                    <a href="<?= site_url('customers') ?>" class="btn btn-sm btn-outline-secondary" style="font-size:var(--r2k-text-sm);">View All</a>
                                 </div>
                                 <div class="card-body p-0">
                                     <?php if (empty($topCust)): ?>
@@ -433,7 +433,7 @@ $kpiData = [
                                         <?php foreach ($topCust as $cust): ?>
                                         <div class="d-flex align-items-center gap-2 px-3 py-2" style="border-bottom:1px solid #f0f0f0;">
                                             <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
-                                                 style="width:32px;height:32px;background:#e8f0fe;color:#0d6efd;font-size:.72rem;font-weight:700;">
+                                                 style="width:32px;height:32px;background:#e8f0fe;color:#0d6efd;font-size:var(--r2k-text-sm);font-weight:700;">
                                                 <?php echo strtoupper(substr(trim($cust->Name ?? 'X'), 0, 1)); ?>
                                             </div>
                                             <div class="flex-grow-1 min-width-0">
@@ -453,7 +453,7 @@ $kpiData = [
                             <div class="card mt-3">
                                 <div class="card-header d-flex align-items-center justify-content-between py-2">
                                     <span class="fw-semibold" style="font-size:.88rem;">Top Vendors</span>
-                                    <a href="<?= site_url('vendors') ?>" class="btn btn-sm btn-outline-secondary" style="font-size:.72rem;">View All</a>
+                                    <a href="<?= site_url('vendors') ?>" class="btn btn-sm btn-outline-secondary" style="font-size:var(--r2k-text-sm);">View All</a>
                                 </div>
                                 <div class="card-body p-0">
                                     <?php if (empty($topVend)): ?>
@@ -483,18 +483,18 @@ $kpiData = [
                             <div class="card h-100">
                                 <div class="card-header d-flex align-items-center justify-content-between py-2">
                                     <span class="fw-semibold" style="font-size:.88rem;">Recent Transactions</span>
-                                    <a href="<?= site_url('invoices') ?>" class="btn btn-sm btn-outline-secondary" style="font-size:.72rem;">View All</a>
+                                    <a href="<?= site_url('invoices') ?>" class="btn btn-sm btn-outline-secondary" style="font-size:var(--r2k-text-sm);">View All</a>
                                 </div>
                                 <div class="table-responsive">
                                     <table class="table table-sm mb-0" style="font-size:.8rem;">
                                         <thead style="background:#f8f9fa;">
                                             <tr>
-                                                <th class="ps-3 fw-semibold text-muted" style="font-size:.72rem;text-transform:uppercase;">Date</th>
-                                                <th class="fw-semibold text-muted" style="font-size:.72rem;text-transform:uppercase;">Doc No</th>
-                                                <th class="fw-semibold text-muted" style="font-size:.72rem;text-transform:uppercase;">Type</th>
-                                                <th class="fw-semibold text-muted" style="font-size:.72rem;text-transform:uppercase;">Party</th>
-                                                <th class="fw-semibold text-muted text-end pe-3" style="font-size:.72rem;text-transform:uppercase;">Amount</th>
-                                                <th class="fw-semibold text-muted" style="font-size:.72rem;text-transform:uppercase;">Status</th>
+                                                <th class="ps-3 fw-semibold text-muted" style="font-size:var(--r2k-text-sm);text-transform:uppercase;">Date</th>
+                                                <th class="fw-semibold text-muted" style="font-size:var(--r2k-text-sm);text-transform:uppercase;">Doc No</th>
+                                                <th class="fw-semibold text-muted" style="font-size:var(--r2k-text-sm);text-transform:uppercase;">Type</th>
+                                                <th class="fw-semibold text-muted" style="font-size:var(--r2k-text-sm);text-transform:uppercase;">Party</th>
+                                                <th class="fw-semibold text-muted text-end pe-3" style="font-size:var(--r2k-text-sm);text-transform:uppercase;">Amount</th>
+                                                <th class="fw-semibold text-muted" style="font-size:var(--r2k-text-sm);text-transform:uppercase;">Status</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -516,7 +516,7 @@ $kpiData = [
                                                 <td style="color:#6c757d;"><?php echo htmlspecialchars($txn->TransType ?? '—'); ?></td>
                                                 <td style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px;"><?php echo htmlspecialchars($txn->PartyName ?? '—'); ?></td>
                                                 <td class="text-end pe-3 fw-semibold"><?php echo dashFmt($txn->NetAmount, $cur); ?></td>
-                                                <td><span class="badge" style="background:<?php echo $color; ?>1a;color:<?php echo $color; ?>;font-size:.68rem;"><?php echo htmlspecialchars($txn->DocStatus); ?></span></td>
+                                                <td><span class="badge" style="background:<?php echo $color; ?>1a;color:<?php echo $color; ?>;font-size:var(--r2k-text-xs);"><?php echo htmlspecialchars($txn->DocStatus); ?></span></td>
                                             </tr>
                                             <?php endforeach; ?>
                                             <?php endif; ?>
@@ -536,7 +536,7 @@ $kpiData = [
                             <div class="card h-100">
                                 <div class="card-header d-flex align-items-center justify-content-between py-2">
                                     <span class="fw-semibold" style="font-size:.88rem;"><i class="bx bx-wallet text-danger me-1"></i>Expenses — This Month</span>
-                                    <a href="<?= site_url('expenses') ?>" class="btn btn-sm btn-outline-secondary" style="font-size:.72rem;">View All</a>
+                                    <a href="<?= site_url('expenses') ?>" class="btn btn-sm btn-outline-secondary" style="font-size:var(--r2k-text-sm);">View All</a>
                                 </div>
                                 <div class="card-body py-3">
                                     <?php if (empty($expSummary)): ?>
@@ -572,7 +572,7 @@ $kpiData = [
                             <div class="card h-100">
                                 <div class="card-header d-flex align-items-center justify-content-between py-2">
                                     <span class="fw-semibold" style="font-size:.88rem;"><i class="bx bx-box text-primary me-1"></i>Top Products — This Month</span>
-                                    <a href="<?= site_url('products') ?>" class="btn btn-sm btn-outline-secondary" style="font-size:.72rem;">View All</a>
+                                    <a href="<?= site_url('products') ?>" class="btn btn-sm btn-outline-secondary" style="font-size:var(--r2k-text-sm);">View All</a>
                                 </div>
                                 <div class="card-body py-3">
                                     <?php if (empty($topProducts)): ?>

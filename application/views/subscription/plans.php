@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
     <div class="layout-container">
         <?php $this->load->view('common/menu_view'); ?>
@@ -148,7 +148,7 @@
                 .spl-hero-status {
                     display: inline-flex; align-items: center; gap: .3rem;
                     padding: .2rem .65rem; border-radius: 99px;
-                    font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+                    font-size:var(--r2k-text-xs); font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
                 }
                 .spl-hero-meta { font-size: .78rem; color: var(--bs-secondary-color,#6c757d); }
                 .spl-hero-right {
@@ -259,7 +259,7 @@
                     border-bottom: 1px solid var(--bs-border-color, #f0f0f0);
                 }
                 .spl-card-eyebrow {
-                    font-size: .68rem; font-weight: 700; letter-spacing: .1em;
+                    font-size:var(--r2k-text-xs); font-weight: 700; letter-spacing: .1em;
                     text-transform: uppercase; color: #696cff; margin-bottom: .35rem;
                     display: flex; align-items: center; gap: .5rem;
                 }
@@ -295,7 +295,7 @@
                     display: inline-flex; align-items: center;
                     background: #dcfce7; color: #16a34a;
                     border-radius: 100px; padding: .18rem .6rem;
-                    font-size: .68rem; font-weight: 700;
+                    font-size:var(--r2k-text-xs); font-weight: 700;
                     border: 1px solid #bbf7d0; margin-left: .4rem;
                 }
                 .spl-price-strike {
@@ -305,7 +305,7 @@
                     margin-right: .25rem;
                 }
                 .spl-save-yearly {
-                    font-size: .72rem; color: #16a34a; font-weight: 600;
+                    font-size:var(--r2k-text-sm); color: #16a34a; font-weight: 600;
                     margin-top: .15rem;
                     display: flex; align-items: center; gap: .25rem;
                 }
@@ -406,7 +406,7 @@
                 .spl-table thead tr th {
                     padding: 1.1rem 1.2rem;
                     border-bottom: 2px solid var(--bs-border-color,#e8e8e8);
-                    font-size: .72rem; font-weight: 700; text-align: center;
+                    font-size:var(--r2k-text-sm); font-weight: 700; text-align: center;
                     text-transform: uppercase; letter-spacing: .09em;
                     color: var(--bs-secondary-color,#6c757d);
                     background: var(--bs-tertiary-bg,#f7f7fb);

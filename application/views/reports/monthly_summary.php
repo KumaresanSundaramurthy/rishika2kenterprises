@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 
 $_today       = date('Y-m-d');
 $_listFmt     = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
@@ -16,7 +16,7 @@ $this->load->view('common/transactions/header'); ?>
 .rpt-icon-blue   { background:#dbeafe; } .rpt-icon-blue   i { color:#2563eb; }
 .rpt-icon-purple { background:#ede9fe; } .rpt-icon-purple i { color:#7c3aed; }
 .rpt-stat-body { flex:1;min-width:0; }
-.rpt-stat-label { font-size:.72rem;color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.03em; }
+.rpt-stat-label { font-size:var(--r2k-text-sm);color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.03em; }
 .rpt-stat-val   { font-size:1.05rem;font-weight:700;color:#1e293b;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
 
 /* Year selector */
@@ -51,7 +51,7 @@ $this->load->view('common/transactions/header'); ?>
 .ms-balance-bar { height:4px;border-radius:2px;min-width:4px;max-width:80px;display:inline-block;vertical-align:middle;margin-left:6px; }
 .ms-balance-pos { background:#2563eb; }
 .ms-balance-neg { background:#dc2626; }
-.ms-badge-cur { display:inline-block;padding:1px 6px;background:#dbeafe;color:#1d4ed8;border-radius:6px;font-size:.68rem;font-weight:700;vertical-align:middle;margin-left:4px; }
+.ms-badge-cur { display:inline-block;padding:1px 6px;background:#dbeafe;color:#1d4ed8;border-radius:6px;font-size:var(--r2k-text-xs);font-weight:700;vertical-align:middle;margin-left:4px; }
 .rpt-loading-cell { padding:48px 0 !important;text-align:center; }
 .rpt-loading { display:flex;align-items:center;justify-content:center;color:#64748b;font-size:.85rem; }
 .rpt-tbl-footer { display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-top:1px solid #e2e8f0;background:#f8fafc;font-size:.8rem;flex-wrap:wrap;gap:8px; }

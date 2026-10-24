@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php
 $showSno  = $JwtData->GenSettings->SerialNoDisplay == 1;
@@ -35,7 +35,7 @@ if (!empty($DataLists)):
             <?php echo htmlspecialchars($row->SerialNumber); ?>
         </div>
         <?php if (!empty($row->Notes)): ?>
-        <div class="text-muted" style="font-size:.72rem;margin-top:2px;">
+        <div class="text-muted" style="font-size:var(--r2k-text-sm);margin-top:2px;">
             <i class="bx bx-note me-1"></i><?php echo htmlspecialchars($row->Notes); ?>
         </div>
         <?php endif; ?>
@@ -87,7 +87,7 @@ if (!empty($DataLists)):
     <td>
         <div style="font-size:.78rem;"><?php echo $createdDate; ?></div>
         <?php if ($createdTime): ?>
-        <div class="text-muted" style="font-size:.72rem;margin-top:1px;">
+        <div class="text-muted" style="font-size:var(--r2k-text-sm);margin-top:1px;">
             <i class="bx bx-time-five me-1" style="font-size:.7rem;"></i><?php echo $createdTime; ?>
         </div>
         <?php endif; ?>

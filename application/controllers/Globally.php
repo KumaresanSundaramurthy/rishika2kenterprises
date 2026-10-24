@@ -346,21 +346,6 @@ class Globally extends CI_Controller {
             $this->EndReturnData->AddressLine1     = $addrLine1;
             $this->EndReturnData->AddressLine2     = '';
 
-            // $this->EndReturnData->Error             = false;
-            // $this->EndReturnData->GSTIN             = '33ESZPK0894R1ZH';
-            // $this->EndReturnData->LegalName        = 'RISHIKA 2K ENTERPRISES';
-            // $this->EndReturnData->TradeName        = 'RISHIKA 2K ENTERPRISES';
-            // $this->EndReturnData->Status            = 'Active';
-            // $this->EndReturnData->PAN               = 'ESZPK0894R';
-            // $this->EndReturnData->Constitution      = 'Proprietorship';
-            // $this->EndReturnData->TaxpayerType      = 'Regular';
-            // $this->EndReturnData->RegistrationDate  = '04/08/2025';
-            // $this->EndReturnData->StateCode         = '33';
-            // $this->EndReturnData->StateName         = 'Tamil Nadu';
-            // $this->EndReturnData->City              = 'Tamil Nadu';
-            // $this->EndReturnData->Pincode           = '604205';
-            // $this->EndReturnData->AddressLine1      = 'Gingee To Villupuram Road,Palappattu,No 1/77,Viluppuram, Viluppuram';
-            // $this->EndReturnData->AddressLine2      = '';
 
         } catch (Exception $e) {
             $this->notifyError('Globally::fetchGstinDetails', $e);

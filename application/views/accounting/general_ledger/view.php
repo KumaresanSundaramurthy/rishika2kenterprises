@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var array $AllLedgers */ $AllLedgers = $AllLedgers ?? [];
 $cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
 $this->load->view('common/header'); ?>
@@ -73,25 +73,25 @@ $this->load->view('common/header'); ?>
                         <div class="row g-3">
                             <div class="col-6 col-md-3">
                                 <div class="card text-center py-3">
-                                    <div class="text-muted" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.3px;">Opening Balance</div>
+                                    <div class="text-muted" style="font-size:var(--r2k-text-sm);text-transform:uppercase;letter-spacing:.3px;">Opening Balance</div>
                                     <div class="fw-bold mt-1" id="glStatOpening" style="font-size:1.1rem;">—</div>
                                 </div>
                             </div>
                             <div class="col-6 col-md-3">
                                 <div class="card text-center py-3">
-                                    <div class="text-muted" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.3px;">Total Debits</div>
+                                    <div class="text-muted" style="font-size:var(--r2k-text-sm);text-transform:uppercase;letter-spacing:.3px;">Total Debits</div>
                                     <div class="fw-bold mt-1 text-success" id="glStatDebit" style="font-size:1.1rem;">—</div>
                                 </div>
                             </div>
                             <div class="col-6 col-md-3">
                                 <div class="card text-center py-3">
-                                    <div class="text-muted" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.3px;">Total Credits</div>
+                                    <div class="text-muted" style="font-size:var(--r2k-text-sm);text-transform:uppercase;letter-spacing:.3px;">Total Credits</div>
                                     <div class="fw-bold mt-1 text-danger" id="glStatCredit" style="font-size:1.1rem;">—</div>
                                 </div>
                             </div>
                             <div class="col-6 col-md-3">
                                 <div class="card text-center py-3">
-                                    <div class="text-muted" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.3px;">Closing Balance</div>
+                                    <div class="text-muted" style="font-size:var(--r2k-text-sm);text-transform:uppercase;letter-spacing:.3px;">Closing Balance</div>
                                     <div class="fw-bold mt-1" id="glStatClosing" style="font-size:1.1rem;color:#7c3aed;">—</div>
                                 </div>
                             </div>

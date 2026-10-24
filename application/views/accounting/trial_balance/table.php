@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var array  $Rows */
 /** @var float  $GrandDebit */
 /** @var float  $GrandCredit */
@@ -56,8 +56,8 @@ foreach (array_keys($grouped) as $t) {
         <!-- Group header -->
         <tr style="background:#f8f5ff;">
             <td colspan="10" style="padding:6px 12px;">
-                <span class="badge <?php echo $badge; ?>" style="font-size:.72rem;"><?php echo htmlspecialchars($type); ?></span>
-                <span class="text-muted ms-2" style="font-size:.72rem;"><?php echo count($items); ?> account<?php echo count($items) > 1 ? 's' : ''; ?></span>
+                <span class="badge <?php echo $badge; ?>" style="font-size:var(--r2k-text-sm);"><?php echo htmlspecialchars($type); ?></span>
+                <span class="text-muted ms-2" style="font-size:var(--r2k-text-sm);"><?php echo count($items); ?> account<?php echo count($items) > 1 ? 's' : ''; ?></span>
             </td>
         </tr>
         <?php foreach ($items as $r):
@@ -80,7 +80,7 @@ foreach (array_keys($grouped) as $t) {
                 <span class="badge bg-label-secondary ms-1" style="font-size:.6rem;">System</span>
                 <?php endif; ?>
             </td>
-            <td><span class="badge <?php echo $badge; ?>" style="font-size:.68rem;"><?php echo htmlspecialchars($type); ?></span></td>
+            <td><span class="badge <?php echo $badge; ?>" style="font-size:var(--r2k-text-xs);"><?php echo htmlspecialchars($type); ?></span></td>
             <td class="text-end text-success"><?php echo $obDr > 0 ? (_tbFmt($obDr, $cur)) : '—'; ?></td>
             <td class="text-end text-danger"> <?php echo $obCr > 0 ? (_tbFmt($obCr, $cur)) : '—'; ?></td>
             <td class="text-end text-success fw-semibold"><?php echo $dr > 0 ? (_tbFmt($dr, $cur)) : '—'; ?></td>

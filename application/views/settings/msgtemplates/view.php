@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php $this->load->view('common/header'); ?>
 
@@ -249,7 +249,7 @@ window.addEventListener('load', function() {
         var html = '';
         $.each(msgTokens, function(token, desc) {
             html += '<span class="badge bg-label-secondary me-1 mb-1 msg-token-badge" '
-                  + 'style="cursor:pointer;font-size:.72rem;" '
+                  + 'style="cursor:pointer;font-size:var(--r2k-text-sm);" '
                   + 'data-token="' + token + '" title="' + desc + '">' + token + '</span>';
         });
         $('#msgTokenList').html(html);

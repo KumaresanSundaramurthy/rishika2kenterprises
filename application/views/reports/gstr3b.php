@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 $_month = $this->pageData['_gstrMonth'] ?? (int)date('n');
 $_year  = $this->pageData['_gstrYear']  ?? (int)date('Y');
 $this->load->view('common/transactions/header'); ?>
@@ -6,7 +6,7 @@ $this->load->view('common/transactions/header'); ?>
 <style>
 .rpt-filter-bar{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;padding:14px 16px;border-bottom:1px solid #e2e8f0}
 .rpt-filter-group{display:flex;flex-direction:column;gap:4px}
-.rpt-filter-label{font-size:.72rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.03em}
+.rpt-filter-label{font-size:var(--r2k-text-sm);font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.03em}
 .rpt-select{min-width:130px}
 /* GSTR-3B form-style layout */
 .g3b-section{border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;margin-bottom:0}
@@ -25,7 +25,7 @@ $this->load->view('common/transactions/header'); ?>
 .g3b-row-return td{background:#fff5f5;color:#dc2626}
 .g3b-row-net td{background:#f0f9ff;border-top:2px solid #bae6fd!important}
 .g3b-liability-box{border:1px solid #e2e8f0;border-radius:8px;padding:14px;text-align:center}
-.g3b-liability-label{font-size:.72rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px}
+.g3b-liability-label{font-size:var(--r2k-text-sm);font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px}
 .g3b-liability-value{font-size:1rem;font-weight:700;color:#dc2626}
 .g3b-liability-total{background:#fef2f2;border-color:#fecaca}
 .g3b-liability-total .g3b-liability-value{font-size:1.1rem}

@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Reusable filter bar partial for transaction list pages.
  *
@@ -55,7 +55,7 @@ $partyLabel = ($partyType === 'vendor') ? 'Vendor' : 'Customer';
                 aria-expanded="false">
             <span class="tfb-label">Status</span>
             <i class="bx bx-x tfb-clear-x d-none" style="font-size:.8rem;margin-left:2px;"></i>
-            <i class="bx bx-chevron-down" style="font-size:.72rem;"></i>
+            <i class="bx bx-chevron-down" style="font-size:var(--r2k-text-sm);"></i>
         </button>
         <ul class="dropdown-menu shadow" style="min-width:160px;font-size:.82rem;">
             <li><a class="dropdown-item tfb-status-item" href="javascript:void(0);" data-val="Pending">
@@ -81,7 +81,7 @@ $partyLabel = ($partyType === 'vendor') ? 'Vendor' : 'Customer';
                 aria-expanded="false">
             <span class="tfb-label">Mode</span>
             <i class="bx bx-x tfb-clear-x d-none" style="font-size:.8rem;margin-left:2px;"></i>
-            <i class="bx bx-chevron-down" style="font-size:.72rem;"></i>
+            <i class="bx bx-chevron-down" style="font-size:var(--r2k-text-sm);"></i>
         </button>
         <ul class="dropdown-menu shadow" style="min-width:160px;font-size:.82rem;">
             <?php foreach ($paymentTypes as $pt): ?>
@@ -106,7 +106,7 @@ $partyLabel = ($partyType === 'vendor') ? 'Vendor' : 'Customer';
             <i class="bx bx-user" style="font-size:.8rem;"></i>
             <span class="tfb-label"><?php echo $partyLabel; ?></span>
             <i class="bx bx-x tfb-clear-x d-none" style="font-size:.8rem;margin-left:2px;"></i>
-            <i class="bx bx-chevron-down" style="font-size:.72rem;"></i>
+            <i class="bx bx-chevron-down" style="font-size:var(--r2k-text-sm);"></i>
         </button>
         <div class="dropdown-menu shadow tfb-party-dropdown p-0" style="min-width:230px;font-size:.82rem;">
             <div class="p-2 border-bottom">
@@ -131,7 +131,7 @@ $partyLabel = ($partyType === 'vendor') ? 'Vendor' : 'Customer';
             <i class="bx bx-user-check" style="font-size:.8rem;"></i>
             <span class="tfb-label">User</span>
             <i class="bx bx-x tfb-clear-x d-none" style="font-size:.8rem;margin-left:2px;"></i>
-            <i class="bx bx-chevron-down" style="font-size:.72rem;"></i>
+            <i class="bx bx-chevron-down" style="font-size:var(--r2k-text-sm);"></i>
         </button>
         <ul class="dropdown-menu shadow" style="min-width:180px;font-size:.82rem;max-height:220px;overflow-y:auto;">
             <?php foreach ($orgUsers as $u): ?>
@@ -146,7 +146,7 @@ $partyLabel = ($partyType === 'vendor') ? 'Vendor' : 'Customer';
     <?php endif; ?>
 
     <?php /* ── Active filter count badge + Clear All ─────────────────── */ ?>
-    <span id="tfbActiveBadge" class="badge bg-primary d-none" style="font-size:.68rem;padding:3px 7px;border-radius:10px;"></span>
+    <span id="tfbActiveBadge" class="badge bg-primary d-none" style="font-size:var(--r2k-text-xs);padding:3px 7px;border-radius:10px;"></span>
     <a href="javascript:void(0);" id="tfbClearAll" class="tfb-clear-all d-none" title="Clear all filters">
         <i class="bx bx-filter-alt"></i> Clear
     </a>
@@ -193,7 +193,7 @@ $partyLabel = ($partyType === 'vendor') ? 'Vendor' : 'Customer';
 .tfb-party-item:hover         { background: #f0f4ff; color: #212529; }
 .tfb-party-item.tfb-party-selected { background: #e8f0fe; color: #1a73e8; }
 .tfb-party-name { font-size: .82rem; }
-.tfb-party-area { font-size: .72rem; color: #888; }
+.tfb-party-area { font-size:var(--r2k-text-sm); color: #888; }
 .tfb-party-empty {
     padding   : 10px 12px;
     color     : #888;

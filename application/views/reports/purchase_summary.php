@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 
 $_today       = date('Y-m-d');
 $_listFmt     = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
@@ -20,7 +20,7 @@ $this->load->view('common/transactions/header'); ?>
 .rpt-icon-orange { background:#ffedd5; } .rpt-icon-orange i { color:#ea580c; }
 .rpt-icon-purple { background:#ede9fe; } .rpt-icon-purple i { color:#7c3aed; }
 .rpt-stat-body { flex:1;min-width:0; }
-.rpt-stat-label { font-size:.72rem;color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.03em; }
+.rpt-stat-label { font-size:var(--r2k-text-sm);color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.03em; }
 .rpt-stat-val   { font-size:1.05rem;font-weight:700;color:#1e293b;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
 .rpt-date-group { display:flex;align-items:center;gap:6px;flex-shrink:0; }
 .rpt-date-label { font-size:.75rem;color:#64748b;font-weight:600;white-space:nowrap; }
@@ -46,7 +46,7 @@ $this->load->view('common/transactions/header'); ?>
 .rpt-num-orange { color:#ea580c;font-weight:700; }
 .rpt-num-red    { color:#dc2626;font-weight:700; }
 .rpt-num-blue   { color:#2563eb;font-weight:700; }
-.rpt-count-chip { display:inline-block;padding:2px 7px;background:#f1f5f9;color:#475569;border-radius:8px;font-size:.72rem;font-weight:600; }
+.rpt-count-chip { display:inline-block;padding:2px 7px;background:#f1f5f9;color:#475569;border-radius:8px;font-size:var(--r2k-text-sm);font-weight:600; }
 .rpt-loading-cell { padding:48px 0 !important;text-align:center; }
 .rpt-loading { display:flex;align-items:center;justify-content:center;color:#64748b;font-size:.85rem; }
 .rpt-empty { display:flex;flex-direction:column;align-items:center;padding:50px 20px;color:#94a3b8; }
@@ -58,7 +58,7 @@ $this->load->view('common/transactions/header'); ?>
 .rpt-footer-chip-orange { background:#ffedd5;color:#9a3412; }
 .rpt-footer-chip-red    { background:#fee2e2;color:#991b1b; }
 .rpt-footer-chip-blue   { background:#dbeafe;color:#1d4ed8; }
-.rpt-th-group { text-align:center;border-bottom:none !important;padding-bottom:2px !important;color:#ea580c !important;font-size:.68rem !important; }
+.rpt-th-group { text-align:center;border-bottom:none !important;padding-bottom:2px !important;color:#ea580c !important;font-size:var(--r2k-text-xs) !important; }
 .rpt-th-group-red { color:#dc2626 !important; }
 @media (prefers-color-scheme: dark) {
     .rpt-stat-card,.rpt-date-input-wrap { background:#1e293b;border-color:#334155; }

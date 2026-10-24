@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php
 $SerialNumber = $SerialNumber ?? 0;
@@ -34,7 +34,7 @@ if (!empty($DataLists)):
         <td>
             <div class="d-flex align-items-center gap-2">
                 <div class="avatar avatar-sm flex-shrink-0">
-                    <span class="avatar-initial rounded-circle bg-label-primary" style="font-size:.72rem;">
+                    <span class="avatar-initial rounded-circle bg-label-primary" style="font-size:var(--r2k-text-sm);">
                         <?php echo strtoupper(substr($list->FirstName ?? '', 0, 1) . substr($list->LastName ?? '', 0, 1)); ?>
                     </span>
                 </div>
@@ -42,7 +42,7 @@ if (!empty($DataLists)):
                     <div class="fw-semibold" style="font-size:.87rem;">
                         <?php echo htmlspecialchars(trim($list->FirstName . ' ' . $list->LastName)); ?>
                     </div>
-                    <div class="text-muted" style="font-size:.72rem;">
+                    <div class="text-muted" style="font-size:var(--r2k-text-sm);">
                         <?php if (!empty($list->EmployeeCode)): ?>
                             <span class="me-1"><?php echo htmlspecialchars($list->EmployeeCode); ?></span>
                         <?php endif; ?>
@@ -57,7 +57,7 @@ if (!empty($DataLists)):
                 <div style="font-size:.82rem;"><?php echo htmlspecialchars($list->DepartmentName); ?></div>
             <?php endif; ?>
             <?php if (!empty($list->DesignationName)): ?>
-                <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars($list->DesignationName); ?></div>
+                <div class="text-muted" style="font-size:var(--r2k-text-sm);"><?php echo htmlspecialchars($list->DesignationName); ?></div>
             <?php else: ?>
                 <?php if (empty($list->DepartmentName)): ?><span class="text-muted">—</span><?php endif; ?>
             <?php endif; ?>
@@ -69,7 +69,7 @@ if (!empty($DataLists)):
                 <div style="font-size:.8rem;"><?php echo htmlspecialchars($list->EmailAddress); ?></div>
             <?php endif; ?>
             <?php if (!empty($list->MobileNumber)): ?>
-                <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars($list->MobileNumber); ?></div>
+                <div class="text-muted" style="font-size:var(--r2k-text-sm);"><?php echo htmlspecialchars($list->MobileNumber); ?></div>
             <?php elseif (empty($list->EmailAddress)): ?>
                 <span class="text-muted">—</span>
             <?php endif; ?>
@@ -80,13 +80,13 @@ if (!empty($DataLists)):
         <td>
             <?php if ($isSuperAdmin): ?>
                 <span class="badge <?php echo $statusBadge[$empStatus] ?? 'bg-label-secondary'; ?>"
-                      style="font-size:.72rem;" title="Super Admin is always active">
+                      style="font-size:var(--r2k-text-sm);" title="Super Admin is always active">
                     <?php echo $empStatus === 'OnLeave' ? 'On Leave' : htmlspecialchars($empStatus); ?>
                 </span>
             <?php else: ?>
                 <div class="dropdown d-inline-block">
                     <span class="badge <?php echo $statusBadge[$empStatus] ?? 'bg-label-secondary'; ?> cursor-pointer"
-                          style="font-size:.72rem;" data-bs-toggle="dropdown">
+                          style="font-size:var(--r2k-text-sm);" data-bs-toggle="dropdown">
                         <?php echo $empStatus === 'OnLeave' ? 'On Leave' : htmlspecialchars($empStatus); ?>
                         <i class="bx bx-chevron-down" style="font-size:.65rem;"></i>
                     </span>

@@ -103,7 +103,7 @@
     <ul id="SettingsMenuBar" style="margin-top: 0 !important;" class="menu-inner py-1 flex-grow-1 overflow-auto <?php echo $isSettingsPage ? '' : 'd-none'; ?>">
 
         <li class="menu-item">
-            <a href="javascript: void(0);" id="SettingsBackMenuBarBtn" class="menu-link backtodashboard-btn d-flex align-items-center justify-content-center">
+            <a href="javascript: void(0);" id="SettingsBackMenuBarBtn" class="menu-link backtodashboard-btn d-flex align-items-center">
                 <i class="menu-icon tf-icons bx bx-arrow-back"></i>
                 <div data-i18n="Main Menu">Back to Menu</div>
             </a>
@@ -136,7 +136,7 @@
                 $itemPath = ltrim($item->UrlPath ?? $item->ControllerName, '/');
                 $isActive = (strtolower($itemPath) === $currentPathFull);
                 $liClass  = $isActive ? 'menu-item active' : 'menu-item';
-                $href     = $isActive ? 'javascript:void(0);' : '/' . htmlspecialchars($itemPath);
+                $href     = $isActive ? 'javascript:void(0);' : site_url($itemPath);
     ?>
             <li class="<?php echo $liClass; ?>">
                 <a href="<?php echo $href; ?>" class="menu-link">

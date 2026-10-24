@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <div class="modal fade" id="barcodePrintModal" tabindex="-1" aria-labelledby="barcodePrintModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-top">
@@ -42,7 +42,7 @@
                         <i class="bx bx-loader-alt bx-spin"></i> Generating preview...
                     </div>
                 </div>
-                <div id="bcPreviewNote" class="text-center text-muted mt-2" style="font-size:.72rem;"></div>
+                <div id="bcPreviewNote" class="text-center text-muted mt-2" style="font-size:var(--r2k-text-sm);"></div>
             </div>
 
             <!-- Footer -->

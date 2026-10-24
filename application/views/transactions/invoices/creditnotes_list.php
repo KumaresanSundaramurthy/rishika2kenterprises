@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php
 $currency    = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
 $timezone    = $JwtData->User->Timezone ?? 'Asia/Kolkata';
@@ -38,10 +38,10 @@ if (!empty($DataLists)):
     <td>
         <span class="fw-semibold trans-doc-number"><?php echo htmlspecialchars($cn->CreditNoteNumber ?? '—'); ?></span>
         <?php if ($createdFmt !== '—'): ?>
-        <div class="text-muted mt-1" style="font-size:.72rem;"><?php echo $createdFmt; ?></div>
+        <div class="text-muted mt-1" style="font-size:var(--r2k-text-sm);"><?php echo $createdFmt; ?></div>
         <?php endif; ?>
         <?php if ($cn->CreatorName ?? ''): ?>
-        <div style="font-size:.68rem;color:#b0b7c3;">by <?php echo htmlspecialchars($cn->CreatorName); ?></div>
+        <div style="font-size:var(--r2k-text-xs);color:#b0b7c3;">by <?php echo htmlspecialchars($cn->CreatorName); ?></div>
         <?php endif; ?>
     </td>
 
@@ -53,10 +53,10 @@ if (!empty($DataLists)):
             <div>
                 <div class="trans-party-name fw-semibold"><?php echo htmlspecialchars($custName); ?></div>
                 <?php if ($cn->CustomerArea ?? ''): ?>
-                <div style="font-size:.7rem;color:#888;margin-top:1px;"><i class="bx bx-map" style="font-size:.72rem;"></i> <?php echo htmlspecialchars($cn->CustomerArea); ?></div>
+                <div style="font-size:.7rem;color:#888;margin-top:1px;"><i class="bx bx-map" style="font-size:var(--r2k-text-sm);"></i> <?php echo htmlspecialchars($cn->CustomerArea); ?></div>
                 <?php endif; ?>
                 <?php if ($cn->MobileNo ?? ''): ?>
-                <div style="font-size:.72rem;color:#888;"><?php echo htmlspecialchars($cn->MobileNo); ?></div>
+                <div style="font-size:var(--r2k-text-sm);color:#888;"><?php echo htmlspecialchars($cn->MobileNo); ?></div>
                 <?php endif; ?>
             </div>
         </div>
@@ -78,7 +78,7 @@ if (!empty($DataLists)):
         <span class="text-muted"><?php echo htmlspecialchars($cn->SourceTransNumber ?? '—'); ?></span>
         <?php endif; ?>
         <?php if ($srcDate !== '—'): ?>
-        <div class="text-muted mt-1" style="font-size:.72rem;"><?php echo $srcDate; ?></div>
+        <div class="text-muted mt-1" style="font-size:var(--r2k-text-sm);"><?php echo $srcDate; ?></div>
         <?php endif; ?>
     </td>
 
@@ -93,7 +93,7 @@ if (!empty($DataLists)):
         <?php if ($createdFmt !== '—'): ?>
         <div style="font-size:.8rem;"><?php echo $createdFmt; ?></div>
         <?php if ($within24h): ?>
-        <div style="font-size:.68rem;color:#0d6efd;font-weight:500;"><?php echo $agoText ?? ''; ?></div>
+        <div style="font-size:var(--r2k-text-xs);color:#0d6efd;font-weight:500;"><?php echo $agoText ?? ''; ?></div>
         <?php endif; ?>
         <?php if ($cn->CreatorName ?? ''): ?>
         <div class="text-muted" style="font-size:.7rem;">by <?php echo htmlspecialchars($cn->CreatorName); ?></div>

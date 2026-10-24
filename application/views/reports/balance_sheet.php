@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 
 $_today    = date('Y-m-d');
 $_listFmt  = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
@@ -15,7 +15,7 @@ $this->load->view('common/transactions/header'); ?>
 .rpt-icon-green{background:#dcfce7}.rpt-icon-green i{color:#16a34a}
 .rpt-icon-purple{background:#ede9fe}.rpt-icon-purple i{color:#7c3aed}
 .rpt-stat-body{flex:1;min-width:0}
-.rpt-stat-label{font-size:.72rem;color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.03em}
+.rpt-stat-label{font-size:var(--r2k-text-sm);color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.03em}
 .rpt-stat-val{font-size:1.05rem;font-weight:700;color:#1e293b;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rpt-date-group{display:flex;align-items:center;gap:6px;flex-shrink:0}
 .rpt-date-label{font-size:.75rem;color:#64748b;font-weight:600;white-space:nowrap}
@@ -28,7 +28,7 @@ $this->load->view('common/transactions/header'); ?>
 .fin-wrap{padding:20px 24px}
 .fin-cols{display:grid;grid-template-columns:1fr 1fr;gap:32px}
 @media(max-width:768px){.fin-cols{grid-template-columns:1fr}}
-.fin-section-title{font-size:.68rem;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.08em;padding-bottom:8px;border-bottom:2px solid #e2e8f0;margin-bottom:4px}
+.fin-section-title{font-size:var(--r2k-text-xs);font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.08em;padding-bottom:8px;border-bottom:2px solid #e2e8f0;margin-bottom:4px}
 .fin-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #f8fafc}
 .fin-row-label{font-size:.81rem;color:#334155}
 .fin-row-sub{font-size:.76rem;color:#94a3b8;margin-left:8px}

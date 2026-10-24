@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php
 $isEdit     = isset($ExpenseData) && $ExpenseData !== null;
 $expense    = $ExpenseData ?? null;
@@ -242,7 +242,7 @@ if ($isEdit) {
                                                     <?php if (!empty($existItems)): ?>
                                                         <?php foreach ($existItems as $idx => $ei): ?>
                                                         <tr class="exp-item-row border-top" data-row="<?php echo $idx; ?>" data-item-uid="<?php echo (int)$ei->ExpenseItemUID; ?>">
-                                                            <td class="ps-3 text-muted" style="font-size:.72rem;"><?php echo $idx + 1; ?></td>
+                                                            <td class="ps-3 text-muted" style="font-size:var(--r2k-text-sm);"><?php echo $idx + 1; ?></td>
                                                             <td>
                                                                 <input type="text" class="form-control form-control-sm item-desc"
                                                                        placeholder="Description (optional)"
@@ -357,7 +357,7 @@ if ($isEdit) {
                                                 <div id="transAttachLabel" style="font-size:.78rem;font-weight:600;color:#6b7280;">Drag &amp; drop files here</div>
                                             </div>
                                         </div>
-                                        <span id="transAttachHint" style="font-size:.72rem;color:#9ca3af;"></span>
+                                        <span id="transAttachHint" style="font-size:var(--r2k-text-sm);color:#9ca3af;"></span>
                                         <div id="transAttachList" class="prod-attach-list mt-2" style="display:none;"></div>
                                         <input type="file" id="transAttachInput" multiple style="display:none;">
                                         <input type="hidden" id="RemovedAttachIDs" name="RemovedAttachIDs" value="">
@@ -372,7 +372,7 @@ if ($isEdit) {
                                 <!-- Vendor Balance Card — visible only when a vendor is selected in with-tax mode -->
                                 <div class="card mb-3 d-none" id="vendorBalCard">
                                     <div class="card-body py-3 px-3">
-                                        <div class="text-muted mb-2" style="font-size:.72rem;font-weight:600;letter-spacing:.3px;text-transform:uppercase;">Vendor Balance</div>
+                                        <div class="text-muted mb-2" style="font-size:var(--r2k-text-sm);font-weight:600;letter-spacing:.3px;text-transform:uppercase;">Vendor Balance</div>
                                         <div class="d-flex align-items-baseline gap-2">
                                             <div class="fw-bold" id="vendorBalAmt" style="font-size:1.08rem;">—</div>
                                             <span class="badge rounded-pill" id="vendorBalBadge" style="font-size:.7rem;"></span>
@@ -872,7 +872,7 @@ $(function () {
             catOpts += '<option value="' + c.uid + '">' + c.name.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</option>';
         });
         return '<tr class="exp-item-row border-top" data-row="' + idx + '">'
-            + '<td class="ps-3 text-muted" style="font-size:.72rem;">' + (idx + 1) + '</td>'
+            + '<td class="ps-3 text-muted" style="font-size:var(--r2k-text-sm);">' + (idx + 1) + '</td>'
             + '<td><input type="text" class="form-control form-control-sm item-desc" placeholder="Description (optional)"></td>'
             + '<td><select class="form-select form-select-sm item-cat">' + catOpts + '</select></td>'
             + '<td class="tax-col" style="display:' + tShow + ';">'

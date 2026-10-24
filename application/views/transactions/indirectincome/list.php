@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php
 $moduleContext = 'indirectincome';
@@ -43,7 +43,7 @@ if (!empty($DataLists)):
             <?php endif; ?>
             <div class="d-flex align-items-center gap-2 mt-1">
                 <?php if (!empty($list->IncomeDate)): ?>
-                    <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->IncomeDate)); ?></div>
+                    <div class="text-muted" style="font-size:var(--r2k-text-sm);"><?php echo htmlspecialchars(format_datedisplay($list->IncomeDate)); ?></div>
                 <?php endif; ?>
                 <?php if (!empty($list->AttachCount) && (int)$list->AttachCount > 0): ?>
                     <button type="button" class="btn btn-link p-0 transAttachBtn"
@@ -59,7 +59,7 @@ if (!empty($DataLists)):
                 <?php endif; ?>
             </div>
             <?php $createdBy = trim($list->CreatedByName ?? ''); if ($createdBy !== ''): ?>
-                <div style="font-size:.68rem;color:#bbb;">by <?php echo htmlspecialchars($createdBy); ?></div>
+                <div style="font-size:var(--r2k-text-xs);color:#bbb;">by <?php echo htmlspecialchars($createdBy); ?></div>
             <?php endif; ?>
         </td>
 
@@ -74,7 +74,7 @@ if (!empty($DataLists)):
         <!-- Category / Notes -->
         <td>
             <?php if (!empty($list->CategoryName)): ?>
-                <span class="badge text-bg-light border" style="font-size:.72rem;font-weight:500;">
+                <span class="badge text-bg-light border" style="font-size:var(--r2k-text-sm);font-weight:500;">
                     <?php echo htmlspecialchars($list->CategoryName); ?>
                 </span>
             <?php endif; ?>
@@ -115,11 +115,11 @@ if (!empty($DataLists)):
                      style="cursor:pointer;"
                      <?php endif; ?>>
                     <div class="d-flex align-items-center gap-1 flex-wrap">
-                        <span class="badge bg-label-success" style="font-size:.68rem;">
+                        <span class="badge bg-label-success" style="font-size:var(--r2k-text-xs);">
                             <i class="bx bx-credit-card me-1"></i><?php echo $firstMode; ?>
                         </span>
                         <?php if ($extraCnt > 0): ?>
-                            <span class="badge bg-label-secondary" style="font-size:.68rem;">+<?php echo $extraCnt; ?></span>
+                            <span class="badge bg-label-secondary" style="font-size:var(--r2k-text-xs);">+<?php echo $extraCnt; ?></span>
                         <?php endif; ?>
                         <?php if ($hasPayAttach): ?>
                         <button type="button" class="btn btn-link p-0 transPayAttachBtn"
@@ -133,7 +133,7 @@ if (!empty($DataLists)):
                         <?php endif; ?>
                     </div>
                     <?php if (!$isCashOnly && ($payBankName || $payAccNum)): ?>
-                    <div style="font-size:.68rem;color:#6c757d;margin-top:3px;line-height:1.4;">
+                    <div style="font-size:var(--r2k-text-xs);color:#6c757d;margin-top:3px;line-height:1.4;">
                         <?php if ($payBankName): ?>
                         <div><i class="bx bx-building-house me-1" style="font-size:.7rem;"></i><?php echo $payBankName; ?></div>
                         <?php endif; ?>

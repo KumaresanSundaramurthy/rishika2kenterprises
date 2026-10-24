@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 /**
  * Product Profile Modal — Stock Movement Tab
  *
@@ -94,9 +94,9 @@ $stockClass = $currentStock < 0 ? 'pp-sk-stat-red' : ($currentStock === 0.0 ? 'p
 <style>
 .pp-sk-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
 .pp-sk-stat{border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:4px;border:1px solid transparent}
-.pp-sk-stat-label{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;opacity:.7}
+.pp-sk-stat-label{font-size:var(--r2k-text-xs);font-weight:700;text-transform:uppercase;letter-spacing:.05em;opacity:.7}
 .pp-sk-stat-val{font-size:1.25rem;font-weight:800;line-height:1.1;white-space:nowrap}
-.pp-sk-stat-sub{font-size:.72rem;opacity:.6;margin-top:1px}
+.pp-sk-stat-sub{font-size:var(--r2k-text-sm);opacity:.6;margin-top:1px}
 .pp-sk-stat-green{background:rgba(22,163,74,.08);border-color:rgba(22,163,74,.15);color:#15803d}
 .pp-sk-stat-red{background:rgba(220,38,38,.08);border-color:rgba(220,38,38,.15);color:#dc2626}
 .pp-sk-stat-amber{background:rgba(217,119,6,.08);border-color:rgba(217,119,6,.15);color:#b45309}
@@ -111,9 +111,9 @@ $stockClass = $currentStock < 0 ? 'pp-sk-stat-red' : ($currentStock === 0.0 ? 'p
 .pp-sk-vr-qty-in{color:#16a34a}
 .pp-sk-vr-qty-zero{color:#94a3b8}
 .pp-sk-vr-qty-neg{color:#dc2626}
-.pp-sk-chip-size{display:inline-block;padding:2px 9px;border-radius:5px;font-size:.72rem;font-weight:600;background:#dbeafe;color:#1d4ed8}
-.pp-sk-chip-brand{display:inline-block;padding:2px 9px;border-radius:5px;font-size:.72rem;font-weight:600;background:#ffedd5;color:#c2410c}
-.pp-sk-open-label{font-size:.68rem;color:#94a3b8;margin-top:2px}
+.pp-sk-chip-size{display:inline-block;padding:2px 9px;border-radius:5px;font-size:var(--r2k-text-sm);font-weight:600;background:#dbeafe;color:#1d4ed8}
+.pp-sk-chip-brand{display:inline-block;padding:2px 9px;border-radius:5px;font-size:var(--r2k-text-sm);font-weight:600;background:#ffedd5;color:#c2410c}
+.pp-sk-open-label{font-size:var(--r2k-text-xs);color:#94a3b8;margin-top:2px}
 
 .pp-sk-ledger-wrap{border-radius:10px;overflow:hidden;border:1px solid rgba(0,0,0,.07)}
 .pp-sk-ledger-table{width:100%;border-collapse:collapse;font-size:.8rem}
@@ -247,7 +247,7 @@ $stockClass = $currentStock < 0 ? 'pp-sk-stat-red' : ($currentStock === 0.0 ? 'p
                     <td class="text-nowrap"><?php echo !empty($row['date']) ? date($DateFormat, strtotime($row['date'])) : '—'; ?></td>
                     <td class="fw-semibold text-nowrap"><?php echo htmlspecialchars($row['refNo']); ?></td>
                     <td>
-                        <span class="badge bg-label-<?php echo $row['moduleColor']; ?>" style="font-size:.68rem;">
+                        <span class="badge bg-label-<?php echo $row['moduleColor']; ?>" style="font-size:var(--r2k-text-xs);">
                             <?php echo htmlspecialchars($row['moduleLabel']); ?>
                         </span>
                     </td>

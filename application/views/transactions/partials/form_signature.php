@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 /**
  * Reusable signature picker partial — included in form_products_add.php.
  *
@@ -23,7 +23,7 @@ $_sigFromJwt    = isset($transSignatures) ? $transSignatures : null; // null = u
             </div>
             <div>
                 <div class="fw-bold" style="font-size:.88rem;color:#3730a3;">Authorized Signatory</div>
-                <div class="text-muted" style="font-size:.72rem;">Signature will appear on the printed document</div>
+                <div class="text-muted" style="font-size:var(--r2k-text-sm);">Signature will appear on the printed document</div>
             </div>
         </div>
         <a href="<?= site_url('settings/profile') ?>" target="_blank"
@@ -51,8 +51,8 @@ $_sigFromJwt    = isset($transSignatures) ? $transSignatures : null; // null = u
                         <option value="">— No signature —</option>
                     </select>
                     <div class="mt-2 d-flex align-items-center gap-2" id="transSigMeta" style="display:none!important;">
-                        <span class="badge bg-label-primary" id="transSigTypeBadge" style="font-size:.68rem;"></span>
-                        <span class="text-muted" style="font-size:.72rem;" id="transSigDefaultBadge"></span>
+                        <span class="badge bg-label-primary" id="transSigTypeBadge" style="font-size:var(--r2k-text-xs);"></span>
+                        <span class="text-muted" style="font-size:var(--r2k-text-sm);" id="transSigDefaultBadge"></span>
                     </div>
                 </div>
 
@@ -103,7 +103,7 @@ $_sigFromJwt    = isset($transSignatures) ? $transSignatures : null; // null = u
                                 <!-- Signature line -->
                                 <div style="border-top:1.5px solid #374151;margin-top:6px;padding-top:5px;">
                                     <div id="transSigPreviewName"
-                                         style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#1f2937;text-align:right;"></div>
+                                         style="font-size:var(--r2k-text-sm);font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#1f2937;text-align:right;"></div>
                                     <div style="font-size:.62rem;color:#6b7280;letter-spacing:.5px;text-align:right;">
                                         AUTHORIZED SIGNATORY
                                     </div>

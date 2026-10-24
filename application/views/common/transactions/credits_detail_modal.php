@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
 <!-- Credits Detail Modal — informational; JS populates via AJAX on badge click -->
 <div class="modal fade" id="creditsDetailModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable" style="margin-top:60px;">
@@ -40,9 +40,9 @@
                             <table class="table table-sm table-hover mb-0" style="font-size:.82rem;">
                                 <thead style="background:#fff3cd;">
                                     <tr>
-                                        <th style="color:#856404;font-weight:700;text-transform:uppercase;font-size:.72rem;letter-spacing:.04em;white-space:nowrap;">Invoice No</th>
-                                        <th style="color:#856404;font-weight:700;text-transform:uppercase;font-size:.72rem;letter-spacing:.04em;white-space:nowrap;">Date</th>
-                                        <th style="color:#856404;font-weight:700;text-transform:uppercase;font-size:.72rem;letter-spacing:.04em;white-space:nowrap;" class="text-end">Amount</th>
+                                        <th style="color:#856404;font-weight:700;text-transform:uppercase;font-size:var(--r2k-text-sm);letter-spacing:.04em;white-space:nowrap;">Invoice No</th>
+                                        <th style="color:#856404;font-weight:700;text-transform:uppercase;font-size:var(--r2k-text-sm);letter-spacing:.04em;white-space:nowrap;">Date</th>
+                                        <th style="color:#856404;font-weight:700;text-transform:uppercase;font-size:var(--r2k-text-sm);letter-spacing:.04em;white-space:nowrap;" class="text-end">Amount</th>
                                     </tr>
                                 </thead>
                                 <tbody id="credDetailOaBody">
@@ -63,9 +63,9 @@
                             <table class="table table-sm table-hover mb-0" style="font-size:.82rem;">
                                 <thead style="background:#fff3cd;">
                                     <tr>
-                                        <th style="color:#856404;font-weight:700;text-transform:uppercase;font-size:.72rem;letter-spacing:.04em;white-space:nowrap;">Invoice No</th>
-                                        <th style="color:#856404;font-weight:700;text-transform:uppercase;font-size:.72rem;letter-spacing:.04em;white-space:nowrap;">Date</th>
-                                        <th style="color:#856404;font-weight:700;text-transform:uppercase;font-size:.72rem;letter-spacing:.04em;white-space:nowrap;" class="text-end">Amount</th>
+                                        <th style="color:#856404;font-weight:700;text-transform:uppercase;font-size:var(--r2k-text-sm);letter-spacing:.04em;white-space:nowrap;">Invoice No</th>
+                                        <th style="color:#856404;font-weight:700;text-transform:uppercase;font-size:var(--r2k-text-sm);letter-spacing:.04em;white-space:nowrap;">Date</th>
+                                        <th style="color:#856404;font-weight:700;text-transform:uppercase;font-size:var(--r2k-text-sm);letter-spacing:.04em;white-space:nowrap;" class="text-end">Amount</th>
                                     </tr>
                                 </thead>
                                 <tbody id="credDetailAdvBody">

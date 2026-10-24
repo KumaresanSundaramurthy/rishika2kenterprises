@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 /**
  * Product Profile Modal — Transactions Tab
  *
@@ -62,14 +62,14 @@ foreach ($Rows as $r) {
 .pp-tx-tbl tbody tr:hover td{background:#f8fafc}
 
 .pp-tx-ref{font-weight:700;color:#374151;font-size:.82rem}
-.pp-tx-date{font-size:.72rem;color:#94a3b8;margin-top:2px}
+.pp-tx-date{font-size:var(--r2k-text-sm);color:#94a3b8;margin-top:2px}
 .pp-tx-party{font-size:.82rem;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
 .pp-tx-qty-in{color:#16a34a;font-weight:700}
 .pp-tx-qty-out{color:#ef4444;font-weight:700}
 .pp-tx-qty-neutral{color:#374151;font-weight:600}
 .pp-tx-amt{font-weight:700;color:#1e293b;white-space:nowrap}
 .pp-tx-variant-chip{display:inline-block;padding:2px 8px;border-radius:5px;font-size:.7rem;font-weight:600;background:#dbeafe;color:#1d4ed8;white-space:nowrap}
-.pp-tx-footer-note{padding:8px 14px;font-size:.72rem;color:#94a3b8;border-top:1px solid #f1f5f9;background:#f8fafc}
+.pp-tx-footer-note{padding:8px 14px;font-size:var(--r2k-text-sm);color:#94a3b8;border-top:1px solid #f1f5f9;background:#f8fafc}
 .pp-tx-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 20px;color:#94a3b8;text-align:center}
 .pp-tx-empty i{font-size:2.2rem;margin-bottom:10px;opacity:.35}
 .pp-tx-empty-title{font-size:.88rem;font-weight:600;color:#64748b}
@@ -156,7 +156,7 @@ foreach ($Rows as $r) {
                 <div class="pp-tx-date"><?php echo !empty($r['TransDate']) ? date($DateFormat, strtotime($r['TransDate'])) : '—'; ?></div>
             </td>
             <td>
-                <span class="badge bg-label-<?php echo $mMeta['color']; ?>" style="font-size:.68rem;">
+                <span class="badge bg-label-<?php echo $mMeta['color']; ?>" style="font-size:var(--r2k-text-xs);">
                     <?php echo htmlspecialchars($mMeta['label']); ?>
                 </span>
             </td>
@@ -175,7 +175,7 @@ foreach ($Rows as $r) {
             </td>
             <td class="text-end text-nowrap text-muted" style="font-size:.78rem;"><?php echo $Cur . ' ' . number_format($up, $Dec, '.', ''); ?></td>
             <td class="text-end text-nowrap pp-tx-amt"><?php echo $Cur . ' ' . number_format($amount, $Dec, '.', ''); ?></td>
-            <td><span class="badge bg-label-<?php echo $badgeCls; ?>" style="font-size:.68rem;"><?php echo htmlspecialchars($status); ?></span></td>
+            <td><span class="badge bg-label-<?php echo $badgeCls; ?>" style="font-size:var(--r2k-text-xs);"><?php echo htmlspecialchars($status); ?></span></td>
         </tr>
         <?php endforeach; ?>
         </tbody>

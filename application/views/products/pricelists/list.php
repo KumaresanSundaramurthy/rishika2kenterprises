@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php
 $_assignedLabels = ['All' => 'All Customers', 'Groups' => 'Customer Groups', 'Customers' => 'Specific Customers'];
@@ -37,7 +37,7 @@ if (!empty($DataLists)):
                     <?php echo $_scopeLabels[$scope] ?? $scope; ?>
                 </span>
                 <?php if ($scope === 'All'): ?>
-                <div class="text-muted" style="font-size:.72rem;"><?php echo $_basedOnLabels[$row->GlobalBasedOn ?? 'SellingPrice'] ?? ''; ?></div>
+                <div class="text-muted" style="font-size:var(--r2k-text-sm);"><?php echo $_basedOnLabels[$row->GlobalBasedOn ?? 'SellingPrice'] ?? ''; ?></div>
                 <?php endif; ?>
             </td>
             <td class="text-nowrap" style="font-size:.82rem;">

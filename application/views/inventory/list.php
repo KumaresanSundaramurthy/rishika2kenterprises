@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php
 $currency  = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
@@ -44,18 +44,18 @@ if (!empty($DataLists)):
 
     <!-- Item -->
     <td>
-        <div class="fw-semibold" style="font-size:.85rem;"><?php echo htmlspecialchars($row->ItemName); ?></div>
+        <div class="fw-semibold"><?php echo htmlspecialchars($row->ItemName); ?></div>
         <?php if (!empty($row->PartNumber)): ?>
         <div class="text-muted" style="font-size:.7rem;">Part# <?php echo htmlspecialchars($row->PartNumber); ?></div>
         <?php endif; ?>
-        <div class="d-flex align-items-center flex-wrap gap-1 mt-1" style="font-size:.72rem;">
+        <div class="d-flex align-items-center flex-wrap gap-1 mt-1" style="font-size:var(--r2k-text-sm);">
             <?php if ($row->ProductType === 'Service'): ?>
                 <span class="badge bg-label-info" style="font-size:.65rem;">Service</span>
             <?php else: ?>
                 <span class="badge bg-label-primary" style="font-size:.65rem;">Product</span>
             <?php endif; ?>
             <?php if (!empty($row->HSNSACCode)): ?>
-                <span class="text-muted" style="font-size:.68rem;">HSN: <?php echo htmlspecialchars($row->HSNSACCode); ?></span>
+                <span class="text-muted" style="font-size:var(--r2k-text-xs);">HSN: <?php echo htmlspecialchars($row->HSNSACCode); ?></span>
             <?php endif; ?>
             <?php if (!empty($row->PartNumber)): ?>
                 <span title="Barcode — <?php echo htmlspecialchars($row->PartNumber); ?>" style="cursor:default;line-height:1;">
@@ -93,12 +93,12 @@ if (!empty($DataLists)):
 
     <!-- Qty -->
     <td>
-        <div class="fw-semibold" style="font-size:.9rem;<?php echo $qtyColor; ?>">
+        <div class="fw-semibold" style="<?php echo $qtyColor; ?>">
             <?php echo smartDecimal($qty); ?>
-            <span style="font-size:.72rem;font-weight:400;color:#6c757d;"><?php echo htmlspecialchars($row->UnitName ?? ''); ?></span>
+            <span style="font-size:var(--r2k-text-sm);font-weight:400;color:#6c757d;"><?php echo htmlspecialchars($row->UnitName ?? ''); ?></span>
         </div>
         <?php if ($threshold > 0): ?>
-        <div class="text-muted" style="font-size:.68rem;">Alert at <?php echo smartDecimal($threshold); ?></div>
+        <div class="text-muted" style="font-size:var(--r2k-text-xs);">Alert at <?php echo smartDecimal($threshold); ?></div>
         <?php endif; ?>
     </td>
 
@@ -112,7 +112,7 @@ if (!empty($DataLists)):
 
     <!-- Purchase Price -->
     <td>
-        <div style="font-size:.85rem;"><?php echo $currency . ' ' . smartDecimal($row->PurchasePrice); ?></div>
+        <div><?php echo $currency . ' ' . smartDecimal($row->PurchasePrice); ?></div>
         <?php if ($row->TaxPercentage > 0): ?>
         <div class="text-muted" style="font-size:.7rem;"><?php echo $row->TaxPercentage; ?>% tax</div>
         <?php endif; ?>
@@ -121,6 +121,9 @@ if (!empty($DataLists)):
     <!-- Sale Price -->
     <td>
         <div class="trans-amount-main"><?php echo $currency . ' ' . smartDecimal($row->SellingPrice); ?></div>
+        <?php if ($row->TaxPercentage > 0): ?>
+        <div class="text-muted" style="font-size:.7rem;"><?php echo $row->TaxPercentage; ?>% tax</div>
+        <?php endif; ?>
     </td>
 
     <!-- Last Updated -->
@@ -192,7 +195,7 @@ else:
     <td colspan="10">
         <div class="d-flex flex-column align-items-center py-5">
             <img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:150px;object-fit:contain;">
-            <span class="text-muted" style="font-size:.9rem;">No inventory items found</span>
+            <span class="text-muted">No inventory items found</span>
         </div>
     </td>
 </tr>

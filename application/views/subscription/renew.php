@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 $orgName        = htmlspecialchars($org->Name ?? 'Your Organisation', ENT_QUOTES, 'UTF-8');
 $currentPlanUID = $subscription->SectorPlanUID ?? null;
@@ -305,7 +305,7 @@ $defaultCycle = (($subscription->BillingCycle ?? 'Monthly') === 'Yearly') ? 'Yea
 .sr-price-sym  { font-size: 1.15rem; font-weight: 700; color: var(--tc, #94a3b8); align-self: flex-start; margin-top: 7px; }
 .sr-price-amt  { font-size: 2.4rem; font-weight: 800; color: #f1f5f9; line-height: 1; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
 .sr-price-cycle{ font-size: 0.78rem; color: rgba(148,163,184,0.6); margin-left: 2px; }
-.sr-price-gst  { font-size: 0.72rem; color: rgba(148,163,184,0.5); letter-spacing: 0.01em; }
+.sr-price-gst  { font-size:var(--r2k-text-sm); color: rgba(148,163,184,0.5); letter-spacing: 0.01em; }
 
 /* ── Stat tiles ──────────────────────────────────────── */
 .sr-stats-row {
@@ -465,7 +465,7 @@ $defaultCycle = (($subscription->BillingCycle ?? 'Monthly') === 'Yearly') ? 'Yea
     letter-spacing: 0.01em;
 }
 .sr-pay-overlay-stage {
-    font-size: 0.72rem;
+    font-size:var(--r2k-text-sm);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.1em;

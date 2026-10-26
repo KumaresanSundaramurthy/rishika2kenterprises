@@ -145,7 +145,7 @@ $pageHead = $isEdit ? 'Edit Customer Group' : 'Create Customer Group';
                                     <?php if (empty($members)): ?>
                                     <div class="text-center py-4 text-muted" id="cgNoMembersMsg">
                                         <i class="bx bx-user-plus fs-2 d-block mb-2"></i>
-                                        <div style="font-size:.85rem;">No members yet. Search and add customers above.</div>
+                                        <div style="font-size:var(--r2k-text-85);">No members yet. Search and add customers above.</div>
                                     </div>
                                     <?php else: ?>
                                     <div class="table-responsive">
@@ -166,10 +166,10 @@ $pageHead = $isEdit ? 'Edit Customer Group' : 'Create Customer Group';
                                                 <?php $mUid = (int)$m->CustomerUID; ?>
                                                 <tr data-uid="<?php echo $mUid; ?>">
                                                     <td><i class="bx bx-drag text-muted" style="cursor:grab;"></i></td>
-                                                    <td class="fw-semibold" style="font-size:.85rem;"><?php echo htmlspecialchars($m->Name); ?></td>
-                                                    <td style="font-size:.8rem;"><?php echo htmlspecialchars($m->Area ?? '—'); ?></td>
-                                                    <td style="font-size:.8rem;"><?php echo htmlspecialchars($m->MobileNumber ?? '—'); ?></td>
-                                                    <td class="text-end" style="font-size:.8rem;color:<?php echo ($m->BalanceType ?? '') === 'Credit' ? '#dc3545' : '#28a745'; ?>">
+                                                    <td class="fw-semibold" style="font-size:var(--r2k-text-85);"><?php echo htmlspecialchars($m->Name); ?></td>
+                                                    <td style="font-size:var(--r2k-text-md);"><?php echo htmlspecialchars($m->Area ?? '—'); ?></td>
+                                                    <td style="font-size:var(--r2k-text-md);"><?php echo htmlspecialchars($m->MobileNumber ?? '—'); ?></td>
+                                                    <td class="text-end" style="font-size:var(--r2k-text-md);color:<?php echo ($m->BalanceType ?? '') === 'Credit' ? '#dc3545' : '#28a745'; ?>">
                                                         <?php echo smartDecimal($m->Balance ?? 0); ?>
                                                     </td>
                                                     <td class="text-center">
@@ -248,7 +248,7 @@ $pageHead = $isEdit ? 'Edit Customer Group' : 'Create Customer Group';
         escapeMarkup: function (m) { return m; },
         templateResult: function (d) {
             if (!d.id) return d.text;
-            return '<div style="font-size:.85rem;font-weight:600;">' + _esc(d.text) + '</div>';
+            return '<div style="font-size:var(--r2k-text-85);font-weight:600;">' + _esc(d.text) + '</div>';
         },
     });
 
@@ -267,7 +267,7 @@ $pageHead = $isEdit ? 'Edit Customer Group' : 'Create Customer Group';
     function _renderMembers() {
         $('#memberInputsContainer').empty();
         if (!_members.length) {
-            $('#cgMembersBox').html('<div class="text-center py-4 text-muted"><i class="bx bx-user-plus fs-2 d-block mb-2"></i><div style="font-size:.85rem;">No members yet.</div></div>');
+            $('#cgMembersBox').html('<div class="text-center py-4 text-muted"><i class="bx bx-user-plus fs-2 d-block mb-2"></i><div style="font-size:var(--r2k-text-85);">No members yet.</div></div>');
             return;
         }
         var rows = _members.map(function (m) {
@@ -275,10 +275,10 @@ $pageHead = $isEdit ? 'Edit Customer Group' : 'Create Customer Group';
             var isPri  = (m.uid === _primaryUID);
             return '<tr data-uid="' + m.uid + '">' +
                 '<td><i class="bx bx-drag text-muted" style="cursor:grab;"></i></td>' +
-                '<td class="fw-semibold" style="font-size:.85rem;">' + _esc(m.name) + '</td>' +
-                '<td style="font-size:.8rem;">' + _esc(m.area || '—') + '</td>' +
-                '<td style="font-size:.8rem;">' + _esc(m.mobile || '—') + '</td>' +
-                '<td class="text-end" style="font-size:.8rem;color:' + balCol + ';">' + parseFloat(m.balance).toFixed(typeof decimalPlaces !== 'undefined' ? decimalPlaces : 2) + '</td>' +
+                '<td class="fw-semibold" style="font-size:var(--r2k-text-85);">' + _esc(m.name) + '</td>' +
+                '<td style="font-size:var(--r2k-text-md);">' + _esc(m.area || '—') + '</td>' +
+                '<td style="font-size:var(--r2k-text-md);">' + _esc(m.mobile || '—') + '</td>' +
+                '<td class="text-end" style="font-size:var(--r2k-text-md);color:' + balCol + ';">' + parseFloat(m.balance).toFixed(typeof decimalPlaces !== 'undefined' ? decimalPlaces : 2) + '</td>' +
                 '<td class="text-center"><button type="button" class="btn btn-sm btn-icon ' + (isPri ? 'btn-warning' : 'btn-outline-secondary') + ' cg-set-primary" data-uid="' + m.uid + '" title="Set as primary"><i class="bx bx-star"></i></button></td>' +
                 '<td><button type="button" class="btn btn-sm btn-icon btn-outline-danger cg-remove-member" data-uid="' + m.uid + '" title="Remove"><i class="bx bx-x"></i></button></td>' +
             '</tr>';

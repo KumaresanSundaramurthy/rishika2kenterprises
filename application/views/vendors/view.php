@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php $this->load->view('common/header'); ?>
 
@@ -440,9 +440,9 @@ $(function () {
 
         var badges = '';
         if (g.GroupCode) {
-            badges += '<span class="badge bg-label-secondary" style="font-size:.7rem;font-family:monospace;">' + _vesc(g.GroupCode) + '</span>';
+            badges += '<span class="badge bg-label-secondary" style="font-size:var(--r2k-text-70);font-family:monospace;">' + _vesc(g.GroupCode) + '</span>';
         }
-        badges += '<span class="badge" style="background:' + tc.bg + ';color:' + tc.c + ';font-size:.7rem;font-weight:600;">' + _vesc(g.GroupType || '') + '</span>';
+        badges += '<span class="badge" style="background:' + tc.bg + ';color:' + tc.c + ';font-size:var(--r2k-text-70);font-weight:600;">' + _vesc(g.GroupType || '') + '</span>';
         badges += '<span class="badge ' + (g.IsActive ? 'bg-label-success' : 'bg-label-danger') + '" style="font-size:var(--r2k-text-xs);">' + (g.IsActive ? 'Active' : 'Inactive') + '</span>';
         $('#vgrpDetailBadges').html(badges);
 
@@ -476,7 +476,7 @@ $(function () {
                 '</div>' +
                 '<div class="col-6 col-md-3">' +
                     '<div class="p-3 rounded-3 text-center" style="background:#f5f3ff;">' +
-                        '<div style="font-size:.85rem;font-weight:600;color:#7c3aed;">' + _vesc(g.ContactPerson || '-') + '</div>' +
+                        '<div style="font-size:var(--r2k-text-85);font-weight:600;color:#7c3aed;">' + _vesc(g.ContactPerson || '-') + '</div>' +
                         '<div class="text-muted" style="font-size:.74rem;">' + _vesc(g.Mobile || 'Contact Person') + '</div>' +
                     '</div>' +
                 '</div>' +
@@ -501,10 +501,10 @@ $(function () {
                         '</div>' +
                         (m.Area ? '<div class="text-muted" style="font-size:.74rem;">' + _vesc(m.Area) + '</div>' : '') +
                     '</td>' +
-                    '<td class="text-muted" style="font-size:.82rem;">' + _vesc(m.MobileNumber || '-') + '</td>' +
+                    '<td class="text-muted" style="font-size:var(--r2k-text-82);">' + _vesc(m.MobileNumber || '-') + '</td>' +
                     '<td class="text-end" style="font-weight:600;color:' + balColor + ';width:150px;">' +
                         _currency + ' ' + bal.toFixed(_dec) +
-                        '<div class="text-muted fw-normal" style="font-size:.7rem;">' + (balType === 'Credit' ? 'Payable' : 'Receivable') + '</div>' +
+                        '<div class="text-muted fw-normal" style="font-size:var(--r2k-text-70);">' + (balType === 'Credit' ? 'Payable' : 'Receivable') + '</div>' +
                     '</td>' +
                 '</tr>';
             }).join('');
@@ -521,7 +521,7 @@ $(function () {
 
         var membersHtml =
             '<div class="px-4 pb-4">' +
-            '<table class="table table-hover align-middle mb-0" style="font-size:.85rem;">' +
+            '<table class="table table-hover align-middle mb-0" style="font-size:var(--r2k-text-85);">' +
             '<thead class="r2k-thead"><tr>' +
                 '<th class="text-center" style="width:36px;">#</th>' +
                 '<th>Vendor Name</th>' +

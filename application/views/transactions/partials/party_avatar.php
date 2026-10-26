@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Renders a party avatar inline.
  * Call: partyAvatar($list->PartyName, $list->PartyImage ?? null, $cdnUrl)

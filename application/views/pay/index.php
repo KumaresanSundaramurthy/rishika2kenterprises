@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -47,7 +47,7 @@ body {
     border-radius: 8px;
     background: linear-gradient(135deg, #696cff, #38bdf8);
     display: flex; align-items: center; justify-content: center;
-    font-size: 0.85rem;
+    font-size:var(--r2k-text-85);
     font-weight: 800;
     color: #fff;
     letter-spacing: -0.02em;
@@ -124,7 +124,7 @@ body {
 }
 
 .pay-status-badge {
-    font-size: 0.65rem;
+    font-size:var(--r2k-text-65);
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -187,7 +187,7 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 0.45rem 0;
-    font-size: 0.85rem;
+    font-size:var(--r2k-text-85);
     border-bottom: 1px solid rgba(105, 108, 255, 0.06);
 }
 
@@ -211,7 +211,7 @@ body {
 .pay-amt-row.balance .pay-amt-key {
     font-weight: 700;
     color: rgba(165, 180, 252, 0.8);
-    font-size: 0.88rem;
+    font-size:var(--r2k-text-88);
 }
 
 .pay-amt-row.balance .pay-amt-val {
@@ -233,7 +233,7 @@ body {
 }
 
 .pay-to-pay-label {
-    font-size: 0.75rem;
+    font-size:var(--r2k-text-75);
     font-weight: 600;
     color: rgba(165, 180, 252, 0.7);
     letter-spacing: 0.06em;
@@ -257,7 +257,7 @@ body {
     border: 1px solid rgba(239, 68, 68, 0.28);
     border-radius: 8px;
     padding: 0.7rem 0.9rem;
-    font-size: 0.82rem;
+    font-size:var(--r2k-text-82);
     color: #fca5a5;
     line-height: 1.45;
     margin-bottom: 1rem;
@@ -357,7 +357,7 @@ body {
 }
 
 .pay-success-msg {
-    font-size: 0.85rem;
+    font-size:var(--r2k-text-85);
     color: rgba(160, 190, 215, 0.6);
     line-height: 1.6;
     max-width: 300px;
@@ -371,7 +371,7 @@ body {
     background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
     border-radius: 10px;
     color: #fff;
-    font-size: 0.88rem;
+    font-size:var(--r2k-text-88);
     font-weight: 700;
     text-decoration: none;
     transition: all 0.2s;
@@ -402,7 +402,7 @@ body {
     border: 1px solid rgba(245, 158, 11, 0.25);
     border-radius: 8px;
     padding: 0.75rem 1rem;
-    font-size: 0.82rem;
+    font-size:var(--r2k-text-82);
     color: rgba(253, 230, 138, 0.85);
     text-align: center;
     line-height: 1.5;

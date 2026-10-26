@@ -54,7 +54,7 @@ $this->load->view('common/header'); ?>
                                         <i class="bx bx-trending-up fs-4" style="color:#16a34a;"></i>
                                     </div>
                                     <div>
-                                        <div class="text-muted" style="font-size:.75rem;">Total Income</div>
+                                        <div class="text-muted" style="font-size:var(--r2k-text-75);">Total Income</div>
                                         <div class="fw-bold text-success" style="font-size:1.1rem;" id="plSumIncome">—</div>
                                     </div>
                                 </div>
@@ -67,7 +67,7 @@ $this->load->view('common/header'); ?>
                                         <i class="bx bx-trending-down fs-4" style="color:#dc2626;"></i>
                                     </div>
                                     <div>
-                                        <div class="text-muted" style="font-size:.75rem;">Total Expenses</div>
+                                        <div class="text-muted" style="font-size:var(--r2k-text-75);">Total Expenses</div>
                                         <div class="fw-bold text-danger" style="font-size:1.1rem;" id="plSumExpense">—</div>
                                     </div>
                                 </div>
@@ -80,7 +80,7 @@ $this->load->view('common/header'); ?>
                                         <i class="bx bx-money fs-4" id="plSumNetIco" style="color:#16a34a;"></i>
                                     </div>
                                     <div>
-                                        <div class="text-muted" style="font-size:.75rem;" id="plSumNetLabel">Net Profit</div>
+                                        <div class="text-muted" style="font-size:var(--r2k-text-75);" id="plSumNetLabel">Net Profit</div>
                                         <div class="fw-bold" style="font-size:1.1rem;" id="plSumNet">—</div>
                                     </div>
                                 </div>
@@ -93,7 +93,7 @@ $this->load->view('common/header'); ?>
                         <div class="card-body p-0" id="plStatementArea">
                             <div class="d-flex flex-column align-items-center py-5 text-muted" id="plEmptyState">
                                 <i class="bx bx-bar-chart-alt-2 fs-1 mb-2" style="color:#ccc;"></i>
-                                <span style="font-size:.9rem;">Select a date range and click Load P&amp;L</span>
+                                <span style="font-size:var(--r2k-text-90);">Select a date range and click Load P&amp;L</span>
                             </div>
                         </div>
                     </div>

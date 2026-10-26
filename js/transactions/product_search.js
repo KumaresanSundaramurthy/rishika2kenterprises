@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Product Search Modal — Transaction pages only.
  *
  * Data strategy:
@@ -200,7 +200,7 @@
         $('#prodSearchResults').html(
             '<tr><td colspan="6" class="text-center py-5 text-muted">' +
             '<i class="bx bx-package fs-3 d-block mb-2"></i>' +
-            '<div style="font-size:.88rem;">No products found</div>' +
+            '<div style="font-size:var(--r2k-text-88);">No products found</div>' +
             '</td></tr>'
         );
     }
@@ -209,7 +209,7 @@
         $('#prodSearchResults').html(
             '<tr><td colspan="6" class="text-center py-5 text-danger">' +
             '<i class="bx bx-error-circle fs-3 d-block mb-2"></i>' +
-            '<div style="font-size:.88rem;">' + _esc(msg) + '</div>' +
+            '<div style="font-size:var(--r2k-text-88);">' + _esc(msg) + '</div>' +
             '</td></tr>'
         );
     }

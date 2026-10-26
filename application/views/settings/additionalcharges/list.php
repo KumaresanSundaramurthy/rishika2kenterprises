@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 
 if (empty($DataLists)) { ?>
     <tr>
@@ -48,7 +48,7 @@ foreach ($DataLists as $row):
         <?php endif; ?>
     </td>
 
-    <td class="align-middle" style="max-width:220px;white-space:normal;font-size:.78rem;color:#555;">
+    <td class="align-middle" style="max-width:220px;white-space:normal;font-size:var(--r2k-text-78);color:#555;">
         <?php echo htmlspecialchars($row->Description ?? '—'); ?>
     </td>
 

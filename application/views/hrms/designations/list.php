@@ -7,7 +7,7 @@ if (!empty($DataLists)):
         $isSystem = ($row->OrgUID ?? 0) == 0;
 ?>
 <tr>
-  <td class="text-muted <?php echo $showSerial ? '' : 'd-none'; ?>" style="font-size:.8rem;"><?php echo $SerialNumber; ?></td>
+  <td class="text-muted <?php echo $showSerial ? '' : 'd-none'; ?>" style="font-size:var(--r2k-text-md);"><?php echo $SerialNumber; ?></td>
   <td><div class="fw-semibold"><?php echo htmlspecialchars($row->DesignationName ?? ''); ?></div></td>
   <td class="text-muted" style="font-size:.83rem;"><?php echo htmlspecialchars($row->Description ?? '—'); ?></td>
   <td><?php if ($isSystem): ?><span class="badge bg-label-info"><?php echo t('lbl_system', 'System'); ?></span><?php else: ?><span class="badge bg-label-secondary"><?php echo t('lbl_custom', 'Custom'); ?></span><?php endif; ?></td>
@@ -19,7 +19,7 @@ if (!empty($DataLists)):
         data-desc="<?php echo htmlspecialchars($row->Description ?? ''); ?>" title="<?php echo t('vm_edit', 'Edit'); ?>"><i class="bx bx-edit"></i></button>
       <button class="btn btn-icon btn-sm text-danger desig-delete-btn" data-uid="<?php echo $uid; ?>" title="<?php echo t('btn_delete', 'Delete'); ?>"><i class="bx bx-trash"></i></button>
     </div>
-    <?php else: ?><span class="text-muted" style="font-size:.8rem;">—</span><?php endif; ?>
+    <?php else: ?><span class="text-muted" style="font-size:var(--r2k-text-md);">—</span><?php endif; ?>
   </td>
 </tr>
 <?php endforeach; else: ?>

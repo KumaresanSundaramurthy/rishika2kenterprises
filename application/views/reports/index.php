@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 $this->load->view('common/transactions/header'); ?>
 
 <style>
@@ -19,7 +19,7 @@ $this->load->view('common/transactions/header'); ?>
 .rpt-search-icon { color: #94a3b8; font-size: 1rem; margin-right: 6px; flex-shrink: 0; }
 .rpt-search-input {
     border: none; outline: none; background: transparent;
-    font-size: .82rem; width: 100%; padding: 8px 0; color: #334155;
+    font-size:var(--r2k-text-82); width: 100%; padding: 8px 0; color: #334155;
 }
 .rpt-search-input::placeholder { color: #94a3b8; }
 .rpt-search-clear { color: #94a3b8; cursor: pointer; font-size: 1rem; flex-shrink: 0; }
@@ -41,8 +41,8 @@ $this->load->view('common/transactions/header'); ?>
     width: 28px; height: 28px; border-radius: 6px; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
 }
-.rpt-nav-icon-wrap i { font-size: .88rem; }
-.rpt-nav-label { flex: 1; font-size: .82rem; color: #374151; font-weight: 500; }
+.rpt-nav-icon-wrap i { font-size:var(--r2k-text-88); }
+.rpt-nav-label { flex: 1; font-size:var(--r2k-text-82); color: #374151; font-weight: 500; }
 .rpt-nav-item.active .rpt-nav-label { color: #3b82f6; font-weight: 600; }
 .rpt-nav-badge {
     font-size:var(--r2k-text-xs); font-weight: 600; color: #64748b;
@@ -61,9 +61,9 @@ $this->load->view('common/transactions/header'); ?>
     display: flex; align-items: center; justify-content: center;
 }
 .rpt-section-icon-wrap i { font-size: .95rem; }
-.rpt-section-title { font-size: .88rem; font-weight: 700; color: #1e293b; letter-spacing: .01em; }
+.rpt-section-title { font-size:var(--r2k-text-88); font-weight: 700; color: #1e293b; letter-spacing: .01em; }
 .rpt-section-count {
-    font-size: .7rem; color: #64748b; background: #f1f5f9;
+    font-size:var(--r2k-text-70); color: #64748b; background: #f1f5f9;
     border-radius: 10px; padding: 1px 8px; font-weight: 600;
 }
 
@@ -85,7 +85,7 @@ $this->load->view('common/transactions/header'); ?>
 }
 .rpt-card-icon-wrap i { font-size: 1.1rem; }
 .rpt-card-body { flex: 1; min-width: 0; }
-.rpt-card-name { font-size: .82rem; font-weight: 600; color: #1e293b; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rpt-card-name { font-size:var(--r2k-text-82); font-weight: 600; color: #1e293b; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rpt-card-desc { font-size:var(--r2k-text-sm); color: #64748b; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .rpt-card-arrow { font-size: 1.1rem; color: #cbd5e1; flex-shrink: 0; transition: color .15s, transform .15s; }
 .rpt-card:hover .rpt-card-arrow { color: #3b82f6; transform: translateX(2px); }

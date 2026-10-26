@@ -1,4 +1,4 @@
-/**
+﻿/**
  * pricelist_trans.js — Price List Transaction Integration
  *
  * Handles price list resolution, application, chip UI, and auto-discount
@@ -445,10 +445,10 @@ function _plShowSelectModal(matches, custData) {
 
         // badges
         var badges = '';
-        if (isTop)      badges += '<span class="badge bg-primary ms-2" style="font-size:.65rem;font-weight:600;vertical-align:middle;">Top Priority</span>';
-        if (isSelected) badges += '<span class="badge ms-2" style="font-size:.65rem;font-weight:600;vertical-align:middle;background:#16a34a;">Currently Applied</span>';
+        if (isTop)      badges += '<span class="badge bg-primary ms-2" style="font-size:var(--r2k-text-65);font-weight:600;vertical-align:middle;">Top Priority</span>';
+        if (isSelected) badges += '<span class="badge ms-2" style="font-size:var(--r2k-text-65);font-weight:600;vertical-align:middle;background:#16a34a;">Currently Applied</span>';
 
-        var priLabel = '<span style="font-size:.72rem;font-weight:700;color:' + accentColor + ';background:#fff;border:1.5px solid ' + accentColor + ';border-radius:20px;padding:2px 10px;white-space:nowrap;">Priority ' + pl.Priority + '</span>';
+        var priLabel = '<span style="font-size:var(--r2k-text-sm);font-weight:700;color:' + accentColor + ';background:#fff;border:1.5px solid ' + accentColor + ';border-radius:20px;padding:2px 10px;white-space:nowrap;">Priority ' + pl.Priority + '</span>';
 
         // scope
         var scopeColor = pl.Scope === 'All' ? '#696cff' : '#0097a7';
@@ -474,13 +474,13 @@ function _plShowSelectModal(matches, custData) {
         // validity
         var validityValue;
         if (!pl.ValidFrom && !pl.ValidTo) {
-            validityValue = '<span style="color:#6c757d;font-size:.8rem;">Always active</span>';
+            validityValue = '<span style="color:#6c757d;font-size:var(--r2k-text-md);">Always active</span>';
         } else {
             var vFrom = _plFmtDate(pl.ValidFrom);
             var vTo   = pl.ValidTo ? _plFmtDate(pl.ValidTo) : '<span style="color:#6c757d;">No expiry</span>';
-            validityValue = '<span style="font-size:.8rem;color:#212529;">' + vFrom + '</span>' +
+            validityValue = '<span style="font-size:var(--r2k-text-md);color:#212529;">' + vFrom + '</span>' +
                             '<i class="bx bx-right-arrow-alt mx-1 text-muted" style="vertical-align:middle;"></i>' +
-                            '<span style="font-size:.8rem;color:#212529;">' + vTo + '</span>';
+                            '<span style="font-size:var(--r2k-text-md);color:#212529;">' + vTo + '</span>';
         }
 
         // highlight block — customer-specific discount or rule info
@@ -545,12 +545,12 @@ function _plShowSelectModal(matches, custData) {
         // apply button
         var applyBtnStyle, applyBtnText;
         if (isSelected) {
-            applyBtnStyle = 'background:#16a34a;border-color:#16a34a;color:#fff;font-size:.8rem;';
+            applyBtnStyle = 'background:#16a34a;border-color:#16a34a;color:#fff;font-size:var(--r2k-text-md);';
             applyBtnText  = '<i class="bx bx-check me-1"></i>Currently Applied';
         } else {
             applyBtnStyle = isTop
-                ? 'font-size:.8rem;'
-                : 'font-size:.8rem;';
+                ? 'font-size:var(--r2k-text-md);'
+                : 'font-size:var(--r2k-text-md);';
             applyBtnText  = '<i class="bx bx-check me-1"></i>Apply this Price List';
         }
         var applyBtnCls = (isSelected || isTop) ? 'btn-primary' : 'btn-outline-primary';
@@ -562,7 +562,7 @@ function _plShowSelectModal(matches, custData) {
             // header row
             h += '<div style="padding:10px 16px;background:' + headerBg + ';display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #e9ecef;border-radius:6px 6px 0 0;">';
                 h += '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">';
-                    h += '<span style="font-size:.9rem;font-weight:700;color:' + headerColor + ';">' + _plEsc(pl.Name) + '</span>';
+                    h += '<span style="font-size:var(--r2k-text-90);font-weight:700;color:' + headerColor + ';">' + _plEsc(pl.Name) + '</span>';
                     h += badges;
                 h += '</div>';
                 h += priLabel;
@@ -575,19 +575,19 @@ function _plShowSelectModal(matches, custData) {
                     // scope
                     h += '<div>';
                         h += '<div class="vtm-card-label"><i class="bx ' + scopeIcon + ' me-1"></i>Scope</div>';
-                        h += '<div style="font-size:.82rem;font-weight:600;color:' + scopeColor + ';">' + _plEsc(scopeText) + '</div>';
+                        h += '<div style="font-size:var(--r2k-text-82);font-weight:600;color:' + scopeColor + ';">' + _plEsc(scopeText) + '</div>';
                     h += '</div>';
 
                     // based on
                     h += '<div>';
                         h += '<div class="vtm-card-label"><i class="bx bx-calculator me-1"></i>Based On</div>';
-                        h += '<div style="font-size:.82rem;color:#212529;">' + _plEsc(basedOnText) + '</div>';
+                        h += '<div style="font-size:var(--r2k-text-82);color:#212529;">' + _plEsc(basedOnText) + '</div>';
                     h += '</div>';
 
                     // assigned to
                     h += '<div>';
                         h += '<div class="vtm-card-label"><i class="bx ' + assignIcon + ' me-1"></i>Assigned To</div>';
-                        h += '<div style="font-size:.82rem;color:#212529;">' + _plEsc(assignText) + '</div>';
+                        h += '<div style="font-size:var(--r2k-text-82);color:#212529;">' + _plEsc(assignText) + '</div>';
                     h += '</div>';
 
                     // validity
@@ -602,8 +602,8 @@ function _plShowSelectModal(matches, custData) {
                 h += '<div style="margin-top:10px;padding:8px 12px;background:' + hlBg + ';border:1px solid ' + hlBorder + ';border-radius:6px;display:flex;align-items:center;gap:8px;">';
                     h += '<i class="bx ' + hlIcon + '" style="color:' + hlIconColor + ';font-size:1.1rem;flex-shrink:0;"></i>';
                     h += '<div>';
-                        h += '<div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:' + hlIconColor + ';margin-bottom:1px;">' + hlTitle + '</div>';
-                        h += '<div style="font-size:.82rem;font-weight:600;color:#212529;">' + hlBody + '</div>';
+                        h += '<div style="font-size:var(--r2k-text-xs);font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:' + hlIconColor + ';margin-bottom:1px;">' + hlTitle + '</div>';
+                        h += '<div style="font-size:var(--r2k-text-82);font-weight:600;color:#212529;">' + hlBody + '</div>';
                     h += '</div>';
                 h += '</div>';
 
@@ -673,7 +673,7 @@ function _plShowChip(pl) {
         h += '<span class="pl-active-chip pl-chip-locked" title="Price list is locked during edit" onclick="_plLockedChipClick()">';
         h += '<i class="bx bx-purchase-tag"></i>';
         h += '<span>' + pl.Name + '</span>';
-        h += '<i class="bx bx-lock-alt" style="font-size:.75rem;opacity:.55;margin-left:2px;"></i>';
+        h += '<i class="bx bx-lock-alt" style="font-size:var(--r2k-text-75);opacity:.55;margin-left:2px;"></i>';
         h += '</span>';
     } else {
         h += '<span class="pl-active-chip" title="Click to change price list" onclick="_plChangeChipClick()">';

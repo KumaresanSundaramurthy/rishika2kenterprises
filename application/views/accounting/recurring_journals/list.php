@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var int $SerialNumber */ $SerialNumber = $SerialNumber ?? 0;
 $dateFmt = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
 $today   = date('Y-m-d');
@@ -40,10 +40,10 @@ if (!empty($DataLists)):
         $runs      = (int)$row->TotalRuns;
 ?>
 <tr class="<?php echo $isDue && $isActive ? 'rj-row-due' : ''; ?>">
-    <td class="text-muted" style="font-size:.8rem;width:40px;"><?php echo $SerialNumber; ?></td>
+    <td class="text-muted" style="font-size:var(--r2k-text-md);width:40px;"><?php echo $SerialNumber; ?></td>
     <td>
-        <div class="fw-semibold" style="font-size:.88rem;"><?php echo htmlspecialchars($row->Title); ?></div>
-        <div class="text-muted" style="font-size:.75rem;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+        <div class="fw-semibold" style="font-size:var(--r2k-text-88);"><?php echo htmlspecialchars($row->Title); ?></div>
+        <div class="text-muted" style="font-size:var(--r2k-text-75);max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
              title="<?php echo htmlspecialchars($row->Narration); ?>">
             <?php echo htmlspecialchars($row->Narration); ?>
         </div>
@@ -51,16 +51,16 @@ if (!empty($DataLists)):
     <td>
         <span class="badge <?php echo $fCls; ?>" style="font-size:var(--r2k-text-sm);"><?php echo htmlspecialchars($freq); ?></span>
     </td>
-    <td style="font-size:.82rem;white-space:nowrap;">
+    <td style="font-size:var(--r2k-text-82);white-space:nowrap;">
         <?php echo $startDate; ?>
         <?php if ($row->EndDate): ?>
         <div class="text-muted" style="font-size:var(--r2k-text-sm);">Until <?php echo $endDate; ?></div>
         <?php endif; ?>
     </td>
-    <td class="<?php echo $isDue && $isActive ? 'fw-semibold text-danger' : ''; ?>" style="font-size:.82rem;white-space:nowrap;">
+    <td class="<?php echo $isDue && $isActive ? 'fw-semibold text-danger' : ''; ?>" style="font-size:var(--r2k-text-82);white-space:nowrap;">
         <?php echo $nextRun; ?>
     </td>
-    <td style="font-size:.82rem;">
+    <td style="font-size:var(--r2k-text-82);">
         <?php echo $lastRun; ?>
         <?php if ($runs > 0): ?>
         <div class="text-muted" style="font-size:var(--r2k-text-sm);"><?php echo $runs; ?> run<?php echo $runs !== 1 ? 's' : ''; ?></div>
@@ -106,7 +106,7 @@ if (!empty($DataLists)):
     <td colspan="8" style="padding:0;border:none;">
         <div class="d-flex flex-column align-items-center py-5">
             <img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:110px;object-fit:contain;">
-            <span class="text-muted" style="font-size:.9rem;">No recurring journals configured yet</span>
+            <span class="text-muted" style="font-size:var(--r2k-text-90);">No recurring journals configured yet</span>
         </div>
     </td>
 </tr>

@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var object $Ratios */ $Ratios = $Ratios ?? (object)[];
 $cur     = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
 $dateFmt = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
@@ -42,7 +42,7 @@ function _ratioBadge(?float $v, float $good, float $warn, bool $higherIsBetter =
     <div class="text-center mb-4 pl-print-header">
         <div class="fw-bold" style="font-size:1rem;"><?php echo $orgName; ?></div>
         <div class="fw-semibold" style="font-size:.92rem;">Financial Ratios Dashboard</div>
-        <div class="text-muted" style="font-size:.78rem;">
+        <div class="text-muted" style="font-size:var(--r2k-text-78);">
             Balance Sheet: <?php echo $asDisp; ?>
             &nbsp;·&nbsp;
             P&amp;L: <?php echo $pfDisp; ?> – <?php echo $ptDisp; ?>
@@ -66,7 +66,7 @@ function _ratioBadge(?float $v, float $good, float $warn, bool $higherIsBetter =
                             <i class="bx <?php echo $item['icon']; ?> fs-3" style="color:<?php echo $item['col']; ?>;"></i>
                             <div>
                                 <div class="text-muted" style="font-size:var(--r2k-text-sm);"><?php echo $item['label']; ?></div>
-                                <div class="fw-bold" style="font-size:.9rem;color:<?php echo $item['col']; ?>;"><?php echo $item['val']; ?></div>
+                                <div class="fw-bold" style="font-size:var(--r2k-text-90);color:<?php echo $item['col']; ?>;"><?php echo $item['val']; ?></div>
                             </div>
                         </div>
                     </div>

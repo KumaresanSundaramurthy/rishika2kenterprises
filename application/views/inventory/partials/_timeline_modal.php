@@ -28,19 +28,19 @@
                 <!-- Loading state -->
                 <div id="tlLoading" class="text-center py-5">
                     <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-                    <div class="text-muted mt-2" style="font-size:.82rem;">Loading history...</div>
+                    <div class="text-muted mt-2" style="font-size:var(--r2k-text-82);">Loading history...</div>
                 </div>
 
                 <!-- Empty state -->
                 <div id="tlEmpty" class="text-center py-5 d-none">
                     <i class="bx bx-history text-muted" style="font-size:2.5rem;"></i>
-                    <div class="text-muted mt-2" style="font-size:.85rem;">No stock movements found for this item.</div>
+                    <div class="text-muted mt-2" style="font-size:var(--r2k-text-85);">No stock movements found for this item.</div>
                 </div>
 
                 <!-- Timeline table -->
                 <div id="tlTableWrap" class="d-none">
                     <div class="table-responsive">
-                        <table class="table table-sm mb-0" style="font-size:.82rem;">
+                        <table class="table table-sm mb-0" style="font-size:var(--r2k-text-82);">
                             <thead style="background:#f1f5f9;position:sticky;top:0;">
                                 <tr>
                                     <th style="padding:.6rem .75rem;">Date</th>
@@ -63,7 +63,7 @@
             </div>
 
             <div class="modal-footer align-items-center" style="background:#f8fafc;border-top:1px solid #e2e8f0;min-height:44px;">
-                <span class="text-muted me-auto" style="font-size:.8rem;line-height:1.4;">
+                <span class="text-muted me-auto" style="font-size:var(--r2k-text-md);line-height:1.4;">
                     Showing last 200 movements. Purchase / Invoice / Return movements are recorded automatically.
                 </span>
             </div>

@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php
 $cdnUrl = getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN');
@@ -58,13 +58,13 @@ if (!empty($DataLists)):
         </td>
 
         <td class="<?php echo $showSerial ? '' : 'd-none'; ?> table-serialno" style="width:44px">
-            <span class="text-muted" style="font-size:.78rem;"><?php echo $SerialNumber; ?></span>
+            <span class="text-muted" style="font-size:var(--r2k-text-78);"><?php echo $SerialNumber; ?></span>
         </td>
 
         <!-- Return Number -->
         <td>
             <?php if ($isDraft || empty($list->UniqueNumber)): ?>
-                <span class="trans-doc-draft"><i class="bx bx-pencil me-1" style="font-size:.8rem;"></i><?php echo t('status_draft', 'Draft'); ?></span>
+                <span class="trans-doc-draft"><i class="bx bx-pencil me-1" style="font-size:var(--r2k-text-md);"></i><?php echo t('status_draft', 'Draft'); ?></span>
                 <?php if (!empty($list->TransDate)): ?>
                     <div class="text-muted" style="font-size:var(--r2k-text-sm);"><?php echo htmlspecialchars(format_datedisplay($list->TransDate)); ?></div>
                 <?php endif; ?>
@@ -81,7 +81,7 @@ if (!empty($DataLists)):
                             data-url="/transactions/getAttachments"
                             data-module-uid="<?php echo (int)$list->ModuleUID; ?>"
                             title="<?php echo (int)$list->AttachmentCount; ?> attachment(s)"
-                            style="font-size:.82rem;line-height:1;color:#0d6efd;">
+                            style="font-size:var(--r2k-text-82);line-height:1;color:#0d6efd;">
                         <i class="bx bx-paperclip"></i>
                     </button>
                     <?php endif; ?>
@@ -96,7 +96,7 @@ if (!empty($DataLists)):
             <?php else: ?>
                 <div class="trans-amount-main"><?php echo $currency . ' ' . number_format($netAmt, $dec, '.', ''); ?></div>
                 <?php if (!$isDraft && $pendingAmt > 0 && $pendingAmt < $netAmt): ?>
-                <div class="text-muted" style="font-size:.7rem;">Pending: <?php echo $currency . ' ' . number_format($pendingAmt, $dec, '.', ''); ?></div>
+                <div class="text-muted" style="font-size:var(--r2k-text-70);">Pending: <?php echo $currency . ' ' . number_format($pendingAmt, $dec, '.', ''); ?></div>
                 <?php endif; ?>
             <?php endif; ?>
         </td>
@@ -111,9 +111,9 @@ if (!empty($DataLists)):
                 <span class="trans-badge <?php echo $badgeClass; ?>" data-bs-toggle="dropdown"
                       data-uid="<?php echo (int)$list->TransUID; ?>"
                       data-current="<?php echo htmlspecialchars($status); ?>">
-                    <i class="bx <?php echo $icon; ?>" style="font-size:.8rem;"></i>
+                    <i class="bx <?php echo $icon; ?>" style="font-size:var(--r2k-text-md);"></i>
                     <?php echo htmlspecialchars($status); ?>
-                    <i class="bx bx-crevron-down" style="font-size:.7rem;"></i>
+                    <i class="bx bx-crevron-down" style="font-size:var(--r2k-text-70);"></i>
                 </span>
                 <ul class="dropdown-menu dropdown-menu-end r2k-action-menu">
                     <?php foreach ($transitions as $t): ?>
@@ -133,7 +133,7 @@ if (!empty($DataLists)):
             </div>
             <?php else: ?>
                 <span class="trans-badge <?php echo $badgeClass; ?>">
-                    <i class="bx <?php echo $icon; ?>" style="font-size:.8rem;"></i>
+                    <i class="bx <?php echo $icon; ?>" style="font-size:var(--r2k-text-md);"></i>
                     <?php echo htmlspecialchars($status); ?>
                 </span>
             <?php endif; ?>
@@ -146,7 +146,7 @@ if (!empty($DataLists)):
                 <div>
                     <div class="trans-party-name"><?php echo r2k_party_name($list->PartyName ?? '', $list->MobileNumber ?? '', $list->CountryCode ?? '', $list->PartyArea ?? '', !empty($list->PartyImage) ? $cdnUrl . $list->PartyImage : ''); ?></div>
                     <?php if (!empty($list->PartyArea)): ?>
-                    <div style="font-size:.7rem;color:#888;margin-top:1px;">
+                    <div style="font-size:var(--r2k-text-70);color:#888;margin-top:1px;">
                         <i class="bx bx-map" style="font-size:var(--r2k-text-sm);"></i> <?php echo htmlspecialchars($list->PartyArea); ?>
                     </div>
                     <?php endif; ?>
@@ -203,7 +203,7 @@ if (!empty($DataLists)):
         <!-- Date -->
         <td>
             <?php if (!$isDraft && !empty($list->TransDate)): ?>
-                <span class="text-muted" style="font-size:.82rem;"><?php echo format_datedisplay($list->TransDate); ?></span>
+                <span class="text-muted" style="font-size:var(--r2k-text-82);"><?php echo format_datedisplay($list->TransDate); ?></span>
             <?php else: ?>
                 <span class="text-muted">—</span>
             <?php endif; ?>
@@ -374,7 +374,7 @@ else:
         <td colspan="10">
             <div class="d-flex flex-column align-items-center py-5">
                 <img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:150px;object-fit:contain;">
-                <span class="text-muted mb-3" style="font-size:.9rem;"><?php echo t('empty_purcrase_returns', 'No purcrase returns found'); ?></span>
+                <span class="text-muted mb-3" style="font-size:var(--r2k-text-90);"><?php echo t('empty_purcrase_returns', 'No purcrase returns found'); ?></span>
                 <a href="<?= site_url('purcrasereturns/create') ?>" class="btn btn-primary btn-sm px-4">
                     <i class="bx bx-plus me-1"></i><?php echo t('create_purcrase_return', 'Create Purcrase Return'); ?>
                 </a>

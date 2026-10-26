@@ -1,4 +1,4 @@
-// ──────────────────────────────────────────────────
+﻿// ──────────────────────────────────────────────────
 // Combo item search — via ProductAppend (Upstash → AJAX fallback)
 // ──────────────────────────────────────────────────
 var _comboItemsCache    = null; // null = not loaded yet
@@ -234,10 +234,10 @@ $(document).ready(function () {
                 var sym   = (typeof currencySymbol !== 'undefined') ? currencySymbol : '';
                 var count = response.Components.length;
                 var html  = '<div style="padding:10px 16px 6px 16px;">'
-                          + '<div class="d-flex align-items-center gap-2 mb-1" style="font-size:0.78rem;">'
+                          + '<div class="d-flex align-items-center gap-2 mb-1" style="font-size:var(--r2k-text-78);">'
                           + '<i class="bx bx-package text-warning fs-6"></i>'
                           + '<span class="fw-semibold text-warning">Combo Components</span>'
-                          + '<span class="badge bg-label-warning" style="font-size:0.7rem;">' + count + ' item' + (count !== 1 ? 's' : '') + '</span>'
+                          + '<span class="badge bg-label-warning" style="font-size:var(--r2k-text-70);">' + count + ' item' + (count !== 1 ? 's' : '') + '</span>'
                           + '</div>'
                           + '<div style="border-top:1px solid rgba(0,0,0,0.07); margin-top:6px;">';
 
@@ -247,37 +247,37 @@ $(document).ready(function () {
                     var purchase = parseFloat(comp.PurchasePrice) || 0;
                     var name     = $('<span>').text(comp.ItemName).html();
 
-                    html += '<div class="d-flex align-items-center gap-3 py-2" style="border-bottom:1px solid rgba(0,0,0,0.05); font-size:0.82rem;">'
+                    html += '<div class="d-flex align-items-center gap-3 py-2" style="border-bottom:1px solid rgba(0,0,0,0.05); font-size:var(--r2k-text-82);">'
 
                           // Serial number
                           + '<span class="text-muted fw-normal" style="min-width:20px; text-align:right;">' + (i + 1) + '</span>'
 
                           // Item name — takes remaining space
                           + '<div class="d-flex align-items-center gap-1 flex-grow-1" style="min-width:0;">'
-                          + '<i class="bx bx-cube text-secondary flex-shrink-0" style="font-size:0.9rem;"></i>'
+                          + '<i class="bx bx-cube text-secondary flex-shrink-0" style="font-size:var(--r2k-text-90);"></i>'
                           + '<span class="fw-medium text-truncate">' + name + '</span>'
                           + '</div>'
 
                           // Price chips
                           + '<div class="d-flex align-items-center gap-2 flex-shrink-0">'
                           + '<div class="d-flex align-items-center gap-1">'
-                          + '<span class="text-muted" style="font-size:0.72rem;">MRP</span>'
+                          + '<span class="text-muted" style="font-size:var(--r2k-text-sm);">MRP</span>'
                           + '<span class="fw-semibold">' + (mrp > 0 ? sym + smartDecimal(mrp) : '<span class="text-muted">—</span>') + '</span>'
                           + '</div>'
                           + '<span class="text-muted">|</span>'
                           + '<div class="d-flex align-items-center gap-1">'
-                          + '<span class="text-muted" style="font-size:0.72rem;">Sell</span>'
+                          + '<span class="text-muted" style="font-size:var(--r2k-text-sm);">Sell</span>'
                           + '<span class="fw-semibold text-primary">' + (selling > 0 ? sym + smartDecimal(selling) : '<span class="text-muted">—</span>') + '</span>'
                           + '</div>'
                           + '<span class="text-muted">|</span>'
                           + '<div class="d-flex align-items-center gap-1">'
-                          + '<span class="text-muted" style="font-size:0.72rem;">Purchase</span>'
+                          + '<span class="text-muted" style="font-size:var(--r2k-text-sm);">Purchase</span>'
                           + '<span class="fw-semibold">' + (purchase > 0 ? sym + smartDecimal(purchase) : '<span class="text-muted">—</span>') + '</span>'
                           + '</div>'
                           + '</div>'
 
                           // Qty badge
-                          + '<span class="badge bg-label-secondary flex-shrink-0" style="font-size:0.78rem; min-width:36px;">×' + smartDecimal(comp.Quantity) + '</span>'
+                          + '<span class="badge bg-label-secondary flex-shrink-0" style="font-size:var(--r2k-text-78); min-width:36px;">×' + smartDecimal(comp.Quantity) + '</span>'
 
                           + '</div>';
                 });

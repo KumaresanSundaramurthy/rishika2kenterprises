@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 
 $_today      = date('Y-m-d');
 $_listFmt    = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
@@ -29,7 +29,7 @@ $this->load->view('common/transactions/header'); ?>
 .db-stat-val { font-size:1.05rem;font-weight:700;color:#1e293b;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
 
 /* ── Date wrap (inline in filter row) ────────────────────────── */
-.db-today-btn { height:34px;font-size:.82rem;padding:0 12px; }
+.db-today-btn { height:34px;font-size:var(--r2k-text-82);padding:0 12px; }
 .db-date-wrap {
     display:flex;align-items:center;gap:5px;
     background:#fff;border:1.5px solid #e2e8f0;border-radius:7px;
@@ -39,15 +39,15 @@ $this->load->view('common/transactions/header'); ?>
 .db-date-wrap.is-active { border-color:#2563eb;background:#eff6ff; }
 .db-date-wrap.is-active .db-date-icon { color:#2563eb; }
 .db-date-wrap.is-active .db-date-input { color:#2563eb;font-weight:700; }
-.db-date-icon { color:#7c3aed;font-size:.9rem; }
+.db-date-icon { color:#7c3aed;font-size:var(--r2k-text-90); }
 .db-date-input {
     border:none;outline:none;background:transparent;
-    font-size:.82rem;font-weight:600;color:#1e293b;width:110px;cursor:pointer;
+    font-size:var(--r2k-text-82);font-weight:600;color:#1e293b;width:110px;cursor:pointer;
 }
 
 /* ── Table ───────────────────────────────────────────────────── */
 .db-table-wrap { overflow-x:auto; }
-.db-table { width:100%;border-collapse:collapse;font-size:.82rem; }
+.db-table { width:100%;border-collapse:collapse;font-size:var(--r2k-text-82); }
 .db-table thead th {
     background:#f8fafc;padding:10px 14px;
     font-size:.73rem;font-weight:700;color:#475569;text-transform:uppercase;
@@ -67,14 +67,14 @@ $this->load->view('common/transactions/header'); ?>
 .db-th-mode      { width:115px; }
 .db-th-amount    { width:125px;text-align:right; }
 
-.db-col-time     { color:#64748b;font-size:.78rem;white-space:nowrap; }
+.db-col-time     { color:#64748b;font-size:var(--r2k-text-78);white-space:nowrap; }
 .db-col-party    { font-weight:500;color:#1e293b; }
 .db-col-amount   { text-align:right;font-weight:600;white-space:nowrap; }
 
 /* Party sub-info (area / mobile) */
 .db-party-name   { font-weight:600;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px; }
 .db-party-sub    { font-size:var(--r2k-text-sm);color:#64748b;margin-top:2px;display:flex;align-items:center;gap:3px;white-space:nowrap; }
-.db-party-sub i  { font-size:.75rem;flex-shrink:0; }
+.db-party-sub i  { font-size:var(--r2k-text-75);flex-shrink:0; }
 
 /* Party type chip (Customer / Vendor) */
 .db-ptype-c { display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:10px;font-size:.71rem;font-weight:700;background:#dbeafe;color:#1d4ed8; }
@@ -103,7 +103,7 @@ $this->load->view('common/transactions/header'); ?>
 
 /* Payment mode chip */
 .db-mode-chip { display:inline-block;padding:2px 7px;border-radius:8px;font-size:var(--r2k-text-sm);font-weight:600;background:#f1f5f9;color:#475569; }
-.db-mode-na   { color:#cbd5e1;font-size:.8rem; }
+.db-mode-na   { color:#cbd5e1;font-size:var(--r2k-text-md); }
 
 /* Serial link */
 .db-serial-link { color:#3b82f6;text-decoration:none;font-weight:600; }
@@ -111,17 +111,17 @@ $this->load->view('common/transactions/header'); ?>
 
 /* Loading / empty states */
 .db-loading-cell { padding:40px 0 !important;text-align:center; }
-.db-loading { display:flex;align-items:center;justify-content:center;color:#64748b;font-size:.85rem; }
+.db-loading { display:flex;align-items:center;justify-content:center;color:#64748b;font-size:var(--r2k-text-85); }
 .db-empty { display:flex;flex-direction:column;align-items:center;justify-content:center;padding:50px 20px;color:#94a3b8; }
 .db-empty i { font-size:2.5rem;margin-bottom:8px;opacity:.5; }
-.db-empty-title { font-size:.9rem;font-weight:600;color:#64748b;margin-bottom:4px; }
-.db-empty-sub { font-size:.78rem;text-align:center; }
+.db-empty-title { font-size:var(--r2k-text-90);font-weight:600;color:#64748b;margin-bottom:4px; }
+.db-empty-sub { font-size:var(--r2k-text-78);text-align:center; }
 
 /* Table footer */
 .db-table-footer {
     display:flex;align-items:center;justify-content:space-between;
     padding:10px 14px;border-top:1px solid #e2e8f0;
-    background:#f8fafc;font-size:.8rem;flex-wrap:wrap;gap:8px;
+    background:#f8fafc;font-size:var(--r2k-text-md);flex-wrap:wrap;gap:8px;
 }
 .db-footer-left { color:#64748b; }
 .db-footer-right { display:flex;align-items:center;gap:8px;flex-wrap:wrap; }

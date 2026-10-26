@@ -1,4 +1,4 @@
-// ── List page AJAX functions ──────────────────────────────────────────────
+﻿// ── List page AJAX functions ──────────────────────────────────────────────
 
 /**
  * @param {string} tableSelector
@@ -10,7 +10,7 @@ function showTabSpinner(tableSelector, paginationSelector) {
     $(tableSelector + ' tbody').html(
         '<tr><td colspan="' + cols + '" class="text-center py-4">' +
         '<span class="spinner-border spinner-border-sm text-primary me-2"></span>' +
-        '<span class="text-muted" style="font-size:.85rem;">Loading...</span>' +
+        '<span class="text-muted" style="font-size:var(--r2k-text-85);">Loading...</span>' +
         '</td></tr>'
     );
     if (paginationSelector) $(paginationSelector).empty();

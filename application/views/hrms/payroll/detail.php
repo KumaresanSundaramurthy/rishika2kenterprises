@@ -57,7 +57,7 @@ $badge = $statusColors[$p->PayrollStatus ?? 'Draft'] ?? 'secondary';
                     <td class="text-muted"><?php echo $sn; ?></td>
                     <td>
                       <div class="fw-semibold"><?php echo htmlspecialchars($ln->EmployeeName ?? ''); ?></div>
-                      <div class="text-muted" style="font-size:.75rem;"><?php echo htmlspecialchars($ln->EmployeeCode ?? ''); ?></div>
+                      <div class="text-muted" style="font-size:var(--r2k-text-75);"><?php echo htmlspecialchars($ln->EmployeeCode ?? ''); ?></div>
                     </td>
                     <td><span class="badge bg-label-secondary"><?php echo $ln->SalaryType ?? '—'; ?></span></td>
                     <td><?php echo number_format((float)($ln->PresentDays ?? 0), 1); ?></td>

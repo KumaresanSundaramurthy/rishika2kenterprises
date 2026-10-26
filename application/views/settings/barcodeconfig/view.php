@@ -1,18 +1,18 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php $this->load->view('common/header'); ?>
 
 <style>
-.bc-page-subtitle       { font-size: .8rem; }
-.bc-card-header-text    { font-size: .88rem; }
+.bc-page-subtitle       { font-size:var(--r2k-text-md); }
+.bc-card-header-text    { font-size:var(--r2k-text-88); }
 .bc-type-icon           { width: 36px; height: 36px; border-radius: 8px; flex-shrink: 0; }
 .bc-type-icon-barcode   { background: #e8f0fe; }
 .bc-type-icon-qr        { background: #e0f5fb; }
 .bc-type-icon i         { font-size: 1.2rem; }
-.bc-type-name           { font-size: .85rem; }
+.bc-type-name           { font-size:var(--r2k-text-85); }
 .bc-type-desc           { font-size:var(--r2k-text-sm); }
-.bc-field-label         { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
-.bc-check-label         { font-size: .78rem; }
-.bc-section-title       { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
+.bc-field-label         { font-size:var(--r2k-text-70); font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
+.bc-check-label         { font-size:var(--r2k-text-78); }
+.bc-section-title       { font-size:var(--r2k-text-70); font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
 .bc-select-format       { width: 110px; }
 .bc-input-barwidth      { width: 70px; }
 .bc-input-height        { width: 80px; }

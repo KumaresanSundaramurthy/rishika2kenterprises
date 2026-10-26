@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 /**
  * Vendor Profile Modal — Transactions Tab
  *
@@ -58,7 +58,7 @@ $statusColors = [
                         type="button"
                         data-bs-toggle="collapse"
                         data-bs-target="#<?php echo $collapseId; ?>"
-                        style="font-size:.85rem;font-weight:600;">
+                        style="font-size:var(--r2k-text-85);font-weight:600;">
                     <i class="bx <?php echo htmlspecialchars($module['icon']); ?> me-2 text-warning"></i>
                     <?php echo htmlspecialchars($module['label']); ?>
                     <?php if (!empty($rows)): ?>
@@ -83,13 +83,13 @@ $statusColors = [
         <div id="<?php echo $collapseId; ?>" class="accordion-collapse collapse <?php echo $isOpen ? 'show' : ''; ?>">
             <div class="accordion-body p-0">
                 <?php if (empty($rows)): ?>
-                <div class="d-flex flex-column align-items-center justify-content-center py-4 text-muted" style="font-size:.82rem;">
+                <div class="d-flex flex-column align-items-center justify-content-center py-4 text-muted" style="font-size:var(--r2k-text-82);">
                     <i class="bx bx-package fs-2 mb-1 opacity-50"></i>
                     No <?php echo strtolower(htmlspecialchars($module['label'])); ?> found for this vendor.
                 </div>
                 <?php else: ?>
                 <div class="table-responsive">
-                    <table class="table table-sm table-hover mb-0" style="font-size:.82rem;">
+                    <table class="table table-sm table-hover mb-0" style="font-size:var(--r2k-text-82);">
                         <thead class="table-light">
                             <tr>
                                 <th class="px-3">Ref No</th>
@@ -121,7 +121,7 @@ $statusColors = [
                 <?php if (isset($moduleRoutes[$mUID])): ?>
                 <div class="px-3 py-2 border-top text-end">
                     <a href="<?php echo base_url($moduleRoutes[$mUID]); ?>?party=<?php echo $VendorUID; ?>"
-                       class="text-warning" style="font-size:.78rem;" target="_blank">
+                       class="text-warning" style="font-size:var(--r2k-text-78);" target="_blank">
                         View all <?php echo strtolower(htmlspecialchars($module['label'])); ?>
                         <i class="bx bx-link-external ms-1"></i>
                     </a>

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Vendor Search — shared across all purchase-side transaction pages.
  *
  * searchVendors(key)  — initialises the vendor Select2 dropdown on the element
@@ -83,14 +83,14 @@ function searchVendors(key) {
         escapeMarkup: function (markup) { return markup; },
         templateResult: function (d) {
             if (d.loading || !d.name) return d.text;
-            var nameHtml   = d.name + (d.mobile ? ' <span style="color:#6c757d;font-weight:400;font-size:.85rem;">(' + d.mobile + ')</span>' : '');
+            var nameHtml   = d.name + (d.mobile ? ' <span style="color:#6c757d;font-weight:400;font-size:var(--r2k-text-85);">(' + d.mobile + ')</span>' : '');
             var balHtml    = _custBalanceHtml(d.balance, d.balanceType);
             var line2Parts = [];
-            if (d.area)    line2Parts.push('<span style="color:#8a8d93;font-style:italic;font-size:.78rem;">'         + d.area        + '</span>');
-            if (d.company) line2Parts.push('<span style="color:#696cff;font-style:italic;font-size:.78rem;">(' + d.company + ')</span>');
+            if (d.area)    line2Parts.push('<span style="color:#8a8d93;font-style:italic;font-size:var(--r2k-text-78);">'         + d.area        + '</span>');
+            if (d.company) line2Parts.push('<span style="color:#696cff;font-style:italic;font-size:var(--r2k-text-78);">(' + d.company + ')</span>');
             var line2Html  = line2Parts.length
                 ? line2Parts.join(' ')
-                : '<span style="font-size:.78rem;">&nbsp;</span>';
+                : '<span style="font-size:var(--r2k-text-78);">&nbsp;</span>';
             return $(
                 '<div style="display:flex;align-items:flex-start;gap:6px;">' +
                     '<div style="flex:1;min-width:0;">' +
@@ -522,7 +522,7 @@ function searchVendors(key) {
             $('#vendSearchResults').html(
                 '<div class="text-center py-5 text-muted">' +
                     '<i class="bx bx-store" style="font-size:2.5rem;display:block;margin-bottom:10px;"></i>' +
-                    '<div style="font-size:.9rem;margin-bottom:14px;">No vendors found</div>' +
+                    '<div style="font-size:var(--r2k-text-90);margin-bottom:14px;">No vendors found</div>' +
                     '<button type="button" class="btn btn-primary btn-sm px-3" id="vendSearchCreateBtn">' +
                         '<i class="bx bx-plus me-1"></i>Create Vendor' +
                     '</button>' +
@@ -589,7 +589,7 @@ function searchVendors(key) {
                     $('#vendSearchResults').html(
                         '<div class="text-center py-5 text-muted">' +
                             '<i class="bx bx-store" style="font-size:2.5rem;display:block;margin-bottom:10px;"></i>' +
-                            '<div style="font-size:.9rem;">' + (r.Message || 'No vendors found') + '</div>' +
+                            '<div style="font-size:var(--r2k-text-90);">' + (r.Message || 'No vendors found') + '</div>' +
                         '</div>'
                     );
                     _hidePagination();

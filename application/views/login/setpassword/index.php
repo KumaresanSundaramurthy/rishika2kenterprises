@@ -63,7 +63,7 @@ $loginUrl = base_url('login');
             </div>
 
             <?php if ($error): ?>
-                <div class="alert alert-danger py-2 px-3 mb-3" style="font-size:.85rem;">
+                <div class="alert alert-danger py-2 px-3 mb-3" style="font-size:var(--r2k-text-85);">
                     <i class="bx bx-error-circle me-1"></i><?php echo htmlspecialchars($error); ?>
                 </div>
             <?php endif; ?>

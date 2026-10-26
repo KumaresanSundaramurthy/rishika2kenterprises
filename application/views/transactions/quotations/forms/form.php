@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php
 $isEdit      = isset($QuotData);
 $isDraftEdit = $isEdit && ($QuotData->DocStatus === 'Draft');
@@ -69,7 +69,7 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                                         <?php if (!$isEdit): ?>
                                             <span class="fw-bold" style="font-size:.92rem;">Create Quotation</span>
                                             <?php if (!empty($CloneData)): ?>
-                                                <span class="badge text-bg-warning" style="font-size:.65rem;"><i class="bx bx-copy me-1"></i>Cloned from: <?php echo htmlspecialchars($CloneData->UniqueNumber ?? 'Draft'); ?></span>
+                                                <span class="badge text-bg-warning" style="font-size:var(--r2k-text-65);"><i class="bx bx-copy me-1"></i>Cloned from: <?php echo htmlspecialchars($CloneData->UniqueNumber ?? 'Draft'); ?></span>
                                             <?php endif; ?>
                                             <?php $this->load->view('transactions/partials/form_prefix_add'); ?>
                                         <?php else: ?>
@@ -87,8 +87,8 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                                     </div>
                                     <?php if ($isEdit && !$isDraftEdit && !empty($QuotData->TransDate)): ?>
                                     <div class="d-flex align-items-center gap-2 mt-1">
-                                        <span style="font-size:.7rem;color:#8592a3;">Quotation Date</span>
-                                        <span style="font-size:.78rem;color:#566a7f;"><?php echo htmlspecialchars(format_datedisplay($QuotData->TransDate)); ?></span>
+                                        <span style="font-size:var(--r2k-text-70);color:#8592a3;">Quotation Date</span>
+                                        <span style="font-size:var(--r2k-text-78);color:#566a7f;"><?php echo htmlspecialchars(format_datedisplay($QuotData->TransDate)); ?></span>
                                     </div>
                                     <?php endif; ?>
                                 </div>

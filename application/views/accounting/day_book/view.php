@@ -65,13 +65,13 @@ $this->load->view('common/header'); ?>
                     <!-- ── Summary bar ────────────────────────────────────── -->
                     <div class="d-none mb-3" id="dbSummaryBar">
                         <div class="d-flex gap-3 flex-wrap align-items-center">
-                            <span class="badge bg-label-success" style="font-size:.8rem;">
+                            <span class="badge bg-label-success" style="font-size:var(--r2k-text-md);">
                                 <i class="bx bx-trending-up me-1"></i>Total Dr: <strong id="dbSumDr">—</strong>
                             </span>
-                            <span class="badge bg-label-danger" style="font-size:.8rem;">
+                            <span class="badge bg-label-danger" style="font-size:var(--r2k-text-md);">
                                 <i class="bx bx-trending-down me-1"></i>Total Cr: <strong id="dbSumCr">—</strong>
                             </span>
-                            <span class="text-muted" style="font-size:.78rem;" id="dbDayCount"></span>
+                            <span class="text-muted" style="font-size:var(--r2k-text-78);" id="dbDayCount"></span>
                         </div>
                     </div>
 
@@ -80,7 +80,7 @@ $this->load->view('common/header'); ?>
                         <div class="card-body p-0" id="dbEntriesArea">
                             <div class="d-flex flex-column align-items-center py-5 text-muted" id="dbEmptyState">
                                 <i class="bx bx-book fs-1 mb-2" style="color:#ccc;"></i>
-                                <span style="font-size:.9rem;">Select dates and click Load Day Book</span>
+                                <span style="font-size:var(--r2k-text-90);">Select dates and click Load Day Book</span>
                             </div>
                         </div>
                     </div>

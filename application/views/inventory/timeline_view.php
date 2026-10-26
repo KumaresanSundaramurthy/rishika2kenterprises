@@ -25,67 +25,61 @@ $this->load->view('common/transactions/header'); ?>
                     <div class="card">
 
                         <!-- ── Action Row: filter buttons left, actions right ── -->
-                        <div class="p-2 d-flex align-items-center justify-content-between mb-0 gap-2 flex-wrap">
-                            <div class="d-flex align-items-center gap-2 flex-wrap">
-                                <button type="button" id="tlItemFilterBtn" class="btn btn-sm btn-outline-secondary">
-                                    <i class="bx bx-package me-1"></i>Items
+                        <div class="apex-filter-row">
+                            <button type="button" id="tlItemFilterBtn" class="apex-filter-btn">
+                                <i class="bx bx-package me-1"></i>Items
+                            </button>
+                            <button type="button" id="tlSourceFilterBtn" class="apex-filter-btn">
+                                <i class="bx bx-transfer me-1"></i>Source
+                            </button>
+                            <button type="button" id="tlCategoryFilterBtn" class="apex-filter-btn">
+                                <i class="bx bx-category me-1"></i>Category
+                            </button>
+                            <select id="tlMovementFilter" class="form-select form-select-sm tl-movement-select">
+                                <option value="">All Movements</option>
+                                <option value="IN">Stock In only</option>
+                                <option value="OUT">Stock Out only</option>
+                            </select>
+                            <?php $this->load->view('common/transactions/date_filter_btn'); ?>
+                            <div class="apex-filter-spacer"></div>
+                            <a href="javascript:void(0);" class="apex-icon-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
+                                        data-bs-toggle="dropdown" data-bs-auto-close="true" aria-expanded="false"
+                                        title="Export">
+                                    <i class="bx bx-export me-1"></i>Export
                                 </button>
-                                <button type="button" id="tlSourceFilterBtn" class="btn btn-sm btn-outline-secondary">
-                                    <i class="bx bx-transfer me-1"></i>Source
-                                </button>
-                                <button type="button" id="tlCategoryFilterBtn" class="btn btn-sm btn-outline-secondary">
-                                    <i class="bx bx-category me-1"></i>Category
-                                </button>
-                                <select id="tlMovementFilter" class="form-select form-select-sm tl-movement-select">
-                                    <option value="">All Movements</option>
-                                    <option value="IN">Stock In only</option>
-                                    <option value="OUT">Stock Out only</option>
-                                </select>
-                                <?php $this->load->view('common/transactions/date_filter_btn'); ?>
+                                <ul class="dropdown-menu dropdown-menu-end r2k-export-menu" style="min-width:260px;font-size:var(--r2k-text-82);">
+                                    <li>
+                                        <a class="dropdown-item" href="javascript:void(0);" onclick="invExportTimeline('Print')">
+                                            <i class="bx bx-printer me-2 text-secondary"></i>Print Preview
+                                            <small class="text-muted ms-1">(Preview before printing)</small>
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider my-1"></li>
+                                    <li>
+                                        <a class="dropdown-item" href="javascript:void(0);" onclick="invExportTimeline('CSV')">
+                                            <i class="bx bx-file me-2 text-success"></i>CSV
+                                            <small class="text-muted ms-1">(Comma Separated, opens in any spreadsheet)</small>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="javascript:void(0);" onclick="invExportTimeline('Excel')">
+                                            <i class="bx bxs-file-export me-2 text-success"></i>Excel
+                                            <small class="text-muted ms-1">(Microsoft Excel .xlsx format)</small>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="javascript:void(0);" onclick="invExportTimeline('Pdf')">
+                                            <i class="bx bxs-file-pdf me-2 text-danger"></i>PDF
+                                            <small class="text-muted ms-1">(Fixed layout, best for sharing)</small>
+                                        </a>
+                                    </li>
+                                </ul>
                             </div>
-                            <div class="d-flex align-items-center gap-2">
-                                <span class="badge text-bg-light border" id="tlTotalCount"><?php echo number_format($ModAllCount); ?> records</span>
-                                <a href="javascript:void(0);" class="btn btn-sm btn-outline-secondary p-1 pageRefresh" title="Refresh">
-                                    <i class="bx bx-refresh fs-5"></i>
-                                </a>
-                                <div class="dropdown">
-                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
-                                            data-bs-toggle="dropdown" data-bs-auto-close="true" aria-expanded="false"
-                                            title="Export">
-                                        <i class="bx bx-export me-1"></i>Export
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-end r2k-export-menu" style="min-width:260px;font-size:.83rem;">
-                                        <li>
-                                            <a class="dropdown-item" href="javascript:void(0);" onclick="invExportTimeline('Print')">
-                                                <i class="bx bx-printer me-2 text-secondary"></i>Print Preview
-                                                <small class="text-muted ms-1">(Preview before printing)</small>
-                                            </a>
-                                        </li>
-                                        <li><hr class="dropdown-divider my-1"></li>
-                                        <li>
-                                            <a class="dropdown-item" href="javascript:void(0);" onclick="invExportTimeline('CSV')">
-                                                <i class="bx bx-file me-2 text-success"></i>CSV
-                                                <small class="text-muted ms-1">(Comma Separated, opens in any spreadsheet)</small>
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item" href="javascript:void(0);" onclick="invExportTimeline('Excel')">
-                                                <i class="bx bxs-file-export me-2 text-success"></i>Excel
-                                                <small class="text-muted ms-1">(Microsoft Excel .xlsx format)</small>
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item" href="javascript:void(0);" onclick="invExportTimeline('Pdf')">
-                                                <i class="bx bxs-file-pdf me-2 text-danger"></i>PDF
-                                                <small class="text-muted ms-1">(Fixed layout, best for sharing)</small>
-                                            </a>
-                                        </li>
-                                    </ul>
-                                </div>
-                                <a href="<?= site_url('inventory') ?>" class="btn btn-sm btn-outline-secondary">
-                                    <i class="bx bx-package me-1"></i>Back to Inventory
-                                </a>
-                            </div>
+                            <a href="<?= site_url('inventory') ?>" class="btn btn-sm btn-outline-secondary">
+                                <i class="bx bx-arrow-back me-1"></i>Inventory
+                            </a>
                         </div>
 
                         <!-- Table -->
@@ -94,16 +88,16 @@ $this->load->view('common/transactions/header'); ?>
                                 <thead class="r2k-thead">
                                     <tr>
                                         <th style="white-space:nowrap;">
-                                            <span class="tl-sortable" data-sort="ItemName" style="cursor:pointer;">Item <i class="bx bx-sort-alt-2 tl-sort-icon" style="font-size:.8rem;opacity:.5;"></i></span>
+                                            <span class="tl-sortable" data-sort="ItemName" style="cursor:pointer;">Item <i class="bx bx-sort-alt-2 tl-sort-icon" style="font-size:var(--r2k-text-md);opacity:.5;"></i></span>
                                         </th>
                                         <th style="text-align:right;white-space:nowrap;">Stock In</th>
                                         <th style="text-align:right;white-space:nowrap;">Stock Out</th>
                                         <th style="text-align:right;white-space:nowrap;">
-                                            <span class="tl-sortable" data-sort="Price" style="cursor:pointer;">Price <i class="bx bx-sort-alt-2 tl-sort-icon" style="font-size:.8rem;opacity:.5;"></i></span>
+                                            <span class="tl-sortable" data-sort="Price" style="cursor:pointer;">Price <i class="bx bx-sort-alt-2 tl-sort-icon" style="font-size:var(--r2k-text-md);opacity:.5;"></i></span>
                                         </th>
                                         <th style="white-space:nowrap;">Source</th>
                                         <th style="white-space:nowrap;">
-                                            <span class="tl-sortable" data-sort="Category" style="cursor:pointer;">Category <i class="bx bx-sort-alt-2 tl-sort-icon" style="font-size:.8rem;opacity:.5;"></i></span>
+                                            <span class="tl-sortable" data-sort="Category" style="cursor:pointer;">Category <i class="bx bx-sort-alt-2 tl-sort-icon" style="font-size:var(--r2k-text-md);opacity:.5;"></i></span>
                                         </th>
                                         <th style="min-width:140px;">Remarks</th>
                                         <th style="white-space:nowrap;">Date / Updated By</th>
@@ -156,7 +150,7 @@ $this->load->view('common/transactions/header'); ?>
         <label class="small fw-semibold mb-0" for="tlItemFilterBoxSelectAll">Select All</label>
     </div>
     <div class="catg-list" style="max-height:220px;overflow-y:auto;" id="tlItemList">
-        <div class="text-center py-3 text-muted" style="font-size:.8rem;">Loading items…</div>
+        <div class="text-center py-3 text-muted" style="font-size:var(--r2k-text-md);">Loading items…</div>
     </div>
     <div class="catg-filter-footer">
         <button type="button" class="btn btn-primary btn-sm tcf-apply-btn">
@@ -231,16 +225,16 @@ $this->load->view('common/transactions/header'); ?>
             <div class="modal-body px-4 pt-3 pb-4">
                 <input type="hidden" id="tlEditLedgerUID">
                 <div class="mb-3">
-                    <label class="form-label fw-medium" style="font-size:.85rem;">Quantity</label>
+                    <label class="form-label fw-medium" style="font-size:var(--r2k-text-85);">Quantity</label>
                     <input type="text" class="form-control" id="tlEditAdjQtyDisplay" disabled>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-medium" style="font-size:.85rem;">Remarks</label>
+                    <label class="form-label fw-medium" style="font-size:var(--r2k-text-85);">Remarks</label>
                     <textarea class="form-control" id="tlEditAdjNotes" rows="2"
                               placeholder="Optional remarks" style="resize:none;"></textarea>
                 </div>
                 <div class="mb-1">
-                    <label class="form-label fw-medium" style="font-size:.85rem;">Record Time</label>
+                    <label class="form-label fw-medium" style="font-size:var(--r2k-text-85);">Record Time</label>
                     <div class="input-group">
                         <input type="text" class="form-control" id="tlEditAdjDateDisplay" disabled>
                         <span class="input-group-text"><i class="bx bx-calendar"></i></span>

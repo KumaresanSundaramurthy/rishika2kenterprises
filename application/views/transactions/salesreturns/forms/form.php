@@ -66,7 +66,7 @@ if ($isEdit) {
                                             <span class="fw-bold" style="font-size:.92rem;"><?php echo $isDraftEdit ? '' : 'Edit'; ?> Sales Return</span>
                                             <?php if (!$isDraftEdit && !empty($SRData->UniqueNumber)): ?>
                                                 <span class="trans-form-doc-number"><?php echo htmlspecialchars($SRData->UniqueNumber); ?></span>
-                                                <span class="badge bg-label-<?php echo $hStatusClr; ?>" style="font-size:.7rem;"><?php echo $hStatus; ?></span>
+                                                <span class="badge bg-label-<?php echo $hStatusClr; ?>" style="font-size:var(--r2k-text-70);"><?php echo $hStatus; ?></span>
                                             <?php endif; ?>
                                             <?php $this->load->view('transactions/partials/form_prefix_edit', [
                                                 '_editPrefixUID'  => (int)($SRData->PrefixUID   ?? 0),
@@ -79,13 +79,13 @@ if ($isEdit) {
                                     <?php if ($isEdit && !$isDraftEdit): ?>
                                     <div class="d-flex align-items-center gap-3 mt-1">
                                         <div class="d-flex align-items-center gap-1">
-                                            <span style="font-size:.7rem;color:#8592a3;">Return Amount</span>
-                                            <span style="font-size:.82rem;font-weight:600;"><?php echo $hCurrency . ' ' . smartDecimal($hNetAmt, $hDecimals, true); ?></span>
+                                            <span style="font-size:var(--r2k-text-70);color:#8592a3;">Return Amount</span>
+                                            <span style="font-size:var(--r2k-text-82);font-weight:600;"><?php echo $hCurrency . ' ' . smartDecimal($hNetAmt, $hDecimals, true); ?></span>
                                         </div>
                                         <?php if (!empty($SRData->TransDate)): ?>
                                         <div class="d-flex align-items-center gap-1">
-                                            <span style="font-size:.7rem;color:#8592a3;">Date</span>
-                                            <span style="font-size:.78rem;color:#566a7f;"><?php echo htmlspecialchars(format_datedisplay($SRData->TransDate)); ?></span>
+                                            <span style="font-size:var(--r2k-text-70);color:#8592a3;">Date</span>
+                                            <span style="font-size:var(--r2k-text-78);color:#566a7f;"><?php echo htmlspecialchars(format_datedisplay($SRData->TransDate)); ?></span>
                                         </div>
                                         <?php endif; ?>
                                     </div>

@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 /**
  * CategoryFilterBox — shared category filter module used across all pages.
@@ -100,7 +100,7 @@ window.CategoryFilterBox = (function () {
             $box.html(
                 '<div class="d-flex flex-column align-items-center justify-content-center py-4 text-muted">' +
                 '<i class="bx bx-info-circle fs-2 mb-2"></i>' +
-                '<span style="font-size:.8rem;">No categories found</span></div>'
+                '<span style="font-size:var(--r2k-text-md);">No categories found</span></div>'
             );
             return;
         }

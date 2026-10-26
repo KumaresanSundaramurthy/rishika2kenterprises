@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php if (empty($signatures)): ?>
     <div class="text-center py-5">
@@ -105,7 +105,7 @@
                                 data-uid="<?php echo (int)$sig->SignatureUID; ?>"
                                 title="Set as default">
                             <i class="bx bx-star me-1"></i>
-                            <span style="font-size:0.78rem;">Set Default</span>
+                            <span style="font-size:var(--r2k-text-78);">Set Default</span>
                         </button>
                         <?php endif; ?>
                     </div>

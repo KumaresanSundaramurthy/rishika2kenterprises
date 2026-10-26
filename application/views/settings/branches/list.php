@@ -12,30 +12,30 @@ if (!empty($DataLists)):
         $isService    = (bool)(int)$row->IsServiceCenter;
 ?>
 <tr data-uid="<?php echo $uid; ?>" data-hq="<?php echo $isHeadOffice ? 1 : 0; ?>">
-  <td class="text-muted <?php echo $showSerial ? '' : 'd-none'; ?>" style="font-size:.8rem;"><?php echo $SerialNumber; ?></td>
+  <td class="text-muted <?php echo $showSerial ? '' : 'd-none'; ?>" style="font-size:var(--r2k-text-md);"><?php echo $SerialNumber; ?></td>
   <td>
     <div class="d-flex align-items-center gap-2">
       <span class="fw-semibold"><?php echo htmlspecialchars($row->Name ?? ''); ?></span>
       <?php if ($isHeadOffice): ?>
-        <span class="badge bg-label-primary" style="font-size:.7rem;"><?php echo t('lbl_hq', 'HQ'); ?></span>
+        <span class="badge bg-label-primary" style="font-size:var(--r2k-text-70);"><?php echo t('lbl_hq', 'HQ'); ?></span>
       <?php endif; ?>
     </div>
     <?php if (!empty($row->ShortDescription)): ?>
-      <div class="text-muted" style="font-size:.8rem;"><?php echo htmlspecialchars($row->ShortDescription); ?></div>
+      <div class="text-muted" style="font-size:var(--r2k-text-md);"><?php echo htmlspecialchars($row->ShortDescription); ?></div>
     <?php endif; ?>
   </td>
   <td>
     <span class="badge bg-label-secondary"><?php echo htmlspecialchars($row->BranchCode ?? '—'); ?></span>
     <?php if (!empty($row->BranchTypeName)): ?>
-      <div class="text-muted mt-1" style="font-size:.75rem;"><?php echo htmlspecialchars($row->BranchTypeName); ?></div>
+      <div class="text-muted mt-1" style="font-size:var(--r2k-text-75);"><?php echo htmlspecialchars($row->BranchTypeName); ?></div>
     <?php endif; ?>
   </td>
   <td>
     <?php if (!empty($row->ContactPerson)): ?>
-      <div style="font-size:.85rem;"><?php echo htmlspecialchars($row->ContactPerson); ?></div>
+      <div style="font-size:var(--r2k-text-85);"><?php echo htmlspecialchars($row->ContactPerson); ?></div>
     <?php endif; ?>
     <?php if (!empty($row->MobileNumber)): ?>
-      <div class="text-muted" style="font-size:.8rem;"><?php echo htmlspecialchars($row->MobileNumber); ?></div>
+      <div class="text-muted" style="font-size:var(--r2k-text-md);"><?php echo htmlspecialchars($row->MobileNumber); ?></div>
     <?php endif; ?>
   </td>
   <td class="text-muted" style="font-size:.83rem;"><?php echo !empty($row->GSTIN) ? htmlspecialchars($row->GSTIN) : '—'; ?></td>

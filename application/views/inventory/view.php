@@ -243,7 +243,7 @@ $this->load->view('inventory/partials/_timeline_modal');
                     <div class="modal-doc-icon" style="background:#fef9c3;">
                         <i class="bx bx-info-circle modal-doc-icon-inner" style="color:#ca8a04;"></i>
                     </div>
-                    <h6 class="modal-title mb-0" id="invDescModalTitle" style="font-size:.88rem;font-weight:600;"></h6>
+                    <h6 class="modal-title mb-0" id="invDescModalTitle" style="font-size:var(--r2k-text-88);font-weight:600;"></h6>
                 </div>
                 <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button>
             </div>

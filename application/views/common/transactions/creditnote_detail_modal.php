@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
 <!-- Credit Note Detail Modal — informational; JS populates via AJAX on badge click -->
 <div class="modal fade" id="creditNoteDetailModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable" style="margin-top:60px;">
@@ -25,12 +25,12 @@
 
                 <div id="cnDetailLoading" class="text-center py-4">
                     <div class="spinner-border spinner-border-sm me-2" style="color:#c084fc;"></div>
-                    <span class="text-muted" style="font-size:.85rem;">Loading credit note details...</span>
+                    <span class="text-muted" style="font-size:var(--r2k-text-85);">Loading credit note details...</span>
                 </div>
 
                 <div id="cnDetailContent" class="d-none px-3 py-3">
                     <div class="table-responsive">
-                        <table class="table table-sm table-hover mb-0" style="font-size:.82rem;">
+                        <table class="table table-sm table-hover mb-0" style="font-size:var(--r2k-text-82);">
                             <thead style="background:#f3e8ff;">
                                 <tr>
                                     <th style="color:#5c2d91;font-weight:700;text-transform:uppercase;font-size:var(--r2k-text-sm);letter-spacing:.04em;white-space:nowrap;">Credit Note No</th>
@@ -47,7 +47,7 @@
             </div>
 
             <div class="modal-footer py-2 justify-content-between border-top" style="border-color:#c084fc !important;background:#faf5ff;">
-                <div style="font-size:.82rem;color:#5c2d91;" id="cnDetailSummary"></div>
+                <div style="font-size:var(--r2k-text-82);color:#5c2d91;" id="cnDetailSummary"></div>
                 <button type="button" class="btn btn-sm fw-semibold" style="border:1px solid #c084fc;color:#5c2d91;" data-bs-dismiss="modal">Close</button>
             </div>
 

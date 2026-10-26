@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 /**
  * Reusable signature picker partial — included in form_products_add.php.
  *
@@ -22,14 +22,14 @@ $_sigFromJwt    = isset($transSignatures) ? $transSignatures : null; // null = u
                 <i class="bx bx-pen text-white" style="font-size:1rem;"></i>
             </div>
             <div>
-                <div class="fw-bold" style="font-size:.88rem;color:#3730a3;">Authorized Signatory</div>
+                <div class="fw-bold" style="font-size:var(--r2k-text-88);color:#3730a3;">Authorized Signatory</div>
                 <div class="text-muted" style="font-size:var(--r2k-text-sm);">Signature will appear on the printed document</div>
             </div>
         </div>
         <a href="<?= site_url('settings/profile') ?>" target="_blank"
            class="d-flex align-items-center gap-1 text-decoration-none"
-           style="font-size:.75rem;color:#696cff;font-weight:600;">
-            <i class="bx bx-cog" style="font-size:.9rem;"></i>Manage Signatures
+           style="font-size:var(--r2k-text-75);color:#696cff;font-weight:600;">
+            <i class="bx bx-cog" style="font-size:var(--r2k-text-90);"></i>Manage Signatures
         </a>
     </div>
 
@@ -40,7 +40,7 @@ $_sigFromJwt    = isset($transSignatures) ? $transSignatures : null; // null = u
             <div class="h-100 d-flex flex-column justify-content-center gap-2">
 
                 <!-- Loading state -->
-                <div id="transSigLoading" class="text-muted d-flex align-items-center gap-2" style="font-size:.8rem;">
+                <div id="transSigLoading" class="text-muted d-flex align-items-center gap-2" style="font-size:var(--r2k-text-md);">
                     <span class="spinner-border spinner-border-sm"></span> Loading signatures...
                 </div>
 
@@ -58,7 +58,7 @@ $_sigFromJwt    = isset($transSignatures) ? $transSignatures : null; // null = u
 
                 <!-- Empty state -->
                 <div id="transSigEmpty" class="d-none">
-                    <div class="text-muted mb-2" style="font-size:.8rem;">
+                    <div class="text-muted mb-2" style="font-size:var(--r2k-text-md);">
                         <i class="bx bx-info-circle me-1"></i>No signatures saved yet.
                     </div>
                     <a href="<?= site_url('settings/profile') ?>" target="_blank" class="btn btn-sm btn-outline-primary">
@@ -77,10 +77,10 @@ $_sigFromJwt    = isset($transSignatures) ? $transSignatures : null; // null = u
                 <!-- Header bar of preview -->
                 <div class="px-3 py-2 d-flex align-items-center justify-content-between"
                      style="background:#f0ebff;border-bottom:1px solid #e0d9ff;">
-                    <span style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#7c3aed;">
+                    <span style="font-size:var(--r2k-text-65);font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#7c3aed;">
                         <i class="bx bx-file-blank me-1"></i>Document Preview
                     </span>
-                    <span id="transSigPreviewLabel" style="font-size:.7rem;color:#9ca3af;font-style:italic;"></span>
+                    <span id="transSigPreviewLabel" style="font-size:var(--r2k-text-70);color:#9ca3af;font-style:italic;"></span>
                 </div>
 
                 <!-- Signature display area -->
@@ -90,7 +90,7 @@ $_sigFromJwt    = isset($transSignatures) ? $transSignatures : null; // null = u
                     <!-- Placeholder -->
                     <div id="transSigPlaceholder" class="text-center">
                         <i class="bx bx-image-alt d-block mb-1" style="font-size:1.8rem;color:#d1d5db;"></i>
-                        <span class="text-muted" style="font-size:.75rem;">Select a signature to preview</span>
+                        <span class="text-muted" style="font-size:var(--r2k-text-75);">Select a signature to preview</span>
                     </div>
 
                     <!-- Actual preview (hidden until signature selected) -->

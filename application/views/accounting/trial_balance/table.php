@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var array  $Rows */
 /** @var float  $GrandDebit */
 /** @var float  $GrandCredit */
@@ -30,7 +30,7 @@ foreach (array_keys($grouped) as $t) {
     if (!in_array($t, $typeOrder)) $typeOrder[] = $t;
 }
 ?>
-<table class="table table-sm table-bordered align-middle mb-0" style="font-size:.82rem;" id="tbPrintTable">
+<table class="table table-sm table-bordered align-middle mb-0" style="font-size:var(--r2k-text-82);" id="tbPrintTable">
     <thead class="r2k-thead">
         <tr>
             <th style="width:44px;">#</th>
@@ -72,8 +72,8 @@ foreach (array_keys($grouped) as $t) {
             $hasActivity = ($dr + $cr + $ob) > 0;
         ?>
         <tr <?php echo !$hasActivity ? 'class="text-muted"' : ''; ?>>
-            <td style="font-size:.75rem;color:#a4afc5;"><?php echo $serial; ?></td>
-            <td><code style="font-size:.75rem;color:#7c3aed;"><?php echo htmlspecialchars($r->LedgerCode ?? ''); ?></code></td>
+            <td style="font-size:var(--r2k-text-75);color:#a4afc5;"><?php echo $serial; ?></td>
+            <td><code style="font-size:var(--r2k-text-75);color:#7c3aed;"><?php echo htmlspecialchars($r->LedgerCode ?? ''); ?></code></td>
             <td>
                 <span class="fw-semibold"><?php echo htmlspecialchars($r->LedgerName ?? ''); ?></span>
                 <?php if (strpos($r->LedgerCode ?? '', 'SYS-') === 0): ?>
@@ -104,7 +104,7 @@ foreach (array_keys($grouped) as $t) {
         <!-- Balance Check -->
         <?php $diff = abs($GrandDebit - $GrandCredit); $isBalanced = $diff < 0.01; ?>
         <tr class="<?php echo $isBalanced ? 'table-success' : 'table-danger'; ?>">
-            <td colspan="10" class="text-center py-2" style="font-size:.82rem;font-weight:600;">
+            <td colspan="10" class="text-center py-2" style="font-size:var(--r2k-text-82);font-weight:600;">
                 <?php if ($isBalanced): ?>
                     <i class="bx bx-check-circle me-1 text-success"></i>
                     Trial Balance is <strong>BALANCED</strong> — Total Debit equals Total Credit

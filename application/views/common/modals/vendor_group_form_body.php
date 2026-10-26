@@ -146,7 +146,7 @@ $_orgCISO2 = $CI->pageData['JwtData']->Org->OrgCISO2 ?? 'IN';
         <div id="VG_MembersBox">
             <div class="text-center py-4 text-muted">
                 <i class="bx bx-user-plus fs-2 d-block mb-2"></i>
-                <div style="font-size:.85rem;">No members yet. Search and add vendors above.</div>
+                <div style="font-size:var(--r2k-text-85);">No members yet. Search and add vendors above.</div>
             </div>
         </div>
 

@@ -118,7 +118,7 @@ $this->load->view('common/transactions/header'); ?>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-3" id="alDetailsBody">
-                <pre style="font-size:.8rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px;overflow-x:auto;max-height:480px;"></pre>
+                <pre style="font-size:var(--r2k-text-md);background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px;overflow-x:auto;max-height:480px;"></pre>
             </div>
         </div>
     </div>
@@ -267,7 +267,7 @@ $this->load->view('common/transactions/header'); ?>
             data: { EntityType: entityType, EntityUID: entityUID, [CsrfName]: CsrfToken },
             success: function (resp) {
                 if (resp.Error || !resp.History || !resp.History.length) {
-                    $('#alHistoryPanelBody').html('<p class="text-muted mb-0" style="font-size:.8rem;">No history found.</p>');
+                    $('#alHistoryPanelBody').html('<p class="text-muted mb-0" style="font-size:var(--r2k-text-md);">No history found.</p>');
                     return;
                 }
                 var html = '';
@@ -284,9 +284,9 @@ $this->load->view('common/transactions/header'); ?>
                     html += '<div class="d-flex gap-2">';
                     html += '<div style="margin-top:3px;flex-shrink:0;width:8px;height:8px;border-radius:50%;background:' + dotClr + ';"></div>';
                     html += '<div style="min-width:0;flex:1;">';
-                    html += '<div style="font-size:.78rem;font-weight:600;color:#374151;">' + $('<span>').text(h.Action || '').html() + '</div>';
+                    html += '<div style="font-size:var(--r2k-text-78);font-weight:600;color:#374151;">' + $('<span>').text(h.Action || '').html() + '</div>';
                     if (h.Summary) html += '<div style="font-size:.74rem;color:#64748b;margin-top:1px;">' + $('<span>').text(h.Summary).html() + '</div>';
-                    html += '<div style="font-size:.7rem;color:#94a3b8;margin-top:2px;">';
+                    html += '<div style="font-size:var(--r2k-text-70);color:#94a3b8;margin-top:2px;">';
                     if (h.UserName) html += $('<span>').text(h.UserName).html() + ' &middot; ';
                     if (dateStr)    html += dateStr;
                     html += '</div>';
@@ -295,7 +295,7 @@ $this->load->view('common/transactions/header'); ?>
                 $('#alHistoryPanelBody').html(html);
             },
             error: function () {
-                $('#alHistoryPanelBody').html('<p class="text-danger mb-0" style="font-size:.8rem;">Failed to load history.</p>');
+                $('#alHistoryPanelBody').html('<p class="text-danger mb-0" style="font-size:var(--r2k-text-md);">Failed to load history.</p>');
             }
         });
     };

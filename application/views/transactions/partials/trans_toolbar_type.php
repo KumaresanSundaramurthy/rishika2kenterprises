@@ -32,7 +32,7 @@ $_tbReadonly  = $_tbStrict ? ($_tbIsEdit && !$_tbIsDraft) : $_tbIsEdit;
 ?>
 <div class="d-flex align-items-center gap-4 mb-3 pb-2 border-bottom">
     <div class="d-flex align-items-center gap-2">
-        <span class="text-muted" style="font-size:.78rem;white-space:nowrap;">Type</span>
+        <span class="text-muted" style="font-size:var(--r2k-text-78);white-space:nowrap;">Type</span>
         <?php if ($_tbReadonly): ?>
         <span class="trans-type-readonly"><?php echo $_tbType === 'Without_GST' ? 'Without GST' : 'Regular'; ?></span>
         <input type="hidden" id="<?php echo $_tbId; ?>" name="<?php echo $_tbName; ?>" value="<?php echo htmlspecialchars($_tbType); ?>" />
@@ -46,7 +46,7 @@ $_tbReadonly  = $_tbStrict ? ($_tbIsEdit && !$_tbIsDraft) : $_tbIsEdit;
     </div>
     <?php if (!empty($DispatchAddresses) && $_tbDispLabel): ?>
     <div class="d-flex align-items-center gap-2 dispatch-from-grp" style="max-width:360px;">
-        <span class="text-muted" style="font-size:.78rem;white-space:nowrap;"><?php echo htmlspecialchars($_tbDispLabel); ?></span>
+        <span class="text-muted" style="font-size:var(--r2k-text-78);white-space:nowrap;"><?php echo htmlspecialchars($_tbDispLabel); ?></span>
         <?php $this->load->view('common/transactions/_dispatch_from'); ?>
     </div>
     <?php endif; ?>

@@ -13,10 +13,10 @@ if (!empty($DataLists)):
         $period = ($months[$mo] ?? '—') . ' ' . ($yr ?: '');
 ?>
 <tr>
-  <td class="text-muted" style="font-size:.8rem;"><?php echo $SerialNumber; ?></td>
+  <td class="text-muted" style="font-size:var(--r2k-text-md);"><?php echo $SerialNumber; ?></td>
   <td>
     <div class="fw-semibold"><?php echo htmlspecialchars($row->EmployeeName ?? ''); ?></div>
-    <div class="text-muted" style="font-size:.75rem;"><?php echo htmlspecialchars($row->EmployeeCode ?? ''); ?></div>
+    <div class="text-muted" style="font-size:var(--r2k-text-75);"><?php echo htmlspecialchars($row->EmployeeCode ?? ''); ?></div>
   </td>
   <td class="fw-semibold"><?php echo $period; ?></td>
   <td><?php echo $cur . ' ' . smartDecimal((float)($row->GrossSalary ?? 0)); ?></td>

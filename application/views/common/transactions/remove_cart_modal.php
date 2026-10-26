@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <!-- Remove from Cart confirmation modal — populated by transactions.js -->
 <div class="modal fade" id="removeCartModal" tabindex="-1" aria-hidden="true">
@@ -14,10 +14,10 @@
                         </span>
                         <div>
                             <div style="font-weight:700;font-size:.95rem;color:#111827;">Remove from Cart</div>
-                            <div style="font-size:.75rem;color:#9ca3af;">This action cannot be undone.</div>
+                            <div style="font-size:var(--r2k-text-75);color:#9ca3af;">This action cannot be undone.</div>
                         </div>
                     </div>
-                    <!-- <button type="button" class="btn-close" data-bs-dismiss="modal" style="font-size:.7rem;"></button> -->
+                    <!-- <button type="button" class="btn-close" data-bs-dismiss="modal" style="font-size:var(--r2k-text-70);"></button> -->
                 </div>
 
                 <!-- Product info card -->
@@ -25,16 +25,16 @@
                     <div id="rcm-name" style="font-weight:700;font-size:1rem;color:#111827;margin-bottom:12px;"></div>
                     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
                         <div>
-                            <div style="font-size:.65rem;color:#9ca3af;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px;">Qty</div>
-                            <div id="rcm-qty" style="font-weight:600;font-size:.88rem;color:#374151;"></div>
+                            <div style="font-size:var(--r2k-text-65);color:#9ca3af;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px;">Qty</div>
+                            <div id="rcm-qty" style="font-weight:600;font-size:var(--r2k-text-88);color:#374151;"></div>
                         </div>
                         <div>
-                            <div style="font-size:.65rem;color:#9ca3af;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px;">Unit Price</div>
-                            <div id="rcm-price" style="font-weight:600;font-size:.88rem;color:#374151;"></div>
+                            <div style="font-size:var(--r2k-text-65);color:#9ca3af;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px;">Unit Price</div>
+                            <div id="rcm-price" style="font-weight:600;font-size:var(--r2k-text-88);color:#374151;"></div>
                         </div>
                         <div>
-                            <div style="font-size:.65rem;color:#9ca3af;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px;">Tax</div>
-                            <div id="rcm-tax" style="font-weight:600;font-size:.88rem;color:#374151;"></div>
+                            <div style="font-size:var(--r2k-text-65);color:#9ca3af;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px;">Tax</div>
+                            <div id="rcm-tax" style="font-weight:600;font-size:var(--r2k-text-88);color:#374151;"></div>
                         </div>
                     </div>
                 </div>

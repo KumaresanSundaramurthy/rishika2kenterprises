@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php $this->load->view('common/header'); ?>
 
@@ -153,7 +153,7 @@
                                                 <!-- ══════════════════════════════════════════════════
                                                      SECTION 1 — Regional & Currency
                                                 ══════════════════════════════════════════════════ -->
-                                                <p class="text-muted fw-semibold mb-2" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;">Regional &amp; Currency</p>
+                                                <p class="text-muted fw-semibold mb-2" style="font-size:var(--r2k-text-75);text-transform:uppercase;letter-spacing:.5px;">Regional &amp; Currency</p>
                                                 <div class="row g-3 mb-3">
                                                     <div class="col-md-6">
                                                         <label class="form-label">Currency Symbol <span class="text-danger">*</span></label>
@@ -204,7 +204,7 @@
                                                 <!-- ══════════════════════════════════════════════════
                                                      SECTION 3 — Display Preferences
                                                 ══════════════════════════════════════════════════ -->
-                                                <p class="text-muted fw-semibold mb-2" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;">Display Preferences</p>
+                                                <p class="text-muted fw-semibold mb-2" style="font-size:var(--r2k-text-75);text-transform:uppercase;letter-spacing:.5px;">Display Preferences</p>
                                                 <div class="row g-3 mb-3">
                                                     <div class="col-md-6">
                                                         <label class="form-label">Rows Per Page</label>
@@ -323,7 +323,7 @@
                                                 <!-- ══════════════════════════════════════════════════
                                                      SECTION 6 — Input Limits
                                                 ══════════════════════════════════════════════════ -->
-                                                <p class="text-muted fw-semibold mb-2" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;">Input Limits</p>
+                                                <p class="text-muted fw-semibold mb-2" style="font-size:var(--r2k-text-75);text-transform:uppercase;letter-spacing:.5px;">Input Limits</p>
                                                 <div class="row g-3 mb-3">
                                                     <div class="col-md-4">
                                                         <label class="form-label">Quantity Max Length</label>
@@ -345,11 +345,11 @@
                                                 <!-- ══════════════════════════════════════════════════
                                                      SECTION 7 — Features
                                                 ══════════════════════════════════════════════════ -->
-                                                <p class="text-muted fw-semibold mb-3" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;">Features</p>
+                                                <p class="text-muted fw-semibold mb-3" style="font-size:var(--r2k-text-75);text-transform:uppercase;letter-spacing:.5px;">Features</p>
 
                                                 <!-- Storage sub-group -->
                                                 <div class="border rounded p-3 mb-3">
-                                                    <div class="fw-semibold mb-3" style="font-size:.82rem;">Storage &amp; Warehouse</div>
+                                                    <div class="fw-semibold mb-3" style="font-size:var(--r2k-text-82);">Storage &amp; Warehouse</div>
                                                     <div class="row g-3">
                                                         <div class="col-md-6">
                                                             <div class="form-check form-switch">
@@ -374,7 +374,7 @@
 
                                                 <!-- Stats Panel sub-group -->
                                                 <div class="border rounded p-3 mb-3">
-                                                    <div class="fw-semibold mb-3" style="font-size:.82rem;">Stats Panel</div>
+                                                    <div class="fw-semibold mb-3" style="font-size:var(--r2k-text-82);">Stats Panel</div>
                                                     <div class="row g-3">
                                                         <div class="col-md-6">
                                                             <div class="form-check form-switch">
@@ -399,7 +399,7 @@
 
                                                 <!-- AI Assistant -->
                                                 <div class="border rounded p-3 mb-3">
-                                                    <div class="fw-semibold mb-3" style="font-size:.82rem;">AI Assistant</div>
+                                                    <div class="fw-semibold mb-3" style="font-size:var(--r2k-text-82);">AI Assistant</div>
                                                     <div class="row g-3">
                                                         <div class="col-md-6">
                                                             <div class="form-check form-switch">
@@ -418,7 +418,7 @@
                                                 <div class="border rounded p-3 mb-3">
                                                     <div class="d-flex align-items-center gap-2 mb-3">
                                                         <i class="bx bx-shield-alt-2 text-primary" style="font-size:1rem;"></i>
-                                                        <span class="fw-semibold" style="font-size:.82rem;">Login Security</span>
+                                                        <span class="fw-semibold" style="font-size:var(--r2k-text-82);">Login Security</span>
                                                     </div>
                                                     <div class="row g-3">
                                                         <div class="col-md-6">
@@ -438,14 +438,14 @@
                                                 <!-- ══════════════════════════════════════════════════
                                                      SECTION 8 — HRMS
                                                 ══════════════════════════════════════════════════ -->
-                                                <p class="text-muted fw-semibold mb-2" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;">HRMS</p>
+                                                <p class="text-muted fw-semibold mb-2" style="font-size:var(--r2k-text-75);text-transform:uppercase;letter-spacing:.5px;">HRMS</p>
 
                                                 <div class="border rounded p-3 mb-4">
                                                     <div class="d-flex align-items-center gap-2 mb-1">
                                                         <i class="bx bx-id-card text-primary" style="font-size:1rem;"></i>
-                                                        <span class="fw-semibold" style="font-size:.88rem;">Employee Code Format</span>
+                                                        <span class="fw-semibold" style="font-size:var(--r2k-text-88);">Employee Code Format</span>
                                                     </div>
-                                                    <p class="text-muted mb-3" style="font-size:.78rem;">Define how auto-generated employee codes are structured. The code is built as <strong>Prefix + Separator + Number</strong>.</p>
+                                                    <p class="text-muted mb-3" style="font-size:var(--r2k-text-78);">Define how auto-generated employee codes are structured. The code is built as <strong>Prefix + Separator + Number</strong>.</p>
 
                                                     <div class="row g-3">
                                                         <div class="col-md-4">
@@ -477,8 +477,8 @@
                                                     </div>
 
                                                     <div class="mt-3 d-flex align-items-center gap-2">
-                                                        <span class="text-muted" style="font-size:.78rem;">Preview:</span>
-                                                        <span id="empCodePreview" class="badge bg-label-primary fw-semibold px-3 py-2" style="font-size:.82rem; letter-spacing:.5px; font-family:monospace;"><?php
+                                                        <span class="text-muted" style="font-size:var(--r2k-text-78);">Preview:</span>
+                                                        <span id="empCodePreview" class="badge bg-label-primary fw-semibold px-3 py-2" style="font-size:var(--r2k-text-82); letter-spacing:.5px; font-family:monospace;"><?php
                                                             $sep = $gsEmpSeparator === 'none' ? '' : $gsEmpSeparator;
                                                             echo $gsEmpPrefix . $sep . str_pad('1', $gsEmpDigits, '0', STR_PAD_LEFT);
                                                         ?></span>
@@ -792,7 +792,7 @@
                                                                         <label class="fw-semibold mb-0" for="cpd_ratio" style="cursor:pointer;">Proportional (Ratio-based)</label>
                                                                     </div>
                                                                     <p class="text-muted small mb-1">Each component absorbs the price difference in proportion to its original value. A higher-priced component gets a larger share. Preserves the relative cost of each item and is more accurate for margin and tax reporting.</p>
-                                                                    <p class="text-muted mb-0" style="font-size:.75rem;"><em>E.g. Items ₹10 + ₹8 = ₹18 sum, combo ₹20 → stored as ₹11.11 + ₹8.89</em></p>
+                                                                    <p class="text-muted mb-0" style="font-size:var(--r2k-text-75);"><em>E.g. Items ₹10 + ₹8 = ₹18 sum, combo ₹20 → stored as ₹11.11 + ₹8.89</em></p>
                                                                 </div>
                                                             </div>
                                                             <div class="col-md-6">
@@ -802,7 +802,7 @@
                                                                         <label class="fw-semibold mb-0" for="cpd_average" style="cursor:pointer;">Equal Split (Average)</label>
                                                                     </div>
                                                                     <p class="text-muted small mb-1">The price difference is divided equally across all component items regardless of their individual prices. Simple and predictable — each component gets the same adjustment.</p>
-                                                                    <p class="text-muted mb-0" style="font-size:.75rem;"><em>E.g. Items ₹10 + ₹8 = ₹18 sum, combo ₹20 → stored as ₹11 + ₹9</em></p>
+                                                                    <p class="text-muted mb-0" style="font-size:var(--r2k-text-75);"><em>E.g. Items ₹10 + ₹8 = ₹18 sum, combo ₹20 → stored as ₹11 + ₹9</em></p>
                                                                 </div>
                                                             </div>
                                                         </div>

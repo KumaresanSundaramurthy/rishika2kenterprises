@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
 
 <?php
 $cdnUrl    = getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN');
@@ -117,11 +117,11 @@ if (!function_exists('_allPmtModeBadge')) {
         <td class="ps-3">
             <?php if (!empty($row->PaymentUniqueNumber)): ?>
                 <a href="javascript:void(0);" class="trans-doc-number viewPaymentDetail"
-                   style="font-size:.82rem;">
+                   style="font-size:var(--r2k-text-82);">
                     <?php echo htmlspecialchars($row->PaymentUniqueNumber); ?>
                 </a>
             <?php else: ?>
-                <span class="text-muted" style="font-size:.8rem;">—</span>
+                <span class="text-muted" style="font-size:var(--r2k-text-md);">—</span>
             <?php endif; ?>
             <div class="text-muted" style="font-size:var(--r2k-text-xs);"><?php echo $createdTs->formatted; ?></div>
         </td>
@@ -131,14 +131,14 @@ if (!function_exists('_allPmtModeBadge')) {
             <span style="display:inline-flex;align-items:center;gap:2px;font-size:var(--r2k-text-xs);font-weight:700;
                          padding:3px 7px;border-radius:10px;
                          background:<?php echo $typeBg; ?>;color:<?php echo $typeColor; ?>;">
-                <i class="bx <?php echo $typeIcon; ?>" style="font-size:.8rem;"></i>
+                <i class="bx <?php echo $typeIcon; ?>" style="font-size:var(--r2k-text-md);"></i>
                 <?php echo $typeLabel; ?>
             </span>
         </td>
 
         <!-- Amount -->
         <td>
-            <div class="fw-semibold <?php echo $amtClass; ?>" style="font-size:.88rem;">
+            <div class="fw-semibold <?php echo $amtClass; ?>" style="font-size:var(--r2k-text-88);">
                 <?php echo htmlspecialchars($cur); ?>
                 <?php echo smartDecimal((float)$row->Amount); ?>
             </div>
@@ -151,25 +151,25 @@ if (!function_exists('_allPmtModeBadge')) {
             <?php if ($oaSrc && $oaAppliedUID > 0): ?>
                 <?php $appliedNum = htmlspecialchars($row->OnAccountAppliedTransNum ?? ''); ?>
                 <span title="Applied to <?php echo $appliedNum; ?>"
-                      style="font-size:.65rem;font-weight:600;padding:1px 6px;border-radius:8px;
+                      style="font-size:var(--r2k-text-65);font-weight:600;padding:1px 6px;border-radius:8px;
                              background:#d1e7dd;color:#0a3622;border:1px solid #a3cfbb;cursor:default;">
                     Applied <?php if ($appliedNum): ?>&#8594; <?php echo $appliedNum; ?><?php endif; ?>
                 </span>
             <?php elseif ($oaSrc): ?>
-                <span style="font-size:.65rem;font-weight:600;padding:1px 6px;border-radius:8px;
+                <span style="font-size:var(--r2k-text-65);font-weight:600;padding:1px 6px;border-radius:8px;
                              background:#fff3cd;color:#856404;border:1px solid #ffc107;">On Account</span>
             <?php elseif ($isFromOA): ?>
                 <?php $srcNum = htmlspecialchars($row->OnAccountSourcePaymentNum ?? ''); ?>
                 <span title="Credit from <?php echo $srcNum; ?>"
-                      style="font-size:.65rem;font-weight:600;padding:1px 6px;border-radius:8px;
+                      style="font-size:var(--r2k-text-65);font-weight:600;padding:1px 6px;border-radius:8px;
                              background:#cfe2ff;color:#084298;border:1px solid #9ec5fe;cursor:default;">
                     On-Account <?php if ($srcNum): ?>&#8592; <?php echo $srcNum; ?><?php endif; ?>
                 </span>
             <?php elseif (($row->SourceType ?? '') === 'CreditNote'): ?>
-                <span style="font-size:.65rem;font-weight:600;padding:1px 6px;border-radius:8px;
+                <span style="font-size:var(--r2k-text-65);font-weight:600;padding:1px 6px;border-radius:8px;
                              background:#f3e8ff;color:#6b21a8;border:1px solid #d8b4fe;">Credit Note</span>
             <?php elseif (($row->ExcessAmount ?? 0) > 0): ?>
-                <div style="font-size:.7rem;color:#f59e0b;">
+                <div style="font-size:var(--r2k-text-70);color:#f59e0b;">
                     Excess: <?php echo htmlspecialchars($cur); ?> <?php echo smartDecimal((float)$row->ExcessAmount); ?>
                 </div>
             <?php endif; ?>
@@ -200,7 +200,7 @@ if (!function_exists('_allPmtModeBadge')) {
             <div class="d-flex align-items-center gap-2">
                 <?php partyAvatar($row->PartyName ?? '', null, $cdnUrl); ?>
                 <div>
-                    <div style="font-size:.82rem;font-weight:600;"><?php echo r2k_party_name($row->PartyName ?? '', $row->PartyMobile ?? '', $row->PartyCountryCode ?? '', $row->PartyArea ?? ''); ?></div>
+                    <div style="font-size:var(--r2k-text-82);font-weight:600;"><?php echo r2k_party_name($row->PartyName ?? '', $row->PartyMobile ?? '', $row->PartyCountryCode ?? '', $row->PartyArea ?? ''); ?></div>
                     <?php if ($hasParty): ?>
                     <span style="font-size:.62rem;font-weight:600;padding:1px 5px;border-radius:6px;
                                  background:<?php echo $partyTypeBg; ?>;color:<?php echo $partyTypeClr; ?>;">
@@ -209,7 +209,7 @@ if (!function_exists('_allPmtModeBadge')) {
                     <?php endif; ?>
                     <?php if (!empty($row->PartyArea)): ?>
                         <div style="font-size:var(--r2k-text-xs);color:#888;margin-top:1px;">
-                            <i class="bx bx-map" style="font-size:.7rem;"></i>
+                            <i class="bx bx-map" style="font-size:var(--r2k-text-70);"></i>
                             <?php echo htmlspecialchars($row->PartyArea); ?>
                         </div>
                     <?php endif; ?>
@@ -273,7 +273,7 @@ if (!function_exists('_allPmtModeBadge')) {
                    data-date="" data-status="">
                     <?php echo htmlspecialchars($row->TransNumber); ?>
                 </a>
-                <div class="text-muted" style="font-size:.7rem;">
+                <div class="text-muted" style="font-size:var(--r2k-text-70);">
                     <?php echo $partyIsCust ? 'Invoice' : 'Purchase'; ?>
                 </div>
             <?php else: ?>
@@ -283,7 +283,7 @@ if (!function_exists('_allPmtModeBadge')) {
 
         <!-- Created By + Date -->
         <td>
-            <div style="font-size:.82rem;font-weight:500;">
+            <div style="font-size:var(--r2k-text-82);font-weight:500;">
                 <?php echo htmlspecialchars($row->CreatedByName ?? '—'); ?>
             </div>
             <?php if ($createdTs->ago): ?>
@@ -427,7 +427,7 @@ if (!function_exists('_allPmtModeBadge')) {
                     <i class="bx bx-wallet-alt" style="font-size:1.6rem;color:#4f46e5;"></i>
                 </div>
                 <div class="fw-semibold text-dark" style="font-size:.92rem;"><?php echo t('empty_payments', 'No Payments Found'); ?></div>
-                <div class="text-muted" style="font-size:.8rem;"><?php echo t('lbl_adjust_filters', 'Try adjusting your filters or date range.'); ?></div>
+                <div class="text-muted" style="font-size:var(--r2k-text-md);"><?php echo t('lbl_adjust_filters', 'Try adjusting your filters or date range.'); ?></div>
             </div>
         </td>
     </tr>

@@ -79,25 +79,25 @@ if ($isEdit) {
                                     <?php if ($isEdit && !$isDraftEdit): ?>
                                     <div class="d-flex align-items-center gap-3 mt-1">
                                         <div class="d-flex align-items-center gap-1">
-                                            <span style="font-size:.7rem;color:#8592a3;">Return Amount</span>
-                                            <span style="font-size:.82rem;font-weight:600;"><?php echo $hCurrency . ' ' . smartDecimal($hNetAmt, $hDecimals, true); ?></span>
+                                            <span style="font-size:var(--r2k-text-70);color:#8592a3;">Return Amount</span>
+                                            <span style="font-size:var(--r2k-text-82);font-weight:600;"><?php echo $hCurrency . ' ' . smartDecimal($hNetAmt, $hDecimals, true); ?></span>
                                         </div>
                                         <?php if ($hPaidAmt > 0): ?>
                                         <div class="d-flex align-items-center gap-1">
-                                            <span style="font-size:.7rem;color:#8592a3;">Received</span>
-                                            <span style="font-size:.82rem;font-weight:600;color:#28a745;"><?php echo $hCurrency . ' ' . smartDecimal($hPaidAmt, $hDecimals, true); ?></span>
+                                            <span style="font-size:var(--r2k-text-70);color:#8592a3;">Received</span>
+                                            <span style="font-size:var(--r2k-text-82);font-weight:600;color:#28a745;"><?php echo $hCurrency . ' ' . smartDecimal($hPaidAmt, $hDecimals, true); ?></span>
                                         </div>
                                         <?php endif; ?>
                                         <?php if ($hBalAmt > 0.009): ?>
                                         <div class="d-flex align-items-center gap-1">
-                                            <span style="font-size:.7rem;color:#8592a3;">Balance</span>
-                                            <span style="font-size:.82rem;font-weight:600;color:#dc3545;"><?php echo $hCurrency . ' ' . smartDecimal($hBalAmt, $hDecimals, true); ?></span>
+                                            <span style="font-size:var(--r2k-text-70);color:#8592a3;">Balance</span>
+                                            <span style="font-size:var(--r2k-text-82);font-weight:600;color:#dc3545;"><?php echo $hCurrency . ' ' . smartDecimal($hBalAmt, $hDecimals, true); ?></span>
                                         </div>
                                         <?php endif; ?>
                                         <?php if (!empty($PRData->TransDate)): ?>
                                         <div class="d-flex align-items-center gap-1">
-                                            <span style="font-size:.7rem;color:#8592a3;">Date</span>
-                                            <span style="font-size:.78rem;color:#566a7f;"><?php echo htmlspecialchars(format_datedisplay($PRData->TransDate)); ?></span>
+                                            <span style="font-size:var(--r2k-text-70);color:#8592a3;">Date</span>
+                                            <span style="font-size:var(--r2k-text-78);color:#566a7f;"><?php echo htmlspecialchars(format_datedisplay($PRData->TransDate)); ?></span>
                                         </div>
                                         <?php endif; ?>
                                     </div>

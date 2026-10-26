@@ -19,11 +19,11 @@
 
                         <!-- Info bar -->
                         <div class="px-3 py-2 border-bottom d-flex align-items-center gap-2 flex-wrap">
-                            <span class="badge bg-label-secondary d-inline-flex align-items-center gap-1" style="font-size:.78rem;font-weight:500;">
+                            <span class="badge bg-label-secondary d-inline-flex align-items-center gap-1" style="font-size:var(--r2k-text-78);font-weight:500;">
                                 <i class="bx bx-info-circle"></i>
                                 System charges are always present and cannot be deleted
                             </span>
-                            <span class="badge bg-label-primary d-inline-flex align-items-center gap-1" style="font-size:.78rem;font-weight:500;" id="acCountBadge">
+                            <span class="badge bg-label-primary d-inline-flex align-items-center gap-1" style="font-size:var(--r2k-text-78);font-weight:500;" id="acCountBadge">
                                 <?php echo (int)($ChargeCount ?? 0); ?> / <?php echo (int)($ChargeLimit ?? 5); ?> charges used
                             </span>
                             <div class="ms-auto">

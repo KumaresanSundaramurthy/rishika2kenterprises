@@ -134,7 +134,7 @@
 
             <div class="modal-footer border-top py-2 px-4 justify-content-between align-items-center">
                 <!-- Live formatted range preview — e.g.  01 Jul 2026 – 25 Jul 2026 -->
-                <span id="r2kCrDisplay" class="text-muted" style="font-size:.82rem;"></span>
+                <span id="r2kCrDisplay" class="text-muted" style="font-size:var(--r2k-text-82);"></span>
                 <div class="d-flex gap-2">
                     <button type="button" class="btn btn-outline-secondary btn-sm px-4"
                             id="r2kCrCancel"><?php echo t('cancel', 'Cancel'); ?></button>

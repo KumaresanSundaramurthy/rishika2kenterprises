@@ -74,31 +74,31 @@ $this->load->view('common/header'); ?>
                         <div class="row g-3">
                             <div class="col-6 col-md-3">
                                 <div class="card text-center py-3 h-100">
-                                    <div class="text-muted" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.3px;"><?php echo t('lbl_opening_bal', 'Opening Balance'); ?></div>
+                                    <div class="text-muted" style="font-size:var(--r2k-text-70);text-transform:uppercase;letter-spacing:.3px;"><?php echo t('lbl_opening_bal', 'Opening Balance'); ?></div>
                                     <div class="fw-bold mt-1" id="brStatOpening" style="font-size:1rem;">—</div>
                                 </div>
                             </div>
                             <div class="col-6 col-md-3">
                                 <div class="card text-center py-3 h-100">
-                                    <div class="text-muted" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.3px;"><?php echo t('lbl_book_balance', 'Book Closing Balance'); ?></div>
+                                    <div class="text-muted" style="font-size:var(--r2k-text-70);text-transform:uppercase;letter-spacing:.3px;"><?php echo t('lbl_book_balance', 'Book Closing Balance'); ?></div>
                                     <div class="fw-bold mt-1" id="brStatBook" style="font-size:1rem;color:#7c3aed;">—</div>
                                 </div>
                             </div>
                             <div class="col-6 col-md-3">
                                 <div class="card text-center py-3 h-100">
-                                    <div class="text-muted" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.3px;"><?php echo t('lbl_cleared_bal', 'Cleared Balance'); ?></div>
+                                    <div class="text-muted" style="font-size:var(--r2k-text-70);text-transform:uppercase;letter-spacing:.3px;"><?php echo t('lbl_cleared_bal', 'Cleared Balance'); ?></div>
                                     <div class="fw-bold mt-1 text-success" id="brStatCleared" style="font-size:1rem;">—</div>
                                 </div>
                             </div>
                             <div class="col-6 col-md-3">
                                 <div class="card py-3 h-100">
-                                    <div class="text-muted text-center" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.3px;"><?php echo t('lbl_bank_stmt_bal', 'Bank Statement Balance'); ?></div>
+                                    <div class="text-muted text-center" style="font-size:var(--r2k-text-70);text-transform:uppercase;letter-spacing:.3px;"><?php echo t('lbl_bank_stmt_bal', 'Bank Statement Balance'); ?></div>
                                     <div class="d-flex align-items-center justify-content-center gap-2 mt-1 px-3">
-                                        <span class="text-muted fw-semibold" style="font-size:.85rem;"><?php echo $cur; ?></span>
+                                        <span class="text-muted fw-semibold" style="font-size:var(--r2k-text-85);"><?php echo $cur; ?></span>
                                         <input type="number" id="brStmtBalance" class="form-control form-control-sm text-end" step="0.01" placeholder="0.00" style="max-width:130px;">
                                     </div>
                                     <div class="text-center mt-1" id="brDiffWrap" style="display:none;">
-                                        <span id="brDiffBadge" class="badge" style="font-size:.75rem;"></span>
+                                        <span id="brDiffBadge" class="badge" style="font-size:var(--r2k-text-75);"></span>
                                     </div>
                                 </div>
                             </div>
@@ -109,10 +109,10 @@ $this->load->view('common/header'); ?>
                     <div class="card d-none" id="brResultCard">
                         <div class="card-header d-flex align-items-center justify-content-between py-2">
                             <div class="d-flex align-items-center gap-3">
-                                <span class="fw-semibold" id="brCardTitle" style="font-size:.88rem;">Transactions</span>
+                                <span class="fw-semibold" id="brCardTitle" style="font-size:var(--r2k-text-88);">Transactions</span>
                                 <span class="badge bg-label-secondary" id="brEntryCount"></span>
                             </div>
-                            <div class="d-flex align-items-center gap-3" style="font-size:.78rem;">
+                            <div class="d-flex align-items-center gap-3" style="font-size:var(--r2k-text-78);">
                                 <label class="d-flex align-items-center gap-1 mb-0">
                                     <input type="checkbox" id="brSelectAll" class="form-check-input">
                                     <span><?php echo t('lbl_select_all', 'Select All'); ?></span>
@@ -137,7 +137,7 @@ $this->load->view('common/header'); ?>
                             </table>
                         </div>
                         <!-- Cleared totals footer -->
-                        <div class="px-3 py-2 border-top d-flex gap-4 flex-wrap" id="brTotalsBar" style="font-size:.8rem;">
+                        <div class="px-3 py-2 border-top d-flex gap-4 flex-wrap" id="brTotalsBar" style="font-size:var(--r2k-text-md);">
                             <span class="text-muted"><?php echo t('lbl_cleared', 'Cleared'); ?>:
                                 <strong class="text-success" id="brClDr">—</strong> Dr /
                                 <strong class="text-danger" id="brClCr">—</strong> Cr
@@ -152,7 +152,7 @@ $this->load->view('common/header'); ?>
                     <!-- ── Empty state ───────────────────────────────────── -->
                     <div id="brEmptyState" class="text-center py-5">
                         <i class="bx bx-transfer-alt d-block mx-auto mb-3" style="font-size:4rem;color:#bde0fe;"></i>
-                        <p class="text-muted" style="font-size:.88rem;">
+                        <p class="text-muted" style="font-size:var(--r2k-text-88);">
                             <?php echo t('msg_recon_empty', 'Select a bank account and date range, then click <strong>Load</strong>'); ?>
                         </p>
                     </div>

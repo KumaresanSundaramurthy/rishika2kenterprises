@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var array $FinancialYears */ $FinancialYears = $FinancialYears ?? [];
 /** @var int   $DefaultFY */      $DefaultFY      = $DefaultFY      ?? (int)date('Y');
 $cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
@@ -85,7 +85,7 @@ $this->load->view('common/header'); ?>
                     <!-- ── Trial Balance Table ──────────────────────────── -->
                     <div class="card d-none" id="tbResultCard">
                         <div class="card-header d-flex align-items-center justify-content-between py-2">
-                            <span class="fw-semibold" id="tbCardTitle" style="font-size:.88rem;">Trial Balance</span>
+                            <span class="fw-semibold" id="tbCardTitle" style="font-size:var(--r2k-text-88);">Trial Balance</span>
                             <span class="text-muted" id="tbCardPeriod" style="font-size:.76rem;"></span>
                         </div>
                         <div class="table-responsive" id="tbTableWrap"></div>
@@ -94,7 +94,7 @@ $this->load->view('common/header'); ?>
                     <!-- ── Empty state ──────────────────────────────────── -->
                     <div id="tbEmptyState" class="text-center py-5">
                         <i class="bx bx-bar-chart-alt-2 d-block mx-auto mb-3" style="font-size:4rem;color:#d0d0e8;"></i>
-                        <p class="text-muted" style="font-size:.88rem;">Select a financial year and click <strong>Generate</strong></p>
+                        <p class="text-muted" style="font-size:var(--r2k-text-88);">Select a financial year and click <strong>Generate</strong></p>
                     </div>
 
                 </div>

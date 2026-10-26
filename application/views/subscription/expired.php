@@ -54,7 +54,7 @@
         }
         .btn-primary   { background: #696cff; color: #fff; }
         .btn-outline   { background: transparent; border: 1.5px solid #696cff; color: #696cff; }
-        .contact-line  { margin-top: 24px; font-size: .85rem; color: #aaa; }
+        .contact-line  { margin-top: 24px; font-size:var(--r2k-text-85); color: #aaa; }
     </style>
 </head>
 <body>

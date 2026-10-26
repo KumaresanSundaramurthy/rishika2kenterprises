@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <div class="modal fade" id="stockOutModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" style="max-width:540px;">
@@ -28,12 +28,12 @@
 
                 <!-- Quantity info -->
                 <div class="p-3 rounded mb-3" style="background:#f8fafc;border:1px solid #e2e8f0;">
-                    <div class="fw-semibold mb-2" style="font-size:.8rem;color:#475569;text-transform:uppercase;letter-spacing:.04em;">
+                    <div class="fw-semibold mb-2" style="font-size:var(--r2k-text-md);color:#475569;text-transform:uppercase;letter-spacing:.04em;">
                         Quantity Information
                     </div>
                     <div class="row g-3">
                         <div class="col-7">
-                            <label class="form-label fw-semibold" style="font-size:.82rem;">
+                            <label class="form-label fw-semibold" style="font-size:var(--r2k-text-82);">
                                 <span class="text-danger me-1">*</span>Quantity
                             </label>
                             <div class="input-group input-group-sm">
@@ -43,13 +43,13 @@
                             </div>
                         </div>
                         <div class="col-5">
-                            <label class="form-label fw-semibold" style="font-size:.82rem;">Record Date</label>
+                            <label class="form-label fw-semibold" style="font-size:var(--r2k-text-82);">Record Date</label>
                             <input type="text" class="form-control form-control-sm" id="soRecordDate"
                                    placeholder="Select date" readonly>
                         </div>
                     </div>
                     <div class="mt-3">
-                        <label class="form-label fw-semibold" style="font-size:.82rem;">Category (Reason)</label>
+                        <label class="form-label fw-semibold" style="font-size:var(--r2k-text-82);">Category (Reason)</label>
                         <select class="form-select form-select-sm" id="soCategory">
                             <option value="Miscellaneous" selected>Miscellaneous</option>
                             <option value="Damaged">Damaged</option>
@@ -67,27 +67,27 @@
                 <!-- Price details (optional) -->
                 <div class="p-3 rounded" style="background:#f8fafc;border:1px solid #e2e8f0;">
                     <div class="d-flex align-items-center justify-content-between mb-2">
-                        <div class="fw-semibold" style="font-size:.8rem;color:#475569;text-transform:uppercase;letter-spacing:.04em;">
+                        <div class="fw-semibold" style="font-size:var(--r2k-text-md);color:#475569;text-transform:uppercase;letter-spacing:.04em;">
                             Price Details
                         </div>
-                        <span class="badge text-bg-secondary" style="font-size:.65rem;">OPTIONAL</span>
+                        <span class="badge text-bg-secondary" style="font-size:var(--r2k-text-65);">OPTIONAL</span>
                     </div>
                     <div class="row g-2">
                         <div class="col-5">
-                            <label class="form-label fw-semibold mb-1" style="font-size:.8rem;">Price</label>
+                            <label class="form-label fw-semibold mb-1" style="font-size:var(--r2k-text-md);">Price</label>
                             <input type="number" class="form-control form-control-sm" id="soPrice" min="0" step="any"
                                    placeholder="0.00" oninput="invCalcStockValue('out')">
                             <div class="text-muted mt-1" style="font-size:var(--r2k-text-xs);">Includes tax</div>
                         </div>
                         <div class="col-4">
-                            <label class="form-label fw-semibold mb-1" style="font-size:.8rem;">Price Type</label>
+                            <label class="form-label fw-semibold mb-1" style="font-size:var(--r2k-text-md);">Price Type</label>
                             <select class="form-select form-select-sm" id="soPriceType" onchange="invCalcStockValue('out')">
                                 <option value="SellingPrice" selected>Selling Price</option>
                                 <option value="PurchasePrice">Purchase Price</option>
                             </select>
                         </div>
                         <div class="col-3">
-                            <label class="form-label fw-semibold mb-1" style="font-size:.8rem;">Stock Out Value</label>
+                            <label class="form-label fw-semibold mb-1" style="font-size:var(--r2k-text-md);">Stock Out Value</label>
                             <input type="text" class="form-control form-control-sm bg-light" id="soStockValue"
                                    readonly placeholder="0">
                         </div>

@@ -150,13 +150,13 @@ $this->load->view('common/header'); ?>
 
                 <!-- Lines table -->
                 <div class="d-flex align-items-center justify-content-between mb-2">
-                    <span class="fw-semibold" style="font-size:.85rem;">Journal Lines</span>
+                    <span class="fw-semibold" style="font-size:var(--r2k-text-85);">Journal Lines</span>
                     <button type="button" class="btn btn-sm btn-outline-primary" id="rjAddRowBtn">
                         <i class="bx bx-plus me-1"></i>Add Line
                     </button>
                 </div>
                 <div class="table-responsive mb-3">
-                    <table class="table table-sm table-bordered mb-0" style="font-size:.82rem;">
+                    <table class="table table-sm table-bordered mb-0" style="font-size:var(--r2k-text-82);">
                         <thead class="table-light">
                             <tr>
                                 <th style="width:32px;">#</th>
@@ -173,12 +173,12 @@ $this->load->view('common/header'); ?>
 
                 <!-- Balance indicator -->
                 <div class="d-flex align-items-center justify-content-end gap-3">
-                    <span class="text-muted" style="font-size:.8rem;">
+                    <span class="text-muted" style="font-size:var(--r2k-text-md);">
                         Dr: <strong id="rjTotalDr"><?php echo $cur; ?> 0.00</strong>
                         &nbsp;|&nbsp;
                         Cr: <strong id="rjTotalCr"><?php echo $cur; ?> 0.00</strong>
                     </span>
-                    <span id="rjBalanceBadge" class="badge bg-secondary" style="font-size:.8rem;">Not balanced</span>
+                    <span id="rjBalanceBadge" class="badge bg-secondary" style="font-size:var(--r2k-text-md);">Not balanced</span>
                 </div>
             </div>
             <div class="modal-footer">

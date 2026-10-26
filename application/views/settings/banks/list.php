@@ -33,20 +33,20 @@
                             <span class="fw-bold" style="font-size:1rem;"><?php echo t('lbl_cash', 'Cash'); ?></span>
                         </div>
                         <?php if ($isDefault): ?>
-                        <span class="badge bg-label-success" style="font-size:0.7rem;">
+                        <span class="badge bg-label-success" style="font-size:var(--r2k-text-70);">
                             <i class="bx bx-check-circle me-1"></i><?php echo t('lbl_default', 'Default'); ?>
                         </span>
                         <?php endif; ?>
                     </div>
-                    <p class="text-muted mb-0" style="font-size:0.78rem;">Cash payments collected directly from customers or paid to vendors.</p>
+                    <p class="text-muted mb-0" style="font-size:var(--r2k-text-78);">Cash payments collected directly from customers or paid to vendors.</p>
                 </div>
                 <!-- Balance row -->
                 <div class="px-3 pb-2">
                     <div class="bank-balance-row d-flex align-items-center justify-content-between py-1 px-2 rounded"
                          style="background:#fffbf0;border:1px dashed #f59e0b;cursor:pointer;"
                          data-uid="<?php echo (int)$bank->BankAccountUID; ?>" title="Click to reveal balance">
-                        <span class="text-muted" style="font-size:0.75rem;"><i class="bx bx-wallet me-1" style="color:#f59e0b;"></i><?php echo t('lbl_current_balance', 'Current Balance'); ?></span>
-                        <span class="bank-balance-val" style="font-size:0.82rem;font-weight:600;text-decoration:line-through;color:#aaa;"><?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?> ••••••</span>
+                        <span class="text-muted" style="font-size:var(--r2k-text-75);"><i class="bx bx-wallet me-1" style="color:#f59e0b;"></i><?php echo t('lbl_current_balance', 'Current Balance'); ?></span>
+                        <span class="bank-balance-val" style="font-size:var(--r2k-text-82);font-weight:600;text-decoration:line-through;color:#aaa;"><?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?> ••••••</span>
                     </div>
                 </div>
                 <div class="card-footer bg-transparent py-2 px-3">
@@ -55,7 +55,7 @@
                             data-uid="<?php echo (int)$bank->BankAccountUID; ?>"
                             title="Set as default">
                         <i class="bx bx-radio-circle me-1"></i>
-                        <span style="font-size:0.78rem;"><?php echo t('lbl_set_default', 'Set as Default'); ?></span>
+                        <span style="font-size:var(--r2k-text-78);"><?php echo t('lbl_set_default', 'Set as Default'); ?></span>
                     </button>
                     <?php else: ?>
                     <span class="text-success small"><i class="bx bx-radio-circle-marked me-1"></i><?php echo t('lbl_default', 'Default'); ?></span>
@@ -74,14 +74,14 @@
                                 <i class="bx bx-bank text-white" style="font-size:1.1rem;"></i>
                             </div>
                             <div>
-                                <div class="fw-bold text-dark" style="font-size:0.9rem;"><?php echo htmlspecialchars($bank->BankName ?? '—'); ?></div>
+                                <div class="fw-bold text-dark" style="font-size:var(--r2k-text-90);"><?php echo htmlspecialchars($bank->BankName ?? '—'); ?></div>
                                 <?php if (!empty($bank->BranchName)): ?>
-                                <div class="text-muted" style="font-size:0.75rem;"><?php echo htmlspecialchars($bank->BranchName); ?></div>
+                                <div class="text-muted" style="font-size:var(--r2k-text-75);"><?php echo htmlspecialchars($bank->BranchName); ?></div>
                                 <?php endif; ?>
                             </div>
                         </div>
                         <?php if ($isDefault): ?>
-                        <span class="badge bg-label-primary" style="font-size:0.7rem;">
+                        <span class="badge bg-label-primary" style="font-size:var(--r2k-text-70);">
                             <i class="bx bx-check-circle me-1"></i><?php echo t('lbl_default', 'Default'); ?>
                         </span>
                         <?php endif; ?>
@@ -107,7 +107,7 @@
                     <?php if (!empty($bank->UPIId)): ?>
                     <div class="mb-2">
                         <div class="text-muted small"><?php echo t('col_upi_id', 'UPI ID'); ?></div>
-                        <div class="fw-semibold text-success" style="font-size:0.8rem;">
+                        <div class="fw-semibold text-success" style="font-size:var(--r2k-text-md);">
                             <i class="bx bx-qr-scan me-1"></i><?php echo htmlspecialchars($bank->UPIId); ?>
                         </div>
                     </div>
@@ -120,8 +120,8 @@
                     <div class="bank-balance-row d-flex align-items-center justify-content-between py-1 px-2 rounded"
                          style="background:#f0f4ff;border:1px dashed #696cff;cursor:pointer;"
                          data-uid="<?php echo (int)$bank->BankAccountUID; ?>" title="Click to reveal balance">
-                        <span class="text-muted" style="font-size:0.75rem;"><i class="bx bx-wallet me-1" style="color:#696cff;"></i><?php echo t('lbl_current_balance', 'Current Balance'); ?></span>
-                        <span class="bank-balance-val" style="font-size:0.82rem;font-weight:600;text-decoration:line-through;color:#aaa;"><?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?> ••••••</span>
+                        <span class="text-muted" style="font-size:var(--r2k-text-75);"><i class="bx bx-wallet me-1" style="color:#696cff;"></i><?php echo t('lbl_current_balance', 'Current Balance'); ?></span>
+                        <span class="bank-balance-val" style="font-size:var(--r2k-text-82);font-weight:600;text-decoration:line-through;color:#aaa;"><?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?> ••••••</span>
                     </div>
                 </div>
 
@@ -133,7 +133,7 @@
                                     data-uid="<?php echo (int)$bank->BankAccountUID; ?>"
                                     title="Set as default">
                                 <i class="bx bx-radio-circle me-1"></i>
-                                <span style="font-size:0.78rem;"><?php echo t('lbl_set_default', 'Set as Default'); ?></span>
+                                <span style="font-size:var(--r2k-text-78);"><?php echo t('lbl_set_default', 'Set as Default'); ?></span>
                             </button>
                             <?php else: ?>
                             <span class="text-primary small"><i class="bx bx-radio-circle-marked me-1"></i><?php echo t('lbl_default', 'Default'); ?></span>

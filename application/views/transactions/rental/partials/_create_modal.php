@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <div class="modal fade modal-select2-search" id="rntCreateModal" tabindex="-1"
      data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true">
@@ -65,7 +65,7 @@
                             </div>
                             <div class="card-body p-0">
                                 <div class="table-responsive">
-                                    <table class="table table-sm mb-0" style="font-size:.82rem;">
+                                    <table class="table table-sm mb-0" style="font-size:var(--r2k-text-82);">
                                         <thead style="background:#f8fafc;">
                                             <tr>
                                                 <th style="padding:.5rem .75rem;">Machine</th>
@@ -78,7 +78,7 @@
                                         </thead>
                                         <tbody id="rntMachineRows">
                                             <tr id="rntNoMachinesRow">
-                                                <td colspan="6" class="text-center text-muted py-4" style="font-size:.85rem;">
+                                                <td colspan="6" class="text-center text-muted py-4" style="font-size:var(--r2k-text-85);">
                                                     <i class="bx bx-cycling fs-4 d-block mb-2"></i>Click "Add Machine" to add rentable equipment
                                                 </td>
                                             </tr>
@@ -107,8 +107,8 @@
                             <div class="card-body">
 
                                 <div class="d-flex justify-content-between py-1 border-bottom">
-                                    <span class="text-muted" style="font-size:.82rem;">Rental Charge</span>
-                                    <span id="rntSummaryRentalCharge" style="font-size:.82rem;font-weight:600;"><?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?> 0.00</span>
+                                    <span class="text-muted" style="font-size:var(--r2k-text-82);">Rental Charge</span>
+                                    <span id="rntSummaryRentalCharge" style="font-size:var(--r2k-text-82);font-weight:600;"><?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?> 0.00</span>
                                 </div>
                                 <div class="d-flex justify-content-between py-2">
                                     <span class="fw-semibold">Grand Total</span>
@@ -146,8 +146,8 @@
                                 <hr class="my-2">
 
                                 <div class="d-flex justify-content-between">
-                                    <span class="text-muted" style="font-size:.82rem;">Balance After Deposit</span>
-                                    <span id="rntSummaryBalance" style="font-size:.82rem;font-weight:600;color:#dc2626;"><?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?> 0.00</span>
+                                    <span class="text-muted" style="font-size:var(--r2k-text-82);">Balance After Deposit</span>
+                                    <span id="rntSummaryBalance" style="font-size:var(--r2k-text-82);font-weight:600;color:#dc2626;"><?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?> 0.00</span>
                                 </div>
 
                             </div>

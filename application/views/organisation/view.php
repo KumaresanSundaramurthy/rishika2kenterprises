@@ -297,7 +297,7 @@
     flex-shrink: 0;
 }
 .org-country-code { font-size: 0.875rem; font-weight: 600; color: #555; letter-spacing: 0.02em; }
-.org-country-lock { font-size: 0.8rem; color: #999; }
+.org-country-lock { font-size:var(--r2k-text-md); color: #999; }
 
 /* ── Address card backgrounds (point 5) ── */
 #appendBillingAddress .border { background-color: #eef6ff; }   /* billing: soft blue  */

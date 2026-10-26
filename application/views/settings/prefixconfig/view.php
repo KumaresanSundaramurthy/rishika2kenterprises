@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php $this->load->view('common/header'); ?>
 
@@ -19,11 +19,11 @@
 
                         <!-- Info bar -->
                         <div class="px-3 py-2 border-bottom d-flex align-items-center gap-2 flex-wrap">
-                            <span class="badge bg-label-secondary d-inline-flex align-items-center gap-1" style="font-size:.78rem;font-weight:500;">
+                            <span class="badge bg-label-secondary d-inline-flex align-items-center gap-1" style="font-size:var(--r2k-text-78);font-weight:500;">
                                 <i class="bx bx-info-circle"></i>
                                 Prefixes define how your transaction numbers are formatted
                             </span>
-                            <span class="badge bg-label-primary d-inline-flex align-items-center gap-1" style="font-size:.78rem;font-weight:500;" id="pcModuleCountBadge">
+                            <span class="badge bg-label-primary d-inline-flex align-items-center gap-1" style="font-size:var(--r2k-text-78);font-weight:500;" id="pcModuleCountBadge">
                                 <?php echo (int)$PrefixModuleCount; ?> module<?php echo $PrefixModuleCount != 1 ? 's' : ''; ?> support prefix numbering
                             </span>
                             <div class="ms-auto">
@@ -388,7 +388,7 @@ window.addEventListener('load', function () {
         var html = '';
         activeParts.forEach(function (part, i) {
             html += '<span class="badge ' + BLOCK_COLORS[i % BLOCK_COLORS.length]
-                  + ' px-3 py-2" style="font-size:.85rem;letter-spacing:.04em">'
+                  + ' px-3 py-2" style="font-size:var(--r2k-text-85);letter-spacing:.04em">'
                   + escHtml(part.label) + '</span>';
             if (i < activeParts.length - 1) {
                 var sep = _pc.seps[part.orderIdx];

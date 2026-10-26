@@ -60,7 +60,7 @@ foreach ($DataLists as $row):
            data-config='<?php echo $editData; ?>'
            title="Preview receipt template">
             <?php echo htmlspecialchars($typeLabel); ?>
-            <i class="bx bx-receipt ms-1 text-secondary" style="font-size:.8rem;vertical-align:middle;"></i>
+            <i class="bx bx-receipt ms-1 text-secondary" style="font-size:var(--r2k-text-md);vertical-align:middle;"></i>
         </a>
     </td>
     <td class="align-middle">

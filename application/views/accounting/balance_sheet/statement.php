@@ -21,7 +21,7 @@ $isLoss   = $NetProfit < 0;
  * @returns string
  */
 function _bsFmt(float $n, string $cur): string {
-    if (abs($n) < 0.005) return '<span class="text-muted" style="font-size:.78rem;">—</span>';
+    if (abs($n) < 0.005) return '<span class="text-muted" style="font-size:var(--r2k-text-78);">—</span>';
     return $cur . ' ' . smartDecimal(abs($n));
 }
 ?>
@@ -31,7 +31,7 @@ function _bsFmt(float $n, string $cur): string {
     <div class="text-center mb-4 pl-print-header">
         <div class="fw-bold" style="font-size:1rem;"><?php echo $orgName; ?></div>
         <div class="fw-semibold mt-1" style="font-size:.92rem;">Balance Sheet</div>
-        <div class="text-muted" style="font-size:.8rem;">
+        <div class="text-muted" style="font-size:var(--r2k-text-md);">
             As of <?php echo $asOfDisp; ?>
             &nbsp;·&nbsp;
             P&amp;L from <?php echo $pnlDisp; ?>
@@ -53,7 +53,7 @@ function _bsFmt(float $n, string $cur): string {
                     if (empty($grp['items'])) continue;
                 ?>
                     <tr class="bs-group-head">
-                        <td colspan="3" style="padding:5px 12px;font-weight:600;font-size:.78rem;background:#eff6ff;color:#1d4ed8;">
+                        <td colspan="3" style="padding:5px 12px;font-weight:600;font-size:var(--r2k-text-78);background:#eff6ff;color:#1d4ed8;">
                             <?php echo htmlspecialchars($grp['label']); ?>
                         </td>
                     </tr>
@@ -64,23 +64,23 @@ function _bsFmt(float $n, string $cur): string {
                     ?>
                     <tr <?php echo abs($cb) < 0.005 ? 'class="text-muted"' : ''; ?>>
                         <td style="width:16px;padding-left:20px;border-left:3px solid #bfdbfe;"></td>
-                        <td style="font-size:.82rem;">
+                        <td style="font-size:var(--r2k-text-82);">
                             <?php echo htmlspecialchars($r->LedgerName); ?>
                             <?php if (!$isDr && abs($cb) > 0.005): ?>
                             <span class="badge bg-label-danger ms-1" style="font-size:.6rem;" title="Credit balance — unusual for asset">Cr</span>
                             <?php endif; ?>
                         </td>
-                        <td class="text-end fw-semibold" style="font-size:.82rem;white-space:nowrap;width:130px;
+                        <td class="text-end fw-semibold" style="font-size:var(--r2k-text-82);white-space:nowrap;width:130px;
                             <?php echo (!$isDr && abs($cb) > 0.005) ? 'color:#dc2626;' : ''; ?>">
                             <?php echo _bsFmt($cb, $cur); ?>
                         </td>
                     </tr>
                     <?php endforeach; ?>
                     <tr class="bs-group-subtotal">
-                        <td colspan="2" style="font-weight:600;font-size:.78rem;padding-left:20px;">
+                        <td colspan="2" style="font-weight:600;font-size:var(--r2k-text-78);padding-left:20px;">
                             Subtotal — <?php echo htmlspecialchars($grp['label']); ?>
                         </td>
-                        <td class="text-end fw-bold" style="font-size:.8rem;white-space:nowrap;
+                        <td class="text-end fw-bold" style="font-size:var(--r2k-text-md);white-space:nowrap;
                             <?php echo $grp['total'] < 0 ? 'color:#dc2626;' : 'color:#1d4ed8;'; ?>">
                             <?php echo _bsFmt($grp['total'], $cur); ?>
                         </td>
@@ -90,7 +90,7 @@ function _bsFmt(float $n, string $cur): string {
                 <tfoot>
                     <tr style="background:#1d4ed8;color:#fff;font-weight:700;">
                         <td colspan="2" style="padding:10px 12px;">TOTAL ASSETS</td>
-                        <td class="text-end" style="padding:10px 12px;font-size:.9rem;white-space:nowrap;">
+                        <td class="text-end" style="padding:10px 12px;font-size:var(--r2k-text-90);white-space:nowrap;">
                             <?php echo $cur . ' ' . smartDecimal($TotalAssets); ?>
                         </td>
                     </tr>
@@ -111,7 +111,7 @@ function _bsFmt(float $n, string $cur): string {
                     if (empty($grp['items'])) continue;
                 ?>
                     <tr class="bs-group-head">
-                        <td colspan="3" style="padding:5px 12px;font-weight:600;font-size:.78rem;background:#fff7ed;color:#9a3412;">
+                        <td colspan="3" style="padding:5px 12px;font-weight:600;font-size:var(--r2k-text-78);background:#fff7ed;color:#9a3412;">
                             <?php echo htmlspecialchars($grp['label']); ?>
                         </td>
                     </tr>
@@ -122,22 +122,22 @@ function _bsFmt(float $n, string $cur): string {
                     ?>
                     <tr <?php echo abs($cb) < 0.005 ? 'class="text-muted"' : ''; ?>>
                         <td style="width:16px;padding-left:20px;border-left:3px solid #fdba74;"></td>
-                        <td style="font-size:.82rem;">
+                        <td style="font-size:var(--r2k-text-82);">
                             <?php echo htmlspecialchars($r->LedgerName); ?>
                             <?php if (!$isCr && abs($cb) > 0.005): ?>
                             <span class="badge bg-label-info ms-1" style="font-size:.6rem;" title="Debit balance — unusual for liability">Dr</span>
                             <?php endif; ?>
                         </td>
-                        <td class="text-end fw-semibold" style="font-size:.82rem;white-space:nowrap;width:130px;">
+                        <td class="text-end fw-semibold" style="font-size:var(--r2k-text-82);white-space:nowrap;width:130px;">
                             <?php echo _bsFmt($cb, $cur); ?>
                         </td>
                     </tr>
                     <?php endforeach; ?>
                     <tr class="bs-group-subtotal">
-                        <td colspan="2" style="font-weight:600;font-size:.78rem;padding-left:20px;">
+                        <td colspan="2" style="font-weight:600;font-size:var(--r2k-text-78);padding-left:20px;">
                             Subtotal — <?php echo htmlspecialchars($grp['label']); ?>
                         </td>
-                        <td class="text-end fw-bold" style="font-size:.8rem;white-space:nowrap;color:#9a3412;">
+                        <td class="text-end fw-bold" style="font-size:var(--r2k-text-md);white-space:nowrap;color:#9a3412;">
                             <?php echo _bsFmt($grp['total'], $cur); ?>
                         </td>
                     </tr>
@@ -146,16 +146,16 @@ function _bsFmt(float $n, string $cur): string {
                     <!-- Net Profit / Loss separator -->
                     <tr style="background:#f0fdf4;">
                         <td style="width:16px;border-left:3px solid #86efac;"></td>
-                        <td style="font-size:.82rem;font-weight:600;color:<?php echo $isLoss ? '#dc2626' : '#16a34a'; ?>;">
+                        <td style="font-size:var(--r2k-text-82);font-weight:600;color:<?php echo $isLoss ? '#dc2626' : '#16a34a'; ?>;">
                             <?php echo $isLoss ? 'Net Loss for Period' : 'Net Profit for Period'; ?>
-                            <div class="text-muted fw-normal" style="font-size:.7rem;">
+                            <div class="text-muted fw-normal" style="font-size:var(--r2k-text-70);">
                                 <?php echo date($dateFmt, strtotime($PnlFrom)); ?> to <?php echo date($dateFmt, strtotime($AsOfDate)); ?>
                             </div>
                         </td>
-                        <td class="text-end fw-bold" style="font-size:.82rem;white-space:nowrap;
+                        <td class="text-end fw-bold" style="font-size:var(--r2k-text-82);white-space:nowrap;
                             color:<?php echo $isLoss ? '#dc2626' : '#16a34a'; ?>;">
                             <?php echo _bsFmt($NetProfit, $cur); ?>
-                            <?php if ($isLoss): ?><div style="font-size:.7rem;">(Loss)</div><?php endif; ?>
+                            <?php if ($isLoss): ?><div style="font-size:var(--r2k-text-70);">(Loss)</div><?php endif; ?>
                         </td>
                     </tr>
 
@@ -163,7 +163,7 @@ function _bsFmt(float $n, string $cur): string {
                 <tfoot>
                     <tr style="background:#7c2d12;color:#fff;font-weight:700;">
                         <td colspan="2" style="padding:10px 12px;">TOTAL LIABILITIES + NET PROFIT</td>
-                        <td class="text-end" style="padding:10px 12px;font-size:.9rem;white-space:nowrap;">
+                        <td class="text-end" style="padding:10px 12px;font-size:var(--r2k-text-90);white-space:nowrap;">
                             <?php echo $cur . ' ' . smartDecimal($totalLE); ?>
                         </td>
                     </tr>

@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 $cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? 'â‚¹');
 $this->load->view('common/header'); ?>
 
@@ -77,7 +77,7 @@ $this->load->view('common/header'); ?>
                                 <div class="card-body p-3 d-flex align-items-center gap-3">
                                     <div class="comp-sum-icon comp-icon-inc"><i class="bx bx-trending-up fs-4"></i></div>
                                     <div>
-                                        <div class="text-muted" style="font-size:.75rem;">Income Variance</div>
+                                        <div class="text-muted" style="font-size:var(--r2k-text-75);">Income Variance</div>
                                         <div class="fw-bold" style="font-size:1rem;" id="cmpSumIncVar">—</div>
                                         <div class="text-muted" style="font-size:var(--r2k-text-sm);" id="cmpSumIncPct">—</div>
                                     </div>
@@ -89,7 +89,7 @@ $this->load->view('common/header'); ?>
                                 <div class="card-body p-3 d-flex align-items-center gap-3">
                                     <div class="comp-sum-icon comp-icon-exp"><i class="bx bx-trending-down fs-4"></i></div>
                                     <div>
-                                        <div class="text-muted" style="font-size:.75rem;">Expense Variance</div>
+                                        <div class="text-muted" style="font-size:var(--r2k-text-75);">Expense Variance</div>
                                         <div class="fw-bold" style="font-size:1rem;" id="cmpSumExpVar">—</div>
                                         <div class="text-muted" style="font-size:var(--r2k-text-sm);" id="cmpSumExpPct">—</div>
                                     </div>
@@ -101,7 +101,7 @@ $this->load->view('common/header'); ?>
                                 <div class="card-body p-3 d-flex align-items-center gap-3">
                                     <div class="comp-sum-icon comp-icon-net" id="cmpSumNetIcon"><i class="bx bx-money fs-4"></i></div>
                                     <div>
-                                        <div class="text-muted" style="font-size:.75rem;">Period 1 Net</div>
+                                        <div class="text-muted" style="font-size:var(--r2k-text-75);">Period 1 Net</div>
                                         <div class="fw-bold" style="font-size:1rem;" id="cmpSumNet1">—</div>
                                         <div class="text-muted" style="font-size:var(--r2k-text-sm);">P2: <span id="cmpSumNet2">—</span></div>
                                     </div>
@@ -113,7 +113,7 @@ $this->load->view('common/header'); ?>
                                 <div class="card-body p-3 d-flex align-items-center gap-3">
                                     <div class="comp-sum-icon comp-icon-var" id="cmpSumVarIcon"><i class="bx bx-transfer fs-4"></i></div>
                                     <div>
-                                        <div class="text-muted" style="font-size:.75rem;">Net Variance</div>
+                                        <div class="text-muted" style="font-size:var(--r2k-text-75);">Net Variance</div>
                                         <div class="fw-bold" style="font-size:1rem;" id="cmpSumNetVar">—</div>
                                         <div class="text-muted" style="font-size:var(--r2k-text-sm);" id="cmpSumNetPct">—</div>
                                     </div>
@@ -127,7 +127,7 @@ $this->load->view('common/header'); ?>
                         <div class="card-body p-0" id="cmpReportArea">
                             <div class="d-flex flex-column align-items-center py-5 text-muted" id="cmpEmptyState">
                                 <i class="bx bx-columns fs-1 mb-2" style="color:#ccc;"></i>
-                                <span style="font-size:.9rem;">Enter period dates and click Load Report</span>
+                                <span style="font-size:var(--r2k-text-90);">Enter period dates and click Load Report</span>
                             </div>
                         </div>
                     </div>

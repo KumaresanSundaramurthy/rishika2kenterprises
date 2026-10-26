@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php
 $isEdit      = isset($POData);
 $isDraftEdit = $isEdit && ($POData->DocStatus === 'Draft');
@@ -71,8 +71,8 @@ $editPrefixSeg    = $_prefix['seg'];
                                     </div>
                                     <?php if ($isEdit && !$isDraftEdit && !empty($POData->TransDate)): ?>
                                     <div class="d-flex align-items-center gap-2 mt-1">
-                                        <span style="font-size:.7rem;color:#8592a3;">PO Date</span>
-                                        <span style="font-size:.78rem;color:#566a7f;"><?php echo htmlspecialchars(format_datedisplay($POData->TransDate)); ?></span>
+                                        <span style="font-size:var(--r2k-text-70);color:#8592a3;">PO Date</span>
+                                        <span style="font-size:var(--r2k-text-78);color:#566a7f;"><?php echo htmlspecialchars(format_datedisplay($POData->TransDate)); ?></span>
                                     </div>
                                     <?php endif; ?>
                                 </div>

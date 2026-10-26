@@ -32,7 +32,7 @@
 
                         <!-- Info Note -->
                         <div class="px-3 pt-3 pb-2">
-                            <div class="alert alert-warning d-flex gap-2 mb-0 py-2 px-3" style="font-size:.82rem;border-left:3px solid #f59e0b;background:#fffbeb;border-radius:6px;">
+                            <div class="alert alert-warning d-flex gap-2 mb-0 py-2 px-3" style="font-size:var(--r2k-text-82);border-left:3px solid #f59e0b;background:#fffbeb;border-radius:6px;">
                                 <i class="bx bx-info-circle mt-1 flex-shrink-0" style="color:#d97706;font-size:1rem;"></i>
                                 <div>
                                     <div class="fw-semibold mb-1" style="color:#92400e;">Before you edit a bank account, please read this:</div>
@@ -125,7 +125,7 @@
                                         <small class="text-muted fw-semibold text-uppercase px-2" style="white-space:nowrap;">UPI Details <span class="badge bg-label-secondary ms-1">Optional</span></small>
                                         <hr class="flex-grow-1 mb-0">
                                     </div>
-                                    <p class="text-muted mt-1 mb-0" style="font-size:0.78rem;">Link a UPI ID to generate dynamic QR codes on invoices and bills.</p>
+                                    <p class="text-muted mt-1 mb-0" style="font-size:var(--r2k-text-78);">Link a UPI ID to generate dynamic QR codes on invoices and bills.</p>
                                 </div>
 
                                 <div class="col-md-6">

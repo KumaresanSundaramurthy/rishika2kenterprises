@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var int $SerialNumber */ $SerialNumber = $SerialNumber ?? 0;
 $cur     = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
 $dateFmt = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
@@ -29,24 +29,24 @@ if (!empty($DataLists)):
         $cr     = (float)($row->TotalCredit ?? 0);
 ?>
 <tr>
-    <td class="text-muted" style="font-size:.78rem;"><?php echo $SerialNumber; ?></td>
-    <td style="white-space:nowrap;font-size:.82rem;"><?php echo date($dateFmt, strtotime($row->JournalDate)); ?></td>
+    <td class="text-muted" style="font-size:var(--r2k-text-78);"><?php echo $SerialNumber; ?></td>
+    <td style="white-space:nowrap;font-size:var(--r2k-text-82);"><?php echo date($dateFmt, strtotime($row->JournalDate)); ?></td>
     <td>
-        <code style="font-size:.78rem;color:#7c3aed;"><?php echo htmlspecialchars($row->JournalNo ?? ''); ?></code>
+        <code style="font-size:var(--r2k-text-78);color:#7c3aed;"><?php echo htmlspecialchars($row->JournalNo ?? ''); ?></code>
     </td>
     <td>
-        <span class="badge <?php echo $badge[0]; ?>" style="font-size:.7rem;">
+        <span class="badge <?php echo $badge[0]; ?>" style="font-size:var(--r2k-text-70);">
             <i class="bx <?php echo $badge[1]; ?> me-1"></i><?php echo htmlspecialchars($ref); ?>
         </span>
         <?php if (!empty($row->ReferenceNo)): ?>
         <div class="text-muted" style="font-size:var(--r2k-text-sm);margin-top:2px;"><?php echo htmlspecialchars($row->ReferenceNo); ?></div>
         <?php endif; ?>
     </td>
-    <td class="text-muted" style="font-size:.8rem;"><?php echo htmlspecialchars($row->Narration ?? '—'); ?></td>
-    <td class="text-end fw-semibold text-success" style="font-size:.82rem;"><?php echo $cur . ' ' . smartDecimal($dr); ?></td>
-    <td class="text-end fw-semibold text-danger"  style="font-size:.82rem;"><?php echo $cur . ' ' . smartDecimal($cr); ?></td>
+    <td class="text-muted" style="font-size:var(--r2k-text-md);"><?php echo htmlspecialchars($row->Narration ?? '—'); ?></td>
+    <td class="text-end fw-semibold text-success" style="font-size:var(--r2k-text-82);"><?php echo $cur . ' ' . smartDecimal($dr); ?></td>
+    <td class="text-end fw-semibold text-danger"  style="font-size:var(--r2k-text-82);"><?php echo $cur . ' ' . smartDecimal($cr); ?></td>
     <td class="text-center">
-        <span class="badge bg-label-secondary" style="font-size:.7rem;"><?php echo (int)($row->LineCount ?? 0); ?></span>
+        <span class="badge bg-label-secondary" style="font-size:var(--r2k-text-70);"><?php echo (int)($row->LineCount ?? 0); ?></span>
     </td>
     <td class="text-center">
         <button class="btn btn-icon btn-sm text-warning jl-view-btn" data-uid="<?php echo $uid; ?>" title="<?php echo t('tooltip_view_details', 'View Details'); ?>">
@@ -67,7 +67,7 @@ if (!empty($DataLists)):
     <td colspan="9" style="padding:0;border:none;">
         <div class="d-flex flex-column align-items-center py-5">
             <img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:130px;object-fit:contain;">
-            <span class="text-muted" style="font-size:.9rem;">No journal entries found</span>
+            <span class="text-muted" style="font-size:var(--r2k-text-90);">No journal entries found</span>
         </div>
     </td>
 </tr>

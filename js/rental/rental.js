@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 // ── Flatpickr instances ───────────────────────────────────────────────────────
 var _rntFpStart  = null;
@@ -78,7 +78,7 @@ function rntOpenCreate() {
     $('#rntDepositPayType').val('');
     $('#rntDepositBankUID').val('');
     $('#rntMachineRows').html(
-        '<tr id="rntNoMachinesRow"><td colspan="6" class="text-center text-muted py-4" style="font-size:.85rem;">' +
+        '<tr id="rntNoMachinesRow"><td colspan="6" class="text-center text-muted py-4" style="font-size:var(--r2k-text-85);">' +
         '<i class="bx bx-cycling fs-4 d-block mb-2"></i>Click "Add Machine" to add rentable equipment</td></tr>'
     );
     rntCalcSummary();
@@ -191,8 +191,8 @@ function rntAddMachineRow(product) {
 
     var html = '<tr id="rntRow_' + idx + '" data-idx="' + idx + '">'
         + '<td style="padding:.4rem .75rem;">'
-        +   '<div style="font-weight:500;font-size:.82rem;">' + _rntEsc(product.ItemName) + '</div>'
-        +   (product.PartNumber ? '<div class="text-muted" style="font-size:.7rem;">P/N: ' + _rntEsc(product.PartNumber) + '</div>' : '')
+        +   '<div style="font-weight:500;font-size:var(--r2k-text-82);">' + _rntEsc(product.ItemName) + '</div>'
+        +   (product.PartNumber ? '<div class="text-muted" style="font-size:var(--r2k-text-70);">P/N: ' + _rntEsc(product.PartNumber) + '</div>' : '')
         + '</td>'
         + '<td style="padding:.4rem .5rem;">'
         +   '<input type="number" class="form-control form-control-sm rntMachineQty" data-idx="' + idx + '" value="1" min="1" step="1" style="width:60px;">'
@@ -206,12 +206,12 @@ function rntAddMachineRow(product) {
         +   '</select>'
         + '</td>'
         + '<td style="padding:.4rem .5rem;text-align:right;">'
-        +   '<span class="rntMachineRate" data-idx="' + idx + '" style="font-size:.82rem;font-weight:500;">'
+        +   '<span class="rntMachineRate" data-idx="' + idx + '" style="font-size:var(--r2k-text-82);font-weight:500;">'
         +   RntCurrency + ' ' + rate.toFixed(RntDecimals)
         +   '</span>'
         + '</td>'
         + '<td style="padding:.4rem .5rem;text-align:right;">'
-        +   '<span class="rntMachineCharge" data-idx="' + idx + '" style="font-size:.82rem;font-weight:600;color:#7c3aed;">'
+        +   '<span class="rntMachineCharge" data-idx="' + idx + '" style="font-size:var(--r2k-text-82);font-weight:600;color:#7c3aed;">'
         +   RntCurrency + ' ' + rate.toFixed(RntDecimals)
         +   '</span>'
         + '</td>'
@@ -500,7 +500,7 @@ $(document).ready(function () {
         $('#rntRow_' + idx).remove();
         if ($('#rntMachineRows tr').length === 0) {
             $('#rntMachineRows').html(
-                '<tr id="rntNoMachinesRow"><td colspan="6" class="text-center text-muted py-4" style="font-size:.85rem;">' +
+                '<tr id="rntNoMachinesRow"><td colspan="6" class="text-center text-muted py-4" style="font-size:var(--r2k-text-85);">' +
                 '<i class="bx bx-cycling fs-4 d-block mb-2"></i>Click "Add Machine" to add rentable equipment</td></tr>'
             );
         }

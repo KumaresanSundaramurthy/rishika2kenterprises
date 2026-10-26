@@ -219,11 +219,11 @@ $rpBtnLabel    = $rpBtnLabel    ?? 'Record Payment';
                             <div id="payAttachZone" class="prod-attach-zone" onclick="_attachZoneTrigger('Payment', event)">
                                 <div id="payAttachEmpty" class="prod-attach-empty">
                                     <i class="bx bx-upload" id="payAttachIcon" style="font-size:1.4rem;color:#9ca3af;display:block;margin-bottom:3px;"></i>
-                                    <div id="payAttachLabel" style="font-size:.78rem;font-weight:600;color:#6b7280;">Drag &amp; drop files here</div>
+                                    <div id="payAttachLabel" style="font-size:var(--r2k-text-78);font-weight:600;color:#6b7280;">Drag &amp; drop files here</div>
                                 </div>
                             </div>
                             <div id="payAttachList" class="prod-attach-list mt-2" style="display:none;"></div>
-                            <div id="payAttachHint" style="font-size:.7rem;color:#9ca3af;margin-top:4px;"></div>
+                            <div id="payAttachHint" style="font-size:var(--r2k-text-70);color:#9ca3af;margin-top:4px;"></div>
                             <input type="file" id="payAttachInput" multiple style="display:none;">
                         </div>
 
@@ -402,7 +402,7 @@ $pdtLinkedLabel = $pdtLinkedLabel ?? 'Linked Document';
     function _renderPaymentTypes() {
         var $wrap = $('#rpPaymentTypes').empty();
         if (!_payTypes.length) {
-            $wrap.html('<div class="text-muted" style="font-size:.8rem;"><i class="bx bx-loader-alt bx-spin"></i> Loading…</div>');
+            $wrap.html('<div class="text-muted" style="font-size:var(--r2k-text-md);"><i class="bx bx-loader-alt bx-spin"></i> Loading…</div>');
             return;
         }
         $.each(_payTypes, function (i, t) {

@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 $this->load->view('common/transactions/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -215,7 +215,7 @@ $this->load->view('common/transactions/header'); ?>
                                     </div>
                                 </div>
                                 <div id="emAmountEditWrap" class="mb-3" style="display:none;">
-                                    <label class="form-label fw-semibold" style="font-size:.82rem;color:#6b7280;">Expense Amount</label>
+                                    <label class="form-label fw-semibold" style="font-size:var(--r2k-text-82);color:#6b7280;">Expense Amount</label>
                                     <div id="emAmountDisplay" class="fw-bold" style="font-size:1.6rem;color:#111827;letter-spacing:-.5px;"></div>
                                 </div>
 
@@ -229,7 +229,7 @@ $this->load->view('common/transactions/header'); ?>
                                         <label class="form-label fw-semibold">
                                             Category
                                             <button type="button" class="btn btn-link p-0 ms-1 text-primary" id="emAddCategoryBtn"
-                                                    style="font-size:.75rem;vertical-align:baseline;" title="Add new category">
+                                                    style="font-size:var(--r2k-text-75);vertical-align:baseline;" title="Add new category">
                                                 <i class="bx bx-plus-circle"></i> New
                                             </button>
                                         </label>
@@ -292,13 +292,13 @@ $this->load->view('common/transactions/header'); ?>
 
                                     <!-- Payment Date -->
                                     <div class="mb-3">
-                                        <label class="form-label fw-semibold" style="font-size:.85rem;">Payment Date</label>
+                                        <label class="form-label fw-semibold" style="font-size:var(--r2k-text-85);">Payment Date</label>
                                         <input type="date" class="form-control" id="emPmtDate">
                                     </div>
 
                                     <!-- Payment Type pills -->
                                     <div class="mb-3">
-                                        <label class="form-label fw-semibold" style="font-size:.85rem;">Payment Type</label>
+                                        <label class="form-label fw-semibold" style="font-size:var(--r2k-text-85);">Payment Type</label>
                                         <div class="d-flex flex-wrap gap-2" id="emPmtTypePills">
                                             <?php if (!empty($paymentTypes)): ?>
                                                 <?php foreach ($paymentTypes as $pt): ?>
@@ -323,7 +323,7 @@ $this->load->view('common/transactions/header'); ?>
 
                                     <!-- Bank Account (hidden for Cash) -->
                                     <div class="mb-3" id="emBankSection">
-                                        <label class="form-label fw-semibold" style="font-size:.85rem;">Bank / Account</label>
+                                        <label class="form-label fw-semibold" style="font-size:var(--r2k-text-85);">Bank / Account</label>
                                         <select class="form-select" id="emBankUID">
                                             <option value="">None / Not Applicable</option>
                                             <?php foreach ($bankAccounts as $ba): ?>
@@ -337,7 +337,7 @@ $this->load->view('common/transactions/header'); ?>
 
                                     <!-- Payment Notes -->
                                     <div class="mb-0">
-                                        <label class="form-label fw-semibold" style="font-size:.85rem;">Payment Notes</label>
+                                        <label class="form-label fw-semibold" style="font-size:var(--r2k-text-85);">Payment Notes</label>
                                         <textarea class="form-control" id="emPmtNotes" rows="2"
                                                   placeholder="Reference, cheque no., UTR..."></textarea>
                                     </div>
@@ -367,10 +367,10 @@ $this->load->view('common/transactions/header'); ?>
                     </div>
                     <div class="d-flex flex-wrap align-items-center gap-2">
                         <span class="fw-bold" id="edDocNumber" style="font-size:.95rem;"></span>
-                        <span class="text-muted" style="font-size:.82rem;" id="edDocDate"></span>
-                        <span class="fw-semibold" style="font-size:.9rem;" id="edDocAmount"></span>
+                        <span class="text-muted" style="font-size:var(--r2k-text-82);" id="edDocDate"></span>
+                        <span class="fw-semibold" style="font-size:var(--r2k-text-90);" id="edDocAmount"></span>
                         <span id="edDocBadge"></span>
-                        <span class="text-muted" style="font-size:.8rem;" id="edDocPmt"></span>
+                        <span class="text-muted" style="font-size:var(--r2k-text-md);" id="edDocPmt"></span>
                     </div>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -542,7 +542,7 @@ $(function () {
                 '<span>' + $('<span>').text(c.name).html() + '</span>' +
                 '</label>';
         });
-        if (!html) html = '<div class="text-muted text-center py-3" style="font-size:.8rem;">No categories</div>';
+        if (!html) html = '<div class="text-muted text-center py-3" style="font-size:var(--r2k-text-md);">No categories</div>';
         $('#expCatFilterBox .catg-list').html(html);
     }
     // ────────────────────────────────────────────────────────────────────────
@@ -794,18 +794,18 @@ $(function () {
                         html += '<div class="d-flex justify-content-between align-items-start gap-2">';
                         html += '  <div style="min-width:0;">';
                         html += '    <div style="font-size:.83rem;font-weight:600;color:#d97706;">' + expCurSymbol + ' ' + amt + '</div>';
-                        html += '    <div style="font-size:.75rem;color:#566a7f;">' + (p.PaymentTypeName || '—') + '</div>';
+                        html += '    <div style="font-size:var(--r2k-text-75);color:#566a7f;">' + (p.PaymentTypeName || '—') + '</div>';
                         if (date) html += '  <div style="font-size:var(--r2k-text-sm);color:#aaa;margin-top:1px;">' + date + '</div>';
                         html += '  </div>';
                         html += '</div>';
                     });
                     $expPayBody.html(html);
                 } else {
-                    $expPayBody.html('<p class="text-muted mb-0" style="font-size:.8rem;">No payments found.</p>');
+                    $expPayBody.html('<p class="text-muted mb-0" style="font-size:var(--r2k-text-md);">No payments found.</p>');
                 }
             },
             error: function () {
-                $expPayBody.html('<p class="text-danger mb-0" style="font-size:.8rem;">Failed to load payments.</p>');
+                $expPayBody.html('<p class="text-danger mb-0" style="font-size:var(--r2k-text-md);">Failed to load payments.</p>');
             }
         });
     }
@@ -890,7 +890,7 @@ $(function () {
         $('#edDocNumber').text(num);
         $('#edDocDate').text(date);
         $('#edDocAmount').text(amount);
-        $('#edDocBadge').html('<span class="trans-badge ' + badge + '"><i class="bx ' + icon + '" style="font-size:.8rem;"></i> ' + status + '</span>');
+        $('#edDocBadge').html('<span class="trans-badge ' + badge + '"><i class="bx ' + icon + '" style="font-size:var(--r2k-text-md);"></i> ' + status + '</span>');
         $('#edDocPmt').text(pmt ? '· ' + pmt : '');
 
         $('#edBody').html('<div class="text-center py-5"><span class="spinner-border text-warning"></span></div>');
@@ -915,22 +915,22 @@ $(function () {
 
                 var pmtHtml = '';
                 if (d.PaymentTypeName) {
-                    pmtHtml += '<div class="mb-2"><span class="badge bg-label-primary" style="font-size:.75rem;padding:3px 10px;"><i class="bx bx-credit-card me-1"></i>' + esc(d.PaymentTypeName) + '</span></div>';
+                    pmtHtml += '<div class="mb-2"><span class="badge bg-label-primary" style="font-size:var(--r2k-text-75);padding:3px 10px;"><i class="bx bx-credit-card me-1"></i>' + esc(d.PaymentTypeName) + '</span></div>';
                 }
                 var pmtRows = [];
                 if (d.PaymentDate)      pmtRows.push('<i class="bx bx-calendar me-1" style="color:#94a3b8;"></i>' + esc(fmtDate(d.PaymentDate)));
-                if (d.BankName)         pmtRows.push('<i class="bx bx-building-house me-1" style="color:#94a3b8;font-size:.7rem;"></i>' + esc(d.BankName));
+                if (d.BankName)         pmtRows.push('<i class="bx bx-building-house me-1" style="color:#94a3b8;font-size:var(--r2k-text-70);"></i>' + esc(d.BankName));
                 if (d.BankAccountName)  pmtRows.push('<span style="padding-left:14px;">' + esc(d.BankAccountName) + '</span>');
                 if (d.AccountNumber)    pmtRows.push('<span style="padding-left:14px;font-family:monospace;letter-spacing:.05em;">' + esc(d.AccountNumber) + '</span>');
                 if (d.PaymentReference) pmtRows.push('<i class="bx bx-hash me-1" style="color:#94a3b8;"></i>Ref: <span style="font-weight:600;">' + esc(d.PaymentReference) + '</span>');
-                if (pmtRows.length) pmtHtml += '<div style="font-size:.78rem;color:#475569;line-height:2.1;">' + pmtRows.join('<br>') + '</div>';
+                if (pmtRows.length) pmtHtml += '<div style="font-size:var(--r2k-text-78);color:#475569;line-height:2.1;">' + pmtRows.join('<br>') + '</div>';
 
                 var taxHtml = '';
-                if (parseInt(d.TaxApplicable))  taxHtml += ' <span class="badge bg-label-info" style="font-size:.65rem;">Tax ' + esc(d.TaxPercentage) + '%</span>';
-                if (parseInt(d.TDSApplicable))  taxHtml += ' <span class="badge bg-label-warning" style="font-size:.65rem;">TDS ' + esc(d.TDSPercentage) + '%</span>';
+                if (parseInt(d.TaxApplicable))  taxHtml += ' <span class="badge bg-label-info" style="font-size:var(--r2k-text-65);">Tax ' + esc(d.TaxPercentage) + '%</span>';
+                if (parseInt(d.TDSApplicable))  taxHtml += ' <span class="badge bg-label-warning" style="font-size:var(--r2k-text-65);">TDS ' + esc(d.TDSPercentage) + '%</span>';
 
                 var boxS = 'background:#f8fafc;border:1px solid #e9ecef;border-radius:8px;padding:12px 14px;height:100%;';
-                var lb   = 'font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#94a3b8;margin-bottom:6px;';
+                var lb   = 'font-size:var(--r2k-text-65);font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#94a3b8;margin-bottom:6px;';
                 var valS = 'font-size:.93rem;font-weight:600;color:#1e293b;line-height:1.3;';
 
                 function field(label, content, extraValStyle) {
@@ -942,7 +942,7 @@ $(function () {
                 function field12(label, content) {
                     return '<div class="col-12"><div style="' + boxS + '">' +
                                '<div style="' + lb + '">' + label + '</div>' +
-                               '<div style="font-size:.88rem;color:#374151;line-height:1.6;">' + content + '</div>' +
+                               '<div style="font-size:var(--r2k-text-88);color:#374151;line-height:1.6;">' + content + '</div>' +
                            '</div></div>';
                 }
 
@@ -950,19 +950,19 @@ $(function () {
                 html += field('Expense Date', esc(fmtDate(d.ExpenseDate)));
                 html += field('Amount', expCurSymbol + ' ' + parseFloat(d.Amount || 0).toFixed(expDecPoints) + taxHtml, 'font-size:1.05rem;');
                 html += field('Category', d.CategoryName
-                    ? '<span class="badge text-bg-light border" style="font-size:.78rem;font-weight:600;padding:5px 10px;">' + esc(d.CategoryName) + '</span>'
-                    : '<span class="text-muted" style="font-size:.85rem;font-weight:400;">Not set</span>');
+                    ? '<span class="badge text-bg-light border" style="font-size:var(--r2k-text-78);font-weight:600;padding:5px 10px;">' + esc(d.CategoryName) + '</span>'
+                    : '<span class="text-muted" style="font-size:var(--r2k-text-85);font-weight:400;">Not set</span>');
                 html += field('Created On', esc(fmtDate(d.CreatedOn)));
                 if (pmtHtml) {
                     html += '<div class="col-12"><div style="' + boxS + 'border-left:3px solid #6366f1;">' +
                                 '<div style="' + lb + '">Payment Details</div>' + pmtHtml +
                             '</div></div>';
                 } else {
-                    html += field('Payment', '<span class="text-muted" style="font-weight:400;font-size:.85rem;">No payment recorded</span>');
+                    html += field('Payment', '<span class="text-muted" style="font-weight:400;font-size:var(--r2k-text-85);">No payment recorded</span>');
                 }
                 if (d.Notes)        html += field12('Notes', esc(d.Notes));
                 if (d.PaymentNotes) html += field12('Payment Notes', esc(d.PaymentNotes));
-                html += '<div class="col-12"><div style="font-size:.75rem;color:#94a3b8;padding:8px 2px 0;border-top:1px solid #f1f5f9;">' +
+                html += '<div class="col-12"><div style="font-size:var(--r2k-text-75);color:#94a3b8;padding:8px 2px 0;border-top:1px solid #f1f5f9;">' +
                             'Last updated' +
                             (d.UpdatedByName ? ' by <span style="color:#475569;font-weight:600;">' + esc(d.UpdatedByName) + '</span>' : '') +
                             (d.UpdatedOn ? ' &middot; ' + esc(fmtDate(d.UpdatedOn)) : '') +
@@ -1276,7 +1276,7 @@ $(function () {
             : visible === total
                 ? 'Showing 1–' + total + ' of ' + total + ' Results'
                 : 'Showing ' + visible + ' of ' + total + ' Results';
-        $('#catMgrPagination').html('<span style="font-size:.82rem;color:#6b7280;">' + text + '</span>');
+        $('#catMgrPagination').html('<span style="font-size:var(--r2k-text-82);color:#6b7280;">' + text + '</span>');
     }
 
     function _catMgrFilter() {

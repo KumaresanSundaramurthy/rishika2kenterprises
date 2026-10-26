@@ -52,7 +52,7 @@ $this->load->view('common/header'); ?>
                                 <div class="card-body p-3 d-flex align-items-center gap-3">
                                     <div class="cf-sum-icon cf-icon-open"><i class="bx bx-wallet fs-4"></i></div>
                                     <div>
-                                        <div class="text-muted" style="font-size:.75rem;">Opening Cash &amp; Bank</div>
+                                        <div class="text-muted" style="font-size:var(--r2k-text-75);">Opening Cash &amp; Bank</div>
                                         <div class="fw-bold" style="font-size:1rem;" id="cfSumOpen">—</div>
                                     </div>
                                 </div>
@@ -63,7 +63,7 @@ $this->load->view('common/header'); ?>
                                 <div class="card-body p-3 d-flex align-items-center gap-3">
                                     <div class="cf-sum-icon cf-icon-in"><i class="bx bx-trending-up fs-4"></i></div>
                                     <div>
-                                        <div class="text-muted" style="font-size:.75rem;">Total Inflows</div>
+                                        <div class="text-muted" style="font-size:var(--r2k-text-75);">Total Inflows</div>
                                         <div class="fw-bold text-success" style="font-size:1rem;" id="cfSumIn">—</div>
                                     </div>
                                 </div>
@@ -74,7 +74,7 @@ $this->load->view('common/header'); ?>
                                 <div class="card-body p-3 d-flex align-items-center gap-3">
                                     <div class="cf-sum-icon cf-icon-out"><i class="bx bx-trending-down fs-4"></i></div>
                                     <div>
-                                        <div class="text-muted" style="font-size:.75rem;">Total Outflows</div>
+                                        <div class="text-muted" style="font-size:var(--r2k-text-75);">Total Outflows</div>
                                         <div class="fw-bold text-danger" style="font-size:1rem;" id="cfSumOut">—</div>
                                     </div>
                                 </div>
@@ -85,7 +85,7 @@ $this->load->view('common/header'); ?>
                                 <div class="card-body p-3 d-flex align-items-center gap-3">
                                     <div class="cf-sum-icon cf-icon-close" id="cfSumCloseIcon"><i class="bx bx-wallet-alt fs-4"></i></div>
                                     <div>
-                                        <div class="text-muted" style="font-size:.75rem;">Closing Cash &amp; Bank</div>
+                                        <div class="text-muted" style="font-size:var(--r2k-text-75);">Closing Cash &amp; Bank</div>
                                         <div class="fw-bold" style="font-size:1rem;" id="cfSumClose">—</div>
                                     </div>
                                 </div>
@@ -98,7 +98,7 @@ $this->load->view('common/header'); ?>
                         <div class="card-body p-0" id="cfStatementArea">
                             <div class="d-flex flex-column align-items-center py-5 text-muted" id="cfEmptyState">
                                 <i class="bx bx-transfer-alt fs-1 mb-2" style="color:#ccc;"></i>
-                                <span style="font-size:.9rem;">Select dates and click Load Statement</span>
+                                <span style="font-size:var(--r2k-text-90);">Select dates and click Load Statement</span>
                             </div>
                         </div>
                     </div>

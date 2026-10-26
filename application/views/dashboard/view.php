@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php $this->load->view('common/header'); ?>
 
 <?php
@@ -108,7 +108,7 @@ $kpiData = [
 
 /* ── Chart container ── */
 #dashChartCard .chart-title {
-    font-size: .88rem; font-weight: 600; transition: color .18s;
+    font-size:var(--r2k-text-88); font-weight: 600; transition: color .18s;
 }
 #dashChartCard .chart-metric-dot {
     width: 8px; height: 8px; border-radius: 50%;
@@ -127,12 +127,12 @@ $kpiData = [
 .kpi-info .kpi-sub   { font-size:var(--r2k-text-sm); margin-top: 3px; }
 
 /* ── Pending action strip ── */
-.pend-strip { font-size: .78rem; }
+.pend-strip { font-size:var(--r2k-text-78); }
 .pend-badge { display: inline-flex; align-items: center; gap: 6px; }
 .pend-count {
     display: inline-flex; align-items: center; justify-content: center;
     min-width: 22px; height: 22px; border-radius: 50%;
-    font-size: .7rem; font-weight: 700; padding: 0 6px;
+    font-size:var(--r2k-text-70); font-weight: 700; padding: 0 6px;
 }
 .pend-count-draft { background: #e9ecef; color: #495057; }
 .pend-count-inv   { background: #dbeafe; color: #1d4ed8; }
@@ -142,7 +142,7 @@ $kpiData = [
 .pend-lnk:hover { color: #0d6efd; }
 
 /* ── View all link (chart card) ── */
-#chartViewAllLink { font-size: .75rem; }
+#chartViewAllLink { font-size:var(--r2k-text-75); }
 
 /* ── Purchase KPI info cards ── */
 .kpi-purch-icon   { background: #ede9fe; }
@@ -157,23 +157,23 @@ $kpiData = [
 
 /* ── Top Vendors card ── */
 .vend-avatar { width: 32px; height: 32px; background: #fef3c7; color: #b45309; font-size:var(--r2k-text-sm); font-weight: 700; }
-.vend-balance { font-size: .82rem; color: #dc3545; }
+.vend-balance { font-size:var(--r2k-text-82); color: #dc3545; }
 
 /* ── Expense Summary card ── */
-.exp-cat-name  { font-size: .8rem; font-weight: 500; min-width: 100px; }
+.exp-cat-name  { font-size:var(--r2k-text-md); font-weight: 500; min-width: 100px; }
 .exp-cat-bar   { flex: 1; height: 6px; border-radius: 3px; background: #f0f0f0; overflow: hidden; }
 .exp-cat-fill  { height: 100%; border-radius: 3px; background: #dc3545; }
-.exp-cat-amt   { font-size: .78rem; font-weight: 600; min-width: 80px; text-align: right; color: #dc3545; }
+.exp-cat-amt   { font-size:var(--r2k-text-78); font-weight: 600; min-width: 80px; text-align: right; color: #dc3545; }
 .exp-total-lbl { font-size:var(--r2k-text-sm); text-transform: uppercase; letter-spacing: .4px; }
 .exp-total-val { font-size: 1.1rem; font-weight: 700; color: #dc3545; }
 
 /* ── Top Products card ── */
-.prod-rank     { width: 20px; font-size: .75rem; font-weight: 700; color: #adb5bd; flex-shrink: 0; }
-.prod-name     { font-size: .82rem; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prod-rank     { width: 20px; font-size:var(--r2k-text-75); font-weight: 700; color: #adb5bd; flex-shrink: 0; }
+.prod-name     { font-size:var(--r2k-text-82); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .prod-bar      { flex: 1; height: 5px; border-radius: 3px; background: #f0f0f0; overflow: hidden; }
 .prod-bar-fill { height: 100%; border-radius: 3px; background: #0d6efd; }
-.prod-qty      { font-size: .7rem; color: #6c757d; flex-shrink: 0; }
-.prod-rev      { font-size: .78rem; font-weight: 600; color: #0d6efd; min-width: 90px; text-align: right; flex-shrink: 0; }
+.prod-qty      { font-size:var(--r2k-text-70); color: #6c757d; flex-shrink: 0; }
+.prod-rev      { font-size:var(--r2k-text-78); font-weight: 600; color: #0d6efd; min-width: 90px; text-align: right; flex-shrink: 0; }
 </style>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -390,22 +390,22 @@ $kpiData = [
                         <div class="col-md-4">
                             <div class="card h-100">
                                 <div class="card-header d-flex align-items-center justify-content-between py-2">
-                                    <span class="fw-semibold" style="font-size:.88rem;color:#dc3545;"><i class="bx bx-time-five me-1"></i>Overdue Invoices</span>
+                                    <span class="fw-semibold" style="font-size:var(--r2k-text-88);color:#dc3545;"><i class="bx bx-time-five me-1"></i>Overdue Invoices</span>
                                     <span class="badge bg-danger"><?php echo count($overdue); ?></span>
                                 </div>
                                 <div class="card-body p-0" style="overflow-y:auto;max-height:240px;">
                                     <?php if (empty($overdue)): ?>
-                                        <div class="text-center text-muted py-4" style="font-size:.82rem;">No overdue invoices</div>
+                                        <div class="text-center text-muted py-4" style="font-size:var(--r2k-text-82);">No overdue invoices</div>
                                     <?php else: ?>
                                         <?php foreach ($overdue as $inv): ?>
                                         <div class="d-flex align-items-center justify-content-between px-3 py-2" style="border-bottom:1px solid #f0f0f0;">
                                             <div>
-                                                <div style="font-size:.82rem;font-weight:600;color:#0d6efd;"><?php echo htmlspecialchars($inv->UniqueNumber ?? '—'); ?></div>
+                                                <div style="font-size:var(--r2k-text-82);font-weight:600;color:#0d6efd;"><?php echo htmlspecialchars($inv->UniqueNumber ?? '—'); ?></div>
                                                 <div style="font-size:var(--r2k-text-sm);color:#6c757d;"><?php echo htmlspecialchars($inv->PartyName ?? '—'); ?></div>
                                                 <div style="font-size:var(--r2k-text-xs);color:#dc3545;">Due: <?php echo format_datedisplay($inv->ValidityDate, $dateFmt); ?></div>
                                             </div>
                                             <div class="text-end">
-                                                <div style="font-size:.82rem;font-weight:700;color:#dc3545;"><?php echo dashFmt($inv->BalanceAmount, $cur); ?></div>
+                                                <div style="font-size:var(--r2k-text-82);font-weight:700;color:#dc3545;"><?php echo dashFmt($inv->BalanceAmount, $cur); ?></div>
                                             </div>
                                         </div>
                                         <?php endforeach; ?>
@@ -423,12 +423,12 @@ $kpiData = [
                         <div class="col-md-4">
                             <div class="card">
                                 <div class="card-header d-flex align-items-center justify-content-between py-2">
-                                    <span class="fw-semibold" style="font-size:.88rem;">Top Customers</span>
+                                    <span class="fw-semibold" style="font-size:var(--r2k-text-88);">Top Customers</span>
                                     <a href="<?= site_url('customers') ?>" class="btn btn-sm btn-outline-secondary" style="font-size:var(--r2k-text-sm);">View All</a>
                                 </div>
                                 <div class="card-body p-0">
                                     <?php if (empty($topCust)): ?>
-                                        <div class="text-center text-muted py-4" style="font-size:.82rem;">No outstanding customers</div>
+                                        <div class="text-center text-muted py-4" style="font-size:var(--r2k-text-82);">No outstanding customers</div>
                                     <?php else: ?>
                                         <?php foreach ($topCust as $cust): ?>
                                         <div class="d-flex align-items-center gap-2 px-3 py-2" style="border-bottom:1px solid #f0f0f0;">
@@ -437,12 +437,12 @@ $kpiData = [
                                                 <?php echo strtoupper(substr(trim($cust->Name ?? 'X'), 0, 1)); ?>
                                             </div>
                                             <div class="flex-grow-1 min-width-0">
-                                                <div style="font-size:.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?php echo htmlspecialchars($cust->Name ?? '—'); ?></div>
+                                                <div style="font-size:var(--r2k-text-82);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?php echo htmlspecialchars($cust->Name ?? '—'); ?></div>
                                                 <?php if (!empty($cust->MobileNumber)): ?>
-                                                <div style="font-size:.7rem;color:#6c757d;"><?php echo htmlspecialchars($cust->MobileNumber); ?></div>
+                                                <div style="font-size:var(--r2k-text-70);color:#6c757d;"><?php echo htmlspecialchars($cust->MobileNumber); ?></div>
                                                 <?php endif; ?>
                                             </div>
-                                            <div class="fw-bold text-end flex-shrink-0" style="font-size:.82rem;color:#198754;"><?php echo dashFmt($cust->PendingBalance, $cur); ?></div>
+                                            <div class="fw-bold text-end flex-shrink-0" style="font-size:var(--r2k-text-82);color:#198754;"><?php echo dashFmt($cust->PendingBalance, $cur); ?></div>
                                         </div>
                                         <?php endforeach; ?>
                                     <?php endif; ?>
@@ -452,12 +452,12 @@ $kpiData = [
                             <!-- Top Vendors -->
                             <div class="card mt-3">
                                 <div class="card-header d-flex align-items-center justify-content-between py-2">
-                                    <span class="fw-semibold" style="font-size:.88rem;">Top Vendors</span>
+                                    <span class="fw-semibold" style="font-size:var(--r2k-text-88);">Top Vendors</span>
                                     <a href="<?= site_url('vendors') ?>" class="btn btn-sm btn-outline-secondary" style="font-size:var(--r2k-text-sm);">View All</a>
                                 </div>
                                 <div class="card-body p-0">
                                     <?php if (empty($topVend)): ?>
-                                        <div class="text-center text-muted py-4" style="font-size:.82rem;">No outstanding vendors</div>
+                                        <div class="text-center text-muted py-4" style="font-size:var(--r2k-text-82);">No outstanding vendors</div>
                                     <?php else: ?>
                                         <?php foreach ($topVend as $vend): ?>
                                         <div class="d-flex align-items-center gap-2 px-3 py-2" style="border-bottom:1px solid #f0f0f0;">
@@ -465,9 +465,9 @@ $kpiData = [
                                                 <?php echo strtoupper(substr(trim($vend->Name ?? 'X'), 0, 1)); ?>
                                             </div>
                                             <div class="flex-grow-1 min-width-0">
-                                                <div style="font-size:.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?php echo htmlspecialchars($vend->Name ?? '—'); ?></div>
+                                                <div style="font-size:var(--r2k-text-82);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?php echo htmlspecialchars($vend->Name ?? '—'); ?></div>
                                                 <?php if (!empty($vend->MobileNumber)): ?>
-                                                <div style="font-size:.7rem;color:#6c757d;"><?php echo htmlspecialchars($vend->MobileNumber); ?></div>
+                                                <div style="font-size:var(--r2k-text-70);color:#6c757d;"><?php echo htmlspecialchars($vend->MobileNumber); ?></div>
                                                 <?php endif; ?>
                                             </div>
                                             <div class="fw-bold text-end flex-shrink-0 vend-balance"><?php echo dashFmt($vend->PendingBalance, $cur); ?></div>
@@ -482,11 +482,11 @@ $kpiData = [
                         <div class="col-md-8">
                             <div class="card h-100">
                                 <div class="card-header d-flex align-items-center justify-content-between py-2">
-                                    <span class="fw-semibold" style="font-size:.88rem;">Recent Transactions</span>
+                                    <span class="fw-semibold" style="font-size:var(--r2k-text-88);">Recent Transactions</span>
                                     <a href="<?= site_url('invoices') ?>" class="btn btn-sm btn-outline-secondary" style="font-size:var(--r2k-text-sm);">View All</a>
                                 </div>
                                 <div class="table-responsive">
-                                    <table class="table table-sm mb-0" style="font-size:.8rem;">
+                                    <table class="table table-sm mb-0" style="font-size:var(--r2k-text-md);">
                                         <thead style="background:#f8f9fa;">
                                             <tr>
                                                 <th class="ps-3 fw-semibold text-muted" style="font-size:var(--r2k-text-sm);text-transform:uppercase;">Date</th>
@@ -535,19 +535,19 @@ $kpiData = [
                         <div class="col-md-6">
                             <div class="card h-100">
                                 <div class="card-header d-flex align-items-center justify-content-between py-2">
-                                    <span class="fw-semibold" style="font-size:.88rem;"><i class="bx bx-wallet text-danger me-1"></i>Expenses — This Month</span>
+                                    <span class="fw-semibold" style="font-size:var(--r2k-text-88);"><i class="bx bx-wallet text-danger me-1"></i>Expenses — This Month</span>
                                     <a href="<?= site_url('expenses') ?>" class="btn btn-sm btn-outline-secondary" style="font-size:var(--r2k-text-sm);">View All</a>
                                 </div>
                                 <div class="card-body py-3">
                                     <?php if (empty($expSummary)): ?>
-                                        <div class="text-center text-muted py-2" style="font-size:.82rem;">No expenses this month</div>
+                                        <div class="text-center text-muted py-2" style="font-size:var(--r2k-text-82);">No expenses this month</div>
                                     <?php else: ?>
                                         <div class="d-flex align-items-center gap-3 mb-3">
                                             <div>
                                                 <div class="exp-total-lbl text-muted">Total Spent</div>
                                                 <div class="exp-total-val"><?php echo dashFmt($expTotal, $cur); ?></div>
                                             </div>
-                                            <div class="text-muted" style="font-size:.75rem;">| <?php echo count($expSummary); ?> categor<?php echo count($expSummary) == 1 ? 'y' : 'ies'; ?></div>
+                                            <div class="text-muted" style="font-size:var(--r2k-text-75);">| <?php echo count($expSummary); ?> categor<?php echo count($expSummary) == 1 ? 'y' : 'ies'; ?></div>
                                         </div>
                                         <div class="d-flex flex-column gap-2">
                                             <?php foreach ($expSummary as $exp):
@@ -571,12 +571,12 @@ $kpiData = [
                         <div class="col-md-6">
                             <div class="card h-100">
                                 <div class="card-header d-flex align-items-center justify-content-between py-2">
-                                    <span class="fw-semibold" style="font-size:.88rem;"><i class="bx bx-box text-primary me-1"></i>Top Products — This Month</span>
+                                    <span class="fw-semibold" style="font-size:var(--r2k-text-88);"><i class="bx bx-box text-primary me-1"></i>Top Products — This Month</span>
                                     <a href="<?= site_url('products') ?>" class="btn btn-sm btn-outline-secondary" style="font-size:var(--r2k-text-sm);">View All</a>
                                 </div>
                                 <div class="card-body py-3">
                                     <?php if (empty($topProducts)): ?>
-                                        <div class="text-center text-muted py-2" style="font-size:.82rem;">No sales this month</div>
+                                        <div class="text-center text-muted py-2" style="font-size:var(--r2k-text-82);">No sales this month</div>
                                     <?php else: ?>
                                         <div class="d-flex flex-column gap-2">
                                             <?php foreach ($topProducts as $i => $prod):

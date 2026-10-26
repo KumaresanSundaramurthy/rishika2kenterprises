@@ -57,7 +57,7 @@ $this->load->view('common/header'); ?>
                                         <i class="bx bx-building fs-4" style="color:#1d4ed8;"></i>
                                     </div>
                                     <div>
-                                        <div class="text-muted" style="font-size:.75rem;">Total Assets</div>
+                                        <div class="text-muted" style="font-size:var(--r2k-text-75);">Total Assets</div>
                                         <div class="fw-bold" style="font-size:1.1rem;color:#1d4ed8;" id="bsSumAssets">—</div>
                                     </div>
                                 </div>
@@ -70,7 +70,7 @@ $this->load->view('common/header'); ?>
                                         <i class="bx bx-receipt fs-4" style="color:#9a3412;"></i>
                                     </div>
                                     <div>
-                                        <div class="text-muted" style="font-size:.75rem;">Total Liabilities</div>
+                                        <div class="text-muted" style="font-size:var(--r2k-text-75);">Total Liabilities</div>
                                         <div class="fw-bold" style="font-size:1.1rem;color:#9a3412;" id="bsSumLiab">—</div>
                                     </div>
                                 </div>
@@ -83,13 +83,13 @@ $this->load->view('common/header'); ?>
                                         <i class="bx bx-money fs-4" id="bsSumNetIco" style="color:#16a34a;"></i>
                                     </div>
                                     <div>
-                                        <div class="text-muted" style="font-size:.75rem;" id="bsSumNetLabel">Net Profit</div>
+                                        <div class="text-muted" style="font-size:var(--r2k-text-75);" id="bsSumNetLabel">Net Profit</div>
                                         <div class="fw-bold" style="font-size:1.1rem;" id="bsSumNet">—</div>
                                         <div class="d-none" id="bsBalancedBadge">
-                                            <span class="badge bg-success" style="font-size:.65rem;">Balanced âœ“</span>
+                                            <span class="badge bg-success" style="font-size:var(--r2k-text-65);">Balanced âœ“</span>
                                         </div>
                                         <div class="d-none" id="bsUnbalancedBadge">
-                                            <span class="badge bg-danger" style="font-size:.65rem;">Unbalanced âœ—</span>
+                                            <span class="badge bg-danger" style="font-size:var(--r2k-text-65);">Unbalanced âœ—</span>
                                         </div>
                                     </div>
                                 </div>
@@ -102,7 +102,7 @@ $this->load->view('common/header'); ?>
                         <div class="card-body p-0" id="bsStatementArea">
                             <div class="d-flex flex-column align-items-center py-5 text-muted" id="bsEmptyState">
                                 <i class="bx bx-equalizer fs-1 mb-2" style="color:#ccc;"></i>
-                                <span style="font-size:.9rem;">Select dates and click Load Balance Sheet</span>
+                                <span style="font-size:var(--r2k-text-90);">Select dates and click Load Balance Sheet</span>
                             </div>
                         </div>
                     </div>

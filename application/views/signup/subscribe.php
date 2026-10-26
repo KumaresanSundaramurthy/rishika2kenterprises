@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -47,16 +47,16 @@
     border: 1px solid rgba(105, 108, 255, 0.2);
     border-radius: 100px;
     padding: 0.35rem 0.85rem;
-    font-size: 0.78rem;
+    font-size:var(--r2k-text-78);
     color: rgba(160, 165, 255, 0.9);
 }
-.sub-org-pill i { font-size: 0.85rem; }
+.sub-org-pill i { font-size:var(--r2k-text-85); }
 
 .sub-logout-link {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
-    font-size: 0.78rem;
+    font-size:var(--r2k-text-78);
     color: rgba(220, 100, 100, 0.75);
     text-decoration: none;
     border: 1px solid rgba(220, 100, 100, 0.25);
@@ -111,7 +111,7 @@
 }
 
 .sub-heading-wrap p {
-    font-size: 0.9rem;
+    font-size:var(--r2k-text-90);
     color: rgba(160, 190, 215, 0.6);
     line-height: 1.7;
 }
@@ -128,7 +128,7 @@
 
 /* ── Plan cards ───────────────────────────────────────────────────── */
 .sub-plans-wrap h2 {
-    font-size: 0.75rem;
+    font-size:var(--r2k-text-75);
     font-weight: 700;
     color: rgba(160, 190, 215, 0.45);
     letter-spacing: 0.1em;
@@ -213,7 +213,7 @@
 }
 
 .sub-plan-badge {
-    font-size: 0.65rem;
+    font-size:var(--r2k-text-65);
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -245,7 +245,7 @@
     letter-spacing: -0.02em;
 }
 .sub-plan-price sup {
-    font-size: 0.85rem;
+    font-size:var(--r2k-text-85);
     font-weight: 600;
     color: rgba(160, 190, 215, 0.65);
     vertical-align: super;
@@ -272,7 +272,7 @@
     color: rgba(160, 190, 215, 0.55);
     letter-spacing: 0.02em;
 }
-.sub-plan-features span i { font-size: 0.82rem; color: rgba(105, 108, 255, 0.6); }
+.sub-plan-features span i { font-size:var(--r2k-text-82); color: rgba(105, 108, 255, 0.6); }
 
 /* ── Payment panel ────────────────────────────────────────────────── */
 .sub-pay-panel {
@@ -286,7 +286,7 @@
 }
 
 .sub-pay-panel h2 {
-    font-size: 0.75rem;
+    font-size:var(--r2k-text-75);
     font-weight: 700;
     color: rgba(160, 190, 215, 0.45);
     letter-spacing: 0.1em;
@@ -311,7 +311,7 @@
 }
 
 .sub-summary-cycle {
-    font-size: 0.75rem;
+    font-size:var(--r2k-text-75);
     color: rgba(160, 190, 215, 0.45);
     text-transform: uppercase;
     letter-spacing: 0.07em;
@@ -325,7 +325,7 @@
 }
 .sub-summary-amount .currency { font-size: 1rem; color: rgba(105, 108, 255, 0.8); font-weight: 600; }
 .sub-summary-amount .amount   { font-size: 2.2rem; font-weight: 800; color: #f0f4f8; line-height: 1; letter-spacing: -0.03em; }
-.sub-summary-amount .period   { font-size: 0.8rem; color: rgba(160, 190, 215, 0.45); }
+.sub-summary-amount .period   { font-size:var(--r2k-text-md); color: rgba(160, 190, 215, 0.45); }
 
 /* Divider */
 .sub-divider {
@@ -339,11 +339,11 @@
     display: flex;
     align-items: center;
     gap: 0.45rem;
-    font-size: 0.75rem;
+    font-size:var(--r2k-text-75);
     color: rgba(160, 190, 215, 0.4);
     margin-bottom: 1.25rem;
 }
-.sub-trust-row i { font-size: 0.85rem; color: rgba(105, 108, 255, 0.5); }
+.sub-trust-row i { font-size:var(--r2k-text-85); color: rgba(105, 108, 255, 0.5); }
 
 /* Pay button */
 .sub-pay-btn {
@@ -388,7 +388,7 @@
     border: 1px solid rgba(239, 68, 68, 0.3);
     border-radius: 8px;
     color: rgba(252, 165, 165, 0.9);
-    font-size: 0.82rem;
+    font-size:var(--r2k-text-82);
     padding: 0.65rem 0.85rem;
     margin-bottom: 0.85rem;
     display: none;
@@ -574,7 +574,7 @@ $_popularIdx = $_planCount > 2 ? (int)floor(($_planCount - 1) / 2) : -1;
                         <span id="subPaySpinner" style="display:none;"><span class="sub-spinner"></span></span>
                     </button>
 
-                    <a href="<?= site_url('logout') ?>" style="display:block;text-align:center;font-size:0.78rem;color:rgba(160,190,215,.35);text-decoration:none;transition:color .2s;"
+                    <a href="<?= site_url('logout') ?>" style="display:block;text-align:center;font-size:var(--r2k-text-78);color:rgba(160,190,215,.35);text-decoration:none;transition:color .2s;"
                        onmouseover="this.style.color='rgba(160,190,215,.7)'" onmouseout="this.style.color='rgba(160,190,215,.35)'">
                         Return later &amp; pay when ready
                     </a>

@@ -5,9 +5,9 @@ $this->load->view('common/transactions/header'); ?>
 .rpt-empty-lg{display:flex;flex-direction:column;align-items:center;padding:60px 30px;color:#94a3b8;text-align:center}
 .rpt-empty-icon-purple{font-size:3rem;margin-bottom:14px;color:#7c3aed;opacity:.7}
 .rpt-empty-title{font-size:1.1rem;font-weight:700;color:#374151;margin-bottom:8px}
-.rpt-empty-desc{font-size:.85rem;color:#64748b;max-width:520px;line-height:1.6;margin-bottom:20px}
+.rpt-empty-desc{font-size:var(--r2k-text-85);color:#64748b;max-width:520px;line-height:1.6;margin-bottom:20px}
 .rpt-info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;max-width:600px;width:100%;text-align:left}
-.rpt-info-item{display:flex;align-items:flex-start;gap:8px;font-size:.82rem;color:#64748b;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px}
+.rpt-info-item{display:flex;align-items:flex-start;gap:8px;font-size:var(--r2k-text-82);color:#64748b;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px}
 .rpt-info-item i{font-size:1rem;flex-shrink:0;margin-top:1px}
 .rpt-info-item i.bx-check-circle{color:#7c3aed}
 .rpt-info-item i.bx-info-circle{color:#2563eb}

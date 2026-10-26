@@ -94,7 +94,7 @@ if (empty($DataLists)):
         <div class="todo-title-wrap">
             <span class="todo-title <?php echo $isDone ? 'todo-title-done' : ''; ?>">
                 <?php echo htmlspecialchars($row->Title); ?>
-                <?php if ($isPrivate): ?><i class="bx bx-lock ms-1 text-muted" title="Private" style="font-size:.75rem"></i><?php endif; ?>
+                <?php if ($isPrivate): ?><i class="bx bx-lock ms-1 text-muted" title="Private" style="font-size:var(--r2k-text-75)"></i><?php endif; ?>
             </span>
             <?php if (!empty($row->RefLabel) && $row->RefType !== 'General'): ?>
             <span class="todo-ref-chip"><i class="bx bx-link-alt me-1"></i><?php echo htmlspecialchars($row->RefType . ': ' . $row->RefLabel); ?></span>
@@ -109,7 +109,7 @@ if (empty($DataLists)):
     <td class="text-nowrap">
         <?php echo htmlspecialchars($row->AssignedName ?? '—'); ?>
         <?php if ((int)$row->AssignedToUID === (int)$CurrentUserUID): ?>
-        <span class="badge bg-label-primary ms-1" style="font-size:.65rem">Me</span>
+        <span class="badge bg-label-primary ms-1" style="font-size:var(--r2k-text-65)">Me</span>
         <?php endif; ?>
     </td>
 
@@ -142,7 +142,7 @@ if (empty($DataLists)):
             <a href="#" class="r2k-icon-btn text-danger todo-delete-btn" data-uid="<?php echo (int)$row->TodoUID; ?>"
                title="Delete"><i class="bx bx-trash"></i></a>
             <?php else: ?>
-            <span class="text-muted" style="font-size:.75rem">View only</span>
+            <span class="text-muted" style="font-size:var(--r2k-text-75)">View only</span>
             <?php endif; ?>
         </div>
     </td>

@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var array $Income */  $Income  = $Income  ?? [];
 /** @var array $Expense */ $Expense = $Expense ?? [];
 /** @var array $Totals */  $Totals  = $Totals  ?? [];
@@ -55,7 +55,7 @@ function _bvaBar(float $pct, string $type): string {
     <div class="text-center mb-3 pl-print-header">
         <div class="fw-bold" style="font-size:1rem;"><?php echo $orgName; ?></div>
         <div class="fw-semibold" style="font-size:.92rem;">Budget vs Actual</div>
-        <div class="text-muted" style="font-size:.8rem;">
+        <div class="text-muted" style="font-size:var(--r2k-text-md);">
             FY <?php echo $FY; ?>–<?php echo $FY + 1; ?>
             &nbsp;·&nbsp;
             Actuals: <?php echo $dfDisp; ?> to <?php echo $dtDisp; ?>
@@ -72,7 +72,7 @@ function _bvaBar(float $pct, string $type): string {
                 <th>Account</th>
                 <th class="text-end bva-col-budget" style="width:140px;">
                     Budget (FY <?php echo $FY; ?>)
-                    <div class="text-muted fw-normal" style="font-size:.65rem;">Click to edit</div>
+                    <div class="text-muted fw-normal" style="font-size:var(--r2k-text-65);">Click to edit</div>
                 </th>
                 <th class="text-end" style="width:130px;">Actual</th>
                 <th class="text-end" style="width:120px;">Variance</th>
@@ -84,23 +84,23 @@ function _bvaBar(float $pct, string $type): string {
         <?php if (!empty($Income)): ?>
         <?php foreach ($Income as $r): ?>
         <tr>
-            <td style="font-size:.82rem;">
+            <td style="font-size:var(--r2k-text-82);">
                 <?php echo htmlspecialchars($r->LedgerName); ?>
                 <?php if (!empty($r->LedgerCode)): ?>
-                <code style="font-size:.7rem;color:#7c3aed;display:block;"><?php echo htmlspecialchars($r->LedgerCode); ?></code>
+                <code style="font-size:var(--r2k-text-70);color:#7c3aed;display:block;"><?php echo htmlspecialchars($r->LedgerCode); ?></code>
                 <?php endif; ?>
             </td>
-            <td class="text-end bva-budget-cell" style="font-size:.82rem;cursor:pointer;"
+            <td class="text-end bva-budget-cell" style="font-size:var(--r2k-text-82);cursor:pointer;"
                 data-ledger="<?php echo (int)$r->LedgerUID; ?>"
                 data-fy="<?php echo $FY; ?>"
                 data-value="<?php echo smartDecimal((float)$r->Budgeted); ?>"
                 title="Click to set budget">
                 <?php echo abs((float)$r->Budgeted) > 0.005 ? _bvaFmt((float)$r->Budgeted, $cur) : '<span class="text-muted">— Set —</span>'; ?>
             </td>
-            <td class="text-end fw-semibold text-success" style="font-size:.82rem;">
+            <td class="text-end fw-semibold text-success" style="font-size:var(--r2k-text-82);">
                 <?php echo _bvaFmt((float)$r->Actual, $cur); ?>
             </td>
-            <td class="text-end" style="font-size:.82rem;">
+            <td class="text-end" style="font-size:var(--r2k-text-82);">
                 <?php
                 $var = (float)$r->Variance;
                 $cls = $var >= 0 ? 'text-success' : 'text-danger';
@@ -108,7 +108,7 @@ function _bvaBar(float $pct, string $type): string {
                 echo abs($var) < 0.005 ? '<span class="text-muted">—</span>' : '<span class="' . $cls . ' fw-semibold">' . $sign . $cur . ' ' . smartDecimal(abs($var)) . '</span>';
                 ?>
             </td>
-            <td class="text-center" style="font-size:.82rem;">
+            <td class="text-center" style="font-size:var(--r2k-text-82);">
                 <?php echo _bvaPctBadge($r->Pct, 'income'); ?>
             </td>
             <td>
@@ -117,7 +117,7 @@ function _bvaBar(float $pct, string $type): string {
         </tr>
         <?php endforeach; ?>
         <?php else: ?>
-        <tr><td colspan="6" class="text-center text-muted py-3" style="font-size:.82rem;">No income accounts</td></tr>
+        <tr><td colspan="6" class="text-center text-muted py-3" style="font-size:var(--r2k-text-82);">No income accounts</td></tr>
         <?php endif; ?>
         </tbody>
         <tfoot>
@@ -149,7 +149,7 @@ function _bvaBar(float $pct, string $type): string {
                 <th>Account</th>
                 <th class="text-end bva-col-budget" style="width:140px;">
                     Budget (FY <?php echo $FY; ?>)
-                    <div class="text-muted fw-normal" style="font-size:.65rem;">Click to edit</div>
+                    <div class="text-muted fw-normal" style="font-size:var(--r2k-text-65);">Click to edit</div>
                 </th>
                 <th class="text-end" style="width:130px;">Actual</th>
                 <th class="text-end" style="width:120px;">Variance</th>
@@ -161,23 +161,23 @@ function _bvaBar(float $pct, string $type): string {
         <?php if (!empty($Expense)): ?>
         <?php foreach ($Expense as $r): ?>
         <tr>
-            <td style="font-size:.82rem;">
+            <td style="font-size:var(--r2k-text-82);">
                 <?php echo htmlspecialchars($r->LedgerName); ?>
                 <?php if (!empty($r->LedgerCode)): ?>
-                <code style="font-size:.7rem;color:#7c3aed;display:block;"><?php echo htmlspecialchars($r->LedgerCode); ?></code>
+                <code style="font-size:var(--r2k-text-70);color:#7c3aed;display:block;"><?php echo htmlspecialchars($r->LedgerCode); ?></code>
                 <?php endif; ?>
             </td>
-            <td class="text-end bva-budget-cell" style="font-size:.82rem;cursor:pointer;"
+            <td class="text-end bva-budget-cell" style="font-size:var(--r2k-text-82);cursor:pointer;"
                 data-ledger="<?php echo (int)$r->LedgerUID; ?>"
                 data-fy="<?php echo $FY; ?>"
                 data-value="<?php echo smartDecimal((float)$r->Budgeted); ?>"
                 title="Click to set budget">
                 <?php echo abs((float)$r->Budgeted) > 0.005 ? _bvaFmt((float)$r->Budgeted, $cur) : '<span class="text-muted">— Set —</span>'; ?>
             </td>
-            <td class="text-end fw-semibold text-danger" style="font-size:.82rem;">
+            <td class="text-end fw-semibold text-danger" style="font-size:var(--r2k-text-82);">
                 <?php echo _bvaFmt((float)$r->Actual, $cur); ?>
             </td>
-            <td class="text-end" style="font-size:.82rem;">
+            <td class="text-end" style="font-size:var(--r2k-text-82);">
                 <?php
                 $var = (float)$r->Variance; // positive = saved
                 $cls = $var >= 0 ? 'text-success' : 'text-danger';
@@ -185,7 +185,7 @@ function _bvaBar(float $pct, string $type): string {
                 echo abs($var) < 0.005 ? '<span class="text-muted">—</span>' : '<span class="' . $cls . ' fw-semibold">' . $sign . $cur . ' ' . smartDecimal(abs($var)) . '</span>';
                 ?>
             </td>
-            <td class="text-center" style="font-size:.82rem;">
+            <td class="text-center" style="font-size:var(--r2k-text-82);">
                 <?php echo _bvaPctBadge($r->Pct, 'expense'); ?>
             </td>
             <td>
@@ -194,7 +194,7 @@ function _bvaBar(float $pct, string $type): string {
         </tr>
         <?php endforeach; ?>
         <?php else: ?>
-        <tr><td colspan="6" class="text-center text-muted py-3" style="font-size:.82rem;">No expense accounts</td></tr>
+        <tr><td colspan="6" class="text-center text-muted py-3" style="font-size:var(--r2k-text-82);">No expense accounts</td></tr>
         <?php endif; ?>
         </tbody>
         <tfoot>
@@ -226,18 +226,18 @@ function _bvaBar(float $pct, string $type): string {
     <table class="table table-sm table-bordered align-middle bva-tbl mb-0">
         <tbody>
             <tr class="bva-net-row <?php echo $netIsLoss ? 'bva-net-loss' : 'bva-net-profit'; ?>">
-                <td class="fw-bold" style="font-size:.9rem;">
+                <td class="fw-bold" style="font-size:var(--r2k-text-90);">
                     <?php echo $netIsLoss ? 'NET DEFICIT (Budget: ' . ($netBudLoss ? 'Deficit' : 'Profit') . ')' : 'NET SURPLUS (Profit)'; ?>
                 </td>
-                <td class="text-end fw-bold" style="font-size:.88rem;width:140px;
+                <td class="text-end fw-bold" style="font-size:var(--r2k-text-88);width:140px;
                     color:<?php echo $netBudLoss ? '#dc2626' : '#16a34a'; ?>;">
                     <?php echo _bvaFmt($Totals['budgetNet'], $cur); ?>
                 </td>
-                <td class="text-end fw-bold" style="font-size:.88rem;width:130px;
+                <td class="text-end fw-bold" style="font-size:var(--r2k-text-88);width:130px;
                     color:<?php echo $netIsLoss ? '#dc2626' : '#16a34a'; ?>;">
                     <?php echo _bvaFmt($Totals['actualNet'], $cur); ?>
                 </td>
-                <td class="text-end fw-bold <?php echo $netIsPos ? 'text-success' : 'text-danger'; ?>" style="font-size:.88rem;width:120px;">
+                <td class="text-end fw-bold <?php echo $netIsPos ? 'text-success' : 'text-danger'; ?>" style="font-size:var(--r2k-text-88);width:120px;">
                     <?php echo abs($netVar) > 0.005 ? ($netIsPos ? '+' : '−') . $cur . ' ' . smartDecimal(abs($netVar)) : '—'; ?>
                 </td>
                 <td colspan="2"></td>

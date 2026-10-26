@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
     'use strict';
 
     var _sym = (genSettings && genSettings.CurrenySymbol) ? genSettings.CurrenySymbol : '₹';
@@ -38,7 +38,7 @@
         var footer = document.getElementById('bwsTblFooter');
 
         if (!rows || rows.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7"><div class="rpt-empty"><i class="bx bx-purchase-tag-alt"></i><div class="rpt-empty-title">No brand sales found</div><div style="font-size:.82rem">Try a different date range</div></div></td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7"><div class="rpt-empty"><i class="bx bx-purchase-tag-alt"></i><div class="rpt-empty-title">No brand sales found</div><div style="font-size:var(--r2k-text-82)">Try a different date range</div></div></td></tr>';
             tfoot.classList.add('d-none');
             footer.classList.add('d-none');
             _updateStats(0, 0, 0, 0);

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Payment Section — Split Payment UI
  * Loaded after jQuery. Reads data from embedded <script type="application/json"> tags
  * and the global window._paymentCurrSymbol set by payment_section.php partial.
@@ -79,7 +79,7 @@ $(function() {
 
         var removeHtml = isFirst
             ? '<span class="pay-remove-placeholder"></span>'
-            : '<button type="button" class="pay-remove-btn" data-row="' + rowId + '" title="Remove" style="background:none;border:1px solid #dc3545;border-radius:4px;padding:3px 6px;cursor:pointer;color:#dc3545;line-height:1;"><i class="bx bx-trash" style="font-size:.85rem;"></i></button>';
+            : '<button type="button" class="pay-remove-btn" data-row="' + rowId + '" title="Remove" style="background:none;border:1px solid #dc3545;border-radius:4px;padding:3px 6px;cursor:pointer;color:#dc3545;line-height:1;"><i class="bx bx-trash" style="font-size:var(--r2k-text-85);"></i></button>';
 
         return '<tr data-row="' + rowId + '">' +
             '<td class="ps-3">' +
@@ -657,7 +657,7 @@ $(function() {
                     '<td>' + type + '</td>' +
                     '<td class="text-muted small">' + srcNum + '</td>' +
                     '<td class="text-end fw-semibold">' + _currSymbol + ' ' + amt.toFixed(_dec) +
-                        (tooLarge ? ' <span class="badge bg-label-danger ms-1" style="font-size:.65rem;">Exceeds invoice</span>' : '') +
+                        (tooLarge ? ' <span class="badge bg-label-danger ms-1" style="font-size:var(--r2k-text-65);">Exceeds invoice</span>' : '') +
                     '</td>' +
                     '<td class="text-muted small">' + esc(date) + '</td>' +
                 '</tr>';

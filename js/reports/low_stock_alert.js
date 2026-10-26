@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
     'use strict';
 
     var _sym = (genSettings && genSettings.CurrenySymbol) ? genSettings.CurrenySymbol : '₹';
@@ -45,7 +45,7 @@
     function _stockBar(available, threshold) {
         var pct = threshold > 0 ? Math.min(100, Math.round((available / threshold) * 100)) : 0;
         var fillCls = available <= 0 ? 'ls-bar-zero' : (available <= threshold * 0.5 ? 'ls-bar-low' : 'ls-bar-ok');
-        return '<div class="ls-bar-wrap"><div class="ls-bar-bg"><div class="ls-bar-fill ' + fillCls + '" style="width:' + pct + '%"></div></div><span style="font-size:.72rem;color:#64748b;white-space:nowrap">' + pct + '%</span></div>';
+        return '<div class="ls-bar-wrap"><div class="ls-bar-bg"><div class="ls-bar-fill ' + fillCls + '" style="width:' + pct + '%"></div></div><span style="font-size:var(--r2k-text-sm);color:#64748b;white-space:nowrap">' + pct + '%</span></div>';
     }
 
     /**
@@ -57,7 +57,7 @@
         var footer = document.getElementById('lsTblFooter');
 
         if (!rows || rows.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9"><div class="rpt-empty"><i class="bx bx-check-circle" style="color:#16a34a"></i><div class="rpt-empty-title">All products are well stocked</div><div style="font-size:.82rem">No items below their minimum threshold</div></div></td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9"><div class="rpt-empty"><i class="bx bx-check-circle" style="color:#16a34a"></i><div class="rpt-empty-title">All products are well stocked</div><div style="font-size:var(--r2k-text-82)">No items below their minimum threshold</div></div></td></tr>';
             footer.classList.add('d-none');
             _updateStats(0, 0, 0, 0);
             return;

@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php
 $isEdit      = isset($SOData);
 $isDraftEdit = $isEdit && ($SOData->DocStatus === 'Draft');
@@ -69,7 +69,7 @@ $_addrLines = buildDispatchAddressLines($DispatchAddress ?? null);
                                         <?php if (!$isEdit): ?>
                                             <span class="fw-bold" style="font-size:.92rem;">Create Sales Order</span>
                                             <?php if (!empty($QuotationData)): ?>
-                                                <span class="badge text-bg-primary" style="font-size:.65rem;"><i class="bx bx-transfer-alt me-1"></i>From Quotation: <?php echo htmlspecialchars($QuotationData->UniqueNumber ?? ''); ?></span>
+                                                <span class="badge text-bg-primary" style="font-size:var(--r2k-text-65);"><i class="bx bx-transfer-alt me-1"></i>From Quotation: <?php echo htmlspecialchars($QuotationData->UniqueNumber ?? ''); ?></span>
                                             <?php endif; ?>
                                             <?php $this->load->view('transactions/partials/form_prefix_add'); ?>
                                         <?php else: ?>
@@ -87,8 +87,8 @@ $_addrLines = buildDispatchAddressLines($DispatchAddress ?? null);
                                     </div>
                                     <?php if ($isEdit && !$isDraftEdit && !empty($SOData->TransDate)): ?>
                                     <div class="d-flex align-items-center gap-2 mt-1">
-                                        <span style="font-size:.7rem;color:#8592a3;">Order Date</span>
-                                        <span style="font-size:.78rem;color:#566a7f;"><?php echo htmlspecialchars(format_datedisplay($SOData->TransDate)); ?></span>
+                                        <span style="font-size:var(--r2k-text-70);color:#8592a3;">Order Date</span>
+                                        <span style="font-size:var(--r2k-text-78);color:#566a7f;"><?php echo htmlspecialchars(format_datedisplay($SOData->TransDate)); ?></span>
                                     </div>
                                     <?php endif; ?>
                                 </div>

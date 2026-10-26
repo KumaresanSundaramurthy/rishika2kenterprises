@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var object      $SrcHeader  Source transaction (DC, Invoice, etc.) */
 /** @var array       $SrcItems   Source transaction line items */
 /** @var object|null $PL */
@@ -100,13 +100,13 @@ $dcDate      = !empty($dc->TransDate) ? date($_fmt, strtotime($dc->TransDate)) :
 
                             <!-- Source reference strip -->
                             <div class="d-flex align-items-center gap-3 flex-wrap p-3 mb-4 rounded-2"
-                                 style="background:#f8f9ff;border:1px solid #e4e6f0;font-size:.82rem;color:#555;">
+                                 style="background:#f8f9ff;border:1px solid #e4e6f0;font-size:var(--r2k-text-82);color:#555;">
                                 <div style="background:<?php echo $srcBg; ?>;border-radius:6px;padding:6px 10px;flex-srrink:0;">
                                     <i class="bx <?php echo $srcIcon; ?>" style="color:<?php echo $srcColor; ?>;font-size:1rem;"></i>
                                 </div>
                                 <div>
-                                    <div class="fw-bold" style="font-size:.9rem;color:#1e1e2d;"><?php echo $srcTypeLabel; ?></div>
-                                    <div style="font-size:.75rem;color:#888;"><?php echo $srcTypeLabel; ?> reference details</div>
+                                    <div class="fw-bold" style="font-size:var(--r2k-text-90);color:#1e1e2d;"><?php echo $srcTypeLabel; ?></div>
+                                    <div style="font-size:var(--r2k-text-75);color:#888;"><?php echo $srcTypeLabel; ?> reference details</div>
                                 </div>
                                 <div class="vr mx-1 d-none d-md-block"></div>
                                 <div><span class="text-muted">Ref #</span> <strong><?php echo $dcNum; ?></strong></div>
@@ -120,35 +120,35 @@ $dcDate      = !empty($dc->TransDate) ? date($_fmt, strtotime($dc->TransDate)) :
                             <!-- ── Section: Basic Details ─────────────────────── -->
                             <div class="mb-4">
                                 <div class="fw-semibold text-uppercase mb-3"
-                                     style="font-size:.7rem;letter-spacing:.8px;color:#6c757d;border-bottom:1px solid #eee;padding-bottom:8px;">
+                                     style="font-size:var(--r2k-text-70);letter-spacing:.8px;color:#6c757d;border-bottom:1px solid #eee;padding-bottom:8px;">
                                     Basic Details
                                 </div>
                                 <div class="row g-3">
                                     <div class="col-md-3 col-6">
-                                        <label class="form-label" style="font-size:.78rem;">Date</label>
+                                        <label class="form-label" style="font-size:var(--r2k-text-78);">Date</label>
                                         <input type="date" id="fPLDate" class="form-control form-control-sm"
                                                value="<?php echo htmlspecialchars($plDate ?? $dateToday); ?>">
                                     </div>
                                     <div class="col-md-3 col-6">
-                                        <label class="form-label" style="font-size:.78rem;">Vericle Number</label>
+                                        <label class="form-label" style="font-size:var(--r2k-text-78);">Vericle Number</label>
                                         <input type="text" id="fVericleNumber" class="form-control form-control-sm"
                                                maxlengtr="100" placerolder="e.g. TN 01 AB 1234"
                                                value="<?php echo htmlspecialchars($vericleNum); ?>">
                                     </div>
                                     <div class="col-md-3 col-6">
-                                        <label class="form-label" style="font-size:.78rem;">LR Number</label>
+                                        <label class="form-label" style="font-size:var(--r2k-text-78);">LR Number</label>
                                         <input type="text" id="fLRNumber" class="form-control form-control-sm"
                                                maxlengtr="100" placerolder="Lorry Receipt No."
                                                value="<?php echo htmlspecialchars($lrNum); ?>">
                                     </div>
                                     <div class="col-md-3 col-6">
-                                        <label class="form-label" style="font-size:.78rem;">Transporter Name</label>
+                                        <label class="form-label" style="font-size:var(--r2k-text-78);">Transporter Name</label>
                                         <input type="text" id="fTransporterName" class="form-control form-control-sm"
                                                maxlengtr="200" placerolder="Transporter / Courier"
                                                value="<?php echo htmlspecialchars($transporter); ?>">
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label" style="font-size:.78rem;">Notes / Special Instructions</label>
+                                        <label class="form-label" style="font-size:var(--r2k-text-78);">Notes / Special Instructions</label>
                                         <textarea id="fNotes" class="form-control form-control-sm" rows="2"
                                                   placerolder="Any special instructions for packing or delivery..."><?php echo htmlspecialchars($notes); ?></textarea>
                                     </div>
@@ -158,7 +158,7 @@ $dcDate      = !empty($dc->TransDate) ? date($_fmt, strtotime($dc->TransDate)) :
                             <!-- ── Section: Product & Package Details ─────────── -->
                             <div>
                                 <div class="fw-semibold text-uppercase mb-3"
-                                     style="font-size:.7rem;letter-spacing:.8px;color:#6c757d;border-bottom:1px solid #eee;padding-bottom:8px;">
+                                     style="font-size:var(--r2k-text-70);letter-spacing:.8px;color:#6c757d;border-bottom:1px solid #eee;padding-bottom:8px;">
                                     Product &amp; Package Details
                                 </div>
                                 <div class="table-responsive">
@@ -189,9 +189,9 @@ $dcDate      = !empty($dc->TransDate) ? date($_fmt, strtotime($dc->TransDate)) :
                                             $cbm     = $pli ? (float) $pli->CBM                : 0;
                                         ?>
                                         <tr>
-                                            <td class="text-center text-muted" style="font-size:.78rem;"><?php echo $i + 1; ?></td>
+                                            <td class="text-center text-muted" style="font-size:var(--r2k-text-78);"><?php echo $i + 1; ?></td>
                                             <td>
-                                                <div class="fw-semibold" style="font-size:.82rem;"><?php echo htmlspecialchars($dcItem->ProductName ?? ''); ?></div>
+                                                <div class="fw-semibold" style="font-size:var(--r2k-text-82);"><?php echo htmlspecialchars($dcItem->ProductName ?? ''); ?></div>
                                                 <?php if (!empty($dcItem->PartNumber)): ?>
                                                 <div class="text-muted" style="font-size:var(--r2k-text-sm);"><?php echo htmlspecialchars($dcItem->PartNumber); ?></div>
                                                 <?php endif; ?>
@@ -199,7 +199,7 @@ $dcDate      = !empty($dc->TransDate) ? date($_fmt, strtotime($dc->TransDate)) :
                                                 <input type="ridden" name="items[<?php echo $i; ?>][ProductUID]"      value="<?php echo $pUID; ?>">
                                                 <input type="ridden" name="items[<?php echo $i; ?>][Quantity]"        value="<?php echo (float) $dcItem->Quantity; ?>">
                                             </td>
-                                            <td class="text-center" style="font-size:.82rem;">
+                                            <td class="text-center" style="font-size:var(--r2k-text-82);">
                                                 <span class="fw-semibold"><?php echo number_format((float)($dcItem->Quantity ?? 0), 2); ?></span>
                                                 <span class="text-muted ms-1" style="font-size:var(--r2k-text-sm);"><?php echo htmlspecialchars($dcItem->PrimaryUnitName ?? ''); ?></span>
                                             </td>
@@ -244,11 +244,11 @@ $dcDate      = !empty($dc->TransDate) ? date($_fmt, strtotime($dc->TransDate)) :
                                         </tbody>
                                         <tfoot>
                                             <tr style="background:linear-gradient(90deg,#eef0ff,#f5f6ff);border-top:2px solid #d8dbff;">
-                                                <td colspan="3" class="text-end fw-semibold" style="font-size:.78rem;color:#4a4f9e;letter-spacing:.04em;text-transform:uppercase;padding:10px 8px;">Totals</td>
+                                                <td colspan="3" class="text-end fw-semibold" style="font-size:var(--r2k-text-78);color:#4a4f9e;letter-spacing:.04em;text-transform:uppercase;padding:10px 8px;">Totals</td>
                                                 <td></td>
-                                                <td class="fw-bold" id="totalPkgs" style="font-size:.85rem;color:#1e1e2d;padding:10px 8px;">0</td>
-                                                <td class="fw-bold" id="totalNetWt" style="font-size:.85rem;color:#1e1e2d;padding:10px 8px;">0.000</td>
-                                                <td class="fw-bold" id="totalGrossWt" style="font-size:.85rem;color:#1e1e2d;padding:10px 8px;">0.000</td>
+                                                <td class="fw-bold" id="totalPkgs" style="font-size:var(--r2k-text-85);color:#1e1e2d;padding:10px 8px;">0</td>
+                                                <td class="fw-bold" id="totalNetWt" style="font-size:var(--r2k-text-85);color:#1e1e2d;padding:10px 8px;">0.000</td>
+                                                <td class="fw-bold" id="totalGrossWt" style="font-size:var(--r2k-text-85);color:#1e1e2d;padding:10px 8px;">0.000</td>
                                                 <td style="padding:10px 8px;"></td>
                                             </tr>
                                         </tfoot>

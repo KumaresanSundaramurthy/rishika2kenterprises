@@ -26,7 +26,7 @@ $hasRows = !empty($initialRows);
 
     <button type="button" id="btnToggleCharges"
         class="btn btn-sm btn-outline-secondary px-3 mt-2"
-        style="font-size:.82rem;">
+        style="font-size:var(--r2k-text-82);">
         <i class="bx bx-receipt me-1"></i>Additional Charges
         <i class="bx <?php echo $sectionOpen ? 'bx-chevron-up' : 'bx-chevron-down'; ?> ms-1" id="acToggleChevron"></i>
     </button>
@@ -113,7 +113,7 @@ $hasRows = !empty($initialRows);
 
         <div id="acEmptyState" class="<?php echo $hasRows ? 'd-none' : ''; ?> text-center py-3">
             <i class="bx bx-receipt" style="font-size:2rem;color:#d0d5dd;display:block;margin-bottom:6px;"></i>
-            <span style="font-size:.8rem;color:#adb5bd;">No charges added — click <strong>+ Add Charge</strong> to include one</span>
+            <span style="font-size:var(--r2k-text-md);color:#adb5bd;">No charges added — click <strong>+ Add Charge</strong> to include one</span>
         </div>
 
         <hr id="acSeparator" class="<?php echo $hasRows ? '' : 'd-none'; ?>" style="margin:8px 0;border-color:#e9ecef;">
@@ -121,12 +121,12 @@ $hasRows = !empty($initialRows);
         <div class="d-flex align-items-center gap-2">
             <button type="button" id="btnViewAllCharges"
                 class="btn btn-sm btn-outline-secondary px-3"
-                style="font-size:.78rem;">
+                style="font-size:var(--r2k-text-78);">
                 <i class="bx bx-list-ul me-1"></i>View All
             </button>
             <button type="button" id="btnAddCharge"
                 class="btn btn-sm btn-outline-primary px-3"
-                style="font-size:.78rem;">
+                style="font-size:var(--r2k-text-78);">
                 <i class="bx bx-plus me-1"></i>Add Charge
             </button>
         </div>

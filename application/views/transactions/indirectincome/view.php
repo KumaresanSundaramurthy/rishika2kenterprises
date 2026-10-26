@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 $this->load->view('common/transactions/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -213,7 +213,7 @@ $this->load->view('common/transactions/header'); ?>
                                     </div>
                                 </div>
                                 <div id="imAmountEditWrap" class="mb-3" style="display:none;">
-                                    <label class="form-label fw-semibold" style="font-size:.82rem;color:#6b7280;">Income Amount</label>
+                                    <label class="form-label fw-semibold" style="font-size:var(--r2k-text-82);color:#6b7280;">Income Amount</label>
                                     <div id="imAmountDisplay" class="fw-bold" style="font-size:1.6rem;color:#111827;letter-spacing:-.5px;"></div>
                                 </div>
 
@@ -227,7 +227,7 @@ $this->load->view('common/transactions/header'); ?>
                                         <label class="form-label fw-semibold">
                                             Category
                                             <button type="button" class="btn btn-link p-0 ms-1 text-primary" id="imAddCategoryBtn"
-                                                    style="font-size:.75rem;vertical-align:baseline;" title="Add new category">
+                                                    style="font-size:var(--r2k-text-75);vertical-align:baseline;" title="Add new category">
                                                 <i class="bx bx-plus-circle"></i> New
                                             </button>
                                         </label>
@@ -262,13 +262,13 @@ $this->load->view('common/transactions/header'); ?>
                                     </span>
                                 </h5>
                                 <span id="transAttachBadge" class="badge rounded-pill d-none"
-                                      style="background:#ede9fe;color:#6366f1;font-size:.7rem;font-weight:600;"></span>
+                                      style="background:#ede9fe;color:#6366f1;font-size:var(--r2k-text-70);font-weight:600;"></span>
                             </div>
                             <div class="card-body px-3 pt-0 pb-3">
                                 <div id="transAttachZone" class="prod-attach-zone" onclick="_attachZoneTrigger('Transaction', event)">
                                     <div id="transAttachEmpty" class="prod-attach-empty">
                                         <i class="bx bx-upload" id="transAttachIcon" style="font-size:1.4rem;color:#9ca3af;display:block;margin-bottom:3px;"></i>
-                                        <div id="transAttachLabel" style="font-size:.78rem;font-weight:600;color:#6b7280;">Drag &amp; drop files here</div>
+                                        <div id="transAttachLabel" style="font-size:var(--r2k-text-78);font-weight:600;color:#6b7280;">Drag &amp; drop files here</div>
                                     </div>
                                 </div>
                                 <span id="transAttachHint" style="font-size:var(--r2k-text-sm);color:#9ca3af;"></span>
@@ -300,13 +300,13 @@ $this->load->view('common/transactions/header'); ?>
 
                                     <!-- Payment Date -->
                                     <div class="mb-3">
-                                        <label class="form-label fw-semibold" style="font-size:.85rem;">Payment Date</label>
+                                        <label class="form-label fw-semibold" style="font-size:var(--r2k-text-85);">Payment Date</label>
                                         <input type="text" class="form-control" id="imPmtDate" placeholder="Select date" readonly>
                                     </div>
 
                                     <!-- Payment Type pills -->
                                     <div class="mb-3">
-                                        <label class="form-label fw-semibold" style="font-size:.85rem;">Payment Type</label>
+                                        <label class="form-label fw-semibold" style="font-size:var(--r2k-text-85);">Payment Type</label>
                                         <div class="d-flex flex-wrap gap-2" id="imPmtTypePills">
                                             <?php if (!empty($paymentTypes)): ?>
                                                 <?php foreach ($paymentTypes as $pt): ?>
@@ -331,7 +331,7 @@ $this->load->view('common/transactions/header'); ?>
 
                                     <!-- Bank Account -->
                                     <div class="mb-3" id="imBankSection">
-                                        <label class="form-label fw-semibold" style="font-size:.85rem;">Bank / Account</label>
+                                        <label class="form-label fw-semibold" style="font-size:var(--r2k-text-85);">Bank / Account</label>
                                         <select class="form-select" id="imBankUID">
                                             <option value="">None / Not Applicable</option>
                                             <?php foreach ($bankAccounts as $ba): ?>
@@ -345,7 +345,7 @@ $this->load->view('common/transactions/header'); ?>
 
                                     <!-- Payment Notes -->
                                     <div class="mb-0">
-                                        <label class="form-label fw-semibold" style="font-size:.85rem;">Payment Notes</label>
+                                        <label class="form-label fw-semibold" style="font-size:var(--r2k-text-85);">Payment Notes</label>
                                         <textarea class="form-control" id="imPmtNotes" rows="2"
                                                   placeholder="Reference, cheque no., UTR..."></textarea>
                                     </div>
@@ -673,7 +673,7 @@ $(function () {
                     '</label>';
             });
         } else {
-            html = '<div class="text-muted text-center py-3" style="font-size:.8rem;">No categories found</div>';
+            html = '<div class="text-muted text-center py-3" style="font-size:var(--r2k-text-md);">No categories found</div>';
         }
         $('#incCatFilterBox .catg-list').html(html);
     }
@@ -798,18 +798,18 @@ $(function () {
                         html += '<div class="d-flex justify-content-between align-items-start gap-2">';
                         html += '  <div style="min-width:0;">';
                         html += '    <div style="font-size:.83rem;font-weight:600;color:#059669;">' + incCurSymbol + ' ' + amt + '</div>';
-                        html += '    <div style="font-size:.75rem;color:#566a7f;">' + (p.PaymentTypeName || '—') + '</div>';
+                        html += '    <div style="font-size:var(--r2k-text-75);color:#566a7f;">' + (p.PaymentTypeName || '—') + '</div>';
                         if (date) html += '  <div style="font-size:var(--r2k-text-sm);color:#aaa;margin-top:1px;">' + date + '</div>';
                         html += '  </div>';
                         html += '</div>';
                     });
                     $incPayBody.html(html);
                 } else {
-                    $incPayBody.html('<p class="text-muted mb-0" style="font-size:.8rem;">No payments found.</p>');
+                    $incPayBody.html('<p class="text-muted mb-0" style="font-size:var(--r2k-text-md);">No payments found.</p>');
                 }
             },
             error: function () {
-                $incPayBody.html('<p class="text-danger mb-0" style="font-size:.8rem;">Failed to load payments.</p>');
+                $incPayBody.html('<p class="text-danger mb-0" style="font-size:var(--r2k-text-md);">Failed to load payments.</p>');
             },
             complete: function() { ajaxLoading(1); }
         });
@@ -1248,23 +1248,23 @@ $(function () {
 
         var pmtHtml = '';
         if (d.PaymentTypeName) {
-            pmtHtml += '<div class="mb-2"><span class="badge bg-label-success" style="font-size:.75rem;padding:3px 10px;"><i class="bx bx-credit-card me-1"></i>' + esc(d.PaymentTypeName) + '</span></div>';
+            pmtHtml += '<div class="mb-2"><span class="badge bg-label-success" style="font-size:var(--r2k-text-75);padding:3px 10px;"><i class="bx bx-credit-card me-1"></i>' + esc(d.PaymentTypeName) + '</span></div>';
         }
         var pmtRows = [];
         if (d.PaymentDate)      pmtRows.push('<i class="bx bx-calendar me-1" style="color:#94a3b8;"></i>' + esc(fmtDate(d.PaymentDate)));
-        if (d.BankName)         pmtRows.push('<i class="bx bx-building-house me-1" style="color:#94a3b8;font-size:.7rem;"></i>' + esc(d.BankName));
+        if (d.BankName)         pmtRows.push('<i class="bx bx-building-house me-1" style="color:#94a3b8;font-size:var(--r2k-text-70);"></i>' + esc(d.BankName));
         if (d.BankAccountName)  pmtRows.push('<span style="padding-left:14px;">' + esc(d.BankAccountName) + '</span>');
         if (d.AccountNumber)    pmtRows.push('<span style="padding-left:14px;font-family:monospace;letter-spacing:.05em;">' + esc(d.AccountNumber) + '</span>');
         if (d.PaymentReference) pmtRows.push('<i class="bx bx-hash me-1" style="color:#94a3b8;"></i>Ref: <span style="font-weight:600;">' + esc(d.PaymentReference) + '</span>');
-        if (pmtRows.length) pmtHtml += '<div style="font-size:.78rem;color:#475569;line-height:2.1;">' + pmtRows.join('<br>') + '</div>';
+        if (pmtRows.length) pmtHtml += '<div style="font-size:var(--r2k-text-78);color:#475569;line-height:2.1;">' + pmtRows.join('<br>') + '</div>';
 
         var taxHtml = '';
         if (parseInt(d.TaxApplicable) && parseFloat(d.TaxAmount) > 0) {
-            taxHtml += ' <span class="badge bg-label-info" style="font-size:.65rem;">Tax ' + esc(d.TaxPercentage) + '%</span>';
+            taxHtml += ' <span class="badge bg-label-info" style="font-size:var(--r2k-text-65);">Tax ' + esc(d.TaxPercentage) + '%</span>';
         }
 
         var boxS = 'background:#f8fafc;border:1px solid #e9ecef;border-radius:8px;padding:12px 14px;height:100%;';
-        var lb   = 'font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#94a3b8;margin-bottom:6px;';
+        var lb   = 'font-size:var(--r2k-text-65);font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#94a3b8;margin-bottom:6px;';
         var valS = 'font-size:.93rem;font-weight:600;color:#1e293b;line-height:1.3;';
 
         function field(label, content, extraValStyle) {
@@ -1276,7 +1276,7 @@ $(function () {
         function field12(label, content) {
             return '<div class="col-12"><div style="' + boxS + '">' +
                        '<div style="' + lb + '">' + label + '</div>' +
-                       '<div style="font-size:.88rem;color:#374151;line-height:1.6;">' + content + '</div>' +
+                       '<div style="font-size:var(--r2k-text-88);color:#374151;line-height:1.6;">' + content + '</div>' +
                    '</div></div>';
         }
 
@@ -1284,19 +1284,19 @@ $(function () {
         html += field('Income Date', esc(fmtDate(d.IncomeDate)));
         html += field('Amount', incCurSymbol + ' ' + parseFloat(d.Amount || 0).toFixed(incDecPoints) + taxHtml, 'font-size:1.05rem;');
         html += field('Category', d.CategoryName
-            ? '<span class="badge text-bg-light border" style="font-size:.78rem;font-weight:600;padding:5px 10px;">' + esc(d.CategoryName) + '</span>'
-            : '<span class="text-muted" style="font-size:.85rem;font-weight:400;">Not set</span>');
+            ? '<span class="badge text-bg-light border" style="font-size:var(--r2k-text-78);font-weight:600;padding:5px 10px;">' + esc(d.CategoryName) + '</span>'
+            : '<span class="text-muted" style="font-size:var(--r2k-text-85);font-weight:400;">Not set</span>');
         html += field('Created On', esc(fmtDate(d.CreatedOn)));
         if (pmtHtml) {
             html += '<div class="col-12"><div style="' + boxS + 'border-left:3px solid #059669;">' +
                         '<div style="' + lb + '">Payment Details</div>' + pmtHtml +
                     '</div></div>';
         } else {
-            html += field('Payment', '<span class="text-muted" style="font-weight:400;font-size:.85rem;">No payment recorded</span>');
+            html += field('Payment', '<span class="text-muted" style="font-weight:400;font-size:var(--r2k-text-85);">No payment recorded</span>');
         }
         if (d.Notes)        html += field12('Notes', esc(d.Notes));
         if (d.PaymentNotes) html += field12('Payment Notes', esc(d.PaymentNotes));
-        html += '<div class="col-12"><div style="font-size:.75rem;color:#94a3b8;padding:8px 2px 0;border-top:1px solid #f1f5f9;">' +
+        html += '<div class="col-12"><div style="font-size:var(--r2k-text-75);color:#94a3b8;padding:8px 2px 0;border-top:1px solid #f1f5f9;">' +
                     'Last updated' +
                     (d.UpdatedByName ? ' by <span style="color:#475569;font-weight:600;">' + esc(d.UpdatedByName) + '</span>' : '') +
                     (d.UpdatedOn ? ' &middot; ' + esc(fmtDate(d.UpdatedOn)) : '') +
@@ -1336,7 +1336,7 @@ $(function () {
                     $('#incDetailDate').text(dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }));
                 }
                 $('#incDetailBadge').attr('class', 'trans-badge ms-1 ' + badgeClass)
-                    .html('<i class="bx ' + icon + '" style="font-size:.8rem;"></i> ' + status);
+                    .html('<i class="bx ' + icon + '" style="font-size:var(--r2k-text-md);"></i> ' + status);
 
                 $('#incDetailBody').html(_buildIncDetailBody(d));
             },

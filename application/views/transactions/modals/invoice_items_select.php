@@ -14,7 +14,7 @@
                         </div>
                         <div>
                             <div style="font-size:.95rem;font-weight:700;color:var(--vtm-color);" id="invItemsModalTitle">Select Return Items</div>
-                            <div style="font-size:.75rem;color:#6c757d;margin-top:2px;" id="invItemsModalSubtitle">Choose items to return from this invoice</div>
+                            <div style="font-size:var(--r2k-text-75);color:#6c757d;margin-top:2px;" id="invItemsModalSubtitle">Choose items to return from this invoice</div>
                         </div>
                     </div>
                     <div class="vtm-banner-right">

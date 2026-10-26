@@ -1,4 +1,4 @@
-function t(key, fallback) {
+﻿function t(key, fallback) {
     var dict = window._appLang || {};
     var val  = dict[key];
     return (val !== undefined && val !== '') ? val : ((fallback !== undefined && fallback !== '') ? fallback : key);
@@ -1467,14 +1467,14 @@ function reinitDropzoneOne(selector) {
                 <div class="dz-image" style="width:120px;height:90px;border-radius:6px;overflow:hidden;margin-bottom:6px;border:1px solid #f0f0f0;flex-shrink:0;">
                     <img data-dz-thumbnail style="width:100%;height:100%;object-fit:cover;display:block;" />
                 </div>
-                <div class="dz-filename" style="font-size:.72rem;font-weight:600;color:#374151;width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:2px;text-align:center;">
+                <div class="dz-filename" style="font-size:var(--r2k-text-sm);font-weight:600;color:#374151;width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:2px;text-align:center;">
                     <span data-dz-name></span>
                 </div>
-                <div class="dz-size" style="font-size:.70rem;color:#9ca3af;margin-bottom:6px;text-align:center;">
+                <div class="dz-size" style="font-size:var(--r2k-text-70);color:#9ca3af;margin-bottom:6px;text-align:center;">
                     <span data-dz-size></span>
                 </div>
-                <div class="dz-error-message" style="font-size:.68rem;color:#ef4444;text-align:center;margin-bottom:4px;"><span data-dz-errormessage></span></div>
-                <a class="dz-remove" href="javascript:void(0);" data-dz-remove style="font-size:.72rem;color:#6b7280;text-decoration:underline;cursor:pointer;">Remove file</a>
+                <div class="dz-error-message" style="font-size:var(--r2k-text-xs);color:#ef4444;text-align:center;margin-bottom:4px;"><span data-dz-errormessage></span></div>
+                <a class="dz-remove" href="javascript:void(0);" data-dz-remove style="font-size:var(--r2k-text-sm);color:#6b7280;text-decoration:underline;cursor:pointer;">Remove file</a>
             </div>`,
         parallelUploads: 1,
         maxFilesize: 1,

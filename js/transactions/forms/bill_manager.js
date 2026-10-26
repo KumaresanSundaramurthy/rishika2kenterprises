@@ -1,4 +1,4 @@
-// Keyed by product row id; updated each time a valid (≥ purchase price) selling price is blurred
+﻿// Keyed by product row id; updated each time a valid (≥ purchase price) selling price is blurred
 var _lastValidSellingPrices  = {};
 var _lastValidUnitPrices     = {};
 // Selling price at the moment the compliment checkbox was ticked, keyed by row id
@@ -2012,15 +2012,15 @@ $(document).ready(function () {
                 searching: function () {
                     return '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 0;color:#9ca3af;">' +
                         '<i class="bx bx-loader-alt bx-spin" style="font-size:1.5rem;"></i>' +
-                        '<div style="font-size:.8rem;margin-top:8px;">Searching...</div>' +
+                        '<div style="font-size:var(--r2k-text-md);margin-top:8px;">Searching...</div>' +
                         '</div>';
                 },
                 noResults: function () {
                     if (typeof window._custSearchHideCreate !== 'undefined' && window._custSearchHideCreate) {
-                        return '<div style="text-align:center;padding:20px 0;color:#6c757d;font-size:.85rem;">No categories found</div>';
+                        return '<div style="text-align:center;padding:20px 0;color:#6c757d;font-size:var(--r2k-text-85);">No categories found</div>';
                     }
                     return '<div style="text-align:center;padding:20px 0;">' +
-                        '<div style="color:#6c757d;font-size:.85rem;margin-bottom:12px;">No results — create Category</div>' +
+                        '<div style="color:#6c757d;font-size:var(--r2k-text-85);margin-bottom:12px;">No results — create Category</div>' +
                         '<span class="btn btn-primary btn-sm px-3 select2-create-category-btn" style="cursor:pointer;">' +
                             '<i class="bx bx-plus me-1"></i>Create Category' +
                         '</span>' +
@@ -2072,7 +2072,7 @@ $(document).ready(function () {
                         '<li class="select2-results__option select2-results__message" style="pointer-events:none;">' +
                         '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 0;color:#9ca3af;">' +
                         '<i class="bx bx-loader-alt bx-spin" style="font-size:1.5rem;"></i>' +
-                        '<div style="font-size:.8rem;margin-top:8px;">Searching...</div>' +
+                        '<div style="font-size:var(--r2k-text-md);margin-top:8px;">Searching...</div>' +
                         '</div></li>'
                     );
                 }
@@ -2979,14 +2979,14 @@ function searchCustomers(key) {
         escapeMarkup: function (markup) { return markup; },
         templateResult: function (d) {
             if (d.loading || !d.name) return d.text;
-            var nameHtml   = d.name + (d.mobile ? ' <span style="color:#6c757d;font-weight:400;font-size:.85rem;">(' + d.mobile + ')</span>' : '');
+            var nameHtml   = d.name + (d.mobile ? ' <span style="color:#6c757d;font-weight:400;font-size:var(--r2k-text-85);">(' + d.mobile + ')</span>' : '');
             var balHtml    = _custBalanceHtml(d.balance, d.balanceType);
             var line2Parts = [];
-            if (d.area)    line2Parts.push('<span style="color:#8a8d93;font-style:italic;font-size:.78rem;">'         + d.area                  + '</span>');
-            if (d.company) line2Parts.push('<span style="color:#696cff;font-style:italic;font-size:.78rem;">(' + d.company + ')</span>');
+            if (d.area)    line2Parts.push('<span style="color:#8a8d93;font-style:italic;font-size:var(--r2k-text-78);">'         + d.area                  + '</span>');
+            if (d.company) line2Parts.push('<span style="color:#696cff;font-style:italic;font-size:var(--r2k-text-78);">(' + d.company + ')</span>');
             var line2Html  = line2Parts.length
                 ? line2Parts.join(' ')
-                : '<span style="font-size:.78rem;">&nbsp;</span>';
+                : '<span style="font-size:var(--r2k-text-78);">&nbsp;</span>';
             return $(
                 '<div style="display:flex;align-items:flex-start;gap:6px;">' +
                     '<div style="flex:1;min-width:0;">' +
@@ -3011,15 +3011,15 @@ function searchCustomers(key) {
             searching: function () {
                 return '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 0;color:#9ca3af;">' +
                     '<i class="bx bx-loader-alt bx-spin" style="font-size:1.5rem;"></i>' +
-                    '<div style="font-size:.8rem;margin-top:8px;">Searching...</div>' +
+                    '<div style="font-size:var(--r2k-text-md);margin-top:8px;">Searching...</div>' +
                     '</div>';
             },
             noResults: function () {
                 if (typeof window._custSearchHideCreate !== 'undefined' && window._custSearchHideCreate) {
-                    return '<div style="text-align:center;padding:20px 0;color:#6c757d;font-size:.85rem;">No customers found</div>';
+                    return '<div style="text-align:center;padding:20px 0;color:#6c757d;font-size:var(--r2k-text-85);">No customers found</div>';
                 }
                 return '<div style="text-align:center;padding:20px 0;">' +
-                    '<div style="color:#6c757d;font-size:.85rem;margin-bottom:12px;">No results — create Customer</div>' +
+                    '<div style="color:#6c757d;font-size:var(--r2k-text-85);margin-bottom:12px;">No results — create Customer</div>' +
                     '<span class="btn btn-primary btn-sm px-3 select2-create-customer-btn" style="cursor:pointer;">' +
                         '<i class="bx bx-plus me-1"></i>Create Customer' +
                     '</span>' +
@@ -3169,7 +3169,7 @@ function searchCustomers(key) {
                     '<li class="select2-results__option select2-results__message" style="pointer-events:none;">' +
                     '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 0;color:#9ca3af;">' +
                     '<i class="bx bx-loader-alt bx-spin" style="font-size:1.5rem;"></i>' +
-                    '<div style="font-size:.8rem;margin-top:8px;">Searching...</div>' +
+                    '<div style="font-size:var(--r2k-text-md);margin-top:8px;">Searching...</div>' +
                     '</div></li>'
                 );
             }
@@ -3552,15 +3552,15 @@ function searchProductInfo() {
             searching: function () {
                 return '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 0;color:#9ca3af;">' +
                     '<i class="bx bx-loader-alt bx-spin" style="font-size:1.5rem;"></i>' +
-                    '<div style="font-size:.8rem;margin-top:8px;">Searching...</div>' +
+                    '<div style="font-size:var(--r2k-text-md);margin-top:8px;">Searching...</div>' +
                     '</div>';
             },
             noResults: function () {
                 if (typeof window._custSearchHideCreate !== 'undefined' && window._custSearchHideCreate) {
-                    return '<div style="text-align:center;padding:20px 0;color:#6c757d;font-size:.85rem;">No products found</div>';
+                    return '<div style="text-align:center;padding:20px 0;color:#6c757d;font-size:var(--r2k-text-85);">No products found</div>';
                 }
                 return '<div style="text-align:center;padding:20px 0;">' +
-                    '<div style="color:#6c757d;font-size:.85rem;margin-bottom:12px;">No results — create Product</div>' +
+                    '<div style="color:#6c757d;font-size:var(--r2k-text-85);margin-bottom:12px;">No results — create Product</div>' +
                     '<span class="btn btn-primary btn-sm px-3 select2-create-product-btn" style="cursor:pointer;">' +
                         '<i class="bx bx-plus me-1"></i>Create Product' +
                     '</span>' +
@@ -3645,7 +3645,7 @@ function searchProductInfo() {
                         <div class="text-start">
                             <div class="d-flex align-items-center gap-2">
                                 <span class="fw-semibold" style="color:#696cff;">${data.text}</span>
-                                <span style="font-size:.65rem;font-weight:700;letter-spacing:.4px;padding:1px 6px;border-radius:4px;background:#f0edff;color:#7c3aed;border:1px solid #d9d0ff;">COMBO</span>
+                                <span style="font-size:var(--r2k-text-65);font-weight:700;letter-spacing:.4px;padding:1px 6px;border-radius:4px;background:#f0edff;color:#7c3aed;border:1px solid #d9d0ff;">COMBO</span>
                             </div>
                             <div class="transtext-small mt-1" style="color:#7c3aed;">
                                 <i class="bx bx-package me-1"></i>${count} item${count !== 1 ? 's' : ''} bundled in this combo
@@ -3698,7 +3698,7 @@ function searchProductInfo() {
                     '<li class="select2-results__option select2-results__message" style="pointer-events:none;">' +
                     '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 0;color:#9ca3af;">' +
                     '<i class="bx bx-loader-alt bx-spin" style="font-size:1.5rem;"></i>' +
-                    '<div style="font-size:.8rem;margin-top:8px;">Searching...</div>' +
+                    '<div style="font-size:var(--r2k-text-md);margin-top:8px;">Searching...</div>' +
                     '</div></li>'
                 );
             }
@@ -4922,7 +4922,7 @@ function updateDescriptionInTable(itemId, newDescription) {
 function showBelowPurchaseToast(purchasePrice, enteredPrice, currency) {
     var dec = (genSettings && genSettings.DecimalPoints) ? genSettings.DecimalPoints : 2;
     var msg = '<strong>Price below purchase cost</strong>'
-        + '<br><span style="font-size:.78rem;font-weight:400;opacity:.9;">'
+        + '<br><span style="font-size:var(--r2k-text-78);font-weight:400;opacity:.9;">'
         + 'Purchase: <strong>' + currency + '&nbsp;' + smartDecimal(purchasePrice, dec) + '</strong>'
         + '&nbsp;&nbsp;·&nbsp;&nbsp;'
         + 'You entered: <strong>' + currency + '&nbsp;' + smartDecimal(enteredPrice, dec) + '</strong>'
@@ -4948,7 +4948,7 @@ function _renderBOMModal(item) {
     var comps = item.bomComponents || [];
 
     if (!comps.length) {
-        $('#comboBOMRows').html('<tr><td colspan="4" class="text-center py-3 text-muted" style="font-size:.8rem;"><i class="bx bx-loader-alt bx-spin me-1"></i>Loading components…</td></tr>');
+        $('#comboBOMRows').html('<tr><td colspan="4" class="text-center py-3 text-muted" style="font-size:var(--r2k-text-md);"><i class="bx bx-loader-alt bx-spin me-1"></i>Loading components…</td></tr>');
         $('#comboBOMTotal').text('—');
         if (item.isComposite) {
             _fetchAndAttachBOM(item, function() {
@@ -4973,22 +4973,22 @@ function _renderBOMModal(item) {
             ? '<div style="font-size:.63rem;color:#7c3aed;margin-top:3px;padding-left:2px;">' + taxPct + '% GST incl.</div>'
             : '<div style="font-size:.63rem;color:#94a3b8;margin-top:3px;padding-left:2px;">Tax exempt</div>';
         return '<tr style="' + rowBg + 'border-bottom:1px solid #f1eeff;">' +
-            '<td class="ps-4 align-middle py-3" style="font-size:.85rem;color:#374151;font-weight:500;">' + _bomEscapeHtml(c.itemName) + '</td>' +
-            '<td class="text-center align-middle py-3" style="font-size:.85rem;color:#64748b;font-weight:600;">' + smartDecimal(qty) + '</td>' +
-            '<td class="text-end align-middle py-3 pe-3" style="font-size:.85rem;color:#64748b;font-weight:500;">' +
+            '<td class="ps-4 align-middle py-3" style="font-size:var(--r2k-text-85);color:#374151;font-weight:500;">' + _bomEscapeHtml(c.itemName) + '</td>' +
+            '<td class="text-center align-middle py-3" style="font-size:var(--r2k-text-85);color:#64748b;font-weight:600;">' + smartDecimal(qty) + '</td>' +
+            '<td class="text-end align-middle py-3 pe-3" style="font-size:var(--r2k-text-85);color:#64748b;font-weight:500;">' +
                 cur + ' ' + smartDecimal(up, dp) +
             '</td>' +
             '<td class="align-middle py-3 pe-2">' +
                 '<div class="input-group input-group-sm" style="max-width:160px;">' +
-                    '<span class="input-group-text" style="background:#f0edff;border-color:#d9d0ff;color:#7c3aed;font-weight:600;font-size:.8rem;">' + _bomEscapeHtml(cur) + '</span>' +
+                    '<span class="input-group-text" style="background:#f0edff;border-color:#d9d0ff;color:#7c3aed;font-weight:600;font-size:var(--r2k-text-md);">' + _bomEscapeHtml(cur) + '</span>' +
                     '<input type="number" class="form-control text-end bom-comp-price" ' +
                         'data-idx="' + i + '" data-qty="' + qty + '" ' +
                         'value="' + smartDecimal(price, dp) + '" min="0" step="any" ' +
-                        'style="border-color:#d9d0ff;font-size:.85rem;">' +
+                        'style="border-color:#d9d0ff;font-size:var(--r2k-text-85);">' +
                 '</div>' +
                 taxBadge +
             '</td>' +
-            '<td class="text-end pe-4 align-middle py-3 bom-comp-amt" style="font-size:.88rem;font-weight:600;color:#374151;">' +
+            '<td class="text-end pe-4 align-middle py-3 bom-comp-amt" style="font-size:var(--r2k-text-88);font-weight:600;color:#374151;">' +
                 cur + ' ' + smartDecimal(amt, dp) +
             '</td>' +
             '</tr>';

@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
     'use strict';
 
     var _sym = (genSettings && genSettings.CurrenySymbol) ? genSettings.CurrenySymbol : '₹';
@@ -43,7 +43,7 @@
         var footer = document.getElementById('caTblFooter');
 
         if (!rows || rows.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9"><div class="rpt-empty"><i class="bx bx-info-circle"></i><div class="rpt-empty-title">No overdue invoices</div><div style="font-size:.82rem">All customers are up to date</div></div></td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9"><div class="rpt-empty"><i class="bx bx-info-circle"></i><div class="rpt-empty-title">No overdue invoices</div><div style="font-size:var(--r2k-text-82)">All customers are up to date</div></div></td></tr>';
             tfoot.classList.add('d-none');
             footer.classList.add('d-none');
             _updateStats(0, 0, 0, 0);

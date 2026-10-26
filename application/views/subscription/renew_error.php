@@ -21,7 +21,7 @@ html, body { margin: 0; padding: 0; background: #040b18; min-height: 100%; }
 }
 .srex-icon { font-size: 3rem; margin-bottom: 1rem; color: #f87171; }
 .srex-title { font-size: 1.3rem; font-weight: 700; color: #f1f5f9; margin-bottom: 0.6rem; }
-.srex-sub { font-size: 0.9rem; color: rgba(148,163,184,0.8); line-height: 1.7; margin-bottom: 2rem; }
+.srex-sub { font-size:var(--r2k-text-90); color: rgba(148,163,184,0.8); line-height: 1.7; margin-bottom: 2rem; }
 .srex-btn {
     display: inline-flex;
     align-items: center;
@@ -31,7 +31,7 @@ html, body { margin: 0; padding: 0; background: #040b18; min-height: 100%; }
     border: 1px solid rgba(245,158,11,0.4);
     border-radius: 8px;
     color: #fbbf24;
-    font-size: 0.9rem;
+    font-size:var(--r2k-text-90);
     font-weight: 600;
     text-decoration: none;
     transition: all 0.2s;

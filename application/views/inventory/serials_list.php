@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php
 $showSno  = $JwtData->GenSettings->SerialNoDisplay == 1;
@@ -26,12 +26,12 @@ if (!empty($DataLists)):
 <tr id="sn-row-<?php echo $uid; ?>">
 
     <td class="<?php echo $showSno ? '' : 'd-none'; ?> table-serialno" style="width:44px;">
-        <span class="text-muted" style="font-size:.78rem;"><?php echo $sno; ?></span>
+        <span class="text-muted" style="font-size:var(--r2k-text-78);"><?php echo $sno; ?></span>
     </td>
 
     <!-- Serial Number -->
     <td>
-        <div class="fw-semibold" style="font-size:.88rem;font-family:monospace;letter-spacing:.03em;">
+        <div class="fw-semibold" style="font-size:var(--r2k-text-88);font-family:monospace;letter-spacing:.03em;">
             <?php echo htmlspecialchars($row->SerialNumber); ?>
         </div>
         <?php if (!empty($row->Notes)): ?>
@@ -45,13 +45,13 @@ if (!empty($DataLists)):
     <td>
         <div class="fw-medium" style="font-size:.83rem;"><?php echo htmlspecialchars($row->ItemName); ?></div>
         <?php if (!empty($row->PartNumber)): ?>
-        <div class="text-muted" style="font-size:.7rem;">Part# <?php echo htmlspecialchars($row->PartNumber); ?></div>
+        <div class="text-muted" style="font-size:var(--r2k-text-70);">Part# <?php echo htmlspecialchars($row->PartNumber); ?></div>
         <?php endif; ?>
     </td>
 
     <!-- Status -->
     <td>
-        <span class="badge <?php echo $cfg['class']; ?>" style="font-size:.7rem;">
+        <span class="badge <?php echo $cfg['class']; ?>" style="font-size:var(--r2k-text-70);">
             <i class="bx <?php echo $cfg['icon']; ?> me-1"></i><?php echo $cfg['label']; ?>
         </span>
     </td>
@@ -59,11 +59,11 @@ if (!empty($DataLists)):
     <!-- Source -->
     <td>
         <?php if ($isManual): ?>
-            <span class="badge bg-label-secondary" style="font-size:.7rem;"><i class="bx bx-pencil me-1"></i>Manual</span>
+            <span class="badge bg-label-secondary" style="font-size:var(--r2k-text-70);"><i class="bx bx-pencil me-1"></i>Manual</span>
         <?php else: ?>
-            <span class="badge bg-label-success" style="font-size:.7rem;"><i class="bx bx-shopping-bag me-1"></i>Purchase</span>
+            <span class="badge bg-label-success" style="font-size:var(--r2k-text-70);"><i class="bx bx-shopping-bag me-1"></i>Purchase</span>
             <?php if (!empty($row->PurchaseTransNo)): ?>
-            <div class="text-muted" style="font-size:.7rem;margin-top:2px;"><?php echo htmlspecialchars($row->PurchaseTransNo); ?></div>
+            <div class="text-muted" style="font-size:var(--r2k-text-70);margin-top:2px;"><?php echo htmlspecialchars($row->PurchaseTransNo); ?></div>
             <?php endif; ?>
         <?php endif; ?>
     </td>
@@ -71,11 +71,11 @@ if (!empty($DataLists)):
     <!-- Transaction -->
     <td>
         <?php if (!empty($row->SaleTransNo)): ?>
-            <span class="text-danger" style="font-size:.78rem;font-weight:600;">
+            <span class="text-danger" style="font-size:var(--r2k-text-78);font-weight:600;">
                 <i class="bx bx-receipt me-1"></i><?php echo htmlspecialchars($row->SaleTransNo); ?>
             </span>
         <?php elseif (!empty($row->ReturnTransNo)): ?>
-            <span class="text-info" style="font-size:.78rem;font-weight:600;">
+            <span class="text-info" style="font-size:var(--r2k-text-78);font-weight:600;">
                 <i class="bx bx-undo me-1"></i><?php echo htmlspecialchars($row->ReturnTransNo); ?>
             </span>
         <?php else: ?>
@@ -85,10 +85,10 @@ if (!empty($DataLists)):
 
     <!-- Created On -->
     <td>
-        <div style="font-size:.78rem;"><?php echo $createdDate; ?></div>
+        <div style="font-size:var(--r2k-text-78);"><?php echo $createdDate; ?></div>
         <?php if ($createdTime): ?>
         <div class="text-muted" style="font-size:var(--r2k-text-sm);margin-top:1px;">
-            <i class="bx bx-time-five me-1" style="font-size:.7rem;"></i><?php echo $createdTime; ?>
+            <i class="bx bx-time-five me-1" style="font-size:var(--r2k-text-70);"></i><?php echo $createdTime; ?>
         </div>
         <?php endif; ?>
     </td>
@@ -120,7 +120,7 @@ if (!empty($DataLists)):
             </ul>
         </div>
         <?php else: ?>
-            <span class="text-muted" style="font-size:.75rem;">—</span>
+            <span class="text-muted" style="font-size:var(--r2k-text-75);">—</span>
         <?php endif; ?>
     </td>
 
@@ -131,8 +131,8 @@ else: ?>
     <td colspan="8">
         <div class="d-flex flex-column align-items-center justify-content-center py-5 text-muted">
             <i class="bx bx-barcode" style="font-size:2.5rem;opacity:.3;margin-bottom:8px;"></i>
-            <div style="font-size:.85rem;font-weight:600;color:#64748b;">No serial numbers found</div>
-            <div style="font-size:.75rem;margin-top:4px;">Add a serial number using the + Add Serial button above.</div>
+            <div style="font-size:var(--r2k-text-85);font-weight:600;color:#64748b;">No serial numbers found</div>
+            <div style="font-size:var(--r2k-text-75);margin-top:4px;">Add a serial number using the + Add Serial button above.</div>
         </div>
     </td>
 </tr>

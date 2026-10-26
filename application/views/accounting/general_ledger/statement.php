@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var array       $Lines */
 /** @var object      $Ledger */
 /** @var float       $OpeningBalance */
@@ -14,7 +14,7 @@ function _glFmt(mixed $n, string $cur): string {
     return $cur . ' ' . smartDecimal((float)$n);
 }
 ?>
-<table class="table table-sm table-bordered align-middle mb-0" style="font-size:.82rem;">
+<table class="table table-sm table-bordered align-middle mb-0" style="font-size:var(--r2k-text-82);">
     <thead class="r2k-thead">
         <tr>
             <th style="width:100px;">Date</th>
@@ -32,7 +32,7 @@ function _glFmt(mixed $n, string $cur): string {
             <td colspan="4" class="fw-semibold" style="color:#7c3aed;">
                 Opening Balance
                 <?php if ($DateFrom): ?>
-                <span class="text-muted fw-normal" style="font-size:.75rem;">as of <?php echo date($dateFmt, strtotime($DateFrom)); ?></span>
+                <span class="text-muted fw-normal" style="font-size:var(--r2k-text-75);">as of <?php echo date($dateFmt, strtotime($DateFrom)); ?></span>
                 <?php endif; ?>
             </td>
             <td class="text-end">—</td>
@@ -55,7 +55,7 @@ function _glFmt(mixed $n, string $cur): string {
         <tr>
             <td style="white-space:nowrap;"><?php echo date($dateFmt, strtotime($ln->JournalDate)); ?></td>
             <td>
-                <code style="font-size:.75rem;color:#7c3aed;"><?php echo htmlspecialchars($ln->JournalNo ?? ''); ?></code>
+                <code style="font-size:var(--r2k-text-75);color:#7c3aed;"><?php echo htmlspecialchars($ln->JournalNo ?? ''); ?></code>
             </td>
             <td class="text-muted" style="font-size:.76rem;">
                 <?php echo htmlspecialchars($ln->ReferenceType ?? ''); ?>
@@ -85,7 +85,7 @@ function _glFmt(mixed $n, string $cur): string {
 
         <!-- Totals Row -->
         <tr style="background:#f8f5ff;font-weight:600;">
-            <td colspan="4" class="text-end" style="color:#566a7f;font-size:.8rem;">Period Totals</td>
+            <td colspan="4" class="text-end" style="color:#566a7f;font-size:var(--r2k-text-md);">Period Totals</td>
             <td class="text-end text-success"><?php echo _glFmt($TotalDebit,  $cur); ?></td>
             <td class="text-end text-danger"><?php echo _glFmt($TotalCredit, $cur); ?></td>
             <td class="text-end" style="color:#7c3aed;">

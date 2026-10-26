@@ -11,7 +11,7 @@
                     </div>
                     <div>
                         <h6 class="mb-0 fw-semibold">Record Machine Return</h6>
-                        <div id="rtnItemLabel" class="text-muted" style="font-size:.75rem;"></div>
+                        <div id="rtnItemLabel" class="text-muted" style="font-size:var(--r2k-text-75);"></div>
                     </div>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -23,7 +23,7 @@
                 <input type="hidden" id="rtnRentalItemUID">
 
                 <!-- Booking info banner -->
-                <div id="rtnInfoBanner" class="alert alert-light border py-2 px-3 mb-3" style="font-size:.82rem;">
+                <div id="rtnInfoBanner" class="alert alert-light border py-2 px-3 mb-3" style="font-size:var(--r2k-text-82);">
                     <div class="row g-1">
                         <div class="col-6"><span class="text-muted">Rental #: </span><strong id="rtnRentalNum">—</strong></div>
                         <div class="col-6"><span class="text-muted">Type: </span><strong id="rtnRentalType">—</strong></div>
@@ -52,13 +52,13 @@
                 <div class="mb-2">
                     <label class="form-label form-label-sm">Actual Hours Used</label>
                     <input type="number" id="rtnActualHours" class="form-control form-control-sm" value="0" min="0" step="0.5" placeholder="e.g. 4.5">
-                    <div class="text-muted" style="font-size:.7rem;margin-top:3px;">Auto-calculated when return time is set</div>
+                    <div class="text-muted" style="font-size:var(--r2k-text-70);margin-top:3px;">Auto-calculated when return time is set</div>
                 </div>
 
                 <!-- Extra Charges -->
                 <div class="card mt-3 mb-2" style="border-color:#fee2e2;">
                     <div class="card-header py-2" style="background:#fff8f8;border-bottom-color:#fee2e2;">
-                        <h6 class="mb-0" style="font-size:.82rem;color:#dc2626;"><i class="bx bx-calculator me-1"></i>Extra Charges (if any)</h6>
+                        <h6 class="mb-0" style="font-size:var(--r2k-text-82);color:#dc2626;"><i class="bx bx-calculator me-1"></i>Extra Charges (if any)</h6>
                     </div>
                     <div class="card-body py-2">
                         <div class="row g-2">
@@ -80,8 +80,8 @@
 
                 <!-- Total -->
                 <div class="d-flex justify-content-between align-items-center p-2 rounded mb-2" style="background:#f8fafc;border:1px solid #e2e8f0;">
-                    <span class="text-muted" style="font-size:.82rem;">Total Extra Charges</span>
-                    <span id="rtnTotalExtraCharges" style="font-weight:700;color:#dc2626;font-size:.9rem;"><?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?> 0.00</span>
+                    <span class="text-muted" style="font-size:var(--r2k-text-82);">Total Extra Charges</span>
+                    <span id="rtnTotalExtraCharges" style="font-weight:700;color:#dc2626;font-size:var(--r2k-text-90);"><?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?> 0.00</span>
                 </div>
 
                 <!-- Notes -->

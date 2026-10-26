@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Reusable filter bar partial for transaction list pages.
  *
@@ -54,10 +54,10 @@ $partyLabel = ($partyType === 'vendor') ? 'Vendor' : 'Customer';
                 data-bs-toggle="dropdown" data-bs-auto-close="outside"
                 aria-expanded="false">
             <span class="tfb-label">Status</span>
-            <i class="bx bx-x tfb-clear-x d-none" style="font-size:.8rem;margin-left:2px;"></i>
+            <i class="bx bx-x tfb-clear-x d-none" style="font-size:var(--r2k-text-md);margin-left:2px;"></i>
             <i class="bx bx-chevron-down" style="font-size:var(--r2k-text-sm);"></i>
         </button>
-        <ul class="dropdown-menu shadow" style="min-width:160px;font-size:.82rem;">
+        <ul class="dropdown-menu shadow" style="min-width:160px;font-size:var(--r2k-text-82);">
             <li><a class="dropdown-item tfb-status-item" href="javascript:void(0);" data-val="Pending">
                 <span class="badge me-1" style="background:#fff3e0;color:#e65100;border:1px solid #ffcc80;font-weight:500;">●</span> Pending
             </a></li>
@@ -80,10 +80,10 @@ $partyLabel = ($partyType === 'vendor') ? 'Vendor' : 'Customer';
                 data-bs-toggle="dropdown" data-bs-auto-close="outside"
                 aria-expanded="false">
             <span class="tfb-label">Mode</span>
-            <i class="bx bx-x tfb-clear-x d-none" style="font-size:.8rem;margin-left:2px;"></i>
+            <i class="bx bx-x tfb-clear-x d-none" style="font-size:var(--r2k-text-md);margin-left:2px;"></i>
             <i class="bx bx-chevron-down" style="font-size:var(--r2k-text-sm);"></i>
         </button>
-        <ul class="dropdown-menu shadow" style="min-width:160px;font-size:.82rem;">
+        <ul class="dropdown-menu shadow" style="min-width:160px;font-size:var(--r2k-text-82);">
             <?php foreach ($paymentTypes as $pt): ?>
             <li><a class="dropdown-item tfb-mode-item" href="javascript:void(0);"
                    data-val="<?php echo htmlspecialchars($pt->Name, ENT_QUOTES); ?>">
@@ -103,12 +103,12 @@ $partyLabel = ($partyType === 'vendor') ? 'Vendor' : 'Customer';
                 data-default-label="<?php echo $partyLabel; ?>"
                 data-bs-toggle="dropdown" data-bs-auto-close="outside"
                 aria-expanded="false">
-            <i class="bx bx-user" style="font-size:.8rem;"></i>
+            <i class="bx bx-user" style="font-size:var(--r2k-text-md);"></i>
             <span class="tfb-label"><?php echo $partyLabel; ?></span>
-            <i class="bx bx-x tfb-clear-x d-none" style="font-size:.8rem;margin-left:2px;"></i>
+            <i class="bx bx-x tfb-clear-x d-none" style="font-size:var(--r2k-text-md);margin-left:2px;"></i>
             <i class="bx bx-chevron-down" style="font-size:var(--r2k-text-sm);"></i>
         </button>
-        <div class="dropdown-menu shadow tfb-party-dropdown p-0" style="min-width:230px;font-size:.82rem;">
+        <div class="dropdown-menu shadow tfb-party-dropdown p-0" style="min-width:230px;font-size:var(--r2k-text-82);">
             <div class="p-2 border-bottom">
                 <input type="text" id="tfbPartySearch" class="form-control form-control-sm"
                        placeholder="Search <?php echo strtolower($partyLabel); ?>…" autocomplete="off">
@@ -128,12 +128,12 @@ $partyLabel = ($partyType === 'vendor') ? 'Vendor' : 'Customer';
                 data-default-label="User"
                 data-bs-toggle="dropdown" data-bs-auto-close="outside"
                 aria-expanded="false">
-            <i class="bx bx-user-check" style="font-size:.8rem;"></i>
+            <i class="bx bx-user-check" style="font-size:var(--r2k-text-md);"></i>
             <span class="tfb-label">User</span>
-            <i class="bx bx-x tfb-clear-x d-none" style="font-size:.8rem;margin-left:2px;"></i>
+            <i class="bx bx-x tfb-clear-x d-none" style="font-size:var(--r2k-text-md);margin-left:2px;"></i>
             <i class="bx bx-chevron-down" style="font-size:var(--r2k-text-sm);"></i>
         </button>
-        <ul class="dropdown-menu shadow" style="min-width:180px;font-size:.82rem;max-height:220px;overflow-y:auto;">
+        <ul class="dropdown-menu shadow" style="min-width:180px;font-size:var(--r2k-text-82);max-height:220px;overflow-y:auto;">
             <?php foreach ($orgUsers as $u): ?>
             <li><a class="dropdown-item tfb-user-item" href="javascript:void(0);"
                    data-uid="<?php echo (int)($u->UserUID ?? 0); ?>"
@@ -166,7 +166,7 @@ $partyLabel = ($partyType === 'vendor') ? 'Vendor' : 'Customer';
 
 /* ── Clear All link ─────────────────────────────────────────────────── */
 .tfb-clear-all {
-    font-size  : .78rem;
+    font-size:var(--r2k-text-78);
     color      : #6c757d;
     white-space: nowrap;
     display    : flex;
@@ -192,12 +192,12 @@ $partyLabel = ($partyType === 'vendor') ? 'Vendor' : 'Customer';
 }
 .tfb-party-item:hover         { background: #f0f4ff; color: #212529; }
 .tfb-party-item.tfb-party-selected { background: #e8f0fe; color: #1a73e8; }
-.tfb-party-name { font-size: .82rem; }
+.tfb-party-name { font-size:var(--r2k-text-82); }
 .tfb-party-area { font-size:var(--r2k-text-sm); color: #888; }
 .tfb-party-empty {
     padding   : 10px 12px;
     color     : #888;
-    font-size : .8rem;
+    font-size:var(--r2k-text-md);
     text-align: center;
 }
 </style>

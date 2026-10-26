@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var object $Journal */
 $cur     = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
 $dateFmt = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
@@ -36,7 +36,7 @@ $totCr   = 0;
 
 <!-- Journal Lines Table -->
 <div class="table-responsive">
-    <table class="table table-sm table-bordered align-middle mb-0" style="font-size:.82rem;">
+    <table class="table table-sm table-bordered align-middle mb-0" style="font-size:var(--r2k-text-82);">
         <thead class="r2k-thead">
             <tr>
                 <th>Account</th>
@@ -56,10 +56,10 @@ $totCr   = 0;
                 <td>
                     <div class="fw-semibold"><?php echo htmlspecialchars($ln->LedgerName ?? ''); ?></div>
                     <code style="font-size:var(--r2k-text-sm);color:#7c3aed;"><?php echo htmlspecialchars($ln->LedgerCode ?? ''); ?></code>
-                    <span class="text-muted" style="font-size:.7rem;"> · <?php echo htmlspecialchars($ln->LedgerType ?? ''); ?></span>
+                    <span class="text-muted" style="font-size:var(--r2k-text-70);"> · <?php echo htmlspecialchars($ln->LedgerType ?? ''); ?></span>
                 </td>
                 <td>
-                    <span class="badge <?php echo $isDr ? 'bg-label-success' : 'bg-label-danger'; ?>" style="font-size:.7rem;">
+                    <span class="badge <?php echo $isDr ? 'bg-label-success' : 'bg-label-danger'; ?>" style="font-size:var(--r2k-text-70);">
                         <?php echo $ln->TransactionType; ?>
                     </span>
                 </td>
@@ -75,7 +75,7 @@ $totCr   = 0;
         </tbody>
         <tfoot>
             <tr style="background:#f8f5ff;font-weight:600;">
-                <td colspan="3" class="text-end text-muted" style="font-size:.8rem;">Totals</td>
+                <td colspan="3" class="text-end text-muted" style="font-size:var(--r2k-text-md);">Totals</td>
                 <td class="text-end text-success"><?php echo $cur . ' ' . smartDecimal($totDr); ?></td>
                 <td class="text-end text-danger"><?php echo $cur . ' ' . smartDecimal($totCr); ?></td>
             </tr>
@@ -90,6 +90,6 @@ $balMsg     = $isBalanced
     ? '<i class="bx bx-check-circle me-1"></i>Journal is balanced (Dr = Cr)'
     : '<i class="bx bx-error me-1"></i>Journal is NOT balanced — Dr: ' . smartDecimal($totDr) . ' / Cr: ' . smartDecimal($totCr);
 ?>
-<div class="alert <?php echo $balClass; ?> d-flex align-items-center py-2 px-3 mt-3 mb-0" style="font-size:.8rem;">
+<div class="alert <?php echo $balClass; ?> d-flex align-items-center py-2 px-3 mt-3 mb-0" style="font-size:var(--r2k-text-md);">
     <?php echo $balMsg; ?>
 </div>

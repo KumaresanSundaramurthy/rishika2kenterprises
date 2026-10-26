@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 
 $_today    = date('Y-m-d');
 $_listFmt  = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
@@ -19,11 +19,11 @@ $this->load->view('common/transactions/header'); ?>
 .rpt-stat-label{font-size:var(--r2k-text-sm);color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.03em}
 .rpt-stat-val{font-size:1.05rem;font-weight:700;color:#1e293b;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rpt-date-group{display:flex;align-items:center;gap:6px;flex-shrink:0}
-.rpt-date-label{font-size:.75rem;color:#64748b;font-weight:600;white-space:nowrap}
+.rpt-date-label{font-size:var(--r2k-text-75);color:#64748b;font-weight:600;white-space:nowrap}
 .rpt-date-input-wrap{display:flex;align-items:center;gap:4px;background:#fff;border:1.5px solid #e2e8f0;border-radius:7px;padding:0 8px;height:34px;cursor:pointer;transition:border-color .12s}
 .rpt-date-input-wrap:focus-within{border-color:#ef4444}
-.rpt-date-input-wrap i{color:#ef4444;font-size:.88rem;flex-shrink:0}
-.rpt-fp-input{border:none;outline:none;background:transparent;font-size:.82rem;font-weight:600;color:#1e293b;width:108px;cursor:pointer}
+.rpt-date-input-wrap i{color:#ef4444;font-size:var(--r2k-text-88);flex-shrink:0}
+.rpt-fp-input{border:none;outline:none;background:transparent;font-size:var(--r2k-text-82);font-weight:600;color:#1e293b;width:108px;cursor:pointer}
 
 /* Financial Statement layout */
 .fin-wrap{padding:20px 24px}
@@ -35,22 +35,22 @@ $this->load->view('common/transactions/header'); ?>
 .fin-row-label{font-size:.81rem;color:#334155}
 .fin-row-val{font-size:.81rem;font-weight:600;color:#1e293b;white-space:nowrap}
 .fin-total-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:2px solid #e2e8f0;margin-top:2px}
-.fin-total-label{font-size:.82rem;font-weight:700;color:#1e293b}
-.fin-total-val{font-size:.88rem;font-weight:700;white-space:nowrap}
+.fin-total-label{font-size:var(--r2k-text-82);font-weight:700;color:#1e293b}
+.fin-total-val{font-size:var(--r2k-text-88);font-weight:700;white-space:nowrap}
 .fin-net-row{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-radius:8px;margin-top:20px;border:1.5px solid}
 .fin-net-profit{background:#f0fdf4;border-color:#bbf7d0}
 .fin-net-loss{background:#fef2f2;border-color:#fecaca}
-.fin-net-label{font-size:.9rem;font-weight:700}
+.fin-net-label{font-size:var(--r2k-text-90);font-weight:700}
 .fin-net-profit .fin-net-label{color:#15803d}
 .fin-net-loss .fin-net-label{color:#b91c1c}
 .fin-net-val{font-size:1rem;font-weight:700}
 .fin-net-profit .fin-net-val{color:#15803d}
 .fin-net-loss .fin-net-val{color:#b91c1c}
 .fin-zero{color:#94a3b8}
-.fin-loading{display:flex;align-items:center;justify-content:center;padding:60px;color:#64748b;font-size:.85rem;gap:8px}
+.fin-loading{display:flex;align-items:center;justify-content:center;padding:60px;color:#64748b;font-size:var(--r2k-text-85);gap:8px}
 .fin-empty{display:flex;flex-direction:column;align-items:center;padding:60px 20px;color:#94a3b8}
 .fin-empty i{font-size:2.5rem;margin-bottom:8px;opacity:.5}
-.fin-empty-title{font-size:.9rem;font-weight:600;color:#64748b;margin-bottom:4px}
+.fin-empty-title{font-size:var(--r2k-text-90);font-weight:600;color:#64748b;margin-bottom:4px}
 .fin-divider{height:1px;background:#e2e8f0;margin:16px 0}
 .rpt-num-green{color:#16a34a;font-weight:700}
 .rpt-num-red{color:#dc2626;font-weight:700}

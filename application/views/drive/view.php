@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 $this->load->view('common/transactions/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -33,7 +33,7 @@ $this->load->view('common/transactions/header'); ?>
                             flex-wrap: wrap;
                         }
                         #driveBreadcrumb a {
-                            font-size: .82rem;
+                            font-size:var(--r2k-text-82);
                             font-weight: 600;
                             color: #0369a1 !important;
                             cursor: pointer;
@@ -43,12 +43,12 @@ $this->load->view('common/transactions/header'); ?>
                         #driveBreadcrumb a:hover { text-decoration: underline !important; }
                         #driveBreadcrumb .bc-sep {
                             color: #94a3b8;
-                            font-size: .9rem;
+                            font-size:var(--r2k-text-90);
                             padding: 0 3px;
                             line-height: 1;
                         }
                         #driveBreadcrumb .bc-current {
-                            font-size: .82rem;
+                            font-size:var(--r2k-text-82);
                             font-weight: 600;
                             color: var(--bs-body-color, #1e293b);
                             white-space: nowrap;
@@ -115,7 +115,7 @@ $this->load->view('common/transactions/header'); ?>
                         }
                         .drive-item-icon { font-size: 2.4rem; line-height: 1; margin-bottom: 8px; }
                         .drive-item-name {
-                            font-size: .75rem;
+                            font-size:var(--r2k-text-75);
                             font-weight: 600;
                             color: var(--bs-body-color, #374151);
                             word-break: break-word;
@@ -144,7 +144,7 @@ $this->load->view('common/transactions/header'); ?>
                             display: flex; align-items: center; justify-content: center;
                             cursor: pointer;
                             color: #64748b;
-                            font-size: .7rem;
+                            font-size:var(--r2k-text-70);
                             padding: 0;
                             line-height: 1;
                         }
@@ -163,7 +163,7 @@ $this->load->view('common/transactions/header'); ?>
                         }
                         .drive-list-tbl td {
                             padding: 7px 10px;
-                            font-size: .8rem;
+                            font-size:var(--r2k-text-md);
                             color: var(--bs-body-color, #374151);
                             border-bottom: 1px solid var(--bs-border-color, #f1f5f9);
                             vertical-align: middle;
@@ -181,8 +181,8 @@ $this->load->view('common/transactions/header'); ?>
                             text-align: center;
                         }
                         .drive-empty i { font-size: 3rem; margin-bottom: 12px; }
-                        .drive-empty p { font-size: .85rem; margin: 0 0 4px; }
-                        .drive-empty p.sub { font-size: .75rem; color: #cbd5e1; }
+                        .drive-empty p { font-size:var(--r2k-text-85); margin: 0 0 4px; }
+                        .drive-empty p.sub { font-size:var(--r2k-text-75); color: #cbd5e1; }
                         .drive-drop-overlay {
                             position: absolute;
                             inset: 0;
@@ -215,14 +215,14 @@ $this->load->view('common/transactions/header'); ?>
                             padding: 8px 14px;
                             border-radius: 6px;
                             cursor: pointer;
-                            font-size: .82rem;
+                            font-size:var(--r2k-text-82);
                             color: var(--bs-body-color, #374151);
                             transition: background .12s;
                         }
                         .move-folder-item:hover { background: #f0f9ff; }
                         .move-folder-item i { color: #f59e0b; font-size: 1rem; flex-shrink: 0; }
                         .move-folder-item .mf-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-                        .move-folder-item .mf-chev { color: #cbd5e1; font-size: .85rem; }
+                        .move-folder-item .mf-chev { color: #cbd5e1; font-size:var(--r2k-text-85); }
                         .drive-upload-toast {
                             position: fixed;
                             bottom: 20px; right: 20px;
@@ -254,8 +254,8 @@ $this->load->view('common/transactions/header'); ?>
 
                             <?php if (!empty($IsAdmin) && !empty($OrgUsers)): ?>
                             <div class="d-flex align-items-center gap-1" style="flex-shrink:0;">
-                                <i class="bx bx-user" style="color:#64748b;font-size:.9rem;"></i>
-                                <select id="driveUserPicker" class="form-select form-select-sm" style="min-width:155px;font-size:.78rem;">
+                                <i class="bx bx-user" style="color:#64748b;font-size:var(--r2k-text-90);"></i>
+                                <select id="driveUserPicker" class="form-select form-select-sm" style="min-width:155px;font-size:var(--r2k-text-78);">
                                     <?php foreach ($OrgUsers as $u): ?>
                                     <option value="<?php echo (int)$u->UserUID; ?>"
                                         <?php echo (int)$u->UserUID === (int)($CurrentUserUID ?? 0) ? 'selected' : ''; ?>>
@@ -319,7 +319,7 @@ $this->load->view('common/transactions/header'); ?>
 <!-- ── Upload progress toast ──────────────────────────────────────────────── -->
 <div class="drive-upload-toast" id="driveUploadToast">
     <div class="d-flex justify-content-between align-items-center mb-1">
-        <span style="font-size:.8rem;font-weight:600;">Uploading…</span>
+        <span style="font-size:var(--r2k-text-md);font-weight:600;">Uploading…</span>
         <span style="font-size:var(--r2k-text-sm);color:#64748b;" id="uploadPct">0%</span>
     </div>
     <div style="height:4px;background:#e2e8f0;border-radius:3px;overflow:hidden;">
@@ -336,7 +336,7 @@ $this->load->view('common/transactions/header'); ?>
                     <div style="width:30px;height:30px;border-radius:8px;background:#fef3c7;display:flex;align-items:center;justify-content:center;">
                         <i class="bx bx-folder-plus" style="color:#f59e0b;"></i>
                     </div>
-                    <h6 class="modal-title mb-0" style="font-size:.88rem;">New Folder</h6>
+                    <h6 class="modal-title mb-0" style="font-size:var(--r2k-text-88);">New Folder</h6>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
@@ -357,7 +357,7 @@ $this->load->view('common/transactions/header'); ?>
     <div class="modal-dialog modal-sm">
         <div class="modal-content">
             <div class="modal-header py-2 px-3">
-                <h6 class="modal-title mb-0" style="font-size:.88rem;">Rename</h6>
+                <h6 class="modal-title mb-0" style="font-size:var(--r2k-text-88);">Rename</h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body px-3 py-2">
@@ -379,17 +379,17 @@ $this->load->view('common/transactions/header'); ?>
         <div class="modal-content">
             <div class="modal-header py-2 px-3">
                 <div>
-                    <h6 class="modal-title mb-0" style="font-size:.88rem;">Move to…</h6>
+                    <h6 class="modal-title mb-0" style="font-size:var(--r2k-text-88);">Move to…</h6>
                     <div style="font-size:var(--r2k-text-sm);color:#64748b;" id="moveItemLabel"></div>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body px-0 py-0">
                 <div style="padding:7px 14px;border-bottom:1px solid var(--bs-border-color,#e2e8f0);display:flex;align-items:center;gap:8px;min-height:36px;">
-                    <button class="btn btn-sm btn-link p-0 text-primary" id="moveFolderBackBtn" style="font-size:.78rem;display:none;">
+                    <button class="btn btn-sm btn-link p-0 text-primary" id="moveFolderBackBtn" style="font-size:var(--r2k-text-78);display:none;">
                         <i class="bx bx-arrow-back me-1"></i>Back
                     </button>
-                    <span style="font-size:.75rem;color:#64748b;" id="moveBcLabel">My Drive (root)</span>
+                    <span style="font-size:var(--r2k-text-75);color:#64748b;" id="moveBcLabel">My Drive (root)</span>
                 </div>
                 <div style="max-height:270px;overflow-y:auto;padding:4px 0;" id="moveFolderList">
                     <div class="text-center py-3"><span class="spinner-border spinner-border-sm text-primary"></span></div>

@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 $this->load->view('common/transactions/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -176,7 +176,7 @@ $this->load->view('common/transactions/header'); ?>
                                 <h6 class="modal-title fw-semibold mb-0" style="color:#1565c0;" id="applyCreditModalLabel">
                                     <i class="bx bx-credit-card me-2"></i>Apply Credit to Invoice
                                 </h6>
-                                <div class="text-muted" style="font-size:.78rem;margin-top:2px;">
+                                <div class="text-muted" style="font-size:var(--r2k-text-78);margin-top:2px;">
                                     Sales Return: <strong id="acSrNum">—</strong>
                                 </div>
                             </div>
@@ -188,20 +188,20 @@ $this->load->view('common/transactions/header'); ?>
                             <div class="row g-2 mb-3">
                                 <div class="col-6">
                                     <div class="p-2 rounded text-center" style="background:#e8f5e9;border:1px solid #c8e6c9;">
-                                        <div class="text-muted" style="font-size:.7rem;">Customer</div>
-                                        <div class="fw-semibold text-truncate" style="font-size:.82rem;" id="acPartyName">—</div>
+                                        <div class="text-muted" style="font-size:var(--r2k-text-70);">Customer</div>
+                                        <div class="fw-semibold text-truncate" style="font-size:var(--r2k-text-82);" id="acPartyName">—</div>
                                     </div>
                                 </div>
                                 <div class="col-6">
                                     <div class="p-2 rounded text-center" style="background:#fff3e0;border:1px solid #ffe0b2;">
-                                        <div class="text-muted" style="font-size:.7rem;">Available Credit</div>
-                                        <div class="fw-semibold" style="font-size:.88rem;color:#e65100;" id="acCreditBalance">—</div>
+                                        <div class="text-muted" style="font-size:var(--r2k-text-70);">Available Credit</div>
+                                        <div class="fw-semibold" style="font-size:var(--r2k-text-88);color:#e65100;" id="acCreditBalance">—</div>
                                     </div>
                                 </div>
                             </div>
 
                             <div class="mb-3">
-                                <label class="form-label" style="font-size:.82rem;font-weight:500;">Select Invoice <span class="text-danger">*</span></label>
+                                <label class="form-label" style="font-size:var(--r2k-text-82);font-weight:500;">Select Invoice <span class="text-danger">*</span></label>
                                 <select id="acInvoiceUID" class="form-select form-select-sm">
                                     <option value="">— Select Invoice —</option>
                                 </select>
@@ -212,26 +212,26 @@ $this->load->view('common/transactions/header'); ?>
                                     <div class="col-4">
                                         <div class="p-2 rounded text-center" style="background:#f3e5f5;border:1px solid #e1bee7;">
                                             <div class="text-muted" style="font-size:var(--r2k-text-xs);">Invoice Total</div>
-                                            <div class="fw-semibold" style="font-size:.82rem;" id="acInvTotal">—</div>
+                                            <div class="fw-semibold" style="font-size:var(--r2k-text-82);" id="acInvTotal">—</div>
                                         </div>
                                     </div>
                                     <div class="col-4">
                                         <div class="p-2 rounded text-center" style="background:#e8eaf6;border:1px solid #c5cae9;">
                                             <div class="text-muted" style="font-size:var(--r2k-text-xs);">Paid</div>
-                                            <div class="fw-semibold" style="font-size:.82rem;" id="acInvPaid">—</div>
+                                            <div class="fw-semibold" style="font-size:var(--r2k-text-82);" id="acInvPaid">—</div>
                                         </div>
                                     </div>
                                     <div class="col-4">
                                         <div class="p-2 rounded text-center" style="background:#e3f2fd;border:1px solid #bbdefb;">
                                             <div class="text-muted" style="font-size:var(--r2k-text-xs);">Pending</div>
-                                            <div class="fw-semibold" style="font-size:.82rem;color:#1565c0;" id="acInvBalance">—</div>
+                                            <div class="fw-semibold" style="font-size:var(--r2k-text-82);color:#1565c0;" id="acInvBalance">—</div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
                             <div class="mb-3">
-                                <label class="form-label" style="font-size:.82rem;font-weight:500;">Amount to Apply <span class="text-danger">*</span></label>
+                                <label class="form-label" style="font-size:var(--r2k-text-82);font-weight:500;">Amount to Apply <span class="text-danger">*</span></label>
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text" id="acCurrencySymbol">₹</span>
                                     <input type="number" class="form-control" id="acAmount" min="0.01" step="any" placeholder="0.00">
@@ -239,7 +239,7 @@ $this->load->view('common/transactions/header'); ?>
                             </div>
 
                             <div class="mb-0">
-                                <label class="form-label" style="font-size:.82rem;font-weight:500;">Notes</label>
+                                <label class="form-label" style="font-size:var(--r2k-text-82);font-weight:500;">Notes</label>
                                 <input type="text" class="form-control form-control-sm" id="acNotes" placeholder="Optional note">
                             </div>
                         </div>

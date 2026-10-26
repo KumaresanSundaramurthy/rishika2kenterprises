@@ -35,7 +35,7 @@
                                         </div>
                                         <div>
                                             <div class="fw-bold" style="font-size:1rem;"><?= htmlspecialchars($order->PlanName ?? 'Plan') ?></div>
-                                            <div class="text-muted" style="font-size:.8rem;">
+                                            <div class="text-muted" style="font-size:var(--r2k-text-md);">
                                                 <?= htmlspecialchars($order->BillingCycle ?? '') ?>
                                                 &nbsp;<span class="sdb-type-pill <?= $tClass ?>"><?= htmlspecialchars($order->RenewalType ?? '') ?></span>
                                             </div>
@@ -56,18 +56,18 @@
                                             <span>Total</span>
                                             <span class="font-monospace"><?= $_cur ?><?= number_format($_net, 2) ?></span>
                                         </div>
-                                        <div class="d-flex justify-content-between" style="font-size:.8rem;">
+                                        <div class="d-flex justify-content-between" style="font-size:var(--r2k-text-md);">
                                             <span class="text-muted">Due Date</span>
                                             <span><?= $_due->formatted ?? '—' ?></span>
                                         </div>
                                     </div>
 
-                                    <button class="btn btn-primary w-100" id="btnPayNow" style="font-size:.9rem;padding:.65rem;">
+                                    <button class="btn btn-primary w-100" id="btnPayNow" style="font-size:var(--r2k-text-90);padding:.65rem;">
                                         <span id="payBtnText"><i class="bx bx-credit-card me-1"></i>Pay <?= $_cur ?><?= number_format($_net, 2) ?> with Razorpay</span>
                                         <span class="spinner-border spinner-border-sm d-none ms-1" id="paySpinner"></span>
                                     </button>
 
-                                    <p class="text-center text-muted mt-3" style="font-size:.75rem;">
+                                    <p class="text-center text-muted mt-3" style="font-size:var(--r2k-text-75);">
                                         <i class="bx bx-lock-alt me-1"></i>Secured by Razorpay &mdash; your payment details are never stored here.
                                     </p>
 
@@ -75,7 +75,7 @@
                             </div>
 
                             <div class="text-center">
-                                <a href="<?= site_url('subscription/dashboard') ?>" class="text-muted" style="font-size:.82rem;">
+                                <a href="<?= site_url('subscription/dashboard') ?>" class="text-muted" style="font-size:var(--r2k-text-82);">
                                     <i class="bx bx-arrow-back me-1"></i>Back to Dashboard
                                 </a>
                             </div>

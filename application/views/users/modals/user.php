@@ -69,7 +69,7 @@ if (!isset($BranchesList))    { $BranchesList    = []; }
                     </li>
                     <li class="nav-item d-none" id="attachTabNavItem">
                         <a class="nav-link px-3 py-2" data-bs-toggle="tab" data-bs-target="#tabAttachments" href="#">
-                            <i class="bx bx-paperclip me-1"></i>Attachments <span class="badge bg-label-secondary ms-1 d-none" id="attachTabCount" style="font-size:.7rem;"></span>
+                            <i class="bx bx-paperclip me-1"></i>Attachments <span class="badge bg-label-secondary ms-1 d-none" id="attachTabCount" style="font-size:var(--r2k-text-70);"></span>
                         </a>
                     </li>
                 </ul>
@@ -230,7 +230,7 @@ if (!isset($BranchesList))    { $BranchesList    = []; }
 
                             <!-- Gross summary hint -->
                             <div class="col-12">
-                                <div class="alert alert-light py-2 px-3 mb-0 border" style="font-size:.8rem;">
+                                <div class="alert alert-light py-2 px-3 mb-0 border" style="font-size:var(--r2k-text-md);">
                                     <i class="bx bx-info-circle me-1 text-primary"></i>
                                     Gross = Basic + Allowances + Incentives &nbsp;|&nbsp; Net = Gross − Fixed Deductions − Absent Deductions − Advance Recovery
                                 </div>
@@ -288,7 +288,7 @@ if (!isset($BranchesList))    { $BranchesList    = []; }
                                     Allow ERP Login
                                 </label>
                             </div>
-                            <span class="text-muted" style="font-size:.78rem;">Turn off for staff who don't need system access (field workers, delivery, etc.)</span>
+                            <span class="text-muted" style="font-size:var(--r2k-text-78);">Turn off for staff who don't need system access (field workers, delivery, etc.)</span>
                         </div>
 
                         <!-- Login fields — shown only when toggle is ON -->
@@ -332,7 +332,7 @@ if (!isset($BranchesList))    { $BranchesList    = []; }
                                         <input class="form-check-input" type="checkbox" id="UserIsActive" checked>
                                         <label class="form-check-label" for="UserIsActive">Active Account</label>
                                     </div>
-                                    <div class="text-muted" style="font-size:.75rem;">Inactive users cannot log in.</div>
+                                    <div class="text-muted" style="font-size:var(--r2k-text-75);">Inactive users cannot log in.</div>
                                 </div>
 
                                 <!-- Locked (edit-only) -->
@@ -343,7 +343,7 @@ if (!isset($BranchesList))    { $BranchesList    = []; }
                                             <span class="text-danger">Lock Account</span>
                                         </label>
                                     </div>
-                                    <div class="text-muted" style="font-size:.75rem;">Locked users are blocked from signing in.</div>
+                                    <div class="text-muted" style="font-size:var(--r2k-text-75);">Locked users are blocked from signing in.</div>
                                 </div>
 
                                 <!-- Portal access expiry -->
@@ -355,13 +355,13 @@ if (!isset($BranchesList))    { $BranchesList    = []; }
                                             <i class="bx bx-x"></i>
                                         </button>
                                     </div>
-                                    <div class="text-muted" style="font-size:.75rem;">After this date the user cannot sign in. Leave blank for permanent access.</div>
+                                    <div class="text-muted" style="font-size:var(--r2k-text-75);">After this date the user cannot sign in. Leave blank for permanent access.</div>
                                 </div>
 
                                 <!-- Password notice (create-only) -->
                                 <div class="col-md-6 d-none d-md-block"></div>
                                 <div class="col-12" id="pwdSetupInfo">
-                                    <div class="alert alert-info py-2 px-3 mb-0" style="font-size:.8rem;line-height:1.5;">
+                                    <div class="alert alert-info py-2 px-3 mb-0" style="font-size:var(--r2k-text-md);line-height:1.5;">
                                         <i class="bx bx-envelope me-1"></i>
                                         A password setup link will be emailed to the user after the account is created.
                                     </div>
@@ -369,8 +369,8 @@ if (!isset($BranchesList))    { $BranchesList    = []; }
 
                                 <!-- Last Login (edit-only) -->
                                 <div class="col-12 d-none border-top pt-3" id="lastLoginCard">
-                                    <div class="text-muted" style="font-size:.75rem;">Last Login</div>
-                                    <div id="lastLoginDisplay" class="fw-semibold" style="font-size:.82rem;">—</div>
+                                    <div class="text-muted" style="font-size:var(--r2k-text-75);">Last Login</div>
+                                    <div id="lastLoginDisplay" class="fw-semibold" style="font-size:var(--r2k-text-82);">—</div>
                                 </div>
 
                             </div>
@@ -386,7 +386,7 @@ if (!isset($BranchesList))    { $BranchesList    = []; }
                             <i class="bx bx-buildings me-1"></i>No active branches found. Add branches in <strong>Settings &gt; Branches</strong> first.
                         </div>
                         <?php else: ?>
-                        <div class="text-muted mb-3" style="font-size:.78rem;">
+                        <div class="text-muted mb-3" style="font-size:var(--r2k-text-78);">
                             <i class="bx bx-info-circle me-1"></i>Select which branches this staff member can access. Mark one branch as the default login branch.
                         </div>
                         <div id="branchAccessList">
@@ -399,13 +399,13 @@ if (!isset($BranchesList))    { $BranchesList    = []; }
                                            value="<?php echo (int)$b->BranchUID; ?>">
                                 </div>
                                 <div class="flex-grow-1">
-                                    <label class="form-check-label mb-0" for="branchChk_<?php echo (int)$b->BranchUID; ?>" style="font-size:.85rem; font-weight:500; cursor:pointer;">
+                                    <label class="form-check-label mb-0" for="branchChk_<?php echo (int)$b->BranchUID; ?>" style="font-size:var(--r2k-text-85); font-weight:500; cursor:pointer;">
                                         <?php echo htmlspecialchars($b->Name); ?>
                                     </label>
                                     <div class="text-muted" style="font-size:.74rem;"><?php echo htmlspecialchars($b->BranchCode); ?></div>
                                 </div>
                                 <?php if ($b->IsHeadOffice): ?>
-                                <span class="badge bg-label-primary" style="font-size:.7rem;">Head Office</span>
+                                <span class="badge bg-label-primary" style="font-size:var(--r2k-text-70);">Head Office</span>
                                 <?php endif; ?>
                             </div>
                             <?php endforeach; ?>
@@ -428,7 +428,7 @@ if (!isset($BranchesList))    { $BranchesList    = []; }
                                 <i class="bx bx-upload me-1"></i>Choose File
                             </label>
                             <input type="file" id="userAttachFile" class="d-none" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx">
-                            <span id="userAttachFileName" class="text-muted" style="font-size:.8rem;">No file chosen</span>
+                            <span id="userAttachFileName" class="text-muted" style="font-size:var(--r2k-text-md);">No file chosen</span>
                             <button type="button" class="btn btn-sm btn-success d-none" id="btnUploadAttach">
                                 <span class="spinner-border spinner-border-sm me-1 d-none" id="uploadAttachSpinner"></span>
                                 <i class="bx bx-check me-1" id="uploadAttachIcon"></i>Upload
@@ -437,7 +437,7 @@ if (!isset($BranchesList))    { $BranchesList    = []; }
 
                         <!-- Existing attachment list -->
                         <div id="userAttachList">
-                            <div class="text-muted py-3 text-center" id="userAttachEmpty" style="font-size:.82rem;">
+                            <div class="text-muted py-3 text-center" id="userAttachEmpty" style="font-size:var(--r2k-text-82);">
                                 <i class="bx bx-paperclip me-1"></i>No attachments yet.
                             </div>
                             <div id="userAttachItems"></div>

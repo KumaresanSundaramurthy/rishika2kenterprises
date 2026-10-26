@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php
 $cdnUrl     = getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN');
@@ -31,7 +31,7 @@ if (!empty($DataLists)):
 
         <!-- S.No -->
         <td class="<?php echo $showSerial ? '' : 'd-none'; ?> table-serialno">
-            <span class="text-muted" style="font-size:.78rem;"><?php echo $SerialNumber; ?></span>
+            <span class="text-muted" style="font-size:var(--r2k-text-78);"><?php echo $SerialNumber; ?></span>
         </td>
 
         <!-- Name + Avatar -->
@@ -57,7 +57,7 @@ if (!empty($DataLists)):
                         <div class="dropdown d-inline-block">
                             <span class="badge <?php echo $isActive ? 'bg-label-success' : 'bg-label-danger'; ?> cursor-pointer" style="font-size:var(--r2k-text-xs);" data-bs-toggle="dropdown">
                                 <?php echo $isActive ? 'Active' : 'In-Active'; ?>
-                                <i class="bx bx-chevron-down" style="font-size:.65rem;"></i>
+                                <i class="bx bx-chevron-down" style="font-size:var(--r2k-text-65);"></i>
                             </span>
                             <ul class="dropdown-menu r2k-action-menu">
                                 <li>
@@ -81,7 +81,7 @@ if (!empty($DataLists)):
         <!-- Area -->
         <td>
             <?php if (!empty($list->Area)): ?>
-                <span style="font-size:.82rem;"><?php echo htmlspecialchars($list->Area); ?></span>
+                <span style="font-size:var(--r2k-text-82);"><?php echo htmlspecialchars($list->Area); ?></span>
             <?php else: ?>
                 <span class="text-muted">—</span>
             <?php endif; ?>
@@ -97,12 +97,12 @@ if (!empty($DataLists)):
                           data-bs-toggle="tooltip"
                           data-bs-placement="top"
                           title="Click to copy mobile number"
-                          style="font-size:.82rem;">
+                          style="font-size:var(--r2k-text-82);">
                         <?php echo htmlspecialchars($fullMobile); ?>
                     </span>
                 </div>
                 <a href="https://wa.me/<?php echo htmlspecialchars(preg_replace('/[^0-9]/', '', $list->CountryCode . $list->MobileNumber)); ?>?text=Hi"
-                   target="_blank" class="text-success" style="font-size:.75rem;">
+                   target="_blank" class="text-success" style="font-size:var(--r2k-text-75);">
                     <i class="bx bxl-whatsapp me-1"></i>WhatsApp
                 </a>
             <?php else: ?>
@@ -113,10 +113,10 @@ if (!empty($DataLists)):
         <!-- GSTIN / Company -->
         <td>
             <?php if (!empty($list->GSTIN)): ?>
-                <div style="font-size:.82rem;font-family:monospace;"><?php echo htmlspecialchars($list->GSTIN); ?></div>
+                <div style="font-size:var(--r2k-text-82);font-family:monospace;"><?php echo htmlspecialchars($list->GSTIN); ?></div>
             <?php endif; ?>
             <?php if (!empty($list->CompanyName)): ?>
-                <div class="text-muted" style="font-size:.75rem;"><?php echo htmlspecialchars($list->CompanyName); ?></div>
+                <div class="text-muted" style="font-size:var(--r2k-text-75);"><?php echo htmlspecialchars($list->CompanyName); ?></div>
             <?php else: ?>
                 <?php if (empty($list->GSTIN)): ?><span class="text-muted">—</span><?php endif; ?>
             <?php endif; ?>
@@ -223,7 +223,7 @@ else:
         <td colspan="9" style="padding:0;border:none;">
             <div class="d-flex flex-column align-items-center py-5">
                 <img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:150px;object-fit:contain;">
-                <span class="text-muted mb-3" style="font-size:.9rem;">No vendors found</span>
+                <span class="text-muted mb-3" style="font-size:var(--r2k-text-90);">No vendors found</span>
                 <button type="button" class="btn btn-primary btn-sm px-4" onclick="openVendorModal('add')">
                     <i class="bx bx-plus me-1"></i>Create Vendor
                 </button>

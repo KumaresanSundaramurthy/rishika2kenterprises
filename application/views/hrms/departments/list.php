@@ -7,7 +7,7 @@ if (!empty($DataLists)):
         $isSystem = ($row->OrgUID ?? 0) == 0;
 ?>
 <tr>
-  <td class="text-muted <?php echo $showSerial ? '' : 'd-none'; ?>" style="font-size:.8rem;"><?php echo $SerialNumber; ?></td>
+  <td class="text-muted <?php echo $showSerial ? '' : 'd-none'; ?>" style="font-size:var(--r2k-text-md);"><?php echo $SerialNumber; ?></td>
   <td>
     <div class="fw-semibold"><?php echo htmlspecialchars($row->DepartmentName ?? ''); ?></div>
   </td>

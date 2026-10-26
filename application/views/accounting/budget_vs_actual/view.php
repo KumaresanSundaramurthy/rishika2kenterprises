@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 $cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? 'â‚¹');
 $this->load->view('common/header'); ?>
 
@@ -71,7 +71,7 @@ $this->load->view('common/header'); ?>
                                 <div class="card-body p-3 d-flex align-items-center gap-3">
                                     <div class="bva-sum-icon bva-icon-income"><i class="bx bx-trending-up fs-4"></i></div>
                                     <div>
-                                        <div class="text-muted" style="font-size:.75rem;">Budget Income</div>
+                                        <div class="text-muted" style="font-size:var(--r2k-text-75);">Budget Income</div>
                                         <div class="fw-bold text-success" style="font-size:1rem;" id="bvaSumBudgetInc">—</div>
                                         <div class="text-muted" style="font-size:var(--r2k-text-sm);">Actual: <span id="bvaSumActualInc">—</span></div>
                                     </div>
@@ -83,7 +83,7 @@ $this->load->view('common/header'); ?>
                                 <div class="card-body p-3 d-flex align-items-center gap-3">
                                     <div class="bva-sum-icon bva-icon-expense"><i class="bx bx-trending-down fs-4"></i></div>
                                     <div>
-                                        <div class="text-muted" style="font-size:.75rem;">Budget Expense</div>
+                                        <div class="text-muted" style="font-size:var(--r2k-text-75);">Budget Expense</div>
                                         <div class="fw-bold text-danger" style="font-size:1rem;" id="bvaSumBudgetExp">—</div>
                                         <div class="text-muted" style="font-size:var(--r2k-text-sm);">Actual: <span id="bvaSumActualExp">—</span></div>
                                     </div>
@@ -95,7 +95,7 @@ $this->load->view('common/header'); ?>
                                 <div class="card-body p-3 d-flex align-items-center gap-3">
                                     <div class="bva-sum-icon bva-icon-net" id="bvaSumNetIcon"><i class="bx bx-money fs-4"></i></div>
                                     <div>
-                                        <div class="text-muted" style="font-size:.75rem;">Budget Net Profit</div>
+                                        <div class="text-muted" style="font-size:var(--r2k-text-75);">Budget Net Profit</div>
                                         <div class="fw-bold" style="font-size:1rem;" id="bvaSumBudgetNet">—</div>
                                         <div class="text-muted" style="font-size:var(--r2k-text-sm);">Actual: <span id="bvaSumActualNet">—</span></div>
                                     </div>
@@ -107,7 +107,7 @@ $this->load->view('common/header'); ?>
                                 <div class="card-body p-3 d-flex align-items-center gap-3">
                                     <div class="bva-sum-icon bva-icon-var" id="bvaSumVarIcon"><i class="bx bx-transfer fs-4"></i></div>
                                     <div>
-                                        <div class="text-muted" style="font-size:.75rem;">Net Variance</div>
+                                        <div class="text-muted" style="font-size:var(--r2k-text-75);">Net Variance</div>
                                         <div class="fw-bold" style="font-size:1rem;" id="bvaSumNetVar">—</div>
                                         <div class="text-muted" style="font-size:var(--r2k-text-sm);" id="bvaSumVarLabel">vs Budget</div>
                                     </div>
@@ -121,7 +121,7 @@ $this->load->view('common/header'); ?>
                         <div class="card-body p-0" id="bvaReportArea">
                             <div class="d-flex flex-column align-items-center py-5 text-muted" id="bvaEmptyState">
                                 <i class="bx bx-bar-chart fs-1 mb-2" style="color:#ccc;"></i>
-                                <span style="font-size:.9rem;">Select FY and dates, then click Load Report</span>
+                                <span style="font-size:var(--r2k-text-90);">Select FY and dates, then click Load Report</span>
                             </div>
                         </div>
                     </div>

@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 /**
  * Product Profile Modal — Transactions Tab
  *
@@ -51,8 +51,8 @@ foreach ($Rows as $r) {
 ?>
 <style>
 .pp-tx-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid rgba(0,0,0,.06)}
-.pp-tx-bar .form-select{font-size:.78rem;padding:4px 28px 4px 10px;width:auto;min-width:130px;max-width:190px}
-.pp-tx-count{font-size:.75rem;color:#94a3b8;margin-left:auto;white-space:nowrap}
+.pp-tx-bar .form-select{font-size:var(--r2k-text-78);padding:4px 28px 4px 10px;width:auto;min-width:130px;max-width:190px}
+.pp-tx-count{font-size:var(--r2k-text-75);color:#94a3b8;margin-left:auto;white-space:nowrap}
 
 .pp-tx-wrap{overflow-x:auto}
 .pp-tx-tbl{width:100%;border-collapse:collapse;font-size:.81rem}
@@ -61,18 +61,18 @@ foreach ($Rows as $r) {
 .pp-tx-tbl tbody tr:last-child td{border-bottom:none}
 .pp-tx-tbl tbody tr:hover td{background:#f8fafc}
 
-.pp-tx-ref{font-weight:700;color:#374151;font-size:.82rem}
+.pp-tx-ref{font-weight:700;color:#374151;font-size:var(--r2k-text-82)}
 .pp-tx-date{font-size:var(--r2k-text-sm);color:#94a3b8;margin-top:2px}
-.pp-tx-party{font-size:.82rem;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
+.pp-tx-party{font-size:var(--r2k-text-82);color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
 .pp-tx-qty-in{color:#16a34a;font-weight:700}
 .pp-tx-qty-out{color:#ef4444;font-weight:700}
 .pp-tx-qty-neutral{color:#374151;font-weight:600}
 .pp-tx-amt{font-weight:700;color:#1e293b;white-space:nowrap}
-.pp-tx-variant-chip{display:inline-block;padding:2px 8px;border-radius:5px;font-size:.7rem;font-weight:600;background:#dbeafe;color:#1d4ed8;white-space:nowrap}
+.pp-tx-variant-chip{display:inline-block;padding:2px 8px;border-radius:5px;font-size:var(--r2k-text-70);font-weight:600;background:#dbeafe;color:#1d4ed8;white-space:nowrap}
 .pp-tx-footer-note{padding:8px 14px;font-size:var(--r2k-text-sm);color:#94a3b8;border-top:1px solid #f1f5f9;background:#f8fafc}
 .pp-tx-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 20px;color:#94a3b8;text-align:center}
 .pp-tx-empty i{font-size:2.2rem;margin-bottom:10px;opacity:.35}
-.pp-tx-empty-title{font-size:.88rem;font-weight:600;color:#64748b}
+.pp-tx-empty-title{font-size:var(--r2k-text-88);font-weight:600;color:#64748b}
 
 @media(prefers-color-scheme:dark){
     .pp-tx-bar{border-color:rgba(255,255,255,.08)}
@@ -173,7 +173,7 @@ foreach ($Rows as $r) {
                     <span class="pp-tx-qty-neutral"><?php echo smartDecimal($qty); ?></span>
                 <?php endif; ?>
             </td>
-            <td class="text-end text-nowrap text-muted" style="font-size:.78rem;"><?php echo $Cur . ' ' . number_format($up, $Dec, '.', ''); ?></td>
+            <td class="text-end text-nowrap text-muted" style="font-size:var(--r2k-text-78);"><?php echo $Cur . ' ' . number_format($up, $Dec, '.', ''); ?></td>
             <td class="text-end text-nowrap pp-tx-amt"><?php echo $Cur . ' ' . number_format($amount, $Dec, '.', ''); ?></td>
             <td><span class="badge bg-label-<?php echo $badgeCls; ?>" style="font-size:var(--r2k-text-xs);"><?php echo htmlspecialchars($status); ?></span></td>
         </tr>

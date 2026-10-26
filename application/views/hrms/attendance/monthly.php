@@ -39,18 +39,18 @@ $statusMap    = ['Present'=>'P','Absent'=>'A','HalfDay'=>'H','Leave'=>'L','Holid
           <div class="d-flex gap-3 mb-3 flex-wrap">
             <?php $legends = ['P'=>['#10b981',t('att_present','Present')],'A'=>['#ef4444',t('att_absent','Absent')],'H'=>['#f59e0b',t('att_halfday','Half Day')],'L'=>['#3b82f6',t('att_leave','Leave')],'Ho'=>['#94a3b8',t('att_holiday','Holiday')],'W'=>['#94a3b8',t('att_weekoff','Week Off')]]; ?>
             <?php foreach ($legends as $k => $v): ?>
-            <div class="d-flex align-items-center gap-1"><span style="display:inline-block;width:20px;height:20px;border-radius:4px;background:<?php echo $v[0]; ?>;text-align:center;color:#fff;font-size:.65rem;line-height:20px;"><?php echo $k; ?></span><span style="font-size:.8rem;"><?php echo $v[1]; ?></span></div>
+            <div class="d-flex align-items-center gap-1"><span style="display:inline-block;width:20px;height:20px;border-radius:4px;background:<?php echo $v[0]; ?>;text-align:center;color:#fff;font-size:var(--r2k-text-65);line-height:20px;"><?php echo $k; ?></span><span style="font-size:var(--r2k-text-md);"><?php echo $v[1]; ?></span></div>
             <?php endforeach; ?>
           </div>
 
           <div class="card">
             <div class="table-responsive" style="overflow-x:auto;">
-              <table class="table mb-0" style="font-size:.78rem;white-space:nowrap;">
+              <table class="table mb-0" style="font-size:var(--r2k-text-78);white-space:nowrap;">
                 <thead class="r2k-thead">
                   <tr>
                     <th style="min-width:180px;position:sticky;left:0;background:#f8f9fa;z-index:2;"><?php echo t('col_employee_name', 'Employee'); ?></th>
                     <?php for ($d = 1; $d <= $days; $d++): $dow = date('N', mktime(0,0,0,$Month,$d,$Year)); ?>
-                    <th class="text-center" style="min-width:30px;<?php echo $dow == 7 ? 'color:#94a3b8;' : ''; ?>"><?php echo $d; ?><br><span style="font-size:.65rem;"><?php echo date('D', mktime(0,0,0,$Month,$d,$Year)); ?></span></th>
+                    <th class="text-center" style="min-width:30px;<?php echo $dow == 7 ? 'color:#94a3b8;' : ''; ?>"><?php echo $d; ?><br><span style="font-size:var(--r2k-text-65);"><?php echo date('D', mktime(0,0,0,$Month,$d,$Year)); ?></span></th>
                     <?php endfor; ?>
                     <th class="text-center"><?php echo t('att_present_short', 'P'); ?></th><th class="text-center"><?php echo t('att_absent_short', 'A'); ?></th><th class="text-center"><?php echo t('att_halfday_short', 'H'); ?></th><th class="text-center"><?php echo t('att_leave_short', 'L'); ?></th>
                   </tr>
@@ -66,7 +66,7 @@ $statusMap    = ['Present'=>'P','Absent'=>'A','HalfDay'=>'H','Leave'=>'L','Holid
                   <tr>
                     <td style="position:sticky;left:0;background:#fff;z-index:1;">
                       <div class="fw-semibold"><?php echo htmlspecialchars($emp->EmployeeName ?? ''); ?></div>
-                      <div class="text-muted" style="font-size:.7rem;"><?php echo htmlspecialchars($emp->EmployeeCode ?? ''); ?></div>
+                      <div class="text-muted" style="font-size:var(--r2k-text-70);"><?php echo htmlspecialchars($emp->EmployeeCode ?? ''); ?></div>
                     </td>
                     <?php for ($d = 1; $d <= $days; $d++): $code = $attMap[$d] ?? ''; $bg = $statusColors[$code] ?? '#e2e8f0'; ?>
                     <td class="text-center p-0" style="height:32px;">

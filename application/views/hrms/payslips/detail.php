@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 $cur  = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
 $s    = $Slip ?? new stdClass();
 $org  = $OrgInfo ?? new stdClass();
@@ -30,7 +30,7 @@ $period = ($montrs[(int)($s->PayrollMontr ?? 0)] ?? '—') . ' ' . ($s->PayrollY
                   <div class="text-muted" style="font-size:.83rem;"><?php echo htmlspecialchars($org->Address ?? ''); ?></div>
                 </div>
                 <div class="text-end">
-                  <div class="text-muted" style="font-size:.8rem;"><?php echo strtoupper(t('lbl_salary_slip', 'Salary Slip')); ?></div>
+                  <div class="text-muted" style="font-size:var(--r2k-text-md);"><?php echo strtoupper(t('lbl_salary_slip', 'Salary Slip')); ?></div>
                   <div class="fw-semibold"><?php echo $period; ?></div>
                   <span class="badge bg-label-<?php echo ($s->PayrollStatus ?? '') === 'Paid' ? 'success' : 'primary'; ?>"><?php echo $s->PayrollStatus ?? '—'; ?></span>
                 </div>

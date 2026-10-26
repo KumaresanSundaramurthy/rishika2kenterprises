@@ -161,16 +161,16 @@ foreach ($DataLists as $row):
 
     <td class="align-middle">
         <?php if ($row->ModuleName): ?>
-            <span class="badge bg-label-primary" style="font-size:.75rem;"><?php echo $moduleName; ?></span>
+            <span class="badge bg-label-primary" style="font-size:var(--r2k-text-75);"><?php echo $moduleName; ?></span>
         <?php else: ?>
             <span class="text-muted small">—</span>
         <?php endif; ?>
     </td>
 
     <td class="align-middle">
-        <code class="fw-bold text-primary" style="font-size:.9rem;"><?php echo $preview; ?></code>
+        <code class="fw-bold text-primary" style="font-size:var(--r2k-text-90);"><?php echo $preview; ?></code>
         <?php if ($isDefault): ?>
-            <span class="badge bg-success ms-1" style="font-size:.65rem;"><?php echo t('lbl_default', 'Default'); ?></span>
+            <span class="badge bg-success ms-1" style="font-size:var(--r2k-text-65);"><?php echo t('lbl_default', 'Default'); ?></span>
         <?php endif; ?>
     </td>
 

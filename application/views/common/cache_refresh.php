@@ -37,14 +37,14 @@
         }
         .icon svg { width: 32px; height: 32px; color: #f97316; }
         h2 { font-size: 1.25rem; font-weight: 700; color: #1e293b; margin-bottom: 12px; }
-        p  { font-size: .9rem; color: #64748b; line-height: 1.6; margin-bottom: 8px; }
+        p  { font-size:var(--r2k-text-90); color: #64748b; line-height: 1.6; margin-bottom: 8px; }
         .code {
             display: inline-block;
             background: #f8fafc;
             border: 1px solid #e2e8f0;
             border-radius: 6px;
             padding: 10px 16px;
-            font-size: .78rem;
+            font-size:var(--r2k-text-78);
             color: #475569;
             font-family: monospace;
             margin: 12px 0 28px;

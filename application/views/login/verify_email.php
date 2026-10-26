@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -49,7 +49,7 @@ body {
 .title-expired  { color: #fbbf24; }
 .title-verified { color: #60a5fa; }
 .msg {
-    font-size: 0.9rem;
+    font-size:var(--r2k-text-90);
     color: rgba(180,210,230,0.7);
     line-height: 1.6;
     margin-bottom: 1.75rem;
@@ -73,7 +73,7 @@ body {
 .resend-form { margin-top: 0.25rem; }
 .resend-label {
     display: block;
-    font-size: 0.82rem;
+    font-size:var(--r2k-text-82);
     color: rgba(180,210,230,0.6);
     margin-bottom: 0.6rem;
 }
@@ -84,7 +84,7 @@ body {
     border: 1px solid rgba(255,255,255,0.12);
     background: rgba(255,255,255,0.05);
     color: #e2e8f0;
-    font-size: 0.9rem;
+    font-size:var(--r2k-text-90);
     margin-bottom: 0.85rem;
     outline: none;
     transition: border-color 0.2s;
@@ -106,7 +106,7 @@ body {
 .btn-resend:disabled { opacity: 0.55; cursor: not-allowed; }
 .resend-status {
     margin-top: 0.85rem;
-    font-size: 0.85rem;
+    font-size:var(--r2k-text-85);
     line-height: 1.5;
     min-height: 1.2rem;
 }

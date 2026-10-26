@@ -189,7 +189,7 @@ $this->load->view('common/header'); ?>
                         <tbody id="mjLinesBody"></tbody>
                         <tfoot>
                             <tr class="fw-semibold" style="background:#f8f5ff;">
-                                <td colspan="2" class="text-end text-muted" style="font-size:.8rem;"><?php echo t('lbl_totals', 'Totals'); ?></td>
+                                <td colspan="2" class="text-end text-muted" style="font-size:var(--r2k-text-md);"><?php echo t('lbl_totals', 'Totals'); ?></td>
                                 <td class="text-end text-success" id="mjTotalDr">0.00</td>
                                 <td class="text-end text-danger" id="mjTotalCr">0.00</td>
                                 <td colspan="2">
@@ -364,7 +364,7 @@ $this->load->view('common/header'); ?>
     /** @returns {string} */
     function _mjRowHtml(idx) {
         return '<tr id="mjRow' + idx + '">' +
-            '<td class="text-muted" style="font-size:.78rem;width:32px;">' + (idx + 1) + '</td>' +
+            '<td class="text-muted" style="font-size:var(--r2k-text-78);width:32px;">' + (idx + 1) + '</td>' +
             '<td><select class="form-select form-select-sm mj-ledger-sel" style="min-width:220px;" data-row="' + idx + '"></select></td>' +
             '<td><input type="number" class="form-control form-control-sm text-end mj-dr" data-row="' + idx + '" min="0" step="0.01" placeholder="0.00"></td>' +
             '<td><input type="number" class="form-control form-control-sm text-end mj-cr" data-row="' + idx + '" min="0" step="0.01" placeholder="0.00"></td>' +

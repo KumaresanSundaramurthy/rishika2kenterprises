@@ -19,7 +19,7 @@
 
                         <!-- Info bar -->
                         <div class="px-3 py-2 border-bottom justify-content-between d-flex align-items-center">
-                            <span class="badge bg-label-secondary d-inline-flex align-items-center gap-1" style="font-size:.78rem;font-weight:500;">
+                            <span class="badge bg-label-secondary d-inline-flex align-items-center gap-1" style="font-size:var(--r2k-text-78);font-weight:500;">
                                 <i class="bx bx-info-circle"></i>
                                 One configuration per transaction type &nbsp;&bull;&nbsp; Max <?php echo $ThermalTypeCount; ?> records
                             </span>

@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 var _tlFilter      = {};
 var _tlProdCache   = null;
@@ -70,7 +70,7 @@ function _tlLoadItemsIntoBox() {
         function (products) {
             _tlItemsLoaded = true;
             if (!products || !products.length) {
-                $list.html('<div class="text-center py-3 text-muted" style="font-size:.8rem;">No items found</div>');
+                $list.html('<div class="text-center py-3 text-muted" style="font-size:var(--r2k-text-md);">No items found</div>');
                 return;
             }
             $list.empty();
@@ -102,11 +102,11 @@ function _tlLoadItemsIntoBox() {
                             );
                         });
                     } else {
-                        $list.html('<div class="text-center py-3 text-muted" style="font-size:.8rem;">No items found</div>');
+                        $list.html('<div class="text-center py-3 text-muted" style="font-size:var(--r2k-text-md);">No items found</div>');
                     }
                 },
                 error: function () {
-                    $list.html('<div class="text-center py-3 text-danger" style="font-size:.8rem;">Failed to load items</div>');
+                    $list.html('<div class="text-center py-3 text-danger" style="font-size:var(--r2k-text-md);">Failed to load items</div>');
                 }
             });
         }

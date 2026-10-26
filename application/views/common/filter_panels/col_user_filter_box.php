@@ -71,7 +71,7 @@ $orgUsers  = $cfg['OrgUsers'] ?? [];
     <?php else: ?>
     <div class="d-flex flex-column align-items-center justify-content-center py-4 text-muted">
         <i class="bx bx-info-circle fs-2 mb-2"></i>
-        <span style="font-size:.8rem;">No users found</span>
+        <span style="font-size:var(--r2k-text-md);">No users found</span>
     </div>
     <?php endif; ?>
 

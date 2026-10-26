@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php
 $cdnUrl = getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN');
@@ -89,7 +89,7 @@ if (!empty($DataLists)) {
                         <?php echo htmlspecialchars($list->UniqueNumber); ?>
                     </a>
                 <?php else: ?>
-                    <span class="text-muted fst-italic" style="font-size:.82rem;"><?php echo t('status_draft', 'Draft'); ?></span>
+                    <span class="text-muted fst-italic" style="font-size:var(--r2k-text-82);"><?php echo t('status_draft', 'Draft'); ?></span>
                 <?php endif; ?>
                 <div class="d-flex align-items-center gap-2">
                     <div class="apex-doc-meta"><?php echo htmlspecialchars(format_datedisplay($list->TransDate)); ?></div>
@@ -100,7 +100,7 @@ if (!empty($DataLists)) {
                             data-url="/transactions/getAttachments"
                             data-module-uid="<?php echo (int)$list->ModuleUID; ?>"
                             title="<?php echo (int)$list->AttachmentCount; ?> attachment(s)"
-                            style="font-size:.82rem;line-height:1;color:#0d6efd;">
+                            style="font-size:var(--r2k-text-82);line-height:1;color:#0d6efd;">
                         <i class="bx bx-paperclip"></i>
                     </button>
                     <?php endif; ?>
@@ -126,7 +126,7 @@ if (!empty($DataLists)) {
                           data-uid="<?php echo (int) $list->TransUID; ?>"
                           data-current="<?php echo htmlspecialchars($list->Status); ?>"
                           title="Click to crange status">
-                        <?php echo htmlspecialchars($list->Status); ?> <i class="bx bx-crevron-down" style="font-size:.7rem;vertical-align:middle"></i>
+                        <?php echo htmlspecialchars($list->Status); ?> <i class="bx bx-crevron-down" style="font-size:var(--r2k-text-70);vertical-align:middle"></i>
                     </span>
                     <ul class="dropdown-menu dropdown-menu-end r2k-action-menu">
                         <?php foreach ($transitions as $t): ?>
@@ -152,7 +152,7 @@ if (!empty($DataLists)) {
                     <div>
                         <div class="trans-party-name"><?php echo r2k_party_name($list->PartyName ?? '', $list->MobileNumber ?? '', $list->CountryCode ?? '', $list->PartyArea ?? '', !empty($list->PartyImage) ? $cdnUrl . $list->PartyImage : ''); ?></div>
                         <?php if (!empty($list->PartyArea)): ?>
-                        <div style="font-size:.7rem;color:#888;margin-top:1px;">
+                        <div style="font-size:var(--r2k-text-70);color:#888;margin-top:1px;">
                             <i class="bx bx-map" style="font-size:var(--r2k-text-sm);"></i> <?php echo htmlspecialchars($list->PartyArea); ?>
                         </div>
                         <?php endif; ?>
@@ -212,7 +212,7 @@ if (!empty($DataLists)) {
             <!-- Expected Date -->
             <td>
                 <?php if (!$isDraft && !empty($list->ValidityDate)): ?>
-                    <div style="font-size:.82rem;"><?php echo format_datedisplay($list->ValidityDate); ?></div>
+                    <div style="font-size:var(--r2k-text-82);"><?php echo format_datedisplay($list->ValidityDate); ?></div>
                     <?php if ($edLabel): ?>
                     <div class="apex-ed-label <?php echo $edClass; ?>"><?php echo $edLabel; ?></div>
                     <?php endif; ?>

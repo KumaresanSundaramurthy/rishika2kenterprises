@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
 <!-- Credits Detail Modal — informational; JS populates via AJAX on badge click -->
 <div class="modal fade" id="creditsDetailModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable" style="margin-top:60px;">
@@ -25,7 +25,7 @@
 
                 <div id="credDetailLoading" class="text-center py-4">
                     <div class="spinner-border spinner-border-sm text-warning me-2"></div>
-                    <span class="text-muted" style="font-size:.85rem;">Loading credit details...</span>
+                    <span class="text-muted" style="font-size:var(--r2k-text-85);">Loading credit details...</span>
                 </div>
 
                 <div id="credDetailContent" class="d-none">
@@ -37,7 +37,7 @@
                             <span class="badge ms-1" style="background:#fff3cd;color:#856404;border:1px solid #ffc107;font-weight:700;" id="credOaTotal">— 0.00</span>
                         </div>
                         <div class="table-responsive">
-                            <table class="table table-sm table-hover mb-0" style="font-size:.82rem;">
+                            <table class="table table-sm table-hover mb-0" style="font-size:var(--r2k-text-82);">
                                 <thead style="background:#fff3cd;">
                                     <tr>
                                         <th style="color:#856404;font-weight:700;text-transform:uppercase;font-size:var(--r2k-text-sm);letter-spacing:.04em;white-space:nowrap;">Invoice No</th>
@@ -60,7 +60,7 @@
                             <span class="badge ms-1" style="background:#fff3cd;color:#856404;border:1px solid #ffc107;font-weight:700;" id="credAdvTotal">— 0.00</span>
                         </div>
                         <div class="table-responsive">
-                            <table class="table table-sm table-hover mb-0" style="font-size:.82rem;">
+                            <table class="table table-sm table-hover mb-0" style="font-size:var(--r2k-text-82);">
                                 <thead style="background:#fff3cd;">
                                     <tr>
                                         <th style="color:#856404;font-weight:700;text-transform:uppercase;font-size:var(--r2k-text-sm);letter-spacing:.04em;white-space:nowrap;">Invoice No</th>
@@ -78,7 +78,7 @@
             </div>
 
             <div class="modal-footer py-2 justify-content-between border-top" style="border-color:#ffc107 !important;background:#fffdf0;">
-                <div style="font-size:.82rem;color:#856404;" id="credDetailSummary"></div>
+                <div style="font-size:var(--r2k-text-82);color:#856404;" id="credDetailSummary"></div>
                 <button type="button" class="btn btn-sm btn-outline-warning fw-semibold" data-bs-dismiss="modal">Close</button>
             </div>
 

@@ -1,4 +1,4 @@
-// ── Purchase Return form — init, submit, and sticky bar ──────────────────────
+﻿// ── Purchase Return form — init, submit, and sticky bar ──────────────────────
 // PHP data is injected by form.php as window._transFormData before this file loads.
 
 var _cfg = window._transFormData || {};
@@ -177,10 +177,10 @@ $(function () {
                         var discAmt  = parseFloat(item.DiscountAmount) || 0;
                         var rowTotal = parseFloat(item.NetAmount)     || 0;
                         var taxCell  = taxPct > 0
-                            ? taxPct + '%<br><span class="text-muted" style="font-size:.75rem;">' + cur + ' ' + smartDecimal(taxAmt, 2, true) + '</span>'
+                            ? taxPct + '%<br><span class="text-muted" style="font-size:var(--r2k-text-75);">' + cur + ' ' + smartDecimal(taxAmt, 2, true) + '</span>'
                             : '<span class="text-muted">—</span>';
                         var discCell = disc > 0
-                            ? disc + '%<br><span class="text-muted" style="font-size:.75rem;">' + cur + ' ' + smartDecimal(discAmt, 2, true) + '</span>'
+                            ? disc + '%<br><span class="text-muted" style="font-size:var(--r2k-text-75);">' + cur + ' ' + smartDecimal(discAmt, 2, true) + '</span>'
                             : '<span class="text-muted">—</span>';
                         var inCart   = (typeof billManager !== 'undefined' && billManager.getItemById(item.ProductUID) !== null);
                         if (!inCart) availCount++;

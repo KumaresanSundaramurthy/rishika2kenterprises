@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 
 $_today    = date('Y-m-d');
 $_listFmt  = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
@@ -19,24 +19,24 @@ $this->load->view('common/transactions/header'); ?>
 .rpt-stat-label{font-size:var(--r2k-text-sm);color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.03em}
 .rpt-stat-val{font-size:1.05rem;font-weight:700;color:#1e293b;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rpt-date-group{display:flex;align-items:center;gap:6px;flex-shrink:0}
-.rpt-date-label{font-size:.75rem;color:#64748b;font-weight:600;white-space:nowrap}
+.rpt-date-label{font-size:var(--r2k-text-75);color:#64748b;font-weight:600;white-space:nowrap}
 .rpt-date-input-wrap{display:flex;align-items:center;gap:4px;background:#fff;border:1.5px solid #e2e8f0;border-radius:7px;padding:0 8px;height:34px;cursor:pointer;transition:border-color .12s}
 .rpt-date-input-wrap:focus-within{border-color:#7c3aed}
-.rpt-date-input-wrap i{color:#7c3aed;font-size:.88rem;flex-shrink:0}
-.rpt-fp-input{border:none;outline:none;background:transparent;font-size:.82rem;font-weight:600;color:#1e293b;width:108px;cursor:pointer}
+.rpt-date-input-wrap i{color:#7c3aed;font-size:var(--r2k-text-88);flex-shrink:0}
+.rpt-fp-input{border:none;outline:none;background:transparent;font-size:var(--r2k-text-82);font-weight:600;color:#1e293b;width:108px;cursor:pointer}
 
 /* Trial Balance Table */
 .rpt-table-wrap{overflow-x:auto}
-.rpt-table{width:100%;border-collapse:collapse;font-size:.82rem}
-.rpt-table thead th{background:#f8fafc;padding:8px 12px;font-size:.70rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #e2e8f0;white-space:nowrap;position:sticky;top:0;z-index:1}
+.rpt-table{width:100%;border-collapse:collapse;font-size:var(--r2k-text-82)}
+.rpt-table thead th{background:#f8fafc;padding:8px 12px;font-size:var(--r2k-text-70);font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #e2e8f0;white-space:nowrap;position:sticky;top:0;z-index:1}
 .rpt-table tbody tr{border-bottom:1px solid #f1f5f9;transition:background .1s}
 .rpt-table tbody tr:hover{background:#f8fafc}
 .rpt-table td{padding:8px 12px;vertical-align:middle}
-.rpt-table tfoot td{padding:9px 12px;font-weight:700;font-size:.82rem;background:#f8fafc;border-top:2px solid #e2e8f0}
+.rpt-table tfoot td{padding:9px 12px;font-weight:700;font-size:var(--r2k-text-82);background:#f8fafc;border-top:2px solid #e2e8f0}
 .rpt-col-num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
 .rpt-col-num-hd{text-align:right}
-.tb-group-hd td{background:#f1f5f9;font-size:.70rem;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.06em;padding:6px 12px}
-.tb-type-chip{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:6px;font-size:.70rem;font-weight:700}
+.tb-group-hd td{background:#f1f5f9;font-size:var(--r2k-text-70);font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.06em;padding:6px 12px}
+.tb-type-chip{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:6px;font-size:var(--r2k-text-70);font-weight:700}
 .tb-type-asset{background:#dbeafe;color:#1d4ed8}
 .tb-type-liability{background:#ffedd5;color:#9a3412}
 .tb-type-income{background:#dcfce7;color:#166534}
@@ -48,16 +48,16 @@ $this->load->view('common/transactions/header'); ?>
 .tb-dr{color:#2563eb;font-weight:600}
 .tb-cr{color:#dc2626;font-weight:600}
 .tb-zero{color:#94a3b8}
-.tb-balanced-ok{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:#dcfce7;color:#166534;border-radius:8px;font-size:.75rem;font-weight:700}
-.tb-balanced-off{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:#fee2e2;color:#991b1b;border-radius:8px;font-size:.75rem;font-weight:700}
+.tb-balanced-ok{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:#dcfce7;color:#166534;border-radius:8px;font-size:var(--r2k-text-75);font-weight:700}
+.tb-balanced-off{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:#fee2e2;color:#991b1b;border-radius:8px;font-size:var(--r2k-text-75);font-weight:700}
 .rpt-loading-cell{padding:48px 0!important;text-align:center}
-.rpt-loading{display:flex;align-items:center;justify-content:center;color:#64748b;font-size:.85rem}
+.rpt-loading{display:flex;align-items:center;justify-content:center;color:#64748b;font-size:var(--r2k-text-85)}
 .rpt-empty{display:flex;flex-direction:column;align-items:center;padding:50px 20px;color:#94a3b8}
 .rpt-empty i{font-size:2.5rem;margin-bottom:8px;opacity:.5}
-.rpt-empty-title{font-size:.9rem;font-weight:600;color:#64748b;margin-bottom:4px}
-.rpt-tbl-footer{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-top:1px solid #e2e8f0;background:#f8fafc;font-size:.8rem;flex-wrap:wrap;gap:8px}
+.rpt-empty-title{font-size:var(--r2k-text-90);font-weight:600;color:#64748b;margin-bottom:4px}
+.rpt-tbl-footer{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-top:1px solid #e2e8f0;background:#f8fafc;font-size:var(--r2k-text-md);flex-wrap:wrap;gap:8px}
 .rpt-footer-left{color:#64748b}
-.rpt-footer-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:8px;font-size:.78rem;font-weight:600}
+.rpt-footer-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:8px;font-size:var(--r2k-text-78);font-weight:600}
 .rpt-footer-chip-blue{background:#dbeafe;color:#1d4ed8}
 .rpt-footer-chip-red{background:#fee2e2;color:#991b1b}
 

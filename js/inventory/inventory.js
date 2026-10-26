@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 // ── Module source labels for timeline ────────────────────────────────────────
 var INV_MODULE_LABELS = {
@@ -305,8 +305,8 @@ function invRenderTimeline(rows) {
     rows.forEach(function (row) {
         var isIN = row.MovementType === 'IN';
         var dirBadge = isIN
-            ? '<span class="badge" style="background:#dcfce7;color:#16a34a;font-size:.7rem;">▲ IN</span>'
-            : '<span class="badge" style="background:#fee2e2;color:#dc2626;font-size:.7rem;">▼ OUT</span>';
+            ? '<span class="badge" style="background:#dcfce7;color:#16a34a;font-size:var(--r2k-text-70);">▲ IN</span>'
+            : '<span class="badge" style="background:#fee2e2;color:#dc2626;font-size:var(--r2k-text-70);">▼ OUT</span>';
 
         var moduleUID = parseInt(row.ModuleUID);
         var moduleMeta = INV_MODULE_LABELS[moduleUID] || { label: 'Unknown', color: '#64748b' };
@@ -316,7 +316,7 @@ function invRenderTimeline(rows) {
         var ref = '—';
         if (moduleUID === 118) {
             var adjLabel = row.AdjUID ? 'ADJ-' + row.AdjUID : (row.AdjCategory || 'Manual');
-            ref = '<span class="badge text-bg-light border" style="font-size:.7rem;">' + escHtml(adjLabel) + '</span>';
+            ref = '<span class="badge text-bg-light border" style="font-size:var(--r2k-text-70);">' + escHtml(adjLabel) + '</span>';
         } else if (row.UniqueNumber) {
             ref = escHtml(row.UniqueNumber);
         } else if (row.TransNumber) {
@@ -372,8 +372,8 @@ function invRenderTimeline(rows) {
  * @returns {string}
  */
 function invRenderVariantStock(variants) {
-    var html = '<div style="font-size:.78rem;padding:.25rem 0;">'
-        + '<table class="table table-sm mb-0" style="font-size:.78rem;">'
+    var html = '<div style="font-size:var(--r2k-text-78);padding:.25rem 0;">'
+        + '<table class="table table-sm mb-0" style="font-size:var(--r2k-text-78);">'
         + '<thead class="table-light"><tr>'
         + '<th style="font-weight:600;">Brand</th>'
         + '<th style="font-weight:600;">Size</th>'
@@ -575,13 +575,13 @@ $(document).ready(function () {
             data: { ProductUID: uid, [CsrfName]: CsrfToken },
             success: function (r) {
                 if (r.Error || !r.Variants || !r.Variants.length) {
-                    $panel.html('<div class="text-muted py-2" style="font-size:.8rem;">No variant stock data found.</div>');
+                    $panel.html('<div class="text-muted py-2" style="font-size:var(--r2k-text-md);">No variant stock data found.</div>');
                     return;
                 }
                 $panel.html(invRenderVariantStock(r.Variants));
             },
             error: function () {
-                $panel.html('<div class="text-danger py-2" style="font-size:.8rem;">Failed to load variant stock.</div>');
+                $panel.html('<div class="text-danger py-2" style="font-size:var(--r2k-text-md);">Failed to load variant stock.</div>');
             }
         });
     });

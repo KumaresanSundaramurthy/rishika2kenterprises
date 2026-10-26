@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php
 $cdnUrl = getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN');
@@ -112,13 +112,13 @@ if (!empty($DataLists)):
         </td>
 
         <td class="<?php echo $showSerial ? '' : 'd-none'; ?> table-serialno" style="width:44px">
-            <span class="text-muted" style="font-size:.78rem;"><?php echo $SerialNumber; ?></span>
+            <span class="text-muted" style="font-size:var(--r2k-text-78);"><?php echo $SerialNumber; ?></span>
         </td>
 
         <!-- Order Number -->
         <td>
             <?php if ($isDraft || empty($list->UniqueNumber)): ?>
-                <span class="trans-doc-draft"><i class="bx bx-pencil me-1" style="font-size:.8rem;"></i><?php echo t('status_draft', 'Draft'); ?></span>
+                <span class="trans-doc-draft"><i class="bx bx-pencil me-1" style="font-size:var(--r2k-text-md);"></i><?php echo t('status_draft', 'Draft'); ?></span>
                 <?php if (!empty($list->TransDate)): ?>
                     <div class="text-muted" style="font-size:var(--r2k-text-sm);"><?php echo htmlspecialchars(format_datedisplay($list->TransDate)); ?></div>
                 <?php endif; ?>
@@ -135,7 +135,7 @@ if (!empty($DataLists)):
                             data-url="/transactions/getAttachments"
                             data-module-uid="<?php echo (int)$list->ModuleUID; ?>"
                             title="<?php echo (int)$list->AttachmentCount; ?> attachment(s)"
-                            style="font-size:.82rem;line-height:1;color:#0d6efd;">
+                            style="font-size:var(--r2k-text-82);line-height:1;color:#0d6efd;">
                         <i class="bx bx-paperclip"></i>
                     </button>
                     <?php endif; ?>
@@ -155,7 +155,7 @@ if (!empty($DataLists)):
         <!-- Status -->
         <td>
             <span class="trans-badge <?php echo $badgeClass; ?>">
-                <i class="bx <?php echo $icon; ?>" style="font-size:.8rem;"></i>
+                <i class="bx <?php echo $icon; ?>" style="font-size:var(--r2k-text-md);"></i>
                 <?php echo htmlspecialchars($status); ?>
             </span>
         </td>
@@ -167,7 +167,7 @@ if (!empty($DataLists)):
                 <div>
                     <div class="trans-party-name"><?php echo r2k_party_name($list->PartyName ?? '', $list->MobileNumber ?? '', $list->CountryCode ?? '', $list->PartyArea ?? '', !empty($list->PartyImage) ? $cdnUrl . $list->PartyImage : ''); ?></div>
                     <?php if (!empty($list->PartyArea)): ?>
-                    <div style="font-size:.7rem;color:#888;margin-top:1px;">
+                    <div style="font-size:var(--r2k-text-70);color:#888;margin-top:1px;">
                         <i class="bx bx-map" style="font-size:var(--r2k-text-sm);"></i> <?php echo htmlspecialchars($list->PartyArea); ?>
                     </div>
                     <?php endif; ?>
@@ -384,7 +384,7 @@ else:
         <td colspan="9">
             <div class="d-flex flex-column align-items-center py-5">
                 <img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:150px;object-fit:contain;">
-                <span class="text-muted mb-3" style="font-size:.9rem;"><?php echo t('empty_sales_orders', 'No sales orders found'); ?></span>
+                <span class="text-muted mb-3" style="font-size:var(--r2k-text-90);"><?php echo t('empty_sales_orders', 'No sales orders found'); ?></span>
                 <a href="<?= site_url('salesorders/create') ?>" class="btn btn-primary btn-sm px-4">
                     <i class="bx bx-plus me-1"></i><?php echo t('create_sales_order', 'Create Sales Order'); ?>
                 </a>

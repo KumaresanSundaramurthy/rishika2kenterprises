@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php
 $currency    = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
 $timezone    = $JwtData->User->Timezone ?? 'Asia/Kolkata';
@@ -49,11 +49,11 @@ if (!empty($DataLists)):
     <td class="inv-party-td">
         <?php if ($custName): ?>
         <div class="d-flex align-items-center gap-2">
-            <div class="trans-party-avatar" style="background:#696cff22;color:#696cff;font-size:.75rem;"><?php echo $initials; ?></div>
+            <div class="trans-party-avatar" style="background:#696cff22;color:#696cff;font-size:var(--r2k-text-75);"><?php echo $initials; ?></div>
             <div>
                 <div class="trans-party-name fw-semibold"><?php echo htmlspecialchars($custName); ?></div>
                 <?php if ($cn->CustomerArea ?? ''): ?>
-                <div style="font-size:.7rem;color:#888;margin-top:1px;"><i class="bx bx-map" style="font-size:var(--r2k-text-sm);"></i> <?php echo htmlspecialchars($cn->CustomerArea); ?></div>
+                <div style="font-size:var(--r2k-text-70);color:#888;margin-top:1px;"><i class="bx bx-map" style="font-size:var(--r2k-text-sm);"></i> <?php echo htmlspecialchars($cn->CustomerArea); ?></div>
                 <?php endif; ?>
                 <?php if ($cn->MobileNo ?? ''): ?>
                 <div style="font-size:var(--r2k-text-sm);color:#888;"><?php echo htmlspecialchars($cn->MobileNo); ?></div>
@@ -91,12 +91,12 @@ if (!empty($DataLists)):
     <!-- Created On -->
     <td>
         <?php if ($createdFmt !== '—'): ?>
-        <div style="font-size:.8rem;"><?php echo $createdFmt; ?></div>
+        <div style="font-size:var(--r2k-text-md);"><?php echo $createdFmt; ?></div>
         <?php if ($within24h): ?>
         <div style="font-size:var(--r2k-text-xs);color:#0d6efd;font-weight:500;"><?php echo $agoText ?? ''; ?></div>
         <?php endif; ?>
         <?php if ($cn->CreatorName ?? ''): ?>
-        <div class="text-muted" style="font-size:.7rem;">by <?php echo htmlspecialchars($cn->CreatorName); ?></div>
+        <div class="text-muted" style="font-size:var(--r2k-text-70);">by <?php echo htmlspecialchars($cn->CreatorName); ?></div>
         <?php endif; ?>
         <?php else: ?>
         <span class="text-muted">—</span>
@@ -110,7 +110,7 @@ if (!empty($DataLists)):
             <button class="trans-actions-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                 <i class="bx bx-dots-vertical-rounded fs-5"></i>
             </button>
-            <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:.82rem;min-width:160px;">
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:var(--r2k-text-82);min-width:160px;">
                 <li>
                     <a class="dropdown-item cn-cancel-btn" href="javascript:void(0)"
                        data-uid="<?php echo (int)$cn->CreditNoteUID; ?>"

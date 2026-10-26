@@ -28,7 +28,7 @@
     <div class="app-brand demo">
         <a href="<?= site_url('dashboard') ?>" class="app-brand-link">
             <span class="app-brand-logo demo">
-                <img src="/images/logo/favicon_io/android-chrome-512x512-1.png" width="40px;" height="40px;" alt="<?php echo strtoupper(getSiteConfiguration()->MenuName); ?>" />
+                <img src="/images/logo/favicon_io/android-chrome-512x512-1.png" width="30px;" height="30px;" alt="<?php echo strtoupper(getSiteConfiguration()->MenuName); ?>" />
             </span>
             <span class="app-brand-text demo menu-text fw-bolder ms-2"><?php echo strtoupper(getSiteConfiguration()->MenuName); ?></span>
         </a>

@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
     'use strict';
 
     var _sym = (genSettings && genSettings.CurrenySymbol) ? genSettings.CurrenySymbol : '₹';
@@ -53,7 +53,7 @@
         var chipCls = info[0] ? 'cl-type-chip ' + info[0] : '';
         return chipCls
             ? '<span class="' + chipCls + '"><i class="bx ' + info[1] + '"></i>' + _esc(info[2]) + '</span>'
-            : '<span style="font-size:.78rem;color:#64748b">' + _esc(info[2]) + '</span>';
+            : '<span style="font-size:var(--r2k-text-78);color:#64748b">' + _esc(info[2]) + '</span>';
     }
 
     /**
@@ -92,7 +92,7 @@
 
         if (!rows || rows.length === 0) {
             if (rowNum === 0) {
-                tbody.innerHTML = '<tr><td colspan="7"><div class="rpt-empty"><i class="bx bx-info-circle"></i><div class="rpt-empty-title">No transactions found</div><div style="font-size:.82rem">Try a different date range</div></div></td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7"><div class="rpt-empty"><i class="bx bx-info-circle"></i><div class="rpt-empty-title">No transactions found</div><div style="font-size:var(--r2k-text-82)">Try a different date range</div></div></td></tr>';
                 tfoot.classList.add('d-none');
                 footer.classList.add('d-none');
                 statsRow.style.setProperty('display', 'none', 'important');

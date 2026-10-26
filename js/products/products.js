@@ -1,4 +1,4 @@
-window._r2kSimpleOverlay = true;
+﻿window._r2kSimpleOverlay = true;
 
 var _prodPageRefreshing = false;
 
@@ -68,7 +68,7 @@ function showTabSpinner(tableSelector, paginationSelector) {
     $(tableSelector + ' tbody').html(
         '<tr><td colspan="' + cols + '" class="text-center py-4">' +
         '<span class="spinner-border spinner-border-sm text-primary me-2"></span>' +
-        '<span class="text-muted" style="font-size:.85rem;">Loading...</span>' +
+        '<span class="text-muted" style="font-size:var(--r2k-text-85);">Loading...</span>' +
         '</td></tr>'
     );
     if (paginationSelector) $(paginationSelector).empty();
@@ -355,7 +355,7 @@ function updateProductStats(stats) {
     // Stock Value
     $('.stat-paid .trans-stat-count').text(currencySymbol + ' ' + parseFloat(s.TotalStockValue || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','));
     // Added
-    $('.stat-active .trans-stat-count').html(Number(s.AddedThisMonth || 0).toLocaleString() + ' <span style="font-size:.7rem;font-weight:400;">this month</span>');
+    $('.stat-active .trans-stat-count').html(Number(s.AddedThisMonth || 0).toLocaleString() + ' <span style="font-size:var(--r2k-text-70);font-weight:400;">this month</span>');
     $('.stat-active .trans-stat-amount').html(Number(s.AddedThisFY || 0).toLocaleString() + ' this FY &nbsp;|&nbsp; ' + Number(s.RecentlyUpdated || 0).toLocaleString() + ' updated (7d)');
     // Low Stock
     $('.stat-draft .trans-stat-count').text(Number(s.LowStockItems || 0).toLocaleString());
@@ -607,7 +607,7 @@ function executeCatgPagnFunc(response, tableinfo = false) {
     if (tableinfo) {
         var total = response.TotalCount || 0;
         var showingHtml = total > 0
-            ? '<div class="col-auto text-muted" style="font-size:.82rem;">Showing <strong>1</strong> – <strong>' + Math.min(RowLimit, total) + '</strong> of <strong>' + total + '</strong> Results</div>'
+            ? '<div class="col-auto text-muted" style="font-size:var(--r2k-text-82);">Showing <strong>1</strong> – <strong>' + Math.min(RowLimit, total) + '</strong> of <strong>' + total + '</strong> Results</div>'
             : '';
         $(CatgPag).html(showingHtml + '<div class="col-auto">' + response.Pagination + '</div>');
         $(CatgTable + ' tbody').html(response.List);
@@ -835,7 +835,7 @@ function executeBrandPagnFunc(response, tableinfo = false) {
     if (tableinfo) {
         var total = response.TotalCount || 0;
         var showingHtml = total > 0
-            ? '<div class="col-auto text-muted" style="font-size:.82rem;">Showing <strong>1</strong> – <strong>' + Math.min(RowLimit, total) + '</strong> of <strong>' + total + '</strong> Results</div>'
+            ? '<div class="col-auto text-muted" style="font-size:var(--r2k-text-82);">Showing <strong>1</strong> – <strong>' + Math.min(RowLimit, total) + '</strong> of <strong>' + total + '</strong> Results</div>'
             : '';
         $(BrandPag).html(showingHtml + '<div class="col-auto">' + response.Pagination + '</div>');
         $(BrandTable + ' tbody').html(response.List);
@@ -1033,7 +1033,7 @@ function executeSizePagnFunc(response, tableinfo) {
     if (tableinfo) {
         var total = response.TotalCount || 0;
         var showingHtml = total > 0
-            ? '<div class="col-auto text-muted" style="font-size:.82rem;">Showing <strong>1</strong> – <strong>' + Math.min(RowLimit, total) + '</strong> of <strong>' + total + '</strong> Results</div>'
+            ? '<div class="col-auto text-muted" style="font-size:var(--r2k-text-82);">Showing <strong>1</strong> – <strong>' + Math.min(RowLimit, total) + '</strong> of <strong>' + total + '</strong> Results</div>'
             : '';
         $(SizePag).html(showingHtml + '<div class="col-auto">' + response.Pagination + '</div>');
         $(SizeTable + ' tbody').html(response.List);

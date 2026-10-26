@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var int $SerialNumber */ $SerialNumber = $SerialNumber ?? 0;
 $cur     = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
 $dateFmt = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
@@ -35,9 +35,9 @@ if (!empty($DataLists)):
     data-parent="<?php echo (int)($row->ParentLedgerUID ?? 0); ?>"
     data-opening="<?php echo (float)($row->OpeningBalance ?? 0); ?>"
     data-openingtype="<?php echo htmlspecialchars($row->OpeningBalanceType ?? 'Debit'); ?>">
-    <td class="text-muted" style="font-size:.78rem;"><?php echo $SerialNumber; ?></td>
+    <td class="text-muted" style="font-size:var(--r2k-text-78);"><?php echo $SerialNumber; ?></td>
     <td>
-        <code style="font-size:.78rem;color:#7c3aed;"><?php echo htmlspecialchars($row->LedgerCode ?? ''); ?></code>
+        <code style="font-size:var(--r2k-text-78);color:#7c3aed;"><?php echo htmlspecialchars($row->LedgerCode ?? ''); ?></code>
         <?php if ($isSys): ?>
         <span class="badge bg-label-secondary ms-1" style="font-size:.62rem;">System</span>
         <?php endif; ?>
@@ -49,13 +49,13 @@ if (!empty($DataLists)):
         <?php endif; ?>
     </td>
     <td><span class="badge <?php echo $badge; ?>" style="font-size:var(--r2k-text-sm);"><?php echo htmlspecialchars($row->LedgerType ?? ''); ?></span></td>
-    <td class="text-muted" style="font-size:.8rem;"><?php echo htmlspecialchars($row->ParentLedgerName ?? '—'); ?></td>
+    <td class="text-muted" style="font-size:var(--r2k-text-md);"><?php echo htmlspecialchars($row->ParentLedgerName ?? '—'); ?></td>
     <td class="text-end fw-semibold <?php echo $balClass; ?>" style="font-size:.84rem;">
         <?php echo $cur . ' ' . smartDecimal($row->CurrentBalance ?? 0); ?>
         <div class="text-muted" style="font-size:var(--r2k-text-xs);font-weight:400;"><?php echo htmlspecialchars($row->CurrentBalanceType ?? 'Debit'); ?></div>
     </td>
     <td class="text-center">
-        <span class="badge <?php echo $isActive ? 'bg-label-success' : 'bg-label-danger'; ?>" style="font-size:.7rem;">
+        <span class="badge <?php echo $isActive ? 'bg-label-success' : 'bg-label-danger'; ?>" style="font-size:var(--r2k-text-70);">
             <?php echo $isActive ? 'Active' : 'Inactive'; ?>
         </span>
     </td>
@@ -65,7 +65,7 @@ if (!empty($DataLists)):
             <button class="btn btn-icon btn-sm text-warning coa-edit-btn" title="Edit"><i class="bx bx-edit"></i></button>
             <div class="dropdown">
                 <button class="trans-actions-btn" type="button" data-bs-toggle="dropdown"><i class="bx bx-dots-vertical-rounded fs-5"></i></button>
-                <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:.82rem;min-width:160px;">
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:var(--r2k-text-82);min-width:160px;">
                     <li>
                         <button class="dropdown-item coa-toggle-btn"
                             data-uid="<?php echo $uid; ?>"
@@ -86,7 +86,7 @@ if (!empty($DataLists)):
                 </ul>
             </div>
             <?php else: ?>
-            <span class="text-muted" style="font-size:.75rem;">—</span>
+            <span class="text-muted" style="font-size:var(--r2k-text-75);">—</span>
             <?php endif; ?>
         </div>
     </td>
@@ -96,7 +96,7 @@ if (!empty($DataLists)):
     <td colspan="8" style="padding:0;border:none;">
         <div class="d-flex flex-column align-items-center py-5">
             <img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:130px;object-fit:contain;">
-            <span class="text-muted" style="font-size:.9rem;">No ledger accounts found</span>
+            <span class="text-muted" style="font-size:var(--r2k-text-90);">No ledger accounts found</span>
             <button class="btn btn-primary btn-sm mt-3" onclick="$('#btnNewLedger').click()">
                 <i class="bx bx-plus me-1"></i>Create First Account
             </button>

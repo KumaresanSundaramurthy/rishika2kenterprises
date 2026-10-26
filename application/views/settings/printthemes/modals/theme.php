@@ -149,7 +149,7 @@
                                 </span>
                                 <input type="text" class="form-control form-control-sm font-monospace" id="BrandColor"
                                        value="#1a3c6e" maxlength="7" placeholder="#rrggbb" style="max-width:110px;">
-                                <span class="text-muted" style="font-size:.7rem;">Custom</span>
+                                <span class="text-muted" style="font-size:var(--r2k-text-70);">Custom</span>
                             </div>
                         </div>
 
@@ -177,7 +177,7 @@
                                                id="<?php echo $id; ?>" checked>
                                         <label class="form-check-label mb-0" for="<?php echo $id; ?>">
                                             <span class="fw-semibold small d-block"><?php echo $label; ?></span>
-                                            <span class="text-muted d-block" style="font-size:.7rem;"><?php echo $desc; ?></span>
+                                            <span class="text-muted d-block" style="font-size:var(--r2k-text-70);"><?php echo $desc; ?></span>
                                         </label>
                                     </div>
                                     <?php endforeach; ?>

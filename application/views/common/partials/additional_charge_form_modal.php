@@ -102,7 +102,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
 
                 <!-- System charge notice (shown instead of user fields) -->
                 <div id="acSystemNotice" class="d-none">
-                    <div class="alert alert-info py-2 mb-0" style="font-size:.8rem;">
+                    <div class="alert alert-info py-2 mb-0" style="font-size:var(--r2k-text-md);">
                         <i class="bx bx-lock-alt me-1"></i>
                         This is a <strong>system charge</strong>. Only Description and Default Tax can be changed.
                     </div>

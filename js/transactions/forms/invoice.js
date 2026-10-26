@@ -1,4 +1,4 @@
-// ── Invoice form — init, submit, and sticky bar ───────────────────────────────
+﻿// ── Invoice form — init, submit, and sticky bar ───────────────────────────────
 // PHP data is injected by form.php as window._transFormData before this file loads.
 
 var _cfg = window._transFormData || {};
@@ -867,7 +867,7 @@ function _renderCreditNoteDetail(resp) {
                 '<td class="text-end fw-semibold">' + cur + ' ' + parseFloat(r.Amount || 0).toFixed(dec) + '</td>' +
             '</tr>';
         }).join('')
-        : '<tr><td colspan="3" class="text-center text-muted py-2" style="font-size:.8rem;">No pending credit notes found.</td></tr>';
+        : '<tr><td colspan="3" class="text-center text-muted py-2" style="font-size:var(--r2k-text-md);">No pending credit notes found.</td></tr>';
     $('#cnDetailBody').html(html);
     $('#cnDetailSummary').html('Total: <strong>' + cur + ' ' + parseFloat(resp.Total || 0).toFixed(dec) + '</strong>');
 }
@@ -887,7 +887,7 @@ function _renderCreditsDetail(resp) {
      */
     function _rows(list) {
         if (!list || !list.length) {
-            return '<tr><td colspan="3" class="text-center text-muted py-2" style="font-size:.8rem;">No records found.</td></tr>';
+            return '<tr><td colspan="3" class="text-center text-muted py-2" style="font-size:var(--r2k-text-md);">No records found.</td></tr>';
         }
         return list.map(function (r) {
             return '<tr>' +

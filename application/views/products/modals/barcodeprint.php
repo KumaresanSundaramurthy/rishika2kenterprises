@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <div class="modal fade" id="barcodePrintModal" tabindex="-1" aria-labelledby="barcodePrintModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-top">
@@ -24,14 +24,14 @@
             <!-- Layout tabs -->
             <div class="border-bottom bg-body-tertiary" style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
                 <ul class="nav nav-tabs border-0 flex-nowrap px-3 pt-0" id="bcLayoutTabs" style="gap:0;">
-                    <li class="nav-item"><a class="nav-link active px-3 py-2" href="#" data-layout="1x2" style="font-size:.82rem;white-space:nowrap;">1 × 2</a></li>
-                    <li class="nav-item"><a class="nav-link px-3 py-2" href="#" data-layout="1x4" style="font-size:.82rem;white-space:nowrap;">1 × 4</a></li>
-                    <li class="nav-item"><a class="nav-link px-3 py-2" href="#" data-layout="1x1" style="font-size:.82rem;white-space:nowrap;">1 × 1</a></li>
-                    <li class="nav-item"><a class="nav-link px-3 py-2" href="#" data-layout="1x3" style="font-size:.82rem;white-space:nowrap;">1 × 3</a></li>
-                    <li class="nav-item"><a class="nav-link px-3 py-2" href="#" data-layout="a4_8x2" style="font-size:.82rem;white-space:nowrap;">A4 (8 × 2)</a></li>
-                    <li class="nav-item"><a class="nav-link px-3 py-2" href="#" data-layout="a4_10x4" style="font-size:.82rem;white-space:nowrap;">A4 40 Labels (10 × 4)</a></li>
-                    <li class="nav-item"><a class="nav-link px-3 py-2" href="#" data-layout="a4_13x5" style="font-size:.82rem;white-space:nowrap;">A4 65 Labels (13 × 5)</a></li>
-                    <li class="nav-item"><a class="nav-link px-3 py-2" href="#" data-layout="square" style="font-size:.82rem;white-space:nowrap;">Square Label</a></li>
+                    <li class="nav-item"><a class="nav-link active px-3 py-2" href="#" data-layout="1x2" style="font-size:var(--r2k-text-82);white-space:nowrap;">1 × 2</a></li>
+                    <li class="nav-item"><a class="nav-link px-3 py-2" href="#" data-layout="1x4" style="font-size:var(--r2k-text-82);white-space:nowrap;">1 × 4</a></li>
+                    <li class="nav-item"><a class="nav-link px-3 py-2" href="#" data-layout="1x1" style="font-size:var(--r2k-text-82);white-space:nowrap;">1 × 1</a></li>
+                    <li class="nav-item"><a class="nav-link px-3 py-2" href="#" data-layout="1x3" style="font-size:var(--r2k-text-82);white-space:nowrap;">1 × 3</a></li>
+                    <li class="nav-item"><a class="nav-link px-3 py-2" href="#" data-layout="a4_8x2" style="font-size:var(--r2k-text-82);white-space:nowrap;">A4 (8 × 2)</a></li>
+                    <li class="nav-item"><a class="nav-link px-3 py-2" href="#" data-layout="a4_10x4" style="font-size:var(--r2k-text-82);white-space:nowrap;">A4 40 Labels (10 × 4)</a></li>
+                    <li class="nav-item"><a class="nav-link px-3 py-2" href="#" data-layout="a4_13x5" style="font-size:var(--r2k-text-82);white-space:nowrap;">A4 65 Labels (13 × 5)</a></li>
+                    <li class="nav-item"><a class="nav-link px-3 py-2" href="#" data-layout="square" style="font-size:var(--r2k-text-82);white-space:nowrap;">Square Label</a></li>
                 </ul>
             </div>
 

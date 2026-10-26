@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 $this->load->view('common/transactions/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -88,7 +88,7 @@ $this->load->view('common/transactions/header'); ?>
                                         data-party="<?php echo htmlspecialchars(strtolower($pl->PartyName ?? '')); ?>"
                                         data-transporter="<?php echo htmlspecialchars(strtolower($pl->TransporterName ?? '')); ?>">
 
-                                        <td class="text-center text-muted" style="font-size:.78rem;"><?php echo $sno; ?></td>
+                                        <td class="text-center text-muted" style="font-size:var(--r2k-text-78);"><?php echo $sno; ?></td>
 
                                         <td>
                                             <a href="<?= site_url('packing-list/') ?><?php echo (int)$pl->TransUID; ?>" class="trans-doc-number fw-semibold">
@@ -100,24 +100,24 @@ $this->load->view('common/transactions/header'); ?>
                                             <span class="badge <?php echo $srcBadge; ?>" style="font-size:var(--r2k-text-xs);">
                                                 <?php echo $srcLabel; ?>
                                             </span>
-                                            <span class="ms-1" style="font-size:.82rem;">
+                                            <span class="ms-1" style="font-size:var(--r2k-text-82);">
                                                 <?php echo htmlspecialchars($pl->TransNumber ?? '—'); ?>
                                             </span>
                                         </td>
 
-                                        <td style="font-size:.85rem;">
+                                        <td style="font-size:var(--r2k-text-85);">
                                             <?php echo htmlspecialchars($pl->PartyName ?? '—'); ?>
                                         </td>
 
-                                        <td style="font-size:.82rem; white-space:nowrap;">
+                                        <td style="font-size:var(--r2k-text-82); white-space:nowrap;">
                                             <?php echo !empty($pl->PLDate) ? date($dateFormat, strtotime($pl->PLDate)) : '—'; ?>
                                         </td>
 
-                                        <td style="font-size:.82rem;">
+                                        <td style="font-size:var(--r2k-text-82);">
                                             <?php echo htmlspecialchars($pl->TransporterName ?? '—'); ?>
                                         </td>
 
-                                        <td style="font-size:.82rem;">
+                                        <td style="font-size:var(--r2k-text-82);">
                                             <?php echo htmlspecialchars($pl->VehicleNumber ?? '—'); ?>
                                         </td>
 

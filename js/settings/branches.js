@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 (function () {
 
@@ -57,7 +57,7 @@
         $('#BranchTableBody').html(
             '<tr><td colspan="' + cols + '" class="text-center py-4">' +
             '<span class="spinner-border spinner-border-sm text-primary me-2"></span>' +
-            '<span class="text-muted" style="font-size:.85rem;">Loading...</span>' +
+            '<span class="text-muted" style="font-size:var(--r2k-text-85);">Loading...</span>' +
             '</td></tr>'
         );
         $('#BranchesPagination').empty();
@@ -279,7 +279,7 @@
      * @returns {void}
      */
     function _patchHQInDOM(newHqUid) {
-        var hqBadge = '<span class="badge bg-label-primary ms-1" style="font-size:.7rem;">HQ</span>';
+        var hqBadge = '<span class="badge bg-label-primary ms-1" style="font-size:var(--r2k-text-70);">HQ</span>';
         $('#BranchTableBody tr[data-uid]').each(function () {
             var rowUid = parseInt($(this).data('uid'), 10);
             var isNew  = rowUid === newHqUid;

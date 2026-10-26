@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
     <div class="layout-container">
         <?php $this->load->view('common/menu_view'); ?>
@@ -72,11 +72,11 @@
 .sdb-plan-name { font-size: 1.15rem; font-weight: 800; line-height: 1.2; }
 .sdb-status-pill {
     display: inline-flex; align-items: center;
-    font-size: .7rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+    font-size:var(--r2k-text-70); font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
     padding: .2rem .65rem; border-radius: 99px;
     <?= $statusStyle ?>
 }
-.sdb-plan-sub { font-size: .8rem; color: var(--bs-secondary-color, #6c757d); margin-top: .2rem; }
+.sdb-plan-sub { font-size:var(--r2k-text-md); color: var(--bs-secondary-color, #6c757d); margin-top: .2rem; }
 .sdb-metric-row { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1.25rem; }
 .sdb-metric {
     flex: 1 1 120px;
@@ -85,12 +85,12 @@
     border-radius: 10px;
     padding: .7rem 1rem;
 }
-.sdb-metric-label { font-size: .7rem; text-transform: uppercase; letter-spacing: .07em; color: var(--bs-secondary-color, #888); font-weight: 600; margin-bottom: .2rem; }
+.sdb-metric-label { font-size:var(--r2k-text-70); text-transform: uppercase; letter-spacing: .07em; color: var(--bs-secondary-color, #888); font-weight: 600; margin-bottom: .2rem; }
 .sdb-metric-value { font-size: .95rem; font-weight: 700; }
 .sdb-metric-value.danger { color: #dc2626; }
 .sdb-progress-wrap { margin-top: 1.25rem; }
 .sdb-progress-labels { display: flex; justify-content: space-between; margin-bottom: .4rem; }
-.sdb-progress-labels span { font-size: .75rem; color: var(--bs-secondary-color, #888); }
+.sdb-progress-labels span { font-size:var(--r2k-text-75); color: var(--bs-secondary-color, #888); }
 .sdb-progress-track {
     height: 8px; border-radius: 99px;
     background: var(--bs-border-color, #e8e8e8);
@@ -103,7 +103,7 @@
     transition: width .6s ease;
 }
 .sdb-action-row { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1.5px solid var(--bs-border-color, #e8e8e8); }
-.sdb-action-row .btn { font-size: .8rem; padding: .4rem .9rem; }
+.sdb-action-row .btn { font-size:var(--r2k-text-md); padding: .4rem .9rem; }
 
 .sdb-billing-card {
     border-radius: 16px;
@@ -117,7 +117,7 @@
     border-bottom: 1.5px solid var(--bs-border-color, #e8e8e8);
     display: flex; align-items: center; justify-content: space-between;
 }
-.sdb-billing-header h6 { font-size: .85rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--bs-secondary-color, #888); margin: 0; }
+.sdb-billing-header h6 { font-size:var(--r2k-text-85); font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--bs-secondary-color, #888); margin: 0; }
 .sdb-table { width: 100%; border-collapse: collapse; }
 .sdb-table th {
     font-size:var(--r2k-text-sm); text-transform: uppercase; letter-spacing: .06em;

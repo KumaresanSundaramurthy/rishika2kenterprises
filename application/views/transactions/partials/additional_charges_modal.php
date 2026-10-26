@@ -23,7 +23,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
                             </div>
                             <div>
                                 <div style="font-size:1.05rem;font-weight:800;color:#0d6efd;">All Additional Charges</div>
-                                <div style="font-size:.75rem;color:#6c757d;margin-top:3px;">
+                                <div style="font-size:var(--r2k-text-75);color:#6c757d;margin-top:3px;">
                                     Highlighted rows are already in this transaction
                                 </div>
                             </div>

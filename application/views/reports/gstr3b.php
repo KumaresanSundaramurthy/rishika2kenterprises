@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
+<?php defined('BASEPATH') OR exit('No direct script access allowed');
 $_month = $this->pageData['_gstrMonth'] ?? (int)date('n');
 $_year  = $this->pageData['_gstrYear']  ?? (int)date('Y');
 $this->load->view('common/transactions/header'); ?>
@@ -10,12 +10,12 @@ $this->load->view('common/transactions/header'); ?>
 .rpt-select{min-width:130px}
 /* GSTR-3B form-style layout */
 .g3b-section{border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;margin-bottom:0}
-.g3b-section-head{display:flex;align-items:center;gap:12px;padding:12px 16px;font-weight:700;font-size:.88rem}
+.g3b-section-head{display:flex;align-items:center;gap:12px;padding:12px 16px;font-weight:700;font-size:var(--r2k-text-88)}
 .g3b-head-indigo{background:#eef2ff;color:#4338ca;border-bottom:1px solid #c7d2fe}
 .g3b-head-green{background:#f0fdf4;color:#16a34a;border-bottom:1px solid #bbf7d0}
 .g3b-head-red{background:#fef2f2;color:#dc2626;border-bottom:1px solid #fecaca}
-.g3b-section-num{width:32px;height:32px;border-radius:8px;background:rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;font-size:.9rem;font-weight:800;flex-shrink:0}
-.g3b-table{width:100%;border-collapse:collapse;font-size:.82rem;margin-bottom:0}
+.g3b-section-num{width:32px;height:32px;border-radius:8px;background:rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;font-size:var(--r2k-text-90);font-weight:800;flex-shrink:0}
+.g3b-table{width:100%;border-collapse:collapse;font-size:var(--r2k-text-82);margin-bottom:0}
 .g3b-table td{padding:9px 14px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
 .g3b-table tr:last-child td{border-bottom:none}
 .g3b-count{width:60px;text-align:right;font-variant-numeric:tabular-nums;color:#64748b}
@@ -93,9 +93,9 @@ $this->load->view('common/transactions/header'); ?>
                                 <table class="g3b-table">
                                     <tbody>
                                         <tr><td>Sales Invoices</td><td class="g3b-count" id="g3SalesCount">—</td><td class="g3b-amt" id="g3SalesTaxable">—</td><td class="g3b-tax" id="g3SalesTax">—</td></tr>
-                                        <tr class="g3b-row-light"><td class="ps-4 text-muted" style="font-size:.78rem">↳ CGST</td><td></td><td></td><td class="g3b-tax" id="g3SalesCgst">—</td></tr>
-                                        <tr class="g3b-row-light"><td class="ps-4 text-muted" style="font-size:.78rem">↳ SGST</td><td></td><td></td><td class="g3b-tax" id="g3SalesSgst">—</td></tr>
-                                        <tr class="g3b-row-light"><td class="ps-4 text-muted" style="font-size:.78rem">↳ IGST</td><td></td><td></td><td class="g3b-tax" id="g3SalesIgst">—</td></tr>
+                                        <tr class="g3b-row-light"><td class="ps-4 text-muted" style="font-size:var(--r2k-text-78)">↳ CGST</td><td></td><td></td><td class="g3b-tax" id="g3SalesCgst">—</td></tr>
+                                        <tr class="g3b-row-light"><td class="ps-4 text-muted" style="font-size:var(--r2k-text-78)">↳ SGST</td><td></td><td></td><td class="g3b-tax" id="g3SalesSgst">—</td></tr>
+                                        <tr class="g3b-row-light"><td class="ps-4 text-muted" style="font-size:var(--r2k-text-78)">↳ IGST</td><td></td><td></td><td class="g3b-tax" id="g3SalesIgst">—</td></tr>
                                         <tr class="g3b-row-return"><td>Less: Sales Returns (Credit Notes)</td><td class="g3b-count" id="g3ReturnCount">—</td><td class="g3b-amt" id="g3ReturnTaxable">—</td><td class="g3b-tax" id="g3ReturnTax">—</td></tr>
                                         <tr class="g3b-row-net"><td><strong>Net Outward (3.1)</strong></td><td></td><td class="g3b-amt"><strong id="g3NetTaxable">—</strong></td><td class="g3b-tax"><strong id="g3NetTax">—</strong></td></tr>
                                     </tbody>
@@ -111,9 +111,9 @@ $this->load->view('common/transactions/header'); ?>
                                 <table class="g3b-table">
                                     <tbody>
                                         <tr><td>Purchase Bills (GSTIN Suppliers)</td><td class="g3b-count" id="g3PurchaseCount">—</td><td class="g3b-amt" id="g3PurchaseTaxable">—</td><td class="g3b-tax" id="g3PurchaseTax">—</td></tr>
-                                        <tr class="g3b-row-light"><td class="ps-4 text-muted" style="font-size:.78rem">↳ CGST ITC</td><td></td><td></td><td class="g3b-tax" id="g3PurchaseCgst">—</td></tr>
-                                        <tr class="g3b-row-light"><td class="ps-4 text-muted" style="font-size:.78rem">↳ SGST ITC</td><td></td><td></td><td class="g3b-tax" id="g3PurchaseSgst">—</td></tr>
-                                        <tr class="g3b-row-light"><td class="ps-4 text-muted" style="font-size:.78rem">↳ IGST ITC</td><td></td><td></td><td class="g3b-tax" id="g3PurchaseIgst">—</td></tr>
+                                        <tr class="g3b-row-light"><td class="ps-4 text-muted" style="font-size:var(--r2k-text-78)">↳ CGST ITC</td><td></td><td></td><td class="g3b-tax" id="g3PurchaseCgst">—</td></tr>
+                                        <tr class="g3b-row-light"><td class="ps-4 text-muted" style="font-size:var(--r2k-text-78)">↳ SGST ITC</td><td></td><td></td><td class="g3b-tax" id="g3PurchaseSgst">—</td></tr>
+                                        <tr class="g3b-row-light"><td class="ps-4 text-muted" style="font-size:var(--r2k-text-78)">↳ IGST ITC</td><td></td><td></td><td class="g3b-tax" id="g3PurchaseIgst">—</td></tr>
                                         <tr class="g3b-row-return"><td>Less: Purchase Returns (Debit Notes)</td><td></td><td></td><td class="g3b-tax" id="g3PurchaseReturnTax">—</td></tr>
                                         <tr class="g3b-row-net"><td><strong>Net ITC (4)</strong></td><td></td><td class="g3b-amt"><strong id="g3ItcTaxable">—</strong></td><td class="g3b-tax"><strong id="g3ItcNet">—</strong></td></tr>
                                     </tbody>

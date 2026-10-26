@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php $_homeUrl = rtrim(preg_replace('#/app/?$#', '', rtrim(base_url(), '/')), '/') . '/'; ?>
 
 <?php $pageTitle = 'Sign Up'; $this->load->view('login/header', ['pageTitle' => $pageTitle]); ?>
@@ -172,7 +172,7 @@ html, body {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.8rem;
+    font-size:var(--r2k-text-md);
     font-weight: 600;
     color: rgba(180,210,230,0.5);
     transition: all 0.3s;
@@ -191,7 +191,7 @@ html, body {
 }
 
 .su-step-label {
-    font-size: 0.8rem;
+    font-size:var(--r2k-text-md);
     color: rgba(180,210,230,0.5);
     font-weight: 500;
     transition: color 0.3s;
@@ -234,7 +234,7 @@ html, body {
 
 .su-label {
     display: block;
-    font-size: 0.8rem;
+    font-size:var(--r2k-text-md);
     font-weight: 600;
     color: rgba(180,210,230,0.75);
     margin-bottom: 0.45rem;
@@ -256,7 +256,7 @@ html, body {
     border: 1px solid rgba(96,165,200,0.2);
     border-radius: 8px;
     color: #e2f0ff;
-    font-size: 0.9rem;
+    font-size:var(--r2k-text-90);
     font-family: inherit;
     transition: border-color 0.2s, background 0.2s;
     outline: none;
@@ -300,7 +300,7 @@ html, body {
 
 .su-phone-prefix {
     padding: 0.7rem 0.8rem 0.7rem 1rem;
-    font-size: 0.9rem;
+    font-size:var(--r2k-text-90);
     font-weight: 600;
     color: rgba(96,165,200,0.9);
     user-select: none;
@@ -316,7 +316,7 @@ html, body {
     background: transparent;
     border: none;
     color: #e2f0ff;
-    font-size: 0.9rem;
+    font-size:var(--r2k-text-90);
     font-family: inherit;
     outline: none;
 }
@@ -408,7 +408,7 @@ html, body {
     padding: 0.72rem 1.75rem;
     border-radius: 8px;
     border: none;
-    font-size: 0.9rem;
+    font-size:var(--r2k-text-90);
     font-weight: 600;
     cursor: pointer;
     font-family: inherit;
@@ -513,7 +513,7 @@ html, body {
 }
 
 .su-success-msg {
-    font-size: 0.9rem;
+    font-size:var(--r2k-text-90);
     color: rgba(160,190,215,0.7);
     line-height: 1.65;
     margin-bottom: 2rem;
@@ -797,7 +797,7 @@ html, body {
 
 /* Plan name */
 .su-plan-card-name {
-    font-size: 0.9rem;
+    font-size:var(--r2k-text-90);
     font-weight: 700;
     color: #daeeff;
     line-height: 1.3;
@@ -812,7 +812,7 @@ html, body {
     margin-top: 0.35rem;
     flex: 1;
 }
-.su-plan-card-price .sp-cur { font-size: 0.8rem; color: #60a5c8; font-weight: 600; line-height: 2; }
+.su-plan-card-price .sp-cur { font-size:var(--r2k-text-md); color: #60a5c8; font-weight: 600; line-height: 2; }
 .su-plan-card-price .sp-amt { font-size: 1.65rem; font-weight: 800; color: #f0f6ff; line-height: 1; font-variant-numeric: tabular-nums; }
 .su-plan-card-price .sp-free { font-size: 1.15rem; font-weight: 800; color: #4ade80; }
 
@@ -926,7 +926,7 @@ html, body {
                 <!-- Google One Tap fill -->
                 <?php if (!empty(getenv('GOOGLE_CLIENT_ID'))): ?>
                 <div id="suGoogleWrap" style="margin-bottom:1.25rem;">
-                    <button type="button" id="suGoogleFillBtn" onclick="suTriggerGoogle()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:0.7rem;padding:0.68rem 1rem;border-radius:8px;border:1px solid rgba(96,165,200,0.22);background:rgba(255,255,255,0.04);color:#c8dff0;font-size:0.88rem;font-weight:500;cursor:pointer;font-family:inherit;transition:all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='rgba(255,255,255,0.04)'">
+                    <button type="button" id="suGoogleFillBtn" onclick="suTriggerGoogle()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:0.7rem;padding:0.68rem 1rem;border-radius:8px;border:1px solid rgba(96,165,200,0.22);background:rgba(255,255,255,0.04);color:#c8dff0;font-size:var(--r2k-text-88);font-weight:500;cursor:pointer;font-family:inherit;transition:all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='rgba(255,255,255,0.04)'">
                         <svg width="17" height="17" viewBox="0 0 18 18" style="flex-shrink:0;"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z"/></svg>
                         Sign up with Google
                     </button>
@@ -1186,7 +1186,7 @@ html, body {
                     We've sent a verification link to<br>
                     <strong id="suSuccessEmail"></strong><br><br>
                     Please check your inbox and click the link to verify your email address.<br>
-                    <span style="color:rgba(248,113,113,0.9);font-size:0.82rem;">
+                    <span style="color:rgba(248,113,113,0.9);font-size:var(--r2k-text-82);">
                         You will not be able to log in until your email is verified.
                     </span>
                 </p>

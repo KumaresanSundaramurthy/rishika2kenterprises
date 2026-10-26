@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Transaction Additional Charges — shared across all transaction form pages.
  *
  * Globals injected by the transaction form view:
@@ -496,10 +496,10 @@
             $body.append(
                 '<tr class="' + rowClass + '">' +
                 '<td>' +
-                  '<div class="fw-semibold" style="font-size:.82rem;">' + esc(c.DisplayName || '') + '</div>' +
-                  (isSystem ? '<span class="badge bg-label-secondary mt-1" style="font-size:.65rem;">System</span>' : '') +
+                  '<div class="fw-semibold" style="font-size:var(--r2k-text-82);">' + esc(c.DisplayName || '') + '</div>' +
+                  (isSystem ? '<span class="badge bg-label-secondary mt-1" style="font-size:var(--r2k-text-65);">System</span>' : '') +
                 '</td>' +
-                '<td style="font-size:.8rem;">' + taxLabel + '</td>' +
+                '<td style="font-size:var(--r2k-text-md);">' + taxLabel + '</td>' +
                 '<td class="text-center">' + defLabel + '</td>' +
                 '<td class="text-center">' + actionHtml + '</td>' +
               '</tr>'

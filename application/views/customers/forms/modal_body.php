@@ -310,8 +310,8 @@ $d       = $FormData; // shorthand, null for add
                 <div id="custAttachZone" class="prod-attach-zone" onclick="_attachZoneTrigger('Customer', event)">
                     <div id="custAttachEmpty" class="prod-attach-empty">
                         <i class="bx bx-image-add" id="custAttachIcon" style="font-size:2rem;color:#9ca3af;display:block;margin-bottom:6px;"></i>
-                        <div id="custAttachLabel" style="font-size:.78rem;font-weight:600;color:#6b7280;">Drag &amp; drop images</div>
-                        <div id="custAttachHint" style="font-size:.7rem;color:#9ca3af;margin-top:3px;">JPG, GIF or PNG · Max 3 · 3 MB total</div>
+                        <div id="custAttachLabel" style="font-size:var(--r2k-text-78);font-weight:600;color:#6b7280;">Drag &amp; drop images</div>
+                        <div id="custAttachHint" style="font-size:var(--r2k-text-70);color:#9ca3af;margin-top:3px;">JPG, GIF or PNG · Max 3 · 3 MB total</div>
                     </div>
                 </div>
                 <div id="custAttachList" class="prod-attach-list mt-2" style="display:none;"></div>

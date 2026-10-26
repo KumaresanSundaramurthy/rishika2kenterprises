@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php $this->load->view('common/header'); ?>
 
@@ -2141,7 +2141,7 @@ function _buildGlobalTable(types, isSpecific) {
 
     if (isSpecific || !types || !types.length) {
         html = '<tr data-ctuid="0">'
-            + '<td class="text-muted" style="font-size:.82rem;">All Selected Customers</td>'
+            + '<td class="text-muted" style="font-size:var(--r2k-text-82);">All Selected Customers</td>'
             + '<td><select class="form-select form-select-sm pl-global-type">' + typeOpts + '</select></td>'
             + '<td><div class="input-group input-group-sm">'
             +   '<span class="input-group-text pl-global-sym">%</span>'
@@ -2191,7 +2191,7 @@ function _buildTierHead(types, isSpecific) {
         $.each(types, function (_, t) {
             th += '<th style="min-width:100px;">'
                 + $('<span>').text(t.TypeName).html()
-                + '<br><small style="font-weight:400;font-size:.7rem;">price (' + curSym + ')</small>'
+                + '<br><small style="font-weight:400;font-size:var(--r2k-text-70);">price (' + curSym + ')</small>'
                 + '</th>';
         });
     }
@@ -2633,7 +2633,7 @@ function _renderPLSearchResults(term) {
             +   '<div class="fw-semibold" style="font-size:.84rem;">' + $('<span>').text(p.text).html() + varBadge + '</div>'
             +   (p.categoryName ? '<div class="text-muted" style="font-size:var(--r2k-text-sm);">' + $('<span>').text(p.categoryName).html() + '</div>' : '')
             + '</td>'
-            + '<td class="text-muted" style="font-size:.78rem;">' + $('<span>').text(p.primaryUnit || '').html() + '</td>'
+            + '<td class="text-muted" style="font-size:var(--r2k-text-78);">' + $('<span>').text(p.primaryUnit || '').html() + '</td>'
             + '</tr>';
     }
     if (filtered.length > limit) {
@@ -3377,7 +3377,7 @@ $(document).on('click', '.catg-prod-count-btn', function () {
             function _secHdr(icon, label, color) {
                 return '<div class="d-flex align-items-center gap-2" style="padding:4px 0 10px;">'
                     + '<i class="bx ' + icon + '" style="font-size:1.05rem;color:' + color + ';"></i>'
-                    + '<span style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:' + color + ';">' + label + '</span></div>';
+                    + '<span style="font-size:var(--r2k-text-70);font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:' + color + ';">' + label + '</span></div>';
             }
 
             // Banner always stays — update product count with real value
@@ -3395,7 +3395,7 @@ $(document).on('click', '.catg-prod-count-btn', function () {
             if (res.Error || !res.Products || res.Products.length === 0) {
                 html += '<div class="d-flex flex-column align-items-center py-5 text-muted">'
                     + '<i class="bx bx-package" style="font-size:2.5rem;color:#dee2e6;"></i>'
-                    + '<p class="mt-2 mb-0" style="font-size:.88rem;">No active products in this category.</p>'
+                    + '<p class="mt-2 mb-0" style="font-size:var(--r2k-text-88);">No active products in this category.</p>'
                     + '</div>';
                 $('#catgProductsModalBody').html(html);
                 return;
@@ -3439,7 +3439,7 @@ $(document).on('click', '.catg-prod-count-btn', function () {
             html += '<div style="padding:14px 20px;">'
                 + _secHdr('bx-package', 'Product List', '#fd7e14')
                 + '<div class="table-responsive">'
-                + '<table class="table table-sm table-hover mb-0" style="font-size:.82rem;">'
+                + '<table class="table table-sm table-hover mb-0" style="font-size:var(--r2k-text-82);">'
                 + '<thead><tr style="background:#fff3e0;">'
                 + '<th class="text-center">#</th><th>Item Name</th>'
                 + '<th class="text-end">Selling Price</th><th class="text-end">MRP</th>'

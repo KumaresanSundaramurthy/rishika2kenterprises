@@ -13,7 +13,7 @@ if (!empty($DataLists)):
         $opt     = (int)($row->IsOptional ?? 0);
 ?>
 <tr>
-  <td class="text-muted <?php echo $showSerial ? '' : 'd-none'; ?>" style="font-size:.8rem;"><?php echo $SerialNumber; ?></td>
+  <td class="text-muted <?php echo $showSerial ? '' : 'd-none'; ?>" style="font-size:var(--r2k-text-md);"><?php echo $SerialNumber; ?></td>
   <td><div class="fw-semibold"><?php echo htmlspecialchars($row->HolidayName ?? ''); ?></div><?php if (!empty($row->Description)): ?><div class="text-muted" style="font-size:.76rem;"><?php echo htmlspecialchars($row->Description); ?></div><?php endif; ?></td>
   <td class="fw-semibold" style="font-size:.875rem;"><?php echo $dtFmt; ?></td>
   <td><span class="badge bg-label-secondary"><?php echo $dayName; ?></span></td>

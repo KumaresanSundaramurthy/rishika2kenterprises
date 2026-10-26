@@ -13,7 +13,7 @@
                         </div>
                         <div>
                             <div style="font-size:.95rem;font-weight:700;color:var(--vtm-color);" id="thermalPrintHeaderTitle">Thermal Receipt Preview</div>
-                            <div style="font-size:.75rem;color:#6c757d;margin-top:2px;" id="thermalPrintHeaderMeta"></div>
+                            <div style="font-size:var(--r2k-text-75);color:#6c757d;margin-top:2px;" id="thermalPrintHeaderMeta"></div>
                         </div>
                     </div>
                     <div class="vtm-banner-right">
@@ -45,7 +45,7 @@
 
             <!-- Row 1: Title | Close -->
             <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom flex-shrink-0" style="min-height:46px;background-color:#e6f2ff;">
-                <span class="fw-semibold text-truncate" style="font-size:.88rem;max-width:60%;">
+                <span class="fw-semibold text-truncate" style="font-size:var(--r2k-text-88);max-width:60%;">
                     <i class="bx bx-file-blank text-primary me-1"></i>
                     <span id="a4ModalTitle">Document Preview</span>
                 </span>
@@ -75,9 +75,9 @@
                 <div class="d-flex align-items-center gap-2 flex-shrink-0">
                     <div class="btn-group btn-group-sm" role="group">
                         <input type="radio" class="btn-check" name="a4PaperSize" id="psA4" value="A4" checked>
-                        <label class="btn btn-outline-secondary px-3" for="psA4" style="font-size:.78rem;">A4</label>
+                        <label class="btn btn-outline-secondary px-3" for="psA4" style="font-size:var(--r2k-text-78);">A4</label>
                         <input type="radio" class="btn-check" name="a4PaperSize" id="psA5" value="A5">
-                        <label class="btn btn-outline-secondary px-3" for="psA5" style="font-size:.78rem;">A5</label>
+                        <label class="btn btn-outline-secondary px-3" for="psA5" style="font-size:var(--r2k-text-78);">A5</label>
                     </div>
                     <button type="button" class="btn btn-sm btn-outline-success" id="a4EmailBtn" title="Send Email">
                         <i class="bx bx-envelope"></i>

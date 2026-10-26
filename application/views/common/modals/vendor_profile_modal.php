@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <!-- ── Vendor Profile Modal ─────────────────────────────────────────────────── -->
 <div class="modal fade" id="vendorProfileModal" tabindex="-1"

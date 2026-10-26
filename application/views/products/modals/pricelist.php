@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <div class="modal fade" id="priceListModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true" aria-modal="true" role="dialog">
     <div class="modal-dialog modal-dialog-full-height modal-xl">
@@ -253,7 +253,7 @@
 
                         <!-- Product block cards — one card per product, each has qty tier sub-table -->
                         <div id="PLProductBlocksWrap" class="mb-2"></div>
-                        <div id="PLRulesEmpty" class="text-center text-muted py-4 mb-2 d-none" style="font-size:.82rem;">
+                        <div id="PLRulesEmpty" class="text-center text-muted py-4 mb-2 d-none" style="font-size:var(--r2k-text-82);">
                             <i class="bx bx-info-circle me-1"></i>
                             No product rules yet. Click <strong>+ Add Product</strong> to define prices.
                         </div>

@@ -76,7 +76,7 @@ $existingStatus = $ExistingPayroll->PayrollStatus ?? '';
               </div>
             </div>
             <div class="table-responsive">
-              <table class="table trans-table mb-0" style="font-size:.82rem;">
+              <table class="table trans-table mb-0" style="font-size:var(--r2k-text-82);">
                 <thead class="r2k-thead">
                   <tr>
                     <th><?php echo t('col_employee_name', 'Employee'); ?></th><th><?php echo t('col_type', 'Type'); ?></th><th><?php echo t('col_working_days', 'Working Days'); ?></th><th><?php echo t('att_present', 'Present'); ?></th><th><?php echo t('att_absent', 'Absent'); ?></th><th><?php echo t('lbl_gross', 'Gross'); ?></th><th><?php echo t('col_advance_rec', 'Advance Rec.'); ?></th><th><?php echo t('col_other_ded', 'Other Ded.'); ?></th><th class="text-success"><?php echo t('lbl_net_payable', 'Net Payable'); ?></th><th><?php echo t('col_adjust', 'Adjust'); ?></th>

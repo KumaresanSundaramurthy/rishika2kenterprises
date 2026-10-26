@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php
 $cdnUrl     = getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN');
@@ -58,7 +58,7 @@ if (!empty($DataLists)):
         </td>
 
         <td class="<?php echo $showSerial ? '' : 'd-none'; ?> table-serialno" style="width:44px;">
-            <span class="text-muted" style="font-size:.78rem;"><?php echo $SerialNumber; ?></span>
+            <span class="text-muted" style="font-size:var(--r2k-text-78);"><?php echo $SerialNumber; ?></span>
         </td>
 
         <!-- Rental # / Date -->
@@ -76,7 +76,7 @@ if (!empty($DataLists)):
                 <div>
                     <div class="trans-party-name"><?php echo r2k_party_name($list->CustomerName ?? '', $list->CustomerMobile ?? '', $list->CountryCode ?? '', $list->PartyArea ?? '', !empty($list->PartyImage) ? $cdnUrl . $list->PartyImage : ''); ?></div>
                     <?php if (!empty($list->PartyArea)): ?>
-                    <div style="font-size:.7rem;color:#888;margin-top:1px;">
+                    <div style="font-size:var(--r2k-text-70);color:#888;margin-top:1px;">
                         <i class="bx bx-map" style="font-size:var(--r2k-text-sm);"></i> <?php echo htmlspecialchars($list->PartyArea); ?>
                     </div>
                     <?php endif; ?>
@@ -134,12 +134,12 @@ if (!empty($DataLists)):
         <td>
             <?php if (!empty($list->Machines)): ?>
                 <?php foreach ($list->Machines as $m): ?>
-                    <div style="font-size:.8rem;line-height:1.5;">
+                    <div style="font-size:var(--r2k-text-md);line-height:1.5;">
                         <span style="font-weight:500;"><?php echo htmlspecialchars($m->ItemName); ?></span>
                         <span class="text-muted"> × <?php echo (int)$m->Qty; ?></span>
-                        <span class="badge ms-1" style="background:#f1f5f9;color:#475569;font-size:.65rem;font-weight:500;"><?php echo htmlspecialchars($m->RentalType); ?></span>
+                        <span class="badge ms-1" style="background:#f1f5f9;color:#475569;font-size:var(--r2k-text-65);font-weight:500;"><?php echo htmlspecialchars($m->RentalType); ?></span>
                         <?php if ($m->ItemStatus === 'Returned'): ?>
-                            <span class="badge ms-1" style="background:#dcfce7;color:#16a34a;font-size:.65rem;">Returned</span>
+                            <span class="badge ms-1" style="background:#dcfce7;color:#16a34a;font-size:var(--r2k-text-65);">Returned</span>
                         <?php endif; ?>
                     </div>
                 <?php endforeach; ?>
@@ -150,10 +150,10 @@ if (!empty($DataLists)):
 
         <!-- Period -->
         <td style="white-space:nowrap;">
-            <div style="font-size:.78rem;">
+            <div style="font-size:var(--r2k-text-78);">
                 <i class="bx bx-calendar me-1 text-muted"></i><?php echo $list->RentalStartDateTime ? format_datedisplay($list->RentalStartDateTime) : '—'; ?>
             </div>
-            <div style="font-size:.78rem;<?php echo $isOverdue ? 'color:#dc2626;font-weight:600;' : 'color:#64748b;'; ?>">
+            <div style="font-size:var(--r2k-text-78);<?php echo $isOverdue ? 'color:#dc2626;font-weight:600;' : 'color:#64748b;'; ?>">
                 <i class="bx bx-calendar-exclamation me-1"></i>Due: <?php echo $list->ReturnDueDateTime ? format_datedisplay($list->ReturnDueDateTime) : '—'; ?>
                 <?php if ($isOverdue): ?><span class="ms-1">⚠</span><?php endif; ?>
             </div>
@@ -162,7 +162,7 @@ if (!empty($DataLists)):
         <!-- Status -->
         <td>
             <span class="trans-badge <?php echo $sb['class']; ?>">
-                <i class="bx <?php echo $sb['icon']; ?>" style="font-size:.8rem;"></i>
+                <i class="bx <?php echo $sb['icon']; ?>" style="font-size:var(--r2k-text-md);"></i>
                 <?php echo $sb['label']; ?>
             </span>
             <div class="mt-1">
@@ -176,22 +176,22 @@ if (!empty($DataLists)):
         <td style="text-align:right;">
             <div class="trans-amount-main"><?php echo $currency . ' ' . smartDecimal((float)$list->GrandTotal); ?></div>
             <?php if ((float)$list->ExtraCharges > 0): ?>
-                <div class="text-muted" style="font-size:.7rem;">+<?php echo $currency; ?> <?php echo smartDecimal((float)$list->ExtraCharges); ?> extra</div>
+                <div class="text-muted" style="font-size:var(--r2k-text-70);">+<?php echo $currency; ?> <?php echo smartDecimal((float)$list->ExtraCharges); ?> extra</div>
             <?php endif; ?>
         </td>
 
         <!-- Paid -->
         <td style="text-align:right;">
-            <div style="font-weight:500;color:#16a34a;font-size:.85rem;"><?php echo $currency . ' ' . smartDecimal((float)$list->TotalPaid); ?></div>
+            <div style="font-weight:500;color:#16a34a;font-size:var(--r2k-text-85);"><?php echo $currency . ' ' . smartDecimal((float)$list->TotalPaid); ?></div>
             <?php if ((float)$list->DepositCollected > 0): ?>
-                <div class="text-muted" style="font-size:.7rem;"><?php echo $currency; ?> <?php echo smartDecimal((float)$list->DepositCollected); ?> deposit</div>
+                <div class="text-muted" style="font-size:var(--r2k-text-70);"><?php echo $currency; ?> <?php echo smartDecimal((float)$list->DepositCollected); ?> deposit</div>
             <?php endif; ?>
         </td>
 
         <!-- Balance -->
         <td style="text-align:right;">
             <?php $bal = (float)$list->BalanceAmount; ?>
-            <div style="font-weight:600;color:<?php echo $bal > 0 ? '#dc2626' : '#16a34a'; ?>;font-size:.85rem;">
+            <div style="font-weight:600;color:<?php echo $bal > 0 ? '#dc2626' : '#16a34a'; ?>;font-size:var(--r2k-text-85);">
                 <?php echo $currency . ' ' . smartDecimal($bal); ?>
             </div>
         </td>
@@ -210,7 +210,7 @@ if (!empty($DataLists)):
                         data-paid="<?php echo (float)$list->TotalPaid; ?>"
                         data-balance="<?php echo (float)$list->BalanceAmount; ?>"
                         title="Record Payment">
-                    <span style="font-size:.9rem;font-weight:700;line-height:1;"><?php echo $currency; ?></span>
+                    <span style="font-size:var(--r2k-text-90);font-weight:700;line-height:1;"><?php echo $currency; ?></span>
                 </button>
                 <?php endif; ?>
 
@@ -271,7 +271,7 @@ else:
         <td colspan="11">
             <div class="d-flex flex-column align-items-center py-5">
                 <img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:150px;object-fit:contain;">
-                <span class="text-muted mb-3" style="font-size:.9rem;">No rental records found</span>
+                <span class="text-muted mb-3" style="font-size:var(--r2k-text-90);">No rental records found</span>
                 <button type="button" class="btn btn-primary btn-sm px-4" id="rntNewBtnEmpty">
                     <i class="bx bx-plus me-1"></i>New Rental
                 </button>

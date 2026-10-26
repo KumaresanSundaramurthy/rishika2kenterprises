@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Internet Connectivity Monitor
  * Detects offline, slow internet, and connection restoration.
  *
@@ -237,7 +237,7 @@ class InternetMonitor {
                 background:rgba(255,71,87,.1);
                 border:1px solid rgba(255,71,87,.25);
                 border-radius:100px;padding:3px 12px;
-                font-size:.65rem;font-weight:700;letter-spacing:1.4px;
+                font-size:var(--r2k-text-65);font-weight:700;letter-spacing:1.4px;
                 color:#ff6b7a;margin-bottom:14px;
             }
             .io-blink-dot{
@@ -271,7 +271,7 @@ class InternetMonitor {
                 40%        {transform:scale(1.3);background:rgba(255,255,255,.75)}
             }
             .io-reconn-label{
-                font-size:.7rem;color:rgba(255,255,255,.22);
+                font-size:var(--r2k-text-70);color:rgba(255,255,255,.22);
                 letter-spacing:.4px;margin:0 0 20px;
             }
 
@@ -282,7 +282,7 @@ class InternetMonitor {
                 gap:12px;
             }
             .io-duration{
-                font-size:.72rem;color:rgba(255,255,255,.28);
+                font-size:var(--r2k-text-sm);color:rgba(255,255,255,.28);
                 letter-spacing:.2px;text-align:left;
             }
             .io-duration strong{color:rgba(255,255,255,.5);}
@@ -291,7 +291,7 @@ class InternetMonitor {
                 background:rgba(255,71,87,.14);
                 border:1px solid rgba(255,71,87,.3);
                 border-radius:8px;
-                color:#ff7b87;font-size:.75rem;font-weight:600;
+                color:#ff7b87;font-size:var(--r2k-text-75);font-weight:600;
                 padding:6px 14px;cursor:pointer;
                 transition:background .2s,border-color .2s;
                 white-space:nowrap;
@@ -368,12 +368,12 @@ class InternetMonitor {
             @keyframes siBannerDown{from{transform:translateY(-100%)}to{transform:translateY(0)}}
             .si-left{display:flex;align-items:center;gap:12px;}
             .si-left i{font-size:1.4rem;flex-shrink:0;}
-            .si-text strong{font-size:.9rem;}
-            .si-text p{margin:0;font-size:.78rem;opacity:.88;}
+            .si-text strong{font-size:var(--r2k-text-90);}
+            .si-text p{margin:0;font-size:var(--r2k-text-78);opacity:.88;}
             #si-dismiss-btn{
                 background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);
                 color:#fff;padding:5px 14px;border-radius:6px;
-                cursor:pointer;font-size:.78rem;font-weight:600;flex-shrink:0;
+                cursor:pointer;font-size:var(--r2k-text-78);font-weight:600;flex-shrink:0;
                 transition:background .2s;
             }
             #si-dismiss-btn:hover{background:rgba(255,255,255,.32);}

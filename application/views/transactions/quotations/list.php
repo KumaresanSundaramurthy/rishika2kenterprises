@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php
 $cdnUrl = getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN');
@@ -48,7 +48,7 @@ if (!empty($DataLists)):
                 $absDays       = abs($diffDays);
                 $validityHtml .= '<div style="font-size:var(--r2k-text-xs);color:#e67e22;font-weight:600;margin-top:3px;"><i class="bx bx-time-five" style="font-size:var(--r2k-text-sm);"></i> since ' . $absDays . ' day' . ($absDays !== 1 ? 's' : '') . '</div>';
                 // Row 3: Expired badge
-                $validityHtml .= '<div style="margin-top:2px;"><span class="badge bg-label-danger" style="font-size:.65rem;">Expired</span></div>';
+                $validityHtml .= '<div style="margin-top:2px;"><span class="badge bg-label-danger" style="font-size:var(--r2k-text-65);">Expired</span></div>';
             } elseif ($diffDays === 0) {
                 $dueClass      = 'trans-due-soon';
                 $validityHtml .= '<div style="font-size:var(--r2k-text-xs);color:#e67e22;font-weight:600;margin-top:3px;"><i class="bx bx-time-five" style="font-size:var(--r2k-text-sm);"></i> expires today</div>';
@@ -130,13 +130,13 @@ if (!empty($DataLists)):
         </td>
 
         <td class="<?php echo $showSerial ? '' : 'd-none'; ?> table-serialno" style="width:44px">
-            <span class="text-muted" style="font-size:.78rem;"><?php echo $SerialNumber; ?></span>
+            <span class="text-muted" style="font-size:var(--r2k-text-78);"><?php echo $SerialNumber; ?></span>
         </td>
 
         <!-- Quotation Number -->
         <td>
             <?php if ($isDraft || empty($list->UniqueNumber)): ?>
-                <span class="trans-doc-draft"><i class="bx bx-pencil me-1" style="font-size:.8rem;"></i><?php echo t('status_draft', 'Draft'); ?></span>
+                <span class="trans-doc-draft"><i class="bx bx-pencil me-1" style="font-size:var(--r2k-text-md);"></i><?php echo t('status_draft', 'Draft'); ?></span>
                 <?php if (!empty($list->TransDate)): ?>
                     <div class="text-muted" style="font-size:var(--r2k-text-sm);"><?php echo htmlspecialchars(format_datedisplay($list->TransDate)); ?></div>
                 <?php endif; ?>
@@ -159,7 +159,7 @@ if (!empty($DataLists)):
                             data-url="/transactions/getAttachments"
                             data-module-uid="<?php echo $quotModuleUID; ?>"
                             title="<?php echo (int)$list->AttachmentCount; ?> attachment(s)"
-                            style="font-size:.82rem;line-height:1;color:#0d6efd;">
+                            style="font-size:var(--r2k-text-82);line-height:1;color:#0d6efd;">
                         <i class="bx bx-paperclip"></i>
                     </button>
                     <?php endif; ?>
@@ -186,9 +186,9 @@ if (!empty($DataLists)):
                 <span class="trans-badge <?php echo $badgeClass; ?>" data-bs-toggle="dropdown"
                       data-uid="<?php echo (int)$list->TransUID; ?>"
                       data-current="<?php echo htmlspecialchars($status); ?>">
-                    <i class="bx <?php echo $icon; ?>" style="font-size:.8rem;"></i>
+                    <i class="bx <?php echo $icon; ?>" style="font-size:var(--r2k-text-md);"></i>
                     <?php echo htmlspecialchars($status); ?>
-                    <i class="bx bx-crevron-down" style="font-size:.7rem;"></i>
+                    <i class="bx bx-crevron-down" style="font-size:var(--r2k-text-70);"></i>
                 </span>
                 <ul class="dropdown-menu dropdown-menu-end r2k-action-menu">
                     <?php foreach ($transitions as $t): ?>
@@ -205,7 +205,7 @@ if (!empty($DataLists)):
             </div>
             <?php else: ?>
                 <span class="trans-badge <?php echo $badgeClass; ?>">
-                    <i class="bx <?php echo $icon; ?>" style="font-size:.8rem;"></i>
+                    <i class="bx <?php echo $icon; ?>" style="font-size:var(--r2k-text-md);"></i>
                     <?php echo htmlspecialchars($status); ?>
                 </span>
             <?php endif; ?>
@@ -218,7 +218,7 @@ if (!empty($DataLists)):
                 <div>
                     <div class="trans-party-name"><?php echo r2k_party_name($list->PartyName ?? '', $list->MobileNumber ?? '', $list->CountryCode ?? '', $list->PartyArea ?? '', !empty($list->PartyImage) ? $cdnUrl . $list->PartyImage : ''); ?></div>
                     <?php if (!empty($list->PartyArea)): ?>
-                    <div style="font-size:.7rem;color:#888;margin-top:1px;">
+                    <div style="font-size:var(--r2k-text-70);color:#888;margin-top:1px;">
                         <i class="bx bx-map" style="font-size:var(--r2k-text-sm);"></i> <?php echo htmlspecialchars($list->PartyArea); ?>
                     </div>
                     <?php endif; ?>
@@ -440,7 +440,7 @@ else:
         <td colspan="9">
             <div class="d-flex flex-column align-items-center py-5">
                 <img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:150px;object-fit:contain;">
-                <span class="text-muted mb-3" style="font-size:.9rem;"><?php echo t('empty_quotations', 'No quotations found'); ?></span>
+                <span class="text-muted mb-3" style="font-size:var(--r2k-text-90);"><?php echo t('empty_quotations', 'No quotations found'); ?></span>
                 <a href="<?= site_url('quotations/create') ?>" class="btn btn-primary btn-sm px-4">
                     <i class="bx bx-plus me-1"></i><?php echo t('create_quotation', 'Create Quotation'); ?>
                 </a>

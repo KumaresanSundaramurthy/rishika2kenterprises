@@ -19,7 +19,7 @@
             <div id="plSelectCards" style="padding:16px;display:flex;flex-direction:column;gap:10px;max-height:60vh;overflow-y:auto;"></div>
 
             <div style="padding:12px 16px;border-top:1px solid #e9ecef;background:#fafafa;border-radius:0 0 10px 10px;">
-                <button type="button" class="btn btn-outline-secondary w-100" id="plSelectNone" style="font-size:.85rem;">
+                <button type="button" class="btn btn-outline-secondary w-100" id="plSelectNone" style="font-size:var(--r2k-text-85);">
                     Continue Without Price List
                 </button>
             </div>

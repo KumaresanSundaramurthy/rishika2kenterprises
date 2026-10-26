@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
     'use strict';
 
     var _sym = (genSettings && genSettings.CurrenySymbol) ? genSettings.CurrenySymbol : '₹';
@@ -39,7 +39,7 @@
         var footer = document.getElementById('iwsTblFooter');
 
         if (!rows || rows.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8"><div class="rpt-empty"><i class="bx bx-info-circle"></i><div class="rpt-empty-title">No sales found</div><div style="font-size:.82rem">Try a different date range</div></div></td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8"><div class="rpt-empty"><i class="bx bx-info-circle"></i><div class="rpt-empty-title">No sales found</div><div style="font-size:var(--r2k-text-82)">Try a different date range</div></div></td></tr>';
             tfoot.classList.add('d-none');
             footer.classList.add('d-none');
             _updateStats(0, 0, 0, 0);
@@ -60,7 +60,7 @@
 
             html += '<tr>';
             html += '<td>' + (i + 1) + '</td>';
-            html += '<td>' + _esc(r.ItemName) + (r.UnitName ? ' <span style="font-size:.72rem;color:#94a3b8">/' + _esc(r.UnitName) + '</span>' : '') + '</td>';
+            html += '<td>' + _esc(r.ItemName) + (r.UnitName ? ' <span style="font-size:var(--r2k-text-sm);color:#94a3b8">/' + _esc(r.UnitName) + '</span>' : '') + '</td>';
             html += '<td>' + (r.SKU ? _esc(r.SKU) : '<span style="color:#94a3b8">—</span>') + '</td>';
             html += '<td>' + (r.CategoryName ? '<span class="iws-cat-chip">' + _esc(r.CategoryName) + '</span>' : '<span style="color:#94a3b8">—</span>') + '</td>';
             html += '<td class="rpt-col-num">' + inv + '</td>';

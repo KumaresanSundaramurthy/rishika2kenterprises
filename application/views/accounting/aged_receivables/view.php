@@ -49,7 +49,7 @@ $this->load->view('common/header'); ?>
                                         <i class="bx bx-dollar-circle fs-4"></i>
                                     </div>
                                     <div>
-                                        <div class="text-muted" style="font-size:.75rem;">Total Outstanding</div>
+                                        <div class="text-muted" style="font-size:var(--r2k-text-75);">Total Outstanding</div>
                                         <div class="fw-bold aged-val-total" style="font-size:1rem;" id="arSumTotal">—</div>
                                     </div>
                                 </div>
@@ -62,7 +62,7 @@ $this->load->view('common/header'); ?>
                                         <i class="bx bx-time fs-4"></i>
                                     </div>
                                     <div>
-                                        <div class="text-muted" style="font-size:.75rem;">Current (0â€“30 days)</div>
+                                        <div class="text-muted" style="font-size:var(--r2k-text-75);">Current (0â€“30 days)</div>
                                         <div class="fw-bold aged-val-current" style="font-size:1rem;" id="arSum0to30">—</div>
                                     </div>
                                 </div>
@@ -75,7 +75,7 @@ $this->load->view('common/header'); ?>
                                         <i class="bx bx-alarm-exclamation fs-4"></i>
                                     </div>
                                     <div>
-                                        <div class="text-muted" style="font-size:.75rem;">31â€“90 days</div>
+                                        <div class="text-muted" style="font-size:var(--r2k-text-75);">31â€“90 days</div>
                                         <div class="fw-bold aged-val-warn" style="font-size:1rem;" id="arSumMid">—</div>
                                     </div>
                                 </div>
@@ -88,7 +88,7 @@ $this->load->view('common/header'); ?>
                                         <i class="bx bx-error-circle fs-4"></i>
                                     </div>
                                     <div>
-                                        <div class="text-muted" style="font-size:.75rem;">90+ days overdue</div>
+                                        <div class="text-muted" style="font-size:var(--r2k-text-75);">90+ days overdue</div>
                                         <div class="fw-bold aged-val-overdue" style="font-size:1rem;" id="arSum90plus">—</div>
                                     </div>
                                 </div>
@@ -101,7 +101,7 @@ $this->load->view('common/header'); ?>
                         <div class="card-body p-0" id="arStatementArea">
                             <div class="d-flex flex-column align-items-center py-5 text-muted" id="arEmptyState">
                                 <i class="bx bx-receipt fs-1 mb-2" style="color:#ccc;"></i>
-                                <span style="font-size:.9rem;">Select a date and click Load Report</span>
+                                <span style="font-size:var(--r2k-text-90);">Select a date and click Load Report</span>
                             </div>
                         </div>
                     </div>

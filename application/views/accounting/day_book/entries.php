@@ -37,13 +37,13 @@ $refBadge = [
     <div class="text-center mb-3 pt-3 pl-print-header px-3">
         <div class="fw-bold" style="font-size:1rem;"><?php echo $orgName; ?></div>
         <div class="fw-semibold" style="font-size:.92rem;">Day Book</div>
-        <div class="text-muted" style="font-size:.8rem;">
+        <div class="text-muted" style="font-size:var(--r2k-text-md);">
             Period: <?php echo $dfDisp; ?> to <?php echo $dtDisp; ?>
         </div>
     </div>
 
     <?php if (empty($Days)): ?>
-    <div class="text-center text-muted py-4" style="font-size:.88rem;">
+    <div class="text-center text-muted py-4" style="font-size:var(--r2k-text-88);">
         <i class="bx bx-calendar-x fs-3 d-block mb-2"></i>
         No journal entries found for this period.
     </div>
@@ -86,7 +86,7 @@ $refBadge = [
             <tr class="db-entry-row <?php echo $isDr ? 'db-row-dr' : 'db-row-cr'; ?>">
                 <?php if ($firstEntry): ?>
                 <td rowspan="<?php echo count($journal['entries']); ?>" class="db-journal-cell">
-                    <span class="fw-semibold" style="font-size:.78rem;">
+                    <span class="fw-semibold" style="font-size:var(--r2k-text-78);">
                         <?php echo htmlspecialchars($journal['JournalNo'] ?? ''); ?>
                     </span>
                     <div class="mt-1">
@@ -96,30 +96,30 @@ $refBadge = [
                         </span>
                     </div>
                     <?php if (!empty($journal['ReferenceNo'])): ?>
-                    <div class="text-muted mt-1" style="font-size:.7rem;"><?php echo htmlspecialchars($journal['ReferenceNo']); ?></div>
+                    <div class="text-muted mt-1" style="font-size:var(--r2k-text-70);"><?php echo htmlspecialchars($journal['ReferenceNo']); ?></div>
                     <?php endif; ?>
                 </td>
                 <?php $firstEntry = false; ?>
                 <?php endif; ?>
 
-                <td style="font-size:.78rem;"></td>
+                <td style="font-size:var(--r2k-text-78);"></td>
 
                 <td>
-                    <span style="font-size:.82rem;"><?php echo htmlspecialchars($entry->LedgerName ?? ''); ?></span>
+                    <span style="font-size:var(--r2k-text-82);"><?php echo htmlspecialchars($entry->LedgerName ?? ''); ?></span>
                     <span class="badge bg-label-secondary ms-1" style="font-size:.62rem;"><?php echo htmlspecialchars($entry->LedgerType ?? ''); ?></span>
                 </td>
 
-                <td style="font-size:.78rem;color:#6c757d;">
+                <td style="font-size:var(--r2k-text-78);color:#6c757d;">
                     <?php
                     $narr = !empty($entry->Particulars) ? $entry->Particulars : ($journal['Narration'] ?? '');
                     echo htmlspecialchars($narr);
                     ?>
                 </td>
 
-                <td class="text-end fw-semibold text-success db-amt" style="font-size:.82rem;">
+                <td class="text-end fw-semibold text-success db-amt" style="font-size:var(--r2k-text-82);">
                     <?php echo $isDr ? _dbFmt((float)$entry->Amount, $cur) : ''; ?>
                 </td>
-                <td class="text-end fw-semibold text-danger db-amt" style="font-size:.82rem;">
+                <td class="text-end fw-semibold text-danger db-amt" style="font-size:var(--r2k-text-82);">
                     <?php echo !$isDr ? _dbFmt((float)$entry->Amount, $cur) : ''; ?>
                 </td>
             </tr>
@@ -128,13 +128,13 @@ $refBadge = [
             </tbody>
             <tfoot>
                 <tr class="db-daily-total">
-                    <td colspan="4" class="text-end fw-bold" style="font-size:.78rem;">
+                    <td colspan="4" class="text-end fw-bold" style="font-size:var(--r2k-text-78);">
                         Day Total
                     </td>
-                    <td class="text-end fw-bold text-success" style="font-size:.82rem;">
+                    <td class="text-end fw-bold text-success" style="font-size:var(--r2k-text-82);">
                         <?php echo _dbFmt((float)$day['dailyDr'], $cur); ?>
                     </td>
-                    <td class="text-end fw-bold text-danger" style="font-size:.82rem;">
+                    <td class="text-end fw-bold text-danger" style="font-size:var(--r2k-text-82);">
                         <?php echo _dbFmt((float)$day['dailyCr'], $cur); ?>
                     </td>
                 </tr>
@@ -146,13 +146,13 @@ $refBadge = [
 
     <!-- ── Grand Total ──────────────────────────────────────────────── -->
     <div class="db-grand-total d-flex justify-content-end align-items-center gap-4 px-3 py-2">
-        <div class="fw-bold" style="font-size:.85rem;">Grand Total</div>
+        <div class="fw-bold" style="font-size:var(--r2k-text-85);">Grand Total</div>
         <div>
-            <span class="text-success fw-bold" style="font-size:.85rem;">
+            <span class="text-success fw-bold" style="font-size:var(--r2k-text-85);">
                 Dr <?php echo $cur . ' ' . smartDecimal($GrandDr); ?>
             </span>
             <span class="mx-2 text-muted">|</span>
-            <span class="text-danger fw-bold" style="font-size:.85rem;">
+            <span class="text-danger fw-bold" style="font-size:var(--r2k-text-85);">
                 Cr <?php echo $cur . ' ' . smartDecimal($GrandCr); ?>
             </span>
         </div>

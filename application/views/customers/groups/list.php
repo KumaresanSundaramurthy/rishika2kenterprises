@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php
 $currency = $JwtData->GenSettings->CurrenySymbol ?? '₹';
@@ -45,37 +45,37 @@ if (!empty($DataLists)):
         </td>
         <td>
             <?php if ($list->GroupCode): ?>
-                <span style="font-size:.8rem;font-family:monospace;"><?php echo $code; ?></span>
+                <span style="font-size:var(--r2k-text-md);font-family:monospace;"><?php echo $code; ?></span>
             <?php else: ?><span class="text-muted">—</span><?php endif; ?>
         </td>
         <td>
             <span class="badge" style="background:<?php echo $tc['bg']; ?>;color:<?php echo $tc['c']; ?>;font-size:var(--r2k-text-sm);font-weight:600;"><?php echo $groupType; ?></span>
         </td>
         <td class="text-center">
-            <span class="badge bg-label-primary" style="font-size:.78rem;"><?php echo $members; ?></span>
+            <span class="badge bg-label-primary" style="font-size:var(--r2k-text-78);"><?php echo $members; ?></span>
         </td>
         <td>
-            <?php if (!empty($list->ContactPerson)): ?><div style="font-size:.82rem;"><?php echo htmlspecialchars($list->ContactPerson); ?></div><?php endif; ?>
+            <?php if (!empty($list->ContactPerson)): ?><div style="font-size:var(--r2k-text-82);"><?php echo htmlspecialchars($list->ContactPerson); ?></div><?php endif; ?>
             <?php if (!empty($list->Mobile)): ?><div class="text-muted" style="font-size:.74rem;"><?php echo htmlspecialchars($list->Mobile); ?></div><?php endif; ?>
             <?php if (empty($list->ContactPerson) && empty($list->Mobile)): ?><span class="text-muted">—</span><?php endif; ?>
         </td>
         <td class="text-end">
             <?php if ($receivable > 0): ?>
-                <div style="font-size:.82rem;font-weight:600;color:#28a745;"><?php echo $currency . ' ' . smartDecimal($receivable); ?></div>
-                <div class="text-muted" style="font-size:.7rem;">Receivable</div>
+                <div style="font-size:var(--r2k-text-82);font-weight:600;color:#28a745;"><?php echo $currency . ' ' . smartDecimal($receivable); ?></div>
+                <div class="text-muted" style="font-size:var(--r2k-text-70);">Receivable</div>
             <?php elseif ($payable > 0): ?>
-                <div style="font-size:.82rem;font-weight:600;color:#dc3545;"><?php echo $currency . ' ' . smartDecimal($payable); ?></div>
-                <div class="text-muted" style="font-size:.7rem;">Payable</div>
+                <div style="font-size:var(--r2k-text-82);font-weight:600;color:#dc3545;"><?php echo $currency . ' ' . smartDecimal($payable); ?></div>
+                <div class="text-muted" style="font-size:var(--r2k-text-70);">Payable</div>
             <?php else: ?>
-                <span class="text-muted" style="font-size:.8rem;">Settled</span>
+                <span class="text-muted" style="font-size:var(--r2k-text-md);">Settled</span>
             <?php endif; ?>
         </td>
         <td>
             <div class="dropdown d-inline-block">
                 <span class="badge <?php echo $isActive ? 'bg-label-success' : 'bg-label-danger'; ?> cursor-pointer" style="font-size:var(--r2k-text-xs);" data-bs-toggle="dropdown">
-                    <?php echo $isActive ? 'Active' : 'Inactive'; ?> <i class="bx bx-chevron-down" style="font-size:.65rem;"></i>
+                    <?php echo $isActive ? 'Active' : 'Inactive'; ?> <i class="bx bx-chevron-down" style="font-size:var(--r2k-text-65);"></i>
                 </span>
-                <ul class="dropdown-menu shadow-sm" style="min-width:150px;font-size:.82rem;">
+                <ul class="dropdown-menu shadow-sm" style="min-width:150px;font-size:var(--r2k-text-82);">
                     <li>
                         <button class="dropdown-item grp-status-toggle" data-uid="<?php echo $uid; ?>" data-newstatus="<?php echo $isActive ? 0 : 1; ?>">
                             <?php if ($isActive): ?>
@@ -96,7 +96,7 @@ if (!empty($DataLists)):
                     <button type="button" class="btn btn-icon btn-sm text-secondary" data-bs-toggle="dropdown" aria-expanded="false" title="More options">
                         <i class="bx bx-dots-vertical-rounded"></i>
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="min-width:140px;font-size:.82rem;">
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="min-width:140px;font-size:var(--r2k-text-82);">
                         <li>
                             <button class="dropdown-item text-danger grp-delete-btn" data-uid="<?php echo $uid; ?>">
                                 <i class="bx bx-trash me-2"></i>Delete
@@ -115,7 +115,7 @@ else:
         <td colspan="9">
             <div class="d-flex flex-column align-items-center justify-content-center py-5 text-muted">
                 <i class="bx bxs-layer mb-2" style="font-size:3rem;color:#e2e8f0;"></i>
-                <div style="font-size:.9rem;">No customer groups found.</div>
+                <div style="font-size:var(--r2k-text-90);">No customer groups found.</div>
                 <button type="button" class="btn btn-sm btn-primary mt-2 btn-new-group"><i class="bx bx-plus me-1"></i>Create First Group</button>
             </div>
         </td>

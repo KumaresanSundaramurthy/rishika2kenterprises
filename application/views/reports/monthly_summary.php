@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 
 $_today       = date('Y-m-d');
 $_listFmt     = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
@@ -28,7 +28,7 @@ $this->load->view('common/transactions/header'); ?>
 
 /* Monthly table */
 .ms-table-wrap { overflow-x:auto; }
-.ms-table { width:100%;border-collapse:collapse;font-size:.82rem; }
+.ms-table { width:100%;border-collapse:collapse;font-size:var(--r2k-text-82); }
 .ms-table thead th { background:#f8fafc;padding:10px 14px;font-size:.73rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #e2e8f0;white-space:nowrap;position:sticky;top:0;z-index:1; }
 .ms-table thead th.ms-hd-sales   { color:#16a34a; }
 .ms-table thead th.ms-hd-pur     { color:#ea580c; }
@@ -53,8 +53,8 @@ $this->load->view('common/transactions/header'); ?>
 .ms-balance-neg { background:#dc2626; }
 .ms-badge-cur { display:inline-block;padding:1px 6px;background:#dbeafe;color:#1d4ed8;border-radius:6px;font-size:var(--r2k-text-xs);font-weight:700;vertical-align:middle;margin-left:4px; }
 .rpt-loading-cell { padding:48px 0 !important;text-align:center; }
-.rpt-loading { display:flex;align-items:center;justify-content:center;color:#64748b;font-size:.85rem; }
-.rpt-tbl-footer { display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-top:1px solid #e2e8f0;background:#f8fafc;font-size:.8rem;flex-wrap:wrap;gap:8px; }
+.rpt-loading { display:flex;align-items:center;justify-content:center;color:#64748b;font-size:var(--r2k-text-85); }
+.rpt-tbl-footer { display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-top:1px solid #e2e8f0;background:#f8fafc;font-size:var(--r2k-text-md);flex-wrap:wrap;gap:8px; }
 .rpt-footer-left { color:#64748b; }
 @media (prefers-color-scheme: dark) {
     .rpt-stat-card { background:#1e293b;border-color:#334155; }

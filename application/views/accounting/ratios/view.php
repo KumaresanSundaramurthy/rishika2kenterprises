@@ -62,7 +62,7 @@ $this->load->view('common/header'); ?>
                     <div id="ratioDashArea">
                         <div class="d-flex flex-column align-items-center py-5 text-muted" id="ratioEmptyState">
                             <i class="bx bx-analyse fs-1 mb-2" style="color:#ccc;"></i>
-                            <span style="font-size:.9rem;">Select dates and click Compute Ratios</span>
+                            <span style="font-size:var(--r2k-text-90);">Select dates and click Compute Ratios</span>
                         </div>
                     </div>
 

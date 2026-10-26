@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var array $Entries */ $Entries = $Entries ?? [];
 $cur     = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
 $dateFmt = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
@@ -36,24 +36,24 @@ if (!empty($Entries)):
                value="<?php echo $uid; ?>"
                <?php echo $en->IsReconciled ? 'checked' : ''; ?>>
     </td>
-    <td style="white-space:nowrap;font-size:.82rem;"><?php echo date($dateFmt, strtotime($en->JournalDate)); ?></td>
+    <td style="white-space:nowrap;font-size:var(--r2k-text-82);"><?php echo date($dateFmt, strtotime($en->JournalDate)); ?></td>
     <td>
-        <code style="font-size:.78rem;color:#7c3aed;"><?php echo htmlspecialchars($en->JournalNo ?? ''); ?></code>
+        <code style="font-size:var(--r2k-text-78);color:#7c3aed;"><?php echo htmlspecialchars($en->JournalNo ?? ''); ?></code>
     </td>
     <td>
         <span class="badge <?php echo $bCls; ?>" style="font-size:var(--r2k-text-xs);"><?php echo htmlspecialchars($ref); ?></span>
         <?php if (!empty($en->ReferenceNo)): ?>
-        <div class="text-muted" style="font-size:.7rem;"><?php echo htmlspecialchars($en->ReferenceNo); ?></div>
+        <div class="text-muted" style="font-size:var(--r2k-text-70);"><?php echo htmlspecialchars($en->ReferenceNo); ?></div>
         <?php endif; ?>
     </td>
-    <td class="text-muted" style="font-size:.8rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+    <td class="text-muted" style="font-size:var(--r2k-text-md);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
         title="<?php echo htmlspecialchars($en->Narration ?? ''); ?>">
         <?php echo htmlspecialchars($en->Particulars ?: ($en->Narration ?? '—')); ?>
     </td>
-    <td class="text-end fw-semibold text-success" style="font-size:.82rem;white-space:nowrap;">
+    <td class="text-end fw-semibold text-success" style="font-size:var(--r2k-text-82);white-space:nowrap;">
         <?php echo $isDr ? ($cur . ' ' . smartDecimal($amt)) : '—'; ?>
     </td>
-    <td class="text-end fw-semibold text-danger" style="font-size:.82rem;white-space:nowrap;">
+    <td class="text-end fw-semibold text-danger" style="font-size:var(--r2k-text-82);white-space:nowrap;">
         <?php echo !$isDr ? ($cur . ' ' . smartDecimal($amt)) : '—'; ?>
     </td>
 </tr>
@@ -62,7 +62,7 @@ if (!empty($Entries)):
     <td colspan="7" style="padding:0;border:none;">
         <div class="d-flex flex-column align-items-center py-5">
             <img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:110px;object-fit:contain;">
-            <span class="text-muted" style="font-size:.9rem;">No transactions found for this account in the selected period</span>
+            <span class="text-muted" style="font-size:var(--r2k-text-90);">No transactions found for this account in the selected period</span>
         </div>
     </td>
 </tr>

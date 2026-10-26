@@ -46,7 +46,7 @@ $this->load->view('common/header'); ?>
                                     </div>
 
                                     <?php if ($isLocked): ?>
-                                    <div class="mt-3 pt-3 border-top d-flex align-items-center justify-content-between" style="font-size:.8rem;">
+                                    <div class="mt-3 pt-3 border-top d-flex align-items-center justify-content-between" style="font-size:var(--r2k-text-md);">
                                         <span class="text-muted">
                                             Locked on <?php echo date($dateFmt, strtotime($CurrentLock->LockedOn)); ?>
                                         </span>
@@ -89,7 +89,7 @@ $this->load->view('common/header'); ?>
                                         </button>
                                     </div>
 
-                                    <div class="mt-3 p-3 rounded" style="background:#fef9ee;border:1px solid #fde68a;font-size:.78rem;" id="plWarningBox">
+                                    <div class="mt-3 p-3 rounded" style="background:#fef9ee;border:1px solid #fde68a;font-size:var(--r2k-text-78);" id="plWarningBox">
                                         <i class="bx bx-info-circle me-1 text-warning"></i>
                                         <strong>Important:</strong> Once a period is locked, no journal can be posted or reversed
                                         within that period — including invoices, payments, expenses, and manual entries.
@@ -100,7 +100,7 @@ $this->load->view('common/header'); ?>
 
                             <!-- ── Lock History Note ───────────────────────── -->
                             <?php if ($isLocked): ?>
-                            <div class="mt-3 text-center text-muted" style="font-size:.75rem;">
+                            <div class="mt-3 text-center text-muted" style="font-size:var(--r2k-text-75);">
                                 Lock was set by user #<?php echo (int)$CurrentLock->LockedBy; ?>.
                             </div>
                             <?php endif; ?>

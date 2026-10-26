@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <!-- Customer Search Modal — included via common_form.php — available on all pages -->
 <div class="modal fade" id="customerSearchModal" tabindex="-1" aria-hidden="true">
@@ -14,7 +14,7 @@
                         </div>
                         <div>
                             <div style="font-size:.95rem;font-weight:700;color:var(--vtm-color);">Search Customers</div>
-                            <div style="font-size:.75rem;color:#6c757d;margin-top:2px;">Select a customer to apply</div>
+                            <div style="font-size:var(--r2k-text-75);color:#6c757d;margin-top:2px;">Select a customer to apply</div>
                         </div>
                     </div>
                     <div class="vtm-banner-right">
@@ -65,7 +65,7 @@
                 <div id="custSearchSentinel" style="height:1px;"></div>
                 <div id="custSearchLoadingMore" class="text-center py-2 d-none">
                     <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-                    <span class="ms-2 text-muted" style="font-size:.8rem;">Loading more...</span>
+                    <span class="ms-2 text-muted" style="font-size:var(--r2k-text-md);">Loading more...</span>
                 </div>
             </div>
 
@@ -114,14 +114,14 @@
     display: inline-flex; align-items: center; justify-content: center;
     width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
     background: #ede9ff; color: #7367f0;
-    font-size: .7rem; font-weight: 700;
+    font-size:var(--r2k-text-70); font-weight: 700;
 }
 .cust-avatar-img {
     width: 30px; height: 30px; border-radius: 50%;
     object-fit: cover; flex-shrink: 0;
 }
-.cust-name     { font-size: .88rem; font-weight: 600; color: #566a7f; }
-.cust-meta     { font-size: .75rem; color: #8592a3; }
-.cust-bal-debit  { font-size: .82rem; font-weight: 600; color: #28a745; }
-.cust-bal-credit { font-size: .82rem; font-weight: 600; color: #dc3545; }
+.cust-name     { font-size:var(--r2k-text-88); font-weight: 600; color: #566a7f; }
+.cust-meta     { font-size:var(--r2k-text-75); color: #8592a3; }
+.cust-bal-debit  { font-size:var(--r2k-text-82); font-weight: 600; color: #28a745; }
+.cust-bal-credit { font-size:var(--r2k-text-82); font-weight: 600; color: #dc3545; }
 </style>

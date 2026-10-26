@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php
 if (!isset($ModAllCount))  { $ModAllCount  = 0; }
 if (!isset($ModRowData))   { $ModRowData   = ''; }
@@ -268,7 +268,7 @@ $(function () {
         $('#staffTable tbody').html(
             '<tr><td colspan="' + cols + '" class="text-center py-4">' +
             '<span class="spinner-border spinner-border-sm text-primary me-2"></span>' +
-            '<span class="text-muted" style="font-size:.85rem;">Loading...</span>' +
+            '<span class="text-muted" style="font-size:var(--r2k-text-85);">Loading...</span>' +
             '</td></tr>'
         );
         $('.staffPagination').empty();
@@ -681,7 +681,7 @@ $(function () {
             var $item = $('<div>', {
                 'class'    : 'd-flex align-items-center gap-2 border rounded px-3 py-2 mb-2 bg-light user-attach-item',
                 'data-uid' : uid,
-                'style'    : 'font-size:.82rem;'
+                'style'    : 'font-size:var(--r2k-text-82);'
             }).append(
                 $('<i>', { 'class': 'bx ' + iconCls, 'style': 'font-size:1.2rem;flex-shrink:0;cursor:pointer;' })
                     .on('click', function () { _openUserAttachPreview(encUrl, ftype, name); }),

@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
 <?php $this->load->view('common/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -67,7 +67,7 @@
                                         <i class="bx bx-calendar me-1"></i><span id="ppDateFilterLabel">This Month</span><strong id="ppDateFilterDates" class="r2k-df-dates" style="display:none;"></strong>
                                     </button>
                                     <ul class="dropdown-menu shadow" id="ppDateFilterMenu"
-                                        style="width:220px;max-height:360px;overflow-y:auto;font-size:.82rem;"></ul>
+                                        style="width:220px;max-height:360px;overflow-y:auto;font-size:var(--r2k-text-82);"></ul>
                                 </div>
                             </div>
                         </div>
@@ -95,12 +95,12 @@
                         <!-- Footer -->
                         <div class="card-footer bg-white border-top d-flex flex-wrap justify-content-between align-items-center px-3 py-2 gap-3">
                             <div class="d-flex align-items-center gap-3">
-                                <span class="text-muted" style="font-size:.8rem;">
+                                <span class="text-muted" style="font-size:var(--r2k-text-md);">
                                     Total Paid Out: &nbsp;<strong class="text-danger" id="ppFooterPaid"><?php echo ppFmt($totalPaid, $cur); ?></strong>
                                 </span>
                             </div>
                             <div id="ppPagination" class="d-flex align-items-center gap-3">
-                                <span class="text-muted" style="font-size:.78rem;">Total: <strong id="ppTotalCount"><?php echo number_format($ModAllCount); ?></strong></span>
+                                <span class="text-muted" style="font-size:var(--r2k-text-78);">Total: <strong id="ppTotalCount"><?php echo number_format($ModAllCount); ?></strong></span>
                                 <?php echo $ModPagination; ?>
                             </div>
                         </div>
@@ -128,7 +128,7 @@
                     </div>
                     <div class="flex-grow-1">
                         <div class="fw-bold text-dark" style="font-size:1rem;" id="pdUniqueNumber">—</div>
-                        <div class="text-muted" style="font-size:.78rem;" id="pdDateLabel">—</div>
+                        <div class="text-muted" style="font-size:var(--r2k-text-78);" id="pdDateLabel">—</div>
                     </div>
                     <div class="text-end">
                         <div class="fw-bold" style="font-size:1.2rem;color:#f57c00;" id="pdAmount">—</div>
@@ -140,43 +140,43 @@
                 <div style="background:#f8f9fa;border-radius:8px;padding:12px 14px;margin-bottom:12px;">
                     <div class="row g-2">
                         <div class="col-6">
-                            <div class="text-muted" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;font-weight:600;">Vendor</div>
-                            <div class="fw-semibold" style="font-size:.85rem;" id="pdParty">—</div>
+                            <div class="text-muted" style="font-size:var(--r2k-text-70);text-transform:uppercase;letter-spacing:.05em;font-weight:600;">Vendor</div>
+                            <div class="fw-semibold" style="font-size:var(--r2k-text-85);" id="pdParty">—</div>
                             <div class="text-muted" style="font-size:var(--r2k-text-sm);" id="pdPartyMobile"></div>
                         </div>
                         <div class="col-6">
-                            <div class="text-muted" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;font-weight:600;">Linked Bill</div>
-                            <div class="fw-semibold text-primary" style="font-size:.85rem;" id="pdTransNumber">—</div>
+                            <div class="text-muted" style="font-size:var(--r2k-text-70);text-transform:uppercase;letter-spacing:.05em;font-weight:600;">Linked Bill</div>
+                            <div class="fw-semibold text-primary" style="font-size:var(--r2k-text-85);" id="pdTransNumber">—</div>
                         </div>
                     </div>
                 </div>
                 <div id="pdBankSection" style="display:none;background:#f8f9fa;border-radius:8px;padding:12px 14px;margin-bottom:12px;">
-                    <div class="text-muted mb-2" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;font-weight:600;">
+                    <div class="text-muted mb-2" style="font-size:var(--r2k-text-70);text-transform:uppercase;letter-spacing:.05em;font-weight:600;">
                         <i class="bx bx-building-house me-1"></i>Bank Details
                     </div>
                     <div class="row g-2">
                         <div class="col-7">
-                            <div class="text-muted" style="font-size:.7rem;">Bank / Account Name</div>
-                            <div class="fw-semibold" style="font-size:.82rem;" id="pdBankName">—</div>
+                            <div class="text-muted" style="font-size:var(--r2k-text-70);">Bank / Account Name</div>
+                            <div class="fw-semibold" style="font-size:var(--r2k-text-82);" id="pdBankName">—</div>
                         </div>
                         <div class="col-5">
-                            <div class="text-muted" style="font-size:.7rem;">Account Number</div>
-                            <div class="fw-semibold" style="font-size:.82rem;font-family:monospace;" id="pdAccountNumber">—</div>
+                            <div class="text-muted" style="font-size:var(--r2k-text-70);">Account Number</div>
+                            <div class="fw-semibold" style="font-size:var(--r2k-text-82);font-family:monospace;" id="pdAccountNumber">—</div>
                         </div>
                     </div>
                 </div>
                 <div class="row g-3">
                     <div class="col-6">
-                        <div class="text-muted" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;font-weight:600;">Reference No</div>
-                        <div style="font-size:.85rem;" id="pdReference">—</div>
+                        <div class="text-muted" style="font-size:var(--r2k-text-70);text-transform:uppercase;letter-spacing:.05em;font-weight:600;">Reference No</div>
+                        <div style="font-size:var(--r2k-text-85);" id="pdReference">—</div>
                     </div>
                     <div class="col-6">
-                        <div class="text-muted" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;font-weight:600;">Recorded By</div>
-                        <div style="font-size:.85rem;" id="pdCreatedBy">—</div>
+                        <div class="text-muted" style="font-size:var(--r2k-text-70);text-transform:uppercase;letter-spacing:.05em;font-weight:600;">Recorded By</div>
+                        <div style="font-size:var(--r2k-text-85);" id="pdCreatedBy">—</div>
                     </div>
                     <div class="col-12" id="pdNotesWrap" style="display:none;">
-                        <div class="text-muted" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;font-weight:600;">Notes</div>
-                        <div style="font-size:.85rem;color:#444;" id="pdNotes"></div>
+                        <div class="text-muted" style="font-size:var(--r2k-text-70);text-transform:uppercase;letter-spacing:.05em;font-weight:600;">Notes</div>
+                        <div style="font-size:var(--r2k-text-85);color:#444;" id="pdNotes"></div>
                     </div>
                 </div>
             </div>
@@ -189,10 +189,10 @@
 <script type="text/javascript" src="/js/common/datefilter.js"></script>
 
 <style>
-.pp-tab { border-radius: 6px; font-size: .82rem; transition: background .15s; }
+.pp-tab { border-radius: 6px; font-size:var(--r2k-text-82); transition: background .15s; }
 .pp-tab.active { background: #fff3e0; color: #f57c00 !important; }
 .pp-tab:not(.active):hover { background: #f5f5f5; }
-.pmt-mode-badge { font-size: .7rem; padding: 2px 8px; border-radius: 20px; }
+.pmt-mode-badge { font-size:var(--r2k-text-70); padding: 2px 8px; border-radius: 20px; }
 </style>
 
 <script>
@@ -220,7 +220,7 @@ $(function () {
                 if (!resp.Error) {
                     $('#ppTableBody').html(resp.RecordHtmlData);
                     $('#ppPagination').html(
-                        '<span class="text-muted" style="font-size:.78rem;">Total: <strong>' +
+                        '<span class="text-muted" style="font-size:var(--r2k-text-78);">Total: <strong>' +
                         Number(resp.TotalCount).toLocaleString() + '</strong></span>' +
                         (resp.Pagination || '')
                     );

@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
     'use strict';
 
     var _sym = (genSettings && genSettings.CurrenySymbol) ? genSettings.CurrenySymbol : '₹';
@@ -45,7 +45,7 @@
         var footer = document.getElementById('ssTblFooter');
 
         if (!rows || rows.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9"><div class="rpt-empty"><i class="bx bx-package"></i><div class="rpt-empty-title">No products found</div><div style="font-size:.82rem">No active products in the system</div></div></td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9"><div class="rpt-empty"><i class="bx bx-package"></i><div class="rpt-empty-title">No products found</div><div style="font-size:var(--r2k-text-82)">No active products in the system</div></div></td></tr>';
             tfoot.classList.add('d-none');
             footer.classList.add('d-none');
             _updateStats(0, 0, 0, 0);

@@ -47,7 +47,7 @@
 
     <div class="d-flex flex-column align-items-center justify-content-center py-4 text-muted">
         <i class="bx bx-info-circle fs-2 mb-2"></i>
-        <span style="font-size:0.8rem;">No categories found</span>
+        <span style="font-size:var(--r2k-text-md);">No categories found</span>
     </div>
 
 <?php endif; ?>

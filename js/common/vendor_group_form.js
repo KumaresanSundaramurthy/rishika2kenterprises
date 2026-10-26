@@ -1,4 +1,4 @@
-/**
+﻿/**
  * VendorGroupForm — modal for add / edit Vendor Groups.
  *
  * Usage:
@@ -349,7 +349,7 @@
 
             if (!filtered.length) {
                 $('#VG_MemberDropdown')
-                    .html('<div class="px-3 py-2 text-muted" style="font-size:.8rem;">No vendors found</div>')
+                    .html('<div class="px-3 py-2 text-muted" style="font-size:var(--r2k-text-md);">No vendors found</div>')
                     .show();
                 return;
             }
@@ -357,16 +357,16 @@
             var html = filtered.map(function (v) {
                 var init = (v.Name || '?').charAt(0).toUpperCase();
                 return '<div class="vg-vend-item d-flex align-items-center gap-2 px-3 py-2" ' +
-                    'style="cursor:pointer;font-size:.85rem;" ' +
+                    'style="cursor:pointer;font-size:var(--r2k-text-85);" ' +
                     'data-uid="' + v.VendorUID + '" ' +
                     'data-name="' + _esc(v.Name) + '" ' +
                     'data-mobile="' + _esc(v.MobileNumber) + '" ' +
                     'data-area="' + _esc(v.Area || '') + '">' +
                     '<div style="width:28px;height:28px;border-radius:50%;background:#8592a3;color:#fff;' +
-                    'display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;flex-shrink:0;">' +
+                    'display:flex;align-items:center;justify-content:center;font-size:var(--r2k-text-sm);font-weight:700;flex-shrink:0;">' +
                     _esc(init) + '</div>' +
                     '<div><div class="fw-semibold">' + _esc(v.Name) + '</div>' +
-                    (v.MobileNumber ? '<div class="text-muted" style="font-size:.78rem;">' + _esc(v.MobileNumber) + '</div>' : '') +
+                    (v.MobileNumber ? '<div class="text-muted" style="font-size:var(--r2k-text-78);">' + _esc(v.MobileNumber) + '</div>' : '') +
                     '</div></div>';
             }).join('');
 
@@ -433,7 +433,7 @@
             $('#VG_MembersBox').html(
                 '<div class="d-flex flex-column align-items-center justify-content-center py-4 text-muted">' +
                 '<i class="bx bx-user-plus fs-2 mb-2"></i>' +
-                '<div style="font-size:.85rem;">No members yet. Search and add vendors above.</div></div>'
+                '<div style="font-size:var(--r2k-text-85);">No members yet. Search and add vendors above.</div></div>'
             );
             return;
         }
@@ -442,10 +442,10 @@
             var balCol = m.balType === 'Debit' ? '#28a745' : '#dc3545';
             var isPri  = (m.uid === _primaryUID);
             return '<tr data-uid="' + m.uid + '">' +
-                '<td class="fw-semibold" style="font-size:.85rem;">' + _esc(m.name) + '</td>' +
-                '<td style="font-size:.8rem;">' + _esc(m.area || '—') + '</td>' +
-                '<td style="font-size:.8rem;">' + _esc(m.mobile || '—') + '</td>' +
-                '<td class="text-end" style="font-size:.8rem;color:' + balCol + ';">' + parseFloat(m.balance).toFixed(2) + '</td>' +
+                '<td class="fw-semibold" style="font-size:var(--r2k-text-85);">' + _esc(m.name) + '</td>' +
+                '<td style="font-size:var(--r2k-text-md);">' + _esc(m.area || '—') + '</td>' +
+                '<td style="font-size:var(--r2k-text-md);">' + _esc(m.mobile || '—') + '</td>' +
+                '<td class="text-end" style="font-size:var(--r2k-text-md);color:' + balCol + ';">' + parseFloat(m.balance).toFixed(2) + '</td>' +
                 '<td class="text-center"><button type="button" class="btn btn-sm btn-icon ' +
                 (isPri ? 'text-warning' : 'text-secondary') +
                 ' vg-set-primary" data-uid="' + m.uid + '" title="' + (isPri ? 'Primary contact' : 'Set as primary') + '">' +

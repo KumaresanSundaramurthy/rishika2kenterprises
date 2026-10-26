@@ -45,12 +45,12 @@
                             <textarea class="form-control" rows="3" name="Description" id="BrandDescription" placeholder="Description"></textarea>
                         </div>
                         <div class="mb-3 col-12">
-                            <label class="form-label" style="font-size:.82rem;font-weight:600;color:#374151;">Images <span class="text-muted fw-normal">(max 3 · 3 MB total)</span></label>
+                            <label class="form-label" style="font-size:var(--r2k-text-82);font-weight:600;color:#374151;">Images <span class="text-muted fw-normal">(max 3 · 3 MB total)</span></label>
                             <div id="brandAttachZone" class="prod-attach-zone" onclick="brandAttachTrigger(event)">
                                 <div id="brandAttachEmpty" class="prod-attach-empty">
                                     <i class="bx bx-image-add" id="brandAttachIcon" style="font-size:2rem;color:#9ca3af;display:block;margin-bottom:6px;"></i>
-                                    <div id="brandAttachLabel" style="font-size:.78rem;font-weight:600;color:#6b7280;">Drag &amp; drop images</div>
-                                    <div id="brandAttachHint" style="font-size:.7rem;color:#9ca3af;margin-top:3px;">JPG, GIF or PNG · Max 3 · 3 MB total</div>
+                                    <div id="brandAttachLabel" style="font-size:var(--r2k-text-78);font-weight:600;color:#6b7280;">Drag &amp; drop images</div>
+                                    <div id="brandAttachHint" style="font-size:var(--r2k-text-70);color:#9ca3af;margin-top:3px;">JPG, GIF or PNG · Max 3 · 3 MB total</div>
                                 </div>
                             </div>
                             <div id="brandAttachList" class="prod-attach-list mt-2" style="display:none;"></div>

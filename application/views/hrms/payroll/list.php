@@ -13,17 +13,17 @@ if (!empty($DataLists)):
         $period = ($months[$mo] ?? '—') . ' ' . ($yr ?: '');
 ?>
 <tr>
-  <td class="text-muted" style="font-size:.8rem;"><?php echo $SerialNumber; ?></td>
+  <td class="text-muted" style="font-size:var(--r2k-text-md);"><?php echo $SerialNumber; ?></td>
   <td>
     <div class="fw-semibold"><?php echo $period; ?></div>
-    <div class="text-muted" style="font-size:.75rem;"><?php echo !empty($row->ProcessedOn) ? date('d M Y', strtotime($row->ProcessedOn)) : '—'; ?></div>
+    <div class="text-muted" style="font-size:var(--r2k-text-75);"><?php echo !empty($row->ProcessedOn) ? date('d M Y', strtotime($row->ProcessedOn)) : '—'; ?></div>
   </td>
   <td class="text-center fw-semibold"><?php echo (int)($row->EmployeeCount ?? 0); ?></td>
   <td><?php echo $cur . ' ' . smartDecimal((float)($row->TotalGross ?? 0)); ?></td>
   <td class="text-danger"><?php echo $cur . ' ' . smartDecimal((float)($row->TotalDeductions ?? 0)); ?></td>
   <td class="text-success fw-semibold"><?php echo $cur . ' ' . smartDecimal((float)($row->TotalNetPayable ?? 0)); ?></td>
   <td><span class="badge bg-label-<?php echo $badge; ?>"><?php echo $status; ?></span></td>
-  <td class="text-muted" style="font-size:.8rem;"><?php echo htmlspecialchars($row->ProcessedByName ?? '—'); ?></td>
+  <td class="text-muted" style="font-size:var(--r2k-text-md);"><?php echo htmlspecialchars($row->ProcessedByName ?? '—'); ?></td>
   <td>
     <div class="d-flex align-items-center gap-1">
       <a href="<?= site_url('payroll/detail/') ?><?php echo $uid; ?>" class="btn btn-icon btn-sm text-primary" title="<?php echo t('btn_view_detail', 'View Detail'); ?>"><i class="bx bx-show"></i></a>

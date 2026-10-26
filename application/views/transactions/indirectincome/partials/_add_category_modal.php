@@ -25,7 +25,7 @@
                 <input type="hidden" id="incCatModalUID" value="0">
                 <input type="text" class="form-control" id="newIncomeCategoryName"
                        placeholder="Category name" maxlength="100" autocomplete="off">
-                <div id="incCatSaveError" class="text-danger mt-1" style="font-size:.78rem;display:none;"></div>
+                <div id="incCatSaveError" class="text-danger mt-1" style="font-size:var(--r2k-text-78);display:none;"></div>
             </div>
         </div>
     </div>

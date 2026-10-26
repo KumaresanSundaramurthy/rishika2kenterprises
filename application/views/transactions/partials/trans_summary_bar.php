@@ -115,7 +115,7 @@ $_bShowPrintBtn = ($_bShowPrint === 'create_only') ? !$_bIsEdit : (!$_bIsEdit ||
                     data-bs-toggle="dropdown" aria-expanded="false">
                 <i class="bx bx-printer me-1"></i><?php echo t('btn_save_print', 'Save &amp; Print'); ?>
             </button>
-            <ul class="dropdown-menu dropdown-menu-end shadow dropup" style="min-width:175px;font-size:.82rem;">
+            <ul class="dropdown-menu dropdown-menu-end shadow dropup" style="min-width:175px;font-size:var(--r2k-text-82);">
                 <li><button type="button" class="dropdown-item py-1" <?php echo $_bAction; ?>="save_a4"><i class="bx bx-file text-primary me-2"></i><?php echo t('btn_save_a4', 'Save & Print A4'); ?></button></li>
                 <li><button type="button" class="dropdown-item py-1" <?php echo $_bAction; ?>="save_a5"><i class="bx bx-file-blank text-info me-2"></i><?php echo t('btn_save_a5', 'Save & Print A5'); ?></button></li>
                 <li><button type="button" class="dropdown-item py-1" <?php echo $_bAction; ?>="save_thermal"><i class="bx bx-receipt text-success me-2"></i><?php echo t('btn_save_thermal', 'Save & Print Thermal'); ?></button></li>
@@ -144,8 +144,8 @@ $_bShowPrintBtn = ($_bShowPrint === 'create_only') ? !$_bIsEdit : (!$_bIsEdit ||
                     data-bs-toggle="dropdown" aria-expanded="false">
                 <span class="visually-hidden">Save options</span>
             </button>
-            <ul class="dropdown-menu dropdown-menu-end shadow dropup<?php echo $_bDcCls ? ' dc-save-menu' : ''; ?>"<?php if (!$_bDcCls): ?> style="min-width:195px;font-size:.82rem;"<?php endif; ?>>
-                <li><span class="dropdown-header py-1"<?php if (!$_bDcCls): ?> style="font-size:.65rem;letter-spacing:.4px;"<?php endif; ?>>SAVE &amp; PRINT</span></li>
+            <ul class="dropdown-menu dropdown-menu-end shadow dropup<?php echo $_bDcCls ? ' dc-save-menu' : ''; ?>"<?php if (!$_bDcCls): ?> style="min-width:195px;font-size:var(--r2k-text-82);"<?php endif; ?>>
+                <li><span class="dropdown-header py-1"<?php if (!$_bDcCls): ?> style="font-size:var(--r2k-text-65);letter-spacing:.4px;"<?php endif; ?>>SAVE &amp; PRINT</span></li>
                 <li><button type="button" class="dropdown-item py-1" <?php echo $_bAction; ?>="save_a4"><i class="bx bx-file text-primary me-2"></i><?php echo t('btn_save_a4', 'Save & Print A4'); ?></button></li>
                 <li><button type="button" class="dropdown-item py-1" <?php echo $_bAction; ?>="save_a5"><i class="bx bx-file-blank text-info me-2"></i><?php echo t('btn_save_a5', 'Save & Print A5'); ?></button></li>
                 <li><button type="button" class="dropdown-item py-1" <?php echo $_bAction; ?>="save_thermal"><i class="bx bx-receipt text-success me-2"></i><?php echo t('btn_save_thermal', 'Save & Print Thermal'); ?></button></li>

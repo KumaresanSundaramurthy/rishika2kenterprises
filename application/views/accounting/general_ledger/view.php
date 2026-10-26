@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var array $AllLedgers */ $AllLedgers = $AllLedgers ?? [];
 $cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
 $this->load->view('common/header'); ?>
@@ -101,7 +101,7 @@ $this->load->view('common/header'); ?>
                     <!-- ── Statement Table ───────────────────────────────── -->
                     <div class="card" id="glResultCard" style="display:none;">
                         <div class="card-header d-flex align-items-center justify-content-between py-2">
-                            <span class="fw-semibold" id="glCardTitle" style="font-size:.88rem;">Ledger Statement</span>
+                            <span class="fw-semibold" id="glCardTitle" style="font-size:var(--r2k-text-88);">Ledger Statement</span>
                             <span class="text-muted" id="glCardPeriod" style="font-size:.76rem;"></span>
                         </div>
                         <div class="table-responsive" id="glStatementWrap">
@@ -111,7 +111,7 @@ $this->load->view('common/header'); ?>
                     <!-- ── Empty state (before search) ──────────────────── -->
                     <div id="glEmptyState" class="text-center py-5">
                         <i class="bx bx-book-open d-block mx-auto mb-3" style="font-size:4rem;color:#d0d0e8;"></i>
-                        <p class="text-muted" style="font-size:.88rem;">Select a ledger account and date range, then click <strong>View Ledger</strong></p>
+                        <p class="text-muted" style="font-size:var(--r2k-text-88);">Select a ledger account and date range, then click <strong>View Ledger</strong></p>
                     </div>
 
                 </div>
@@ -199,7 +199,7 @@ $this->load->view('common/header'); ?>
         win.document.write('<link rel="stylesheet" href="/assets/vendor/css/core.css">');
         win.document.write('</head><body style="padding:24px;">');
         win.document.write('<h4>' + $('#glCardTitle').text() + '</h4>');
-        win.document.write('<p style="font-size:.8rem;color:#666;">' + $('#glCardPeriod').text() + '</p>');
+        win.document.write('<p style="font-size:var(--r2k-text-md);color:#666;">' + $('#glCardPeriod').text() + '</p>');
         win.document.write($tbl.html());
         win.document.write('</body></html>');
         win.document.close();

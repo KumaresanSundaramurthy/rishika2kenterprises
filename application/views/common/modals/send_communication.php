@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <style>
 #commAttachList .prod-attach-item { cursor: pointer; }
@@ -19,7 +19,7 @@
                         </div>
                         <div>
                             <div style="font-size:.95rem;font-weight:700;color:var(--vtm-color);" id="SendCommModalTitle">Send Email</div>
-                            <div style="font-size:.75rem;color:#6c757d;margin-top:2px;">Compose and send your message</div>
+                            <div style="font-size:var(--r2k-text-75);color:#6c757d;margin-top:2px;">Compose and send your message</div>
                         </div>
                     </div>
                     <div class="vtm-banner-right">
@@ -42,7 +42,7 @@
                                 <i class="bx bx-envelope-open text-primary fs-5 flex-shrink-0"></i>
                                 <div class="min-w-0">
                                     <div class="comm-field-label">From</div>
-                                    <div class="fw-semibold text-truncate" style="font-size:.85rem;"><?php echo htmlspecialchars(getenv('MAIL_FROM_NAME') ?: 'R2K Enterprises'); ?></div>
+                                    <div class="fw-semibold text-truncate" style="font-size:var(--r2k-text-85);"><?php echo htmlspecialchars(getenv('MAIL_FROM_NAME') ?: 'R2K Enterprises'); ?></div>
                                     <div class="text-muted small text-truncate"><?php echo htmlspecialchars(getenv('MAIL_FROM_EMAIL') ?: ''); ?></div>
                                 </div>
                             </div>
@@ -119,21 +119,21 @@
                              style="background:#eff6ff;border:1px solid #bfdbfe;cursor:pointer;user-select:none;"
                              onclick="_commClickPdfAlert()">
                             <i class="bx bxs-file-pdf" style="color:#ef4444;font-size:1.1rem;flex-shrink:0;"></i>
-                            <span id="CommPdfAttachAlertText" style="font-size:.8rem;color:#1d4ed8;flex:1;line-height:1.35;"></span>
+                            <span id="CommPdfAttachAlertText" style="font-size:var(--r2k-text-md);color:#1d4ed8;flex:1;line-height:1.35;"></span>
                             <span id="CommPdfAttachAlertSpinner" class="d-none">
                                 <span class="spinner-border spinner-border-sm" style="color:#3b82f6;width:14px;height:14px;"></span>
                             </span>
-                            <i id="CommPdfAttachAlertIcon" class="bx bx-link-external" style="color:#3b82f6;font-size:.9rem;flex-shrink:0;"></i>
+                            <i id="CommPdfAttachAlertIcon" class="bx bx-link-external" style="color:#3b82f6;font-size:var(--r2k-text-90);flex-shrink:0;"></i>
                         </div>
                         <!-- Attachment drop zone (same design as transaction form pages) -->
                         <div id="commAttachZone" class="prod-attach-zone" onclick="_attachZoneTrigger('CommAttach', event)">
                             <div id="commAttachEmpty" class="prod-attach-empty">
                                 <i class="bx bx-upload" id="commAttachIcon" style="font-size:1.4rem;color:#9ca3af;display:block;margin-bottom:3px;"></i>
-                                <div id="commAttachLabel" style="font-size:.78rem;font-weight:600;color:#6b7280;">Drag &amp; drop files here</div>
+                                <div id="commAttachLabel" style="font-size:var(--r2k-text-78);font-weight:600;color:#6b7280;">Drag &amp; drop files here</div>
                             </div>
                         </div>
                         <div id="commAttachList" class="prod-attach-list mt-2" style="display:none;"></div>
-                        <div id="commAttachHint" style="font-size:.7rem;color:#9ca3af;margin-top:4px;"></div>
+                        <div id="commAttachHint" style="font-size:var(--r2k-text-70);color:#9ca3af;margin-top:4px;"></div>
                         <input type="file" id="commAttachInput" multiple style="display:none;">
                     </div>
                 </div>
@@ -171,7 +171,7 @@
             <!-- Header bar — matches #imagePreviewModal style -->
             <div class="d-flex align-items-center gap-2 px-3 flex-shrink-0" style="background:rgba(0,0,0,.55);height:46px;">
                 <i id="filePreviewIcon" class="bx bxs-file-pdf" style="font-size:1rem;color:#ef4444;flex-shrink:0;"></i>
-                <span id="filePreviewTitle" style="font-size:.88rem;font-weight:600;color:#e2e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;">File Preview</span>
+                <span id="filePreviewTitle" style="font-size:var(--r2k-text-88);font-weight:600;color:#e2e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;">File Preview</span>
                 <button type="button" data-bs-dismiss="modal" aria-label="Close"
                     style="flex-shrink:0;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:6px;color:#fff;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;">
                     <i class="bx bx-x" style="font-size:1.3rem;line-height:1;"></i>

@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 /**
  * Product Profile Modal — Stock Movement Tab
  *
@@ -103,11 +103,11 @@ $stockClass = $currentStock < 0 ? 'pp-sk-stat-red' : ($currentStock === 0.0 ? 'p
 .pp-sk-stat-blue{background:rgba(37,99,235,.08);border-color:rgba(37,99,235,.15);color:#2563eb}
 .pp-sk-stat-slate{background:rgba(71,85,105,.07);border-color:rgba(71,85,105,.12);color:#475569}
 
-.pp-sk-section-title{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#94a3b8;margin:0 0 10px}
+.pp-sk-section-title{font-size:var(--r2k-text-70);font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#94a3b8;margin:0 0 10px}
 .pp-sk-variant-grid{display:grid;gap:7px}
-.pp-sk-variant-row{display:flex;align-items:center;justify-content:space-between;background:var(--bs-body-bg,#fff);border:1px solid rgba(0,0,0,.06);border-radius:8px;padding:9px 14px;font-size:.82rem}
+.pp-sk-variant-row{display:flex;align-items:center;justify-content:space-between;background:var(--bs-body-bg,#fff);border:1px solid rgba(0,0,0,.06);border-radius:8px;padding:9px 14px;font-size:var(--r2k-text-82)}
 .pp-sk-vr-chips{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-.pp-sk-vr-qty{font-size:.88rem;font-weight:700;white-space:nowrap}
+.pp-sk-vr-qty{font-size:var(--r2k-text-88);font-weight:700;white-space:nowrap}
 .pp-sk-vr-qty-in{color:#16a34a}
 .pp-sk-vr-qty-zero{color:#94a3b8}
 .pp-sk-vr-qty-neg{color:#dc2626}
@@ -116,12 +116,12 @@ $stockClass = $currentStock < 0 ? 'pp-sk-stat-red' : ($currentStock === 0.0 ? 'p
 .pp-sk-open-label{font-size:var(--r2k-text-xs);color:#94a3b8;margin-top:2px}
 
 .pp-sk-ledger-wrap{border-radius:10px;overflow:hidden;border:1px solid rgba(0,0,0,.07)}
-.pp-sk-ledger-table{width:100%;border-collapse:collapse;font-size:.8rem}
+.pp-sk-ledger-table{width:100%;border-collapse:collapse;font-size:var(--r2k-text-md)}
 .pp-sk-ledger-table thead th{background:#f8fafc;padding:9px 12px;font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#64748b;border-bottom:1px solid #e2e8f0;white-space:nowrap}
 .pp-sk-ledger-table tbody td{padding:9px 12px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
 .pp-sk-ledger-table tbody tr:last-child td{border-bottom:none}
 .pp-sk-ledger-table tbody tr:hover td{background:#f8fafc}
-.pp-sk-opening-row td{background:#f8fafc;font-weight:600;color:#64748b;font-size:.78rem}
+.pp-sk-opening-row td{background:#f8fafc;font-weight:600;color:#64748b;font-size:var(--r2k-text-78)}
 .pp-sk-in-row td:first-child{border-left:3px solid #22c55e}
 .pp-sk-out-row td:first-child{border-left:3px solid #f87171}
 .pp-sk-qty-in{color:#16a34a;font-weight:700}
@@ -131,8 +131,8 @@ $stockClass = $currentStock < 0 ? 'pp-sk-stat-red' : ($currentStock === 0.0 ? 'p
 
 .pp-sk-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:36px 20px;color:#94a3b8;text-align:center;border:1px dashed #e2e8f0;border-radius:10px}
 .pp-sk-empty i{font-size:2rem;margin-bottom:8px;opacity:.4}
-.pp-sk-empty-title{font-size:.85rem;font-weight:600;color:#64748b}
-.pp-sk-empty-sub{font-size:.75rem;margin-top:4px}
+.pp-sk-empty-title{font-size:var(--r2k-text-85);font-weight:600;color:#64748b}
+.pp-sk-empty-sub{font-size:var(--r2k-text-75);margin-top:4px}
 
 @media(max-width:480px){.pp-sk-stats{grid-template-columns:repeat(2,1fr)}.pp-sk-stats .pp-sk-stat:first-child{grid-column:1/-1}}
 

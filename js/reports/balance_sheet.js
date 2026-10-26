@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Balance Sheet Report
  * Computes closing balance per ledger (opening + all movements up to asOf).
  * Groups ledgers into Assets, Liabilities, and Equity (net of Income−Expense).
@@ -67,7 +67,7 @@
         groups.forEach(function (g) {
             if (g.rows.length === 0) return;
             if (g.label) {
-                html += '<div style="font-size:.72rem;font-weight:700;color:#94a3b8;margin:10px 0 4px;text-transform:uppercase;letter-spacing:.05em;">'
+                html += '<div style="font-size:var(--r2k-text-sm);font-weight:700;color:#94a3b8;margin:10px 0 4px;text-transform:uppercase;letter-spacing:.05em;">'
                     + g.label + '</div>';
             }
             g.rows.forEach(function (r) {
@@ -80,7 +80,7 @@
             });
             if (g.showSubtotal) {
                 html += '<div class="fin-total-row" style="margin-top:2px;">'
-                    + '<span class="fin-total-label" style="font-weight:600;font-size:.78rem;">'
+                    + '<span class="fin-total-label" style="font-weight:600;font-size:var(--r2k-text-78);">'
                     + (g.subtotalLabel || 'Subtotal') + '</span>'
                     + '<span class="fin-total-val ' + valCls + '">' + _fmt(g.subtotal) + '</span></div>';
             }
@@ -169,7 +169,7 @@
 
         liabGroups.forEach(function (g) {
             if (g.rows.length === 0) return;
-            if (g.label) rightCol += '<div style="font-size:.72rem;font-weight:700;color:#94a3b8;margin:10px 0 4px;text-transform:uppercase;letter-spacing:.05em;">' + g.label + '</div>';
+            if (g.label) rightCol += '<div style="font-size:var(--r2k-text-sm);font-weight:700;color:#94a3b8;margin:10px 0 4px;text-transform:uppercase;letter-spacing:.05em;">' + g.label + '</div>';
             g.rows.forEach(function (r) {
                 rightCol += '<div class="fin-row">'
                     + '<span class="fin-row-label">' + (r.LedgerName || '—') + '</span>'

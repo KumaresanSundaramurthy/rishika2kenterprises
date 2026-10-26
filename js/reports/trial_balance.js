@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Trial Balance Report
  * Displays all ledger accounts with opening balance, period movements, and closing balance.
  * Closing balance = Opening ± (Debit − Credit) based on OpeningBalanceType.
@@ -119,7 +119,7 @@
             var chipCls = TYPE_CHIPS[r.LedgerType] || 'tb-type-asset';
 
             html += '<tr>'
-                + '<td style="font-size:.75rem;color:#64748b;">' + (r.LedgerCode || '—') + '</td>'
+                + '<td style="font-size:var(--r2k-text-75);color:#64748b;">' + (r.LedgerCode || '—') + '</td>'
                 + '<td>' + (r.LedgerName || '—') + '</td>'
                 + '<td><span class="tb-type-chip ' + chipCls + '">' + r.LedgerType + '</span></td>'
                 + _amtCell(ob, obT, 'Debit')

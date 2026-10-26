@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php
 $SerialNumber = $SerialNumber ?? 0;
@@ -27,7 +27,7 @@ if (!empty($DataLists)):
         </td>
 
         <td class="table-serialno <?php echo $showSerial ? '' : 'd-none'; ?>" style="width:44px">
-            <span class="text-muted" style="font-size:.78rem;"><?php echo $SerialNumber; ?></span>
+            <span class="text-muted" style="font-size:var(--r2k-text-78);"><?php echo $SerialNumber; ?></span>
         </td>
 
         <!-- Staff Member -->
@@ -54,7 +54,7 @@ if (!empty($DataLists)):
         <!-- Department / Designation -->
         <td>
             <?php if (!empty($list->DepartmentName)): ?>
-                <div style="font-size:.82rem;"><?php echo htmlspecialchars($list->DepartmentName); ?></div>
+                <div style="font-size:var(--r2k-text-82);"><?php echo htmlspecialchars($list->DepartmentName); ?></div>
             <?php endif; ?>
             <?php if (!empty($list->DesignationName)): ?>
                 <div class="text-muted" style="font-size:var(--r2k-text-sm);"><?php echo htmlspecialchars($list->DesignationName); ?></div>
@@ -66,7 +66,7 @@ if (!empty($DataLists)):
         <!-- Contact -->
         <td>
             <?php if (!empty($list->EmailAddress)): ?>
-                <div style="font-size:.8rem;"><?php echo htmlspecialchars($list->EmailAddress); ?></div>
+                <div style="font-size:var(--r2k-text-md);"><?php echo htmlspecialchars($list->EmailAddress); ?></div>
             <?php endif; ?>
             <?php if (!empty($list->MobileNumber)): ?>
                 <div class="text-muted" style="font-size:var(--r2k-text-sm);"><?php echo htmlspecialchars($list->MobileNumber); ?></div>
@@ -88,9 +88,9 @@ if (!empty($DataLists)):
                     <span class="badge <?php echo $statusBadge[$empStatus] ?? 'bg-label-secondary'; ?> cursor-pointer"
                           style="font-size:var(--r2k-text-sm);" data-bs-toggle="dropdown">
                         <?php echo $empStatus === 'OnLeave' ? 'On Leave' : htmlspecialchars($empStatus); ?>
-                        <i class="bx bx-chevron-down" style="font-size:.65rem;"></i>
+                        <i class="bx bx-chevron-down" style="font-size:var(--r2k-text-65);"></i>
                     </span>
-                    <ul class="dropdown-menu shadow-sm" style="min-width:150px;font-size:.82rem;">
+                    <ul class="dropdown-menu shadow-sm" style="min-width:150px;font-size:var(--r2k-text-82);">
                         <li><button class="dropdown-item staff-status-toggle" data-uid="<?php echo $uid; ?>" data-newstatus="<?php echo $isActive ? 0 : 1; ?>">
                             <?php if ($isActive): ?>
                                 <i class="bx bx-x-circle me-2 text-danger"></i>Mark Inactive
@@ -106,7 +106,7 @@ if (!empty($DataLists)):
         <!-- Joining Date -->
         <td>
             <?php if (!empty($list->DateOfJoining)): ?>
-                <div style="font-size:.82rem;"><?php echo date('d M Y', strtotime($list->DateOfJoining)); ?></div>
+                <div style="font-size:var(--r2k-text-82);"><?php echo date('d M Y', strtotime($list->DateOfJoining)); ?></div>
             <?php else: ?>
                 <span class="text-muted">—</span>
             <?php endif; ?>
@@ -115,14 +115,14 @@ if (!empty($DataLists)):
         <!-- Login Access -->
         <td>
             <?php if ($hasLogin): ?>
-                <span class="badge bg-label-primary" style="font-size:.7rem;" title="@<?php echo htmlspecialchars($list->UserName ?? ''); ?>">
+                <span class="badge bg-label-primary" style="font-size:var(--r2k-text-70);" title="@<?php echo htmlspecialchars($list->UserName ?? ''); ?>">
                     <i class="bx bx-log-in me-1"></i>Login
                 </span>
                 <?php if (!empty($list->RoleName)): ?>
-                    <div class="text-muted" style="font-size:.7rem;"><?php echo htmlspecialchars($list->RoleName); ?></div>
+                    <div class="text-muted" style="font-size:var(--r2k-text-70);"><?php echo htmlspecialchars($list->RoleName); ?></div>
                 <?php endif; ?>
             <?php else: ?>
-                <span class="badge bg-label-secondary" style="font-size:.7rem;">Staff Only</span>
+                <span class="badge bg-label-secondary" style="font-size:var(--r2k-text-70);">Staff Only</span>
             <?php endif; ?>
         </td>
 
@@ -146,7 +146,7 @@ else:
         <td colspan="9">
             <div class="d-flex flex-column align-items-center py-5">
                 <img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:140px;object-fit:contain;">
-                <span class="text-muted mb-3" style="font-size:.9rem;">No staff found</span>
+                <span class="text-muted mb-3" style="font-size:var(--r2k-text-90);">No staff found</span>
                 <button type="button" class="btn btn-primary btn-sm px-4" id="addStaffBtnEmpty">
                     <i class="bx bx-plus me-1"></i>Add Staff
                 </button>

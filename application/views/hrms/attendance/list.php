@@ -15,15 +15,15 @@ if (!empty($DataLists)):
         $hours    = !empty($row->WorkingHours) ? number_format((float)$row->WorkingHours, 1) . 'h' : '—';
 ?>
 <tr data-emp-uid="<?php echo $empUID; ?>" data-att-uid="<?php echo $uid; ?>">
-  <td class="text-muted" style="font-size:.8rem;"><?php echo $SerialNumber; ?></td>
+  <td class="text-muted" style="font-size:var(--r2k-text-md);"><?php echo $SerialNumber; ?></td>
   <td>
     <div class="d-flex align-items-center gap-2">
       <div class="avatar avatar-sm flex-shrink-0">
-        <span class="avatar-initial rounded-circle" style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:.75rem;"><?php echo $initials; ?></span>
+        <span class="avatar-initial rounded-circle" style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:var(--r2k-text-75);"><?php echo $initials; ?></span>
       </div>
       <div>
         <div class="fw-semibold" style="font-size:.875rem;"><?php echo htmlspecialchars($row->EmployeeName ?? ''); ?></div>
-        <div class="text-muted" style="font-size:.75rem;"><?php echo htmlspecialchars($row->EmployeeCode ?? ''); ?></div>
+        <div class="text-muted" style="font-size:var(--r2k-text-75);"><?php echo htmlspecialchars($row->EmployeeCode ?? ''); ?></div>
       </div>
     </div>
   </td>

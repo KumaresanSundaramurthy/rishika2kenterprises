@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var array $Rows */   $Rows    = $Rows    ?? [];
 /** @var array $Totals */ $Totals  = $Totals  ?? [];
 $cur     = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
@@ -22,11 +22,11 @@ function _apFmt(float $n, string $cur): string {
     <div class="text-center mb-3">
         <div class="fw-bold" style="font-size:1rem;"><?php echo $orgName; ?></div>
         <div class="fw-semibold" style="font-size:.92rem;">Aged Payables</div>
-        <div class="text-muted" style="font-size:.8rem;">As of <?php echo $asOfDisp; ?></div>
+        <div class="text-muted" style="font-size:var(--r2k-text-md);">As of <?php echo $asOfDisp; ?></div>
     </div>
 
     <?php if (empty($Rows)): ?>
-    <div class="text-center text-muted py-4" style="font-size:.88rem;">
+    <div class="text-center text-muted py-4" style="font-size:var(--r2k-text-88);">
         <i class="bx bx-check-circle fs-3 d-block mb-2 text-success"></i>
         No outstanding payables as of <?php echo $asOfDisp; ?>
     </div>
@@ -74,24 +74,24 @@ function _apFmt(float $n, string $cur): string {
         <?php foreach ($Rows as $r): ?>
         <tr>
             <td>
-                <span style="font-size:.82rem;"><?php echo htmlspecialchars($r->LedgerName); ?></span>
+                <span style="font-size:var(--r2k-text-82);"><?php echo htmlspecialchars($r->LedgerName); ?></span>
                 <?php if (!empty($r->LedgerCode)): ?>
-                <code style="font-size:.7rem;color:#7c3aed;display:block;"><?php echo htmlspecialchars($r->LedgerCode); ?></code>
+                <code style="font-size:var(--r2k-text-70);color:#7c3aed;display:block;"><?php echo htmlspecialchars($r->LedgerCode); ?></code>
                 <?php endif; ?>
             </td>
-            <td class="text-end fw-semibold" style="font-size:.82rem;color:#92400e;">
+            <td class="text-end fw-semibold" style="font-size:var(--r2k-text-82);color:#92400e;">
                 <?php echo _apFmt((float)$r->NetOutstanding, $cur); ?>
             </td>
-            <td class="text-end aged-col-current" style="font-size:.82rem;">
+            <td class="text-end aged-col-current" style="font-size:var(--r2k-text-82);">
                 <?php echo _apFmt((float)$r->Band0to30, $cur); ?>
             </td>
-            <td class="text-end aged-col-warn1" style="font-size:.82rem;">
+            <td class="text-end aged-col-warn1" style="font-size:var(--r2k-text-82);">
                 <?php echo _apFmt((float)$r->Band31to60, $cur); ?>
             </td>
-            <td class="text-end aged-col-warn2" style="font-size:.82rem;">
+            <td class="text-end aged-col-warn2" style="font-size:var(--r2k-text-82);">
                 <?php echo _apFmt((float)$r->Band61to90, $cur); ?>
             </td>
-            <td class="text-end aged-col-overdue fw-semibold" style="font-size:.82rem;">
+            <td class="text-end aged-col-overdue fw-semibold" style="font-size:var(--r2k-text-82);">
                 <?php echo _apFmt((float)$r->Band90plus, $cur); ?>
             </td>
         </tr>

@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 
 $_today    = date('Y-m-d');
 $_listFmt  = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
@@ -18,11 +18,11 @@ $this->load->view('common/transactions/header'); ?>
 .rpt-stat-label{font-size:var(--r2k-text-sm);color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.03em}
 .rpt-stat-val{font-size:1.05rem;font-weight:700;color:#1e293b;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rpt-date-group{display:flex;align-items:center;gap:6px;flex-shrink:0}
-.rpt-date-label{font-size:.75rem;color:#64748b;font-weight:600;white-space:nowrap}
+.rpt-date-label{font-size:var(--r2k-text-75);color:#64748b;font-weight:600;white-space:nowrap}
 .rpt-date-input-wrap{display:flex;align-items:center;gap:4px;background:#fff;border:1.5px solid #e2e8f0;border-radius:7px;padding:0 8px;height:34px;cursor:pointer;transition:border-color .12s}
 .rpt-date-input-wrap:focus-within{border-color:#3b82f6}
-.rpt-date-input-wrap i{color:#3b82f6;font-size:.88rem;flex-shrink:0}
-.rpt-fp-input{border:none;outline:none;background:transparent;font-size:.82rem;font-weight:600;color:#1e293b;width:140px;cursor:pointer}
+.rpt-date-input-wrap i{color:#3b82f6;font-size:var(--r2k-text-88);flex-shrink:0}
+.rpt-fp-input{border:none;outline:none;background:transparent;font-size:var(--r2k-text-82);font-weight:600;color:#1e293b;width:140px;cursor:pointer}
 
 /* Balance Sheet layout */
 .fin-wrap{padding:20px 24px}
@@ -34,24 +34,24 @@ $this->load->view('common/transactions/header'); ?>
 .fin-row-sub{font-size:.76rem;color:#94a3b8;margin-left:8px}
 .fin-row-val{font-size:.81rem;font-weight:600;color:#1e293b;white-space:nowrap}
 .fin-total-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:2px solid #e2e8f0;margin-top:2px}
-.fin-total-label{font-size:.82rem;font-weight:700;color:#1e293b}
-.fin-total-val{font-size:.88rem;font-weight:700;white-space:nowrap}
+.fin-total-label{font-size:var(--r2k-text-82);font-weight:700;color:#1e293b}
+.fin-total-val{font-size:var(--r2k-text-88);font-weight:700;white-space:nowrap}
 .fin-section-gap{margin-top:20px}
 .fin-equity-row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#f0fdf4;border-radius:8px;border:1.5px solid #bbf7d0;margin-top:8px}
 .fin-equity-neg{background:#fef2f2;border-color:#fecaca}
-.fin-equity-label{font-size:.82rem;font-weight:700;color:#15803d}
+.fin-equity-label{font-size:var(--r2k-text-82);font-weight:700;color:#15803d}
 .fin-equity-neg .fin-equity-label{color:#b91c1c}
-.fin-equity-val{font-size:.88rem;font-weight:700;color:#15803d;white-space:nowrap}
+.fin-equity-val{font-size:var(--r2k-text-88);font-weight:700;color:#15803d;white-space:nowrap}
 .fin-equity-neg .fin-equity-val{color:#b91c1c}
-.fin-check-balanced{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:8px;font-size:.75rem;font-weight:700}
+.fin-check-balanced{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:8px;font-size:var(--r2k-text-75);font-weight:700}
 .fin-check-ok{background:#dcfce7;color:#166534}
 .fin-check-off{background:#fee2e2;color:#991b1b}
-.fin-loading{display:flex;align-items:center;justify-content:center;padding:60px;color:#64748b;font-size:.85rem;gap:8px}
+.fin-loading{display:flex;align-items:center;justify-content:center;padding:60px;color:#64748b;font-size:var(--r2k-text-85);gap:8px}
 .fin-empty{display:flex;flex-direction:column;align-items:center;padding:60px 20px;color:#94a3b8}
 .fin-empty i{font-size:2.5rem;margin-bottom:8px;opacity:.5}
-.fin-empty-title{font-size:.9rem;font-weight:600;color:#64748b;margin-bottom:4px}
+.fin-empty-title{font-size:var(--r2k-text-90);font-weight:600;color:#64748b;margin-bottom:4px}
 .fin-grand-total-bar{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:#f8fafc;border-top:2px solid #e2e8f0;border-radius:0 0 8px 8px;margin-top:16px}
-.fin-grand-label{font-size:.88rem;font-weight:800;color:#1e293b;text-transform:uppercase;letter-spacing:.04em}
+.fin-grand-label{font-size:var(--r2k-text-88);font-weight:800;color:#1e293b;text-transform:uppercase;letter-spacing:.04em}
 .fin-grand-val{font-size:.95rem;font-weight:800;color:#2563eb;white-space:nowrap}
 .fin-zero{color:#94a3b8}
 .rpt-num-green{color:#16a34a;font-weight:700}

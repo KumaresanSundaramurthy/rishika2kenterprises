@@ -261,8 +261,8 @@ $_addrLines = buildDispatchAddressLines($DispatchAddress ?? null);
                                     <div id="custTypeIndicator" class="d-none"></div>
                                     <div id="plChipWrap" class="d-none"></div>
                                     <div id="onAccountIndicator" class="d-none d-flex align-items-center gap-1"
-                                         style="font-size:.78rem;color:#856404;background:#fff8e1;border:1px solid #ffc107;padding:3px 12px;border-radius:20px;white-space:nowrap;">
-                                        <i class="bx bx-wallet" style="font-size:.88rem;"></i>
+                                         style="font-size:var(--r2k-text-78);color:#856404;background:#fff8e1;border:1px solid #ffc107;padding:3px 12px;border-radius:20px;white-space:nowrap;">
+                                        <i class="bx bx-wallet" style="font-size:var(--r2k-text-88);"></i>
                                         On Account: <strong id="onAccountTotal" style="margin-left:3px;"></strong>
                                     </div>
                                 </div>

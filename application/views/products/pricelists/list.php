@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php
 $_assignedLabels = ['All' => 'All Customers', 'Groups' => 'Customer Groups', 'Customers' => 'Specific Customers'];
@@ -40,10 +40,10 @@ if (!empty($DataLists)):
                 <div class="text-muted" style="font-size:var(--r2k-text-sm);"><?php echo $_basedOnLabels[$row->GlobalBasedOn ?? 'SellingPrice'] ?? ''; ?></div>
                 <?php endif; ?>
             </td>
-            <td class="text-nowrap" style="font-size:.82rem;">
+            <td class="text-nowrap" style="font-size:var(--r2k-text-82);">
                 <?php echo $validFrom ? date($JwtData->GenSettings->ListDateFormat ?? 'd M Y', strtotime($validFrom)) : '<span class="text-muted">Permanent</span>'; ?>
             </td>
-            <td class="text-nowrap" style="font-size:.82rem;">
+            <td class="text-nowrap" style="font-size:var(--r2k-text-82);">
                 <?php echo $validTo ? date($JwtData->GenSettings->ListDateFormat ?? 'd M Y', strtotime($validTo)) : '<span class="text-muted">No expiry</span>'; ?>
             </td>
             <td>
@@ -71,7 +71,7 @@ if (!empty($DataLists)):
                         <button class="trans-actions-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bx bx-dots-vertical-rounded fs-5"></i>
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:.82rem;min-width:160px;">
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:var(--r2k-text-82);min-width:160px;">
                             <li>
                                 <button class="dropdown-item text-danger deletePriceList"
                                         data-uid="<?php echo (int)$row->PriceListUID; ?>"

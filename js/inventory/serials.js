@@ -1,4 +1,4 @@
-// ── Serial Numbers management page ────────────────────────────────────────────
+﻿// ── Serial Numbers management page ────────────────────────────────────────────
 
 (function ($) {
     'use strict';
@@ -74,7 +74,7 @@
         $('#snTableBody').html(
             '<tr><td colspan="8" class="text-center py-4">' +
             '<span class="spinner-border spinner-border-sm text-primary me-2"></span>' +
-            '<span class="text-muted" style="font-size:.85rem;">Loading...</span>' +
+            '<span class="text-muted" style="font-size:var(--r2k-text-85);">Loading...</span>' +
             '</td></tr>'
         );
         $('#snPagination').empty();

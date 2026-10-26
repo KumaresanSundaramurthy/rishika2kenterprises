@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <!-- Vendor Search Modal -->
 <div class="modal fade" id="vendorSearchModal" tabindex="-1" aria-hidden="true">
@@ -14,7 +14,7 @@
                         </div>
                         <div>
                             <div style="font-size:.95rem;font-weight:700;color:var(--vtm-color);">Search Vendors</div>
-                            <div style="font-size:.75rem;color:#6c757d;margin-top:2px;">Select a vendor to apply</div>
+                            <div style="font-size:var(--r2k-text-75);color:#6c757d;margin-top:2px;">Select a vendor to apply</div>
                         </div>
                     </div>
                     <div class="vtm-banner-right">
@@ -60,7 +60,7 @@
 .vend-search-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: .85rem;
+    font-size:var(--r2k-text-85);
 }
 .vend-search-table thead tr {
     background: #f5f2ff;
@@ -97,13 +97,13 @@
     width: 26px; height: 26px;
     background: #f0ebff; color: #6f42c1;
     border-radius: 50%;
-    font-size: .7rem; font-weight: 700;
+    font-size:var(--r2k-text-70); font-weight: 700;
     display: flex; align-items: center; justify-content: center;
 }
-.vend-name    { font-size: .88rem; font-weight: 600; color: #566a7f; }
-.vend-meta    { font-size: .75rem; color: #8592a3; margin-top: 2px; }
+.vend-name    { font-size:var(--r2k-text-88); font-weight: 600; color: #566a7f; }
+.vend-meta    { font-size:var(--r2k-text-75); color: #8592a3; margin-top: 2px; }
 .vend-sep     { color: #c9c0e8; margin: 0 4px; }
-.vend-balance { font-size: .85rem; font-weight: 600; }
+.vend-balance { font-size:var(--r2k-text-85); font-weight: 600; }
 .vend-balance.credit { color: #dc3545; }
 .vend-balance.debit  { color: #28a745; }
 </style>

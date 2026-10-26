@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
+<?php defined('BASEPATH') OR exit('No direct script access allowed');
 /**
  * Payment Section Partial — Swipe-style layout
  * Variables expected:
@@ -87,7 +87,7 @@ $currSymbol       = $JwtData->GenSettings->CurrenySymbol ?? '₹';
     <!-- Payment Attachments Section (hidden for vendor/purchase pages) -->
     <div class="payment-attachments-section mt-3 px-1<?php echo $paymentPartyType === 'V' ? ' d-none' : ''; ?>">
         <div class="d-flex align-items-center justify-content-between mb-2">
-            <span class="fw-semibold text-dark" style="font-size:0.9rem;">
+            <span class="fw-semibold text-dark" style="font-size:var(--r2k-text-90);">
                 <i class="bx bx-paperclip me-1"></i>Payment Attachments
                 <span class="text-muted fw-normal small">(Max 3 files, 3MB each)</span>
             </span>
@@ -143,15 +143,15 @@ $currSymbol       = $JwtData->GenSettings->CurrenySymbol ?? '₹';
                         <thead>
                             <tr style="background:#f0f7f1;border-bottom:2px solid #b8d4ba;">
                                 <th style="width:44px;padding:10px 16px;"></th>
-                                <th class="fw-semibold text-secondary" style="font-size:.78rem;letter-spacing:.04em;padding:10px 12px;">CREDIT NOTE #</th>
-                                <th class="fw-semibold text-secondary" style="font-size:.78rem;letter-spacing:.04em;padding:10px 12px;">TYPE</th>
-                                <th class="fw-semibold text-secondary" style="font-size:.78rem;letter-spacing:.04em;padding:10px 12px;">SOURCE INVOICE</th>
-                                <th class="fw-semibold text-secondary text-end" style="font-size:.78rem;letter-spacing:.04em;padding:10px 12px;">AMOUNT</th>
-                                <th class="fw-semibold text-secondary" style="font-size:.78rem;letter-spacing:.04em;padding:10px 12px;">DATE</th>
+                                <th class="fw-semibold text-secondary" style="font-size:var(--r2k-text-78);letter-spacing:.04em;padding:10px 12px;">CREDIT NOTE #</th>
+                                <th class="fw-semibold text-secondary" style="font-size:var(--r2k-text-78);letter-spacing:.04em;padding:10px 12px;">TYPE</th>
+                                <th class="fw-semibold text-secondary" style="font-size:var(--r2k-text-78);letter-spacing:.04em;padding:10px 12px;">SOURCE INVOICE</th>
+                                <th class="fw-semibold text-secondary text-end" style="font-size:var(--r2k-text-78);letter-spacing:.04em;padding:10px 12px;">AMOUNT</th>
+                                <th class="fw-semibold text-secondary" style="font-size:var(--r2k-text-78);letter-spacing:.04em;padding:10px 12px;">DATE</th>
                             </tr>
                         </thead>
                         <tbody id="cnModalTableBody">
-                            <tr><td colspan="6" class="text-center text-muted py-5" style="font-size:.88rem;">Loading...</td></tr>
+                            <tr><td colspan="6" class="text-center text-muted py-5" style="font-size:var(--r2k-text-88);">Loading...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -161,7 +161,7 @@ $currSymbol       = $JwtData->GenSettings->CurrenySymbol ?? '₹';
             <div class="modal-footer px-4 py-3 d-flex align-items-center gap-2" style="background:#f8fdf9;border-top:1px solid #d4e9d7;">
                 <div class="d-flex align-items-center gap-1 me-auto">
                     <i class="bx bx-info-circle text-muted" style="font-size:.95rem;"></i>
-                    <span class="text-muted" style="font-size:.78rem;">Credit notes exceeding the invoice total are disabled.</span>
+                    <span class="text-muted" style="font-size:var(--r2k-text-78);">Credit notes exceeding the invoice total are disabled.</span>
                 </div>
                 <button type="button" class="btn btn-sm px-3" style="border:1px solid #dee2e6;color:#6c757d;background:#fff;border-radius:6px;" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-success btn-sm px-4" id="cnApplyBtn" disabled style="border-radius:6px;">
@@ -195,7 +195,7 @@ $currSymbol       = $JwtData->GenSettings->CurrenySymbol ?? '₹';
     background-color: #fff;
     border: 1px solid #b8d4ba;
     border-radius: 6px;
-    font-size: 0.85rem;
+    font-size:var(--r2k-text-85);
     resize: none;
     box-shadow: none;
     width: 100%;
@@ -216,7 +216,7 @@ $currSymbol       = $JwtData->GenSettings->CurrenySymbol ?? '₹';
     background: #fff;
     border: 1px solid #b8d4ba;
     border-radius: 6px;
-    font-size: 0.9rem;
+    font-size:var(--r2k-text-90);
     font-weight: 600;
     box-shadow: none;
     width: 100%;
@@ -235,7 +235,7 @@ $currSymbol       = $JwtData->GenSettings->CurrenySymbol ?? '₹';
     background: #fff;
     border: 1px solid #b8d4ba;
     border-radius: 6px;
-    font-size: 0.85rem;
+    font-size:var(--r2k-text-85);
     box-shadow: none;
     width: 100%;
     padding: 6px 10px;
@@ -253,7 +253,7 @@ $currSymbol       = $JwtData->GenSettings->CurrenySymbol ?? '₹';
     background-color: #fff;
     border: 1px solid #b8d4ba;
     border-radius: 6px;
-    font-size: 0.85rem;
+    font-size:var(--r2k-text-85);
     font-weight: 600;
     box-shadow: none;
     padding: 6px 8px;
@@ -282,7 +282,7 @@ $currSymbol       = $JwtData->GenSettings->CurrenySymbol ?? '₹';
     background: #fff;
     border: 1px solid #b8d4ba;
     border-radius: 6px;
-    font-size: 0.78rem;
+    font-size:var(--r2k-text-78);
     color: #566a7f;
     box-shadow: none;
     padding: 4px 8px;
@@ -298,7 +298,7 @@ $currSymbol       = $JwtData->GenSettings->CurrenySymbol ?? '₹';
 }
 .pay-bank-link {
     color: #adb5bd;
-    font-size: 0.82rem;
+    font-size:var(--r2k-text-82);
     flex-shrink: 0;
     line-height: 1;
 }
@@ -307,13 +307,13 @@ $currSymbol       = $JwtData->GenSettings->CurrenySymbol ?? '₹';
 .pay-cash-label {
     display: inline-block;
     margin-top: 5px;
-    font-size: 0.75rem;
+    font-size:var(--r2k-text-75);
     color: #6c757d;
     background: #e8f5ea;
     border-radius: 4px;
     padding: 2px 8px;
 }
-.pay-mode-sublabel { font-size: 0.75rem; color: #6c757d; margin-top: 4px; }
+.pay-mode-sublabel { font-size:var(--r2k-text-75); color: #6c757d; margin-top: 4px; }
 
 /* Credit Note Banner */
 .cn-banner-btn {
@@ -322,9 +322,9 @@ $currSymbol       = $JwtData->GenSettings->CurrenySymbol ?? '₹';
 }
 .cn-banner-btn:hover { background: #f0faf2; }
 .cn-banner-icon   { font-size: 1.05rem; color: #198754; }
-.cn-banner-label  { font-size: .88rem; font-weight: 600; color: #198754; }
-.cn-banner-hint   { font-size: .78rem; color: #6c757d; }
-.cn-banner-chevron { font-size: .9rem; color: #adb5bd; }
+.cn-banner-label  { font-size:var(--r2k-text-88); font-weight: 600; color: #198754; }
+.cn-banner-hint   { font-size:var(--r2k-text-78); color: #6c757d; }
+.cn-banner-chevron { font-size:var(--r2k-text-90); color: #adb5bd; }
 
 /* Applied Credit Strip */
 .cn-applied-strip {
@@ -333,7 +333,7 @@ $currSymbol       = $JwtData->GenSettings->CurrenySymbol ?? '₹';
     border-radius: 6px;
     padding: 8px 12px;
 }
-.cn-remove-btn { font-size: .75rem; padding: 2px 10px; }
+.cn-remove-btn { font-size:var(--r2k-text-75); padding: 2px 10px; }
 
 /* Credit Note Modal rows */
 #cnModalTable td { border: none; padding: 11px 12px; vertical-align: middle; font-size: .875rem; }
@@ -394,7 +394,7 @@ $currSymbol       = $JwtData->GenSettings->CurrenySymbol ?? '₹';
 }
 
 .file-name {
-    font-size: 0.85rem;
+    font-size:var(--r2k-text-85);
     font-weight: 600;
     color: #333;
     white-space: nowrap;
@@ -404,7 +404,7 @@ $currSymbol       = $JwtData->GenSettings->CurrenySymbol ?? '₹';
 }
 
 .file-size {
-    font-size: 0.75rem;
+    font-size:var(--r2k-text-75);
     color: #6c757d;
 }
 
@@ -414,7 +414,7 @@ $currSymbol       = $JwtData->GenSettings->CurrenySymbol ?? '₹';
     color: #dc3545;
     padding: 4px 10px;
     border-radius: 4px;
-    font-size: 0.75rem;
+    font-size:var(--r2k-text-75);
     cursor: pointer;
     transition: all 0.2s ease;
     flex-shrink: 0;

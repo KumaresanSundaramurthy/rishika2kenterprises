@@ -1,4 +1,4 @@
-/**
+﻿/**
  * TransFilterBar — reusable filter pill system for transaction list pages.
  *
  * Each list page declares which filters it needs by including the
@@ -293,7 +293,7 @@
             html += '</a>';
         }
         if (filtered.length > max) {
-            html += '<div class="tfb-party-empty text-muted" style="font-size:.75rem;">+ ' + (filtered.length - max) + ' more — type to narrow</div>';
+            html += '<div class="tfb-party-empty text-muted" style="font-size:var(--r2k-text-75);">+ ' + (filtered.length - max) + ' more — type to narrow</div>';
         }
         $('#tfbPartyList').html(html);
     };

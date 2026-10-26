@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php
 $hideType = $HideType ?? false;
@@ -67,7 +67,7 @@ if (!empty($DataLists)) {
 
             <!-- S.No -->
             <td class="<?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>">
-                <span class="text-muted" style="font-size:.78rem;"><?php echo $sno; ?></span>
+                <span class="text-muted" style="font-size:var(--r2k-text-78);"><?php echo $sno; ?></span>
             </td>
 
             <!-- Item name + barcode/QR icons -->
@@ -137,7 +137,7 @@ if (!empty($DataLists)) {
                 <div class="dropdown d-inline-block">
                     <span class="badge <?php echo $row->IsActive == 1 ? 'bg-label-success' : 'bg-label-danger'; ?> cursor-pointer" style="font-size:var(--r2k-text-xs);" data-bs-toggle="dropdown">
                         <?php echo $row->IsActive == 1 ? 'Active' : 'In-Active'; ?>
-                        <i class="bx bx-chevron-down" style="font-size:.65rem;"></i>
+                        <i class="bx bx-chevron-down" style="font-size:var(--r2k-text-65);"></i>
                     </span>
                     <ul class="dropdown-menu r2k-action-menu">
                         <li>
@@ -188,7 +188,7 @@ if (!empty($DataLists)) {
             <!-- MRP -->
             <td>
                 <?php if (!empty($row->MRP) && $row->MRP > 0): ?>
-                    <div class="text-muted" style="font-size:.8rem;"><?php echo $JwtData->GenSettings->CurrenySymbol . ' ' . smartDecimal($row->MRP); ?></div>
+                    <div class="text-muted" style="font-size:var(--r2k-text-md);"><?php echo $JwtData->GenSettings->CurrenySymbol . ' ' . smartDecimal($row->MRP); ?></div>
                 <?php else: ?>
                     <span class="text-muted">—</span>
                 <?php endif; ?>

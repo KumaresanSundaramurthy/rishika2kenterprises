@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php
 $currency = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
 
@@ -66,13 +66,13 @@ if (!empty($DataLists)):
         </div>
         <?php endif; ?>
         <?php if (!empty($row->PartNumber)): ?>
-        <div class="text-muted" style="font-size:.7rem;">Part# <?php echo htmlspecialchars($row->PartNumber); ?></div>
+        <div class="text-muted" style="font-size:var(--r2k-text-70);">Part# <?php echo htmlspecialchars($row->PartNumber); ?></div>
         <?php endif; ?>
         <div class="d-flex align-items-center flex-wrap gap-1 mt-1" style="font-size:var(--r2k-text-sm);">
             <?php if (($row->ProductType ?? '') === 'Service'): ?>
-                <span class="badge bg-label-info" style="font-size:.65rem;">Service</span>
+                <span class="badge bg-label-info" style="font-size:var(--r2k-text-65);">Service</span>
             <?php else: ?>
-                <span class="badge bg-label-primary" style="font-size:.65rem;">Product</span>
+                <span class="badge bg-label-primary" style="font-size:var(--r2k-text-65);">Product</span>
             <?php endif; ?>
             <?php if (!empty($row->HSNSACCode)): ?>
                 <span class="text-muted" style="font-size:var(--r2k-text-xs);"><strong>HSN:</strong> <?php echo htmlspecialchars($row->HSNSACCode); ?></span>
@@ -101,7 +101,7 @@ if (!empty($DataLists)):
     <td style="text-align:right;">
         <?php if ($isIN): ?>
         <span class="fw-bold" style="color:#16a34a;"><?php echo smartDecimal($qty); ?></span>
-        <span style="font-size:.78rem;color:#6c757d;margin-left:3px;"><?php echo htmlspecialchars($row->UnitName ?? 'PCS'); ?></span>
+        <span style="font-size:var(--r2k-text-78);color:#6c757d;margin-left:3px;"><?php echo htmlspecialchars($row->UnitName ?? 'PCS'); ?></span>
         <?php else: ?>
         <span class="text-muted">—</span>
         <?php endif; ?>
@@ -111,7 +111,7 @@ if (!empty($DataLists)):
     <td style="text-align:right;">
         <?php if (!$isIN): ?>
         <span class="fw-bold" style="color:#dc2626;"><?php echo smartDecimal($qty); ?></span>
-        <span style="font-size:.78rem;color:#6c757d;margin-left:3px;"><?php echo htmlspecialchars($row->UnitName ?? 'PCS'); ?></span>
+        <span style="font-size:var(--r2k-text-78);color:#6c757d;margin-left:3px;"><?php echo htmlspecialchars($row->UnitName ?? 'PCS'); ?></span>
         <?php else: ?>
         <span class="text-muted">—</span>
         <?php endif; ?>
@@ -150,7 +150,7 @@ if (!empty($DataLists)):
     <!-- Category -->
     <td>
         <?php if (!empty($row->CategoryName)): ?>
-        <span class="badge text-bg-light border" style="font-size:.7rem;font-weight:500;"><?php echo htmlspecialchars($row->CategoryName); ?></span>
+        <span class="badge text-bg-light border" style="font-size:var(--r2k-text-70);font-weight:500;"><?php echo htmlspecialchars($row->CategoryName); ?></span>
         <?php else: ?>
         <span class="text-muted">—</span>
         <?php endif; ?>
@@ -170,7 +170,7 @@ if (!empty($DataLists)):
     <td>
         <div><?php echo $effDate; ?></div>
         <?php if ($byName): ?>
-        <div style="font-size:.7rem;color:#6c757d;">by <?php echo htmlspecialchars($byName); ?></div>
+        <div style="font-size:var(--r2k-text-70);color:#6c757d;">by <?php echo htmlspecialchars($byName); ?></div>
         <?php endif; ?>
     </td>
 

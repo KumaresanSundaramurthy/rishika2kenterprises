@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 /** @var array $Income */   $Income      = $Income      ?? [];
 /** @var array $Expense */  $Expense     = $Expense     ?? [];
 /** @var float $TotalIncome */  $TotalIncome  = (float)($TotalIncome  ?? 0);
@@ -28,7 +28,7 @@ function _plFmt(float $n, string $cur): string {
     <div class="text-center mb-4 pl-print-header">
         <div class="fw-bold" style="font-size:1rem;"><?php echo $orgName; ?></div>
         <div class="fw-semibold mt-1" style="font-size:.92rem;">Profit &amp; Loss Statement</div>
-        <div class="text-muted" style="font-size:.8rem;">
+        <div class="text-muted" style="font-size:var(--r2k-text-md);">
             Period: <?php echo $dfDisp; ?> to <?php echo $dtDisp; ?>
         </div>
     </div>
@@ -52,16 +52,16 @@ function _plFmt(float $n, string $cur): string {
                 $muted = abs($net) < 0.005;
             ?>
             <tr <?php echo $muted ? 'class="text-muted"' : ''; ?>>
-                <td><code style="font-size:.75rem;color:#7c3aed;"><?php echo htmlspecialchars($r->LedgerCode ?? ''); ?></code></td>
+                <td><code style="font-size:var(--r2k-text-75);color:#7c3aed;"><?php echo htmlspecialchars($r->LedgerCode ?? ''); ?></code></td>
                 <td><?php echo htmlspecialchars($r->LedgerName); ?></td>
                 <td class="text-end fw-semibold <?php echo $net < 0 ? 'text-danger' : 'text-success'; ?>">
                     <?php echo _plFmt($net, $cur); ?>
-                    <?php if ($net < 0): ?><small class="ms-1" style="font-size:.7rem;">(Dr)</small><?php endif; ?>
+                    <?php if ($net < 0): ?><small class="ms-1" style="font-size:var(--r2k-text-70);">(Dr)</small><?php endif; ?>
                 </td>
             </tr>
             <?php endforeach; ?>
         <?php else: ?>
-            <tr><td colspan="3" class="text-center text-muted py-3" style="font-size:.82rem;">No income accounts found</td></tr>
+            <tr><td colspan="3" class="text-center text-muted py-3" style="font-size:var(--r2k-text-82);">No income accounts found</td></tr>
         <?php endif; ?>
         </tbody>
         <tfoot>
@@ -93,16 +93,16 @@ function _plFmt(float $n, string $cur): string {
                 $muted = abs($net) < 0.005;
             ?>
             <tr <?php echo $muted ? 'class="text-muted"' : ''; ?>>
-                <td><code style="font-size:.75rem;color:#7c3aed;"><?php echo htmlspecialchars($r->LedgerCode ?? ''); ?></code></td>
+                <td><code style="font-size:var(--r2k-text-75);color:#7c3aed;"><?php echo htmlspecialchars($r->LedgerCode ?? ''); ?></code></td>
                 <td><?php echo htmlspecialchars($r->LedgerName); ?></td>
                 <td class="text-end fw-semibold <?php echo $net < 0 ? 'text-success' : 'text-danger'; ?>">
                     <?php echo _plFmt($net, $cur); ?>
-                    <?php if ($net < 0): ?><small class="ms-1" style="font-size:.7rem;">(Cr)</small><?php endif; ?>
+                    <?php if ($net < 0): ?><small class="ms-1" style="font-size:var(--r2k-text-70);">(Cr)</small><?php endif; ?>
                 </td>
             </tr>
             <?php endforeach; ?>
         <?php else: ?>
-            <tr><td colspan="3" class="text-center text-muted py-3" style="font-size:.82rem;">No expense accounts found</td></tr>
+            <tr><td colspan="3" class="text-center text-muted py-3" style="font-size:var(--r2k-text-82);">No expense accounts found</td></tr>
         <?php endif; ?>
         </tbody>
         <tfoot>

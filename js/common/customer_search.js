@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Customer Search Modal — Common
  *
  * Data strategy:
@@ -424,7 +424,7 @@
         $('#custSearchResults').html(
             '<tr><td colspan="5" class="text-center py-5 text-muted">' +
             '<i class="bx bx-user-x fs-3 d-block mb-2"></i>' +
-            '<div class="mb-2" style="font-size:.88rem;">No customers found</div>' +
+            '<div class="mb-2" style="font-size:var(--r2k-text-88);">No customers found</div>' +
             (!(window.R2K_CUST_HIDE_CREATE)
                 ? '<button type="button" class="btn btn-primary btn-sm px-3" id="custSearchCreateBtn">' +
                   '<i class="bx bx-plus me-1"></i>Create Customer</button>'

@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 (function () {
 
   var currentPage = 1;
@@ -75,7 +75,7 @@
       totalNet   += parseFloat(ln.NetPayable || 0);
       html += '<tr data-idx="' + i + '">'
         + '<td><div class="fw-semibold">' + (ln.EmployeeName || '') + '</div>'
-        + '<div class="text-muted" style="font-size:.75rem;">' + (ln.EmployeeCode || '') + '</div></td>'
+        + '<div class="text-muted" style="font-size:var(--r2k-text-75);">' + (ln.EmployeeCode || '') + '</div></td>'
         + '<td><span class="badge bg-label-secondary">' + (ln.SalaryType || '') + '</span></td>'
         + '<td>' + parseFloat(ln.WorkingDays || 0).toFixed(0) + '</td>'
         + '<td>' + parseFloat(ln.PresentDays || 0).toFixed(1) + '</td>'

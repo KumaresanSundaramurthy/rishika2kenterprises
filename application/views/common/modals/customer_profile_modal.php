@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <!-- ── Customer Profile Modal ──────────────────────────────────────────────── -->
 <div class="modal fade" id="customerProfileModal" tabindex="-1"

@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php
 $currency  = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
@@ -39,20 +39,20 @@ if (!empty($DataLists)):
 <tr>
 
     <td class="<?php echo $showSno ? '' : 'd-none'; ?> table-serialno" style="width:44px;">
-        <span class="text-muted" style="font-size:.78rem;"><?php echo $sno; ?></span>
+        <span class="text-muted" style="font-size:var(--r2k-text-78);"><?php echo $sno; ?></span>
     </td>
 
     <!-- Item -->
     <td>
         <div class="fw-semibold"><?php echo htmlspecialchars($row->ItemName); ?></div>
         <?php if (!empty($row->PartNumber)): ?>
-        <div class="text-muted" style="font-size:.7rem;">Part# <?php echo htmlspecialchars($row->PartNumber); ?></div>
+        <div class="text-muted" style="font-size:var(--r2k-text-70);">Part# <?php echo htmlspecialchars($row->PartNumber); ?></div>
         <?php endif; ?>
         <div class="d-flex align-items-center flex-wrap gap-1 mt-1" style="font-size:var(--r2k-text-sm);">
             <?php if ($row->ProductType === 'Service'): ?>
-                <span class="badge bg-label-info" style="font-size:.65rem;">Service</span>
+                <span class="badge bg-label-info" style="font-size:var(--r2k-text-65);">Service</span>
             <?php else: ?>
-                <span class="badge bg-label-primary" style="font-size:.65rem;">Product</span>
+                <span class="badge bg-label-primary" style="font-size:var(--r2k-text-65);">Product</span>
             <?php endif; ?>
             <?php if (!empty($row->HSNSACCode)): ?>
                 <span class="text-muted" style="font-size:var(--r2k-text-xs);">HSN: <?php echo htmlspecialchars($row->HSNSACCode); ?></span>
@@ -83,7 +83,7 @@ if (!empty($DataLists)):
     <!-- Category -->
     <td>
         <?php if (!empty($row->CategoryName)): ?>
-        <span class="badge text-bg-light border" style="font-size:.7rem;font-weight:500;">
+        <span class="badge text-bg-light border" style="font-size:var(--r2k-text-70);font-weight:500;">
             <?php echo htmlspecialchars($row->CategoryName); ?>
         </span>
         <?php else: ?>
@@ -105,7 +105,7 @@ if (!empty($DataLists)):
     <!-- Status -->
     <td>
         <span class="trans-badge <?php echo $statusClass; ?>">
-            <i class="bx <?php echo $statusIcon; ?>" style="font-size:.8rem;"></i>
+            <i class="bx <?php echo $statusIcon; ?>" style="font-size:var(--r2k-text-md);"></i>
             <?php echo $statusLabel; ?>
         </span>
     </td>
@@ -114,7 +114,7 @@ if (!empty($DataLists)):
     <td>
         <div><?php echo $currency . ' ' . smartDecimal($row->PurchasePrice); ?></div>
         <?php if ($row->TaxPercentage > 0): ?>
-        <div class="text-muted" style="font-size:.7rem;"><?php echo $row->TaxPercentage; ?>% tax</div>
+        <div class="text-muted" style="font-size:var(--r2k-text-70);"><?php echo $row->TaxPercentage; ?>% tax</div>
         <?php endif; ?>
     </td>
 
@@ -122,7 +122,7 @@ if (!empty($DataLists)):
     <td>
         <div class="trans-amount-main"><?php echo $currency . ' ' . smartDecimal($row->SellingPrice); ?></div>
         <?php if ($row->TaxPercentage > 0): ?>
-        <div class="text-muted" style="font-size:.7rem;"><?php echo $row->TaxPercentage; ?>% tax</div>
+        <div class="text-muted" style="font-size:var(--r2k-text-70);"><?php echo $row->TaxPercentage; ?>% tax</div>
         <?php endif; ?>
     </td>
 
@@ -150,7 +150,7 @@ if (!empty($DataLists)):
                     data-unit="<?php echo htmlspecialchars($row->UnitName ?? ''); ?>"
                     data-purchase-price="<?php echo (float)$row->PurchasePrice; ?>"
                     title="Stock In"
-                    style="font-size:.75rem;">
+                    style="font-size:var(--r2k-text-75);">
                 <i class="bx bx-plus me-1"></i>In
             </button>
             <button class="btn btn-sm btn-outline-danger invStockOutBtn px-2 py-1"
@@ -159,7 +159,7 @@ if (!empty($DataLists)):
                     data-unit="<?php echo htmlspecialchars($row->UnitName ?? ''); ?>"
                     data-selling-price="<?php echo (float)$row->SellingPrice; ?>"
                     title="Stock Out"
-                    style="font-size:.75rem;">
+                    style="font-size:var(--r2k-text-75);">
                 <i class="bx bx-minus me-1"></i>Out
             </button>
             <?php if ((int)($row->IsBrandApplicable ?? 0) === 1): ?>

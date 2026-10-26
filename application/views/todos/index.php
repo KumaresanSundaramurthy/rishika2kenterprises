@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 $_stats    = $this->pageData['TodoStats']  ?? ['total' => 0, 'active' => 0, 'overdue' => 0, 'today' => 0, 'completed' => 0];
 $_userList = $this->pageData['UserList']   ?? [];
 $_myUID    = (int)($this->pageData['JwtData']->User->UserUID ?? 0);
@@ -6,12 +6,12 @@ $_myUID    = (int)($this->pageData['JwtData']->User->UserUID ?? 0);
 <?php $this->load->view('common/header'); ?>
 
 <style>
-.todo-pri{display:inline-block;padding:2px 9px;border-radius:5px;font-size:.70rem;font-weight:700;letter-spacing:.02em;white-space:nowrap}
+.todo-pri{display:inline-block;padding:2px 9px;border-radius:5px;font-size:var(--r2k-text-70);font-weight:700;letter-spacing:.02em;white-space:nowrap}
 .todo-pri-low    {background:#f1f5f9;color:#475569}
 .todo-pri-medium {background:#dbeafe;color:#1d4ed8}
 .todo-pri-high   {background:#ffedd5;color:#c2410c}
 .todo-pri-urgent {background:#fee2e2;color:#b91c1c}
-.todo-stat-badge{display:inline-block;padding:2px 9px;border-radius:5px;font-size:.70rem;font-weight:600;white-space:nowrap}
+.todo-stat-badge{display:inline-block;padding:2px 9px;border-radius:5px;font-size:var(--r2k-text-70);font-weight:600;white-space:nowrap}
 .todo-stat-open      {background:#dcfce7;color:#15803d}
 .todo-stat-inprogress{background:#dbeafe;color:#1d4ed8}
 .todo-stat-onhold    {background:#fef9c3;color:#854d0e}
@@ -30,7 +30,7 @@ $_myUID    = (int)($this->pageData['JwtData']->User->UserUID ?? 0);
 .todo-tab-btn{border:none;background:none;padding:7px 14px;font-size:.80rem;font-weight:500;color:#64748b;border-bottom:2px solid transparent;cursor:pointer;transition:color .15s,border-color .15s;white-space:nowrap}
 .todo-tab-btn:hover{color:#334155}
 .todo-tab-btn.active{color:#4f46e5;border-bottom-color:#4f46e5;font-weight:600}
-.todo-tab-badge{display:inline-block;padding:1px 6px;border-radius:10px;font-size:.65rem;font-weight:700;background:#e0e7ff;color:#4f46e5;margin-left:4px;vertical-align:middle}
+.todo-tab-badge{display:inline-block;padding:1px 6px;border-radius:10px;font-size:var(--r2k-text-65);font-weight:700;background:#e0e7ff;color:#4f46e5;margin-left:4px;vertical-align:middle}
 .todo-tab-badge-red{background:#fee2e2;color:#b91c1c}
 .todo-stat-card{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;display:flex;align-items:center;gap:12px}
 .todo-stat-icon{width:38px;height:38px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.1rem}
@@ -39,14 +39,14 @@ $_myUID    = (int)($this->pageData['JwtData']->User->UserUID ?? 0);
 .todo-stat-icon-orange{background:#ffedd5;color:#ea580c}
 .todo-stat-icon-blue  {background:#dbeafe;color:#2563eb}
 .todo-stat-body{flex:1}
-.todo-stat-label{font-size:.70rem;color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.04em}
+.todo-stat-label{font-size:var(--r2k-text-70);color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.04em}
 .todo-stat-val{font-size:1.05rem;font-weight:700;color:#1e293b;margin-top:1px}
 .todo-my-toggle{display:flex;align-items:center;gap:6px;font-size:.80rem;color:#475569;cursor:pointer;user-select:none}
 .todo-my-toggle input{accent-color:#4f46e5;width:14px;height:14px}
 .todo-pri-chip-wrap{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
-.todo-pri-chip{border:1px solid #e2e8f0;background:#f8fafc;color:#475569;font-size:.75rem;padding:3px 10px;border-radius:20px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.todo-pri-chip{border:1px solid #e2e8f0;background:#f8fafc;color:#475569;font-size:var(--r2k-text-75);padding:3px 10px;border-radius:20px;cursor:pointer;transition:all .15s;white-space:nowrap}
 .todo-pri-chip.active{border-color:#4f46e5;background:#e0e7ff;color:#4f46e5;font-weight:600}
-.todo-status-select{font-size:.78rem;border:1px solid #e2e8f0;border-radius:5px;padding:2px 6px;color:#374151;background:#fff;cursor:pointer}
+.todo-status-select{font-size:var(--r2k-text-78);border:1px solid #e2e8f0;border-radius:5px;padding:2px 6px;color:#374151;background:#fff;cursor:pointer}
 @media(prefers-color-scheme:dark){
     .todo-tab-bar,.todo-stat-card{background:#1e293b;border-color:#334155}
     .todo-tab-btn{color:#94a3b8}.todo-tab-btn:hover{color:#f1f5f9}.todo-tab-btn.active{color:#818cf8;border-bottom-color:#818cf8}

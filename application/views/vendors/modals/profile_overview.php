@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 /**
  * Vendor Profile Modal — Overview Tab
  *
@@ -67,7 +67,7 @@ $initials = strtoupper(substr($words[0] ?? '', 0, 1)) . strtoupper(substr($words
             <div class="card border shadow-none mb-3">
                 <div class="card-header py-2 px-3 bg-light d-flex align-items-center gap-2">
                     <i class="bx bx-store text-warning"></i>
-                    <span class="fw-semibold" style="font-size:.82rem;">CONTACT INFORMATION</span>
+                    <span class="fw-semibold" style="font-size:var(--r2k-text-82);">CONTACT INFORMATION</span>
                 </div>
                 <div class="card-body p-3">
                     <div class="row g-2" style="font-size:.83rem;">
@@ -124,7 +124,7 @@ $initials = strtoupper(substr($words[0] ?? '', 0, 1)) . strtoupper(substr($words
             <div class="card border shadow-none mb-3">
                 <div class="card-header py-2 px-3 bg-light d-flex align-items-center gap-2">
                     <i class="bx bx-buildings text-warning"></i>
-                    <span class="fw-semibold" style="font-size:.82rem;">GST & FINANCIAL</span>
+                    <span class="fw-semibold" style="font-size:var(--r2k-text-82);">GST & FINANCIAL</span>
                 </div>
                 <div class="card-body p-3">
                     <div class="row g-2" style="font-size:.83rem;">
@@ -152,7 +152,7 @@ $initials = strtoupper(substr($words[0] ?? '', 0, 1)) . strtoupper(substr($words
                             <div class="text-muted mb-1" style="font-size:var(--r2k-text-sm);">Opening Balance</div>
                             <div class="<?php echo $obType === 'Credit' ? 'text-danger' : 'text-success'; ?>">
                                 <?php echo $fmt($obVal); ?>
-                                <span class="badge bg-label-secondary ms-1" style="font-size:.65rem;"><?php echo $obType === 'Credit' ? 'To Pay' : 'Advance'; ?></span>
+                                <span class="badge bg-label-secondary ms-1" style="font-size:var(--r2k-text-65);"><?php echo $obType === 'Credit' ? 'To Pay' : 'Advance'; ?></span>
                             </div>
                         </div>
                         <?php endif; ?>
@@ -166,10 +166,10 @@ $initials = strtoupper(substr($words[0] ?? '', 0, 1)) . strtoupper(substr($words
             <div class="card border shadow-none mb-3">
                 <div class="card-header py-2 px-3 bg-light d-flex align-items-center gap-2">
                     <i class="bx bx-map text-danger"></i>
-                    <span class="fw-semibold" style="font-size:.82rem;">ADDRESS</span>
+                    <span class="fw-semibold" style="font-size:var(--r2k-text-82);">ADDRESS</span>
                 </div>
                 <div class="card-body p-3">
-                    <div class="row g-3" style="font-size:.82rem;">
+                    <div class="row g-3" style="font-size:var(--r2k-text-82);">
                         <?php if ($BillingAddr): ?>
                         <div class="col-sm-6">
                             <div class="text-muted mb-1" style="font-size:var(--r2k-text-sm);">Billing Address</div>
@@ -225,7 +225,7 @@ $initials = strtoupper(substr($words[0] ?? '', 0, 1)) . strtoupper(substr($words
             <?php endif; ?>
 
             <?php if (!empty($Vend->Notes)): ?>
-            <div class="mt-3 p-3 rounded" style="background:#fffbe6;border:1px solid #ffe58f;font-size:.82rem;">
+            <div class="mt-3 p-3 rounded" style="background:#fffbe6;border:1px solid #ffe58f;font-size:var(--r2k-text-82);">
                 <i class="bx bx-info-circle text-warning me-1"></i>
                 <?php echo nl2br(htmlspecialchars($Vend->Notes)); ?>
             </div>
@@ -255,13 +255,13 @@ $initials = strtoupper(substr($words[0] ?? '', 0, 1)) . strtoupper(substr($words
                             <div class="d-flex align-items-center gap-2 mb-1">
                                 <div class="avatar avatar-xs">
                                     <span class="avatar-initial rounded bg-label-<?php echo $card['color']; ?>">
-                                        <i class="bx <?php echo $card['icon']; ?>" style="font-size:.9rem;"></i>
+                                        <i class="bx <?php echo $card['icon']; ?>" style="font-size:var(--r2k-text-90);"></i>
                                     </span>
                                 </div>
                                 <span class="text-muted" style="font-size:var(--r2k-text-sm);"><?php echo $card['label']; ?></span>
                             </div>
                             <div class="fw-bold text-<?php echo $card['color']; ?>" style="font-size:.92rem;"><?php echo $card['value']; ?></div>
-                            <div class="text-muted" style="font-size:.7rem;"><?php echo $card['sub']; ?></div>
+                            <div class="text-muted" style="font-size:var(--r2k-text-70);"><?php echo $card['sub']; ?></div>
                         </div>
                     </div>
                 </div>
@@ -272,11 +272,11 @@ $initials = strtoupper(substr($words[0] ?? '', 0, 1)) . strtoupper(substr($words
             <div class="card border shadow-none">
                 <div class="card-header py-2 px-3 bg-light d-flex align-items-center gap-2">
                     <i class="bx bx-bar-chart-alt-2 text-warning"></i>
-                    <span class="fw-semibold" style="font-size:.82rem;">PURCHASES — LAST 6 MONTHS</span>
+                    <span class="fw-semibold" style="font-size:var(--r2k-text-82);">PURCHASES — LAST 6 MONTHS</span>
                 </div>
                 <div class="card-body p-3">
                     <?php if (empty($MonthlyPurchase)): ?>
-                    <div class="d-flex flex-column align-items-center justify-content-center py-4 text-muted" style="font-size:.82rem;">
+                    <div class="d-flex flex-column align-items-center justify-content-center py-4 text-muted" style="font-size:var(--r2k-text-82);">
                         <i class="bx bx-bar-chart-alt fs-3 mb-1"></i>
                         No purchase data in this period
                     </div>
@@ -290,7 +290,7 @@ $initials = strtoupper(substr($words[0] ?? '', 0, 1)) . strtoupper(substr($words
                             $monthLbl = substr($row['MonthLabel'], 0, 3);
                         ?>
                         <div class="d-flex flex-column align-items-center gap-1 flex-grow-1">
-                            <div class="text-muted" style="font-size:.65rem;" title="<?php echo $Cur . ' ' . smartDecimal($row['Total']); ?>">
+                            <div class="text-muted" style="font-size:var(--r2k-text-65);" title="<?php echo $Cur . ' ' . smartDecimal($row['Total']); ?>">
                                 <?php echo $Cur . number_format($row['Total'] / 1000, 1); ?>k
                             </div>
                             <div class="w-100 rounded-top" style="height:<?php echo max(4, $pct); ?>px;background:#f59e0b;opacity:.8;min-width:20px;"></div>

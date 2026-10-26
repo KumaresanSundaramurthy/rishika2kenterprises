@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Transaction attachment helpers — thin wrappers over js/common/attachments.js.
  *
  * Existing form.php callers are preserved:
@@ -129,7 +129,7 @@ function _buildAttachGalleryHtml(attachments) {
             html += '<div class="col-4 col-md-3"><img src="' + url + '" class="img-fluid rounded" style="cursor:pointer;object-fit:cover;height:90px;width:100%;" title="' + name + '" onclick="_openAttachPreview(\'' + encUrl + '\',\'img\',\'' + name + '\')" /></div>';
         } else {
             var icon = isPdf ? 'bxs-file-pdf text-danger' : 'bx-file text-secondary';
-            html += '<div class="col-4 col-md-3"><div class="d-flex flex-column align-items-center justify-content-center border rounded p-2" style="cursor:pointer;min-height:90px;" onclick="_openAttachPreview(\'' + encUrl + '\',\'' + (isPdf ? 'pdf' : 'file') + '\',\'' + name + '\')"><i class="bx ' + icon + '" style="font-size:2rem;"></i><span class="text-truncate w-100 text-center mt-1" style="font-size:.7rem;">' + name + '</span></div></div>';
+            html += '<div class="col-4 col-md-3"><div class="d-flex flex-column align-items-center justify-content-center border rounded p-2" style="cursor:pointer;min-height:90px;" onclick="_openAttachPreview(\'' + encUrl + '\',\'' + (isPdf ? 'pdf' : 'file') + '\',\'' + name + '\')"><i class="bx ' + icon + '" style="font-size:2rem;"></i><span class="text-truncate w-100 text-center mt-1" style="font-size:var(--r2k-text-70);">' + name + '</span></div></div>';
         }
     });
     html += '</div>';

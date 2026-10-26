@@ -1,4 +1,4 @@
-/* global $, CsrfName, CsrfToken, showToastNotification, ajaxLoading, bootstrap, DriveConfig, Swal */
+﻿/* global $, CsrfName, CsrfToken, showToastNotification, ajaxLoading, bootstrap, DriveConfig, Swal */
 (function () {
     'use strict';
 
@@ -479,7 +479,7 @@
                 var folders = (resp.Items || []).filter(function (i) { return i.type === 'Folder' && i.uid !== _moveItemUID; });
                 var html = '';
                 if (!folders.length) {
-                    html = '<p class="text-muted text-center py-3 mb-0" style="font-size:.8rem;">No subfolders here</p>';
+                    html = '<p class="text-muted text-center py-3 mb-0" style="font-size:var(--r2k-text-md);">No subfolders here</p>';
                 } else {
                     folders.forEach(function (f) {
                         html += '<div class="move-folder-item" data-mfuid="' + f.uid + '" data-mfname="' + esc(f.name) + '">' +

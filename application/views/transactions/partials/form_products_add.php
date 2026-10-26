@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 // Shared product section (search bar, bill table, notes/terms, summary) for all transaction forms.
 // Required (from controller pageData): $JwtData
 // Optional variables (pass via load->view second arg):
@@ -46,7 +46,7 @@ $_showCompliment = !empty($transShowCompliment);
             <input class="form-check-input" type="checkbox" id="chkReverseOrder">
             <label class="form-check-label small" for="chkReverseOrder" style="cursor:pointer;"><?php echo t('lbl_reverse_order', 'Reverse Order'); ?></label>
         </div>
-        <button type="button" class="btn btn-sm btn-outline-danger d-none" id="btnClearCart" style="font-size:.75rem;">
+        <button type="button" class="btn btn-sm btn-outline-danger d-none" id="btnClearCart" style="font-size:var(--r2k-text-75);">
             <i class="bx bx-trash me-1"></i>Clear All
         </button>
     </div>
@@ -176,7 +176,7 @@ $_showCompliment = !empty($transShowCompliment);
                                        data-bs-toggle="tooltip" data-bs-placement="top"
                                        title="<?php echo $preCompLocked ? t('tooltip_compliment_locked', 'Compliment locked (from invoice)') : t('tooltip_compliment', 'Compliment'); ?>"
                                        style="font-size:1rem;color:#adb5bd;cursor:default;"></i>
-                                    <?php if ($preCompLocked): ?><i class="bx bx-lock-alt" style="font-size:0.7rem;color:#adb5bd;"></i><?php endif; ?>
+                                    <?php if ($preCompLocked): ?><i class="bx bx-lock-alt" style="font-size:var(--r2k-text-70);color:#adb5bd;"></i><?php endif; ?>
                                 </label>
                                 <?php endif; ?>
                             </div>
@@ -340,7 +340,7 @@ $_showCompliment = !empty($transShowCompliment);
                     </span>
                     <span style="font-weight:600;font-size:.875rem;color:#374151;">Attach Files</span>
                     <span id="transAttachBadge" class="badge rounded-pill d-none"
-                          style="background:#ede9fe;color:#6366f1;font-size:.7rem;font-weight:600;"></span>
+                          style="background:#ede9fe;color:#6366f1;font-size:var(--r2k-text-70);font-weight:600;"></span>
                 </div>
                 <!-- id="transAttachHint" is updated by _attachResetState on DOM ready -->
                 <span id="transAttachHint" style="font-size:var(--r2k-text-sm);color:#9ca3af;"></span>
@@ -349,7 +349,7 @@ $_showCompliment = !empty($transShowCompliment);
                 <div id="transAttachZone" class="prod-attach-zone" onclick="_attachZoneTrigger('Transaction', event)">
                     <div id="transAttachEmpty" class="prod-attach-empty">
                         <i class="bx bx-upload" id="transAttachIcon" style="font-size:1.4rem;color:#9ca3af;display:block;margin-bottom:3px;"></i>
-                        <div id="transAttachLabel" style="font-size:.78rem;font-weight:600;color:#6b7280;">Drag &amp; drop files here</div>
+                        <div id="transAttachLabel" style="font-size:var(--r2k-text-78);font-weight:600;color:#6b7280;">Drag &amp; drop files here</div>
                     </div>
                 </div>
                 <div id="transAttachList" class="prod-attach-list mt-2" style="display:none;"></div>
@@ -369,30 +369,30 @@ $_showCompliment = !empty($transShowCompliment);
                     <!-- Header strip -->
                     <div class="d-flex align-items-center gap-2 px-3 py-2" style="background:#0284c7;">
                         <i class="bx bx-receipt" style="color:#fff;font-size:1rem;"></i>
-                        <span style="font-size:.78rem;font-weight:700;color:#fff;letter-spacing:.4px;text-transform:uppercase;">Tax Breakdown</span>
+                        <span style="font-size:var(--r2k-text-78);font-weight:700;color:#fff;letter-spacing:.4px;text-transform:uppercase;">Tax Breakdown</span>
                     </div>
 
                     <!-- Items Tax metrics -->
                     <div style="background:#f0f9ff;padding:10px 12px 8px;">
-                        <div style="font-size:.65rem;font-weight:700;color:#0369a1;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">
+                        <div style="font-size:var(--r2k-text-65);font-weight:700;color:#0369a1;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">
                             Items Tax · <span class="taxBreakUpItemsCnt">0</span> items
                         </div>
                         <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;">
                             <div class="taxBreakUpItemsCgst" style="background:#fff;border-radius:6px;padding:6px 8px;border:1px solid #e0f2fe;">
                                 <div style="font-size:.6rem;color:#64748b;text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px;">CGST</div>
-                                <div style="font-weight:600;font-size:.82rem;color:#0284c7;"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpItemsCgstVal">0</span></div>
+                                <div style="font-weight:600;font-size:var(--r2k-text-82);color:#0284c7;"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpItemsCgstVal">0</span></div>
                             </div>
                             <div class="taxBreakUpItemsSgst" style="background:#fff;border-radius:6px;padding:6px 8px;border:1px solid #e0f2fe;">
                                 <div style="font-size:.6rem;color:#64748b;text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px;">SGST</div>
-                                <div style="font-weight:600;font-size:.82rem;color:#0284c7;"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpItemsSgstVal">0</span></div>
+                                <div style="font-weight:600;font-size:var(--r2k-text-82);color:#0284c7;"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpItemsSgstVal">0</span></div>
                             </div>
                             <div class="taxBreakUpItemsIgst d-none" style="background:#fff;border-radius:6px;padding:6px 8px;border:1px solid #e0f2fe;">
                                 <div style="font-size:.6rem;color:#64748b;text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px;">IGST</div>
-                                <div style="font-weight:600;font-size:.82rem;color:#0284c7;"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpItemsIgstVal">0</span></div>
+                                <div style="font-weight:600;font-size:var(--r2k-text-82);color:#0284c7;"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpItemsIgstVal">0</span></div>
                             </div>
                             <div style="background:#fff;border-radius:6px;padding:6px 8px;border:1px solid #e0f2fe;">
                                 <div style="font-size:.6rem;color:#64748b;text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px;">Total Tax</div>
-                                <div style="font-weight:700;font-size:.82rem;color:#0369a1;"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpItemsTotAmt">0</span></div>
+                                <div style="font-weight:700;font-size:var(--r2k-text-82);color:#0369a1;"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpItemsTotAmt">0</span></div>
                             </div>
                         </div>
                     </div>
@@ -400,23 +400,23 @@ $_showCompliment = !empty($transShowCompliment);
                     <?php if ($_chargesBd): ?>
                     <!-- Charges Tax -->
                     <div class="d-none" id="chargeBreakUpTaxDetails" style="background:#f0f9ff;padding:8px 12px;border-top:1px solid #bae6fd;">
-                        <div style="font-size:.65rem;font-weight:700;color:#0369a1;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Charges Tax</div>
+                        <div style="font-size:var(--r2k-text-65);font-weight:700;color:#0369a1;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Charges Tax</div>
                         <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;">
                             <div class="taxBreakUpChargesCgst" style="background:#fff;border-radius:6px;padding:6px 8px;border:1px solid #e0f2fe;">
                                 <div style="font-size:.6rem;color:#64748b;text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px;">CGST</div>
-                                <div style="font-weight:600;font-size:.82rem;color:#0284c7;"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpChargesCgstVal">0</span></div>
+                                <div style="font-weight:600;font-size:var(--r2k-text-82);color:#0284c7;"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpChargesCgstVal">0</span></div>
                             </div>
                             <div class="taxBreakUpChargesSgst" style="background:#fff;border-radius:6px;padding:6px 8px;border:1px solid #e0f2fe;">
                                 <div style="font-size:.6rem;color:#64748b;text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px;">SGST</div>
-                                <div style="font-weight:600;font-size:.82rem;color:#0284c7;"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpChargesSgstVal">0</span></div>
+                                <div style="font-weight:600;font-size:var(--r2k-text-82);color:#0284c7;"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpChargesSgstVal">0</span></div>
                             </div>
                             <div class="taxBreakUpChargesIgst d-none" style="background:#fff;border-radius:6px;padding:6px 8px;border:1px solid #e0f2fe;">
                                 <div style="font-size:.6rem;color:#64748b;text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px;">IGST</div>
-                                <div style="font-weight:600;font-size:.82rem;color:#0284c7;"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpChargesIgstVal">0</span></div>
+                                <div style="font-weight:600;font-size:var(--r2k-text-82);color:#0284c7;"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpChargesIgstVal">0</span></div>
                             </div>
                             <div style="background:#fff;border-radius:6px;padding:6px 8px;border:1px solid #e0f2fe;">
                                 <div style="font-size:.6rem;color:#64748b;text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px;">Total</div>
-                                <div style="font-weight:700;font-size:.82rem;color:#0369a1;"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span id="chargeTaxTotal">0</span></div>
+                                <div style="font-weight:700;font-size:var(--r2k-text-82);color:#0369a1;"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span id="chargeTaxTotal">0</span></div>
                             </div>
                         </div>
                     </div>
@@ -424,7 +424,7 @@ $_showCompliment = !empty($transShowCompliment);
 
                     <!-- Grand Tax Total footer -->
                     <div class="d-flex align-items-center justify-content-between px-3 py-2" style="background:#0284c7;">
-                        <span style="font-size:.75rem;font-weight:600;color:#e0f2fe;text-transform:uppercase;letter-spacing:.4px;">Grand Tax Total</span>
+                        <span style="font-size:var(--r2k-text-75);font-weight:600;color:#e0f2fe;text-transform:uppercase;letter-spacing:.4px;">Grand Tax Total</span>
                         <span style="font-size:.92rem;font-weight:800;color:#fff;"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span id="grandChargesTaxTotal">0</span></span>
                     </div>
 
@@ -552,7 +552,7 @@ $_showCompliment = !empty($transShowCompliment);
                         <tbody id="comboBOMRows"></tbody>
                         <tfoot>
                             <tr style="background:#f3f0ff;border-top:2px solid #d9d0ff;">
-                                <td colspan="4" class="ps-4 py-3" style="font-size:.88rem;font-weight:700;color:#7c3aed;">
+                                <td colspan="4" class="ps-4 py-3" style="font-size:var(--r2k-text-88);font-weight:700;color:#7c3aed;">
                                     <i class="bx bx-calculator me-1" style="vertical-align:middle;"></i>Combo Total
                                 </td>
                                 <td class="text-end pe-4 py-3" style="font-size:1rem;font-weight:700;color:#7c3aed;" id="comboBOMTotal">0.00</td>

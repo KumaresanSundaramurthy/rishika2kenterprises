@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php
 $isEdit      = isset($PFData);
 $isDraftEdit = $isEdit && ($PFData->DocStatus === 'Draft');
@@ -78,7 +78,7 @@ $_addrLines = buildDispatchAddressLines($DispatchAddress ?? null);
                                             <span class="fw-bold" style="font-size:.92rem;"><?php echo $isDraftEdit ? '' : 'Edit'; ?> Pro Forma Invoice</span>
                                             <?php if (!$isDraftEdit && !empty($PFData->UniqueNumber)): ?>
                                                 <span class="trans-form-doc-number"><?php echo htmlspecialchars($PFData->UniqueNumber); ?></span>
-                                                <span class="badge bg-label-<?php echo $_pfStatusClr; ?>" style="font-size:.7rem;"><?php echo htmlspecialchars($_pfStatus); ?></span>
+                                                <span class="badge bg-label-<?php echo $_pfStatusClr; ?>" style="font-size:var(--r2k-text-70);"><?php echo htmlspecialchars($_pfStatus); ?></span>
                                             <?php endif; ?>
                                             <?php $this->load->view('transactions/partials/form_prefix_edit', [
                                                 '_editPrefixUID'  => (int)($PFData->PrefixUID   ?? 0),
@@ -92,14 +92,14 @@ $_addrLines = buildDispatchAddressLines($DispatchAddress ?? null);
                                     <div class="d-flex align-items-center gap-3 mt-1">
                                         <?php if (!empty($PFData->TransDate)): ?>
                                         <div class="d-flex align-items-center gap-1">
-                                            <span style="font-size:.7rem;color:#8592a3;">Date</span>
-                                            <span style="font-size:.78rem;color:#566a7f;"><?php echo htmlspecialchars(format_datedisplay($PFData->TransDate)); ?></span>
+                                            <span style="font-size:var(--r2k-text-70);color:#8592a3;">Date</span>
+                                            <span style="font-size:var(--r2k-text-78);color:#566a7f;"><?php echo htmlspecialchars(format_datedisplay($PFData->TransDate)); ?></span>
                                         </div>
                                         <?php endif; ?>
                                         <?php if (!empty($PFData->PartyName)): ?>
                                         <div class="d-flex align-items-center gap-1">
-                                            <span style="font-size:.7rem;color:#8592a3;">Customer</span>
-                                            <span style="font-size:.78rem;color:#566a7f;"><?php echo htmlspecialchars($PFData->PartyName); ?></span>
+                                            <span style="font-size:var(--r2k-text-70);color:#8592a3;">Customer</span>
+                                            <span style="font-size:var(--r2k-text-78);color:#566a7f;"><?php echo htmlspecialchars($PFData->PartyName); ?></span>
                                         </div>
                                         <?php endif; ?>
                                     </div>

@@ -503,7 +503,7 @@ function _renderCarousel(selUID){
             ? '<img src="'+tpl.PreviewImage+'" style="width:100%;height:100%;object-fit:cover;" alt="'+tpl.TemplateName+'">'
             : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#f0f0f0;font-size:7pt;color:#888;text-align:center;padding:4px;">'+tpl.TemplateName+'</div>';
         var lb = document.createElement('div');
-        lb.style.cssText = 'background:#fff;padding:3px 6px;border-top:1px solid #eee;font-size:.7rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+        lb.style.cssText = 'background:#fff;padding:3px 6px;border-top:1px solid #eee;font-size:var(--r2k-text-70);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
         lb.textContent = tpl.TemplateName;
         item.appendChild(iw); item.appendChild(lb);
         track.appendChild(item);

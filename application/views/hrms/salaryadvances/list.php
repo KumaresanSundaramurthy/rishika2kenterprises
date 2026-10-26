@@ -23,11 +23,11 @@ if (!empty($DataLists)):
         $code      = trim($row->EmployeeCode ?? '');
 ?>
 <tr>
-  <td class="text-muted" style="font-size:.8rem;"><?php echo $SerialNumber; ?></td>
+  <td class="text-muted" style="font-size:var(--r2k-text-md);"><?php echo $SerialNumber; ?></td>
   <td>
     <div class="fw-semibold"><?php echo htmlspecialchars($row->EmployeeName ?? ''); ?></div>
     <?php if ($code): ?>
-    <div class="text-muted" style="font-size:.75rem;"><?php echo htmlspecialchars($code); ?></div>
+    <div class="text-muted" style="font-size:var(--r2k-text-75);"><?php echo htmlspecialchars($code); ?></div>
     <?php endif; ?>
   </td>
   <td style="font-size:.875rem;"><?php echo $dt; ?></td>
@@ -35,7 +35,7 @@ if (!empty($DataLists)):
   <td class="text-success"><?php echo $cur . ' ' . smartDecimal($recovered); ?></td>
   <td class="<?php echo $balance > 0 ? 'text-danger fw-semibold' : 'text-success'; ?>"><?php echo $cur . ' ' . smartDecimal($balance); ?></td>
   <td><span class="badge <?php echo $badge; ?>"><?php echo $status; ?></span></td>
-  <td class="text-muted" style="font-size:.8rem;"><?php echo htmlspecialchars($row->Remarks ?? '—'); ?></td>
+  <td class="text-muted" style="font-size:var(--r2k-text-md);"><?php echo htmlspecialchars($row->Remarks ?? '—'); ?></td>
   <td>
     <?php if ($status === 'Requested'): ?>
     <div class="d-flex align-items-center justify-content-center gap-1">
@@ -51,7 +51,7 @@ if (!empty($DataLists)):
         <button class="trans-actions-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
           <i class="bx bx-dots-vertical-rounded fs-5"></i>
         </button>
-        <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:.82rem;min-width:160px;">
+        <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:var(--r2k-text-82);min-width:160px;">
           <li>
             <button class="dropdown-item adv-approve-btn" data-uid="<?php echo $uid; ?>">
               <i class="bx bx-check-circle me-2 text-success"></i><?php echo t('btn_approve', 'Approve'); ?>
@@ -77,7 +77,7 @@ if (!empty($DataLists)):
         <button class="trans-actions-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
           <i class="bx bx-dots-vertical-rounded fs-5"></i>
         </button>
-        <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:.82rem;min-width:160px;">
+        <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:var(--r2k-text-82);min-width:160px;">
           <li>
             <button class="dropdown-item text-danger adv-delete-btn" data-uid="<?php echo $uid; ?>">
               <i class="bx bx-trash me-2"></i><?php echo t('btn_delete', 'Delete'); ?>
@@ -87,7 +87,7 @@ if (!empty($DataLists)):
       </div>
     </div>
     <?php else: ?>
-      <span class="text-muted ps-2" style="font-size:.8rem;">—</span>
+      <span class="text-muted ps-2" style="font-size:var(--r2k-text-md);">—</span>
     <?php endif; ?>
   </td>
 </tr>
@@ -96,7 +96,7 @@ if (!empty($DataLists)):
   <td colspan="9" style="padding:0;border:none;">
     <div class="d-flex flex-column align-items-center py-5">
       <img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:150px;object-fit:contain;">
-      <span class="text-muted" style="font-size:.9rem;">No advance records found</span>
+      <span class="text-muted" style="font-size:var(--r2k-text-90);">No advance records found</span>
     </div>
   </td>
 </tr>

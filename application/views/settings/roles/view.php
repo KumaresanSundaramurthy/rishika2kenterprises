@@ -22,16 +22,16 @@
                         <div class="col-md-3">
                             <div class="card h-100">
                                 <div class="card-header d-flex align-items-center justify-content-between py-2 px-3">
-                                    <span class="fw-semibold" style="font-size:.85rem;">
+                                    <span class="fw-semibold" style="font-size:var(--r2k-text-85);">
                                         <i class="bx bx-shield-alt-2 me-1 text-primary"></i>Roles
                                     </span>
                                     <div class="d-flex align-items-center gap-2">
                                         <button class="btn btn-outline-secondary btn-sm px-2 py-1" id="btnRefreshTokens"
                                             title="Refresh the Tokens" data-bs-toggle="tooltip" data-bs-placement="top"
-                                            style="font-size:.75rem;">
+                                            style="font-size:var(--r2k-text-75);">
                                             <i class="bx bx-refresh"></i>
                                         </button>
-                                        <button class="btn btn-primary btn-sm px-2 py-1" id="btnAddRole" style="font-size:.75rem;">
+                                        <button class="btn btn-primary btn-sm px-2 py-1" id="btnAddRole" style="font-size:var(--r2k-text-75);">
                                             <i class="bx bx-plus me-1"></i>Add Role
                                         </button>
                                     </div>
@@ -44,12 +44,12 @@
                                             data-roleuid="<?php echo $role->RoleUID; ?>"
                                             data-rolename="<?php echo htmlspecialchars($role->Name); ?>"
                                             data-isdefault="<?php echo $isDefault ? 1 : 0; ?>"
-                                            style="cursor:pointer;font-size:.82rem;">
+                                            style="cursor:pointer;font-size:var(--r2k-text-82);">
                                             <span class="d-flex align-items-center gap-1 text-truncate" style="min-width:0;">
                                                 <?php if ($isDefault): ?>
-                                                <i class="bx bx-lock-alt text-warning" style="font-size:.85rem;flex-shrink:0;" title="Default role — cannot be edited or deleted"></i>
+                                                <i class="bx bx-lock-alt text-warning" style="font-size:var(--r2k-text-85);flex-shrink:0;" title="Default role — cannot be edited or deleted"></i>
                                                 <?php else: ?>
-                                                <i class="bx bx-user-circle text-secondary" style="font-size:.85rem;flex-shrink:0;"></i>
+                                                <i class="bx bx-user-circle text-secondary" style="font-size:var(--r2k-text-85);flex-shrink:0;"></i>
                                                 <?php endif; ?>
                                                 <span class="text-truncate"><?php echo htmlspecialchars($role->Name); ?></span>
                                                 <span class="badge bg-label-secondary ms-1" style="font-size:.62rem;flex-shrink:0;"><?php echo $role->UserCount; ?></span>
@@ -60,17 +60,17 @@
                                                     data-roleuid="<?php echo $role->RoleUID; ?>"
                                                     data-rolename="<?php echo htmlspecialchars($role->Name); ?>"
                                                     style="line-height:1;" title="Rename">
-                                                    <i class="bx bx-pencil" style="font-size:.9rem;"></i>
+                                                    <i class="bx bx-pencil" style="font-size:var(--r2k-text-90);"></i>
                                                 </button>
                                                 <button class="btn btn-sm p-0 text-danger delete-role-btn"
                                                     data-roleuid="<?php echo $role->RoleUID; ?>"
                                                     style="line-height:1;" title="Delete">
-                                                    <i class="bx bx-trash" style="font-size:.9rem;"></i>
+                                                    <i class="bx bx-trash" style="font-size:var(--r2k-text-90);"></i>
                                                 </button>
                                             </span>
                                             <?php else: ?>
-                                            <span class="ms-2 flex-shrink-0" title="System default" style="font-size:.65rem;color:#bbb;">
-                                                <i class="bx bx-shield-quarter" style="font-size:.85rem;"></i>
+                                            <span class="ms-2 flex-shrink-0" title="System default" style="font-size:var(--r2k-text-65);color:#bbb;">
+                                                <i class="bx bx-shield-quarter" style="font-size:var(--r2k-text-85);"></i>
                                             </span>
                                             <?php endif; ?>
                                         </li>
@@ -84,11 +84,11 @@
                         <div class="col-md-9">
                             <div class="card">
                                 <div class="card-header d-flex align-items-center justify-content-between py-2 px-3">
-                                    <span class="fw-semibold" style="font-size:.85rem;" id="permMatrixTitle">
+                                    <span class="fw-semibold" style="font-size:var(--r2k-text-85);" id="permMatrixTitle">
                                         <i class="bx bx-lock-open-alt me-1 text-primary"></i>
                                         Select a role to configure permissions
                                     </span>
-                                    <button class="btn btn-success btn-sm px-3 py-1 d-none" id="btnSavePermissions" style="font-size:.75rem;">
+                                    <button class="btn btn-success btn-sm px-3 py-1 d-none" id="btnSavePermissions" style="font-size:var(--r2k-text-75);">
                                         <span class="spinner-border spinner-border-sm me-1 d-none" id="savePrmSpinner"></span>
                                         <i class="bx bx-save me-1"></i>Save Permissions
                                     </button>
@@ -96,7 +96,7 @@
                                 <div class="card-body p-2" id="permMatrixBody">
                                     <div class="text-center text-muted py-5" id="permMatrixEmpty">
                                         <i class="bx bx-shield-x" style="font-size:2.5rem;opacity:.3;"></i>
-                                        <p class="mt-2" style="font-size:.82rem;">Select a role from the left to view and edit its permissions.</p>
+                                        <p class="mt-2" style="font-size:var(--r2k-text-82);">Select a role from the left to view and edit its permissions.</p>
                                     </div>
                                 </div>
                             </div>
@@ -204,7 +204,7 @@ function _buildMatrix(mainPerms, subPerms) {
             rows += `
             <tr class="sm-row ${smEnabled} ${mmOn ? '' : 'sm-hidden'}" data-mmuid="${mmUID}" data-smuid="${sm.SubMenuUID}">
                 <td style="padding-left:${indent}rem; border-left:4px solid ${smOn ? '#26a69a' : 'transparent'}; ${rowBg}">
-                    <i class="${sm.Icon || 'bx bx-circle'} me-1" style="font-size:.85rem;color:#26a69a;"></i>
+                    <i class="${sm.Icon || 'bx bx-circle'} me-1" style="font-size:var(--r2k-text-85);color:#26a69a;"></i>
                     ${nameHtml}
                 </td>
                 <td class="text-center" style="background:#f4f0ff; ${rowBg}"></td>
@@ -232,7 +232,7 @@ function _buildMatrix(mainPerms, subPerms) {
     let html = `
     <style>
     /* ── Table base ── */
-    .perm-table { font-size:.78rem; border-collapse:collapse; width:100%; }
+    .perm-table { font-size:var(--r2k-text-78); border-collapse:collapse; width:100%; }
     .perm-table th, .perm-table td { border:1px solid #dee2e6; padding:5px 8px; vertical-align:middle; }
 
     /* ── Header ── */
@@ -267,10 +267,10 @@ function _buildMatrix(mainPerms, subPerms) {
         <tr>
             <th style="min-width:220px; text-align:left;">Module / Page</th>
             <th class="th-enable-mm" style="width:78px;">
-                <i class="bx bx-toggle-right me-1" style="font-size:.85rem;"></i>Menu
+                <i class="bx bx-toggle-right me-1" style="font-size:var(--r2k-text-85);"></i>Menu
             </th>
             <th class="th-enable-sm" style="width:68px;">
-                <i class="bx bx-toggle-right me-1" style="font-size:.85rem;"></i>Page
+                <i class="bx bx-toggle-right me-1" style="font-size:var(--r2k-text-85);"></i>Page
             </th>
             <th style="width:50px; text-align:center; background:#f8f9ff;">All</th>
             <th style="width:68px;">${_colHdrChk('CanView')}<span>View</span></th>
@@ -298,7 +298,7 @@ function _buildMatrix(mainPerms, subPerms) {
                     <i class="${mm.Icon || 'bx bx-menu'} me-1" style="color:#696cff;font-size:.95rem;"></i>
                     <strong>${mm.Name}</strong>
                     <span class="badge ms-1" style="font-size:.6rem;background:#ede9ff;color:#696cff;">
-                        <i class="bx bx-link-external" style="font-size:.65rem;"></i> Direct
+                        <i class="bx bx-link-external" style="font-size:var(--r2k-text-65);"></i> Direct
                     </span>
                 </td>
                 <td class="text-center td-mm-enable">
@@ -339,8 +339,8 @@ function _buildMatrix(mainPerms, subPerms) {
                 </td>
                 <td colspan="6" class="mm-access-note ps-2">
                     ${mmOn
-                        ? '<span class="badge bg-label-primary" style="font-size:.65rem;"><i class="bx bx-check me-1"></i>Menu enabled — configure page access below</span>'
-                        : '<span class="text-muted" style="font-size:.7rem;">Enable menu to configure pages</span>'
+                        ? '<span class="badge bg-label-primary" style="font-size:var(--r2k-text-65);"><i class="bx bx-check me-1"></i>Menu enabled — configure page access below</span>'
+                        : '<span class="text-muted" style="font-size:var(--r2k-text-70);">Enable menu to configure pages</span>'
                     }
                 </td>
             </tr>`;
@@ -444,10 +444,10 @@ function _bindMatrixEvents() {
             const $subRows  = $(`.sm-row[data-mmuid="${mmUID}"]`);
             const $noteCell = $mmRow.find('td[colspan="6"]');
             if (enabled) {
-                $noteCell.html('<span class="badge bg-label-primary" style="font-size:.65rem;"><i class="bx bx-check me-1"></i>Menu enabled — configure page access below</span>');
+                $noteCell.html('<span class="badge bg-label-primary" style="font-size:var(--r2k-text-65);"><i class="bx bx-check me-1"></i>Menu enabled — configure page access below</span>');
                 $subRows.removeClass('sm-hidden');
             } else {
-                $noteCell.html('<span class="text-muted" style="font-size:.7rem;">Enable menu to configure pages</span>');
+                $noteCell.html('<span class="text-muted" style="font-size:var(--r2k-text-70);">Enable menu to configure pages</span>');
                 $subRows.addClass('sm-hidden');
                 $subRows.find('.sm-perm-chk').prop('checked', false).prop('disabled', true).closest('td').addClass('perm-disabled');
                 $subRows.find('.sm-row-all').prop('checked', false);

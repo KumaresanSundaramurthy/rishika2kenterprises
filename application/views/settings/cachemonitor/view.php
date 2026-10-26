@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php $this->load->view('common/header'); ?>
 
@@ -29,9 +29,9 @@
                                                 <i class="bx bx-lock-alt" style="font-size:26px;color:#6366f1;"></i>
                                             </div>
                                             <h6 class="fw-semibold mb-1">Developer Access Required</h6>
-                                            <p class="text-muted mb-0" style="font-size:.82rem;">Enter the developer password to view cache details.</p>
+                                            <p class="text-muted mb-0" style="font-size:var(--r2k-text-82);">Enter the developer password to view cache details.</p>
                                         </div>
-                                        <div id="cm-pw-error" class="alert alert-danger py-2 d-none" style="font-size:.82rem;"></div>
+                                        <div id="cm-pw-error" class="alert alert-danger py-2 d-none" style="font-size:var(--r2k-text-82);"></div>
                                         <div class="mb-3">
                                             <label class="form-label fw-medium" style="font-size:.84rem;">Password</label>
                                             <div class="input-group">
@@ -57,10 +57,10 @@
                         <!-- Stats bar -->
                         <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
                             <div class="d-flex gap-3">
-                                <span class="badge bg-label-primary px-3 py-2" style="font-size:.8rem;">
+                                <span class="badge bg-label-primary px-3 py-2" style="font-size:var(--r2k-text-md);">
                                     Redis: <strong id="cm-redis-count">—</strong> keys
                                 </span>
-                                <span class="badge bg-label-success px-3 py-2" style="font-size:.8rem;">
+                                <span class="badge bg-label-success px-3 py-2" style="font-size:var(--r2k-text-md);">
                                     Upstash: <strong id="cm-upstash-count">—</strong> keys
                                 </span>
                             </div>
@@ -199,7 +199,7 @@
 }
 .cm-expand-btn:hover { text-decoration: underline; }
 .cm-badge-type {
-    font-size: .7rem;
+    font-size:var(--r2k-text-70);
     padding: 2px 7px;
     border-radius: 20px;
     font-weight: 600;
@@ -393,7 +393,7 @@
             const valHtml  = renderValue(item.value, type + '_' + idx);
             const delHtml  = '<button class="btn btn-sm btn-outline-danger py-0 px-2 cm-del-btn" '
                            + 'data-type="' + type + '" data-key="' + escAttr(item.key) + '" title="Delete key">'
-                           + '<i class="bx bx-trash" style="font-size:.85rem;"></i></button>';
+                           + '<i class="bx bx-trash" style="font-size:var(--r2k-text-85);"></i></button>';
 
             tbody.append(
                 '<tr id="cm-row-' + type + '-' + idx + '">' +
@@ -488,7 +488,7 @@
 
         Swal.fire({
             title: 'Delete cache key?',
-            html: '<div style="word-break:break-all;font-size:.82rem;background:#f8fafc;padding:8px 12px;border-radius:6px;font-family:monospace;margin-top:6px;">' + escHtml(key) + '</div>',
+            html: '<div style="word-break:break-all;font-size:var(--r2k-text-82);background:#f8fafc;padding:8px 12px;border-radius:6px;font-family:monospace;margin-top:6px;">' + escHtml(key) + '</div>',
             icon: 'warning',
             showCancelButton: true,
             confirmButtonText: 'Yes, delete',
@@ -519,12 +519,12 @@
                             _upstashData = _upstashData.filter(function (i) { return i.key !== key; });
                         }
                     } else {
-                        btn.prop('disabled', false).html('<i class="bx bx-trash" style="font-size:.85rem;"></i>');
+                        btn.prop('disabled', false).html('<i class="bx bx-trash" style="font-size:var(--r2k-text-85);"></i>');
                         Swal.fire({ icon: 'error', title: 'Error', text: res.Message, timer: 3000, showConfirmButton: false });
                     }
                 },
                 error: function () {
-                    btn.prop('disabled', false).html('<i class="bx bx-trash" style="font-size:.85rem;"></i>');
+                    btn.prop('disabled', false).html('<i class="bx bx-trash" style="font-size:var(--r2k-text-85);"></i>');
                     Swal.fire({ icon: 'error', title: 'Request failed', text: 'Please try again.', timer: 3000, showConfirmButton: false });
                 },
                 complete: function() { ajaxLoading(1); }

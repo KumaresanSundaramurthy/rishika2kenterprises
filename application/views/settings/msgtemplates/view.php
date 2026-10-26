@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php $this->load->view('common/header'); ?>
 
@@ -88,17 +88,17 @@
                                         <div class="col-12">
                                             <label class="form-label fw-semibold">Template Body <span class="text-danger">*</span></label>
                                             <div id="msgBodyEditorWrap">
-                                                <div id="msgBodyEditor" style="min-height:200px;font-size:.85rem;"></div>
+                                                <div id="msgBodyEditor" style="min-height:200px;font-size:var(--r2k-text-85);"></div>
                                                 <input type="hidden" id="msgBody">
                                             </div>
                                             <div id="msgBodyTextareaWrap" class="d-none">
                                                 <textarea class="form-control font-monospace" id="msgBodyPlain" rows="10"
                                                     placeholder="Type your message here. Click a token below to insert it."
-                                                    style="font-size:.82rem;resize:vertical;"></textarea>
+                                                    style="font-size:var(--r2k-text-82);resize:vertical;"></textarea>
                                             </div>
                                         </div>
                                         <div class="col-12">
-                                            <label class="form-label fw-semibold" style="font-size:.78rem;">Available Tokens <span class="text-muted">(click to insert at cursor)</span></label>
+                                            <label class="form-label fw-semibold" style="font-size:var(--r2k-text-78);">Available Tokens <span class="text-muted">(click to insert at cursor)</span></label>
                                             <div id="msgTokenList" class="d-flex flex-wrap gap-1"></div>
                                         </div>
                                     </div>
@@ -106,11 +106,11 @@
 
                                 <!-- Right: Live Preview -->
                                 <div class="p-4" style="flex:0 0 50%;background:var(--bs-tertiary-bg,#f8f9fa);overflow-y:auto;">
-                                    <div class="fw-semibold mb-3" style="font-size:.82rem;color:#888;text-transform:uppercase;letter-spacing:.4px;">
+                                    <div class="fw-semibold mb-3" style="font-size:var(--r2k-text-82);color:#888;text-transform:uppercase;letter-spacing:.4px;">
                                         <i class="bx bx-show me-1"></i>Live Preview
                                     </div>
                                     <div id="msgPreviewBox"
-                                         style="background:#fff;border:1px solid var(--bs-border-color);border-radius:8px;padding:16px;min-height:200px;font-size:.85rem;line-height:1.6;">
+                                         style="background:#fff;border:1px solid var(--bs-border-color);border-radius:8px;padding:16px;min-height:200px;font-size:var(--r2k-text-85);line-height:1.6;">
                                         <span class="text-muted fst-italic">Preview will appear here as you type...</span>
                                     </div>
                                     <div class="mt-3 p-3" style="background:#fffde7;border-radius:6px;font-size:.76rem;color:#666;">
@@ -146,7 +146,7 @@
 <style>
 #msgBodyEditor { border: 1px solid var(--bs-border-color); border-top: none; border-radius: 0 0 6px 6px; background:#fff; }
 .ql-toolbar { border: 1px solid var(--bs-border-color) !important; border-radius: 6px 6px 0 0 !important; }
-.ql-container { font-size: .85rem !important; }
+.ql-container { font-size:var(--r2k-text-85) !important; }
 </style>
 
 <script>
@@ -302,11 +302,11 @@ window.addEventListener('load', function() {
             var subj = $('#msgSubject').val();
             $.each(samples, function(k, v) { subj = subj.split(k).join(v); });
             $('#msgPreviewBox').html(
-                '<div style="font-size:.78rem;color:#888;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #eee;"><strong>Subject:</strong> ' + $('<span>').text(subj).html() + '</div>'
-                + '<div style="font-size:.85rem;">' + preview + '</div>'
+                '<div style="font-size:var(--r2k-text-78);color:#888;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #eee;"><strong>Subject:</strong> ' + $('<span>').text(subj).html() + '</div>'
+                + '<div style="font-size:var(--r2k-text-85);">' + preview + '</div>'
             );
         } else {
-            $('#msgPreviewBox').html('<div style="white-space:pre-wrap;font-size:.85rem;">' + $('<span>').text(preview).html() + '</div>');
+            $('#msgPreviewBox').html('<div style="white-space:pre-wrap;font-size:var(--r2k-text-85);">' + $('<span>').text(preview).html() + '</div>');
         }
     }
 

@@ -17,8 +17,8 @@
             <!-- Header bar -->
             <div class="d-flex align-items-center gap-2 px-3 flex-shrink-0" style="background:rgba(0,0,0,.55);height:46px;">
                 <i class="bx bx-image text-white" style="font-size:1rem;flex-shrink:0;"></i>
-                <span id="imgPreviewTitle" style="font-size:.88rem;font-weight:600;color:#e2e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;">Image Preview</span>
-                <span id="imgPreviewCounter" style="font-size:.78rem;color:#94a3b8;flex-shrink:0;white-space:nowrap;"></span>
+                <span id="imgPreviewTitle" style="font-size:var(--r2k-text-88);font-weight:600;color:#e2e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;">Image Preview</span>
+                <span id="imgPreviewCounter" style="font-size:var(--r2k-text-78);color:#94a3b8;flex-shrink:0;white-space:nowrap;"></span>
                 <button type="button" data-bs-dismiss="modal" aria-label="Close"
                     style="flex-shrink:0;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:6px;color:#fff;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;">
                     <i class="bx bx-x" style="font-size:1.3rem;line-height:1;"></i>
@@ -61,7 +61,7 @@
             <!-- Header bar -->
             <div class="d-flex align-items-center gap-2 px-3 flex-shrink-0" style="background:rgba(0,0,0,.55);height:46px;">
                 <i class="bx bxs-file-pdf" style="font-size:1.1rem;color:#f87171;flex-shrink:0;"></i>
-                <span id="pdfPreviewTitle" style="font-size:.88rem;font-weight:600;color:#e2e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;">PDF Preview</span>
+                <span id="pdfPreviewTitle" style="font-size:var(--r2k-text-88);font-weight:600;color:#e2e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;">PDF Preview</span>
                 <button type="button" data-bs-dismiss="modal" aria-label="Close"
                     style="flex-shrink:0;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:6px;color:#fff;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;">
                     <i class="bx bx-x" style="font-size:1.3rem;line-height:1;"></i>

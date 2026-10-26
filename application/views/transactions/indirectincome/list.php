@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php
 $moduleContext = 'indirectincome';
@@ -28,13 +28,13 @@ if (!empty($DataLists)):
         </td>
 
         <td class="<?php echo $showSerial ? '' : 'd-none'; ?> table-serialno" style="width:44px">
-            <span class="text-muted" style="font-size:.78rem;"><?php echo $SerialNumber; ?></span>
+            <span class="text-muted" style="font-size:var(--r2k-text-78);"><?php echo $SerialNumber; ?></span>
         </td>
 
         <!-- Income Number + Date -->
         <td>
             <?php if (empty($list->IncomeNumber)): ?>
-                <span class="trans-doc-draft"><i class="bx bx-pencil me-1" style="font-size:.8rem;"></i>—</span>
+                <span class="trans-doc-draft"><i class="bx bx-pencil me-1" style="font-size:var(--r2k-text-md);"></i>—</span>
             <?php else: ?>
                 <a href="javascript:void(0);" class="trans-doc-number fw-semibold incViewDetail"
                    data-uid="<?php echo (int)$list->IncomeUID; ?>">
@@ -53,7 +53,7 @@ if (!empty($DataLists)):
                             data-module-uid="115"
                             data-color="#059669"
                             title="<?php echo (int)$list->AttachCount; ?> attachment(s)"
-                            style="font-size:.82rem;line-height:1;color:#059669;">
+                            style="font-size:var(--r2k-text-82);line-height:1;color:#059669;">
                         <i class="bx bx-paperclip"></i>
                     </button>
                 <?php endif; ?>
@@ -67,7 +67,7 @@ if (!empty($DataLists)):
         <td>
             <div class="trans-amount-main"><?php echo $currency . ' ' . number_format((float)($list->Amount ?? 0), $dec, '.', ''); ?></div>
             <?php if ($status === 'Partial' && $pendingAmt > 0): ?>
-                <div style="font-size:.7rem;color:#dc3545;margin-top:2px;"><?php echo t('lbl_bal', 'Bal'); ?> <?php echo $currency . ' ' . number_format($pendingAmt, $dec, '.', ''); ?></div>
+                <div style="font-size:var(--r2k-text-70);color:#dc3545;margin-top:2px;"><?php echo t('lbl_bal', 'Bal'); ?> <?php echo $currency . ' ' . number_format($pendingAmt, $dec, '.', ''); ?></div>
             <?php endif; ?>
         </td>
 
@@ -79,7 +79,7 @@ if (!empty($DataLists)):
                 </span>
             <?php endif; ?>
             <?php if (!empty($list->Notes)): ?>
-                <div class="text-muted" style="font-size:.75rem;margin-top:3px;line-height:1.4;"><?php echo htmlspecialchars($list->Notes); ?></div>
+                <div class="text-muted" style="font-size:var(--r2k-text-75);margin-top:3px;line-height:1.4;"><?php echo htmlspecialchars($list->Notes); ?></div>
             <?php endif; ?>
             <?php if (empty($list->CategoryName) && empty($list->Notes)): ?>
                 <span class="text-muted">—</span>
@@ -89,7 +89,7 @@ if (!empty($DataLists)):
         <!-- Status -->
         <td>
             <span class="trans-badge <?php echo $badgeClass; ?>">
-                <i class="bx <?php echo $icon; ?>" style="font-size:.8rem;"></i>
+                <i class="bx <?php echo $icon; ?>" style="font-size:var(--r2k-text-md);"></i>
                 <?php echo htmlspecialchars($statusLabels[$status] ?? $status); ?>
             </span>
         </td>
@@ -127,7 +127,7 @@ if (!empty($DataLists)):
                                 data-num="<?php echo htmlspecialchars($list->IncomeNumber ?? ''); ?>"
                                 data-url="/indirectincome/getPaymentAttachments"
                                 title="<?php echo (int)$list->PaymentAttachmentCount; ?> payment attachment(s)"
-                                style="font-size:.82rem;line-height:1;color:#059669;">
+                                style="font-size:var(--r2k-text-82);line-height:1;color:#059669;">
                             <i class="bx bx-paperclip"></i>
                         </button>
                         <?php endif; ?>
@@ -135,7 +135,7 @@ if (!empty($DataLists)):
                     <?php if (!$isCashOnly && ($payBankName || $payAccNum)): ?>
                     <div style="font-size:var(--r2k-text-xs);color:#6c757d;margin-top:3px;line-height:1.4;">
                         <?php if ($payBankName): ?>
-                        <div><i class="bx bx-building-house me-1" style="font-size:.7rem;"></i><?php echo $payBankName; ?></div>
+                        <div><i class="bx bx-building-house me-1" style="font-size:var(--r2k-text-70);"></i><?php echo $payBankName; ?></div>
                         <?php endif; ?>
                         <?php if ($payAccNum): ?>
                         <div style="font-family:monospace;letter-spacing:.03em;"><?php echo $payAccNum; ?></div>
@@ -144,7 +144,7 @@ if (!empty($DataLists)):
                     <?php endif; ?>
                 </div>
             <?php else: ?>
-                <span class="text-muted" style="font-size:.78rem;">—</span>
+                <span class="text-muted" style="font-size:var(--r2k-text-78);">—</span>
             <?php endif; ?>
         </td>
 
@@ -270,7 +270,7 @@ else:
         <td colspan="9">
             <div class="d-flex flex-column align-items-center py-5">
                 <img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:150px;object-fit:contain;">
-                <span class="text-muted mb-3" style="font-size:.9rem;"><?php echo t('empty_indirect_income', 'No income records found'); ?></span>
+                <span class="text-muted mb-3" style="font-size:var(--r2k-text-90);"><?php echo t('empty_indirect_income', 'No income records found'); ?></span>
                 <button type="button" class="btn btn-primary btn-sm px-4" id="addIncomeBtn">
                     <i class="bx bx-plus me-1"></i><?php echo t('add_income', 'Add Income'); ?>
                 </button>

@@ -1,4 +1,4 @@
-$(document).ready(function () {
+﻿$(document).ready(function () {
     'use strict'
 
     /* ----------------------------------------------------------------
@@ -114,7 +114,7 @@ $(document).ready(function () {
         // Render badge blocks separated by the chosen separator
         var html = '';
         $.each(parts, function (i, part) {
-            html += '<span class="badge ' + part.color + ' px-3 py-2" style="font-size:.85rem;letter-spacing:.04em">'
+            html += '<span class="badge ' + part.color + ' px-3 py-2" style="font-size:var(--r2k-text-85);letter-spacing:.04em">'
                   + part.label + '</span>';
             if (i < parts.length - 1) {
                 html += '<span class="fw-bold text-muted mx-1" style="font-size:1.1rem">' + sep + '</span>';

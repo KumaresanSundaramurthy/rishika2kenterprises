@@ -34,13 +34,13 @@
     border: 1px solid rgba(105, 108, 255, 0.2);
     border-radius: 100px;
     padding: 0.35rem 0.85rem;
-    font-size: 0.78rem;
+    font-size:var(--r2k-text-78);
     color: rgba(160, 165, 255, 0.9);
 }
-.spay-org-pill i { font-size: 0.85rem; }
+.spay-org-pill i { font-size:var(--r2k-text-85); }
 .spay-logout-link {
     display: inline-flex; align-items: center; gap: 0.4rem;
-    font-size: 0.78rem; color: rgba(220, 100, 100, 0.75);
+    font-size:var(--r2k-text-78); color: rgba(220, 100, 100, 0.75);
     text-decoration: none;
     border: 1px solid rgba(220, 100, 100, 0.25); border-radius: 100px;
     padding: 0.35rem 0.85rem;
@@ -66,7 +66,7 @@
 }
 .spay-back a {
     display: inline-flex; align-items: center; gap: 0.4rem;
-    font-size: 0.82rem; color: rgba(160, 190, 215, 0.5);
+    font-size:var(--r2k-text-82); color: rgba(160, 190, 215, 0.5);
     text-decoration: none;
     transition: color 0.2s;
 }
@@ -85,18 +85,18 @@
 
 .spay-eyebrow {
     display: inline-flex; align-items: center; gap: 0.4rem;
-    font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em;
+    font-size:var(--r2k-text-70); font-weight: 700; letter-spacing: 0.12em;
     text-transform: uppercase; color: rgba(140, 143, 255, 0.9);
     margin-bottom: 0.65rem;
 }
-.spay-eyebrow i { font-size: 0.8rem; }
+.spay-eyebrow i { font-size:var(--r2k-text-md); }
 
 .spay-card-title {
     font-size: 1.5rem; font-weight: 800; color: #f0f4f8;
     letter-spacing: -0.01em; margin-bottom: 0.3rem;
 }
 .spay-plan-meta {
-    font-size: 0.8rem; color: rgba(160, 190, 215, 0.45);
+    font-size:var(--r2k-text-md); color: rgba(160, 190, 215, 0.45);
     text-transform: uppercase; letter-spacing: 0.07em;
     margin-bottom: 2rem;
 }
@@ -115,14 +115,14 @@
     align-items: center;
     padding: 0.4rem 0;
 }
-.spay-row-label { font-size: 0.85rem; color: rgba(160, 190, 215, 0.55); }
-.spay-row-value { font-size: 0.85rem; color: rgba(200, 220, 240, 0.85); font-variant-numeric: tabular-nums; }
+.spay-row-label { font-size:var(--r2k-text-85); color: rgba(160, 190, 215, 0.55); }
+.spay-row-value { font-size:var(--r2k-text-85); color: rgba(200, 220, 240, 0.85); font-variant-numeric: tabular-nums; }
 .spay-divider { border: none; border-top: 1px solid rgba(105, 108, 255, 0.12); margin: 0.6rem 0; }
 .spay-total-row {
     display: flex; justify-content: space-between; align-items: baseline;
     padding-top: 0.2rem;
 }
-.spay-total-label { font-size: 0.9rem; font-weight: 700; color: rgba(200, 220, 240, 0.85); }
+.spay-total-label { font-size:var(--r2k-text-90); font-weight: 700; color: rgba(200, 220, 240, 0.85); }
 .spay-total-amount {
     font-size: 2rem; font-weight: 800; color: #f0f4f8;
     letter-spacing: -0.03em; line-height: 1;
@@ -136,10 +136,10 @@
 /* ── Trust row ─────────────────────────────────────────────────────── */
 .spay-trust {
     display: flex; align-items: center; gap: 0.45rem;
-    font-size: 0.75rem; color: rgba(160, 190, 215, 0.38);
+    font-size:var(--r2k-text-75); color: rgba(160, 190, 215, 0.38);
     margin-bottom: 1.35rem;
 }
-.spay-trust i { font-size: 0.88rem; color: rgba(105, 108, 255, 0.5); }
+.spay-trust i { font-size:var(--r2k-text-88); color: rgba(105, 108, 255, 0.5); }
 
 /* ── Pay button ────────────────────────────────────────────────────── */
 .spay-btn {
@@ -167,7 +167,7 @@
     background: rgba(239, 68, 68, 0.1);
     border: 1px solid rgba(239, 68, 68, 0.3);
     border-radius: 8px; color: rgba(252, 165, 165, 0.9);
-    font-size: 0.82rem; padding: 0.7rem 0.9rem;
+    font-size:var(--r2k-text-82); padding: 0.7rem 0.9rem;
     margin-bottom: 1rem;
     display: none; align-items: flex-start; gap: 0.5rem; line-height: 1.45;
 }
@@ -189,12 +189,12 @@
     font-size: 1.75rem; color: #4ade80; margin-bottom: 1.1rem;
 }
 .spay-success-title { font-size: 1.2rem; font-weight: 800; color: #f0f4f8; margin-bottom: 0.4rem; }
-.spay-success-msg { font-size: 0.85rem; color: rgba(180, 200, 220, 0.6); line-height: 1.6; margin-bottom: 1.5rem; }
+.spay-success-msg { font-size:var(--r2k-text-85); color: rgba(180, 200, 220, 0.6); line-height: 1.6; margin-bottom: 1.5rem; }
 .spay-continue-btn {
     display: inline-flex; align-items: center; gap: 0.5rem;
     padding: 0.75rem 1.75rem;
     background: linear-gradient(135deg, #696cff 0%, #5254cc 100%);
-    border-radius: 10px; color: #fff; font-size: 0.9rem; font-weight: 700;
+    border-radius: 10px; color: #fff; font-size:var(--r2k-text-90); font-weight: 700;
     text-decoration: none; cursor: pointer; border: none; font-family: inherit;
     transition: all 0.2s;
     box-shadow: 0 4px 20px rgba(105, 108, 255, 0.35);
@@ -299,7 +299,7 @@ $_token     = htmlspecialchars($token ?? '');
                 </button>
 
                 <a href="<?= site_url('subscribe') ?>"
-                   style="display:block;text-align:center;font-size:0.78rem;color:rgba(160,190,215,.35);text-decoration:none;transition:color .2s;"
+                   style="display:block;text-align:center;font-size:var(--r2k-text-78);color:rgba(160,190,215,.35);text-decoration:none;transition:color .2s;"
                    onmouseover="this.style.color='rgba(160,190,215,.7)'"
                    onmouseout="this.style.color='rgba(160,190,215,.35)'">
                     Return later &amp; pay when ready

@@ -21,8 +21,8 @@ $_hIsDraft  = $_hIsDraftEdit  ?? false;
 $_hCloseUrl = $_hCloseUrl     ?? '#';
 $_hHideNav = (int)($JwtData->TransSettings->HideNavOnTransForm ?? 0);
 $_hMenuCls = 'dropdown-menu dropdown-menu-end shadow' . ($_hDcMenu ? ' dc-save-menu' : '');
-$_hMenuSty = $_hDcMenu ? '' : 'min-width:195px;font-size:.82rem;';
-$_hHdrSty  = $_hDcMenu ? '' : 'font-size:.65rem;letter-spacing:.4px;';
+$_hMenuSty = $_hDcMenu ? '' : 'min-width:195px;font-size:var(--r2k-text-82);';
+$_hHdrSty  = $_hDcMenu ? '' : 'font-size:var(--r2k-text-65);letter-spacing:.4px;';
 ?>
 <div class="d-flex align-items-center gap-2">
 
@@ -54,7 +54,7 @@ $_hHdrSty  = $_hDcMenu ? '' : 'font-size:.65rem;letter-spacing:.4px;';
         <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle r2k-save-print-toggle" data-bs-toggle="dropdown" aria-expanded="false">
             <i class="bx bx-printer me-1"></i><?php echo t('btn_save_print', 'Save &amp; Print'); ?>
         </button>
-        <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:175px;font-size:.82rem;">
+        <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:175px;font-size:var(--r2k-text-82);">
             <li><button type="submit" class="dropdown-item py-1" name="action" value="save_a4"><i class="bx bx-file text-primary me-2"></i><?php echo t('btn_save_a4', 'Save & Print A4'); ?></button></li>
             <li><button type="submit" class="dropdown-item py-1" name="action" value="save_a5"><i class="bx bx-file-blank text-info me-2"></i><?php echo t('btn_save_a5', 'Save & Print A5'); ?></button></li>
             <li><button type="submit" class="dropdown-item py-1" name="action" value="save_thermal"><i class="bx bx-receipt text-success me-2"></i><?php echo t('btn_save_thermal', 'Save & Print Thermal'); ?></button></li>
@@ -77,8 +77,8 @@ $_hHdrSty  = $_hDcMenu ? '' : 'font-size:.65rem;letter-spacing:.4px;';
         <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2 r2k-save-print-toggle" data-bs-toggle="dropdown" aria-expanded="false">
             <span class="visually-hidden">Save options</span>
         </button>
-        <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:195px;font-size:.82rem;">
-            <li><span class="dropdown-header py-1" style="font-size:.65rem;letter-spacing:.4px;">SAVE &amp; PRINT</span></li>
+        <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:195px;font-size:var(--r2k-text-82);">
+            <li><span class="dropdown-header py-1" style="font-size:var(--r2k-text-65);letter-spacing:.4px;">SAVE &amp; PRINT</span></li>
             <li><button type="submit" class="dropdown-item py-1" name="action" value="save_a4"><i class="bx bx-file text-primary me-2"></i><?php echo t('btn_save_a4', 'Save & Print A4'); ?></button></li>
             <li><button type="submit" class="dropdown-item py-1" name="action" value="save_a5"><i class="bx bx-file-blank text-info me-2"></i><?php echo t('btn_save_a5', 'Save & Print A5'); ?></button></li>
             <li><button type="submit" class="dropdown-item py-1" name="action" value="save_thermal"><i class="bx bx-receipt text-success me-2"></i><?php echo t('btn_save_thermal', 'Save & Print Thermal'); ?></button></li>

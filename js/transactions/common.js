@@ -1,4 +1,4 @@
-// ── Transaction pages — shared utilities ──────────────────────────────────────
+﻿// ── Transaction pages — shared utilities ──────────────────────────────────────
 // Requires: jQuery, Bootstrap, datefilter.js (getDateRange, formatDate),
 //           and page globals: PageNo, RowLimit, Filter, ModuleId,
 //           ModuleTable, ModulePag, CsrfName, CsrfToken
@@ -280,12 +280,12 @@ function initTransPaymentPanel(spinnerCls, accentHex) {
                 if (resp && !resp.Error && resp.Payments && resp.Payments.length) {
                     $body.html(_buildPaymentPanelHtml(resp.Payments, accentHex));
                 } else {
-                    $body.html('<p class="text-muted mb-0" style="font-size:.8rem;">' + t('toast_no_payments', 'No payments found.') + '</p>');
+                    $body.html('<p class="text-muted mb-0" style="font-size:var(--r2k-text-md);">' + t('toast_no_payments', 'No payments found.') + '</p>');
                 }
             },
             error: function () {
                 ajaxLoading(1);
-                $body.html('<p class="text-danger mb-0" style="font-size:.8rem;">' + t('toast_payments_failed', 'Failed to load payments.') + '</p>');
+                $body.html('<p class="text-danger mb-0" style="font-size:var(--r2k-text-md);">' + t('toast_payments_failed', 'Failed to load payments.') + '</p>');
             }
         });
     }
@@ -328,9 +328,9 @@ function _buildPaymentPanelHtml(payments, accentHex) {
         html += '<div class="d-flex justify-content-between align-items-start gap-2">';
         html += '  <div style="min-width:0;">';
         html += '    <div style="font-size:.83rem;font-weight:600;color:' + accentHex + ';">&#8377;' + amt + '</div>';
-        html += '    <div style="font-size:.75rem;color:#566a7f;">' + mode + '</div>';
+        html += '    <div style="font-size:var(--r2k-text-75);color:#566a7f;">' + mode + '</div>';
         if (date || ref) {
-            html += '  <div style="font-size:.72rem;color:#aaa;margin-top:1px;">';
+            html += '  <div style="font-size:var(--r2k-text-sm);color:#aaa;margin-top:1px;">';
             if (date) html += date;
             if (date && ref) html += '&nbsp;&nbsp;';
             if (ref)  html += ref;

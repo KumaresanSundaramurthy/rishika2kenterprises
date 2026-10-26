@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <!-- ── Template Create / Edit Modal ──────────────────────────────────────── -->
 <div class="modal fade" id="templateModal" tabindex="-1" aria-hidden="true">
@@ -28,12 +28,12 @@
                     <div class="col-md-5">
                         <label class="form-label small fw-semibold mb-1">
                             Template Key
-                            <span class="text-muted fw-normal ms-1" style="font-size:.7rem;">(auto-generated)</span>
+                            <span class="text-muted fw-normal ms-1" style="font-size:var(--r2k-text-70);">(auto-generated)</span>
                         </label>
                         <input type="text" class="form-control form-control-sm font-monospace" id="TemplateKey"
                             maxlength="60" placeholder="classic_invoice"
                             style="text-transform:lowercase;">
-                        <div class="form-text" id="tplKeyHint" style="font-size:.7rem;">
+                        <div class="form-text" id="tplKeyHint" style="font-size:var(--r2k-text-70);">
                             Lowercase letters, numbers, underscores only.
                         </div>
                     </div>
@@ -81,7 +81,7 @@
                     <div class="col-12">
                         <label class="form-label small fw-semibold mb-1">
                             Preview HTML Content
-                            <span class="text-muted fw-normal ms-1" style="font-size:.7rem;">
+                            <span class="text-muted fw-normal ms-1" style="font-size:var(--r2k-text-70);">
                                 Shown in the live preview panel — use same <code>{{PLACEHOLDER}}</code> tokens
                             </span>
                         </label>
@@ -94,11 +94,11 @@
                     <div class="col-12">
                         <label class="form-label small fw-semibold mb-1">
                             HTML Content
-                            <span class="text-muted fw-normal ms-1" style="font-size:.7rem;">
+                            <span class="text-muted fw-normal ms-1" style="font-size:var(--r2k-text-70);">
                                 Use <code>{{PLACEHOLDER}}</code> tokens
                             </span>
                         </label>
-                        <div class="mb-1" style="font-size:.7rem;color:#888;line-height:1.6;">
+                        <div class="mb-1" style="font-size:var(--r2k-text-70);color:#888;line-height:1.6;">
                             Available tokens:
                             <code>{{ORG_NAME}}</code> <code>{{ORG_ADDRESS}}</code> <code>{{ORG_GSTIN}}</code>
                             <code>{{DOC_NUMBER}}</code> <code>{{DOC_DATE}}</code> <code>{{DUE_DATE}}</code>

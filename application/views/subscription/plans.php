@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
     <div class="layout-container">
         <?php $this->load->view('common/menu_view'); ?>
@@ -117,7 +117,7 @@
                 .spl-hero-nav {
                     display: flex; align-items: center; gap: .4rem;
                     margin-bottom: .9rem;
-                    font-size: .78rem;
+                    font-size:var(--r2k-text-78);
                 }
                 .spl-hero-back {
                     display: inline-flex; align-items: center; gap: .2rem;
@@ -150,7 +150,7 @@
                     padding: .2rem .65rem; border-radius: 99px;
                     font-size:var(--r2k-text-xs); font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
                 }
-                .spl-hero-meta { font-size: .78rem; color: var(--bs-secondary-color,#6c757d); }
+                .spl-hero-meta { font-size:var(--r2k-text-78); color: var(--bs-secondary-color,#6c757d); }
                 .spl-hero-right {
                     display: flex; align-items: center; gap: .85rem; flex-wrap: wrap;
                 }
@@ -158,7 +158,7 @@
                     text-align: right;
                 }
                 .spl-hero-expiry-val {
-                    font-size: .88rem; font-weight: 700;
+                    font-size:var(--r2k-text-88); font-weight: 700;
                     color: var(--bs-heading-color,#1e1e2e);
                 }
                 .spl-hero-expiry-lbl {
@@ -168,7 +168,7 @@
                 .spl-hero-days {
                     display: inline-flex; align-items: center; gap: .35rem;
                     padding: .35rem .85rem; border-radius: 99px;
-                    font-size: .82rem; font-weight: 700;
+                    font-size:var(--r2k-text-82); font-weight: 700;
                     white-space: nowrap;
                 }
                 .spl-hero-progress {
@@ -191,7 +191,7 @@
                 .spl-toggle-btn {
                     padding: .45rem 1.4rem;
                     border-radius: 100px;
-                    font-size: .85rem; font-weight: 600;
+                    font-size:var(--r2k-text-85); font-weight: 600;
                     cursor: pointer; border: none;
                     background: transparent;
                     color: var(--bs-secondary-color, #6c757d);
@@ -208,7 +208,7 @@
                     background: #dcfce7; color: #16a34a;
                     border-radius: 100px;
                     padding: .28rem .85rem;
-                    font-size: .75rem; font-weight: 700;
+                    font-size:var(--r2k-text-75); font-weight: 700;
                     border: 1.5px solid #bbf7d0;
                     white-space: nowrap;
                 }
@@ -278,7 +278,7 @@
                     color: #a855f7;
                 }
                 .spl-card-name { font-size: 1rem; font-weight: 800; margin-bottom: .2rem; }
-                .spl-card-desc { font-size: .75rem; color: var(--bs-secondary-color, #6c757d); }
+                .spl-card-desc { font-size:var(--r2k-text-75); color: var(--bs-secondary-color, #6c757d); }
 
                 /* Price block */
                 .spl-price-block { padding: 1.1rem 1.4rem .9rem; }
@@ -288,7 +288,7 @@
                 }
                 .spl-price-cur  { font-size: 1rem; font-weight: 700; color: #696cff; line-height: 1; }
                 .spl-price-amt  { font-size: 2.6rem; font-weight: 900; line-height: 1; letter-spacing: -.04em; }
-                .spl-price-per  { font-size: .75rem; color: var(--bs-secondary-color, #6c757d); margin-left: .1rem; align-self: flex-end; padding-bottom: .2rem; }
+                .spl-price-per  { font-size:var(--r2k-text-75); color: var(--bs-secondary-color, #6c757d); margin-left: .1rem; align-self: flex-end; padding-bottom: .2rem; }
                 .spl-price-free { font-size: 2.2rem; font-weight: 900; color: #22c55e; line-height: 1; }
                 .spl-price-sub  { font-size: .73rem; color: var(--bs-secondary-color, #6c757d); margin-top: .2rem; min-height: 1.2em; }
                 .spl-savings-tag {
@@ -314,7 +314,7 @@
                     display: inline-flex; align-items: center;
                     border-radius: 100px;
                     padding: .3rem .85rem;
-                    font-size: .75rem; font-weight: 800;
+                    font-size:var(--r2k-text-75); font-weight: 800;
                     letter-spacing: .04em;
                     white-space: nowrap;
                 }
@@ -325,13 +325,13 @@
                     display: flex; align-items: center; gap: .65rem;
                     padding: .55rem 0;
                     border-bottom: 1px solid var(--bs-border-color, #f3f3f3);
-                    font-size: .82rem;
+                    font-size:var(--r2k-text-82);
                 }
                 .spl-feat-row:last-child { border-bottom: none; }
                 .spl-feat-icon {
                     width: 22px; height: 22px; border-radius: 6px;
                     display: flex; align-items: center; justify-content: center;
-                    font-size: .8rem; flex-shrink: 0;
+                    font-size:var(--r2k-text-md); flex-shrink: 0;
                     background: rgba(105,108,255,.08);
                     color: #696cff;
                 }
@@ -344,7 +344,7 @@
                 .spl-btn-primary {
                     display: flex; align-items: center; justify-content: center; gap: .45rem;
                     width: 100%; padding: .78rem 1rem; border-radius: 10px;
-                    font-size: .88rem; font-weight: 700; cursor: pointer;
+                    font-size:var(--r2k-text-88); font-weight: 700; cursor: pointer;
                     border: none; text-decoration: none; transition: filter .18s, box-shadow .18s, transform .18s;
                     background: linear-gradient(135deg, var(--btn-g1,#696cff), var(--btn-g2,#5254cc));
                     color: #fff;
@@ -358,7 +358,7 @@
                 .spl-btn-outline {
                     display: flex; align-items: center; justify-content: center; gap: .45rem;
                     width: 100%; padding: .76rem 1rem; border-radius: 10px;
-                    font-size: .88rem; font-weight: 600; cursor: pointer;
+                    font-size:var(--r2k-text-88); font-weight: 600; cursor: pointer;
                     background: transparent;
                     border: 1.5px solid var(--btn-band,var(--bs-border-color,#e0e0e0));
                     color: var(--btn-band,var(--bs-secondary-color,#6c757d));
@@ -375,7 +375,7 @@
                 .spl-btn-current {
                     display: flex; align-items: center; justify-content: center; gap: .45rem;
                     width: 100%; padding: .76rem 1rem; border-radius: 10px;
-                    font-size: .88rem; font-weight: 700;
+                    font-size:var(--r2k-text-88); font-weight: 700;
                     background: rgba(105,108,255,.08);
                     border: 1.5px dashed rgba(105,108,255,.3);
                     color: #696cff; cursor: default;
@@ -497,7 +497,7 @@
                             <a href="<?= site_url('subscription/dashboard') ?>" class="spl-hero-back">
                                 <i class="bx bx-chevron-left"></i> My Subscription
                             </a>
-                            <span class="spl-hero-sep"><i class="bx bx-chevron-right" style="font-size:.7rem;"></i></span>
+                            <span class="spl-hero-sep"><i class="bx bx-chevron-right" style="font-size:var(--r2k-text-70);"></i></span>
                             <span class="spl-hero-crumb">Plans</span>
                         </div>
                         <!-- Main content row -->
@@ -762,13 +762,13 @@
                                         $_thTc         = $getTierColor(($_col->PlanCode ?? '') . '_');
                                     ?>
                                                     <th class="<?php echo $_colClass; ?>" style="<?php echo !$_isCurrentCol && !$_isTierCol ? 'border-top:3px solid '.$_thTc['band'].';' : ''; ?>">
-                                        <span class="spl-th-badge" style="background:<?php echo $_thTc['chip']; ?>;color:<?php echo $_thTc['chipTxt']; ?>;font-size:.78rem;padding:.3rem .9rem;">
+                                        <span class="spl-th-badge" style="background:<?php echo $_thTc['chip']; ?>;color:<?php echo $_thTc['chipTxt']; ?>;font-size:var(--r2k-text-78);padding:.3rem .9rem;">
                                             <?php echo htmlspecialchars($_col->PlanName ?? $base); ?>
                                         </span>
                                         <?php if ($_isCurrentCol): ?>
-                                        <br><small style="font-weight:700;font-size:.65rem;color:#696cff;margin-top:.25rem;display:block;">&#10003; Current</small>
+                                        <br><small style="font-weight:700;font-size:var(--r2k-text-65);color:#696cff;margin-top:.25rem;display:block;">&#10003; Current</small>
                                         <?php elseif ($_isTierCol): ?>
-                                        <br><small style="font-weight:700;font-size:.65rem;color:#7c3aed;margin-top:.25rem;display:block;">Your Tier</small>
+                                        <br><small style="font-weight:700;font-size:var(--r2k-text-65);color:#7c3aed;margin-top:.25rem;display:block;">Your Tier</small>
                                         <?php endif; ?>
                                     </th>
                                     <?php endforeach; ?>
@@ -956,7 +956,7 @@
             <!-- Header -->
             <div class="modal-header border-0 pb-0" id="pcm-header" style="background:var(--bs-card-bg);padding:1.25rem 1.5rem .75rem;transition:box-shadow .2s;">
                 <div class="d-flex align-items-center gap-2 flex-grow-1">
-                    <div id="pcm-change-badge" class="badge rounded-pill" style="font-size:.7rem;padding:.3rem .7rem;">Upgrade</div>
+                    <div id="pcm-change-badge" class="badge rounded-pill" style="font-size:var(--r2k-text-70);padding:.3rem .7rem;">Upgrade</div>
                     <h5 class="modal-title mb-0 fw-bold" id="pcmTitle">Change Plan</h5>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -964,7 +964,7 @@
 
             <!-- Plan flow strip -->
             <div class="px-4 pb-0 pt-2" style="background:var(--bs-card-bg);">
-                <div class="d-flex align-items-center gap-2 mb-3" style="font-size:.85rem;">
+                <div class="d-flex align-items-center gap-2 mb-3" style="font-size:var(--r2k-text-85);">
                     <span class="fw-semibold" id="pcm-from-name" style="color:var(--bs-secondary-color);">—</span>
                     <i class="bx bx-right-arrow-alt" style="color:#696cff;font-size:1.1rem;"></i>
                     <span class="fw-bold" id="pcm-to-name" style="color:var(--bs-heading-color);">—</span>
@@ -1155,7 +1155,7 @@
 }
 .pcm-pay-msg {
     color: rgba(255,255,255,.80);
-    font-size: .85rem; margin-bottom: 1.25rem; min-height: 1.2em;
+    font-size:var(--r2k-text-85); margin-bottom: 1.25rem; min-height: 1.2em;
     transition: opacity .3s;
 }
 .pcm-pay-dots { display: flex; justify-content: center; gap: 7px; margin-top: .25rem; }
@@ -1200,7 +1200,7 @@
 .pcm-sub-option.selected { border-color: #696cff; background: rgba(105,108,255,.04); }
 .pcm-module-pill {
     display: inline-block;
-    font-size: .7rem; font-weight: 600; padding: .15rem .55rem;
+    font-size:var(--r2k-text-70); font-weight: 600; padding: .15rem .55rem;
     border-radius: 99px; margin: .15rem .1rem;
 }
 .pcm-module-added   { background: #dcfce7; color: #15803d; }
@@ -1372,7 +1372,7 @@ function pcmBuildOptions(d) {
                                 '<div class="d-flex align-items-start gap-2">' +
                                     '<input type="radio" name="pcm-sub-opt" id="pcm-sub-radio-DA" value="DA" class="mt-1 flex-shrink-0">' +
                                     '<label for="pcm-sub-radio-DA" style="cursor:pointer;">' +
-                                        '<div class="fw-semibold small">Pay ₹' + d.OptionDA.TotalAmount.toFixed(2) + ' · Get ' + d.OptionDA.TotalDays + ' days <span class="badge" style="background:#dcfce7;color:#15803d;font-size:.65rem;">+' + d.OptionDA.BonusDays + ' bonus days</span></div>' +
+                                        '<div class="fw-semibold small">Pay ₹' + d.OptionDA.TotalAmount.toFixed(2) + ' · Get ' + d.OptionDA.TotalDays + ' days <span class="badge" style="background:#dcfce7;color:#15803d;font-size:var(--r2k-text-65);">+' + d.OptionDA.BonusDays + ' bonus days</span></div>' +
                                         '<div class="small text-muted">Pay full plan price. Credit converted to ' + d.OptionDA.BonusDays + ' extra days. Ends ' + pcmFmtDate(d.OptionDA.EndDate) + '.</div>' +
                                     '</label>' +
                                 '</div>' +
@@ -1381,7 +1381,7 @@ function pcmBuildOptions(d) {
                                 '<div class="d-flex align-items-start gap-2">' +
                                     '<input type="radio" name="pcm-sub-opt" id="pcm-sub-radio-DB" value="DB" class="mt-1 flex-shrink-0">' +
                                     '<label for="pcm-sub-radio-DB" style="cursor:pointer;">' +
-                                        '<div class="fw-semibold small">Pay ₹' + d.OptionDB.TotalAmount.toFixed(2) + ' · Standard 30 days <span class="badge" style="background:#dbeafe;color:#1d4ed8;font-size:.65rem;">Recommended</span></div>' +
+                                        '<div class="fw-semibold small">Pay ₹' + d.OptionDB.TotalAmount.toFixed(2) + ' · Standard 30 days <span class="badge" style="background:#dbeafe;color:#1d4ed8;font-size:var(--r2k-text-65);">Recommended</span></div>' +
                                         '<div class="small text-muted">Credit deducted from plan price. Pay less, get standard period. Ends ' + pcmFmtDate(d.OptionDB.EndDate) + '.</div>' +
                                     '</label>' +
                                 '</div>' +

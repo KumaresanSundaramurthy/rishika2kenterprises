@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <!-- Product Search Modal — included via common_form.php — available on all transaction pages -->
 <div class="modal fade" id="productSearchModal" tabindex="-1" aria-hidden="true">
@@ -14,7 +14,7 @@
                         </div>
                         <div>
                             <div style="font-size:.95rem;font-weight:700;color:var(--vtm-color);">Search Products</div>
-                            <div style="font-size:.75rem;color:#6c757d;margin-top:2px;">Click a row to add to bill (qty 1)</div>
+                            <div style="font-size:var(--r2k-text-75);color:#6c757d;margin-top:2px;">Click a row to add to bill (qty 1)</div>
                         </div>
                     </div>
                     <div class="vtm-banner-right">
@@ -60,7 +60,7 @@
                 <div id="prodSearchSentinel" style="height:1px;"></div>
                 <div id="prodSearchLoadingMore" class="text-center py-2 d-none">
                     <div class="spinner-border spinner-border-sm text-success" role="status"></div>
-                    <span class="ms-2 text-muted" style="font-size:.8rem;">Loading more…</span>
+                    <span class="ms-2 text-muted" style="font-size:var(--r2k-text-md);">Loading more…</span>
                 </div>
             </div>
 
@@ -105,11 +105,11 @@
     font-size:var(--r2k-text-sm);
     font-weight: 700;
 }
-.prod-name         { font-size: .88rem; font-weight: 600; color: #566a7f; }
-.prod-meta         { font-size: .75rem; color: #8592a3; }
-.prod-price        { font-size: .82rem; font-weight: 600; color: #566a7f; }
-.prod-stock-ok     { font-size: .82rem; font-weight: 600; color: #28c76f; }
-.prod-stock-zero   { font-size: .82rem; font-weight: 600; color: #ea5455; }
+.prod-name         { font-size:var(--r2k-text-88); font-weight: 600; color: #566a7f; }
+.prod-meta         { font-size:var(--r2k-text-75); color: #8592a3; }
+.prod-price        { font-size:var(--r2k-text-82); font-weight: 600; color: #566a7f; }
+.prod-stock-ok     { font-size:var(--r2k-text-82); font-weight: 600; color: #28c76f; }
+.prod-stock-zero   { font-size:var(--r2k-text-82); font-weight: 600; color: #ea5455; }
 .prod-badge-composite {
     display: inline-block;
     font-size: .64rem;

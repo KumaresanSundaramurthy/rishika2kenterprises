@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php
 $moduleContext = 'expense';
@@ -31,13 +31,13 @@ if (!empty($DataLists)):
         </td>
 
         <td class="<?php echo $showSerial ? '' : 'd-none'; ?> table-serialno" style="width:44px">
-            <span class="text-muted" style="font-size:.78rem;"><?php echo $SerialNumber; ?></span>
+            <span class="text-muted" style="font-size:var(--r2k-text-78);"><?php echo $SerialNumber; ?></span>
         </td>
 
         <!-- Expense Number + Date -->
         <td>
             <?php if (empty($list->ExpenseNumber)): ?>
-                <span class="trans-doc-draft"><i class="bx bx-pencil me-1" style="font-size:.8rem;"></i>—</span>
+                <span class="trans-doc-draft"><i class="bx bx-pencil me-1" style="font-size:var(--r2k-text-md);"></i>—</span>
             <?php else: ?>
                 <a href="javascript:void(0);" class="trans-doc-number fw-semibold expViewDetail"
                    data-uid="<?php echo (int)$list->ExpenseUID; ?>"
@@ -64,7 +64,7 @@ if (!empty($DataLists)):
                             data-module-uid="114"
                             data-color="#d97706"
                             title="<?php echo (int)$list->AttachCount; ?> attachment(s)"
-                            style="font-size:.82rem;line-height:1;color:#d97706;">
+                            style="font-size:var(--r2k-text-82);line-height:1;color:#d97706;">
                         <i class="bx bx-paperclip"></i>
                     </button>
                 <?php endif; ?>
@@ -78,7 +78,7 @@ if (!empty($DataLists)):
         <td>
             <div class="trans-amount-main"><?php echo $currency . ' ' . number_format((float)($list->NetAmount ?? 0), $dec, '.', ''); ?></div>
             <?php if ($status === 'Partial' && $pendingAmt > 0): ?>
-                <div style="font-size:.7rem;color:#dc3545;margin-top:2px;"><?php echo t('lbl_bal', 'Bal'); ?> <?php echo $currency . ' ' . number_format($pendingAmt, $dec, '.', ''); ?></div>
+                <div style="font-size:var(--r2k-text-70);color:#dc3545;margin-top:2px;"><?php echo t('lbl_bal', 'Bal'); ?> <?php echo $currency . ' ' . number_format($pendingAmt, $dec, '.', ''); ?></div>
             <?php endif; ?>
         </td>
 
@@ -99,7 +99,7 @@ if (!empty($DataLists)):
         <!-- Status -->
         <td>
             <span class="trans-badge <?php echo $badgeClass; ?>">
-                <i class="bx <?php echo $icon; ?>" style="font-size:.8rem;"></i>
+                <i class="bx <?php echo $icon; ?>" style="font-size:var(--r2k-text-md);"></i>
                 <?php echo htmlspecialchars($statusLabels[$status] ?? $status); ?>
             </span>
         </td>
@@ -137,7 +137,7 @@ if (!empty($DataLists)):
                                 data-num="<?php echo htmlspecialchars($list->ExpenseNumber ?? ''); ?>"
                                 data-url="/expenses/getPaymentAttachments"
                                 title="<?php echo (int)$list->PaymentAttachmentCount; ?> payment attachment(s)"
-                                style="font-size:.82rem;line-height:1;color:#d97706;">
+                                style="font-size:var(--r2k-text-82);line-height:1;color:#d97706;">
                             <i class="bx bx-paperclip"></i>
                         </button>
                         <?php endif; ?>
@@ -145,7 +145,7 @@ if (!empty($DataLists)):
                     <?php if (!$isCashOnly && ($payBankName || $payAccNum)): ?>
                     <div style="font-size:var(--r2k-text-xs);color:#6c757d;margin-top:3px;line-height:1.4;">
                         <?php if ($payBankName): ?>
-                        <div><i class="bx bx-building-house me-1" style="font-size:.7rem;"></i><?php echo $payBankName; ?></div>
+                        <div><i class="bx bx-building-house me-1" style="font-size:var(--r2k-text-70);"></i><?php echo $payBankName; ?></div>
                         <?php endif; ?>
                         <?php if ($payAccNum): ?>
                         <div style="font-family:monospace;letter-spacing:.03em;"><?php echo $payAccNum; ?></div>
@@ -154,7 +154,7 @@ if (!empty($DataLists)):
                     <?php endif; ?>
                 </div>
             <?php else: ?>
-                <span class="text-muted" style="font-size:.78rem;">—</span>
+                <span class="text-muted" style="font-size:var(--r2k-text-78);">—</span>
             <?php endif; ?>
         </td>
 
@@ -273,7 +273,7 @@ else:
         <td colspan="9">
             <div class="d-flex flex-column align-items-center py-5">
                 <img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:150px;object-fit:contain;">
-                <span class="text-muted mb-3" style="font-size:.9rem;"><?php echo t('empty_expenses', 'No expenses found'); ?></span>
+                <span class="text-muted mb-3" style="font-size:var(--r2k-text-90);"><?php echo t('empty_expenses', 'No expenses found'); ?></span>
                 <button type="button" class="btn btn-primary btn-sm px-4 addExpenseBtn">
                     <i class="bx bx-plus me-1"></i><?php echo t('add_expense', 'Add Expense'); ?>
                 </button>

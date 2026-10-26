@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
+<?php defined('BASEPATH') OR exit('No direct script access allowed');
 $_month = $this->pageData['_gstrMonth'] ?? (int)date('n');
 $_year  = $this->pageData['_gstrYear']  ?? (int)date('Y');
 $this->load->view('common/transactions/header'); ?>
@@ -19,26 +19,26 @@ $this->load->view('common/transactions/header'); ?>
 .rpt-stat-label{font-size:var(--r2k-text-sm);color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:.03em}
 .rpt-stat-val{font-size:1.05rem;font-weight:700;color:#1e293b;margin-top:1px}
 .rpt-tabs{display:flex;gap:2px;padding:0 16px;border-bottom:2px solid #e2e8f0;margin-bottom:0}
-.rpt-tab-btn{padding:8px 16px;font-size:.82rem;font-weight:600;color:#64748b;background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;cursor:pointer;display:flex;align-items:center;gap:6px}
+.rpt-tab-btn{padding:8px 16px;font-size:var(--r2k-text-82);font-weight:600;color:#64748b;background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;cursor:pointer;display:flex;align-items:center;gap:6px}
 .rpt-tab-btn.active{color:#4338ca;border-bottom-color:#4338ca}
-.rpt-tab-badge{background:#e0e7ff;color:#4338ca;border-radius:10px;padding:1px 7px;font-size:.7rem;font-weight:700}
+.rpt-tab-badge{background:#e0e7ff;color:#4338ca;border-radius:10px;padding:1px 7px;font-size:var(--r2k-text-70);font-weight:700}
 .rpt-tab-btn.active .rpt-tab-badge{background:#4338ca;color:#fff}
 .rpt-table-wrap{overflow-x:auto}
-.rpt-table{width:100%;border-collapse:collapse;font-size:.82rem}
-.rpt-table thead th{background:#f8fafc;padding:10px 14px;font-size:.70rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #e2e8f0;white-space:nowrap;position:sticky;top:0;z-index:1}
+.rpt-table{width:100%;border-collapse:collapse;font-size:var(--r2k-text-82)}
+.rpt-table thead th{background:#f8fafc;padding:10px 14px;font-size:var(--r2k-text-70);font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #e2e8f0;white-space:nowrap;position:sticky;top:0;z-index:1}
 .rpt-table tbody tr{border-bottom:1px solid #f1f5f9;transition:background .1s}
 .rpt-table tbody tr:hover{background:#f8fafc}
 .rpt-table td{padding:9px 14px;vertical-align:middle}
-.rpt-table tfoot td{padding:9px 14px;font-weight:700;font-size:.82rem;background:#f8fafc;border-top:2px solid #e2e8f0}
+.rpt-table tfoot td{padding:9px 14px;font-weight:700;font-size:var(--r2k-text-82);background:#f8fafc;border-top:2px solid #e2e8f0}
 .rpt-col-num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
 .rpt-col-num-hd{text-align:right}
 .rpt-num-indigo{color:#4338ca;font-weight:700}
 .rpt-num-teal{color:#0d9488;font-weight:700}
 .rpt-loading-cell{padding:48px 0!important;text-align:center}
-.rpt-loading{display:flex;align-items:center;justify-content:center;color:#64748b;font-size:.85rem;gap:8px}
+.rpt-loading{display:flex;align-items:center;justify-content:center;color:#64748b;font-size:var(--r2k-text-85);gap:8px}
 .rpt-empty{display:flex;flex-direction:column;align-items:center;padding:50px 20px;color:#94a3b8}
 .rpt-empty i{font-size:2.5rem;margin-bottom:8px;opacity:.5}
-.rpt-empty-title{font-size:.9rem;font-weight:600;color:#64748b;margin-bottom:4px}
+.rpt-empty-title{font-size:var(--r2k-text-90);font-weight:600;color:#64748b;margin-bottom:4px}
 .g1-gstin-badge{display:inline-block;padding:2px 8px;border-radius:5px;font-size:var(--r2k-text-sm);font-weight:600;font-family:monospace;background:#e0e7ff;color:#4338ca;letter-spacing:.03em}
 .g1-unregd-badge{display:inline-block;padding:2px 8px;border-radius:5px;font-size:var(--r2k-text-sm);font-weight:600;background:#f1f5f9;color:#94a3b8}
 @media(prefers-color-scheme:dark){

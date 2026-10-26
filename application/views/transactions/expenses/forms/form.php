@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php
 $isEdit     = isset($ExpenseData) && $ExpenseData !== null;
 $expense    = $ExpenseData ?? null;
@@ -83,7 +83,7 @@ if ($isEdit) {
                     <!-- ── Sticky action bar — full width, directly below page header ── -->
                     <div class="exp-form-action-bar trans-theme d-flex align-items-center justify-content-between px-4 py-2">
                         <div class="d-flex align-items-center gap-3">
-                            <span class="text-muted" style="font-size:.82rem;"><?php echo t('lbl_with_tax', 'With Tax'); ?></span>
+                            <span class="text-muted" style="font-size:var(--r2k-text-82);"><?php echo t('lbl_with_tax', 'With Tax'); ?></span>
                             <div class="form-check form-switch mb-0">
                                 <input class="form-check-input" type="checkbox" id="taxToggle"
                                        <?php echo $taxApplicable ? 'checked' : ''; ?>
@@ -188,7 +188,7 @@ if ($isEdit) {
                                             <div class="<?php echo $taxApplicable ? 'col-md-6' : 'col-12'; ?>" id="catCol">
                                                 <label class="form-label">
                                                     Category
-                                                    <button type="button" class="btn btn-link p-0 ms-2 lh-1" id="addCategoryBtn" style="font-size:.75rem;vertical-align:baseline;">
+                                                    <button type="button" class="btn btn-link p-0 ms-2 lh-1" id="addCategoryBtn" style="font-size:var(--r2k-text-75);vertical-align:baseline;">
                                                         <i class="bx bx-plus-circle"></i> New
                                                     </button>
                                                 </label>
@@ -222,20 +222,20 @@ if ($isEdit) {
                                     </div>
                                     <div class="card-body p-0">
                                         <div class="table-responsive">
-                                            <table class="table align-middle mb-0" id="expItemsTable" style="font-size:.82rem;">
+                                            <table class="table align-middle mb-0" id="expItemsTable" style="font-size:var(--r2k-text-82);">
                                                 <thead style="background:#f8f9fb;">
                                                     <tr>
-                                                        <th class="ps-3 py-2 text-muted fw-semibold" style="width:30px;font-size:.7rem;">#</th>
-                                                        <th class="py-2 text-muted fw-semibold" style="font-size:.7rem;">DESCRIPTION</th>
-                                                        <th class="py-2 text-muted fw-semibold" style="width:140px;font-size:.7rem;">CATEGORY</th>
-                                                        <th class="tax-col py-2 text-muted fw-semibold text-end pe-2" style="display:<?php echo $taxApplicable ? 'table-cell' : 'none'; ?>;width:110px;font-size:.7rem;">
+                                                        <th class="ps-3 py-2 text-muted fw-semibold" style="width:30px;font-size:var(--r2k-text-70);">#</th>
+                                                        <th class="py-2 text-muted fw-semibold" style="font-size:var(--r2k-text-70);">DESCRIPTION</th>
+                                                        <th class="py-2 text-muted fw-semibold" style="width:140px;font-size:var(--r2k-text-70);">CATEGORY</th>
+                                                        <th class="tax-col py-2 text-muted fw-semibold text-end pe-2" style="display:<?php echo $taxApplicable ? 'table-cell' : 'none'; ?>;width:110px;font-size:var(--r2k-text-70);">
                                                             <span class="item-amount-label">AMOUNT</span>
                                                         </th>
-                                                        <th class="no-tax-col py-2 text-muted fw-semibold text-end pe-2" style="display:<?php echo $taxApplicable ? 'none' : 'table-cell'; ?>;width:140px;font-size:.7rem;">AMOUNT</th>
-                                                        <th class="tax-col py-2 text-muted fw-semibold text-end pe-2" style="display:<?php echo $taxApplicable ? 'table-cell' : 'none'; ?>;width:100px;font-size:.7rem;">TAX %</th>
-                                                        <th class="tax-col cgst-col py-2 text-muted fw-semibold text-end pe-2" style="display:<?php echo $taxApplicable ? 'table-cell' : 'none'; ?>;width:85px;font-size:.7rem;"><span class="cgst-col-label"><?php echo $isInterState ? 'IGST' : 'CGST'; ?></span></th>
-                                                        <th class="tax-col sgst-col py-2 text-muted fw-semibold text-end pe-2" style="display:<?php echo ($taxApplicable && !$isInterState) ? 'table-cell' : 'none'; ?>;width:85px;font-size:.7rem;">SGST</th>
-                                                        <th class="tax-col py-2 text-muted fw-semibold text-end" style="display:<?php echo $taxApplicable ? 'table-cell' : 'none'; ?>;width:140px;font-size:.7rem;"><span class="item-total-label">Total Amount</span></th>
+                                                        <th class="no-tax-col py-2 text-muted fw-semibold text-end pe-2" style="display:<?php echo $taxApplicable ? 'none' : 'table-cell'; ?>;width:140px;font-size:var(--r2k-text-70);">AMOUNT</th>
+                                                        <th class="tax-col py-2 text-muted fw-semibold text-end pe-2" style="display:<?php echo $taxApplicable ? 'table-cell' : 'none'; ?>;width:100px;font-size:var(--r2k-text-70);">TAX %</th>
+                                                        <th class="tax-col cgst-col py-2 text-muted fw-semibold text-end pe-2" style="display:<?php echo $taxApplicable ? 'table-cell' : 'none'; ?>;width:85px;font-size:var(--r2k-text-70);"><span class="cgst-col-label"><?php echo $isInterState ? 'IGST' : 'CGST'; ?></span></th>
+                                                        <th class="tax-col sgst-col py-2 text-muted fw-semibold text-end pe-2" style="display:<?php echo ($taxApplicable && !$isInterState) ? 'table-cell' : 'none'; ?>;width:85px;font-size:var(--r2k-text-70);">SGST</th>
+                                                        <th class="tax-col py-2 text-muted fw-semibold text-end" style="display:<?php echo $taxApplicable ? 'table-cell' : 'none'; ?>;width:140px;font-size:var(--r2k-text-70);"><span class="item-total-label">Total Amount</span></th>
                                                     </tr>
                                                 </thead>
                                                 <tbody id="expItemsBody">
@@ -292,7 +292,7 @@ if ($isEdit) {
                                                             <td class="tax-col" style="display:<?php echo $taxApplicable ? 'table-cell' : 'none'; ?>;">
                                                                 <div class="d-flex align-items-center gap-1">
                                                                     <button type="button" class="item-del-btn flex-shrink-0" title="Remove"><i class="bx bx-trash me-2"></i></button>
-                                                                    <span class="item-total fw-semibold flex-fill text-end" style="font-size:.82rem;"><?php echo number_format((float)$ei->TotalAmount, 2); ?></span>
+                                                                    <span class="item-total fw-semibold flex-fill text-end" style="font-size:var(--r2k-text-82);"><?php echo number_format((float)$ei->TotalAmount, 2); ?></span>
                                                                 </div>
                                                             </td>
                                                         </tr>
@@ -310,26 +310,26 @@ if ($isEdit) {
                                                     <tr class="tax-col" id="footerTaxableRow" style="display:<?php echo $taxApplicable ? 'table-row' : 'none'; ?>;">
                                                         <td colspan="4" class="border-0 py-1"></td>
                                                         <td class="no-tax-col border-0 py-1" style="<?php echo $ntd; ?>"></td>
-                                                        <td colspan="3" class="text-end py-1 text-muted border-0" style="font-size:.78rem;">Taxable Amount</td>
-                                                        <td class="text-end py-1 fw-semibold border-0 pe-3" id="footerTaxable" style="font-size:.82rem;"><?php echo smartDecimal($_expAmt); ?></td>
+                                                        <td colspan="3" class="text-end py-1 text-muted border-0" style="font-size:var(--r2k-text-78);">Taxable Amount</td>
+                                                        <td class="text-end py-1 fw-semibold border-0 pe-3" id="footerTaxable" style="font-size:var(--r2k-text-82);"><?php echo smartDecimal($_expAmt); ?></td>
                                                     </tr>
                                                     <tr class="tax-col" id="footerCgstRow" style="display:<?php echo $taxApplicable ? 'table-row' : 'none'; ?>;">
                                                         <td colspan="4" class="border-0 py-1"></td>
                                                         <td class="no-tax-col border-0 py-1" style="<?php echo $ntd; ?>"></td>
-                                                        <td colspan="3" class="text-end py-1 text-muted border-0" style="font-size:.78rem;" id="footerCgstLabel"><?php echo $isInterState ? 'IGST' : 'CGST'; ?></td>
-                                                        <td class="text-end py-1 border-0 pe-3" id="footerCgstAmt" style="font-size:.82rem;"><?php echo smartDecimal($_cgstDisp); ?></td>
+                                                        <td colspan="3" class="text-end py-1 text-muted border-0" style="font-size:var(--r2k-text-78);" id="footerCgstLabel"><?php echo $isInterState ? 'IGST' : 'CGST'; ?></td>
+                                                        <td class="text-end py-1 border-0 pe-3" id="footerCgstAmt" style="font-size:var(--r2k-text-82);"><?php echo smartDecimal($_cgstDisp); ?></td>
                                                     </tr>
                                                     <tr class="tax-col sgst-col" id="footerSgstRow" style="display:<?php echo ($taxApplicable && !$isInterState) ? 'table-row' : 'none'; ?>;">
                                                         <td colspan="4" class="border-0 py-1"></td>
                                                         <td class="no-tax-col border-0 py-1" style="<?php echo $ntd; ?>"></td>
-                                                        <td colspan="3" class="text-end py-1 text-muted border-0" style="font-size:.78rem;">SGST</td>
-                                                        <td class="text-end py-1 border-0 pe-3" id="footerSgstAmt" style="font-size:.82rem;"><?php echo smartDecimal($_sgstTotal); ?></td>
+                                                        <td colspan="3" class="text-end py-1 text-muted border-0" style="font-size:var(--r2k-text-78);">SGST</td>
+                                                        <td class="text-end py-1 border-0 pe-3" id="footerSgstAmt" style="font-size:var(--r2k-text-82);"><?php echo smartDecimal($_sgstTotal); ?></td>
                                                     </tr>
                                                     <tr id="footerRoundOffRow" style="display:none;"></tr>
                                                     <tr>
                                                         <td colspan="4" class="border-top py-2"></td>
                                                         <td class="no-tax-col border-top py-2" style="<?php echo $ntd; ?>"></td>
-                                                        <td colspan="3" class="text-end py-2 border-top fw-semibold" style="font-size:.82rem;">Grand Total</td>
+                                                        <td colspan="3" class="text-end py-2 border-top fw-semibold" style="font-size:var(--r2k-text-82);">Grand Total</td>
                                                         <td class="text-end py-2 border-top fw-bold pe-3" id="footerGrandTotal"><?php echo smartDecimal($_grandTotal); ?></td>
                                                     </tr>
                                                 </tfoot>
@@ -348,13 +348,13 @@ if ($isEdit) {
                                             </span>
                                         </h5>
                                         <span id="transAttachBadge" class="badge rounded-pill d-none"
-                                              style="background:#ede9fe;color:#6366f1;font-size:.7rem;font-weight:600;"></span>
+                                              style="background:#ede9fe;color:#6366f1;font-size:var(--r2k-text-70);font-weight:600;"></span>
                                     </div>
                                     <div class="card-body px-3 pt-3 pb-3">
                                         <div id="transAttachZone" class="prod-attach-zone" onclick="_attachZoneTrigger('Transaction', event)">
                                             <div id="transAttachEmpty" class="prod-attach-empty">
                                                 <i class="bx bx-upload" id="transAttachIcon" style="font-size:1.4rem;color:#9ca3af;display:block;margin-bottom:3px;"></i>
-                                                <div id="transAttachLabel" style="font-size:.78rem;font-weight:600;color:#6b7280;">Drag &amp; drop files here</div>
+                                                <div id="transAttachLabel" style="font-size:var(--r2k-text-78);font-weight:600;color:#6b7280;">Drag &amp; drop files here</div>
                                             </div>
                                         </div>
                                         <span id="transAttachHint" style="font-size:var(--r2k-text-sm);color:#9ca3af;"></span>
@@ -375,7 +375,7 @@ if ($isEdit) {
                                         <div class="text-muted mb-2" style="font-size:var(--r2k-text-sm);font-weight:600;letter-spacing:.3px;text-transform:uppercase;">Vendor Balance</div>
                                         <div class="d-flex align-items-baseline gap-2">
                                             <div class="fw-bold" id="vendorBalAmt" style="font-size:1.08rem;">—</div>
-                                            <span class="badge rounded-pill" id="vendorBalBadge" style="font-size:.7rem;"></span>
+                                            <span class="badge rounded-pill" id="vendorBalBadge" style="font-size:var(--r2k-text-70);"></span>
                                         </div>
                                     </div>
                                 </div>
@@ -385,8 +385,8 @@ if ($isEdit) {
                                     <div class="card-body py-3 px-3">
                                         <div class="d-flex align-items-start justify-content-between gap-2">
                                             <div>
-                                                <div class="fw-semibold" style="font-size:.85rem;">Reverse Charge (RCM)</div>
-                                                <div class="text-muted mt-1" style="font-size:.75rem;">GST paid directly to government</div>
+                                                <div class="fw-semibold" style="font-size:var(--r2k-text-85);">Reverse Charge (RCM)</div>
+                                                <div class="text-muted mt-1" style="font-size:var(--r2k-text-75);">GST paid directly to government</div>
                                             </div>
                                             <div class="form-check form-switch mb-0 flex-shrink-0">
                                                 <input class="form-check-input" type="checkbox" id="rcmToggle"
@@ -410,7 +410,7 @@ if ($isEdit) {
                                 <div class="card mb-3">
                                     <div class="card-body py-3 px-3">
                                         <div class="d-flex align-items-center justify-content-between">
-                                            <span class="fw-semibold" style="font-size:.85rem;">TDS Applicable</span>
+                                            <span class="fw-semibold" style="font-size:var(--r2k-text-85);">TDS Applicable</span>
                                             <div class="form-check form-switch mb-0">
                                                 <input class="form-check-input" type="checkbox" id="tdsToggle"
                                                        <?php echo $tdsApplicable ? 'checked' : ''; ?>
@@ -444,7 +444,7 @@ if ($isEdit) {
                                 <!-- Net Amount Summary -->
                                 <div class="card mb-3">
                                     <div class="card-body py-0">
-                                        <table class="table table-sm mb-0" style="font-size:.82rem;">
+                                        <table class="table table-sm mb-0" style="font-size:var(--r2k-text-82);">
                                             <tbody>
                                             <tr class="tax-col" id="summaryTaxableRow" style="display:<?php echo $taxApplicable ? 'table-row' : 'none'; ?>;">
                                                 <td class="border-0 ps-0 text-muted py-2">Taxable Amount</td>
@@ -480,8 +480,8 @@ if ($isEdit) {
                                                 <td class="border-0 pe-0 text-end py-2" id="summaryRoundOff"><?php echo $isEdit && $roundOff != 0 ? $_roSign . $cur . ' ' . smartDecimal(abs($roundOff)) : '—'; ?></td>
                                             </tr>
                                             <tr style="border-top:2px solid #e9eaec;">
-                                                <td class="ps-0 fw-bold py-2 text-primary" style="border-top:2px solid #e9eaec;font-size:.88rem;">Net Payable</td>
-                                                <td class="pe-0 text-end fw-bold py-2 text-primary" id="summaryNet" style="border-top:2px solid #e9eaec;font-size:.88rem;"><?php echo $isEdit ? $cur . ' ' . smartDecimal($_netAmt) : '—'; ?></td>
+                                                <td class="ps-0 fw-bold py-2 text-primary" style="border-top:2px solid #e9eaec;font-size:var(--r2k-text-88);">Net Payable</td>
+                                                <td class="pe-0 text-end fw-bold py-2 text-primary" id="summaryNet" style="border-top:2px solid #e9eaec;font-size:var(--r2k-text-88);"><?php echo $isEdit ? $cur . ' ' . smartDecimal($_netAmt) : '—'; ?></td>
                                             </tr>
                                             </tbody>
                                         </table>
@@ -611,7 +611,7 @@ if ($isEdit) {
 #expItemsTable .item-amount,
 #expItemsTable .item-tax-pct,
 #expItemsTable .item-cat {
-    font-size: .82rem;
+    font-size:var(--r2k-text-82);
     min-width: 0;
 }
 #expItemsTable .item-del-btn {
@@ -631,11 +631,11 @@ if ($isEdit) {
     border-radius: 4px;
 }
 #expItemsTable tfoot td {
-    font-size: .82rem;
+    font-size:var(--r2k-text-82);
     border-top: 1px solid #e9eaec;
 }
 #expEmptyRow td {
-    font-size: .82rem;
+    font-size:var(--r2k-text-82);
     border: none;
     color: #9aa0ac;
 }
@@ -884,12 +884,12 @@ $(function () {
             + '<td class="tax-col" style="display:' + tShow + ';">'
             +   '<select class="form-select form-select-sm item-tax-pct">' + _taxPctOptionsHtml + '</select>'
             + '</td>'
-            + '<td class="tax-col cgst-col text-end pe-2" style="display:' + tShow + ';"><span class="item-cgst-amt text-muted" style="font-size:.82rem;">0.00</span></td>'
-            + '<td class="tax-col sgst-col text-end pe-2" style="display:' + (isTaxOn && !isInterState ? 'table-cell' : 'none') + ';"><span class="item-sgst-amt text-muted" style="font-size:.82rem;">0.00</span></td>'
+            + '<td class="tax-col cgst-col text-end pe-2" style="display:' + tShow + ';"><span class="item-cgst-amt text-muted" style="font-size:var(--r2k-text-82);">0.00</span></td>'
+            + '<td class="tax-col sgst-col text-end pe-2" style="display:' + (isTaxOn && !isInterState ? 'table-cell' : 'none') + ';"><span class="item-sgst-amt text-muted" style="font-size:var(--r2k-text-82);">0.00</span></td>'
             + '<td class="tax-col" style="display:' + tShow + ';">'
             +   '<div class="d-flex align-items-center gap-1">'
             +     '<button type="button" class="item-del-btn flex-shrink-0" title="Remove"><i class="bx bx-trash me-2"></i></button>'
-            +     '<span class="item-total fw-semibold flex-fill text-end" style="font-size:.82rem;">0.00</span>'
+            +     '<span class="item-total fw-semibold flex-fill text-end" style="font-size:var(--r2k-text-82);">0.00</span>'
             +   '</div>'
             + '</td>'
             + '</tr>';

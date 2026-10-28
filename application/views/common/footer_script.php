@@ -30,7 +30,8 @@ var UserRoleUID = <?php echo isset($JwtData->User->RoleUID) ? $JwtData->User->Ro
 var PageNo = 0;
 var Filter = {};
 var AjaxLoading = 1;
-var global_base_url = '<?php echo base_url(); ?>';
+var global_base_url   = '<?php echo base_url(); ?>';
+var global_nestjs_url = '<?php echo rtrim(getenv('SERVICES_BASE_URL') ?: '', '/') . '/'; ?>';
 var _appBasePath    = global_base_url.replace(window.location.origin, '').replace(/\/$/, '');
 var CDN_URL = '<?php echo getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN') ?>';
 var defUserImg = '<?php echo '/website/images/logo/avathar_user.png'; ?>';

@@ -92,11 +92,9 @@
                                 <input type="text" id="SearchDetails" placeholder="<?php echo $initIsGroups ? 'Group name, code, type...' : 'Name, mobile, GSTIN...'; ?>" value="<?php echo htmlspecialchars($InitSearch ?? ''); ?>">
                                 <i class="bx bx-x r2k-clear<?php echo !empty($InitSearch) ? '' : ' d-none'; ?>" id="clearSearch"></i>
                             </div>
-                            <?php if (!empty($Tags)): ?>
-                            <a href="javascript:void(0);" id="custTagFilterBtn" class="apex-filter-btn cust-only-ctrl<?php echo $initIsGroups ? ' d-none' : ''; ?>" title="Filter by Tag">
+                            <a href="javascript:void(0);" id="custTagFilterBtn" class="apex-filter-btn cust-only-ctrl d-none" title="Filter by Tag">
                                 <i class="bx bx-purchase-tag"></i>Tags
                             </a>
-                            <?php endif; ?>
                             <a href="javascript:void(0);" id="custTypeFilterBtn" class="apex-filter-btn cust-only-ctrl<?php echo $initIsGroups ? ' d-none' : ''; ?>" title="Filter by Customer Type">
                                 <i class="bx bx-user-pin me-1"></i>Customer Type
                             </a>
@@ -268,7 +266,6 @@
 </div>
 
 <!-- Filter panels (body-level to avoid overflow clipping) -->
-<?php if (!empty($Tags)): ?>
 <?php $this->load->view('common/filter_panels/col_filter_box', [
     'ColFilterConfig' => [
         'id'                => 'custTagFilterBox',
@@ -277,10 +274,9 @@
         'title'             => 'Tag Filter',
         'icon'              => 'bx-purchase-tag',
         'searchPlaceholder' => 'Search tags...',
-        'items'             => array_map(function ($t) { return ['value' => $t, 'label' => $t]; }, $Tags),
+        'items'             => [], // populated by JS via services
     ],
 ]); ?>
-<?php endif; ?>
 <?php $this->load->view('common/filter_panels/col_filter_box', [
     'ColFilterConfig' => [
         'id'                => 'custTypeFilterBox',
@@ -607,7 +603,7 @@ $(function () {
     var _grpPageNo      = 1;
     var _grpFilter      = {};
     var _grpLoaded      = false;
-    var _custDataLoaded = (_custInitTab !== 'Groups'); // false when page loaded with ?tab=groups (Option B)
+    var _custDataLoaded = false; // PHP no longer pre-renders; JS always loads initial data
 
     $('#SearchDetails').val(_custInitSearch || '');
     if (_custInitSearch && _custInitSearch.length >= 3) { Filter['SearchAllData'] = _custInitSearch; }
@@ -630,6 +626,28 @@ $(function () {
     basePaginationFunc(ModulePag, getCustomersDetails);
     baseRefreshPageFunc('.PageRefresh', getCustomersDetails);
     basePageHeaderFunc(ModuleHeader, ModuleTable, ModuleRow);
+
+    // ── Initial table load — PHP no longer pre-renders; JS fetches from services ──
+    if (_custInitTab !== 'Groups') {
+        _custDataLoaded = true;
+        PageNo = 0;
+        getCustomersDetails(PageNo, RowLimit, Filter);
+    }
+
+    // ── Services lazy-load: tags, stats, group stats ───────────────────────
+    if (_custShowStats) {
+        loadCustomerStats();
+    }
+
+    loadCustomerTags(function (response) {
+        if (response.Error || !Array.isArray(response.Tags) || !response.Tags.length) return;
+        custTagFilter.setItems($.map(response.Tags, function (t) { return { value: t, label: t }; }));
+        $('#custTagFilterBtn').removeClass('d-none');
+    });
+
+    loadGroupStats(function (response) {
+        if (!response.Error) _updateGrpStats(response.Data);
+    });
 
     // ── Select-all banner (Pattern 3) ──────────────────────────────────────
     // After header checkbox — show banner when all page rows selected
@@ -1035,8 +1053,7 @@ $(function () {
         PageNo = 0; getCustomersDetails(PageNo, RowLimit, Filter);
     });
 
-    // ── Tag filter ──
-    <?php if (!empty($Tags)): ?>
+    // ── Tag filter — always init; items populated via services on load ──
     var custTagFilter = new TransColFilter({
         boxId       : 'custTagFilterBox',
         triggerId   : 'custTagFilterBtn',
@@ -1049,7 +1066,6 @@ $(function () {
             PageNo = 0; getCustomersDetails(PageNo, RowLimit, Filter);
         }
     });
-    <?php endif; ?>
 
     // ── Customer Type filter ──
     var custTypeFilter = new TransColFilter({
@@ -1148,7 +1164,7 @@ $(function () {
         // Reset all customer filters before entering groups mode
         custTypeFilter.reset();
         custStatusFilter.reset();
-        <?php if (!empty($Tags)): ?>if (typeof custTagFilter !== 'undefined') custTagFilter.reset();<?php endif; ?>
+        custTagFilter.reset();
         if (CustShowUserFilter && typeof custUserFilter !== 'undefined') custUserFilter.reset();
         delete Filter['CustomerTypeUIDs'];
         delete Filter['Tags'];
@@ -1402,17 +1418,12 @@ $(function () {
 
     // ── URL tab state init ───────────────────────────────────────────────────
     if (_custInitTab === 'Groups') {
-        // Groups data is server-rendered by PHP — just wire up JS state, no AJAX needed
         _inGroupsMode = true;
         _grpLoaded    = true;
-        // PHP already rendered the correct d-none states for all filter/button elements
         if (_custInitSearch && _custInitSearch.length >= 3) {
             _grpFilter['SearchAllData'] = _custInitSearch;
         }
-    } else if (_custInitSearch && _custInitSearch.length >= 3) {
-        Filter['SearchAllData'] = _custInitSearch;
-        PageNo = 0;
-        getCustomersDetails(PageNo, RowLimit, Filter);
+        _grpReload(1); // PHP no longer pre-renders; JS loads groups data on init
     }
 
     if (window.location.search.indexOf('action=create') !== -1) {

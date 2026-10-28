@@ -220,29 +220,17 @@ class Customers extends MY_Controller {
             $this->pageData['GrpStats']      = null;
             $this->pageData['GrpTotal']      = 0;
 
-            $allFilter  = strlen($initSearch) >= 3 ? ['SearchAllData' => $initSearch] : [];
             $_showStats = (int)($this->pageData['JwtData']->GenSettings->ShowStats ?? 1)
                        && (int)($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1);
-            if ($initTab !== 'Groups') {
-                $pageData = $this->_fetchTableData(1, $limit, $allFilter);
-                $this->pageData['ModRowData']      = $pageData->RecordHtmlData;
-                $this->pageData['ModPagination']   = $pageData->Pagination;
-                $this->pageData['InitTotalCount']  = $pageData->TotalCount ?? 0;
-            } else {
-                $grpFilter = $allFilter;
-                $grpPage   = $this->_fetchGroupsTableData(1, $limit, $grpFilter);
-                $this->pageData['GrpRowData']    = $grpPage->RecordHtmlData;
-                $this->pageData['GrpPagination'] = $grpPage->Pagination;
-                $this->pageData['GrpStats']      = $this->customers_model->getGroupStats($orgUID);
-                $this->pageData['GrpTotal']      = $grpPage->TotalCount;
-            }
+            // Table data is no longer server-rendered; JS fetches via services endpoints on load
+            $this->pageData['InitTotalCount'] = 0;
 
             $this->pageData['InitTab']    = $initTab;
             $this->pageData['InitSearch'] = $initSearch;
 
-            $this->pageData['CustStats']         = $_showStats ? $this->customers_model->getCustomerStats($orgUID) : null;
+            $this->pageData['CustStats']         = null; // fetched client-side via services
             $this->pageData['CustomerGroupList'] = [];
-            $this->pageData['Tags']              = $this->customers_model->getCustomerTags($orgUID);
+            $this->pageData['Tags']              = [];  // fetched client-side via services
 
             // Resolve org phone country code from JwtData (sourced from OrganisationTbl at login)
             $this->pageData['OrgCCode'] = $this->pageData['JwtData']->Org->OrgCCode  ?? '';
